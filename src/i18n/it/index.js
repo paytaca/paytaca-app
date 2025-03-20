@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "Disponibile BCH dopo il deposito",
   BCH: "Bch",
   BCHBullDescription: "Crea immediatamente i contratti di AnyHedge con un fornitore di liquidità",
+  BIP38DecryptError: "Non è riuscito a decrittografare il portafoglio.Riprova più tardi o usa un'altra passphrase.",
   BIP38WalletDetected: "Ho rilevato un portafoglio crittografato BIP38.Inserisci la sua passphrase per sbloccare.",
   BIP38WalletPassphrase: "Passphrase del portafoglio BIP38",
   BUY: "ACQUISTARE",

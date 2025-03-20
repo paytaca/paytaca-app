@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "Bch yang tersedia setelah setoran",
   BCH: "Bch",
   BCHBullDescription: "Buat kontrak apa pun secara instan dengan penyedia likuiditas",
+  BIP38DecryptError: "Gagal mendekripsi dompet.Coba lagi nanti atau gunakan frasa sandi lain.",
   BIP38WalletDetected: "Mendeteksi dompet terenkripsi BIP38.Masukkan frasa sandi untuk membuka kunci.",
   BIP38WalletPassphrase: "Frase Dompet BIP38",
   BUY: "MEMBELI",

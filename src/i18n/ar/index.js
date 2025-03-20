@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "متاح BCH بعد الإيداع",
   BCH: "BCH",
   BCHBullDescription: "قم بإنشاء عقود AnyHedge على الفور مع مزود السيولة",
+  BIP38DecryptError: "فشل في فك تشفير المحفظة.حاول مرة أخرى لاحقًا أو استخدم عبارة مرور أخرى.",
   BIP38WalletDetected: "اكتشف محفظة BIP38.أدخل عبارة الممر لإلغاء القفل.",
   BIP38WalletPassphrase: "BIP38 Wallet Passphrase",
   BUY: "يشتري",

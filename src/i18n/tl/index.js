@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "Magagamit na BCH pagkatapos ng deposito",
   BCH: "BCH",
   BCHBullDescription: "Lumikha agad ng mga kontrata ng AnyHedge sa isang tagabigay ng pagkatubig",
+  BIP38DecryptError: "Nabigong i -decrypt ang pitaka.Subukang muli sa ibang pagkakataon o gumamit ng isa pang passphrase.",
   BIP38WalletDetected: "Nakita ang isang pitaka na naka-encrypt ng BIP38.Ipasok ang passphrase nito upang i -unlock.",
   BIP38WalletPassphrase: "BIP38 Wallet Passphrase",
   BUY: "Bilhin",

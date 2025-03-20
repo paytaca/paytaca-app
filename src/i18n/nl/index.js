@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "Beschikbaar BCH na deposito",
   BCH: "BCH",
   BCHBullDescription: "Creëer elke hedge -contracten direct met een liquiditeitsaanbieder",
+  BIP38DecryptError: "Kan de portemonnee niet decoderen.Probeer het later opnieuw of gebruik nog een wachtwoordzin.",
   BIP38WalletDetected: "Gedetecteerd een BIP38-gecodeerde portemonnee.Voer zijn wachtwoordzin in om te ontgrendelen.",
   BIP38WalletPassphrase: "BIP38 Wallet Passasphrase",
   BUY: "KOPEN",

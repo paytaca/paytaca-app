@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "Akwai BCH bayan ajiya",
   BCH: "Bk",
   BCHBullDescription: "Createirƙiri rarraba kwangiloli nan take tare da mai bada ruwa",
+  BIP38DecryptError: "Ba a yi nasarar warware walat ba.Sake gwadawa daga baya ko amfani da wani passphrase.",
   BIP38WalletDetected: "Gano waljin Bip38-procrypted.Shigar da kalmar wucewa don buše.",
   BIP38WalletPassphrase: "Bip38 Passphrase Bip38",
   BUY: "Saya",

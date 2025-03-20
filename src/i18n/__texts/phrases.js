@@ -1189,7 +1189,8 @@ const phrases = {
       ExternalLinks: 'External Links',
       ProcessingNecessaryDetails: 'Processing necessary details',
       BIP38WalletPassphrase: 'BIP38 wallet passphrase',
-      BIP38WalletDetected: 'Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.'
+      BIP38WalletDetected: 'Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.',
+      BIP38DecryptError: 'Failed to decrypt wallet. Try again later or use another passphrase.'
     }
   ],
   dynamic: [

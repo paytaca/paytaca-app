@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "Beskikbaar BCH na deposito",
   BCH: "Bch",
   BCHBullDescription: "Skep enigiets kontrakte onmiddellik met 'n likiditeitsverskaffer",
+  BIP38DecryptError: "Kon nie die beursie dekodeer nie.Probeer later weer of gebruik nog 'n wagwoordfrase.",
   BIP38WalletDetected: "Het 'n BIP38-geënkripteerde beursie opgespoor.Voer sy wagwoordfrase in om te ontsluit.",
   BIP38WalletPassphrase: "BIP38 Wallet Passfrase",
   BUY: "Koop",

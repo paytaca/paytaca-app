@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "BCH disponível após depósito",
   BCH: "BCH",
   BCHBullDescription: "Crie contratos de Anyhedge instantaneamente com um provedor de liquidez",
+  BIP38DecryptError: "Falhou em descriptografar a carteira.Tente novamente mais tarde ou use outra senha.",
   BIP38WalletDetected: "Detectou uma carteira criptografada do BIP38.Digite sua senha para desbloquear.",
   BIP38WalletPassphrase: "Senha da carteira BIP38",
   BUY: "COMPRAR",

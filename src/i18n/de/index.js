@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "Verfügbar BCH nach Einzahlung",
   BCH: "BCH",
   BCHBullDescription: "Erstellen Sie sofort Verträge mit einem Liquiditätsanbieter",
+  BIP38DecryptError: "Versäumt es, Brieftasche zu entschlüsseln.Versuchen Sie es später erneut oder verwenden Sie eine andere Passphrase.",
   BIP38WalletDetected: "Erkannte eine bip38-verschlüsselte Brieftasche.Geben Sie seine Passphrase ein, um freizuschalten.",
   BIP38WalletPassphrase: "BIP38 Wallet -Passphrase",
   BUY: "KAUFEN",

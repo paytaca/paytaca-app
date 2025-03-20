@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "예금 후 사용 가능한 BCH",
   BCH: "BCH",
   BCHBullDescription: "유동성 제공 업체와 즉시 Adyhedge 계약을 만듭니다",
+  BIP38DecryptError: "지갑을 해독하지 못했습니다.나중에 다시 시도하거나 다른 암호를 사용하십시오.",
   BIP38WalletDetected: "BIP38 암호화 지갑을 감지했습니다.잠금을 해제하려면 암호를 입력하십시오.",
   BIP38WalletPassphrase: "BIP38 지갑 암호",
   BUY: "구입하다",

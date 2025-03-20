@@ -577,15 +577,27 @@ export default {
       this.isDecrypting = true
       this.submitted = true
       setTimeout(() => {
-        const decryptedKey = bip38.decrypt(this.bip38String, this.passPhrase)
-        const wifKey = wifPackage.encode({
-          version: 0x80,
-          privateKey: decryptedKey.privateKey,
-          compressed: decryptedKey.compressed
-        })
-        this.isDecrypting = false
-        this.wif = wifKey
-        this.getTokens(true)
+        try {
+          const decryptedKey = bip38.decrypt(this.bip38String, this.passPhrase)
+          const wifKey = wifPackage.encode({
+            version: 0x80,
+            privateKey: decryptedKey.privateKey,
+            compressed: decryptedKey.compressed
+          })
+          this.isDecrypting = false
+          this.wif = wifKey
+          this.getTokens(true)
+        } catch {
+          this.isDecrypting = false
+          this.submitted = false
+          this.wif = ''
+          this.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t('BIP38DecryptError')
+          })
+        }
       }, 1000);
     },
   },

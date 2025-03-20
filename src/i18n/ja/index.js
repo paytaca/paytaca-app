@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "入金後に利用可能なBCH",
   BCH: "BCH",
   BCHBullDescription: "流動性プロバイダーと即座に任意の契約を作成します",
+  BIP38DecryptError: "ウォレットを復号化できませんでした。後で再試行するか、別のパスフレーズを使用してください。",
   BIP38WalletDetected: "BIP38暗号化されたウォレットを検出しました。パスフレーズを入力してロックを解除します。",
   BIP38WalletPassphrase: "BIP38ウォレットパスフレーズ",
   BUY: "買う",

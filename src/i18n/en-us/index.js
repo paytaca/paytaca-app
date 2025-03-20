@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "Available BCH after deposit",
   BCH: "BCH",
   BCHBullDescription: "Create anyhedge contracts instantly with a liquidity provider",
+  BIP38DecryptError: "Failed to decrypt wallet. Try again later or use another passphrase.",
   BIP38WalletDetected: "Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.",
   BIP38WalletPassphrase: "BIP38 wallet passphrase",
   BUY: "BUY",

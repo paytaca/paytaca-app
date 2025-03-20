@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "BCH disponible después del depósito",
   BCH: "BCH",
   BCHBullDescription: "Cree contratos AnyHedge al instante con un proveedor de liquidez",
+  BIP38DecryptError: "No se pudo descifrar la billetera.Vuelva a intentarlo más tarde o use otra frase de pases.",
   BIP38WalletDetected: "Detectó una billetera cifrada BIP38.Ingrese su frase de pases para desbloquear.",
   BIP38WalletPassphrase: "Frase de billetera bip38",
   BUY: "COMPRAR",

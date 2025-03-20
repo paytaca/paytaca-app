@@ -122,6 +122,7 @@ export default {
   AvailableBchMessage: "存款後可用",
   BCH: "BCH",
   BCHBullDescription: "立即與流動性提供商立即建立Any -Anyed合同",
+  BIP38DecryptError: "沒有解密錢包。稍後再試一次或使用另一個密碼。",
   BIP38WalletDetected: "檢測到BIP38加密的錢包。輸入其密碼以解鎖。",
   BIP38WalletPassphrase: "BIP38錢包串聯",
   BUY: "買",
