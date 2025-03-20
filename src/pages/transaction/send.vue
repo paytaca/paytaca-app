@@ -1298,24 +1298,26 @@ export default {
         vm.sending = false
         vm.sent = true
 
-        // api call for processing first transaction 5 PHP worth of BCH
-        const cashinResp = await processCashinPoints({
-          bch_address: sendPageUtils.getWallet('bch')?.lastAddress
-        })
-        // api call for processing one-time user points
-        const onetimePointsResp = await processOnetimePoints({
-          bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-          ref_id: result.txid.substring(0, 6)
-        })
-
-        if (cashinResp || onetimePointsResp) {
-          vm.$q.dialog({
-            component: PointsReceivedDialog,
-            componentProps: {
-              hasReceivedCashinPoints: cashinResp,
-              hasReceivedOneTimePoints: onetimePointsResp
-            }
+        if (!vm.assetId?.startsWith?.('ct/')) {
+          // api call for processing first transaction 5 PHP worth of BCH
+          const cashinResp = await processCashinPoints({
+            bch_address: sendPageUtils.getWallet('bch')?.lastAddress
           })
+          // api call for processing one-time user points
+          const onetimePointsResp = await processOnetimePoints({
+            bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+            ref_id: result.txid.substring(0, 6)
+          })
+  
+          if (cashinResp || onetimePointsResp) {
+            vm.$q.dialog({
+              component: PointsReceivedDialog,
+              componentProps: {
+                hasReceivedCashinPoints: cashinResp,
+                hasReceivedOneTimePoints: onetimePointsResp
+              }
+            })
+          }
         }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },

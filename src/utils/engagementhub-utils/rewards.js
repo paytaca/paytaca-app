@@ -77,7 +77,7 @@ export function parseLocaleDate (date, isDayIncluded = true) {
 async function processPoints (url, data) {
   return await REWARDS_URL
     .post(url, data)
-    .then(_response => { return true })
+    .then(response => { return response.status === 200 })
     .catch(_error => { return false })
 }
 
