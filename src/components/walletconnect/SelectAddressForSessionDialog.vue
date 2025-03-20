@@ -61,7 +61,7 @@
               </div>
             </q-item-section>
           </q-item>
-        <q-sperator></q-sperator>
+        <q-separator></q-separator>
         <div>Multisig Address</div>
         <q-item
           v-for="item in multisigAddressOptions"
@@ -118,18 +118,15 @@
 </template>
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { useStore } from 'vuex';
+import { useStore } from 'vuex'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
-import { convertCashAddress } from 'src/wallet/chipnet';
+import { convertCashAddress } from 'src/wallet/chipnet'
 import PeerInfo from './PeerInfo.vue'
-const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } 
-  = useDialogPluginComponent()
-const emit = defineEmits(['ok', 'hide'])
-const $q = useQuasar()
-const $store = useStore()
 
+const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+const $store = useStore()
 const settings = computed(() => $store.getters['walletconnect/settings'])
 
 const formatAddressForDisplay = (address) => {
@@ -149,10 +146,16 @@ const props = defineProps({
 })
 
 const addressSelected = ref('') /* <string> */
+const addressSelectedIsMultisig = ref()
 const addressOptions = ref([]) /* <{label: string, value: string, selected?: boolean }[]> */
 const multisigAddressOptions = ref([]) /* <{label: string, value: string, selected?: boolean }[]> */
 
 const onConnectClick = () => {
+  if (addressSelected.value.isMultisig) {
+    return onDialogOK(
+      props.multisigWalletAddresses.find((walletAddress) => walletAddress.cashaddress === addressSelected.value)
+    )
+  }
   onDialogOK(
     props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
   )
@@ -167,6 +170,7 @@ const selectAddress = (address) => {
     addressOption.selected = (addressOption.address === address)
     if (addressOption.selected) {
       addressSelected.value = address
+      addressSelectedIsMultisig.value = false
     }
   })
 }
@@ -176,13 +180,17 @@ const selectMultisigAddress = (address) => {
     addressOption.selected = (addressOption.address === address)
     if (addressOption.selected) {
       addressSelected.value = address
+      addressSelectedIsMultisig.value = true
     }
   })
+  console.log(multisigAddressOptions.value)
+  console.log(addressSelected.value)
 }
 
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: item.address, address: item.address, index: item.address_index }))
+  multisigAddressOptions.value = props.multisigWalletAddresses?.map((item) => ({ label: item.template?.name, address: item.cashaddress }))
   if (props.walletAddresses) {
     addressSelected.value = props.walletAddresses[0].address
     addressOptions.value[0].selected = true
@@ -190,8 +198,6 @@ onMounted(() => {
   if (props.lastUsedWalletAddress?.wallet_address) {
     selectAddress(props.lastUsedWalletAddress?.wallet_address)
   }
-
-  multisigAddressOptions.value = props.multisigWalletAddresses?.map((item) => ({ label: item.template?.name, address: item.cashaddress }))
 })
 </script>
 
