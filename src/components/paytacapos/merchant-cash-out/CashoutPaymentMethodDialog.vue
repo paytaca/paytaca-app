@@ -109,7 +109,7 @@
 
           <div v-if="paymentMethod.payment_type">
             <div v-for="(field, index) in paymentMethod?.payment_type?.fields" :key="index">
-              <span class="text-red" v-if="field.required">*</span>
+              <span class="text-red q-pl-xs" style="font-size: 10px;" v-if="field.required">*required</span>
               <q-input
                 dense
                 filled
