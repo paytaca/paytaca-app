@@ -12,12 +12,12 @@ export function deleteWalletDraft (state) {
   state.walletDraft = null
 }
 
-export function commitWalletDraft (state, { m, n, cashaddress, lockingBytecode, signers, template }) {
-  state.wallets.push({ m, n, cashaddress, lockingBytecode, signers, template })
+export function commitWalletDraft (state, { m, n, address, lockingBytecode, signers, template }) {
+  state.wallets.push({ m, n, address, lockingBytecode, signers, template })
 }
 
-export function deleteWallet (state, { cashaddress }) {
-  const index = state.wallets.findIndex((wallet) => wallet.cashaddress === cashaddress)
+export function deleteWallet (state, { address }) {
+  const index = state.wallets.findIndex((wallet) => wallet.address === address)
   if (index === -1) return
   state.wallets?.splice(index, 1)
 }

@@ -34,7 +34,7 @@
                           Wallet Address
                         </q-item-section>
                         <q-item-section right>
-                          {{ wallet.cashaddress }}
+                          {{ wallet.address }}
                         </q-item-section>
                       </q-item>
                       <h6>Signers</h6>
@@ -59,7 +59,7 @@
             </div>
           </div>
         </div>
-        <FooterMenu v-if="wallet" :cashaddress="wallet.cashaddress"/>
+        <FooterMenu v-if="wallet" :address="wallet.address"/>
       </q-page>
 
     </q-page-container>
@@ -85,8 +85,8 @@ const darkMode = computed(() => {
 })
 
 const wallet = computed(() => {
-  if (route.params?.cashaddress) {
-    return $store.getters['multisig/getWallet']({ cashaddress: route.params.cashaddress })
+  if (route.params?.address) {
+    return $store.getters['multisig/getWallet']({ address: route.params.address })
   }
   return null
 })

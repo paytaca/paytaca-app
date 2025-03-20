@@ -35,7 +35,7 @@
             </div>
             <div class="col-xs-12 q-px-sm q-gutter-x-sm">
               <q-list v-if="wallets" bordered>
-                <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ name: 'app-multisig-view-wallet', params: { cashaddress: wallet.cashaddress } }">
+                <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ name: 'app-multisig-view-wallet', params: { address: wallet.address } }">
                   <q-item-section>
                     <q-item-label>{{ wallet.template.name }}</q-item-label>
                     <q-item-label caption lines="2">
@@ -45,7 +45,7 @@
                     </q-item-label>
                   </q-item-section>
                   <q-item-section side top>
-                    <q-btn icon="delete" @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.cashaddress) }" color="secondary"></q-btn>
+                    <q-btn icon="delete" @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.address) }" color="secondary"></q-btn>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -74,8 +74,8 @@ const wallets = computed(() => {
   return $store.getters['multisig/getWallets']
 })
 
-const deleteWallet = (cashaddress) => {
-  $store.dispatch('multisig/deleteWallet', { cashaddress })
+const deleteWallet = (address) => {
+  $store.dispatch('multisig/deleteWallet', { address })
 }
 
 const deleteAllWallets = () => {

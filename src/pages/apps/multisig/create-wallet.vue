@@ -128,7 +128,7 @@ const n = ref()
  */
 const signers = ref()
 const template = ref()
-const cashaddress = ref()
+const address = ref()
 const lockingBytecode = ref()
 
 const mOptionsComputed = computed(() => {
@@ -178,7 +178,7 @@ const initWallet = () => {
       template.value = JSON.parse(JSON.stringify(walletDraft.template))
       m.value = walletDraft.m || 2
       n.value = walletDraft.n || 3
-      cashaddress.value = walletDraft.cashaddress
+      address.value = walletDraft.address
       lockingBytecode.value = walletDraft.lockingBytecode
       return
     } catch (error) { }
@@ -219,10 +219,10 @@ const onCreateClicked = () => {
     n: n.value,
     template: template.value,
     signers: multisigWallet.signers,
-    cashaddress: multisigWallet.cashaddress,
+    address: multisigWallet.address,
     lockingBytecode: multisigWallet.lockingBytecode
   })
-  router.push({ name: 'app-multisig-view-wallet', params: { cashaddress: multisigWallet.cashaddress } })
+  router.push({ name: 'app-multisig-view-wallet', params: { address: multisigWallet.address } })
 }
 
 watch(() => m.value, (newM) => {

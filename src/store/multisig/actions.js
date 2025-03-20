@@ -8,13 +8,13 @@ export function deleteWalletDraft ({ commit }) {
   // TODO: mutate watchtower
 }
 
-export function commitWalletDraft ({ commit }, { m, n, cashaddress, lockingBytecode, signers, template }) {
-  commit('commitWalletDraft', { m, n, cashaddress, lockingBytecode, signers, template })
+export function commitWalletDraft ({ commit }, { m, n, address, lockingBytecode, signers, template }) {
+  commit('commitWalletDraft', { m, n, address, lockingBytecode, signers, template })
   // TODO: mutate watchtower
 }
 
-export function deleteWallet ({ commit }, { cashaddress }) {
-  commit('deleteWallet', { cashaddress })
+export function deleteWallet ({ commit }, { address }) {
+  commit('deleteWallet', { address })
   // TODO: mutate watchtower
 }
 

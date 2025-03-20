@@ -29,7 +29,7 @@
                   <q-btn @click="$copyText(depositAddress)" icon="content_copy" color="primary">Copy Address</q-btn>
                 </div>
                 <div class="col-12 text-center">
-                  <q-btn :to="{ name: 'app-multisig-view-wallet', params: { cashaddress: depositAddress } }" icon="arrow_back" outline>Back</q-btn>
+                  <q-btn :to="{ name: 'app-multisig-view-wallet', params: { address: depositAddress } }" icon="arrow_back" outline>Back</q-btn>
                 </div>
             </div>
           </div>
@@ -53,7 +53,7 @@ const route = useRoute()
 const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const depositAddress = computed(() => {
-  return route.params.cashaddress
+  return route.params.address
 })
 
 const amount = ref(0)
