@@ -214,7 +214,8 @@
   </div>
 </template>
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch, onBeforeMount, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, onBeforeMount, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { convertCashAddress } from 'src/wallet/chipnet'
@@ -238,7 +239,6 @@ import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import { loadLibauthHdWallet } from '../../wallet'
-import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 const $emit = defineEmits([
   'request-scanner'
 ])
@@ -246,6 +246,7 @@ const CHAINID_MAINNET = 'bch:bitcoincash'
 const CHAINID_CHIPNET = 'bch:bchtest'
 
 const $q = useQuasar()
+const $router = useRouter()
 const { t: $t } = useI18n()
 const $store = useStore()
 const loading = ref/* <string> */()
@@ -431,7 +432,7 @@ const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWal
       })
       if (!addressInfo) {
         addressInfo = multisigWalletAddresses.find((addressInfo) => {
-          return account.includes(addressInfo.cashaddress)
+          return account.includes(addressInfo.address)
         })
       }
       if (addressInfo) {
@@ -716,6 +717,16 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction') {
     try {
       const walletAddress = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
+      console.log('RESPONDING TO SIGN REQU', walletAddress)
+      console.log('RESPONDING TO SIGN REQU', sessionRequest)
+      if (walletAddress.signers) { // Account with active session is a multisig wallet
+        // save the request as signature request
+        // push to multisig signature request page
+        $store.dispatch('newSignatureRequest', { signatureRequest: sessionRequest, address: walletAddress.address })
+        $router.push({ name: 'app-multisig-signature-request', params: { address: walletAddress.address } })
+        rejectSessionRequest(sessionRequest) // TODO: respond properly
+        return
+      }
       if (!walletAddress?.wif) {
         return await new Promise((resolve, reject) => {
           $q.dialog({
@@ -726,8 +737,6 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           })
         })
       }
-      console.log('TRANSACTION BEFORE SIGNING', sessionRequest.params.request.params.transaction)
-      return
       response.result = await signBchTransaction(
         sessionRequest.params.request.params.transaction,
         sessionRequest.params.request.params.sourceOutputs,
