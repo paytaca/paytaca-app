@@ -8,6 +8,7 @@ export default function () {
     //   cosigners: /* { <position>: { xPubKey, derivationPath } } */,
     //   template:  /* bitauth template */
     // },
-    wallets: [] /* { address, lockingBytecode, cosigners, template}[] */
+    wallets: [], /* { address, lockingBytecode, cosigners, template}[] */
+    signatureRequest: {} /* { [address: string]: sessionRequest } */
   }
 }

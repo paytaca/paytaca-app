@@ -26,6 +26,6 @@ export function deleteAllWallets ({ commit }) {
 /**
  * request is a wallet connect session request
  */
-export function newSignatureRequest ({ commit }, { signatureRequest }) {
-  commit('signatureRequest', { signatureRequest })
+export function signatureRequest ({ commit }, { address, signatureRequest }) {
+  commit('signatureRequest', { address, signatureRequest })
 }

@@ -26,7 +26,7 @@ export function deleteAllWallets (state) {
   state.wallets = []
 }
 
-export function newSignatureRequest (state, { signatureRequest, address }) {
+export function signatureRequest (state, { signatureRequest, address }) {
   state.signatureRequest = {
     [address]: signatureRequest
   }
