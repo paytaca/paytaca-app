@@ -15,6 +15,7 @@ const TxAttribute = Object.freeze({
   GiftClaim: 'gift_claim',
   Cashback: 'cashback',
   StablehedgeTransaction: 'stablehedge_transaction',
+  MerchantCashout: 'merchant_cashout',
 
   /**
    * @param {String} key the key in the attribute
@@ -121,6 +122,14 @@ export function parseAttributeToBadge(attribute) {
       text: 'Stablehedge',
       // icon: icons.cashback,
       description: description || _description
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.MerchantCashout)) {
+    return {
+      key,
+      custom: true,
+      text: 'Cash out',
+      icon: icons.cashback,
+      description: description || `Merchant cash-out for ${value}`
     }
   }
 

@@ -105,6 +105,18 @@
             @click.stop="openMerchantInfoDialog()"
           />
         </q-item>
+        <div class="text-center q-pt-xs">
+          <q-btn
+            outline
+            rounded
+            dense
+            label="Cash out"
+            icon="payments"
+            class="button button-text-primary full-width"
+            :class="getDarkModeClass(darkMode)"
+            @click="openCashoutPage()"
+          />
+        </div>
       </q-card-section>
     </q-card>
 
@@ -299,7 +311,7 @@
       v-model="posDeviceFormDialog.show"
       :new-device="!Boolean(posDeviceFormDialog.posDevice)"
       :pos-device="posDeviceFormDialog.posDevice"
-      :merchant-id="parseInt(props.merchantId)"
+      :merchant-id="parseInt(merchantId)"
       :branch-options="merchantBranches"
       @ok="onSubmitPosDeviceFormDialog"
     />
@@ -330,19 +342,22 @@ import SalesReportDialog from 'src/components/paytacapos/SalesReportDialog.vue'
 import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useRouter } from 'vue-router'
 
 const bchjs = new BCHJS()
 
-const props = defineProps({
-  merchantId: [String, Number],
-})
+// const props = defineProps({
+//   merchantId: [String, Number],
+// })
 
+const $router = useRouter()
 const $store = useStore()
 const $q = useQuasar()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const confirm = ref(false)
 const walletType = 'bch'
+const merchantId = JSON.parse(history.state.merchantId)
 const walletData = computed(() => {
   const _walletData = $store.getters['global/getWallet'](walletType)
   // extract necessary data
@@ -395,8 +410,12 @@ async function fetchAuthWallet() {
     })
 }
 
+function openCashoutPage () {
+  $router.push({ name: 'app-pos-cashout', state: { merchantId: this.merchantInfo?.id } })
+}
+
 const merchantsList = computed(() => $store.getters[`paytacapos/merchants`])
-const merchantInfo = computed(() => merchantsList.value.find(merchant => merchant?.id == props.merchantId))
+const merchantInfo = computed(() => merchantsList.value.find(merchant => merchant?.id == merchantId))
 const showMerchantInfoDialog = ref(false)
 function openMerchantInfoDialog() {
   hidePopups()
@@ -404,19 +423,19 @@ function openMerchantInfoDialog() {
 }
 const merchantBranches = computed(() => {
   return $store.getters['paytacapos/merchantBranches']
-    .filter(branch => branch?.merchant?.id == props.merchantId)
+    .filter(branch => branch?.merchant?.id == merchantId)
 })
 function fetchBranches() {
   return $store.dispatch(
     'paytacapos/refetchBranches',
-    { walletHash: walletData.value.walletHash, merchantId: parseInt(props?.merchantId) },
+    { walletHash: walletData.value.walletHash, merchantId: parseInt(merchantId) },
   )
 }
 watch(
   () => walletData.value.walletHash,
   () => $store.dispatch(
     'paytacapos/refetchBranches',
-    { walletHash: walletData.value.walletHash, merchantId: props?.merchantId }
+    { walletHash: walletData.value.walletHash, merchantId: merchantId }
   ),
 )
 function merchantBranch (branchId) {
@@ -456,7 +475,7 @@ function fetchPosDevices(opts) {
     limit: opts?.limit || 10,
     offset: opts?.offset || 0,
     wallet_hash: walletHash,
-    merchant_id: parseInt(props.merchantId),
+    merchant_id: parseInt(merchantId),
   }
   fetchingPosDevices.value = true
   return posBackend.get('paytacapos/devices/', { params })
@@ -1066,5 +1085,10 @@ async function refreshPage(done=() => {}) {
     position: absolute;
     top: 0rem;
     right: 0.25rem;
+  }
+  .cashout-button {
+    position: absolute;
+    top: 0rem;
+    right: 2.5rem;
   }
 </style>
