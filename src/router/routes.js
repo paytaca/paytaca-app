@@ -224,6 +224,7 @@ const routes = [
           { path: 'wallet/draft', component: () => import('src/pages/apps/multisig/view-wallet-draft.vue'), name: 'app-multisig-view-wallet-draft' },
           { path: 'wallet/view/:address', component: () => import('src/pages/apps/multisig/view-wallet.vue'), name: 'app-multisig-view-wallet' },
           { path: 'wallet/receive/:address', component: () => import('src/pages/apps/multisig/receive.vue'), name: 'app-multisig-receive' },
+          { path: 'wallet/signature-request/:address', component: () => import('src/pages/apps/multisig/signature-request.vue'), name: 'app-multisig-signature-request' },
           { path: 'signer/xpubkey-qrcode', component: () => import('src/pages/apps/multisig/view-xpubkey-qrcode.vue'), name: 'app-multisig-view-xpubkey-qrcode' }
         ]
       }
