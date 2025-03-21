@@ -12,6 +12,7 @@
             <div class="row q-mt-lg justify-right">
                 <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-md">
                     {{ signatureRequest }}
+                    {{ route.params.address }}
                 </div>
             </div>
           </div>
@@ -27,7 +28,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
 import FooterMenu from 'components/multisig/footer-menu.vue'
@@ -36,7 +37,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
-
+const signatureRequest = ref()
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
@@ -49,7 +50,7 @@ const wallet = computed(() => {
 })
 
 onMounted(() => {
-  return $store.getters['multisig/getSignatureRequest']({ address: route.params.address })
+  signatureRequest.value = $store.getters['multisig/getSignatureRequest']({ address: route.params.address })
 })
 
 </script>
