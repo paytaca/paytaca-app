@@ -43,6 +43,9 @@
                         {{ signer.signerName }}
                       </span>
                     </q-item-label>
+                    <q-item-label>
+                      {{ wallet.address }}
+                    </q-item-label>
                   </q-item-section>
                   <q-item-section side top>
                     <q-btn icon="delete" @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.address) }" color="secondary"></q-btn>
