@@ -50,7 +50,8 @@ export default class PromoContract {
       })
       const spiceToken = tokens.filter(t => t.category === process.env.SPICE_TOKEN_ID)
       if (spiceToken.length > 0) {
-        balance = Number(spiceToken[0].balance) / (10 ** spiceDecimals)
+        balance = Number(spiceToken[0].balance)
+        // balance = Number(spiceToken[0].balance) / (10 ** spiceDecimals)
       }
     }).catch(async _error => {
       // retrieve balance from contract token utxos
@@ -59,8 +60,11 @@ export default class PromoContract {
           return result.filter(r => r.token?.category === process.env.SPICE_TOKEN_ID)
         })
       balance = spiceUtxos.reduce((total, el) => {
-        return total + (Number(el.token?.amount) / (10 ** spiceDecimals))
+        return total + Number(el.token?.amount)
       }, 0)
+      // balance = spiceUtxos.reduce((total, el) => {
+      //   return total + (Number(el.token?.amount) / (10 ** spiceDecimals))
+      // }, 0)
     })
 
     return balance
