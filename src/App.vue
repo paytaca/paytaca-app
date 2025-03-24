@@ -52,6 +52,11 @@ export default {
       offlineNotif: null
     }
   },
+  computed: {
+    connectivityStatus() {
+      return this.$store.getters['global/getConnectivityStatus']
+    },
+  },
   methods: {
     async onConnectivityChange (online) {
       console.log("CONNECTIVITY CHANGE", online)
@@ -225,8 +230,8 @@ export default {
     }
   },
   beforeMount() {
-    if (typeof navigator.onLine === 'boolean') {
-      this.onConnectivityChange(navigator.onLine) 
+    if (!this.connectivityStatus && navigator.onLine) {
+      this.onConnectivityChange(Boolean(navigator.onLine))
     }
   },
   async mounted () {
