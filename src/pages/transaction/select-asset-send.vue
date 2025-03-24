@@ -114,7 +114,7 @@ export default {
       return this.$store.getters['global/isChipnet']
     },
     online () {
-      return this.$store.state.global.online
+      return this.$store.getters['global/getConnectivityStatus']
     },
     selectedNetwork: {
       get () {
@@ -232,6 +232,7 @@ export default {
 
       assets.forEach(async (asset) => {
         await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
+        vm.$store.dispatch('global/updateConnectivityStatus', true)
       })
     })
   }
