@@ -110,12 +110,15 @@
             outline
             rounded
             dense
+            :disable="!isCashoutAvailable"
+            :loading="cashoutBtnLoading"
             label="Cash out"
             icon="payments"
             class="button button-text-primary full-width"
             :class="getDarkModeClass(darkMode)"
             @click="openCashoutPage()"
           />
+          <div class="q-pt-xs text-red" style="font-size: 10px;">{{ cashoutErrorMsg }}</div>
         </div>
       </q-card-section>
     </q-card>
@@ -343,6 +346,7 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter } from 'vue-router'
+import { fetchMerchants } from 'src/store/paytacapos/actions';
 
 const bchjs = new BCHJS()
 
@@ -1072,6 +1076,64 @@ async function refreshPage(done=() => {}) {
     done?.()
   }
 
+}
+
+let isCashoutAvailable = false
+let cashoutErrorMsg = null
+let cashoutBtnLoading = true
+let merchantActivity = {
+  active: false,
+  verified: false
+}
+onMounted(() => checkCashoutAvailability())
+async function checkCashoutAvailability () {
+  await $store.dispatch('global/fetchAppControl')
+  const appControl = $store.getters['global/appControl']
+  const country = $store.getters['global/country']
+
+  const cashoutControl = appControl.find(item => item.feature_name === 'MERCHANT_CASH_OUT')
+
+  if (cashoutControl.is_enabled) {
+    isCashoutAvailable = true
+
+    if (!cashoutControl.enabled_countries.includes(country.code)) {
+      isCashoutAvailable = false
+
+      cashoutErrorMsg = '*Cashout Feature is not available in your country'
+    } else {
+      // await fetchMerchant()
+      // console.log('HERRREE: ', merchantActivity)
+
+      //if (!(merchantActivity.active && merchantActivity.verified)) {
+      //  isCashoutAvailable = false
+
+      //  cashoutErrorMsg = 'Cashout Feature not available for this merchant'
+      //}
+    }
+    cashoutBtnLoading = false
+  } else {
+    isCashoutAvailable = false
+
+    cashoutErrorMsg = '*Cashout Feature is not available at the moment'
+  }
+
+  cashoutBtnLoading = false
+}
+async function fetchMerchant () {
+  await posBackend.get(`/paytacapos/merchants/${merchantId}`, { authorize: true })
+    .then(response => {
+      const resp = response.data
+      console.log('response: ', response.data)
+
+      merchantActivity.active = resp.active
+      merchantActivity.verified = resp.verified
+
+      console.log('merchant: ', merchantActivity)
+    })
+    .finally(() => {console.log('done')})
+    .catch(error => {
+      console.log(error)
+    })
 }
 </script>
 <style lang="scss" scoped>
