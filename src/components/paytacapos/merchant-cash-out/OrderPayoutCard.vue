@@ -82,7 +82,7 @@ export default {
             })
             lossCovered = lossCovered.toFixed(2)
             lossGain = (currentTotal - initialTotal).toFixed(2)
-            currentTotal += lossCovered
+            currentTotal = Number(currentTotal.toFixed(2)) + Number(lossCovered)
 
             this.cashOutTotal = {
                 initialTotal: formatNumber(initialTotal) || initialTotal,

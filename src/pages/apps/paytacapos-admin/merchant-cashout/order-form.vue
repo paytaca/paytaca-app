@@ -91,13 +91,13 @@
 import { formatCurrency, formatNumber } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
+import { loadLibauthHdWallet } from 'src/wallet'
 import CashoutTransactionBuilder from 'src/merchant-cashout'
 import HeaderNav from 'src/components/header-nav.vue'
 import CashoutPaymentMethodDialog from 'src/components/paytacapos/merchant-cash-out/CashoutPaymentMethodDialog.vue'
-import { loadLibauthHdWallet } from 'src/wallet'
-import Watchtower from 'src/lib/watchtower'
 import OrderPayoutCard from 'src/components/paytacapos/merchant-cash-out/OrderPayoutCard.vue'
 import SelectedTransactionsList from 'src/components/paytacapos/merchant-cash-out/SelectedTransactionsList.vue'
+import Watchtower from 'src/lib/watchtower'
 
 export default {
   components: {
@@ -162,7 +162,6 @@ export default {
     this.paymentMethod = this.lastPaymentMethod
     this.transactions = JSON.parse(history.state.selectedTransactions)
     this.transactionList = this.transactions
-    this.calculateCashOutTotal(this.transactions)
     this.merchant = this.$store.getters['paytacapos/cashoutMerchant']
   },
   methods: {
@@ -174,71 +173,6 @@ export default {
       const walletIndex = this.$store.getters['global/getWalletIndex']
       const wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
       this.wallet = wallet
-    },
-    calculateCashOutTotal (transactions) {
-      let initialTotal = 0
-      let currentTotal = 0
-      let lossGain = 0
-      let lossCovered = 0
-      let totalBchAmount = 0
-      transactions.forEach(tx => {
-        const initMarketPrice = tx.fiat_price?.initial[this.currency.symbol]
-        const initFiatAmount = tx.amount * initMarketPrice
-        initialTotal += initFiatAmount
-
-        const currMarketPrice = tx.fiat_price?.current[this.currency.symbol]
-        const currFiatAmount = tx.amount * currMarketPrice
-        currentTotal += currFiatAmount
-
-        const isLossProtected = this.lossProtection(tx) !== 'Expired'
-        if (currentTotal < initialTotal && isLossProtected) {
-          const gap = initFiatAmount - currFiatAmount
-          lossCovered += gap
-        }
-        totalBchAmount += tx.amount
-      })
-      lossCovered = lossCovered.toFixed(2)
-      lossGain = (currentTotal - initialTotal).toFixed(2)
-      currentTotal += lossCovered
-
-      this.cashOutTotal = {
-        initialTotal: formatNumber(initialTotal) || initialTotal,
-        currentTotal: formatNumber(currentTotal) || currentTotal,
-        lossGain: formatNumber(lossGain) || lossGain,
-        lossCovered: formatNumber(lossCovered) || lossCovered,
-        totalBchAmount: formatNumber(totalBchAmount) || totalBchAmount
-      }
-    },
-    lossProtection (transaction) {
-      const txTime = new Date(transaction.tx_timestamp)
-      const expirationDate = new Date(txTime)
-      expirationDate.setDate(txTime.getDate() + 30)
-
-      const now = new Date()
-      const timeLeft = expirationDate - now
-
-      const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
-      const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
-      const secondsLeft = Math.floor((timeLeft % (1000 * 60)) / 1000)
-
-      if (daysLeft > 0) {
-        return `${daysLeft} days left`
-      }
-
-      if (hoursLeft > 0) {
-        return `${hoursLeft} hours left`
-      }
-
-      if (minutesLeft > 0) {
-        return `${minutesLeft} minutes left`
-      }
-
-      if (secondsLeft > 0) {
-        return `${secondsLeft} seconds left`
-      }
-
-      return 'Expired'
     },
     async cashOutUtxos () {
       const selectedUtxos = this.transactions
