@@ -346,6 +346,7 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter } from 'vue-router'
+import { fetchMerchants } from 'src/store/paytacapos/actions';
 
 const bchjs = new BCHJS()
 
@@ -1080,6 +1081,10 @@ async function refreshPage(done=() => {}) {
 let isCashoutAvailable = false
 let cashoutErrorMsg = null
 let cashoutBtnLoading = true
+let merchantActivity = {
+  active: false,
+  verified: false
+}
 onMounted(() => checkCashoutAvailability())
 async function checkCashoutAvailability () {
   await $store.dispatch('global/fetchAppControl')
@@ -1095,7 +1100,17 @@ async function checkCashoutAvailability () {
       isCashoutAvailable = false
 
       cashoutErrorMsg = '*Cashout Feature is not available in your country'
+    } else {
+      // await fetchMerchant()
+      // console.log('HERRREE: ', merchantActivity)
+
+      //if (!(merchantActivity.active && merchantActivity.verified)) {
+      //  isCashoutAvailable = false
+
+      //  cashoutErrorMsg = 'Cashout Feature not available for this merchant'
+      //}
     }
+    cashoutBtnLoading = false
   } else {
     isCashoutAvailable = false
 
@@ -1103,6 +1118,22 @@ async function checkCashoutAvailability () {
   }
 
   cashoutBtnLoading = false
+}
+async function fetchMerchant () {
+  await posBackend.get(`/paytacapos/merchants/${merchantId}`, { authorize: true })
+    .then(response => {
+      const resp = response.data
+      console.log('response: ', response.data)
+
+      merchantActivity.active = resp.active
+      merchantActivity.verified = resp.verified
+
+      console.log('merchant: ', merchantActivity)
+    })
+    .finally(() => {console.log('done')})
+    .catch(error => {
+      console.log(error)
+    })
 }
 </script>
 <style lang="scss" scoped>
