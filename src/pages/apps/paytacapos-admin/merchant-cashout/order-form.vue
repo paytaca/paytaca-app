@@ -256,7 +256,6 @@ export default {
       })
 
       const outputTxid = result.txid
-      await this.manualProcessTxn(outputTxid) // shouldn't have to do this in prod
       await this.addCashoutAttributeTx(result.txid)
       await this.saveOutputTx({ order_id: order.id, txid: outputTxid })
     },
