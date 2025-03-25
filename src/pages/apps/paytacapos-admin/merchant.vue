@@ -110,12 +110,15 @@
             outline
             rounded
             dense
+            :disable="!isCashoutAvailable"
+            :loading="cashoutBtnLoading"
             label="Cash out"
             icon="payments"
             class="button button-text-primary full-width"
             :class="getDarkModeClass(darkMode)"
             @click="openCashoutPage()"
           />
+          <div class="q-pt-xs text-red" style="font-size: 10px;">{{ cashoutErrorMsg }}</div>
         </div>
       </q-card-section>
     </q-card>
@@ -1072,6 +1075,34 @@ async function refreshPage(done=() => {}) {
     done?.()
   }
 
+}
+
+let isCashoutAvailable = false
+let cashoutErrorMsg = null
+let cashoutBtnLoading = true
+onMounted(() => checkCashoutAvailability())
+async function checkCashoutAvailability () {
+  await $store.dispatch('global/fetchAppControl')
+  const appControl = $store.getters['global/appControl']
+  const country = $store.getters['global/country']
+
+  const cashoutControl = appControl.find(item => item.feature_name === 'MERCHANT_CASH_OUT')
+
+  if (cashoutControl.is_enabled) {
+    isCashoutAvailable = true
+
+    if (!cashoutControl.enabled_countries.includes(country.code)) {
+      isCashoutAvailable = false
+
+      cashoutErrorMsg = '*Cashout Feature is not available in your country'
+    }
+  } else {
+    isCashoutAvailable = false
+
+    cashoutErrorMsg = '*Cashout Feature is not available at the moment'
+  }
+
+  cashoutBtnLoading = false
 }
 </script>
 <style lang="scss" scoped>
