@@ -10,15 +10,26 @@ const bchjs = new BCHJS()
 const watchtower = new Watchtower(false)
 const spiceDecimals = 8
 
+/**
+ * Represents an instance of a promo contract. May vary
+ * depending on the initialized promo.
+ */
 export default class PromoContract {
-
+  /**
+   * @param {string} xPubKey the xpubkey of the user's wallet
+   * @param {'ur' | 'rfp' | 'lp' | 'cp' | 'pprp'} promo type of promo
+   */
   constructor (xPubKey, promo) {
     this.xPubkey = xPubKey
     this.promo = promo
 
-    this.initializeContract(promo)
+    this.initializeContract()
   }
 
+  /**
+   * Initializes the contract by compiling its source code, generating
+   * the contract parameters, and creating a new Contract instance.
+   */
   initializeContract () {
     const artifact = compileString(PromoContractCash)
     const provider = new ElectrumNetworkProvider(Network.MAINNET)
@@ -30,10 +41,20 @@ export default class PromoContract {
     this.contract = new Contract(artifact, contractParams, { provider })
   }
 
+  /**
+   * Subscribes the address of the contract to Watchtower
+   * to watch for transactions to and from the address.
+   */
   async subscribeAddress () {
     await watchtower.BCH._api.post('subscription/', { address: this.contract.address })
   }
 
+  /**
+   * Computes the SPICE token balance of the contract. It first retrieves
+   * the balance on Watchtower. If it fails, it retrieves the balance
+   * from the contract itself.
+   * @returns the computed SPICE token balance
+   */
   async getTokenBalance () {
     let balance = 0
 
