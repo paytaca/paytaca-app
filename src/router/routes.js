@@ -220,12 +220,16 @@ const routes = [
         component: () => import('src/layouts/Apps.vue'),
         children: [
           { path: '', component: () => import('src/pages/apps/multisig/index.vue'), name: 'app-multisig' },
-          { path: 'wallet/create', component: () => import('src/pages/apps/multisig/create-wallet.vue'), name: 'app-multisig-create-wallet' },
-          { path: 'wallet/draft', component: () => import('src/pages/apps/multisig/view-wallet-draft.vue'), name: 'app-multisig-view-wallet-draft' },
-          { path: 'wallet/view/:address', component: () => import('src/pages/apps/multisig/view-wallet.vue'), name: 'app-multisig-view-wallet' },
-          { path: 'wallet/receive/:address', component: () => import('src/pages/apps/multisig/receive.vue'), name: 'app-multisig-receive' },
-          { path: 'wallet/signature-request/:address', component: () => import('src/pages/apps/multisig/signature-request.vue'), name: 'app-multisig-signature-request' },
-          { path: 'signer/xpubkey-qrcode', component: () => import('src/pages/apps/multisig/view-xpubkey-qrcode.vue'), name: 'app-multisig-view-xpubkey-qrcode' }
+          { path: 'wallet/create', component: () => import('src/pages/apps/multisig/wallet/create.vue'), name: 'app-multisig-wallet-create' },
+          { path: 'wallet/draft', component: () => import('src/pages/apps/multisig/wallet/draft.vue'), name: 'app-multisig-wallet-draft' },
+          { path: 'wallet/view/:address', component: () => import('src/pages/apps/multisig/wallet/view.vue'), name: 'app-multisig-wallet-view' },
+          { path: 'wallet/receive/:address', component: () => import('src/pages/apps/multisig/wallet/receive.vue'), name: 'app-multisig-wallet-receive' },
+          { path: 'wallet/send/:address', component: () => import('src/pages/apps/multisig/wallet/send.vue'), name: 'app-multisig-wallet-send' },
+          { path: 'transaction/view/:address/:index', component: () => import('src/pages/apps/multisig/transaction/view.vue'), name: 'app-multisig-transaction-view' },
+          { path: 'signer/qrcode', component: () => import('src/pages/apps/multisig/signer/qrcode.vue'), name: 'app-multisig-signer-qrcode' },
+          { path: 'pst', component: () => import('src/pages/apps/multisig/pst/index.vue'), name: 'app-multisig-pst' },
+          { path: 'pst/view/:id', component: () => import('src/pages/apps/multisig/pst/view.vue'), name: 'app-multisig-pst-view' },
+          { path: 'pst/create', component: () => import('src/pages/apps/multisig/pst/create.vue'), name: 'app-multisig-pst-create' }
         ]
       }
     ]
