@@ -5,9 +5,9 @@ import {
   assertSuccess,
   decodeHdPublicKey,
   publicKeyToP2pkhCashAddress,
-  deriveHdPathRelative,
-  CashAddressNetworkPrefix
+  deriveHdPathRelative
 } from 'bitauth-libauth-v3'
+import { createTemplate } from './template.js'
 
 const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publicKey: Uint8Array , signerName: string ...} } */ }) => {
   const hdKeys = {
@@ -22,6 +22,22 @@ const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publ
   return hdKeys
 }
 
+/**
+ * Not used on this module just here for reference
+ */
+export const derivePubKeyFromXPubKey = ({ xPubKey, addressIndex /* ?: e.g. '0/0' */ }) => {
+  // NOTE: We can get the fingerprint from node
+  const { node, ...rest } = assertSuccess(decodeHdPublicKey(xPubKey))
+  const { publicKey } = deriveHdPathRelative(node, addressIndex || '0')
+  const { address } = publicKeyToP2pkhCashAddress({ publicKey })
+  return {
+    publicKey,
+    address,
+    node,
+    rest
+  }
+}
+
 export const getLockingData = ({ signers }) => {
   return {
     hdKeys: getHdKeys({ signers })
@@ -29,58 +45,95 @@ export const getLockingData = ({ signers }) => {
 }
 
 /**
- * .xPubKeys { xPubKey:string, owner?: string } []
+ * m: number
+ * n: number
+ * signers: { [signerIndex: number]: { xPubKey: string, signerName: string } }
  */
-export const createWallet = ({
-  signers, /* { [signerIndex: number]: { xPubKey: string, signerName: string, derivationPath: string } } */
-  cashAddressNetworkPrefix, /* ? CashAddressNetworkPrefix */
-  template, /* ?: bitauth template */
-  jsonSafe /* ?: boolean convert Uint8Array to array, etc... */
-}) => {
-  const signerNames = {}
-  Object.entries(signers).forEach(([signerIndex, signer]) => {
-    signerNames[signerIndex] = signer.signerName
-    // attach node for fingerprint
-    const { node } = assertSuccess(decodeHdPublicKey(signer.xPubKey))
-    signer.parentFingerprint = node.parentFingerprint
-    if (jsonSafe) {
-      signer.parentFingerprint = Array.from(signer.parentFingerprint)
+export class MultisigWallet {
+  constructor ({ m, n, signers, signatureFormat, name, network, createTemplate }) {
+    this.m = m
+    this.n = n
+    this.name = name
+    this.signers = signers
+    this.signatureFormat = signatureFormat || 'ecdsa'
+    this.network = network
+    if (createTemplate) {
+      this.createTemplate()
     }
-  })
-
-  const parsedTemplate = importWalletTemplate(template)
-  if (typeof parsedTemplate === 'string') {
-    throw new Error('Failed creating multisig wallet template.')
-  }
-  const lockingData /*: CompilationData<never> */ = {
-    hdKeys: getHdKeys({ signers })
-  }
-  const lockingScript = 'lock'
-  const compiler = walletTemplateToCompilerBCH(parsedTemplate)
-  const lockingBytecode = compiler.generateBytecode({
-    data: lockingData,
-    scriptId: lockingScript
-  })
-
-  if (!lockingBytecode.success) {
-    throw new Error('Error generating locking bytecode')
   }
 
-  const cashaddress = lockingBytecodeToCashAddress({
-    bytecode: lockingBytecode.bytecode,
-    prefix: cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet
-  })
-  if (jsonSafe) {
-    lockingBytecode.bytecode = Array.from(lockingBytecode.bytecode)
-  }
-  const multisigWallet = {
-    cashaddress: cashaddress.address,
-    lockingBytecode: lockingBytecode.bytecode,
-    signers,
-    compiler,
-    template
+  createTemplate () {
+    let signerNames = Object.entries(this.signers).map((entry) => {
+      const key = entry[0]
+      const value = entry[1]
+      return [key, value.signerName]
+    })
+    signerNames = Object.fromEntries(signerNames)
+    this.template = createTemplate({
+      name: this.name,
+      m: this.m,
+      n: this.n,
+      signatureFormat: this.signatureFormat,
+      signerNames
+    })
   }
 
-  return multisigWallet
+  get lockingScriptId () {
+    return 'lock'
+  }
+
+  get compiler () {
+    const parsedTemplate = importWalletTemplate(this.template)
+    if (typeof parsedTemplate === 'string') {
+      throw new Error('Failed creating multisig wallet template.')
+    }
+    const compiler = walletTemplateToCompilerBCH(parsedTemplate)
+    return compiler
+  }
+
+  get lockingData () {
+    return getLockingData({ signers: this.signers })
+  }
+
+  get lockingBytecode () {
+    const lockingBytecode = this.compiler.generateBytecode({
+      data: this.lockingData,
+      scriptId: this.lockingScriptId
+    })
+    return lockingBytecode
+  }
+
+  get address () {
+    return lockingBytecodeToCashAddress({
+      bytecode: this.lockingBytecode.bytecode,
+      prefix: this.network
+    })
+  }
+
+  toJSON () {
+    return {
+      name: this.name,
+      m: this.m,
+      n: this.n,
+      signatureFormat: this.signatureFormat,
+      network: this.network,
+      signers: this.signers,
+      template: this.template,
+      lockingData: this.lockingData,
+      lockingBytecode: this.lockingBytecode,
+      address: this.address
+    }
+  }
+
+  static fromJSON (stringifiedWallet) {
+    const parsed = JSON.parse(stringifiedWallet)
+    return new MultisigWallet({
+      m: parsed.m,
+      n: parsed.n,
+      signatureFormat: parsed.signatureFormat,
+      network: parsed.network,
+      signers: parsed.signers,
+      createTemplate: true
+    })
+  }
 }
-
