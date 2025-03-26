@@ -205,8 +205,9 @@ function fetchMerchants() {
   })
 }
 
-function openMerchantPage(merchantData) {
+async function openMerchantPage(merchantData) {
   // $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
+  await $store.dispatch('global/fetchMerchant', merchantData?.id)
   $router.push({ name: 'app-pos-merchant', state: { merchantId: JSON.stringify(merchantData?.id) } })
 }
 

@@ -271,3 +271,7 @@ export function lastAddressAndIndex (state) {
 export function appControl (state) {
   return state.appControl
 }
+
+export function merchantActivity (state) {
+  return state.merchantActivity
+}
