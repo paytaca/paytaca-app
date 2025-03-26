@@ -17,7 +17,7 @@
             <!-- display created wallets  -->
             <div class="row q-mt-lg justify-right">
                 <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-md">
-                    <q-btn :to="{ name: 'app-multisig-create-wallet' }">Ok</q-btn>
+                    <q-btn :to="{ name: 'app-multisig-wallet-create' }">Ok</q-btn>
                 </div>
             </div>
           </div>

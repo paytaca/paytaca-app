@@ -29,7 +29,7 @@
                   <q-btn @click="$copyText(depositAddress)" icon="content_copy" color="primary">Copy Address</q-btn>
                 </div>
                 <div class="col-12 text-center">
-                  <q-btn :to="{ name: 'app-multisig-view-wallet', params: { address: depositAddress } }" icon="arrow_back" outline>Back</q-btn>
+                  <q-btn :to="{ name: 'app-multisig-wallet-view', params: { address: depositAddress } }" icon="arrow_back" outline>Back</q-btn>
                 </div>
             </div>
           </div>

@@ -197,7 +197,7 @@ const onPreviewClicked = () => {
     template: template.value,
     signers: signers.value
   })
-  router.push({ name: 'app-multisig-view-wallet-draft' })
+  router.push({ name: 'app-multisig-wallet-draft' })
 }
 
 const onResetClicked = () => {
@@ -222,7 +222,7 @@ const onCreateClicked = () => {
     address: multisigWallet.address,
     lockingBytecode: multisigWallet.lockingBytecode
   })
-  router.push({ name: 'app-multisig-view-wallet', params: { address: multisigWallet.address } })
+  router.push({ name: 'app-multisig-wallet-view', params: { address: multisigWallet.address } })
 }
 
 watch(() => m.value, (newM) => {

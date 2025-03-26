@@ -9,10 +9,25 @@
               backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
-            <div class="row q-mt-lg justify-right">
-                <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-md">
-                    {{ signatureRequest }}
-                    {{ route.params.address }}
+            <div class="row q-mt-lg justify-center">
+                <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
+                  <q-card
+                    flat bordered class="my-card" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'">
+                    <q-card-section>
+                      <div class="row items-center no-wrap">
+                        <div class="col">
+                          <div class="text-h6">Unsigned Transaction</div>
+                        </div>
+                      </div>
+                    </q-card-section>
+                    <q-card-section>
+                      {{ transaction }}
+                    </q-card-section>
+                    <q-separator />
+                    <q-card-actions>
+                      <q-btn flat @click="partiallySign">Partially Sign</q-btn>
+                    </q-card-actions>
+                  </q-card>
                 </div>
             </div>
           </div>
@@ -28,7 +43,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
 import FooterMenu from 'components/multisig/footer-menu.vue'
@@ -37,7 +52,12 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
-const signatureRequest = ref()
+
+const transaction = computed(() => {
+  const transactions = $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
+  return transactions[route.params.index]
+})
+
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
@@ -49,9 +69,9 @@ const wallet = computed(() => {
   return null
 })
 
-onMounted(() => {
-  signatureRequest.value = $store.getters['multisig/getSignatureRequest']({ address: route.params.address })
-})
+const partiallySign = () => {
+  console.log('TODO: CREATE PSBT, AND REDIRECT TO PSBT PAGE')
+}
 
 </script>
 
