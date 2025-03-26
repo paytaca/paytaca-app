@@ -165,9 +165,6 @@ export class Pst {
 
   static getUnlockingScriptId ({ signatures, template }) {
     const scriptsEntries = Object.entries(template.scripts)
-    scriptsEntries.forEach(([scriptId, value]) => {
-    })
-
     const unlockingScript = scriptsEntries.find(([scriptId, value]) => {
       let found = value.unlocks && scriptId !== 'lock'
       found = Object.keys(signatures).every((signatureKey) => {
