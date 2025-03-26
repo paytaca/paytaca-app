@@ -22,6 +22,12 @@ const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publ
   return hdKeys
 }
 
+export const getLockingData = ({ signers }) => {
+  return {
+    hdKeys: getHdKeys({ signers })
+  }
+}
+
 /**
  * .xPubKeys { xPubKey:string, owner?: string } []
  */
@@ -70,8 +76,14 @@ export const createWallet = ({
   const multisigWallet = {
     cashaddress: cashaddress.address,
     lockingBytecode: lockingBytecode.bytecode,
-    signers
+    signers,
+    compiler,
+    template
   }
 
   return multisigWallet
+}
+
+export const partiallySignTransaction = ({ transaction, sourceOutputs, wallet }) => {
+//
 }

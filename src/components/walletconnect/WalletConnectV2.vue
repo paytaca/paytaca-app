@@ -667,8 +667,6 @@ const approveSessionProposal = async (sessionProposal) => {
     }
   }
 
-  console.log('selectedAddress', selectedAddress)
-
   sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic] = selectedAddress
   delete processingSession.value[sessionProposal.pairingTopic]
   processingSession.value[sessionProposal.pairingTopic] = 'Connecting'
