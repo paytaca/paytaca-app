@@ -84,6 +84,3 @@ export const createWallet = ({
   return multisigWallet
 }
 
-export const partiallySignTransaction = ({ transaction, sourceOutputs, wallet }) => {
-//
-}
