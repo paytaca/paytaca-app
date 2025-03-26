@@ -11,8 +11,8 @@ export function getWallets (state) {
   return state.wallets
 }
 
-export function getSignatureRequest (state) {
+export function getTransactionsByAddress (state) {
   return ({ address }) => {
-    return state.signatureRequest[address]
+    return state.transactions.filter((t) => t.address === address)
   }
 }

@@ -9,6 +9,10 @@ export default function () {
     //   template:  /* bitauth template */
     // },
     wallets: [], /* { address, lockingBytecode, cosigners, template}[] */
-    signatureRequest: {} /* { [address: string]: sessionRequest } */
+    /**
+     * Partially Sign Transactions (Adopting Bitauth's Term)
+     */
+    psts: [], /* { address, lockingBytecode, cosigners, template}[] */
+    transactions: [] /* { transaction, sourceOutputs, address, sessionRequest? } [] */
   }
 }

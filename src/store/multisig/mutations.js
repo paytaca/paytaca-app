@@ -26,8 +26,12 @@ export function deleteAllWallets (state) {
   state.wallets = []
 }
 
-export function signatureRequest (state, { signatureRequest, address }) {
-  state.signatureRequest = {
-    [address]: signatureRequest
-  }
+export function newTransaction (state, { transaction, sourceOutputs, address, sessionRequest }) {
+  state.transactions.push({ transaction, sourceOutputs, address, sessionRequest: sessionRequest })
+}
+
+export function walletConnectSignTransactionRequest (state, { address, sessionRequest }) {
+  const transaction = sessionRequest.params.request.params.transaction
+  const sourceOutputs = sessionRequest.params.request.params.sourceOutputs
+  newTransaction(state, { transaction, sourceOutputs, address, sessionRequest })
 }
