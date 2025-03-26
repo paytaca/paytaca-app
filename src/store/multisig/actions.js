@@ -1,15 +1,5 @@
-export function saveWalletDraft ({ commit }, { m, n, signers, template }) {
-  commit('saveWalletDraft', { m, n, signers, template })
-  // TODO: mutate watchtower
-}
-
-export function deleteWalletDraft ({ commit }) {
-  commit('deleteWalletDraft')
-  // TODO: mutate watchtower
-}
-
-export function commitWalletDraft ({ commit }, { m, n, address, lockingBytecode, signers, template }) {
-  commit('commitWalletDraft', { m, n, address, lockingBytecode, signers, template })
+export function saveWallet ({ commit }, wallet) {
+  commit('saveWallet', wallet)
   // TODO: mutate watchtower
 }
 
@@ -22,7 +12,6 @@ export function deleteAllWallets ({ commit }) {
   commit('deleteAllWallets')
   // TODO: mutate watchtower
 }
-
 /**
  * request is a wallet connect session request
  */
