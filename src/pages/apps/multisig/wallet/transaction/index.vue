@@ -12,24 +12,31 @@
             <div class="row q-mt-lg justify-center">
                 <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
                   <q-card
-                    v-for="transaction, i in transactions"
+                    v-for="unsigned, i in transactions"
                     :key="`app-multisig-tx-`+i"
                     flat bordered class="my-card" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'">
                     <q-card-section>
                       <div class="row items-center no-wrap">
                         <div class="col">
-                          <div class="text-h6">Our Planet</div>
-                          <div class="text-subtitle2">by John Doe</div>
+                          <div class="text-h6">{{ transactionUserPrompt(unsigned) }}</div>
+                          <div class="text-subtitle2">Origin: {{ transactionOrigin(unsigned) }}</div>
                         </div>
                       </div>
                     </q-card-section>
+                    <q-separator />
                     <q-card-section>
-                      {{ transaction }}
+                      <div>Spend Summary</div>
+                      {{ spendSummary(unsigned.transaction) }}
                     </q-card-section>
                     <q-separator />
+                    <q-card-section>
+                      <div>Number of recipients</div>
+                      {{ unsigned.transaction.outputs.length }}
+                    </q-card-section>
                     <q-card-actions>
                       <q-btn flat :to="{ name: 'app-multisig-transaction-view', params: { address:route.params.address, index: i } }">Open</q-btn>
                     </q-card-actions>
+                    {{ unsigned.transaction }}
                   </q-card>
                 </div>
             </div>
@@ -64,7 +71,7 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const psbct = ref()
+// const psbct = ref()
 // const myXPubKey = ref()
 
 const wallet = computed(() => {
@@ -74,7 +81,37 @@ const wallet = computed(() => {
   return null
 })
 
-const isChipnet = computed(() => $store.getters['global/isChipnet'])
+const transactionOrigin = computed(() => {
+  return (data) => {
+    return data?.sessionRequest?.verifyContext?.verified?.origin || 'Unknown Origin'
+  }
+})
+
+const transactionUserPrompt = computed(() => {
+  return (data) => {
+    return data?.sessionRequest?.params?.request?.params?.userPrompt || 'Signature Request'
+  }
+})
+
+const spendSummary = computed(() => {
+  return (transaction) => {
+    let satoshis = 0
+    const tokens = {}
+    transaction.inputs.forEach((input) => {
+      satoshis += Number(String(input.sourceOutput?.valueSatoshis || '0'))
+      const token = input.sourceOutput?.token?.category
+      if (token && token.category) {
+        if (!tokens[token.category]) {
+          tokens[token.category] = 0
+        }
+        tokens[token.category] += (token.amount || 0)
+      }
+    })
+    return { satoshis, tokens }
+  }
+})
+
+// const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 // const extractTransactionData = (signatureRequest) => {
 //   const transaction = signatureRequest?.params?.request?.method?.params?.transaction
@@ -107,16 +144,9 @@ const isChipnet = computed(() => $store.getters['global/isChipnet'])
 // }
 
 onMounted(() => {
-  // resolveMyXPubKey()
-  transactions.value = $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
-  // const { transaction, sourceOutputs } = extractTransactionData(signatureRequest.value)
-  // psbct.value = {
-  //   transaction,
-  //   sourceOutputs,
-  //   wallet: wallet.value,
-  //   partialSignatures: {} // { signer_1: '', .... }
-  // }
-
+  console.log('ROUTE PARAMS', route.params)
+  transactions.value = $store.getters['multisig/getTransactionsByAddress']({ address: decodeURIComponent(route.params.address) })
+  console.log('🚀 ~ onMounted ~ transactions:', transactions.value)
   console.log('TODO: always redirect to transaction view page if there is only one transaction')
 })
 
