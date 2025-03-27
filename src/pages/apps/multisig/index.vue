@@ -35,12 +35,12 @@
           </div>
           <div class="col-xs-12 q-px-sm q-gutter-x-sm">
             <q-list v-if="wallets" bordered>
-              <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ name: 'app-multisig-wallet-view', params: { address: wallet.address } }">
+              <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ name: 'app-multisig-wallet-view', params: { address: encodeURIComponent(wallet.address) } }">
                 <q-item-section>
                   <q-item-label>{{ wallet.template.name }}</q-item-label>
                   <q-item-label caption lines="2">
-                    <span v-for="signer, ii in Object.values(wallet.signers)" :key="`signer-${ii}`">
-                      {{ signer.signerName }}
+                    <span v-for="signerIndex in Object.keys(wallet.signers)" :key="`signer-${signerIndex}`" class="q-mx-2">
+                      {{ signerIndex }}-{{ wallet.signers[signerIndex].signerName }}
                     </span>
                   </q-item-label>
                   <q-item-label>
@@ -63,7 +63,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const $store = useStore()
@@ -84,5 +84,9 @@ const deleteWallet = (address) => {
 const deleteAllWallets = () => {
   $store.dispatch('multisig/deleteAllWallets')
 }
+
+onMounted(() => {
+  console.log('WALLETS', wallets.value)
+})
 
 </script>
