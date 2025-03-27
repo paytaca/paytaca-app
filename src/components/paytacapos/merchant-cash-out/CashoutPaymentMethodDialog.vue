@@ -1,6 +1,6 @@
 <template>
   <q-dialog persistent ref="dialog">
-    <q-card class="full-width q-py-md br-15">
+    <q-card class="full-width q-py-md br-15" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
       <div class="text-right">
         <q-btn flat icon="close" color="red" @click="backBtn()"/>
       </div>

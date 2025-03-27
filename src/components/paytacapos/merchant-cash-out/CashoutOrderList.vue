@@ -1,6 +1,6 @@
 <template>
   <q-dialog full-height full-width class="br-15 lg-font-size" persistent>
-    <q-card>
+    <q-card :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
       <div class="row q-px-sm">
         <div class="col text-bold q-mt-lg q-pt-xs q-px-md">Cashout Orders</div>
         <div class="col text-right q-pt-lg">
@@ -13,27 +13,23 @@
         <div
           class="row q-mt-sm q-mx-lg br-15 text-center pt-card btn-transaction"
           :class="getDarkModeClass(darkMode)"
-          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`"
-        >
+          :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
             :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'ALL'}]"
-            @click="orderType = 'ALL'"
-          >
+            @click="orderType = 'ALL'">
             {{ $t('All') }}
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
             :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'PENDING'}]"
-            @click="orderType = 'PENDING'"
-          >
+            @click="orderType = 'PENDING'">
             {{ $t('Pending') }}
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
             :class="[{'dark': darkMode}, {'active-buy-btn': orderType == 'COMPLETED'}]"
-            @click="orderType = 'COMPLETED'"
-          >
+            @click="orderType = 'COMPLETED'">
             {{ $t('Completed') }}
           </button>
         </div>
@@ -44,10 +40,10 @@
         <!-- Cashout Order List -->
         <div v-else class="q-mx-lg q-pt-sm">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;" v-if="cashoutOrders.length > 0">
-            <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable class="">
+            <q-item v-for="(cashout, index) in cashoutOrders" :key="index" clickable @click="selectCashoutOrder(cashout)">
               <div class="full-width">
                 <div class="q-pl-sm q-pb-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-                  <div class="sm-font-size text-grey-6">Cash out</div>
+                  <div class="sm-font-size text-grey-6">Cash out #{{ cashout.id }}</div>
                   <div class="row" v-if="cashout?.transactions?.inputs?.length > 0">
                     <div class="col ib-text">
                       <div class="md-font-size text-bold">
@@ -97,6 +93,8 @@ export default {
       cashoutOrders: [],
       currency: this.$store.getters['market/selectedCurrency'],
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
+      showCashoutDetails: false,
+      selectedCashoutOrder: null
     }
   },
   computed: {
@@ -113,7 +111,6 @@ export default {
   async mounted () {
     this.isloading = true
     this.refetchListings()
-
     this.isloading = false
   },
   watch: {
@@ -132,6 +129,11 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
+    selectCashoutOrder (order){
+      this.selectedCashoutOrder = order
+      this.showCashoutDetails = true
+      console.log('selectedCashoutOrder:', this.selectedCashoutOrder)
+    },
     async refreshData (done) {
       this.isloading = true
 

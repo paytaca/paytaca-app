@@ -1,7 +1,7 @@
 <template>
   <div
     id="app-container"
-    :class="getDarkModeClass(darkMode)">
+    :class="[getDarkModeClass(darkMode), darkMode ? 'text-grey-2' : 'text-grey-10']">
     <HeaderNav :title="'Merchant Cash Out'" class="header"/>
     <div>
       <div v-if="status === 'confirm-transaction'"
@@ -269,8 +269,8 @@ export default {
     showLoading () {
       this.$q.loading.show({
         message: 'Sending BCH...',
-        boxClass: 'bg-grey-2 text-grey-9',
-        spinnerColor: 'primary'
+        boxClass: this.darkMode ? 'bg-grey-9 text-grey-2' : 'bg-grey-2 text-grey-9',
+        spinnerColor: this.darkMode ? 'white' : 'primary'
       })
     },
     hideLoading () {

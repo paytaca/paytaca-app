@@ -1,42 +1,47 @@
 <template>
-    <div class="text-center md-font-size text-bold">Cash Out Transactions</div>
-    <q-list class="scroll-y" :dark="darkMode" @touchstart="preventPull">
-        <div v-if="transactions?.length === 0" class="text-center q-mt-lg">
-          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 50px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">{{ $t('No transactions selected') }}</p>
-        </div>
-        <q-item v-for="(tx, index) in transactions" :key="index" clickable @click="selectTransaction(index)">
-          <q-item-section>
-            <div class="q-mx-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-              <div v-if="getFiatValue('initial', tx).toFixed(2) !== getFiatValue('current', tx).toFixed(2)"
-                class="sm-font-size text-grey-6 text-strike">
-                {{ formatCurrency(getFiatValue('initial', tx), currency) }} {{ currency }}
-              </div>
-              <div class="row">
-                <div class="col ib-text">
-                  <div class="md-font-size text-bold" :class="getFiatValueColor(tx)">
-                    {{ formatCurrency(getFiatValue('current', tx), currency).replace(/[^\d.,-]/g, '') }} {{ currency }}
-                    <q-icon :name="getFiatValueIcon(tx)"/>
-                  </div>
-                  <div class="sm-font-size">
-                    {{ tx.amount }} BCH
-                  </div>
+  <div class="text-center md-font-size text-bold" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
+    Cash Out Transactions
+  </div>
+  <q-list 
+    class="scroll-y" 
+    :class="darkMode ? 'text-grey-2' : 'text-grey-10'"
+    :dark="darkMode" @touchstart="preventPull">
+      <div v-if="transactions?.length === 0" class="text-center q-mt-lg">
+        <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 50px; fill: gray;" />
+        <p :class="{ 'text-black': !darkMode }">{{ $t('No transactions selected') }}</p>
+      </div>
+      <q-item v-for="(tx, index) in transactions" :key="index" clickable @click="selectTransaction(index)">
+        <q-item-section>
+          <div class="q-mx-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
+            <div v-if="getFiatValue('initial', tx).toFixed(2) !== getFiatValue('current', tx).toFixed(2)"
+              class="sm-font-size text-grey-6 text-strike">
+              {{ formatCurrency(getFiatValue('initial', tx), currency) }} {{ currency }}
+            </div>
+            <div class="row">
+              <div class="col ib-text">
+                <div class="md-font-size text-bold" :class="getFiatValueColor(tx)">
+                  {{ formatCurrency(getFiatValue('current', tx), currency).replace(/[^\d.,-]/g, '') }} {{ currency }}
+                  <q-icon :name="getFiatValueIcon(tx)"/>
                 </div>
-                <div class="col ib-text text-right q-pr-sm">
-                  <div class="text-bold" :class="darkMode ? 'text-grey-' : 'text-grey-8'">
-                    <span>{{ tx.transaction?.txid?.substring(0,8) }}</span>
-                    <q-icon color="primary" size="sm" name="o_check_box" v-if="tx.selected"/>
-                  </div>
-                  <div class="text-grey-6 sm-font-size">
-                    <q-icon name="local_police" class="q-pa-xs"/>
-                    <span>{{ calcLossProtectionTimeLeft(tx) }}</span>
-                  </div>
+                <div class="sm-font-size">
+                  {{ tx.amount }} BCH
+                </div>
+              </div>
+              <div class="col ib-text text-right q-pr-sm">
+                <div class="text-bold" :class="darkMode ? 'text-grey-' : 'text-grey-8'">
+                  <span>{{ tx.transaction?.txid?.substring(0,8) }}</span>
+                  <q-icon color="primary" size="sm" name="o_check_box" v-if="tx.selected"/>
+                </div>
+                <div class="text-grey-6 sm-font-size">
+                  <q-icon name="local_police" class="q-pa-xs"/>
+                  <span>{{ calcLossProtectionTimeLeft(tx) }}</span>
                 </div>
               </div>
             </div>
-          </q-item-section>
-        </q-item>
-    </q-list>
+          </div>
+        </q-item-section>
+      </q-item>
+  </q-list>
 </template>
 <script>
 import { formatCurrency } from 'src/exchange'

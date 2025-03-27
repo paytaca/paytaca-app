@@ -6,7 +6,7 @@
           <q-menu>
             <q-list style="min-width: 100px">
               <q-item v-for="(item, index) in filterOpts" :key="index" clickable @click="updateFilter(item)" v-close-popup>
-                <q-item-section>{{ item.fullText }}</q-item-section>
+                <q-item-section :class="darkMode ? 'text-grey-2' : 'text-grey-10'">{{ item.fullText }}</q-item-section>
               </q-item>
             </q-list>
           </q-menu>
@@ -17,7 +17,7 @@
       </div>
     </div>
     <!-- List -->
-    <div>
+    <div :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
       <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
