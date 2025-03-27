@@ -83,6 +83,7 @@ export class MultisigWallet {
   }
 
   get compiler () {
+    console.log('THIS TEMPLATE', this.template)
     const parsedTemplate = importWalletTemplate(this.template)
     if (typeof parsedTemplate === 'string') {
       throw new Error('Failed creating multisig wallet template.')
@@ -104,10 +105,11 @@ export class MultisigWallet {
   }
 
   get address () {
-    return lockingBytecodeToCashAddress({
+    const { address } = lockingBytecodeToCashAddress({
       bytecode: this.lockingBytecode.bytecode,
       prefix: this.network
     })
+    return address
   }
 
   toJSON () {
