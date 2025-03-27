@@ -720,8 +720,8 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       if (walletAddress.signers) { // Account with active session is a multisig wallet
         // save the request as signature request
         // push to multisig signature request page
-        $store.dispatch('multisig/signatureRequest', { signatureRequest: sessionRequest, address: walletAddress.address })
-        $router.push({ name: 'app-multisig-signature-request', params: { address: walletAddress.address } })
+        $store.dispatch('multisig/walletConnectSignTransactionRequest', { sessionRequest, address: walletAddress.address })
+        $router.push({ name: 'app-multisig-transactions', params: { address: encodeURIComponent(walletAddress.address) } })
         rejectSessionRequest(sessionRequest) // TODO: respond properly
         return
       }
