@@ -35,7 +35,7 @@
                     </q-card-section>
                     <q-separator />
                     <q-card-actions>
-                      <q-btn flat @click="partiallySign">Partially Sign</q-btn>
+                      <q-btn flat @click="partiallySignTransaction">Partially Sign</q-btn>
                     </q-card-actions>
                   </q-card>
                 </div>
@@ -55,14 +55,16 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { loadLibauthHdWallet } from 'src/wallet'
 import HeaderNav from 'components/header-nav'
 import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { Pst } from 'src/lib/multisig'
+import { Pst, MultisigWallet } from 'src/lib/multisig'
 
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
+// const router = useRouter()
 
 const transactionData = computed(() => {
   const transactions = $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
@@ -102,6 +104,8 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
+
 const wallet = computed(() => {
   if (route.params?.address) {
     return $store.getters['multisig/getWallet']({ address: route.params.address })
@@ -109,190 +113,34 @@ const wallet = computed(() => {
   return null
 })
 
-const partiallySign = () => {
-  console.log('TODO: CREATE PSBT, AND REDIRECT TO PSBT PAGE')
-  const pst = new Pst()
-  console.log('🚀 ~ partiallySign ~ pst:', pst)
+const partiallySignTransaction = async () => {
+  const wallet = $store.getters['multisig/getWallet']({ address: route.params.address })
+  const pst = new Pst({
+    lockingData: wallet.lockingData,
+    lockingScriptId: 'lock',
+    template: wallet.template,
+    network: wallet.network
+  })
+
+  pst.setTransaction({
+    transaction: transactionData.value.transaction,
+    sourceOutputs: transactionData.value.sourceOutputs
+  })
+  const { mnemonic } = await loadLibauthHdWallet(0, isChipnet.value)
+  const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
+  const mySignerId = Object.keys(wallet.signers).find((signerId) => {
+    return wallet.signers[signerId].xPubKey === hdKeys.hdPublicKey
+  })
+  pst.signTransaction({ [`signer_${mySignerId}`]: hdKeys.hdPrivateKey })
+  window.pst = pst // TODO: remove this
+  console.log('TODO: SAVE AND REDIRECT TO PSBT PAGE')
+  // router.push({ name: 'app-multisig-wallet-pst', params: { address: wallet.address } })
 }
 
 onMounted(() => {
-  const x = $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
-  console.log('🚀 ~ onMounted ~ transactions:', x)
-  console.log('Wallet', wallet.value)
+  const bchwallet = $store.getters['global/getWallet']('bch')
+  window.bchwallet = bchwallet // TODO: remove this
 })
-
-// Transaction sample
-// {
-//   "inputs": [
-//     {
-//       "outpointIndex": 0,
-//       "outpointTransactionHash": {
-//         "0": 193,
-//         "1": 228,
-//         "2": 90,
-//         "3": 72,
-//         "4": 36,
-//         "5": 111,
-//         "6": 132,
-//         "7": 59,
-//         "8": 133,
-//         "9": 139,
-//         "10": 105,
-//         "11": 87,
-//         "12": 32,
-//         "13": 216,
-//         "14": 216,
-//         "15": 236,
-//         "16": 143,
-//         "17": 241,
-//         "18": 147,
-//         "19": 214,
-//         "20": 125,
-//         "21": 102,
-//         "22": 253,
-//         "23": 228,
-//         "24": 174,
-//         "25": 49,
-//         "26": 161,
-//         "27": 51,
-//         "28": 126,
-//         "29": 158,
-//         "30": 107,
-//         "31": 54
-//       },
-//       "sequenceNumber": 0,
-//       "unlockingBytecode": {},
-//       "sourceOutput": {
-//         "outpointIndex": 0,
-//         "outpointTransactionHash": {
-//           "0": 193,
-//           "1": 228,
-//           "2": 90,
-//           "3": 72,
-//           "4": 36,
-//           "5": 111,
-//           "6": 132,
-//           "7": 59,
-//           "8": 133,
-//           "9": 139,
-//           "10": 105,
-//           "11": 87,
-//           "12": 32,
-//           "13": 216,
-//           "14": 216,
-//           "15": 236,
-//           "16": 143,
-//           "17": 241,
-//           "18": 147,
-//           "19": 214,
-//           "20": 125,
-//           "21": 102,
-//           "22": 253,
-//           "23": 228,
-//           "24": 174,
-//           "25": 49,
-//           "26": 161,
-//           "27": 51,
-//           "28": 126,
-//           "29": 158,
-//           "30": 107,
-//           "31": 54
-//         },
-//         "sequenceNumber": 0,
-//         "unlockingBytecode": {},
-//         "lockingBytecode": {
-//           "0": 169,
-//           "1": 20,
-//           "2": 120,
-//           "3": 53,
-//           "4": 14,
-//           "5": 73,
-//           "6": 22,
-//           "7": 236,
-//           "8": 124,
-//           "9": 31,
-//           "10": 216,
-//           "11": 22,
-//           "12": 146,
-//           "13": 132,
-//           "14": 163,
-//           "15": 112,
-//           "16": 107,
-//           "17": 155,
-//           "18": 223,
-//           "19": 183,
-//           "20": 146,
-//           "21": 221,
-//           "22": 135
-//         },
-//         "valueSatoshis": "500000",
-//         "address": "bitcoincash:ppur2rjfzmk8c87cz6fgfgmsdwdaldujm5ddwjq4a5"
-//       }
-//     }
-//   ],
-//   "locktime": 0,
-//   "outputs": [
-//     {
-//       "lockingBytecode": {
-//         "0": 169,
-//         "1": 20,
-//         "2": 120,
-//         "3": 53,
-//         "4": 14,
-//         "5": 73,
-//         "6": 22,
-//         "7": 236,
-//         "8": 124,
-//         "9": 31,
-//         "10": 216,
-//         "11": 22,
-//         "12": 146,
-//         "13": 132,
-//         "14": 163,
-//         "15": 112,
-//         "16": 107,
-//         "17": 155,
-//         "18": 223,
-//         "19": 183,
-//         "20": 146,
-//         "21": 221,
-//         "22": 135
-//       },
-//       "valueSatoshis": "1000",
-//       "address": "bitcoincash:ppur2rjfzmk8c87cz6fgfgmsdwdaldujm5ddwjq4a5"
-//     },
-//     {
-//       "lockingBytecode": {
-//         "0": 169,
-//         "1": 20,
-//         "2": 120,
-//         "3": 53,
-//         "4": 14,
-//         "5": 73,
-//         "6": 22,
-//         "7": 236,
-//         "8": 124,
-//         "9": 31,
-//         "10": 216,
-//         "11": 22,
-//         "12": 146,
-//         "13": 132,
-//         "14": 163,
-//         "15": 112,
-//         "16": 107,
-//         "17": 155,
-//         "18": 223,
-//         "19": 183,
-//         "20": 146,
-//         "21": 221,
-//         "22": 135
-//       },
-//       "valueSatoshis": "498773",
-//       "address": "bitcoincash:ppur2rjfzmk8c87cz6fgfgmsdwdaldujm5ddwjq4a5"
-//     }
-//   ],
-//   "version": 2
-// }
 
 </script>
 
