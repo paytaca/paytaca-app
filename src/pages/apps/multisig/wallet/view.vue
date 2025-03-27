@@ -1,69 +1,55 @@
 <template>
-  <q-layout>
-    <q-page-container>
-      <q-page>
         <div class="static-container">
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
-              :title="$t('View Template')"
+              :title="$t('Multisig Wallet')"
               backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
-            <div class="row q-mt-lg justify-right">
-                <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-md">
-                    <q-list v-if="wallet" bordered>
-                      <h6>Wallet Info</h6>
-                      <q-item>
-                        <q-item-section>
-                          Wallet Name
-                        </q-item-section>
-                        <q-item-section right>
-                          {{ wallet.template?.name }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item>
-                        <q-item-section>
-                          Wallet Description
-                        </q-item-section>
-                        <q-item-section right>
-                          {{ wallet.template?.description }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item>
-                        <q-item-section>
-                          Wallet Address
-                        </q-item-section>
-                        <q-item-section right>
-                          {{ wallet.address }}
-                        </q-item-section>
-                      </q-item>
-                      <h6>Signers</h6>
-                      <q-item>
-                        <q-item-section>
-                          Required Signers
-                        </q-item-section>
-                        <q-item-section right>
-                          {{ wallet.m }} of {{  wallet.n }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item v-for="entity, i in wallet.template.entities" :key="i">
-                        <q-item-section>
-                          Signer's Name
-                        </q-item-section>
-                        <q-item-section right>
-                          {{ entity.name }}
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
+            <div class="row q-mt-lg justify-center">
+                <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
+                  <template v-if="wallet">
+                    <div class="q-pa-md">
+                      <q-list>
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label>{{ wallet.template.name }}</q-item-label>
+                            <q-item-label caption lines="2">{{ wallet.template.description }}</q-item-label>
+                            <q-item-label caption lines="2">{{ shortenString(wallet.address, 15) }}</q-item-label>
+                          </q-item-section>
+                          <q-item-section side top>
+                            <!-- <q-item-label caption>5 min ago</q-item-label> -->
+                            <q-icon name="wallet" color="yellow" />
+                          </q-item-section>
+                        </q-item>
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label>Balance</q-item-label>
+                          </q-item-section>
+                          <q-item-section side top>
+                            <q-item-label caption>1 BCH</q-item-label>
+                            <!-- <q-icon name="bch" color="green" /> -->
+                          </q-item-section>
+                        </q-item>
+                        <q-separator spaced inset />
+                        <q-item-label header>Signers</q-item-label>
+                        <q-item v-for="signerIndex in Object.keys(wallet.signers)" :key="`app-multisig-view-signer-${signerIndex}`">
+                          <q-item-section>
+                            <q-item-label>{{ wallet.signers[signerIndex].signerName }}</q-item-label>
+                            <q-item-label caption>{{ shortenString(wallet.signers[signerIndex].xPubKey, 20) }}</q-item-label>
+                          </q-item-section>
+                          <q-item-section side top>
+                            <q-item-label caption>{{ signerIndex }}</q-item-label>
+                            <q-item-label caption>Copy</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </div>
+                  </template>
                 </div>
             </div>
           </div>
         </div>
-        <FooterMenu v-if="wallet" :address="wallet.address"/>
-      </q-page>
-
-    </q-page-container>
-  </q-layout>
 </template>
 
 <script setup>
@@ -73,12 +59,24 @@ import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
-import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
+
+const shortenString = (str, maxLength) => {
+  // If the string is shorter than or equal to the maxLength, return it as is.
+  if (str.length <= maxLength) {
+    return str
+  }
+  // Calculate how much to keep before and after the '...'.
+  const halfLength = Math.floor((maxLength - 3) / 2)
+  const start = str.slice(0, halfLength)
+  const end = str.slice(-halfLength)
+
+  return `${start}...${end}`
+}
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -86,7 +84,7 @@ const darkMode = computed(() => {
 
 const wallet = computed(() => {
   if (route.params?.address) {
-    return $store.getters['multisig/getWallet']({ address: route.params.address })
+    return $store.getters['multisig/getWallet']({ address: decodeURIComponent(route.params.address) })
   }
   return null
 })
