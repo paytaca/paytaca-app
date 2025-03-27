@@ -5,8 +5,8 @@
         <div class="static-container">
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
-              :title="$t('View Template')"
-              backnavpath="/apps/multisig"
+              :title="$t('Transactions')"
+              :backnavpath="`/apps/multisig/wallet/${route.params.address}`"
               class="q-px-sm apps-header gift-app-header"
             />
             <div class="row q-mt-lg justify-center">
@@ -34,7 +34,11 @@
                       {{ unsigned.transaction.outputs.length }}
                     </q-card-section>
                     <q-card-actions>
-                      <q-btn flat :to="{ name: 'app-multisig-transaction-view', params: { address:route.params.address, index: i } }">Open</q-btn>
+                      <q-btn
+                        flat
+                        :to="{ name: 'app-multisig-wallet-transaction-view', params: { address:route.params.address, index: i } }">
+                        Open
+                      </q-btn>
                     </q-card-actions>
                     {{ unsigned.transaction }}
                   </q-card>
@@ -54,7 +58,7 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 // import { decodePrivateKeyWif } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import FooterMenu from 'components/multisig/footer-menu.vue'
@@ -63,8 +67,10 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 // import { getLockingData } from '../../../lib/multisig'
 
 const $store = useStore()
-const { t: $t } = useI18n()
 const route = useRoute()
+const router = useRouter()
+const { t: $t } = useI18n()
+
 const transactions = ref()
 
 const darkMode = computed(() => {
@@ -145,9 +151,11 @@ const spendSummary = computed(() => {
 
 onMounted(() => {
   console.log('ROUTE PARAMS', route.params)
-  transactions.value = $store.getters['multisig/getTransactionsByAddress']({ address: decodeURIComponent(route.params.address) })
+  transactions.value = $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
   console.log('🚀 ~ onMounted ~ transactions:', transactions.value)
-  console.log('TODO: always redirect to transaction view page if there is only one transaction')
+  if (transactions.value && transactions.value?.length === 1) {
+    router.push({ name: 'app-multisig-wallet-transaction-view', params: { address: route.params.address, index: 0 } })
+  }
 })
 
 </script>

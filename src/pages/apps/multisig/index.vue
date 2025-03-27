@@ -35,7 +35,7 @@
           </div>
           <div class="col-xs-12 q-px-sm q-gutter-x-sm">
             <q-list v-if="wallets" bordered>
-              <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ name: 'app-multisig-wallet-view', params: { address: encodeURIComponent(wallet.address) } }">
+              <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ name: 'app-multisig-wallet-view', params: { address: wallet.address } }">
                 <q-item-section>
                   <q-item-label>{{ wallet.template.name }}</q-item-label>
                   <q-item-label caption lines="2">

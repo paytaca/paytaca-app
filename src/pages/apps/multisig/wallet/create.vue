@@ -172,7 +172,7 @@ const onCreateClicked = async () => {
   wallet.value.createTemplate()
   console.log('create wallet', wallet.value)
   await $store.dispatch('multisig/saveWallet', wallet.value)
-  router.push({ name: 'app-multisig-wallet-view', params: { address: encodeURIComponent(wallet.value.address) } })
+  router.push({ name: 'app-multisig-wallet-view', params: { address: wallet.value.address } })
 }
 
 watch(() => wallet.value?.m, (newM) => {
