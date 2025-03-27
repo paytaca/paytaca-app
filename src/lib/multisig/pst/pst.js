@@ -45,15 +45,21 @@ export class Pst {
   }
 
   setTransaction ({ transaction, sourceOutputs }) {
-    this.transaction = transaction
-    this.sourceOutputs = sourceOutputs
+    this.transaction = structuredClone(transaction)
+    this.sourceOutputs = structuredClone(sourceOutputs)
+    this.transaction.inputs.forEach(input => {
+      input.outpointTransactionHash = Uint8Array.from(Object.values((input.outpointTransactionHash)))
+      input.unlockingBytecode = Uint8Array.from(Object.values((input.unlockingBytecode)))
+    })
     this.id = generateId({ transaction })
   }
 
   getTransactionProposal () {
+    const outputs = structuredClone(this.transaction.outputs)
+    outputs.forEach(o => { o.lockingBytecode = Uint8Array.from(Object.values(o.lockingBytecode)) })
     return {
       locktime: this.transaction.locktime,
-      outputs: this.transaction.outputs,
+      outputs: outputs,
       version: this.transaction.version
     }
   }
@@ -89,18 +95,20 @@ export class Pst {
           return utxo.outpointIndex === input.outpointIndex && binToHex(utxo.outpointTransactionHash) === binToHex(input.outpointTransactionHash)
         })
       }
-      if (lockingBytecodeToCashAddress({ bytecode: sourceOutput.lockingBytecode, prefix: this.network }).address === address) {
+      if (lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network }).address === address) {
         input.unlockingBytecode = {
           ...input.unlockingBytecode,
           compiler: this.compiler,
           data: entityUnlockingData,
           valueSatoshis: sourceOutput.valueSatoshis,
-          script: unlockingScriptId,
-          token: sourceOutput.token
+          script: unlockingScriptId
+          // TODO: token: sourceOutput.token test utxo with a token
         }
       }
     }
-    const signAttempt = generateTransaction({ ...this.getTransactionProposal(), inputs: this.transaction.inputs })
+    const inputs = [...this.transaction.inputs]
+    inputs.forEach(i => delete i.sourceOutput)
+    const signAttempt = generateTransaction({ ...this.getTransactionProposal(), inputs })
     const signerResolvedVariables = extractResolvedVariables(signAttempt)
     this.signatures = {
       ...this.signatures,
@@ -136,10 +144,6 @@ export class Pst {
       prefix: this.network
     })
 
-    // const inputs = structuredClone(
-    //   this.transaction.inputs.filter(input => !input.unlockingBytecode || Object.keys(input.unlockingBytecode || {}).length === 0)
-    // )
-
     const unlockingScriptId = this.getUnlockingScriptId({ signatures: this.signatures, template: this.template })
 
     for (const input of this.transaction.inputs) {
@@ -149,7 +153,7 @@ export class Pst {
           return utxo.outpointIndex === input.outpointIndex && binToHex(utxo.outpointTransactionHash) === binToHex(input.outpointTransactionHash)
         })
       }
-      if (lockingBytecodeToCashAddress({ bytecode: sourceOutput.lockingBytecode, prefix: this.network }).address === address) {
+      if (lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network }).address === address) {
         input.unlockingBytecode = {
           ...input.unlockingBytecode,
           compiler: this.compiler,
