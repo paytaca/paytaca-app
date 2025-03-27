@@ -178,20 +178,32 @@ export default {
       const selectedUtxos = this.transactions
       const utxos = selectedUtxos.map(el => el.transaction)
       const txids = utxos.map(el => el.txid)
+      try {
+        this.showLoading()
+        const order = await this.createCashoutOrder(txids)
+        const txBuilder = new CashoutTransactionBuilder()
+        const result = await txBuilder.sendUtxos({
+          sender: this.wallet,
+          payoutAddress: order.payout_address,
+          broadcast: true,
+          utxos: utxos
+        })
 
-      // create the cash out order
-      const order = await this.createCashoutOrder(txids)
-      const txBuilder = new CashoutTransactionBuilder()
-      const result = await txBuilder.sendUtxos({
-        sender: this.wallet,
-        payoutAddress: order.payout_address,
-        broadcast: true,
-        utxos: utxos
-      })
+        if (result.success) {
+          const outputTxid = result.txid
+          if (outputTxid) {
+            await this.manualProcessTxn(outputTxid)
+            await this.addCashoutAttributeTx(result.txid)
+            await this.saveOutputTx({ order_id: order.id, txid: outputTxid })
+          }
+        }
+        this.hideLoading()
+        this.orderStatus = 'success'
+        this.openDialog = true
+      } catch (error) {
+        console.error(error.response || error)
+      }
 
-      const outputTxid = result.txid
-      await this.addCashoutAttributeTx(result.txid)
-      await this.saveOutputTx({ order_id: order.id, txid: outputTxid })
     },
     async saveOutputTx (payload) {
       await backend.post('/paytacapos/cash-out/save_output_tx/', payload, { authorize: true })
@@ -230,47 +242,15 @@ export default {
           console.error(error.response || error)
         })
 
-      this.orderStatus = 'success'
-      this.openDialog = true
       return response.data
-    },
-    getInitialFiatAmount (transaction) {
-      const marketPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
-      return transaction?.amount * marketPrice
-    },
-    getCurrentFiatAmount (transaction) {
-      const marketPrice = transaction?.fiat_price?.current[this.currency?.symbol]
-      return transaction?.amount * marketPrice
-    },
-    getFiatAmountColor (transaction) {
-      const initialVal = (this.getInitialFiatAmount(transaction)).toFixed(2)
-      const currentVal = (this.getCurrentFiatAmount(transaction)).toFixed(2)
-      if (currentVal < initialVal) return 'text-red'
-      if (currentVal > initialVal) return 'text-green'
-      return 'text-blue'
-    },
-    getTrendingIcon (transaction) {
-      const initialVal = (this.getInitialFiatAmount(transaction)).toFixed(2)
-      const currentVal = (this.getCurrentFiatAmount(transaction)).toFixed(2)
-      if (currentVal > initialVal) return 'trending_up'
-      if (currentVal < initialVal) return 'trending_down'
-      return ''
-    },
-    isTxnSelected (transaction) {
-      return transaction.selected
-    },
-    async refreshData (done) {
-      done()
     },
     selectTransaction (tx) {
       this.transactions.push(tx)
-      this.calculateCashOutTotal(this.transactions)
     },
     unselectTransaction (tx) {
       this.transactions = this.transactions.filter(el => 
         el.transaction?.txid !== tx.transaction?.txid
       )
-      this.calculateCashOutTotal(this.transactions)
     },
     openPaymentMethodDialog () {
       // this.openPaymentMethod = true
@@ -286,16 +266,15 @@ export default {
           this.$store.commit('paytacapos/updateLastPaymentMethod', method)
         })
     },
-    preventPull (e) {
-      let parent = e.target
-      // eslint-disable-next-line no-void
-      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
-        parent = parent.parentNode
-      }
-      // eslint-disable-next-line no-void
-      if (parent !== void 0 && parent.scrollTop > 0) {
-        e.stopPropagation()
-      }
+    showLoading () {
+      this.$q.loading.show({
+        message: 'Sending BCH...',
+        boxClass: 'bg-grey-2 text-grey-9',
+        spinnerColor: 'primary'
+      })
+    },
+    hideLoading () {
+      this.$q.loading.hide()
     }
   }
 }

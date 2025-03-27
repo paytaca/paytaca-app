@@ -176,7 +176,6 @@ export default {
 
       await backend.get(url, { params: params })
         .then(response => {
-          console.log(response)
           if (overwrite) {
             vm.unspentTxns = response.data?.unspent_transactions
           } else {

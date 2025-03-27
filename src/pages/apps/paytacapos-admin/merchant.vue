@@ -105,7 +105,7 @@
             @click.stop="openMerchantInfoDialog()"
           />
         </q-item>
-        <div class="text-center q-pt-xs">
+        <div class="text-center q-pt-xs q-px-md">
           <q-btn
             outline
             rounded
@@ -118,7 +118,9 @@
             :class="getDarkModeClass(darkMode)"
             @click="openCashoutPage()"
           />
-          <div class="q-pt-xs text-red" style="font-size: 10px;">{{ cashoutErrorMsg }}</div>
+          <div class="q-pt-xs text-grey-6 text-italic" style="font-size: 10px;">
+            {{ cashoutErrorMsg }}
+          </div>
         </div>
       </q-card-section>
     </q-card>
@@ -1096,25 +1098,26 @@ async function checkCashoutAvailability () {
   const country = $store.getters['global/country']
 
   const cashoutControl = appControl.find(item => item.feature_name === 'MERCHANT_CASH_OUT')
-
-  if (cashoutControl.is_enabled) {
+  
+  if (cashoutControl?.is_enabled) {
     isCashoutAvailable = true
 
+    console.log('country.code:', country.code)
     if (!cashoutControl.enabled_countries.includes(country.code)) {
       isCashoutAvailable = false
 
-      cashoutErrorMsg = '*Cashout Feature is not available in your country'
+      cashoutErrorMsg = 'Cash out is unavailable in your country'
     } else {
       if (!(merchantData.active && merchantData.verified)) {
         isCashoutAvailable = false
 
-        cashoutErrorMsg = '*Cashout Feature is not available for this merchant'
+        cashoutErrorMsg = 'Cash out is available only for active and verified merchants'
       }
     }
   } else {
     isCashoutAvailable = false
 
-    cashoutErrorMsg = '*Cashout Feature is not available at the moment'
+    cashoutErrorMsg = 'Cash out is unavailable at the moment'
   }
 
   cashoutBtnLoading = false
