@@ -43,6 +43,16 @@
                             <q-item-label caption>Copy</q-item-label>
                           </q-item-section>
                         </q-item>
+                        <q-item
+                          :clickable="transactions?.length"
+                          :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
+                          <q-item-section>
+                            <q-item-label>Unsigned Transactions</q-item-label>
+                          </q-item-section>
+                          <q-item-section side top>
+                            <q-item-label caption>{{ transactions?.length || 0 }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
                       </q-list>
                     </div>
                   </template>
@@ -84,9 +94,16 @@ const darkMode = computed(() => {
 
 const wallet = computed(() => {
   if (route.params?.address) {
-    return $store.getters['multisig/getWallet']({ address: decodeURIComponent(route.params.address) })
+    return $store.getters['multisig/getWallet']({ address: route.params.address })
   }
   return null
+})
+
+const transactions = computed(() => {
+  if (route.params?.address) {
+    return $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
+  }
+  return []
 })
 
 // TODO: SHOW DIALOG IF WALLET NOT FOUND, NAV BACK ON DIALOG CLOSE
