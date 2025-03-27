@@ -5,7 +5,11 @@ import {
   assertSuccess,
   decodeHdPublicKey,
   publicKeyToP2pkhCashAddress,
-  deriveHdPathRelative
+  deriveHdPathRelative,
+  deriveHdPrivateNodeFromBip39Mnemonic,
+  deriveHdPath,
+  deriveHdPublicKey,
+  encodeHdPrivateKey
 } from 'bitauth-libauth-v3'
 import { createTemplate } from './template.js'
 
@@ -83,7 +87,6 @@ export class MultisigWallet {
   }
 
   get compiler () {
-    console.log('THIS TEMPLATE', this.template)
     const parsedTemplate = importWalletTemplate(this.template)
     if (typeof parsedTemplate === 'string') {
       throw new Error('Failed creating multisig wallet template.')
@@ -112,6 +115,10 @@ export class MultisigWallet {
     return address
   }
 
+  deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
+    return MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic, network, hdPath })
+  }
+
   toJSON () {
     return {
       name: this.name,
@@ -137,5 +144,20 @@ export class MultisigWallet {
       signers: parsed.signers,
       createTemplate: true
     })
+  }
+
+  static deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
+    const node = deriveHdPath(
+      deriveHdPrivateNodeFromBip39Mnemonic(
+        mnemonic
+      ),
+      hdPath || "m/44'/145'/0'"
+    )
+    const { hdPrivateKey } = encodeHdPrivateKey({ network: network || 'mainnet', node })
+    const { hdPublicKey } = deriveHdPublicKey(hdPrivateKey)
+    return {
+      hdPrivateKey,
+      hdPublicKey
+    }
   }
 }
