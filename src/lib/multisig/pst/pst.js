@@ -14,8 +14,14 @@ import {
  */
 export const generateId = ({ transaction }) => {
   const inputs = structuredClone(transaction.inputs)
+  const outputs = structuredClone(transaction.outputs)
   inputs.forEach(input => {
     input.unlockingBytecode = new Uint8Array([])
+    // encodeTransactionCommon throws if expected bin is an object instead of Uint8Array
+    input.outpointTransactionHash = Uint8Array.from(input.outpointTransactionHash)
+  })
+  outputs.forEach(output => {
+    output.lockingBytecode = Uint8Array.from(output.lockingBytecode)
   })
   const unofficialPreimage = {
     locktime: transaction.locktime,
