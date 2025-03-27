@@ -15,7 +15,7 @@
                         <div class="col-5 ">
                             <q-select
                                 :popup-content-class="darkMode ? '': 'text-black'"
-                                v-model="m" :options="mOptionsComputed" :label="$t('Required signers')"
+                                v-model="wallet.m" :options="mOptionsComputed" :label="$t('Required signers')"
                                 outlined
                             />
                         </div>
@@ -25,7 +25,7 @@
                         <div class="col-5 ">
                             <q-select
                                 :popup-content-class="darkMode ? '': 'text-black'"
-                                v-model="n" :options="nOptionsComputed" :label="$t('Max signers')"
+                                v-model="wallet.n" :options="nOptionsComputed" :label="$t('Max signers')"
                                 outlined
                             />
                         </div>
@@ -81,7 +81,7 @@
                               <q-btn
                                 @click="onCreateClicked"
                                 label="Create" type="button" color="primary"
-                                :disabled="Object.keys(wallet.signers || {}).length !== n"
+                                :disabled="Object.keys(wallet.signers || {}).length !== wallet.n"
                               />
                           </div>
                         </q-form>
@@ -161,6 +161,7 @@ const initNewWallet = () => {
     n: 3,
     name: ''
   })
+  console.log('NEW WALLET', wallet.value)
 }
 
 const onResetClicked = () => {
@@ -168,12 +169,14 @@ const onResetClicked = () => {
 }
 
 const onCreateClicked = async () => {
+  wallet.value.createTemplate()
+  console.log('create wallet', wallet.value)
   await $store.dispatch('multisig/saveWallet', wallet.value)
-  router.push({ name: 'app-multisig-wallet-view', params: { address: wallet.value.address } })
+  router.push({ name: 'app-multisig-wallet-view', params: { address: encodeURIComponent(wallet.value.address) } })
 }
 
-watch(() => wallet.value.m, (newM) => {
-  if (wallet.value.n < newM) {
+watch(() => wallet.value?.m, (newM) => {
+  if (wallet.value && wallet.value.n < newM) {
     wallet.value.n = newM + 1
   }
   if (newM) {
@@ -182,7 +185,7 @@ watch(() => wallet.value.m, (newM) => {
   }
 })
 
-watch(() => wallet.value.n, (newN) => {
+watch(() => wallet.value?.n, (newN) => {
   if (newN && newN < wallet.value.m) {
     wallet.value.n = wallet.value.m
   }
