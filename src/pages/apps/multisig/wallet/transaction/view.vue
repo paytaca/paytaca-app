@@ -124,9 +124,16 @@ const partiallySignTransaction = async () => {
     network: wallet.network
   })
 
-  pst.setTransaction({
+  const message = transactionData?.value?.sessionRequest?.params?.request?.params?.userPrompt
+  const origin = transactionData?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
+  let creator = transactionData?.value?.sessionRequest?.session?.namespaces?.bch?.accounts?.[0]
+  creator = creator ? creator?.replace('bch:', '') : creator
+  pst.setTransactionData({
     transaction: transactionData.value.transaction,
-    sourceOutputs: transactionData.value.sourceOutputs
+    sourceOutputs: transactionData.value.sourceOutputs,
+    metadata: {
+      message, origin, creator, wallet: 'Paytaca'
+    }
   })
   const { mnemonic } = await loadLibauthHdWallet(0, isChipnet.value)
   const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })

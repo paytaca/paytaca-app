@@ -39,7 +39,11 @@ export const generateId = ({ transaction }) => {
 }
 
 export class Pst {
-  constructor ({ m, n, lockingData, lockingScriptId, template, network, transaction, sourceOutputs, signatures }) {
+  /**
+   * Optional - id, transaction, sourceOutputs, metadata, signatures
+   */
+  constructor ({ id, m, n, lockingData, lockingScriptId, template, network, transaction, sourceOutputs, metadata, signatures }) {
+    this.id = id
     this.m = m
     this.n = n
     this.lockingData = lockingData
@@ -50,13 +54,30 @@ export class Pst {
     this.signatures = signatures || {}
     this.transaction = {}
     this.sourceOutputs = {}
+    this.metadata = {}
     if (transaction) {
-      this.setTransaction({ transaction, sourceOutputs })
+      this.setTransactionData({ transaction, sourceOutputs, metadata })
     }
   }
 
   get compiler () {
     return walletTemplateToCompilerBCH(this.template)
+  }
+
+  /**
+   * Derived from locking bytecode of this locking data and template
+   */
+  get address () {
+    const lockingBytecode = this.compiler.generateBytecode({
+      data: this.lockingData,
+      scriptId: this.lockingScriptId
+    })
+
+    const { address } = lockingBytecodeToCashAddress({
+      bytecode: lockingBytecode.bytecode,
+      prefix: this.network
+    })
+    return address
   }
 
   get signersInfo () {
@@ -79,9 +100,10 @@ export class Pst {
     return signersInfo
   }
 
-  setTransaction ({ transaction, sourceOutputs }) {
+  setTransactionData ({ transaction, sourceOutputs, metadata }) {
     this.transaction = structuredClone(transaction)
     this.sourceOutputs = structuredClone(sourceOutputs)
+    this.metadata = structuredClone(metadata)
     this.transaction.inputs.forEach(input => {
       input.outpointTransactionHash = Uint8Array.from(Object.values((input.outpointTransactionHash)))
       input.unlockingBytecode = Uint8Array.from(Object.values((input.unlockingBytecode)))
@@ -113,15 +135,15 @@ export class Pst {
       }
     }
 
-    const lockingBytecode = this.compiler.generateBytecode({
-      data: this.lockingData,
-      scriptId: this.lockingScriptId
-    })
+    // const lockingBytecode = this.compiler.generateBytecode({
+    //   data: this.lockingData,
+    //   scriptId: this.lockingScriptId
+    // })
 
-    const { address } = lockingBytecodeToCashAddress({
-      bytecode: lockingBytecode.bytecode,
-      prefix: this.network
-    })
+    // const { address } = lockingBytecodeToCashAddress({
+    //   bytecode: lockingBytecode.bytecode,
+    //   prefix: this.network
+    // })
 
     const unlockingScriptId = this.template.entities[entity].scripts.filter((scriptId) => scriptId !== 'lock')[0]
 
@@ -132,7 +154,7 @@ export class Pst {
           return utxo.outpointIndex === input.outpointIndex && binToHex(utxo.outpointTransactionHash) === binToHex(input.outpointTransactionHash)
         })
       }
-      if (lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network }).address === address) {
+      if (lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network }).address === this.address) {
         input.unlockingBytecode = {
           ...input.unlockingBytecode,
           compiler: this.compiler,
@@ -216,17 +238,20 @@ export class Pst {
   }
 
   toBase64 () {
-    const bin = utf8ToBin(this.toJSON())
+    console.log('THIS', this.toJSON())
+    const bin = utf8ToBin(JSON.stringify(this.toJSON()))
+    console.log('🚀 ~ Pst ~ toBase64 ~ bin:', bin)
     return binToBase64(bin)
   }
 
   toBase64FromJsonSafe () {
-    const bin = utf8ToBin(stringify(this))
+    const bin = utf8ToBin(stringify(this.toJSON()))
     return binToBase64(bin)
   }
 
   toJSON () {
     return {
+      id: this.id,
       m: this.m,
       n: this.n,
       lockingData: this.lockingData,
@@ -234,7 +259,8 @@ export class Pst {
       template: this.template,
       transaction: this.transaction,
       network: this.network,
-      signatures: this.signatures
+      signatures: this.signatures,
+      address: this.address
     }
   }
 
@@ -254,7 +280,7 @@ export class Pst {
   static createInstanceFromJSON (stringifiedPst) {
     const { transaction, ...rest } = JSON.parse(stringifiedPst)
     const pst = new Pst({ rest })
-    pst.setTransaction(transaction)
+    pst.setTransactionData(transaction)
     return pst
   }
 
@@ -266,6 +292,7 @@ export class Pst {
   static createInstanceFromBase64 (pstData) {
     if (typeof (pstData) !== 'string') return
     const bin = base64ToBin(pstData)
-    return binToUtf8(bin)
+    const parsed = JSON.parse(binToUtf8(bin))
+    return new Pst(parsed)
   }
 }
