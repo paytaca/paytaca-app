@@ -19,6 +19,6 @@ export function getTransactionsByAddress (state) {
 
 export function getPstById (state) {
   return ({ id }) => {
-    return state.psts.filter((i) => i.id === id)
+    return state.psts.filter((i) => i.id === id)[0]
   }
 }
