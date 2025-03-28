@@ -11,7 +11,7 @@
             />
             <div class="row q-mt-lg justify-center">
               <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
-                {{ pst }}
+                {{ pst.signersInfo }}
               </div>
             </div>
           </div>
@@ -24,13 +24,13 @@
 <script setup>
 import { useStore } from 'vuex'
 // import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 // import { loadLibauthHdWallet } from 'src/wallet'
 // import HeaderNav from 'components/header-nav'
 // import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-// import { Pst, MultisigWallet } from 'src/lib/multisig'
+import { Pst } from 'src/lib/multisig'
 
 const $store = useStore()
 const route = useRoute()
@@ -39,6 +39,15 @@ const darkMode = computed(() => {
 })
 const pst = computed(() => {
   const id = route.params.id
-  return $store.getters['multisig/getPstById']({ id })
+  const value = $store.getters['multisig/getPstById']({ id })
+  console.log('value', value)
+  if (value) {
+    return Pst.createInstanceFromObject(value)
+  }
+  return value
+})
+
+onMounted(() => {
+  window.pst = pst.value
 })
 </script>
