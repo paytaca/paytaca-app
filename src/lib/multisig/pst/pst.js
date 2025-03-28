@@ -6,8 +6,13 @@ import {
   CashAddressNetworkPrefix,
   generateTransaction,
   binToHex,
-  extractResolvedVariables
+  extractResolvedVariables,
+  utf8ToBin,
+  binToBase64,
+  base64ToBin,
+  binToUtf8
 } from 'bitauth-libauth-v3'
+import { stringify } from 'querystring'
 
 /**
  * Generates an unique identifier for the PST.
@@ -34,20 +39,44 @@ export const generateId = ({ transaction }) => {
 }
 
 export class Pst {
-  constructor ({ m, n, lockingData, lockingScriptId, template, network }) {
+  constructor ({ m, n, lockingData, lockingScriptId, template, network, transaction, sourceOutputs, signatures }) {
     this.m = m
     this.n = n
     this.lockingData = lockingData
     this.lockingScriptId = lockingScriptId
     this.template = template
-    this.transaction = {}
     // this.compiler = walletTemplateToCompilerBCH(template)
     this.network = network || CashAddressNetworkPrefix.mainnet
-    this.signatures = {}
+    this.signatures = signatures || {}
+    this.transaction = {}
+    this.sourceOutputs = {}
+    if (transaction) {
+      this.setTransaction({ transaction, sourceOutputs })
+    }
   }
 
   get compiler () {
     return walletTemplateToCompilerBCH(this.template)
+  }
+
+  get signersInfo () {
+    const signersLockingData = this.lockingData.hdKeys.hdPublicKeys // { signer_1: xPub..., .... }
+    const signersInfo = {}
+    for (const signer of Object.entries(signersLockingData)) {
+      const [signerEntityKey, signerHdPubKey] = signer
+      const template = this.template
+      const signerSignature = Object.entries(this.signatures || {}).find((signatureKeyValue) => {
+        const [signatureKey/* , signatureValue */] = signatureKeyValue
+        const signerEntityVariableKey = signatureKey.split('.')[0]
+        return Boolean(template.entities[signerEntityKey].variables[signerEntityVariableKey])
+      })
+      signersInfo[signerEntityKey] = this.template.entities[signerEntityKey]
+      signersInfo[signerEntityKey].hdPublicKey = signerHdPubKey
+      if (signerSignature) {
+        signersInfo[signerEntityKey].signature = Object.fromEntries([signerSignature])
+      }
+    }
+    return signersInfo
   }
 
   setTransaction ({ transaction, sourceOutputs }) {
@@ -57,7 +86,9 @@ export class Pst {
       input.outpointTransactionHash = Uint8Array.from(Object.values((input.outpointTransactionHash)))
       input.unlockingBytecode = Uint8Array.from(Object.values((input.unlockingBytecode)))
     })
-    this.id = generateId({ transaction })
+    if (!this.id) {
+      this.id = generateId({ transaction })
+    }
   }
 
   getTransactionProposal () {
@@ -184,6 +215,29 @@ export class Pst {
     store(this)
   }
 
+  toBase64 () {
+    const bin = utf8ToBin(this.toJSON())
+    return binToBase64(bin)
+  }
+
+  toBase64FromJsonSafe () {
+    const bin = utf8ToBin(stringify(this))
+    return binToBase64(bin)
+  }
+
+  toJSON () {
+    return {
+      m: this.m,
+      n: this.n,
+      lockingData: this.lockingData,
+      lockingScriptId: this.lockingScriptId,
+      template: this.template,
+      transaction: this.transaction,
+      network: this.network,
+      signatures: this.signatures
+    }
+  }
+
   static getUnlockingScriptId ({ signatures, template }) {
     const scriptsEntries = Object.entries(template.scripts)
     const unlockingScript = scriptsEntries.find(([scriptId, value]) => {
@@ -197,10 +251,21 @@ export class Pst {
     return unlockingScript[0]
   }
 
-  static fromJSON (stringifiedPst) {
+  static createInstanceFromJSON (stringifiedPst) {
     const { transaction, ...rest } = JSON.parse(stringifiedPst)
     const pst = new Pst({ rest })
     pst.setTransaction(transaction)
     return pst
+  }
+
+  static createInstanceFromObject (pstData) {
+    if (typeof (pstData) === 'string') { return Pst.fromJSON(pstData) }
+    return new Pst(structuredClone(pstData))
+  }
+
+  static createInstanceFromBase64 (pstData) {
+    if (typeof (pstData) !== 'string') return
+    const bin = base64ToBin(pstData)
+    return binToUtf8(bin)
   }
 }
