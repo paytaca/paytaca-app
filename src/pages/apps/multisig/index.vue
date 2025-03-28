@@ -32,6 +32,25 @@
                 class="button"
                 :to="{ name: 'app-multisig-signer-qrcode'}"
               />
+              <q-file clearable color="orange" standout bottom-slots v-model="pstFile" label="Label" counter>
+                <template v-slot:prepend>
+                  <q-icon name="upload_file" />
+                </template>
+                <template v-slot:append>
+                  <q-icon name="favorite" />
+                </template>
+
+                <template v-slot:hint>
+                  Field hint
+                </template>
+              </q-file>
+
+              <q-btn
+                label="Load File"
+                color="primary"
+                @click="loadPstFile"
+              />
+              <q-file ref="pstFileElementRef" v-model="pstFile" :multiple="false" style="visibility: hidden" @update:model-value="updatePstFile"></q-file>
           </div>
           <div class="col-xs-12 q-px-sm q-gutter-x-sm">
             <q-list v-if="wallets" bordered>
@@ -63,11 +82,17 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { Pst } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const $store = useStore()
+const router = useRouter()
 const { t: $t } = useI18n()
+
+const pstFileElementRef = ref()
+const pstFile = ref()
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -85,8 +110,37 @@ const deleteAllWallets = () => {
   $store.dispatch('multisig/deleteAllWallets')
 }
 
-onMounted(() => {
-  console.log('WALLETS', wallets.value)
-})
+const loadPstFile = () => {
+  console.log('PSTFILE REF', pstFileElementRef.value)
+  pstFileElementRef.value.pickFiles()
+}
+const updatePstFile = (file) => {
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const pst = Pst.createInstanceFromBase64(reader.result)
+      pst.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+      router.push({ name: 'app-multisig-wallet-pst-view', params: { address: pst.address, id: pst.id } })
+    }
+    reader.onerror = (err) => {
+      console.err(err)
+    }
+    reader.readAsText(file)
+  }
+}
 
+watch(() => pstFile.value, (file) => {
+  // if (file) {
+  //   const reader = newFileReader.readAsText(file)
+  //   reader.on()
+  //   reader.onload = () => {
+  //     console.log('READER', reader.result)
+  //     const pst = Pst.createInstanceFromBase64(reader.result)
+  //     console.log('PST INSTANCE', pst)
+  //   }
+  //   reader.onerror = (err) => {
+  //     console.err(err)
+  //   }
+  // }
+})
 </script>
