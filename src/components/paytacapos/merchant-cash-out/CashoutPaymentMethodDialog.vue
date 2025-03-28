@@ -421,7 +421,7 @@ export default {
           this.status = 'payment-method-select'
         })
         .catch(error => {
-          console.error(error.response)
+          console.error(error.response || error)
         })
     },
     async deletePaymentMethod () {
@@ -433,7 +433,7 @@ export default {
           this.status = 'payment-method-select'
         })
         .catch(error => {
-          console.error(error.response)
+          console.error(error.response || error)
         })
     },
     async editPaymentMethod (index) {
@@ -470,7 +470,7 @@ export default {
           this.status = 'payment-method-select'
         })
         .catch(error => {
-          console.error(error)
+          console.error(error.response || error)
         })
 
       this.editPaymentMethodIndex = null
@@ -478,8 +478,10 @@ export default {
     },
     async fetchPaymentMethods () {
       const vm = this
-
-      await backend.get(this.paymentMethodURL)
+      const params = {
+        currency: this.currency
+      }
+      await backend.get(this.paymentMethodURL, { params: params })
         .then(response => {
           const data = response.data
 
@@ -488,7 +490,7 @@ export default {
           })
         })
         .catch(error => {
-          console.error(error)
+          console.error(error.response || error)
         })
     },
     filterPaymentTypes () {
