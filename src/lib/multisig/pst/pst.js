@@ -34,14 +34,20 @@ export const generateId = ({ transaction }) => {
 }
 
 export class Pst {
-  constructor ({ lockingData, lockingScriptId, template, network }) {
+  constructor ({ m, n, lockingData, lockingScriptId, template, network }) {
+    this.m = m
+    this.n = n
     this.lockingData = lockingData
     this.lockingScriptId = lockingScriptId
     this.template = template
     this.transaction = {}
-    this.compiler = walletTemplateToCompilerBCH(template)
+    // this.compiler = walletTemplateToCompilerBCH(template)
     this.network = network || CashAddressNetworkPrefix.mainnet
     this.signatures = {}
+  }
+
+  get compiler () {
+    return walletTemplateToCompilerBCH(this.template)
   }
 
   setTransaction ({ transaction, sourceOutputs }) {
@@ -173,6 +179,11 @@ export class Pst {
     return successfulCompilation
   }
 
+  save (store) {
+    // TODO: serialize pst before saving?
+    store(this)
+  }
+
   static getUnlockingScriptId ({ signatures, template }) {
     const scriptsEntries = Object.entries(template.scripts)
     const unlockingScript = scriptsEntries.find(([scriptId, value]) => {
@@ -184,5 +195,12 @@ export class Pst {
       return found
     })
     return unlockingScript[0]
+  }
+
+  static fromJSON (stringifiedPst) {
+    const { transaction, ...rest } = JSON.parse(stringifiedPst)
+    const pst = new Pst({ rest })
+    pst.setTransaction(transaction)
+    return pst
   }
 }

@@ -13,6 +13,12 @@ export function getWallets (state) {
 
 export function getTransactionsByAddress (state) {
   return ({ address }) => {
-    return state.transactions.filter((t) => t.address === address)
+    return state.transactions.filter((t) => t.address === decodeURIComponent(address))
+  }
+}
+
+export function getPstById (state) {
+  return ({ id }) => {
+    return state.psts.filter((i) => i.id === id)
   }
 }

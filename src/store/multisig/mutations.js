@@ -21,3 +21,9 @@ export function walletConnectSignTransactionRequest (state, { address, sessionRe
   const sourceOutputs = sessionRequest.params.request.params.sourceOutputs
   newTransaction(state, { transaction, sourceOutputs, address, sessionRequest })
 }
+
+export function savePst (state, pst) {
+  const exists = state.psts.find(item => item.id === pst.id)
+  if (exists) return
+  state.psts.push(pst)
+}

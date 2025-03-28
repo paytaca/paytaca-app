@@ -18,3 +18,8 @@ export function deleteAllWallets ({ commit }) {
 export function walletConnectSignTransactionRequest ({ commit }, { address, sessionRequest }) {
   commit('walletConnectSignTransactionRequest', { address, sessionRequest })
 }
+
+export function savePst ({ commit }, pst) {
+  console.log('saving pst', pst)
+  commit('savePst', pst)
+}
