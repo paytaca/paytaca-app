@@ -54,7 +54,7 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { loadLibauthHdWallet } from 'src/wallet'
 import HeaderNav from 'components/header-nav'
 import FooterMenu from 'components/multisig/footer-menu.vue'
@@ -64,7 +64,7 @@ import { Pst, MultisigWallet } from 'src/lib/multisig'
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
-// const router = useRouter()
+const router = useRouter()
 
 const transactionData = computed(() => {
   const transactions = $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
@@ -116,6 +116,8 @@ const wallet = computed(() => {
 const partiallySignTransaction = async () => {
   const wallet = $store.getters['multisig/getWallet']({ address: route.params.address })
   const pst = new Pst({
+    m: wallet.m,
+    n: wallet.n,
     lockingData: wallet.lockingData,
     lockingScriptId: 'lock',
     template: wallet.template,
@@ -132,9 +134,10 @@ const partiallySignTransaction = async () => {
     return wallet.signers[signerId].xPubKey === hdKeys.hdPublicKey
   })
   pst.signTransaction({ [`signer_${mySignerId}`]: hdKeys.hdPrivateKey })
+  pst.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
   window.pst = pst // TODO: remove this
-  console.log('TODO: SAVE AND REDIRECT TO PSBT PAGE')
-  // router.push({ name: 'app-multisig-wallet-pst', params: { address: wallet.address } })
+  // console.log('TODO: SAVE AND REDIRECT TO PSBT PAGE')
+  router.push({ name: 'app-multisig-wallet-pst-view', params: { address: wallet.address, id: pst.id } })
 }
 
 onMounted(() => {
