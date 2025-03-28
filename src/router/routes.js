@@ -225,11 +225,11 @@ const routes = [
           { path: 'wallet/:address', component: () => import('src/pages/apps/multisig/wallet/view.vue'), name: 'app-multisig-wallet-view' },
           { path: 'wallet/:address/receive', component: () => import('src/pages/apps/multisig/wallet/receive.vue'), name: 'app-multisig-wallet-receive' },
           { path: 'wallet/:address/send', component: () => import('src/pages/apps/multisig/wallet/send.vue'), name: 'app-multisig-wallet-send' },
-          { path: 'wallet/:address/transaction', component: () => import('src/pages/apps/multisig/wallet/transaction/index.vue'), name: 'app-multisig-transactions' },
-          { path: 'wallet/:address/transaction/:index', component: () => import('src/pages/apps/multisig/wallet/transaction/view.vue'), name: 'app-multisig-transaction-view' },
-          { path: 'wallet/:address/pst', component: () => import('src/pages/apps/multisig/wallet/pst/index.vue'), name: 'app-multisig-psts' },
-          { path: 'wallet/:address/pst/create', component: () => import('src/pages/apps/multisig/wallet/pst/create.vue'), name: 'app-multisig-pst-create' },
-          { path: 'wallet/:address/pst/:id', component: () => import('src/pages/apps/multisig/wallet/pst/view.vue'), name: 'app-multisig-pst-view' }
+          { path: 'wallet/:address/transaction', component: () => import('src/pages/apps/multisig/wallet/transaction/index.vue'), name: 'app-multisig-wallet-transactions' },
+          { path: 'wallet/:address/transaction/:index', component: () => import('src/pages/apps/multisig/wallet/transaction/view.vue'), name: 'app-multisig-wallet-transaction-view' },
+          { path: 'wallet/:address/pst', component: () => import('src/pages/apps/multisig/wallet/pst/index.vue'), name: 'app-multisig-wallet-psts' },
+          { path: 'wallet/:address/pst/create', component: () => import('src/pages/apps/multisig/wallet/pst/create.vue'), name: 'app-multisig-wallet-pst-create' },
+          { path: 'wallet/:address/pst/:id', component: () => import('src/pages/apps/multisig/wallet/pst/view.vue'), name: 'app-multisig-wallet-pst-view' }
         ]
       }
     ]
