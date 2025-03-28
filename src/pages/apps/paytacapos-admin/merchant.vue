@@ -361,7 +361,6 @@ const $store = useStore()
 const $q = useQuasar()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-// let cashoutBtnKey = 0
 const confirm = ref(false)
 const walletType = 'bch'
 const merchantId = JSON.parse(history.state.merchantId)
@@ -1063,6 +1062,7 @@ function connectRpcClient(opts) {
 
 onMounted(() => refreshPage())
 async function refreshPage(done=() => {}) {
+  resetCashoutData()
   try {
     await initWallet()
     await fetchAuthWallet()
@@ -1074,6 +1074,7 @@ async function refreshPage(done=() => {}) {
     await Promise.all([
       fetchPosDevices(),
       fetchBranches(),
+      checkCashoutAvailability(),
     ])
   } finally {
     done?.()
@@ -1081,28 +1082,21 @@ async function refreshPage(done=() => {}) {
 
 }
 
-
 let isCashoutAvailable = false
 let cashoutErrorMsg = null
 let cashoutBtnLoading = true
-let merchantActivity = {
-  active: false,
-  verified: false
-}
-onMounted(async () => checkCashoutAvailability())
+
 async function checkCashoutAvailability () {
   await $store.dispatch('global/fetchAppControl')
-  // await $store.dispatch('global/fetchMerchant', merchantId)
   const merchantData = $store.getters['global/merchantActivity']
   const appControl = $store.getters['global/appControl']
   const country = $store.getters['global/country']
 
   const cashoutControl = appControl.find(item => item.feature_name === 'MERCHANT_CASH_OUT')
-  
+
   if (cashoutControl?.is_enabled) {
     isCashoutAvailable = true
 
-    console.log('country.code:', country.code)
     if (!cashoutControl.enabled_countries.includes(country.code)) {
       isCashoutAvailable = false
 
@@ -1121,7 +1115,12 @@ async function checkCashoutAvailability () {
   }
 
   cashoutBtnLoading = false
-  // cashoutBtnKey++
+}
+
+function resetCashoutData () {
+  isCashoutAvailable = false
+  cashoutErrorMsg = null
+  cashoutBtnLoading = true
 }
 </script>
 <style lang="scss" scoped>

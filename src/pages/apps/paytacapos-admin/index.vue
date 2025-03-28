@@ -208,10 +208,6 @@ async function openMerchantPage(merchantData) {
   $router.push({ name: 'app-pos-merchant', state: { merchantId: JSON.stringify(merchantData?.id) } })
 }
 
-function openCashoutPage() {
-  $router.push({ name: 'app-pos-cashout' })
-}
-
 const merchantInfoDialog = ref({ show: false, merchant: null })
 function openMerchantInfoDialog(merchantData) {
   merchantInfoDialog.value = { show: true, merchant: merchantData }
