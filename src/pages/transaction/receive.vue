@@ -59,6 +59,7 @@
                 <div class="col row justify-center q-pt-md">
                   <qr-code
                     :text="isCt ? address : addressAmountFormat"
+                    :generating="generating"
                     border-width="3px"
                     border-color="#ed5f59"
                     :size="220"
@@ -226,6 +227,7 @@ export default {
       showLegacy: false,
       lnsName: '',
       generateAddressOnLeave: false,
+      generating: false,
       copying: false,
       amount: '',
       tempAmount: '',
@@ -461,6 +463,7 @@ export default {
     },
     generateNewAddress () {
       const vm = this
+      vm.generating = true
       const lastAddressIndex = vm.getLastAddressIndex()
       const newAddressIndex = lastAddressIndex + 1
 
@@ -479,6 +482,8 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             try { vm.setupListener() } catch {}
+          }).finally(() => {
+            vm.generating = false
           })
         }
         if (vm.walletType === 'slp') {
@@ -750,7 +755,6 @@ export default {
 
   async mounted () {
     const vm = this
-
     vm.setupListener()
     this.updateLnsName()
 
@@ -787,6 +791,7 @@ export default {
         vm.setAmountInFiat = false
       }
     }
+    vm.generating = false
   }
 }
 </script>
