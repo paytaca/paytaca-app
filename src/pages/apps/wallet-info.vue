@@ -551,6 +551,11 @@ export default {
           }
           this.sbchLnsName = ''
         })
+        .catch(error => {
+          // Handle network connection errors gracefully
+          console.error('LNS resolution error:', error)
+          this.sbchLnsName = ''
+        })
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)

@@ -9,7 +9,7 @@
       backnavpath="/apps"
       class="apps-header"
     />
-    <div class="q-px-md q-pb-md">
+    <div class="q-px-md q-pb-md" :class="{'text-black': !darkMode}">
       <!-- <div class="text-right q-pb-sm">
         <q-btn class="q-px-sm" outline rounded icon="payments" color="primary" label="Cash Out" @click="openCashoutPage"></q-btn>
       </div> -->
