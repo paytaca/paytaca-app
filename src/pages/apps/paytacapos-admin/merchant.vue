@@ -105,6 +105,7 @@
             @click.stop="openMerchantInfoDialog()"
           />
         </q-item>
+        <!-- Temporarily disabled merchant cashout
         <div class="text-center q-pt-xs">
           <q-btn
             outline
@@ -116,7 +117,8 @@
             :class="getDarkModeClass(darkMode)"
             @click="openCashoutPage()"
           />
-        </div>
+        </div> 
+        -->
       </q-card-section>
     </q-card>
 
