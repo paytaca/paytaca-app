@@ -264,6 +264,27 @@ export class Pst {
     }
   }
 
+  async toPstFile (filename) {
+    const jsonString = stringify(this.toJSON(), 0)
+    if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
+      const blob = new Blob([jsonString], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${filename}.ppst`
+      a.click()
+      URL.revokeObjectURL(url)
+      return
+    }
+
+    try {
+      const fs = await import('fs')
+      fs.writeFileSync(`${filename}.ppst`, jsonString)
+    } catch (error) {
+      console.error('Environment not supported for file saving')
+    }
+  }
+
   static getUnlockingScriptId ({ signatures, template }) {
     const scriptsEntries = Object.entries(template.scripts)
     const unlockingScript = scriptsEntries.find(([scriptId, value]) => {
