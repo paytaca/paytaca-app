@@ -100,7 +100,8 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 160 : this.$q.screen.height - 130,
       showCashoutDetails: false,
       selectedCashoutOrder: null,
-      status: 'cashout-list' // cashout-details
+      status: 'cashout-list', // cashout-details
+      merchant: null
     }
   },
   computed: {
@@ -117,7 +118,10 @@ export default {
   },
   async mounted () {
     this.isloading = true
+
+    this.merchant = this.$store.getters['paytacapos/cashoutMerchant']
     await this.refetchListings()
+
     this.isloading = false
   },
   watch: {
@@ -177,15 +181,23 @@ export default {
       const url = '/paytacapos/cash-out/'
       const limit = 20
 
-      await backend.get(url, { params: { order_type: this.orderType, limit: limit, page: this.pageNumber }})
+      const params = {
+        order_type: this.orderType,
+        limit: limit,
+        page: this.pageNumber,
+        merchant_ids: this.merchant?.id
+      }
+
+      await backend.get(url, { params: params })
         .then(response => {
+          const data = response.data
           if (overwrite) {
-            vm.cashoutOrders = response.data?.orders
+            vm.cashoutOrders = data?.orders
           } else {
-            vm.cashoutOrders.push(...response.data?.orders)
+            vm.cashoutOrders.push(...data?.orders)
           }
 
-          this.totalPages = response.data?.total_pages
+          this.totalPages = data.data?.total_pages
         })
         .catch(error => {
           console.log(error)
