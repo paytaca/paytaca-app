@@ -11,7 +11,11 @@
           Select Payment Methods
         </div>
 
-        <div class="q-px-md">
+        <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        </div>
+
+        <div v-else class="q-px-md">
           <div class="text-center text-grey-8" v-if="paymentMethodList.length === 0">
             No payment method available...
           </div>
