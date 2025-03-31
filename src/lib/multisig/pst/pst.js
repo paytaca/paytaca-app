@@ -14,30 +14,6 @@ import {
 } from 'bitauth-libauth-v3'
 import { stringify } from 'querystring'
 
-/**
- * Generates an unique identifier for the PST.
- */
-export const generateId = ({ transaction }) => {
-  const inputs = structuredClone(transaction.inputs)
-  const outputs = structuredClone(transaction.outputs)
-  inputs.forEach(input => {
-    input.unlockingBytecode = new Uint8Array([])
-    // encodeTransactionCommon throws if expected bin is an object instead of Uint8Array
-    input.outpointTransactionHash = Uint8Array.from(input.outpointTransactionHash)
-  })
-  outputs.forEach(output => {
-    output.lockingBytecode = Uint8Array.from(output.lockingBytecode)
-  })
-  const unofficialPreimage = {
-    locktime: transaction.locktime,
-    outputs: transaction.outputs,
-    version: transaction.version,
-    inputs: inputs
-  }
-  const encoded = encodeTransactionCommon(unofficialPreimage)
-  return hashTransaction(encoded)
-}
-
 export class Pst {
   /**
    * Optional - id, transaction, sourceOutputs, metadata, signatures
@@ -49,14 +25,18 @@ export class Pst {
     this.lockingData = lockingData
     this.lockingScriptId = lockingScriptId
     this.template = template
-    // this.compiler = walletTemplateToCompilerBCH(template)
     this.network = network || CashAddressNetworkPrefix.mainnet
     this.signatures = signatures || {}
     this.transaction = {}
     this.sourceOutputs = {}
     this.metadata = {}
     if (transaction) {
-      this.setTransactionData({ transaction, sourceOutputs, metadata })
+      this.transaction = Pst.transactionBinObjectsToUint8Array(transaction)
+      this.sourceOutputs = sourceOutputs
+      this.metadata = metadata
+      if (!this.id) {
+        this.id = this.transactionHex
+      }
     }
   }
 
@@ -100,27 +80,10 @@ export class Pst {
     return signersInfo
   }
 
-  setTransactionData ({ transaction, sourceOutputs, metadata }) {
-    this.transaction = structuredClone(transaction)
-    this.sourceOutputs = structuredClone(sourceOutputs)
-    this.metadata = structuredClone(metadata)
-    this.transaction.inputs.forEach(input => {
-      input.outpointTransactionHash = Uint8Array.from(Object.values((input.outpointTransactionHash)))
-      input.unlockingBytecode = Uint8Array.from(Object.values((input.unlockingBytecode)))
-    })
-    if (!this.id) {
-      this.id = generateId({ transaction })
-    }
-  }
-
-  getTransactionProposal () {
-    const outputs = structuredClone(this.transaction.outputs)
-    outputs.forEach(o => { o.lockingBytecode = Uint8Array.from(Object.values(o.lockingBytecode)) })
-    return {
-      locktime: this.transaction.locktime,
-      outputs: outputs,
-      version: this.transaction.version
-    }
+  get transactionHex () {
+    return hashTransaction(
+      encodeTransactionCommon(Pst.transactionBinObjectsToUint8Array(this.transaction))
+    )
   }
 
   signTransaction (entityPrivateKey /* example: { signer_1: privatekeyofsigner1 } */) {
@@ -135,26 +98,18 @@ export class Pst {
       }
     }
 
-    // const lockingBytecode = this.compiler.generateBytecode({
-    //   data: this.lockingData,
-    //   scriptId: this.lockingScriptId
-    // })
-
-    // const { address } = lockingBytecodeToCashAddress({
-    //   bytecode: lockingBytecode.bytecode,
-    //   prefix: this.network
-    // })
-
     const unlockingScriptId = this.template.entities[entity].scripts.filter((scriptId) => scriptId !== 'lock')[0]
 
-    for (const input of this.transaction.inputs) {
+    const transaction = structuredClone(this.transaction)
+    for (const input of transaction.inputs) {
       let sourceOutput = input.sourceOutput
       if (!sourceOutput) {
         sourceOutput = this.sourceOutputs.find((utxo) => {
           return utxo.outpointIndex === input.outpointIndex && binToHex(utxo.outpointTransactionHash) === binToHex(input.outpointTransactionHash)
         })
       }
-      if (lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network }).address === this.address) {
+      const { address: sourceOutputAddress } = lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network })
+      if (sourceOutputAddress === this.address) {
         input.unlockingBytecode = {
           ...input.unlockingBytecode,
           compiler: this.compiler,
@@ -165,9 +120,8 @@ export class Pst {
         }
       }
     }
-    const inputs = [...this.transaction.inputs]
-    inputs.forEach(i => delete i.sourceOutput)
-    const signAttempt = generateTransaction({ ...this.getTransactionProposal(), inputs })
+    transaction.inputs.forEach(i => delete i.sourceOutput)
+    const signAttempt = generateTransaction({ ...transaction })
     const signerResolvedVariables = extractResolvedVariables(signAttempt)
     this.signatures = {
       ...this.signatures,
@@ -205,7 +159,8 @@ export class Pst {
 
     const unlockingScriptId = this.getUnlockingScriptId({ signatures: this.signatures, template: this.template })
 
-    for (const input of this.transaction.inputs) {
+    const transaction = structuredClone(this.transaction)
+    for (const input of transaction.inputs) {
       let sourceOutput = input.sourceOutput
       if (!sourceOutput) {
         sourceOutput = this.sourceOutputs.find((utxo) => {
@@ -225,10 +180,8 @@ export class Pst {
     }
 
     const successfulCompilation = generateTransaction({
-      ...this.getTransactionProposal(),
-      inputs: this.transaction.inputs
+      ...transaction
     })
-
     return successfulCompilation
   }
 
@@ -238,9 +191,7 @@ export class Pst {
   }
 
   toBase64 () {
-    console.log('THIS', this.toJSON())
     const bin = utf8ToBin(JSON.stringify(this.toJSON()))
-    console.log('🚀 ~ Pst ~ toBase64 ~ bin:', bin)
     return binToBase64(bin)
   }
 
@@ -250,6 +201,7 @@ export class Pst {
   }
 
   toJSON () {
+    // TODO: make this leaner
     return {
       id: this.id,
       m: this.m,
@@ -259,8 +211,9 @@ export class Pst {
       template: this.template,
       transaction: this.transaction,
       network: this.network,
-      signatures: this.signatures,
-      address: this.address
+      address: this.address,
+      transactionHex: this.transactionHex,
+      signatures: this.signatures
     }
   }
 
@@ -299,10 +252,7 @@ export class Pst {
   }
 
   static createInstanceFromJSON (stringifiedPst) {
-    const { transaction, ...rest } = JSON.parse(stringifiedPst)
-    const pst = new Pst({ rest })
-    pst.setTransactionData(transaction)
-    return pst
+    return new Pst(JSON.parse(stringifiedPst))
   }
 
   static createInstanceFromObject (pstData) {
@@ -315,5 +265,35 @@ export class Pst {
     const bin = base64ToBin(pstData)
     const parsed = JSON.parse(binToUtf8(bin))
     return new Pst(parsed)
+  }
+
+  /**
+   * Transform a transaction's bin values in object forms to Uint8Arrays
+   * @return A copy of the transaction object
+   */
+  static transactionBinObjectsToUint8Array (transactionObject) {
+    const transaction = structuredClone(transactionObject)
+    transaction.inputs.forEach(input => {
+      if (input.outpointTransactionHash && !(input?.outpointTransactionHash instanceof Uint8Array)) {
+        input.outpointTransactionHash = Uint8Array.from(Object.values((input.outpointTransactionHash)))
+      }
+      if (input.unlockingBytecode && !(input?.unlockingBytecode instanceof Uint8Array)) {
+        input.unlockingBytecode = Uint8Array.from(Object.values((input.unlockingBytecode)))
+      }
+      if (input.sourceOutput?.lockingBytecode && !(input.sourceOutput.lockingBytecode instanceof Uint8Array)) {
+        input.lockingBytecode = Uint8Array.from(Object.values((input.sourceOutput.lockingBytecode)))
+      }
+    })
+    transaction.outputs.forEach(output => {
+      if (output.lockingBytecode && !(output?.lockingBytecode instanceof Uint8Array)) {
+        output.lockingBytecode = Uint8Array.from(Object.values(output.lockingBytecode))
+      }
+    })
+    return {
+      version: transaction.version,
+      locktime: transaction.locktime,
+      inputs: transaction.inputs,
+      outputs: transaction.outputs
+    }
   }
 }
