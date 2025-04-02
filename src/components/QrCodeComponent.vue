@@ -60,6 +60,10 @@ export default {
     borderColor: {
       type: String,
       default: 'red'
+    },
+    generating: {
+      type: Boolean,
+      default: false
     }
   },
   data () {
@@ -72,12 +76,30 @@ export default {
     this.renderQRCode();
   },
   watch: {
-    text: 'renderQRCode' // Watch for changes to `text` and re-render the QR code
+    generating(newVal) {
+      if (newVal) {
+        this.loading = true
+        const container = document.getElementById(`qr-${this.qrId}`)
+        if (container) {
+          container.style.display = 'none'
+        }
+      } else {
+        this.loading = false
+        const container = document.getElementById(`qr-${this.qrId}`)
+        if (container) {
+          container.style.display = 'block'  // or 'flex' depending on your layout
+        }
+      }
+    },
+    text(newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.renderQRCode()
+      }
+    }
   },
   methods: {
     renderQRCode() {
       const vm = this
-      console.log('QR ID', vm.qrId)
       const container = document.getElementById(`qr-${vm.qrId}`)
 
       if (container) {
