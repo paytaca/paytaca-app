@@ -327,7 +327,7 @@ export default {
       ]
       let query
 
-      if (prefixArray.findIndex(s => a.includes(s)) > -1) {
+      if (prefixArray.findIndex(s => value.includes(s)) > -1) {
         let fallback = vm.processPayProData(payProData)
 
         // Fallback to BCH

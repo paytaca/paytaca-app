@@ -206,6 +206,15 @@ export default {
           return true
       }
     },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
     onUpdateIdentifierType () {
       if (this.paymentMethod.account_identifier) {
         this.$refs.accIdentifierRef.validate()

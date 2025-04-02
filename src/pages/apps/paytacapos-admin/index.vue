@@ -9,7 +9,10 @@
       backnavpath="/apps"
       class="apps-header"
     />
-    <div class="q-pa-md">
+    <div class="q-px-md q-pb-md" :class="{'text-black': !darkMode}">
+      <!-- <div class="text-right q-pb-sm">
+        <q-btn class="q-px-sm" outline rounded icon="payments" color="primary" label="Cash Out" @click="openCashoutPage"></q-btn>
+      </div> -->
       <div class="row items-center justify-end">
         <div class="text-h5">{{ $t('Merchants')}}</div>
         <q-space/>
@@ -46,7 +49,7 @@
               @click="() => openMerchantPage(merchantData)"
             >
               <q-item-section>
-                <q-item-label>{{ $t('View') }}</q-item-label>    
+                <q-item-label>{{ $t('View') }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item
@@ -54,7 +57,7 @@
               @click="() => openMerchantInfoDialog(merchantData)"
             >
               <q-item-section>
-                <q-item-label>{{ $t('Edit') }}</q-item-label>    
+                <q-item-label>{{ $t('Edit') }}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item
@@ -62,7 +65,7 @@
               @click="() => confirmDeleteMerchant(merchantData)"
             >
               <q-item-section>
-                <q-item-label>{{ $t('Delete') }}</q-item-label>    
+                <q-item-label>{{ $t('Delete') }}</q-item-label>
               </q-item-section>
             </q-item>
           </div>
@@ -203,7 +206,12 @@ function fetchMerchants() {
 }
 
 function openMerchantPage(merchantData) {
-  $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
+  // $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
+  $router.push({ name: 'app-pos-merchant', state: { merchantId: JSON.stringify(merchantData?.id) } })
+}
+
+function openCashoutPage() {
+  $router.push({ name: 'app-pos-cashout' })
 }
 
 const merchantInfoDialog = ref({ show: false, merchant: null })
