@@ -178,17 +178,31 @@ export default {
     },
     async fetchCashoutOrders (overwrite) {
       const vm = this
-      const url = '/paytacapos/cash-out/'
       const limit = 20
+      const url = '/paytacapos/cash-out/'
 
       const params = {
-        order_type: this.orderType,
         limit: limit,
         page: this.pageNumber,
         merchant_ids: this.merchant?.id
       }
 
-      await backend.get(url, { params: params })
+      const orderTypes = [this.orderType]
+      if (this.orderType === 'PENDING') {
+        orderTypes.push('PROCESSING')
+      }
+
+      let orderTypeParamStr = ''
+      if (this.orderType !== 'ALL' && orderTypes.length > 0) {
+        orderTypeParamStr = '?order_types='
+        if (orderTypes.length > 1) {
+          orderTypeParamStr = `${orderTypeParamStr}${orderTypes.join('&order_types=')}`
+        } else {
+          orderTypeParamStr = `${orderTypeParamStr}${orderTypes[0]}`
+        }
+      }
+
+      await backend.get(`${url}${orderTypeParamStr}`, { params: params })
         .then(response => {
           const data = response.data
           if (overwrite) {

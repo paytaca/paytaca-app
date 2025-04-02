@@ -7,24 +7,9 @@
   </div>
 
   <div class="q-mx-lg q-my-md q-pb-md" style="font-size: 13px;" v-if="order">
-    <div class="">
+    <div>
       <div class="text-grey text-bold">Payout Amount</div>
-      <div style="font-size: 15px">{{ order.payout_amount }} BCH</div>
-    </div>
-
-    <div class="q-pt-sm">
-      <div class="text-grey text-bold">Payout Address</div>
-      <div style="overflow-wrap: anywhere; font-size: 15px;">
-        <span @click="copyToClipboard(order.payout_address)">{{ order.payout_address }}</span>
-        <q-icon name="content_copy" color="grey" size="sm" @click="copyToClipboard(order.payout_address)"/>
-        <q-icon name="open_in_new" color="grey" size="sm" @click="openURL(explorerLink('address'))"/>
-      </div>
-      <!-- <div class="text-right" style="overflow-wrap: anywhere;">{{ arrangeAddressText(order.payout_address) }} <q-icon name="content_copy" color="grey" size="sm" @click="copyToClipboard(order.payout_address)"/></div> -->
-    </div>
-
-    <div class="q-pt-sm">
-      <div class="text-grey text-bold">Created At</div>
-      <div style="font-size: 15px;">{{ arrangeDate(order.created_at) }}</div>
+      <div style="font-size: 15px">{{ order.payout_amount }} {{ order.currency }} ({{ Number(order.payout_details?.total_bch_amount) }} BCH)</div>
     </div>
 
     <div class="q-pt-sm">
@@ -33,17 +18,27 @@
     </div>
 
     <div class="q-pt-sm">
+      <div class="text-grey text-bold">Payout Address</div>
+      <div class="text-primary text-underline" style="overflow-wrap: anywhere; font-size: 15px;">
+        <span @click="openURL(explorerLink('address'))">{{ order.payout_address }}</span>
+      </div>
+    </div>
+
+    <div class="q-pt-sm">
       <div class="text-grey text-bold">Transaction ID</div>
       <div class="text-primary text-underline" style="overflow-wrap: anywhere; font-size: 15px;">
-        <span @click="copyToClipboard(order.payout_address)">{{ order.transactions.outputs[0].txid}}</span>
-        <q-icon name="content_copy" color="grey" size="sm" @click="copyToClipboard(order.payout_address)"/>
-        <q-icon name="open_in_new" color="grey" size="sm" @click="openURL(explorerLink())"/>
+        <span @click="openURL(explorerLink())">{{ order.transactions.outputs[0].txid}}</span>
       </div>
     </div>
 
     <div class="q-pt-sm">
       <div class="text-grey text-bold">Status</div>
       <div class="text-bold" style="font-size: 15px;">{{ order.status }}</div>
+    </div>
+
+    <div class="q-pt-sm">
+      <div class="text-grey text-bold">{{ statusTimestampLabel }}</div>
+      <div style="font-size: 15px;">{{ statusTimestamp }}</div>
     </div>
   </div>
 </template>
@@ -63,6 +58,29 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
+    statusTimestampLabel () {
+      switch(this.order.status) {
+        case "PENDING":
+          return "Created At"
+        case "PROCESSING":
+          return "Processed At"
+        case "COMPLETED":
+          return "Completed At"
+      }
+    },
+    statusTimestamp () {
+      let timestamp = null
+      const status = this.order.status.toLowerCase()
+      switch(status) {
+        case "pending":
+          timestamp = this.order.created_at
+        case "processing":
+          timestamp = this.order.processed_at
+        case "completed":
+          timestamp = this.order.completed_at
+      }
+      return this.arrangeDate(timestamp)
+    }
   },
   emits: ['close'],
   methods: {
@@ -100,13 +118,8 @@ export default {
       return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(createDate)
     },
     arrangePaymentMethod (method) {
-      // let text = `${method.payment_type.full_name}: `
-      let text = ''
-
-      method.values.forEach(val => {
-        text =  `${text}[ ${val.value} ] `
-      })
-      return text
+      const methodFields = method.values?.map(val => val.value)
+      return methodFields.join(' | ')
     },
     copyToClipboard (value) {
       this.$copyText(value)
