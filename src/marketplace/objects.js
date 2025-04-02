@@ -1311,6 +1311,10 @@ export class Order {
     return this.status == Order.Status.DELIVERED
   }
 
+  get isCompleted() {
+    return this.status === Order.Status.COMPLETED
+  }
+
   async fetchStorefront() {
     if (!this.storefrontId) return Promise.reject('No storefront id')
 
