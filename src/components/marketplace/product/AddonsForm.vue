@@ -7,7 +7,7 @@
           <template v-if="addon?.isRequired">*</template>
         </div>
         <div class="text-grey">
-          <template v-if="addon?.minOpts == addon?.maxOpts">
+          <template v-if="addon?.minOpts != addon?.maxOpts">
             {{
               $t(
                 'SelectValueAndTo',
@@ -16,12 +16,12 @@
               )
             }}
           </template>
-          <template v-else>
+          <template v-else-if="addon?.maxOpts">
             {{
               $t(
                 'SelectValue',
-                { value: addon?.minOpts },
-                `Select ${ addon?.minOpts }`
+                { value: addon?.maxOpts },
+                `Select ${ addon?.maxOpts }`
               )
             }}
           </template>
