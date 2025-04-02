@@ -1,4 +1,4 @@
-import { Contract, ElectrumNetworkProvider, Network } from "cashscript"
+import { Contract, ElectrumNetworkProvider, Network, SignatureTemplate } from "cashscript"
 import { compileString } from "cashc"
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
@@ -41,6 +41,45 @@ export default class PromoContract {
     this.contract = new Contract(artifact, contractParams, { provider })
   }
 
+  async redeemPromoTokenToBch (promo) {
+    console.log('redeem')
+    const output = [
+      // 0th output is promo token
+      {
+        // get token address of swap contract from server
+        to: 'bitcoincash:rvwpjvfxc3a6hjlr6y84ech7txlsw7y0gxmppsqmcfpyv8cdhvhtvg82n0us6',
+        amount: BigInt(1000),
+        token: {
+          amount: BigInt(2),
+          category: process.env.PROMO_TOKEN_ID,
+        }
+      },
+      // 1st output is AuthKeyNFT
+      {
+        // get token address of swap contract from server
+        to: 'bitcoincash:rvwpjvfxc3a6hjlr6y84ech7txlsw7y0gxmppsqmcfpyv8cdhvhtvg82n0us6',
+        amount: BigInt(1000),
+        token: {
+          amount: BigInt(0),
+          category: process.env.PROMO_TOKEN_ID,
+          nft: {
+            capability: 'none',
+            commitment: '01' // get commitment from stored AuthKeyNFT
+          }
+        }
+      }
+    ]
+    const temp = await this.contract.functions
+      .transfer(new SignatureTemplate(this.xPubkey), promo)
+      .to(output)
+      .send()
+    console.log(temp)
+  }
+
+  unlockPromoToken () {
+    console.log('unlock')
+  }
+
   /**
    * Subscribes the address of the contract to Watchtower
    * to watch for transactions to and from the address.
@@ -50,10 +89,10 @@ export default class PromoContract {
   }
 
   /**
-   * Computes the SPICE token balance of the contract. It first retrieves
+   * Computes the promo token balance of the contract. It first retrieves
    * the balance on Watchtower. If it fails, it retrieves the balance
    * from the contract itself.
-   * @returns the computed SPICE token balance
+   * @returns the computed promo token balance
    */
   async getTokenBalance () {
     let balance = 0
@@ -69,21 +108,21 @@ export default class PromoContract {
           balance: token?.balance
         }
       })
-      const spiceToken = tokens.filter(t => t.category === process.env.SPICE_TOKEN_ID)
-      if (spiceToken.length > 0) {
-        balance = Number(spiceToken[0].balance)
-        // balance = Number(spiceToken[0].balance) / (10 ** spiceDecimals)
+      const promoToken = tokens.filter(t => t.category === process.env.PROMO_TOKEN_ID)
+      if (promoToken.length > 0) {
+        balance = Number(promoToken[0].balance)
+        // balance = Number(promoToken[0].balance) / (10 ** spiceDecimals)
       }
     }).catch(async _error => {
       // retrieve balance from contract token utxos
-      const spiceUtxos = await this.contract.getUtxos()
+      const promoTokenUtxos = await this.contract.getUtxos()
         .then(result => {
-          return result.filter(r => r.token?.category === process.env.SPICE_TOKEN_ID)
+          return result.filter(r => r.token?.category === process.env.PROMO_TOKEN_ID)
         })
-      balance = spiceUtxos.reduce((total, el) => {
+      balance = promoTokenUtxos.reduce((total, el) => {
         return total + Number(el.token?.amount)
       }, 0)
-      // balance = spiceUtxos.reduce((total, el) => {
+      // balance = promoTokenUtxos.reduce((total, el) => {
       //   return total + (Number(el.token?.amount) / (10 ** spiceDecimals))
       // }, 0)
     })

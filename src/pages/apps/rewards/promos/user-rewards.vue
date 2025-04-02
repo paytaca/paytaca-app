@@ -338,16 +338,17 @@ export default {
     redirectToMarketplaceOrder (orderId) {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     },
-    openRedeemPointsDialog () {
-      this.$q.dialog({
-        component: RedeemPointsDialog,
-        componentProps: {
-          points: this.points,
-          pointsType: 'UR',
-          pointsDivisor: this.pointsDivisor,
-          promoId: this.urId
-        }
-      })
+    async openRedeemPointsDialog () {
+      await this.urContract.redeemPromoTokenToBch(Promos.USERREWARDS)
+      // this.$q.dialog({
+      //   component: RedeemPointsDialog,
+      //   componentProps: {
+      //     points: this.points,
+      //     pointsType: 'UR',
+      //     pointsDivisor: this.pointsDivisor,
+      //     promoId: this.urId
+      //   }
+      // })
     }
   }
 }
