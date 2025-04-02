@@ -377,6 +377,9 @@ const words = [
     Example: "Example",
     Decrypt: 'Decrypt',
     Decrypting: 'Decrypting'
+  },
+  {
+    Cutlery: 'Cutlery',
   }
 ]
 

@@ -85,6 +85,35 @@
               :currency="getStorefrontCurrency(activeStorefrontCart?.storefrontId)"
             />
           </div>
+          <div
+            class="row items-center no-wrap q-px-sm"
+            style="position:relative;" v-ripple
+            @click="() => updatingCutlery ? null : toggleCartCutlery()"
+          >
+            <q-checkbox
+              dense
+              class="q-mr-xs"
+              :model-value="Boolean(activeStorefrontCart?.requireCutlery)"
+              @click="() => updatingCutlery ? null : toggleCartCutlery()"
+            />
+            <div>
+              <div class="text-subtitle2">{{ $t('Cutlery') }}</div>
+              <div class="text-grey text-caption bottom">
+                <template v-if="activeStorefrontCart?.requireCutlery">
+                  {{ $t('CutleryIncludedMsg') }}
+                </template>
+                <template v-else>
+                  {{ $t('CutleryNotIncludedMsg') }}
+                </template>
+              </div>
+            </div>
+            <q-space/>
+            <q-spinner v-if="updatingCutlery" class="q-mr-sm"/>
+            <div>
+              {{ activeStorefrontCart?.cutlerySubtotal }}
+              {{ getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
+            </div>
+          </div>
           <div v-if="activeStorefrontCart?.markupSubtotal" class="row items-center q-mx-xs q-mt-md">
             <div class="text-h6 q-space q-pr-xs">Subtotal</div>
             <div class="text-body1">
@@ -297,6 +326,18 @@ export default {
       $store.dispatch('marketplace/refreshActiveStorefrontCarts')
     })
 
+    const updatingCutlery = ref(false)
+    async function toggleCartCutlery() {
+      try {
+        if (!activeStorefrontCart.value) return
+        updatingCutlery.value = true
+        activeStorefrontCart.value.requireCutlery = !activeStorefrontCart.value.requireCutlery
+        await saveCart(activeStorefrontCart.value)
+      } finally {
+        updatingCutlery.value = false
+      }
+    }
+
     const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
     const deliveryCalculation = ref({
       storefrontId: 0,
@@ -347,10 +388,10 @@ export default {
       return $store.getters['marketplace/getStorefrontCurrency']?.(storefrontId)
     }
 
-    function saveCart(cart=Cart.parse()) {
+    async function saveCart(cart=Cart.parse()) {
       console.log({ cart })
       window.oc = cart
-      $store.dispatch('marketplace/saveCart', cart)
+      await $store.dispatch('marketplace/saveCart', cart)
     }
 
     onMounted(() => setTimeout(async () => {
@@ -389,6 +430,8 @@ export default {
       deliveryCalculation,
 
       activeStorefrontCart,
+      updatingCutlery,
+      toggleCartCutlery,
       activeStorefrontCartDeliveryType,
       activeStorefrontIsActive,
       getStorefrontCurrency,

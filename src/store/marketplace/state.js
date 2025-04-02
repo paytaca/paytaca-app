@@ -76,12 +76,14 @@ export default function () {
         order_id: 0,
         checkout_id: 0,
         storefront_id: 0,
+        require_cutlery: false,
         customer: {
           id: '',
           ref: '',
           first_name: '',
           last_name: '',
         },
+        cutlery_subtotal: 0,
         subtotal: 0,
         markup_subtotal: 0,
         items: [].map(() => {

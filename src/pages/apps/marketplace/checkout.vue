@@ -61,6 +61,15 @@
             :cart="checkout?.cart"
             :currency="checkoutCurrency"
           />
+          <div v-if="checkout?.cart?.requireCutlery" class="row items-center q-px-xs">
+            <div class="q-pa-xs">
+              <div class="text-body2">{{ $t('Cutlery') }}</div>
+              <div class="text-grey text-caption bottom">{{ $t('CutleryIncludedMsg') }}</div>
+            </div>
+            <q-space/>
+            <div class="q-pa-xs">{{ checkout?.cart?.cutlerySubtotal }} {{ checkoutCurrency }}</div>
+          </div>
+          <q-separator/>
           <div v-if="checkout?.cart?.markupSubtotal" class="q-px-xs q-mt-md row items-center text-subtitle1">
             <div class="q-space">Subtotal</div>
             <div>{{ checkout?.cart?.markupSubtotal }} {{ checkoutCurrency }}</div>

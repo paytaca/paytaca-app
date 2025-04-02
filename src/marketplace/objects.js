@@ -701,6 +701,8 @@ export class Cart {
    * @param {Number} data.id
    * @param {Number} data.order_id
    * @param {Number} data.storefront_id
+   * @param {Boolean} data.require_cutlery
+   * @param {Number} data.cutlery_subtotal
    * @param {Number} data.subtotal
    * @param {Number} data.markup_subtotal
    * @param {Object} data.customer
@@ -712,6 +714,8 @@ export class Cart {
     this.id = data?.id
     this.orderId = data?.order_id
     this.storefrontId = data?.storefront_id
+    this.cutlerySubtotal = data?.cutlery_subtotal
+    this.requireCutlery = data?.require_cutlery
     this.subtotal = data?.subtotal
     this.markupSubtotal = data?.markup_subtotal
     this.customer = Customer.parse(data?.customer)
@@ -721,6 +725,7 @@ export class Cart {
   save() {
     const data = {
       storefront_id: this.storefrontId,
+      require_cutlery: this.id ? this.requireCutlery : undefined,
       customer: null,
       items: this.items.map(item => {
         let properties
@@ -1139,6 +1144,7 @@ export class Order {
    * @param {'local_delivery' | 'store_pickup' | 'shipping'} data.delivery_type
    * @param {Object} data.delivery_address
    * @param {Object[]} data.items
+   * @param {Number} data.cutlery_subtotal
    * @param {Number} data.subtotal
    * @param {Number} data.markup_subtotal
    * @param {Number} data.total_paid
@@ -1168,6 +1174,7 @@ export class Order {
     this.deliveryType = data?.delivery_type
     this.deliveryAddress = DeliveryAddress.parse(data?.delivery_address)
     this.items = data?.items?.map?.(OrderItem.parse)
+    this.cutlerySubtotal = data?.cutlery_subtotal
     this.subtotal = data?.subtotal
     this.markupSubtotal = data?.markup_subtotal
     this.totalPaid = data?.total_paid

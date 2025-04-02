@@ -536,6 +536,18 @@
                   <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(round(addon?.markupPrice * orderItem?.quantity, 3)) }}</td>
                 </tr>
               </template>
+              <tr v-if="orderAmounts?.cutlerySubtotal">
+                <td colspan="4" class="q-py-xs">
+                  <div class="text-weight-medium">{{ $t('Cutlery') }}</div>
+                  <div class="text-caption bottom">
+                    {{ $t('AdditionalChargesForCutlery') }}
+                  </div>
+                </td>
+                <td class="text-center">
+                  <div v-if="displayBch">{{ orderAmounts.cutlerySubtotal.bch }} BCH</div>
+                  <div v-else>{{ orderAmounts.cutlerySubtotal.currency }} {{ orderCurrency }}</div>
+                </td>
+              </tr>
             </q-markup-table>
           </q-card>
         </div>
@@ -831,6 +843,7 @@ fetchOrder.debounced = debounce(fetchOrder, 500)
 const orderAmounts = computed(() => {
   const data = {
     subtotal: { currency: order.value?.markupSubtotal || 0, bch: 0 },
+    cutlerySubtotal: { currency: order.value?.cutlerySubtotal || 0, bch: 0 },
     deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
     total: { currency: order.value?.total, bch: 0 },
     totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
@@ -841,6 +854,7 @@ const orderAmounts = computed(() => {
   }
 
   data.subtotal.bch = fiatToBch(data.subtotal.currency)
+  data.cutlerySubtotal.bch = fiatToBch(data.cutlerySubtotal.currency)
   data.deliveryFee.bch = fiatToBch(data.deliveryFee.currency)
   data.total.bch = fiatToBch(data.total.currency)
   data.totalPaid.bch = fiatToBch(data.totalPaid.currency)
