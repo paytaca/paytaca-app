@@ -6,7 +6,7 @@
           <q-menu>
             <q-list style="min-width: 100px">
               <q-item v-for="(item, index) in filterOpts" :key="index" clickable @click="updateFilter(item)" v-close-popup>
-                <q-item-section>{{ item.fullText }}</q-item-section>
+                <q-item-section :class="darkMode ? 'text-grey-2' : 'text-grey-10'">{{ item.fullText }}</q-item-section>
               </q-item>
             </q-list>
           </q-menu>
@@ -17,7 +17,7 @@
       </div>
     </div>
     <!-- List -->
-    <div>
+    <div :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
       <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
@@ -35,8 +35,9 @@
         </div>
       </div>
     </div>
-    <div class="text-center q-pt-sm" v-if="selectedTransactions.length > 0">
-      <q-btn class="q-px-lg" @click="openOrderForm()" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
+    <div class="text-center q-pt-sm fixed-footer" v-if="unspentTxns.length > 0">
+      <q-btn v-if="selectedTransactions.length > 0" class="q-px-lg" @click="openOrderForm()" rounded :label="`Cash Out (${selectedTransactions.length})`" color="primary"/>
+      <q-btn v-else class="q-px-lg" disable rounded :label="`Select Transaction`" color="primary"/>
     </div>
   </q-pull-to-refresh>
 </template>
@@ -176,7 +177,6 @@ export default {
 
       await backend.get(url, { params: params })
         .then(response => {
-          console.log(response)
           if (overwrite) {
             vm.unspentTxns = response.data?.unspent_transactions
           } else {
@@ -216,4 +216,10 @@ export default {
   .lg-font-size {
     font-size: large;
   }
+.fixed-footer {
+  position: fixed;
+  bottom: 0;
+  width:100%;
+  padding-bottom: 10px;
+}
 </style>

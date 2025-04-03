@@ -1,6 +1,6 @@
 <template>
   <q-dialog persistent ref="dialog">
-    <q-card class="full-width q-py-md br-15">
+    <q-card class="full-width q-py-md br-15" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
       <div class="text-right">
         <q-btn flat icon="close" color="red" @click="backBtn()"/>
       </div>
@@ -11,7 +11,11 @@
           Select Payment Methods
         </div>
 
-        <div class="q-px-md">
+        <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
+          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        </div>
+
+        <div v-else class="q-px-md">
           <div class="text-center text-grey-8" v-if="paymentMethodList.length === 0">
             No payment method available...
           </div>
@@ -421,7 +425,7 @@ export default {
           this.status = 'payment-method-select'
         })
         .catch(error => {
-          console.error(error.response)
+          console.error(error.response || error)
         })
     },
     async deletePaymentMethod () {
@@ -433,7 +437,7 @@ export default {
           this.status = 'payment-method-select'
         })
         .catch(error => {
-          console.error(error.response)
+          console.error(error.response || error)
         })
     },
     async editPaymentMethod (index) {
@@ -470,7 +474,7 @@ export default {
           this.status = 'payment-method-select'
         })
         .catch(error => {
-          console.error(error)
+          console.error(error.response || error)
         })
 
       this.editPaymentMethodIndex = null
@@ -478,8 +482,10 @@ export default {
     },
     async fetchPaymentMethods () {
       const vm = this
-
-      await backend.get(this.paymentMethodURL)
+      const params = {
+        currency: this.currency
+      }
+      await backend.get(this.paymentMethodURL, { params: params })
         .then(response => {
           const data = response.data
 
@@ -488,7 +494,7 @@ export default {
           })
         })
         .catch(error => {
-          console.error(error)
+          console.error(error.response || error)
         })
     },
     filterPaymentTypes () {

@@ -256,5 +256,4 @@ export function removeOldPaymentOTPCache(state, age=86400) {
 
 export function updateCashoutMerchant (state, data) {
   state.cashoutMerchant = data
-  console.log('cashoutMerchant:', state.cashoutMerchant)
 }

@@ -7,6 +7,7 @@ import { loadLibauthHdWallet } from '../../wallet'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
 import { backend } from 'src/exchange/backend'
+import { backend as posBackend } from 'src/wallet/pos'
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
 
@@ -15,6 +16,19 @@ export function fetchAppControl (context) {
     backend.get('/app-control/')
       .then(response => {
         context.commit('updateAppControl', response.data)
+        resolve(response.data)
+      })
+      .catch(error => {
+        reject(error)
+      })
+  })
+}
+
+export function fetchMerchant (context, merchantId) {
+  return new Promise((resolve, reject) => {
+    posBackend.get(`/paytacapos/merchants/${merchantId}`, { authorize: true })
+      .then(response => {
+        context.commit('updateMerchantActivity', response.data)
         resolve(response.data)
       })
       .catch(error => {
