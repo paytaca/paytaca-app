@@ -53,9 +53,9 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { loadLibauthHdWallet } from 'src/wallet'
+import { loadWallet } from 'src/wallet'
 import HeaderNav from 'components/header-nav'
 import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -104,7 +104,7 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const isChipnet = computed(() => $store.getters['global/isChipnet'])
+// const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const wallet = computed(() => {
   if (route.params?.address) {
@@ -115,43 +115,31 @@ const wallet = computed(() => {
 
 const partiallySignTransaction = async () => {
   const wallet = $store.getters['multisig/getWallet']({ address: route.params.address })
-  const pst = new Pst({
-    m: wallet.m,
-    n: wallet.n,
-    lockingData: wallet.lockingData,
-    lockingScriptId: 'lock',
-    template: wallet.template,
-    network: wallet.network
-  })
-
   const message = transactionData?.value?.sessionRequest?.params?.request?.params?.userPrompt
   const origin = transactionData?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
   let creator = transactionData?.value?.sessionRequest?.session?.namespaces?.bch?.accounts?.[0]
   creator = creator ? creator?.replace('bch:', '') : creator
-  pst.setTransactionData({
-    transaction: transactionData.value.transaction,
-    sourceOutputs: transactionData.value.sourceOutputs,
-    metadata: {
-      message, origin, creator, wallet: 'Paytaca'
-    }
+  const pst = new Pst({
+    lockingData: wallet.lockingData,
+    network: wallet.network
   })
-  const { mnemonic } = await loadLibauthHdWallet(0, isChipnet.value)
+  // Use currently loaded Paytaca BCH wallet
+  const walletIndex = $store.getters['global/getWalletIndex']
+  const { mnemonic } = await loadWallet('BCH', walletIndex)
   const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
   const mySignerId = Object.keys(wallet.signers).find((signerId) => {
     return wallet.signers[signerId].xPubKey === hdKeys.hdPublicKey
   })
-  pst.signTransaction({ [`signer_${mySignerId}`]: hdKeys.hdPrivateKey })
-  pst.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
-  window.pst = pst // TODO: remove this
-  // console.log('TODO: SAVE AND REDIRECT TO PSBT PAGE')
+  pst
+    .setTemplate(wallet.template)
+    .setTransaction(transactionData.value.transaction)
+    .setSourceOutputs(transactionData.value.sourceOutputs)
+    .setMetadata({ message, origin, creator, wallet: 'Paytaca' })
+    .signTransaction({ [`signer_${mySignerId}`]: hdKeys.hdPrivateKey })
+    .save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+
   router.push({ name: 'app-multisig-wallet-pst-view', params: { address: wallet.address, id: pst.id } })
 }
-
-onMounted(() => {
-  const bchwallet = $store.getters['global/getWallet']('bch')
-  window.bchwallet = bchwallet // TODO: remove this
-})
-
 </script>
 
 <style scoped>
