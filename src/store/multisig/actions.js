@@ -23,3 +23,11 @@ export function savePst ({ commit }, pst) {
   console.log('saving pst', pst)
   commit('savePst', pst)
 }
+
+export function deletePstById ({ commit }, { id }) {
+  commit('deletePstById', { id })
+}
+
+export function deleteAllPsts ({ commit }) {
+  commit('deleteAllPsts')
+}

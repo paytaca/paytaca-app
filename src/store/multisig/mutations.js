@@ -27,3 +27,14 @@ export function savePst (state, pst) {
   if (exists) return
   state.psts.push(pst)
 }
+
+export function deleteAllPsts (state) {
+  state.psts = []
+}
+
+export function deletePstById (state, { id }) {
+  const pstIndex = state.psts.findIndex(item => item.id === id)
+  if (pstIndex !== -1) {
+    state.psts.splice(pstIndex, 1)
+  }
+}
