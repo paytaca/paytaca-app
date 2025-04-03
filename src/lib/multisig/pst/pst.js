@@ -10,37 +10,52 @@ import {
   utf8ToBin,
   binToBase64,
   base64ToBin,
-  binToUtf8
+  binToUtf8,
+  hexToBin,
+  stringify,
+  decodeTransactionCommon
 } from 'bitauth-libauth-v3'
-import { stringify } from 'querystring'
 
 export class Pst {
   /**
-   * Optional - id, transaction, sourceOutputs, metadata, signatures
+   * Optional - signatures, template, unsignedTransaction, sourceOutputs, metadata
    */
-  constructor ({ id, m, n, lockingData, lockingScriptId, template, network, transaction, sourceOutputs, metadata, signatures }) {
-    this.id = id
-    this.m = m
-    this.n = n
+  constructor ({ lockingData, network, signatures, template, unsignedTransaction, sourceOutputs, metadata }) {
     this.lockingData = lockingData
-    this.lockingScriptId = lockingScriptId
-    this.template = template
     this.network = network || CashAddressNetworkPrefix.mainnet
-    this.signatures = signatures || {}
-    this.transaction = {}
-    this.sourceOutputs = {}
-    this.metadata = {}
-    if (transaction) {
-      this.transaction = Pst.transactionBinObjectsToUint8Array(transaction)
-      this.sourceOutputs = sourceOutputs
-      this.metadata = metadata
-      if (!this.id) {
-        this.id = this.transactionHex
-      }
+    this.signatures = signatures
+    this.sourceOutputs = sourceOutputs
+    this.metadata = metadata
+    this.template = template
+    if (unsignedTransaction) {
+      const transaction = decodeTransactionCommon(hexToBin(unsignedTransaction))
+      this.setTransaction(transaction)
     }
   }
 
+  get id () {
+    if (!this.unsignedTransaction) return
+    return hashTransaction(hexToBin(this.unsignedTransaction))
+  }
+
+  get m () {
+    if (!this.template) return
+    const ops = this.template.scripts[this.lockingScriptId].script.split('\n')
+    return Number(ops[0].split('_')[1])
+  }
+
+  get n () {
+    if (!this.template) return
+    const ops = this.template.scripts[this.lockingScriptId].script.split('\n')
+    return Number(ops[ops.length - 2].split('_')[1])
+  }
+
+  get lockingScriptId () {
+    return 'lock'
+  }
+
   get compiler () {
+    if (!this.template) return
     return walletTemplateToCompilerBCH(this.template)
   }
 
@@ -48,6 +63,7 @@ export class Pst {
    * Derived from locking bytecode of this locking data and template
    */
   get address () {
+    if (!this.compiler) return ''
     const lockingBytecode = this.compiler.generateBytecode({
       data: this.lockingData,
       scriptId: this.lockingScriptId
@@ -61,6 +77,7 @@ export class Pst {
   }
 
   get signersInfo () {
+    if (!this.template) return {}
     const signersLockingData = this.lockingData.hdKeys.hdPublicKeys // { signer_1: xPub..., .... }
     const signersInfo = {}
     for (const signer of Object.entries(signersLockingData)) {
@@ -80,10 +97,83 @@ export class Pst {
     return signersInfo
   }
 
-  get transactionHex () {
-    return hashTransaction(
-      encodeTransactionCommon(Pst.transactionBinObjectsToUint8Array(this.transaction))
-    )
+  get transaction () {
+    return {
+      version: this.version,
+      inputs: this.inputs,
+      outputs: this.outputs,
+      locktime: this.locktime
+    }
+  }
+
+  get unsignedTransaction () {
+    if (!this.inputs && !this.outputs) return ''
+    return binToHex(encodeTransactionCommon(Pst.transactionBinObjectsToUint8Array(this.transaction)))
+  }
+
+  setVersion (version) {
+    this.version = version || 2
+    return this
+  }
+
+  setLocktime (locktime) {
+    this.locktime = locktime || 0
+    return this
+  }
+
+  addInput (input, sourceOutput) {
+    const _input = structuredClone(input)
+    const _sourceOutput = structuredClone(sourceOutput)
+    if (!_input.sourceOutput) {
+      _input.sourceOutput = sourceOutput
+    }
+    if (_input.outpointTransactionHash && !(_input?.outpointTransactionHash instanceof Uint8Array)) {
+      _input.outpointTransactionHash = Uint8Array.from(Object.values((_input.outpointTransactionHash)))
+    }
+    if (_input.unlockingBytecode && !(_input?.unlockingBytecode instanceof Uint8Array)) {
+      _input.unlockingBytecode = Uint8Array.from(Object.values((_input.unlockingBytecode)))
+    }
+    this.inputs.push(structuredClone(_input))
+    this.sourceOutputs.push(_sourceOutput)
+    return this
+  }
+
+  addOutput (output) {
+    const _output = structuredClone(output)
+    if (_output.lockingBytecode && !(_output?.lockingBytecode instanceof Uint8Array)) {
+      _output.lockingBytecode = Uint8Array.from(Object.values(_output.lockingBytecode))
+    }
+    this.outputs.push(_output)
+    return this
+  }
+
+  setTemplate (template) {
+    this.template = template
+    return this
+  }
+
+  setTransaction (transaction) {
+    const t = Pst.transactionBinObjectsToUint8Array(structuredClone(transaction))
+    this.inputs = t.inputs
+    this.outputs = t.outputs
+    this.version = t.version
+    this.locktime = t.locktime
+    return this
+  }
+
+  setSourceOutputs (sourceOutputs) {
+    const _sourceOutputs = structuredClone(sourceOutputs)
+    _sourceOutputs.forEach((utxo) => {
+      utxo.outpointTransactionHash = Uint8Array.from(Object.values(utxo.outpointTransactionHash))
+      utxo.lockingBytecode = Uint8Array.from(Object.values(utxo.lockingBytecode))
+    })
+    this.sourceOutputs = _sourceOutputs
+    return this
+  }
+
+  setMetadata (metadata) {
+    this.metadata = metadata
+    return this
   }
 
   signTransaction (entityPrivateKey /* example: { signer_1: privatekeyofsigner1 } */) {
@@ -115,19 +205,23 @@ export class Pst {
           compiler: this.compiler,
           data: entityUnlockingData,
           valueSatoshis: sourceOutput.valueSatoshis,
-          script: unlockingScriptId
+          script: unlockingScriptId,
+          token: sourceOutput.token
           // TODO: token: sourceOutput.token test utxo with a token
         }
       }
     }
     transaction.inputs.forEach(i => delete i.sourceOutput)
     const signAttempt = generateTransaction({ ...transaction })
+    window.signAttempt = signAttempt // TODO: delete
+    window.hexToBin = hexToBin
+    window.binToHex = binToHex
     const signerResolvedVariables = extractResolvedVariables(signAttempt)
     this.signatures = {
       ...this.signatures,
       ...signerResolvedVariables
     }
-    return signerResolvedVariables
+    return this
   }
 
   getUnlockingScriptId ({ signatures, template }) {
@@ -186,8 +280,7 @@ export class Pst {
   }
 
   save (store) {
-    // TODO: serialize pst before saving?
-    store(this)
+    store(this.toJSON())
   }
 
   toBase64 () {
@@ -201,18 +294,16 @@ export class Pst {
   }
 
   toJSON () {
-    // TODO: make this leaner
+    const signatures = structuredClone(this.signatures)
+    Object.keys(signatures).forEach((key) => {
+      signatures[key] = binToHex(Uint8Array.from(Object.values(signatures[key])))
+    })
     return {
       id: this.id,
-      m: this.m,
-      n: this.n,
       lockingData: this.lockingData,
-      lockingScriptId: this.lockingScriptId,
       template: this.template,
-      transaction: this.transaction,
       network: this.network,
-      address: this.address,
-      transactionHex: this.transactionHex,
+      unsignedTransaction: this.unsignedTransaction,
       signatures: this.signatures
     }
   }
