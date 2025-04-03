@@ -6,11 +6,11 @@
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
               :title="$t('PST')"
-              :backnavpath="`/apps/multisig/wallet/${route.params.address}}/pst`"
+              :backnavpath="`/apps/multisig/wallet/${route.params.address}/pst`"
               class="q-px-sm apps-header gift-app-header"
             />
             <div class="row q-mt-lg justify-center">
-              <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
+              <div v-if="pst" class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
                 Transaction {{ pst.transaction }}
                 <q-list>
                   <q-item
@@ -32,7 +32,7 @@
                       </div>
                     </q-item-section>
                     <q-item-section side top>
-                      <q-item-label><q-btn label="Sign"></q-btn></q-item-label>
+                      <q-item-label><q-btn label="Sign" @click="partiallSignTransaction"></q-btn></q-item-label>
                       <q-item-label caption>caption here</q-item-label>
                     </q-item-section>
                   </q-item>
@@ -61,14 +61,15 @@
 <script setup>
 import { useStore } from 'vuex'
 // import { useI18n } from 'vue-i18n'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 // import { loadLibauthHdWallet } from 'src/wallet'
 import HeaderNav from 'components/header-nav'
 // import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { Pst } from 'src/lib/multisig'
+import { Pst, MultisigWallet } from 'src/lib/multisig'
+import { loadWallet } from 'src/wallet'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -78,14 +79,7 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const pst = computed(() => {
-  const id = route.params.id
-  const value = $store.getters['multisig/getPstById']({ id })
-  if (value) {
-    return Pst.createInstanceFromObject(value)
-  }
-  return value
-})
+const pst = ref()
 
 const hasSignature = computed(() => {
   return (signerInfoValue, pst) => {
@@ -120,7 +114,28 @@ const downloadPstFile = () => {
     a.click()
   }).onCancel(() => {})
 }
+
+const partiallSignTransaction = async () => {
+  const walletIndex = $store.getters['global/getWalletIndex']
+  const { mnemonic } = await loadWallet('BCH', walletIndex)
+  const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
+  const mySignerId = Object.keys(pst.value.lockingData.hdKeys.hdPublicKeys).find((signerId) => {
+    return pst.value.lockingData.hdKeys.hdPublicKeys[signerId] === hdKeys.hdPublicKey
+  })
+  console.log('mysignerid', mySignerId)
+
+  pst.value
+    .signTransaction({ [mySignerId]: hdKeys.hdPrivateKey })
+    .save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+  console.log('pst.value', pst.value)
+}
+
+// TODO: resolve source outputs from watchtower
 onMounted(() => {
-  window.pst = pst.value
+  const id = route.params.id
+  const pstFromStore = $store.getters['multisig/getPstById']({ id })
+  if (pstFromStore) {
+    pst.value = Pst.createInstanceFromObject(pstFromStore)
+  }
 })
 </script>
