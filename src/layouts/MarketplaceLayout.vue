@@ -24,7 +24,7 @@
         @click="() => toggleShowCartsDialog()"
       />
     </div>
-    <q-dialog v-model="showCartsDialog" position="bottom">
+    <q-dialog v-model="showCartsDialog" position="bottom" @before-show="() => refreshActiveCart()">
       <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row items-center no-wrap">
@@ -140,7 +140,7 @@
             <q-btn
               v-close-popup
               no-caps
-              :disable="!activeStorefrontIsActive"
+              :disable="!activeStorefrontIsActive || activeStorefrontCart.hasLackingQuantity"
               label="Checkout"
               class="full-width button"
               :to="{
@@ -389,9 +389,14 @@ export default {
     }
 
     async function saveCart(cart=Cart.parse()) {
-      console.log({ cart })
-      window.oc = cart
       await $store.dispatch('marketplace/saveCart', cart)
+    }
+
+    async function refreshActiveCart() {
+      const cartId = activeStorefrontCart.value?.id
+      if (!cartId) return
+
+      $store.dispatch('marketplace/refreshCart', { cartId, existInCache: true })
     }
 
     onMounted(() => setTimeout(async () => {
@@ -436,6 +441,7 @@ export default {
       activeStorefrontIsActive,
       getStorefrontCurrency,
       saveCart,
+      refreshActiveCart,
 
       openCartItemDialog,
     }

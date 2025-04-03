@@ -274,12 +274,14 @@ export class StorefrontProduct {
    * @param {Number} data.storefront_id
    * @param {Number} data.product_id
    * @param {Boolean} data.available
+   * @param {Boolean} data.require_stocks
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
     this.storefrontId = data?.storefront_id
     this.productId = data?.product_id
     this.available = data?.available
+    this.requireStocks = data?.require_stocks
   }
 }
 
@@ -371,6 +373,13 @@ export class Variant {
 
   get itemName() {
     return [this?.product?.name, this.name].filter(Boolean).join(' - ')
+  }
+
+  get availableStocks() {
+    if (this.expiredStocks === null || this.expiredStocks === undefined) {
+      return this.totalStocks
+    }
+    return this.totalStocks - this.expiredStocks
   }
 }
 
@@ -479,7 +488,25 @@ export class Product {
       })
     }
   }
-   
+  
+  updateVariantStocks() {
+    if (!this.variants?.length) return
+    const params = { product_id: this.id, limit: 100 }
+    return backend.get(`variants/stocks_info/`, { params })
+      .then(response => {
+        const results = response?.data?.results
+        if (!Array.isArray(results)) return
+        this.variants.forEach(variant => {
+          const data = results.find(data => data?.id === variant?.id)
+          if (!data) return
+          variant.raw = {
+            ...variant.raw,
+            ...data,
+          }
+        })
+      })
+  }
+
   availableAtStorefront(storefrontId) {
     if (!Array.isArray(this.storefrontProducts)) return
     const data = this.storefrontProducts.find(storefrontProduct => storefrontProduct?.storefrontId == storefrontId)
@@ -490,6 +517,12 @@ export class Product {
     const available = this.availableAtStorefront(storefrontId)
     if (typeof available !== 'boolean') return 
     return available ? 'Available' : 'Unavailable'
+  }
+
+  requireStocksAtStorefront(storefrontId) {
+    if (!Array.isArray(this.storefrontProducts)) return
+    const data = this.storefrontProducts.find(storefrontProduct => storefrontProduct?.storefrontId == storefrontId)
+    return data?.requireStocks
   }
 
   addStorefrontProductData(data) {
@@ -663,6 +696,7 @@ export class CartItem {
    * @param {Object} data
    * @param {Object} data.variant
    * @param {Number} data.quantity
+   * @param {Boolean} data.require_stocks
    * @param {{ schema:Object, data:Object }} [data.properties]
    * @param {Object[]} [data.addons]
    */
@@ -672,11 +706,20 @@ export class CartItem {
     this.variant = Variant.parse(data?.variant)
     this.quantity = data?.quantity
     this.properties = data?.properties
+    this.requireStocks = data?.require_stocks
     this.addons = (Array.isArray(data?.addons) ? data.addons: []).map(LineItemAddon.parse)
   }
 
   get propertiesText() {
     return lineItemPropertiesToText(this.properties?.data)
+  }
+
+  get lackingQuantity() {
+    if (!this.variant) return
+    if (!Number.isSafeInteger(this.variant.availableStocks)) return
+    if (!this.requireStocks) return
+
+    return this.quantity - this.variant.availableStocks
   }
 }
 
@@ -720,6 +763,12 @@ export class Cart {
     this.markupSubtotal = data?.markup_subtotal
     this.customer = Customer.parse(data?.customer)
     this.items = data?.items?.map?.(CartItem.parse)
+  }
+
+  get hasLackingQuantity() {
+    return this.items.some(item => {
+      return Number.isSafeInteger(item.lackingQuantity) && item.lackingQuantity > 0
+    })
   }
 
   save() {
