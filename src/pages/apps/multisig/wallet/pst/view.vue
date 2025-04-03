@@ -5,15 +5,45 @@
         <div class="static-container">
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
-              :title="$t('View Template')"
-              backnavpath="/apps/multisig"
+              :title="$t('PST')"
+              :backnavpath="`/apps/multisig/wallet/${route.params.address}}/pst`"
               class="q-px-sm apps-header gift-app-header"
             />
             <div class="row q-mt-lg justify-center">
               <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
-                {{ pst.signersInfo }}
+                Transaction {{ pst.transaction }}
+                <q-list>
+                  <q-item
+                    :to="{name: 'app-multisig-wallet-pst-view', params: { address: route.params.address, id: pst.id }}">
+                    <q-item-section>
+                      <q-item-label>Spending BCH: {{ pst.totalBchValue }}</q-item-label>
+                      <q-item-label># of Recipients: {{ pst.numberOfRecipients }}</q-item-label>
+                      <q-item-label># of Signatures: {{ Object.keys(pst.signatures).length }}</q-item-label>
+                      <q-item-label># of Required Signatures: {{ pst.m }}</q-item-label>
+                      <div>Signers</div>
+                      <div class="flex">
+                        <q-chip
+                          v-for="signerInfo, i in Object.entries(pst.signersInfo||{})" :key="`${signerInfo[0]}${i}`"
+                          :icon="hasSignature(signerInfo[1], pst)? 'task': 'edit_document'"
+                          class="q-mr-md"
+                        >
+                        {{ signerInfo[1].name }}
+                        </q-chip>
+                      </div>
+                    </q-item-section>
+                    <q-item-section side top>
+                      <q-item-label><q-btn label="Sign"></q-btn></q-item-label>
+                      <q-item-label caption>caption here</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item>{{ pst.transaction }}</q-item>
+                </q-list>
               </div>
               <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
+                <q-btn @click="deletePst">
+                  Delete
+                </q-btn>
                 <q-btn
                   :to="{ name: 'app-multisig-wallet-pst-qrcode', params: {address: route.params.address, id: route.params.id } }">
                   View Qr Code
@@ -35,7 +65,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 // import { loadLibauthHdWallet } from 'src/wallet'
-// import HeaderNav from 'components/header-nav'
+import HeaderNav from 'components/header-nav'
 // import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Pst } from 'src/lib/multisig'
@@ -56,6 +86,19 @@ const pst = computed(() => {
   }
   return value
 })
+
+const hasSignature = computed(() => {
+  return (signerInfoValue, pst) => {
+    const keyId = Object.keys(signerInfoValue.variables)[0]
+    return Object.keys(pst.signatures).find((signatureKey) => {
+      return signatureKey.startsWith(keyId)
+    })
+  }
+})
+
+const deletePst = () => {
+  $store.dispatch('multisig/deletePstById', { id: route.params.id })
+}
 
 const downloadPstFile = () => {
   $q.dialog({

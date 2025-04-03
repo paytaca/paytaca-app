@@ -53,6 +53,16 @@
                             <q-item-label caption>{{ transactions?.length || 0 }}</q-item-label>
                           </q-item-section>
                         </q-item>
+                        <q-item
+                          :clickable="psts?.length"
+                          :to="{name: 'app-multisig-wallet-psts', params: { address: route.params.address }}">
+                          <q-item-section>
+                            <q-item-label>Partially Signed Transactions</q-item-label>
+                          </q-item-section>
+                          <q-item-section side top>
+                            <q-item-label caption>{{ psts?.length || 0 }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
                       </q-list>
                     </div>
                   </template>
@@ -66,10 +76,11 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { Pst } from 'src/lib/multisig'
 
 const $store = useStore()
 const { t: $t } = useI18n()
@@ -106,6 +117,20 @@ const transactions = computed(() => {
   return []
 })
 
+const psts = computed(() => {
+  if (!wallet.value?.address) return []
+  const _psts = $store.getters['multisig/getPsts']
+  return _psts.map((p) => {
+    const instance = new Pst(p)
+    return instance
+  }).filter((p) => {
+    return p.address === wallet.value.address
+  })
+})
+
+onMounted(() => {
+  console.log('🚀 ~ psts ~ psts:', psts)
+})
 // TODO: SHOW DIALOG IF WALLET NOT FOUND, NAV BACK ON DIALOG CLOSE
 </script>
 
