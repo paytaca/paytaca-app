@@ -157,6 +157,15 @@
             />
           </template>
           <div v-if="selectedVariant?.id">
+            <div v-if="requireStocks" class="row items-center q-px-sm">
+              <div>
+                {{ selectedVariant?.availableStocks ? `In stock: ${selectedVariant?.availableStocks}` : 'No stocks' }}
+              </div>
+              <q-space/>
+              <div v-if="!cartItemHasStocks" class="text-red">
+                Not enough stocks
+              </div>
+            </div>
             <q-input
               v-if="cartItem"
               :disable="disableAddToCart"
@@ -165,6 +174,7 @@
               :dark="darkMode"
               type="number"
               v-model.number="cartItemQuantity"
+              class="q-mt-md"
               @update:model-value="() => saveActiveCartDebounced()"
             >
               <template v-slot:prepend>
@@ -220,6 +230,8 @@ import JSONFormPreview from 'src/components/marketplace/JSONFormPreview.vue'
 import ReviewFormDialog from 'src/components/marketplace/reviews/ReviewFormDialog.vue'
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue'
 import AddonsForm from 'src/components/marketplace/product/AddonsForm.vue'
+import { onUnmounted } from 'vue'
+import { onDeactivated } from 'vue'
 
 
 const cachedBackend = getCachedBackend({ ttl: 30 * 1000 })
@@ -300,6 +312,11 @@ const available = computed(() => {
   if (typeof value == 'boolean') return value
   return true
 })
+const requireStocks = computed(() => {
+  const value = product.value.requireStocksAtStorefront(activeStorefront.value?.id)
+  if (typeof value == 'boolean') return value
+  return false
+})
 watch(() => [activeStorefront.value?.id], () => product.value.fetchStorefrontProduct(activeStorefront.value?.id))
 
 
@@ -317,6 +334,12 @@ function selectVariantFromProps() {
   selectedVariantIndex.value = Math.max(index, 0)
 }
 
+const selectedVariantHasStocks = computed(() => {
+  if (!selectedVariant.value) return false
+  if (!requireStocks.value) return true
+  return selectedVariant.value.availableStocks > 0
+})
+
 const activeStorefrontCart = computed(() => $store.getters['marketplace/activeStorefrontCart'])
 const cartItem = computed(() => {
   return activeStorefrontCart.value?.items?.find(item => item?.variant?.id == selectedVariant.value?.id)
@@ -329,6 +352,11 @@ watch(cartItemQuantity, () => {
   cartItem.value.quantity = cartItemQuantity.value
 })
 
+const cartItemHasStocks = computed(() => {
+  if (!requireStocks.value) return true
+  if (!cartItem.value?.quantity) return true
+  return cartItem.value?.quantity <= selectedVariant.value?.availableStocks
+})
 
 const savingActiveCart = ref(false)
 async function saveActiveCart() {
@@ -345,6 +373,7 @@ const saveActiveCartDebounced = debounce((...args) => saveActiveCart(...args), 7
 
 const disableAddToCart = computed(() => {
   return !available.value ||
+        !selectedVariantHasStocks.value ||
         !activeStorefrontIsActive.value ||
         cartOptionsHasErrors.value ||
         savingActiveCart.value ||
@@ -514,6 +543,23 @@ async function rateProduct() {
     else reviewsListDialog.value?.fetchReviews?.()
   })
 }
+
+let stockUpdateInterval = ref()
+function startStockAutoUpdate() {
+  clearInterval(stockUpdateInterval.value)
+  stockUpdateInterval.value = setInterval(() => {
+    if (!requireStocks.value) return
+    product.value?.updateVariantStocks?.()
+  }, 30 * 1000)
+}
+function stopStockAutoUpdate() {
+  clearInterval(stockUpdateInterval.value)
+}
+
+onMounted(() => startStockAutoUpdate())
+onUnmounted(() => stopStockAutoUpdate())
+onActivated(() => startStockAutoUpdate())
+onDeactivated(() => stopStockAutoUpdate())
 
 async function refreshPage(done=() => {}) {
   try {
