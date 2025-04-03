@@ -1223,6 +1223,7 @@ function fetchCheckout() {
     const data = {
       delivery_type: props.deliveryType || Checkout.DeliveryTypes.LOCAL_DELIVERY,
       delivery_address: { location: parsedSessionLocationData },
+      check_stocks: true,
     }
     if (props.checkoutId) request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
     else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)
