@@ -88,7 +88,7 @@ export class Pst {
         const signerEntityVariableKey = signatureKey.split('.')[0]
         return Boolean(template.entities[signerEntityKey].variables[signerEntityVariableKey])
       })
-      signersInfo[signerEntityKey] = this.template.entities[signerEntityKey]
+      signersInfo[signerEntityKey] = structuredClone(this.template.entities[signerEntityKey])
       signersInfo[signerEntityKey].hdPublicKey = signerHdPubKey
       if (signerSignature) {
         signersInfo[signerEntityKey].signature = Object.fromEntries([signerSignature])
@@ -109,6 +109,27 @@ export class Pst {
   get unsignedTransaction () {
     if (!this.inputs && !this.outputs) return ''
     return binToHex(encodeTransactionCommon(Pst.transactionBinObjectsToUint8Array(this.transaction)))
+  }
+
+  get totalSatoshiValue () {
+    console.log('OUTPUTS', this.outputs)
+    return this.outputs?.reduce((total, currentOutput) => {
+      total += Number(currentOutput.valueSatoshis)
+      return total
+    }, 0)
+  }
+
+  get totalBchValue () {
+    return this.totalSatoshiValue / 1e8
+  }
+
+  get numberOfRecipients () {
+    const recipients = new Set()
+    this.outputs.forEach(output => {
+      const { address } = lockingBytecodeToCashAddress({ bytecode: output.lockingBytecode })
+      recipients.add(address)
+    })
+    return recipients.size
   }
 
   setVersion (version) {
@@ -280,7 +301,7 @@ export class Pst {
   }
 
   save (store) {
-    store(this.toJSON())
+    store(structuredClone(this.toJSON()))
   }
 
   toBase64 () {
@@ -304,7 +325,10 @@ export class Pst {
       template: this.template,
       network: this.network,
       unsignedTransaction: this.unsignedTransaction,
-      signatures: this.signatures
+      signatures: this.signatures,
+      metadata: this.metadata,
+      signersInfo: this.signersInfo,
+      sourceOutputs: this.sourceOutputs
     }
   }
 
