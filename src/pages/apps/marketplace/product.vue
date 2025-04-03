@@ -354,6 +354,7 @@ watch(cartItemQuantity, () => {
 
 const cartItemHasStocks = computed(() => {
   if (!requireStocks.value) return true
+  if (!cartItem.value?.quantity) return true
   return cartItem.value?.quantity <= selectedVariant.value?.availableStocks
 })
 

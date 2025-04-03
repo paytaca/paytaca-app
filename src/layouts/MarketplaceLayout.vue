@@ -86,6 +86,7 @@
             />
           </div>
           <div
+            v-if="activeStorefrontCart?.items?.length"
             class="row items-center no-wrap q-px-sm"
             style="position:relative;" v-ripple
             @click="() => updatingCutlery ? null : toggleCartCutlery()"
