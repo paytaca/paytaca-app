@@ -12,8 +12,8 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
-import { wallet } from 'src/exchange/wallet'
-import { mainWebSocketManager } from 'src/exchange/websocket/manager'
+import { closeWebsocketManager, setupWebsocketManager } from 'src/exchange/websocket/manager'
+import { loadLibauthHdWallet } from 'src/wallet'
 
 export default {
   data () {
@@ -22,7 +22,6 @@ export default {
       theme: this.$store.getters['global/theme'],
       network: 'BCH',
       menu: 'store',
-      isLoading: true,
       proceed: false,
       createUser: false,
       initStatusType: 'ONGOING',
@@ -38,7 +37,8 @@ export default {
       reconnectWebsocket: true,
       showNoticeBoard: false,
       noticeBoardMessage: null,
-      forceLogin: false
+      forceLogin: false,
+      wallet: null
     }
   },
   components: {
@@ -66,29 +66,6 @@ export default {
       return 'You currently have multiple ads for the same currency. Please note that you\'re now only allowed to have 1 active ad per currency and trade type.'
     }
   },
-  beforeRouteLeave (to, from, next) {
-    if (to.name === 'apps-dashboard') {
-      mainWebSocketManager.closeConnection(false)
-    }
-    switch (from.name) {
-      case 'p2p-store':
-      case 'p2p-ads':
-      case 'p2p-orders':
-      case 'p2p-profile':
-        switch (to.name) {
-          case 'p2p-order':
-          case 'exchange':
-            mainWebSocketManager.closeConnection(false)
-            next('/apps')
-            break
-          default:
-            next()
-        }
-        break
-      default:
-        next()
-    }
-  },
   created () {
     bus.on('hide-menu', this.hideMenu)
     bus.on('show-menu', this.showMenu)
@@ -98,12 +75,17 @@ export default {
     bus.on('handle-request-error', this.handleRequestError)
   },
   async mounted () {
-    this.isLoading = false
+    await this.loadWallet()
     this.fetchUser()
     this.setupWebsocket()
   },
   methods: {
     isNotDefaultTheme,
+    async loadWallet () {
+      const isChipnet = this.$store.getters['global/isChipnet']
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      this.wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
+    },
     postNotice (type, message) {
       this.showNoticeBoard = true
       this.noticeBoardType = type
@@ -186,9 +168,9 @@ export default {
       }
     },
     setupWebsocket () {
-      const wsUrl = `${getBackendWsUrl()}general/${wallet.walletHash}/`
-      mainWebSocketManager.setWebSocketUrl(wsUrl)
-      mainWebSocketManager.subscribeToMessages((message) => {
+      const wsUrl = `${getBackendWsUrl()}general/${this.wallet?.walletHash}/`
+      const webSocketManager = setupWebsocketManager(wsUrl)
+      webSocketManager?.subscribeToMessages((message) => {
         bus.emit('update-unread-count', message?.extra?.unread_count)
         if (message.type === 'NEW_ORDER') {
           this.handleNewOrder(message?.extra?.order)
