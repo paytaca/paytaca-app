@@ -20,6 +20,7 @@
                       <q-item-label># of Recipients: {{ pst.numberOfRecipients }}</q-item-label>
                       <q-item-label># of Signatures: {{ Object.keys(pst.signatures).length }}</q-item-label>
                       <q-item-label># of Required Signatures: {{ pst.m }}</q-item-label>
+                      <q-item-label>Complete?: {{ pst.isSignaturesComplete }}</q-item-label>
                       <div>Signers</div>
                       <div class="flex">
                         <q-chip
@@ -32,7 +33,10 @@
                       </div>
                     </q-item-section>
                     <q-item-section side top>
-                      <q-item-label><q-btn label="Sign" @click="partiallSignTransaction"></q-btn></q-item-label>
+                      <q-item-label>
+                        <q-btn v-if="!pst.isSignaturesComplete" label="Sign" @click="partiallSignTransaction"></q-btn>
+                        <q-btn v-else label="Submit Transaction" @click="finalizeAndSubmitTransaction"></q-btn>
+                      </q-item-label>
                       <q-item-label caption>caption here</q-item-label>
                     </q-item-section>
                   </q-item>
@@ -127,7 +131,11 @@ const partiallSignTransaction = async () => {
   pst.value
     .signTransaction({ [mySignerId]: hdKeys.hdPrivateKey })
     .save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
-  console.log('pst.value', pst.value)
+}
+
+const finalizeAndSubmitTransaction = async () => {
+  const successfulCompilation = pst.value.finalize()
+  console.log('🚀 ~ finalizeAndSubmitTransaction ~ successfulCompilation:', successfulCompilation)
 }
 
 // TODO: resolve source outputs from watchtower
