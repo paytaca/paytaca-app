@@ -107,6 +107,7 @@ import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet } from 'src/lib/multisig'
+import Watchtower from 'src/lib/watchtower'
 
 const $store = useStore()
 const router = useRouter()
@@ -172,6 +173,8 @@ const onCreateClicked = async () => {
   wallet.value.createTemplate()
   console.log('create wallet', wallet.value)
   await $store.dispatch('multisig/saveWallet', wallet.value)
+  const watchtower = new Watchtower($store.getters['global/isChipnet'])
+  watchtower.subscribe({ address: wallet.value.address })
   router.push({ name: 'app-multisig-wallet-view', params: { address: wallet.value.address } })
 }
 
