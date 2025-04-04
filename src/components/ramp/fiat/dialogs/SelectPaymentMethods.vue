@@ -121,7 +121,7 @@ export default {
     async fetchPaymentTypes () {
       const vm = this
       vm.loading = true
-      await backend.get('/ramp-p2p/payment-type', { params: { currency: vm.currency }, authorize: true })
+      await backend.get('/ramp-p2p/payment-type', { params: { currency: vm.currency } })
         .then(response => {
           vm.paymentTypeOpts = response.data
           vm.loading = false

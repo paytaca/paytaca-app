@@ -43,6 +43,7 @@ import MarketplaceAppSelectionDialog from 'src/components/marketplace/Marketplac
 import pinDialog from '../../components/pin'
 import biometricWarningAttempts from '../../components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { webSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
   name: 'apps',
@@ -266,6 +267,11 @@ export default {
       if (action === 'proceed') {
         vm.$router.push('/apps/wallet-backup')
       }
+    },
+    closeExchangeWebsocket() {
+      if (webSocketManager?.isOpen()) {
+        webSocketManager.closeConnection()
+      }
     }
   },
   created () {
@@ -315,6 +321,7 @@ export default {
       }
     })
     this.fetchAppControl()
+    this.closeExchangeWebsocket()
   }
 }
 </script>
