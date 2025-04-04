@@ -27,7 +27,7 @@
                             <q-item-label>Balance</q-item-label>
                           </q-item-section>
                           <q-item-section side top>
-                            <q-item-label caption>1 BCH</q-item-label>
+                            <q-item-label caption>{{ balance || 0 }}</q-item-label>
                             <!-- <q-icon name="bch" color="green" /> -->
                           </q-item-section>
                         </q-item>
@@ -76,16 +76,17 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Pst } from 'src/lib/multisig'
+import Watchtower from 'src/lib/watchtower'
 
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
-
+const balance = ref()
 const shortenString = (str, maxLength) => {
   // If the string is shorter than or equal to the maxLength, return it as is.
   if (str.length <= maxLength) {
@@ -128,8 +129,12 @@ const psts = computed(() => {
   })
 })
 
-onMounted(() => {
+onMounted(async () => {
   console.log('🚀 ~ psts ~ psts:', psts)
+  const watchtower = new Watchtower($store.getters['global/isChipnet'])
+  const bch = await watchtower.getAddressBchBalance(wallet.value.address)
+  console.log('🚀 ~ onMounted ~ balance:', balance)
+  balance.value = bch.balance
 })
 // TODO: SHOW DIALOG IF WALLET NOT FOUND, NAV BACK ON DIALOG CLOSE
 </script>
