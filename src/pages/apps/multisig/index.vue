@@ -82,17 +82,20 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Pst } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { loadLibauthHdWallet } from 'src/wallet'
 const $store = useStore()
 const router = useRouter()
 const { t: $t } = useI18n()
 
 const pstFileElementRef = ref()
 const pstFile = ref()
+const pstFromFile = ref()
+const pstFromStore = ref()
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -114,13 +117,29 @@ const loadPstFile = () => {
   console.log('PSTFILE REF', pstFileElementRef.value)
   pstFileElementRef.value.pickFiles()
 }
+
 const updatePstFile = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      const pst = Pst.createInstanceFromBase64(reader.result)
-      pst.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
-      router.push({ name: 'app-multisig-wallet-pst-view', params: { address: pst.address, id: pst.id } })
+      pstFromFile.value = Pst.createInstanceFromBase64(reader.result)
+      const pstObjectFromStore = $store.getters['multisig/getPstById']({ id: pstFromFile.value.id })
+      if (pstObjectFromStore) {
+        // TODO: ask before combine? redirect to pst compare page
+        // TODO: combine with multiple pst files
+        pstFromStore.value = Pst.createInstanceFromObject(pstObjectFromStore)
+        pstFromStore.value.combine({ psts: [pstFromFile.value] })
+        pstFromStore.value.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+        return router.push({
+          name: 'app-multisig-wallet-pst-view',
+          params: { address: pstFromStore.value.address, id: pstFromStore.value.id }
+        })
+      }
+      pstFromFile.value.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+      router.push({
+        name: 'app-multisig-wallet-pst-view',
+        params: { address: pstFromFile.value.address, id: pstFromFile.value.id }
+      })
     }
     reader.onerror = (err) => {
       console.err(err)
@@ -129,18 +148,17 @@ const updatePstFile = (file) => {
   }
 }
 
-watch(() => pstFile.value, (file) => {
-  // if (file) {
-  //   const reader = newFileReader.readAsText(file)
-  //   reader.on()
-  //   reader.onload = () => {
-  //     console.log('READER', reader.result)
-  //     const pst = Pst.createInstanceFromBase64(reader.result)
-  //     console.log('PST INSTANCE', pst)
-  //   }
-  //   reader.onerror = (err) => {
-  //     console.err(err)
-  //   }
-  // }
+onMounted(async () => {
+  // $store.getters['global/getWallet']('bch') = Loads the currently selected wallet from the homepage
+  const currentWallet = $store.getters['global/getWallet']('bch')
+  console.log('CURRENT WALLET', currentWallet)
+  const wx = await loadLibauthHdWallet()
+  console.log('🚀 ~ onMounted ~ wx:', wx)
+  const w1 = await loadLibauthHdWallet(0)
+  console.log('🚀 ~ onMounted ~ w1:', w1)
+  const w2 = await loadLibauthHdWallet(1)
+  console.log('🚀 ~ onMounted ~ w2:', w2)
+  const w3 = await loadLibauthHdWallet(2)
+  console.log('🚀 ~ onMounted ~ w3:', w3)
 })
 </script>

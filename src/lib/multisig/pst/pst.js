@@ -112,7 +112,6 @@ export class Pst {
   }
 
   get totalSatoshiValue () {
-    console.log('OUTPUTS', this.outputs)
     return this.outputs?.reduce((total, currentOutput) => {
       total += Number(currentOutput.valueSatoshis)
       return total
@@ -356,7 +355,6 @@ export class Pst {
    */
   combine ({ psts }) {
     const combined = Pst.combine({ psts: [this, ...psts], everyPstId: this.id })
-    console.log('🚀 ~ Pst ~ combine ~ combined:', combined)
     this.signatures = combined.signatures
   }
 
@@ -442,14 +440,12 @@ export class Pst {
 
   static combine ({ psts, everyPstId }) {
     const pstWithCompleteSigs = psts.find(pst => pst.isSignaturesComplete)
-    console.log('🚀 ~ Pst ~ combine ~ pstWithCompleteSigs:', pstWithCompleteSigs)
     if (pstWithCompleteSigs) return pstWithCompleteSigs
     const pstWithMostSigs = psts.reduce((maxObj, currentObj) => {
       const currentSigLength = Object.keys(currentObj.signatures).length
       const maxSigLength = Object.keys(maxObj.signatures).length
       return currentSigLength > maxSigLength ? currentObj : maxObj
     })
-    console.log('🚀 ~ Pst ~ pstWithMostSigs ~ pstWithMostSigs:', pstWithMostSigs)
     let compareId = everyPstId
     if (!compareId) {
       compareId = pstWithMostSigs.id
@@ -459,7 +455,6 @@ export class Pst {
 
     let otherSignatures = {}
     for (let i = 0; i < psts.length; i++) {
-      console.log('PROCESSING', psts[i].signatures)
       otherSignatures = {
         ...otherSignatures,
         ...psts[i].signatures
