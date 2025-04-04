@@ -12,7 +12,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
-import { closeWebsocketManager, setupWebsocketManager } from 'src/exchange/websocket/manager'
+import { webSocketManager } from 'src/exchange/websocket/manager'
 import { loadLibauthHdWallet } from 'src/wallet'
 
 export default {
@@ -169,7 +169,7 @@ export default {
     },
     setupWebsocket () {
       const wsUrl = `${getBackendWsUrl()}general/${this.wallet?.walletHash}/`
-      const webSocketManager = setupWebsocketManager(wsUrl)
+      webSocketManager.setWebSocketUrl(wsUrl)
       webSocketManager?.subscribeToMessages((message) => {
         bus.emit('update-unread-count', message?.extra?.unread_count)
         if (message.type === 'NEW_ORDER') {
@@ -198,7 +198,7 @@ export default {
             this.showErrorDialog('Internal Server Error. Please try again later.')
             break
           default:
-            console.log(`Error: ${error.response.status}. ${error.response.statusText}`)
+            console.error(`Error: ${error.response.status}. ${error.response.statusText}`)
         }
       }
     },
