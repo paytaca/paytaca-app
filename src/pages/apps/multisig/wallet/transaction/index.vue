@@ -10,6 +10,9 @@
               class="q-px-sm apps-header gift-app-header"
             />
             <div class="row q-mt-lg justify-center">
+              <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
+                <q-btn label="Delete All Transactions" @click="deleteAllTransactions"></q-btn>
+              </div>
                 <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
                   <q-card
                     v-for="unsigned, i in transactions"
@@ -117,37 +120,10 @@ const spendSummary = computed(() => {
   }
 })
 
+const deleteAllTransactions = async () => {
+  await $store.dispatch('multisig/deleteAllTransactions')
+}
 // const isChipnet = computed(() => $store.getters['global/isChipnet'])
-
-// const extractTransactionData = (signatureRequest) => {
-//   const transaction = signatureRequest?.params?.request?.method?.params?.transaction
-//   const sourceOutputs = signatureRequest?.params?.request?.method?.params?.sourceOutputs
-//   return { transaction, sourceOutputs }
-// }
-
-// const resolveMyXPubKey = () => {
-//   const { xPubKey /* , derivationPath */ } = $store.getters['global/getWallet']('bch')
-//   myXPubKey.value = xPubKey
-// }
-
-// const getTransactionProposal = ({ transaction }) => {
-//   const transactionProposal = {
-//     locktime: transaction.locktime,
-//     version: transaction.version,
-//     outputs: transaction.outputs
-//   }
-//   return transactionProposal
-// }
-
-// const partiallySignTransaction = async ({ transactionProposal }) => {
-// const p2pkhWallet = await loadLibauthHdWallet(0, isChipnet.value)
-// const wif = p2pkhWallet.getPrivateKeyWifAt('0/0')
-// const decodedPrivkey = decodePrivateKeyWif(wif)
-// const transactionProposal = getTransactionProposal({ transaction: psbct.value.transaction })
-// const lockingData = getLockingData({ signers: wallet.value.signers })
-// // identify who we are
-//
-// }
 
 onMounted(() => {
   console.log('ROUTE PARAMS', route.params)
