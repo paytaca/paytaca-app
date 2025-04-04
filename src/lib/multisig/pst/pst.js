@@ -13,7 +13,8 @@ import {
   binToUtf8,
   hexToBin,
   stringify,
-  decodeTransactionCommon
+  decodeTransactionCommon,
+  createVirtualMachineBCH
 } from 'bitauth-libauth-v3'
 
 export class Pst {
@@ -180,6 +181,11 @@ export class Pst {
 
   setTransaction (transaction) {
     const t = Pst.transactionBinObjectsToUint8Array(structuredClone(transaction))
+    // TODO: REMOVE, TESTING RELAY FEE ERROR
+    // const beforeSatoshi = t.outputs[1].valueSatoshis
+    // console.log('🚀 ~ Pst ~ setTransaction ~ t.outputs[1]:', beforeSatoshi)
+    // t.outputs[1].valueSatoshis = BigInt(t.outputs[1].valueSatoshis) - BigInt(2000)
+    // console.log('🚀 ~ Pst ~ setTransaction ~ t.outputs[1] AFTER:', t.outputs[1])
     this.inputs = t.inputs
     this.outputs = t.outputs
     this.version = t.version
@@ -286,6 +292,7 @@ export class Pst {
     const unlockingScriptId = this.getUnlockingScriptId({ signatures: this.signatures, template: this.template })
 
     const transaction = structuredClone(this.transaction)
+    const sourceOutputs = [] // will be used for verification
     for (const input of transaction.inputs) {
       let sourceOutput = input.sourceOutput
       if (!sourceOutput) {
@@ -295,7 +302,8 @@ export class Pst {
                 binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
         })
       }
-      if (lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network }).address === address) {
+      sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+      if (lockingBytecodeToCashAddress({ bytecode: sourceOutput.lockingBytecode, prefix: this.network }).address === address) {
         input.unlockingBytecode = {
           ...input.unlockingBytecode,
           compiler: this.compiler,
@@ -305,12 +313,23 @@ export class Pst {
           token: sourceOutput.token
         }
       }
+      sourceOutputs.push(sourceOutput)
     }
 
     const successfulCompilation = generateTransaction({
       ...transaction
     })
-    console.log('🚀 ~ Pst ~ finalize ~ successfulCompilation:', successfulCompilation)
+    if (successfulCompilation.success) {
+      const encodedTransaction = encodeTransactionCommon(successfulCompilation.transaction)
+      this.signedTransaction = binToHex(encodedTransaction)
+    }
+    const vm = createVirtualMachineBCH()
+    const verificationResult = vm.verify({
+      sourceOutputs: sourceOutputs, transaction: successfulCompilation.transaction
+    })
+    if (!verificationResult) {
+      throw new Error('Transaction failed local verification')
+    }
     return successfulCompilation
   }
 
