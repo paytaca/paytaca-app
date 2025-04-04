@@ -18,14 +18,14 @@ import {
 
 export class Pst {
   /**
-   * Optional - signatures, template, unsignedTransaction, sourceOutputs, metadata
+   * Optional - signatures, template, unsignedTransaction, sourceOutputs, desc
    */
-  constructor ({ lockingData, network, signatures, template, unsignedTransaction, sourceOutputs, metadata }) {
+  constructor ({ lockingData, network, signatures, template, unsignedTransaction, sourceOutputs, desc }) {
     this.lockingData = lockingData
     this.network = network || CashAddressNetworkPrefix.mainnet
     this.signatures = signatures
     this.sourceOutputs = sourceOutputs
-    this.metadata = metadata
+    this.desc = desc
     this.template = template
     if (unsignedTransaction) {
       const transaction = decodeTransactionCommon(hexToBin(unsignedTransaction))
@@ -192,8 +192,8 @@ export class Pst {
     return this
   }
 
-  setMetadata (metadata) {
-    this.metadata = metadata
+  setDesc (desc) {
+    this.desc = desc
     return this
   }
 
@@ -326,7 +326,7 @@ export class Pst {
       network: this.network,
       unsignedTransaction: this.unsignedTransaction,
       signatures: this.signatures,
-      metadata: this.metadata,
+      desc: this.desc,
       signersInfo: this.signersInfo,
       sourceOutputs: this.sourceOutputs
     }

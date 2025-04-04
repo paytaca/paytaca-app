@@ -115,10 +115,8 @@ const wallet = computed(() => {
 
 const partiallySignTransaction = async () => {
   const wallet = $store.getters['multisig/getWallet']({ address: route.params.address })
-  const message = transactionData?.value?.sessionRequest?.params?.request?.params?.userPrompt
+  const prompt = transactionData?.value?.sessionRequest?.params?.request?.params?.userPrompt
   const origin = transactionData?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
-  let creator = transactionData?.value?.sessionRequest?.session?.namespaces?.bch?.accounts?.[0]
-  creator = creator ? creator?.replace('bch:', '') : creator
   const pst = new Pst({
     lockingData: wallet.lockingData,
     network: wallet.network
@@ -127,15 +125,15 @@ const partiallySignTransaction = async () => {
   const walletIndex = $store.getters['global/getWalletIndex']
   const { mnemonic } = await loadWallet('BCH', walletIndex)
   const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
-  const mySignerId = Object.keys(wallet.signers).find((signerId) => {
+  const creator = Object.keys(wallet.signers).find((signerId) => {
     return wallet.signers[signerId].xPubKey === hdKeys.hdPublicKey
   })
   pst
     .setTemplate(wallet.template)
     .setTransaction(transactionData.value.transaction)
     .setSourceOutputs(transactionData.value.sourceOutputs)
-    .setMetadata({ message, origin, creator, wallet: 'Paytaca' })
-    .signTransaction({ [`signer_${mySignerId}`]: hdKeys.hdPrivateKey })
+    .setDesc({ prompt, origin, creator, wallet: 'Paytaca' })
+    .signTransaction({ [`signer_${creator}`]: hdKeys.hdPrivateKey })
     .save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
 
   router.push({ name: 'app-multisig-wallet-pst-view', params: { address: wallet.address, id: pst.id } })
