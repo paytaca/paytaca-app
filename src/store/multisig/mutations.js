@@ -23,9 +23,11 @@ export function walletConnectSignTransactionRequest (state, { address, sessionRe
 }
 
 export function savePst (state, pst) {
-  const exists = state.psts.find(item => item.id === pst.id)
-  if (exists) return
-  state.psts.push(pst)
+  const index = state.psts.findIndex(item => item.id === pst.id)
+  if (index === -1) {
+    return state.psts.push(pst)
+  }
+  state.psts[index] = pst
 }
 
 export function deleteAllPsts (state) {
