@@ -74,6 +74,7 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Pst, MultisigWallet } from 'src/lib/multisig'
 import { loadWallet } from 'src/wallet'
+import Watchtower from 'src/lib/watchtower'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -134,8 +135,15 @@ const partiallySignTransaction = async () => {
 }
 
 const finalizeAndSubmitTransaction = async () => {
-  const successfulCompilation = pst.value.finalize()
-  console.log('🚀 ~ finalizeAndSubmitTransaction ~ successfulCompilation:', successfulCompilation)
+  const compilationResult = pst.value.finalize()
+  if (compilationResult.success) {
+    // TODO: REMOVE, THIS SHOULD BE DONE DURING WALLET CREATION
+    const watchtower = new Watchtower($store.getters['global/isChipnet'])
+    await watchtower.subscribe({ address: pst.value.address })
+    const response = await watchtower.broadcastTx(pst.value.signedTransaction)
+    console.log('🚀 ~ finalizeAndSubmitTransaction ~ response:', response)
+    // TODO: SHOW RESPONSE
+  }
 }
 
 // TODO: resolve source outputs from watchtower

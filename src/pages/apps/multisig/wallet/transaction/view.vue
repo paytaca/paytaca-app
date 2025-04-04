@@ -35,7 +35,8 @@
                     </q-card-section>
                     <q-separator />
                     <q-card-actions>
-                      <q-btn flat @click="partiallySignTransaction">Partially Sign</q-btn>
+                      <q-btn @click="partiallySignTransaction">Partially Sign</q-btn>
+                      <q-btn @click="deleteTransaction">Delete Transaction</q-btn>
                     </q-card-actions>
                   </q-card>
                 </div>
@@ -138,6 +139,11 @@ const partiallySignTransaction = async () => {
 
   router.push({ name: 'app-multisig-wallet-pst-view', params: { address: wallet.address, id: pst.id } })
 }
+
+const deleteTransaction = () => {
+  $store.dispatch('multisig/deleteTransaction', { index: route.params.index })
+}
+
 </script>
 
 <style scoped>
