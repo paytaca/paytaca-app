@@ -139,6 +139,31 @@ class Watchtower extends WatchtowerSdk {
     return addressPeerAppList
   }
 
+  async getAddressBchBalance (address) {
+    const response = await fetch(`${this._baseUrl}balance/bch/${address}`)
+    if (response.ok) {
+      return await response.json()
+    }
+  }
+
+  async broadcastTx (tx) {
+    const r = await fetch(`${this._baseUrl}broadcast/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        transaction: tx
+      })
+    })
+    if (r.status >= 400) {
+      this.error =
+        'Problem occured while contacting server. Please try again later.'
+      throw this.error
+    }
+    return await r.json()
+  }
+
   set isChipnet (yes) {
     if (yes) {
       this._baseUrl = 'https://chipnet.watchtower.cash/api/'
