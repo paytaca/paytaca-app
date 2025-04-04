@@ -1,5 +1,5 @@
 <template>
-    <q-list :dark="darkMode">
+    <q-list :dark="darkMode" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
         <q-item v-for="(tx, index) in transactions" :key="index" clickable @click="selectTransaction(tx, index)">
           <q-item-section>
             <div class="q-mx-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">

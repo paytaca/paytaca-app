@@ -9,8 +9,7 @@ import { Wallet } from 'src/wallet'
 import packageInfo from '../../package.json'
 
 export const backend = axios.create({
-  baseURL: process.env.MAINNET_WATCHTOWER_BASE_URL,
-  // baseURL: 'http://localhost:8000/api',
+  baseURL: process.env.MAINNET_WATCHTOWER_BASE_URL
 })
 
 backend.interceptors.request.use(async (config) => {

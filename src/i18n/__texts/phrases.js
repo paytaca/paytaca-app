@@ -1268,6 +1268,11 @@ const phrases = {
       StablehedgeContractDesc1: "Stablehedge uses {cashscriptLink} smart contracts to store your funds and ensure that exchanged assets within transactions are correct",
       StablehedgeContractDesc2: "The exchanged amounts are calculated based on the price values taken from {priceOracleLink}",
       StablehedgeLiquidityDesc1: "A part of your frozen funds are pooled with other users and locked in a leveraged short contract in {BCHBullLink} to protect against price drops",
+    },
+    {
+      CutleryIncludedMsg: 'Your order will include cutlery',
+      CutleryNotIncludedMsg: 'Your order will not include cutlery',
+      AdditionalChargesForCutlery: 'Additional charges for cutlery',
     }
   ]
 }

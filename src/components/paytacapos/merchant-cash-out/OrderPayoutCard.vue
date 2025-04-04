@@ -1,5 +1,5 @@
 <template>
-    <div class="q-mx-lg q-pt-xs">
+    <div class="q-mx-lg q-pt-xs" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
         <q-card class="full-width q-px-lg br-15 q-py-sm">
         <div class="text-bold sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
             {{ transactions?.length }} Transactions
@@ -82,7 +82,7 @@ export default {
             })
             lossCovered = lossCovered.toFixed(2)
             lossGain = (currentTotal - initialTotal).toFixed(2)
-            currentTotal += lossCovered
+            currentTotal = Number(currentTotal.toFixed(2)) + Number(lossCovered)
 
             this.cashOutTotal = {
                 initialTotal: formatNumber(initialTotal) || initialTotal,

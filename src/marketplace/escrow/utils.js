@@ -7,6 +7,8 @@ import {
   encodeCashAddress,
 } from '@bitauth/libauth'
 import { convertCashAddress } from "src/wallet/chipnet";
+import { LibauthHDWallet } from "src/wallet/bch-libauth";
+import { Store } from "src/store";
 
 const bchjs = new BCHJS()
 
@@ -152,4 +154,35 @@ export function toTokenAddress(address) {
   }
 
   return encodeCashAddress(prefix, _addressType, decodedAddress.payload)
+}
+
+/**
+ * @param {String} address 
+ * @param {import("src/wallet").Wallet} wallet 
+ * @returns {{ path:String, wif:String } | undefined}
+ */
+export function resolvePrivateKeyFromAddress(address, wallet, maxIndex=100) {
+  const dataFromStore = Store.getters['global/walletAddresses']
+    ?.map?.(data => {
+      if (data?.address !== address) return
+      return { path: `0/${data?.address_index}`, wif: data?.wif }
+    })
+    .find(Boolean)
+  if (dataFromStore) return dataFromStore
+
+  const tokenAddress = toTokenAddress(address) // just to make sure the address type is consistent
+  const network = tokenAddress?.startsWith('bchtest') ? 'chipnet' : 'mainnet'
+  const libauthWallet = new LibauthHDWallet(wallet.BCH.mnemonic, wallet.BCH.derivationPath, network)
+
+  const path = Array.from({ length: parseInt(maxIndex) || 100 }).find((_, index) => {
+    const receiving = libauthWallet.getAddressAt({ path: `0/${index}`, token: true })
+    const change = libauthWallet.getAddressAt({ path: `1/${index}`, token: true })
+
+    if (tokenAddress == receiving) return `0/${index}`
+    if (tokenAddress == change) return `1/${index}`
+  })
+
+  if (!path) return
+
+  return { path, wif: libauthWallet.getPrivateKeyWifAt(path) }
 }
