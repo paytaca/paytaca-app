@@ -132,6 +132,12 @@ export class Pst {
     return recipients.size
   }
 
+  get isSignaturesComplete () {
+    if (!this.m) return false
+    const count = Object.keys(this.signatures).filter((k) => k.includes('ecdsa')).length
+    return count >= this.m
+  }
+
   setVersion (version) {
     this.version = version || 2
     return this
@@ -250,10 +256,16 @@ export class Pst {
   }
 
   finalize () {
+    const signatures = structuredClone(this.signatures)
+    Object.entries(signatures).forEach((signatureEntry) => {
+      const [key, value] = signatureEntry
+      signatures[key] =
+        typeof value === 'string' ? hexToBin(value) : Uint8Array.from(Object.values(value))
+    })
     const fullUnlockingData = {
       ...this.lockingData,
       bytecode: {
-        ...this.signatures
+        ...signatures
         // 'key1.ecdsa_signature.all_outputs': expectedSigner1Signature,
         // 'key2.ecdsa_signature.all_outputs': expectedSigner2Signature,
         // ...signer1ResolvedVariables,
@@ -279,7 +291,9 @@ export class Pst {
       let sourceOutput = input.sourceOutput
       if (!sourceOutput) {
         sourceOutput = this.sourceOutputs.find((utxo) => {
-          return utxo.outpointIndex === input.outpointIndex && binToHex(utxo.outpointTransactionHash) === binToHex(input.outpointTransactionHash)
+          return utxo.outpointIndex === input.outpointIndex &&
+                binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
+                binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
         })
       }
       if (lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network }).address === address) {
@@ -297,6 +311,7 @@ export class Pst {
     const successfulCompilation = generateTransaction({
       ...transaction
     })
+    console.log('🚀 ~ Pst ~ finalize ~ successfulCompilation:', successfulCompilation)
     return successfulCompilation
   }
 
