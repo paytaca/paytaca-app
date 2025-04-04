@@ -19,6 +19,16 @@ export function walletConnectSignTransactionRequest ({ commit }, { address, sess
   commit('walletConnectSignTransactionRequest', { address, sessionRequest })
 }
 
+export function deleteTransaction ({ commit }, { index }) {
+  commit('deleteTransaction', { index })
+  // TODO: mutate watchtower
+}
+
+export function deleteAllTransactions ({ commit }) {
+  commit('deleteAllTransactions')
+  // TODO: mutate watchtower
+}
+
 export function savePst ({ commit }, pst) {
   console.log('saving pst', pst)
   commit('savePst', pst)

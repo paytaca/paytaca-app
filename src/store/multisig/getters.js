@@ -1,7 +1,7 @@
 export function getWallet (state) {
   return ({ address }) => {
     const wallet = state.wallets.filter((wallet) => {
-      return wallet.address === address
+      return wallet.address === decodeURIComponent(address)
     })
     return wallet?.[0]
   }

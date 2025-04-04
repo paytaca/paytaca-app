@@ -22,6 +22,14 @@ export function walletConnectSignTransactionRequest (state, { address, sessionRe
   newTransaction(state, { transaction, sourceOutputs, address, sessionRequest })
 }
 
+export function deleteTransaction (state, { index }) {
+  state.transactions.splice(index, 1)
+}
+
+export function deleteAllTransactions (state) {
+  state.transactions = []
+}
+
 export function savePst (state, pst) {
   const index = state.psts.findIndex(item => item.id === pst.id)
   if (index === -1) {
