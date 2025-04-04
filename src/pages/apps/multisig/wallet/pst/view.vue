@@ -34,7 +34,7 @@
                     </q-item-section>
                     <q-item-section side top>
                       <q-item-label>
-                        <q-btn v-if="!pst.isSignaturesComplete" label="Sign" @click="partiallSignTransaction"></q-btn>
+                        <q-btn v-if="!pst.isSignaturesComplete" label="Sign" @click="partiallySignTransaction"></q-btn>
                         <q-btn v-else label="Submit Transaction" @click="finalizeAndSubmitTransaction"></q-btn>
                       </q-item-label>
                       <q-item-label caption>caption here</q-item-label>
@@ -119,7 +119,7 @@ const downloadPstFile = () => {
   }).onCancel(() => {})
 }
 
-const partiallSignTransaction = async () => {
+const partiallySignTransaction = async () => {
   const walletIndex = $store.getters['global/getWalletIndex']
   const { mnemonic } = await loadWallet('BCH', walletIndex)
   const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })

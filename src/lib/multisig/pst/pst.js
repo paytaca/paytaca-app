@@ -319,6 +319,10 @@ export class Pst {
     store(structuredClone(this.toJSON()))
   }
 
+  update (store) {
+    store(structuredClone(this.toJSON()))
+  }
+
   toBase64 () {
     const bin = utf8ToBin(JSON.stringify(this.toJSON()))
     return binToBase64(bin)
@@ -345,6 +349,15 @@ export class Pst {
       signersInfo: this.signersInfo,
       sourceOutputs: this.sourceOutputs
     }
+  }
+
+  /**
+   * Combine signatures of psts
+   */
+  combine ({ psts }) {
+    const combined = Pst.combine({ psts: [this, ...psts], everyPstId: this.id })
+    console.log('🚀 ~ Pst ~ combine ~ combined:', combined)
+    this.signatures = combined.signatures
   }
 
   async toPstFile (filename) {
@@ -425,5 +438,37 @@ export class Pst {
       inputs: transaction.inputs,
       outputs: transaction.outputs
     }
+  }
+
+  static combine ({ psts, everyPstId }) {
+    const pstWithCompleteSigs = psts.find(pst => pst.isSignaturesComplete)
+    console.log('🚀 ~ Pst ~ combine ~ pstWithCompleteSigs:', pstWithCompleteSigs)
+    if (pstWithCompleteSigs) return pstWithCompleteSigs
+    const pstWithMostSigs = psts.reduce((maxObj, currentObj) => {
+      const currentSigLength = Object.keys(currentObj.signatures).length
+      const maxSigLength = Object.keys(maxObj.signatures).length
+      return currentSigLength > maxSigLength ? currentObj : maxObj
+    })
+    console.log('🚀 ~ Pst ~ pstWithMostSigs ~ pstWithMostSigs:', pstWithMostSigs)
+    let compareId = everyPstId
+    if (!compareId) {
+      compareId = pstWithMostSigs.id
+    }
+    const sameIds = psts.every(pst => pst.id === compareId)
+    if (!sameIds) throw new Error('All psts must have the same ids')
+
+    let otherSignatures = {}
+    for (let i = 0; i < psts.length; i++) {
+      console.log('PROCESSING', psts[i].signatures)
+      otherSignatures = {
+        ...otherSignatures,
+        ...psts[i].signatures
+      }
+    }
+    pstWithMostSigs.signatures = {
+      ...otherSignatures,
+      ...pstWithMostSigs.signatures
+    }
+    return pstWithMostSigs
   }
 }
