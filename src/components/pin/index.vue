@@ -66,7 +66,7 @@
                 class="pp-key pt-key-del"
                 :class="nonNumKeysClass(key)"
                 :icon="key === 4 ? 'refresh' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'mdi-close-circle' : ''" />
-              <q-btn
+              <q-btn 
                 push
                 class="pp-key pt-key-num"
                 :class="darkMode ? 'pt-bg-dark' : 'bg-white'"

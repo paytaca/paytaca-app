@@ -32,7 +32,7 @@ module.exports = function (/* ctx */) {
       'i18n',
       'axios',
       'leaflet',
-      'push-notifications',
+      // 'push-notifications',
       'qrcodecomponent',
       'qrcodereader',
       'clipboard',

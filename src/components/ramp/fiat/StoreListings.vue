@@ -1,5 +1,5 @@
 <template>
-  <div :class="getDarkModeClass(darkMode)" class="q-mx-md q-mb-lg text-bow" :style="`height: ${minHeight}px;`">
+  <div id="p2p-exchange" :class="getDarkModeClass(darkMode)" class="q-mx-md q-mb-lg text-bow" :style="`height: ${minHeight}px;`">
     <div class="q-mb-sm q-pb-sm">
       <q-pull-to-refresh @refresh="refreshData">
         <div class="items-center q-px-sm" v-if="!showSearch">

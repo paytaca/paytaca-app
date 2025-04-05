@@ -21,18 +21,18 @@
           inputExtras.scannedRecipientAddress
         ]"
       >
-        <template v-slot:label>
+        <template v-slot:label id="sub-btn"> 
           {{ $t('Recipient') }}
         </template>
         <template v-slot:append>
-          <q-btn
+          <q-btn id="send-form-qr"
             round
             class="q-ml-xs btn-scan button text-white bg-grad"
             icon="mdi-qrcode"
             size="md"
             @click="onQRScannerClick(true), onInputFocus(index, '')"
           />
-          <q-btn
+          <q-btn id="send-form-upload"
             round
             class="q-ml-sm btn-scan button text-white bg-grad"
             icon="upload"

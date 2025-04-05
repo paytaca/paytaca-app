@@ -16,8 +16,8 @@
       <q-item
         v-bind="scope.itemProps"
       >
-        <q-item-section>
-          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+        <q-item-section> 
+          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }" :data-country="scope.opt.label"> 
             {{ scope.opt.label }}
           </q-item-label>
           <q-item-label

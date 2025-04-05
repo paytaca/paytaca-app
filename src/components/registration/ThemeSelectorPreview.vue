@@ -49,7 +49,7 @@
       </q-card>
     </div>
     <div class="row justify-center">
-      <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity"/>
+      <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="choosePreferedSecurity" id="Continue"/>
     </div>
   </div>
 </template>
