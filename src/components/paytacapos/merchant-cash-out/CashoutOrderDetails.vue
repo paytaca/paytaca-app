@@ -70,14 +70,17 @@ export default {
     },
     statusTimestamp () {
       let timestamp = null
-      const status = this.order.status.toLowerCase()
-      switch(status) {
-        case "pending":
+
+      switch(this.order.status) {
+        case "PENDING":
           timestamp = this.order.created_at
-        case "processing":
+          break
+        case "PROCESSING":
           timestamp = this.order.processed_at
-        case "completed":
+          break
+        case "COMPLETED":
           timestamp = this.order.completed_at
+          break
       }
       return this.arrangeDate(timestamp)
     }
