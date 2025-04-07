@@ -448,6 +448,13 @@ export class Pst {
       if (output.lockingBytecode && !(output?.lockingBytecode instanceof Uint8Array)) {
         output.lockingBytecode = Uint8Array.from(Object.values(output.lockingBytecode))
       }
+      if (output.token?.category && !(output.token?.category instanceof Uint8Array)) {
+        output.token.category = Uint8Array.from(Object.values(output.token.category))
+      }
+
+      if (output.token?.commitment?.nft?.commitment && !(output.token.commitment.nft.commitment instanceof Uint8Array)) {
+        output.token.commitment.nft.commitment = Uint8Array.from(Object.values(output.token.commitment.nft.commitment))
+      }
     })
     return {
       version: transaction.version,
