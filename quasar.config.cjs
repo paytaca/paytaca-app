@@ -13,6 +13,8 @@
 // Updated @quasar/app-webpack from 3.x.x to 4.x.x to support bex manifest v3
 // https://quasar.dev/quasar-cli-webpack/upgrade-guide
 const { defineConfig } = require('#q-app/wrappers')
+const TerserPlugin = require('terser-webpack-plugin');
+
 
 module.exports = defineConfig((ctx) => {
   return {
@@ -151,6 +153,29 @@ module.exports = defineConfig((ctx) => {
               }
             }
           })
+        }
+
+        if (cfg.mode === 'production') {
+          const index = cfg.optimization.minimizer.findIndex((plugin) => {
+            return plugin instanceof TerserPlugin
+          })
+
+          // not setting 'mangle: false' breaks bchjs, HdNode.toXPubKey()
+          if (index >= 0) {
+            cfg.optimization.minimizer[index].options.minimizer.options.mangle = false
+          } else {
+            // Add custom TerserPlugin options
+            cfg.optimization.minimizer[index] = new TerserPlugin({
+              terserOptions: {
+                compress: {
+                  // Disable class renaming
+                  keep_classnames: true,
+                  keep_fnames: true,
+                },
+                mangle: false,
+              },
+            })
+          }
         }
 
         cfg.experiments = {
