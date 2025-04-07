@@ -656,7 +656,7 @@ const approveSessionProposal = async (sessionProposal) => {
   }
   // Choose the first address by default
   let selectedAddress = walletAddresses.value?.[0]
-  if (walletAddresses.value?.length > 1 || multisigWalletAddresses.value.length > 1) {
+  if (walletAddresses.value?.length > 1 || multisigWalletAddresses.value.length > 0) {
     // let user select the address wallet has more than 1 address
     processingSession.value[sessionProposal.pairingTopic] = 'Selecting Address'
     const { selectedWalletAddress } = await openAddressSelectionDialog(sessionProposal)
@@ -715,13 +715,11 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction') {
     try {
       const walletAddress = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
-      console.log('RESPONDING TO SIGN REQU', walletAddress)
-      console.log('RESPONDING TO SIGN REQU', sessionRequest)
       if (walletAddress.signers) { // Account with active session is a multisig wallet
         // save the request as signature request
         // push to multisig signature request page
         $store.dispatch('multisig/walletConnectSignTransactionRequest', { sessionRequest, address: walletAddress.address })
-        $router.push({ name: 'app-multisig-transactions', params: { address: encodeURIComponent(walletAddress.address) } })
+        $router.push({ name: 'app-multisig-wallet-transactions', params: { address: encodeURIComponent(walletAddress.address) } })
         rejectSessionRequest(sessionRequest) // TODO: respond properly
         return
       }
@@ -879,8 +877,6 @@ const openSessionRequestDialog = (sessionRequest) => {
     },
     cancel: true
   }).onOk(async ({ response }) => {
-    console.log('🚀 ~ openSessionRequestDialog ~ response:', response)
-
     if (response === 'confirm') {
       return await respondToSessionRequest(sessionRequest)
     }
@@ -1034,10 +1030,8 @@ onMounted(async () => {
     multisigWalletAddresses.value = $store.getters['multisig/getWallets']
     // TODO: load multisig wallets from watchtower
     walletAddresses.value = $store.getters['global/walletAddresses']
-    console.log('WALLET ADDRESSES', walletAddresses.value)
   } catch (error) {} finally { loading.value = undefined }
 })
-
 onUnmounted(() => {
   if (web3Wallet.value) {
     detachEventsListeners(web3Wallet.value)
