@@ -156,6 +156,10 @@ module.exports = defineConfig((ctx) => {
         }
 
         if (cfg.mode === 'production') {
+          if (!cfg.optimization?.minimizer) {
+            cfg.optimization.minimizer = []
+          }
+
           const index = cfg.optimization.minimizer.findIndex((plugin) => {
             return plugin instanceof TerserPlugin
           })
@@ -165,7 +169,7 @@ module.exports = defineConfig((ctx) => {
             cfg.optimization.minimizer[index].options.minimizer.options.mangle = false
           } else {
             // Add custom TerserPlugin options
-            cfg.optimization.minimizer[index] = new TerserPlugin({
+            cfg.optimization.minimizer.push(new TerserPlugin({
               terserOptions: {
                 compress: {
                   // Disable class renaming
@@ -174,7 +178,7 @@ module.exports = defineConfig((ctx) => {
                 },
                 mangle: false,
               },
-            })
+            }))
           }
         }
 
