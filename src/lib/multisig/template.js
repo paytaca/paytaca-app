@@ -52,7 +52,7 @@ export const generateSchnorrCheckbits = (cosignerGroups) /* : string  // example
   for (const cosignerPosition of cosignerGroups) {
     checkbit = checkbit | (1 << cosignerPosition - 1)
   }
-  return `<0b${checkbit.toString(2)}>`
+  return `<0b${checkbit.toString(2).padStart(3, '0')}>`
 }
 
 export const generateUnlockingScriptDummy = ({
