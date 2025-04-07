@@ -9,7 +9,12 @@ import {
   deriveHdPrivateNodeFromBip39Mnemonic,
   deriveHdPath,
   deriveHdPublicKey,
-  encodeHdPrivateKey
+  encodeHdPrivateKey,
+  stringify,
+  utf8ToBin,
+  binToBase64,
+  base64ToBin,
+  binToUtf8
 } from 'bitauth-libauth-v3'
 import { createTemplate } from './template.js'
 
@@ -54,19 +59,16 @@ export const getLockingData = ({ signers }) => {
  * signers: { [signerIndex: number]: { xPubKey: string, signerName: string } }
  */
 export class MultisigWallet {
-  constructor ({ m, n, signers, signatureFormat, name, network, createTemplate }) {
+  constructor ({ m, n, signers, signatureFormat, name, network }) {
     this.m = m
     this.n = n
     this.name = name
     this.signers = signers
     this.signatureFormat = signatureFormat || 'ecdsa'
     this.network = network
-    if (createTemplate) {
-      this.createTemplate()
-    }
   }
 
-  createTemplate () {
+  createTemplate (signatureFormat) {
     let signerNames = Object.entries(this.signers).map((entry) => {
       const key = entry[0]
       const value = entry[1]
@@ -77,9 +79,10 @@ export class MultisigWallet {
       name: this.name,
       m: this.m,
       n: this.n,
-      signatureFormat: this.signatureFormat,
+      signatureFormat: signatureFormat || this.signatureFormat,
       signerNames
     })
+    return this
   }
 
   get lockingScriptId () {
@@ -119,6 +122,10 @@ export class MultisigWallet {
     return MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic, network, hdPath })
   }
 
+  export () {
+    return MultisigWallet.export(this)
+  }
+
   toJSON () {
     return {
       name: this.name,
@@ -127,23 +134,37 @@ export class MultisigWallet {
       signatureFormat: this.signatureFormat,
       network: this.network,
       signers: this.signers,
-      template: this.template,
-      lockingData: this.lockingData,
-      lockingBytecode: this.lockingBytecode,
-      address: this.address
+      template: this.template, // remove can be derived
+      lockingData: this.lockingData, // remove can be derived
+      lockingBytecode: this.lockingBytecode, // remove can be derived
+      address: this.address // remove can be derived
     }
+  }
+
+  static export (multisigWallet) {
+    const bin = utf8ToBin(stringify(multisigWallet.toJSON()))
+    return binToBase64(bin)
+  }
+
+  static import (multisigWalletBase64) {
+    const bin = base64ToBin(multisigWalletBase64)
+    const parsed = JSON.parse(binToUtf8(bin))
+    const wallet = new MultisigWallet(parsed)
+    wallet.createTemplate()
+    return wallet
   }
 
   static fromJSON (stringifiedWallet) {
     const parsed = JSON.parse(stringifiedWallet)
-    return new MultisigWallet({
+    const wallet = new MultisigWallet({
       m: parsed.m,
       n: parsed.n,
       signatureFormat: parsed.signatureFormat,
       network: parsed.network,
-      signers: parsed.signers,
-      createTemplate: true
+      signers: parsed.signers
     })
+    wallet.createTemplate()
+    return wallet
   }
 
   static deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
