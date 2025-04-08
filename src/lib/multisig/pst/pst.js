@@ -134,7 +134,7 @@ export class Pst {
 
   get isSignaturesComplete () {
     if (!this.m) return false
-    const count = Object.keys(this.signatures).filter((k) => k.includes('ecdsa')).length
+    const count = Object.keys(this.signatures).filter((k) => k.includes('ecdsa') || k.includes('schnorr')).length
     return count >= this.m
   }
 
