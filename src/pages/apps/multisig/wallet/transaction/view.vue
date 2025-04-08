@@ -5,7 +5,7 @@
         <div class="static-container">
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
-              :title="$t('View Template')"
+              :title="$t('Transaction')"
               backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
@@ -115,7 +115,8 @@ const wallet = computed(() => {
 })
 
 const partiallySignTransaction = async () => {
-  const wallet = $store.getters['multisig/getWallet']({ address: route.params.address })
+  const walletObject = $store.getters['multisig/getWallet']({ address: route.params.address })
+  const wallet = MultisigWallet.fromObject(walletObject)
   const prompt = transactionData?.value?.sessionRequest?.params?.request?.params?.userPrompt
   const origin = transactionData?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
   const pst = new Pst({
@@ -127,7 +128,7 @@ const partiallySignTransaction = async () => {
   const { mnemonic } = await loadWallet('BCH', walletIndex)
   const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
   const creator = Object.keys(wallet.signers).find((signerId) => {
-    return wallet.signers[signerId].xPubKey === hdKeys.hdPublicKey
+    return wallet.signers[signerId].xpub === hdKeys.hdPublicKey
   })
   pst
     .setTemplate(wallet.template)

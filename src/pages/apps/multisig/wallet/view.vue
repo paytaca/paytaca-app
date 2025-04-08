@@ -36,7 +36,7 @@
                         <q-item v-for="signerIndex in Object.keys(wallet.signers)" :key="`app-multisig-view-signer-${signerIndex}`">
                           <q-item-section>
                             <q-item-label>{{ wallet.signers[signerIndex].signerName }}</q-item-label>
-                            <q-item-label caption>{{ shortenString(wallet.signers[signerIndex].xPubKey, 20) }}</q-item-label>
+                            <q-item-label caption>{{ shortenString(wallet.signers[signerIndex].xpub, 20) }}</q-item-label>
                           </q-item-section>
                           <q-item-section side top>
                             <q-item-label caption>{{ signerIndex }}</q-item-label>
@@ -67,6 +67,10 @@
                     </div>
                   </template>
                 </div>
+                <div class="col-xs-12 col-md-8 q-px-md q-gutter-md">
+                  <q-btn>Send</q-btn>
+                  <q-btn>Receive</q-btn>
+                </div>
             </div>
           </div>
         </div>
@@ -80,25 +84,13 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { Pst } from 'src/lib/multisig'
+import { Pst, shortenString, MultisigWallet } from 'src/lib/multisig'
 import Watchtower from 'src/lib/watchtower'
 
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
 const balance = ref()
-const shortenString = (str, maxLength) => {
-  // If the string is shorter than or equal to the maxLength, return it as is.
-  if (str.length <= maxLength) {
-    return str
-  }
-  // Calculate how much to keep before and after the '...'.
-  const halfLength = Math.floor((maxLength - 3) / 2)
-  const start = str.slice(0, halfLength)
-  const end = str.slice(-halfLength)
-
-  return `${start}...${end}`
-}
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -106,7 +98,10 @@ const darkMode = computed(() => {
 
 const wallet = computed(() => {
   if (route.params?.address) {
-    return $store.getters['multisig/getWallet']({ address: route.params.address })
+    const walletObject = $store.getters['multisig/getWallet']({ address: route.params.address })
+    if (walletObject) {
+      return MultisigWallet.fromObject(walletObject)
+    }
   }
   return null
 })
@@ -135,6 +130,7 @@ onMounted(async () => {
   const bch = await watchtower.getAddressBchBalance(wallet.value.address)
   console.log('🚀 ~ onMounted ~ balance:', balance)
   balance.value = bch.balance
+  console.log('MULTISIG WALLET', wallet.value)
 })
 // TODO: SHOW DIALOG IF WALLET NOT FOUND, NAV BACK ON DIALOG CLOSE
 </script>

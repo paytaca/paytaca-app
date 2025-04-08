@@ -1,3 +1,7 @@
+export function getSettings (state) {
+  return state.settings
+}
+
 export function getWallet (state) {
   return ({ address }) => {
     const wallet = state.wallets.filter((wallet) => {
