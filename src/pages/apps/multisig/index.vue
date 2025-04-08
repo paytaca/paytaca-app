@@ -5,7 +5,13 @@
         :title="$t('Multisig Wallet')"
         backnavpath="/apps"
         class="q-px-sm apps-header gift-app-header"
-      />
+      >
+      <template v-slot:top-right-menu>
+        <div class="flex items-center justify-end" >
+          <q-btn icon="settings" :to="{ name: 'app-multisig-settings'}" flat style="margin-left: -10px; margin-top: -5px;" size="lg" dense></q-btn>
+        </div>
+      </template>
+    </HeaderNav>
       <div class="row q-gutter-y-sm">
           <div class="col-xs-12 text-right q-px-sm q-gutter-x-sm">
               <q-btn
@@ -32,7 +38,15 @@
                 class="button"
                 :to="{ name: 'app-multisig-signer-qrcode'}"
               />
-              <q-file clearable color="orange" standout bottom-slots v-model="pstFile" label="Label" counter>
+              <q-btn
+                no-caps
+                icon="gear"
+                color="primary"
+                :label="$t('Settings')"
+                class="button"
+                :to="{ name: 'app-multisig-settings'}"
+              />
+              <!-- <q-file clearable color="orange" standout bottom-slots v-model="pstFile" label="Label" counter>
                 <template v-slot:prepend>
                   <q-icon name="upload_file" />
                 </template>
@@ -43,7 +57,7 @@
                 <template v-slot:hint>
                   Field hint
                 </template>
-              </q-file>
+              </q-file> -->
 
               <q-btn
                 label="Load File"
@@ -63,7 +77,7 @@
                     </span>
                   </q-item-label>
                   <q-item-label>
-                    {{ wallet.address }}
+                    {{ shortenString(wallet.address, 15) }}
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side top>
@@ -84,10 +98,11 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Pst } from 'src/lib/multisig'
+import { Pst, shortenString, MultisigWallet } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadLibauthHdWallet } from 'src/wallet'
+
 const $store = useStore()
 const router = useRouter()
 const { t: $t } = useI18n()
@@ -102,7 +117,7 @@ const darkMode = computed(() => {
 })
 
 const wallets = computed(() => {
-  return $store.getters['multisig/getWallets']
+  return MultisigWallet.fromObjects($store.getters['multisig/getWallets'])
 })
 
 const deleteWallet = (address) => {
@@ -160,5 +175,6 @@ onMounted(async () => {
   console.log('🚀 ~ onMounted ~ w2:', w2)
   const w3 = await loadLibauthHdWallet(2)
   console.log('🚀 ~ onMounted ~ w3:', w3)
+  console.log('wallets', wallets.value)
 })
 </script>
