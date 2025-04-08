@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "lint": "eslint --ext .js,.vue ./",
-    "test": "echo \"No test specified\" && exit 0"
+    "test": "echo \"See package.json => scripts for available tests.\" && exit 0"
   },
   "dependencies": {
     "@bitauth/libauth": "2.0.0-alpha.8",
@@ -44,7 +44,7 @@
     "axios": "^0.21.4",
     "axios-cache-interceptor": "^0.10.2",
     "bip39": "^3.0.4",
-    "bitauth-libauth-v3": "npm:@bitauth/libauth@^3.0.0",
+    "bitauth-libauth-v3": "npm:@bitauth/libauth@^3.1.0-next.4",
     "bitcoincashjs-lib": "^3.3.3",
     "bs58": "^5.0.0",
     "buffer": "^6.0.3",
