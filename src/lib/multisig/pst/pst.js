@@ -2,7 +2,7 @@ import {
   encodeTransactionCommon,
   hashTransaction,
   lockingBytecodeToCashAddress,
-  walletTemplateToCompilerBCH,
+  walletTemplateToCompilerBch,
   CashAddressNetworkPrefix,
   generateTransaction,
   binToHex,
@@ -14,7 +14,7 @@ import {
   hexToBin,
   stringify,
   decodeTransactionCommon,
-  createVirtualMachineBCH
+  createVirtualMachineBch
 } from 'bitauth-libauth-v3'
 
 export class Pst {
@@ -57,7 +57,7 @@ export class Pst {
 
   get compiler () {
     if (!this.template) return
-    return walletTemplateToCompilerBCH(this.template)
+    return walletTemplateToCompilerBch(this.template)
   }
 
   /**
@@ -323,7 +323,7 @@ export class Pst {
       const encodedTransaction = encodeTransactionCommon(successfulCompilation.transaction)
       this.signedTransaction = binToHex(encodedTransaction)
     }
-    const vm = createVirtualMachineBCH()
+    const vm = createVirtualMachineBch()
     const verificationResult = vm.verify({
       sourceOutputs: sourceOutputs, transaction: successfulCompilation.transaction
     })

@@ -1,7 +1,7 @@
 import {
   importWalletTemplate,
   lockingBytecodeToCashAddress,
-  walletTemplateToCompilerBCH,
+  walletTemplateToCompilerBch,
   assertSuccess,
   decodeHdPublicKey,
   publicKeyToP2pkhCashAddress,
@@ -18,7 +18,7 @@ import {
 } from 'bitauth-libauth-v3'
 import { createTemplate } from './template.js'
 
-const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publicKey: Uint8Array , signerName: string ...} } */ }) => {
+const getHdKeys = ({ signers /* { [signerIndex: number]: { xpub: string, signerName: string ...} } */ }) => {
   const hdKeys = {
     addressIndex: 0,
     hdPublicKeys: {}
@@ -26,7 +26,7 @@ const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publ
   Object.entries(signers).forEach(([signerIndex, signer]) => {
     const name = `signer_${signerIndex}`
     // hdKeys.hdPublicKeys[name] = signers[signerIndex].publicKey --> error
-    hdKeys.hdPublicKeys[name] = signers[signerIndex].xPubKey // we're supposed to provide the xPubKey to lockingData not public key derived from it
+    hdKeys.hdPublicKeys[name] = signers[signerIndex].xpub // we're supposed to provide the xpub to lockingData not public key derived from it
   })
   return hdKeys
 }
@@ -34,9 +34,9 @@ const getHdKeys = ({ signers /* { [signerIndex: number]: { xPubKey: string, publ
 /**
  * Not used on this module just here for reference
  */
-export const derivePubKeyFromXPubKey = ({ xPubKey, addressIndex /* ?: e.g. '0/0' */ }) => {
+export const derivePubKeyFromXPubKey = ({ xpub, addressIndex /* ?: e.g. '0/0' */ }) => {
   // NOTE: We can get the fingerprint from node
-  const { node, ...rest } = assertSuccess(decodeHdPublicKey(xPubKey))
+  const { node, ...rest } = assertSuccess(decodeHdPublicKey(xpub))
   const { publicKey } = deriveHdPathRelative(node, addressIndex || '0')
   const { address } = publicKeyToP2pkhCashAddress({ publicKey })
   return {
@@ -56,7 +56,7 @@ export const getLockingData = ({ signers }) => {
 /**
  * m: number
  * n: number
- * signers: { [signerIndex: number]: { xPubKey: string, signerName: string } }
+ * signers: { [signerIndex: number]: { xpub: string, signerName: string, derivationPath: string } }
  */
 export class MultisigWallet {
   constructor ({ m, n, signers, signatureFormat, name, network }) {
@@ -64,7 +64,7 @@ export class MultisigWallet {
     this.n = n
     this.name = name
     this.signers = signers
-    this.signatureFormat = signatureFormat || 'ecdsa'
+    this.signatureFormat = signatureFormat || 'schnorr'
     this.network = network
   }
 
@@ -94,7 +94,7 @@ export class MultisigWallet {
     if (typeof parsedTemplate === 'string') {
       throw new Error('Failed creating multisig wallet template.')
     }
-    const compiler = walletTemplateToCompilerBCH(parsedTemplate)
+    const compiler = walletTemplateToCompilerBch(parsedTemplate)
     return compiler
   }
 
@@ -134,10 +134,7 @@ export class MultisigWallet {
       signatureFormat: this.signatureFormat,
       network: this.network,
       signers: this.signers,
-      template: this.template, // remove can be derived
-      lockingData: this.lockingData, // remove can be derived
-      lockingBytecode: this.lockingBytecode, // remove can be derived
-      address: this.address // remove can be derived
+      address: this.address
     }
   }
 
@@ -165,6 +162,19 @@ export class MultisigWallet {
     })
     wallet.createTemplate()
     return wallet
+  }
+
+  static fromObjects (wallets) {
+    const walletInstances = wallets.map((wallet) => {
+      return MultisigWallet.fromObject(wallet)
+    })
+    return walletInstances
+  }
+
+  static fromObject (wallet) {
+    const multisigWallet = new MultisigWallet(wallet)
+    multisigWallet.createTemplate()
+    return multisigWallet
   }
 
   static deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
