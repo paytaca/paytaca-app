@@ -1,11 +1,14 @@
 import escrowSrcCode from 'src/cashscripts/escrow.cash'
 import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
 import { compileString } from 'cashc'
+import { Store } from 'src/store'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
-import Watchtower from 'watchtower-cash-js'
-import { Store } from 'src/store'
 const bchjs = new BCHJS()
+
+import Watchtower from 'src/lib/watchtower'
+const isChipnet = Store.getters['global/isChipnet']
+const watchtower = new Watchtower(isChipnet)
 
 /**
  * Represents a Ramp contract.
@@ -86,7 +89,6 @@ export class RampContract {
     if (!address) address = this.contract.address
     let balance = 0
     try {
-      const watchtower = new Watchtower(Store.getters['global/isChipnet'])
       const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
       balance = response?.data?.balance
     } catch (error) {
@@ -138,10 +140,8 @@ export class RampContract {
     let txInfo
 
     try {
-      // generate the signature
       const callerSig = new SignatureTemplate(callerWIF)
-      // convert amount from BCH to satoshi
-      // const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
+
       /**
        * output[0]: {to: `buyer address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
@@ -153,11 +153,13 @@ export class RampContract {
         { to: this.addresses.arbiter, amount: BigInt(parseInt(this.fees.arbitrationFee)) }
       ]
 
-      txInfo = await this.contract.functions
+      const txHex = await this.contract.functions
         .release(callerPubkey, callerSig, this.hash)
         .to(outputs)
         .withHardcodedFee(BigInt(parseInt(this.fees.contractFee)))
-        .send()
+        .build()
+
+      txInfo = await this.broadcastTransaction(txHex)
 
       result = {
         success: true,
@@ -192,10 +194,7 @@ export class RampContract {
     let txInfo
 
     try {
-      // generate arbiter signature
       const arbiterSig = new SignatureTemplate(callerWIF)
-      // convert amount from BCH to satoshi
-      // const satoshiAmount = Math.floor(bchjs.BitcoinCash.toSatoshi(Number(amount)))
       /**
        * output[0]: {to: `seller address`, amount: `trade amount`}
        * output[1]: {to: `servicer address`, amount: `service fee`}
@@ -207,11 +206,13 @@ export class RampContract {
         { to: this.addresses.arbiter, amount: BigInt(parseInt(this.fees.arbitrationFee)) }
       ]
 
-      txInfo = await this.contract.functions
+      const txHex = await this.contract.functions
         .refund(this.publicKeys.arbiter, arbiterSig, this.hash)
         .to(outputs)
         .withHardcodedFee(BigInt(parseInt(this.fees.contractFee)))
         .send()
+      
+      txInfo = await this.broadcastTransaction(txHex)
 
       result = {
         success: true,
@@ -226,6 +227,16 @@ export class RampContract {
     }
     // console.log('result:', JSON.stringify(result))
     return result
+  }
+
+  async broadcastTransaction (txHex) {
+    try {
+      const response = await watchtower.BCH._api.post('broadcast/', { transaction: txHex })
+      return response.data
+    } catch (error) {
+      console.error(error.response || error)
+      return error.response.data
+    }
   }
 }
 

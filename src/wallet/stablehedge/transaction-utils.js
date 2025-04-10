@@ -229,4 +229,18 @@ export class TransactionBalancer {
 
     return binToHex(encodeTransactionBCH(transaction))
   }
+
+  buildUnsigned() {
+    const { transaction } = cashscriptTxToLibauth('', {
+      locktime: this.locktime,
+      inputs: this.inputs,
+      outputs: this.outputs,
+    })
+
+    transaction.inputs.forEach((input, index) => {
+      transaction.inputs[index].unlockingBytecode = new Uint8Array()
+    })
+
+    return binToHex(encodeTransactionBCH(transaction))
+  }
 }

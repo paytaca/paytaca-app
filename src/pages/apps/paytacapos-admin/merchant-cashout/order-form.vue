@@ -1,7 +1,7 @@
 <template>
   <div
     id="app-container"
-    :class="getDarkModeClass(darkMode)">
+    :class="[getDarkModeClass(darkMode), darkMode ? 'text-grey-2' : 'text-grey-10']">
     <HeaderNav :title="'Merchant Cash Out'" class="header"/>
     <div>
       <div v-if="status === 'confirm-transaction'"
@@ -91,13 +91,13 @@
 import { formatCurrency, formatNumber } from 'src/exchange'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
+import { loadLibauthHdWallet } from 'src/wallet'
 import CashoutTransactionBuilder from 'src/merchant-cashout'
 import HeaderNav from 'src/components/header-nav.vue'
 import CashoutPaymentMethodDialog from 'src/components/paytacapos/merchant-cash-out/CashoutPaymentMethodDialog.vue'
-import { loadLibauthHdWallet } from 'src/wallet'
-import Watchtower from 'src/lib/watchtower'
 import OrderPayoutCard from 'src/components/paytacapos/merchant-cash-out/OrderPayoutCard.vue'
 import SelectedTransactionsList from 'src/components/paytacapos/merchant-cash-out/SelectedTransactionsList.vue'
+import Watchtower from 'src/lib/watchtower'
 
 export default {
   components: {
@@ -162,7 +162,6 @@ export default {
     this.paymentMethod = this.lastPaymentMethod
     this.transactions = JSON.parse(history.state.selectedTransactions)
     this.transactionList = this.transactions
-    this.calculateCashOutTotal(this.transactions)
     this.merchant = this.$store.getters['paytacapos/cashoutMerchant']
   },
   methods: {
@@ -175,90 +174,36 @@ export default {
       const wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
       this.wallet = wallet
     },
-    calculateCashOutTotal (transactions) {
-      let initialTotal = 0
-      let currentTotal = 0
-      let lossGain = 0
-      let lossCovered = 0
-      let totalBchAmount = 0
-      transactions.forEach(tx => {
-        const initMarketPrice = tx.fiat_price?.initial[this.currency.symbol]
-        const initFiatAmount = tx.amount * initMarketPrice
-        initialTotal += initFiatAmount
-
-        const currMarketPrice = tx.fiat_price?.current[this.currency.symbol]
-        const currFiatAmount = tx.amount * currMarketPrice
-        currentTotal += currFiatAmount
-
-        const isLossProtected = this.lossProtection(tx) !== 'Expired'
-        if (currentTotal < initialTotal && isLossProtected) {
-          const gap = initFiatAmount - currFiatAmount
-          lossCovered += gap
-        }
-        totalBchAmount += tx.amount
-      })
-      lossCovered = lossCovered.toFixed(2)
-      lossGain = (currentTotal - initialTotal).toFixed(2)
-      currentTotal += lossCovered
-
-      this.cashOutTotal = {
-        initialTotal: formatNumber(initialTotal) || initialTotal,
-        currentTotal: formatNumber(currentTotal) || currentTotal,
-        lossGain: formatNumber(lossGain) || lossGain,
-        lossCovered: formatNumber(lossCovered) || lossCovered,
-        totalBchAmount: formatNumber(totalBchAmount) || totalBchAmount
-      }
-    },
-    lossProtection (transaction) {
-      const txTime = new Date(transaction.tx_timestamp)
-      const expirationDate = new Date(txTime)
-      expirationDate.setDate(txTime.getDate() + 30)
-
-      const now = new Date()
-      const timeLeft = expirationDate - now
-
-      const daysLeft = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
-      const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
-      const secondsLeft = Math.floor((timeLeft % (1000 * 60)) / 1000)
-
-      if (daysLeft > 0) {
-        return `${daysLeft} days left`
-      }
-
-      if (hoursLeft > 0) {
-        return `${hoursLeft} hours left`
-      }
-
-      if (minutesLeft > 0) {
-        return `${minutesLeft} minutes left`
-      }
-
-      if (secondsLeft > 0) {
-        return `${secondsLeft} seconds left`
-      }
-
-      return 'Expired'
-    },
     async cashOutUtxos () {
       const selectedUtxos = this.transactions
       const utxos = selectedUtxos.map(el => el.transaction)
       const txids = utxos.map(el => el.txid)
+      try {
+        this.showLoading()
+        const order = await this.createCashoutOrder(txids)
+        const txBuilder = new CashoutTransactionBuilder()
+        const result = await txBuilder.sendUtxos({
+          sender: this.wallet,
+          payoutAddress: order.payout_address,
+          broadcast: true,
+          utxos: utxos
+        })
 
-      // create the cash out order
-      const order = await this.createCashoutOrder(txids)
-      const txBuilder = new CashoutTransactionBuilder()
-      const result = await txBuilder.sendUtxos({
-        sender: this.wallet,
-        payoutAddress: order.payout_address,
-        broadcast: true,
-        utxos: utxos
-      })
+        if (result.success) {
+          const outputTxid = result.txid
+          if (outputTxid) {
+            await this.manualProcessTxn(outputTxid)
+            await this.addCashoutAttributeTx(result.txid)
+            await this.saveOutputTx({ order_id: order.id, txid: outputTxid })
+          }
+        }
+        this.hideLoading()
+        this.orderStatus = 'success'
+        this.openDialog = true
+      } catch (error) {
+        console.error(error.response || error)
+      }
 
-      const outputTxid = result.txid
-      await this.manualProcessTxn(outputTxid) // shouldn't have to do this in prod
-      await this.addCashoutAttributeTx(result.txid)
-      await this.saveOutputTx({ order_id: order.id, txid: outputTxid })
     },
     async saveOutputTx (payload) {
       await backend.post('/paytacapos/cash-out/save_output_tx/', payload, { authorize: true })
@@ -297,47 +242,15 @@ export default {
           console.error(error.response || error)
         })
 
-      this.orderStatus = 'success'
-      this.openDialog = true
       return response.data
-    },
-    getInitialFiatAmount (transaction) {
-      const marketPrice = transaction?.fiat_price?.initial[this.currency?.symbol]
-      return transaction?.amount * marketPrice
-    },
-    getCurrentFiatAmount (transaction) {
-      const marketPrice = transaction?.fiat_price?.current[this.currency?.symbol]
-      return transaction?.amount * marketPrice
-    },
-    getFiatAmountColor (transaction) {
-      const initialVal = (this.getInitialFiatAmount(transaction)).toFixed(2)
-      const currentVal = (this.getCurrentFiatAmount(transaction)).toFixed(2)
-      if (currentVal < initialVal) return 'text-red'
-      if (currentVal > initialVal) return 'text-green'
-      return 'text-blue'
-    },
-    getTrendingIcon (transaction) {
-      const initialVal = (this.getInitialFiatAmount(transaction)).toFixed(2)
-      const currentVal = (this.getCurrentFiatAmount(transaction)).toFixed(2)
-      if (currentVal > initialVal) return 'trending_up'
-      if (currentVal < initialVal) return 'trending_down'
-      return ''
-    },
-    isTxnSelected (transaction) {
-      return transaction.selected
-    },
-    async refreshData (done) {
-      done()
     },
     selectTransaction (tx) {
       this.transactions.push(tx)
-      this.calculateCashOutTotal(this.transactions)
     },
     unselectTransaction (tx) {
       this.transactions = this.transactions.filter(el => 
         el.transaction?.txid !== tx.transaction?.txid
       )
-      this.calculateCashOutTotal(this.transactions)
     },
     openPaymentMethodDialog () {
       // this.openPaymentMethod = true
@@ -353,16 +266,15 @@ export default {
           this.$store.commit('paytacapos/updateLastPaymentMethod', method)
         })
     },
-    preventPull (e) {
-      let parent = e.target
-      // eslint-disable-next-line no-void
-      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
-        parent = parent.parentNode
-      }
-      // eslint-disable-next-line no-void
-      if (parent !== void 0 && parent.scrollTop > 0) {
-        e.stopPropagation()
-      }
+    showLoading () {
+      this.$q.loading.show({
+        message: 'Sending BCH...',
+        boxClass: this.darkMode ? 'bg-grey-9 text-grey-2' : 'bg-grey-2 text-grey-9',
+        spinnerColor: this.darkMode ? 'white' : 'primary'
+      })
+    },
+    hideLoading () {
+      this.$q.loading.hide()
     }
   }
 }

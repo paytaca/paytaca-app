@@ -105,20 +105,23 @@
             @click.stop="openMerchantInfoDialog()"
           />
         </q-item>
-        <!-- Temporarily disabled merchant cashout
-        <div class="text-center q-pt-xs">
+        <div class="text-center q-pt-xs q-px-md">
           <q-btn
             outline
             rounded
             dense
+            :disable="!isCashoutAvailable"
+            :loading="cashoutBtnLoading"
             label="Cash out"
             icon="payments"
             class="button button-text-primary full-width"
             :class="getDarkModeClass(darkMode)"
             @click="openCashoutPage()"
           />
-        </div> 
-        -->
+          <div class="q-pt-xs text-grey-6 text-italic" style="font-size: 10px;">
+            {{ cashoutErrorMsg }}
+          </div>
+        </div>
       </q-card-section>
     </q-card>
 
@@ -345,6 +348,7 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter } from 'vue-router'
+// import { fetchMerchants } from 'src/store/paytacapos/actions';
 
 const bchjs = new BCHJS()
 
@@ -1058,6 +1062,7 @@ function connectRpcClient(opts) {
 
 onMounted(() => refreshPage())
 async function refreshPage(done=() => {}) {
+  resetCashoutData()
   try {
     await initWallet()
     await fetchAuthWallet()
@@ -1069,11 +1074,53 @@ async function refreshPage(done=() => {}) {
     await Promise.all([
       fetchPosDevices(),
       fetchBranches(),
+      checkCashoutAvailability(),
     ])
   } finally {
     done?.()
   }
 
+}
+
+let isCashoutAvailable = false
+let cashoutErrorMsg = null
+let cashoutBtnLoading = true
+
+async function checkCashoutAvailability () {
+  await $store.dispatch('global/fetchAppControl')
+  const merchantData = $store.getters['global/merchantActivity']
+  const appControl = $store.getters['global/appControl']
+  const country = $store.getters['global/country']
+
+  const cashoutControl = appControl.find(item => item.feature_name === 'MERCHANT_CASH_OUT')
+
+  if (cashoutControl?.is_enabled) {
+    isCashoutAvailable = true
+
+    if (!cashoutControl.enabled_countries.includes(country.code)) {
+      isCashoutAvailable = false
+
+      cashoutErrorMsg = 'Cash out is unavailable in your country'
+    } else {
+      if (!(merchantData.active && merchantData.verified)) {
+        isCashoutAvailable = false
+
+        cashoutErrorMsg = 'Cash out is available only for active and verified merchants'
+      }
+    }
+  } else {
+    isCashoutAvailable = false
+
+    cashoutErrorMsg = 'Cash out is unavailable at the moment'
+  }
+
+  cashoutBtnLoading = false
+}
+
+function resetCashoutData () {
+  isCashoutAvailable = false
+  cashoutErrorMsg = null
+  cashoutBtnLoading = true
 }
 </script>
 <style lang="scss" scoped>
