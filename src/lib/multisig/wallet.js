@@ -134,7 +134,8 @@ export class MultisigWallet {
       signatureFormat: this.signatureFormat,
       network: this.network,
       signers: this.signers,
-      address: this.address
+      address: this.address,
+      template: this.template
     }
   }
 
