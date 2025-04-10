@@ -70,7 +70,9 @@ export class RampContract {
    * Both confirmed and unconfirmed UTXOs are included.
    */
   async getUtxos () {
-    return await this.contract.getUtxos()
+    const address = this.getAddress()
+    const result = await watchtower.BCH.getBchUtxos(address)
+    return result.utxos
   }
 
   /**
