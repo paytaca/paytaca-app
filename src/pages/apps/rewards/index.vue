@@ -116,7 +116,7 @@ export default {
       .then(async data => {
         if (data) {
           for (let i = 0; i < vm.promos.length; i++) {
-            const promoId = data[vm.pointsType[i]].id
+            const promoId = data['id'][vm.pointsType[i]]
             vm.promos[i].id = promoId
 
             if (promoId) {
