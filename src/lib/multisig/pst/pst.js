@@ -19,9 +19,10 @@ import {
 
 export class Pst {
   /**
-   * Optional - signatures, template, unsignedTransaction, sourceOutputs, desc
+   * Optional - signatures, template, unsignedTransaction, sourceOutputs, desc, txid
    */
-  constructor ({ lockingData, network, signatures, template, unsignedTransaction, sourceOutputs, desc }) {
+  constructor ({ lockingData, network, signatures, template, unsignedTransaction, sourceOutputs, desc, txid }) {
+    this.txid = txid
     this.lockingData = lockingData
     this.network = network || CashAddressNetworkPrefix.mainnet
     this.signatures = signatures
@@ -399,7 +400,7 @@ export class Pst {
    * Combine signatures of psts
    */
   combine ({ psts }) {
-    const combined = Pst.combine({ psts: [this, ...psts], everyPstId: this.id })
+    const combined = Pst.combine({ psts: [this, ...psts], expectedPstId: this.id })
     this.signatures = combined.signatures
   }
 
@@ -490,32 +491,66 @@ export class Pst {
     }
   }
 
-  static combine ({ psts, everyPstId }) {
+  static combineSignatures (objectsArray) {
+    const result = {
+      sigs: {}
+    }
+
+    const indices = [...new Set(
+      objectsArray.flatMap(obj => Object.keys(obj.sigs))
+    )]
+
+    indices.forEach(index => {
+      const entries = objectsArray
+        .filter(obj => obj.sigs[index])
+        .map(obj => Object.entries(obj.sigs[index]))
+        .flat()
+
+      const seen = new Map()
+      for (const [key, value] of entries) {
+        if (seen.has(key)) {
+          if (seen.get(key) !== value) {
+            throw new Error(`Conflict detected at sigs[${index}]: key "${key}" has different values ("${seen.get(key)}" vs "${value}")`)
+          }
+        } else {
+          seen.set(key, value)
+        }
+      }
+
+      result.sigs[index] = objectsArray
+        .filter(obj => obj.sigs[index])
+        .reduce((combined, obj) => ({
+          ...combined,
+          ...obj.sigs[index]
+        }), {})
+    })
+
+    return result
+  }
+
+  /**
+   * Combine multiple Pst object instances.
+   * @param {string} expectedPstId The expected id of all Psts
+   */
+  static combine ({ psts, expectedPstId }) {
     const pstWithCompleteSigs = psts.find(pst => pst.isSignaturesComplete)
     if (pstWithCompleteSigs) return pstWithCompleteSigs
     const pstWithMostSigs = psts.reduce((maxObj, currentObj) => {
-      const currentSigLength = Object.keys(currentObj.signatures).length
-      const maxSigLength = Object.keys(maxObj.signatures).length
+      const currentSigLength = Object.keys(currentObj.signatures?.[0] || {}).length
+      const maxSigLength = Object.keys(maxObj.signatures?.[0] || {}).length
       return currentSigLength > maxSigLength ? currentObj : maxObj
     })
-    let compareId = everyPstId
+    let compareId = expectedPstId
     if (!compareId) {
       compareId = pstWithMostSigs.id
     }
     const sameIds = psts.every(pst => pst.id === compareId)
     if (!sameIds) throw new Error('All psts must have the same ids')
-
-    let otherSignatures = {}
-    for (let i = 0; i < psts.length; i++) {
-      otherSignatures = {
-        ...otherSignatures,
-        ...psts[i].signatures
-      }
-    }
-    pstWithMostSigs.signatures = {
-      ...otherSignatures,
-      ...pstWithMostSigs.signatures
-    }
-    return pstWithMostSigs
+    const signatures = psts.map((pst) => {
+      return pst.signatures
+    })
+    const combinedPst = structuredClone(pstWithCompleteSigs)
+    combinedPst.signatures = signatures
+    return combinedPst
   }
 }
