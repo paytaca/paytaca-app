@@ -84,7 +84,8 @@ export class Pst {
     for (const signer of Object.entries(signersLockingData)) {
       const [signerEntityKey, signerHdPubKey] = signer
       const template = this.template
-      const signerSignature = Object.entries(this.signatures || {}).find((signatureKeyValue) => {
+      // only samples signatures of input 0, TODO: show sigs of each input
+      const signerSignature = Object.entries(Object.values(this.signatures || {})[0]).find((signatureKeyValue) => {
         const [signatureKey/* , signatureValue */] = signatureKeyValue
         const signerEntityVariableKey = signatureKey.split('.')[0]
         return Boolean(template.entities[signerEntityKey].variables[signerEntityVariableKey])
@@ -134,8 +135,9 @@ export class Pst {
 
   get isSignaturesComplete () {
     if (!this.m) return false
-    const count = Object.keys(this.signatures).filter((k) => k.includes('ecdsa') || k.includes('schnorr')).length
-    return count >= this.m
+    return Object.values(this.signatures).every((signaturesOfInput) => {
+      return Object.keys(signaturesOfInput).length >= this.m
+    })
   }
 
   setVersion (version) {
@@ -221,9 +223,10 @@ export class Pst {
         }
       }
     }
+    console.log('🚀 ~ Pst ~ signTransaction ~ entityUnlockingData:', entityUnlockingData)
 
     const unlockingScriptId = this.template.entities[entity].scripts.filter((scriptId) => scriptId !== 'lock')[0]
-
+    console.log('unlockingScriptId', unlockingScriptId)
     const transaction = structuredClone(this.transaction)
     for (const input of transaction.inputs) {
       let sourceOutput = input.sourceOutput
@@ -250,6 +253,7 @@ export class Pst {
     if (!this.signatures) {
       this.signatures = {}
     }
+    console.log('🚀 ~ Pst ~ signTransaction ~ signAttempt:', stringify(signAttempt))
 
     for (const [index, error] of Object.entries(signAttempt.errors)) {
       if (!this.signatures[index]) {
@@ -263,6 +267,12 @@ export class Pst {
       // console.log('🚀 ~ Pst ~ signTransaction ~ signerResolvedVariables:', stringify(signerResolvedVariables))
       this.signatures[index][signatureKey] = signatureValue
     }
+
+    Object.keys(this.signatures).forEach((inputIndex) => {
+      Object.keys(this.signatures[inputIndex]).forEach((signatureKey) => {
+        this.signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(this.signatures[inputIndex][signatureKey]))
+      })
+    })
     return this
   }
 
@@ -334,6 +344,15 @@ export class Pst {
       sourceOutputs: sourceOutputs, transaction: successfulCompilation.transaction
     })
     console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
+
+    Object.keys(this.signatures).forEach((inputIndex) => {
+      Object.keys(this.signatures[inputIndex]).forEach((signatureKey) => {
+        this.signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(this.signatures[inputIndex][signatureKey]))
+      })
+    })
+    console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
+
+    console.log('signatures', stringify(this.signatures))
     if (verificationResult !== true) {
       throw new Error('Transaction failed local vm verification')
     }
@@ -459,8 +478,8 @@ export class Pst {
         output.token.category = Uint8Array.from(Object.values(output.token.category))
       }
 
-      if (output.token?.commitment?.nft?.commitment && !(output.token.commitment.nft.commitment instanceof Uint8Array)) {
-        output.token.commitment.nft.commitment = Uint8Array.from(Object.values(output.token.commitment.nft.commitment))
+      if (output.token?.nft?.commitment && !(output.token.nft.commitment instanceof Uint8Array)) {
+        output.token.commitment.nft.commitment = Uint8Array.from(Object.values(output.token.nft.commitment))
       }
     })
     return {
