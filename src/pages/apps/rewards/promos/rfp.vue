@@ -137,7 +137,8 @@ export default {
   },
 
   props: {
-    id: { type: String, default: '-1' }
+    id: { type: String, default: '-1' },
+    address: { type: String, default: '' }
   },
 
   data () {

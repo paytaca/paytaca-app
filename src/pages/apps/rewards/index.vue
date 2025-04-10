@@ -46,7 +46,7 @@
             class="btn-scan button text-white bg-grad"
             icon="chevron_right"
             :disable="isLoading"
-            @click="$router.push({ name: promo.path, query: { id: promo.id ?? -1 } })"
+            @click="redirectToPromoPage(promo)"
           />
         </div>
       </div>
@@ -74,6 +74,7 @@ export default {
   data () {
     return {
       isLoading: false,
+      swapContractAddress: '',
       pointsType: ['up', 'rfp'/*, 'lp', 'cp', 'mp' */],
       promos: [
         {
@@ -115,6 +116,7 @@ export default {
     await getUserPromoData()
       .then(async data => {
         if (data) {
+          vm.swapContractAddress = data.swap_contract_ct_address
           for (let i = 0; i < vm.promos.length; i++) {
             const promoId = data['id'][vm.pointsType[i]]
             vm.promos[i].id = promoId
@@ -136,7 +138,16 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme
+    isNotDefaultTheme,
+    redirectToPromoPage (promo) {
+      this.$router.push({
+        name: promo.path,
+        query: {
+          id: promo.id ?? -1,
+          address: this.swapContractAddress
+        }
+      })
+    }
   }
 }
 </script>
