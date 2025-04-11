@@ -5,95 +5,153 @@
         <div class="static-container">
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
-              :title="$t('PST')"
-              :backnavpath="`/apps/multisig/wallet/${route.params.address}/pst`"
+              :title="$t('Transaction')"
+              backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
             <div class="row q-mt-lg justify-center">
-              <div v-if="pst" class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
-                Transaction {{ pst.transaction }}
-                <q-list>
-                  <q-item
-                    :to="{name: 'app-multisig-wallet-pst-view', params: { address: route.params.address, id: pst.id }}">
-                    <q-item-section>
-                      <q-item-label>Spending BCH: {{ pst.totalBchValue }}</q-item-label>
-                      <q-item-label># of Recipients: {{ pst.numberOfRecipients }}</q-item-label>
-                      <q-item-label># of Signatures: {{ Object.keys(pst.signatures).length }}</q-item-label>
-                      <q-item-label># of Required Signatures: {{ pst.m }}</q-item-label>
-                      <q-item-label>Complete?: {{ pst.isSignaturesComplete }}</q-item-label>
-                      <div>Signers</div>
-                      <div class="flex">
-                        <q-chip
-                          v-for="signerInfo, i in Object.entries(pst.signersInfo||{})" :key="`${signerInfo[0]}${i}`"
-                          :icon="hasSignature(signerInfo[1], pst)? 'task': 'edit_document'"
-                          class="q-mr-md"
-                        >
-                        {{ signerInfo[1].name }}
-                        </q-chip>
+                <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
+                  <q-card
+                    v-if="pst"
+                    flat
+                    :class="getDarkModeClass(darkMode)"
+                    >
+                    <q-card-section>
+                      Transaction Details
+                      <div class="row items-center no-wrap">
+                        <div class="col">
+                          <div class="text-h5">Transaction Details</div>
+                          <div class="text-subtitle2"> Prompt: {{ pst.desc?.prompt }}</div>
+                          <div class="text-subtitle2">Origin: {{ pst.desc?.origin }}</div>
+                        </div>
                       </div>
-                    </q-item-section>
-                    <q-item-section side top>
-                      <q-item-label>
-                        <q-btn v-if="!pst.isSignaturesComplete" label="Sign" @click="partiallySignTransaction"></q-btn>
-                        <q-btn v-else label="Submit Transaction" @click="finalizeAndSubmitTransaction"></q-btn>
-                      </q-item-label>
-                      <q-item-label caption>caption here</q-item-label>
-                    </q-item-section>
-                  </q-item>
-
-                  <q-item>{{ pst.transaction }}</q-item>
-                </q-list>
-              </div>
-              <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
-                <q-btn @click="deletePst">
-                  Delete
-                </q-btn>
-                <q-btn
-                  :to="{ name: 'app-multisig-wallet-pst-qrcode', params: {address: route.params.address, id: route.params.id } }">
-                  View Qr Code
-                </q-btn>
-                <q-btn icon="download" label="Download PST File" @click="downloadPstFile"/>
-              </div>
+                    </q-card-section>
+                    <q-card-section>
+                      {{ pst.transaction }}
+                    </q-card-section>
+                    <q-card-section>
+                      <div>Spend Summary</div>
+                      {{ spendSummary(pst.transaction) }}
+                    </q-card-section>
+                    <q-separator />
+                    <q-card-section>
+                      <div>Number of recipients: {{ pst.outputs.length }}</div>
+                    </q-card-section>
+                    <q-card-section>
+                      <div>Required Signatures: {{ pst.m }} of {{ pst.n }}</div>
+                    </q-card-section>
+                    <q-separator />
+                    <q-card-section v-if="Object.keys(pst?.signatures || {}).length > 0">
+                      {{ pst.signatures }}
+                    </q-card-section>
+                    <q-separator />
+                    <q-list>
+                      <q-item v-for="signerEntityIndex in Object.keys(wallet.signers)" :key="signerEntityIndex">
+                        <q-item-section>{{ wallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</q-item-section>
+                        <q-item-section side top>
+                          <q-btn
+                            label="Sign"
+                            :disable="!wallet.signerCanSign({ signerEntityIndex })"
+                            :icon="wallet.signerCanSign({ signerEntityIndex })? 'draw': 'edit_off'"
+                            @click="partiallySignTransaction({ signerEntityIndex, xprv: wallet.signers[signerEntityIndex]?.xprv })"
+                            >
+                          </q-btn>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                    <q-card-actions>
+                      <!-- <q-btn @click="partiallySignTransaction({ xprv: wallet.signers[signerEntityIndex].xprv })">Partially Sign</q-btn> -->
+                      <q-btn @click="deletePst">Delete PSt</q-btn>
+                      <q-btn icon="download" label="Download PST File" @click="downloadPstFile"/>
+                      <q-btn icon="download" label="Check if Sigs Complete" @click="() => pst.checkIfSignaturesAreComplete()"/>
+                      <q-btn v-if="!pst.isSignaturesComplete" label="Sign" @click="partiallySignTransaction"></q-btn>
+                      <q-btn v-else label="Submit Transaction" @click="finalizeAndSubmitTransaction"></q-btn>
+                    </q-card-actions>
+                  </q-card>
+                </div>
             </div>
           </div>
         </div>
       </q-page>
+
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup>
+
 import { useStore } from 'vuex'
-// import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
-// import { loadLibauthHdWallet } from 'src/wallet'
+const $q = useQuasar()
+import { computed, onBeforeMount, ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
-// import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Pst, MultisigWallet } from 'src/lib/multisig'
-import { loadWallet } from 'src/wallet'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import Watchtower from 'src/lib/watchtower'
 
-const $q = useQuasar()
 const $store = useStore()
+const { t: $t } = useI18n()
 const route = useRoute()
+const { getSignerXPrv } = useMultisigHelpers()
+
+const wallet = ref()
+const pst = ref()
+
+const spendSummary = computed(() => {
+  return (transaction) => {
+    let satoshis = 0
+    const tokens = {}
+    transaction.inputs.forEach((input) => {
+      satoshis += Number(String(input.sourceOutput?.valueSatoshis || '0'))
+      const token = input.sourceOutput?.token?.category
+      if (token && token.category) {
+        if (!tokens[token.category]) {
+          tokens[token.category] = 0
+        }
+        tokens[token.category] += (token.amount || 0)
+      }
+    })
+    return { satoshis, tokens }
+  }
+})
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const pst = ref()
+// const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
-const hasSignature = computed(() => {
-  return (signerInfoValue, pst) => {
-    const keyId = Object.keys(signerInfoValue.variables)[0]
-    return Object.keys(pst.signatures).find((signatureKey) => {
-      return signatureKey.startsWith(keyId)
-    })
-  }
-})
+const partiallySignTransaction = async ({ signerEntityIndex, xprv }) => {
+  if (!wallet.value) return
+  // const walletObject = $store.getters['multisig/getWallet']({ address: route.params.address })
+  // const wallet = MultisigWallet.fromObject(walletObject)
+  // const prompt = transactionData?.value?.sessionRequest?.params?.request?.params?.userPrompt
+  // const origin = transactionData?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
+  // const pst = new Pst({
+  //   lockingData: wallet.value.lockingData,
+  //   network: wallet.value.network
+  // })
+  // // Use currently loaded Paytaca BCH wallet
+  // const walletIndex = $store.getters['global/getWalletIndex']
+  // const { mnemonic } = await loadWallet('BCH', walletIndex)
+  // const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
+  // const creator = Object.keys(wallet.value.signers).find((signerId) => {
+  //   return wallet.value.signers[signerId].xpub === hdKeys.hdPublicKey
+  // })
+  // pst
+  //   .setTemplate(wallet.value.template)
+  //   .setTransaction(transactionData.value.transaction)
+  //   .setSourceOutputs(transactionData.value.sourceOutputs)
+  //   .setDesc({ prompt, origin, creator, wallet: 'Paytaca' })
+  //   .signTransaction({ [`signer_${creator}`]: hdKeys.hdPrivateKey })
+  //   .save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+  pst.value
+    .signTransaction({ [`signer_${signerEntityIndex}`]: xprv })
+    .save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+}
 
 const deletePst = () => {
   $store.dispatch('multisig/deletePstById', { id: route.params.id })
@@ -120,20 +178,6 @@ const downloadPstFile = () => {
   }).onCancel(() => {})
 }
 
-const partiallySignTransaction = async () => {
-  const walletIndex = $store.getters['global/getWalletIndex']
-  const { mnemonic } = await loadWallet('BCH', walletIndex)
-  const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
-  const mySignerId = Object.keys(pst.value.lockingData.hdKeys.hdPublicKeys).find((signerId) => {
-    return pst.value.lockingData.hdKeys.hdPublicKeys[signerId] === hdKeys.hdPublicKey
-  })
-  console.log('mysignerid', mySignerId)
-
-  pst.value
-    .signTransaction({ [mySignerId]: hdKeys.hdPrivateKey })
-    .save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
-}
-
 const finalizeAndSubmitTransaction = async () => {
   const compilationResult = pst.value.finalize()
   if (compilationResult.success) {
@@ -142,16 +186,65 @@ const finalizeAndSubmitTransaction = async () => {
     await watchtower.subscribe({ address: pst.value.address })
     const response = await watchtower.broadcastTx(pst.value.signedTransaction)
     console.log('🚀 ~ finalizeAndSubmitTransaction ~ response:', response)
+    if (response.success) {
+      pst.value.txid = response.txid
+      pst.value.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+    }
     // TODO: SHOW RESPONSE
   }
 }
 
-// TODO: resolve source outputs from watchtower
-onMounted(() => {
+onBeforeMount(async () => {
+  if (route.params?.address) {
+    const multisigWallet = MultisigWallet.fromObject(
+      $store.getters['multisig/getWallet']({ address: route.params.address })
+    )
+    await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
+    wallet.value = multisigWallet
+  }
+})
+
+onMounted(async () => {
+  // if (route.params?.address) {
+  //   const multisigWallet = MultisigWallet.fromObject(
+  //     $store.getters['multisig/getWallet']({ address: route.params.address })
+  //   )
+  //   await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
+  //   wallet.value = multisigWallet
+  // }
+  const multisigWallet = MultisigWallet.fromObject(
+    $store.getters['multisig/getWallet']({ address: route.params.address })
+  )
+  await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
+  wallet.value = multisigWallet
+  // console.log('WALLET', wallet.value)
+  // const prompt = transactionData?.value?.sessionRequest?.params?.request?.params?.userPrompt
+  // const origin = transactionData?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
+  // pst.value = new Pst({
+  //   lockingData: wallet.value.lockingData,
+  //   network: wallet.value.network
+  // })
+
   const id = route.params.id
   const pstFromStore = $store.getters['multisig/getPstById']({ id })
   if (pstFromStore) {
     pst.value = Pst.createInstanceFromObject(pstFromStore)
+    pst.value.setTemplate(wallet.value.template)
   }
+
+  // const creator = identifyPossiblePstCreator({ signers: wallet.value.signers })
+  // console.log('TRANSACTION DATA', transactionData.value.transaction)
+  // pst.value
+  //   .setTemplate(wallet.value.template)
+  //   .setTransaction(transactionData.value.transaction)
+  //   .setSourceOutputs(transactionData.value.sourceOutputs)
+  //   .setDesc({ prompt, origin, creator, wallet: 'Paytaca' })
 })
+
 </script>
+
+<style scoped>
+.light {
+  color: #141414;
+}
+</style>
