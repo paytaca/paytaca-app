@@ -205,8 +205,10 @@ import {
   updateUserPromoData,
   getPromoPointsDivisorData,
   updateUserRewardsData,
-  Promos
+  Promos,
+  getKeyPairFromWalletMnemonic
 } from 'src/utils/engagementhub-utils/rewards'
+import { getWallet } from 'src/utils/send-page-utils'
 
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
@@ -225,7 +227,8 @@ export default {
   },
 
   props: {
-    id: { type: String, default: '-1' }
+    id: { type: String, default: '-1' },
+    address: { type: String, default: '' }
   },
 
   data () {
@@ -265,10 +268,8 @@ export default {
     vm.isLoading = true
     vm.adjustScrollAreaHeight()
 
-    vm.urContract = new PromoContract(
-      vm.$store.getters['global/getWallet']('bch')?.xPubKey,
-      Promos.USERREWARDS
-    )
+    const keyPair = await getKeyPairFromWalletMnemonic()
+    vm.urContract = new PromoContract(Promos.USERREWARDS, keyPair.pubKey)
 
     let urData = null
     vm.urId = Number(vm.id)
@@ -339,7 +340,11 @@ export default {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     },
     async openRedeemPointsDialog () {
-      await this.urContract.redeemPromoTokenToBch(Promos.USERREWARDS)
+      // console.log(getWallet('bch'))
+      const keyPair = await getKeyPairFromWalletMnemonic()
+      await this.urContract.redeemPromoTokenToBch(
+        Promos.USERREWARDS, 2, getWallet('bch').walletHash, this.address, keyPair.privKey
+      )
       // this.$q.dialog({
       //   component: RedeemPointsDialog,
       //   componentProps: {

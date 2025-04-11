@@ -118,7 +118,8 @@ import {
   parseLocaleDate,
   getPromoPointsDivisorData,
   updateRfPromoData,
-  Promos
+  Promos,
+  getKeyPairFromWalletMnemonic
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -180,10 +181,8 @@ export default {
       `height: ${scrollAreaHeight}px; width: 100vw;`
     )
 
-    vm.rfpContract = new PromoContract(
-      vm.$store.getters['global/getWallet']('bch')?.xPubKey,
-      Promos.RFPROMO
-    )
+    const keyPair = await getKeyPairFromWalletMnemonic()
+    vm.rfpContract = new PromoContract(Promos.RFPROMO, keyPair.pubKey)
 
     let rfpData = null
     vm.rfpId = Number(vm.id)

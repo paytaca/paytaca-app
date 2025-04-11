@@ -1,6 +1,9 @@
 import axios from 'axios'
+import { deriveHdPrivateNodeFromSeed, deriveHdPath, secp256k1 } from '@bitauth/libauth'
 import { Store } from 'src/store'
 import { convertToBCH } from 'src/utils/denomination-utils'
+import { getMnemonic } from 'src/wallet'
+import { getWallet } from 'src/utils/send-page-utils'
 
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
@@ -39,6 +42,21 @@ function getWalletHash () {
 // ================================
 // util functions
 // ================================
+
+export async function getKeyPairFromWalletMnemonic () {
+  const mnemonic = await getMnemonic(Store.getters['global/getWalletIndex'])
+    .then(mnemonic => {
+      return mnemonic
+    })
+  const rootNode = deriveHdPrivateNodeFromSeed(mnemonic, true)
+  const childNode = deriveHdPath(rootNode, getWallet('bch').derivationPath)
+  const childPub = secp256k1.derivePublicKeyCompressed(childNode.privateKey)
+  const childPriv = childNode.privateKey
+
+  if (typeof childPub === 'string') throw new Error(childPub)
+
+  return { pubKey: childPub, privKey: childPriv }
+}
 
 export function convertPoints (points, pointsDivisor) {
   const fiat = points / pointsDivisor

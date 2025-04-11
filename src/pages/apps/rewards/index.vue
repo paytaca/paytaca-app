@@ -56,7 +56,10 @@
 
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { createUserPromoData, getUserPromoData, Promos } from 'src/utils/engagementhub-utils/rewards'
+import {
+  createUserPromoData, getUserPromoData, getKeyPairFromWalletMnemonic,
+  Promos
+} from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -112,6 +115,7 @@ export default {
 
     // retrieve points from engagement-hub
     vm.isLoading = true
+    const keyPair = await getKeyPairFromWalletMnemonic()
 
     await getUserPromoData()
       .then(async data => {
@@ -122,10 +126,7 @@ export default {
             vm.promos[i].id = promoId
 
             if (promoId) {
-              const contract = new PromoContract(
-                vm.$store.getters['global/getWallet']('bch')?.xPubKey,
-                vm.promos[i].shortName
-              )
+              const contract = new PromoContract(vm.promos[i].shortName, keyPair.pubKey)
               console.log(contract)
               await contract.subscribeAddress()
               vm.promos[i].points = await contract.getTokenBalance()
