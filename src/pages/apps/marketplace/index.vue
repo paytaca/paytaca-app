@@ -76,7 +76,7 @@
           @click="() => toggleDeliveryType(Checkout.DeliveryTypes.LOCAL_DELIVERY)"
         />
       </div>
-      <div v-if="!initialized && fetchingStorefronts" class="row items-center justify-center">
+      <div v-if="(!initialized || !storefronts.length) && fetchingStorefronts" class="row items-center justify-center">
         <q-spinner size="4em" color="brandblue"/>
       </div>
       <div class="row items-start justify-start q-mb-md">
@@ -275,56 +275,22 @@ onMounted(() => bus.on('marketplace-init-promise', onLoadAppInit))
 onUnmounted(() => bus.off('marketplace-init-promise', onLoadAppInit))
 
 
-const customer = computed(() => $store.getters['marketplace/customer'])
+onMounted(() => bus.on('marketplace-manual-select-location', manualSelectLocation))
+onUnmounted(() => bus.off('marketplace-manual-select-location', manualSelectLocation))
 const sessionLocationWidget = ref()
-const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
-async function initializeLocation() {
-  const _isValidCoordinates = (opts={ ignoreExpired: false }) => sessionLocation.value?.id &&
-      sessionLocation.value?.validCoordinates &&
-      (!sessionLocation.value?.expired || opts?.ignoreExpired)
-
-  if (_isValidCoordinates()) return
-
-  if (!sessionLocationWidget.value) {
-    await updateLocation()
-      .then(() => $store.commit('marketplace/setSelectedSessionLocationId'))
-      .catch(console.error)
-  } else {
-    await sessionLocationWidget.value.setCurrentLocation({
-      keepSelectorOpen: true, hideDialogOnError: true
-    })
-      ?.then(() => sessionLocationWidget.value.setCurrentLocation = true)
-      ?.catch?.(console.error)
-  }
-
-  if (_isValidCoordinates({ ignoreExpired: true })) return
-
-  if (customer.value?.defaultLocation?.validCoordinates) {
-    $store.commit('marketplace/addCustomerLocation', customer.value?.defaultLocation?.$raw)
-    $store.commit('marketplace/setSelectedSessionLocationId', customer.value?.defaultLocation?.id)
-    if (sessionLocationWidget.value) {
-      sessionLocationWidget.value.openLocationSelector = false
-    }
-    return
-  }
-
-  if (sessionLocationWidget.value) {
-    sessionLocationWidget.value?.updateDeviceLocation?.()
-  }
-}
-const updateLocationPromise = ref()
-async function updateLocation() {
-  if (!updateLocationPromise.value) {
-    updateLocationPromise.value = $store.dispatch('marketplace/updateLocation', { maxAge: 60 * 1000 })
-      .finally(() => updateLocationPromise.value = undefined)
-  }
-
-  return updateLocationPromise.value
+function manualSelectLocation() {
+  if (!sessionLocationWidget.value) return
+  sessionLocationWidget.value.openLocationSelector = true
+  sessionLocationWidget.value?.updateDeviceLocation?.()
 }
 
 
 const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
 watch(customerCoordinates, () => fetchStorefronts())
+const customerCoordinatesValid = computed(() => {
+  return !Number.isNaN(customerCoordinates.value?.latitude) &&
+         !Number.isNaN(customerCoordinates.value.longitude)
+})
 
 const fetchingStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
@@ -369,7 +335,6 @@ function openStorefrontListOptsForm() {
   .onOk(data => $store.commit('marketplace/setShopListOpts', { radius: parseFloat(data) }))
 }
 async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
-  await updateLocationPromise.value
   const params = {
     limit: opts?.limit || 6,
     offset: opts?.offset || undefined,
@@ -379,13 +344,15 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
     annotate_is_open_at: getISOWithTimezone(new Date()),
     ordering: 'in_prelaunch,-is_open',
   }
-  if (!isNaN(customerCoordinates.value?.latitude) && !isNaN(customerCoordinates.value.longitude)) {
+  if (customerCoordinatesValid.value) {
     params.distance = btoa(JSON.stringify({
       lat: customerCoordinates.value?.latitude,
       lon: customerCoordinates.value?.longitude,
       radius: storefrontListOpts.value?.radius,
     }))
     params.ordering = [params.ordering, 'distance'].join(',')
+  } else {
+    return
   }
 
   fetchingStorefronts.value = true
@@ -466,7 +433,7 @@ const ordersPanelIntersectionOptions = {
 async function refreshPage(done=() => {}) {
   try {
     await loadAppPromise.value
-    if (!initialized.value) await initializeLocation().catch(console.error)
+    if (initialized.value && !customerCoordinatesValid.value) await manualSelectLocation()
     await Promise.all([
       fetchStorefronts(),
       fetchOrders(),
