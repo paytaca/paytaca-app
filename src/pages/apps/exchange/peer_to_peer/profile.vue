@@ -111,7 +111,7 @@
           :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-            :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}"
+            :class="{'dark': darkMode, 'active-btn': user?.self === false && activeTab === 'reviews'}"
             @click="activeTab = 'reviews'">
             {{ $t('REVIEWS') }}
           </button>
@@ -254,6 +254,7 @@ import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
+import { loadLibauthHdWallet } from 'src/wallet'
 
 export default {
   components: {
@@ -288,7 +289,8 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       pageName: null,
       previousRoute: null,
-      errorDialogActive: false
+      errorDialogActive: false,
+      wallet: null
     }
   },
   props: {
@@ -325,16 +327,22 @@ export default {
   created () {
     bus.on('relogged', this.refreshData)
   },
-  mounted () {
+  async mounted () {
+    await this.loadWallet()
     if (!this.userInfo) {
       this.pageName = 'main'
     }
-    this.processUserData()
+    this.fetchUser()
     this.fetchReviews()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
+    async loadWallet () {
+      const isChipnet = this.$store.getters['global/isChipnet']
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      this.wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
+    },
     onNavBack () {
       const currentRoute = this.$route.path
       if (currentRoute === this.previousRoute) {
@@ -350,8 +358,8 @@ export default {
       }
       await this.$router.push({ query: { edit: 'payments' } })
     },
-    refreshData (done) {
-      this.processUserData()
+    async refreshData (done) {
+      this.fetchUser()
       this.fetchReviews()
       if (done) done()
     },
@@ -376,34 +384,20 @@ export default {
       const relative = true
       return formatDate(value, relative)
     },
-    processUserData () {
-      let self = false
-      if (this.userInfo) {
-        this.user = this.userInfo
-        self = this.userInfo.self
-      } else {
-        this.user = { ...this.$store.getters['ramp/getUser'] }
-        self = true
-      }
-      this.getUserInfo(this.user.id).then(user => {
-        this.user = user
-        this.user.self = self
-      })
-    },
-    getUserInfo (userId) {
-      return new Promise((resolve, reject) => {
-        const vm = this
-        backend.get(`/ramp-p2p/peer/${userId}/`, { params: { id: userId }, authorize: true })
-          .then(response => {
-            vm.isloaded = true
-            resolve(response.data)
-          })
-          .catch(error => {
-            this.handleRequestError(error)
-            vm.isloaded = true
-            reject(error)
-          })
-      })
+    async fetchUser () {
+      const vm = this
+      const user = await backend.get(`/ramp-p2p/peer/`, { authorize: true })
+        .then(response => {
+          this.user = response.data
+          this.user.self = true
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+        .finally(() => {
+          vm.isloaded = true
+        })
+      return user
     },
     loadMoreData () {
       const vm = this
@@ -486,7 +480,7 @@ export default {
           }
           vm.retry = true
           vm.exponentialBackoff(updateChatIdentity, 5, 1000, payload)
-          this.processUserData()
+          this.fetchUser()
           this.editNickname = false
         })
         .catch(error => {

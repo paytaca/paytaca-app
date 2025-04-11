@@ -79,6 +79,9 @@ export default {
     this.fetchUser()
     this.setupWebsocket()
   },
+  beforeUnmount () {
+    this.$q.loading.hide()
+  },
   methods: {
     isNotDefaultTheme,
     async loadWallet () {
