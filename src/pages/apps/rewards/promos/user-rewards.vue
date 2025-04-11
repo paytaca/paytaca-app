@@ -343,7 +343,7 @@ export default {
       // console.log(getWallet('bch'))
       const keyPair = await getKeyPairFromWalletMnemonic()
       await this.urContract.redeemPromoTokenToBch(
-        Promos.USERREWARDS, 2, getWallet('bch').walletHash, this.address, keyPair.privKey
+        2, getWallet('bch').walletHash, this.address, keyPair.privKey
       )
       // this.$q.dialog({
       //   component: RedeemPointsDialog,

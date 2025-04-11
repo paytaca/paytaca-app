@@ -1,10 +1,16 @@
 import { Contract, ElectrumNetworkProvider, Network, SignatureTemplate } from "cashscript"
 import { compileString } from "cashc"
+import { getChangeAddress } from "src/utils/send-page-utils"
+import { getMnemonic, Wallet } from "src/wallet"
+import { markRaw } from "vue"
+import { Store } from "src/store"
 
+import axios from "axios"
 import BCHJS from '@psf/bch-js'
 import Watchtower from "watchtower-cash-js"
 
 import PromoContractCash from 'src/cashscripts/rewards/PromoContract.cash'
+import { getWalletByNetwork } from "src/wallet/chipnet"
 
 const bchjs = new BCHJS()
 const watchtower = new Watchtower(false)
@@ -38,9 +44,7 @@ export default class PromoContract {
     this.contract = new Contract(artifact, contractParams, { provider })
   }
 
-  async redeemPromoTokenToBch (promo, redeemAmount, walletHash, swapContractAddress, privKey) {
-    console.log('redeem')
-    /*
+  async redeemPromoTokenToBch (amount, walletHash, swapContractAddress, privKey) {
     // get AuthKeyNFT details from user wallet
     const category = process.env.AUTHKEY_NFT_CHILDREN_TOKEN_ID
     const params = `?wallet_hash=${walletHash}&has_balance=true&category=${category}`
@@ -50,9 +54,31 @@ export default class PromoContract {
       .then(response => {
         return response.data.results[0]
       })
-    */
+    console.log(authKeyNft)
     
     // send AuthKeyNFT from user wallet to contract ct
+    const recipientParams = [{
+      address: this.contract.tokenAddress,
+      amount: 0.00001,
+      tokenAmount: undefined
+    }]
+    const tokenParams = {
+      tokenId: authKeyNft.category,
+      commitment: authKeyNft.commitment,
+      capability: authKeyNft.capability,
+      txid: authKeyNft.current_txid,
+      vout: authKeyNft.current_index
+    }
+    const changeAddress = getChangeAddress('bch')
+
+    const walletIndex = Store.getters['global/getWalletIndex']
+    const mnemonic = await getMnemonic(walletIndex)
+    const wallet = markRaw(new Wallet(mnemonic, this.network))
+    await getWalletByNetwork(wallet, 'bch')
+      .sendBch(0, '', changeAddress, tokenParams, undefined, recipientParams)
+      .then(result => {
+        console.log(result)
+      })
 
     // compile outputs
     const output = [
@@ -61,14 +87,13 @@ export default class PromoContract {
         to: swapContractAddress,
         amount: BigInt(1000),
         token: {
-          amount: BigInt(redeemAmount),
+          amount: BigInt(amount),
           category: process.env.PROMO_TOKEN_ID,
         }
-      }/*,
+      },
       // 1st output is AuthKeyNFT
       {
-        // get token address of swap contract from server
-        to: 'bitcoincash:rvwpjvfxc3a6hjlr6y84ech7txlsw7y0gxmppsqmcfpyv8cdhvhtvg82n0us6',
+        to: swapContractAddress,
         amount: BigInt(1000),
         token: {
           amount: BigInt(0),
@@ -78,11 +103,11 @@ export default class PromoContract {
             commitment: authKeyNft.commitment
           }
         }
-      }*/
+      }
     ]
-    console.log(output)
+
     const temp = await this.contract.functions
-      .transfer(new SignatureTemplate(privKey), promo)
+      .transfer(new SignatureTemplate(privKey), this.promo)
       .to(output)
       .send()
     console.log(temp)
