@@ -27,6 +27,6 @@ export function getPsts (state) {
 
 export function getPstById (state) {
   return ({ id }) => {
-    return state.psts.filter((i) => i.id === id)[0]
+    return structuredClone(state.psts.filter((i) => i.id === id)[0])
   }
 }
