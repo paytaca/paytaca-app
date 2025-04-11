@@ -25,13 +25,15 @@ export class Pst {
     this.txid = txid
     this.lockingData = lockingData
     this.network = network || CashAddressNetworkPrefix.mainnet
-    this.signatures = signatures
     this.sourceOutputs = sourceOutputs
     this.desc = desc
     this.template = template
     if (unsignedTransaction) {
       const transaction = decodeTransactionCommon(hexToBin(unsignedTransaction))
       this.setTransaction(transaction)
+    }
+    if (signatures) {
+      this.setSignatures(signatures)
     }
   }
 
@@ -136,8 +138,8 @@ export class Pst {
 
   get isSignaturesComplete () {
     if (!this.m) return false
-    return Object.values(this.signatures).every((signaturesOfInput) => {
-      return Object.keys(signaturesOfInput).length >= this.m
+    return Object.keys(this.signatures).every((inputIndex) => {
+      return Object.keys(this.signatures[inputIndex]).length >= this.m
     })
   }
 
@@ -149,6 +151,63 @@ export class Pst {
   setLocktime (locktime) {
     this.locktime = locktime || 0
     return this
+  }
+
+  checkIfSignaturesAreComplete () {
+    const signatures = structuredClone(this.signatures)
+    Object.entries(signatures).forEach((signatureEntry) => {
+      const [key, value] = signatureEntry
+      signatures[key] =
+        typeof value === 'string' ? hexToBin(value) : Uint8Array.from(Object.values(value))
+    })
+
+    const lockingBytecode = this.compiler.generateBytecode({
+      data: this.lockingData,
+      scriptId: this.lockingScriptId
+    })
+
+    const { address } = lockingBytecodeToCashAddress({
+      bytecode: lockingBytecode.bytecode,
+      prefix: this.network
+    })
+
+    const unlockingScriptId = this.getUnlockingScriptId({ signatures: this.signatures, template: this.template })
+    const transaction = structuredClone(this.transaction)
+    const sourceOutputs = [] // will be used for verification
+    for (const [index, input] of transaction.inputs.entries()) {
+      let sourceOutput = structuredClone(input.sourceOutput)
+      if (!sourceOutput) {
+        sourceOutput = this.sourceOutputs.find((utxo) => {
+          return utxo.outpointIndex === input.outpointIndex &&
+                binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
+                binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+        })
+      }
+      sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+      if (lockingBytecodeToCashAddress({ bytecode: sourceOutput.lockingBytecode, prefix: this.network }).address === address) {
+        const inputUnlockingData = {
+          ...this.lockingData,
+          bytecode: {
+            ...this.signatures[index]
+          }
+        }
+
+        input.unlockingBytecode = {
+          ...input.unlockingBytecode,
+          compiler: this.compiler,
+          data: inputUnlockingData,
+          valueSatoshis: sourceOutput.valueSatoshis,
+          script: unlockingScriptId,
+          token: sourceOutput.token
+        }
+      }
+      sourceOutputs.push(sourceOutput)
+    }
+
+    const successfulCompilation = generateTransaction({
+      ...transaction
+    })
+    console.log('🚀 ~ Pst ~ checkIfSignaturesAreComplete ~ successfulCompilation:', successfulCompilation)
   }
 
   addInput (input, sourceOutput) {
@@ -180,6 +239,18 @@ export class Pst {
   setTemplate (template) {
     this.template = template
     return this
+  }
+
+  setSignatures (signatures) {
+    const sigs = structuredClone(signatures)
+    Object.keys(sigs).forEach((inputIndex) => {
+      Object.keys(sigs[inputIndex]).forEach((signatureKey) => {
+        if (typeof sigs[inputIndex][signatureKey] === 'string') {
+          sigs[inputIndex][signatureKey] = hexToBin(sigs[inputIndex][signatureKey])
+        }
+      })
+    })
+    this.signatures = sigs
   }
 
   setTransaction (transaction) {
@@ -263,9 +334,6 @@ export class Pst {
       const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
       const signatureKey = Object.keys(signerResolvedVariables)[0]
       const signatureValue = Object.values(signerResolvedVariables)[0]
-      // console.log('🚀 ~ Pst ~ signTransaction ~ signatureValue:', signatureValue)
-      // console.log('🚀 ~ Pst ~ signTransaction ~ signatureKey:', signatureKey)
-      // console.log('🚀 ~ Pst ~ signTransaction ~ signerResolvedVariables:', stringify(signerResolvedVariables))
       this.signatures[index][signatureKey] = signatureValue
     }
 
@@ -361,11 +429,11 @@ export class Pst {
   }
 
   save (store) {
-    store(structuredClone(this.toJSON()))
+    store(this.toJSON())
   }
 
   update (store) {
-    store(structuredClone(this.toJSON()))
+    store(this.toJSON())
   }
 
   toBase64 () {
@@ -380,8 +448,11 @@ export class Pst {
 
   toJSON () {
     const signatures = structuredClone(this.signatures)
-    Object.keys(signatures).forEach((key) => {
-      signatures[key] = binToHex(Uint8Array.from(Object.values(signatures[key])))
+    Object.keys(signatures).forEach((inputIndex) => {
+      Object.keys(signatures[inputIndex]).forEach((signatureKey) => {
+        signatures[inputIndex][signatureKey] =
+          binToHex(Uint8Array.from(Object.values(signatures[inputIndex][signatureKey])))
+      })
     })
     return {
       id: this.id,
@@ -389,7 +460,7 @@ export class Pst {
       template: this.template,
       network: this.network,
       unsignedTransaction: this.unsignedTransaction,
-      signatures: this.signatures,
+      signatures: signatures,
       desc: this.desc,
       signersInfo: this.signersInfo,
       sourceOutputs: this.sourceOutputs
@@ -444,7 +515,7 @@ export class Pst {
 
   static createInstanceFromObject (pstData) {
     if (typeof (pstData) === 'string') { return Pst.fromJSON(pstData) }
-    return new Pst(structuredClone(pstData))
+    return new Pst(pstData)
   }
 
   static createInstanceFromBase64 (pstData) {
@@ -459,7 +530,7 @@ export class Pst {
    * @return A copy of the transaction object
    */
   static transactionBinObjectsToUint8Array (transactionObject) {
-    const transaction = structuredClone(transactionObject)
+    const transaction = transactionObject
     transaction.inputs.forEach(input => {
       if (input.outpointTransactionHash && !(input?.outpointTransactionHash instanceof Uint8Array)) {
         input.outpointTransactionHash = Uint8Array.from(Object.values((input.outpointTransactionHash)))
@@ -480,7 +551,7 @@ export class Pst {
       }
 
       if (output.token?.nft?.commitment && !(output.token.nft.commitment instanceof Uint8Array)) {
-        output.token.commitment.nft.commitment = Uint8Array.from(Object.values(output.token.nft.commitment))
+        output.token.nft.commitment = Uint8Array.from(Object.values(output.token.nft.commitment))
       }
     })
     return {
