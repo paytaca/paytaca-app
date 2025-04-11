@@ -5,7 +5,7 @@
         <div class="static-container">
           <div id="app-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
-              :title="$t('Create Multisig Wallet')"
+              :title="$t('Create Wallet')"
               backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
@@ -56,15 +56,15 @@
                                   outlined
                                 ></q-input>
                                 <q-input
-                                  v-model="wallet.signers[index + 1].xPubKey"
-                                  :label="`Paste signers ${index + 1}'s xPubKey`"
+                                  v-model="wallet.signers[index + 1].xpub"
+                                  :label="`Paste signers ${index + 1}'s xpub`"
                                   style="color:black"
                                   outlined
                                   :disable="index === 0"
                                 >
                                 </q-input>
                                 <!-- <q-input
-                                  v-if="signers[index + 1].xPubKey"
+                                  v-if="signers[index + 1].xpub"
                                   v-model="signers[index + 1].derivationPath"
                                   :key="`derivation-path-${index}`"
                                   :label="`Derivation Path`"
@@ -101,7 +101,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, ref, watch, onBeforeMount } from 'vue'
+import { computed, ref, watch, onBeforeMount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
@@ -135,20 +135,20 @@ const network = computed(() => {
 })
 
 /**
- * <signer #>: { xPubKey: string, derivationPath: string, signerName?: string }
+ * <signer #>: { xpub: string, derivationPath: string, signerName?: string }
  */
 const initSigners = ({ n }) => {
   const signers = {}
   for (let i = 0; i < n; i++) {
     const signerIndex = i + 1
-    signers[signerIndex] = { xPubKey: '', derivationPath: 'm/44\'/145\'/0\'', signerName: `Signer ${signerIndex}` }
-    // signers.value[i + 1] = { xPubKey: '', derivationPath: 'm/48\'/145\'/0\'/0\'' }
+    signers[signerIndex] = { xpub: '', derivationPath: 'm/44\'/145\'/0\'', signerName: `Signer ${signerIndex}` }
+    // signers.value[i + 1] = { xpub: '', derivationPath: 'm/48\'/145\'/0\'/0\'' }
   }
   const { xPubKey, derivationPath } = $store.getters['global/getWallet']('bch')
   signers[1] = {
     ...signers[1],
     signerName: 'Signer 1',
-    xPubKey,
+    xpub: xPubKey,
     derivationPath: derivationPath
   }
   return signers
@@ -202,6 +202,11 @@ onBeforeMount(() => {
   mOptions.value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
   nOptions.value = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
   initNewWallet()
+})
+
+onMounted(() => {
+  const tempVault = $store.getters['global/getVault']
+  console.log('TEMPVAULT', tempVault)
 })
 
 </script>

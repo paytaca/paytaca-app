@@ -118,6 +118,21 @@ export class MultisigWallet {
     return address
   }
 
+  signerCanSign ({ signerEntityIndex }) {
+    return Boolean(this.signers[signerEntityIndex].xprv)
+  }
+
+  /**
+   * @param {function} getSignerXPrv Function that returns the private key given an xpub
+   */
+  async loadSignerXprivateKeys (getSignerXPrv) {
+    console.log('THIS SIGNERS', this.signers)
+    for (const signerEntityIndex of Object.keys(this.signers || {})) {
+      const xprv = await getSignerXPrv({ xpub: this.signers[signerEntityIndex].xpub })
+      this.signers[signerEntityIndex].xprv = xprv
+    }
+  }
+
   deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
     return MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic, network, hdPath })
   }
@@ -173,7 +188,7 @@ export class MultisigWallet {
   }
 
   static fromObject (wallet) {
-    const multisigWallet = new MultisigWallet(wallet)
+    const multisigWallet = new MultisigWallet(structuredClone(wallet))
     multisigWallet.createTemplate()
     return multisigWallet
   }
