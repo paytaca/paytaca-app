@@ -9,6 +9,7 @@ import {
 import { convertCashAddress } from "src/wallet/chipnet";
 import { LibauthHDWallet } from "src/wallet/bch-libauth";
 import { Store } from "src/store";
+import axios from "axios";
 
 const bchjs = new BCHJS()
 
@@ -161,7 +162,7 @@ export function toTokenAddress(address) {
  * @param {import("src/wallet").Wallet} wallet 
  * @returns {{ path:String, wif:String } | undefined}
  */
-export function resolvePrivateKeyFromAddress(address, wallet, maxIndex=100) {
+export async function resolvePrivateKeyFromAddress(address, wallet, maxIndex=100) {
   const dataFromStore = Store.getters['global/walletAddresses']
     ?.map?.(data => {
       if (data?.address !== address) return
@@ -170,19 +171,57 @@ export function resolvePrivateKeyFromAddress(address, wallet, maxIndex=100) {
     .find(Boolean)
   if (dataFromStore) return dataFromStore
 
+  const dataFromWatchtower = await resolvePrivateKeyWatchtower(address, wallet).catch(console.error)
+  if (dataFromWatchtower) return dataFromWatchtower
+
   const tokenAddress = toTokenAddress(address) // just to make sure the address type is consistent
   const network = tokenAddress?.startsWith('bchtest') ? 'chipnet' : 'mainnet'
   const libauthWallet = new LibauthHDWallet(wallet.BCH.mnemonic, wallet.BCH.derivationPath, network)
 
-  const path = Array.from({ length: parseInt(maxIndex) || 100 }).find((_, index) => {
+  let path
+  const _maxIndex = parseInt(maxIndex) || 100
+  for(var index = 0; index < _maxIndex; index++) {
     const receiving = libauthWallet.getAddressAt({ path: `0/${index}`, token: true })
     const change = libauthWallet.getAddressAt({ path: `1/${index}`, token: true })
-
-    if (tokenAddress == receiving) return `0/${index}`
-    if (tokenAddress == change) return `1/${index}`
-  })
+    if (tokenAddress == receiving) {
+      path = `0/${index}`;
+      break;
+    }
+    if (tokenAddress == change) {
+      path = `1/${index}`;
+      break;
+    } 
+  }
 
   if (!path) return
 
   return { path, wif: libauthWallet.getPrivateKeyWifAt(path) }
 }
+
+
+/**
+ * @param {String} address 
+ * @param {import("src/wallet").Wallet} wallet 
+ */
+export async function resolvePrivateKeyWatchtower(address, wallet) {
+  const chipnet = address?.startsWith('bchtest')
+  const addressUri = encodeURIComponent(address)
+  const url = chipnet
+    ? `https://chipnet.watchtower.cash/api/address-info/bch/${addressUri}/`
+    : `https://watchtower.cash/api/address-info/bch/${addressUri}/`
+
+  const response = await axios.get(url)
+  const _address = response.data?.address
+  const path = response.data?.address_path
+  if(!path) return
+
+  const libauthWallet = new LibauthHDWallet(
+    wallet.BCH.mnemonic, wallet.BCH.derivationPath, chipnet ? 'chipnet' : 'mainnet')
+
+  const __address = libauthWallet.getAddressAt({ path: path, token: false })
+  if (_address !== __address) return
+
+  return { path, wif: libauthWallet.getPrivateKeyWifAt(path) }
+}
+
+window.t = resolvePrivateKeyWatchtower

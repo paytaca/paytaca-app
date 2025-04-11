@@ -1,9 +1,10 @@
 <template>
   <div>
     <q-dialog v-model="loadingApp" persistent>
-      <div class="q-pa-md row items-center">
+      <div class="q-pa-md text-center">
+        <q-spinner size="1.5em" class="q-mb-sm"/>
         <div class="text-subtitle">Loading app</div>
-        <q-spinner size="1.5em" class="q-ml-sm"/>
+        <div v-if="loadAppMsg" class="text-subtitle">{{ loadAppMsg }}</div>
       </div>
     </q-dialog>
     <router-view v-slot="{ Component }">
@@ -164,6 +165,7 @@ import { marketplaceRpc } from 'src/marketplace/rpc'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import { updateOrCreateKeypair } from 'src/marketplace/chat'
 import { Cart, CartItem, Checkout } from 'src/marketplace/objects'
+import { useMarketplaceLocationManager } from 'src/composables/marketplace/session-location'
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
@@ -184,9 +186,14 @@ export default {
     const $router = useRouter()
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+    const {
+      initializeLocation,
+      validSessionLocationCoordinates,
+    } = useMarketplaceLocationManager();
 
     onUnmounted(() => marketplaceRpc.disconnect())
 
+    const isInIndexPage = computed(() => $route.name === 'app-marketplace')
     /**
      * Use loadAppPromise to ensure other initialization
      * processes have the correct data (e.g. request signer, customer id, etc)
@@ -198,6 +205,7 @@ export default {
      */
     const initialized = ref(false)
     const loadingApp = ref(false)
+    const loadAppMsg = ref('')
     const loadAppPromise = ref(null)
     watch(() => [$route.meta.skipInit], () => attemptLoadApp())
     onMounted(() => attemptLoadApp())
@@ -213,23 +221,29 @@ export default {
         try {
           loadingApp.value = true
 
+          loadAppMsg.value = 'Loading customer data'
           await $store.dispatch('marketplace/refetchCustomerData')
-            .then(() => {
-              const customerId = $store.getters['marketplace/customer']?.id
-              subscribePushNotifications(customerId)
-              attemptPromptUserDetails()
-            })
-
+          loadAppMsg.value = 'Authenticating'
           const signerData = await getSignerData()
           const walletHash = signerData?.value?.split(':')[0]
           const walletHashMatch = walletHash == customer.value?.paytacaWallet?.walletHash
           if (!customer.value?.id || !signerData?.value || !walletHashMatch) {
+            loadAppMsg.value = 'Updating session'
             await $store.dispatch('marketplace/updatePrivkey').catch(error => {
               console.error(error)
               return $store.dispatch('marketplace/updateCustomerVerifyingPubkey')
             })
           }
+
+          loadAppMsg.value = 'Updating address'
           await $store.dispatch('marketplace/refetchCustomerLocations')?.catch(console.error)
+
+          loadAppMsg.value = 'Resolving location'
+          await initializeLocation()
+
+          const customerId = $store.getters['marketplace/customer']?.id
+          loadAppMsg.value = 'Subscribing notifications'
+          await subscribePushNotifications(customerId)
         } catch(error) {
           reject(error)
         } finally {
@@ -238,13 +252,24 @@ export default {
       })
 
       bus.emit('marketplace-init-promise', loadAppPromise.value)
+      const wasInitialized = initialized.value
       return loadAppPromise.value
         .then(() => {
           initialized.value = true
         })
         .finally(() => {
+          loadAppMsg.value = ''
           loadingApp.value = false
           loadAppPromise.value = null
+        })
+        .then(async () => {
+          await attemptPromptUserDetails().catch(console.error)
+
+          setTimeout(() => {
+            if (!wasInitialized && !validSessionLocationCoordinates({ ignoreExpired: true }) && isInIndexPage.value) {
+              bus.emit('marketplace-manual-select-location')
+            }
+          }, 100)
         })
     }
 
@@ -273,7 +298,7 @@ export default {
     }
 
     async function attemptPromptUserDetails() {
-      if (window.$promptedMarketplaceCustomerDetails) return
+      if (window.$promptedMarketplaceCustomerDetails) return Promise.resolve('Prompted')
       return promptUserDetails().then(() => {
         window.$promptedMarketplaceCustomerDetails = true
       })
@@ -281,7 +306,7 @@ export default {
 
     function promptUserDetails() {
       if (customer.value?.defaultLocation?.validCoordinates) return Promise.resolve('valid_coordinates')
-      if ($route.name === 'app-marketplace-customer') return Promise.reject()
+      if ($route.name === 'app-marketplace-customer') return Promise.reject('already in customer page')
 
       return new Promise((resolve, reject) => {
         $q.dialog({
@@ -426,6 +451,7 @@ export default {
 
       darkMode,
       loadingApp,
+      loadAppMsg,
 
       customer,
 

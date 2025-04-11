@@ -134,6 +134,7 @@
 <script setup>
 import { Location } from "src/marketplace/objects";
 import { geolocationManager } from "src/boot/geolocation";
+import { useMarketplaceLocationManager } from "src/composables/marketplace/session-location";
 import { useQuasar } from "quasar";
 import { useStore } from "vuex";
 import { ref, computed } from "vue";
@@ -148,9 +149,12 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const openLocationSelector = ref(false)
-const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
-const deviceLocation = computed(() => $store.getters['marketplace/deviceLocation'])
-const customerLocations = computed(() => $store.getters['marketplace/customerLocations'])
+const {
+  sessionLocation,
+  deviceLocation,
+  customerLocations,
+  setCurrentLocation: _setCurrentLocation,
+} = useMarketplaceLocationManager()
 
 
 function showLocationInDialog(location=Location.parse()) {
@@ -187,38 +191,10 @@ async function updateDeviceLocation(opts={ dialogTitle: '', keepSelectorOpen: fa
 }
 
 function setCurrentLocation(opts={ keepSelectorOpen: false, hideDialogOnError: false }) {
-  const dialog = $q.dialog({
-    title: 'Set location',
-    message: 'Getting device location & address',
-    color: 'brandblue',
-    progress: true,
-    persistent: true,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
-    ok: false,
-    cancel: false,
-  })
-
-  return $store.dispatch('marketplace/updateLocation')
-    .then(() => {
-      if (!deviceLocation.value?.validCoordinates) return Promise.reject({ errorMessage: 'Device location invalid' })
-
-      $store.commit('marketplace/setSelectedSessionLocationId')
-      dialog.hide()
+  return _setCurrentLocation({ showDialog: true, hideDialogOnError: opts?.hideDialogOnError })
+    .then(result => {
       if (!opts?.keepSelectorOpen) openLocationSelector.value = false
-    })
-    .catch(error => {
-      console.error(error)
-      if (typeof error === 'string') error = { errorMessage: error }
-      if (opts?.hideDialogOnError) dialog.hide()
-      dialog.update({
-        title: 'Device location error',
-        message: error?.errorMessage || 'Unable to find device location',
-        ok: true,
-      })
-      return Promise.reject(error)
-    })
-    .finally(() => {
-      dialog.update({ progress: false, persistent: false, ok: true })
+      return result
     })
 }
 
