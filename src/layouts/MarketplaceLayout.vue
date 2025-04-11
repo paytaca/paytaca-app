@@ -266,7 +266,7 @@ export default {
           await attemptPromptUserDetails().catch(console.error)
 
           setTimeout(() => {
-            if (!wasInitialized && !validSessionLocationCoordinates() && isInIndexPage.value) {
+            if (!wasInitialized && !validSessionLocationCoordinates({ ignoreExpired: true }) && isInIndexPage.value) {
               bus.emit('marketplace-manual-select-location')
             }
           }, 100)
