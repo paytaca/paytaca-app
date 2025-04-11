@@ -233,7 +233,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { computed, ref, onMounted, watch, onActivated, onUnmounted } from 'vue'
+import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
@@ -281,7 +281,9 @@ const sessionLocationWidget = ref()
 function manualSelectLocation() {
   if (!sessionLocationWidget.value) return
   sessionLocationWidget.value.openLocationSelector = true
-  sessionLocationWidget.value?.updateDeviceLocation?.()
+  nextTick(() => {
+    sessionLocationWidget.value?.updateDeviceLocation?.()
+  })
 }
 
 
