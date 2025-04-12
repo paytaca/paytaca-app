@@ -4,6 +4,7 @@ import { Store } from 'src/store'
 import { convertToBCH } from 'src/utils/denomination-utils'
 import { getMnemonic } from 'src/wallet'
 import { getWallet } from 'src/utils/send-page-utils'
+import { convertCashAddress } from 'src/wallet/chipnet'
 
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
@@ -57,6 +58,13 @@ export async function getKeyPairFromWalletMnemonic () {
 
   return { pubKey: childPub, privKey: childPriv }
 }
+
+export async function getWalletTokenAddress () {
+  const bchAddress = Store.getters['global/getAddress']('bch')
+  return convertCashAddress(bchAddress, false, true)
+}
+
+// with calls to engagement-hub
 
 export function convertPoints (points, pointsDivisor) {
   const fiat = points / pointsDivisor
