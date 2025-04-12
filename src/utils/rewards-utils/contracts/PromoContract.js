@@ -44,6 +44,15 @@ export default class PromoContract {
     this.contract = new Contract(artifact, contractParams, { provider })
   }
 
+  /**
+   * Facilitate the redemption of promo token to BCH. It first sends the AuthKeyNFT to
+   * the promo contract to be included in the transaction output, then calls an API to
+   * prompt the swapping in the backend.
+   * @param {Number} amount the amount to be reedeemed
+   * @param {string} walletHash the wallet hash of the user's wallet
+   * @param {string} swapContractAddress the token address of the swap contract
+   * @param {Uint8Array} privKey the private key derived as a key pair from the wallet's mnemonic
+   */
   async redeemPromoTokenToBch (amount, walletHash, swapContractAddress, privKey) {
     // get AuthKeyNFT details from user wallet
     const category = process.env.AUTHKEY_NFT_CHILDREN_TOKEN_ID
@@ -54,7 +63,6 @@ export default class PromoContract {
       .then(response => {
         return response.data.results[0]
       })
-    console.log(authKeyNft)
     
     // send AuthKeyNFT from user wallet to contract ct
     const recipientParams = [{
@@ -74,43 +82,70 @@ export default class PromoContract {
     const walletIndex = Store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(walletIndex)
     const wallet = markRaw(new Wallet(mnemonic, this.network))
-    await getWalletByNetwork(wallet, 'bch')
+    const result = await getWalletByNetwork(wallet, 'bch')
       .sendBch(0, '', changeAddress, tokenParams, undefined, recipientParams)
-      .then(result => {
-        console.log(result)
-      })
-
-    // compile outputs
-    const output = [
-      // 0th output is promo token
-      {
-        to: swapContractAddress,
-        amount: BigInt(1000),
-        token: {
-          amount: BigInt(amount),
-          category: process.env.PROMO_TOKEN_ID,
-        }
-      },
-      // 1st output is AuthKeyNFT
-      {
-        to: swapContractAddress,
-        amount: BigInt(1000),
-        token: {
-          amount: BigInt(0),
-          category: authKeyNft.category,
-          nft: {
-            capability: authKeyNft.capability,
-            commitment: authKeyNft.commitment
+    
+    if (result.success) {
+      // 1 second timeout to properly load contract utxos after recent transaction
+      setTimeout(() => { }, 1000);
+      
+      try {
+        const contractUtxos = await this.contract.getUtxos()
+        const balanceUtxo = contractUtxos
+          .filter(utxo =>
+            utxo?.token?.category === undefined && utxo?.satoshis > BigInt(1000)
+          )
+          // ensure that the UTXO with most satoshis is used
+          .sort((a, b) => Number(b.satoshis) - Number(a.satoshis))[0]
+        const authKeyNftUtxo = contractUtxos.filter(utxo =>
+          utxo?.token?.category === category && utxo?.token?.amount === BigInt(0)
+        )[0]
+        const tokenUtxo = contractUtxos.filter(utxo => 
+          utxo.token?.category === process.env.PROMO_TOKEN_ID
+        )[0]
+        
+        // compile outputs
+        const output = [
+          // 0th output is promo token
+          {
+            to: swapContractAddress,
+            amount: BigInt(1000),
+            token: {
+              amount: BigInt(amount),
+              category: process.env.PROMO_TOKEN_ID,
+            }
+          },
+          // 1st output is AuthKeyNFT
+          {
+            to: swapContractAddress,
+            amount: BigInt(1000),
+            token: {
+              amount: BigInt(0),
+              category: authKeyNftUtxo.token.category,
+              nft: {
+                capability: authKeyNftUtxo.token.nft.capability,
+                commitment: authKeyNftUtxo.token.nft.commitment
+              }
+            }
           }
-        }
-      }
-    ]
+        ]
 
-    const temp = await this.contract.functions
-      .transfer(new SignatureTemplate(privKey), this.promo)
-      .to(output)
-      .send()
-    console.log(temp)
+        await this.contract.functions
+          .transfer(new SignatureTemplate(privKey), this.promo)
+          .from([tokenUtxo, authKeyNftUtxo, balanceUtxo])
+          .to(output)
+          .send()
+        
+        // call to engagement hub for processing swap
+        console.log('Transaction processed successfully.')
+      } catch (error) {
+        console.error(error)
+        await this.recoverAuthKeyNft(privKey)
+      }
+    } else {
+      // TODO handle return
+      console.error('An error occurred while sending AuthKeyNFT to promo contract.')
+    }
   }
 
   /**
@@ -120,14 +155,14 @@ export default class PromoContract {
    */
   async recoverAuthKeyNft (privKey) {
     const category = process.env.AUTHKEY_NFT_CHILDREN_TOKEN_ID
-    // filter utxos with token and with AuthKeyNFT category
     const contractUtxos = await this.contract.getUtxos()
+    // filter utxos with token and with AuthKeyNFT category
     const balanceUtxos = contractUtxos
       .filter(utxo =>
         utxo?.token?.category === undefined && utxo.satoshis > BigInt(1000)
       )
       // ensure that the UTXO with most satoshis is used
-      .sort((a, b) => Number(b.satoshis) - Number(a.satoshis))
+      .sort((a, b) => Number(b.satoshis) - Number(a.satoshis))[0]
     const authKeyNftUtxo = contractUtxos.filter(utxo =>
       utxo?.token?.category === category && utxo?.token?.amount === BigInt(0)
     )[0]
@@ -156,6 +191,7 @@ export default class PromoContract {
         .from([authKeyNftUtxo, balanceUtxos])
         .to(output)
         .send()
+      console.log('AuthKeyNFT returned successfully.')
     } else {
       // error
       console.error('Contract does not have any AuthKeyNFTs stored.')
