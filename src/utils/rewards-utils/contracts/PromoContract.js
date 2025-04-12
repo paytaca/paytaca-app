@@ -1,18 +1,18 @@
-import { Contract, ElectrumNetworkProvider, Network, SignatureTemplate } from "cashscript"
-import { compileString } from "cashc"
+import { ElectrumNetworkProvider, Network } from "cashscript"
+import { Contract, SignatureTemplate } from 'cashscript0.10.0'
+import { compileString } from "cashc0.10.0"
 import { getChangeAddress } from "src/utils/send-page-utils"
 import { getMnemonic, Wallet } from "src/wallet"
 import { markRaw } from "vue"
 import { Store } from "src/store"
+import { getWalletByNetwork } from "src/wallet/chipnet"
+import { getWalletTokenAddress } from "src/utils/engagementhub-utils/rewards"
 
 import axios from "axios"
-import BCHJS from '@psf/bch-js'
 import Watchtower from "watchtower-cash-js"
 
 import PromoContractCash from 'src/cashscripts/rewards/PromoContract.cash'
-import { getWalletByNetwork } from "src/wallet/chipnet"
 
-const bchjs = new BCHJS()
 const watchtower = new Watchtower(false)
 const spiceDecimals = 8
 
@@ -60,14 +60,14 @@ export default class PromoContract {
     const recipientParams = [{
       address: this.contract.tokenAddress,
       amount: 0.00001,
-      tokenAmount: undefined
+      tokenAmount: 0
     }]
     const tokenParams = {
       tokenId: authKeyNft.category,
       commitment: authKeyNft.commitment,
       capability: authKeyNft.capability,
       txid: authKeyNft.current_txid,
-      vout: authKeyNft.current_index
+      vout: "" + authKeyNft.current_index
     }
     const changeAddress = getChangeAddress('bch')
 
@@ -111,6 +111,55 @@ export default class PromoContract {
       .to(output)
       .send()
     console.log(temp)
+  }
+
+  /**
+   * Recover AuthKeyNFT sent to this contract then send it to user wallet.
+   * Called when redeeming promo token to BCH fails for some reason.
+   * @param {Uint8Array} privKey 
+   */
+  async recoverAuthKeyNft (privKey) {
+    const category = process.env.AUTHKEY_NFT_CHILDREN_TOKEN_ID
+    // filter utxos with token and with AuthKeyNFT category
+    const contractUtxos = await this.contract.getUtxos()
+    const balanceUtxos = contractUtxos
+      .filter(utxo =>
+        utxo?.token?.category === undefined && utxo.satoshis > BigInt(1000)
+      )
+      // ensure that the UTXO with most satoshis is used
+      .sort((a, b) => Number(b.satoshis) - Number(a.satoshis))
+    const authKeyNftUtxo = contractUtxos.filter(utxo =>
+      utxo?.token?.category === category && utxo?.token?.amount === BigInt(0)
+    )[0]
+
+    // check if authkeynft is present
+    if (authKeyNftUtxo) {
+      const userTokenAddress = await getWalletTokenAddress()
+      const output = [
+        {
+          to: userTokenAddress,
+          amount: BigInt(1000),
+          token: {
+            amount: BigInt(0),
+            category: authKeyNftUtxo.token.category,
+            nft: {
+              capability: authKeyNftUtxo.token.nft.capability,
+              commitment: authKeyNftUtxo.token.nft.commitment
+            }
+          }
+        }
+      ]
+
+      const sigTemp = new SignatureTemplate(privKey)
+      await this.contract.functions
+        .transfer(sigTemp, this.promo)
+        .from([authKeyNftUtxo, balanceUtxos])
+        .to(output)
+        .send()
+    } else {
+      // error
+      console.error('Contract does not have any AuthKeyNFTs stored.')
+    }
   }
 
   unlockPromoToken () {

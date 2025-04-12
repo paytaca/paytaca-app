@@ -340,20 +340,20 @@ export default {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     },
     async openRedeemPointsDialog () {
-      // console.log(getWallet('bch'))
-      const keyPair = await getKeyPairFromWalletMnemonic()
-      await this.urContract.redeemPromoTokenToBch(
-        2, getWallet('bch').walletHash, this.address, keyPair.privKey
-      )
-      // this.$q.dialog({
-      //   component: RedeemPointsDialog,
-      //   componentProps: {
-      //     points: this.points,
-      //     pointsType: 'UR',
-      //     pointsDivisor: this.pointsDivisor,
-      //     promoId: this.urId
-      //   }
-      // })
+      // const keyPair = await getKeyPairFromWalletMnemonic()
+      // await this.urContract.redeemPromoTokenToBch(
+      //   2, getWallet('bch').walletHash, this.address, keyPair.privKey
+      // )
+      // await this.urContract.recoverAuthKeyNft(keyPair.privKey)
+      this.$q.dialog({
+        component: RedeemPointsDialog,
+        componentProps: {
+          points: this.points,
+          pointsType: 'UR',
+          pointsDivisor: this.pointsDivisor,
+          promoId: this.urId
+        }
+      })
     }
   }
 }
