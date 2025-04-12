@@ -1,4 +1,4 @@
-pragma cashscript ^0.8.0;
+pragma cashscript ^0.10.0;
 
 contract PromoContract(pubkey userPubKey, string promo) {
     function transfer(sig userSig, string promoCheck) {
