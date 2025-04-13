@@ -45,15 +45,20 @@ export default class PromoContract {
   }
 
   /**
-   * Facilitate the redemption of promo token to BCH. It first sends the AuthKeyNFT to
-   * the promo contract to be included in the transaction output, then calls an API to
-   * prompt the swapping in the backend.
+   * Facilitate the redemption of promo token to BCH. It sends the AuthKeyNFT to
+   * the promo contract to be included in the transaction output, which will be
+   * processed in the engagement-hub server.
    * @param {Number} amount the amount to be reedeemed
    * @param {string} walletHash the wallet hash of the user's wallet
    * @param {string} swapContractAddress the token address of the swap contract
    * @param {Uint8Array} privKey the private key derived as a key pair from the wallet's mnemonic
+   * @param {number} retries number of retries when transaction fails
+   * @returns the transaction ID (`txid`) of the successful transaction; `undefined` otherwise
    */
-  async redeemPromoTokenToBch (amount, walletHash, swapContractAddress, privKey) {
+  async redeemPromoTokenToBch(
+    amount, walletHash, swapContractAddress, privKey, retries = 0
+  ) {
+    let txId
     // get AuthKeyNFT details from user wallet
     const category = process.env.AUTHKEY_NFT_CHILDREN_TOKEN_ID
     const params = `?wallet_hash=${walletHash}&has_balance=true&category=${category}`
@@ -130,22 +135,27 @@ export default class PromoContract {
           }
         ]
 
-        await this.contract.functions
+        const transaction = await this.contract.functions
           .transfer(new SignatureTemplate(privKey), this.promo)
           .from([tokenUtxo, authKeyNftUtxo, balanceUtxo])
           .to(output)
           .send()
-        
-        // call to engagement hub for processing swap
+        txId = transaction.txid
         console.log('Transaction processed successfully.')
       } catch (error) {
         console.error(error)
         await this.recoverAuthKeyNft(privKey)
+        if (retries <= 3) {
+          txId = await this.redeemPromoTokenToBch(
+            amount, walletHash, swapContractAddress, privKey, retries + 1
+          )
+        }
       }
     } else {
-      // TODO handle return
       console.error('An error occurred while sending AuthKeyNFT to promo contract.')
     }
+
+    return txId
   }
 
   /**
