@@ -208,7 +208,6 @@ import {
   Promos,
   getKeyPairFromWalletMnemonic
 } from 'src/utils/engagementhub-utils/rewards'
-import { getWallet } from 'src/utils/send-page-utils'
 
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
@@ -340,12 +339,9 @@ export default {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     },
     async openRedeemPointsDialog () {
-      // const keyPair = await getKeyPairFromWalletMnemonic()
-      // await this.urContract.redeemPromoTokenToBch(
-      //   2, getWallet('bch').walletHash, this.address, keyPair.privKey
-      // )
-      // await this.urContract.recoverAuthKeyNft(keyPair.privKey)
-      this.$q.dialog({
+      const vm = this
+
+      vm.$q.dialog({
         component: RedeemPointsDialog,
         componentProps: {
           points: this.points,
@@ -353,6 +349,10 @@ export default {
           pointsDivisor: this.pointsDivisor,
           promoId: this.urId
         }
+      }).onDismiss(async () => {
+        vm.isLoading = true
+        vm.points = await vm.urContract.getTokenBalance()
+        vm.isLoading = false
       })
     }
   }

@@ -112,9 +112,14 @@
 <script>
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { convertPoints, processPointsRedemption } from 'src/utils/engagementhub-utils/rewards'
+import {
+  convertPoints,
+  getKeyPairFromWalletMnemonic,
+  getWalletTokenAddress,
+  processPointsRedemption
+} from 'src/utils/engagementhub-utils/rewards'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
-import { raiseNotifyError } from 'src/utils/send-page-utils'
+import { raiseNotifyError, getWallet } from 'src/utils/send-page-utils'
 
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
@@ -249,23 +254,34 @@ export default {
     async redeemPoints () {
       this.isSending = true
 
-      const data = {
-        bch_address: '',
-        amount_bch: 0,
-        amount_fiat: 0,
-        points: Number(this.pointsToRedeem),
-        promo: this.pointsType.toLowerCase(),
-        id: this.promoId
-      }
-      const isSuccessful = await processPointsRedemption(data)
+      const keyPair = await getKeyPairFromWalletMnemonic()
+      const txId = await this.urContract.redeemPromoTokenToBch(
+        2, getWallet('bch').walletHash, this.address, keyPair.privKey
+      )
 
-      if (isSuccessful) {
-        this.$q.notify({
-          type: 'positive',
-          timeout: 3000,
-          message: 'Points redemption processed successfully.'
-        })
-        this.$refs.dialogRef.hide()
+      if (txId) {
+        // call to engagement-hub to process swapping
+        const data = {
+          tx_id: txId,
+          amount: Number(this.pointsToRedeem),
+          address: this.$store.getters['global/getAddress']('bch'),
+          token_address: getWalletTokenAddress(),
+          promo: this.pointsType.toLowerCase(),
+          id: this.promoId
+        }
+
+        const isSuccessful = await processPointsRedemption(data)
+  
+        if (isSuccessful) {
+          this.$q.notify({
+            type: 'positive',
+            timeout: 3000,
+            message: 'Points redemption processed successfully.'
+          })
+          this.$refs.dialogRef.hide()
+        } else {
+          raiseNotifyError('An error occurred while processing your redemption. Please try again later.')
+        }
       } else {
         raiseNotifyError('An error occurred while processing your redemption. Please try again later.')
       }

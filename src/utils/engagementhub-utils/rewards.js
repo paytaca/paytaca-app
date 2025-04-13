@@ -64,8 +64,6 @@ export async function getWalletTokenAddress () {
   return convertCashAddress(bchAddress, false, true)
 }
 
-// with calls to engagement-hub
-
 export function convertPoints (points, pointsDivisor) {
   const fiat = points / pointsDivisor
   const bch = convertToBCH(denomination(), (fiat / bchMarketPrice()))
