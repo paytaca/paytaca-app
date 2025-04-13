@@ -237,14 +237,21 @@ export default {
       })
     },
     openRedeemPointsDialog () {
-      this.$q.dialog({
+      const vm = this
+
+      vm.$q.dialog({
         component: RedeemPointsDialog,
         componentProps: {
-          points: this.points,
-          pointsType: 'RFP',
-          pointsDivisor: this.pointsDivisor,
-          promoId: this.rfpId
+          points: vm.points,
+          pointsType: Promos.RFPROMO,
+          pointsDivisor: vm.pointsDivisor,
+          promoId: vm.rfpId,
+          address: this.address
         }
+      }).onDismiss(async () => {
+        vm.isLoading = true
+        vm.points = await vm.rfpContract.getTokenBalance()
+        vm.isLoading = false
       })
     }
   }

@@ -23,7 +23,7 @@
           Enter points to be converted to BCH.
         </span>
         <span>
-          <strong>Rate:</strong> 1 {{ pointsType }} = {{ singlePointConversion }}
+          <strong>Rate:</strong> 1 {{ pointsType.toUpperCase() }} = {{ singlePointConversion }}
         </span>
       </div>
 
@@ -42,14 +42,14 @@
         >
           <template v-slot:append>
             <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-              {{ pointsType }}
+              {{ pointsType.toUpperCase() }}
             </div>
           </template>
         </q-input>
       </div>
 
       <div class="row justify-between q-mb-sm q-mx-sm">
-        <span>{{ pointsBalance }} {{ pointsType }}</span>
+        <span>{{ pointsBalance }} {{ pointsType.toUpperCase() }}</span>
         <span
           class="max-button text-grad"
           :class="getDarkModeClass(darkMode)"
@@ -126,6 +126,8 @@ import BiometricWarningAttempt from 'src/components/authOption/biometric-warning
 import PinDialog from 'src/components/pin/index.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
+import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+
 export default {
   name: 'RedeemPointsDialog',
 
@@ -133,7 +135,8 @@ export default {
     points: { type: Number, default: 0 },
     pointsType: { type: String, default: '' },
     pointsDivisor: { type: Number, default: 0 },
-    promoId: { type: Number, default: -1 }
+    promoId: { type: Number, default: -1 },
+    address: { type: String, default: '' }
   },
 
   components: {
@@ -151,7 +154,8 @@ export default {
       isSecurityCheckSuccess: false,
       warningAttemptsStatus: 'dismiss',
       pinDialogAction: '',
-      isSending: false
+      isSending: false,
+      contract: null
     }
   },
 
@@ -170,8 +174,10 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
     this.computeBalance()
+    const keyPair = await getKeyPairFromWalletMnemonic()
+    this.contract = new PromoContract(this.pointsType, keyPair.pubKey)
   },
 
   methods: {
@@ -199,7 +205,11 @@ export default {
 
       if (action === 'backspace') {
         vm.$refs['points-input'].nativeEl.focus({ focusVisible: true })
-        vm.pointsToRedeem = vm.pointsToRedeem.slice(0, -1)
+        try {
+          vm.pointsToRedeem = vm.pointsToRedeem.slice(0, -1)
+        } catch {
+          vm.pointsToRedeem = 0
+        }
         if (vm.pointsToRedeem.length === 0) vm.pointsToRedeem = '0'
       } else if (action === 'delete') {
         vm.$refs['points-input'].nativeEl.focus({ focusVisible: true })
@@ -255,8 +265,9 @@ export default {
       this.isSending = true
 
       const keyPair = await getKeyPairFromWalletMnemonic()
-      const txId = await this.urContract.redeemPromoTokenToBch(
-        2, getWallet('bch').walletHash, this.address, keyPair.privKey
+      const txId = await this.contract.redeemPromoTokenToBch(
+        Number(this.pointsToRedeem), getWallet('bch').walletHash,
+        this.address, keyPair.privKey
       )
 
       if (txId) {
@@ -265,8 +276,8 @@ export default {
           tx_id: txId,
           amount: Number(this.pointsToRedeem),
           address: this.$store.getters['global/getAddress']('bch'),
-          token_address: getWalletTokenAddress(),
-          promo: this.pointsType.toLowerCase(),
+          token_address: await getWalletTokenAddress(),
+          promo: this.pointsType,
           id: this.promoId
         }
 

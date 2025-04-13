@@ -344,10 +344,11 @@ export default {
       vm.$q.dialog({
         component: RedeemPointsDialog,
         componentProps: {
-          points: this.points,
-          pointsType: 'UR',
-          pointsDivisor: this.pointsDivisor,
-          promoId: this.urId
+          points: vm.points,
+          pointsType: Promos.USERREWARDS,
+          pointsDivisor: vm.pointsDivisor,
+          promoId: vm.urId,
+          address: vm.address
         }
       }).onDismiss(async () => {
         vm.isLoading = true

@@ -96,18 +96,16 @@ export default class PromoContract {
       
       try {
         const contractUtxos = await this.contract.getUtxos()
-        const balanceUtxo = contractUtxos
+        const balanceUtxos = contractUtxos
           .filter(utxo =>
             utxo?.token?.category === undefined && utxo?.satoshis > BigInt(1000)
           )
-          // ensure that the UTXO with most satoshis is used
-          .sort((a, b) => Number(b.satoshis) - Number(a.satoshis))[0]
         const authKeyNftUtxo = contractUtxos.filter(utxo =>
           utxo?.token?.category === category && utxo?.token?.amount === BigInt(0)
         )[0]
-        const tokenUtxo = contractUtxos.filter(utxo => 
-          utxo.token?.category === process.env.PROMO_TOKEN_ID
-        )[0]
+        const tokenUtxos = contractUtxos.filter(utxo => 
+          utxo?.token?.category === process.env.PROMO_TOKEN_ID
+        )
         
         // compile outputs
         const output = [
@@ -137,7 +135,7 @@ export default class PromoContract {
 
         const transaction = await this.contract.functions
           .transfer(new SignatureTemplate(privKey), this.promo)
-          .from([tokenUtxo, authKeyNftUtxo, balanceUtxo])
+          .from([authKeyNftUtxo, ...tokenUtxos, ...balanceUtxos])
           .to(output)
           .send()
         txId = transaction.txid
@@ -201,7 +199,7 @@ export default class PromoContract {
         .from([authKeyNftUtxo, balanceUtxos])
         .to(output)
         .send()
-      console.log('AuthKeyNFT returned successfully.')
+      console.log('AuthKeyNFT returned successfully. Retrying redemption if allowed.')
     } else {
       // error
       console.error('Contract does not have any AuthKeyNFTs stored.')
