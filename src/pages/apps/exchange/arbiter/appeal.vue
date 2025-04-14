@@ -431,6 +431,7 @@ export default {
       this.websocketManager.watchtower = new WebSocketManager()
       this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
       this.websocketManager.watchtower.subscribeToMessages(async (message) => {
+        bus.emit('verify-tx', message)
         if (message?.success) {
           await this.fetchAppeal()
           if (message?.txdata) {

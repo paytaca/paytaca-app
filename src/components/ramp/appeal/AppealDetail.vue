@@ -182,7 +182,7 @@
     :text="$t('SwipeToConfirmLower')"
   />
   <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" @back="showStatusHistory = false" />
-  <TransactionHistoryDialog v-if="showTransactionHistory" :transactions="data?.transactions" @back="showTransactionHistory = false" />
+  <TransactionHistoryDialog v-if="showTransactionHistory" :data="txHistoryData" @back="showTransactionHistory = false" @refresh="refreshData" />
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
   <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
@@ -255,6 +255,12 @@ export default {
     }
   },
   computed: {
+    txHistoryData () {
+      return {
+        appeal: this.appeal,
+        transactions: this.data?.transactions
+      }
+    },
     completedOrder () {
       return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
     },
