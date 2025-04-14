@@ -18,80 +18,187 @@
         />
       </div>
 
-      <div class="row q-mt-sm">
-        <span class="full-width text-subtitle1 q-mb-sm">
-          Enter points to be converted to BCH.
-        </span>
-        <span>
-          <strong>Rate:</strong> 1 {{ pointsType.toUpperCase() }} = {{ singlePointConversion }}
-        </span>
-      </div>
-
-      <div class="q-mt-md q-mb-sm">
-        <q-input
-          ref="points-input"
-          type="text"
-          inputmode="none"
-          @focus="customKeyboardState = 'show'"
-          filled
-          v-model="pointsToRedeem"
-          :label="$t('Amount')"
-          :dark="darkMode"
-          :error="pointsToRedeem > points"
-          :error-message="$t('BalanceExceeded')"
-        >
-          <template v-slot:append>
-            <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-              {{ pointsType.toUpperCase() }}
-            </div>
-          </template>
-        </q-input>
-      </div>
-
-      <div class="row justify-between q-mb-sm q-mx-sm">
-        <span>{{ pointsBalance }} {{ pointsType.toUpperCase() }}</span>
-        <span
-          class="max-button text-grad"
+      <q-tabs
+        no-caps
+        v-model="redeemTab"
+        class="col-12"
+        :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+        @click="pointsToRedeem = '0'; computeBalance()"
+      >
+        <q-tab
+          name="swap"
+          label="Swap to BCH"
+          class="network-selection-tab rewards"
           :class="getDarkModeClass(darkMode)"
-          @click="onMaxClick"
-        >
-          {{ $t('MAX') }}
-        </span>
-      </div>
+        />
+        <q-tab
+          name="convert"
+          label="Convert to Tokens"
+          class="network-selection-tab rewards"
+          :class="getDarkModeClass(darkMode)"
+        />
+      </q-tabs>
 
-      <div class="text-body1 q-mb-sm">
-        <span>You will receive:</span><br/>
-        <span class="row q-ml-md">
-          {{ pointsConvertion }}
-        </span>
-      </div>
+      <q-tab-panels
+        animated
+        v-model="redeemTab"
+        class="row full-width"
+      >
+        <q-tab-panel name="swap" style="padding: 5px 0;">
+          <div class="row q-mt-sm">
+            <span class="full-width text-subtitle1 q-mb-sm">
+              Enter points to be swapped to BCH.
+            </span>
+            <span>
+              <strong>Rate:</strong> 1 {{ pointsType.toUpperCase() }} = {{ singlePointConversion }}
+            </span>
+          </div>
 
-      <div class="row full-width justify-evenly">
-        <template v-if="isSending">
-          <progress-loader
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
-            :isTight="true"
-            class="q-mb-md"
-          />
-        </template>
-        <template v-else>
-          <q-btn
-            rounded
-            outline
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            :label="$t('Cancel')"
-            v-close-popup
-          />
-          <q-btn
-            rounded
-            class="button"
-            :label="$t('Redeem')"
-            :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
-            @click="executeSecurityChecking"
-          />
-        </template>
-      </div>
+          <div class="q-mt-md q-mb-sm">
+            <q-input
+              ref="points-input"
+              type="text"
+              inputmode="none"
+              @focus="customKeyboardState = 'show'"
+              filled
+              v-model="pointsToRedeem"
+              :label="$t('Amount')"
+              :dark="darkMode"
+              :error="pointsToRedeem > points"
+              :error-message="$t('BalanceExceeded')"
+            >
+              <template v-slot:append>
+                <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
+                  {{ pointsType.toUpperCase() }}
+                </div>
+              </template>
+            </q-input>
+          </div>
+
+          <div class="row justify-between q-mb-sm q-mx-sm">
+            <span>{{ pointsBalance }} {{ pointsType.toUpperCase() }}</span>
+            <span
+              class="max-button text-grad"
+              :class="getDarkModeClass(darkMode)"
+              @click="onMaxClick"
+            >
+              {{ $t('MAX') }}
+            </span>
+          </div>
+
+          <div class="text-body1 q-mb-sm">
+            <span>You will receive:</span><br/>
+            <span class="row q-ml-md">
+              {{ pointsConvertion }}
+            </span>
+          </div>
+
+          <div class="row full-width justify-evenly">
+            <template v-if="isSending">
+              <progress-loader
+                :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+                :isTight="true"
+                class="q-mb-md"
+              />
+            </template>
+            <template v-else>
+              <q-btn
+                rounded
+                outline
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                :label="$t('Cancel')"
+                v-close-popup
+              />
+              <q-btn
+                rounded
+                class="button"
+                :label="$t('Swap')"
+                :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
+                @click="executeSecurityChecking"
+              />
+            </template>
+          </div>
+        </q-tab-panel>
+
+        <q-tab-panel name="convert" style="padding: 5px 0;">
+          <div class="row q-mt-sm">
+            <span class="full-width text-subtitle1 q-mb-sm">
+              Enter points to be converted to Paytaca tokens.
+            </span>
+            <span>
+              <strong>Rate:</strong> 1 {{ pointsType.toUpperCase() }} = 1 PTC
+            </span>
+          </div>
+
+          <div class="q-mt-md q-mb-sm">
+            <q-input
+              ref="points-input"
+              type="text"
+              inputmode="none"
+              @focus="customKeyboardState = 'show'"
+              filled
+              v-model="pointsToRedeem"
+              :label="$t('Amount')"
+              :dark="darkMode"
+              :error="pointsToRedeem > points"
+              :error-message="$t('BalanceExceeded')"
+            >
+              <template v-slot:append>
+                <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
+                  {{ pointsType.toUpperCase() }}
+                </div>
+              </template>
+            </q-input>
+          </div>
+
+          <div class="row justify-between q-mb-sm q-mx-sm">
+            <span>{{ pointsBalance }} {{ pointsType.toUpperCase() }}</span>
+            <span
+              class="max-button text-grad"
+              :class="getDarkModeClass(darkMode)"
+              @click="onMaxClick"
+            >
+              {{ $t('MAX') }}
+            </span>
+          </div>
+
+          <div class="text-body1 q-mb-sm">
+            <span>You will receive:</span><br/>
+            <span class="row q-ml-md">
+              {{ pointsToRedeem }} PTC
+            </span>
+          </div>
+
+          <div class="row full-width justify-evenly">
+            <template v-if="isSending">
+              <progress-loader
+                :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+                :isTight="true"
+                class="q-mb-md"
+              />
+            </template>
+            <template v-else>
+              <q-btn
+                rounded
+                outline
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+                :label="$t('Cancel')"
+                v-close-popup
+              />
+              <q-btn
+                rounded
+                class="button"
+                :label="$t('Convert')"
+                :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
+                @click="executeSecurityChecking"
+              />
+            </template>
+          </div>
+        </q-tab-panel>
+      </q-tab-panels>
+
     </q-card>
 
     <custom-keyboard
@@ -155,7 +262,8 @@ export default {
       warningAttemptsStatus: 'dismiss',
       pinDialogAction: '',
       isSending: false,
-      contract: null
+      contract: null,
+      redeemTab: 'swap' // swap | convert
     }
   },
 
@@ -264,37 +372,41 @@ export default {
     async redeemPoints () {
       this.isSending = true
 
-      const keyPair = await getKeyPairFromWalletMnemonic()
-      const txId = await this.contract.redeemPromoTokenToBch(
-        Number(this.pointsToRedeem), getWallet('bch').walletHash,
-        this.address, keyPair.privKey
-      )
-
-      if (txId) {
-        // call to engagement-hub to process swapping
-        const data = {
-          tx_id: txId,
-          amount: Number(this.pointsToRedeem),
-          address: this.$store.getters['global/getAddress']('bch'),
-          token_address: await getWalletTokenAddress(),
-          promo: this.pointsType,
-          id: this.promoId
-        }
-
-        const isSuccessful = await processPointsRedemption(data)
+      if (this.redeemTab === 'swap') {
+        const keyPair = await getKeyPairFromWalletMnemonic()
+        const txId = await this.contract.redeemPromoTokenToBch(
+          Number(this.pointsToRedeem), getWallet('bch').walletHash,
+          this.address, keyPair.privKey
+        )
   
-        if (isSuccessful) {
-          this.$q.notify({
-            type: 'positive',
-            timeout: 3000,
-            message: 'Points redemption processed successfully.'
-          })
-          this.$refs.dialogRef.hide()
+        if (txId) {
+          // call to engagement-hub to process swapping
+          const data = {
+            tx_id: txId,
+            amount: Number(this.pointsToRedeem),
+            address: this.$store.getters['global/getAddress']('bch'),
+            token_address: await getWalletTokenAddress(),
+            promo: this.pointsType,
+            id: this.promoId
+          }
+  
+          const isSuccessful = await processPointsRedemption(data)
+    
+          if (isSuccessful) {
+            this.$q.notify({
+              type: 'positive',
+              timeout: 3000,
+              message: 'Points redemption processed successfully.'
+            })
+            this.$refs.dialogRef.hide()
+          } else {
+            raiseNotifyError('An error occurred while processing your redemption. Please try again later.')
+          }
         } else {
           raiseNotifyError('An error occurred while processing your redemption. Please try again later.')
         }
-      } else {
-        raiseNotifyError('An error occurred while processing your redemption. Please try again later.')
+      } else if (this.redeemTab === 'convert') {
+        console.log('yey')
       }
 
       this.isSending = false
