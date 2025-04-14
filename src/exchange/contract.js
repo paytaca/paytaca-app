@@ -175,7 +175,6 @@ export class RampContract {
         txInfo
       }
     }
-    // console.log('result:', JSON.stringify(result))
     return result
   }
 
@@ -212,7 +211,7 @@ export class RampContract {
         .refund(this.publicKeys.arbiter, arbiterSig, this.hash)
         .to(outputs)
         .withHardcodedFee(BigInt(parseInt(this.fees.contractFee)))
-        .send()
+        .build()
       
       txInfo = await this.broadcastTransaction(txHex)
 
@@ -227,7 +226,6 @@ export class RampContract {
         txInfo: txInfo
       }
     }
-    // console.log('result:', JSON.stringify(result))
     return result
   }
 
