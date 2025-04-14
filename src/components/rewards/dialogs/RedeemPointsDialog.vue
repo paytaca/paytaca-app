@@ -372,8 +372,8 @@ export default {
     async redeemPoints () {
       this.isSending = true
 
+      const keyPair = await getKeyPairFromWalletMnemonic()
       if (this.redeemTab === 'swap') {
-        const keyPair = await getKeyPairFromWalletMnemonic()
         const txId = await this.contract.redeemPromoTokenToBch(
           Number(this.pointsToRedeem), getWallet('bch').walletHash,
           this.address, keyPair.privKey
@@ -396,17 +396,30 @@ export default {
             this.$q.notify({
               type: 'positive',
               timeout: 3000,
-              message: 'Points redemption processed successfully.'
+              message: 'Points swapping processed successfully.'
             })
             this.$refs.dialogRef.hide()
           } else {
-            raiseNotifyError('An error occurred while processing your redemption. Please try again later.')
+            raiseNotifyError('An error occurred while processing your swapping. Please try again later.')
           }
         } else {
-          raiseNotifyError('An error occurred while processing your redemption. Please try again later.')
+          raiseNotifyError('An error occurred while processing your swapping. Please try again later.')
         }
       } else if (this.redeemTab === 'convert') {
-        console.log('yey')
+        const txId = await this.contract.unlockPromoToken(
+          keyPair.privKey, await getWalletTokenAddress(), Number(this.pointsToRedeem)
+        )
+
+        if (txId) {
+          this.$q.notify({
+            type: 'positive',
+            timeout: 3000,
+            message: 'Points conversion processed successfully.'
+          })
+          this.$refs.dialogRef.hide()
+        } else {
+          raiseNotifyError('An error occurred while processing your conversion. Please try again later.')
+        }
       }
 
       this.isSending = false

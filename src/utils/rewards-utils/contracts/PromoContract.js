@@ -14,7 +14,7 @@ import Watchtower from "watchtower-cash-js"
 import PromoContractCash from 'src/cashscripts/rewards/PromoContract.cash'
 
 const watchtower = new Watchtower(false)
-const spiceDecimals = 8
+const promoTokens = 2
 
 /**
  * Represents an instance of a promo contract. May vary
@@ -45,10 +45,10 @@ export default class PromoContract {
   }
 
   /**
-   * Facilitate the redemption of promo token to BCH. It sends the AuthKeyNFT to
+   * Facilitate the swapping of promo token to BCH. It sends the AuthKeyNFT to
    * the promo contract to be included in the transaction output, which will be
    * processed in the engagement-hub server.
-   * @param {Number} amount the amount to be reedeemed
+   * @param {Number} amount the amount to be swapped
    * @param {string} walletHash the wallet hash of the user's wallet
    * @param {string} swapContractAddress the token address of the swap contract
    * @param {Uint8Array} privKey the private key derived as a key pair from the wallet's mnemonic
@@ -139,7 +139,7 @@ export default class PromoContract {
           .to(output)
           .send()
         txId = transaction.txid
-        console.log('Transaction processed successfully.')
+        console.log('Swap transaction processed successfully.')
       } catch (error) {
         console.error(error)
         await this.recoverAuthKeyNft(privKey)
@@ -164,7 +164,6 @@ export default class PromoContract {
   async recoverAuthKeyNft (privKey) {
     const category = process.env.AUTHKEY_NFT_CHILDREN_TOKEN_ID
     const contractUtxos = await this.contract.getUtxos()
-    // filter utxos with token and with AuthKeyNFT category
     const balanceUtxos = contractUtxos
       .filter(utxo =>
         utxo?.token?.category === undefined && utxo.satoshis > BigInt(1000)
@@ -206,8 +205,50 @@ export default class PromoContract {
     }
   }
 
-  unlockPromoToken () {
-    console.log('unlock')
+  /**
+   * Converts the stored points determined by the given amount in the contract to Paytaca tokens.
+   * Since the points stored in the contract are also Paytaca tokens, in essence, this "unlocks"
+   * the tokens and is sent to the user's wallet token address, creating a new or adding to
+   * their existing token supply.
+   * @param {Uint8Array} privKey the private key derived as a key pair from the wallet's mnemonic
+   * @param {string} tokenAddress the token address of the 
+   * @param {number} amount the amount to be swapped
+   * @returns the transaction ID (`txid`) of the successful transaction; `undefined` otherwise
+   */
+  async unlockPromoToken (privKey, tokenAddress, amount) {
+    let txId
+
+    const contractUtxos = await this.contract.getUtxos()
+    const balanceUtxos = contractUtxos
+      .filter(utxo =>
+        utxo?.token?.category === undefined && utxo?.satoshis > BigInt(1000)
+      )
+    const tokenUtxos = contractUtxos.filter(utxo => 
+      utxo?.token?.category === process.env.PROMO_TOKEN_ID
+    )
+
+    const output = [{
+      to: tokenAddress,
+      amount: BigInt(1000),
+      token: {
+        amount: BigInt(amount),
+        category: process.env.PROMO_TOKEN_ID,
+      }
+    }]
+    
+    try {
+      const transaction = await this.contract.functions
+        .transfer(new SignatureTemplate(privKey), this.promo)
+        .from([...tokenUtxos, ...balanceUtxos])
+        .to(output)
+        .send()
+      txId = transaction.txid
+      console.log('Convert transaction processed successfully.')
+    } catch {
+      console.log('Convert transaction failed.')
+    }
+
+    return txId
   }
 
   /**
@@ -241,7 +282,7 @@ export default class PromoContract {
       const promoToken = tokens.filter(t => t.category === process.env.PROMO_TOKEN_ID)
       if (promoToken.length > 0) {
         balance = Number(promoToken[0].balance)
-        // balance = Number(promoToken[0].balance) / (10 ** spiceDecimals)
+        // balance = Number(promoToken[0].balance) / (10 ** promoTokens)
       }
     }).catch(async _error => {
       // retrieve balance from contract token utxos
@@ -253,7 +294,7 @@ export default class PromoContract {
         return total + Number(el.token?.amount)
       }, 0)
       // balance = promoTokenUtxos.reduce((total, el) => {
-      //   return total + (Number(el.token?.amount) / (10 ** spiceDecimals))
+      //   return total + (Number(el.token?.amount) / (10 ** promoTokens))
       // }, 0)
     })
 
