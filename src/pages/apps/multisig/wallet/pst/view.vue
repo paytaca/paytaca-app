@@ -84,7 +84,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 const $q = useQuasar()
-import { computed, onBeforeMount, ref, onMounted } from 'vue'
+import { computed, onBeforeMount, ref, onMounted, toValue } from 'vue'
 import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -197,7 +197,7 @@ const finalizeAndSubmitTransaction = async () => {
 onBeforeMount(async () => {
   if (route.params?.address) {
     const multisigWallet = MultisigWallet.fromObject(
-      $store.getters['multisig/getWallet']({ address: route.params.address })
+      toValue($store.getters['multisig/getWallet']({ address: route.params.address }))
     )
     await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
     wallet.value = multisigWallet
@@ -227,11 +227,12 @@ onMounted(async () => {
 
   const id = route.params.id
   const pstFromStore = $store.getters['multisig/getPstById']({ id })
+  console.log('🚀 ~ onMounted ~ pstFromStore:', pstFromStore)
   if (pstFromStore) {
     pst.value = Pst.createInstanceFromObject(pstFromStore)
     pst.value.setTemplate(wallet.value.template)
+    console.log('🚀 ~ onMounted ~ pst:', pst.value)
   }
-
   // const creator = identifyPossiblePstCreator({ signers: wallet.value.signers })
   // console.log('TRANSACTION DATA', transactionData.value.transaction)
   // pst.value

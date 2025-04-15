@@ -10,12 +10,11 @@ export const useMultisigHelpers = () => {
   })
 
   const getSignerWalletFromVault = ({ xpub }) => {
-    const walletVaults = $store.getters['global/getVault']
-    const vaultIndex = walletVaults.findIndex((signerWallet) => {
+    const vaultIndex = signerWallets.value.findIndex((signerWallet) => {
       return signerWallet.wallet.bch.xPubKey === xpub
     })
     if (vaultIndex === -1) return
-    const wallet = walletVaults[vaultIndex]
+    const wallet = signerWallets.value[vaultIndex]
     return { wallet, vaultIndex }
   }
 
@@ -28,9 +27,27 @@ export const useMultisigHelpers = () => {
     return hdKeys.hdPrivateKey
   }
 
+  /**
+   * Among the signers, check which belongs to this Paytaca Wallet.
+   * Use the first one found.
+   * @returns {number|undefined} 1 if signer_1, 2 if signer_2, ...
+   */
+  const identifyPossiblePstCreator = async ({ signers }) => {
+    for (const signerEntityIndex of Object.keys(signers)) {
+      const walletFound = signerWallets.value.find((signerWallet) => {
+        return signerWallet.wallet.bch.xPubKey === signers[signerEntityIndex].xpub
+      })
+      if (walletFound) {
+        return signerEntityIndex
+      }
+    }
+    return undefined
+  }
+
   return {
     signerWallets,
     getSignerWalletFromVault,
-    getSignerXPrv
+    getSignerXPrv,
+    identifyPossiblePstCreator
   }
 }
