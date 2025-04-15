@@ -20,14 +20,16 @@
           <q-input :rules="[val => isValidBchTxid(val) || 'Invalid transaction id' ]" hide-bottom-space class="row col q-pa-none" filled dense label="Transaction ID" v-model="newTx.txid"/>
         </div>
         <div class="row">
-          <q-btn v-if="!showTransactionForm" class="col q-ma-sm" @click="showTransactionForm=true">Add transaction</q-btn>
+          <q-btn v-if="!showTransactionForm && transactions?.length < 2" class="col q-ma-sm" @click="showTransactionForm=true">Add transaction</q-btn>
         </div>
         <div v-if="showTransactionForm">
           <div class="row">
             <q-btn :disable="verifyingTx" class="col q-ma-sm" @click="showTransactionForm=false">Cancel</q-btn>
             <q-btn :disable="!isValidBchTxid(this.newTx?.txid) || !this.newTx.action" :loading="verifyingTx" class="col q-ma-sm" @click="onSubmitTransaction">Submit</q-btn>
           </div>
-          <div class="row justify-center" style="color: red;">{{ errorMessage }}</div>
+          <div class="row justify-center">
+            <span class="q-mx-sm" style="color: red; overflow: auto;">{{ errorMessage }}</span>
+          </div>
         </div>
       </div>
     </q-card>
@@ -56,7 +58,7 @@ export default {
       appeal: null
     }
   },
-  emits: ['back', 'refresh'],
+  emits: ['back'],
   props: {
     data: Object
   },
@@ -81,15 +83,16 @@ export default {
     formatOrderStatus,
     formatDate,
     async onVerifyTxUpdate (data) {
-      console.log('onVerifyTxUpdate:', data)
       if (data?.success) {
-        await this.fetchTransactions()
         this.showTransactionForm = false 
+        await this.fetchTransactions()
       } else {
-        this.errorMessage = data?.error
+        this.errorMessage = `Unable to verify that this transaction is valid as ${this.newTx.action}`
       }
+      this.verifyingTx = false
     },
     async onSubmitTransaction () {
+      bus.emit('manual-add-tx')
       this.verifyingTx = true
       this.errorMessage = null
       if (this.isValidBchTxid(this.newTx.txid)) {
@@ -98,7 +101,6 @@ export default {
       } else {
         this.errorMessage = 'invalid txid'
       }
-      this.verifyingTx = false
     },
     async setOrderPending (action, appealId) {
       const url = `/ramp-p2p/appeal/${appealId}/pending-${action.toLowerCase()}/`
@@ -119,6 +121,7 @@ export default {
           if (error.response) {
             this.errorMessage = error.response?.data?.error
           }
+          throw new Error(error)
         })
     },
     async fetchTransactions () {

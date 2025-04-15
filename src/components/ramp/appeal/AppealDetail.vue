@@ -182,7 +182,7 @@
     :text="$t('SwipeToConfirmLower')"
   />
   <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" @back="showStatusHistory = false" />
-  <TransactionHistoryDialog v-if="showTransactionHistory" :data="txHistoryData" @back="showTransactionHistory = false" @refresh="refreshData" />
+  <TransactionHistoryDialog v-if="showTransactionHistory" :data="txHistoryData" @back="showTransactionHistory = false"/>
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
   <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>

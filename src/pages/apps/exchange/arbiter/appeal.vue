@@ -214,6 +214,9 @@ export default {
   },
   created () {
     bus.on('last-read-update', this.onLastReadUpdate)
+    bus.on('manual-add-tx', () => {
+      this.manuallyAddingTx = true
+    })
   },
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -438,7 +441,12 @@ export default {
             this.verifyingTx = false
             this.sendingBch = false
           }
-          this.reloadChildComponents()
+          if (this.manuallyAddingTx) {
+            await this.refreshData()
+            this.manuallyAddingTx = false
+          } else {
+            this.reloadChildComponents()
+          }
         } else if (message?.error || message?.errors) {
           this.errorMessages.push(message.error || [...message.errors])
           this.appealTransferKey++
