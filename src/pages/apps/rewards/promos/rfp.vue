@@ -119,7 +119,8 @@ import {
   getPromoPointsDivisorData,
   updateRfPromoData,
   Promos,
-  getKeyPairFromWalletMnemonic
+  getKeyPairFromWalletMnemonic,
+  getContractInitialBalance
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -194,7 +195,12 @@ export default {
       await updateRfPromoData(rfpData.id, {
         contract_ct_address: vm.rfpContract.contract.tokenAddress
       })
+
       await vm.rfpContract.subscribeAddress()
+      // call API to add BCH balance to newly-created contract
+      await getContractInitialBalance({
+        contract_address: vm.rfpContract.contract.address
+      })
     }
 
 

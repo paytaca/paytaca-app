@@ -206,7 +206,8 @@ import {
   getPromoPointsDivisorData,
   updateUserRewardsData,
   Promos,
-  getKeyPairFromWalletMnemonic
+  getKeyPairFromWalletMnemonic,
+  getContractInitialBalance
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -281,7 +282,12 @@ export default {
       await updateUserRewardsData(urData.id, {
         contract_ct_address: vm.urContract.contract.tokenAddress
       })
+
       await vm.urContract.subscribeAddress()
+      // call API to add BCH balance to newly-created contract
+      await getContractInitialBalance({
+        contract_address: vm.urContract.contract.address
+      })
     }
 
     if (urData) {

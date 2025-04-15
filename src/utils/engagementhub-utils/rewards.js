@@ -215,3 +215,10 @@ export async function processContinuousPoints (data) {
 export async function processPointsRedemption (data) {
   return await processPoints('userpromo/process_points_redemption/', data)
 }
+
+export async function getContractInitialBalance (data) {
+  return await REWARDS_URL
+    .post('userpromo/send_contract_initial_balance/', data)
+    .then(response => { return response.status === 200 })
+    .catch(_error => { return false })
+}
