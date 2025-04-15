@@ -16,7 +16,16 @@
           </div>
         </div>
         <div v-if="showTransactionForm">
-          <q-select class="row col q-pa-none q-my-xs" behavior="menu" label="Action" dense filled :options="actionOpts" v-model="newTx.action"/>
+          <q-select 
+            class="row col q-pa-none q-my-xs"
+            behavior="menu"
+            label="Action"
+            dense
+            filled
+            :options="actionOpts"
+            v-model="newTx.action"
+            :popup-content-style="darkMode? { color: 'white' } : { color: 'black' }"
+            />
           <q-input :rules="[val => isValidBchTxid(val) || 'Invalid transaction id' ]" hide-bottom-space class="row col q-pa-none" filled dense label="Transaction ID" v-model="newTx.txid"/>
         </div>
         <div class="row">
