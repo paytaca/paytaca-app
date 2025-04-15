@@ -75,6 +75,7 @@ export default {
         })
     },
     goToMainPage () {
+      this.$store.commit('ramp/updateUser', this.user)
       if (this.user?.is_arbiter) {
         this.$router?.push({ name: 'arbiter-appeals' })
       } else {

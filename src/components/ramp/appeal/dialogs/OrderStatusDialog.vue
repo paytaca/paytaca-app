@@ -9,11 +9,9 @@
                 <div v-else v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
                   <q-card :bordered="isStatusRead(status)" flat class="q-mx-xs" :class="[darkMode ? 'dark' : 'light', isStatusRead(status) ? 'pt-card-2': 'pt-card']">
                     <q-card-section class="row q-pa-sm">
-                      <!-- <div class="row q-pa-sm"> -->
-                        <q-badge v-if="!isStatusRead(status)" color="red" rounded floating/>
-                        <div class="col q-py-sm q-pl-sm" >{{formatOrderStatus(status.status)}}</div>
-                        <div class="col subtext" style="text-align: end">{{ formatDate(status.created_at) }}</div>
-                      <!-- </div> -->
+                      <q-badge v-if="!isStatusRead(status)" color="red" rounded floating/>
+                      <div class="col q-py-sm q-pl-sm" >{{formatOrderStatus(status.status)}}</div>
+                      <div class="col subtext" style="text-align: end">{{ formatDate(status.created_at) }}</div>
                     </q-card-section>
                   </q-card>
                 </div>
