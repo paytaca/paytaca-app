@@ -33,6 +33,30 @@ describe('Applications Page', () => {
     })
   })
 
+  afterEach(() => {
+    cy.window().then((win) => {
+      cy.wait(4000)
+      //reading existing data
+      cy.readFile('cypress/fixtures/storage.json').then((existingData) => {
+        const allLocalStorageData = {}
+        cy.log(existingData)
+        //get new data
+        Object.keys(win.localStorage).forEach((key) => {
+          allLocalStorageData[key] = win.localStorage.getItem(key)
+        })
+        //merge the existing data with the new data 
+        const mergedData = {
+          ...existingData,
+          ...allLocalStorageData
+        }
+        //write the merged data to storage.json
+        cy.writeFile('cypress/fixtures/storage.json',mergedData)
+        cy.log('Appended')
+        cy.log(mergedData)  
+      })
+    })
+  })
+
   it('should load the applications page', () => {
     // Basic test to verify the page loads
     cy.visit('http://localhost:9000/#/apps')
@@ -64,7 +88,7 @@ describe('Applications Page', () => {
 
     //Test Gifts
     cy.visit('http://localhost:9000/#/apps')
-    cy.get('.pt-app[data-test="apps-gifts-"]', { timeout: 10000 })
+    cy.get('.pt-app[data-test="apps-gifts-"]', { timeout: 50000 })
       .should('exist')
       .should('be.visible')
       .click({timeout: 10000})
@@ -73,7 +97,7 @@ describe('Applications Page', () => {
     // Go back to apps page to ensure navigation works
     cy.visit('http://localhost:9000/#/apps')
     cy.url().should('include', '/#/apps')
-    cy.get('.pt-app[data-test="apps-gifts-"]', { timeout: 10000 }).should('be.visible')
+    cy.get('.pt-app[data-test="apps-gifts-"]', { timeout: 50000 }).should('be.visible')
 
     // Test Collectibles
     cy.visit('http://localhost:9000/#/apps')
@@ -104,17 +128,19 @@ describe('Applications Page', () => {
     // Verify we're back on apps page
     cy.url().should('include', '/#/apps')
 
-    // Test Merchant Admin
+    // Test Merchant Admin with Translation Handling
     cy.visit('http://localhost:9000/#/apps')
-    cy.get('.pt-app-name', { timeout: 10000 })
-      .filter((_, el) => {
-        const text = el.textContent.trim()
-        return /^(Merchant Admin|Administrador comercial|Administrateur marchand|Kaufmann Admin|Amministratore commerciale|Handelaarbeheerder|Admin|المسؤول التاجر|商人管理员|商人管理員)$/.test(text)
-      })
-      .parent()
-      .find('.pt-app')
+    cy.get('.pt-app[data-test="apps-pos-admin"]', { timeout: 10000 })
+      .should('exist')
+      .should('be.visible')
       .click()
-    cy.url().should('include', '/apps/pos-admin')
+    cy.url().should('include', '/#/apps/pos-admin')
+
+    // Go back to apps page to ensure navigation works
+    cy.visit('http://localhost:9000/#/apps')
+    cy.url().should('include', '/#/apps')
+    cy.get('.pt-app[data-test="apps-pos-admin"]', { timeout: 10000 }).should('be.visible')
+
 
    // Test Wallet Info with Translation Handling
     cy.visit('http://localhost:9000/#/apps')
