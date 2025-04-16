@@ -332,7 +332,7 @@ export default {
     if (!this.userInfo) {
       this.pageName = 'main'
     }
-    this.fetchUser()
+    await this.fetchUser()
     this.fetchReviews()
   },
   methods: {
@@ -359,7 +359,7 @@ export default {
       await this.$router.push({ query: { edit: 'payments' } })
     },
     async refreshData (done) {
-      this.fetchUser()
+      await this.fetchUser()
       this.fetchReviews()
       if (done) done()
     },
