@@ -4,7 +4,7 @@
       class="apps-header"
       backnavpath="/apps"
       :title="`Rewards`"
-      :isRewardsPage="true"
+      :rewardsPage="'home'"
     />
 
     <div
@@ -63,6 +63,7 @@ import {
 
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -132,8 +133,15 @@ export default {
               vm.promos[i].points = await contract.getTokenBalance()
             } else vm.promos[i].points = 0
           }
-        } else await createUserPromoData()
+        } else {
+          // display help dialog
+          await createUserPromoData()
+        }
       })
+    this.$q.dialog({
+      component: HelpDialog,
+      componentProps: { page: 'home' }
+    })
     vm.isLoading = false
   },
 

@@ -37,6 +37,10 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'HelpDialog',
 
+  props: {
+    page: { type: String, default: 'home' }
+  },
+
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']

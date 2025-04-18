@@ -3,7 +3,7 @@
     <header-nav
       class="apps-header"
       :title="`User Rewards`"
-      :isRewardsPage="true"
+      :rewardsPage="Promos.USERREWARDS"
     />
 
     <div

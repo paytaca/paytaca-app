@@ -3,7 +3,7 @@
     <header-nav
       class="apps-header"
       :title="`RF Promo`"
-      :isRewardsPage="true"
+      :rewardsPage="Promos.RFPROMO"
     />
 
     <div

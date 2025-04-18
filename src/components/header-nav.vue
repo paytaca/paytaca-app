@@ -1,6 +1,6 @@
 <template>
   <div>
-    <template v-if="!isRewardsPage">
+    <template v-if="rewardsPage === ''">
       <div
         ref="header-nav"
         class="pt-header row no-wrap"
@@ -72,6 +72,7 @@
             class="button"
             icon="question_mark"
             size="sm"
+            @click="openRewardsHelpDialog"
           />
         </div>
       </div>
@@ -80,6 +81,8 @@
 </template>
 
 <script>
+import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
+
 export default {
   name: 'header-nav',
   props: {
@@ -91,10 +94,13 @@ export default {
       type: String,
       default: ''
     },
-    isRewardsPage: {
-      type: Boolean,
-      default: false
+    rewardsPage: {
+      type: String,
+      default: ''
     }
+  },
+  components: {
+    HelpDialog
   },
   emits: ['click'],
   data () {
@@ -135,6 +141,12 @@ export default {
         this.$router.go(-1)
       }
       this.$emit('click')
+    },
+    openRewardsHelpDialog () {
+      this.$q.dialog({
+        component: HelpDialog,
+        componentProps: { page: this.rewardsPage }
+      })
     }
   }
 }
