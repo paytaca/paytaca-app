@@ -81,6 +81,7 @@
                             <q-item-label caption>{{ psts?.length || 0 }}</q-item-label>
                           </q-item-section>
                         </q-item>
+                        <q-separator spaced inset />
                       </q-list>
                     </div>
                   </template>

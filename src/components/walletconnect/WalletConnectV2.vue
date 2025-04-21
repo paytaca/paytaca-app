@@ -627,8 +627,10 @@ const openAddressSelectionDialog = async (sessionProposal) => {
         .onOk(({ selectedWalletAddress, isMultisig }) => {
           resolve({ selectedWalletAddress, isMultisig })
         })
-        .onCancel(async () => reject())
-        .onDismiss(() => reject())
+        .onCancel(async () => {
+          processingSession.value[sessionProposal.pairingTopic] = ''
+        })
+        // .onDismiss(() => reject())
     })
     return { selectedWalletAddress, isMultisig }
   } catch (error) {}
