@@ -134,14 +134,13 @@ export default {
             } else vm.promos[i].points = 0
           }
         } else {
-          // display help dialog
+          this.$q.dialog({
+            component: HelpDialog,
+            componentProps: { page: 'home' }
+          })
           await createUserPromoData()
         }
       })
-    this.$q.dialog({
-      component: HelpDialog,
-      componentProps: { page: 'home' }
-    })
     vm.isLoading = false
   },
 
