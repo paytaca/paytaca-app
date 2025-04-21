@@ -171,6 +171,13 @@ class Watchtower extends WatchtowerSdk {
       this._baseUrl = 'https://watchtower.cash/api/'
     }
   }
+
+  async saveMultisigWallet (multisigWallet) {
+    return await fetch(`${this._baseUrl}multisig/wallets`, {
+      method: 'POST',
+      body: JSON.stringify(multisigWallet)
+    })
+  }
 }
 
 export default Watchtower
