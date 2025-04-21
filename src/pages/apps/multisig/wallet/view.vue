@@ -9,47 +9,65 @@
             <div class="row q-mt-lg justify-center">
                 <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
                   <template v-if="wallet">
-                    <div class="q-pa-md">
+                    <div>
                       <q-list>
                         <q-item>
                           <q-item-section>
-                            <q-item-label>{{ wallet.template.name }}</q-item-label>
+                            <q-item-label class="text-h6">{{ wallet.template.name }}</q-item-label>
                             <q-item-label caption lines="2">{{ wallet.template.description }}</q-item-label>
-                            <q-item-label caption lines="2">{{ shortenString(wallet.address, 15) }}</q-item-label>
+                            <!-- <q-item-label caption lines="2">{{ shortenString(wallet.address, 15) }}</q-item-label> -->
                           </q-item-section>
-                          <q-item-section side top>
+                          <q-item-section side>
                             <!-- <q-item-label caption>5 min ago</q-item-label> -->
-                            <q-icon name="wallet" color="yellow" />
+                            <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                          </q-item-section>
+                        </q-item>
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label>Address</q-item-label>
+                          </q-item-section>
+                          <q-item-section side>
+                            <q-item-label caption>
+                              {{ shortenString(wallet.address, 20) }} <CopyButton :text="wallet.address"/>
+                            </q-item-label>
+                            <!-- <q-icon name="bch" color="green" /> -->
                           </q-item-section>
                         </q-item>
                         <q-item>
                           <q-item-section>
                             <q-item-label>Balance</q-item-label>
                           </q-item-section>
-                          <q-item-section side top>
+                          <q-item-section side>
                             <q-item-label caption>{{ balance || 0 }}</q-item-label>
-                            <!-- <q-icon name="bch" color="green" /> -->
+                          </q-item-section>
+                        </q-item>
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label>Required Signatures</q-item-label>
+                          </q-item-section>
+                          <q-item-section side>
+                            <q-item-label caption>{{ wallet.m }} of {{ wallet.n }}</q-item-label>
                           </q-item-section>
                         </q-item>
                         <q-separator spaced inset />
                         <q-item-label header>Signers</q-item-label>
                         <q-item v-for="signerIndex in Object.keys(wallet.signers)" :key="`app-multisig-view-signer-${signerIndex}`">
                           <q-item-section>
-                            <q-item-label>{{ wallet.signers[signerIndex].signerName }}</q-item-label>
-                            <q-item-label caption>{{ shortenString(wallet.signers[signerIndex].xpub, 20) }}</q-item-label>
+                            <q-item-label class="text-capitalize" style="font-variant-numeric: proportional-nums">{{signerIndex}}. {{ wallet.signers[signerIndex].signerName }}</q-item-label>
+                            <q-item-label caption class="text-weight-thin">{{ shortenString(wallet.signers[signerIndex].xpub, 20) }}</q-item-label>
                           </q-item-section>
-                          <q-item-section side top>
-                            <q-item-label caption>{{ signerIndex }}</q-item-label>
-                            <q-item-label caption>Copy</q-item-label>
+                          <q-item-section side>
+                            <q-item-label caption><CopyButton :text="wallet.signers[signerIndex].xpub"/></q-item-label>
                           </q-item-section>
                         </q-item>
+                        <q-separator spaced inset />
                         <q-item
                           :clickable="transactions?.length"
                           :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
                           <q-item-section>
                             <q-item-label>Unsigned Transactions</q-item-label>
                           </q-item-section>
-                          <q-item-section side top>
+                          <q-item-section side>
                             <q-item-label caption>{{ transactions?.length || 0 }}</q-item-label>
                           </q-item-section>
                         </q-item>
@@ -59,7 +77,7 @@
                           <q-item-section>
                             <q-item-label>Partially Signed Transactions</q-item-label>
                           </q-item-section>
-                          <q-item-section side top>
+                          <q-item-section side>
                             <q-item-label caption>{{ psts?.length || 0 }}</q-item-label>
                           </q-item-section>
                         </q-item>
@@ -67,9 +85,9 @@
                     </div>
                   </template>
                 </div>
-                <div class="col-xs-12 col-md-8 q-px-md q-gutter-md">
-                  <q-btn>Send</q-btn>
-                  <q-btn>Receive</q-btn>
+                <div class="col-xs-12 col-md-8 q-px-md q-gutter-md row justify-between">
+                  <q-btn color="primary" class="col-5">Receive</q-btn>
+                  <q-btn color="primary" class="col-5">Send</q-btn>
                 </div>
             </div>
           </div>
@@ -85,8 +103,8 @@ import { useRoute } from 'vue-router'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Pst, shortenString, MultisigWallet } from 'src/lib/multisig'
+import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
-
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
@@ -132,7 +150,6 @@ onMounted(async () => {
   balance.value = bch.balance
   console.log('MULTISIG WALLET', wallet.value)
 })
-// TODO: SHOW DIALOG IF WALLET NOT FOUND, NAV BACK ON DIALOG CLOSE
 </script>
 
 <style scoped>
