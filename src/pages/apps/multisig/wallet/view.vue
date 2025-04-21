@@ -85,9 +85,18 @@
                     </div>
                   </template>
                 </div>
-                <div class="col-xs-12 col-md-8 q-px-md q-gutter-md row justify-between">
+                <div class="col-xs-12 col-md-8 q-px-md q-gutter-md row justify-around">
                   <q-btn color="primary" class="col-5">Receive</q-btn>
                   <q-btn color="primary" class="col-5">Send</q-btn>
+                </div>
+                <div class="col-xs-12 col-md-8 q-px-lg q-pt-lg row justify-center">
+                  <q-btn
+                    color="red"
+                    class="full-width"
+                    @click="() => deleteWallet(route.params.address)"
+                    outline>
+                    Delete Wallet
+                  </q-btn>
                 </div>
             </div>
           </div>
@@ -99,7 +108,7 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Pst, shortenString, MultisigWallet } from 'src/lib/multisig'
@@ -108,6 +117,7 @@ import Watchtower from 'src/lib/watchtower'
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const balance = ref()
 
 const darkMode = computed(() => {
@@ -141,6 +151,11 @@ const psts = computed(() => {
     return p.address === wallet.value.address
   })
 })
+
+const deleteWallet = (address) => {
+  $store.dispatch('multisig/deleteWallet', { address })
+  router.push({ name: 'app-multisig' })
+}
 
 onMounted(async () => {
   console.log('🚀 ~ psts ~ psts:', psts)
