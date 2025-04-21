@@ -429,10 +429,8 @@ export default {
             if (response.data) {
               if (overwrite) {
                 vm.reviewsList = response.data.feedbacks
-                console.log('overwrite')
               } else {
                 vm.reviewsList.push(...response.data.feedbacks)
-                console.log('not overwrite')
               }
               vm.reviewsTotalPages = response.data.total_pages
             }
