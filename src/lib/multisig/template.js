@@ -1,13 +1,3 @@
-
-const baseTemplate = {
-  name: '',
-  $schema: 'https://libauth.org/schemas/wallet-template-v0.schema.json',
-  entities: { /* generate */ },
-  scripts: { /* generate */ },
-  supported: ['BCH_2021_05', 'BCH_2022_05', 'BCH_2023_05'],
-  version: 0
-}
-
 /**
  * Util function for grouping every possible cosigner combinations.
  *
@@ -155,8 +145,14 @@ export const createTemplate = ({
   signatureFormat, /*: 'ecdsa'|'schnorr' */ /* string[] */
   signerNames /* ?: { [signerIndex: number]: string } */
 }) => {
-  // TODO: Use signerNames from args
-  const template = baseTemplate
+  const template = {
+    name: '',
+    $schema: 'https://libauth.org/schemas/wallet-template-v0.schema.json',
+    entities: { /* generate */ },
+    scripts: { /* generate */ },
+    supported: ['BCH_2021_05', 'BCH_2022_05', 'BCH_2023_05'],
+    version: 0
+  }
   template.name = name || `${m}-of-${n} Multisig`
   template.scripts = generateScripts({ m, n, signatureFormat: signatureFormat || 'schnorr' })
   template.entities = generateEntities({ n, scripts: template.scripts, signerNames })
