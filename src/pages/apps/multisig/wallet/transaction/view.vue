@@ -11,9 +11,54 @@
             />
             <div class="row q-mt-lg justify-center">
                 <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
-                  <q-card
+                  <q-list v-if="wallet && transactionData?.transaction">
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label class="text-h6">{{ transactionUserPrompt }}</q-item-label>
+                        <q-item-label caption lines="2">Origin: {{ transactionOrigin }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <!-- <q-item-label caption>5 min ago</q-item-label> -->
+                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label>Number of recipients</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        {{ transactionData.transaction.outputs.length }}
+                      </q-item-section>
+                    </q-item>
+                    <q-item-label header>Spend Summary</q-item-label>
+                    <q-item>
+                      <q-item-section>{{ spendSummary(transactionData.transaction) }}</q-item-section>
+                    </q-item>
+                    <q-separator spaced inset></q-separator>
+                    <q-item-label header>Signers</q-item-label>
+                    <q-item v-for="signerEntityIndex in Object.keys(wallet.signers)" :key="signerEntityIndex">
+                      <q-item-section>{{ wallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</q-item-section>
+                      <q-item-section side>
+                        <q-btn
+                          label="Sign"
+                          :disable="!wallet.signerCanSign({ signerEntityIndex })"
+                          :icon="wallet.signerCanSign({ signerEntityIndex })? 'draw': 'edit_off'"
+                          @click="partiallySignTransaction({ signerEntityIndex, xprv: wallet.signers[signerEntityIndex]?.xprv })"
+                          >
+                        </q-btn>
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <q-btn @click="deleteTransaction" color="red" class="full-width">Delete Transaction</q-btn>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+
+                  <!-- <q-card
                     v-if="wallet && transactionData?.transaction"
                     flat
+                    class="pt-card-2 text-bow"
                     :class="getDarkModeClass(darkMode)" >
                     <q-card-section>
                       <div class="row items-center no-wrap">
@@ -54,16 +99,14 @@
                       </q-item>
                     </q-list>
                     <q-card-actions>
-                      <!-- {{ wallet.signers }} -->
                       <q-chip v-for="signerEntityIndex in Object.keys(wallet.signers)" :key="signerEntityIndex">
                         {{ wallet.signers[signerEntityIndex].signerName }} {{ wallet.signers[signerEntityIndex].xprv }}
                       </q-chip>
                     </q-card-actions>
                     <q-card-actions>
-                      <!-- <q-btn @click="partiallySignTransaction({ xprv: wallet.signers[signerEntityIndex].xprv })">Partially Sign</q-btn> -->
                       <q-btn @click="deleteTransaction">Delete Transaction</q-btn>
                     </q-card-actions>
-                  </q-card>
+                  </q-card> -->
                 </div>
             </div>
           </div>

@@ -12,9 +12,9 @@
             <div class="row q-mt-lg justify-center">
                 <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
                   <q-card
+                    class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)"
                     v-if="pst"
                     flat
-                    :class="getDarkModeClass(darkMode)"
                     >
                     <q-card-section>
                       Transaction Details
@@ -38,7 +38,9 @@
                       <div>Number of recipients: {{ pst.outputs.length }}</div>
                     </q-card-section>
                     <q-card-section>
-                      <div>Required Signatures: {{ pst.m }} of {{ pst.n }}</div>
+                      <div>
+                        Required Signatures: {{ pst.m }} of {{ pst.n }}
+                      </div>
                     </q-card-section>
                     <q-separator />
                     <q-card-section v-if="Object.keys(pst?.signatures || {}).length > 0">
