@@ -34,6 +34,7 @@
       </div>
       <q-card-section>
         <q-list bordered separator>
+        <q-item-label header>SingleSig Address</q-item-label>
         <q-item
           v-for="item in addressOptions"
             :key="item.address"
@@ -62,7 +63,7 @@
             </q-item-section>
           </q-item>
         <q-separator></q-separator>
-        <div>Multisig Address</div>
+        <q-item-label header>Multisig Address</q-item-label>
         <q-item
           v-for="item in multisigAddressOptions"
             :key="item.address"
