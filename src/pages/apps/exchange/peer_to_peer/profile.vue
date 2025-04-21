@@ -310,7 +310,7 @@ export default {
         this.reviewsPageNumber = 1
       }
       if (value === 'reviews') {
-        this.fetchReviews()
+        this.fetchReviews(true)
         this.adsList = []
         this.adsPageNumber = 1
       }
@@ -360,7 +360,7 @@ export default {
     },
     async refreshData (done) {
       await this.fetchUser()
-      this.fetchReviews()
+      this.fetchReviews(true)
       if (done) done()
     },
     userNameView (name) {
@@ -412,7 +412,7 @@ export default {
         vm.fetchReviews()
       }
     },
-    fetchReviews () {
+    fetchReviews (overwrite = false) {
       return new Promise((resolve, reject) => {
         const vm = this
         vm.loadingReviews = true
@@ -427,7 +427,13 @@ export default {
         })
           .then(response => {
             if (response.data) {
-              vm.reviewsList.push(...response.data.feedbacks)
+              if (overwrite) {
+                vm.reviewsList = response.data.feedbacks
+                console.log('overwrite')
+              } else {
+                vm.reviewsList.push(...response.data.feedbacks)
+                console.log('not overwrite')
+              }
               vm.reviewsTotalPages = response.data.total_pages
             }
             vm.loadingReviews = false
