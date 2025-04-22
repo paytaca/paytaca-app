@@ -20,7 +20,7 @@
           />
         </div>
         <template v-else>
-          <span class="col-12 text-center text-h5 text-bold">{{ points }} RFP</span>
+          <span class="col-12 text-center text-h5 text-bold">{{ points }} RP</span>
           <span
             class="q-mb-md col-12 text-center subtext-gray"
             :class="getDarkModeClass(darkMode)"
@@ -29,7 +29,7 @@
           </span>
 
           <span class="q-mb-xs col-12 text-center">
-            You can redeem {{ redeemablePoints }} RFP this month
+            You can redeem {{ redeemablePoints }} RP this month
           </span>
         </template>
         <div class="row col-12 justify-center">
@@ -84,7 +84,7 @@
                     Wallet created on {{ parseLocaleDate(item.date_created) }}
                   </span><br/>
                   <span v-if="item.has_transacted">
-                    You earned <span class="text-bold">5 RFP</span>
+                    You earned <span class="text-bold">5 RP</span>
                   </span>
                   <span
                     v-else

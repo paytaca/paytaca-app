@@ -50,7 +50,9 @@
               Enter points to be swapped to BCH.
             </span>
             <span>
-              <strong>Rate:</strong> 1 {{ pointsType.toUpperCase() }} = {{ singlePointConversion }}
+              <strong>Rate:</strong> 1
+              {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
+              = {{ singlePointConversion }}
             </span>
           </div>
 
@@ -69,14 +71,17 @@
             >
               <template v-slot:append>
                 <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-                  {{ pointsType.toUpperCase() }}
+                  {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
                 </div>
               </template>
             </q-input>
           </div>
 
           <div class="row justify-between q-mb-sm q-mx-sm">
-            <span>{{ pointsBalance }} {{ pointsType.toUpperCase() }}</span>
+            <span>
+              {{ pointsBalance }}
+              {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
+            </span>
             <span
               class="max-button text-grad"
               :class="getDarkModeClass(darkMode)"
@@ -127,7 +132,9 @@
               Enter points to be converted to Paytaca tokens.
             </span>
             <span>
-              <strong>Rate:</strong> 1 {{ pointsType.toUpperCase() }} = 1 PTC
+              <strong>Rate:</strong> 1
+              {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
+              = 1 PTC
             </span>
           </div>
 
@@ -146,14 +153,17 @@
             >
               <template v-slot:append>
                 <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-                  {{ pointsType.toUpperCase() }}
+                  {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
                 </div>
               </template>
             </q-input>
           </div>
 
           <div class="row justify-between q-mb-sm q-mx-sm">
-            <span>{{ pointsBalance }} {{ pointsType.toUpperCase() }}</span>
+            <span>
+              {{ pointsBalance }}
+              {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
+            </span>
             <span
               class="max-button text-grad"
               :class="getDarkModeClass(darkMode)"

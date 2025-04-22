@@ -36,7 +36,8 @@
             class="amount-text"
             :class="getDarkModeClass(darkMode, '', 'text-grad')"
           >
-            {{ promo.points }} {{ pointsType[index].toUpperCase() }}
+            {{ promo.points }}
+            {{ `${pointsType[index] === 'rfp' ? 'rp' : pointsType[index]}`.toUpperCase() }}
           </span>
         </div>
 
@@ -128,7 +129,6 @@ export default {
 
             if (promoId) {
               const contract = new PromoContract(vm.promos[i].shortName, keyPair.pubKey)
-              console.log(contract)
               await contract.subscribeAddress()
               vm.promos[i].points = await contract.getTokenBalance()
             } else vm.promos[i].points = 0

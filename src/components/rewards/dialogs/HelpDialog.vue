@@ -81,7 +81,7 @@
                       </span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      Promo for referrals. Users who successfully invite friends to use Paytaca with a referral code will receive RFP (Refer-a-friend Points).
+                      Promo for referrals. Users who successfully invite friends to use Paytaca with a referral code will receive RP (Referral Points).
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -94,7 +94,7 @@
           <q-carousel-slide :name="`${Promos.USERREWARDS}-1`" class="help-carousel-slide">
             <h5 class="q-ma-xs q-pb-md text-center text-bold">Welcome to the User Rewards Page</h5>
             <div class="row text-left">
-              User Rewards is a collection of points, called User Points (UP), earned throughout your interaction with the Paytaca app.
+              User Rewards is a collection of points, called UP (User Points), earned throughout your interaction with the Paytaca app.
             </div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.USERREWARDS}-2`" class="help-carousel-slide">
@@ -175,14 +175,14 @@
           <q-carousel-slide :name="`${Promos.RFPROMO}-1`" class="help-carousel-slide">
             <h5 class="q-ma-xs q-pb-md text-center text-bold">Welcome to the Refer-a-friend (RF) Promo Page</h5>
             <div class="row text-left">
-              Refer-a-friend (RF) Promo is built to encourage users to invite friends to use the Paytaca app and explore the Paytaca ecosystem. Referees will earn Refer-a-friend Points (RFP) for each successful referral.
+              Refer-a-friend (RF) Promo is built to encourage users to invite friends to use the Paytaca app and explore the Paytaca ecosystem. Referees will earn RP (Referral Points) for each successful referral.
             </div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.RFPROMO}-2`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">Earning Refer-a-friend Points</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">Earning Referral Points</h6>
             <div class="row text-left">
               <p>
-                To earn RFP, refer your friends or other users to use Paytaca.
+                To earn RP, refer your friends or other users to use Paytaca.
               </p>
               <p>
                 When they create their new wallet, have them scan your referral QR code. After the new user created their wallet and completing their very first transaction, you will receive 5 RFP.
@@ -193,13 +193,13 @@
             </div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.RFPROMO}-3`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">Redeeming Refer-a-friend Points</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">Redeeming Referral Points</h6>
             <div class="row text-left">
               <p>
-                When redeeming your RFP, you can either swap it to BCH or convert it to Paytaca cashtoken. Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
+                When redeeming your RP, you can either swap it to BCH or convert it to Paytaca cashtoken. Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
               </p>
               <p>
-                Note that you can only redeem up to 10,000 RFP per month.
+                Note that you can only redeem up to 10,000 RP per month.
               </p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
@@ -224,7 +224,7 @@
                       </span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      This action will convert your points to Paytaca tokens. Conversion rate is 1 RFP = 1 PTC.
+                      This action will convert your points to Paytaca tokens. Conversion rate is 1 RP = 1 PTC.
                     </q-item-label>
                   </q-item-section>
                 </q-item>
