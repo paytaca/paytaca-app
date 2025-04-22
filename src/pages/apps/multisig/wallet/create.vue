@@ -9,9 +9,9 @@
               backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
-            <div class="row q-mt-lg justify-center">
-                <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-md">
-                    <div v-if="wallet" class="row q-gutter-y-md justify-between items-center" >
+            <div class="row justify-center">
+                <div class="col-xs-12 col-md-8 text-right q-px-md q-gutter-y-sm">
+                    <div v-if="wallet" class="row q-gutter-y-sm justify-between items-center" >
                         <div class="col-5 ">
                             <q-select
                                 :popup-content-class="darkMode ? '': 'text-black'"
@@ -30,7 +30,7 @@
                             />
                         </div>
                         <div class="col-12 ">
-                            <q-input v-model="wallet.name" label="Wallet Label" outlined></q-input>
+                            <q-input v-model="wallet.name" label="Wallet Name" outlined></q-input>
                         </div>
                         <div class="col-12 text-center">
                             <span class="text-h6 text-italic text-bow">
@@ -39,16 +39,16 @@
                         </div>
                     </div>
                     <div v-if="Object.keys(wallet.signers || {}).length > 0" class="row">
-                      <div class="col-12 q-px-m">
+                      <div class="col-12 q-px-m q-pb-lg">
                         <q-form
                           @submit="onSubmit"
                           @reset="onResetClicked"
                           class="q-gutter-md"
                           >
                           <template v-for="i, index in Array(wallet.n)" :key="`cosigner-${index}`">
-                            <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                              <q-card-section>{{ index === 0 ? '( You )': '' }} Signer {{ index + 1 }} </q-card-section>
-                              <q-card-section class="q-pa-md q-gutter-y-sm">
+                            <div class="br-15 text-bow" :class="getDarkModeClass(darkMode)">
+                              <div class="q-px-sm text-overline text-left">{{index + 1 === 1 ? 'Signer': 'Cosigner'}} {{ index + 1 }} {{ index === 0 ? '( You )': '' }}  </div>
+                              <div class="q-pb-md q-gutter-y-sm">
                                 <q-input
                                   v-model="wallet.signers[index + 1].signerName"
                                   :label="index + 1 === 1? 'Enter your name': 'Cosigner\'s name'"
@@ -71,8 +71,8 @@
                                   style="color:black"
                                   outlined
                                 ></q-input> -->
-                              </q-card-section>
-                            </q-card>
+                              </div>
+                            </div>
                           </template>
                           <div>
                               <q-btn
