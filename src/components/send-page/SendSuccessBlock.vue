@@ -27,7 +27,9 @@
           label="View details"
           class="q-my-sm button"
           @click="openSendSuccessDetailsDialog"
-        /><br />
+        /><br /><br />
+        <div class="text-grey">{{ $t('TransactionId')}}</div>
+        <p style="font-family: monospace;" :class="getDarkModeClass(darkMode)">{{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}</p>
         <a
           class="button button-text-primary view-explorer-button"
           style="text-decoration: none;"
@@ -38,7 +40,7 @@
           {{ $t('ViewInExplorer') }}
         </a>
       </div>
-      <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-sm">
+      <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-lg">
         {{ formattedTxTimestamp }}
       </div>
 

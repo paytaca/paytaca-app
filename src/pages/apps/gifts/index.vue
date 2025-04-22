@@ -42,7 +42,7 @@
                     :index="recordType"
                     clickable v-close-popup
                     :active="recordType === filterOpts.recordType.active"
-                    @click="() => fetchGifts(opts={ recordType: recordType, limit: 10 })"
+                    @click="() => fetchGifts(null, opts={ recordType: recordType, limit: 10 })"
                   >
                     <q-item-section>
                       <q-item-label>{{ $t(capitalize(recordType)) }}</q-item-label>
@@ -52,7 +52,7 @@
               </q-btn-dropdown>
             </div>
             <div v-if="campaign_filter.id" class="text-center q-mt-md">
-              <q-chip removable @remove="$event => { campaign_filter = {}; fetchGifts(opts={ recordType: 'all', limit: 10, offset: 0}) } ">{{ campaign_filter.name }}</q-chip>
+              <q-chip removable @remove="$event => { campaign_filter = {}; fetchGifts(null, opts={ recordType: 'all', limit: 10, offset: 0}) } ">{{ campaign_filter.name }}</q-chip>
             </div>
             <div class="row items-start q-mt-sm">
               <template v-if="fetchingGifts">
@@ -171,7 +171,7 @@
                     padding="xs"
                     boundary-numbers
                     @update:modelValue="
-                      (val) => fetchGifts(opts={
+                      (val) => fetchGifts(null, opts={
                         recordType: filterOpts.recordType.active,
                         limit: pageNumberPaginationData.pageSize,
                         offset: pageNumberPaginationData.pageSize * (val - 1)
@@ -304,7 +304,7 @@ export default {
     },
     filterByCampaign (gift) {
       this.campaign_filter = { id: gift?.campaign_id, name: gift?.campaign_name }
-      this.fetchGifts(opts={ recordType: 'all', limit: 10, offset: 0 })
+      this.fetchGifts(null, opts={ recordType: 'all', limit: 10, offset: 0 })
     },
     displayGift(gift) {
       this.$q.dialog({
@@ -360,7 +360,7 @@ export default {
     }
   },
   mounted () {
-    this.fetchGifts()
+    this.fetchGifts(null)
   }
 }
 </script>

@@ -108,6 +108,11 @@ export default {
           value: 'NF',
           label: this.$t('Collectibles'),
           selected: false
+        },
+        {
+          value: 'EP',
+          label: this.$t('EventsAndPromotions'),
+          selected: false
         }
       ],
 

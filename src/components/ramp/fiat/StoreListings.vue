@@ -65,13 +65,13 @@
           :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="[{'dark': darkMode}, {'active-buy-btn': transactionType == 'SELL'}]"
+            :class="[{'dark': darkMode}, {'active-buy-btn': transactionType === 'SELL'}]"
             @click="transactionType='SELL'">
             {{ $t('BuyBCH') }}
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="[{'dark': darkMode}, {'active-sell-btn': transactionType == 'BUY'}]"
+            :class="[{'dark': darkMode}, {'active-sell-btn': transactionType === 'BUY'}]"
             @click="transactionType='BUY'">
             {{ $t('SellBCH') }}
           </button>
@@ -79,7 +79,7 @@
       </q-pull-to-refresh>
       <div class="q-mt-sm">
         <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-          <div v-if="displayEmptyList">
+          <div v-if="displayEmptyList && !loading">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
           </div>
@@ -224,29 +224,41 @@ export default {
       onFirstLoad: {
         sell: true,
         buy: true
-      }
+      },
+      switchFlag: false
     }
   },
   watch: {
     async transactionType (value) {
       const vm = this
+      vm.switchFlag = true
+      vm.loading = true
       vm.displayEmptyList = false
       vm.filterComponentKey++
       vm.scrollToTop()
       vm.updatePaginationValues()
-      vm.updateFilters()
-      vm.resetAndRefetchListings()
-      vm.$store.commit('ramp/updateStoreListingTab', value)
+      await vm.updateFilters()
+        .then(() => {
+          vm.resetAndRefetchListings(true)
+          vm.$store.commit('ramp/updateStoreListingTab', value)
+        })
     },
     async selectedCurrency () {
-      this.updateFilters()
-      this.resetAndRefetchListings()
+      this.switchFlag = true
+      this.loading = true
       this.filterComponentKey++
+      await this.updateFilters()
+        .then(() => {
+          this.resetAndRefetchListings(true)
+        })
     },
     async isAllCurrencies (val) {
       if (val) {
+        this.switchFlag = true
+        this.loading = true
         this.updateFilters()
-        this.resetAndRefetchListings()
+        this.filterComponentKey++
+        this.resetAndRefetchListings(true)
       }
     }
   },
@@ -387,6 +399,12 @@ export default {
           })
           .then(() => {
             vm.updatePaginationValues()
+
+            setTimeout(() => {
+              if (this.listings.length === 0) {
+                this.displayEmptyList = true
+              }
+            }, 50)
           })
           .catch(error => {
             this.handleRequestError(error)
@@ -430,14 +448,12 @@ export default {
       if (tab === 'BUY') this.onFirstLoad.buy = false
 
       this.$store.commit('ramp/resetStorePagination')
+      this.switchFlag = false
       this.loading = true
       await this.fetchStoreListings(true)
-
-      setTimeout(() => {
-        this.displayEmptyList = true
-      }, 150)
-
-      this.loading = false
+        .then(() => {
+          this.loading = false
+        })
     },
     updatePaginationValues () {
       const vm = this
@@ -458,7 +474,6 @@ export default {
         this.selectedCurrency = this.fiatCurrencies[index]
         this.isAllCurrencies = false
       }
-      await this.resetAndRefetchListings(true)
     },
     async selectListing (listing) {
       await this.$router.push({ name: 'p2p-store-form', params: { ad: listing.id } })

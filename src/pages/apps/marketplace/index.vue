@@ -15,7 +15,10 @@
       <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
 
-    <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
+    <div
+      class="q-px-md q-pt-xs q-pb-md sticky-below-header"
+      :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
+    >
       <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
     </div>
 
@@ -73,7 +76,7 @@
           @click="() => toggleDeliveryType(Checkout.DeliveryTypes.LOCAL_DELIVERY)"
         />
       </div>
-      <div v-if="!initialized && fetchingStorefronts" class="row items-center justify-center">
+      <div v-if="(!initialized || !storefronts.length) && fetchingStorefronts" class="row items-center justify-center">
         <q-spinner size="4em" color="brandblue"/>
       </div>
       <div class="row items-start justify-start q-mb-md">
@@ -150,25 +153,23 @@
         </div>
       </div>
 
-      <div class="col-12 row items-center q-px-sm q-pt-md">
-        <div class="text-h5 q-px-xs">Orders</div>
-        <q-space/>
-        <LimitOffsetPagination
-          :pagination-props="{
-            maxPages: 5,
-            rounded: true,
-            padding: 'sm md',
-            boundaryNumbers: true,
-            disable: fetchingOrders,
-          }"
-          class="q-my-sm"
-          :hide-below-pages="2"
-          :modelValue="ordersPagination"
-          @update:modelValue="fetchOrders"
-        />
-      </div>
-
-      <div class="q-mb-md">
+      <div
+        v-intersection="ordersPanelIntersectionOptions"
+        class="q-mb-md q-pt-md"
+        :class="[orders.length ? 'orders--sticky-bottom' : '']"
+      >
+        <div class="col-12 row items-center q-px-sm">
+          <div class="text-h5 q-px-xs">Orders</div>
+          <q-space/>
+          <q-btn
+            v-if="orders.length < ordersPagination.count"
+            flat
+            no-caps
+            label="View all"
+            :to="{ name: 'app-marketplace-orders'}"
+          />
+          
+        </div>
         <div v-if="fetchingOrders" class="text-center q-px-md">
           <q-spinner v-if="!orders?.length" size="1.5rem" color="brandblue" class="q-mb-sm"/>
           <q-linear-progress v-else query reverse color="brandblue"/>
@@ -176,7 +177,7 @@
         <div v-else class="q-mb-xs"></div>
 
         <div v-if="!orders?.length && initialized" class="text-grey text-center q-mb-md">No active orders</div>
-        <div v-else class="q-py-sm">
+        <div v-else class="q-py-sm orders-list">
           <q-list separator>
             <q-item
               v-for="order in orders" :key="order?.id"
@@ -207,14 +208,11 @@
             </q-item>
           </q-list>
         </div>
-        <div
-          v-if="initialized"
-          class="row items-center justify-center"
-        >
+        <div v-if="!orders.length" class="row items-center justify-center">
           <q-btn
             flat
             no-caps
-            :label="orders?.length ? 'View all' : 'Go to orders'"
+            label="Go to orders"
             align="left"
             padding="none xs"
             class="text-underline text-weight-bold button button-text-primary"
@@ -235,7 +233,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { computed, ref, onMounted, watch, onActivated, onUnmounted } from 'vue'
+import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
@@ -277,56 +275,24 @@ onMounted(() => bus.on('marketplace-init-promise', onLoadAppInit))
 onUnmounted(() => bus.off('marketplace-init-promise', onLoadAppInit))
 
 
-const customer = computed(() => $store.getters['marketplace/customer'])
+onMounted(() => bus.on('marketplace-manual-select-location', manualSelectLocation))
+onUnmounted(() => bus.off('marketplace-manual-select-location', manualSelectLocation))
 const sessionLocationWidget = ref()
-const sessionLocation = computed(() => $store.getters['marketplace/sessionLocation'])
-async function initializeLocation() {
-  const _isValidCoordinates = (opts={ ignoreExpired: false }) => sessionLocation.value?.id &&
-      sessionLocation.value?.validCoordinates &&
-      (!sessionLocation.value?.expired || opts?.ignoreExpired)
-
-  if (_isValidCoordinates()) return
-
-  if (!sessionLocationWidget.value) {
-    await updateLocation()
-      .then(() => $store.commit('marketplace/setSelectedSessionLocationId'))
-      .catch(console.error)
-  } else {
-    await sessionLocationWidget.value.setCurrentLocation({
-      keepSelectorOpen: true, hideDialogOnError: true
-    })
-      ?.then(() => sessionLocationWidget.value.setCurrentLocation = true)
-      ?.catch?.(console.error)
-  }
-
-  if (_isValidCoordinates({ ignoreExpired: true })) return
-
-  if (customer.value?.defaultLocation?.validCoordinates) {
-    $store.commit('marketplace/addCustomerLocation', customer.value?.defaultLocation?.$raw)
-    $store.commit('marketplace/setSelectedSessionLocationId', customer.value?.defaultLocation?.id)
-    if (sessionLocationWidget.value) {
-      sessionLocationWidget.value.openLocationSelector = false
-    }
-    return
-  }
-
-  if (sessionLocationWidget.value) {
+function manualSelectLocation() {
+  if (!sessionLocationWidget.value) return
+  sessionLocationWidget.value.openLocationSelector = true
+  nextTick(() => {
     sessionLocationWidget.value?.updateDeviceLocation?.()
-  }
-}
-const updateLocationPromise = ref()
-async function updateLocation() {
-  if (!updateLocationPromise.value) {
-    updateLocationPromise.value = $store.dispatch('marketplace/updateLocation', { maxAge: 60 * 1000 })
-      .finally(() => updateLocationPromise.value = undefined)
-  }
-
-  return updateLocationPromise.value
+  })
 }
 
 
 const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
 watch(customerCoordinates, () => fetchStorefronts())
+const customerCoordinatesValid = computed(() => {
+  return !Number.isNaN(customerCoordinates.value?.latitude) &&
+         !Number.isNaN(customerCoordinates.value.longitude)
+})
 
 const fetchingStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
@@ -371,7 +337,6 @@ function openStorefrontListOptsForm() {
   .onOk(data => $store.commit('marketplace/setShopListOpts', { radius: parseFloat(data) }))
 }
 async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
-  await updateLocationPromise.value
   const params = {
     limit: opts?.limit || 6,
     offset: opts?.offset || undefined,
@@ -381,13 +346,15 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
     annotate_is_open_at: getISOWithTimezone(new Date()),
     ordering: 'in_prelaunch,-is_open',
   }
-  if (!isNaN(customerCoordinates.value?.latitude) && !isNaN(customerCoordinates.value.longitude)) {
+  if (customerCoordinatesValid.value) {
     params.distance = btoa(JSON.stringify({
       lat: customerCoordinates.value?.latitude,
       lon: customerCoordinates.value?.longitude,
       radius: storefrontListOpts.value?.radius,
     }))
     params.ordering = [params.ordering, 'distance'].join(',')
+  } else {
+    return
   }
 
   fetchingStorefronts.value = true
@@ -413,7 +380,7 @@ const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
 async function fetchOrders(opts = { limit: 0, offset: 0 }) {
   const params = {
     ref: await $store.dispatch('marketplace/getCartRef'),
-    limit: opts?.limit || 10,
+    limit: opts?.limit || 2,
     offset: opts?.offset || undefined,
     exclude_statuses: ['completed', 'cancelled'].join(','),
   }
@@ -439,10 +406,36 @@ async function fetchOrders(opts = { limit: 0, offset: 0 }) {
     })
 }
 
+const ordersPanelIntersectionOptions = {
+  /**
+   * @param {IntersectionObserverEntry} observerEntry 
+   */
+  handler(observerEntry) {
+    const stuckStateClasses = [
+      'orders--sticky-bottom--stuck',
+      'q-r-mx-md',
+      'q-px-sm',
+      'br-15',
+      'shadow-2',
+    ]
+    const target = observerEntry.target
+    const hasStickyBottom = target.classList.contains('orders--sticky-bottom')
+    
+    if (observerEntry.intersectionRatio < 0.95 && hasStickyBottom) {
+      observerEntry.target.classList.add(...stuckStateClasses)
+    } else {
+      observerEntry.target.classList.remove(...stuckStateClasses)
+    }
+  },
+  cfg: {
+    threshold: new Array(100).fill(0).map((e, index) => index / 100)
+  }
+}
+
 async function refreshPage(done=() => {}) {
   try {
     await loadAppPromise.value
-    if (!initialized.value) await initializeLocation().catch(console.error)
+    if (initialized.value && !customerCoordinatesValid.value) await manualSelectLocation()
     await Promise.all([
       fetchStorefronts(),
       fetchOrders(),
@@ -455,6 +448,7 @@ async function refreshPage(done=() => {}) {
 }
 </script>
 <style scoped lang="scss">
+@import '/src/css/shared.scss'; // Using this should get you the variables
 table.orders-table {
   border-spacing: map-get($space-xs, "x") map-get($space-sm, "y");
 }
@@ -467,4 +461,39 @@ table.orders-table td {
   top: 70px;
   z-index: 10 !important;
 }
+.sticky-below-header.sticky-below-header--ios {
+  top: 110px;
+}
+
+.orders--sticky-bottom {
+  position: sticky;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  padding-bottom: 30px;
+  transition: all 0.15s ease-out;
+}
+
+.orders--sticky-bottom.orders--sticky-bottom--stuck {
+  .orders-list {
+    max-height: 20vh;
+    overflow-y: auto;
+  }
+}
+
+.orders--sticky-bottom.orders--sticky-bottom--stuck {
+  @extend .shadow-2 !optional;
+}
+
+#app-container.dark {
+  .orders--sticky-bottom.orders--sticky-bottom--stuck {
+    background-color: $brand_dark;
+  }
+}
+#app-container.light {
+  .orders--sticky-bottom.orders--sticky-bottom--stuck {
+    background-color: $brand_light;
+  }
+}
+
 </style>

@@ -194,11 +194,6 @@ export default {
             vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
             vm.eventsAndPromosSubList[0].value = configs.country
             vm.eventsAndPromosSubList[1].value = configs.city
-
-            const countryLabel = configs.country ? this.$t('UpdateCountry') : this.$t('EnterCountry')
-            const cityLabel = configs.city ? this.$t('UpdateCity') : this.$t('EnterCity')
-            vm.eventsAndPromosSubList[0].inputLabel = countryLabel
-            vm.eventsAndPromosSubList[1].inputLabel = cityLabel
           } else await vm.handleNotifTypesSubscription(null)
         })
     }
@@ -207,6 +202,8 @@ export default {
     // set country and city value
     const currentCountry = vm.eventsAndPromosSubList[0].value
     const currentCity = vm.eventsAndPromosSubList[1].value
+    let countryLabel = this.$t('EnterCountry')
+    let cityLabel = this.$t('EnterCity')
 
     if (currentCountry) {
       const country = vm.countryCityData
@@ -219,13 +216,18 @@ export default {
           }
         })
       vm.eventsAndPromosSubList[0].value = country[0]
+      countryLabel = country[0].label
     }
 
     if (currentCity) {
       const choices = this.parseCities()
-      const city = choices.filter(a => a.id === currentCity)
+      const city = choices.filter(a => a.value === currentCity)
       vm.eventsAndPromosSubList[1].value = city[0]
+      cityLabel = city[0].label
     }
+
+    vm.eventsAndPromosSubList[0].inputLabel = countryLabel
+    vm.eventsAndPromosSubList[1].inputLabel = cityLabel
 
     this.isEnablePushNotifsLoading = false
   },
@@ -289,7 +291,6 @@ export default {
     },
     openEnterCountryCityDialog (enterType) {
       const vm = this
-
       const enterTypeText = enterType === 0 ? 'Country' : 'City'
 
       let choices = []
@@ -328,8 +329,13 @@ export default {
         }
       }).onOk(response => {
         vm.eventsAndPromosSubList[enterType].value = response
-        const inputLabel = this.$t(`${response ? 'Update' : 'Enter'}${enterTypeText}`)
+        const inputLabel = response ? response.label : this.$t(`Enter${enterTypeText}`)
         vm.eventsAndPromosSubList[enterType].inputLabel = inputLabel
+
+        if (enterType === 0) {
+          vm.eventsAndPromosSubList[1].value = null
+          vm.eventsAndPromosSubList[1].inputLabel = this.$t('EnterCity')
+        }
       })
     },
 

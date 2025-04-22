@@ -5,6 +5,11 @@ export function updateAppControl (state, data) {
   state.appControl = data
 }
 
+export function updateMerchantActivity (state, data) {
+  state.merchantActivity.active = data.active
+  state.merchantActivity.verified = data.verified
+}
+
 function getWalletData (state, details) {
   const isChipnet = details.isChipnet === undefined ? state.isChipnet : details.isChipnet
   const walletType = details.type
@@ -106,6 +111,10 @@ export function enableStablhedge(state, value) {
 
 export function enableSmartBCH (state) {
   state.enableSmartBCH = !state.enableSmartBCH
+}
+
+export function disableSmartBCH (state) {
+  state.enableSmartBCH = false
 }
 
 export function updateWallet (state, details) {

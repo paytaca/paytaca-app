@@ -19,7 +19,7 @@ function parseVolumeData(data) {
     if (!toAdd.size) break
   }
 
-  toAdd.keys().forEach(txType => {
+  toAdd.forEach((_, txType) => {
     data.push({ transaction_type: txType, satoshis: 0, count: 0 })
   })
 
@@ -282,7 +282,7 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
       limit: 20,
       short_address: addressParam || '',
       funding: 'complete',
-      // settled: false,
+      settled: false,
     }
     const backend = getStablehedgeBackend(isChipnet.value)
     fetchingShortPositions.value = true

@@ -281,6 +281,7 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
 import SendSuccessBlock from 'src/components/send-page/SendSuccessBlock.vue'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 
@@ -535,14 +536,9 @@ export default {
           const amount = this.sendDataMultiple[index]?.amount
 
           if (!amount || amount <= 0) return
-          const amountInFiat = parseFloat(this.inputExtras[index].sendAmountInFiat)
 
-          // if set to input BCH or if fiat amount is none (happens sometimes)
-          if (!amountInFiat) {
-            const amountInFiat = this.convertToFiatAmount(amount)
-            this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
-          }
-          this.recomputeAmount(this.sendDataMultiple[index], this.inputExtras[index], amountInFiat)
+          const amountInFiat = this.convertToFiatAmount(amount)
+          this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
         }
       }
     },
@@ -694,6 +690,16 @@ export default {
       let fungibleTokenAmount = null
       let paymentUriData = null
 
+      const prefixlessAddressValidation = sendPageUtils.parseAddressWithoutPrefix(content)
+      if (prefixlessAddressValidation.valid) {
+        return [
+          prefixlessAddressValidation.address,
+          null,
+          null,
+          null,
+        ]
+      }
+
       try {
         paymentUriData = parsePaymentUri(
           content,
@@ -703,7 +709,10 @@ export default {
         if (paymentUriData?.outputs?.length > 1) throw new Error('InvalidOutputCount')
       } catch (error) {
         console.error(error)
-        sendPageUtils.paymentUriPromiseResponseHandler(error)
+        sendPageUtils.paymentUriPromiseResponseHandler(
+          error,
+          { defaultError: this.$t('UnidentifiedQRCode') },
+        )
         return
       }
 
@@ -784,7 +793,7 @@ export default {
         if (addressParse.has('expires')) {
           const expires = parseInt(addressParse.get('expires'))
           this.bip21Expires = expires
-          const now = Math.floor(Date.now() / 1000)
+          const now = Math.floor(Date.now() / 1000) + (this.networkTimeDiff / 1000)
           if (now >= expires) {
             this.disableSending = true
             sendPageUtils.raiseNotifyError(this.$t('PaymentRequestIsExpired'))
@@ -951,7 +960,7 @@ export default {
 
       if (vm.bip21Expires) {
         const expires = parseInt(vm.bip21Expires)
-        const now = Math.floor(Date.now() / 1000)
+        const now = Math.floor(Date.now() / 1000) + (vm.networkTimeDiff / 1000)
         if (now >= expires) {
           vm.disableSending = true
           sendPageUtils.raiseNotifyError(vm.$t('PaymentRequestIsExpired'))
@@ -1302,9 +1311,14 @@ export default {
   },
 
   async beforeMount () {
+    const dialog = this.$q.dialog({
+      component: LoadingWalletDialog,
+      componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
+    })
     await this.$store.dispatch('global/loadWalletLastAddressIndex')
     await this.$store.dispatch('global/loadWalletAddresses')
     await this.$store.dispatch('global/loadWalletConnectedApps')
+    dialog.hide()
   },
 
   async mounted () {

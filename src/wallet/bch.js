@@ -227,9 +227,9 @@ export class BchWallet {
     return request
   }
 
-  async getTransactions (page, recordType, tokenId = null) {
+  async getTransactions ({page, recordType, tokenId, txSearchReference}) {
     const walletHash = this.getWalletHash()
-    const request = await this.watchtower.Wallet.getHistory({ walletHash, tokenId, page, recordType })
+    const request = await this.watchtower.Wallet.getHistory({ walletHash, tokenId, page, recordType, txSearchReference})
     return request
   }
 

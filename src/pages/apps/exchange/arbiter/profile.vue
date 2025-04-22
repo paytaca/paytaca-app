@@ -171,7 +171,6 @@ export default {
     }
   },
   mounted () {
-    console.log('wallet:', wallet)
     this.fetchArbiter()
     this.fetchFeedback()
   },

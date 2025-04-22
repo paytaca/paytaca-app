@@ -7,7 +7,7 @@ const phrases = {
     {
       AdvanceBackupMethods: 'Advanced Backup Methods',
       AutoGenerateAddress: 'Auto generate address',
-      AutoGenerateAddressToolTip: 'A new address will be generated after receiving assets',
+      AutoGenerateAddressToolTip: 'A new address will be generated after receiving assets.',
       AnyHedge: "AnyHedge",
       AppealRamp: "Appeal Ramp",
       ApproveToken: "Approve token",
@@ -871,6 +871,8 @@ const phrases = {
       IUnderstandProceed: 'I understand, proceed',
       AppealType: 'Appeal Type',
       AppealForm: 'Appeal Form',
+      AppealFormReasonOpt1Seller: 'Unresponsive seller',
+      AppealFormReasonOpt1Buyer: 'Unresponsive buyer',
       AppealFormReasonOpt1: 'Unresponsive seller/buyer',
       AppealFormReasonOpt2: 'Payment failed',
       AppealFormReasonOpt3: 'I changed my mind',
@@ -1147,6 +1149,8 @@ const phrases = {
       ReserveSupply: "Reserve supply",
       TokenReserves: "Token reserves",
       EnableStablhedge: "Enable Stablehedge",
+      DepositWarningMessage: "Due to low liquidity, they may not be fully convertible back to BCH immediately.",
+      AvailableBchMessage: "Available BCH after deposit",
     },
     {
       StablehedgeIntroText: "Safeguard your funds from market volatility and access them whenever you need.",
@@ -1181,7 +1185,12 @@ const phrases = {
       TransactionDetails: 'Transaction Details',
       TotalAmountSent: 'Total amount sent',
       TimeSent: 'Time sent',
-      TransactionBreakdown: 'Transaction Breakdown'
+      AuthenticationFailed: 'Authentication failed',
+      ExternalLinks: 'External Links',
+      ProcessingNecessaryDetails: 'Processing necessary details',
+      BIP38WalletPassphrase: 'BIP38 wallet passphrase',
+      BIP38WalletDetected: 'Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.',
+      BIP38DecryptError: 'Failed to decrypt wallet. Try again later or use another passphrase.'
     }
   ],
   dynamic: [
@@ -1259,6 +1268,11 @@ const phrases = {
       StablehedgeContractDesc1: "Stablehedge uses {cashscriptLink} smart contracts to store your funds and ensure that exchanged assets within transactions are correct",
       StablehedgeContractDesc2: "The exchanged amounts are calculated based on the price values taken from {priceOracleLink}",
       StablehedgeLiquidityDesc1: "A part of your frozen funds are pooled with other users and locked in a leveraged short contract in {BCHBullLink} to protect against price drops",
+    },
+    {
+      CutleryIncludedMsg: 'Your order will include cutlery',
+      CutleryNotIncludedMsg: 'Your order will not include cutlery',
+      AdditionalChargesForCutlery: 'Additional charges for cutlery',
     }
   ]
 }

@@ -132,7 +132,7 @@
           </div>
           <div class="flex flex-center" style="margin-top: 30px;">
             <div class="flex flex-center" @click="copyToClipboard(qrCodeContents)">
-              <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="300" />
+              <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="200" />
             </div>
           </div>
           <p style="font-size: 18px;">{{ $t('ScanClaimGift') }}</p>

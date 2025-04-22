@@ -136,7 +136,7 @@ export default {
     scrollToBottomTransactionList () {
       this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
     },
-    getTransactions (page = 1, opts = { scrollToBottom: false }) {
+    getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null }) {
       if (this.selectedNetwork === 'sBCH') {
         const address = this.$store.getters['global/getAddress']('sbch')
         return this.getSbchTransactions(address, opts)
@@ -204,16 +204,17 @@ export default {
       const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
       const recordType = recordTypeMap[vm.transactionsFilter]
+      const txSearchReference = opts.txSearchReference
 
       let requestPromise
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions(tokenId, page, recordType)
+        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions({tokenId, page, recordType})
       } else if (id.indexOf('ct/') > -1) {
         const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType, tokenId)
+        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions({page, recordType, tokenId, txSearchReference})
       } else {
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(page, recordType)
+        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions({page, recordType, txSearchReference})
       }
 
       if (!requestPromise) return

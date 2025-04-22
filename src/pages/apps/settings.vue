@@ -93,8 +93,8 @@
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
                       </q-item-label>
-                      <q-item-label caption style="line-height:1;margin-top:0;" >
-                        {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets') }}
+                      <q-item-label caption style="line-height:1;margin-top:3px;" >
+                        {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
                       </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
@@ -108,7 +108,10 @@
               <q-item clickable v-ripple @click="enableStablhedge = !enableStablhedge">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableStablhedge') }}
+                        {{ $t('EnableStablhedge') }} <q-badge color="red" align="top">ALPHA</q-badge>
+                      </q-item-label>
+                      <q-item-label caption style="line-height:1;margin-top:3px;" >
+                        {{ $t('StablehedgeIntroText', {}, 'Safeguard your funds from market volatlity and access them whenever you need.') }}
                       </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
@@ -119,7 +122,7 @@
                     />
                   </q-item-section>
               </q-item>
-              <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
+              <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('EnableSmartBCH') }}
@@ -132,7 +135,7 @@
                       keep-color
                     />
                   </q-item-section>
-              </q-item>
+              </q-item> -->
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -225,7 +228,7 @@
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogCallback" />
+      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogCallback" :disableClose="disablePinDialogClose"/>
 
       <StablehedgePlatformInfoDialog v-model="showStablehedgeInfoDialog"/>
   </div>
@@ -251,6 +254,7 @@ export default {
   data () {
     return {
       pinDialogAction: '',
+      disablePinDialogClose: false,
       securityOptionDialogStatus: 'dismiss',
       securityAuth: false,
       securityChange: null,
@@ -347,6 +351,7 @@ export default {
             vm.$q.localStorage.set('preferredSecurity', 'pin')
             vm.pinStatus = true
             vm.pinDialogAction = 'SET NEW'
+            vm.disablePinDialogClose = true
           }, 1000)
         },
         (error) => {
@@ -368,13 +373,6 @@ export default {
       if (currentPref === auth) {
         vm.securityOptionDialogStatus = 'dismiss'
       }
-      // if (auth === 'pin') {
-      //   vm.pinStatus = true
-      //   vm.pinDialogAction = 'SET NEW'
-      // } else {
-      //   vm.pinStatus = false
-      //   vm.securityOptionDialogStatus = 'dismiss'
-      // }
     }
   },
   created () {

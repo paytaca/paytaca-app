@@ -43,11 +43,16 @@
                   })}` }}
                 </template>
                 <template v-else-if="transaction.record_type === 'outgoing'">
-                  {{ `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...transaction.asset,
-                    balance: transaction.amount
-                  })}` }}
+                  <template v-if="transaction.asset.id.startsWith('ct/')">
+                    {{ formatTokenAmount(transaction) }}
+                  </template>
+                  <template v-else>
+                    {{ `${parseAssetDenomination(
+                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                      ...transaction.asset,
+                      balance: transaction.amount
+                    })}` }}
+                  </template>
                 </template>
                 <template v-else>
                   <template v-if="transaction.asset.id.startsWith('ct/')">
@@ -142,7 +147,7 @@
               clickable
               v-ripple
               style="overflow-wrap: anywhere;"
-              v-if="!isSep20Tx && transaction.asset.id.startsWith('bch')"
+              v-if="!isSep20Tx && (transaction.asset.id.startsWith('bch') || transaction.asset.id.startsWith('ct/'))"
               @click="copyToClipboard(isSep20Tx ? transaction.hash.substring(0, 6).toUpperCase() : transaction.txid.substring(0, 6).toUpperCase())"
             >
               <q-item-section>
@@ -176,7 +181,7 @@
               </q-item>
             </template>
             <template v-else>
-              <q-item clickable v-ripple v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
+              <!-- <q-item clickable v-ripple v-if="transaction.record_type === 'incoming'" style="overflow-wrap: anywhere;">
                 <q-item-section v-if="isSep20Tx" @click="copyToClipboard(transaction.from)">
                   <q-item-label class="text-gray" caption>
                     <span>{{ $t('Sender') }}</span>
@@ -190,7 +195,7 @@
                   </q-item-label>
                   <q-item-label>{{ concatenate(transaction.senders) }}</q-item-label>
                 </q-item-section>
-              </q-item>
+              </q-item> -->
               <q-item clickable v-ripple v-if="transaction.record_type === 'outgoing'" style="overflow-wrap: anywhere;">
                 <q-item-section v-if="isSep20Tx" @click="copyToClipboard(transaction.to)">
                   <q-item-label class="text-gray" caption>
@@ -203,7 +208,71 @@
                     <span v-if="transaction.recipients.length === 1">{{ $t('Recipient') }}</span>
                     <span v-if="transaction.recipients.length > 1">{{ $t('Recipients') }}</span>
                   </q-item-label>
-                  <q-item-label>{{ concatenate(transaction.recipients) }}</q-item-label>
+                  <template v-if="transaction.asset.symbol === 'BCH'">
+                    <q-item-label>
+                      <div
+                        v-for="(data, index) in transaction.recipients.slice(0, 10)"
+                        class="row col-12 q-gutter-x-sm q-mb-xs"
+                        :key="index"
+                      >
+                        <span class="col-1">#{{ index + 1 }}</span>
+                        <span class="col-5" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
+                        <span class="col-4">
+                          {{
+                            `${parseAssetDenomination(
+                                denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination,
+                                {
+                                  ...transaction.asset,
+                                  balance: data[1] / (10 ** 8),
+                                  thousandSeparator: true
+                                }
+                              )}`
+                          }}
+                        </span>
+                      </div>
+                      <span
+                        v-if="transaction.recipients.length > 10"
+                        class="row col-12 justify-center q-mt-sm"
+                      >
+                        {{
+                          $t(
+                            "AndMoreAddresses",
+                            { addressCount: transaction.recipients.length - 10 },
+                            `and ${transaction.recipients.length - 10} more addresses`
+                          )
+                        }}
+                      </span>
+                    </q-item-label>
+                  </template>
+                  <template v-else>
+                    <q-item-label>
+                      <div
+                        v-for="(data, index) in transaction.recipients.slice(0, 10)"
+                        class="row col-12 q-gutter-x-sm q-mb-xs"
+                        :key="index"
+                      >
+                        <template v-if="data[3]">
+                          <span class="col-1">#{{ index + 1 }}</span>
+                          <span class="col-5" style="overflow-wrap: anywhere;">{{ convertCashAddress(data[0], $store.getters['global/isChipnet'], true) }}</span>
+                          <span class="col-4">
+                              {{ formatTokenAmount({amount: data[3], asset: transaction.asset}, absolute=true) }}
+                          </span>
+                        </template>
+                      </div>
+                      <span
+                        v-if="transaction.recipients.length > 10"
+                        class="row col-12 justify-center q-mt-sm"
+                      >
+                        {{
+                          $t(
+                            "AndMoreAddresses",
+                            { addressCount: transaction.recipients.length - 10 },
+                            `and ${transaction.recipients.length - 10} more addresses`
+                          )
+                        }}
+                      </span>
+                    </q-item-label>
+                  </template>
                 </q-item-section>
               </q-item>
             </template>
@@ -404,7 +473,7 @@ import { ellipsisText, parseHedgePositionData } from 'src/wallet/anyhedge/format
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import JppDetailDialog from 'src/components/JppDetailDialog.vue'
-import { convertTokenAmount } from 'src/wallet/chipnet'
+import { convertTokenAmount, convertCashAddress } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
@@ -481,7 +550,8 @@ export default {
       if (!transaction) return ''
       if (!this.marketAssetPrice) return ''
       if (transaction.usd_price || Object.keys(transaction.market_prices).length > 0) {
-        const currentFiatMarketPrice = transaction.market_prices[this.selectedMarketCurrency]
+        const marketPrices = transaction.market_prices
+        const currentFiatMarketPrice = marketPrices ? marketPrices[this.selectedMarketCurrency] : marketPrices
         if (currentFiatMarketPrice) {
           return (Number(transaction.amount) * Number(currentFiatMarketPrice)).toFixed(5)
         }
@@ -538,6 +608,7 @@ export default {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
+    convertCashAddress,
     concatenate (array) {
       let addresses = array.map(function (item) {
         return item[0]
@@ -647,14 +718,15 @@ export default {
           dialog.update({ message: 'Unable to fetch data' })
         })
     },
-    formatTokenAmount (transaction) {
-      const amount = transaction.amount / (10 ** transaction.asset.decimals)
+    formatTokenAmount (transaction, absolute=false) {
+      const _amount = absolute ? Math.abs(transaction.amount) : transaction.amount
+      const amount = _amount / (10 ** transaction.asset.decimals)
       const amountString = amount.toLocaleString('en-us', {maximumFractionDigits: transaction.asset.decimals})
       return `${amountString} ${transaction.asset.symbol}`
     },
     computeYield () {
-      const fiatAmount = this.transactionAmountMarketValue
-      const currentFiatPrice = this.transaction.amount * this.marketAssetPrice
+      const fiatAmount = Math.abs(this.transactionAmountMarketValue)
+      const currentFiatPrice = Math.abs(this.transaction.amount) * this.marketAssetPrice
       const currentYield = currentFiatPrice - fiatAmount
       return Number(currentYield.toFixed(2)) === 0.00 || Number(currentYield.toFixed(2)) === 0
         ? Math.abs(currentYield)

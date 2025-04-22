@@ -1,6 +1,6 @@
 <template>
     <q-dialog v-model="showDialog" full-width position="bottom" @before-hide="$emit('back')">
-        <q-card class="br-15 q-pa-md q-ma-sm text-bow" bordered flat :class="[darkMode ? 'pt-card-2 dark' : 'light']">
+        <q-card class="br-15 text-bow bottom-card" flat :class="[darkMode ? 'pt-card-2 dark' : 'light']">
             <div class="q-mt-md q-mx-md" style="overflow: auto">
                 <div class="row justify-center q-mb-md lg-font-size">Status Updates</div>
                 <div v-if="loading" class="row justify-center">
@@ -9,11 +9,9 @@
                 <div v-else v-for="(status, index) in statusHistory" :key="index" class="sm-font-size q-pb-sm">
                   <q-card :bordered="isStatusRead(status)" flat class="q-mx-xs" :class="[darkMode ? 'dark' : 'light', isStatusRead(status) ? 'pt-card-2': 'pt-card']">
                     <q-card-section class="row q-pa-sm">
-                      <!-- <div class="row q-pa-sm"> -->
-                        <q-badge v-if="!isStatusRead(status)" color="red" rounded floating/>
-                        <div class="col q-py-sm q-pl-sm" >{{formatOrderStatus(status.status)}}</div>
-                        <div class="col subtext" style="text-align: end">{{ formatDate(status.created_at) }}</div>
-                      <!-- </div> -->
+                      <q-badge v-if="!isStatusRead(status)" color="red" rounded floating/>
+                      <div class="col q-py-sm q-pl-sm" >{{formatOrderStatus(status.status)}}</div>
+                      <div class="col subtext" style="text-align: end">{{ formatDate(status.created_at) }}</div>
                     </q-card-section>
                   </q-card>
                 </div>

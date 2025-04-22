@@ -1,6 +1,6 @@
 <template>
   <q-dialog full-width no-shake position="bottom" v-model="showDialog" @before-hide="$emit('back')">
-    <q-card bordered flat class="br-15 q-pt-sm q-mx-none pt-card text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card flat class="br-15 q-pt-sm q-mx-none pt-card text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <div v-if="loading">
         <div class="row justify-center q-mb-lg" style="margin-top: 50px">
           <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>

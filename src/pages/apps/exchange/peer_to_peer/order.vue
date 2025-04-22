@@ -32,17 +32,8 @@
               @view-reviews="showReviews=true"
               @view-chat="openChat=true"/>
           </div>
-          <!-- Ad Owner Confirm / Decline -->
-          <ReceiveOrder
-            v-if="state === 'order-confirm-decline'"
-            ref="receiveOrderRef"
-            :data="receiveOrderData"
-            :errorMessage="receiveOrderError"
-            @confirm="confirmingOrder"
-            @cancel="cancellingOrder"
-            @back="onBack"
-          />
           <EscrowTransfer
+            ref="escrowTransferRef"
             v-if="state === 'escrow-bch'"
             :key="escrowTransferKey"
             :data="escrowTransferData"
@@ -68,7 +59,6 @@
               :key="standByDisplayKey"
               :data="standByDisplayData"
               @send-feedback="sendFeedback"
-              @submit-appeal="submitAppeal"
               @refresh="refreshPage"
               @back="onBack"
               @cancel-order="cancellingOrder"
@@ -121,7 +111,7 @@ import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialo
 import HeaderNav from 'src/components/header-nav.vue'
 import RampContract from 'src/exchange/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import ReceiveOrder from 'src/components/ramp/fiat/ReceiveOrder.vue'
+// import ReceiveOrder from 'src/components/ramp/fiat/ReceiveOrder.vue'
 import EscrowTransfer from 'src/components/ramp/fiat/EscrowTransfer.vue'
 import VerifyTransaction from 'src/components/ramp/fiat/VerifyTransaction.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
@@ -140,8 +130,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      websocket: {
-        watchtower: null,
+      websockets: {
+        order: null,
         chat: null
       },
       state: '',
@@ -179,7 +169,6 @@ export default {
       errorMessages: [],
       errorMessage: null,
       selectedPaymentMethods: [],
-      autoReconWebSocket: true,
       reconnectingWebSocket: false,
       showAdSnapshot: false,
       showPeerProfile: false,
@@ -192,15 +181,11 @@ export default {
       sendingBch: false,
       verifyingTx: false,
       showStatusHistory: false,
-      receiveOrderError: null,
-      orderWebSocketManager: null,
       noticeType: 'info',
-      showNoticeDialog: false,
-      errorDialogActive: false
+      showNoticeDialog: false
     }
   },
   components: {
-    ReceiveOrder,
     StandByDisplay,
     ProgressLoader,
     MiscDialogs,
@@ -255,7 +240,9 @@ export default {
       switch (this.state) {
         case 'order-confirm-decline':
         case 'standby-view':
-          return this.order?.status?.label
+          if (this.order?.status?.value === 'CNF') {
+            return 'Escrow Pending'
+          } else { return this.order?.status?.label }
         case 'escrow-bch':
           return 'Escrow bch'
         case 'tx-confirmation':
@@ -318,12 +305,6 @@ export default {
         escrow: this.escrowContract
       }
     },
-    receiveOrderData () {
-      return {
-        order: this.order,
-        ad: this.ad
-      }
-    },
     transferAmount () {
       return Number(this.order.trade_amount)
     },
@@ -375,29 +356,20 @@ export default {
   created () {
     bus.emit('hide-menu')
     bus.on('relogged', this.refreshPage)
+    bus.on('update-status', this.handleNewStatus)
   },
   async mounted () {
     await this.loadData()
     this.setupWebSocket()
-    this.setupChatWebsocket(20, 1000)
   },
   beforeUnmount () {
-    this.autoReconWebSocket = false
-    this.orderWebSocketManager?.closeConnection()
-    this.closeChatWSConnection()
+    this.closeWSConnection()
   },
   methods: {
     formatDate,
     getDarkModeClass,
     isNotDefaultTheme,
-    async refreshPage (done) {
-      if (this.sendingBch || this.verifyingTx) {
-        if (done) done()
-        return
-      }
-      await this.loadData()
-      if (done) done()
-    },
+
     async loadData () {
       try {
         const vm = this
@@ -413,142 +385,14 @@ export default {
         console.error(error)
       }
     },
-    onVerifyingTx (verifying) {
-      this.verifyingTx = verifying
-    },
-    onSendingBCH (sending) {
-      this.sendingBch = sending
-    },
-    onUpdateArbiterStatus (hasArbiters) {
-      this.hasArbiters = hasArbiters
-    },
-    reloadChildComponents () {
-      this.standByDisplayKey++
-      this.escrowTransferKey++
-      this.verifyTransactionKey++
-      this.paymentConfirmationKey++
-      this.tradeInfoCardKey++
-      this.userProfileDialogKey++
-      this.adSnapshotDialogKey++
-      this.chatDialogKey++
-    },
-    updateStatus (status) {
-      const vm = this
-      if (!status || vm.status === status) return
-      vm.status = status
-      vm.order.status = status
-      vm.checkStep()
-    },
-    hideChat () {
-      this.showChatButton = false
-    },
-    showChat () {
-      this.showChatButton = true
-    },
-    async checkStep () {
-      const vm = this
-      vm.openDialog = false
-      const status = vm.status.value
-      switch (status) {
-        case 'SBM': // Submitted
-          if (this.order.is_ad_owner) {
-            vm.state = 'order-confirm-decline'
-          } else {
-            vm.state = 'standby-view'
-          }
-          break
-        case 'CNF': { // Confirmed
-          let state = null
-          if (this.order.trade_type === 'BUY') {
-            state = vm.order.is_ad_owner ? 'escrow-bch' : 'standby-view'
-          } else if (this.order.trade_type === 'SELL') {
-            state = vm.order.is_ad_owner ? 'standby-view' : 'escrow-bch'
-          }
-          vm.state = state
-          break
-        }
-        case 'ESCRW_PN': { // Escrow Pending
-          await vm.generateContract()
-          vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'ESCROW')
-          vm.verifyAction = 'ESCROW'
-          let state = 'standby-view'
-          let nextState = 'tx-confirmation'
-          const contractBalance = await vm.escrowContract?.getBalance()
-          if (!vm.txid && contractBalance === 0) nextState = 'escrow-bch'
-          if (this.order.trade_type === 'BUY') {
-            state = vm.order.is_ad_owner ? nextState : 'standby-view'
-          } else if (this.order.trade_type === 'SELL') {
-            state = vm.order.is_ad_owner ? 'standby-view' : nextState
-          }
-          vm.state = state
-          break
-        }
-        case 'ESCRW': // Escrowed
-          if (this.order.trade_type === 'BUY') {
-            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'payment-confirmation'
-          } else if (this.order.trade_type === 'SELL') {
-            vm.state = vm.order.is_ad_owner ? 'payment-confirmation' : 'standby-view'
-          }
-          vm.confirmType = 'buyer'
-          break
-        case 'PD_PN': // Paid Pending
-          vm.txid = null
-          if (vm.order.trade_type === 'BUY') {
-            vm.state = vm.order.is_ad_owner ? 'payment-confirmation' : 'standby-view'
-            vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
-          } else if (vm.order.trade_type === 'SELL') {
-            vm.state = vm.order.is_ad_owner ? 'standby-view' : 'payment-confirmation'
-            vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
-          }
-          break
-        case 'PD': { // Paid
-          vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-          const balance = await vm.escrowContract?.getBalance()
-          let state = 'standby-view'
-          vm.verifyAction = 'RELEASE'
-          let nextState = 'tx-confirmation'
-          if (!vm.txid || balance > 0) nextState = 'payment-confirmation'
-          if (vm.order.trade_type === 'BUY') {
-            state = vm.order.is_ad_owner ? nextState : 'standby-view'
-            vm.confirmType = vm.order.is_ad_owner ? 'seller' : 'buyer'
-          } else if (vm.order.trade_type === 'SELL') {
-            state = vm.order.is_ad_owner ? 'standby-view' : nextState
-            vm.confirmType = vm.order.is_ad_owner ? 'buyer' : 'seller'
-          }
-          vm.state = state
-          if (state === 'tx-confirmation') vm.verifyTransactionKey++
-          break
-        }
-        case 'RFN': // Refunded
-          vm.state = 'standby-view'
-          vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
-          vm.standByDisplayKey++
-          break
-        case 'RLS': // Released
-          vm.state = 'standby-view'
-          vm.$store.commit('ramp/clearOrderTxids', vm.order.id)
-          vm.standByDisplayKey++
-          break
-        default:
-          // includes status = CNCL, APL, RFN_PN, RLS_PN
-          vm.state = 'standby-view'
-          vm.standByDisplayKey++
-          break
-      }
-    },
-    isStatusCompleted (status) {
-      return (status === 'CNCL' || status === 'RLS' || status === 'RFN')
-    },
-    isPdPendingRelease (status) {
-      return status === 'PD'
-    },
+
     async fetchOrder () {
       const vm = this
       const url = `/ramp-p2p/order/${this.$route.params?.order}/`
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.order = response.data
-          vm.updateStatus(vm.order.status)
+          vm.handleNewStatus(vm.order.status)
           vm.updateOrderReadAt()
           const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
           const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
@@ -571,80 +415,7 @@ export default {
           this.handleRequestError(error)
         })
     },
-    async createGroupChat (orderId, chatRef) {
-      if (!orderId) throw Error(`Missing required parameter: orderId (${orderId})`)
-      const vm = this
-      const members = await vm.fetchOrderMembers(orderId)
-      const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-      createChatSession(orderId, chatRef)
-        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
-        .catch(console.error)
-    },
-    async updateOrderReadAt () {
-      const vm = this
-      if (vm.order?.read_at) return
-      const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
-      backend.patch(url, null, { authorize: true }).catch(error => { this.handleRequestError(error) })
-    },
-    async fetchAd () {
-      const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/ad/snapshot/`
-      await backend.get(url, { authorize: true })
-        .then(response => {
-          vm.ad = response.data
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
-    },
-    confirmOrder () {
-      const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/confirm/`
-      backend.post(url, {}, { authorize: true })
-        .then(response => {
-          vm.updateStatus(response.data.status)
-        })
-        .catch(error => {
-          if (error?.response?.status === 400) {
-            this.receiveOrderError = error?.response?.data?.error
-          }
-          this.handleRequestError(error)
-        })
-    },
-    cancelOrder () {
-      const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
-      backend.post(url, {}, { authorize: true })
-        .then(response => {
-          if (response.data && response.data.status.value === 'CNCL') {
-            vm.updateStatus(response.data.status)
-          }
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
-    },
-    async fetchFees () {
-      const vm = this
-      const url = `/ramp-p2p/order/${vm.order?.id}/contract/fees/`
-      await backend.get(url, { authorize: true })
-        .then(response => {
-          vm.fees = response.data
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
-    },
-    async fetchContract () {
-      try {
-        const url = `/ramp-p2p/order/${this.order?.id}/contract/`
-        const response = await backend.get(url, { authorize: true })
-        this.contract = response.data
-      } catch (error) {
-        this.handleRequestError(error)
-      }
-      return this.contract
-    },
+
     async generateContract () {
       const vm = this
       await vm.fetchFees()
@@ -661,55 +432,29 @@ export default {
       vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
       vm.reloadChildComponents()
     },
-    submitAppeal (data) {
+
+    async fetchAd () {
       const vm = this
-      data.order_id = vm.order.id
-      backend.post('/ramp-p2p/appeal/', data, { authorize: true })
+      const url = `/ramp-p2p/order/${vm.order.id}/ad/snapshot/`
+      await backend.get(url, { authorize: true })
         .then(response => {
-          vm.updateStatus(response.data.status.status)
-          vm.standByDisplayKey++
+          vm.ad = response.data
         })
-        .then(vm.addArbiterToChat())
         .catch(error => {
           this.handleRequestError(error)
         })
     },
-    sendFeedback (feedback) {
-      const vm = this
-      vm.isloaded = false
-      const url = '/ramp-p2p/order/feedback/peer/'
-      const body = {
-        order_id: vm.order.id,
-        rating: feedback.rating,
-        comment: feedback.comment
-      }
-      backend.post(url, body, { authorize: true })
-        .then(response => {
-          const data = response.data
-          vm.feedback = {
-            rating: data.rating,
-            comment: data.comment,
-            is_posted: true
-          }
-          vm.standByDisplayKey++
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
-      vm.isloaded = true
-    },
+
     async fetchFeedback () {
       const vm = this
       const url = '/ramp-p2p/order/feedback/peer/'
-      backend.get(url, {
-        params: {
-          limit: 7,
-          page: 1,
-          from_peer: vm.$store.getters['ramp/getUser'].id,
-          order_id: vm.order.id
-        },
-        authorize: true
-      })
+      const params = {
+        limit: 7,
+        page: 1,
+        from_peer: vm.$store.getters['ramp/getUser'].id,
+        order_id: vm.order.id
+      }
+      await backend.get(url, { params: params, authorize: true })
         .then(response => {
           if (response.data) {
             const data = response.data.feedbacks[0]
@@ -726,6 +471,24 @@ export default {
           this.handleRequestError(error)
         })
     },
+
+    async updateOrderReadAt () {
+      const vm = this
+      if (vm.order?.read_at) return
+      const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
+      backend.patch(url, null, { authorize: true }).catch(error => { this.handleRequestError(error) })
+    },
+
+    async createGroupChat (orderId, chatRef) {
+      if (!orderId) throw Error(`Missing required parameter: orderId (${orderId})`)
+      const vm = this
+      const members = await vm.fetchOrderMembers(orderId)
+      const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+      createChatSession(orderId, chatRef)
+        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
+        .catch(console.error)
+    },
+
     async fetchOrderMembers (orderId) {
       try {
         const response = await backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
@@ -734,6 +497,225 @@ export default {
         this.handleRequestError(error)
       }
     },
+
+    handleNewStatus (newStatus) {
+      this.updateStatus(newStatus)
+      this.updateStateByStatus(newStatus?.value)
+    },
+
+    updateStatus (newStatus) {
+      if (!newStatus || this.status === newStatus) return
+      this.status = newStatus
+      this.order.status = newStatus
+    },
+
+    async updateStateByStatus (status = this.status.value) {
+      const order = this.order
+      const kwargs = {
+        tradeType: order?.trade_type,
+        userIsAdOwner: order?.is_ad_owner
+      }
+      let state = null
+      let confirmType = null
+
+      switch (status) {
+        case 'SBM': // Submitted
+          state = this.getSubmittedState(kwargs)
+          break
+        case 'CNF': { // Confirmed
+          state = this.getConfirmedState(kwargs)
+          break
+        }
+        case 'ESCRW_PN': { // Escrow Pending
+          await this.generateContract()
+          const balance = await this.escrowContract?.getBalance()
+
+          kwargs.orderId = order?.id
+          kwargs.contractBalance = balance
+          state = this.getEscrowPendingState(kwargs)
+          break
+        }
+        case 'ESCRW': // Escrowed
+          state = this.getEscrowedState(kwargs)
+          this.reloadChildComponents()
+          break
+        case 'PD_PN': // Paid Pending
+          this.txid = null
+          state = this.getPaidPendingState(kwargs)
+          confirmType = this.getConfirmTypeByTradeType(kwargs)
+          break
+        case 'PD': { // Paid
+          kwargs.orderId = order?.id
+          kwargs.contractBalance = await this.escrowContract?.getBalance()
+          state = this.getPaidState(kwargs)
+          confirmType = this.getConfirmTypeByTradeType(kwargs)
+          if (state === 'tx-confirmation') this.verifyTransactionKey++
+          break
+        }
+        case 'RFN': // Refunded
+        case 'RLS': // Released
+          this.clearStoredTxids(this.order?.id)
+          state = this.getDefaultState()
+          this.reloadChildComponents()
+          break
+        default:
+          // includes status = CNCL, APL, RFN_PN, RLS_PN
+          state = this.getDefaultState()
+          this.reloadChildComponents()
+          break
+      }
+      if (confirmType) this.confirmType = confirmType
+      this.state = state
+    },
+
+    getSubmittedState (kwargs) {
+      return kwargs?.userIsAdOwner ? 'order-confirm-decline' : 'standby-view'
+    },
+
+    getConfirmedState (kwargs) {
+      let state = null
+      if (kwargs?.tradeType === 'BUY') {
+        state = kwargs?.userIsAdOwner ? 'escrow-bch' : 'standby-view'
+      }
+      if (kwargs?.tradeType === 'SELL') {
+        state = kwargs?.userIsAdOwner ? 'standby-view' : 'escrow-bch'
+      }
+      return state
+    },
+
+    getEscrowPendingState (kwargs) {
+      this.txid = this.$store.getters['ramp/getOrderTxid'](kwargs?.orderId, 'ESCROW')
+      this.verifyAction = 'ESCROW'
+
+      let state = 'standby-view'
+      let nextState = 'tx-confirmation'
+
+      if (!this.txid && kwargs?.contractBalance === 0) nextState = 'escrow-bch'
+      if (kwargs?.tradeType === 'BUY') {
+        state = kwargs.userIsAdOwner ? nextState : 'standby-view'
+      }
+      if (kwargs?.tradeType === 'SELL') {
+        state = kwargs?.userIsAdOwner ? 'standby-view' : nextState
+      }
+      return state
+    },
+
+    getEscrowedState (kwargs) {
+      let state = null
+      if (kwargs?.tradeType === 'BUY') {
+        state = kwargs?.userIsAdOwner ? 'standby-view' : 'payment-confirmation'
+      }
+      if (kwargs?.tradeType === 'SELL') {
+        state = kwargs?.userIsAdOwner ? 'payment-confirmation' : 'standby-view'
+      }
+      this.confirmType = 'buyer'
+      return state
+    },
+
+    getPaidPendingState (kwargs) {
+      if (kwargs?.tradeType === 'BUY') {
+        return kwargs?.userIsAdOwner ? 'payment-confirmation' : 'standby-view'
+      }
+      if (kwargs?.tradeType === 'SELL') {
+        return kwargs?.userIsAdOwner ? 'standby-view' : 'payment-confirmation'
+      }
+    },
+
+    getConfirmTypeByTradeType (kwargs) {
+      if (kwargs?.tradeType === 'BUY') return kwargs?.userIsAdOwner ? 'seller' : 'buyer'
+      if (kwargs?.tradeType === 'SELL') return kwargs?.userIsAdOwner ? 'buyer' : 'seller'
+    },
+
+    getPaidState (kwargs) {
+      this.verifyAction = 'RELEASE'
+      this.txid = this.getTxidByAction({ orderId: kwargs?.orderId, action: this.verifyAction })
+
+      let nextState = 'tx-confirmation'
+
+      if (!this.txid || kwargs?.contractBalance > 0) nextState = 'payment-confirmation'
+      if (kwargs?.tradeType === 'BUY') {
+        return kwargs?.userIsAdOwner ? nextState : 'standby-view'
+      }
+      if (kwargs?.tradeType === 'SELL') {
+        return kwargs?.userIsAdOwner ? 'standby-view' : nextState
+      }
+      return 'standby-view'
+    },
+
+    getDefaultState () {
+      return 'standby-view'
+    },
+
+    getTxidByAction (kwargs) {
+      return this.$store.getters['ramp/getOrderTxid'](kwargs?.orderId, kwargs?.action)
+    },
+
+    clearStoredTxids (orderId) {
+      this.$store.commit('ramp/clearOrderTxids', orderId)
+    },
+
+    async cancelOrder () {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
+      await backend.post(url, {}, { authorize: true })
+        .then(response => {
+          if (response.data && response.data.status.value === 'CNCL') {
+            vm.handleNewStatus(response.data.status)
+          }
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+    },
+
+    async fetchFees () {
+      const vm = this
+      const url = `/ramp-p2p/order/${vm.order?.id}/contract/fees/`
+      await backend.get(url, { authorize: true })
+        .then(response => {
+          vm.fees = response.data
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+    },
+
+    async fetchContract () {
+      try {
+        const url = `/ramp-p2p/order/${this.order?.id}/contract/`
+        const response = await backend.get(url, { authorize: true })
+        this.contract = response.data
+      } catch (error) {
+        this.handleRequestError(error)
+      }
+      return this.contract
+    },
+
+    async sendFeedback (feedback) {
+      const vm = this
+      vm.isloaded = false
+      const url = '/ramp-p2p/order/feedback/peer/'
+      const body = {
+        order_id: vm.order.id,
+        rating: feedback.rating,
+        comment: feedback.comment
+      }
+      await backend.post(url, body, { authorize: true })
+        .then(response => {
+          const data = response.data
+          vm.feedback = {
+            rating: data.rating,
+            comment: data.comment,
+            is_posted: true
+          }
+          vm.standByDisplayKey++
+        })
+        .catch(error => {
+          this.handleRequestError(error)
+        })
+      vm.isloaded = true
+    },
+
     addArbiterToChat () {
       const vm = this
       const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
@@ -745,27 +727,68 @@ export default {
           updateChatMembers(chatRef, arbiterMembers)
         })
     },
-    // Recieve Dialogs
-    handleExpired () {
-      this.state = 'standby-view'
+
+    async refreshPage (done) {
+      if (this.sendingBch || this.verifyingTx) {
+        if (done) done()
+        return
+      }
+      await this.loadData()
+      if (done) done()
     },
+
+    onVerifyingTx (verifying) {
+      this.verifyingTx = verifying
+    },
+
+    onVerifyTxSuccess () {
+      this.sendingBch = false
+      this.verifyingTx = false
+      this.fetchOrder()
+    },
+
+    onSendingBCH (sending) {
+      this.sendingBch = sending
+    },
+
+    onUpdateArbiterStatus (hasArbiters) {
+      this.hasArbiters = hasArbiters
+    },
+
+    reloadChildComponents () {
+      this.standByDisplayKey++
+      this.escrowTransferKey++
+      this.verifyTransactionKey++
+      this.paymentConfirmationKey++
+      this.tradeInfoCardKey++
+      this.userProfileDialogKey++
+      this.adSnapshotDialogKey++
+      this.chatDialogKey++
+    },
+
+    hideChat () {
+      this.showChatButton = false
+    },
+
+    showChat () {
+      this.showChatButton = true
+    },
+
+    // Recieve Dialogs
     handleVerifyRelease (txid) {
       this.txid = txid
-      this.checkStep()
+      this.updateStateByStatus()
     },
+
     async handleDialogResponse () {
       const vm = this
       vm.isloaded = false
       switch (vm.dialogType) {
         case 'confirmCancelOrder':
           if (this.$refs.standbyRef) { this.$refs.standbyRef.loadCancelButton = true }
-          if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadDeclineButton = true }
+          if (this.$refs.escrowTransferRef) { this.$refs.escrowTransferRef.loadCancelButton = true}
           vm.cancelOrder()
           vm.onBack()
-          break
-        case 'confirmOrder':
-          if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadConfirmButton = true }
-          vm.confirmOrder()
           break
       }
       vm.title = ''
@@ -773,12 +796,6 @@ export default {
       vm.isloaded = true
     },
 
-    // Opening Dialog
-    confirmingOrder () {
-      this.dialogType = 'confirmOrder'
-      this.title = this.$t('ConfirmOrder')
-      this.openDialog = true
-    },
     cancellingOrder () {
       this.dialogType = 'confirmCancelOrder'
       this.openDialog = true
@@ -786,47 +803,18 @@ export default {
     },
 
     // Others
-    onVerifyTxSuccess (status) {
-      this.updateStatus(status)
-    },
+
     onEscrowSuccess (txid) {
       this.txid = txid
       this.fetchOrder()
     },
-    setupChatWebsocket (retries, delayDuration) {
-      const wsChatUrl = `${getChatBackendWsUrl()}${this.chatRef}/`
-      this.websocket.chat = new WebSocket(wsChatUrl)
-      this.websocket.chat.onopen = () => {
-        console.log('Chat WebSocket connection established to ' + wsChatUrl)
-      }
-      this.websocket.chat.onmessage = (event) => {
-        const parsedData = JSON.parse(event.data)
-        console.log('Chat WebSocket data:', parsedData)
-        if (parsedData?.type === 'new_message') {
-          const messageData = parsedData.data
-          // RECEIVE MESSAGE
-          console.log('Received a new message:', messageData)
-          bus.emit('last-read-update')
-          if (this.openChat) {
-            bus.emit('new-message', messageData)
-          }
-        }
-      }
-      this.websocket.chat.onclose = () => {
-        console.log('Chat WebSocket connection closed.')
-        if (this.autoReconWebSocket && retries > 0) {
-          // this.reconnectingWebSocket = true
-          console.log(`Chat WS reconnection failed. Retrying in ${delayDuration / 1000} seconds...`)
-          return this.delay(delayDuration)
-            .then(() => this.setupChatWebsocket(retries - 1, delayDuration * 2))
-        }
-      }
-    },
+
     setupWebSocket () {
-      const url = `${getBackendWsUrl()}order/${this.order.id}/`
-      this.orderWebSocketManager = new WebSocketManager()
-      this.orderWebSocketManager.setWebSocketUrl(url)
-      this.orderWebSocketManager.subscribeToMessages(async (message) => {
+      this.closeWSConnection()
+      // Subscribe to order updates
+      this.websockets.order = new WebSocketManager()
+      this.websockets.order.setWebSocketUrl(`${getBackendWsUrl()}order/${this.order.id}/`)
+      this.websockets.order.subscribeToMessages(async (message) => {
         if (message?.success) {
           if (message?.txdata) {
             this.verifyingTx = false
@@ -846,21 +834,38 @@ export default {
           }
         }
       })
+
+      // Subscribe to chat
+      this.websockets.chat = new WebSocketManager()
+      this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+      this.websockets.chat.subscribeToMessages(message => {
+        if (message?.type === 'new_message') {
+          const messageData = message.data
+          // RECEIVE MESSAGE
+          console.log('Received a new message:', messageData)
+          bus.emit('last-read-update')
+          if (this.openChat) {
+            bus.emit('new-message', messageData)
+          }
+        }
+      })
     },
-    closeChatWSConnection () {
-      if (this.websocket.chat) this.websocket.chat.close()
+
+    closeWSConnection () {
+      this.websockets?.order?.closeConnection()
+      this.websockets?.chat?.closeConnection()
     },
-    delay (duration) {
-      return new Promise(resolve => setTimeout(resolve, duration))
-    },
+
     onBack () {
       bus.emit('show-menu', 'orders')
       this.$emit('back')
     },
+
     onViewPeer (data) {
       this.peerInfo = data
       this.showPeerProfile = true
     },
+
     handleRequestError (error) {
       bus.emit('handle-request-error', error)
     }

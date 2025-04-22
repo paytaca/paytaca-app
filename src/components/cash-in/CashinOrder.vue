@@ -138,9 +138,8 @@ export default {
       countDown: null,
       selectedReasons: [],
       reasonOpts: [
-        this.$t('AppealFormReasonOpt1'),
-        this.$t('AppealFormReasonOpt2'),
-        this.$t('AppealFormReasonOpt3')
+        this.$t('AppealFormReasonOpt1Seller'),
+        this.$t('AppealFormReasonOpt2')
       ],
       loadConfirmAppeal: false,
       loadConfirmCancel: false,
@@ -193,7 +192,7 @@ export default {
     await this.loadData()
   },
   beforeUnmount () {
-    this.websocketManager.closeConnection()
+    this.websocketManager?.closeConnection()
   },
   methods: {
     getDarkModeClass,
@@ -247,6 +246,7 @@ export default {
       this.setupWebSocket()
     },
     setupWebSocket () {
+      this.websocketManager?.closeConnection()
       const url = `${getBackendWsUrl()}order/${this.orderId}/`
       this.websocketManager = new WebSocketManager()
       this.websocketManager.setWebSocketUrl(url)

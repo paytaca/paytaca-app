@@ -6,7 +6,7 @@
     @hide="onDialogHide"
     @show="() => openPinOnShow ? selectCoordinates() : null"
   >
-    <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="br-15 pt-card text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">

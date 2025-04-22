@@ -10,14 +10,14 @@
     >
       <q-card v-if="loader" class="full-height flex flex-center text-bow" :class="getDarkModeClass(darkMode)">
           <q-card-section>
-              <div class="row">
-                  <div class="col-12 text-center q-mt-lg">
-                      <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
-                  </div>
-                  <div class="col-12 text-center">
-                      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-                  </div>
+            <div class="row">
+              <div class="col-12 text-center q-mt-lg">
+                <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
               </div>
+              <div class="col-12 text-center">
+                <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+              </div>
+            </div>
           </q-card-section>
       </q-card>
 
@@ -61,7 +61,7 @@
               <q-btn
                 push
                 v-if="[4, 8, 12, 16].includes(key)"
-                :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4))"
+                :disable="((key === 4 && pinDialogAction === 'VERIFY') || (pinStep === 1 && key === 4) || (key === 16 && disableClose))"
                 @click="removeKey(key === 4 ? 'reset' : key === 8 ? 'delete' : key === 12 ? 'backspace' : key === 16 ? 'cancel' : '')"
                 class="pp-key pt-key-del"
                 :class="nonNumKeysClass(key)"
@@ -129,7 +129,12 @@ export default {
     }
   },
   components: { ProgressLoader },
-  props: ['pinDialogAction', 'nextAction', 'newWalletMnemonic'],
+  props: {
+    'pinDialogAction': { type: String, default: '' },
+    'nextAction': { type: Function, default: () => {} },
+    'newWalletMnemonic': { type: String, default: '' },
+    'disableClose': { type: Boolean, default: false }
+  },
   watch: {
     pinDialogAction () {
       const vm = this

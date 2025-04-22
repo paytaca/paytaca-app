@@ -4,7 +4,7 @@
       <div class="col-xs-12 text-right q-mb-md">
         <!-- <q-btn icon="refresh" @click.stop="() => refreshComponent()" flat></q-btn> -->
         <q-btn icon="settings" flat dense>
-          <q-menu fit anchor="bottom start" self="top end" class="br-15 pt-card q-py-md" :class="getDarkModeClass(darkMode)">
+          <q-menu fit anchor="bottom start" self="top end" class="br-15 pt-card q-py-md text-bow" :class="getDarkModeClass(darkMode)">
             <q-item>
               <q-item-section>
                 {{ $t('AddressDisplayFormat') }}
@@ -567,7 +567,7 @@ const disconnectSession = async (activeSession) => {
           noCaps: true,
           label: $t('No')
         },
-        class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
+        class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
       }).onOk(() => resolve()).onCancel(() => reject())
     }) 
 

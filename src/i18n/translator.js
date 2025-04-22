@@ -29,34 +29,6 @@ class Translator {
       interpolatedStrRegex: /\{(\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+\}|<(.|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+>/gu,
       htmlClassRegex: /[“|"](\s|\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+[”|"]/gu,
     }
-    this.hardcodedTranslations = {
-      'tl': {
-        Close: 'Isara',
-      },
-      'zh-tw': {
-        Pin: '密碼',
-        ChangePin: '密碼',
-        Biometric: '生物認證',
-        ShowTokens: '顯示幣種',
-        ManageIgnoredTokens: '管理被忽略幣種',
-        ChineseTraditional: '中文繁體字',
-        Ramp: 'Ramp',
-        CryptoSwap: "Ramp",
-        Sweep: 'Sweep',
-        Collectibles: 'NFT',
-        Home: '主頁',
-        Send: '發送',
-        Receive: '收取',
-        Apps: '應用程式',
-        Points: '積分',
-        ButtonDeem: '點心幣',
-        DEEM: '點'
-      },
-      'zh-cn': {
-        ButtonDeem: '點心幣',
-        DEEM: '點'
-      }
-    }
   }
 
   async translate (opts = { ignoreExisting: false }) {
@@ -113,8 +85,11 @@ class Translator {
 
       if (ignoreExisting) {
         const importedModule = await this.getExistingTranslations(lang)
-        jsonData = importedModule?.default || {}
+        jsonData = importedModule || {}
       }
+
+      const manualTranslationsData = (await this.getManualTranslations(lang)) || {}
+      // console.log(`Hardcoded translations for '${lang}': ${JSON.stringify(manualTranslations, undefined, 2)}`)
 
       let codes = { from: 'en', to: lang }
       if (lang === 'en-us') codes.to = 'en'
@@ -126,59 +101,40 @@ class Translator {
       let index = 0
       for (const _group of this.texts) {
         const group = Object.assign({}, _group)
+        // console.log(`Group keys: ${JSON.stringify(Object.keys(group))}`)
 
-        // filter keys that already exist in main output: `jsonData`
-        const deletedKeys = []
-        if (ignoreExisting) {
-          Object.keys(group).forEach(key => {
-            if (!jsonData[key]) return
-
-            delete group[key]
-            deletedKeys.push(key)
-          })
+        const { filteredGroup, manualTranslations, existingTranslations } = this.filterGroup(
+          group, manualTranslationsData, jsonData,
+        )
+        const translateCountData = {
+          total: this.objectCount(group),
+          filtered: this.objectCount(filteredGroup),
+          manual: this.objectCount(manualTranslations),
         }
-
+        if (ignoreExisting) translateCountData.existing = this.objectCount(existingTranslations)
+ 
         const label = this.getTextGroupLabel(index)
-        if (Object.keys(group).length === 0) {
+        console.log(`Translating ${label}...`)
+
+        let translatedObj = {}
+        if (translateCountData.filtered === 0 && translateCountData.manual === 0) {
           console.log(`Skipping ${label}...`)
           index++
           continue
         }
+        console.log(translateCountData)
 
-        console.log(`Translating ${label}...`)
-        if (deletedKeys.length) console.log('Ignored keys:', deletedKeys.length)
-
-        // store all the interpolated substring in an object with its corresponding key
-        const interpolatedWords = {}
-        for (const [key, value] of Object.entries(group)) {
-          const interpolatedMatches = value.match(this.regex.interpolatedStrRegex)
-          if (interpolatedMatches !== null) interpolatedWords[key] = interpolatedMatches
-        }
-
-        // Sleep for 2 seconds
-        await sleep(2000)
-
-        // translate in bulks
-        let translatedObj = await translate(group, codes)
-
-        // replace the translated interpolation placeholder with the untranslated one
-        if (Object.keys(interpolatedWords).length !== 0) {
-          const placeholder = '{STRING}'
-          for (const [key, value] of Object.entries(translatedObj)) {
-            translatedObj[key] = value.replace(this.regex.interpolatedStrRegex, placeholder)
-            if (Object.keys(interpolatedWords).includes(key)) {
-              for (const interpolatedKey of interpolatedWords[key]) {
-                translatedObj[key] = translatedObj[key].replace(placeholder, interpolatedKey)
-              } 
-            }
-          }
+        if (Object.keys(filteredGroup).length !== 0) {
+          // Sleep for 2 seconds
+          await sleep(2000)
+          translatedObj = await this.translateGroup(filteredGroup, codes)
         }
 
         // override hardcoded translations
-        if (Object.keys(this.hardcodedTranslations).indexOf(lang) > -1) {
+        if (Object.keys(manualTranslations).length > 0) {
           translatedObj = {
             ...translatedObj,
-            ...this.hardcodedTranslations[lang]
+            ...manualTranslations,
           }
         }
 
@@ -210,6 +166,60 @@ class Translator {
         index++
       }
     }
+  }
+
+  /**
+   * @param {Object} group 
+   * @param {{ from: String, to: String }} codes 
+   */
+  async translateGroup(group, codes) {
+    if (Object.keys(group).length === 0) return {}
+
+    // store all the interpolated substring in an object with its corresponding key
+    const interpolatedWords = {}
+    for (const [key, value] of Object.entries(group)) {
+      const interpolatedMatches = value.match(this.regex.interpolatedStrRegex)
+      if (interpolatedMatches !== null) interpolatedWords[key] = interpolatedMatches
+    }
+
+    // translate in bulks
+    let translatedObj = await translate(group, codes)
+
+    // replace the translated interpolation placeholder with the untranslated one
+    if (Object.keys(interpolatedWords).length !== 0) {
+      const placeholder = '{STRING}'
+      for (const [key, value] of Object.entries(translatedObj)) {
+        translatedObj[key] = value.replace(this.regex.interpolatedStrRegex, placeholder)
+        if (Object.keys(interpolatedWords).includes(key)) {
+          for (const interpolatedKey of interpolatedWords[key]) {
+            translatedObj[key] = translatedObj[key].replace(placeholder, interpolatedKey)
+          } 
+        }
+      }
+    }
+
+    return translatedObj
+  }
+
+  filterGroup(group, manualTranslations, existingData) {
+    const existing = {}
+    const manual = {}
+    const filteredGroup = {}
+
+    Object.keys(group).forEach(key => {
+      if (manualTranslations?.[key]) manual[key] = manualTranslations[key]
+      else if (existingData?.[key]) existing[key] = existingData[key]
+      else filteredGroup[key] = group[key]
+    })
+
+    return { filteredGroup, manualTranslations: manual, existingTranslations: existing }
+  }
+
+  /**
+   * @param {Object} obj
+   */
+  objectCount(obj) {
+    return Object.keys(obj).length
   }
 
   // order by keys
@@ -256,7 +266,17 @@ class Translator {
     fs.copyFileSync(fromPath, toPath)
     const data = await import(toPath)
     fs.unlinkSync(toPath)
-    return data
+    return data?.default
+  }
+
+  async getManualTranslations(lang) {
+    const fromPath = `./__manual_translations/${lang}.js`
+    const toPath = `./${lang}/temp-${Date.now()}.mjs`
+    if (!fs.existsSync(fromPath)) return {}
+    fs.copyFileSync(fromPath, toPath)
+    const data = await import(toPath)
+    fs.unlinkSync(toPath)
+    return data?.default
   }
   
   async sleep (seconds) {

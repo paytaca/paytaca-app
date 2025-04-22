@@ -142,7 +142,6 @@ export default {
       })
     },
     async fetchTransactions () {
-      console.log('fetchTransactions')
       const utxos = await this.data?.escrow?.getUtxos()
       if (utxos.length > 0) {
         this.transactionId = utxos[0]?.txid
@@ -169,12 +168,11 @@ export default {
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
       await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
-        .then(response => {
-          console.log(response.data)
+        .then(() => {
+          this.$emit('success')
         })
         .catch(error => {
           vm.errorMessage = error.response?.data?.error
-          this.handleRequestError(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
@@ -186,14 +184,13 @@ export default {
       const body = { txid: vm.transactionId }
       vm.verifyingTx = true
       await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
-        .then(response => {
-          console.log(response.data)
+        .then(() => {
+          this.$emit('success')
         })
         .catch(error => {
           if (error.response?.data?.error === 'txid is required') {
             vm.errorMessage = 'Transaction ID is required for verification'
           }
-          this.handleRequestError(error)
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false

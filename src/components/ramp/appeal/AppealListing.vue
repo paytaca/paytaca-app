@@ -253,7 +253,6 @@ export default {
     },
     async selectAppeal (index) {
       this.selectedAppeal = this.appeals[index]
-      console.log('selectAppeal:', this.selectedAppeal)
       await this.$router.push({ name: 'appeal-detail', params: { order: this.selectedAppeal?.order?.id } })
       bus.emit('show-footer-menu', false)
     },

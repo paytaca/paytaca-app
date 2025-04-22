@@ -46,7 +46,7 @@
 
       <div class="row q-mt-md">
         <span class="col-12 q-mb-sm text-center text-bold text-subtitle1">
-          {{ $t('TransactionBreakdown') }}
+          {{ $t('Recipients') }}
         </span>
       </div>
 

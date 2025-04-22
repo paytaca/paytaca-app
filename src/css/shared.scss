@@ -141,3 +141,35 @@ div#q-app:has(.marketplace-container) {
   pointer-events: bounding-box !important;
   background-color: rgba($color: #000000, $alpha: 0.3)
 }
+
+@mixin bottom-card--base {
+  width: 100%;
+  max-height: 100vh;
+  body.platform-ios & {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-height: 100vh;
+  }
+}
+
+@mixin bottom-card($height-percentage) {
+  @include bottom-card--base;
+  height: calc(#{$height-percentage} - env(safe-area-inset-bottom));
+}
+
+.bottom-card {
+  @include bottom-card(unset);
+}
+
+.bottom-card-small {
+  @include bottom-card(60vh);
+}
+
+.bottom-card-medium {
+  @include bottom-card(70vh);
+}
+
+.bottom-card-tall {
+  @include bottom-card(90vh);
+}

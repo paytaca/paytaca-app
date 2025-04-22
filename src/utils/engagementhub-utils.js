@@ -83,7 +83,8 @@ const NOTIF_TYPES = {
   AH: 'AnyHedge',
   RP: 'P2P Exchange',
   TR: $t('Transactions'),
-  NF: $t('Collectibles')
+  NF: $t('Collectibles'),
+  EP: $t('EventsAndPromotions')
 }
 
 export async function getWalletNotifications (walletHash, notifType, page = 1) {
@@ -189,8 +190,10 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
         data.is_by_country_enabled = type.value
       } else if (type.db_col === 'is_by_city_enabled') {
         data.is_by_city_enabled = type.value
-      } else if (type.db_col === 'country') data.country = type.value
-      else if (type.db_col === 'city') data.city = type.value
+      } else if (type.db_col === 'country') {
+        data.country = type.value
+        data.city = null
+      } else if (type.db_col === 'city') data.city = type.value
 
       await NOTIFS_URL.patch(
         `devicenotiftype/${respId}/`,

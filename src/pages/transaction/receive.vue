@@ -4,7 +4,7 @@
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
     ></header-nav>
-    <div v-if="!amountDialog">
+    <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
         v-if="!isSep20"
         id="context-menu"
@@ -59,6 +59,7 @@
                 <div class="col row justify-center q-pt-md">
                   <qr-code
                     :text="isCt ? address : addressAmountFormat"
+                    :generating="generating"
                     border-width="3px"
                     border-color="#ed5f59"
                     :size="220"
@@ -161,6 +162,9 @@
             :label="$t('Amount')"
             :readonly="readonlyState"
             :dark="darkMode"
+            :rules="[
+              val => Boolean(val) || $t('InvalidAmount'),
+            ]"
           >
             <template v-slot:append>
               <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
@@ -223,6 +227,7 @@ export default {
       showLegacy: false,
       lnsName: '',
       generateAddressOnLeave: false,
+      generating: false,
       copying: false,
       amount: '',
       tempAmount: '',
@@ -458,6 +463,7 @@ export default {
     },
     generateNewAddress () {
       const vm = this
+      vm.generating = true
       const lastAddressIndex = vm.getLastAddressIndex()
       const newAddressIndex = lastAddressIndex + 1
 
@@ -476,6 +482,8 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             try { vm.setupListener() } catch {}
+          }).finally(() => {
+            vm.generating = false
           })
         }
         if (vm.walletType === 'slp') {
@@ -704,6 +712,24 @@ export default {
     },
     amountDialog () {
       this.tempAmount = this.amount
+    },
+    setAmountInFiat(newVal, oldVal) {
+      const amount = parseFloat(this.amountDialog ? this.tempAmount : this.amount)
+      if (!amount) return
+
+      let newAmount
+      if (newVal && !oldVal) {
+        newAmount = amount * this.selectedAssetMarketPrice
+      } else if (!newVal && oldVal) {
+        newAmount = amount / this.selectedAssetMarketPrice
+      } else {
+        newAmount = amount
+      }
+
+      const decimals = newVal ? 3 : parseInt(this.asset?.decimals) || 8
+      const newParsedAmount = String(parseFloat(newAmount.toFixed(decimals)))
+      this.amount = newParsedAmount
+      this.tempAmount = newParsedAmount
     }
   },
 
@@ -729,7 +755,6 @@ export default {
 
   async mounted () {
     const vm = this
-
     vm.setupListener()
     this.updateLnsName()
 
@@ -766,6 +791,7 @@ export default {
         vm.setAmountInFiat = false
       }
     }
+    vm.generating = false
   }
 }
 </script>

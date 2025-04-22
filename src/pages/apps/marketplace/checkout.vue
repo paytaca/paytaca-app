@@ -61,6 +61,15 @@
             :cart="checkout?.cart"
             :currency="checkoutCurrency"
           />
+          <div v-if="checkout?.cart?.requireCutlery" class="row items-center q-px-xs">
+            <div class="q-pa-xs">
+              <div class="text-body2">{{ $t('Cutlery') }}</div>
+              <div class="text-grey text-caption bottom">{{ $t('CutleryIncludedMsg') }}</div>
+            </div>
+            <q-space/>
+            <div class="q-pa-xs">{{ checkout?.cart?.cutlerySubtotal }} {{ checkoutCurrency }}</div>
+          </div>
+          <q-separator/>
           <div v-if="checkout?.cart?.markupSubtotal" class="q-px-xs q-mt-md row items-center text-subtitle1">
             <div class="q-space">Subtotal</div>
             <div>{{ checkout?.cart?.markupSubtotal }} {{ checkoutCurrency }}</div>
@@ -512,7 +521,7 @@
             position="bottom"
             @hide="() => bchPaymentState.tab = 'select'"
           >
-            <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+            <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
               <q-card-section>
                 <div class="row items-center no-wrap">
                   <div class="text-h6">Pay with wallet</div>
@@ -545,7 +554,7 @@
             persistent
             @hide="() => bchPaymentState.tab = 'select'"
           >
-            <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+            <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
               <q-card-section>
                 <div class="row items-center no-wrap">
                   <div class="text-h6">{{ $t('ScanToPay') }}</div>
@@ -1214,6 +1223,7 @@ function fetchCheckout() {
     const data = {
       delivery_type: props.deliveryType || Checkout.DeliveryTypes.LOCAL_DELIVERY,
       delivery_address: { location: parsedSessionLocationData },
+      check_stocks: true,
     }
     if (props.checkoutId) request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
     else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)

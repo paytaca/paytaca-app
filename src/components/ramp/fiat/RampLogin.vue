@@ -1,11 +1,11 @@
 <template>
-  <q-dialog v-model="register" persistent maximized no-shake transition-show="slide-up">
+  <q-dialog v-model="register" persistent maximized no-shake transition-show="slide-up" transition-hide="slide-down">
     <q-card class="br-15 pt-card-2 text-bow q-pb-sm" :class="getDarkModeClass(darkMode)">
       <div class="row justify-center q-py-lg q-my-lg q-mx-lg">
         <div class="col-1">
            <q-icon
             size="md" name="arrow_back" class="text-grad"
-            @click="onAbortLogin"
+            @click="$router.push('/apps')"
             :style="`margin-top: ${$q.platform.is.ios ? '-5px' : '0'}`"/>
         </div>
         <div class="col-10">
@@ -67,42 +67,26 @@
 <script>
 import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
-import { getAuthToken, saveAuthToken, deleteAuthToken, createAuthAbortController, abortAuthController } from 'src/exchange/auth'
+import { loadAuthenticatedUser } from 'src/exchange/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
-import { loadChatIdentity } from 'src/exchange/chat'
-import { loadLibauthHdWallet } from 'src/wallet'
-import axios from 'axios'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
-      minHeight: this.$q.screen.height - this.$q.screen.height * 0.2,
-      apiURL: process.env.WATCHTOWER_BASE_URL,
       show: true,
-      dialog: false,
       user: null,
       usernickname: '',
       isLoading: true,
       register: false,
       loggingIn: false,
       errorMessage: null,
-      hintMessage: null,
-      hasBiometric: false,
-      securityDialogUp: false,
-      chatIdentityId: null,
-      retrying: false,
-      retry: {
-        loadChatIdentity: false,
-        updateChatIdentityId: false
-      },
-      authController: null,
-      libauthWallet: null
+      hintMessage: null
     }
   },
-  emits: ['loggedIn', 'cancel'],
+  emits: ['loggedIn'],
   props: {
     error: String,
     forceLogin: {
@@ -130,11 +114,12 @@ export default {
       }
     }
   },
+  created () {
+    bus.on('next-login-step', this.onNextLoginStep)
+    bus.on('logging-in', this.onLoggingIn)
+  },
   async mounted () {
-    this.dialog = true
     if (this.error) this.errorMessage = this.error
-    this.libauthWallet = await loadLibauthHdWallet(wallet.walletIndex, wallet.isChipnet)
-    this.loadAuthAbortController()
     this.loadUser()
   },
   beforeUnmount () {
@@ -143,149 +128,44 @@ export default {
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
-    loadAuthAbortController () {
-      this.authController = createAuthAbortController()
+    onLoggingIn (value) {
+      this.loggingIn = value
     },
-    onAbortLogin () {
-      abortAuthController()
-      this.$router.push('/apps')
+    onNextLoginStep (step) {
+      this.hintMessage = this.$t(step)
     },
-    async loadUser (forceLogin = false) {
-      const vm = this
+    async loadUser (forceLogin = this.forceLogin) {
       try {
-        const { data: user } = await backend.get('/auth/', { signal: this.authController?.signal })
-
-        vm.user = user
-        vm.usernickname = user?.name
-        vm.isLoading = true
-
-        const token = await getAuthToken()
-        if (!token) forceLogin = true
-
-        // login user if not authenticated
-        if (!user.is_authenticated || forceLogin || this.forceLogin) {
-          await vm.login()
-        }
-
-        // load chat identity
-        vm.hintMessage = this.$t('LoadingChatIdentity')
-        const usertype = user.is_arbiter ? 'arbiter' : 'peer'
-        const params = { name: user.name, chat_identity_id: user.chat_identity_id }
-
-        // stop process if aborted by user
-        if (this.authController?.signal?.aborted) return
-
-        await Promise.all([loadChatIdentity(usertype, params), vm.savePubkeyAndAddress()])
-
-        vm.$emit('loggedIn', vm.user.is_arbiter ? 'arbiter' : 'peer')
-        vm.$store.commit('ramp/updateUser', user)
-        vm.isLoading = false
+        this.isLoading = true
+        this.user = await loadAuthenticatedUser(forceLogin)
+        this.$emit('loggedIn', this.user.user_type)
+        this.$store.commit('ramp/updateUser', this.user)
       } catch (error) {
-        vm.isLoading = false
-        console.error(error.response || error)
-        if (axios.isCancel(error)) {
-          console.error('Request canceled:', error?.message)
-        }
-        if (error.response) {
-          if (error.response.status === 404) {
-            vm.register = true
-          }
-        } else {
-          console.error(error)
+        if (!error.response) {
           bus.emit('network-error')
+        } else if (error.response.status === 404) {
+          this.register = true
         }
       }
-    },
-    async login () {
-      const vm = this
-      console.log('Logging in')
-      vm.hintMessage = vm.$t('LoggingYouIn')
-      vm.errorMessage = null
-      deleteAuthToken()
-      try {
-        vm.loggingIn = true
-        const { data: { otp } } = await backend.get(`/auth/otp/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, { signal: this.authController?.signal })
-        const addressPath = wallet.addressPath()
-        const privkey = this.libauthWallet.getPrivateKeyWifAt(addressPath)
-        const pubkey = this.libauthWallet.getPubkeyAt(addressPath)
-        const signature = await wallet.signMessage(privkey, otp)
-        const body = {
-          wallet_hash: wallet.walletHash,
-          signature: signature,
-          public_key: pubkey
-        }
-        const loginResponse = await backend.post(`/auth/login/${vm.user.is_arbiter ? 'arbiter' : 'peer'}`, body, { signal: this.authController?.signal })
-        if (vm.user && !this.authController?.signal?.aborted) {
-          saveAuthToken(loginResponse.data.token)
-        }
-      } catch (error) {
-        console.log(error.response || error)
-        if (error.response) {
-          vm.errorMessage = error.response?.data?.error || error
-          if (vm.errorMessage.includes('disabled')) {
-            vm.errorMessage = vm.$t('ThisAccountIsDisabled')
-          }
-          console.log('errorMessage:', vm.errorMessage)
-        } else {
-          bus.emit('network-error')
-        }
-      }
-      vm.loggingIn = false
-      return await getAuthToken()
-    },
-    async savePubkeyAndAddress () {
-      const vm = this
-      if (vm.authController?.signal?.aborted) {
-        console.log('savePubkeyAndAddress aborted')
-        return
-      }
-
-      vm.hintMessage = this.$t('UpdatingPubkeyAndAddress')
-      const usertype = vm.user.is_arbiter ? 'arbiter' : 'peer'
-      const addressPath = wallet.addressPath()
-      const pubkey = this.libauthWallet.getPubkeyAt(addressPath)
-      const address = this.libauthWallet.getAddressAt({ path: addressPath })
-      const payload = {
-        public_key: pubkey,
-        address: address,
-        address_path: addressPath
-      }
-      if (payload.public_key === vm.user.public_key &&
-            payload.address === vm.user.address &&
-            payload.address_path === vm.user.address_path) {
-        console.log('Local wallet keys match server keys')
-      } else {
-        backend.patch(`/ramp-p2p/${usertype}/`, payload, { authorize: true, signal: this.authController.signal })
-          .then(response => {
-            console.log('Updated pubkey and address:', response.data)
-          })
-          .catch(error => {
-            if (error.response) {
-              console.error('Failed to update pubkey and address:', error.response)
-              if (error.response.status === 403) {
-                this.login()
-              }
-            } else {
-              console.error('Failed to update pubkey and address:', error)
-              bus.emit('network-error')
-            }
-          })
-      }
+      this.isLoading = false
     },
     async onRegisterUser () {
       this.loggingIn = true
       await this.registerUser()
       await this.loadUser(true)
+      this.loggingIn = false
+      this.register = false
     },
     async registerUser () {
       const vm = this
       vm.errorMessage = null
+      const libauthWallet = wallet.wallet
       const timestamp = Date.now()
       const addressPath = wallet.addressPath()
-      const privkey = this.libauthWallet.getPrivateKeyWifAt(addressPath)
-      const pubkey = this.libauthWallet.getPubkeyAt(addressPath)
-      const address = this.libauthWallet.getAddressAt({ path: addressPath })
-      const signature = await wallet.signMessage(privkey, 'PEER_CREATE', timestamp)
+      const privkey = libauthWallet.getPrivateKeyWifAt(addressPath)
+      const pubkey = libauthWallet.getPubkeyAt(addressPath)
+      const address = libauthWallet.getAddressAt({ path: addressPath })
+      const signature = wallet.signMessage(privkey, 'PEER_CREATE', timestamp)
       const headers = {
         timestamp: timestamp,
         signature: signature,
@@ -304,27 +184,29 @@ export default {
         })
         .catch(error => { vm.handleError(error) })
     },
-    handleError (error, message) {
-      const vm = this
-      console.error(`${message}: ${error}`)
-      if (error.isAxiosError && !error.response) {
-        // This is a network error (server down, no response)
-        console.error('Network error:', error.message)
-        vm.errorMessage = `${error.message}${message ? `: ${message}` : ''}`
+    handleError (error) {
+      console.error(error)
+      if (this.isNetworkError(error)) {
         bus.emit('network-error')
-      } else if (error.response) {
-        // Handle other types of errors (e.g., 400, 404, etc.)
-        console.error('Error status:', error.response.status)
-        console.error('Error data:', error.response.data)
-        const errorMessage = error.response.data?.error
-        vm.errorMessage = `Error ${error.response.status}${errorMessage ? `: ${errorMessage}` : ''}`
-      } else {
-        // Handle other non-network errors
-        console.error('Error:', error)
-        vm.errorMessage = `${error}${message ? `: ${message}` : ''}`
       }
-      vm.isLoading = false
-      vm.loggingIn = false
+      this.errorMessage = this.getErrorMessageByType(error)
+      this.isLoading = false
+      this.loggingIn = false
+    },
+    getErrorMessageByType (error) {
+      if (this.isNetworkError(error)) {
+        return 'Network error'
+      } else if (this.isRequestError()) {
+        return `${error.response.status} ${error.response.data?.error}`
+      } else {
+        return error
+      }
+    },
+    isNetworkError (error) {
+      return error.isAxiosError && !error.response
+    },
+    isRequestError (error) {
+      return error.response
     }
   }
 }

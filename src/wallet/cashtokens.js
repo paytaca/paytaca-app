@@ -97,8 +97,8 @@ export class CashNonFungibleToken {
       name: this.parsedNftMetadata?.name || this.parsedGroupMetadata?.name,
       description: this.parsedNftMetadata?.description || this.parsedGroupMetadata?.description,
       symbol: this.parsedGroupMetadata?.symbol,
-      imageUrl: this.parsedNftMetadata?.imageUrl || this.parsedGroupMetadata?.imageUrl,
-      imageUrlFull: this.parsedNftMetadata?.imageUrlFull || this.parsedGroupMetadata?.imageUrl,
+      imageUrl: this.parsedNftMetadata?.imageUrl || this.parsedGroupMetadata?.imageUrl || this.metadata?.uris?.icon,
+      imageUrlFull: this.parsedNftMetadata?.imageUrlFull || this.parsedGroupMetadata?.imageUrl || this.metadata?.uris?.icon,
       attributes: this.parsedNftMetadata?.attributes,
     }
   }
@@ -131,7 +131,6 @@ export class CashNonFungibleToken {
   async fetchMetadata() {
     let url = `tokens/${this.category}/`
     if (this.commitment) url += `${this.commitment}/`
-    
     this.$state.fetchingMetadata = true
     return getBcmrBackend().get(url)
       .then(response => {

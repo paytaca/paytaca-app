@@ -29,15 +29,11 @@
                 </div>
                 <div class="row justify-between no-wrap q-mx-lg">
                   <span>{{ $t('MinTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ ad?.trade_limits_in_fiat ? Number(Number(ad?.trade_floor).toFixed(2)) : Number(Number(ad?.trade_floor).toFixed(8))  }} {{ tradeLimitsCurrency(ad) }}
-                  </span>
+                  <span class="text-nowrap q-ml-xs"> {{ tradeFloor }} {{ tradeLimitsCurrency(ad) }}</span>
                 </div>
                 <div class="row justify-between no-wrap q-mx-lg">
                   <span>{{ $t('MaxTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ ad?.trade_limits_in_fiat ? Number(Number(minTradeAmount(ad)).toFixed(2)) : Number(Number(minTradeAmount(ad)).toFixed(8)) }} {{ tradeLimitsCurrency(ad) }}
-                  </span>
+                  <span class="text-nowrap q-ml-xs">{{ tradeCeiling }} {{ tradeLimitsCurrency(ad) }}</span>
                 </div>
                 <div class="row justify-between no-wrap q-mx-lg">
                   <span>
@@ -66,7 +62,7 @@
                   type="text"
                   inputmode="none"
                   :label="$t('Amount')"
-                  :disable="!hasArbiters || createOrdersEnabled === false"
+                  :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
                   :dark="darkMode"
                   :rules="[isValidInputAmount]"
                   v-model="amount"
@@ -91,7 +87,7 @@
                       padding="none"
                       flat
                       dense
-                      :disable="!hasArbiters || createOrdersEnabled === false"
+                      :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
                       :class="getDarkModeClass(darkMode)"
                       :label="$t('MIN')"
                       @click="updateInput(max=false, min=true)"/>
@@ -99,7 +95,7 @@
                       class="sm-font-size button button-text-primary"
                       padding="none"
                       flat
-                      :disable="!hasArbiters || createOrdersEnabled === false"
+                      :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
                       :class="getDarkModeClass(darkMode)"
                       :label="$t('MAX')"
                       @click="updateInput(max=true, min=false)"/>
@@ -111,7 +107,7 @@
                     padding="none"
                     flat
                     no-caps
-                    :disable="!hasArbiters || createOrdersEnabled === false"
+                    :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
                     :class="getDarkModeClass(darkMode)"
                     @click="byFiat = !byFiat">
                     {{
@@ -143,7 +139,7 @@
               <!-- create order btn -->
               <div v-if="!isOwner && hasArbiters && createOrdersEnabled !== false" class="row q-mx-lg q-py-md">
                 <q-btn
-                  :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton"
+                  :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton || isZeroTradeLimits()"
                   :loading="loadSubmitButton"
                   rounded
                   no-caps
@@ -228,7 +224,6 @@ import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import { bchToSatoshi, satoshiToBch, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { ref } from 'vue'
-import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
@@ -292,7 +287,10 @@ export default {
       previousRoute: null,
       networkError: false,
       loadSubmitButton: false,
-      webSocketManager: null,
+      websockets: {
+        ad: null,
+        marketPrice: null
+      },
       errorDialogActive: false
     }
   },
@@ -303,6 +301,17 @@ export default {
   },
   emits: ['back', 'orderCanceled', 'updatePageName'],
   computed: {
+    tradeFloor () {
+      let floor = this.ad?.trade_floor
+      const ceiling = this.ad?.trade_ceiling
+      if (floor > ceiling) {
+        floor = ceiling
+      }
+      return Number(floor)
+    },
+    tradeCeiling () {
+      return Number(this.minTradeAmount(this.ad))
+    },
     adShareLinkEnabled () {
       return this.$store.getters['ramp/featureToggles']?.AdShareLinks
     },
@@ -361,7 +370,7 @@ export default {
     },
     marketPrice (val) {
       // polling ad info whenever market price update
-      this.fetchAd()
+
     },
     amount (val) {
       if (this.ad.trade_type === 'BUY') {
@@ -377,19 +386,21 @@ export default {
     await this.loadData()
   },
   beforeUnmount () {
-    this.closeWSConnection()
+    this.closeWebSocketConnection()
   },
   methods: {
     getDarkModeClass,
     isNotDefaultTheme,
     formatCurrency,
     satoshiToBch,
+    closeWebSocketConnection () {
+      this.websockets?.ad?.closeConnection()
+      this.websockets?.marketPrice?.closeConnection()
+    },
     openShareDialog () {
-      const baseURL = this.$store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
       this.$q.dialog({
         component: ShareDialog,
         componentProps: {
-          // adShareUrl: `${window.location.origin}/#/apps/exchange/ad/${this.ad.id}`
           adShareUrl: `https://p2p.paytaca.com/ad/share/?id=${this.ad.id}`
         }
       })
@@ -402,7 +413,7 @@ export default {
       vm.isloaded = false
       await vm.fetchAd()
       await vm.fetchArbiters()
-      vm.setupWebsocket()
+      vm.setupWebSocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
       if (done) done()
@@ -485,15 +496,6 @@ export default {
     customBackEditAds () {
       this.$refs.fiatAdsForm.step--
     },
-    // onBackEditAds () {
-    //   this.state = 'initial'
-    //   bus.emit('show-menu', 'store')
-    // },
-    // onSubmitEditAds () {
-    //   this.$emit('back')
-    //   this.$emit('updatePageName', 'main')
-    //   bus.emit('show-menu', 'store')
-    // },
     orderConfirm () {
       this.dialogType = 'confirmOrderCreate'
       this.openDialog = true
@@ -505,6 +507,9 @@ export default {
           this.ad = response.data
           if (!this.isloaded) {
             this.amount = Number(this.ad.trade_floor)
+            if (this.ad.trade_ceiling < this.ad.trade_floor) {
+              this.amount = this.ad.trade_ceiling
+            }
             this.byFiat = this.ad.trade_limits_in_fiat
             if (this.byFiat) {
               this.amount = Number(Number(this.amount).toFixed(2))
@@ -526,18 +531,35 @@ export default {
         body.payment_methods = temp
       }
       try {
-        const response = await backend.post('/ramp-p2p/order/', body, { authorize: true })
-        vm.order = response.data.order
-        vm.state = 'order-process'
-        vm.$emit('updatePageName', 'order-process')
-        vm.fetchOrderMembers(vm.order.id)
-          .then(members => {
-            vm.createGroupChat(vm.order.id, members, vm.order.created_at)
+        await backend.post('/ramp-p2p/order/', body, { authorize: true })
+          .then((response) => {
+            vm.order = response.data.order
+
+            vm.state = 'order-process'
+            vm.$emit('updatePageName', 'order-process')
+            vm.fetchOrderMembers(vm.order.id)
+              .then(members => {
+                vm.createGroupChat(vm.order.id, members, vm.order.created_at)
+              })
+            vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
           })
-        vm.$router.push({ name: 'p2p-order', params: { order: vm.order.id } })
       } catch (error) {
         this.handleRequestError(error)
       }
+    },
+    async confirmOrder () {
+      return new Promise((resolve, reject) => {
+        const vm = this
+        const url = `/ramp-p2p/order/${vm.order.id}/confirm/`
+        backend.post(url, {}, { authorize: true })
+          .then(response => {
+            resolve(response)
+          })
+          .catch(error => {
+            this.handleRequestError(error)
+            reject(error)
+          })
+      })
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
@@ -591,26 +613,27 @@ export default {
     },
     isValidInputAmount (value = this.amount) {
       let valid = true
-      let tradeFloor = Number(this.ad.trade_floor).toFixed(8)
-      let tradeCeiling = Number(this.minTradeAmount(this.ad)).toFixed(8)
-      let amount = Number(Number(value).toFixed(8))
+      let tradeFloor = this.formatDecimals('bch', this.ad.trade_floor)
+      let tradeCeiling = this.formatDecimals('bch', this.minTradeAmount(this.ad))
 
-      // if trade limits in fiat
+      let amount = value
+      const price = this.ad.price
+
+      if (tradeFloor > tradeCeiling) {
+        tradeFloor = tradeCeiling
+      }
+
       if (this.ad.trade_limits_in_fiat) {
-        tradeFloor = Number(Number(tradeFloor).toFixed(2))
-        tradeCeiling = Number(Number(tradeCeiling).toFixed(2))
+        tradeFloor = this.formatDecimals('fiat', tradeFloor)
+        tradeCeiling = this.formatDecimals('bch', tradeCeiling)
         if (!this.byFiat) {
-          // if input value is in BCH, convert to fiat first
-          amount = Number((amount * this.ad.price).toFixed(2))
+          amount = this.bchToFiat(amount, price)
         } else {
-          // if input value is in fiat, limit decimals to 2
-          amount = Number(amount.toFixed(2))
+          amount = this.formatDecimals('fiat', amount)
         }
       } else {
-        // if trade limits in BCH
         if (this.byFiat) {
-          // if input value is in fiat, convert to BCH first
-          amount = Number((amount / this.ad.price).toFixed(8))
+          amount = this.formatDecimals('bch', this.fiatToBch(amount, price))
         }
       }
 
@@ -635,7 +658,21 @@ export default {
       if (valid) {
         this.amountError = null
       }
+      this.isZeroTradeLimits()
       return valid
+    },
+    fiatToBch(amount, price) {
+      return Number((amount / price).toFixed(8))
+    },
+    bchToFiat(amount, price) {
+      return Number((amount * price).toFixed(2))
+    },
+    formatDecimals(type = 'fiat', value) {
+      if (type === 'fiat') return Number(Number(value).toFixed(2))
+      if (type === 'bch') return Number(Number(value).toFixed(8))
+    },
+    isZeroTradeLimits () {
+      return this.tradeFloor === 0 || this.tradeCeiling === 0
     },
     resetInput () {
       if (this.amount !== '' && !isNaN(this.amount)) return
@@ -649,9 +686,13 @@ export default {
       if (!this.isloaded) return
       let amount = this.amount
 
-      const tradeFloor = Number(this.ad.trade_floor)
+      let tradeFloor = Number(this.ad.trade_floor)
       const tradeCeiling = this.minTradeAmount(this.ad)
       const tradeLimitsInFiat = this.ad.trade_limits_in_fiat
+
+      if (tradeFloor > tradeCeiling) {
+        tradeFloor = tradeCeiling
+      }
 
       if (min) {
         if (this.byFiat) {
@@ -794,50 +835,26 @@ export default {
       this.showPeerProfile = true
     },
     setupWebSocket () {
-      const url = `${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`
-      this.webSocketManager = new WebSocketManager()
-      this.webSocketManager.setWebSocketUrl(url)
-      this.webSocketManager.subscribeToMessages((message) => {
-        console.log('message:', message)
-        // if (message?.success) {
-        //   if (message?.txdata) {
-        //     this.verifyingTx = false
-        //     this.sendingBch = false
-        //   }
-        //   this.fetchOrder()
-        //     .then(() => {
-        //       if (message?.contract_address) {
-        //         this.fetchContract().then(() => { this.escrowTransferKey++ })
-        //       }
-        //     })
-        // } else {
-        //   this.handleError(message)
-        // }
-      })
-    },
-    setupWebsocket () {
-      this.closeWSConnection()
-      const wsUrl = `${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`
-      this.websocket = new WebSocket(wsUrl)
-      this.websocket.onopen = () => {
-        console.log('WebSocket connection established to ' + wsUrl)
-      }
-      this.websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        const price = parseFloat(data.price)
+      // Subscribe to market price updates
+      this.closeWebSocketConnection()
+      this.websockets.marketPrice = new WebSocketManager()
+      this.websockets.marketPrice.setWebSocketUrl(`${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`)
+      this.websockets.marketPrice.subscribeToMessages((message) => {
+        const price = parseFloat(message.price)
         if (price) {
           this.marketPrice = price.toFixed(2)
-          console.log('Updated market price to :', this.marketPrice)
+          this.fetchAd()
         }
-      }
-      this.websocket.onclose = () => {
-        console.log('WebSocket connection closed.')
-      }
-    },
-    closeWSConnection () {
-      if (this.websocket) {
-        this.websocket.close()
-      }
+      })
+      // Subscribe to ad updates
+      this.websockets.ad = new WebSocketManager()
+      this.websockets.ad.setWebSocketUrl(
+        `${getBackendWsUrl()}ad/${this.ad.id}/`
+      )
+      this.websockets.ad.subscribeToMessages((message) => {
+        // Refresh the ad data
+        if (message === 'AD_UPDATED') this.fetchAd()
+      })
     },
     handleRequestError (error) {
       console.error(error?.response || error)
@@ -888,7 +905,6 @@ export default {
   .md-font-size {
     font-size: medium;
   }
-
   .lg-font-size {
     font-size: large;
   }
@@ -923,4 +939,4 @@ export default {
     color: #fff; /* Text color for dark mode */
     border: 1px solid #2dd5fb; /* Border color */
   }
-  </style>
+</style>

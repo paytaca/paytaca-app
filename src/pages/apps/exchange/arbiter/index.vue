@@ -71,10 +71,13 @@ export default {
     bus.on('show-footer-menu', this.onShowFooterMenu)
     bus.on('handle-request-error', this.handleRequestError)
   },
-  mounted () {
-    loadRampWallet()
+  async mounted () {
+    await loadRampWallet()
     this.isLoading = false
     this.setupWebSocket()
+  },
+  beforeUnmount () {
+    this.closeWSConnection()
   },
   methods: {
     loadRouting () {
@@ -113,7 +116,11 @@ export default {
         this.$store.commit('ramp/updatePendingAppeals', { overwrite: true, data: { appeals: ongoingAppeals } })
       }
     },
+    closeWSConnection () {
+      this.websocketManager?.closeConnection()
+    },
     setupWebSocket () {
+      this.closeWSConnection()
       const url = `${getBackendWsUrl()}general/${wallet.walletHash}/`
       this.websocketManager = new WebSocketManager()
       this.websocketManager.setWebSocketUrl(url)

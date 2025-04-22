@@ -881,6 +881,7 @@ export default {
       this.websocket?.closeConnection()
     },
     setupWebsocket () {
+      this.closeWSConnection()
       const wsUrl = `${getBackendWsUrl()}market-price/${this.selectedCurrency.symbol}/`
       this.websocket = new WebSocketManager()
       this.websocket.setWebSocketUrl(wsUrl)

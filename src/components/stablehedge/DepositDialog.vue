@@ -44,6 +44,27 @@
           <div class="q-my-md text-h6 text-grey">{{ $t('To') }}</div>
           <div class="text-h5">{{ tokenAmount }} {{ tokenCurrency }}</div>
         </div>
+        <q-banner
+          v-if="!hasLiquidityForRedemption"
+          class="q-my-sm rounded-borders q-mx-md"
+          :class="$q.dark.isActive ? 'bg-amber-4 text-brown-10' : 'bg-amber-2 text-brown-9'"
+        >
+          <template v-slot:avatar>
+            <q-icon name="warning" class="q-my-sm"/>
+          </template>
+          <div style="line-height:1.2;">
+            <div class="q-mb-sm">
+              {{ $t('DepositWarningMessage', {}, 'Due to low liquidity, they may not be fully convertible back to BCH immediately.') }}
+            </div>
+            <template v-if="postDepositRedeemableSats">
+              <div class="text-caption">
+                {{ $t('AvailableBchMessage', {}, 'Available BCH after deposit')}}
+              :</div>
+              <div>{{ formatBch(postDepositRedeemableSats / 10 ** 8) }}</div>
+            </template>
+          </div>
+
+        </q-banner>
         <div class="text-center">
           <div v-if="loading" class="q-my-md">
             <ProgressLoader/>
@@ -133,6 +154,14 @@ export default defineComponent({
       const currentDenomination = denomination.value || 'BCH'
       return getAssetDenomination(currentDenomination, value)
     }
+
+    const postDepositRedeemableSats = computed(() => {
+      const currentRedeemable = props.redemptionContract.redeemable
+      return currentRedeemable + Math.floor(satoshis.value / 2)
+    })
+    const hasLiquidityForRedemption = computed(() => {
+      return postDepositRedeemableSats.value > satoshis.value
+    })
 
     function securityCheck(resetSwipe=() => {}) {
       $q.dialog({
@@ -280,6 +309,9 @@ export default defineComponent({
       bchAmount,
       denominatedBchAmountText,
       formatBch,
+
+      postDepositRedeemableSats,
+      hasLiquidityForRedemption,
 
       securityCheck,
       loading,

@@ -108,7 +108,7 @@
                         @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
                     </div>
                     <div v-else>
-                      <span class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
+                      <span v-if="hasUploadingMsg" class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
                     </div>
                     <div v-if="data?.type !== 'seller'" class="row">
                       <q-btn
@@ -151,6 +151,11 @@
                   </div>
                 </q-card>
               </q-expansion-item>
+              <div v-if="data?.type === 'buyer'">
+                <q-banner class="bg-primary text-white text-center" v-if="method.selected && !method.attachment">
+                  <span class="sm-font-size">Please upload Proof of Payment first before you proceed</span>
+                </q-banner>
+              </div>
             </q-card>
           </div>
         </div>
@@ -205,6 +210,7 @@
     <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
   </div>
   <RampDragSlide
+  v-touch-swipe.mouse="checkDragslideStatus"
   v-if="showDragSlide"
   :key="dragSlideKey"
   :text="dragSlideTitle"
@@ -216,10 +222,12 @@
     right: 0,
     zIndex: 1500,
   }"
+  @click="checkDragslideStatus()"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
-  <AppealForm v-if="showAppealForm" :type="this.data?.type" :order="order" @back="showAppealForm = false" @loadAppeal="loadAppealButton = true; showDragSlide = false"/>
+  <AppealForm v-if="showAppealForm" :userType="this.data?.type" :order="order" @back="showAppealForm = false" @loadAppeal="loadAppealButton = true; showDragSlide = false"/>
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
+  <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
 <script>
 import { ref } from 'vue'
@@ -233,6 +241,7 @@ import RampDragSlide from './dialogs/RampDragSlide.vue'
 import AppealForm from './dialogs/AppealForm.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
+import NoticeBoardDialog from './dialogs/NoticeBoardDialog.vue'
 
 export default {
   setup () {
@@ -265,14 +274,17 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
       showAttachmentDialog: false,
       attachmentUrl: null,
-      loadAppealButton: false
+      loadAppealButton: false,
+      errorDialogActive: false,
+      showNoticeDialog: false
     }
   },
   components: {
     RampDragSlide,
     AppealForm,
     ProgressLoader,
-    AttachmentDialog
+    AttachmentDialog,
+    NoticeBoardDialog
   },
   emits: ['back', 'verify-release', 'sending', 'refresh'],
   props: {
@@ -286,6 +298,10 @@ export default {
   computed: {
     maxFileSize () {
       return 5 * 1024 * 1024
+    },
+    hasUploadingMsg () {
+      const status = this.order.status.value
+      return status !== 'ESCRW' && status !== 'PD_PN'
     },
     appealBtnLabel () {
       if (this.countDown) return this.$t('AppealableInSeconds', { countdown: this.countDown }, `Appealable in ${this.countDown}`)
@@ -326,6 +342,9 @@ export default {
         url = 'https://blockchair.com/bitcoin-cash/address/'
       }
       return `${url}${this.data?.contract.address}`
+    },
+    noticeMessage () {
+      return 'Please select Payment Method and upload your Proof of Payment first to proceed with the transaction'
     }
   },
   async mounted () {
@@ -346,6 +365,11 @@ export default {
       vm.appealCountdown()
       vm.isloaded = true
       vm.fetchContractBalance()
+    },
+    checkDragslideStatus () {
+      if (this.lockDragSlide) {
+        this.showNoticeDialog = true
+      }
     },
     cancelAttachment (method) {
       method.attachment = null
@@ -467,7 +491,7 @@ export default {
         vm.sendErrors.push('contract addresses mismatched')
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
-      const keypair = await wallet.keypair(sellerMember.address_path)
+      const keypair = wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {
           console.log(result)
@@ -595,6 +619,22 @@ export default {
     },
     handleRequestError (error) {
       bus.emit('handle-request-error', error)
+    },
+    showErrorDialog (error) {
+      console.error(error)
+      const message = 'An unexpected error has occured'
+      if (!this.errorDialogActive) {
+        this.errorDialogActive = false
+        this.$q.notify({
+          type: 'warning',
+          message: message,
+          position: 'bottom',
+          timeout: 5000,
+          onDismiss: () => {
+            this.errorDialogActive = false
+          }
+        })
+      }
     }
   }
 }
@@ -615,5 +655,9 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+.tooltipcard {
+  background: grey;
+  opacity: 10%;
 }
 </style>

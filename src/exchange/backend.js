@@ -22,20 +22,20 @@ export function getBackendWsUrl () {
 
 export async function updatePubkeyAndAddress (user) {
   const userType = user.is_arbiter ? 'arbiter' : 'peer'
-  const pubkey = await wallet.pubkey()
+  const pubkey = wallet.pubkey()
 
   // Default address path is 0/0
   const addressPath = wallet.addressPath()
 
   const payload = {
     public_key: pubkey,
-    address: await wallet.address(),
+    address: wallet.address(),
     address_path: addressPath
   }
 
   const respdata = { success: true }
   if (payload.public_key !== user.public_key || payload.address !== user.address || payload.address_path !== user.address_path) {
-    backend.patch(`/ramp-p2p/${userType}/detail`, payload, { authorize: true })
+    backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: true })
       .then(response => {
         console.log('Updated pubkey and address:', response.data)
         respdata.data = response.data

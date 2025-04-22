@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" position="bottom" @hide="onDialogHide">
-    <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="pt-card text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row no-wrap items-center justify-center">
           <div class="text-h6">

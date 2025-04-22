@@ -3,7 +3,6 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import axios from 'axios'
 import { generateChatIdentityRef } from '.'
-import { loadLibauthHdWallet } from 'src/wallet'
 
 const bchjs = new BCHJS()
 
@@ -83,13 +82,13 @@ export async function setSignerData (value = '') {
 
 export async function updateSignerData () {
   console.log('Updating chat signer data')
-  if (!wallet) loadRampWallet()
-  const libauthWallet = await loadLibauthHdWallet(wallet.walletIndex, wallet.isChipnet)
+  if (!wallet) await loadRampWallet()
 
-  // fetches the verifying keypair at adress path 0/0
-  const verifyingPubkeyIndex = 0 // fixed verifying pubkey index
+  // fetches the verifying keypair at address path 0/0
+  const verifyingPubkeyIndex = 0 // fixed verifying pubkey index at 0
   const addressPath = wallet.addressPath(verifyingPubkeyIndex)
-  const privkey = libauthWallet.getPrivateKeyWifAt(addressPath)
+  const privkey = wallet.privkey(addressPath)
+  const verifyingPubkey = wallet.pubkey(addressPath)
   const walletHash = wallet?.walletHash
 
   // return if no need to update signer data
@@ -100,19 +99,13 @@ export async function updateSignerData () {
     console.log('Chat signer data is still updated.')
     return
   }
-  const verifyingPubkey = libauthWallet.getPubkeyAt(addressPath)
 
   // generate message and signature to verify
   const message = `${Date.now()}`
-  const signature = await (await wallet.raw()).signMessage(message, verifyingPubkeyIndex)
-
-  // get address from verifyingPubkey
-  const pubkeyBuffer = Buffer.from(verifyingPubkey, 'hex')
-  const ecPair = bchjs.ECPair.fromPublicKey(pubkeyBuffer)
-  const address = bchjs.ECPair.toLegacyAddress(ecPair)
+  const signature = wallet.signMessage(privkey, message)
 
   // verify if signature is valid for address
-  const valid = await (await wallet.raw()).verifyMessage(address, signature, message)
+  const valid = wallet.verifyMessage(verifyingPubkey, message, signature)
   if (!valid) return Promise.reject('Invalid signature on updateSignerData')
 
   // store this walletHash:privkey pair as current chat signer

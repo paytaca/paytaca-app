@@ -1,141 +1,111 @@
 <template>
   <div class="text-bow"
     :class="getDarkModeClass(darkMode)">
-    <q-pull-to-refresh class="q-mb-md" @refresh="$emit('refresh')">
-      <div v-if="loading">
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader/>
-        </div>
+    <div v-if="loading">
+      <div class="row justify-center q-py-lg" style="margin-top: 50px">
+        <ProgressLoader/>
       </div>
-      <div v-else>
-        <!-- Contract info -->
-        <div class="q-px-sm q-pt-sm q-ma-sm">
-          <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractAddress') }}</div>
-          <q-input
-            class="q-pb-xs"
-            readonly
-            dense
-            filled
-            :dark="darkMode"
-            v-model="contractAddress">
-            <template v-slot:append>
-              <div v-if="contractAddress">
-                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(contractAddress)"/>
-              </div>
-            </template>
-          </q-input>
-          <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractBalance') }}</div>
-          <q-input
-            class="q-pb-xs"
-            readonly
-            dense
-            filled
-            :dark="darkMode"
-            :loading="contractBalance === null"
-            v-model="contractBalance">
-            <template v-slot:append>
-              <span class="sm-font-size">BCH</span>
-            </template>
-          </q-input>
+    </div>
+    <div v-else>
+      <!-- Contract info -->
+      <div class="q-px-sm q-pt-sm q-ma-sm">
+        <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractAddress') }}</div>
+        <q-input
+          class="q-pb-xs"
+          readonly
+          dense
+          filled
+          :dark="darkMode"
+          v-model="contractAddress">
+          <template v-slot:append>
+            <div v-if="contractAddress">
+              <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
+              <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(contractAddress)"/>
+            </div>
+          </template>
+        </q-input>
+        <div class="sm-font-size q-pb-xs text-italic">{{ $t('ContractBalance') }}</div>
+        <q-input
+          class="q-pb-xs"
+          readonly
+          dense
+          filled
+          :dark="darkMode"
+          :loading="contractBalance === null"
+          v-model="contractBalance">
+          <template v-slot:append>
+            <span class="sm-font-size">BCH</span>
+          </template>
+        </q-input>
+      </div>
+      <div class="row justify-end text-blue sm-font-size q-mx-md">
+        <q-btn class="col q-py-none" no-caps flat dense @click="showStatusHistory = true">View Status History</q-btn>
+        <q-btn class="col q-py-none" no-caps flat dense @click="showTransactionHistory = true">View Transactions</q-btn>
+      </div>
+      <!-- Payment Methods -->
+      <div v-if="order?.payment_methods_selected?.length > 0" class="q-pt-sm q-ma-sm">
+        <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
+        <div class="text-center sm-font-size q-mx-md q-mb-sm">
+          The buyer selected the following payment methods.
         </div>
-        <div class="row justify-end text-blue sm-font-size q-mx-md">
-          <q-btn class="col q-py-none" no-caps flat dense @click="showStatusHistory = true">View Status History</q-btn>
-          <q-btn class="col q-py-none" no-caps flat dense @click="showTransactionHistory = true">View Transactions</q-btn>
-        </div>
-        <!-- Payment Methods -->
-        <div v-if="order?.payment_methods_selected?.length > 0" class="q-pt-sm q-ma-sm">
-          <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
-          <div class="text-center sm-font-size q-mx-md q-mb-sm">
-            The buyer selected the following payment methods.
-          </div>
-          <div class="full-width">
-            <div v-for="(method, index) in order?.payment_methods_selected" :key="index">
-              <div class="q-px-sm q-py-xs">
-                <q-card flat bordered :dark="darkMode">
-                  <q-expansion-item
-                    class="pt-card text-bow"
-                    :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
-                    :default-opened=true
-                    :label="method.payment_type"
-                    expand-separator >
-                    <q-card class="row no-wrap q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                      <div class="col">
-                        <div class="row">
-                          <div class="col q-pr-sm q-py-xs">
-                            <div v-for="(field, index) in method.values" :key="index">
-                              <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
-                              <div v-if="field.value" class="q-ml-sm text-weight-bold">
-                                {{ field.value }}
-                                <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
-                              </div>
+        <div class="full-width">
+          <div v-for="(method, index) in order?.payment_methods_selected" :key="index">
+            <div class="q-px-sm q-py-xs">
+              <q-card flat bordered :dark="darkMode">
+                <q-expansion-item
+                  class="pt-card text-bow"
+                  :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
+                  :default-opened=true
+                  :label="method.payment_type"
+                  expand-separator >
+                  <q-card class="row no-wrap q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
+                    <div class="col">
+                      <div class="row">
+                        <div class="col q-pr-sm q-py-xs">
+                          <div v-for="(field, index) in method.values" :key="index">
+                            <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
+                            <div v-if="field.value" class="q-ml-sm text-weight-bold">
+                              {{ field.value }}
+                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
                             </div>
-                            <div v-for="(field, index) in method.dynamic_values" :key="index">
-                              {{ field.fieldname }}
-                              <div class="q-ml-sm text-weight-bold">
-                                {{ dynamicVal(field) }}
-                                <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
-                              </div>
+                          </div>
+                          <div v-for="(field, index) in method.dynamic_values" :key="index">
+                            {{ field.fieldname }}
+                            <div class="q-ml-sm text-weight-bold">
+                              {{ dynamicVal(field) }}
+                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
                             </div>
                           </div>
                         </div>
-                        <div v-if="method.attachments?.length > 0" class="row">
-                          <q-btn
-                            flat dense no-caps
-                            icon="image"
-                            class="row button button-text-primary q-my-none q-py-none"
-                            label="View Proof of Payment"
-                            style="font-size: small;"
-                            @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
-                        </div>
                       </div>
-                    </q-card>
-                  </q-expansion-item>
-                </q-card>
-              </div>
+                      <div v-if="method.attachments?.length > 0" class="row">
+                        <q-btn
+                          flat dense no-caps
+                          icon="image"
+                          class="row button button-text-primary q-my-none q-py-none"
+                          label="View Proof of Payment"
+                          style="font-size: small;"
+                          @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
+                      </div>
+                    </div>
+                  </q-card>
+                </q-expansion-item>
+              </q-card>
             </div>
           </div>
         </div>
-        <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
-          <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
-            <div class="text-center q-py-xs text-weight-bold text-uppercase">
-              {{ $t('SelectAction') }}
-            </div>
-            <q-card-actions>
-                <q-btn
-                  class="col q-ml-xs"
-                  size="md"
-                  rounded
-                  :disable="sendingBch"
-                  :outline="selectedAction !== 'refund'"
-                  :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
-                  :label="$t('Refund')"
-                  @click="selectActionType('refund')"
-                />
-                <q-btn
-                  class="col q-ml-xs"
-                  size="md"
-                  rounded
-                  :disable="sendingBch"
-                  :outline="selectedAction !== 'release'"
-                  :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
-                  :label="$t('Release')"
-                  @click="selectActionType('release')"
-                />
-            </q-card-actions>
-          </q-card>
-        </div>
-        <div v-else>
-          <q-card class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
-            <div class="text-center q-py-xs text-weight-bold text-uppercase">
-              SELECTED ACTION
-            </div>
-            <q-card-actions>
+      </div>
+      <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
+        <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+          <div class="text-center q-py-xs text-weight-bold text-uppercase">
+            {{ $t('SelectAction') }}
+          </div>
+          <q-card-actions>
               <q-btn
                 class="col q-ml-xs"
                 size="md"
                 rounded
-                disable
+                :disable="sendingBch"
                 :outline="selectedAction !== 'refund'"
                 :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
                 :label="$t('Refund')"
@@ -145,27 +115,57 @@
                 class="col q-ml-xs"
                 size="md"
                 rounded
-                disable
+                :disable="sendingBch"
                 :outline="selectedAction !== 'release'"
                 :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
                 :label="$t('Release')"
                 @click="selectActionType('release')"
               />
-            </q-card-actions>
-            <div class="row justify-center text-center subtext">Resolved at {{ formatDate(appeal?.resolved_at) }}</div>
-          </q-card>
-        </div>
-        <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto;">
-          <q-card flat class="row pt-card-2 bg-red-1 text-red q-pa-lg pp-text bg-red-1" :class="getDarkModeClass(darkMode)">
-            {{ sendError }}
-          </q-card>
-        </div>
+          </q-card-actions>
+          <div class="row justify-center text-center subtext" v-if="selectedAction">{{ actionMsg }}</div>
+        </q-card>
       </div>
-    </q-pull-to-refresh>
+      <div v-else>
+        <q-card class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+          <div class="text-center q-py-xs text-weight-bold text-uppercase">
+            SELECTED ACTION
+          </div>
+          <q-card-actions>
+            <q-btn
+              class="col q-ml-xs"
+              size="md"
+              rounded
+              disable
+              :outline="selectedAction !== 'refund'"
+              :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
+              :label="$t('Refund')"
+              @click="selectActionType('refund')"
+            />
+            <q-btn
+              class="col q-ml-xs"
+              size="md"
+              rounded
+              disable
+              :outline="selectedAction !== 'release'"
+              :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
+              :label="$t('Release')"
+              @click="selectActionType('release')"
+            />
+          </q-card-actions>
+          <div class="row justify-center text-center subtext">Resolved at {{ formatDate(appeal?.resolved_at) }}</div>
+        </q-card>
+      </div>
+      <div v-if="sendError" class="bg-red-1 q-mx-md q-px-sm q-my-sm" style="overflow-x: auto;">
+        <q-card flat class="row pt-card-2 bg-red-1 text-red q-pa-lg pp-text bg-red-1" :class="getDarkModeClass(darkMode)">
+          {{ sendError }}
+        </q-card>
+      </div>
+    </div>
   </div>
 
   <!-- Add DragSlide -->
   <RampDragSlide
+    v-touch-swipe.mouse="checkDragslideStatus"
     :key="dragSlideKey"
     v-if="showDragSlide && state === 'form'"
     :locked="!selectedAction"
@@ -176,13 +176,15 @@
       right: 0,
       zIndex: 1500,
     }"
+    @click="checkDragslideStatus()"
     @ok="onSubmit"
     @cancel="onSecurityCancel"
     :text="$t('SwipeToConfirmLower')"
   />
   <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" @back="showStatusHistory = false" />
-  <TransactionHistoryDialog v-if="showTransactionHistory" :transactions="data?.transactions" @back="showTransactionHistory = false" />
+  <TransactionHistoryDialog v-if="showTransactionHistory" :data="txHistoryData" @back="showTransactionHistory = false"/>
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
+  <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
 <script>
 import TransactionHistoryDialog from 'src/components/ramp/appeal/dialogs/TransactionHistoryDialog.vue'
@@ -196,6 +198,7 @@ import { wallet } from 'src/exchange/wallet'
 import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
+import NoticeBoardDialog from '../fiat/dialogs/NoticeBoardDialog.vue'
 
 export default {
   components: {
@@ -203,7 +206,8 @@ export default {
     ProgressLoader,
     OrderStatusDialog,
     TransactionHistoryDialog,
-    AttachmentDialog
+    AttachmentDialog,
+    NoticeBoardDialog
   },
   data () {
     return {
@@ -232,7 +236,8 @@ export default {
       showTransactionHistory: false,
 
       showAttachmentDialog: false,
-      attachmentUrl: null
+      attachmentUrl: null,
+      showNoticeDialog: false
     }
   },
   props: {
@@ -250,6 +255,12 @@ export default {
     }
   },
   computed: {
+    txHistoryData () {
+      return {
+        appeal: this.appeal,
+        transactions: this.data?.transactions
+      }
+    },
     completedOrder () {
       return ['CNCL', 'RLS', 'RFN'].includes(this.order?.status?.value)
     },
@@ -265,6 +276,16 @@ export default {
         url = 'https://blockchair.com/bitcoin-cash/address/'
       }
       return `${url}${this.contractAddress}`
+    },
+    actionMsg () {
+      if (this.selectedAction === 'refund') {
+        return 'The fund is refunded to the SELLER'
+      } else if (this.selectedAction === 'release') {
+        return 'The fund is released to the BUYER'
+      } else { return null }
+    },
+    noticeMessage () {
+      return 'Please select an Appeal Action to proceed with the appeal process'
     }
   },
   async mounted () {
@@ -308,6 +329,11 @@ export default {
       }
       vm.loading = false
     },
+    checkDragslideStatus () {
+      if (!this.selectedAction) {
+        this.showNoticeDialog = true
+      }
+    },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
         if (!this.escrowContract) return 0
@@ -331,7 +357,6 @@ export default {
       if (vm.selectedAction === 'refund') {
         txid = await vm.refundBch()
       }
-      console.log('txid:', txid)
       if (txid) {
         await vm.setOrderPending(vm.selectedAction)
       }
@@ -342,9 +367,6 @@ export default {
       const vm = this
       const url = `/ramp-p2p/appeal/${vm.appeal.id}/pending-${action}/`
       await backend.post(url, {}, { authorize: true })
-        .then(response => {
-          console.log(response.data)
-        })
         .catch(error => {
           this.handleRequestError(error)
         })
@@ -354,7 +376,7 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const keypair = await wallet.keypair(arbiterMember.address_path)
+      const keypair = wallet.keypair(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.trade_amount)
         .then(result => {
@@ -386,7 +408,7 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const privateKey = await wallet.privkey(arbiterMember.address_path)
+      const privateKey = wallet.privkey(arbiterMember.address_path)
       let txid = null
       await vm.escrowContract.refund(privateKey, this.order.trade_amount)
         .then(result => {
@@ -404,7 +426,6 @@ export default {
           } else {
             vm.sendError = result.reason
             vm.showDragSlide = true
-            console.log('state:', vm.state)
           }
         })
         .catch(error => {
@@ -444,9 +465,6 @@ export default {
     },
     formattedOrderStatus (value) {
       return formatOrderStatus(value)
-    },
-    viewTxid (txid) {
-      console.log('txid:', txid)
     },
     formattedTxid (txid) {
       if (txid && txid.length > 6) {

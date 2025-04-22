@@ -9,7 +9,7 @@
   >
   <!-- `updateKey` for force update purposes -->
     <q-card
-      class="dialog-content-base"
+      class="dialog-content-base bottom-card"
       :class="darkMode ? 'text-white pt-card-3' : 'text-black'"
       style="max-height:60vh !important;"
     >

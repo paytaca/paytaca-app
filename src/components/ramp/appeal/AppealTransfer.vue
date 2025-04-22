@@ -59,21 +59,6 @@
           class="col q-mx-lg q-mb-md q-my-sm button"
           @click="submitAction">
         </q-btn>
-        <!-- <div v-if="hideBtn && !errorMessage"> -->
-          <!-- <span v-if="verifyingTx">
-            <q-spinner class="q-mr-sm"/>
-            <span v-if="waitSeconds">
-              {{
-                $t(
-                  'VerifyingWithSeconds',
-                  { seconds: waitSeconds },
-                  `Verifying, please wait. (${ waitSeconds }s)`
-                )
-              }}
-            </span>
-            <span v-else>{{ $t('VerifyingPleaseWait2') }}</span>
-          </span> -->
-        <!-- </div> -->
       </div>
     </div>
   </div>
@@ -110,10 +95,6 @@ export default {
   emits: ['back', 'updatePageName', 'verifying-tx'],
   props: {
     data: Object
-    // escrowContract: Object,
-    // orderId: Number,
-    // txid: String,
-    // action: String
   },
   watch: {
     txidLoaded () {
@@ -127,7 +108,6 @@ export default {
     }
   },
   async mounted () {
-    console.log('mounted')
     const vm = this
     vm.$emit('updatePageName', 'appeal-transfer')
     vm.loadTransactionId()
@@ -177,12 +157,10 @@ export default {
       vm.verifyingTx = true
       const body = { txid: this.transactionId }
       await backend.post(url, body, { authorize: true })
-        .then(response => { console.log(response.data) })
         .catch(error => {
           if (error.response) {
             vm.errorMessage = error.response?.data?.error
           }
-          this.handleRequestError(error)
           vm.hideBtn = false
         })
         .finally(() => { vm.verifyingTx = false })

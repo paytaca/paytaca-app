@@ -46,7 +46,7 @@
             <p style="color: black; margin-bottom: 0;">{{ $t('FirstShard') }}</p>
             <p style="color: black">{{ $t('PersonalQRDescription2') }}</p>
             <div class="flex flex-center">
-              <qr-code :qr-id="1" :text="shards[1]" :size="200" name="shard2" />
+              <qr-code :qr-id="1" :text="shards[1]" :size="180" name="shard2" />
             </div>
           </div>
         </div>
@@ -62,7 +62,7 @@
             <p style="color: black; margin-bottom: 0;">{{ $t('SecondShard') }}</p>
             <p style="color: black">{{ $t('ForSharingQRDescription2') }}</p>
             <div class="flex flex-center">
-              <qr-code :qr-id="2" :text="shards[2]" :size="200" name="shard3"/>
+              <qr-code :qr-id="2" :text="shards[2]" :size="180" name="shard3"/>
             </div>
           </div>
         </div>
@@ -80,7 +80,7 @@
             <p style="color: black; margin-bottom: 0;">{{ $t('ExtraShard') }}</p>
             <p style="color: black">{{ $t('ExtraQRDescription2') }}</p>
             <div class="flex flex-center">
-              <qr-code :qr-id="3" :text="shards[0]" :size="200" name="shard1" />
+              <qr-code :qr-id="3" :text="shards[0]" :size="180" name="shard1" />
             </div>
           </div>
         </div>

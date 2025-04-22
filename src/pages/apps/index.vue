@@ -32,7 +32,7 @@
     </div>
 
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
-    <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="setwarningAttemptsStatus" />
+    <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
     <footer-menu />
   </div>
 </template>
@@ -44,6 +44,7 @@ import MarketplaceAppSelectionDialog from 'src/components/marketplace/Marketplac
 import pinDialog from '../../components/pin'
 import biometricWarningAttempts from '../../components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { webSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
   name: 'apps',
@@ -250,27 +251,27 @@ export default {
           setTimeout(() => {
             this.toggleMnemonicDisplay('proceed')
           }, 1000)
-        },
-        (error) => {
+        })
+        .catch((error) => {
           // Failed to authenticate
           this.warningAttemptsStatus = 'dismiss'
-          if (error.message.includes(this.$t('Cancel')) || error.message.includes(this.$t('AuthenticationCancelled')) || error.message.includes(this.$t('FingerprintOperationCancelled'))) {
-            this.proceedToBackup = false
-          } else if (error.message.includes(this.$t('MaxAttempts'))) {
+          if (error.message.includes(this.$t('MaxAttempts'))) {
             this.warningAttemptsStatus = 'show'
-          } else {
+          } else if (error.message.includes(this.$t('AuthenticationFailed'))) {
             this.verifyBiometric()
-          }
+          } else this.proceedToBackup = false
         })
-    },
-    setwarningAttemptsStatus () {
-      this.verifyBiometric()
     },
     toggleMnemonicDisplay (action) {
       const vm = this
       vm.pinDialogAction = ''
       if (action === 'proceed') {
         vm.$router.push('/apps/wallet-backup')
+      }
+    },
+    closeExchangeWebsocket() {
+      if (webSocketManager?.isOpen()) {
+        webSocketManager.closeConnection()
       }
     }
   },
@@ -321,6 +322,7 @@ export default {
       }
     })
     this.fetchAppControl()
+    this.closeExchangeWebsocket()
   }
 }
 </script>

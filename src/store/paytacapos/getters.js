@@ -1,3 +1,11 @@
+export function paymentMethod (state) {
+  return state.paymentMethod
+}
+
+export function lastPaymentMethod (state) {
+  return state.lastPaymentMethod
+}
+
 function getFormattedLocation(location) {
   return [
     location?.location || location?.landmark,
@@ -41,4 +49,8 @@ export function paymentOTPCache(state) {
       rawPaymentUri: state?.paymentOTPCache?.[txid]?.rawPaymentUri,
     }
   }
+}
+
+export function cashoutMerchant (state) {
+  return state.cashoutMerchant
 }

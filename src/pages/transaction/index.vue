@@ -114,7 +114,7 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
-                          <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/>
+                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
                           <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{ bchBalanceText }}
                           </span>
@@ -171,7 +171,7 @@
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
-                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch-logo.png' : 'bch-logo.png'
+                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch.svg' : 'bch-logo.png'
                           "
                           alt=""
                           style="height: 75px;"
@@ -286,6 +286,8 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @removed-asset="selectBch()"
+              @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
             </asset-cards>
           </template>
@@ -304,6 +306,8 @@
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
+              @removed-asset="selectBch()"
+              @click="() => {txSearchActive = false; txSearchReference = ''}"
             >
             </asset-cards>
           </template>
@@ -319,25 +323,50 @@
         <div class="col transaction-container" :class="getDarkModeClass(darkMode)">
           <div class="row no-wrap justify-between">
             <p class="q-ma-lg section-title transaction-wallet" :class="getDarkModeClass(darkMode)">
-              {{ selectedAsset.symbol }} {{ $t('Transactions') }}
+              <template v-if="!txSearchActive">
+                {{ selectedAsset.symbol }} {{ $t('Transactions') }}
+                <span>
+                  &nbsp;<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
+                </span>
+              </template>
             </p>
-            <div class="row items-center justify-end q-mr-lg" v-if="selectedAsset.symbol.toLowerCase() === 'bch'">
-              <q-btn
-                v-if="isNotDefaultTheme(theme) && darkMode"
-                unelevated
-                @click="openPriceChart"
-                icon="img:assets/img/theme/payhero/price-chart.png"
-              />
-              <q-btn
-                v-else
-                round
-                color="blue-9"
-                padding="xs"
-                icon="mdi-chart-line-variant"
-                class="q-ml-md"
-                :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
-                @click="openPriceChart"
-              />
+            <div class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
+              <div v-if="txSearchActive" class="full-width">
+                <q-input
+                  ref="tx-search"
+                  style="margin-left: -20px; padding-bottom: 22px;"
+                  maxlength="6"
+                  label="Search by Reference ID"
+                  v-model="txSearchReference"
+                  debounce="200"
+                  @update:model-value="(val) => { txSearchReference = val.toUpperCase().slice(0, 6); executeTxSearch(val) }"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="search" />
+                  </template>
+                  <template v-slot:append>
+                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
+                  </template>
+                </q-input>
+              </div>
+              <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
+                <q-btn
+                  v-if="isNotDefaultTheme(theme) && darkMode"
+                  unelevated
+                  @click="openPriceChart"
+                  icon="img:assets/img/theme/payhero/price-chart.png"
+                />
+                <q-btn
+                  v-else
+                  round
+                  color="blue-9"
+                  padding="xs"
+                  icon="mdi-chart-line-variant"
+                  class="q-ml-md"
+                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
+                  @click="openPriceChart"
+                />
+              </template>
             </div>
           </div>
           <div
@@ -475,6 +504,8 @@ export default {
         balance: 0
       },
       stablehedgeView: false,
+      txSearchActive: false,
+      txSearchReference: '',
       openStablehedgeMarketsDialog: false,
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
@@ -701,6 +732,13 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     isHongKong,
+    executeTxSearch (value) {
+      if (String(value).length == 0 || String(value).length >= 6) {
+        const opts = {txSearchReference: value}
+        this.$refs['tx-search'].blur()
+        this.$refs['transaction-list-component'].getTransactions(1, opts)
+      }
+    },
     onFixedSectionResize: debounce(function (size) {
       this.adjustTransactionsDivHeight({ timeout: 50 })
       this.$refs['transaction-list-component']?.computeTransactionsListHeight?.()
@@ -841,11 +879,13 @@ export default {
       if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
         const sectionHeight = vm.$refs.fixedSection.clientHeight
-        vm.$refs.transactionSection.setAttribute(
-          'style',
-          `margin-top: ${sectionHeight - 24}px; transition: margin-top 0.25s ease-in-out; ` +
-          `width: ${document.body.clientWidth}px;`
-        )
+        const clientWidth = document.body.clientWidth
+        const elem = vm.$refs.transactionSection
+        if (!elem?.style) return
+
+        elem.style.marginTop = `${sectionHeight - 24}px`;
+        elem.style.transition = `margin-top 0.25s ease-in-out`;
+        elem.style.width = `${clientWidth}px;`
       }, timeout)
     },
     changeNetwork (newNetwork = 'BCH', setAsset) {
@@ -868,6 +908,9 @@ export default {
       const vm = this
       vm.selectedAsset = this.bchAsset
       vm.getBalance(this.bchAsset.id)
+      vm.txSearchActive = false
+      vm.txSearchReference = ''
+      
       vm.$nextTick(() => {
         vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
         vm.$refs['transaction-list-component'].getTransactions()
@@ -947,7 +990,7 @@ export default {
       if (!assetExists) return
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
-      this.getBalance()
+      this.getBalance(asset.id)
       this.$nextTick(() => {
         this.$refs['transaction-list-component'].resetValues(null, null, asset)
         this.$refs['transaction-list-component'].getTransactions()
@@ -1475,10 +1518,14 @@ export default {
   async mounted () {
     const vm = this
     await this.checkVersionUpdate()
-    this.checkCashinAvailable()
-    this.setupCashinWebSocket()
-    this.resetCashinOrderPagination()
-    this.checkCashinAlert()
+    try {
+      this.checkCashinAvailable()
+      this.setupCashinWebSocket()
+      this.resetCashinOrderPagination()
+      this.checkCashinAlert()
+    } catch(error) {
+      console.error(error)
+    }
     stablehedgePriceTracker.subscribe('main-page')
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
@@ -1521,8 +1568,9 @@ export default {
       }
     }
     if (forceRecreate) {
-      await vm.$store.dispatch('global/updateOnboardingStep', 0)
-      vm.$router.push('/accounts?recreate=true')
+      this.securityOptionDialogStatus = 'show'
+      // await vm.$store.dispatch('global/updateOnboardingStep', 0)
+      // vm.$router.push('/accounts?recreate=true')
     }
 
     window.vm = this
