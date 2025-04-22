@@ -214,6 +214,7 @@ import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
+import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -233,6 +234,8 @@ export default {
 
   data () {
     return {
+      Promos,
+      
       isLoading: false,
       currentTab: 'onetime',
       urId: -1,
@@ -276,6 +279,12 @@ export default {
     if (vm.urId > -1) {
       urData = await getUserRewardsData(vm.urId)
     } else {
+      // open help dialog
+      this.$q.dialog({
+        component: HelpDialog,
+        componentProps: { page: Promos.USERREWARDS }
+      })
+      
       // create UserReward entry in engagement-hub
       urData = await createUserRewardsData()
       await updateUserPromoData({ ur_id: urData.id })

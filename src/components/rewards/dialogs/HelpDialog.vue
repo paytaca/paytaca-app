@@ -34,6 +34,7 @@
         transition-next="slide-left"
         class="pt-card-2 text-subtitle1"
         :class="getDarkModeClass(darkMode)"
+        :dark="darkMode"
       >
         <template v-if="page === 'home'">
           <q-carousel-slide name="home-1" class="help-carousel-slide">
@@ -62,7 +63,9 @@
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span>User Rewards</span>
+                      <span style="font-size: 18px;">
+                        User Rewards
+                      </span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
                       Not considered a promo, but a collection of points, called UP (User Points), earned by users from engaging with the different features of the app.
@@ -73,10 +76,12 @@
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span>Refer-a-friend Promo</span>
+                      <span style="font-size: 18px;">
+                        Refer-a-friend Promo
+                      </span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      Promo for referrals. Users who successfully invite friends to use Paytaca with a referral code will receive RP (Referral Points).
+                      Promo for referrals. Users who successfully invite friends to use Paytaca with a referral code will receive RFP (Refer-a-friend Points).
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -86,8 +91,83 @@
         </template>
         
         <template v-if="page === Promos.USERREWARDS">
-          <q-carousel-slide name="ur-1">
-            Welcome to the User Rewards!
+          <q-carousel-slide name="ur-1" class="help-carousel-slide">
+            <h5 class="q-ma-xs q-pb-md text-center text-bold">Welcome to the User Rewards Page</h5>
+            <div class="row text-left">
+              User Rewards is a collection of points users earned throughout their interaction with the Paytaca app.
+            </div>
+          </q-carousel-slide>
+          <q-carousel-slide name="ur-2" class="help-carousel-slide">
+            <h6 class="q-ma-xs q-pb-md text-center">Obtaining User Points</h6>
+            <div class="row text-left">
+              <p>
+                There are 2 ways you can earn UP. Note that points are awarded only after successfully completing the actions.
+              </p>
+              <q-list class="full-width q-gutter-y-md">
+                <q-item class="no-padding">
+                  <q-item-section>
+                    <q-item-label class="q-gutter-x-sm row items-center">
+                      <q-icon name="fiber_manual_record" />
+                      <span style="font-size: 18px;">
+                        One-time Points
+                      </span>
+                    </q-item-label>
+                    <q-item-label class="q-pl-xl">
+                      These are points you can earn once. Incomplete actions are marked red, while completed actions are marked green. After earning these points, you cannot earn them again.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item class="no-padding">
+                  <q-item-section>
+                    <q-item-label class="q-gutter-x-sm row items-center">
+                      <q-icon name="fiber_manual_record" />
+                      <span style="font-size: 18px;">
+                        Continuous Points
+                      </span>
+                    </q-item-label>
+                    <q-item-label class="q-pl-xl">
+                      These are points you can earn multiple times, as long as you complete the specified actions.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </q-carousel-slide>
+          <q-carousel-slide name="ur-3" class="help-carousel-slide">
+            <h6 class="q-ma-xs q-pb-md text-center">Redeeming User Points</h6>
+            <div class="row text-left">
+              <p>
+                When redeeming your UP, you can either swap it to BCH or convert it to Paytaca cashtoken. Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
+              </p>
+              <q-list class="full-width q-gutter-y-md">
+                <q-item class="no-padding">
+                  <q-item-section>
+                    <q-item-label class="q-gutter-x-sm row items-center">
+                      <q-icon name="fiber_manual_record" />
+                      <span style="font-size: 18px;">
+                        Swap to BCH
+                      </span>
+                    </q-item-label>
+                    <q-item-label class="q-pl-xl">
+                      This action will swap your points to BCH. BCH conversion rate may vary depending on the BCH market value.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item class="no-padding">
+                  <q-item-section>
+                    <q-item-label class="q-gutter-x-sm row items-center">
+                      <q-icon name="fiber_manual_record" />
+                      <span style="font-size: 18px;">
+                        Convert to Tokens
+                      </span>
+                    </q-item-label>
+                    <q-item-label class="q-pl-xl">
+                      This action will convert your points to Paytaca tokens. Conversion rate is 1 UP = 1 PTC.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
           </q-carousel-slide>
         </template>
       </q-carousel>
