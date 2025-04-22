@@ -2,50 +2,49 @@
   <div class="static-container">
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
-        :title="$t('Multisig Wallet')"
+        :title="$t('Multisig Wallets')"
         backnavpath="/apps"
         class="q-px-sm apps-header gift-app-header"
       >
-      <template v-slot:top-right-menu>
+      <!-- <template v-slot:top-right-menu>
         <div class="flex items-center justify-end" >
           <q-btn icon="settings" :to="{ name: 'app-multisig-settings'}" flat style="margin-left: -10px; margin-top: -5px;" size="lg" dense></q-btn>
         </div>
-      </template>
+      </template> -->
     </HeaderNav>
-      <div class="row q-gutter-y-sm">
-          <div class="col-xs-12 text-right q-px-sm q-gutter-x-sm">
-              <q-btn
+      <div v-if="wallets && wallets.length > 0" class="row justify-center">
+          <!-- <div class="col-xs-12 text-right q-px-sm q-gutter-x-sm"> -->
+              <!-- <q-btn
                 no-caps
-                icon="add"
+                icon="mdi-wallet-plus"
                 color="primary"
-                :label="$t('Create Wallet')"
                 class="button"
                 :to="{ name: 'app-multisig-wallet-create'}"
-              />
-              <q-btn
+              /> -->
+              <!-- <q-btn
                 no-caps
                 icon="add"
                 color="primary"
                 :label="$t('Delete All Wallets')"
                 class="button"
                 @click="deleteAllWallets"
-              />
-              <q-btn
+              /> -->
+              <!-- <q-btn
                 no-caps
                 icon="qr_code_2"
                 color="primary"
                 :label="$t('QR Code')"
                 class="button"
                 :to="{ name: 'app-multisig-signer-qrcode'}"
-              />
-              <q-btn
+              /> -->
+              <!-- <q-btn
                 no-caps
                 icon="gear"
                 color="primary"
                 :label="$t('Settings')"
                 class="button"
                 :to="{ name: 'app-multisig-settings'}"
-              />
+              /> -->
               <!-- <q-file clearable color="orange" standout bottom-slots v-model="pstFile" label="Label" counter>
                 <template v-slot:prepend>
                   <q-icon name="upload_file" />
@@ -59,33 +58,69 @@
                 </template>
               </q-file> -->
 
-              <q-btn
+              <!-- <q-btn
                 label="Load File"
                 color="primary"
                 @click="loadPstFile"
+              /> -->
+              <!-- <q-file ref="pstFileElementRef" v-model="pstFile" :multiple="false" style="visibility: hidden" @update:model-value="updatePstFile"></q-file> -->
+          <!-- </div> -->
+          <div class="col-xs-12 col-sm-10 q-px-sm q-gutter-x-sm q-gutter-y-sm">
+            <div class="flex justify-end">
+              <q-btn
+                no-caps
+                icon="mdi-wallet-plus"
+                :to="{ name: 'app-multisig-wallet-create'}"
+                flat
+                dense
+                size="md"
               />
-              <q-file ref="pstFileElementRef" v-model="pstFile" :multiple="false" style="visibility: hidden" @update:model-value="updatePstFile"></q-file>
-          </div>
-          <div class="col-xs-12 q-px-sm q-gutter-x-sm">
-            <q-list v-if="wallets" bordered>
-              <q-item v-for="wallet, i in wallets" :key="i" clickable :to="{ name: 'app-multisig-wallet-view', params: { address: wallet.address } }">
+            </div>
+            <q-list v-if="wallets" separator class="br-15 text-bow" :class="getDarkModeClass(darkMode)">
+              <q-item
+                v-for="wallet, i in wallets"
+                :key="i"
+                :to="{ name: 'app-multisig-wallet-view', params: { address: wallet.address } }"
+                class="q-py-md"
+                clickable
+                >
                 <q-item-section>
-                  <q-item-label>{{ wallet.template.name }}</q-item-label>
-                  <q-item-label caption lines="2">
-                    <span v-for="signerIndex in Object.keys(wallet.signers)" :key="`signer-${signerIndex}`" class="q-mx-2">
+                  <q-item-label class="text-h6 text-weight-bold flex items-center">
+                    <q-icon name="mdi-wallet-outline" color="grad" class="q-mr-sm"></q-icon><span>{{ wallet.template.name }}</span>
+                  </q-item-label>
+                  <q-item-label class="text-subtitle2">
+                    {{ shortenString(wallet.address, 18) }}
+                  </q-item-label>
+                  <q-item-label caption lines="2" class="text-subtitle1">
+                    <span v-for="signerIndex in Object.keys(wallet.signers)" :key="`signer-${signerIndex}`" class="q-mr-sm">
                       {{ signerIndex }}-{{ wallet.signers[signerIndex].signerName }}
                     </span>
                   </q-item-label>
-                  <q-item-label>
-                    {{ shortenString(wallet.address, 15) }}
-                  </q-item-label>
                 </q-item-section>
-                <q-item-section side top>
-                  <q-btn icon="delete" @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.address) }" color="secondary"></q-btn>
+                <q-item-section side>
+                  <q-btn
+                    icon="close"
+                    @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.address) }"
+                    flat
+                    dense
+                  >
+                  </q-btn>
                 </q-item-section>
               </q-item>
             </q-list>
           </div>
+      </div>
+      <div v-else class="row justify-center items-center" style="height: 80vh">
+        <q-btn
+          no-caps
+          icon="mdi-wallet-plus"
+          :to="{ name: 'app-multisig-wallet-create'}"
+          dense
+          size="lg"
+          flat
+          class="button"
+          label="Create Wallet"
+        />
       </div>
       <!-- display created wallets  -->
      </div>
@@ -165,6 +200,8 @@ const updatePstFile = (file) => {
 
 onMounted(async () => {
   // $store.getters['global/getWallet']('bch') = Loads the currently selected wallet from the homepage
+  const tempVault = $store.getters['global/getVault']
+  console.log('🚀 ~ onMounted ~ tempVault:', tempVault)
   const currentWallet = $store.getters['global/getWallet']('bch')
   console.log('CURRENT WALLET', currentWallet)
   const wx = await loadLibauthHdWallet()
@@ -177,4 +214,5 @@ onMounted(async () => {
   console.log('🚀 ~ onMounted ~ w3:', w3)
   console.log('wallets', wallets.value)
 })
+
 </script>
