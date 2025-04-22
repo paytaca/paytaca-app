@@ -131,9 +131,9 @@
           </div>
         </div>
         <div v-if="sessionProposals" class="row q-mt-md">
-          <div v-for="sessionProposal in sessionProposals" class="col-xs-12">
+          <div v-for="sessionProposal in sessionProposals" class="col-xs-12" :key="sessionProposal.id">
             <SessionInfo
-              :session="sessionProposal" :key="sessionProposal.id" session-type="proposal">
+              :session="sessionProposal"  session-type="proposal">
               <template v-if="sessionTopicWalletAddressMapping[sessionProposal.pairingTopic]" v-slot:account>
                 <span class="text-overline text-small">
                   {{ formatAddressForDisplay(sessionTopicWalletAddressMapping[sessionProposal.pairingTopic].address) }}
@@ -190,7 +190,10 @@
               :session="activeSession"
               :address-display-formatter="formatAddressForDisplay"
               :address-display-format="settings.addressDisplayFormat"
-              session-type="active" :flat="true">
+              session-type="active"
+              :key="activeSession.id"
+              :flat="true"
+            >
               <template v-slot:actions>
                   <q-btn
                     label="Disconnect"
