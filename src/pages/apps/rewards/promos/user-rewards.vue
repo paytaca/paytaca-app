@@ -280,7 +280,7 @@ export default {
       urData = await getUserRewardsData(vm.urId)
     } else {
       // open help dialog
-      this.$q.dialog({
+      vm.$q.dialog({
         component: HelpDialog,
         componentProps: { page: Promos.USERREWARDS }
       })

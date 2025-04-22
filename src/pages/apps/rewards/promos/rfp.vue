@@ -127,6 +127,7 @@ import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReferralQrDialog from 'src/components/rewards/ReferralQrDialog.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
+import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -145,6 +146,8 @@ export default {
 
   data () {
     return {
+      Promos,
+      
       isLoading: false,
       rfpId: -1,
       points: 0,
@@ -190,6 +193,13 @@ export default {
     if (vm.rfpId > -1) {
       rfpData = await getRfPromoData(vm.rfpId)
     } else {
+      // open help dialog
+      vm.$q.dialog({
+        component: HelpDialog,
+        componentProps: { page: Promos.RFPROMO }
+      })
+
+      // create RFPromo entry in engagement-hub
       rfpData = await createRfPromoData()
       await updateUserPromoData({ rfp_id: rfpData.id })
       await updateRfPromoData(rfpData.id, {

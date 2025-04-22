@@ -91,14 +91,14 @@
         </template>
         
         <template v-if="page === Promos.USERREWARDS">
-          <q-carousel-slide name="ur-1" class="help-carousel-slide">
+          <q-carousel-slide :name="`${Promos.USERREWARDS}-1`" class="help-carousel-slide">
             <h5 class="q-ma-xs q-pb-md text-center text-bold">Welcome to the User Rewards Page</h5>
             <div class="row text-left">
-              User Rewards is a collection of points users earned throughout their interaction with the Paytaca app.
+              User Rewards is a collection of points, called User Points (UP), earned throughout your interaction with the Paytaca app.
             </div>
           </q-carousel-slide>
-          <q-carousel-slide name="ur-2" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">Obtaining User Points</h6>
+          <q-carousel-slide :name="`${Promos.USERREWARDS}-2`" class="help-carousel-slide">
+            <h6 class="q-ma-xs q-pb-md text-center">Earning User Points</h6>
             <div class="row text-left">
               <p>
                 There are 2 ways you can earn UP. Note that points are awarded only after successfully completing the actions.
@@ -133,7 +133,7 @@
               </q-list>
             </div>
           </q-carousel-slide>
-          <q-carousel-slide name="ur-3" class="help-carousel-slide">
+          <q-carousel-slide :name="`${Promos.USERREWARDS}-3`" class="help-carousel-slide">
             <h6 class="q-ma-xs q-pb-md text-center">Redeeming User Points</h6>
             <div class="row text-left">
               <p>
@@ -163,6 +163,68 @@
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
                       This action will convert your points to Paytaca tokens. Conversion rate is 1 UP = 1 PTC.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </q-carousel-slide>
+        </template>
+
+        <template v-if="page === Promos.RFPROMO">
+          <q-carousel-slide :name="`${Promos.RFPROMO}-1`" class="help-carousel-slide">
+            <h5 class="q-ma-xs q-pb-md text-center text-bold">Welcome to the Refer-a-friend (RF) Promo Page</h5>
+            <div class="row text-left">
+              Refer-a-friend (RF) Promo is built to encourage users to invite friends to use the Paytaca app and explore the Paytaca ecosystem. Referees will earn Refer-a-friend Points (RFP) for each successful referral.
+            </div>
+          </q-carousel-slide>
+          <q-carousel-slide :name="`${Promos.RFPROMO}-2`" class="help-carousel-slide">
+            <h6 class="q-ma-xs q-pb-md text-center">Earning Refer-a-friend Points</h6>
+            <div class="row text-left">
+              <p>
+                To earn RFP, refer your friends or other users to use Paytaca.
+              </p>
+              <p>
+                When they create their new wallet, have them scan your referral QR code. After the new user created their wallet and completing their very first transaction, you will receive 5 RFP.
+              </p>
+              <p>
+                There is no limit as to how much RFP you can earn, so refer lots of new users as much as you can!
+              </p>
+            </div>
+          </q-carousel-slide>
+          <q-carousel-slide :name="`${Promos.RFPROMO}-3`" class="help-carousel-slide">
+            <h6 class="q-ma-xs q-pb-md text-center">Redeeming Refer-a-friend Points</h6>
+            <div class="row text-left">
+              <p>
+                When redeeming your RFP, you can either swap it to BCH or convert it to Paytaca cashtoken. Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
+              </p>
+              <p>
+                Note that you can only redeem up to 10,000 RFP per month.
+              </p>
+              <q-list class="full-width q-gutter-y-md">
+                <q-item class="no-padding">
+                  <q-item-section>
+                    <q-item-label class="q-gutter-x-sm row items-center">
+                      <q-icon name="fiber_manual_record" />
+                      <span style="font-size: 18px;">
+                        Swap to BCH
+                      </span>
+                    </q-item-label>
+                    <q-item-label class="q-pl-xl">
+                      This action will swap your points to BCH. BCH conversion rate may vary depending on the BCH market value.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item class="no-padding">
+                  <q-item-section>
+                    <q-item-label class="q-gutter-x-sm row items-center">
+                      <q-icon name="fiber_manual_record" />
+                      <span style="font-size: 18px;">
+                        Convert to Tokens
+                      </span>
+                    </q-item-label>
+                    <q-item-label class="q-pl-xl">
+                      This action will convert your points to Paytaca tokens. Conversion rate is 1 RFP = 1 PTC.
                     </q-item-label>
                   </q-item-section>
                 </q-item>
