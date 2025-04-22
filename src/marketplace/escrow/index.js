@@ -71,18 +71,18 @@ export async function generateSettlementTransactions(opts) {
       if (contract.address !== escrowContract.address) fail($t('CompilingContractError'))
       return { escrowContract, escrow }
     })
-    .map(data => {
+    .map(async (data) => {
       if (dialog) dialog?.update({ message: $t('RetrievePrivateKey') })
       const { escrowContract } = data
 
-      let privKeyData = resolvePrivateKeyFromAddress(escrowContract.buyerAddress, wallet)
-      if (!privKeyData) privKeyData = resolvePrivateKeyFromAddress(escrowContract.arbiterAddress, wallet)
+      let privKeyData = await resolvePrivateKeyFromAddress(escrowContract.buyerAddress, wallet)
+      if (!privKeyData) privKeyData = await resolvePrivateKeyFromAddress(escrowContract.arbiterAddress, wallet)
       if (!privKeyData) fail($t('RetrievePrivateKeyError'))
 
       return { ...data, wif: privKeyData.wif }
     })
     .map(async (data) => {
-      const { escrow, escrowContract } = data
+      const { escrow, escrowContract, wif } = await data
       if (dialog) dialog?.update({ message: $t('CreatingTransaction') })
 
       const fundingUtxo = {
@@ -92,11 +92,11 @@ export async function generateSettlementTransactions(opts) {
       }
       let txPromise
       if(settlementType === 'release') {
-        txPromise = escrow.release(fundingUtxo, data?.wif)
+        txPromise = escrow.release(fundingUtxo, wif)
       } else if (settlementType === 'refund') {
         txPromise = escrow.version === 'v1'
-          ? escrow.refund(fundingUtxo, data?.wif)
-          : escrow.fullRefund(fundingUtxo, data?.wif)
+          ? escrow.refund(fundingUtxo, wif)
+          : escrow.fullRefund(fundingUtxo, wif)
       }
       const transaction = await txPromise.catch(fail)
       transaction.withTime(0)

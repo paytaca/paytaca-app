@@ -135,6 +135,7 @@ export async function loadAuthenticatedUser (forceLogin = false) {
     user.emitSignal(null, { signal: 'logging-in', data: false })
     return Promise.resolve(user)
   } catch (error) {
+    bus.emit('logging-in', false)
     return Promise.reject(error)
   }
 }

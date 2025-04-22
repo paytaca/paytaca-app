@@ -524,7 +524,6 @@ export default {
           break
         case 'CNF': { // Confirmed
           state = this.getConfirmedState(kwargs)
-          this.reloadChildComponents()
           break
         }
         case 'ESCRW_PN': { // Escrow Pending
@@ -534,7 +533,6 @@ export default {
           kwargs.orderId = order?.id
           kwargs.contractBalance = balance
           state = this.getEscrowPendingState(kwargs)
-          // this.reloadChildComponents()
           break
         }
         case 'ESCRW': // Escrowed

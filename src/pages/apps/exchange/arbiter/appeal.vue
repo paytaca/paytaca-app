@@ -214,6 +214,9 @@ export default {
   },
   created () {
     bus.on('last-read-update', this.onLastReadUpdate)
+    bus.on('manual-add-tx', () => {
+      this.manuallyAddingTx = true
+    })
   },
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -431,13 +434,19 @@ export default {
       this.websocketManager.watchtower = new WebSocketManager()
       this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
       this.websocketManager.watchtower.subscribeToMessages(async (message) => {
+        bus.emit('verify-tx', message)
         if (message?.success) {
           await this.fetchAppeal()
           if (message?.txdata) {
             this.verifyingTx = false
             this.sendingBch = false
           }
-          this.reloadChildComponents()
+          if (this.manuallyAddingTx) {
+            await this.refreshData()
+            this.manuallyAddingTx = false
+          } else {
+            this.reloadChildComponents()
+          }
         } else if (message?.error || message?.errors) {
           this.errorMessages.push(message.error || [...message.errors])
           this.appealTransferKey++
