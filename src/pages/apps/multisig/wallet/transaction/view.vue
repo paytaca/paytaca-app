@@ -19,7 +19,7 @@
                       </q-item-section>
                       <q-item-section side>
                         <!-- <q-item-label caption>5 min ago</q-item-label> -->
-                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                        <q-icon name="payment" color="grad"></q-icon>
                       </q-item-section>
                     </q-item>
                     <q-item>
@@ -27,86 +27,102 @@
                         <q-item-label>Number of recipients</q-item-label>
                       </q-item-section>
                       <q-item-section side>
-                        {{ transactionData.transaction.outputs.length }}
+                        {{ transactionData.transaction.outputs.length }}&nbsp;
                       </q-item-section>
                     </q-item>
-                    <q-item-label header>Spend Summary</q-item-label>
                     <q-item>
-                      <q-item-section>{{ spendSummary(transactionData.transaction) }}</q-item-section>
-                    </q-item>
-                    <q-separator spaced inset></q-separator>
-                    <q-item-label header>Signers</q-item-label>
-                    <q-item v-for="signerEntityIndex in Object.keys(wallet.signers)" :key="signerEntityIndex">
-                      <q-item-section>{{ wallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</q-item-section>
-                      <q-item-section side>
-                        <q-btn
-                          label="Sign"
-                          :disable="!wallet.signerCanSign({ signerEntityIndex })"
-                          :icon="wallet.signerCanSign({ signerEntityIndex })? 'draw': 'edit_off'"
-                          @click="partiallySignTransaction({ signerEntityIndex, xprv: wallet.signers[signerEntityIndex]?.xprv })"
-                          >
+                      <q-item-section>
+                        <q-item-label>Spending</q-item-label>
+                      </q-item-section>
+                      <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+                        <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                          {{ getTotalBchInputAmount(transactionData.transaction) }}
+                          &nbsp;
                         </q-btn>
                       </q-item-section>
                     </q-item>
                     <q-item>
                       <q-item-section>
-                        <q-btn @click="deleteTransaction" color="red" class="full-width">Delete Transaction</q-btn>
+                        <q-item-label>Debit</q-item-label>
+                      </q-item-section>
+                      <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+                        <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                          {{
+                            getTotalBchOutputAmount(
+                              transactionData.transaction
+                            )
+                          }}
+                          &nbsp;
+                        </q-btn>
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label>Credit/Change</q-item-label>
+                        <q-item-label caption lines="2">*Returned to sender address</q-item-label>
+                      </q-item-section>
+                      <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+                        <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                          {{
+                            getTotalBchChangeAmount(
+                              transactionData.transaction, wallet.address,
+                              isChipnet? toP2shTestAddress: null
+                            )
+                          }}
+                          &nbsp;
+                        </q-btn>
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label>Fee</q-item-label>
+                      </q-item-section>
+                      <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+                        <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                          {{ getTotalBchFee(transactionData.transaction) }}
+                          &nbsp;
+                        </q-btn>
+                      </q-item-section>
+                    </q-item>
+                    <q-expansion-item>
+                      <template v-slot:header>
+                        <q-item-section>
+                          Raw Transaction
+                        </q-item-section>
+                      </template>
+                      <code>
+                        {{ transactionData.transaction }}
+                      </code>
+                    </q-expansion-item>
+                    <q-separator spaced inset></q-separator>
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label class="text-h6">Wallet</q-item-label>
+                      </q-item-section>
+                      <q-item-section side>
+                        <!-- <q-item-label caption>5 min ago</q-item-label> -->
+                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                      </q-item-section>
+                    </q-item>
+                    <q-item v-for="signerEntityIndex in Object.keys(wallet.signers)" :key="signerEntityIndex">
+                      <q-item-section>{{ wallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</q-item-section>
+                      <q-item-section side>
+                        <q-btn
+                          :disable="!wallet.signerCanSign({ signerEntityIndex })"
+                          :icon="wallet.signerCanSign({ signerEntityIndex })? 'draw': 'edit_off'"
+                          @click="partiallySignTransaction({ signerEntityIndex, xprv: wallet.signers[signerEntityIndex]?.xprv })"
+                          flat
+                          dense
+                          >
+                        </q-btn>
+                      </q-item-section>
+                    </q-item>
+                    <q-item>
+                      <q-item-section class="flex justify-end">
+                        <q-btn @click="deleteTransaction" color="red">Delete Transaction</q-btn>
                       </q-item-section>
                     </q-item>
                   </q-list>
-
-                  <!-- <q-card
-                    v-if="wallet && transactionData?.transaction"
-                    flat
-                    class="pt-card-2 text-bow"
-                    :class="getDarkModeClass(darkMode)" >
-                    <q-card-section>
-                      <div class="row items-center no-wrap">
-                        <div class="col">
-                          <div class="text-h6">{{ transactionUserPrompt }}</div>
-                          <div class="text-subtitle2">Origin: {{ transactionOrigin }}</div>
-                        </div>
-                      </div>
-                    </q-card-section>
-                    <q-card-section>
-                      {{ transaction }}
-                    </q-card-section>
-                    <q-card-section>
-                      <div>Spend Summary</div>
-                      {{ spendSummary(transactionData.transaction) }}
-                    </q-card-section>
-                    <q-separator />
-                    <q-card-section>
-                      <div>Number of recipients: {{ transactionData.transaction.outputs.length }}</div>
-                    </q-card-section>
-                    <q-separator />
-                    <q-card-section v-if="Object.keys(pst?.signatures || {}).length > 0">
-                      {{ pst.signatures }}
-                    </q-card-section>
-                    <q-separator />
-                    <q-list>
-                      <q-item v-for="signerEntityIndex in Object.keys(wallet.signers)" :key="signerEntityIndex">
-                        <q-item-section>{{ wallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</q-item-section>
-                        <q-item-section side top>
-                          <q-btn
-                            label="Sign"
-                            :disable="!wallet.signerCanSign({ signerEntityIndex })"
-                            :icon="wallet.signerCanSign({ signerEntityIndex })? 'draw': 'edit_off'"
-                            @click="partiallySignTransaction({ signerEntityIndex, xprv: wallet.signers[signerEntityIndex]?.xprv })"
-                            >
-                          </q-btn>
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                    <q-card-actions>
-                      <q-chip v-for="signerEntityIndex in Object.keys(wallet.signers)" :key="signerEntityIndex">
-                        {{ wallet.signers[signerEntityIndex].signerName }} {{ wallet.signers[signerEntityIndex].xprv }}
-                      </q-chip>
-                    </q-card-actions>
-                    <q-card-actions>
-                      <q-btn @click="deleteTransaction">Delete Transaction</q-btn>
-                    </q-card-actions>
-                  </q-card> -->
                 </div>
             </div>
           </div>
@@ -124,11 +140,19 @@ import { useI18n } from 'vue-i18n'
 import { computed, onBeforeMount, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 // import { loadWallet } from 'src/wallet'
+import { toP2shTestAddress } from 'src/utils/address-utils'
 import HeaderNav from 'components/header-nav'
-import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { Pst, MultisigWallet } from 'src/lib/multisig'
+import {
+  Pst,
+  MultisigWallet,
+  getTotalBchInputAmount,
+  getTotalBchOutputAmount,
+  getTotalBchChangeAmount,
+  getTotalBchFee
+} from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
@@ -151,29 +175,11 @@ const transactionUserPrompt = computed(() => {
   return transactionData.value?.sessionRequest?.params?.request?.params?.userPrompt || 'Signature Request'
 })
 
-const spendSummary = computed(() => {
-  return (transaction) => {
-    let satoshis = 0
-    const tokens = {}
-    transaction.inputs.forEach((input) => {
-      satoshis += Number(String(input.sourceOutput?.valueSatoshis || '0'))
-      const token = input.sourceOutput?.token?.category
-      if (token && token.category) {
-        if (!tokens[token.category]) {
-          tokens[token.category] = 0
-        }
-        tokens[token.category] += (token.amount || 0)
-      }
-    })
-    return { satoshis, tokens }
-  }
-})
-
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-// const isChipnet = computed(() => $store.getters['global/isChipnet'])
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const wallet = ref()
 const pst = ref()

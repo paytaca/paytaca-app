@@ -24,10 +24,10 @@
                         </q-item>
                         <q-item>
                           <q-item-section>
-                            <q-item-label>Address</q-item-label>
+                            <q-item-label class="text-bold">Address</q-item-label>
                           </q-item-section>
                           <q-item-section side>
-                            <q-item-label caption>
+                            <q-item-label >
                               {{ shortenString(wallet.address, 20) }} <CopyButton :text="wallet.address"/>
                             </q-item-label>
                             <!-- <q-icon name="bch" color="green" /> -->
@@ -53,7 +53,7 @@
                         <q-item-label header>Signers</q-item-label>
                         <q-item v-for="signerIndex in Object.keys(wallet.signers)" :key="`app-multisig-view-signer-${signerIndex}`">
                           <q-item-section>
-                            <q-item-label class="text-capitalize" style="font-variant-numeric: proportional-nums">{{signerIndex}}. {{ wallet.signers[signerIndex].signerName }}</q-item-label>
+                            <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerIndex}}. {{ wallet.signers[signerIndex].signerName }}</q-item-label>
                             <q-item-label caption class="text-weight-thin">{{ shortenString(wallet.signers[signerIndex].xpub, 20) }}</q-item-label>
                           </q-item-section>
                           <q-item-section side>
