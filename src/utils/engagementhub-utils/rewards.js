@@ -222,3 +222,13 @@ export async function getContractInitialBalance (data) {
     .then(response => { return response.status === 200 })
     .catch(_error => { return false })
 }
+
+export async function sendAuthkeyNftToWallet (tokenAddress) {
+  return await REWARDS_URL
+    .post('userpromo/send_authkeynft/', {
+      token_address: tokenAddress,
+      user_wallet_hash: getWalletHash()
+    })
+    .then(_response => { })
+    .catch(error => { console.error(error) } )
+}

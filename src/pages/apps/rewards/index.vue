@@ -58,8 +58,12 @@
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import {
-  createUserPromoData, getUserPromoData, getKeyPairFromWalletMnemonic,
-  Promos
+  createUserPromoData,
+  getUserPromoData,
+  getKeyPairFromWalletMnemonic,
+  sendAuthkeyNftToWallet,
+  Promos,
+  getWalletTokenAddress,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -133,8 +137,17 @@ export default {
               vm.promos[i].points = await contract.getTokenBalance()
             } else vm.promos[i].points = 0
           }
+
+          if (!data.sent_authkeynft) {
+            vm.$q.dialog({
+              component: HelpDialog,
+              componentProps: { page: 'home' }
+            })
+            const walletTokenAddress = await getWalletTokenAddress() 
+            await sendAuthkeyNftToWallet(walletTokenAddress)
+          }
         } else {
-          this.$q.dialog({
+          vm.$q.dialog({
             component: HelpDialog,
             componentProps: { page: 'home' }
           })
