@@ -211,7 +211,7 @@ export default class PromoContract {
    * the tokens and is sent to the user's wallet token address, creating a new or adding to
    * their existing token supply.
    * @param {Uint8Array} privKey the private key derived as a key pair from the wallet's mnemonic
-   * @param {string} tokenAddress the token address of the 
+   * @param {string} tokenAddress the token address of the user's wallet
    * @param {number} amount the amount to be swapped
    * @returns the transaction ID (`txid`) of the successful transaction; `undefined` otherwise
    */

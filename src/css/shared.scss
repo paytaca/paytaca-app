@@ -186,6 +186,8 @@ div#q-app:has(.marketplace-container) {
 
 .points-earned-div {
   @include bottom-card(100vh);
+  position: fixed;
+  bottom: 0;
 
   border-top-left-radius: 30px;
   border-top-right-radius: 30px;
