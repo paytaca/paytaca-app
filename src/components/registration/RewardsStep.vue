@@ -5,7 +5,8 @@
   <div v-if="!isLoading" class="row q-mt-sm q-gutter-y-xs">
     <template v-if="!isCodeProcessed">
       <span style="font-size: 18px;">
-        Were you referred by a friend or a cashier of one of our partner merchants?
+        <!-- Were you referred by a friend or a cashier of one of our partner merchants? -->
+        Were you referred by a friend?
       </span>
       <span class="text-subtitle1 q-mt-sm">
         Scan or upload their referral code so you can both receive rewards!
