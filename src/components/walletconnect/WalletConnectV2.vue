@@ -115,11 +115,11 @@
                     </template>
                   </q-btn>
                   <q-btn
-                    :label="$t('Confirm')" color="green"
+                    :label="$t('Sign')" color="green"
                     @click="() => respondToSessionRequest(sessionRequest)"
                     class="action-button"
                     :disable="Boolean(processingSession[sessionRequest.topic])"
-                    :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Confirm'))"
+                    :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Sign'))"
                     >
                     <template v-slot:loading>
                       <q-spinner-facebook></q-spinner-facebook>
@@ -242,6 +242,7 @@ import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import { loadLibauthHdWallet } from '../../wallet'
+import { MultisigTransaction, MultisigWallet } from 'src/lib/multisig'
 const $emit = defineEmits([
   'request-scanner'
 ])
@@ -723,7 +724,8 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       if (walletAddress.signers) { // Account with active session is a multisig wallet
         // save the request as signature request
         // push to multisig signature request page
-        $store.dispatch('multisig/walletConnectSignTransactionRequest', { sessionRequest, address: walletAddress.address })
+        // $store.dispatch('multisig/walletConnectSignTransactionRequest', { sessionRequest, address: walletAddress.address })
+        $store.dispatch('multisig/saveTransaction', MultisigTransaction.fromWalletConnectSignRequest({ sessionRequest }))
         $router.push({ name: 'app-multisig-wallet-transactions', params: { address: encodeURIComponent(walletAddress.address) } })
         rejectSessionRequest(sessionRequest) // TODO: respond properly
         return
