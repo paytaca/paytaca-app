@@ -1,59 +1,57 @@
 <template>
-  <q-layout>
-    <q-page-container>
-      <q-page>
-        <div class="static-container">
-          <div id="app-container" :class="getDarkModeClass(darkMode)">
-            <HeaderNav
-              :title="$t('Transactions')"
-              :backnavpath="`/apps/multisig/wallet/${route.params.address}`"
-              class="q-px-sm apps-header gift-app-header"
+<div class="static-container">
+  <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <HeaderNav
+      :title="$t('Transactions')"
+      :backnavpath="`/apps/multisig/wallet/${route.params.address}`"
+      class="q-px-sm apps-header gift-app-header"
+    />
+    <div class="row q-gutter-y-sm">
+        <div class="col-xs-12 text-right q-px-sm q-gutter-x-sm">
+            <q-btn
+              no-caps
+              icon="delete"
+              :label="$t('Clear All')"
+              @click="deleteAllTransactions"
+              flat
+              dense
             />
-            <div class="row q-mt-lg justify-center">
-              <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
-                <q-btn label="Delete All Transactions" @click="deleteAllTransactions"></q-btn>
-              </div>
-                <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
-                  <q-card
-                    v-for="unsigned, i in transactions"
-                    :key="`app-multisig-tx-`+i"
-                    flat bordered class="my-card" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'">
-                    <q-card-section>
-                      <div class="row items-center no-wrap">
-                        <div class="col">
-                          <div class="text-h6">{{ transactionUserPrompt(unsigned) }}</div>
-                          <div class="text-subtitle2">Origin: {{ transactionOrigin(unsigned) }}</div>
-                        </div>
-                      </div>
-                    </q-card-section>
-                    <q-separator />
-                    <q-card-section>
-                      <div>Spend Summary</div>
-                      {{ spendSummary(unsigned.transaction) }}
-                    </q-card-section>
-                    <q-separator />
-                    <q-card-section>
-                      <div>Number of recipients</div>
-                      {{ unsigned.transaction.outputs.length }}
-                    </q-card-section>
-                    <q-card-actions>
-                      <q-btn
-                        flat
-                        :to="{ name: 'app-multisig-wallet-transaction-view', params: { address:route.params.address, index: i } }">
-                        Open
-                      </q-btn>
-                    </q-card-actions>
-                    {{ unsigned.transaction }}
-                  </q-card>
-                </div>
-            </div>
-          </div>
         </div>
-        <FooterMenu v-if="wallet" :address="wallet.address"/>
-      </q-page>
-
-    </q-page-container>
-  </q-layout>
+        <div class="col-xs-12">
+          <q-list v-if="multisigTransactions" separator>
+            <q-item
+              v-for="transaction, i in multisigTransactions"
+              :key="i" clickable
+              :to="{ name: 'app-multisig-wallet-transaction-view', params: { address: route.params.address, index: i } }"
+              class="q-py-md"
+            >
+              <q-item-section>
+                <q-item-label class="text-h6 text-weight-bold flex items-center">
+                  <q-icon name="mdi-file-settings-outline" class="q-mr-sm"></q-icon><span>{{ transaction.metadata.prompt }}</span>
+                </q-item-label>
+                <q-item-label caption>
+                  Origin: {{ transaction.metadata.origin }}
+                </q-item-label>
+                <q-item-label caption>
+                  {{ transaction.signatures }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side top>
+                <q-btn
+                  icon="close"
+                  @click.stop="() => { deleteTransaction({ index: i }) }"
+                  flat
+                  >
+                </q-btn>
+              </q-item-section>
+            </q-item>
+            <q-separator  inset />
+          </q-list>
+        </div>
+    </div>
+    <!-- display created wallets  -->
+  </div>
+</div>
 </template>
 
 <script setup>
@@ -62,12 +60,8 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-// import { decodePrivateKeyWif } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
-import FooterMenu from 'components/multisig/footer-menu.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-// import { loadLibauthHdWallet } from '../../../wallet'
-// import { getLockingData } from '../../../lib/multisig'
 
 const $store = useStore()
 const route = useRoute()
@@ -80,58 +74,19 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-// const psbct = ref()
-// const myXPubKey = ref()
-
-const wallet = computed(() => {
-  if (route.params?.address) {
-    return $store.getters['multisig/getWallet']({ address: route.params.address })
-  }
-  return null
-})
-
-const transactionOrigin = computed(() => {
-  return (data) => {
-    return data?.sessionRequest?.verifyContext?.verified?.origin || 'Unknown Origin'
-  }
-})
-
-const transactionUserPrompt = computed(() => {
-  return (data) => {
-    return data?.sessionRequest?.params?.request?.params?.userPrompt || 'Signature Request'
-  }
-})
-
-const spendSummary = computed(() => {
-  return (transaction) => {
-    let satoshis = 0
-    const tokens = {}
-    transaction.inputs.forEach((input) => {
-      satoshis += Number(String(input.sourceOutput?.valueSatoshis || '0'))
-      const token = input.sourceOutput?.token?.category
-      if (token && token.category) {
-        if (!tokens[token.category]) {
-          tokens[token.category] = 0
-        }
-        tokens[token.category] += (token.amount || 0)
-      }
-    })
-    return { satoshis, tokens }
-  }
+const multisigTransactions = computed(() => {
+  return $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
 })
 
 const deleteAllTransactions = async () => {
   await $store.dispatch('multisig/deleteAllTransactions')
 }
-// const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 onMounted(() => {
-  console.log('ROUTE PARAMS', route.params)
-  transactions.value = $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
-  console.log('🚀 ~ onMounted ~ transactions:', transactions.value)
-  if (transactions.value && transactions.value?.length === 1) {
-    router.push({ name: 'app-multisig-wallet-transaction-view', params: { address: route.params.address, index: 0 } })
-  }
+  transactions.value = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
+  // if (transactions.value && transactions.value?.length === 1) {
+  //   router.push({ name: 'app-multisig-wallet-transaction-view', params: { address: route.params.address, index: 0 } })
+  // }
 })
 
 </script>

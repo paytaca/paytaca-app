@@ -1,13 +1,33 @@
 <template>
+  <q-layout view="lHh Lpr lFf">
+    <q-header>
+      <HeaderNav
+        :title="$t('Wallet Details')"
+        backnavpath="/apps/multisig"
+        class="apps-header"
+      />
+    </q-header>
+    <q-footer reveal>
+      <q-bar class="full-width pt-card text-bow" :class="getDarkModeClass(darkMode)" style="padding: 0px;">
+        <q-btn
+          icon="keyboard_arrow_up"
+          class="full-width"
+          @click="openWalletActionsDialog"
+          flat>
+        </q-btn>
+      </q-bar>
+    </q-footer>
+    <q-page-container>
+      <q-page>
         <div class="static-container">
           <div id="app-container" :class="getDarkModeClass(darkMode)">
-            <HeaderNav
+            <!-- <HeaderNav
               :title="$t('Multisig Wallet')"
               backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
-            />
+            /> -->
             <div class="row q-mt-lg justify-center">
-                <div class="col-xs-12 col-md-8 q-px-md q-gutter-y-md">
+                <div class="col-xs-12 q-px-sm q-gutter-y-md">
                   <template v-if="wallet">
                     <div>
                       <q-list>
@@ -65,13 +85,13 @@
                           :clickable="transactions?.length"
                           :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
                           <q-item-section>
-                            <q-item-label>Unsigned Transactions</q-item-label>
+                            <q-item-label>Transaction Proposals</q-item-label>
                           </q-item-section>
                           <q-item-section side>
                             <q-item-label caption>{{ transactions?.length || 0 }}</q-item-label>
                           </q-item-section>
                         </q-item>
-                        <q-item
+                        <!-- <q-item
                           :clickable="psts?.length"
                           :to="{name: 'app-multisig-wallet-psts', params: { address: route.params.address }}">
                           <q-item-section>
@@ -80,28 +100,18 @@
                           <q-item-section side>
                             <q-item-label caption>{{ psts?.length || 0 }}</q-item-label>
                           </q-item-section>
-                        </q-item>
+                        </q-item> -->
                         <q-separator spaced inset />
                       </q-list>
                     </div>
                   </template>
                 </div>
-                <div class="col-xs-12 col-md-8 q-px-md q-gutter-md row justify-around">
-                  <q-btn color="primary" class="col-5">Receive</q-btn>
-                  <q-btn color="primary" class="col-5">Send</q-btn>
-                </div>
-                <div class="col-xs-12 col-md-8 q-px-lg q-pt-lg row justify-center">
-                  <q-btn
-                    color="red"
-                    class="full-width"
-                    @click="() => deleteWallet(route.params.address)"
-                    outline>
-                    Delete Wallet
-                  </q-btn>
-                </div>
             </div>
           </div>
         </div>
+      </q-page>
+    </q-page-container>
+  </q-layout>
 </template>
 
 <script setup>
@@ -110,12 +120,16 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { Pst, shortenString, MultisigWallet } from 'src/lib/multisig'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
+import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
+
 const $store = useStore()
+const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -137,7 +151,7 @@ const wallet = computed(() => {
 
 const transactions = computed(() => {
   if (route.params?.address) {
-    return $store.getters['multisig/getTransactionsByAddress']({ address: route.params.address })
+    return $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
   }
   return []
 })
@@ -158,13 +172,27 @@ const deleteWallet = (address) => {
   router.push({ name: 'app-multisig' })
 }
 
+const openWalletActionsDialog = () => {
+  $q.dialog({
+    component: WalletActionsDialog,
+    componentProps: {
+      darkMode: getDarkModeClass(darkMode.value),
+      onDelete: () => { console.log('deleting beach') },
+      onImport: () => { console.log('deleting beach') },
+      onExport: () => { console.log('deleting beach') }
+    }
+  })
+}
+
 onMounted(async () => {
   console.log('🚀 ~ psts ~ psts:', psts)
-  const watchtower = new Watchtower($store.getters['global/isChipnet'])
-  const bch = await watchtower.getAddressBchBalance(wallet.value.address)
-  console.log('🚀 ~ onMounted ~ balance:', balance)
-  balance.value = bch.balance
-  console.log('MULTISIG WALLET', wallet.value)
+  try {
+    const watchtower = new Watchtower($store.getters['global/isChipnet'])
+    const bch = await watchtower.getAddressBchBalance(wallet.value.address)
+    console.log('🚀 ~ onMounted ~ balance:', balance)
+    balance.value = bch.balance
+    console.log('MULTISIG WALLET', wallet.value)
+  } catch (error) {}
 })
 </script>
 

@@ -65,7 +65,7 @@
               /> -->
               <!-- <q-file ref="pstFileElementRef" v-model="pstFile" :multiple="false" style="visibility: hidden" @update:model-value="updatePstFile"></q-file> -->
           <!-- </div> -->
-          <div class="col-xs-12 col-sm-10 q-px-sm q-gutter-x-sm q-gutter-y-sm">
+          <div class="col-xs-12 q-px-xs q-gutter-y-sm">
             <div class="flex justify-end">
               <q-btn
                 no-caps
@@ -76,7 +76,7 @@
                 size="md"
               />
             </div>
-            <q-list v-if="wallets" separator class="br-15 text-bow" :class="getDarkModeClass(darkMode)">
+            <q-list v-if="wallets" separator class="text-bow" :class="getDarkModeClass(darkMode)">
               <q-item
                 v-for="wallet, i in wallets"
                 :key="i"
@@ -107,6 +107,7 @@
                   </q-btn>
                 </q-item-section>
               </q-item>
+              <q-separator inset />
             </q-list>
           </div>
       </div>
@@ -118,7 +119,6 @@
           dense
           size="lg"
           flat
-          class="button"
           label="Create Wallet"
         />
       </div>
