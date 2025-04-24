@@ -29,9 +29,10 @@
         swipeable
         animated
         arrows
-        height="60vh"
+        height="58vh"
         transition-prev="slide-right"
         transition-next="slide-left"
+        :control-color="darkMode ? 'white' : 'black'"
         class="pt-card-2 text-subtitle1"
         :class="getDarkModeClass(darkMode)"
         :dark="darkMode"
@@ -113,7 +114,12 @@
                       </span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      These are points you can earn once. Incomplete actions are marked red, while completed actions are marked green. After earning these points, you cannot earn them again.
+                      <p>
+                        These are points you can earn once. Incomplete actions are marked red, while completed actions are marked green. After earning these points, you cannot earn them again.
+                      </p>
+                      <p class="no-margin">
+                        Note that this points are only available for new users. Existing users cannot earn these points.
+                      </p>
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -137,7 +143,7 @@
             <h6 class="q-ma-xs q-pb-md text-center">Redeeming User Points</h6>
             <div class="row text-left">
               <p>
-                When redeeming your UP, you can either swap it to BCH or convert it to Paytaca cashtoken. Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
+                When redeeming your UP, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
               </p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
@@ -185,10 +191,10 @@
                 To earn RP, refer your friends or other users to use Paytaca.
               </p>
               <p>
-                When they create their new wallet, have them scan your referral QR code. After the new user created their wallet and completing their very first transaction, you will receive 5 RFP.
+                When they create their new wallet, have them scan your referral QR code. After the new user created their wallet and completing their very first transaction, you will receive 5 RP.
               </p>
               <p>
-                There is no limit as to how much RFP you can earn, so refer lots of new users as much as you can!
+                There is no limit as to how much RP you can earn, so refer lots of new users as much as you can!
               </p>
             </div>
           </q-carousel-slide>
@@ -196,7 +202,7 @@
             <h6 class="q-ma-xs q-pb-md text-center">Redeeming Referral Points</h6>
             <div class="row text-left">
               <p>
-                When redeeming your RP, you can either swap it to BCH or convert it to Paytaca cashtoken. Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
+                When redeeming your RP, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
               </p>
               <p>
                 Note that you can only redeem up to 10,000 RP per month.

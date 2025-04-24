@@ -380,3 +380,9 @@ export default {
   background: transparent;
 }
 </style>
+
+<style lang="scss" scoped>
+body.theme-payhero .network-selection-tab.rewards.q-tab--inactive {
+  color: #f2f2f2 !important;
+}
+</style>

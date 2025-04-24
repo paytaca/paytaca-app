@@ -129,7 +129,7 @@
         <q-tab-panel name="convert" style="padding: 5px 0;">
           <div class="row q-mt-sm">
             <span class="full-width text-subtitle1 q-mb-sm">
-              Enter points to be converted to Paytaca tokens.
+              Enter points to be converted to PTC.
             </span>
             <span>
               <strong>Rate:</strong> 1
