@@ -69,7 +69,7 @@
                       </span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      Not considered a promo, but a collection of points, called UP (User Points), earned by users from engaging with the different features of the app.
+                      A collection of points, called UP (User Points), earned by users from engaging with the different features of the app.
                     </q-item-label>
                   </q-item-section>
                 </q-item>

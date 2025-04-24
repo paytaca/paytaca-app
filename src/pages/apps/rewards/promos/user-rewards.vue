@@ -86,7 +86,7 @@
                   <status-chip :isCompleted="isReferralComplete" />
                   <span class="col-10">
                     <span class="text-subtitle1">
-                      5 PHP with of BCH from referral and after completing 1st transaction
+                      5 PHP worth of BCH from referral and after completing 1st transaction
                     </span>
                     <br/>
                     <span v-if="isReferralComplete" class="q-ml-sm">
