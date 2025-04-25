@@ -131,6 +131,10 @@ async function updateData (url, data) {
 
 // ========== get functions ==========
 
+export async function getRewardsPageToggle () {
+  return await getData('rewardspagetoggle/')
+}
+
 export async function getUserPromoData () {
   return await getData(`userpromo/${getWalletHash()}/`)
 }
