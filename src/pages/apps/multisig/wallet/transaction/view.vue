@@ -128,7 +128,7 @@
                     <q-expansion-item>
                       <template v-slot:header>
                         <q-item-section>
-                          Signatures
+                          Signatures {{ multisigTransaction.metadata.signatureCount }}
                         </q-item-section>
                       </template>
                       <q-item-label class="q-pa-md">
@@ -161,7 +161,6 @@
                           :disable="!multisigWallet.signerCanSign({ signerEntityIndex })"
                           :icon="multisigWallet.signerCanSign({ signerEntityIndex })? 'draw': 'edit_off'"
                           @click="partiallySignTransaction({ signerEntityIndex, xprv: multisigWallet.signers[signerEntityIndex]?.xprv })"
-                          flat
                           dense
                           no-caps
                           >
@@ -212,7 +211,7 @@ const { getSignerXPrv, identifyPossiblePstCreator } = useMultisigHelpers()
 //   const transactions = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
 //   console.log('🚀 ~ multisigTransaction ~ transactions:', transactions)
 //   if (transactions[route.params.index]) {
-//     return MultisigTransaction.getInstanceFromObject(structuredClone(transactions[route.params.index]))
+//     return MultisigTransaction.createInstanceFromObject(structuredClone(transactions[route.params.index]))
 //   }
 //   return transactions[route.params.index]
 // })
@@ -248,7 +247,7 @@ const partiallySignTransaction = async ({ signerEntityIndex, xprv }) => {
   console.log('sign', signerEntityIndex, xprv)
   if (!multisigWallet.value) return
   // const walletObject = $store.getters['multisig/getWallet']({ address: route.params.address })
-  // const wallet = multisigWallet.fromObject(walletObject)
+  // const wallet = MultisigWallet.createInstanceFromObject(walletObject)
   // const prompt = multisigTransaction?.value?.sessionRequest?.params?.request?.params?.userPrompt
   // const origin = multisigTransaction?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
   // const pst = new Pst({
@@ -279,24 +278,29 @@ const partiallySignTransaction = async ({ signerEntityIndex, xprv }) => {
   // router.push({ name: 'app-multisig-wallet-pst-view', params: { address: multisigWallet.value.address, id: pst.value.id } })
 }
 
+const deleteTransaction = async () => {
+  await $store.dispatch(
+    'multisig/deleteTransaction',
+    { index: route.params.index }
+  )
+  router.back()
+}
+
 const openTransactionActionsDialog = () => {
   $q.dialog({
     component: TransactionActionsDialog,
     componentProps: {
       darkMode: getDarkModeClass(darkMode.value),
-      onDelete: () => { console.log('deleting beach') },
+      onDelete: deleteTransaction,
       onBroadcast: () => { console.log('deleting beach') },
       onExport: () => { console.log('deleting beach') }
     }
   })
 }
-const deleteTransaction = () => {
-  $store.dispatch('multisig/deleteTransaction', { index: route.params.index })
-}
 
 onBeforeMount(async () => {
   if (route.params?.address) {
-    multisigWallet.value = MultisigWallet.fromObject(
+    multisigWallet.value = MultisigWallet.createInstanceFromObject(
       $store.getters['multisig/getWallet']({ address: route.params.address })
     )
     await multisigWallet.value.loadSignerXprivateKeys(getSignerXPrv)
@@ -306,7 +310,7 @@ onBeforeMount(async () => {
 
 onMounted(async () => {
   // if (route.params?.address) {
-  //   const multisigWallet = multisigWallet.fromObject(
+  //   const multisigWallet = MultisigWallet.createInstanceFromObject(
   //     $store.getters['multisig/getWallet']({ address: route.params.address })
   //   )
   //   await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
@@ -315,10 +319,10 @@ onMounted(async () => {
   const transactions = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
   console.log('🚀 ~ multisigTransaction ~ transactions:', transactions)
   if (transactions[route.params.index]) {
-    multisigTransaction.value = MultisigTransaction.getInstanceFromObject(structuredClone(transactions[route.params.index]))
+    multisigTransaction.value = MultisigTransaction.createInstanceFromObject(structuredClone(transactions[route.params.index]))
   }
   // return transactions[route.params.index]
-  // multisigWallet.value = MultisigWallet.fromObject(
+  // multisigWallet.value = MultisigWallet.createInstanceFromObject(
   //   $store.getters['multisig/getWallet']({ address: route.params.address })
   // )
   // await multisigWallet.value.loadSignerXprivateKeys(getSignerXPrv)
