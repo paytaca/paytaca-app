@@ -22,6 +22,10 @@ export function walletConnectSignTransactionRequest (state, { address, sessionRe
   newTransaction(state, { transaction, sourceOutputs, address, sessionRequest })
 }
 
+export function saveTransaction (state, multisigTransaction) {
+  state.transactions.push(multisigTransaction)
+}
+
 export function deleteTransaction (state, { index }) {
   state.transactions.splice(index, 1)
 }

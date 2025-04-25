@@ -10,6 +10,5 @@ export default function () {
     settings: {
       defaultSignerWalletIndex: 0 /* The index of the personal wallet that'll be used as signer */
     }
-
   }
 }

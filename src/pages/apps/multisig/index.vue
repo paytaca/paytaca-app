@@ -77,6 +77,20 @@
               />
             </div>
             <q-list v-if="wallets" separator class="text-bow" :class="getDarkModeClass(darkMode)">
+              <q-item>
+                <q-item-section></q-item-section>
+                <q-item-section side top>
+                  <q-btn
+                    no-caps
+                    icon="mdi-wallet-plus"
+                    :to="{ name: 'app-multisig-wallet-create'}"
+                    flat
+                    dense
+                    size="md"
+                  />
+                </q-item-section>
+              </q-item>
+              <q-separator inset />
               <q-item
                 v-for="wallet, i in wallets"
                 :key="i"
@@ -88,7 +102,7 @@
                   <q-item-label class="text-h6 text-weight-bold flex items-center">
                     <q-icon name="mdi-wallet-outline" color="grad" class="q-mr-sm"></q-icon><span>{{ wallet.template.name }}</span>
                   </q-item-label>
-                  <q-item-label class="text-subtitle2">
+                  <q-item-label caption class="text-subtitle1">
                     {{ shortenString(wallet.address, 18) }}
                   </q-item-label>
                   <q-item-label caption lines="2" class="text-subtitle1">
@@ -97,7 +111,7 @@
                     </span>
                   </q-item-label>
                 </q-item-section>
-                <q-item-section side>
+                <q-item-section side top>
                   <q-btn
                     icon="close"
                     @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.address) }"
@@ -107,7 +121,6 @@
                   </q-btn>
                 </q-item-section>
               </q-item>
-              <q-separator inset />
             </q-list>
           </div>
       </div>
@@ -152,7 +165,7 @@ const darkMode = computed(() => {
 })
 
 const wallets = computed(() => {
-  return MultisigWallet.fromObjects($store.getters['multisig/getWallets'])
+  return MultisigWallet.createInstanceFromObjects($store.getters['multisig/getWallets'])
 })
 
 const deleteWallet = (address) => {

@@ -19,6 +19,10 @@ export function walletConnectSignTransactionRequest ({ commit }, { address, sess
   commit('walletConnectSignTransactionRequest', { address, sessionRequest })
 }
 
+export function saveTransaction ({ commit }, multisigTransaction) {
+  commit('saveTransaction', multisigTransaction)
+}
+
 export function deleteTransaction ({ commit }, { index }) {
   commit('deleteTransaction', { index })
   // TODO: mutate watchtower

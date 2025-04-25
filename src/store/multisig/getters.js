@@ -17,7 +17,13 @@ export function getWallets (state) {
 
 export function getTransactionsByAddress (state) {
   return ({ address }) => {
-    return state.transactions.filter((t) => t.address === decodeURIComponent(address))
+    return state.transactions.filter((t) => t.metadata?.address === decodeURIComponent(address))
+  }
+}
+
+export function getTransactionsByWalletAddress (state) {
+  return ({ address }) => {
+    return state.transactions.filter((t) => t.metadata?.walletAddress === decodeURIComponent(address))
   }
 }
 

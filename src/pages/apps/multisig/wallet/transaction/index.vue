@@ -9,6 +9,7 @@
     <div class="row q-gutter-y-sm">
         <div class="col-xs-12 text-right q-px-sm q-gutter-x-sm">
             <q-btn
+              v-if="multisigTransactions?.length > 0"
               no-caps
               icon="delete"
               :label="$t('Clear All')"
@@ -18,7 +19,7 @@
             />
         </div>
         <div class="col-xs-12">
-          <q-list v-if="multisigTransactions" separator>
+          <q-list v-if="multisigTransactions?.length > 0">
             <q-item
               v-for="transaction, i in multisigTransactions"
               :key="i" clickable
@@ -33,6 +34,12 @@
                   Origin: {{ transaction.metadata.origin }}
                 </q-item-label>
                 <q-item-label caption>
+                  Required Signatures: {{ transaction.metadata.requiredSignatures }}
+                </q-item-label>
+                <q-item-label caption>
+                  Current Signatures: {{ transaction.metadata.totalSignatures }}
+                </q-item-label>
+                <q-item-label caption>
                   {{ transaction.signatures }}
                 </q-item-label>
               </q-item-section>
@@ -45,7 +52,7 @@
                 </q-btn>
               </q-item-section>
             </q-item>
-            <q-separator  inset />
+            <q-separator inset />
           </q-list>
         </div>
     </div>
@@ -56,37 +63,54 @@
 
 <script setup>
 
+import { computed, onMounted, ref, onBeforeMount } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { MultisigWallet, MultisigTransaction } from 'src/lib/multisig'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import HeaderNav from 'components/header-nav'
 
 const $store = useStore()
+const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { t: $t } = useI18n()
-
-const transactions = ref()
+const { getSignerXPrv } = useMultisigHelpers()
+const multisigWallet = ref()
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
 const multisigTransactions = computed(() => {
-  return $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
+  const transactions =
+    $store.getters['multisig/getTransactionsByWalletAddress']({
+      address: route.params.address
+    })
+
+  return transactions.map(t => {
+    return MultisigTransaction.createInstanceFromObject(t)
+  })
 })
 
 const deleteAllTransactions = async () => {
   await $store.dispatch('multisig/deleteAllTransactions')
 }
 
+onBeforeMount(async () => {
+  if (route.params?.address) {
+    multisigWallet.value = MultisigWallet.createInstanceFromObject(
+      $store.getters['multisig/getWallet']({ address: route.params.address })
+    )
+    await multisigWallet.value.loadSignerXprivateKeys(getSignerXPrv)
+  }
+})
+
 onMounted(() => {
-  transactions.value = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
-  // if (transactions.value && transactions.value?.length === 1) {
-  //   router.push({ name: 'app-multisig-wallet-transaction-view', params: { address: route.params.address, index: 0 } })
-  // }
+  if (multisigTransactions.value?.length === 0) {
+    router.push({ name: 'app-multisig-wallet-view', params: { address: route.params.address } })
+  }
 })
 
 </script>
