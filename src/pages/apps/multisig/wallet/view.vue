@@ -102,6 +102,40 @@
                           </q-item-section>
                         </q-item> -->
                         <q-separator spaced inset />
+                        <q-item>
+                          <q-btn flat dense no-caps @click="$emit('receive')">
+                            <template v-slot:default>
+                              <div class="row justify-center">
+                                <q-icon name="call_received" class="col-12"></q-icon>
+                                <div class="col-12">Receive</div>
+                              </div>
+                            </template>
+                          </q-btn>
+                          <q-btn flat dense no-caps @click="$emit('Send')">
+                            <template v-slot:default>
+                              <div class="row justify-center">
+                                <q-icon name="send" class="col-12"></q-icon>
+                                <div class="col-12">Send</div>
+                              </div>
+                            </template>
+                          </q-btn>
+                          <q-btn flat dense no-caps @click="$emit('delete')">
+                            <template v-slot:default>
+                              <div class="row justify-center">
+                                <q-icon name="delete" class="col-12"></q-icon>
+                                <div class="col-12">Delete</div>
+                              </div>
+                            </template>
+                          </q-btn>
+                          <q-btn flat dense no-caps @click="exportWallet">
+                            <template v-slot:default>
+                              <div class="row justify-center">
+                                <q-icon name="share" class="col-12"></q-icon>
+                                <div class="col-12">Export</div>
+                              </div>
+                            </template>
+                          </q-btn>
+                        </q-item>
                       </q-list>
                     </div>
                   </template>
@@ -170,6 +204,17 @@ const psts = computed(() => {
 const deleteWallet = (address) => {
   $store.dispatch('multisig/deleteWallet', { address })
   router.push({ name: 'app-multisig' })
+}
+
+const exportWallet = () => {
+  const data = wallet.value.export()
+  const blob = new Blob([data], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${wallet.value.name || `${wallet.value.m}-of-${wallet.value.n}`}.pmwif`
+  document.body.appendChild(a)
+  a.click()
 }
 
 const openWalletActionsDialog = () => {
