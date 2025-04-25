@@ -23,6 +23,7 @@ import { createTemplate } from './template.js'
 import { MultisigTransaction } from './transaction.js'
 
 const getHdKeys = ({ signers /* { [signerIndex: number]: { xpub: string, signerName: string ...} } */ }) => {
+  console.log('🚀 ~ getHdKeys ~ signers:', signers)
   const hdKeys = {
     addressIndex: 0,
     hdPublicKeys: {}
@@ -52,6 +53,7 @@ export const derivePubKeyFromXPubKey = ({ xpub, addressIndex /* ?: e.g. '0/0' */
 }
 
 export const getLockingData = ({ signers }) => {
+  console.log('🚀 ~ getLockingData ~ signers:', signers)
   return {
     hdKeys: getHdKeys({ signers })
   }
@@ -225,6 +227,7 @@ export class MultisigWallet {
   }
 
   export () {
+    console.log('EXPORTING', stringify(this))
     return MultisigWallet.export(this)
   }
 
@@ -249,7 +252,8 @@ export class MultisigWallet {
   static import (multisigWalletBase64) {
     const bin = base64ToBin(multisigWalletBase64)
     const parsed = JSON.parse(binToUtf8(bin))
-    const wallet = new MultisigWallet(parsed)
+    console.log('🚀 ~ MultisigWallet ~ import ~ parsed:', parsed)
+    const wallet = MultisigWallet.createInstanceFromObject(parsed)
     wallet.createTemplate()
     return wallet
   }

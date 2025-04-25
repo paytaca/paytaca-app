@@ -131,10 +131,24 @@
           :to="{ name: 'app-multisig-wallet-create'}"
           dense
           size="lg"
-          flat
           label="Create Wallet"
         />
+        <q-btn
+          no-caps
+          icon="mdi-wallet-plus"
+          dense
+          size="lg"
+          label="Import Wallet"
+          @click="importWallet"
+        />
       </div>
+      <q-file
+        ref="walletFileElementRef"
+        v-model="walletFileModel"
+        :multiple="false"
+        style="visibility: hidden"
+        @update:model-value="onUpdateWalletFileModelValue">
+      </q-file>
       <!-- display created wallets  -->
      </div>
     </div>
@@ -159,6 +173,10 @@ const pstFileElementRef = ref()
 const pstFile = ref()
 const pstFromFile = ref()
 const pstFromStore = ref()
+
+const walletFileElementRef = ref()
+const walletFileModel = ref()
+const walletInstance = ref()
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -202,6 +220,29 @@ const updatePstFile = (file) => {
       router.push({
         name: 'app-multisig-wallet-pst-view',
         params: { address: pstFromFile.value.address, id: pstFromFile.value.id }
+      })
+    }
+    reader.onerror = (err) => {
+      console.err(err)
+    }
+    reader.readAsText(file)
+  }
+}
+
+const importWallet = () => {
+  walletFileElementRef.value.pickFiles()
+}
+
+const onUpdateWalletFileModelValue = (file) => {
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      walletInstance.value = MultisigWallet.import(reader.result)
+      console.log('WALLET INSTANCE', walletInstance.value)
+      $store.dispatch('multisig/saveWallet', walletInstance.value)
+      router.push({
+        name: 'app-multisig-wallet-view',
+        params: { address: walletInstance.value.address }
       })
     }
     reader.onerror = (err) => {
