@@ -1,0 +1,93 @@
+@use 'shared.scss';
+
+body.theme-overhaul {
+  /* ----- VARIABLES ----- */
+  // $color_4: #fff;
+  $dark_bg: #0F1928;
+  $light_bg: #F8FAFC;
+  $colored_bg: #D9EDFF;
+  $gradient_bg: linear-gradient(
+    #000E25,
+    #4C8BED
+  );
+
+  /* ----- GLOBAL ----- */
+  body {
+    @include shared.body-prop;
+  }
+
+  p, a {
+    @include shared.user-select-none;
+  }
+
+  /* ----- IDS ----- */
+  #app-container {
+    &.dark {
+      background: $dark_bg !important;
+    }
+
+    &.light {
+      background-color: $light_bg !important;
+    }
+  }
+
+  #gradient-panel {
+    background-image: $gradient_bg;
+    height: 265px;
+    width: 100%;
+    position: fixed;
+    z-index: 0;
+  }
+
+  /* ----- CLASSES ----- */
+  .footer-menu {
+    height: 62px;
+    position: fixed;
+    border-top: 3px $light_bg solid;
+    bottom: 0;
+    width: 100%;
+    background: $dark_bg;
+    z-index: 6;
+
+  }
+
+  // Typography
+  .headline-large {
+    font-size: 32px;
+    line-height: 40px;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .headline-small {
+    font-size: 20px;
+    line-height: 32px;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+
+  .title-large {
+    font-size: 16px;
+    line-height: 28px;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .title-medium {
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0.1%;
+    font-weight: 600;
+  }
+  .title-small {
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 2%;
+    font-weight: 800;
+  }
+
+  .label {
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 2%;
+    opacity: 50%;
+  }
+}

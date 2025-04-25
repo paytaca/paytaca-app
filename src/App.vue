@@ -38,8 +38,14 @@ export default {
           document.body.classList.remove(cl)
         }
       })
-      document.body.classList.add(`theme-${theme.value}`)
-      
+
+      // set later to overhaul ui theme
+      // document.body.classList.add(`theme-${theme.value}`)
+
+      //Testing Overhaul CSS
+      document.body.classList.add('theme-overhaul')
+
+      console.log('classlist: ', document.body.classList)
       // Set quasar dark mode true/false
       $q.dark.set(darkMode.value)
     })
@@ -226,7 +232,7 @@ export default {
   },
   beforeMount() {
     if (typeof navigator.onLine === 'boolean') {
-      this.onConnectivityChange(navigator.onLine) 
+      this.onConnectivityChange(navigator.onLine)
     }
   },
   async mounted () {
@@ -370,7 +376,7 @@ body {
   overscroll-behavior: none;
 }
 
-body::-webkit-scrollbar { 
+body::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
 }
 </style>

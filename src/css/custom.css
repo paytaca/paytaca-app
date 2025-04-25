@@ -6,10 +6,10 @@
   src: url('../assets/fonts/Rubik.ttf');
 } */
 
-body {
+/* body {
   font-family: 'Rubik', sans-serif;
   font-weight: 300 !important;
-}
+} */
 
 body.body--light {
   /* background-color: #ECF3F3 !important; */
