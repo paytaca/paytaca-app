@@ -725,8 +725,21 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
         // save the request as signature request
         // push to multisig signature request page
         // $store.dispatch('multisig/walletConnectSignTransactionRequest', { sessionRequest, address: walletAddress.address })
-        $store.dispatch('multisig/saveTransaction', MultisigTransaction.fromWalletConnectSignRequest({ sessionRequest }))
-        $router.push({ name: 'app-multisig-wallet-transactions', params: { address: encodeURIComponent(walletAddress.address) } })
+        const multisigWallet = $store.getters['multisig/getWallet']({ address: walletAddress.address })
+        await $store.dispatch(
+          'multisig/saveTransaction',
+          MultisigTransaction.createInstanceFromWCSessionRequest({
+            sessionRequest,
+            metadata: {
+              requiredSignatures: multisigWallet.m,
+              signatureCount: 0
+            }
+          })
+        )
+        $router.push({
+          name: 'app-multisig-wallet-transactions',
+          params: { address: encodeURIComponent(walletAddress.address) }
+        })
         rejectSessionRequest(sessionRequest) // TODO: respond properly
         return
       }

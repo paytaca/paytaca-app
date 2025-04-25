@@ -82,7 +82,7 @@
                         </q-item>
                         <q-separator spaced inset />
                         <q-item
-                          :clickable="transactions?.length"
+                          :clickable="transactions?.length > 0"
                           :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
                           <q-item-section>
                             <q-item-label>Transaction Proposals</q-item-label>
@@ -143,7 +143,7 @@ const wallet = computed(() => {
   if (route.params?.address) {
     const walletObject = $store.getters['multisig/getWallet']({ address: route.params.address })
     if (walletObject) {
-      return MultisigWallet.fromObject(walletObject)
+      return MultisigWallet.createInstanceFromObject(walletObject)
     }
   }
   return null
