@@ -14,9 +14,13 @@ import {
   utf8ToBin,
   binToBase64,
   base64ToBin,
-  binToUtf8
+  binToUtf8,
+  binToHex,
+  extractResolvedVariables,
+  generateTransaction
 } from 'bitauth-libauth-v3'
 import { createTemplate } from './template.js'
+import { MultisigTransaction } from './transaction.js'
 
 const getHdKeys = ({ signers /* { [signerIndex: number]: { xpub: string, signerName: string ...} } */ }) => {
   const hdKeys = {
@@ -66,6 +70,7 @@ export class MultisigWallet {
     this.signers = signers
     this.signatureFormat = signatureFormat || 'schnorr'
     this.network = network
+    this.lockingData = getLockingData({ signers: this.signers })
   }
 
   createTemplate (signatureFormat) {
@@ -98,9 +103,9 @@ export class MultisigWallet {
     return compiler
   }
 
-  get lockingData () {
-    return getLockingData({ signers: this.signers })
-  }
+  // get lockingData () {
+  //   return getLockingData({ signers: this.signers })
+  // }
 
   get lockingBytecode () {
     const lockingBytecode = this.compiler.generateBytecode({
@@ -122,14 +127,96 @@ export class MultisigWallet {
     return Boolean(this.signers[signerEntityIndex].xprv)
   }
 
+  signerSigned ({ multisigTransaction, signerEntityIndex }) {
+    const signerSignedOnAllInputs = []
+    for (const input of multisigTransaction.transaction.inputs) {
+      let sourceOutput = input.sourceOutput
+
+      if (!sourceOutput) {
+        sourceOutput = multisigTransaction.sourceOutputs.find((utxo) => {
+          return utxo.outpointIndex === input.outpointIndex && binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) === binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+        })
+      }
+      const { address } = lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network })
+      if (address === this.address) {
+        if (!multisigTransaction.signatures[input.outpointIndex]) return false
+        const signerSignedOnInput = Object.keys(multisigTransaction.signatures[input.outpointIndex]).some((signatureKey) => {
+          return signatureKey.includes(`key${signerEntityIndex}`)
+        })
+        signerSignedOnAllInputs.push(signerSignedOnInput)
+      }
+    }
+    return signerSignedOnAllInputs.every(answer => answer === true)
+  }
+
+  signTransaction ({ multisigTransaction, signerEntityIndex /* example: 1 */ }) {
+    const { sourceOutputs, signatures, metadata } = multisigTransaction
+    const transaction = MultisigTransaction.transactionBinObjectsToUint8Array(multisigTransaction.transaction)
+    console.log(`Transaction signerIndex ${signerEntityIndex}`, transaction)
+    const entityUnlockingData = {
+      ...this.lockingData,
+      hdKeys: {
+        ...this.lockingData.hdKeys,
+        hdPrivateKeys: {
+          [`signer_${signerEntityIndex}`]: this.signers[signerEntityIndex].xprv
+        }
+      }
+    }
+
+    const unlockingScriptId = this.template.entities[`signer_${signerEntityIndex}`].scripts.filter((scriptId) => scriptId !== 'lock')[0]
+    for (const input of transaction.inputs) {
+      let sourceOutput = input.sourceOutput
+
+      if (!sourceOutput) {
+        sourceOutput = sourceOutputs.find((utxo) => {
+          return utxo.outpointIndex === input.outpointIndex && binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) === binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+        })
+      }
+      const { address: sourceOutputAddress } = lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: this.network })
+      if (sourceOutputAddress === this.address) {
+        input.unlockingBytecode = {
+          // ...input.unlockingBytecode,
+          compiler: this.compiler,
+          data: entityUnlockingData,
+          valueSatoshis: sourceOutput.valueSatoshis,
+          script: unlockingScriptId,
+          token: sourceOutput.token
+        }
+      }
+    }
+
+    const signAttempt = generateTransaction({ ...transaction })
+
+    for (const [index, error] of Object.entries(signAttempt.errors)) {
+      if (!signatures[index]) {
+        signatures[index] = {}
+      }
+      const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
+      const signatureKey = Object.keys(signerResolvedVariables)[0]
+      const signatureValue = Object.values(signerResolvedVariables)[0]
+      signatures[index][signatureKey] = signatureValue
+    }
+    Object.keys(signatures).forEach((inputIndex) => {
+      Object.keys(signatures[inputIndex]).forEach((signatureKey) => {
+        signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(signatures[inputIndex][signatureKey]))
+      })
+    })
+    metadata.signatureCount++
+    metadata.requiredSignatures = this.m
+    return multisigTransaction
+  }
+
   /**
    * @param {function} getSignerXPrv Function that returns the private key given an xpub
    */
   async loadSignerXprivateKeys (getSignerXPrv) {
-    console.log('THIS SIGNERS', this.signers)
+    // if (!this.lockingData.hdKeys.hdPrivateKeys) {
+    //   this.lockingData.hdKeys.hdPrivateKeys = {}
+    // }
     for (const signerEntityIndex of Object.keys(this.signers || {})) {
       const xprv = await getSignerXPrv({ xpub: this.signers[signerEntityIndex].xpub })
       this.signers[signerEntityIndex].xprv = xprv
+      // this.lockingData.hdKeys.hdPrivateKeys[`signer_${signerEntityIndex}`] = xprv
     }
   }
 
@@ -180,14 +267,14 @@ export class MultisigWallet {
     return wallet
   }
 
-  static fromObjects (wallets) {
+  static createInstanceFromObjects (wallets) {
     const walletInstances = wallets.map((wallet) => {
-      return MultisigWallet.fromObject(wallet)
+      return MultisigWallet.createInstanceFromObject(wallet)
     })
     return walletInstances
   }
 
-  static fromObject (wallet) {
+  static createInstanceFromObject (wallet) {
     const multisigWallet = new MultisigWallet(structuredClone(wallet))
     multisigWallet.createTemplate()
     return multisigWallet
