@@ -53,7 +53,7 @@
       </div>
 
       <div
-        class="row col-12 justify-center q-pa-md shadow-up-1 points-earned-div"
+        class="row col-12 justify-center q-pa-md q-pb-lg shadow-up-1 points-earned-div"
         :class="getDarkModeClass(darkMode)"
       >
         <span class="row col-12 justify-center text-center text-h6 q-mb-sm">
@@ -69,7 +69,7 @@
 
         <q-scroll-area ref="referrals_list" class="q-mx-sm">
           <template v-if="!isLoading">
-            <div v-if="referralsList.length > 0" class="row q-gutter-y-sm">
+            <div v-if="referralsList.length > 0" class="row q-mx-md q-gutter-y-sm">
               <div
                 v-for="(item, index) in referralsList"
                 class="row col-12"
