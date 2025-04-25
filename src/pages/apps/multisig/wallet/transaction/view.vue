@@ -167,6 +167,36 @@
                         </q-btn>
                       </q-item-section>
                     </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <q-card-section class="flex flex-wrap justify-around">
+                          <q-btn flat dense no-caps @click="$emit('delete')">
+                            <template v-slot:default>
+                              <div class="row justify-center">
+                                <q-icon name="delete" class="col-12"></q-icon>
+                                <div class="col-12">Delete</div>
+                              </div>
+                            </template>
+                          </q-btn>
+                          <q-btn flat dense no-caps @click="broadcastTransaction">
+                            <template v-slot:default>
+                              <div class="row justify-center">
+                                <q-icon name="cell_tower" class="col-12"></q-icon>
+                                <div class="col-12">Broadcast</div>
+                              </div>
+                            </template>
+                          </q-btn>
+                          <q-btn flat dense no-caps @click="$emit('export')">
+                            <template v-slot:default>
+                              <div class="row justify-center">
+                                <q-icon name="share" class="col-12"></q-icon>
+                                <div class="col-12">Export</div>
+                              </div>
+                            </template>
+                          </q-btn>
+                        </q-card-section>
+                      </q-item-section>
+                    </q-item>
                   </q-list>
                 </div>
             </div>
@@ -184,7 +214,7 @@ import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { computed, onBeforeMount, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { stringify } from 'bitauth-libauth-v3'
+import { stringify, CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 // import { loadWallet } from 'src/wallet'
 import { toP2shTestAddress } from 'src/utils/address-utils'
 import HeaderNav from 'components/header-nav'
@@ -286,6 +316,17 @@ const deleteTransaction = async () => {
   router.back()
 }
 
+const broadcastTransaction = async () => {
+  const cashAddressNetworkPrefix =
+    isChipnet.value ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
+
+  multisigTransaction.value?.finalize({
+    lockingData: multisigWallet.value.lockingData,
+    template: multisigWallet.value.template,
+    cashAddressNetworkPrefix
+  })
+}
+
 const openTransactionActionsDialog = () => {
   $q.dialog({
     component: TransactionActionsDialog,
@@ -316,10 +357,17 @@ onMounted(async () => {
   //   await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
   //   multisigWallet.value = multisigWallet
   // }
-  const transactions = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
+  const transactions =
+    $store.getters['multisig/getTransactionsByWalletAddress']({
+      address: route.params.address
+    })
+
   console.log('🚀 ~ multisigTransaction ~ transactions:', transactions)
   if (transactions[route.params.index]) {
-    multisigTransaction.value = MultisigTransaction.createInstanceFromObject(structuredClone(transactions[route.params.index]))
+    multisigTransaction.value =
+      MultisigTransaction.createInstanceFromObject(
+        structuredClone(transactions[route.params.index])
+      )
   }
   // return transactions[route.params.index]
   // multisigWallet.value = MultisigWallet.createInstanceFromObject(
