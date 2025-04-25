@@ -186,11 +186,11 @@
                               </div>
                             </template>
                           </q-btn>
-                          <q-btn flat dense no-caps @click="$emit('export')">
+                          <q-btn flat dense no-caps @click="downloadPSTransactionProposal">
                             <template v-slot:default>
                               <div class="row justify-center">
                                 <q-icon name="share" class="col-12"></q-icon>
-                                <div class="col-12">Export</div>
+                                <div class="col-12">Download Transaction Proposal</div>
                               </div>
                             </template>
                           </q-btn>
@@ -271,7 +271,7 @@ const darkMode = computed(() => {
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const multisigWallet = ref()
-const pst = ref()
+// const pst = ref()
 
 const partiallySignTransaction = async ({ signerEntityIndex, xprv }) => {
   console.log('sign', signerEntityIndex, xprv)
@@ -325,6 +325,27 @@ const broadcastTransaction = async () => {
     template: multisigWallet.value.template,
     cashAddressNetworkPrefix
   })
+}
+
+const downloadPSTransactionProposal = () => {
+  const defaultFilename = (multisigTransaction.value.metadata?.prompt || '').toLowerCase().replace(' ', '-')
+  $q.dialog({
+    title: 'Enter Filename',
+    prompt: {
+      type: 'text',
+      model: defaultFilename
+    }
+  }).onOk((filename) => {
+    if (!filename) return
+    const data = multisigTransaction.value.exportBase64()
+    const blob = new Blob([data], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${filename}.ppst`
+    document.body.appendChild(a)
+    a.click()
+  }).onCancel(() => {})
 }
 
 const openTransactionActionsDialog = () => {

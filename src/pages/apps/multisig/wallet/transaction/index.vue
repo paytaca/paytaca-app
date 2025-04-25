@@ -90,7 +90,7 @@ const multisigTransactions = computed(() => {
     })
 
   return transactions.map(t => {
-    return MultisigTransaction.createInstanceFromObject(t)
+    return MultisigTransaction.createInstanceFromObject(structuredClone(t))
   })
 })
 
@@ -101,7 +101,7 @@ const deleteAllTransactions = async () => {
 onBeforeMount(async () => {
   if (route.params?.address) {
     multisigWallet.value = MultisigWallet.createInstanceFromObject(
-      $store.getters['multisig/getWallet']({ address: route.params.address })
+      structuredClone($store.getters['multisig/getWallet']({ address: route.params.address }))
     )
     await multisigWallet.value.loadSignerXprivateKeys(getSignerXPrv)
   }

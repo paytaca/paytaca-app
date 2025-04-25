@@ -142,6 +142,20 @@ export class MultisigTransaction {
     return successfulCompilation
   }
 
+  toJSON () {
+    return {
+      transaction: this.transaction,
+      sourceOutputs: this.sourceOutputs,
+      signatures: this.signatures,
+      metadata: this.metadata
+    }
+  }
+
+  exportBase64 () {
+    const bin = utf8ToBin(JSON.stringify(this.toJSON()))
+    return binToBase64(bin)
+  }
+
   async broadcast ({ network }) {
     const watchtower = new Watchtower(network === 'chipnet')
     await watchtower.subscribe({ address: this.metadata.walletAddress })
@@ -192,7 +206,7 @@ export class MultisigTransaction {
   }
 
   static transactionBinObjectsToUint8Array (transactionObject) {
-    const transaction = transactionObject
+    const transaction = structuredClone(transactionObject)
 
     transaction.inputs.forEach(input => {
       if (input.outpointTransactionHash && !(input?.outpointTransactionHash instanceof Uint8Array)) {
