@@ -186,11 +186,11 @@
                               </div>
                             </template>
                           </q-btn>
-                          <q-btn flat dense no-caps @click="downloadPSTransactionProposal">
+                          <q-btn flat dense no-caps @click="downloadPST">
                             <template v-slot:default>
                               <div class="row justify-center">
-                                <q-icon name="share" class="col-12"></q-icon>
-                                <div class="col-12">Download Transaction Proposal</div>
+                                <q-icon name="download" class="col-12"></q-icon>
+                                <div class="col-12">Export</div>
                               </div>
                             </template>
                           </q-btn>
@@ -327,7 +327,7 @@ const broadcastTransaction = async () => {
   })
 }
 
-const downloadPSTransactionProposal = () => {
+const downloadPST = () => {
   const defaultFilename = (multisigTransaction.value.metadata?.prompt || '').toLowerCase().replace(' ', '-')
   $q.dialog({
     title: 'Enter Filename',
@@ -337,7 +337,7 @@ const downloadPSTransactionProposal = () => {
     }
   }).onOk((filename) => {
     if (!filename) return
-    const data = multisigTransaction.value.exportBase64()
+    const data = multisigTransaction.value.exportPST({ signers: multisigWallet.value.signersSafe })
     const blob = new Blob([data], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
