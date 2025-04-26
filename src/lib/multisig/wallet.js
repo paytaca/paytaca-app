@@ -17,7 +17,8 @@ import {
   binToUtf8,
   binToHex,
   extractResolvedVariables,
-  generateTransaction
+  generateTransaction,
+  encodeTransactionCommon
 } from 'bitauth-libauth-v3'
 import { createTemplate } from './template.js'
 import { MultisigTransaction } from './transaction.js'
@@ -123,6 +124,14 @@ export class MultisigWallet {
       prefix: this.network
     })
     return address
+  }
+
+  get signersSafe () {
+    const signers = structuredClone(this.signers)
+    for (const k of Object.keys(signers)) {
+      delete signers[k].xprv
+    }
+    return signers
   }
 
   signerCanSign ({ signerEntityIndex }) {
