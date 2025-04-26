@@ -129,7 +129,7 @@ const darkMode = computed(() => {
 const partiallySignTransaction = async ({ signerEntityIndex, xprv }) => {
   if (!wallet.value) return
   // const walletObject = $store.getters['multisig/getWallet']({ address: route.params.address })
-  // const wallet = MultisigWallet.fromObject(walletObject)
+  // const wallet = MultisigWallet.createInstanceFromObject(walletObject)
   // const prompt = transactionData?.value?.sessionRequest?.params?.request?.params?.userPrompt
   // const origin = transactionData?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
   // const pst = new Pst({
@@ -198,7 +198,7 @@ const finalizeAndSubmitTransaction = async () => {
 
 onBeforeMount(async () => {
   if (route.params?.address) {
-    const multisigWallet = MultisigWallet.fromObject(
+    const multisigWallet = MultisigWallet.createInstanceFromObject(
       toValue($store.getters['multisig/getWallet']({ address: route.params.address }))
     )
     await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
@@ -208,13 +208,13 @@ onBeforeMount(async () => {
 
 onMounted(async () => {
   // if (route.params?.address) {
-  //   const multisigWallet = MultisigWallet.fromObject(
+  //   const multisigWallet = MultisigWallet.createInstanceFromObject(
   //     $store.getters['multisig/getWallet']({ address: route.params.address })
   //   )
   //   await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
   //   wallet.value = multisigWallet
   // }
-  const multisigWallet = MultisigWallet.fromObject(
+  const multisigWallet = MultisigWallet.createInstanceFromObject(
     $store.getters['multisig/getWallet']({ address: route.params.address })
   )
   await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)

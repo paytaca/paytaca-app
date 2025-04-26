@@ -135,6 +135,21 @@
                               </div>
                             </template>
                           </q-btn>
+                          <q-btn flat dense no-caps @click="loadTransactionProposal">
+                            <template v-slot:default>
+                              <div class="row justify-center">
+                                <q-icon name="share" class="col-12"></q-icon>
+                                <div class="col-12"></div>
+                              </div>
+                            </template>
+                          </q-btn>
+                          <q-file
+                            ref="transactionFileElementRef"
+                            v-model="transactionFileModel"
+                            :multiple="false"
+                            style="visibility: hidden"
+                            @update:model-value="onUpdateTransactionFile">
+                          </q-file>
                         </q-item>
                       </q-list>
                     </div>
@@ -157,7 +172,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { Pst, shortenString, MultisigWallet } from 'src/lib/multisig'
+import { MultisigTransaction, shortenString, MultisigWallet } from 'src/lib/multisig'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
@@ -172,6 +187,11 @@ const balance = ref()
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
+
+const transactionFileElementRef = ref()
+const transactionFileModel = ref()
+const transactionInstance = ref()
+const transactionFromStore = ref()
 
 const wallet = computed(() => {
   if (route.params?.address) {
@@ -194,7 +214,7 @@ const psts = computed(() => {
   if (!wallet.value?.address) return []
   const _psts = $store.getters['multisig/getPsts']
   return _psts.map((p) => {
-    const instance = new Pst(p)
+    const instance = new MultisigTransaction(p)
     return instance
   }).filter((p) => {
     return p.address === wallet.value.address
@@ -215,6 +235,41 @@ const exportWallet = () => {
   a.download = `${wallet.value.name || `${wallet.value.m}-of-${wallet.value.n}`}.pmwif`
   document.body.appendChild(a)
   a.click()
+}
+
+const loadTransactionProposal = () => {
+  console.log('transactionFileModel REF', transactionFileElementRef.value)
+  transactionFileElementRef.value.pickFiles()
+}
+
+const onUpdateTransactionFile = (file) => {
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      transactionInstance.value = MultisigTransaction.importPST({ pst: reader.result })
+      // const pstObjectFromStore = $store.getters['multisig/getPstById']({ id: transactionInstance.value.id })
+      // if (pstObjectFromStore) {
+      //   // TODO: ask before combine? redirect to pst compare page
+      //   // TODO: combine with multiple pst files
+      //   transactionFromStore.value = MultisigTransaction.createInstanceFromObject(pstObjectFromStore)
+      //   transactionFromStore.value.combine({ psts: [transactionInstance.value] })
+      //   transactionFromStore.value.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
+      //   return router.push({
+      //     name: 'app-multisig-wallet-pst-view',
+      //     params: { address: transactionFromStore.value.metadata.walletAddress, id: transactionFromStore.value.id }
+      //   })
+      // }
+      $store.dispatch('multisig/saveTransaction', transactionInstance.value)
+      router.push({
+        name: 'app-multisig-wallet-transaction',
+        params: { address: transactionInstance.value.address }
+      })
+    }
+    reader.onerror = (err) => {
+      console.err(err)
+    }
+    reader.readAsText(file)
+  }
 }
 
 const openWalletActionsDialog = () => {
