@@ -151,16 +151,42 @@ export class MultisigTransaction {
     }
   }
 
-  exportBase64 () {
-    const bin = utf8ToBin(JSON.stringify(this.toJSON()))
-    return binToBase64(bin)
-  }
-
   async broadcast ({ network }) {
     const watchtower = new Watchtower(network === 'chipnet')
     await watchtower.subscribe({ address: this.metadata.walletAddress })
     const response = await watchtower.broadcastTx(this.signedTransaction)
     return response
+  }
+
+  exportPST ({ signers, format = 'base64' }) {
+    console.log('EXPORT Pst object', this.transaction)
+    const pst = {
+      v: 1,
+      transaction: binToHex(encodeTransactionCommon(this.transaction)),
+      sourceOutputs: this.sourceOutputs,
+      signatures: this.signatures,
+      metadata: {
+        signers,
+        ...this.metadata
+      }
+    }
+    console.log('🚀 ~ MultisigTransaction ~ exportPSTObject ~ pst:', pst)
+    if (format === 'json') return stringify(pst)
+    if (format === 'electron-cash') throw new Error('Not yet implemented')
+    const bin = utf8ToBin(pst)
+    return binToBase64(bin)
+  }
+
+  static importPST ({ pst }) {
+    if (typeof pst === 'string') {
+      const bin = base64ToBin(pst)
+      const parsed = JSON.parse(binToUtf8(bin))
+      console.log('🚀 ~ MultisigTransaction ~ importPST ~ parsed:', parsed)
+      parsed.transaction = MultisigTransaction.transactionBinObjectsToUint8Array(
+        decodeTransactionCommon(parsed.transaction)
+      )
+      return parsed
+    }
   }
 
   static getUnlockingScriptId ({ signatures, template }) {
