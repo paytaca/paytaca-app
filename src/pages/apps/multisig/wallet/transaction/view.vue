@@ -78,7 +78,7 @@
                     <q-item>
                       <q-item-section>
                         <q-item-label>Credit/Change</q-item-label>
-                        <q-item-label caption lines="2">*Returned to sender address</q-item-label>
+                        <q-item-label caption lines="2">*Returned to wallet</q-item-label>
                       </q-item-section>
                       <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
                         <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
@@ -116,7 +116,36 @@
                       </q-item-label>
                     </q-expansion-item>
                     <q-item>
-                      <q-item-section >
+                      <q-item-section avatar>
+                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                      </q-item-section>
+                      <q-item-section side>
+                        <q-item-label >
+                          {{ shortenString(multisigWallet.address, 20) }}
+                        </q-item-label>
+                        <!-- <q-icon name="bch" color="green" /> -->
+                      </q-item-section>
+                    </q-item>
+                    <q-separator spaced inset></q-separator>
+                    <!-- <q-item>
+                      <q-item-section>
+                        <q-item-label class="text-h6">Wallet</q-item-label>
+                        <q-item-label caption lines="2">{{ multisigWallet.address }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side top>
+                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                      </q-item-section>
+                    </q-item> -->
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label class="text-h6">Signatures</q-item-label>
+                      </q-item-section>
+                      <!-- <q-item-section side top>
+                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                      </q-item-section> -->
+                    </q-item>
+                    <q-item>
+                      <q-item-section>
                         <div class="flex flex-wrap items-center">
                           Required Signatures <q-icon name="draw" flat dense size="xs" class="q-ml-xs"></q-icon>
                         </div>
@@ -125,10 +154,20 @@
                         {{ multisigWallet.m }}&nbsp;
                       </q-item-section>
                     </q-item>
+                    <q-item>
+                      <q-item-section>
+                        <div class="flex flex-wrap items-center">
+                          Current Signatures <q-icon name="draw" flat dense size="xs" class="q-ml-xs"></q-icon>
+                        </div>
+                      </q-item-section>
+                      <q-item-section side>
+                        {{ multisigTransaction.metadata.signatureCount }}&nbsp;
+                      </q-item-section>
+                    </q-item>
                     <q-expansion-item>
                       <template v-slot:header>
                         <q-item-section>
-                          Signatures {{ multisigTransaction.metadata.signatureCount }}
+                          Raw Sig Details
                         </q-item-section>
                       </template>
                       <q-item-label class="q-pa-md">
@@ -137,17 +176,6 @@
                         </code>
                       </q-item-label>
                     </q-expansion-item>
-                    <q-separator spaced inset></q-separator>
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label class="text-h6">Wallet</q-item-label>
-                        <q-item-label caption lines="2">{{ multisigWallet.address }}</q-item-label>
-                      </q-item-section>
-                      <q-item-section side top>
-                        <!-- <q-item-label caption>5 min ago</q-item-label> -->
-                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
-                      </q-item-section>
-                    </q-item>
                     <q-item v-for="signerEntityIndex in Object.keys(multisigWallet.signers)" :key="signerEntityIndex">
                       <q-item-section >
                         <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
@@ -226,7 +254,8 @@ import {
   getTotalBchInputAmount,
   getTotalBchOutputAmount,
   getTotalBchChangeAmount,
-  getTotalBchFee
+  getTotalBchFee,
+  shortenString
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import TransactionActionsDialog from 'src/components/multisig/TransactionActionsDialog.vue'
