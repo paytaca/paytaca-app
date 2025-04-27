@@ -79,9 +79,7 @@ export class MultisigTransaction {
       bytecode: lockingBytecode.bytecode,
       prefix: cashAddressNetworkPrefix
     })
-
-    const unlockingScriptId = MultisigTransaction.getUnlockingScriptId({ signatures: this.signatures, template })
-    console.log('TRANSACTION', this.transaction)
+    // console.log('🚀 ~ MultisigTransaction ~ unlockingScriptId:', unlockingScriptId)
     const transaction = this.transaction
     const sourceOutputs = [] // will be used for verification
     for (const [index, input] of transaction.inputs.entries()) {
@@ -101,9 +99,28 @@ export class MultisigTransaction {
             ...this.signatures[index]
           }
         }
+        console.log('🚀 ~ MultisigTransaction ~ inputUnlockingData:', inputUnlockingData)
+        // const unlockingScriptId = MultisigTransaction.getUnlockingScriptId({ signatures: this.signatures, template })
 
+        const scriptIdTemplateScriptMap = Object.keys(template.scripts).map((scriptId) => {
+          return { [scriptId]: template.scripts[scriptId].script }
+        })
+        const foundScriptIdTemplateScriptMapping = scriptIdTemplateScriptMap.find((scriptIdTemplateScript) => {
+          // ['key1.schnorr_signature.all_outputs', 'key3.schnorr_signature.all_outputs', ...]
+          return Object.keys(this.signatures[index]).every((signatureScriptKey) => {
+            const scriptId = Object.keys(scriptIdTemplateScript)[0]
+            console.log('🚀 ~ MultisigTransaction ~ returnObject.keys ~ scriptIdTemplateScript:', scriptIdTemplateScript)
+            console.log('🚀 ~ MultisigTransaction ~ returnObject.keys ~ index:', index)
+            console.log('🚀 ~ MultisigTransaction ~ returnObject.keys ~ scriptId:', scriptId)
+            console.log('🚀 ~ MultisigTransaction ~ returnObject.keys ~ signatureScriptKey:', signatureScriptKey)
+            return scriptIdTemplateScript[scriptId].includes(signatureScriptKey)
+          })
+        })
+        const unlockingScriptId = Object.keys(foundScriptIdTemplateScriptMapping)[0]
+
+        console.log('🚀 ~ MultisigTransaction ~ unlockingScriptId ~ unlockingScriptId:', unlockingScriptId)
         input.unlockingBytecode = {
-          ...input.unlockingBytecode,
+          // ...input.unlockingBytecode,
           compiler: compiler,
           data: inputUnlockingData,
           valueSatoshis: sourceOutput.valueSatoshis,
@@ -114,15 +131,18 @@ export class MultisigTransaction {
       sourceOutputs.push(sourceOutput)
     }
 
+    console.log('🚀 ~ MultisigTransaction ~ transaction successfulCompilation param:', transaction)
     const successfulCompilation = generateTransaction({
       ...transaction
     })
+    console.log('🚀 ~ MultisigTransaction ~ successfulCompilation:', successfulCompilation)
     if (successfulCompilation.success) {
       const encodedTransaction = encodeTransactionCommon(successfulCompilation.transaction)
       this.signedTransaction = binToHex(encodedTransaction)
     }
 
     const vm = createVirtualMachineBch()
+    console.log('source outputs', sourceOutputs)
     const verificationResult = vm.verify({
       sourceOutputs: sourceOutputs, transaction: successfulCompilation.transaction
     })
