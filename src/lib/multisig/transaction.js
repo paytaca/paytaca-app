@@ -194,6 +194,21 @@ export class MultisigTransaction {
       parsed.transaction = MultisigTransaction.transactionBinObjectsToUint8Array(
         decoded
       )
+      if (parsed.sourceOutputs) {
+        parsed.transaction.inputs.forEach((input) => {
+        // embedding sourceOutput to input
+          input.sourceOutput = parsed.sourceOutputs.find((sourceOutput) => {
+            return Number(sourceOutput.outpointIndex) === Number(input.outpointIndex) &&
+            binToHex(Uint8Array.from(Object.values((sourceOutput.outpointTransactionHash)))) ===
+              binToHex(Uint8Array.from(Object.values((input.outpointTransactionHash))))
+          })
+        })
+      }
+      parsed.transaction.outputs.forEach((output) => {
+        // inserting address to output
+        output.address = lockingBytecodeToCashAddress({ bytecode: output.lockingBytecode }).address
+        console.log('🚀 ~ MultisigTransaction ~ parsed.transaction.outputs.forEach ~ output:', output)
+      })
       return parsed
     }
   }

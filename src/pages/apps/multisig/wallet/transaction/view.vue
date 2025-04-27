@@ -84,7 +84,7 @@
                         <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
                           {{
                             getTotalBchChangeAmount(
-                              multisigTransaction.transaction, multisigWallet.address,
+                              multisigTransaction.transaction, route.params.address,
                               isChipnet? toP2shTestAddress: null
                             )
                           }}
