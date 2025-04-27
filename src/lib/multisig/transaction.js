@@ -82,7 +82,7 @@ export class MultisigTransaction {
     // console.log('🚀 ~ MultisigTransaction ~ unlockingScriptId:', unlockingScriptId)
     const transaction = this.transaction
     const sourceOutputs = [] // will be used for verification
-    for (const [index, input] of transaction.inputs.entries()) {
+    for (const [inputIndex, input] of transaction.inputs.entries()) {
       let sourceOutput = input.sourceOutput
       if (!sourceOutput) {
         sourceOutput = this.sourceOutputs.find((utxo) => {
@@ -96,27 +96,12 @@ export class MultisigTransaction {
         const inputUnlockingData = {
           ...lockingData,
           bytecode: {
-            ...this.signatures[index]
+            ...this.signatures[inputIndex]
           }
         }
-        console.log('🚀 ~ MultisigTransaction ~ inputUnlockingData:', inputUnlockingData)
-        // const unlockingScriptId = MultisigTransaction.getUnlockingScriptId({ signatures: this.signatures, template })
-
-        const scriptIdTemplateScriptMap = Object.keys(template.scripts).map((scriptId) => {
-          return { [scriptId]: template.scripts[scriptId].script }
+        const unlockingScriptId = MultisigTransaction.getUnlockingScriptId({
+          signatures: this.signatures, template, inputIndex
         })
-        const foundScriptIdTemplateScriptMapping = scriptIdTemplateScriptMap.find((scriptIdTemplateScript) => {
-          // ['key1.schnorr_signature.all_outputs', 'key3.schnorr_signature.all_outputs', ...]
-          return Object.keys(this.signatures[index]).every((signatureScriptKey) => {
-            const scriptId = Object.keys(scriptIdTemplateScript)[0]
-            console.log('🚀 ~ MultisigTransaction ~ returnObject.keys ~ scriptIdTemplateScript:', scriptIdTemplateScript)
-            console.log('🚀 ~ MultisigTransaction ~ returnObject.keys ~ index:', index)
-            console.log('🚀 ~ MultisigTransaction ~ returnObject.keys ~ scriptId:', scriptId)
-            console.log('🚀 ~ MultisigTransaction ~ returnObject.keys ~ signatureScriptKey:', signatureScriptKey)
-            return scriptIdTemplateScript[scriptId].includes(signatureScriptKey)
-          })
-        })
-        const unlockingScriptId = Object.keys(foundScriptIdTemplateScriptMapping)[0]
 
         console.log('🚀 ~ MultisigTransaction ~ unlockingScriptId ~ unlockingScriptId:', unlockingScriptId)
         input.unlockingBytecode = {
@@ -233,17 +218,18 @@ export class MultisigTransaction {
     }
   }
 
-  static getUnlockingScriptId ({ signatures, template }) {
-    const scriptsEntries = Object.entries(template.scripts)
-    const unlockingScript = scriptsEntries.find(([scriptId, value]) => {
-      let found = value.unlocks && scriptId !== 'lock'
-      found = Object.keys(signatures).every((signatureKey) => {
-        return value.script.includes(signatureKey)
-      }) // Example signatureKey = key2.ecdsa_signature.all_outputs
-
-      return found
+  static getUnlockingScriptId ({ signatures, template, inputIndex }) {
+    const scriptIdTemplateScriptMap = Object.keys(template.scripts).map((scriptId) => {
+      return { [scriptId]: template.scripts[scriptId].script }
     })
-    return unlockingScript[0]
+    const foundScriptIdTemplateScriptMapping = scriptIdTemplateScriptMap.find((scriptIdTemplateScript) => {
+      // ['key1.schnorr_signature.all_outputs', 'key3.schnorr_signature.all_outputs', ...]
+      return Object.keys(signatures[inputIndex]).every((signatureScriptKey) => {
+        const scriptId = Object.keys(scriptIdTemplateScript)[0]
+        return scriptIdTemplateScript[scriptId].includes(signatureScriptKey)
+      })
+    })
+    return Object.keys(foundScriptIdTemplateScriptMapping)[0]
   }
 
   static createInstanceFromWCSessionRequest ({ sessionRequest, metadata }) {
