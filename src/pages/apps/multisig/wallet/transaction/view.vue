@@ -1,238 +1,251 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header>
-      <HeaderNav
-        :title="$t('Transaction')"
-        :backnavpath="`/apps/multisig/wallet/${route.params.address}/transaction`"
-        class="apps-header"
-      />
-    </q-header>
-    <q-footer reveal>
-      <q-bar class="full-width pt-card text-bow" :class="getDarkModeClass(darkMode)" style="padding: 0px;">
-        <q-btn
-          icon="keyboard_arrow_up"
-          class="full-width"
-          @click="openTransactionActionsDialog"
-          flat>
+  <q-pull-to-refresh
+    id="app-container"
+    :class="getDarkModeClass(darkMode)"
+    @refresh="refreshPage"
+  >
+    <HeaderNav :title="$t('Transaction')" :backnavpath="`/apps/multisig/wallet/${route.params.address}`" class="header-nav">
+    </HeaderNav>
+    <div class="row justify-center" style="margin-bottom: 4em;">
+      <div class="col-xs-12 col-md-8 q-px-xs">
+        <q-list v-if="multisigWallet && multisigTransaction?.transaction">
+          <q-item>
+            <q-item-section>
+              <!-- <q-item-label class="text-h6">{{ transactionUserPrompt }}</q-item-label> -->
+              <!-- <q-item-label caption lines="2">Origin: {{ transactionOrigin }}</q-item-label> -->
+                <q-item-label class="text-h6">{{ multisigTransaction.metadata.prompt }}</q-item-label>
+                <q-item-label caption lines="2">Origin: {{ multisigTransaction.metadata.origin }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <!-- <q-item-label caption>5 min ago</q-item-label> -->
+              <q-icon name="payment" color="grad"></q-icon>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-item-label>Number of recipients</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              {{ multisigTransaction.transaction.outputs.length }}&nbsp;
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-item-label>Spending</q-item-label>
+            </q-item-section>
+            <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+              <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                {{ getTotalBchInputAmount(multisigTransaction.transaction) }}
+                &nbsp;
+              </q-btn>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-item-label>Debit</q-item-label>
+            </q-item-section>
+            <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+              <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                {{
+                  getTotalBchOutputAmount(
+                    multisigTransaction.transaction
+                  )
+                }}
+                &nbsp;
+              </q-btn>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-item-label>Credit/Change</q-item-label>
+              <q-item-label caption lines="2">*Returned to wallet</q-item-label>
+            </q-item-section>
+            <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+              <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                {{
+                  getTotalBchChangeAmount(
+                    multisigTransaction.transaction, route.params.address,
+                    isChipnet? toP2shTestAddress: null
+                  )
+                }}
+                &nbsp;
+              </q-btn>
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-item-label>Fee</q-item-label>
+            </q-item-section>
+            <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+              <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                {{ getTotalBchFee(multisigTransaction.transaction) }}
+                &nbsp;
+              </q-btn>
+            </q-item-section>
+          </q-item>
+          <q-expansion-item>
+            <template v-slot:header>
+              <q-item-section>
+                Raw Tx Details
+              </q-item-section>
+            </template>
+            <q-item-label class="q-pa-md">
+              <code style="word-break: break-all; filter: brightness(80%)">
+                {{ multisigTransaction.transaction }}
+              </code>
+            </q-item-label>
+          </q-expansion-item>
+          <q-item>
+            <q-item-section>
+              <q-icon name="mdi-wallet-outline" color="grad" size="md"></q-icon>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label >
+                {{ shortenString(multisigWallet.address, 20) }}
+              </q-item-label>
+              <!-- <q-icon name="bch" color="green" /> -->
+            </q-item-section>
+          </q-item>
+          <q-separator spaced inset></q-separator>
+          <!-- <q-item>
+            <q-item-section>
+              <q-item-label class="text-h6">Wallet</q-item-label>
+              <q-item-label caption lines="2">{{ multisigWallet.address }}</q-item-label>
+            </q-item-section>
+            <q-item-section side top>
+              <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+            </q-item-section>
+          </q-item> -->
+          <q-item>
+            <q-item-section>
+              <q-item-label class="text-h6">Signatures</q-item-label>
+            </q-item-section>
+            <!-- <q-item-section side top>
+              <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+            </q-item-section> -->
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <div class="flex flex-wrap items-center">
+                Required Signatures <q-icon name="draw" flat dense size="xs" class="q-ml-xs"></q-icon>
+              </div>
+            </q-item-section>
+            <q-item-section side>
+              {{ multisigWallet.m }}&nbsp;
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <div class="flex flex-wrap items-center">
+                Current Signatures <q-icon name="draw" flat dense size="xs" class="q-ml-xs"></q-icon>
+              </div>
+            </q-item-section>
+            <q-item-section side>
+              {{ multisigTransaction.metadata.signatureCount }}&nbsp;
+            </q-item-section>
+          </q-item>
+          <q-expansion-item>
+            <template v-slot:header>
+              <q-item-section>
+                Raw Sig Details
+              </q-item-section>
+            </template>
+            <q-item-label class="q-pa-md">
+              <code style="word-break: break-all; filter: brightness(80%)">
+                {{ stringify(multisigTransaction.signatures) }}
+              </code>
+            </q-item-label>
+          </q-expansion-item>
+          <q-item v-for="signerEntityIndex in Object.keys(multisigWallet.signers)" :key="signerEntityIndex">
+            <q-item-section >
+              <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
+                <div>{{ multisigWallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</div>
+                <q-icon
+                  :color="signerSigned({ multisigTransaction, signerEntityIndex })? 'text-bch': 'grey-8'"
+                  :name="signerSigned({ multisigTransaction, signerEntityIndex })? 'done_all': ''"
+                  size="sm"
+                  >
+                </q-icon>
+              </div>
+            </q-item-section>
+            <q-item-section side top>
+              <q-btn
+                label="Sign"
+                :disable="!signerCanSign"
+                :icon="signerCanSign? 'draw': 'edit_off'"
+                @click="partiallySignTransaction({ signerEntityIndex, xprv: multisigWallet.signers[signerEntityIndex]?.xprv })"
+                dense
+                no-caps
+                color="warning"
+                flat
+                >
+              </q-btn>
+            </q-item-section>
+          </q-item>
+          <!-- <q-item>
+            <q-item-section>
+              <q-card-section class="flex flex-wrap justify-around">
+                <q-btn @click="$emit('delete')" >
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="delete" class="col-12"></q-icon>
+                      <div class="col-12">Delete</div>
+                    </div>
+                  </template>
+                </q-btn>
+                <q-btn @click="broadcastTransaction" size="sm" flat dense no-caps>
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="cell_tower" class="col-12"></q-icon>
+                      <div class="col-12">Broadcast</div>
+                    </div>
+                  </template>
+                </q-btn>
+                <q-btn @click="downloadPST" size="sm" flat dense no-caps>
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="download" class="col-12"></q-icon>
+                      <div class="col-12">Export</div>
+                    </div>
+                  </template>
+                </q-btn>
+              </q-card-section>
+            </q-item-section>
+          </q-item> -->
+        </q-list>
+      </div>
+    </div>
+    <div class="fixed-footer">
+      <q-bar
+        class="flex flex-wrap justify-between full-width text-bow q-px-sm q-py-lg pt-card-4"
+        :class="getDarkModeClass(darkMode)">
+        <q-btn @click="$emit('delete')" class="footer-icon-btn default-text-color" flat dense no-caps :color="!darkMode && 'primary'">
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="delete_outline" class="col-12"></q-icon>
+              <div class="col-12">Delete</div>
+            </div>
+          </template>
+        </q-btn>
+        <q-btn @click="broadcastTransaction" flat dense no-caps :color="!darkMode && 'primary'">
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="cell_tower" class="col-12"></q-icon>
+              <div class="col-12">Submit</div>
+            </div>
+          </template>
+        </q-btn>
+        <q-btn @click="downloadPST" flat dense no-caps :color="!darkMode && 'primary'">
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
+              <div class="col-12">Export</div>
+            </div>
+          </template>
         </q-btn>
       </q-bar>
-    </q-footer>
-    <q-page-container>
-      <q-page>
-        <div class="static-container">
-          <div id="app-container" :class="getDarkModeClass(darkMode)">
-            <!-- <HeaderNav
-              :title="$t('Transaction')"
-              backnavpath="/apps/multisig"
-              class="q-px-sm apps-header gift-app-header"
-            /> -->
-            <div class="row q-mt-lg justify-center">
-                <div class="col-xs-12 col-md-8 q-px-xs q-gutter-y-md">
-                  <q-list v-if="multisigWallet && multisigTransaction?.transaction">
-                    <q-item>
-                      <q-item-section>
-                        <!-- <q-item-label class="text-h6">{{ transactionUserPrompt }}</q-item-label> -->
-                        <!-- <q-item-label caption lines="2">Origin: {{ transactionOrigin }}</q-item-label> -->
-                         <q-item-label class="text-h6">{{ multisigTransaction.metadata.prompt }}</q-item-label>
-                         <q-item-label caption lines="2">Origin: {{ multisigTransaction.metadata.origin }}</q-item-label>
-                      </q-item-section>
-                      <q-item-section side>
-                        <!-- <q-item-label caption>5 min ago</q-item-label> -->
-                        <q-icon name="payment" color="grad"></q-icon>
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label>Number of recipients</q-item-label>
-                      </q-item-section>
-                      <q-item-section side>
-                        {{ multisigTransaction.transaction.outputs.length }}&nbsp;
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label>Spending</q-item-label>
-                      </q-item-section>
-                      <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
-                        <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
-                          {{ getTotalBchInputAmount(multisigTransaction.transaction) }}
-                          &nbsp;
-                        </q-btn>
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label>Debit</q-item-label>
-                      </q-item-section>
-                      <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
-                        <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
-                          {{
-                            getTotalBchOutputAmount(
-                              multisigTransaction.transaction
-                            )
-                          }}
-                          &nbsp;
-                        </q-btn>
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label>Credit/Change</q-item-label>
-                        <q-item-label caption lines="2">*Returned to wallet</q-item-label>
-                      </q-item-section>
-                      <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
-                        <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
-                          {{
-                            getTotalBchChangeAmount(
-                              multisigTransaction.transaction, route.params.address,
-                              isChipnet? toP2shTestAddress: null
-                            )
-                          }}
-                          &nbsp;
-                        </q-btn>
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label>Fee</q-item-label>
-                      </q-item-section>
-                      <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
-                        <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
-                          {{ getTotalBchFee(multisigTransaction.transaction) }}
-                          &nbsp;
-                        </q-btn>
-                      </q-item-section>
-                    </q-item>
-                    <q-expansion-item>
-                      <template v-slot:header>
-                        <q-item-section>
-                          Raw Tx Details
-                        </q-item-section>
-                      </template>
-                      <q-item-label class="q-pa-md">
-                        <code style="word-break: break-all; filter: brightness(80%)">
-                          {{ multisigTransaction.transaction }}
-                        </code>
-                      </q-item-label>
-                    </q-expansion-item>
-                    <q-item>
-                      <q-item-section avatar>
-                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
-                      </q-item-section>
-                      <q-item-section side>
-                        <q-item-label >
-                          {{ shortenString(multisigWallet.address, 20) }}
-                        </q-item-label>
-                        <!-- <q-icon name="bch" color="green" /> -->
-                      </q-item-section>
-                    </q-item>
-                    <q-separator spaced inset></q-separator>
-                    <!-- <q-item>
-                      <q-item-section>
-                        <q-item-label class="text-h6">Wallet</q-item-label>
-                        <q-item-label caption lines="2">{{ multisigWallet.address }}</q-item-label>
-                      </q-item-section>
-                      <q-item-section side top>
-                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
-                      </q-item-section>
-                    </q-item> -->
-                    <q-item>
-                      <q-item-section>
-                        <q-item-label class="text-h6">Signatures</q-item-label>
-                      </q-item-section>
-                      <!-- <q-item-section side top>
-                        <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
-                      </q-item-section> -->
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <div class="flex flex-wrap items-center">
-                          Required Signatures <q-icon name="draw" flat dense size="xs" class="q-ml-xs"></q-icon>
-                        </div>
-                      </q-item-section>
-                      <q-item-section side>
-                        {{ multisigWallet.m }}&nbsp;
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <div class="flex flex-wrap items-center">
-                          Current Signatures <q-icon name="draw" flat dense size="xs" class="q-ml-xs"></q-icon>
-                        </div>
-                      </q-item-section>
-                      <q-item-section side>
-                        {{ multisigTransaction.metadata.signatureCount }}&nbsp;
-                      </q-item-section>
-                    </q-item>
-                    <q-expansion-item>
-                      <template v-slot:header>
-                        <q-item-section>
-                          Raw Sig Details
-                        </q-item-section>
-                      </template>
-                      <q-item-label class="q-pa-md">
-                        <code style="word-break: break-all; filter: brightness(80%)">
-                          {{ stringify(multisigTransaction.signatures) }}
-                        </code>
-                      </q-item-label>
-                    </q-expansion-item>
-                    <q-item v-for="signerEntityIndex in Object.keys(multisigWallet.signers)" :key="signerEntityIndex">
-                      <q-item-section >
-                        <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
-                          <span>{{ multisigWallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</span>
-                          <q-icon :name="signerSigned({ multisigTransaction, signerEntityIndex })? 'done_all': ''"></q-icon>
-                        </div>
-                      </q-item-section>
-                      <q-item-section side>
-                        <q-btn
-                          label="Sign"
-                          :disable="!multisigWallet.signerCanSign({ signerEntityIndex })"
-                          :icon="multisigWallet.signerCanSign({ signerEntityIndex })? 'draw': 'edit_off'"
-                          @click="partiallySignTransaction({ signerEntityIndex, xprv: multisigWallet.signers[signerEntityIndex]?.xprv })"
-                          dense
-                          no-caps
-                          >
-                        </q-btn>
-                      </q-item-section>
-                    </q-item>
-                    <q-item>
-                      <q-item-section>
-                        <q-card-section class="flex flex-wrap justify-around">
-                          <q-btn flat dense no-caps @click="$emit('delete')">
-                            <template v-slot:default>
-                              <div class="row justify-center">
-                                <q-icon name="delete" class="col-12"></q-icon>
-                                <div class="col-12">Delete</div>
-                              </div>
-                            </template>
-                          </q-btn>
-                          <q-btn flat dense no-caps @click="broadcastTransaction">
-                            <template v-slot:default>
-                              <div class="row justify-center">
-                                <q-icon name="cell_tower" class="col-12"></q-icon>
-                                <div class="col-12">Broadcast</div>
-                              </div>
-                            </template>
-                          </q-btn>
-                          <q-btn flat dense no-caps @click="downloadPST">
-                            <template v-slot:default>
-                              <div class="row justify-center">
-                                <q-icon name="download" class="col-12"></q-icon>
-                                <div class="col-12">Export</div>
-                              </div>
-                            </template>
-                          </q-btn>
-                        </q-card-section>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </div>
-            </div>
-          </div>
-        </div>
-      </q-page>
-    </q-page-container>
-  </q-layout>
+    </div>
+  </q-pull-to-refresh>
 </template>
 
 <script setup>
@@ -282,6 +295,10 @@ const signerSigned = computed(() => {
     return multisigWallet.value.signerSigned({ multisigTransaction: multisigTransaction.value, signerEntityIndex })
   }
 })
+
+const signerCanSign = computed(() => {
+  return multisigWallet.value.signerCanSign
+})
 // const transactionOrigin = computed(() => {
 //   if (multisigTransaction.value?.sessionRequest?.verifyContext) {
 //     return multisigTransaction.value?.sessionRequest?.verifyContext?.verified?.origin || 'Unknown Origin'
@@ -295,6 +312,10 @@ const signerSigned = computed(() => {
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
+})
+
+const isNotDefaultTheme = computed(() => {
+  return $store.getters['global/theme'] !== 'default'
 })
 
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
@@ -360,6 +381,7 @@ const downloadPST = () => {
   const defaultFilename = (multisigTransaction.value.metadata?.prompt || '').toLowerCase().replace(' ', '-')
   $q.dialog({
     title: 'Enter Filename',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
     prompt: {
       type: 'text',
       model: defaultFilename
@@ -443,8 +465,41 @@ onMounted(async () => {
 
 </script>
 
-<style scoped>
-.light {
-  color: #141414;
-}
+<style lang="scss" scoped>
+  .mb-2 {
+    margin-bottom: 2px;
+  }
+  .fixed-footer {
+    position: fixed;
+    padding-top: 5px;
+    width: 100%;
+    bottom: 0;
+    box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
+    z-index: 6;
+    margin: 0 auto;
+    .footer-icon-btn {
+      border-radius: 20px;
+      border: none;
+      width: 60px;
+      height: 50px;
+      outline: none;
+      background-color: transparent;
+      font-size: 12px;
+      color: black;
+      line-height: 20px;
+      min-width: 50px;
+    }
+    .footer-btn-container {
+      // margin-top: 1px !important;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-wrap: nowrap;
+    }
+    .default-text-color {
+      color: rgb(60, 100, 246) !important;
+    }
+    .inactive-color {
+      color: gray;
+    }
+  }
 </style>

@@ -1,166 +1,159 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header>
-      <HeaderNav
-        :title="$t('Wallet Details')"
-        backnavpath="/apps/multisig"
-        class="apps-header"
-      />
-    </q-header>
-    <q-footer reveal>
-      <q-bar class="full-width pt-card text-bow" :class="getDarkModeClass(darkMode)" style="padding: 0px;">
-        <q-btn
-          icon="keyboard_arrow_up"
-          class="full-width"
-          @click="openWalletActionsDialog"
-          flat>
-        </q-btn>
-      </q-bar>
-    </q-footer>
-    <q-page-container>
-      <q-page>
-        <div class="static-container">
-          <div id="app-container" :class="getDarkModeClass(darkMode)">
-            <!-- <HeaderNav
-              :title="$t('Multisig Wallet')"
-              backnavpath="/apps/multisig"
-              class="q-px-sm apps-header gift-app-header"
-            /> -->
-            <div class="row q-mt-lg justify-center">
-                <div class="col-xs-12 q-px-sm q-gutter-y-md">
-                  <template v-if="wallet">
-                    <div>
-                      <q-list>
-                        <q-item>
-                          <q-item-section>
-                            <q-item-label class="text-h6">{{ wallet.template.name }}</q-item-label>
-                            <q-item-label caption lines="2">{{ wallet.template.description }}</q-item-label>
-                            <!-- <q-item-label caption lines="2">{{ shortenString(wallet.address, 15) }}</q-item-label> -->
-                          </q-item-section>
-                          <q-item-section side>
-                            <!-- <q-item-label caption>5 min ago</q-item-label> -->
-                            <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
-                          </q-item-section>
-                        </q-item>
-                        <q-item>
-                          <q-item-section>
-                            <q-item-label class="text-bold">Address</q-item-label>
-                          </q-item-section>
-                          <q-item-section side>
-                            <q-item-label >
-                              {{ shortenString(wallet.address, 20) }} <CopyButton :text="wallet.address"/>
-                            </q-item-label>
-                            <!-- <q-icon name="bch" color="green" /> -->
-                          </q-item-section>
-                        </q-item>
-                        <q-item>
-                          <q-item-section>
-                            <q-item-label>Balance</q-item-label>
-                          </q-item-section>
-                          <q-item-section side>
-                            <q-item-label caption>{{ balance || 0 }}</q-item-label>
-                          </q-item-section>
-                        </q-item>
-                        <q-item>
-                          <q-item-section>
-                            <q-item-label>Required Signatures</q-item-label>
-                          </q-item-section>
-                          <q-item-section side>
-                            <q-item-label caption>{{ wallet.m }} of {{ wallet.n }}</q-item-label>
-                          </q-item-section>
-                        </q-item>
-                        <q-separator spaced inset />
-                        <q-item-label header>Signers</q-item-label>
-                        <q-item v-for="signerIndex in Object.keys(wallet.signers)" :key="`app-multisig-view-signer-${signerIndex}`">
-                          <q-item-section>
-                            <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerIndex}}. {{ wallet.signers[signerIndex].signerName }}</q-item-label>
-                            <q-item-label caption class="text-weight-thin">{{ shortenString(wallet.signers[signerIndex].xpub, 20) }}</q-item-label>
-                          </q-item-section>
-                          <q-item-section side>
-                            <q-item-label caption><CopyButton :text="wallet.signers[signerIndex].xpub"/></q-item-label>
-                          </q-item-section>
-                        </q-item>
-                        <q-separator spaced inset />
-                        <q-item
-                          :clickable="transactions?.length > 0"
-                          :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
-                          <q-item-section>
-                            <q-item-label>Transaction Proposals</q-item-label>
-                          </q-item-section>
-                          <q-item-section side>
-                            <q-item-label caption>{{ transactions?.length || 0 }}</q-item-label>
-                          </q-item-section>
-                        </q-item>
-                        <!-- <q-item
-                          :clickable="psts?.length"
-                          :to="{name: 'app-multisig-wallet-psts', params: { address: route.params.address }}">
-                          <q-item-section>
-                            <q-item-label>Partially Signed Transactions</q-item-label>
-                          </q-item-section>
-                          <q-item-section side>
-                            <q-item-label caption>{{ psts?.length || 0 }}</q-item-label>
-                          </q-item-section>
-                        </q-item> -->
-                        <q-separator spaced inset />
-                        <q-item>
-                          <q-btn flat dense no-caps @click="$emit('receive')">
-                            <template v-slot:default>
-                              <div class="row justify-center">
-                                <q-icon name="call_received" class="col-12"></q-icon>
-                                <div class="col-12">Receive</div>
-                              </div>
-                            </template>
-                          </q-btn>
-                          <q-btn flat dense no-caps @click="$emit('Send')">
-                            <template v-slot:default>
-                              <div class="row justify-center">
-                                <q-icon name="send" class="col-12"></q-icon>
-                                <div class="col-12">Send</div>
-                              </div>
-                            </template>
-                          </q-btn>
-                          <q-btn flat dense no-caps @click="$emit('delete')">
-                            <template v-slot:default>
-                              <div class="row justify-center">
-                                <q-icon name="delete" class="col-12"></q-icon>
-                                <div class="col-12">Delete</div>
-                              </div>
-                            </template>
-                          </q-btn>
-                          <q-btn flat dense no-caps @click="exportWallet">
-                            <template v-slot:default>
-                              <div class="row justify-center">
-                                <q-icon name="share" class="col-12"></q-icon>
-                                <div class="col-12">Export</div>
-                              </div>
-                            </template>
-                          </q-btn>
-                          <q-btn flat dense no-caps @click="loadTransactionProposal">
-                            <template v-slot:default>
-                              <div class="row justify-center">
-                                <q-icon name="share" class="col-12"></q-icon>
-                                <div class="col-12"></div>
-                              </div>
-                            </template>
-                          </q-btn>
-                          <q-file
-                            ref="transactionFileElementRef"
-                            v-model="transactionFileModel"
-                            :multiple="false"
-                            style="visibility: hidden"
-                            @update:model-value="onUpdateTransactionFile">
-                          </q-file>
-                        </q-item>
-                      </q-list>
+  <q-pull-to-refresh
+    id="app-container"
+    :class="getDarkModeClass(darkMode)"
+    @refresh="refreshPage"
+  >
+    <HeaderNav
+      :title="$t('Wallet Details')"
+      backnavpath="/apps/multisig"
+      class="apps-header"
+    />
+    <div class="row q-mt-lg justify-center">
+      <div class="col-xs-12 q-px-sm q-gutter-y-md">
+        <template v-if="wallet">
+          <div>
+            <q-list>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="text-h6">{{ wallet.template.name }}</q-item-label>
+                  <q-item-label caption lines="2">{{ wallet.template.description }}</q-item-label>
+                  <!-- <q-item-label caption lines="2">{{ shortenString(wallet.address, 15) }}</q-item-label> -->
+                </q-item-section>
+                <q-item-section side>
+                  <!-- <q-item-label caption>5 min ago</q-item-label> -->
+                  <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label>Address</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label >
+                    {{ shortenString(wallet.address, 20) }} <CopyButton :text="wallet.address"/>
+                  </q-item-label>
+                  <!-- <q-icon name="bch" color="green" /> -->
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label>Balance</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label caption>{{ balance || 0 }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label>Required Signatures</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label caption>{{ wallet.m }} of {{ wallet.n }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator spaced inset />
+              <q-item-label header>Signers</q-item-label>
+              <q-item v-for="signerIndex in Object.keys(wallet.signers)" :key="`app-multisig-view-signer-${signerIndex}`">
+                <q-item-section>
+                  <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerIndex}}. {{ wallet.signers[signerIndex].signerName }}</q-item-label>
+                  <q-item-label caption >{{ shortenString(wallet.signers[signerIndex].xpub, 20) }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label caption><CopyButton :text="wallet.signers[signerIndex].xpub"/></q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator spaced inset />
+              <q-item
+                :clickable="transactions?.length > 0"
+                :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
+                <q-item-section>
+                  <q-item-label>Tx Proposals</q-item-label>
+                  <!-- <div class="flex justify-end">
+                    <q-btn label="Import" icon="mdi-file-import-outline" flat dense no-caps @click="loadTransactionProposal">
+                    </q-btn>
+                  </div> -->
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label caption>{{ transactions?.length || 0 }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <div class="flex justify-end q-mr-md">
+                <q-btn
+                  size="sm"
+                  label="Import Tx From File" icon="mdi-file-import-outline" flat dense no-caps @click="loadTransactionProposal">
+                </q-btn>
+              </div>
+              <!-- <q-item>
+                <q-item-section side top>
+                  <div class="flex justify-end">
+                    <q-btn label="Import" icon="mdi-file-import-outline" flat dense no-caps @click="loadTransactionProposal">
+                    </q-btn>
+                  </div>
+                </q-item-section>
+              </q-item> -->
+              <!-- <q-item
+                :clickable="psts?.length"
+                :to="{name: 'app-multisig-wallet-psts', params: { address: route.params.address }}">
+                <q-item-section>
+                  <q-item-label>Partially Signed Transactions</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label caption>{{ psts?.length || 0 }}</q-item-label>
+                </q-item-section>
+              </q-item> -->
+              <q-separator spaced inset />
+              <q-item>
+                <q-item-section >
+                  <div class="flex flex-wrap justify-around">
+                    <q-btn  flat dense no-caps :to="{ name: 'app-multisig-wallet-receive', address: route.params.address }">
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="mdi-qrcode" class="col-12"></q-icon>
+                      <div class="col-12">QR</div>
                     </div>
                   </template>
-                </div>
-            </div>
+                </q-btn>
+                <q-btn   flat dense no-caps @click="$emit('Send')">
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="mdi-plus" class="col-12"></q-icon>
+                      <div class="col-12">Transaction</div>
+                    </div>
+                  </template>
+                </q-btn>
+                <q-btn  flat dense no-caps @click="$emit('delete')">
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="mdi-delete-outline" class="col-12"></q-icon>
+                      <div class="col-12">Delete</div>
+                    </div>
+                  </template>
+                </q-btn>
+                <q-btn  flat dense no-caps @click="exportWallet">
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
+                      <div class="col-12">Export</div>
+                    </div>
+                  </template>
+                </q-btn>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </q-list>
           </div>
-        </div>
-      </q-page>
-    </q-page-container>
-  </q-layout>
+        </template>
+      </div>
+      <q-file
+        ref="transactionFileElementRef"
+        v-model="transactionFileModel"
+        :multiple="false"
+        style="visibility: hidden"
+        @update:model-value="onUpdateTransactionFile">
+      </q-file>
+    </div>
+  </q-pull-to-refresh>
 </template>
 
 <script setup>
