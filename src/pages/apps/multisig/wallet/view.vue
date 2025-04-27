@@ -245,9 +245,11 @@ const loadTransactionProposal = () => {
 const onUpdateTransactionFile = (file) => {
   if (file) {
     const reader = new FileReader()
+    console.log('🚀 ~ onUpdateTransactionFile ~ reader:', reader.result)
     reader.onload = () => {
       transactionInstance.value = MultisigTransaction.importPST({ pst: reader.result })
       // const pstObjectFromStore = $store.getters['multisig/getPstById']({ id: transactionInstance.value.id })
+      console.log('🚀 ~ onUpdateTransactionFile ~ transactionInstance:', transactionInstance.value)
       // if (pstObjectFromStore) {
       //   // TODO: ask before combine? redirect to pst compare page
       //   // TODO: combine with multiple pst files
@@ -260,9 +262,10 @@ const onUpdateTransactionFile = (file) => {
       //   })
       // }
       $store.dispatch('multisig/saveTransaction', transactionInstance.value)
+      const index = transactions.value?.length - 1
       router.push({
-        name: 'app-multisig-wallet-transaction',
-        params: { address: transactionInstance.value.address }
+        name: 'app-multisig-wallet-transaction-view',
+        params: { address: transactionInstance.value.address, index }
       })
     }
     reader.onerror = (err) => {

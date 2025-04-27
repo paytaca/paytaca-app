@@ -160,6 +160,8 @@ export class MultisigTransaction {
 
   exportPST ({ signers, format = 'base64' }) {
     console.log('EXPORT Pst object', this.transaction)
+    // const includeSourceOutputs = this.transaction.inputs.some((input) => !input.sourceOutput)
+    const { wcSessionRequest, ...otherMetadata } = this.metadata
     const pst = {
       v: 1,
       transaction: binToHex(encodeTransactionCommon(this.transaction)),
@@ -167,9 +169,13 @@ export class MultisigTransaction {
       signatures: this.signatures,
       metadata: {
         signers,
-        ...this.metadata
+        ...otherMetadata
       }
     }
+    // if (includeSourceOutputs) {
+    //   // EMBED
+    //   pst.sourceOutputs = this.sourceOutputs
+    // }
     console.log('🚀 ~ MultisigTransaction ~ exportPSTObject ~ pst:', pst)
     if (format === 'json') return stringify(pst)
     if (format === 'electron-cash') throw new Error('Not yet implemented')
@@ -183,8 +189,10 @@ export class MultisigTransaction {
       const bin = base64ToBin(pst)
       const parsed = JSON.parse(binToUtf8(bin))
       console.log('🚀 ~ MultisigTransaction ~ importPST ~ parsed:', parsed)
+      const decoded = decodeTransactionCommon(hexToBin(parsed.transaction))
+      console.log('🚀 ~ MultisigTransaction ~ importPST ~ decoded:', decoded)
       parsed.transaction = MultisigTransaction.transactionBinObjectsToUint8Array(
-        decodeTransactionCommon(parsed.transaction)
+        decoded
       )
       return parsed
     }
