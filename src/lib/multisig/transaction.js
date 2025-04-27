@@ -173,11 +173,12 @@ export class MultisigTransaction {
     console.log('🚀 ~ MultisigTransaction ~ exportPSTObject ~ pst:', pst)
     if (format === 'json') return stringify(pst)
     if (format === 'electron-cash') throw new Error('Not yet implemented')
-    const bin = utf8ToBin(pst)
+    const bin = utf8ToBin(JSON.stringify(pst))
     return binToBase64(bin)
   }
 
   static importPST ({ pst }) {
+    console.log('🚀 ~ MultisigTransaction ~ importPST ~ pst:', pst)
     if (typeof pst === 'string') {
       const bin = base64ToBin(pst)
       const parsed = JSON.parse(binToUtf8(bin))
