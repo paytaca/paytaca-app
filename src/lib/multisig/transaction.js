@@ -151,14 +151,16 @@ export class MultisigTransaction {
       prefix: cashAddressNetworkPrefix
     })
 
-    let transaction = MultisigTransaction.removeTransactionCompilationData(this.transaction)
-    transaction = MultisigTransaction.removeTransactionSourceOutput(transaction)
+    const transaction = MultisigTransaction.transactionBinObjectsToUint8Array(
+      JSON.parse(JSON.stringify(this.transaction))
+    )
 
     const sourceOutputs = [] // will be used for verification
-    const unlockingScriptsId = Object.keys(template.scripts).filter(scriptId => scriptId !== 'lock')
+    const unlockingScriptIds = Object.keys(template.scripts).filter(scriptId => scriptId !== 'lock')
     const missingSigners = {}
     const missingSignersEntityIdSet = new Set()
-    unlockingScriptsId.forEach((unlockingScriptId) => {
+    console.log('🚀 ~ MultisigTransaction ~ unlockingScriptIds.forEach ~ unlockingScriptIds:', unlockingScriptIds)
+    unlockingScriptIds.forEach((unlockingScriptId) => {
       for (const [inputIndex, input] of transaction.inputs.entries()) {
         let sourceOutput = input.sourceOutput
         if (!sourceOutput) {
@@ -199,7 +201,7 @@ export class MultisigTransaction {
         console.log('🚀 ~ MultisigTransaction ~ missingSignerVariables:', missingSignerVariables)
         missingSigners[unlockingScriptId] = missingSignerVariables
         if (missingSignerVariables) {
-          missingSignersEntityIdSet.add(...Object.values(...missingSignerVariables))
+          missingSignersEntityIdSet.add(...Object.values(missingSignerVariables || {}))
         }
       }
     })
@@ -284,7 +286,7 @@ export class MultisigTransaction {
       console.log('🚀 ~ MultisigTransaction ~ signersWithoutSignatures:', signersWithoutSignatures)
       this.metadata.signersWithoutSignatures = signersWithoutSignatures
       this.metadata.finalized = finalCompilation.success
-      return
+      return finalCompilation
     }
 
     console.log('🚀 ~ MultisigTransaction ~ finalCompilation:', finalCompilation)
@@ -359,6 +361,7 @@ export class MultisigTransaction {
         delete input.unlockingBytecode
       }
     })
+    return clone
   }
 
   static removeTransactionSourceOutput (transaction) {
@@ -366,6 +369,7 @@ export class MultisigTransaction {
     clone.inputs.forEach((input) => {
       delete input.sourceOutput
     })
+    return clone
   }
 
   static importPST ({ pst }) {
