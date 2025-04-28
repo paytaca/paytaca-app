@@ -1,100 +1,141 @@
 <template>
-  <div class="row footer-menu justify-center"
-    :style="{width: $q.platform.is.bex ? '375px' : '100%', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
+  <div class="footer-menu"
+    :style="{width: $q.platform.is.bex ? '375px' : '100%', 'height': $q.platform.is.ios ? '80px' : '70px'}"
   >
-    <div class="text-white row vertical-center btn-container q-ml-sm q-mr-sm q-gutter-xs title-small">
-      <div class="col">
-        <q-btn class="icon-btn" @click="$router.push('/')">
-          <!-- <router-link :to="{path: '/'}"> -->
-            <q-icon  size="30px">
-              <svg>
-                <use xlink:href="app-home.svg#icon"></use>
-              </svg>
-            </q-icon>
-            <br>
-            <span>{{ $t('Home') }}</span>
-          <!-- </router-link> -->
-        </q-btn>
-        <q-btn class="icon-btn" @click="$router.push({ name: 'transaction-send-select-asset' })">
-          <!-- <router-link :to="{path: '/'}"> -->
-            <q-icon  size="30px">
-              <svg>
-                <use xlink:href="app-send.svg#icon"></use>
-              </svg>
-            </q-icon>
-            <br>
-            <span>{{ $t('Send') }}</span>
-          <!-- </router-link> -->
-        </q-btn>
-      </div>
-      <div class="col">
-        <q-btn class="icon-btn" @click="$router.push({ name: 'transaction-receive-select-asset' })">
-          <!-- <router-link :to="{path: '/'}"> -->
-            <q-icon  size="30px">
-              <svg>
-                <use xlink:href="app-receive.svg#icon"></use>
-              </svg>
-            </q-icon>
-            <br>
-            <span>{{ $t('Receive') }}</span>
-          <!-- </router-link> -->
-        </q-btn>
-        <q-btn class="icon-btn" @click="$router.push({ name: 'apps-dashboard' })">
-          <!-- <router-link :to="{path: '/'}"> -->
-            <q-icon  size="30px">
-              <svg>
-                <use xlink:href="apps.svg#icon"></use>
-              </svg>
-            </q-icon>
-            <br>
-            <span>{{ $t('Apps') }}</span>
-          <!-- </router-link> -->
-        </q-btn>
+    <div class="row text-light btn-container title-smaller">
+      <div class="col text-light">
+        <div class="row">
+          <div class="col text-center">
+            <q-btn no-caps class="icon-btn title-smaller" flat @click="$router.push('/')">
+              <q-icon size="25px">
+                <svg>
+                  <use xlink:href="app-home.svg#icon"></use>
+                </svg>
+              </q-icon>
+              <br>
+              <span>{{ $t('Home') }}</span>
+            </q-btn>
+          </div>
+          <div class="col text-center">
+            <q-btn no-caps class="icon-btn title-smaller" flat @click="$router.push({ name: 'transaction-send-select-asset' })">
+              <q-icon size="25px">
+                <svg>
+                  <use xlink:href="app-send.svg#icon"></use>
+                </svg>
+              </q-icon>
+              <br>
+              <span>{{ $t('Send') }}</span>
+            </q-btn>
+          </div>
         </div>
-        <div id="qr-button">
-        <q-btn square>
-          <q-icon class="default-text-color mb-2" size="30px">
-            <svg>
-              <use xlink:href="app-qr.svg#icon"></use>
-            </svg>
-          </q-icon>
-        </q-btn>
-        <br>
-        <span>{{ 'QR' }}</span>
       </div>
+      <div class="col text-light text-center text-smaller" style="padding-top: 35px;">
+        Scanner
+      </div>
+      <div class="col text-light">
+        <div class="row">
+          <div class="col">
+            <q-btn no-caps class="icon-btn title-smaller" @click="$router.push({ name: 'transaction-receive-select-asset' })">
+              <q-icon size="25px">
+                <svg>
+                  <use xlink:href="app-receive.svg#icon"></use>
+                </svg>
+              </q-icon>
+              <br>
+              <span>{{ $t('Receive') }}</span>
+            </q-btn>
+          </div>
+          <div class="col">
+            <q-btn no-caps class="icon-btn title-smaller" @click="$router.push({ name: 'apps-dashboard' })">
+              <q-icon size="25px">
+                <svg>
+                  <use xlink:href="apps.svg#icon"></use>
+                </svg>
+              </q-icon>
+              <br>
+              <span>{{ $t('Apps') }}</span>
+            </q-btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="qr-scanner-container center" :style="{ 'padding-bottom': $q.platform.is.ios ? '60px' : '50px' }">
+    <div class="qr-scanner" @click="$router.push({ name: 'qr-reader' })">
+      <q-btn flat color="white" class="qr-button">
+        <q-icon size="30px">
+          <svg>
+            <use xlink:href="app-qr.svg#icon"></use>
+          </svg>
+        </q-icon>
+      </q-btn>
     </div>
   </div>
 </template>
 <script>
-
 </script>
 <style lang="scss" scoped>
-.vertical-center {
-  margin: 0;
-  position: absolute;
-  top: 50%;
-  -ms-transform: translateY(-50%);
-  transform: translateY(-50%);
-}
 .btn-container {
-  margin-top: 1px !important;
+  margin: auto;
   overflow-x: auto;
   overflow-y: hidden;
   flex-wrap: nowrap;
+  height: 100%;
 }
+// .btn-container {
+//   margin-top: 1px !important;
+//   overflow-x: auto;
+//   overflow-y: hidden;
+//   flex-wrap: nowrap;
+// }
 .icon-btn {
   border-radius: 20px;
   border: none;
   width: 60px;
-  height: 50px;
   outline: none;
   background-color: transparent;
-  font-size: 12px;
-  color: white;
-  line-height: 20px;
-  min-width: 50px;
+  padding-top: 15px;
 }
 #qr-button {
     z-index: 100 !important;
   }
+// ul {
+//   position: relative;
+//   padding: 0;
+//   margin: 0px 10px 0px;
+//   display: flex;
+//   width: max-content;
+//   list-style: none;
+//   height: 100%;
+// }
+// li {
+//   display: flex;
+//   color: #ffffff;
+//   justify-content: center;
+//   align-items: center;
+//   margin: 0px 5px 0px;
+//   // min-width: 50px;
+//   height: 100%;
+//   // padding-top: 15px;
+// }
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.qr-scanner-container {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  z-index: 5;
+  .qr-scanner {
+    height: 50px;
+    width: 50px;
+    background-color: $primary;
+    border-radius: 15px;
+  }
+  .qr-button {
+    padding: 10px 10px 0px;
+  }
+}
 </style>

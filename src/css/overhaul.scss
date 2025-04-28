@@ -41,13 +41,14 @@ body.theme-overhaul {
 
   /* ----- CLASSES ----- */
   .footer-menu {
-    height: 62px;
+    // height: 67px;
     position: fixed;
     border-top: 3px $light_bg solid;
     bottom: 0;
     width: 100%;
     background: $dark_bg;
     z-index: 6;
+    -webkit-mask-image: radial-gradient(circle at top, transparent 30px, black 31px);
 
   }
 
@@ -83,6 +84,12 @@ body.theme-overhaul {
     letter-spacing: 2%;
     font-weight: 800;
   }
+  .title-smaller {
+    font-size: 12px;
+    line-height: 20px;
+    letter-spacing: 2%;
+    font-weight: 800;
+  }
 
   .label {
     font-size: 12px;
@@ -90,4 +97,12 @@ body.theme-overhaul {
     letter-spacing: 2%;
     opacity: 50%;
   }
+
+  // Color
+  .text-light {
+    color: #FFF
+  }
+  // .button-default {
+  //   color: $primary
+  // }
 }
