@@ -91,11 +91,28 @@ body.theme-overhaul {
     font-weight: 800;
   }
 
-  .label {
+  .label-medium {
+    font-size: 14px;
+    line-height: 16px;
+    letter-spacing: 2%;
+    opacity: 50%;
+  }
+  .label-small {
     font-size: 12px;
     line-height: 16px;
     letter-spacing: 2%;
     opacity: 50%;
+  }
+
+  body-medium {
+    font-size: 14px;
+    line-height: 24px;
+    letter-spacing: 0.5%;
+  }
+  body-small {
+    font-size: 12px;
+    line-height: 24px;
+    letter-spacing: 2%;
   }
 
   // Color
