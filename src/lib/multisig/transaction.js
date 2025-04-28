@@ -42,8 +42,18 @@ export class MultisigTransaction {
     return this.metadata.finalized
   }
 
+  signerSigned ({ multisigWallet, signerEntityId }) {
+    const signersWithoutSignatures = this.identifySignersWithoutSignatures({
+      template: multisigWallet.template,
+      lockingData: multisigWallet.lockingData,
+      cashAddressNetworkPrefix: multisigWallet.network
+    })
+    console.log('🚀 ~ MultisigTransaction ~ signerSigned ~ signerEntityId:', signerEntityId)
+    console.log('🚀 ~ MultisigTransaction ~ signerSigned ~ signersWithoutSignatures:', signersWithoutSignatures)
+    return !Array.from(signersWithoutSignatures.missingSignersEntityIdSet)?.includes(signerEntityId)
+  }
+
   getSignersInfo ({ template, lockingData }) {
-    console.log('🚀 ~ MultisigTransaction ~ getSignersInfo ~ lockingData:', lockingData)
     if (!template) return {}
     const signersInfo = {}
     for (const signer of Object.entries(lockingData.hdKeys.hdPublicKeys)) { // { signer_1: xPub..., .... }
@@ -64,10 +74,8 @@ export class MultisigTransaction {
   }
 
   signTransaction ({ multisigWallet, signerEntityIndex }) {
-    console.log('🚀 ~ SIGNING THRU TX MultisigTransaction ~ signTransaction ~ multisigWallet:', multisigWallet)
     const { sourceOutputs, signatures, metadata } = this
     const transaction = MultisigTransaction.transactionBinObjectsToUint8Array(this.transaction)
-    console.log(`Transaction signerIndex ${signerEntityIndex}`, transaction)
     const entityUnlockingData = {
       ...multisigWallet.lockingData,
       hdKeys: {
@@ -79,7 +87,6 @@ export class MultisigTransaction {
     }
 
     const unlockingScriptId = multisigWallet.template.entities[`signer_${signerEntityIndex}`].scripts.filter((scriptId) => scriptId !== 'lock')[0]
-    console.log('🚀 ~ MultisigTransaction ~ signTransaction ~ unlockingScriptId:', unlockingScriptId)
     for (const input of transaction.inputs) {
       let sourceOutput = input.sourceOutput
 
@@ -101,7 +108,6 @@ export class MultisigTransaction {
       }
     }
 
-    console.log('🚀 ~ MultisigTransaction ~ signTransaction ~ transaction:', transaction)
     const signAttempt = generateTransaction({ ...transaction })
     console.log('🚀 ~ MultisigWallet ~ signTransaction ~ signAttempt:', signAttempt)
     for (const [index, error] of Object.entries(signAttempt.errors)) {
@@ -118,6 +124,7 @@ export class MultisigTransaction {
         signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(signatures[inputIndex][signatureKey]))
       })
     })
+    console.log('🚀 ~ MultisigTransaction ~ Object.keys ~ signatures:', signatures)
     metadata.signatureCount++
     metadata.requiredSignatures = multisigWallet.m
     const finalizationResult = this.finalize({
@@ -344,7 +351,6 @@ export class MultisigTransaction {
   }
 
   exportPST ({ signers, format = 'base64' }) {
-    console.log('EXPORT Pst object', this.transaction)
     // const includeSourceOutputs = this.transaction.inputs.some((input) => !input.sourceOutput)
     const { wcSessionRequest, ...otherMetadata } = this.metadata
     const pst = {
@@ -361,7 +367,6 @@ export class MultisigTransaction {
     //   // EMBED
     //   pst.sourceOutputs = this.sourceOutputs
     // }
-    console.log('🚀 ~ MultisigTransaction ~ exportPSTObject ~ pst:', pst)
     if (format === 'json') return stringify(pst)
     if (format === 'electron-cash') throw new Error('Not yet implemented')
     const bin = utf8ToBin(JSON.stringify(pst))
@@ -387,13 +392,10 @@ export class MultisigTransaction {
   }
 
   static importPST ({ pst }) {
-    console.log('🚀 ~ MultisigTransaction ~ importPST ~ pst:', pst)
     if (typeof pst === 'string') {
       const bin = base64ToBin(pst)
       const parsed = JSON.parse(binToUtf8(bin))
-      console.log('🚀 ~ MultisigTransaction ~ importPST ~ parsed:', parsed)
       const decoded = decodeTransactionCommon(hexToBin(parsed.transaction))
-      console.log('🚀 ~ MultisigTransaction ~ importPST ~ decoded:', decoded)
       parsed.transaction = MultisigTransaction.transactionBinObjectsToUint8Array(
         decoded
       )
@@ -410,7 +412,6 @@ export class MultisigTransaction {
       parsed.transaction.outputs.forEach((output) => {
         // inserting address to output
         output.address = lockingBytecodeToCashAddress({ bytecode: output.lockingBytecode }).address
-        console.log('🚀 ~ MultisigTransaction ~ parsed.transaction.outputs.forEach ~ output:', output)
       })
       return parsed
     }

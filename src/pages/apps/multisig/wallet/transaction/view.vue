@@ -161,10 +161,12 @@
               <q-item v-for="signerEntityIndex in Object.keys(multisigWallet.signers)" :key="signerEntityIndex">
                 <q-item-section >
                   <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
-                    <div>{{ multisigWallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</div>
+                    <div>
+                      {{ multisigWallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}
+                    </div>
                     <q-icon
-                      :color="signerSigned({ multisigTransaction, signerEntityIndex })? 'green': 'grey-8'"
-                      :name="signerSigned({ multisigTransaction, signerEntityIndex })? 'done_all': ''"
+                      :color="signerCanSign({ signerEntityIndex }) &&   signerSigned({ multisigTransaction, signerEntityIndex })? 'green': 'grey-8'"
+                      :name="signerCanSign({ signerEntityIndex }) && signerSigned({ multisigTransaction, signerEntityIndex })? 'done_all': ''"
                       size="sm"
                       >
                     </q-icon>
@@ -263,7 +265,7 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getSignerXPrv, identifyPossiblePstCreator } = useMultisigHelpers()
+const { getSignerXPrv } = useMultisigHelpers()
 
 // const multisigTransaction = computed(() => {
 //   const transactions = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
@@ -276,9 +278,20 @@ const { getSignerXPrv, identifyPossiblePstCreator } = useMultisigHelpers()
 
 const multisigTransaction = ref()
 
+// const signerSigned = computed(() => {
+//   return ({ signerEntityIndex }) => {
+//     return multisigWallet.value.signerSigned({ multisigTransaction: multisigTransaction.value, signerEntityIndex })
+//   }
+// })
+
 const signerSigned = computed(() => {
   return ({ signerEntityIndex }) => {
-    return multisigWallet.value.signerSigned({ multisigTransaction: multisigTransaction.value, signerEntityIndex })
+    if (multisigWallet.value && multisigTransaction.value) {
+      return multisigTransaction.value?.signerSigned({
+        multisigWallet: multisigWallet.value,
+        signerEntityId: `signer_${signerEntityIndex}`
+      })
+    }
   }
 })
 
@@ -403,18 +416,6 @@ const downloadPST = () => {
   }).onCancel(() => {})
 }
 
-const openTransactionActionsDialog = () => {
-  $q.dialog({
-    component: TransactionActionsDialog,
-    componentProps: {
-      darkMode: getDarkModeClass(darkMode.value),
-      onDelete: deleteTransaction,
-      onBroadcast: () => { console.log('deleting beach') },
-      onExport: () => { console.log('deleting beach') }
-    }
-  })
-}
-
 onBeforeMount(async () => {
   if (route.params?.address) {
     multisigWallet.value = MultisigWallet.createInstanceFromObject(
@@ -426,13 +427,12 @@ onBeforeMount(async () => {
 })
 
 onMounted(async () => {
-  // if (route.params?.address) {
-  //   const multisigWallet = MultisigWallet.createInstanceFromObject(
-  //     $store.getters['multisig/getWallet']({ address: route.params.address })
-  //   )
-  //   await multisigWallet.loadSignerXprivateKeys(getSignerXPrv)
-  //   multisigWallet.value = multisigWallet
-  // }
+  const m = MultisigWallet.createInstanceFromObject(
+    $store.getters['multisig/getWallet']({ address: route.params.address })
+  )
+  await m.loadSignerXprivateKeys(getSignerXPrv)
+  multisigWallet.value = m
+
   const transactions =
     $store.getters['multisig/getTransactionsByWalletAddress']({
       address: route.params.address
@@ -446,10 +446,7 @@ onMounted(async () => {
       )
   }
   // return transactions[route.params.index]
-  // multisigWallet.value = MultisigWallet.createInstanceFromObject(
-  //   $store.getters['multisig/getWallet']({ address: route.params.address })
-  // )
-  // await multisigWallet.value.loadSignerXprivateKeys(getSignerXPrv)
+  
   // multisigWallet.value = multisigWallet
   // console.log('WALLET', multisigWallet.value)
   // const prompt = multisigTransaction?.value?.sessionRequest?.params?.request?.params?.userPrompt

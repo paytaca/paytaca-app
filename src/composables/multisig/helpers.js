@@ -20,8 +20,10 @@ export const useMultisigHelpers = () => {
 
   const getSignerXPrv = async ({ xpub }) => {
     const signerWallet = getSignerWalletFromVault({ xpub })
+    console.log('🚀 ~ getSignerXPrv ~ signerWallet:', xpub, signerWallet)
     if (!signerWallet) return
     const { mnemonic } = await loadWallet('BCH', signerWallet.vaultIndex)
+    if (!mnemonic) return
     const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
     if (xpub !== hdKeys.hdPublicKey) return
     return hdKeys.hdPrivateKey
