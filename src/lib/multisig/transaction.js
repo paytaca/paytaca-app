@@ -38,6 +38,10 @@ export class MultisigTransaction {
     return 'lock'
   }
 
+  get isFinalized () {
+    return this.metadata.finalized
+  }
+
   getSignersInfo ({ template, lockingData }) {
     console.log('🚀 ~ MultisigTransaction ~ getSignersInfo ~ lockingData:', lockingData)
     if (!template) return {}
@@ -323,10 +327,20 @@ export class MultisigTransaction {
   }
 
   async broadcast ({ network }) {
-    const watchtower = new Watchtower(network === 'chipnet')
-    await watchtower.subscribe({ address: this.metadata.walletAddress })
-    const response = await watchtower.broadcastTx(this.signedTransaction)
-    return response
+    try {
+      this.metadata.isBroadcasting = true
+      const watchtower = new Watchtower(network === 'chipnet')
+      await watchtower.subscribe({
+        address: this.metadata.walletAddress
+      })
+      return await watchtower.broadcastTx(
+        this.metadata.signedTransaction
+      )
+    } catch (error) {
+      console.log(error)
+    } finally {
+      this.metadata.isBroadcasting = false
+    }
   }
 
   exportPST ({ signers, format = 'base64' }) {
@@ -447,7 +461,7 @@ export class MultisigTransaction {
   }
 
   static transactionBinObjectsToUint8Array (transactionObject) {
-    const transaction = structuredClone(transactionObject)
+    const transaction = JSON.parse(JSON.stringify(transactionObject))
 
     transaction.inputs.forEach(input => {
       if (input.outpointTransactionHash && !(input?.outpointTransactionHash instanceof Uint8Array)) {
