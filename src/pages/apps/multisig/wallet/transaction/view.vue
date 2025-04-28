@@ -187,20 +187,12 @@
               <q-separator spaced inset />
               <q-item>
                 <q-item-section >
-                  <div class="flex flex-wrap justify-around">
+                  <div class="flex flex-wrap justify-around relative">
                     <q-btn @click="$emit('delete')" class="footer-icon-btn default-text-color" flat dense no-caps :color="!darkMode && 'primary'">
                       <template v-slot:default>
                         <div class="row justify-center">
                           <q-icon name="delete_outline" class="col-12"></q-icon>
                           <div class="col-12">Delete</div>
-                        </div>
-                      </template>
-                    </q-btn>
-                    <q-btn @click="broadcastTransaction" flat dense no-caps :color="!darkMode && 'primary'">
-                      <template v-slot:default>
-                        <div class="row justify-center">
-                          <q-icon name="cell_tower" class="col-12"></q-icon>
-                          <div class="col-12">Submit</div>
                         </div>
                       </template>
                     </q-btn>
@@ -212,6 +204,25 @@
                         </div>
                       </template>
                     </q-btn>
+                    <q-btn
+                      v-if="multisigTransaction.isFinalized"
+                      @click="broadcastTransaction"
+                      flat dense no-caps
+                      :loading="multisigTransaction.isBroadcasting"
+                      >
+                      <template v-slot:default>
+                        <div class="row justify-center">
+                          <q-icon name="cell_tower" class="col-12"></q-icon>
+                          <div class="col-12">Submit</div>
+                        </div>
+                      </template>
+                      <template v-slot:loading>
+                        <q-spinner-radio class="on-left" />
+                      </template>
+                    </q-btn>
+                    <q-inner-loading :showing="visible">
+                      <q-spinner-gears size="50px" color="primary" />
+                    </q-inner-loading>
                   </div>
                 </q-item-section>
               </q-item>
@@ -275,6 +286,10 @@ const signerCanSign = computed(() => {
   return ({ signerEntityIndex }) => {
     return multisigWallet.value?.signerCanSign({ signerEntityIndex })
   }
+})
+
+const isFinalized = computed(() => {
+  return multisigTransaction.value.metadata?.isFinalized
 })
 // const transactionOrigin = computed(() => {
 //   if (multisigTransaction.value?.sessionRequest?.verifyContext) {
@@ -351,11 +366,19 @@ const broadcastTransaction = async () => {
   const cashAddressNetworkPrefix =
     isChipnet.value ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
 
-  multisigTransaction.value?.finalize({
-    lockingData: multisigWallet.value.lockingData,
-    template: multisigWallet.value.template,
-    cashAddressNetworkPrefix
-  })
+  if (!multisigTransaction.value?.isFinalized) {
+    multisigTransaction.value?.finalize({
+      lockingData: multisigWallet.value.lockingData,
+      template: multisigWallet.value.template,
+      cashAddressNetworkPrefix
+    })
+  }
+  console.log('🚀 ~ broadcastTransaction ~ multisigTransaction:', multisigTransaction)
+  if (multisigTransaction.value?.metadata?.signedTransaction) {
+    const network = isChipnet.value ? 'chipnet' : 'mainnet'
+    const response = await multisigTransaction.value.broadcast({ network })
+    console.log('🚀 ~ broadcastTransaction ~ response:', await response.json())
+  }
 }
 
 const downloadPST = () => {
@@ -486,4 +509,13 @@ onMounted(async () => {
       color: gray;
     }
   }
+
+  .q-btn {
+    color: rgb(60, 100, 246) !important;
+  }
+
+  .q-btn .disabled {
+    color: $blue-grey-8;
+  }
+
 </style>
