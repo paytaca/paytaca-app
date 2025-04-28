@@ -14,7 +14,9 @@ import {
   hexToBin,
   stringify,
   decodeTransactionCommon,
-  createVirtualMachineBch
+  createVirtualMachineBch,
+  extractMissingVariables,
+  hashTransactionUiOrder
 } from 'bitauth-libauth-v3'
 
 import Watchtower from '../watchtower'
@@ -27,7 +29,8 @@ export class MultisigTransaction {
     this.metadata = metadata || {
       status: 'pending',
       signatureCount: 0,
-      requiredSignatures: 1
+      requiredSignatures: 1,
+      finalized: false
     }
   }
 
@@ -54,6 +57,156 @@ export class MultisigTransaction {
       }
     }
     return signersInfo
+  }
+
+  signTransaction ({ multisigWallet, signerEntityIndex }) {
+    console.log('🚀 ~ SIGNING THRU TX MultisigTransaction ~ signTransaction ~ multisigWallet:', multisigWallet)
+    const { sourceOutputs, signatures, metadata } = this
+    const transaction = MultisigTransaction.transactionBinObjectsToUint8Array(this.transaction)
+    console.log(`Transaction signerIndex ${signerEntityIndex}`, transaction)
+    const entityUnlockingData = {
+      ...multisigWallet.lockingData,
+      hdKeys: {
+        ...multisigWallet.lockingData.hdKeys,
+        hdPrivateKeys: {
+          [`signer_${signerEntityIndex}`]: multisigWallet.signers[signerEntityIndex].xprv
+        }
+      }
+    }
+
+    const unlockingScriptId = multisigWallet.template.entities[`signer_${signerEntityIndex}`].scripts.filter((scriptId) => scriptId !== 'lock')[0]
+    console.log('🚀 ~ MultisigTransaction ~ signTransaction ~ unlockingScriptId:', unlockingScriptId)
+    for (const input of transaction.inputs) {
+      let sourceOutput = input.sourceOutput
+
+      if (!sourceOutput) {
+        sourceOutput = sourceOutputs.find((utxo) => {
+          return utxo.outpointIndex === input.outpointIndex && binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) === binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+        })
+      }
+      const { address: sourceOutputAddress } = lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: multisigWallet.network })
+      if (sourceOutputAddress === multisigWallet.address) {
+        input.unlockingBytecode = {
+          // ...input.unlockingBytecode,
+          compiler: multisigWallet.compiler,
+          data: entityUnlockingData,
+          valueSatoshis: sourceOutput.valueSatoshis,
+          script: unlockingScriptId,
+          token: sourceOutput.token
+        }
+      }
+    }
+
+    console.log('🚀 ~ MultisigTransaction ~ signTransaction ~ transaction:', transaction)
+    const signAttempt = generateTransaction({ ...transaction })
+    console.log('🚀 ~ MultisigWallet ~ signTransaction ~ signAttempt:', signAttempt)
+    for (const [index, error] of Object.entries(signAttempt.errors)) {
+      if (!signatures[index]) {
+        signatures[index] = {}
+      }
+      const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
+      const signatureKey = Object.keys(signerResolvedVariables)[0]
+      const signatureValue = Object.values(signerResolvedVariables)[0]
+      signatures[index][signatureKey] = signatureValue
+    }
+    Object.keys(signatures).forEach((inputIndex) => {
+      Object.keys(signatures[inputIndex]).forEach((signatureKey) => {
+        signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(signatures[inputIndex][signatureKey]))
+      })
+    })
+    metadata.signatureCount++
+    metadata.requiredSignatures = multisigWallet.m
+    const finalizationResult = this.finalize({
+      template: multisigWallet.template,
+      lockingData: multisigWallet.lockingData,
+      cashAddressNetworkPrefix: multisigWallet.network
+    })
+    this.metadata.finalized = finalizationResult.success
+    console.log('🚀 ~ MultisigTransaction ~ signTransaction ~ finalizationResult:', finalizationResult)
+    return this
+  }
+
+  identifySignersWithoutSignatures ({
+    template,
+    lockingData,
+    cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet,
+    lockingScriptId = 'lock'
+  }) {
+    console.log('THIS transaction', this.transaction)
+    const compiler = walletTemplateToCompilerBch(template)
+    const signatures = structuredClone(this.signatures)
+    Object.entries(signatures).forEach((signatureEntry) => {
+      const [key, value] = signatureEntry
+      signatures[key] =
+        typeof value === 'string' ? hexToBin(value) : Uint8Array.from(Object.values(value))
+    })
+
+    const lockingBytecode = compiler.generateBytecode({
+      data: lockingData,
+      scriptId: lockingScriptId
+    })
+
+    const { address } = lockingBytecodeToCashAddress({
+      bytecode: lockingBytecode.bytecode,
+      prefix: cashAddressNetworkPrefix
+    })
+
+    let transaction = MultisigTransaction.removeTransactionCompilationData(this.transaction)
+    transaction = MultisigTransaction.removeTransactionSourceOutput(transaction)
+
+    const sourceOutputs = [] // will be used for verification
+    const unlockingScriptsId = Object.keys(template.scripts).filter(scriptId => scriptId !== 'lock')
+    const missingSigners = {}
+    const missingSignersEntityIdSet = new Set()
+    unlockingScriptsId.forEach((unlockingScriptId) => {
+      for (const [inputIndex, input] of transaction.inputs.entries()) {
+        let sourceOutput = input.sourceOutput
+        if (!sourceOutput) {
+          sourceOutput = this.sourceOutputs.find((utxo) => {
+            return utxo.outpointIndex === input.outpointIndex &&
+                  binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
+                  binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+          })
+        }
+        sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+        if (lockingBytecodeToCashAddress({ bytecode: sourceOutput.lockingBytecode, prefix: cashAddressNetworkPrefix }).address === address) {
+          const inputUnlockingData = {
+            ...lockingData,
+            bytecode: {
+              ...this.signatures[inputIndex]
+            }
+          }
+          console.log('🚀 ~ MultisigTransaction ~ unlockingScriptId ~ unlockingScriptId:', unlockingScriptId)
+          input.unlockingBytecode = {
+            // ...input.unlockingBytecode,
+            compiler: compiler,
+            data: inputUnlockingData,
+            valueSatoshis: sourceOutput.valueSatoshis,
+            script: unlockingScriptId,
+            token: sourceOutput.token
+          }
+        }
+        sourceOutputs.push(sourceOutput)
+      }
+
+      const finalCompilation = generateTransaction({
+        ...transaction
+      })
+
+      // const missingSignerSignatures = {} // Same schema as signatures
+      if (!finalCompilation.success) {
+        const missingSignerVariables = extractMissingVariables({ ...finalCompilation })
+        console.log('🚀 ~ MultisigTransaction ~ missingSignerVariables:', missingSignerVariables)
+        missingSigners[unlockingScriptId] = missingSignerVariables
+        if (missingSignerVariables) {
+          missingSignersEntityIdSet.add(...Object.values(...missingSignerVariables))
+        }
+      }
+    })
+    return {
+      missingSigners,
+      missingSignersEntityIdSet
+    }
   }
 
   finalize ({
@@ -116,35 +269,46 @@ export class MultisigTransaction {
       sourceOutputs.push(sourceOutput)
     }
 
-    console.log('🚀 ~ MultisigTransaction ~ transaction successfulCompilation param:', transaction)
-    const successfulCompilation = generateTransaction({
+    const finalCompilation = generateTransaction({
       ...transaction
     })
-    console.log('🚀 ~ MultisigTransaction ~ successfulCompilation:', successfulCompilation)
-    if (successfulCompilation.success) {
-      const encodedTransaction = encodeTransactionCommon(successfulCompilation.transaction)
-      this.signedTransaction = binToHex(encodedTransaction)
+
+    // const missingSignerSignatures = {} // Same schema as signatures
+    if (!finalCompilation.success) {
+      const signersWithoutSignatures = this.identifySignersWithoutSignatures({
+        template,
+        lockingData,
+        cashAddressNetworkPrefix,
+        lockingScriptId
+      })
+      console.log('🚀 ~ MultisigTransaction ~ signersWithoutSignatures:', signersWithoutSignatures)
+      this.metadata.signersWithoutSignatures = signersWithoutSignatures
+      this.metadata.finalized = finalCompilation.success
+      return
     }
 
+    console.log('🚀 ~ MultisigTransaction ~ finalCompilation:', finalCompilation)
     const vm = createVirtualMachineBch()
-    console.log('source outputs', sourceOutputs)
-    const verificationResult = vm.verify({
-      sourceOutputs: sourceOutputs, transaction: successfulCompilation.transaction
-    })
-    console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
 
+    const verificationResult = vm.verify({
+      sourceOutputs: sourceOutputs, transaction: finalCompilation.transaction
+    })
+
+    console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
+    console.log('signatures', stringify(this.signatures))
+    if (verificationResult !== true) {
+      throw new Error('Transaction failed local vm verification')
+    }
+    console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
     Object.keys(this.signatures).forEach((inputIndex) => {
       Object.keys(this.signatures[inputIndex]).forEach((signatureKey) => {
         this.signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(this.signatures[inputIndex][signatureKey]))
       })
     })
-    console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
-
-    console.log('signatures', stringify(this.signatures))
-    if (verificationResult !== true) {
-      throw new Error('Transaction failed local vm verification')
-    }
-    return successfulCompilation
+    const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
+    this.metadata.signedTransaction = binToHex(encodedTransaction)
+    this.metadata.signedTransactionTxid = binToHex(hashTransactionUiOrder(this.signTransaction))
+    return finalCompilation
   }
 
   toJSON () {
@@ -188,6 +352,22 @@ export class MultisigTransaction {
     return binToBase64(bin)
   }
 
+  static removeTransactionCompilationData (transaction) {
+    const clone = JSON.parse(JSON.stringify(transaction))
+    clone.inputs.forEach((input) => {
+      if (input.unlockingBytecode?.compiler) {
+        delete input.unlockingBytecode
+      }
+    })
+  }
+
+  static removeTransactionSourceOutput (transaction) {
+    const clone = JSON.parse(JSON.stringify(transaction))
+    clone.inputs.forEach((input) => {
+      delete input.sourceOutput
+    })
+  }
+
   static importPST ({ pst }) {
     console.log('🚀 ~ MultisigTransaction ~ importPST ~ pst:', pst)
     if (typeof pst === 'string') {
@@ -219,17 +399,18 @@ export class MultisigTransaction {
   }
 
   static getUnlockingScriptId ({ signatures, template, inputIndex }) {
-    const scriptIdTemplateScriptMap = Object.keys(template.scripts).map((scriptId) => {
+    const scriptIdentifierTemplateScriptMap = Object.keys(template.scripts).map((scriptId) => {
       return { [scriptId]: template.scripts[scriptId].script }
     })
-    const foundScriptIdTemplateScriptMapping = scriptIdTemplateScriptMap.find((scriptIdTemplateScript) => {
-      // ['key1.schnorr_signature.all_outputs', 'key3.schnorr_signature.all_outputs', ...]
-      return Object.keys(signatures[inputIndex]).every((signatureScriptKey) => {
-        const scriptId = Object.keys(scriptIdTemplateScript)[0]
-        return scriptIdTemplateScript[scriptId].includes(signatureScriptKey)
+    const foundscriptIdentifierTemplateScriptMapping =
+      scriptIdentifierTemplateScriptMap.find((scriptIdentifierAndScript) => {
+      // ['key1.schnorr_signature.all_outputs', 'key3.schnorr_signature.all_outputs', ...].every()
+        return Object.keys(signatures[inputIndex]).every((signatureIdentifier) => {
+          const scriptId = Object.keys(scriptIdentifierAndScript)[0]
+          return scriptIdentifierAndScript[scriptId].includes(signatureIdentifier)
+        })
       })
-    })
-    return Object.keys(foundScriptIdTemplateScriptMapping)[0]
+    return Object.keys(foundscriptIdentifierTemplateScriptMapping)[0]
   }
 
   static createInstanceFromWCSessionRequest ({ sessionRequest, metadata }) {
