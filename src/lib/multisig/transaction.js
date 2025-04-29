@@ -145,6 +145,12 @@ export class MultisigTransaction {
     return Number(multisigWallet.n) - missingSignatures.length
   }
 
+  getStatusUrl ({ isChipnet }) {
+    let unsignedTransactionHash = MultisigTransaction.transactionBinObjectsToUint8Array(this.transaction)
+    unsignedTransactionHash = binToHex(hashTransaction(unsignedTransactionHash))
+    return `https://${isChipnet ? 'chipnet.' : ''}watchtower.cash/api/multisig/transaction-proposals?unsignedHash=${unsignedTransactionHash}`
+  }
+
   async refreshStatus (multisigWallet) {
     console.log('THIS METADATA', this)
     try {
@@ -484,17 +490,16 @@ export class MultisigTransaction {
     return Object.keys(foundscriptIdentifierTemplateScriptMapping)[0]
   }
 
-  static createInstanceFromWCSessionRequest ({ sessionRequest, metadata }) {
+  static createInstanceFromWCSessionRequest ({ sessionRequest }) {
     const walletAddress =
       sessionRequest.session.namespaces.bch.accounts[0].replace('bch:', '')
 
-    const m = {
+    const metadata = {
       origin: sessionRequest.verifyContext?.verified?.origin,
       prompt: sessionRequest.params?.request?.params?.userPrompt,
       wcSessionRequest: sessionRequest,
       walletAddress,
-      status: MultisigTransactionStatus.PENDING_UNSIGNED,
-      ...metadata
+      status: MultisigTransactionStatus.PENDING_UNSIGNED
     }
 
     return new MultisigTransaction({
@@ -502,7 +507,7 @@ export class MultisigTransaction {
         sessionRequest.params.request.params.transaction
       ),
       sourceOutputs: sessionRequest.params.request.params.sourceOutputs,
-      metadata: m
+      metadata
     })
   }
 
@@ -550,3 +555,16 @@ export class MultisigTransaction {
     }
   }
 }
+
+// {
+//   "topic": "...",
+//   "response": {
+//     "id": "...",
+//     "jsonrpc": "2.0",
+//     "result": {
+//       "status": "accepted",
+//       "message": "Transaction approved. Awaiting other signatures.",
+//       "statusUrl": "https://watchtower.cash/multisig/tx/<txid>"
+//     }
+//   }
+// }
