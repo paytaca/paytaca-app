@@ -115,7 +115,7 @@
                     </template>
                   </q-btn>
                   <q-btn
-                    :label="$t('Sign')" color="green"
+                    :label="$t('Accept')" color="green"
                     @click="() => respondToSessionRequest(sessionRequest)"
                     class="action-button"
                     :disable="Boolean(processingSession[sessionRequest.topic])"
@@ -722,26 +722,34 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
     try {
       const walletAddress = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
       if (walletAddress.signers) { // Account with active session is a multisig wallet
-        // save the request as signature request
-        // push to multisig signature request page
-        // $store.dispatch('multisig/walletConnectSignTransactionRequest', { sessionRequest, address: walletAddress.address })
-        const multisigWallet = $store.getters['multisig/getWallet']({ address: walletAddress.address })
+        const multisigTransaction =
+          MultisigTransaction.createInstanceFromWCSessionRequest({
+            sessionRequest
+          })
+
         await $store.dispatch(
           'multisig/saveTransaction',
-          MultisigTransaction.createInstanceFromWCSessionRequest({
-            sessionRequest,
-            metadata: {
-              requiredSignatures: multisigWallet.m,
-              signatureCount: 0
-            }
-          })
+          multisigTransaction
         )
-        $router.push({
+
+        await web3Wallet.value.respondSessionRequest({
+          topic: sessionRequest.topic,
+          response: {
+            id: sessionRequest.id,
+            jsonrpc: '2.0',
+            result: {
+              status: 'accepted',
+              signingType: 'multisig',
+              message: 'Transaction accepted. Awaiting other signatures.',
+              statusUrl: multisigTransaction.getStatusUrl({ isChipnet: isChipnet.value })
+            }
+          }
+        })
+
+        return $router.push({
           name: 'app-multisig-wallet-transactions',
           params: { address: encodeURIComponent(walletAddress.address) }
         })
-        rejectSessionRequest(sessionRequest) // TODO: respond properly
-        return
       }
       if (!walletAddress?.wif) {
         return await new Promise((resolve, reject) => {
