@@ -86,7 +86,7 @@
                   <status-chip :isCompleted="hasReceivedInitialPoints" />
                   <span class="col-10">
                     <span class="text-subtitle1">
-                      5 initial UP from being referred
+                      5 initial UP from referral
                     </span>
                     <br/>
                     <span v-if="hasReceivedInitialPoints" class="q-ml-sm">
