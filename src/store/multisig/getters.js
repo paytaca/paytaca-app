@@ -15,6 +15,10 @@ export function getWallets (state) {
   return state.wallets
 }
 
+export function getTransactionsLastIndex (state) {
+  return state.transactions.length - 1
+}
+
 export function getTransactionsByAddress (state) {
   return ({ address }) => {
     return state.transactions.filter((t) => t.metadata?.address === decodeURIComponent(address))

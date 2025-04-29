@@ -1,3 +1,5 @@
+import { hashTransaction } from 'bitauth-libauth-v3'
+
 export function saveWallet (state, wallet) {
   state.wallets.push(wallet)
 }
@@ -23,6 +25,13 @@ export function walletConnectSignTransactionRequest (state, { address, sessionRe
 }
 
 export function saveTransaction (state, multisigTransaction) {
+  const exists = state.transactions.find((storedMultisigTransaction) => {
+    return (
+      hashTransaction(multisigTransaction.transaction) ===
+        hashTransaction(storedMultisigTransaction.transaction)
+    )
+  })
+  if (exists) return
   state.transactions.push(multisigTransaction)
 }
 
