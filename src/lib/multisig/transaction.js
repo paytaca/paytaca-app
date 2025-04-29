@@ -21,15 +21,29 @@ import {
 
 import Watchtower from '../watchtower'
 
+export const MultisigTransactionStatus = Object.freeze({
+  CREATED: 0,
+  PARTIALLY_SIGNED: 1,
+  FULLY_SIGNED: 2,
+  SUBMITTED: 3,
+  CONFIRMED: 4
+})
+
+export const MultisigTransactionStatusText = Object.freeze({
+  [MultisigTransactionStatus.CREATED]: 'Created',
+  [MultisigTransactionStatus.PARTIALLY_SIGNED]: 'Partially Signed',
+  [MultisigTransactionStatus.FULLY_SIGNED]: 'Fully Signed',
+  [MultisigTransactionStatus.SUBMITTED]: 'Submitted',
+  [MultisigTransactionStatus.CONFIRMED]: 'Confirmed'
+})
+
 export class MultisigTransaction {
   constructor ({ transaction, sourceOutputs, signatures, metadata }) {
     this.transaction = transaction
     this.sourceOutputs = sourceOutputs
     this.signatures = signatures || {}
     this.metadata = metadata || {
-      status: 'pending',
-      signatureCount: 0,
-      requiredSignatures: 1,
+      status: MultisigTransactionStatus.CREATED, /* Partially Signed | Fully Signed | Submitted | Confirmed */
       finalized: false
     }
   }
@@ -53,28 +67,8 @@ export class MultisigTransaction {
     return !Array.from(signersWithoutSignatures.missingSignersEntityIdSet)?.includes(signerEntityId)
   }
 
-  getSignersInfo ({ template, lockingData }) {
-    if (!template) return {}
-    const signersInfo = {}
-    for (const signer of Object.entries(lockingData.hdKeys.hdPublicKeys)) { // { signer_1: xPub..., .... }
-      const [signerEntityKey, signerHdPubKey] = signer
-      // only samples signatures of input 0, TODO: show sigs of each input
-      const signerSignature = Object.entries(Object.values(this.signatures || {})[0]).find((signatureKeyValue) => {
-        const [signatureKey/* , signatureValue */] = signatureKeyValue
-        const signerEntityVariableKey = signatureKey.split('.')[0]
-        return Boolean(template.entities[signerEntityKey].variables[signerEntityVariableKey])
-      })
-      signersInfo[signerEntityKey] = structuredClone(template.entities[signerEntityKey])
-      signersInfo[signerEntityKey].hdPublicKey = signerHdPubKey
-      if (signerSignature) {
-        signersInfo[signerEntityKey].signature = Object.fromEntries([signerSignature])
-      }
-    }
-    return signersInfo
-  }
-
   signTransaction ({ multisigWallet, signerEntityIndex }) {
-    const { sourceOutputs, signatures, metadata } = this
+    const { sourceOutputs, signatures } = this
     const transaction = MultisigTransaction.transactionBinObjectsToUint8Array(this.transaction)
     const entityUnlockingData = {
       ...multisigWallet.lockingData,
@@ -124,9 +118,8 @@ export class MultisigTransaction {
         signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(signatures[inputIndex][signatureKey]))
       })
     })
+    this.metadata.status = MultisigTransactionStatus.PARTIALLY_SIGNED
     console.log('🚀 ~ MultisigTransaction ~ Object.keys ~ signatures:', signatures)
-    metadata.signatureCount++
-    metadata.requiredSignatures = multisigWallet.m
     const finalizationResult = this.finalize({
       template: multisigWallet.template,
       lockingData: multisigWallet.lockingData,
@@ -137,13 +130,23 @@ export class MultisigTransaction {
     return this
   }
 
+  getSignatureCount (multisigWallet) {
+    const signersWithoutSignatures = this.identifySignersWithoutSignatures({
+      template: multisigWallet.template,
+      lockingData: multisigWallet.lockingData,
+      cashAddressNetworkPrefix: multisigWallet.network
+    })
+
+    const missingSignatures = Array.from(signersWithoutSignatures.missingSignersEntityIdSet || [])
+    return Number(multisigWallet.n) - missingSignatures.length
+  }
+
   identifySignersWithoutSignatures ({
     template,
     lockingData,
     cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet,
     lockingScriptId = 'lock'
   }) {
-    console.log('THIS transaction', this.transaction)
     const compiler = walletTemplateToCompilerBch(template)
     const signatures = structuredClone(this.signatures)
     Object.entries(signatures).forEach((signatureEntry) => {
@@ -170,7 +173,6 @@ export class MultisigTransaction {
     const unlockingScriptIds = Object.keys(template.scripts).filter(scriptId => scriptId !== 'lock')
     const missingSigners = {}
     const missingSignersEntityIdSet = new Set()
-    console.log('🚀 ~ MultisigTransaction ~ unlockingScriptIds.forEach ~ unlockingScriptIds:', unlockingScriptIds)
     unlockingScriptIds.forEach((unlockingScriptId) => {
       for (const [inputIndex, input] of transaction.inputs.entries()) {
         let sourceOutput = input.sourceOutput
@@ -212,7 +214,11 @@ export class MultisigTransaction {
         console.log('🚀 ~ MultisigTransaction ~ missingSignerVariables:', missingSignerVariables)
         missingSigners[unlockingScriptId] = missingSignerVariables
         if (missingSignerVariables) {
-          missingSignersEntityIdSet.add(...Object.values(missingSignerVariables || {}))
+          for (const signerEntityId of Object.values(missingSignerVariables)) {
+            console.log('ADDING', signerEntityId)
+            missingSignersEntityIdSet.add(signerEntityId)
+            console.log('AFTER ADDING', missingSignersEntityIdSet)
+          }
         }
       }
     })
@@ -288,15 +294,17 @@ export class MultisigTransaction {
 
     // const missingSignerSignatures = {} // Same schema as signatures
     if (!finalCompilation.success) {
-      const signersWithoutSignatures = this.identifySignersWithoutSignatures({
+      // const signersWithoutSignatures =
+      this.identifySignersWithoutSignatures({
         template,
         lockingData,
         cashAddressNetworkPrefix,
         lockingScriptId
       })
       console.log('🚀 ~ MultisigTransaction ~ signersWithoutSignatures:', signersWithoutSignatures)
-      this.metadata.signersWithoutSignatures = signersWithoutSignatures
+      // this.metadata.signersWithoutSignatures = signersWithoutSignatures
       this.metadata.finalized = finalCompilation.success
+      this.metadata.status = MultisigTransactionStatus.FULLY_SIGNED
       return finalCompilation
     }
 
@@ -354,11 +362,11 @@ export class MultisigTransaction {
     // const includeSourceOutputs = this.transaction.inputs.some((input) => !input.sourceOutput)
     const { wcSessionRequest, ...otherMetadata } = this.metadata
     const pst = {
-      v: 1,
       transaction: binToHex(encodeTransactionCommon(this.transaction)),
       sourceOutputs: this.sourceOutputs,
       signatures: this.signatures,
       metadata: {
+        v: 1,
         signers,
         ...otherMetadata
       }
