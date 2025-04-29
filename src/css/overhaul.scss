@@ -3,6 +3,7 @@
 body.theme-overhaul {
   /* ----- VARIABLES ----- */
   // $color_4: #fff;
+  $dark_txt: #282A37;
   $dark_bg: #0F1928;
   $light_bg: #F8FAFC;
   $colored_bg: #D9EDFF;
@@ -33,9 +34,9 @@ body.theme-overhaul {
 
   #gradient-panel {
     background-image: $gradient_bg;
-    height: 265px;
+    height: 227px;
     width: 100%;
-    position: fixed;
+    position: absolute;
     z-index: 0;
   }
 
@@ -104,12 +105,12 @@ body.theme-overhaul {
     opacity: 50%;
   }
 
-  body-medium {
+  .body-medium {
     font-size: 14px;
     line-height: 24px;
     letter-spacing: 0.5%;
   }
-  body-small {
+  .body-small {
     font-size: 12px;
     line-height: 24px;
     letter-spacing: 2%;
@@ -119,7 +120,31 @@ body.theme-overhaul {
   .text-light {
     color: #FFF
   }
+  .text-dark {
+    color: $dark_txt
+  }
+  .text-primary {
+    color: $primary
+  }
   // .button-default {
   //   color: $primary
   // }
+
+  // Cards
+  .card-light {
+    background-color: #FFF;
+    color: $dark_txt;
+  }
+  .card-colored {
+    background-color: #D9EDFF;
+    color: #000;
+  }
+
+  .button-default {
+    background-color: $primary !important;
+    color: #fff !important;
+  }
+
+
+  // Custom Elements
 }
