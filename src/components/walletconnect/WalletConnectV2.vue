@@ -243,6 +243,7 @@ import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import { loadLibauthHdWallet } from '../../wallet'
 import { MultisigTransaction, MultisigWallet } from 'src/lib/multisig'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 const $emit = defineEmits([
   'request-scanner'
 ])
@@ -253,6 +254,11 @@ const $q = useQuasar()
 const $router = useRouter()
 const { t: $t } = useI18n()
 const $store = useStore()
+const {
+  saveTransaction: saveMultisigTransaction,
+  transactionsLastIndex: multisigTransactionsLastIndex
+} = useMultisigHelpers()
+
 const loading = ref/* <string> */()
 const processingSession = ref({}) /* <{ [topicOrId: string | number]: [processingMessage: string] }> */
 const watchtower = ref()
@@ -282,6 +288,7 @@ const web3Wallet = ref()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
+
 const delay = async (seconds) => {
   await new Promise((resolve, reject) => {
     setTimeout(() => { resolve() }, seconds * 1000)
@@ -727,11 +734,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             sessionRequest
           })
 
-        await $store.dispatch(
-          'multisig/saveTransaction',
-          multisigTransaction
-        )
-
+        await saveMultisigTransaction(multisigTransaction)
         await web3Wallet.value.respondSessionRequest({
           topic: sessionRequest.topic,
           response: {
@@ -745,10 +748,16 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             }
           }
         })
-
+        console.log('🚀 ~ respondToSignTransactionRequest ~ multisigTransactionsLastIndex:', multisigTransactionsLastIndex)
         return $router.push({
-          name: 'app-multisig-wallet-transactions',
-          params: { address: encodeURIComponent(walletAddress.address), backnavpath: '/apps/wallet-connect' }
+          name: 'app-multisig-wallet-transaction-view',
+          params: {
+            address: encodeURIComponent(walletAddress.address),
+            index: multisigTransactionsLastIndex.value
+          },
+          query: {
+            backnavpath: '/apps/wallet-connect'
+          }
         })
       }
       if (!walletAddress?.wif) {
@@ -776,6 +785,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       }
       processingSession.value[sessionRequest.topic] = 'Confirming request'
     } catch (err) {
+      console.log('🚀 ~ respondToSignTransactionRequest ~ err:', err)
       response.error = {
         code: -1,
         reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'

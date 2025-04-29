@@ -4,7 +4,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Transaction')" :backnavpath="`${ route.params.backnavpath || `/apps/multisig/wallet/${route.params.address}`}`" class="header-nav">
+    <HeaderNav :title="$t('Transaction')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.address}`}`" class="header-nav">
     </HeaderNav>
     <div class="row justify-center" style="margin-bottom: 4em;">
       <div class="col-xs-12 col-md-8 q-px-xs">
