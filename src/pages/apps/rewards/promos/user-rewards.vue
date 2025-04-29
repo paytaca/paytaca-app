@@ -207,7 +207,8 @@ import {
   updateUserRewardsData,
   Promos,
   getKeyPairFromWalletMnemonic,
-  getContractInitialBalance
+  getContractInitialBalance,
+  awardInitialUP
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -304,6 +305,25 @@ export default {
         .then(data => {
           vm.pointsDivisor = data.ur_divisor
         })
+
+      // display help dialog if has_viewed_page is false
+      if (!urData.has_viewed_page) {
+        vm.$q.dialog({
+          component: HelpDialog,
+          componentProps: { page: Promos.USERREWARDS }
+        })
+
+        // send 5 initial UP when user is a first time user
+        if (urData.is_first_time_user) {
+          await awardInitialUP({ ur_id: vm.urId })
+            .then(async _resp => {
+              vm.points = await vm.urContract.getTokenBalance()
+            })
+        }
+
+        // mark has_viewed_page to true
+        await updateUserRewardsData(vm.urId, { has_viewed_page: true })
+      }
 
       vm.points = await vm.urContract.getTokenBalance()
       vm.isReferralComplete = urData.is_referral_complete

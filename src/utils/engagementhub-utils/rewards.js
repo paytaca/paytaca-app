@@ -236,3 +236,10 @@ export async function sendAuthkeyNftToWallet (tokenAddress) {
     .then(_response => { })
     .catch(error => { console.error(error) } )
 }
+
+export async function awardInitialUP (data) {
+  return await REWARDS_URL
+    .post('userreward/award_initial_points/', data)
+    .then(_response => { })
+    .catch(error => { console.error(error) })
+}
