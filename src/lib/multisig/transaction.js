@@ -22,17 +22,17 @@ import {
 import Watchtower from '../watchtower'
 
 export const MultisigTransactionStatus = Object.freeze({
-  CREATED: 0,
-  PARTIALLY_SIGNED: 1,
-  FULLY_SIGNED: 2,
+  PENDING_UNSIGNED: 0,
+  PENDING_PARTIALLY_SIGNED: 1,
+  PENDING_FULLY_SIGNED: 2,
   SUBMITTED: 3,
   CONFIRMED: 4
 })
 
 export const MultisigTransactionStatusText = Object.freeze({
-  [MultisigTransactionStatus.CREATED]: 'Created',
-  [MultisigTransactionStatus.PARTIALLY_SIGNED]: 'Partially Signed',
-  [MultisigTransactionStatus.FULLY_SIGNED]: 'Fully Signed',
+  [MultisigTransactionStatus.PENDING_UNSIGNED]: 'Pending, unsigned',
+  [MultisigTransactionStatus.PENDING_PARTIALLY_SIGNED]: 'Pending, partially signed',
+  [MultisigTransactionStatus.PENDING_FULLY_SIGNED]: 'Pending, fully signed',
   [MultisigTransactionStatus.SUBMITTED]: 'Submitted',
   [MultisigTransactionStatus.CONFIRMED]: 'Confirmed'
 })
@@ -43,7 +43,7 @@ export class MultisigTransaction {
     this.sourceOutputs = sourceOutputs
     this.signatures = signatures || {}
     this.metadata = metadata || {
-      status: MultisigTransactionStatus.CREATED, /* Partially Signed | Fully Signed | Submitted | Confirmed */
+      status: MultisigTransactionStatus.PENDING_UNSIGNED, /* Partially Signed | Fully Signed | Submitted | Confirmed */
       finalized: false
     }
   }
@@ -54,6 +54,10 @@ export class MultisigTransaction {
 
   get isFinalized () {
     return this.metadata.finalized
+  }
+
+  get status () {
+    return MultisigTransactionStatusText[this.metadata?.status]
   }
 
   signerSigned ({ multisigWallet, signerEntityId }) {
@@ -118,7 +122,7 @@ export class MultisigTransaction {
         signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(signatures[inputIndex][signatureKey]))
       })
     })
-    this.metadata.status = MultisigTransactionStatus.PARTIALLY_SIGNED
+    this.metadata.status = MultisigTransactionStatus.PENDING_PARTIALLY_SIGNED
     console.log('🚀 ~ MultisigTransaction ~ Object.keys ~ signatures:', signatures)
     const finalizationResult = this.finalize({
       template: multisigWallet.template,
@@ -139,6 +143,43 @@ export class MultisigTransaction {
 
     const missingSignatures = Array.from(signersWithoutSignatures.missingSignersEntityIdSet || [])
     return Number(multisigWallet.n) - missingSignatures.length
+  }
+
+  async refreshStatus (multisigWallet) {
+    console.log('THIS METADATA', this)
+    try {
+      if (!this.metadata) {
+        this.metadata = {}
+      }
+      this.metadata.isRefreshingStatus = true
+      await new Promise((resolve) => {
+        setTimeout(() => { resolve() }, 3000)
+      })
+      if (this.metadata.status === MultisigTransactionStatus.CONFIRMED) return
+      if (!this.metadata.status || this.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
+        const signatureCount = this.getSignatureCount(multisigWallet)
+        if (signatureCount === 0) {
+          this.metadata.status = MultisigTransactionStatus.PENDING_UNSIGNED
+        }
+        if (signatureCount > 0 && signatureCount < multisigWallet.m) {
+          this.metadata.status = MultisigTransactionStatus.PENDING_PARTIALLY_SIGNED
+        }
+        if (signatureCount >= multisigWallet.m) {
+          this.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
+        }
+      }
+      if (this.metadata.status === MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
+        // TODO: check if submitted or confirmed then update
+      }
+      if (this.metadata.status === MultisigTransactionStatus.SUBMITTED) {
+        // TODO: check if confirmed, then update
+      }
+    } catch (error) {} finally {
+      console.log('🚀 ~ MultisigTransaction ~ refreshStatus ~ metadata:', this.metadata)
+      if (this.metadata?.isRefreshingStatus) {
+        delete this.metadata.isRefreshingStatus
+      }
+    }
   }
 
   identifySignersWithoutSignatures ({
@@ -301,34 +342,37 @@ export class MultisigTransaction {
         cashAddressNetworkPrefix,
         lockingScriptId
       })
-      console.log('🚀 ~ MultisigTransaction ~ signersWithoutSignatures:', signersWithoutSignatures)
       // this.metadata.signersWithoutSignatures = signersWithoutSignatures
-      this.metadata.finalized = finalCompilation.success
-      this.metadata.status = MultisigTransactionStatus.FULLY_SIGNED
+
       return finalCompilation
     }
+    if (finalCompilation.success) {
+      this.metadata.finalized = finalCompilation.success
+      console.log('🚀 ~ MultisigTransaction ~ finalCompilation:', finalCompilation)
+      const vm = createVirtualMachineBch()
 
-    console.log('🚀 ~ MultisigTransaction ~ finalCompilation:', finalCompilation)
-    const vm = createVirtualMachineBch()
-
-    const verificationResult = vm.verify({
-      sourceOutputs: sourceOutputs, transaction: finalCompilation.transaction
-    })
-
-    console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
-    console.log('signatures', stringify(this.signatures))
-    if (verificationResult !== true) {
-      throw new Error('Transaction failed local vm verification')
-    }
-    console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
-    Object.keys(this.signatures).forEach((inputIndex) => {
-      Object.keys(this.signatures[inputIndex]).forEach((signatureKey) => {
-        this.signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(this.signatures[inputIndex][signatureKey]))
+      const verificationResult = vm.verify({
+        sourceOutputs: sourceOutputs, transaction: finalCompilation.transaction
       })
-    })
-    const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
-    this.metadata.signedTransaction = binToHex(encodedTransaction)
-    this.metadata.signedTransactionTxid = binToHex(hashTransactionUiOrder(this.signTransaction))
+
+      console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
+      console.log('signatures', stringify(this.signatures))
+      if (verificationResult !== true) {
+        throw new Error('Transaction failed local vm verification')
+      }
+      console.log('🚀 ~ Pst ~ finalize ~ verificationResult:', verificationResult)
+      Object.keys(this.signatures).forEach((inputIndex) => {
+        Object.keys(this.signatures[inputIndex]).forEach((signatureKey) => {
+          this.signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(this.signatures[inputIndex][signatureKey]))
+        })
+      })
+      const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
+      this.metadata.signedTransaction = binToHex(encodedTransaction)
+      this.metadata.signedTransactionTxid = binToHex(hashTransactionUiOrder(this.signTransaction))
+      if (this.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
+        this.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
+      }
+    }
     return finalCompilation
   }
 
@@ -354,7 +398,7 @@ export class MultisigTransaction {
     } catch (error) {
       console.log(error)
     } finally {
-      this.metadata.isBroadcasting = false
+      delete this.metadata.isBroadcasting
     }
   }
 
@@ -449,6 +493,7 @@ export class MultisigTransaction {
       prompt: sessionRequest.params?.request?.params?.userPrompt,
       wcSessionRequest: sessionRequest,
       walletAddress,
+      status: MultisigTransactionStatus.PENDING_UNSIGNED,
       ...metadata
     }
 

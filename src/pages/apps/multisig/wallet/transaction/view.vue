@@ -15,8 +15,21 @@
                 <q-item-section>
                   <!-- <q-item-label class="text-h6">{{ transactionUserPrompt }}</q-item-label> -->
                   <!-- <q-item-label caption lines="2">Origin: {{ transactionOrigin }}</q-item-label> -->
-                    <q-item-label class="text-h6">{{ multisigTransaction.metadata.prompt }}</q-item-label>
-                    <q-item-label caption lines="2">Origin: {{ multisigTransaction.metadata.origin }}</q-item-label>
+                    <q-item-label class="text-h6">{{ multisigTransaction.metadata?.prompt }}</q-item-label>
+                    <q-item-label caption lines="2">Origin: {{ multisigTransaction.metadata?.origin }}</q-item-label>
+                    <q-item-label caption lines="2">
+                      Status:
+                      <q-btn
+                        @click="() => multisigTransaction.refreshStatus(multisigWallet)"
+                        :loading="multisigTransaction.metadata?.isRefreshingStatus"
+                        flat
+                        no-caps
+                        dense
+                        icon="refresh"
+                      >
+                        {{ multisigTransaction.status }}
+                      </q-btn>
+                    </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <!-- <q-item-label caption>5 min ago</q-item-label> -->
@@ -85,6 +98,23 @@
                   </q-btn>
                 </q-item-section>
               </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label>Status</q-item-label>
+                </q-item-section>
+                <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+                  <q-btn
+                    @click="() => multisigTransaction.refreshStatus(multisigWallet)"
+                    :loading="multisigTransaction.metadata?.isRefreshingStatus"
+                    flat
+                    no-caps
+                    icon="refresh"
+                    dense
+                  >
+                    {{ multisigTransaction.status }}
+                  </q-btn>
+                </q-item-section>
+              </q-item>
               <q-expansion-item>
                 <template v-slot:header>
                   <q-item-section>
@@ -143,7 +173,7 @@
                   </div>
                 </q-item-section>
                 <q-item-section side>
-                  {{ multisigTransaction.metadata.signatureCount }}&nbsp;
+                  {{ multisigTransaction.getSignatureCount(multisigWallet) }}&nbsp;
                 </q-item-section>
               </q-item>
               <q-expansion-item>
@@ -165,7 +195,7 @@
                       {{ multisigWallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}
                     </div>
                     <q-icon
-                      :color="signerCanSign({ signerEntityIndex }) &&   signerSigned({ multisigTransaction, signerEntityIndex })? 'green': 'grey-8'"
+                      :color="signerCanSign({ signerEntityIndex }) && signerSigned({ multisigTransaction, signerEntityIndex })? 'green': 'grey-8'"
                       :name="signerCanSign({ signerEntityIndex }) && signerSigned({ multisigTransaction, signerEntityIndex })? 'done_all': ''"
                       size="sm"
                       >
@@ -301,9 +331,6 @@ const signerCanSign = computed(() => {
   }
 })
 
-const isFinalized = computed(() => {
-  return multisigTransaction.value.metadata?.isFinalized
-})
 // const transactionOrigin = computed(() => {
 //   if (multisigTransaction.value?.sessionRequest?.verifyContext) {
 //     return multisigTransaction.value?.sessionRequest?.verifyContext?.verified?.origin || 'Unknown Origin'
@@ -416,16 +443,6 @@ const downloadPST = () => {
   }).onCancel(() => {})
 }
 
-onBeforeMount(async () => {
-  if (route.params?.address) {
-    multisigWallet.value = MultisigWallet.createInstanceFromObject(
-      $store.getters['multisig/getWallet']({ address: route.params.address })
-    )
-    await multisigWallet.value.loadSignerXprivateKeys(getSignerXPrv)
-    // multisigWallet.value = multisigWallet
-  }
-})
-
 onMounted(async () => {
   const m = MultisigWallet.createInstanceFromObject(
     $store.getters['multisig/getWallet']({ address: route.params.address })
@@ -444,24 +461,8 @@ onMounted(async () => {
       MultisigTransaction.createInstanceFromObject(
         structuredClone(transactions[route.params.index])
       )
+    await multisigTransaction.value.refreshStatus(multisigWallet.value)
   }
-  // return transactions[route.params.index]
-  
-  // multisigWallet.value = multisigWallet
-  // console.log('WALLET', multisigWallet.value)
-  // const prompt = multisigTransaction?.value?.sessionRequest?.params?.request?.params?.userPrompt
-  // const origin = multisigTransaction?.value?.sessionRequest?.verifyContext?.verified?.verifyUrl
-  // pst.value = new Pst({
-  //   lockingData: multisigWallet.value.lockingData,
-  //   network: multisigWallet.value.network
-  // })
-  // const creator = identifyPossiblePstCreator({ signers: multisigWallet.value.signers })
-  // console.log('TRANSACTION DATA', multisigTransaction.value.transaction)
-  // pst.value
-  //   .setTemplate(multisigWallet.value.template)
-  //   .setTransaction(multisigTransaction.value.transaction)
-  //   .setSourceOutputs(multisigTransaction.value.sourceOutputs)
-  //   .setDesc({ prompt, origin, creator, wallet: 'Paytaca' })
 })
 
 </script>
@@ -507,11 +508,11 @@ onMounted(async () => {
     }
   }
 
-  .q-btn {
+  .enabled {
     color: rgb(60, 100, 246) !important;
   }
 
-  .q-btn .disabled {
+  .disabled {
     color: $blue-grey-8;
   }
 
