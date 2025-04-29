@@ -748,7 +748,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
 
         return $router.push({
           name: 'app-multisig-wallet-transactions',
-          params: { address: encodeURIComponent(walletAddress.address) }
+          params: { address: encodeURIComponent(walletAddress.address), backnavpath: '/apps/wallet-connect' }
         })
       }
       if (!walletAddress?.wif) {
