@@ -34,7 +34,7 @@
                   Origin: {{ transaction.metadata.origin }}
                 </q-item-label>
                 <q-item-label caption>
-                  Required Signatures: {{ transaction.metadata.requiredSignatures }}
+                  Required Signatures: {{ multisigWallet.m }}
                 </q-item-label>
                 <q-item-label caption>
                   Current Signatures: {{ transaction.metadata.totalSignatures }}
