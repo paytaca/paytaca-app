@@ -4,7 +4,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Transaction')" :backnavpath="`/apps/multisig/wallet/${route.params.address}`" class="header-nav">
+    <HeaderNav :title="$t('Transaction')" :backnavpath="`${ route.params.backnavpath || `/apps/multisig/wallet/${route.params.address}`}`" class="header-nav">
     </HeaderNav>
     <div class="row justify-center" style="margin-bottom: 4em;">
       <div class="col-xs-12 col-md-8 q-px-xs">
@@ -25,9 +25,12 @@
                         flat
                         no-caps
                         dense
-                        icon="refresh"
                       >
-                        {{ multisigTransaction.status }}
+                        <template v-slot:default>
+                          <div class="flex flex-nowrap items-center">
+                            <span class="text-caption">{{ multisigTransaction.status }}</span> <q-icon name="refresh" size="sm" class="q-ml-sm"></q-icon>
+                          </div>
+                        </template>
                       </q-btn>
                     </q-item-label>
                 </q-item-section>
@@ -108,10 +111,13 @@
                     :loading="multisigTransaction.metadata?.isRefreshingStatus"
                     flat
                     no-caps
-                    icon="refresh"
                     dense
                   >
-                    {{ multisigTransaction.status }}
+                    <template v-slot:default>
+                      <div class="flex flex-nowrap items-center">
+                        {{ multisigTransaction.status }} <q-icon name="refresh" size="sm" class="q-ml-sm"></q-icon>
+                      </div>
+                  </template>
                   </q-btn>
                 </q-item-section>
               </q-item>
@@ -220,7 +226,7 @@
               <q-item>
                 <q-item-section >
                   <div class="flex flex-wrap justify-around relative">
-                    <q-btn @click="$emit('delete')" class="footer-icon-btn default-text-color" flat dense no-caps :color="!darkMode && 'primary'">
+                    <q-btn @click="deleteTransaction" class="footer-icon-btn default-text-color" flat dense no-caps :color="!darkMode && 'primary'">
                       <template v-slot:default>
                         <div class="row justify-center">
                           <q-icon name="delete_outline" class="col-12"></q-icon>
@@ -271,7 +277,7 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
-import { computed, onBeforeMount, ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stringify, CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 // import { loadWallet } from 'src/wallet'
@@ -279,7 +285,6 @@ import { toP2shTestAddress } from 'src/utils/address-utils'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
-  Pst,
   MultisigWallet,
   MultisigTransaction,
   getTotalBchInputAmount,
@@ -289,13 +294,11 @@ import {
   shortenString
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-import TransactionActionsDialog from 'src/components/multisig/TransactionActionsDialog.vue'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
-const router = useRouter()
-const { getSignerXPrv } = useMultisigHelpers()
+const { getSignerXPrv, deleteTransaction } = useMultisigHelpers()
 
 // const multisigTransaction = computed(() => {
 //   const transactions = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
@@ -346,14 +349,9 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const isNotDefaultTheme = computed(() => {
-  return $store.getters['global/theme'] !== 'default'
-})
-
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const multisigWallet = ref()
-// const pst = ref()
 
 const signTransaction = async ({ signerEntityIndex, xprv }) => {
   console.log('sign', signerEntityIndex, xprv)
@@ -392,14 +390,6 @@ const signTransaction = async ({ signerEntityIndex, xprv }) => {
     signerEntityIndex
   })
   // router.push({ name: 'app-multisig-wallet-pst-view', params: { address: multisigWallet.value.address, id: pst.value.id } })
-}
-
-const deleteTransaction = async () => {
-  await $store.dispatch(
-    'multisig/deleteTransaction',
-    { index: route.params.index }
-  )
-  router.back()
 }
 
 const broadcastTransaction = async () => {
