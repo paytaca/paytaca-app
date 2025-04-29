@@ -60,6 +60,10 @@ export class MultisigTransaction {
     return MultisigTransactionStatusText[this.metadata?.status]
   }
 
+  get unsignedTransactionHash () {
+    return hashTransaction(this.transaction)
+  }
+
   signerSigned ({ multisigWallet, signerEntityId }) {
     const signersWithoutSignatures = this.identifySignersWithoutSignatures({
       template: multisigWallet.template,
@@ -90,10 +94,17 @@ export class MultisigTransaction {
 
       if (!sourceOutput) {
         sourceOutput = sourceOutputs.find((utxo) => {
-          return utxo.outpointIndex === input.outpointIndex && binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) === binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+          return utxo.outpointIndex ===
+            input.outpointIndex && binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
+            binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
         })
       }
-      const { address: sourceOutputAddress } = lockingBytecodeToCashAddress({ bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)), prefix: multisigWallet.network })
+      const { address: sourceOutputAddress } =
+        lockingBytecodeToCashAddress({
+          bytecode: Uint8Array.from(Object.values(sourceOutput.lockingBytecode)),
+          prefix: multisigWallet.network
+        })
+
       if (sourceOutputAddress === multisigWallet.address) {
         input.unlockingBytecode = {
           // ...input.unlockingBytecode,
@@ -146,8 +157,8 @@ export class MultisigTransaction {
   }
 
   getStatusUrl ({ isChipnet }) {
-    let unsignedTransactionHash = MultisigTransaction.transactionBinObjectsToUint8Array(this.transaction)
-    unsignedTransactionHash = binToHex(hashTransaction(unsignedTransactionHash))
+    const unsignedTransactionHash =
+      hashTransaction(MultisigTransaction.transactionBinObjectsToUint8Array(this.transaction))
     return `https://${isChipnet ? 'chipnet.' : ''}watchtower.cash/api/multisig/transaction-proposals?unsignedHash=${unsignedTransactionHash}`
   }
 
