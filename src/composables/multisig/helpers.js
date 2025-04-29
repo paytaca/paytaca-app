@@ -2,9 +2,12 @@ import { useStore } from 'vuex'
 import { computed } from 'vue'
 import { loadWallet } from 'src/wallet'
 import { MultisigWallet } from 'src/lib/multisig'
+import { useRoute, useRouter } from 'vue-router'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
+  const route = useRoute()
+  const router = useRouter()
   const signerWallets = computed(() => {
     return $store.getters['global/getVault']
   })
@@ -46,10 +49,32 @@ export const useMultisigHelpers = () => {
     return undefined
   }
 
+  const transactionsLastIndex = computed(() => {
+    return $store.getters['multisig/getTransactionsLastIndex']
+  })
+
+  const deleteTransaction = async () => {
+    await $store.dispatch(
+      'multisig/deleteTransaction',
+      { index: route.params.index }
+    )
+    router.back()
+  }
+
+  const saveTransaction = async (multisigTransaction) => {
+    await $store.dispatch(
+      'multisig/saveTransaction',
+      multisigTransaction
+    )
+  }
+
   return {
     signerWallets,
     getSignerWalletFromVault,
     getSignerXPrv,
-    identifyPossiblePstCreator
+    identifyPossiblePstCreator,
+    deleteTransaction,
+    saveTransaction,
+    transactionsLastIndex
   }
 }
