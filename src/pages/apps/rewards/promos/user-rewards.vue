@@ -83,6 +83,24 @@
             <q-scroll-area ref="onetime">
               <div v-if="!isLoading" class="row q-gutter-x-sm q-gutter-y-md">
                 <template v-if="isFirstTimeUser">
+                  <status-chip :isCompleted="hasReceivedInitialPoints" />
+                  <span class="col-10">
+                    <span class="text-subtitle1">
+                      5 initial UP from being referred
+                    </span>
+                    <br/>
+                    <span v-if="hasReceivedInitialPoints" class="q-ml-sm">
+                      earned on {{ parseLocaleDate(dateJoined) }}
+                    </span>
+                    <span
+                      v-else
+                      class="q-ml-sm subtext-gray not-earned-label"
+                      :class="getDarkModeClass(darkMode)"
+                    >
+                      not yet earned
+                    </span>
+                  </span>
+
                   <status-chip :isCompleted="isReferralComplete" />
                   <span class="col-10">
                     <span class="text-subtitle1">
@@ -247,6 +265,8 @@ export default {
       referralCompleteDate: null,
       isFirstSevenComplete: false,
       isFirstTimeUser: true,
+      hasReceivedInitialPoints: false,
+      dateJoined: '',
       urContract: null,
 
       firstSevenTransactions: [],
@@ -330,6 +350,8 @@ export default {
       vm.isFirstSevenComplete = urData.is_first_seven_complete
       vm.referralCompleteDate = urData.referral_complete_date
       vm.isFirstTimeUser = urData.is_first_time_user
+      vm.hasReceivedInitialPoints = urData.has_received_initial_points
+      vm.dateJoined = urData.date_joined
 
       if (urData.ur_months.length > 0) {
         for (const transaction of urData.ur_months) {
