@@ -19,7 +19,7 @@
             />
         </div>
         <div class="col-xs-12">
-          <q-list v-if="multisigTransactions?.length > 0">
+          <q-list v-if="multisigWallet && multisigTransactions?.length > 0">
             <q-item
               v-for="transaction, i in multisigTransactions"
               :key="i" clickable
@@ -37,10 +37,7 @@
                   Required Signatures: {{ multisigWallet.m }}
                 </q-item-label>
                 <q-item-label caption>
-                  Current Signatures: {{ transaction.metadata.totalSignatures }}
-                </q-item-label>
-                <q-item-label caption>
-                  {{ transaction.signatures }}
+                  Current Signatures: {{ transaction.getSignatureCount(multisigWallet) }}
                 </q-item-label>
               </q-item-section>
               <q-item-section side top>
