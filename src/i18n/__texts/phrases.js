@@ -1190,7 +1190,21 @@ const phrases = {
       ProcessingNecessaryDetails: 'Processing necessary details',
       BIP38WalletPassphrase: 'BIP38 wallet passphrase',
       BIP38WalletDetected: 'Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.',
-      BIP38DecryptError: 'Failed to decrypt wallet. Try again later or use another passphrase.'
+      BIP38DecryptError: 'Failed to decrypt wallet. Try again later or use another passphrase.',
+      UserRewards: 'User Rewards',
+      RFPromo: 'Refer-a-friend Promo',
+      YouCurrentlyHave: 'You currently have',
+      RedeemPoints: 'Redeem Points',
+      PointsEarned: 'Points Earned',
+      OneTimePoints: 'One-time Points',
+      ContinuousPoints: 'Continuous Points',
+      NotYetEarned: 'Not yet earned',
+      BCHFromReferral: 'Bonus BCH from referral and after completing 1st transaction',
+      PointsFromSeven: 'Points from first 7 transactions',
+      NonNewUsersWarning: 'Sorry, only new users can avail the one-time points.',
+      PointsFromMarketplace: 'Points from Marketplace transactions',
+      PointsFromMarketplaceWarning1: 'You do not have any Marketplace transactions yet.',
+      PointsFromMarketplaceWarning2: 'Order from the Marketplace to start earning points!'
     }
   ],
   dynamic: [
@@ -1273,6 +1287,11 @@ const phrases = {
       CutleryIncludedMsg: 'Your order will include cutlery',
       CutleryNotIncludedMsg: 'Your order will not include cutlery',
       AdditionalChargesForCutlery: 'Additional charges for cutlery',
+    },
+    {
+      InitialUP: 'Initial {points} from referral',
+      EarnedOn: 'Earned on {date}',
+      EarnedFirstSeven: `Earned <strong>{pointsEarned}</strong> from {refId} last {date}`
     }
   ]
 }
