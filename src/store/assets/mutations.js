@@ -21,6 +21,28 @@ export function updateAssetBalance (state, data) {
 }
 
 /**
+ * 
+ * @param {*} state 
+ * @param {{ id: String, txCount?: Number}} data 
+ */
+export function updateAssetTxCount(state, data) {
+  const network = getBlockChainNetwork()
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
+
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i]
+    if (asset?.id !== data.id) continue
+
+    const _txCount = parseInt(data.txCount)
+    asset.txCount = Number.isNaN(_txCount) ? undefined : _txCount
+    break;
+  }
+}
+
+/**
  *
  * @param {Object} state
  * @param {{ id:String, symbol:String, name:String, logo:String, balance: Number }} asset
@@ -178,17 +200,14 @@ export function updateAssetMetadata (state, data) {
   }
 
   if (!Array.isArray(assets)) return
+  if (!data) return
 
-  assets.forEach(a => {
-    if (a && data) {
-      if (a.id === data.id) {
-        a.name = data.name,
-        a.symbol = data.symbol,
-        a.decimals = data.decimals,
-        a.logo = data.logo || ''
-      }
-    }
-  })
+  const a = assets.find(a => a && a.id === data.id)
+
+  a.name = data.name,
+  a.symbol = data.symbol,
+  a.decimals = data.decimals,
+  a.logo = data.logo || ''
 }
 
 export function addRemovedAssetIds (state, data) {

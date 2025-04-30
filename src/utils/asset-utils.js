@@ -1,6 +1,15 @@
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 
-export async function updateAssetBalanceOnLoad (id, wallet, store) {
+const balanceFetchMap = { /** id: Promise */}
+export async function updateAssetBalanceOnLoad(id, wallet, store) {
+  if (!balanceFetchMap[id]) {
+    balanceFetchMap[id] = _updateAssetBalanceOnLoad(id, wallet, store)
+      .finally(() => delete balanceFetchMap[id])
+  }
+  return balanceFetchMap[id]
+}
+
+async function _updateAssetBalanceOnLoad (id, wallet, store) {
   const tokenId = id.split('/')[1]
   const updateAssetBalance = 'assets/updateAssetBalance'
 

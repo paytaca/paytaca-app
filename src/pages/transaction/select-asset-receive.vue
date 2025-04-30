@@ -243,14 +243,28 @@ export default {
         }
       }
     },
-    async checkIfFirstTimeReceiver (asset) {
-      // check wallet/assets if balance is zero and no transactions were made
-      const assetBalance = asset.balance ?? 0
+    async isFirstTimeReceiver(asset) {
+      if ((asset?.balance ?? 0) !== 0) return false
+      if ((asset?.txCount ?? 0) !== 0) return false
+      if (asset.id.split('/')[1] === 'unlisted') return false
+
       const transactionsLength = this.selectedNetwork === 'sBCH'
         ? await this.getSbchTransactions(asset)
         : await this.getBchTransactions(asset)
 
-      if (assetBalance === 0 && transactionsLength === 0 && asset.id.split('/')[1] !== 'unlisted') {
+      if (this.selectedNetwork !== 'sBCH') {
+        this.$store.commit('assets/updateAssetTxCount', {
+          id: asset?.id,
+          txCount: transactionsLength,
+        })
+      }
+
+      return transactionsLength === 0
+    },
+    async checkIfFirstTimeReceiver (asset) {
+      // check wallet/assets if balance is zero and no transactions were made
+      const displayFirstTimeReceiverWarning = await this.isFirstTimeReceiver(asset)
+      if (displayFirstTimeReceiverWarning) {
         this.$q.dialog({ component: FirstTimeReceiverWarning })
           .onOk(() => {
             this.$router.push({
