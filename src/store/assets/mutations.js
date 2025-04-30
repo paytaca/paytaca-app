@@ -21,6 +21,28 @@ export function updateAssetBalance (state, data) {
 }
 
 /**
+ * 
+ * @param {*} state 
+ * @param {{ id: String, txCount?: Number}} data 
+ */
+export function updateAssetTxCount(state, data) {
+  const network = getBlockChainNetwork()
+  let assets = state.assets
+  if (network === 'chipnet') {
+    assets = state.chipnet__assets
+  }
+
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i]
+    if (asset?.id !== data.id) continue
+
+    const _txCount = parseInt(data.txCount)
+    asset.txCount = Number.isNaN(_txCount) ? undefined : _txCount
+    break;
+  }
+}
+
+/**
  *
  * @param {Object} state
  * @param {{ id:String, symbol:String, name:String, logo:String, balance: Number }} asset
