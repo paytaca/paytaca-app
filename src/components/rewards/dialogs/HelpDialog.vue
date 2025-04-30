@@ -13,7 +13,7 @@
       :class="getDarkModeClass(darkMode)"
     >
       <div class="row justify-between items-center">
-        <span class="q-ml-sm text-h6">Help</span>
+        <span class="q-ml-sm text-h6">{{ $t('Help') }}</span>
         <q-btn
           flat
           round
@@ -39,37 +39,27 @@
       >
         <template v-if="page === 'home'">
           <q-carousel-slide name="home-1" class="help-carousel-slide">
-            <h5 class="q-ma-xs q-pb-md text-center text-bold">Welcome to the Rewards Page</h5>
+            <h5 class="q-ma-xs q-pb-md text-center text-bold">{{ $t('RewardsHelpHome11') }}</h5>
             <div class="row text-left">
-              <p>
-                Start earning points today!
-              </p>
-              <p>
-                As a valued user, you'll accumulate points for engaging with the Paytaca ecosystem. The more you explore and interact with the ecosystem, the more points you'll earn. These points are directly convertible into either real currency or tokens, rewarding your loyalty and engagement.
-              </p>
-              <p>
-                Get started today and watch your points—and rewards—grow!
-              </p>
+              <p>{{ $t('RewardsHelpHome12') }}</p>
+              <p>{{ $t('RewardsHelpHome13') }}</p>
+              <p>{{ $t('RewardsHelpHome14') }}</p>
             </div>
           </q-carousel-slide>
 
           <q-carousel-slide name="home-2" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">Paytaca Promos</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsHelpHome21') }}</h6>
             <div class="row text-left">
-              <p>
-                We've designed different promos for each kind of user, each with its own earning potential. Other promos will be added soon.
-              </p>
+              <p>{{ $t('RewardsHelpHome22') }}</p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">
-                        User Rewards
-                      </span>
+                      <span style="font-size: 18px;">{{ $t('RewardsHelpHome23') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      A collection of points, called UP (User Points), earned by users from engaging with the different features of the app.
+                      {{ $t('RewardsHelpHome24') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -77,12 +67,10 @@
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">
-                        Refer-a-friend Promo
-                      </span>
+                      <span style="font-size: 18px;">{{ $t('RewardsHelpHome25') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      Promo for referrals. Users who successfully invite friends to use Paytaca with a referral code will receive RP (Referral Points).
+                      {{ $t('RewardsHelpHome26') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -93,33 +81,23 @@
         
         <template v-if="page === Promos.USERREWARDS">
           <q-carousel-slide :name="`${Promos.USERREWARDS}-1`" class="help-carousel-slide">
-            <h5 class="q-ma-xs q-pb-md text-center text-bold">Welcome to the User Rewards Page</h5>
-            <div class="row text-left">
-              User Rewards is a collection of points, called UP (User Points), earned throughout your interaction with the Paytaca app.
-            </div>
+            <h5 class="q-ma-xs q-pb-md text-center text-bold">{{ $t('RewardsHelpUR11') }}</h5>
+            <div class="row text-left">{{ $t('RewardsHelpUR12') }}</div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.USERREWARDS}-2`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">Earning User Points</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsHelpUR11') }}</h6>
             <div class="row text-left">
-              <p>
-                There are 2 ways you can earn UP. Note that points are awarded only after successfully completing the actions.
-              </p>
+              <p>{{ $t('RewardsHelpUR12') }}</p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">
-                        One-time Points
-                      </span>
+                      <span style="font-size: 18px;">{{ $t('OneTimePoints') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      <p>
-                        These are points you can earn once. Incomplete actions are marked red, while completed actions are marked green. After earning these points, you cannot earn them again.
-                      </p>
-                      <p class="no-margin">
-                        Note that this points are only available for new users. Existing users cannot earn these points.
-                      </p>
+                      <p>{{ $t('RewardsHelpUR13') }}</p>
+                      <p class="no-margin">{{ $t('RewardsHelpUR14') }}</p>
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -127,12 +105,10 @@
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">
-                        Continuous Points
-                      </span>
+                      <span style="font-size: 18px;">{{ $t('ContinuousPoints') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      These are points you can earn multiple times, as long as you complete the specified actions.
+                      {{ $t('RewardsHelpUR15') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -140,22 +116,18 @@
             </div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.USERREWARDS}-3`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">Redeeming User Points</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsRedeem1') }}</h6>
             <div class="row text-left">
-              <p>
-                When redeeming your UP, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
-              </p>
+              <p>{{ $t('RewardsRedeem2') }}</p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">
-                        Swap to BCH
-                      </span>
+                      <span style="font-size: 18px;">{{ $t('RewardsRedeem3') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      This action will swap your points to BCH. BCH conversion rate may vary depending on the BCH market value.
+                      {{ $t('RewardsRedeem4') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -163,12 +135,10 @@
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">
-                        Convert to Tokens
-                      </span>
+                      <span style="font-size: 18px;">{{ $t('RewardsRedeem5') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      This action will convert your points to Paytaca tokens. Conversion rate is 1 UP = 1 PTC.
+                      {{ $t('RewardsRedeem6') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -179,45 +149,31 @@
 
         <template v-if="page === Promos.RFPROMO">
           <q-carousel-slide :name="`${Promos.RFPROMO}-1`" class="help-carousel-slide">
-            <h5 class="q-ma-xs q-pb-md text-center text-bold">Welcome to the Refer-a-friend (RF) Promo Page</h5>
-            <div class="row text-left">
-              Refer-a-friend (RF) Promo is built to encourage users to invite friends to use the Paytaca app and explore the Paytaca ecosystem. Referees will earn RP (Referral Points) for each successful referral.
-            </div>
+            <h5 class="q-ma-xs q-pb-md text-center text-bold">{{ $t('RewardsHelpRFP11') }}</h5>
+            <div class="row text-left">{{ $t('RewardsHelpRFP12') }}</div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.RFPROMO}-2`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">Earning Referral Points</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsHelpRFP21') }}</h6>
             <div class="row text-left">
-              <p>
-                To earn RP, refer your friends or other users to use Paytaca.
-              </p>
-              <p>
-                When they create their new wallet, have them scan your referral QR code. After the new user created their wallet and completing their very first transaction, you will receive 5 RP.
-              </p>
-              <p>
-                There is no limit as to how much RP you can earn, so refer lots of new users as much as you can!
-              </p>
+              <p>{{ $t('RewardsHelpRFP22') }}</p>
+              <p>{{ $t('RewardsHelpRFP23') }}</p>
+              <p>{{ $t('RewardsHelpRFP24') }}</p>
             </div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.RFPROMO}-3`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">Redeeming Referral Points</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsRedeem1') }}</h6>
             <div class="row text-left">
-              <p>
-                When redeeming your RP, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.
-              </p>
-              <p>
-                Note that you can only redeem up to 10,000 RP per month.
-              </p>
+              <p>{{ $t('RewardsRedeem2') }}</p>
+              <p>{{ $t('RewardsRedeemRP') }}</p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">
-                        Swap to BCH
-                      </span>
+                      <span style="font-size: 18px;">{{ $t('RewardsRedeem3') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      This action will swap your points to BCH. BCH conversion rate may vary depending on the BCH market value.
+                      {{ $t('RewardsRedeem4') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -225,12 +181,10 @@
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
                       <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">
-                        Convert to Tokens
-                      </span>
+                      <span style="font-size: 18px;">{{ $t('RewardsRedeem5') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      This action will convert your points to Paytaca tokens. Conversion rate is 1 RP = 1 PTC.
+                      {{ $t('RewardsRedeem6') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>

@@ -7,7 +7,7 @@
   >
     <q-card class="q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center">
-        <span class="text-h6">Redeem Points</span>
+        <span class="text-h6">{{ $t('RedeemPoints') }}</span>
         <q-btn
           flat
           round
@@ -27,13 +27,13 @@
       >
         <q-tab
           name="swap"
-          label="Swap to BCH"
+          :label="$t('SwapToBCH')"
           class="network-selection-tab rewards"
           :class="getDarkModeClass(darkMode)"
         />
         <q-tab
           name="convert"
-          label="Convert to Tokens"
+          :label="$t('ConvertToTokens')"
           class="network-selection-tab rewards"
           :class="getDarkModeClass(darkMode)"
         />
@@ -47,10 +47,10 @@
         <q-tab-panel name="swap" style="padding: 5px 0;">
           <div class="row q-mt-sm">
             <span class="full-width text-subtitle1 q-mb-sm">
-              Enter points to be swapped to BCH.
+              {{ $t('SwaptoBCHDescription') }}
             </span>
             <span>
-              <strong>Rate:</strong> 1
+              <strong>{{ $t('Rate') }}:</strong> 1
               {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
               = {{ singlePointConversion }}
             </span>
@@ -92,7 +92,7 @@
           </div>
 
           <div class="text-body1 q-mb-sm">
-            <span>You will receive:</span><br/>
+            <span>{{ $t('YouWillReceive') }}:</span><br/>
             <span class="row q-ml-md">
               {{ pointsConvertion }}
             </span>
@@ -129,10 +129,10 @@
         <q-tab-panel name="convert" style="padding: 5px 0;">
           <div class="row q-mt-sm">
             <span class="full-width text-subtitle1 q-mb-sm">
-              Enter points to be converted to PTC.
+              {{ $t('ConvertToTokensDescription') }}
             </span>
             <span>
-              <strong>Rate:</strong> 1
+              <strong>{{ $t('Rate') }}:</strong> 1
               {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
               = 1 PTC
             </span>
@@ -174,7 +174,7 @@
           </div>
 
           <div class="text-body1 q-mb-sm">
-            <span>You will receive:</span><br/>
+            <span>{{ $t('YouWillReceive') }}:</span><br/>
             <span class="row q-ml-md">
               {{ pointsToRedeem }} PTC
             </span>
@@ -406,14 +406,14 @@ export default {
             this.$q.notify({
               type: 'positive',
               timeout: 3000,
-              message: 'Points swapping processed successfully.'
+              message: this.$t('SwaptoBCHSuccess')
             })
             this.$refs.dialogRef.hide()
           } else {
-            raiseNotifyError('An error occurred while processing your swapping. Please try again later.')
+            raiseNotifyError(this.$t('SwaptoBCHError'))
           }
         } else {
-          raiseNotifyError('An error occurred while processing your swapping. Please try again later.')
+          raiseNotifyError(this.$t('SwaptoBCHError'))
         }
       } else if (this.redeemTab === 'convert') {
         const txId = await this.contract.unlockPromoToken(
@@ -424,11 +424,11 @@ export default {
           this.$q.notify({
             type: 'positive',
             timeout: 3000,
-            message: 'Points conversion processed successfully.'
+            message: this.$t('ConvertToTokensSuccess')
           })
           this.$refs.dialogRef.hide()
         } else {
-          raiseNotifyError('An error occurred while processing your conversion. Please try again later.')
+          raiseNotifyError(this.$t('ConvertToTokensError'))
         }
       }
 

@@ -380,7 +380,10 @@ const words = [
   },
   {
     Cutlery: 'Cutlery',
-    Rewards: 'Rewards'
+    Rewards: 'Rewards',
+    Rate: 'Rate',
+    Convert: 'Convert',
+    Help: 'Help'
   }
 ]
 

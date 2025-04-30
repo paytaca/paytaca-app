@@ -2,7 +2,7 @@
   <q-dialog persistent ref="dialogRef" seamless class="no-click-outside">
     <q-card class="q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center q-mb-sm">
-        <span class="text-h6">{{ referralType }} Referral QR</span>
+        <span class="text-h6">{{ $t(`${referralType}ReferralQR`) }}</span>
         <q-btn
           flat
           round
@@ -14,7 +14,7 @@
       </div>
 
       <div class="text-subtitle1 q-mb-sm">
-        Have new users scan this QR code during wallet creation.
+        {{ $t('ReferralQRDescription') }}
       </div>
 
       <div>

@@ -20,13 +20,13 @@
       <div class="row justify-center text-center q-gutter-y-xs">
         <q-icon name="celebration" size="70px" color="green" />
         <span class="text-body1 q-mt-md">
-          Congratulations! You have received points for completing this transaction.
+          {{ $t('PointsReceivedDescription1') }}
         </span>
         <span v-if="hasReceivedCashinPoints" class="text-body1">
-          You have also received extra BCH as a bonus for your very first transaction.
+          {{ $t('PointsReceivedDescription2') }}
         </span>
         <span class="text-body2 q-mt-md">
-          Check out the <strong>Rewards</strong> app for a detailed breakdown of your points.
+          {{ $t('PointsReceivedDescription3') }}
         </span>
       </div>
     </q-card>
