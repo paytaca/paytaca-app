@@ -1311,15 +1311,25 @@ export default {
   },
 
   async beforeMount () {
+    const loadTasks = []
+
+    if (Object.keys(vm.$store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
+      loadTasks.push(vm.$store.dispatch('global/loadWalletLastAddressIndex'))
+    }
+    if (!vm.$store.getters['global/walletConnectedApps']) {
+      loadTasks.push(vm.$store.dispatch('global/loadWalletConnectedApps'))
+    }
+    if (!vm.$store.getters['global/walletAddresses']) {
+      loadTasks.push(vm.$store.dispatch('global/loadWalletAddresses'))
+    }
+
+    if (this.assetId === 'bch') return
     const dialog = this.$q.dialog({
       component: LoadingWalletDialog,
       componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
     })
-    await Promise.all([
-      this.$store.dispatch('global/loadWalletLastAddressIndex'),
-      this.$store.dispatch('global/loadWalletAddresses'),
-      this.$store.dispatch('global/loadWalletConnectedApps'),
-    ])
+
+    await Promise.allSettled(loadTasks)
     dialog.hide()
   },
 
@@ -1358,16 +1368,6 @@ export default {
 
     if (this.inputExtras.length === 1) {
       this.inputExtras[0].selectedDenomination = this.denomination
-    }
-
-    if (Object.keys(vm.$store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
-      await vm.$store.dispatch('global/loadWalletLastAddressIndex')
-    }
-    if (!vm.$store.getters['global/walletConnectedApps']) {
-      await vm.$store.dispatch('global/loadWalletConnectedApps')
-    }
-    if (!vm.$store.getters['global/walletAddresses']) {
-      await vm.$store.dispatch('global/loadWalletAddresses')
     }
   },
 
