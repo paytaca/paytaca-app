@@ -1584,11 +1584,6 @@ export default {
       vm.loadWallets()
     }
 
-    // If asset prices array is empty, immediately fetch asset prices
-    if (vm.$store.state.market.assetPrices.length === 0) {
-      vm.$store.dispatch('market/updateAssetPrices', {})
-    }
-
     const assets = vm.$store.getters['assets/getAssets']
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
