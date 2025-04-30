@@ -44,7 +44,7 @@
             rounded
             class="button"
             :label="$t('RedeemPoints')"
-            :disable="points === 0"
+            :disable="points === 0 || redeemablePoints === 0"
             @click="openRedeemPointsDialog"
           />
         </div>
