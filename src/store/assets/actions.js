@@ -1,8 +1,6 @@
 import { getMnemonic, Wallet } from '../../wallet'
 import { axiosInstance } from '../../boot/axios'
-import axios from 'axios'
-import { setupCache } from 'axios-cache-interceptor'
-import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import { convertIpfsUrl, getBcmrBackend } from 'src/wallet/cashtokens'
 import {
   getWatchtowerApiUrl,
   getBlockChainNetwork,
@@ -10,19 +8,6 @@ import {
 } from 'src/wallet/chipnet'
 import Watchtower from 'watchtower-cash-js'
 
-
-function getBcmrBackend() {
-  const network = getBlockChainNetwork()
-  if (network === 'chipnet') {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr-chipnet.paytaca.com/api',
-    }))
-  } else {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr.paytaca.com/api',
-    }))
-  }
-}
 
 function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^slp\/([0-9a-fA-F]+)$/)

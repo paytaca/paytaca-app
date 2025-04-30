@@ -1,28 +1,11 @@
 import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
-import { getWatchtowerApiUrl, getBlockChainNetwork, convertCashAddress } from './chipnet'
-import { convertIpfsUrl } from './cashtokens'
+import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
+import { convertIpfsUrl, getBcmrBackend } from './cashtokens'
 import { isTokenAddress } from '../utils/address-utils'
-import axios from 'axios'
 
 const bchjs = new BCHJS()
-
-import { setupCache } from 'axios-cache-interceptor';
-
-
-function getBcmrBackend() {
-  const network = getBlockChainNetwork()
-  if (network === 'chipnet') {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr-chipnet.paytaca.com/api',
-    }))
-  } else {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr.paytaca.com/api',
-    }))
-  }
-}
 
 
 export class BchWallet {
