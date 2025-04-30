@@ -200,17 +200,14 @@ export function updateAssetMetadata (state, data) {
   }
 
   if (!Array.isArray(assets)) return
+  if (!data) return
 
-  assets.forEach(a => {
-    if (a && data) {
-      if (a.id === data.id) {
-        a.name = data.name,
-        a.symbol = data.symbol,
-        a.decimals = data.decimals,
-        a.logo = data.logo || ''
-      }
-    }
-  })
+  const a = assets.find(a => a && a.id === data.id)
+
+  a.name = data.name,
+  a.symbol = data.symbol,
+  a.decimals = data.decimals,
+  a.logo = data.logo || ''
 }
 
 export function addRemovedAssetIds (state, data) {
