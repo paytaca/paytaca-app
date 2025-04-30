@@ -20,10 +20,10 @@ export default {
   data () {
     return {
       marketplaceOpt: [
-        { name: 'Entertainment', icon: 'entertainment.png' },
-        { name: 'Food and Beverage', icon: 'food-and-beverage.png' },
-        { name: 'Personal Care & Services', icon: 'personal-care-and-service.png' },
-        { name: 'Automotive', icon: 'automotive.png' }
+        { name: 'Entertainment', icon: 'entertainment.svg' },
+        { name: 'Food and Beverage', icon: 'food-and-beverage.svg' },
+        { name: 'Personal Care & Services', icon: 'personal-care-and-service.svg' },
+        { name: 'Automotive', icon: 'automotive.svg' }
 
       ]
     }

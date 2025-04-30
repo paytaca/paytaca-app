@@ -11,6 +11,7 @@
               class="row q-px-sm q-pt-sm"
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
+
               <MultiWalletDropdown ref="multi-wallet-component" />
               <NotificationButton
                 @hide-multi-wallet-dialog="hideMultiWalletDialog"
@@ -211,6 +212,7 @@
                   :class="getDarkModeClass(darkMode)"
                   @click="toggleManageAssets"
                 />
+                <!-- here -->
                 <q-btn
                   v-if="!stablehedgeView"
                   flat

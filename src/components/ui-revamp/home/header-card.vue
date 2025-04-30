@@ -12,13 +12,13 @@
       </div>
       <div class="row">
         <!-- Price -->
-        <div class="headline-large">0.9978540 <span class="headline-small">BCH</span></div>
+        <div class="headline-large">{{ balance.toFixed(7) }} <span class="headline-small">BCH</span></div>
         <!-- Token Icon -->
-        <q-img src="../../assets/bch-logo.png" id="header-logo"/>
+        <q-img src="bch-logo.png" id="header-logo"/>
       </div>
       <!-- Fiat Equivalent -->
        <div class="label-small">
-        <span class="text-uppercase">php</span> &nbsp; 18684.99
+        <span class="text-uppercase">{{ this.selectedMarketCurrency }}</span> &nbsp; {{ parseFiatCurrency(balance, this.selectedMarketCurrency) }}
        </div>
 
        <!-- Services -->
@@ -43,6 +43,7 @@
   </q-card>
 </template>
 <script>
+import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   data () {
@@ -53,6 +54,22 @@ export default {
         { name: 'receive', icon: 'receive-bch.png'},
         { name: 'cashin', icon: 'cashin.png'}
       ]
+    }
+  },
+  computed: {
+    balance () {
+      return this.$store.getters['assets/getAssets'][0].balance
+    },
+    selectedMarketCurrency (){
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency && currency.symbol
+    }
+
+  },
+  methods: {
+    parseFiatCurrency,
+    fiatAmount () {
+
     }
   }
 }
