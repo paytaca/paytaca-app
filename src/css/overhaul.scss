@@ -80,7 +80,7 @@ body.theme-overhaul {
     font-weight: 600;
   }
   .title-small {
-    font-size: 14px;
+    font-size: 12px;
     line-height: 20px;
     letter-spacing: 2%;
     font-weight: 800;
@@ -89,7 +89,7 @@ body.theme-overhaul {
     font-size: 12px;
     line-height: 20px;
     letter-spacing: 2%;
-    font-weight: 800;
+    font-weight: 600;
   }
 
   .label-medium {
@@ -97,23 +97,27 @@ body.theme-overhaul {
     line-height: 16px;
     letter-spacing: 2%;
     opacity: 50%;
+    font-weight: 400;
   }
   .label-small {
     font-size: 12px;
     line-height: 16px;
     letter-spacing: 2%;
     opacity: 50%;
+    font-weight: 400;
   }
 
   .body-medium {
     font-size: 14px;
     line-height: 24px;
     letter-spacing: 0.5%;
+    font-weight: 400;
   }
   .body-small {
     font-size: 12px;
     line-height: 24px;
     letter-spacing: 2%;
+    font-weight: 400;
   }
 
   // Color
@@ -126,9 +130,9 @@ body.theme-overhaul {
   .text-primary {
     color: $primary
   }
-  // .button-default {
-  //   color: $primary
-  // }
+  .text-link {
+    color: #33739B;
+  }
 
   // Cards
   .card-light {
@@ -140,9 +144,14 @@ body.theme-overhaul {
     color: #000;
   }
 
+  // Buttons
   .button-default {
     background-color: $primary !important;
     color: #fff !important;
+  }
+  .button-light {
+    background-color: #fff !important;
+    color: $primary !important;
   }
 
 

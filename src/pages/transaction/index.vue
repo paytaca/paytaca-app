@@ -49,11 +49,10 @@
     <tutorial-card/>
 
       <!-- Marketplace -->
-    <div class="marketplace">
-      <div class="title-small">
-        Shop in our Marketplace
-      </div>
-    </div>
+    <home-marketplace/>
+
+      <!-- Apps -->
+    <home-apps/>
 
     <!-- Footer -->
     <footer-menu ref="footerMenu" />
@@ -62,6 +61,8 @@
 <script>
 import headerCard from 'src/components/ui-revamp/header-card.vue';
 import tutorialCard from 'src/components/ui-revamp/tutorial-card.vue'
+import homeMarketplace from 'src/components/ui-revamp/home-marketplace.vue';
+import homeApps from 'src/components/ui-revamp/home-apps.vue'
 
 export default {
   data () {
@@ -71,7 +72,9 @@ export default {
   },
   components: {
     headerCard,
-    tutorialCard
+    tutorialCard,
+    homeMarketplace,
+    homeApps
   }
 }
 </script>
@@ -86,9 +89,6 @@ export default {
 }
 .manage-wallet {
   z-index: 1;
-  margin: 24px 16px 0px;
-}
-.marketplace {
   margin: 24px 16px 0px;
 }
 </style>

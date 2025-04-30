@@ -7,10 +7,10 @@
     <q-btn class="button-default price-chart" round icon="show_chart" size="xs"/>
     <div class="card-container">
       <!-- token selector -->
-      <div class=" row">
-        <div class="label-small">
-          <q-icon name="keyboard_arrow_down" class="q-pr-sm"/> Select token (1 of 9)
-        </div>
+      <div class="label-small">
+        <q-icon name="keyboard_arrow_down" class="q-pr-sm"/> Select token (1 of 9)
+      </div>
+      <div class="row">
         <!-- Price -->
         <div class="headline-large">0.9978540 <span class="headline-small">BCH</span></div>
         <!-- Token Icon -->
@@ -78,7 +78,7 @@ export default {
 }
 .price-chart {
     position: absolute;
-    right: 5%;
+    right: 24px;
     top: 5%;
     // background-color: $primary !important;
     // color: #fff !important;

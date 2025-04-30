@@ -7,11 +7,11 @@
           <div class="body-small text-underline">
             <a>Walkthrough of the app &nbsp; <q-icon name="arrow_forward"/></a>
           </div>
-          <div class="body-small text-underline">
+          <div class="body-small q-pt-sm text-underline">
             <a>Watch a video about BCH &nbsp; <q-icon name="arrow_forward"/></a>
           </div>
         </div>
-        <div class="col-3">
+        <div class="col-3 text-right">
           <q-img src="bch-logo.png" height="58px" width="58px" alt=""/>
         </div>
       </div>
@@ -21,7 +21,7 @@
 <script></script>
 <style lang="scss" scoped>
 .tutorial-card {
-  margin: 24px 24px 0px;
+  margin: 20px 24px 0px;
   .tutorial-card-content {
     margin: 24px 16px 24px;
   }
