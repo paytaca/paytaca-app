@@ -192,6 +192,7 @@ export async function saveExistingAsset (context, details) {
  * @param {Object} context 
  * @param {Object} opts 
  * @param {Boolean} opts.chipnet
+ * @param {Boolean} opts.excludeCurrentIndex
  */
 export async function updateVaultBchBalances(context, opts) {
   const watchtower = new Watchtower(opts?.chipnet)
@@ -208,6 +209,9 @@ export async function updateVaultBchBalances(context, opts) {
 
   const results = await Promise.allSettled(
     vault.map((assetsVault, index) => {
+      const walletIndex = context.rootGetters['global/getWalletIndex']
+      if (index === walletIndex && opts?.excludeCurrentIndex) return
+
       const assets = opts?.chipnet ? assetsVault?.chipnet_assets : assetsVault?.asset
 
       const bchAsset = assets?.find?.(asset => asset?.id === 'bch')
