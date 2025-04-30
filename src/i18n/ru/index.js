@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Выпустить в ожидании",
   Released: "Выпущенный",
   ReleasingBch: "Выпустив BCH, подождите.",
+  Remaning: "оставшийся",
   Remove: "Удалять",
   RemoveAsset: "Удалить актив",
   RemoveAssetPrompt: "Удалить активы {assetName}.Вы уверены?",

@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "发布未决",
   Released: "发行",
   ReleasingBch: "发布BCH，请等待。",
+  Remaning: "其余的",
   Remove: "消除",
   RemoveAsset: "删除资产",
   RemoveAssetPrompt: "删除Asset {assetName}。你确定吗？",

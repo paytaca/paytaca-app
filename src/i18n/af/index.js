@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Vrylating hangende",
   Released: "Vrygestel",
   ReleasingBch: "Wag asb. Wag.",
+  Remaning: "oorblywend",
   Remove: "Verwyder",
   RemoveAsset: "Verwyder bate",
   RemoveAssetPrompt: "Verwyder bate {assetName}.Is jy seker?",

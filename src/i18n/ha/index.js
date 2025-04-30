@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Saki yana jiran",
   Released: "Saki",
   ReleasingBch: "Sakin Bch, don Allah jira.",
+  Remaning: "m",
   Remove: "Motsa",
   RemoveAsset: "Cire kadara",
   RemoveAssetPrompt: "Cire kadara {«.Ka tabbata?",

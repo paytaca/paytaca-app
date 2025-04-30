@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "保留中のリリース",
   Released: "リリース",
   ReleasingBch: "BCHをリリースしてください、待ってください。",
+  Remaning: "残り",
   Remove: "取り除く",
   RemoveAsset: "資産を削除します",
   RemoveAssetPrompt: "Asset {assetName}を削除します。本気ですか？",

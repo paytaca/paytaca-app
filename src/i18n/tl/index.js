@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Pakawalan ang nakabinbin",
   Released: "Pinakawalan",
   ReleasingBch: "Paglabas ng BCH, mangyaring maghintay.",
+  Remaning: "natitira",
   Remove: "Alisin",
   RemoveAsset: "Alisin ang asset",
   RemoveAssetPrompt: "Alisin ang asset {assetName}.Sigurado ka ba?",

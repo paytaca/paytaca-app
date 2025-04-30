@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "إطلاق معلق",
   Released: "مطلق سراحه",
   ReleasingBch: "إطلاق BCH ، من فضلك انتظر.",
+  Remaning: "متبقي",
   Remove: "يزيل",
   RemoveAsset: "إزالة الأصول",
   RemoveAssetPrompt: "إزالة الأصول {assetName}.هل أنت متأكد؟",

@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Release Pending",
   Released: "Released",
   ReleasingBch: "Releasing BCH, please wait.",
+  Remaning: "remaining",
   Remove: "Remove",
   RemoveAsset: "Remove asset",
   RemoveAssetPrompt: "Remove asset {assetName}. Are you sure?",

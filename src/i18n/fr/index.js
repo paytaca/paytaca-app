@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Libération en attente",
   Released: "Libéré",
   ReleasingBch: "Sortie BCH, veuillez patienter.",
+  Remaning: "restante",
   Remove: "Retirer",
   RemoveAsset: "Supprimer",
   RemoveAssetPrompt: "Supprimer Asset {assetName}.Es-tu sûr?",

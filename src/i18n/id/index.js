@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Lepaskan tertunda",
   Released: "Dilepaskan",
   ReleasingBch: "Melepaskan BCH, harap tunggu.",
+  Remaning: "tersisa",
   Remove: "Menghapus",
   RemoveAsset: "Hapus aset",
   RemoveAssetPrompt: "Hapus aset {assetName}.Apa kamu yakin?",

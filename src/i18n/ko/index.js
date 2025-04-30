@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "출시 대기 중",
   Released: "출시된",
   ReleasingBch: "BCH 해제, 기다려주세요.",
+  Remaning: "남아 있습니다",
   Remove: "제거하다",
   RemoveAsset: "자산을 제거하십시오",
   RemoveAssetPrompt: "자산 {assetName}을 제거하십시오.확실합니까?",

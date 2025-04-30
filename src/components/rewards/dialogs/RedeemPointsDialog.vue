@@ -66,7 +66,10 @@
               v-model="pointsToRedeem"
               :label="$t('Amount')"
               :dark="darkMode"
-              :error="pointsToRedeem > points"
+              :error="
+                pointsToRedeem > points ||
+                (redeemablePoints && pointsToRedeem > redeemablePointsBalance)
+              "
               :error-message="$t('BalanceExceeded')"
             >
               <template v-slot:append>
@@ -89,6 +92,12 @@
             >
               {{ $t('MAX') }}
             </span>
+          </div>
+
+          <div class="row q-mb-sm q-mx-sm" v-if="redeemablePoints">
+            {{ redeemablePointsBalance }}
+            {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
+            {{ $t('Remaining') }}
           </div>
 
           <div class="text-body1 q-mb-sm">
@@ -119,7 +128,11 @@
                 rounded
                 class="button"
                 :label="$t('Swap')"
-                :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
+                :disable="
+                  pointsBalance < 0 ||
+                  Number(pointsToRedeem) === 0 ||
+                  (redeemablePoints && redeemablePointsBalance < 0)
+                "
                 @click="executeSecurityChecking"
               />
             </template>
@@ -148,7 +161,10 @@
               v-model="pointsToRedeem"
               :label="$t('Amount')"
               :dark="darkMode"
-              :error="pointsToRedeem > points"
+              :error="
+                pointsToRedeem > points ||
+                (redeemablePoints && pointsToRedeem > redeemablePointsBalance)
+              "
               :error-message="$t('BalanceExceeded')"
             >
               <template v-slot:append>
@@ -171,6 +187,12 @@
             >
               {{ $t('MAX') }}
             </span>
+          </div>
+
+          <div class="row q-mb-sm q-mx-sm" v-if="redeemablePoints">
+            {{ redeemablePointsBalance }}
+            {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
+            {{ $t('Remaning') }}
           </div>
 
           <div class="text-body1 q-mb-sm">
@@ -201,7 +223,11 @@
                 rounded
                 class="button"
                 :label="$t('Convert')"
-                :disable="pointsBalance < 0 || Number(pointsToRedeem) === 0"
+                :disable="
+                  pointsBalance < 0 ||
+                  Number(pointsToRedeem) === 0 ||
+                  (redeemablePoints && redeemablePointsBalance < 0)
+                "
                 @click="executeSecurityChecking"
               />
             </template>
@@ -253,7 +279,8 @@ export default {
     pointsType: { type: String, default: '' },
     pointsDivisor: { type: Number, default: 0 },
     promoId: { type: Number, default: -1 },
-    address: { type: String, default: '' }
+    address: { type: String, default: '' },
+    redeemablePoints: { type: Number, default: null }
   },
 
   components: {
@@ -268,6 +295,7 @@ export default {
       pointsToRedeem: '0',
       customKeyboardState: 'dismiss',
       pointsBalance: 0,
+      redeemablePointsBalance: 0,
       isSecurityCheckSuccess: false,
       warningAttemptsStatus: 'dismiss',
       pinDialogAction: '',
@@ -303,6 +331,9 @@ export default {
     isNotDefaultTheme,
     computeBalance () {
       this.pointsBalance = this.points - Number(this.pointsToRedeem)
+      if (this.redeemablePoints) {
+        this.redeemablePointsBalance = this.redeemablePoints - Number(this.pointsToRedeem)
+      }
     },
     onMaxClick () {
       this.pointsToRedeem = '' + this.points

@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Release in behandeling",
   Released: "Uitgegeven",
   ReleasingBch: "BCH vrijgeven, wacht alsjeblieft.",
+  Remaning: "overig",
   Remove: "Verwijderen",
   RemoveAsset: "Verwijder de activa",
   RemoveAssetPrompt: "Verwijder Asset {assetName}.Weet je het zeker?",

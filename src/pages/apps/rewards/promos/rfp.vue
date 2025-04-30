@@ -275,7 +275,8 @@ export default {
           pointsType: Promos.RFPROMO,
           pointsDivisor: vm.pointsDivisor,
           promoId: vm.rfpId,
-          address: this.address
+          address: vm.address,
+          redeemablePoints: vm.redeemablePoints
         }
       }).onDismiss(async () => {
         vm.isLoading = true

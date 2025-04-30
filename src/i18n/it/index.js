@@ -1069,6 +1069,7 @@ export default {
   ReleasePending: "Rilascio in sospeso",
   Released: "Rilasciato",
   ReleasingBch: "Rilascio di BCH, per favore aspetta.",
+  Remaning: "rimanente",
   Remove: "Rimuovere",
   RemoveAsset: "Rimuovere la risorsa",
   RemoveAssetPrompt: "Rimuovi Asset {assetName}.Sei sicuro?",
