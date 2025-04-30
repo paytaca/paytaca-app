@@ -85,9 +85,9 @@
             <div class="row text-left">{{ $t('RewardsHelpUR12') }}</div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.USERREWARDS}-2`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsHelpUR11') }}</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsHelpUR21') }}</h6>
             <div class="row text-left">
-              <p>{{ $t('RewardsHelpUR12') }}</p>
+              <p>{{ $t('RewardsHelpUR22') }}</p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
                   <q-item-section>
@@ -96,8 +96,8 @@
                       <span style="font-size: 18px;">{{ $t('OneTimePoints') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      <p>{{ $t('RewardsHelpUR13') }}</p>
-                      <p class="no-margin">{{ $t('RewardsHelpUR14') }}</p>
+                      <p>{{ $t('RewardsHelpUR23') }}</p>
+                      <p class="no-margin">{{ $t('RewardsHelpUR24') }}</p>
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -108,7 +108,7 @@
                       <span style="font-size: 18px;">{{ $t('ContinuousPoints') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      {{ $t('RewardsHelpUR15') }}
+                      {{ $t('RewardsHelpUR25') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -116,9 +116,18 @@
             </div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.USERREWARDS}-3`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsRedeem1') }}</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsRedeemUP') }}</h6>
             <div class="row text-left">
-              <p>{{ $t('RewardsRedeem2') }}</p>
+              <p>
+                {{ $t(
+                    'RewardsRedeemDyn1', { points: 'UP' },
+                    'When redeeming your UP, you can either swap it to BCH or ' +
+                    'convert it to Paytaca tokens (PTC). Both actions, if ' +
+                    'successful, will deduct your points balance and ' +
+                    'respective converted assets will appear in your wallet.'
+                  )
+                }}
+              </p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
                   <q-item-section>
@@ -138,7 +147,12 @@
                       <span style="font-size: 18px;">{{ $t('RewardsRedeem5') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      {{ $t('RewardsRedeem6') }}
+                      {{ $t(
+                          'RewardsRedeemDyn2', { points: 'UP' },
+                          'This action will convert your points to Paytaca tokens.' +
+                          'Conversion rate is 1 UP = 1 PTC.'
+                        )
+                      }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -161,10 +175,19 @@
             </div>
           </q-carousel-slide>
           <q-carousel-slide :name="`${Promos.RFPROMO}-3`" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsRedeem1') }}</h6>
+            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsRedeemRP1') }}</h6>
             <div class="row text-left">
-              <p>{{ $t('RewardsRedeem2') }}</p>
-              <p>{{ $t('RewardsRedeemRP') }}</p>
+              <p>
+                {{ $t(
+                    'RewardsRedeemDyn1', { points: 'RP' },
+                    'When redeeming your RP, you can either swap it to BCH or ' +
+                    'convert it to Paytaca tokens (PTC). Both actions, if ' +
+                    'successful, will deduct your points balance and ' +
+                    'respective converted assets will appear in your wallet.'
+                  )
+                }}
+              </p>
+              <p>{{ $t('RewardsRedeemRP2') }}</p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
                   <q-item-section>
@@ -184,7 +207,12 @@
                       <span style="font-size: 18px;">{{ $t('RewardsRedeem5') }}</span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      {{ $t('RewardsRedeem6') }}
+                      {{ $t(
+                          'RewardsRedeemDyn2', { points: 'RP' },
+                          'This action will convert your points to Paytaca tokens. ' +
+                          'Conversion rate is 1 RP = 1 PTC.'
+                        )
+                      }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>

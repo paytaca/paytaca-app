@@ -2,7 +2,7 @@
   <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       class="apps-header"
-      :title="$t('RFPromo')"
+      :title="`RF ${$t('Promo')}`"
       :rewardsPage="Promos.RFPROMO"
     />
 

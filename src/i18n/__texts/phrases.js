@@ -1260,13 +1260,12 @@ const phrases = {
       RewardsHelpRFP22: 'To earn RP, refer your friends or other users to use Paytaca.',
       RewardsHelpRFP23: 'When they create their new wallet, have them scan your referral QR code. After the new user created their wallet and completing their very first transaction, you will receive 5 RP.',
       RewardsHelpRFP24: 'There is no limit as to how much RP you can earn, so refer lots of new users as much as you can!',
-      RewardsRedeem1: 'Redeeming User Points',
-      RewardsRedeem2: 'When redeeming your UP, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.',
+      RewardsRedeemUP: 'Redeeming User Points',
+      RewardsRedeemRP1: 'Redeeming Referral Points',
       RewardsRedeem3: 'Swap to BCH',
       RewardsRedeem4: 'This action will swap your points to BCH. BCH conversion rate may vary depending on the BCH market value.',
       RewardsRedeem5: 'Convert to Tokens',
-      RewardsRedeem6: 'This action will convert your points to Paytaca tokens. Conversion rate is 1 UP = 1 PTC.',
-      RewardsRedeemRP: 'Note that you can only redeem up to 10,000 RP per month.'
+      RewardsRedeemRP2: 'Note that you can only redeem up to 10,000 RP per month.'
     }
   ],
   dynamic: [
@@ -1358,7 +1357,9 @@ const phrases = {
       LastDate: 'last {date}',
       RFPRedeemable: 'You can redeem {redeemablePoints} RP this month',
       WalletCreatedOn: 'Wallet created on {dateCreated}',
-      PageLiveTimeframe: '{days} days, {hours} hours, {minutes} minutes, {seconds} seconds'
+      PageLiveTimeframe: '{days} days, {hours} hours, {minutes} minutes, {seconds} seconds',
+      RewardsRedeemDyn1: 'When redeeming your {points}, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.',
+      RewardsRedeemDyn2: 'This action will convert your points to Paytaca tokens. Conversion rate is 1 {points} = 1 PTC.',
     }
   ]
 }

@@ -383,7 +383,8 @@ const words = [
     Rewards: 'Rewards',
     Rate: 'Rate',
     Convert: 'Convert',
-    Help: 'Help'
+    Help: 'Help',
+    Promo: 'Promo'
   }
 ]
 
