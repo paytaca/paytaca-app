@@ -1315,9 +1315,11 @@ export default {
       component: LoadingWalletDialog,
       componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
     })
-    await this.$store.dispatch('global/loadWalletLastAddressIndex')
-    await this.$store.dispatch('global/loadWalletAddresses')
-    await this.$store.dispatch('global/loadWalletConnectedApps')
+    await Promise.all([
+      this.$store.dispatch('global/loadWalletLastAddressIndex'),
+      this.$store.dispatch('global/loadWalletAddresses'),
+      this.$store.dispatch('global/loadWalletConnectedApps'),
+    ])
     dialog.hide()
   },
 
