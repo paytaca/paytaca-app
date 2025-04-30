@@ -1291,7 +1291,9 @@ const phrases = {
     {
       InitialUP: 'Initial {points} from referral',
       EarnedOn: 'Earned on {date}',
-      EarnedFirstSeven: `Earned <strong>{pointsEarned}</strong> from {refId} last {date}`
+      EarnedFirstSeven: 'Earned <strong>{pointsEarned}</strong> from {refId} last {date}',
+      EarnedFromOrder: 'Earned {points} from Order',
+      LastDate: 'last {date}'
     }
   ]
 }

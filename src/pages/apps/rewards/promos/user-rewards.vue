@@ -2,7 +2,7 @@
   <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       class="apps-header"
-      :title="`User Rewards`"
+      :title="$t('UserRewards')"
       :rewardsPage="Promos.USERREWARDS"
     />
 
@@ -12,7 +12,9 @@
       :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}"
     >
       <div class="row justify-center q-gutter-y-xs" ref="points_div">
-        <span class="col-12 text-center text-subtitle1">You currently have</span>
+        <span class="col-12 text-center text-subtitle1">
+          {{ $t('YouCurrentlyHave') }}
+        </span>
         <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
           <progress-loader
             :color="isNotDefaultTheme(theme) ? theme : 'pink'"
@@ -32,7 +34,7 @@
         <q-btn
           rounded
           class="q-mt-md button"
-          label="Redeem Points"
+          :label="$t('RedeemPoints')"
           :disable="points === 0"
           @click="openRedeemPointsDialog"
         />
@@ -42,7 +44,7 @@
         class="row col-12 justify-center q-pa-md shadow-up-1 points-earned-div"
         :class="getDarkModeClass(darkMode)"
       >
-        <span class="text-h6 q-mb-sm">Points Earned</span>
+        <span class="text-h6 q-mb-sm">{{ $t('PointsEarned') }}</span>
 
         <div v-if="isLoading" class="row col-12 justify-center">
           <progress-loader
@@ -61,13 +63,13 @@
           >
             <q-tab
               name="onetime"
-              label="One-time Points"
+              :label="$t('OneTimePoints')"
               class="network-selection-tab rewards"
               :class="getDarkModeClass(darkMode)"
             />
             <q-tab
               name="recurring"
-              label="Continuous Points"
+              :label="$t('ContinuousPoints')"
               class="network-selection-tab rewards"
               :class="getDarkModeClass(darkMode)"
             />
@@ -86,42 +88,57 @@
                   <status-chip :isCompleted="hasReceivedInitialPoints" />
                   <span class="col-10">
                     <span class="text-subtitle1">
-                      5 initial UP from referral
+                      {{ $t(
+                          'InitialUP',
+                          { points: '5 UP' },
+                          'Initial 5 UP from referral'
+                        )
+                      }}
                     </span>
                     <br/>
                     <span v-if="hasReceivedInitialPoints" class="q-ml-sm">
-                      earned on {{ parseLocaleDate(dateJoined) }}
+                      {{ $t(
+                          'EarnedOn',
+                          { date: parseLocaleDate(dateJoined) },
+                          `earned on ${parseLocaleDate(dateJoined)}`
+                        )
+                      }}
                     </span>
                     <span
                       v-else
                       class="q-ml-sm subtext-gray not-earned-label"
                       :class="getDarkModeClass(darkMode)"
                     >
-                      not yet earned
+                      {{ $t('NotYetEarned') }}
                     </span>
                   </span>
 
                   <status-chip :isCompleted="isReferralComplete" />
                   <span class="col-10">
                     <span class="text-subtitle1">
-                      5 PHP worth of BCH from referral and after completing 1st transaction
+                      {{ $t('BCHFromReferral') }}
                     </span>
                     <br/>
                     <span v-if="isReferralComplete" class="q-ml-sm">
-                      earned on {{ parseLocaleDate(referralCompleteDate) }}
+                      {{ $t(
+                          'EarnedOn',
+                          { date: parseLocaleDate(referralCompleteDate) },
+                          `earned on ${parseLocaleDate(referralCompleteDate)}`
+                        )
+                      }}
                     </span>
                     <span
                       v-else
                       class="q-ml-sm subtext-gray not-earned-label"
                       :class="getDarkModeClass(darkMode)"
                     >
-                      not yet earned
+                      {{ $t('NotYetEarned') }}
                     </span>
                   </span>
 
                   <status-chip :isCompleted="isFirstSevenComplete" />
                   <div class="col-10">
-                    <span class="text-subtitle1">Points from first 7 transactions</span>
+                    <span class="text-subtitle1">{{ $t('PointsFromSeven') }}</span>
 
                     <div class="row q-gutter-y-sm q-mt-xs">
                       <div
@@ -135,16 +152,24 @@
                         />
                         <div class="col-10">
                           <template v-if="item.ref_id !== '' && item.date != ''">
-                            Earned&nbsp;<strong>{{ item.points_earned }} UP</strong>
-                            from {{ item.ref_id }}
-                            last {{ parseLocaleDate(item.date) }}
+                            {{ $t(
+                                'EarnedFirstSeven',
+                                {
+                                  pointsEarned: item.points_earned,
+                                  refId: item.ref_id,
+                                  date: item.date
+                                },
+                                `Earned <strong>${item.points_earned}</strong> from `
+                                  + `${item.ref_id} last ${parseLocaleDate(item.date)}`
+                              )
+                            }}
                           </template>
                           <span
                             v-else
                             class="subtext-gray not-earned-label"
                             :class="getDarkModeClass(darkMode)"
                           >
-                            Not yet earned
+                          {{ $t('NotYetEarned') }}
                           </span>
                         </div>
                       </div>
@@ -154,7 +179,7 @@
 
                 <template v-else>
                   <span class="full-width text-center text-h6">
-                    Sorry, only new users can avail the one-time points.
+                    {{ $t('NonNewUsersWarning') }}
                   </span>
                 </template>
               </div>
@@ -165,7 +190,7 @@
             <q-scroll-area ref="recurring">
               <div>
                 <span class="text-subtitle1">
-                  Points from Marketplace transactions
+                  {{ $t('PointsFromMarketplace') }}
                 </span>
 
                 <div
@@ -184,25 +209,37 @@
                     <div
                       v-for="(order, i) in item.orders"
                       :key="i"
+                      class="col-12"
                     >
                       <span class="row q-pl-lg">
-                        Earned&nbsp;<strong>8 UP</strong>
-                        &nbsp;from Order&nbsp;
+                        {{ $t(
+                            'EarnedFromOrder',
+                            { points: '8 UP' },
+                            'Earned 8 UP from Order'
+                          )
+                        }}
+                        &nbsp;
                         <span
                           class="text-underline cursor-pointer"
                           @click="redirectToMarketplaceOrder(order.order_id)"
                         >
                           #{{ order.order_id }}
                         </span>
-                        &nbsp;last {{ parseLocaleDate(order.date) }}
+                        &nbsp;
+                        {{ $t(
+                            'LastDate',
+                            { date: parseLocaleDate(order.date) },
+                            `last ${parseLocaleDate(order.date)}`
+                          )
+                        }}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <span v-else class="q-mt-md row justify-center text-center text-subtitle1">
-                  You do not have any Marketplace transactions yet.<br/><br/>
-                  Order from the Marketplace to start earning points!
+                  {{ $t('PointsFromMarketplaceWarning1') }}<br/><br/>
+                  {{ $t('PointsFromMarketplaceWarning2') }}
                 </span>
               </div>
             </q-scroll-area>

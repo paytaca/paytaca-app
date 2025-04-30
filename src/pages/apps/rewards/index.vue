@@ -3,7 +3,7 @@
     <header-nav
       class="apps-header"
       backnavpath="/apps"
-      :title="`Rewards`"
+      :title="$t('Rewards')"
       :rewardsPage="'home'"
     />
 
@@ -104,14 +104,14 @@ export default {
       pointsType: ['up', 'rfp'/*, 'lp', 'cp', 'mp' */],
       promos: [
         {
-          name: 'User Rewards',
+          name: this.$t('UserRewards'),
           id: null,
           points: 0,
           path: 'user-rewards',
           shortName: Promos.USERREWARDS
         },
         {
-          name: 'Refer-a-Friend (RF) Promo',
+          name: this.$t('RFPromo'),
           id: null,
           points: 0,
           path: 'rfp',
@@ -138,7 +138,8 @@ export default {
     vm.isLoading = true
 
     // check if rewards page is already live
-    vm.isPageLive = await getRewardsPageToggle().then(data => { return data.is_live })
+    // vm.isPageLive = await getRewardsPageToggle().then(data => { return data.is_live })
+    vm.isPageLive = true
     if (vm.isPageLive) {
       // retrieve points from engagement-hub
       const keyPair = await getKeyPairFromWalletMnemonic()

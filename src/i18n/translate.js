@@ -10,7 +10,7 @@ const Translator = require('./translator')
  */
 
 const opts = {
-  ignoreExisting: true
+  ignoreExisting: process.argv.includes('--ignore-existing'),
 }
 
 const translator = new Translator()
