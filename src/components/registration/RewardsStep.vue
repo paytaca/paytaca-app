@@ -6,13 +6,13 @@
     <template v-if="!isCodeProcessed">
       <span style="font-size: 18px;">
         <!-- Were you referred by a friend or a cashier of one of our partner merchants? -->
-        Were you referred by a friend?
+        {{ $t('ReferredStepDescription1') }}
       </span>
       <span class="text-subtitle1 q-mt-sm">
-        Scan or upload their referral code so you can both receive rewards!
+        {{ $t('ReferredStepDescription2') }}
       </span>
       <span class="text-body2 q-mt-sm">
-        (Rewards can be viewed on the Rewards App in Apps page.)
+        ({{ $t('ReferredStepDescription3') }})
       </span>
 
       <div class="row col-12 justify-evenly items-center q-mt-md">
@@ -35,20 +35,20 @@
         v-if="isProcessingError"
         class="row full-width justify-center text-center text-red q-mt-md"
       >
-        An error occurred while processing the referral code. Please try again later.
+        {{ $t('ReferredStepError') }}
       </span>
 
       <div class="row full-width justify-center text-center q-mt-xl">
         <span class="text-subtitle1">
-          If not, click Continue to proceed to the next step.
+          {{ $t('ReferredStepDescription4') }}
         </span>
       </div>
     </template>
 
     <div v-else class="row full-width justify-center text-center q-mt-sm">
       <span class="text-subtitle1">
-        Referral code successfully processed!<br/><br/>
-        Click Continue to proceed to the next step.
+        {{ $t('ReferredStepSuccess1') }}<br/><br/>
+        {{ $t('ReferredStepSuccess1') }}
       </span>
     </div>
     <q-btn
@@ -61,7 +61,7 @@
 
   <div v-else class="row col-12 justify-center q-mt-lg">
     <span class="row col-12 justify-center text-center q-mb-md">
-      Processing referral code ...
+      {{ $t('ProcessingReferralCode') }} ...
     </span>
     <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
   </div>

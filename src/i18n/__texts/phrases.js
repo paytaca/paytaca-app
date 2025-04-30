@@ -1204,7 +1204,26 @@ const phrases = {
       NonNewUsersWarning: 'Sorry, only new users can avail the one-time points.',
       PointsFromMarketplace: 'Points from Marketplace transactions',
       PointsFromMarketplaceWarning1: 'You do not have any Marketplace transactions yet.',
-      PointsFromMarketplaceWarning2: 'Order from the Marketplace to start earning points!'
+      PointsFromMarketplaceWarning2: 'Order from the Marketplace to start earning points!',
+      ShowReferralQR: 'Show Referral QR Code',
+      ReferralStatus: 'Referral Status',
+      YouEarned: 'You earned',
+      UserNotTransacted: 'User has not yet transacted',
+      ReferralStatusWarning1: 'You do not have any referrals yet.',
+      ReferralStatusWarning2: 'Refer other users to use Paytaca to start earning points!',
+      PageLiveNo: 'The page will be live in:',
+      PageLiveYes: 'The page is now live!',
+      PleaseWait: 'Please wait...'
+    },
+    {
+      ReferredStepDescription1: 'Were you referred by a friend?',
+      ReferredStepDescription2: 'Scan or upload their referral code so you can both receive rewards!',
+      ReferredStepDescription3: 'Rewards can be viewed on the Rewards App in Apps page.',
+      ReferredStepDescription4: 'If not, click Continue to proceed to the next step.',
+      ReferredStepError: 'An error occurred while processing the referral code. Please try again later.',
+      ReferredStepSuccess1: 'Referral code successfully processed!',
+      ReferredStepSuccess2: 'Click Continue to proceed to the next step.',
+      ProcessingReferralCode: 'Processing referral code'
     }
   ],
   dynamic: [
@@ -1293,7 +1312,10 @@ const phrases = {
       EarnedOn: 'Earned on {date}',
       EarnedFirstSeven: 'Earned <strong>{pointsEarned}</strong> from {refId} last {date}',
       EarnedFromOrder: 'Earned {points} from Order',
-      LastDate: 'last {date}'
+      LastDate: 'last {date}',
+      RFPRedeemable: 'You can redeem {redeemablePoints} RP this month',
+      WalletCreatedOn: 'Wallet created on {dateCreated}',
+      PageLiveTimeframe: '{days} days, {hours} hours, {minutes} minutes, {seconds} seconds'
     }
   ]
 }

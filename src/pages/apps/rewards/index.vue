@@ -138,8 +138,7 @@ export default {
     vm.isLoading = true
 
     // check if rewards page is already live
-    // vm.isPageLive = await getRewardsPageToggle().then(data => { return data.is_live })
-    vm.isPageLive = true
+    vm.isPageLive = await getRewardsPageToggle().then(data => { return data.is_live })
     if (vm.isPageLive) {
       // retrieve points from engagement-hub
       const keyPair = await getKeyPairFromWalletMnemonic()

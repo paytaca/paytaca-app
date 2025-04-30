@@ -2,7 +2,7 @@
   <div id="app-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       class="apps-header"
-      :title="`RF Promo`"
+      :title="$t('RFPromo')"
       :rewardsPage="Promos.RFPROMO"
     />
 
@@ -12,7 +12,9 @@
       :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}"
     >
       <div class="row justify-center q-gutter-y-xs" ref="points_div">
-        <span class="col-12 text-center text-subtitle1">You currently have</span>
+        <span class="col-12 text-center text-subtitle1">
+          {{ $t('YouCurrentlyHave') }}
+        </span>
         <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
           <progress-loader
             :color="isNotDefaultTheme(theme) ? theme : 'pink'"
@@ -29,14 +31,19 @@
           </span>
 
           <span class="q-mb-xs col-12 text-center">
-            You can redeem {{ redeemablePoints }} RP this month
+            {{ $t(
+                'RFPRedeemable',
+                { redeemablePoints },
+                `You can redeem ${redeemablePoints} RP this month`
+              )
+            }}
           </span>
         </template>
         <div class="row col-12 justify-center">
           <q-btn
             rounded
             class="button"
-            label="Redeem Points"
+            :label="$t('RedeemPoints')"
             :disable="points === 0"
             @click="openRedeemPointsDialog"
           />
@@ -45,7 +52,7 @@
           <q-btn
             rounded
             class="q-mt-md button"
-            label="Show Referral QR Code"
+            :label="$t('ShowReferralQR')"
             @click="openReferralQrDialog"
             :disable="isLoading"
           />
@@ -57,7 +64,7 @@
         :class="getDarkModeClass(darkMode)"
       >
         <span class="row col-12 justify-center text-center text-h6 q-mb-sm">
-          Referral Status
+          {{ $t('ReferralStatus') }}
         </span>
 
         <div v-if="isLoading" class="row col-12 justify-center">
@@ -81,25 +88,31 @@
 
                 <div class="q-ml-md">
                   <span>
-                    Wallet created on {{ parseLocaleDate(item.date_created) }}
+                    {{ $t(
+                        'WalletCreatedOn',
+                        { dateCreated: item.date_created },
+                        `Wallet created on ${item.date_created}`
+                      )
+                    }}
                   </span><br/>
                   <span v-if="item.has_transacted">
-                    You earned <span class="text-bold">5 RP</span>
+                    {{ $t('You earned') }}&nbsp;
+                    <span class="text-bold">5 RP</span>
                   </span>
                   <span
                     v-else
                     class="subtext-gray not-earned-label"
                     :class="getDarkModeClass(darkMode)"
                   >
-                    User has not yet transacted
+                    {{ $t('UserNotTransacted') }}
                   </span>
                 </div>
               </div>
             </div>
 
             <div v-else class="row justify-center text-center text-subtitle1">
-              You do not have any referrals yet.<br/><br/>
-              Refer other users to use Paytaca to start earning points!
+              {{ $t('ReferralStatusWarning1') }}<br/><br/>
+              {{ $t('ReferralStatusWarning2') }}
             </div>
           </template>
         </q-scroll-area>
