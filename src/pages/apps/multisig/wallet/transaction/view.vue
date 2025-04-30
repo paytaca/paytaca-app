@@ -198,7 +198,7 @@
                 <q-item-section >
                   <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
                     <div>
-                      {{ multisigWallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}
+                      {{ multisigWallet.signers[signerEntityIndex].name || `Signer ${signerEntityIndex}` }}
                     </div>
                     <q-icon
                       :color="signerCanSign({ signerEntityIndex }) && signerSigned({ multisigTransaction, signerEntityIndex })? 'green': 'grey-8'"
