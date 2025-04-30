@@ -1323,7 +1323,6 @@ export default {
       loadTasks.push(vm.$store.dispatch('global/loadWalletAddresses'))
     }
 
-    if (this.assetId === 'bch') return
     const dialog = this.$q.dialog({
       component: LoadingWalletDialog,
       componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
