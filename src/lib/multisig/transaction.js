@@ -157,7 +157,7 @@ export class MultisigTransaction {
     return this
   }
 
-  getSignatureCount ({ addressIndex = 0, signatureFormat = 'schnorr' }) {
+  getSignatureCount ({ addressIndex = 0, signatureFormat = 'schnorr' } = {}) {
     this.requireMultisigWallet()
     const template = this.multisigWallet.getTemplate({ signatureFormat })
     const lockingData = this.multisigWallet.getLockingData({ addressIndex })

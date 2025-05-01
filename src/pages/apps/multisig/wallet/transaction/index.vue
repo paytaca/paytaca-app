@@ -37,7 +37,7 @@
                   Required Signatures: {{ multisigWallet.m }}
                 </q-item-label>
                 <q-item-label caption>
-                  Current Signatures: {{ transaction.getSignatureCount(multisigWallet) }}
+                  Current Signatures: {{ transaction.getSignatureCount() }}
                 </q-item-label>
               </q-item-section>
               <q-item-section side top>
@@ -65,7 +65,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { MultisigWallet, MultisigTransaction } from 'src/lib/multisig'
+import { MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import HeaderNav from 'components/header-nav'
 
@@ -73,7 +73,7 @@ const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getSignerXPrv } = useMultisigHelpers()
+const { getSignerXPrv, getTransactionsByWalletAddress } = useMultisigHelpers()
 const multisigWallet = ref()
 
 const darkMode = computed(() => {
@@ -81,14 +81,7 @@ const darkMode = computed(() => {
 })
 
 const multisigTransactions = computed(() => {
-  const transactions =
-    $store.getters['multisig/getTransactionsByWalletAddress']({
-      address: route.params.address
-    })
-
-  return transactions.map(t => {
-    return MultisigTransaction.createInstanceFromObject(structuredClone(t))
-  })
+ return getTransactionsByWalletAddress({ address: route.params.address })
 })
 
 const deleteAllTransactions = async () => {

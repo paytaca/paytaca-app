@@ -12,7 +12,7 @@
         </div>
       </template> -->
     </HeaderNav>
-      <div v-if="wallets && wallets.length > 0" class="row justify-center">
+      <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center">
           <!-- <div class="col-xs-12 text-right q-px-sm q-gutter-x-sm"> -->
               <!-- <q-btn
                 no-caps
@@ -76,7 +76,7 @@
                 size="md"
               />
             </div>
-            <q-list v-if="wallets" separator class="text-bow" :class="getDarkModeClass(darkMode)">
+            <q-list v-if="multisigWallets" separator class="text-bow" :class="getDarkModeClass(darkMode)">
               <q-item>
                 <q-item-section></q-item-section>
                 <q-item-section side top>
@@ -92,7 +92,7 @@
               </q-item>
               <q-separator inset />
               <q-item
-                v-for="wallet, i in wallets"
+                v-for="wallet, i in multisigWallets"
                 :key="i"
                 :to="{ name: 'app-multisig-wallet-view', params: { address: wallet.address } }"
                 class="q-py-md"
@@ -100,14 +100,14 @@
                 >
                 <q-item-section>
                   <q-item-label class="text-h6 text-weight-bold flex items-center">
-                    <q-icon name="mdi-wallet-outline" color="grad" class="q-mr-sm"></q-icon><span>{{ wallet.template.name }}</span>
+                    <q-icon name="mdi-wallet-outline" color="grad" class="q-mr-sm"></q-icon><span>{{ wallet.name }}</span>
                   </q-item-label>
                   <q-item-label caption class="text-subtitle1">
                     {{ shortenString(wallet.address, 18) }}
                   </q-item-label>
                   <q-item-label caption lines="2" class="text-subtitle1">
                     <span v-for="signerIndex in Object.keys(wallet.signers)" :key="`signer-${signerIndex}`" class="q-mr-sm">
-                      {{ signerIndex }}-{{ wallet.signers[signerIndex].signerName }}
+                      {{ signerIndex }}-{{ wallet.signers[signerIndex].name }}
                     </span>
                   </q-item-label>
                 </q-item-section>
@@ -164,10 +164,15 @@ import { Pst, shortenString, MultisigWallet } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadLibauthHdWallet } from 'src/wallet'
-
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 const $store = useStore()
 const router = useRouter()
 const { t: $t } = useI18n()
+const {
+  multisigWallets,
+  cashAddressNetworkPrefix,
+  saveMultisigWallet
+} = useMultisigHelpers()
 
 const pstFileElementRef = ref()
 const pstFile = ref()
@@ -182,9 +187,9 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const wallets = computed(() => {
-  return MultisigWallet.createInstanceFromObjects($store.getters['multisig/getWallets'])
-})
+// const wallets = computed(() => {
+//   return MultisigWallet.createInstanceFromObjects($store.getters['multisig/getWallets'])
+// })
 
 const deleteWallet = (address) => {
   $store.dispatch('multisig/deleteWallet', { address })
@@ -239,10 +244,13 @@ const onUpdateWalletFileModelValue = (file) => {
     reader.onload = () => {
       walletInstance.value = MultisigWallet.import(reader.result)
       console.log('WALLET INSTANCE', walletInstance.value)
-      $store.dispatch('multisig/saveWallet', walletInstance.value)
+      const defaultAddress = walletInstance.value.getAddress({
+        addressIndex: 0, cashAddressNetworkPrefix
+      })
+      saveMultisigWallet(walletInstance.value)
       router.push({
         name: 'app-multisig-wallet-view',
-        params: { address: walletInstance.value.address }
+        params: { address: defaultAddress }
       })
     }
     reader.onerror = (err) => {
@@ -266,7 +274,7 @@ onMounted(async () => {
   console.log('🚀 ~ onMounted ~ w2:', w2)
   const w3 = await loadLibauthHdWallet(2)
   console.log('🚀 ~ onMounted ~ w3:', w3)
-  console.log('wallets', wallets.value)
+  console.log('wallets', multisigWallets.value)
 })
 
 </script>
