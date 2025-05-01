@@ -95,6 +95,14 @@ export default {
           smartBCHOnly: false
         },
         {
+          name: 'Rewards',
+          iconName: 'workspace_premium',
+          path: '/apps/rewards',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',

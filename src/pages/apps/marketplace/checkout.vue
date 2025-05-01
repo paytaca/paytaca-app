@@ -810,7 +810,7 @@ import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDi
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
-import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
+import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
 
 const forceShowReview = ref(false)
 onMounted(() => {

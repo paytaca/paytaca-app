@@ -190,7 +190,7 @@ import {
   massHideNotifs,
   markWalletNotifsAsRead,
   markItemAsRead
-} from 'src/utils/engagementhub-utils'
+} from 'src/utils/engagementhub-utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import NotificationsFilterDialog from 'src/components/notifications/NotificationsFilterDialog.vue'
