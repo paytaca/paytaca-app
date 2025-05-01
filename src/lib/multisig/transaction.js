@@ -15,8 +15,7 @@ import {
   stringify,
   decodeTransactionCommon,
   createVirtualMachineBch,
-  extractMissingVariables,
-  hashTransactionUiOrder
+  extractMissingVariables
 } from 'bitauth-libauth-v3'
 
 import Watchtower from '../watchtower'
@@ -371,7 +370,7 @@ export class MultisigTransaction {
     })
     const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
     this.signedTransaction = binToHex(encodedTransaction)
-    this.signedTransactionTxid = binToHex(hashTransactionUiOrder(this.signedTransaction))
+    this.signedTransactionComputedTxid = hashTransaction(this.signedTransaction)
     if (this.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
       this.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
     }
