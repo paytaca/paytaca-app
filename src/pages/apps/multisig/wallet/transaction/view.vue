@@ -179,7 +179,7 @@
                   </div>
                 </q-item-section>
                 <q-item-section side>
-                  {{ multisigTransaction.getSignatureCount(multisigWallet) }}&nbsp;
+                  {{ multisigTransaction.getSignatureCount() }}&nbsp;
                 </q-item-section>
               </q-item>
               <q-expansion-item>
@@ -278,14 +278,12 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { computed, ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { stringify, CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
-// import { loadWallet } from 'src/wallet'
 import { toP2shTestAddress } from 'src/utils/address-utils'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
-  MultisigWallet,
   MultisigTransaction,
   getTotalBchInputAmount,
   getTotalBchOutputAmount,
@@ -298,30 +296,14 @@ const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
-const { 
- getSignerXPrv,
- deleteTransaction,
- multisigWallets,
- cashAddressNetworkPrefix 
+const {
+  getSignerXPrv,
+  deleteTransaction,
+  multisigWallets,
+  cashAddressNetworkPrefix
 } = useMultisigHelpers()
 
-// const multisigTransaction = computed(() => {
-//   const transactions = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
-//   console.log('🚀 ~ multisigTransaction ~ transactions:', transactions)
-//   if (transactions[route.params.index]) {
-//     return MultisigTransaction.createInstanceFromObject(structuredClone(transactions[route.params.index]))
-//   }
-//   return transactions[route.params.index]
-// })
-
 const multisigTransaction = ref()
-
-// const signerSigned = computed(() => {
-//   return ({ signerEntityIndex }) => {
-//     return multisigWallet.value.signerSigned({ multisigTransaction: multisigTransaction.value, signerEntityIndex })
-//   }
-// })
-
 const signerSigned = computed(() => {
   return ({ signerEntityIndex }) => {
     if (multisigWallet.value && multisigTransaction.value) {
@@ -339,17 +321,6 @@ const signerCanSign = computed(() => {
   }
 })
 
-// const transactionOrigin = computed(() => {
-//   if (multisigTransaction.value?.sessionRequest?.verifyContext) {
-//     return multisigTransaction.value?.sessionRequest?.verifyContext?.verified?.origin || 'Unknown Origin'
-//   }
-//   return 'Wallet'
-// })
-
-// const transactionUserPrompt = computed(() => {
-//   return multisigTransaction.value?.sessionRequest?.params?.request?.params?.userPrompt || 'Signature Request'
-// })
-
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
@@ -357,9 +328,9 @@ const darkMode = computed(() => {
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const multisigWallet = computed(() => {
- return multisigWallets.value?.find((wallet) => {
-  return wallet.address = route.params.address
- })
+  return multisigWallets.value?.find((wallet) => {
+    return wallet.address === route.params.address
+  })
 })
 
 const signTransaction = async ({ signerEntityIndex, xprv }) => {
@@ -395,14 +366,12 @@ const signTransaction = async ({ signerEntityIndex, xprv }) => {
   //   signerEntityIndex
   // })
   multisigTransaction.value.signTransaction({
-    signerEntityIndex,
-    cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+    signerEntityIndex
   })
   // router.push({ name: 'app-multisig-wallet-pst-view', params: { address: multisigWallet.value.address, id: pst.value.id } })
 }
 
 const broadcastTransaction = async () => {
-  
   const cashAddressNetworkPrefix =
     isChipnet.value ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
 
@@ -444,7 +413,7 @@ const downloadPST = () => {
 }
 
 onMounted(async () => {
-  console.log('multisig wallet', multisigWallet.value) 
+  console.log('multisig wallet', multisigWallet.value)
   await multisigWallet.value?.loadSignerXprivateKeys(getSignerXPrv)
 
   const transactions =
