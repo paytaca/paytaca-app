@@ -256,7 +256,8 @@ const { t: $t } = useI18n()
 const $store = useStore()
 const {
   saveTransaction: saveMultisigTransaction,
-  transactionsLastIndex: multisigTransactionsLastIndex
+  transactionsLastIndex: multisigTransactionsLastIndex,
+  multisigWallets
 } = useMultisigHelpers()
 
 const loading = ref/* <string> */()
@@ -269,7 +270,7 @@ const watchtower = ref()
 // const walletExternalAddresses = ref/* <string[]> */()
 
 const walletAddresses = ref([]) /* <{index: number, address: string, wif: string}[]> */
-const multisigWalletAddresses = ref([])
+// const multisigWallets = ref([])
 /**
  * Mapping of session proposal pairing topic and the address approved
  * for this proposal.
@@ -435,14 +436,14 @@ const loadSessionRequests = async ({ showLoading } = { showLoading: true }, sess
  * and maps each topic with corresponding wallet
  * data
  */
-const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWalletAddresses) => {
+const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWallets) => {
   for (const topic in activeSessions) {
     activeSessions?.[topic]?.namespaces?.bch?.accounts?.forEach((account) => {
       let addressInfo = walletAddresses.find((addressInfo) => {
         return account.includes(addressInfo.address)
       })
       if (!addressInfo) {
-        addressInfo = multisigWalletAddresses.find((addressInfo) => {
+        addressInfo = multisigWallets.find((addressInfo) => {
           return account.includes(addressInfo.address)
         })
       }
@@ -473,7 +474,7 @@ async function saveConnectedApp (session) {
         })
       }
       // Try if it's a multisig wallet
-      const multisigAddress = multisigWalletAddresses.value.find((walletAddress) => {
+      const multisigAddress = multisigWallets.value.find((walletAddress) => {
         // eslint-disable-next-line eqeqeq
         return walletAddress.address == accountWCPrefixRemoved
       })
@@ -631,7 +632,7 @@ const openAddressSelectionDialog = async (sessionProposal) => {
           sessionProposal: sessionProposal,
           darkMode: darkMode.value,
           walletAddresses: walletAddresses.value,
-          multisigWalletAddresses: multisigWalletAddresses.value,
+          multisigWallets: multisigWallets.value,
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })
@@ -669,7 +670,7 @@ const approveSessionProposal = async (sessionProposal) => {
   }
   // Choose the first address by default
   let selectedAddress = walletAddresses.value?.[0]
-  if (walletAddresses.value?.length > 1 || multisigWalletAddresses.value.length > 0) {
+  if (walletAddresses.value?.length > 1 || multisigWallets.value.length > 0) {
     // let user select the address wallet has more than 1 address
     processingSession.value[sessionProposal.pairingTopic] = 'Selecting Address'
     const { selectedWalletAddress } = await openAddressSelectionDialog(sessionProposal)
@@ -1035,7 +1036,7 @@ const refreshComponent = async () => {
 }
 
 watchEffect(() => {
-  mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value, multisigWalletAddresses.value)
+  mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value, multisigWallets.value)
 })
 
 onBeforeMount(async () => {
@@ -1065,9 +1066,10 @@ onMounted(async () => {
     if (!$store.getters['global/walletAddresses']) {
       await $store.dispatch('global/loadWalletAddresses')
     }
-    multisigWalletAddresses.value = $store.getters['multisig/getWallets']
+    // multisigWallets.value = $store.getters['multisig/getWallets']
     // TODO: load multisig wallets from watchtower
     walletAddresses.value = $store.getters['global/walletAddresses']
+    console.log('multisigWallets', multisigWallets.value)
   } catch (error) {} finally { loading.value = undefined }
 })
 onUnmounted(() => {
