@@ -629,52 +629,56 @@
               <div class="q-px-sm text-subtitle1">Items</div>
               <q-separator :dark="darkMode" class="q-mx-sm"/>
               <table class="full-width items-table">
-                <tr>
-                  <th colspan="2" class="full-width">Item</th>
-                  <th>Quantity</th>
-                  <th>Subtotal</th>
-                </tr>
-                <template v-for="cartItem in checkout?.cart?.items" :key="cartItem?.variant?.id">
+                <thead>
                   <tr>
-                    <td colspan="2">
-                      <q-btn
-                        flat no-caps
-                        padding="none"
-                        :to="{
-                          name: 'app-marketplace-product',
-                          params: { productId: cartItem?.variant?.product?.id },
-                          query: { variantId: cartItem?.variant?.id },
-                        }"
-                      >
-                        <div class="row items-center justify-left no-wrap full-width text-left">
-                          <q-img
-                            v-if="cartItem?.variant?.itemImage"
-                            :src="cartItem?.variant?.itemImage"
-                            width="35px"
-                            ratio="1"
-                            style="min-width:35px;"
-                            class="rounded-borders q-mr-xs"
-                          />
-                          <div class="q-space">
-                            <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
-                            <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
+                    <th colspan="2" class="full-width">Item</th>
+                    <th>Quantity</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template v-for="cartItem in checkout?.cart?.items" :key="cartItem?.variant?.id">
+                    <tr>
+                      <td colspan="2">
+                        <q-btn
+                          flat no-caps
+                          padding="none"
+                          :to="{
+                            name: 'app-marketplace-product',
+                            params: { productId: cartItem?.variant?.product?.id },
+                            query: { variantId: cartItem?.variant?.id },
+                          }"
+                        >
+                          <div class="row items-center justify-left no-wrap full-width text-left">
+                            <q-img
+                              v-if="cartItem?.variant?.itemImage"
+                              :src="cartItem?.variant?.itemImage"
+                              width="35px"
+                              ratio="1"
+                              style="min-width:35px;"
+                              class="rounded-borders q-mr-xs"
+                            />
+                            <div class="q-space">
+                              <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
+                              <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
+                            </div>
                           </div>
-                        </div>
-                      </q-btn>
-                    </td>
-                    <td class="text-center" style="white-space:nowrap;">{{ cartItem?.quantity }}</td>
-                    <td class="text-right" style="white-space:nowrap;">{{ (cartItem?.variant?.markupPrice * cartItem?.quantity) }} {{ checkoutCurrency }}</td>
-                  </tr>
-                  <tr v-for="(addon, index) in cartItem.addons" :key="`${cartItem?.id}-${index}`">
-                    <td></td>
-                    <td>
-                      <div>{{ addon?.label }}</div>
-                      <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
-                    </td>
-                    <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
-                    <td class="text-right" style="white-space:nowrap;">{{ round(addon?.markupPrice * cartItem?.quantity, 3) }} {{ checkoutCurrency }}</td>
-                  </tr>
-                </template>
+                        </q-btn>
+                      </td>
+                      <td class="text-center" style="white-space:nowrap;">{{ cartItem?.quantity }}</td>
+                      <td class="text-right" style="white-space:nowrap;">{{ (cartItem?.variant?.markupPrice * cartItem?.quantity) }} {{ checkoutCurrency }}</td>
+                    </tr>
+                    <tr v-for="(addon, index) in cartItem.addons" :key="`${cartItem?.id}-${index}`">
+                      <td></td>
+                      <td>
+                        <div>{{ addon?.label }}</div>
+                        <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
+                      </td>
+                      <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
+                      <td class="text-right" style="white-space:nowrap;">{{ round(addon?.markupPrice * cartItem?.quantity, 3) }} {{ checkoutCurrency }}</td>
+                    </tr>
+                  </template>
+                </tbody>
               </table>
               </q-card>
             </div>
