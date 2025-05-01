@@ -49,7 +49,7 @@
                     <q-separator />
                     <q-list>
                       <q-item v-for="signerEntityIndex in Object.keys(wallet.signers)" :key="signerEntityIndex">
-                        <q-item-section>{{ wallet.signers[signerEntityIndex].signerName || `Signer ${signerEntityIndex}` }}</q-item-section>
+                        <q-item-section>{{ wallet.signers[signerEntityIndex].name || `Signer ${signerEntityIndex}` }}</q-item-section>
                         <q-item-section side top>
                           <q-btn
                             label="Sign"

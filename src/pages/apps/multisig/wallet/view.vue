@@ -16,9 +16,7 @@
             <q-list>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="text-h6">{{ wallet.template.name }}</q-item-label>
-                  <q-item-label caption lines="2">{{ wallet.template.description }}</q-item-label>
-                  <!-- <q-item-label caption lines="2">{{ shortenString(wallet.address, 15) }}</q-item-label> -->
+                  <q-item-label class="text-h6">{{ wallet.name }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <!-- <q-item-label caption>5 min ago</q-item-label> -->
@@ -31,7 +29,7 @@
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label >
-                    {{ shortenString(wallet.address, 20) }} <CopyButton :text="wallet.address"/>
+                    {{ shortenString(route.params.address, 20) }} <CopyButton :text="route.params.address"/>
                   </q-item-label>
                   <!-- <q-icon name="bch" color="green" /> -->
                 </q-item-section>
@@ -56,7 +54,7 @@
               <q-item-label header>Signers</q-item-label>
               <q-item v-for="signerIndex in Object.keys(wallet.signers)" :key="`app-multisig-view-signer-${signerIndex}`">
                 <q-item-section>
-                  <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerIndex}}. {{ wallet.signers[signerIndex].signerName }}</q-item-label>
+                  <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerIndex}}. {{ wallet.signers[signerIndex].name }}</q-item-label>
                   <q-item-label caption >{{ shortenString(wallet.signers[signerIndex].xpub, 20) }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
@@ -166,6 +164,7 @@ import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigTransaction, shortenString, MultisigWallet } from 'src/lib/multisig'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
@@ -175,6 +174,7 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { getMultisigWalletBchBalance } = useMultisigHelpers()
 const balance = ref()
 
 const darkMode = computed(() => {
@@ -188,7 +188,9 @@ const transactionFromStore = ref()
 
 const wallet = computed(() => {
   if (route.params?.address) {
-    const walletObject = $store.getters['multisig/getWallet']({ address: route.params.address })
+    const walletObject = $store.getters['multisig/getWallet']({
+      address: route.params.address
+    })
     if (walletObject) {
       return MultisigWallet.createInstanceFromObject(walletObject)
     }
@@ -198,21 +200,23 @@ const wallet = computed(() => {
 
 const transactions = computed(() => {
   if (route.params?.address) {
-    return $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
+    return $store.getters['multisig/getTransactionsByWalletAddress']({
+      address: route.params.address
+    })
   }
   return []
 })
 
-const psts = computed(() => {
-  if (!wallet.value?.address) return []
-  const _psts = $store.getters['multisig/getPsts']
-  return _psts.map((p) => {
-    const instance = new MultisigTransaction(p)
-    return instance
-  }).filter((p) => {
-    return p.address === wallet.value.address
-  })
-})
+// const psts = computed(() => {
+//   if (!wallet.value?.address) return []
+//   const _psts = $store.getters['multisig/getPsts']
+//   return _psts.map((p) => {
+//     const instance = new MultisigTransaction(p)
+//     return instance
+//   }).filter((p) => {
+//     return p.address === wallet.value.address
+//   })
+// })
 
 const deleteWallet = (address) => {
   $store.dispatch('multisig/deleteWallet', { address })
@@ -281,13 +285,10 @@ const openWalletActionsDialog = () => {
 }
 
 onMounted(async () => {
-  console.log('🚀 ~ psts ~ psts:', psts)
   try {
-    const watchtower = new Watchtower($store.getters['global/isChipnet'])
-    const bch = await watchtower.getAddressBchBalance(wallet.value.address)
-    console.log('🚀 ~ onMounted ~ balance:', balance)
-    balance.value = bch.balance
-    console.log('MULTISIG WALLET', wallet.value)
+    balance.value = await getMultisigWalletBchBalance(
+      decodeURIComponent(route.params.address)
+    )
   } catch (error) {}
 })
 </script>

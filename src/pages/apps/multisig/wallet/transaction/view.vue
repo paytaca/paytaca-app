@@ -298,7 +298,12 @@ const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
-const { getSignerXPrv, deleteTransaction } = useMultisigHelpers()
+const { 
+ getSignerXPrv,
+ deleteTransaction,
+ multisigWallets,
+ cashAddressNetworkPrefix 
+} = useMultisigHelpers()
 
 // const multisigTransaction = computed(() => {
 //   const transactions = $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
@@ -351,7 +356,11 @@ const darkMode = computed(() => {
 
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
-const multisigWallet = ref()
+const multisigWallet = computed(() => {
+ return multisigWallets.value?.find((wallet) => {
+  return wallet.address = route.params.address
+ })
+})
 
 const signTransaction = async ({ signerEntityIndex, xprv }) => {
   console.log('sign', signerEntityIndex, xprv)
@@ -386,13 +395,14 @@ const signTransaction = async ({ signerEntityIndex, xprv }) => {
   //   signerEntityIndex
   // })
   multisigTransaction.value.signTransaction({
-    multisigWallet: multisigWallet.value,
-    signerEntityIndex
+    signerEntityIndex,
+    cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
   })
   // router.push({ name: 'app-multisig-wallet-pst-view', params: { address: multisigWallet.value.address, id: pst.value.id } })
 }
 
 const broadcastTransaction = async () => {
+  
   const cashAddressNetworkPrefix =
     isChipnet.value ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
 
@@ -404,7 +414,7 @@ const broadcastTransaction = async () => {
     })
   }
   console.log('🚀 ~ broadcastTransaction ~ multisigTransaction:', multisigTransaction)
-  if (multisigTransaction.value?.metadata?.signedTransaction) {
+  if (multisigTransaction.value?.signedTransaction) {
     const network = isChipnet.value ? 'chipnet' : 'mainnet'
     const response = await multisigTransaction.value.broadcast({ network })
     console.log('🚀 ~ broadcastTransaction ~ response:', await response.json())
@@ -434,11 +444,8 @@ const downloadPST = () => {
 }
 
 onMounted(async () => {
-  const m = MultisigWallet.createInstanceFromObject(
-    $store.getters['multisig/getWallet']({ address: route.params.address })
-  )
-  await m.loadSignerXprivateKeys(getSignerXPrv)
-  multisigWallet.value = m
+  console.log('multisig wallet', multisigWallet.value) 
+  await multisigWallet.value?.loadSignerXprivateKeys(getSignerXPrv)
 
   const transactions =
     $store.getters['multisig/getTransactionsByWalletAddress']({
@@ -448,9 +455,11 @@ onMounted(async () => {
   console.log('🚀 ~ multisigTransaction ~ transactions:', transactions)
   if (transactions[route.params.index]) {
     multisigTransaction.value =
-      MultisigTransaction.createInstanceFromObject(
-        structuredClone(transactions[route.params.index])
-      )
+      MultisigTransaction.createInstanceFromObject({
+        ...structuredClone(transactions[route.params.index]),
+        multisigWallet: multisigWallet.value
+      })
+    console.log('transaction/view.vue', multisigTransaction.value)
     await multisigTransaction.value.refreshStatus(multisigWallet.value)
   }
 })
