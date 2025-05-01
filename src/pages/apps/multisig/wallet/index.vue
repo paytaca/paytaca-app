@@ -40,7 +40,7 @@
                     <q-item-label>{{ wallet.template.name }}</q-item-label>
                     <q-item-label caption lines="2">
                       <span v-for="signer, ii in Object.values(wallet.signers)" :key="`signer-${ii}`">
-                        {{ signer.signerName }}
+                        {{ signer.name }}
                       </span>
                     </q-item-label>
                     <q-item-label>
