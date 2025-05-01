@@ -142,7 +142,7 @@ const props = defineProps({
   sessionProposal: Object,
   darkMode: Boolean,
   walletAddresses: Array, /* walletObject[] */
-  multisigWalletAddresses: Array, /* multisigWallets[] */
+  multisigWallets: Array, /* multisigWallets[] */
   lastUsedWalletAddress: null /* { wallet_address: string, app_url: string, app_icon: string } */
 })
 
@@ -154,7 +154,7 @@ const multisigAddressOptions = ref([]) /* <{label: string, value: string, select
 const onConnectClick = () => {
   let selectedWalletAddress = props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
   if (addressSelectedIsMultisig.value) {
-    selectedWalletAddress = props.multisigWalletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
+    selectedWalletAddress = props.multisigWallets.find((walletAddress) => walletAddress.address === addressSelected.value)
   }
   onDialogOK({
     selectedWalletAddress,
@@ -189,7 +189,7 @@ const selectMultisigAddress = (address) => {
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: item.address, address: item.address, index: item.address_index }))
-  multisigAddressOptions.value = props.multisigWalletAddresses?.map((item) => ({ label: item.address, address: item.address, isMultisig: true, walletName: item.template?.name }))
+  multisigAddressOptions.value = props.multisigWallets?.map((item) => ({ label: item.address, address: item.address, isMultisig: true, walletName: item.template?.name }))
   if (props.walletAddresses) {
     addressSelected.value = props.walletAddresses[0].address
     addressOptions.value[0].selected = true
