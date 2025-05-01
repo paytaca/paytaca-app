@@ -26,7 +26,7 @@ export const MultisigTransactionStatus = Object.freeze({
   PENDING_UNSIGNED: 0,
   PENDING_PARTIALLY_SIGNED: 1,
   PENDING_FULLY_SIGNED: 2,
-  SUBMITTED: 3,
+  BROADCASTED: 3,
   CONFIRMED: 4
 })
 
@@ -34,7 +34,7 @@ export const MultisigTransactionStatusText = Object.freeze({
   [MultisigTransactionStatus.PENDING_UNSIGNED]: 'Pending, unsigned',
   [MultisigTransactionStatus.PENDING_PARTIALLY_SIGNED]: 'Pending, partially signed',
   [MultisigTransactionStatus.PENDING_FULLY_SIGNED]: 'Pending, fully signed',
-  [MultisigTransactionStatus.SUBMITTED]: 'Submitted',
+  [MultisigTransactionStatus.BROADCASTED]: 'Broadcasted',
   [MultisigTransactionStatus.CONFIRMED]: 'Confirmed'
 })
 
@@ -44,7 +44,7 @@ export class MultisigTransaction {
     this.sourceOutputs = sourceOutputs
     this.signatures = signatures || {}
     this.metadata = metadata || {
-      status: MultisigTransactionStatus.PENDING_UNSIGNED, /* Partially Signed | Fully Signed | Submitted | Confirmed */
+      status: MultisigTransactionStatus.PENDING_UNSIGNED, /* Partially Signed | Fully Signed | Broadcasted | Confirmed */
       finalized: false
     }
     this.multisigWallet = multisigWallet
@@ -157,14 +157,13 @@ export class MultisigTransaction {
     return this
   }
 
-  getSignatureCount ({ addressIndex = 0, signatureFormat = 'schnorr', cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet }) {
+  getSignatureCount ({ addressIndex = 0, signatureFormat = 'schnorr' }) {
     this.requireMultisigWallet()
     const template = this.multisigWallet.getTemplate({ signatureFormat })
     const lockingData = this.multisigWallet.getLockingData({ addressIndex })
     const signersWithoutSignatures = this.identifySignersWithoutSignatures({
       template,
-      lockingData,
-      cashAddressNetworkPrefix
+      lockingData
     })
 
     const missingSignatures = Array.from(signersWithoutSignatures.missingSignersEntityIdSet || [])
@@ -203,7 +202,7 @@ export class MultisigTransaction {
       if (this.metadata.status === MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
         // TODO: check if submitted or confirmed then update
       }
-      if (this.metadata.status === MultisigTransactionStatus.SUBMITTED) {
+      if (this.metadata.status === MultisigTransactionStatus.BROADCASTED) {
         // TODO: check if confirmed, then update
       }
     } catch (error) {} finally {
@@ -372,7 +371,7 @@ export class MultisigTransaction {
     })
     const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
     this.signedTransaction = binToHex(encodedTransaction)
-    this.signedTransactionTxid = binToHex(hashTransactionUiOrder(this.signTransaction))
+    this.signedTransactionTxid = binToHex(hashTransactionUiOrder(this.signedTransaction))
     if (this.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
       this.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
     }
@@ -400,9 +399,11 @@ export class MultisigTransaction {
       await watchtower.subscribe({
         address: this.multisigWallet.getAddress({ addressIndex, cashAddressNetworkPrefix })
       })
-      return await watchtower.broadcastTx(
+      const response = await watchtower.broadcastTx(
         this.signedTransaction
       )
+      this.metadata.status = MultisigTransactionStatus.BROADCASTED
+      return response
     } catch (error) {
       console.log(error)
     } finally {
