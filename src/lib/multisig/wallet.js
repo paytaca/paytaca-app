@@ -15,20 +15,11 @@ import {
   binToBase64,
   base64ToBin,
   binToUtf8,
-  binToHex,
-  extractResolvedVariables,
-  generateTransaction,
-  encodeTransactionCommon,
-  CashAddressNetworkPrefix,
-  hexToBin,
-  extractMissingVariables,
-  createVirtualMachineBch
+  CashAddressNetworkPrefix
 } from 'bitauth-libauth-v3'
 import { createTemplate } from './template.js'
-import { MultisigTransaction, MultisigTransactionStatus } from './transaction.js'
 
 const getHdKeys = ({ signers, addressIndex = 0 /* { [signerIndex: number]: { xpub: string, name: string ...} } */ }) => {
-  console.log('🚀 ~ getHdKeys ~ signers:', signers)
   const hdKeys = {
     addressIndex,
     hdPublicKeys: {}
@@ -74,43 +65,11 @@ export class MultisigWallet {
     this.n = n
     this.name = name
     this.signers = signers
-    // this.network = network
-    // this.lockingData = getLockingData({ signers: this.signers })
   }
-
-  // createTemplate (signatureFormat) {
-  //   let signerNames = Object.entries(this.signers).map((entry) => {
-  //     const key = entry[0]
-  //     const value = entry[1]
-  //     return [key, value.name]
-  //   })
-  //   signerNames = Object.fromEntries(signerNames)
-  //   this.template = createTemplate({
-  //     name: this.name,
-  //     m: this.m,
-  //     n: this.n,
-  //     signatureFormat,
-  //     signerNames
-  //   })
-  //   return this
-  // }
 
   get lockingScriptId () {
     return 'lock'
   }
-
-  // get compiler () {
-  //   const parsedTemplate = importWalletTemplate(this.template)
-  //   if (typeof parsedTemplate === 'string') {
-  //     throw new Error('Failed creating multisig wallet template.')
-  //   }
-  //   const compiler = walletTemplateToCompilerBch(parsedTemplate)
-  //   return compiler
-  // }
-
-  // get lockingData () {
-  //   return getLockingData({ signers: this.signers })
-  // }
 
   get signersSafe () {
     const signers = structuredClone(this.signers)
@@ -120,30 +79,12 @@ export class MultisigWallet {
     return signers
   }
 
-  // get lockingBytecode () {
-  //   const lockingBytecode = this.compiler.generateBytecode({
-  //     data: this.lockingData,
-  //     scriptId: this.lockingScriptId
-  //   })
-  //   return lockingBytecode
-  // }
-
   /**
    * Primary multisig wallet address. Address at index 0.
    * @deprecated Use getAddress({ addressIndex, cashAddressNetworkPrefix }) instead
    * so that cashAddressNetworkPrefix can be removed as class dependency.
    * Need to refactor WalletConnect before removing this.
    */
-  // get address () {
-  //   // const { address } = lockingBytecodeToCashAddress({
-  //   //   bytecode: this.lockingBytecode.bytecode,
-  //   //   prefix: this.cashAddressNetworkPrefix
-  //   // })
-  //   return this.getAddress({
-  //     addressIndex: 0
-  //   })
-  // }
-
   getSignerNames () {
     const signerNames = Object.entries(this.signers).map((entry) => {
       const key = entry[0]
@@ -255,7 +196,6 @@ export class MultisigWallet {
     const parsed = JSON.parse(binToUtf8(bin))
     console.log('🚀 ~ MultisigWallet ~ import ~ parsed:', parsed)
     const wallet = MultisigWallet.createInstanceFromObject(parsed)
-    // wallet.createTemplate()
     return wallet
   }
 
@@ -280,7 +220,6 @@ export class MultisigWallet {
 
   static createInstanceFromObject (wallet) {
     const multisigWallet = new MultisigWallet(structuredClone(wallet))
-    // multisigWallet.createTemplate()
     return multisigWallet
   }
 
