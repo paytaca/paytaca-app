@@ -99,25 +99,6 @@
 #qr-button {
     z-index: 100 !important;
   }
-// ul {
-//   position: relative;
-//   padding: 0;
-//   margin: 0px 10px 0px;
-//   display: flex;
-//   width: max-content;
-//   list-style: none;
-//   height: 100%;
-// }
-// li {
-//   display: flex;
-//   color: #ffffff;
-//   justify-content: center;
-//   align-items: center;
-//   margin: 0px 5px 0px;
-//   // min-width: 50px;
-//   height: 100%;
-//   // padding-top: 15px;
-// }
 .center {
   display: flex;
   justify-content: center;

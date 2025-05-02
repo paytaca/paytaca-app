@@ -8,7 +8,7 @@
     <!-- Apps -->
     <div id="list-container" class="apps-options">
       <div v-for="app in apps" class="app-item text-center">
-        <q-btn  class="button-light br-15 app-button" square style="padding: 0px 10px 0px;">
+        <q-btn  class="button-light br-15 app-button" square style="padding: 0px 10px 0px;" @click="$router.push(app.path)">
           <q-icon size="24px" :name="app.icon"/>
         </q-btn>
         <p class="q-pt-md title-smaller app-text">{{ app.name }}</p>
@@ -27,16 +27,16 @@ export default {
     return {
       iconPath: 'img:ui-revamp/',
       apps: [
-        { name: 'Merchant Admin' , icon: 'img:ui-revamp/merchant-admin.svg'},
-        { name: 'Marketplace' , icon: 'img:ui-revamp/marketplace.svg'},
-        { name: 'P2P Echange' , icon: 'img:ui-revamp/p2p-exchange.svg'},
-        { name: 'Anyhedge' , icon: 'img:ui-revamp/anyhedge.svg'},
-        { name: 'Wallet Connect', icon: 'mdi-connection' },
-        { name: 'Gifts', icon: 'mdi-gift'},
-        { name: 'Collectibles', icon: 'burst_mode' },
-        { name: 'Map', icon: 'public' },
-        { name: 'Wallet Info', icon: 'info' }, // remove this from list?
-        { name: 'Wallet Backup', icon: 'img:wallet-backup.png' }
+        { name: 'Merchant Admin' , icon: 'img:ui-revamp/merchant-admin.svg', path: '/apps/pos-admin'},
+        { name: 'Marketplace' , icon: 'img:ui-revamp/marketplace.svg', path: '/apps/marketplace'},
+        { name: 'P2P Echange' , icon: 'img:ui-revamp/p2p-exchange.svg', path: '/apps/exchange'},
+        { name: 'Anyhedge' , icon: 'img:ui-revamp/anyhedge.svg', path: 'apps/anyhedge'},
+        { name: 'Wallet Connect', icon: 'mdi-connection', path: '/apps/wallet-connect' },
+        { name: 'Gifts', icon: 'mdi-gift', path: '/apps/gifts' },
+        { name: 'Collectibles', icon: 'burst_mode', path: '/apps/collectibles'},
+        { name: 'Map', icon: 'public', path: '/apps/map/' },
+        { name: 'Wallet Info', icon: 'info', path: '/apps/wallet-info' }, // remove this from list?
+        { name: 'Wallet Backup', icon: 'img:wallet-backup.png', path: '/apps/wallet-backup' }
 
 
 

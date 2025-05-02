@@ -7,6 +7,7 @@ body.theme-overhaul {
   $dark_bg: #0F1928;
   $light_bg: #F8FAFC;
   $colored_bg: #D9EDFF;
+  $header_nav_bg: #15315C;
   $gradient_bg: linear-gradient(
     #000E25,
     #4C8BED
@@ -51,6 +52,17 @@ body.theme-overhaul {
     z-index: 6;
     -webkit-mask-image: radial-gradient(circle at top, transparent 30px, black 31px);
 
+  }
+  .header-nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 0;
+    background-color: $header_nav_bg;
+    height: 300px;
+  }
+  .page-content {
+    z-index: 1;
   }
 
   // Typography
