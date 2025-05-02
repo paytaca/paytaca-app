@@ -175,7 +175,7 @@ export class MultisigTransaction {
     return `https://${isChipnet ? 'chipnet.' : ''}watchtower.cash/api/multisig/transaction-proposals?unsignedHash=${unsignedTransactionHash}`
   }
 
-  async refreshStatus ({ addressIndex = 0, signatureFormat = 'schnorr', cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet }) {
+  async refreshStatus ({ addressIndex = 0, signatureFormat = 'schnorr', cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet } = {}) {
     this.requireMultisigWallet()
     try {
       if (!this.metadata) {
@@ -394,7 +394,6 @@ export class MultisigTransaction {
       const isChipnet = network === 'chipnet' || network === 'testnet'
       const watchtower = new Watchtower(isChipnet)
       const cashAddressNetworkPrefix = isChipnet ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
-      console.log('BROADCAST', cashAddressNetworkPrefix)
       await watchtower.subscribe({
         address: this.multisigWallet.getAddress({ addressIndex, cashAddressNetworkPrefix })
       })
