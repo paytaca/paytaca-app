@@ -12,13 +12,15 @@
       </div>
       <div class="row">
         <!-- Price -->
-        <div class="headline-large">{{ balance.toFixed(7) }} <span class="headline-small">BCH</span></div>
+        <q-skeleton type="rect" v-if="!loaded" style="width: 250px"/>
+        <div v-else class="headline-large">{{ balance }} <span class="headline-small">BCH</span></div>
         <!-- Token Icon -->
         <q-img src="bch-logo.png" id="header-logo"/>
       </div>
       <!-- Fiat Equivalent -->
-       <div class="label-small">
-        <span class="text-uppercase">{{ this.selectedMarketCurrency }}</span> &nbsp; {{ parseFiatCurrency(balance, this.selectedMarketCurrency) }}
+        <q-skeleton v-if="!loaded" type="text" style="width: 50px;"/>
+       <div v-else class="label-small">
+        <span class="text-uppercase">{{ this.selectedMarketCurrency }}</span> &nbsp; {{ equivalentExchangeText }}
        </div>
 
        <!-- Services -->
@@ -57,9 +59,17 @@ export default {
       ]
     }
   },
+  props: {
+    balance: String,
+    equivalentExchange: String,
+    loaded: {
+      type: Boolean,
+      default: false
+    }
+  },
   computed: {
-    balance () {
-      return this.$store.getters['assets/getAssets'][0].balance
+    equivalentExchangeText () {
+      return this.equivalentExchange.replace(/[^0-9.]/g, '')
     },
     selectedMarketCurrency (){
       const currency = this.$store.getters['market/selectedCurrency']
@@ -73,16 +83,6 @@ export default {
        this.$q.dialog({
           component: PriceChart
         })
-
-      // if (!this.isPriceChartDialogShown) {
-      //   this.isPriceChartDialogShown = true
-      //   this.$q.dialog({
-      //     component: PriceChart
-      //   })
-      //     .onDismiss(() => {
-      //       this.isPriceChartDialogShown = false
-      //     })
-      // }
     },
 
   }
