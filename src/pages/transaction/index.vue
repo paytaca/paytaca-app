@@ -76,7 +76,13 @@
     <home-apps/>
 
     <!-- Transaction History -->
-    <transaction-list/>
+    <transaction-list
+      :loaded="balanceLoaded"
+      :selectedAssetProps="selectedAsset"
+      :denominationTabSelected="denominationTabSelected"
+      :wallet="wallet"
+      :selectedNetworkProps="selectedNetwork"
+      />
 
     <div></div>
 

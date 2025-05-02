@@ -19,7 +19,7 @@
       </div>
       <!-- Fiat Equivalent -->
         <q-skeleton v-if="!loaded" type="text" style="width: 50px;"/>
-       <div v-else class="label-small">
+       <div v-else class="label-medium">
         <span class="text-uppercase">{{ this.selectedMarketCurrency }}</span> &nbsp; {{ equivalentExchangeText }}
        </div>
 
