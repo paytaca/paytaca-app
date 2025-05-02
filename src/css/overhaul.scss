@@ -57,9 +57,8 @@ body.theme-overhaul {
     position: fixed;
     top: 0;
     width: 100%;
-    z-index: 0;
     background-color: $header_nav_bg;
-    height: 300px;
+    z-index: 6;
   }
   .page-content {
     z-index: 1;
@@ -151,6 +150,10 @@ body.theme-overhaul {
     background-color: #FFF;
     color: $dark_txt;
   }
+  .card-dark {
+    background-color: #0F1928;
+    color: #fff;
+  }
   .card-colored {
     background-color: #D9EDFF;
     color: #000;
@@ -168,4 +171,8 @@ body.theme-overhaul {
 
 
   // Custom Elements
+  .gradient-bg {
+    background-image: $gradient_bg !important;
+  }
+
 }

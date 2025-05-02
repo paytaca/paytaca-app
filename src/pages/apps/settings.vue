@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" :class="getDarkModeClass(darkMode)" :style="{ 'margin-top': '84px'}">
       <header-nav :title="$t('Settings')" backnavpath="/apps" class="apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">

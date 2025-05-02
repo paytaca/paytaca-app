@@ -4,7 +4,7 @@
         <-- <div></div> --
 
       </div> -->
-    <q-btn class="button-default price-chart" round icon="show_chart" size="xs"/>
+    <q-btn class="button-default price-chart" round icon="show_chart" size="xs" @click="openPriceChart()"/>
     <div class="card-container">
       <!-- token selector -->
       <div class="label-small">
@@ -43,6 +43,7 @@
   </q-card>
 </template>
 <script>
+import PriceChart from 'src/pages/transaction/dialog/PriceChart.vue'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
@@ -68,9 +69,22 @@ export default {
   },
   methods: {
     parseFiatCurrency,
-    fiatAmount () {
+    openPriceChart () {
+       this.$q.dialog({
+          component: PriceChart
+        })
 
-    }
+      // if (!this.isPriceChartDialogShown) {
+      //   this.isPriceChartDialogShown = true
+      //   this.$q.dialog({
+      //     component: PriceChart
+      //   })
+      //     .onDismiss(() => {
+      //       this.isPriceChartDialogShown = false
+      //     })
+      // }
+    },
+
   }
 }
 </script>

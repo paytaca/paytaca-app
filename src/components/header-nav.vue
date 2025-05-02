@@ -1,28 +1,56 @@
 <template>
-  <div class="header-nav">
-    <div class="nav-content row text-light title-large">
+  <div class="header-nav" :class="hasGradient ? 'gradient-bg':''" :style="{ height: getHeight }">
+    <div class="nav-content row text-light">
       <div class="col-2">
         <q-btn icon="arrow_back_ios" style="padding-left: 5px;" size="sm" class="button-border" @click="$router.go(-1)"/>
       </div>
-      <div class="col-8 text-center">
-        App Title
+      <div class="col-8 text-center title-large">
+        {{ title }}
       </div>
       <div class="col-2 text-right">
-        <q-btn icon="settings" size="sm" class="button-border" @click="$router.push('/apps/settings')"/>
+        <q-btn v-if="hasSettings" icon="settings" size="sm" class="button-border" @click="$router.push('/apps/settings')"/>
       </div>
     </div>
   </div>
 </template>
 <script>
+import { settings } from 'src/store/walletconnect/getters'
+
 export default {
   props: {
     title: {
       type: String,
       default: ''
     },
+    height: {
+      type: String,
+      default: 'small'
+    },
+    hasGradient: {
+      type: Boolean,
+      default: false
+    },
+    hasSettings: {
+      type: Boolean,
+      default: false
+    },
     backnavpath: {
       type: String,
       default: ''
+    }
+  },
+  computed: {
+    getHeight () {
+      const height_size = ''
+
+      switch (this.height) {
+        case 'small':
+          return  '84px'
+        case 'medium':
+          return '138px'
+        case 'full-height':
+          return '100%'
+      }
     }
   }
 }

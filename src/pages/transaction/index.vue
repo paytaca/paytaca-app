@@ -105,6 +105,7 @@ import multiWallet from 'src/components/ui-revamp/home/multi-wallet.vue'
 // Old
 import TokenSuggestionsDialog from 'src/components/TokenSuggestionsDialog.vue';
 import AddNewAsset from './dialog/AddNewAsset.vue';
+import PriceChart from './dialog/PriceChart.vue';
 // import MultiWallet from 'src/components/multi-wallet/index.vue'
 import { getMnemonic, Wallet } from 'src/wallet';
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -371,7 +372,22 @@ export default {
     //   await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store)
     //   vm.balanceLoaded = true
     // },
-  }
+  },
+  openPriceChart () {
+       this.$q.dialog({
+          component: PriceChart
+        })
+
+      // if (!this.isPriceChartDialogShown) {
+      //   this.isPriceChartDialogShown = true
+      //   this.$q.dialog({
+      //     component: PriceChart
+      //   })
+      //     .onDismiss(() => {
+      //       this.isPriceChartDialogShown = false
+      //     })
+      // }
+    },
 }
 </script>
 <style lang="scss" scoped>
