@@ -25,14 +25,20 @@ export function walletConnectSignTransactionRequest (state, { address, sessionRe
 }
 
 export function saveTransaction (state, multisigTransaction) {
-  const exists = state.transactions.find((storedMultisigTransaction) => {
+  const index = state.transactions.findIndex((storedMultisigTransaction) => {
     return (
       hashTransaction(multisigTransaction.transaction) ===
         hashTransaction(storedMultisigTransaction.transaction)
     )
   })
-  if (exists) return
+  if (index !== -1) return
   state.transactions.push(multisigTransaction)
+}
+
+export function updateTransaction(state, { index, multisigTransaction }) {
+ if (index >= 0) {
+  state.transactions.splice(index, 1, multisigTransaction)
+ }
 }
 
 export function deleteTransaction (state, { index }) {

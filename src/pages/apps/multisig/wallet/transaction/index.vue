@@ -86,6 +86,7 @@ const multisigTransactions = computed(() => {
 
 const deleteAllTransactions = async () => {
   await $store.dispatch('multisig/deleteAllTransactions')
+  router.back()
 }
 
 onBeforeMount(async () => {
