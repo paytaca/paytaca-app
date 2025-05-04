@@ -66,16 +66,6 @@
               <!-- <q-file ref="pstFileElementRef" v-model="pstFile" :multiple="false" style="visibility: hidden" @update:model-value="updatePstFile"></q-file> -->
           <!-- </div> -->
           <div class="col-xs-12 q-px-xs q-gutter-y-sm">
-            <div class="flex justify-end">
-              <q-btn
-                no-caps
-                icon="mdi-wallet-plus"
-                :to="{ name: 'app-multisig-wallet-create'}"
-                flat
-                dense
-                size="md"
-              />
-            </div>
             <q-list v-if="multisigWallets" separator class="text-bow" :class="getDarkModeClass(darkMode)">
               <q-item>
                 <q-item-section></q-item-section>
@@ -125,14 +115,20 @@
           </div>
       </div>
       <div v-else class="row justify-center items-center" style="height: 80vh">
+        <div class="col-10 text-center q-gutter-lg">
+         <div class="text-h6">No Multisig Wallet Found</div>
+        <div>
         <q-btn
           no-caps
-          icon="mdi-wallet-plus"
+          icon="mdi-wallet-plus-outline"
           :to="{ name: 'app-multisig-wallet-create'}"
           dense
           size="lg"
           label="Create Wallet"
+          color="primary"
         />
+        </div>
+       <div>
         <q-btn
           no-caps
           icon="mdi-wallet-plus"
@@ -140,7 +136,8 @@
           size="lg"
           label="Import Wallet"
           @click="importWallet"
-        />
+          color="primary"
+        /></div></div>
       </div>
       <q-file
         ref="walletFileElementRef"
@@ -243,9 +240,8 @@ const onUpdateWalletFileModelValue = (file) => {
     const reader = new FileReader()
     reader.onload = () => {
       walletInstance.value = MultisigWallet.import(reader.result)
-      console.log('WALLET INSTANCE', walletInstance.value)
       const defaultAddress = walletInstance.value.getAddress({
-        addressIndex: 0, cashAddressNetworkPrefix
+        addressIndex: 0, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
       })
       saveMultisigWallet(walletInstance.value)
       router.push({
@@ -264,17 +260,17 @@ onMounted(async () => {
   // $store.getters['global/getWallet']('bch') = Loads the currently selected wallet from the homepage
   const tempVault = $store.getters['global/getVault']
   console.log('🚀 ~ onMounted ~ tempVault:', tempVault)
-  const currentWallet = $store.getters['global/getWallet']('bch')
-  console.log('CURRENT WALLET', currentWallet)
-  const wx = await loadLibauthHdWallet()
-  console.log('🚀 ~ onMounted ~ wx:', wx)
-  const w1 = await loadLibauthHdWallet(0)
-  console.log('🚀 ~ onMounted ~ w1:', w1)
-  const w2 = await loadLibauthHdWallet(1)
-  console.log('🚀 ~ onMounted ~ w2:', w2)
-  const w3 = await loadLibauthHdWallet(2)
-  console.log('🚀 ~ onMounted ~ w3:', w3)
-  console.log('wallets', multisigWallets.value)
+  // con:st currentWallet = $store.getters['global/getWallet']('bch')
+  // console.log('CURRENT WALLET', currentWallet)
+  // const wx = await loadLibauthHdWallet()
+  // console.log('🚀 ~ onMounted ~ wx:', wx)
+  // const w1 = await loadLibauthHdWallet(0)
+  // console.log('🚀 ~ onMounted ~ w1:', w1)
+  // const w2 = await loadLibauthHdWallet(1)
+  // console.log('🚀 ~ onMounted ~ w2:', w2)
+  // const w3 = await loadLibauthHdWallet(2)
+  // console.log('🚀 ~ onMounted ~ w3:', w3)
+  // console.log('wallets', multisigWallets.value)
 })
 
 </script>

@@ -1,3 +1,4 @@
+import { MultisigWallet } from 'src/lib/multisig'
 import { hashTransaction } from 'bitauth-libauth-v3'
 
 export function saveWallet (state, wallet) {
@@ -5,7 +6,11 @@ export function saveWallet (state, wallet) {
 }
 
 export function deleteWallet (state, { address }) {
-  const index = state.wallets.findIndex((wallet) => wallet.address === address)
+   const index = state.wallets.findIndex((wallet) => {
+	return MultisigWallet.getAddress({
+		multisigWallet: wallet, cashAddressNetworkPrefix: address.split(':')[0]
+	}) === address
+     })
   if (index === -1) return
   state.wallets?.splice(index, 1)
 }

@@ -27,7 +27,7 @@
                   >
                     <q-step
                       :name="1"
-                      title="Wallet Info"
+                      title="Basic Config"
                       icon="settings"
                       :done="wallet.name"
                       :error="!wallet.name"
@@ -75,7 +75,7 @@
                       </q-input>
                       <q-btn
                         @click="() => openLocalWalletsSelectionDialog({ signer, signerIndex })"
-                        color="primary"
+                        :color="darkMode? 'warning': 'primary'"
                         dense outline no-caps icon="mdi-form-select">
                         Pick xpub from this wallet
                       </q-btn>
@@ -90,7 +90,7 @@
                       title="Finish"
                       done-icon="done_all"
                     >
-                      <q-list separator>
+                      <q-list bordered separator class="text-left">
                         <q-item-label header>Wallet Specs</q-item-label>
                         <q-item>
                           <q-item-section>
