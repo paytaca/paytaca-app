@@ -400,6 +400,7 @@ export class MultisigTransaction {
       const response = await watchtower.broadcastTx(
         this.signedTransaction
       )
+      this.signedTransactionId = response.txid
       this.metadata.status = MultisigTransactionStatus.BROADCASTED
       return response
     } catch (error) {
