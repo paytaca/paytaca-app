@@ -1,13 +1,13 @@
 <template>
-  <q-dialog ref="dialogRef" full-width maximized position="bottom" seamless>
+  <q-dialog ref="dialogRef" full-width maximized position="bottom">
     <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
-      <div class="text-grad text-center q-my-sm text-h6">{{$t('SelectWallet')}}</div>
+      <div class="text-grad text-center q-my-sm text-h6">{{$t('Select Wallet')}}</div>
       <q-card-section>
         <q-list separator>
         <q-item>
           <q-item-section>
-            <q-item-label caption>
-              Use one of your wallets for signing transactions as {{ signerName || `Signer ${signerIndex}` }}
+            <q-item-label class="text-justify text-overline">
+              Use one of your wallets for signing transactions as {{ signerName || `Signer ${signerIndex}` }}.
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -56,6 +56,7 @@
           no-caps
           @click="onOkClick"
           color="primary"
+          :disable="!selectedWallet"
         />
       </q-card-actions>
     </q-card>
