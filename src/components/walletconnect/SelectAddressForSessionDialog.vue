@@ -1,6 +1,6 @@
 <template>
-  <q-dialog ref="dialogRef" persistent seamless>
-    <q-card class="q-dialog-plugin br-15 q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
+  <q-dialog ref="dialogRef" persistent seamless full-width position="bottom">
+    <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
       <q-card-section class="text-grey-10">
         <div class="row items-start justify-start no-wrap q-gutter-x-sm">
           <PeerInfo v-if="sessionProposal?.proposer?.metadata" 
@@ -73,7 +73,8 @@
             :focused="item.selected"
           >
             <q-item-section>
-              <div class="text-caption" >{{ `${formatAddressForDisplay(item.label)}` }} </div>
+              <q-item-label>{{ item.name }}</q-item-label>
+              <q-item-label caption lines="2">{{ `${formatAddressForDisplay(item.address)}` }} </q-item-label>
             </q-item-section>
 
             <q-item-section side>
@@ -94,7 +95,7 @@
         </q-list>
 
       </q-card-section>
-      <q-card-actions>
+      <q-card-actions class="q-pa-md">
         <q-space />
         <q-btn
           outline
@@ -109,7 +110,6 @@
         <q-btn
           color="green"
           :label="$t('Connect')"
-          rounded
           no-caps
           @click="onConnectClick"
         />
@@ -172,6 +172,7 @@ const selectAddress = (address) => {
     if (addressOption.selected) {
       addressSelected.value = address
       addressSelectedIsMultisig.value = false
+      multisigAddressOptions.value.forEach(ao => ao.selected = false)
     }
   })
 }
@@ -182,6 +183,7 @@ const selectMultisigAddress = (address) => {
     if (addressOption.selected) {
       addressSelected.value = address
       addressSelectedIsMultisig.value = true
+      addressOptions.value.forEach(ao => ao.selected = false)
     }
   })
 }
@@ -189,7 +191,7 @@ const selectMultisigAddress = (address) => {
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: item.address, address: item.address, index: item.address_index }))
-  multisigAddressOptions.value = props.multisigWallets?.map((item) => ({ label: item.address, address: item.address, isMultisig: true, walletName: item.template?.name }))
+  multisigAddressOptions.value = props.multisigWallets?.map((item) => ({ label: item.name, address: item.address, isMultisig: true, walletName: item.template?.name }))
   if (props.walletAddresses) {
     addressSelected.value = props.walletAddresses[0].address
     addressOptions.value[0].selected = true
