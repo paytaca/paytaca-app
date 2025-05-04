@@ -165,8 +165,8 @@
                       {{ multisigWallet.signers[signerEntityIndex].name || `Signer ${signerEntityIndex}` }}
                     </div>
                     <q-icon
-                      :color="signerCanSign({ signerEntityIndex }) && signerSigned({ multisigTransaction, signerEntityIndex })? 'green': 'grey-8'"
-                      :name="signerCanSign({ signerEntityIndex }) && signerSigned({ multisigTransaction, signerEntityIndex })? 'done_all': ''"
+                      :color="signerSigned({ multisigTransaction, signerEntityIndex })? 'green': 'grey-8'"
+                      :name="signerSigned({ multisigTransaction, signerEntityIndex })? 'done_all': ''"
                       size="sm"
                       >
                     </q-icon>
@@ -216,6 +216,17 @@
                   </q-btn>
                 </q-item-section>
               </q-item>
+              <q-item v-if="multisigTransaction?.metadata?.status >= 3">
+                <q-item-section>
+		   <q-item-label>Transaction Id</q-item-label>
+                   <q-item-label caption lines="2">{{shortenString(multisigTransaction?.signedTransactionId,10)}}</q-item-label>
+                </q-item-section>
+                <q-item-section side top>
+                  <q-item-label>
+	          <q-btn icon="launch" no-caps flat @click="openURL(`${txExplorerUrl}/${multisigTransaction?.signedTransactionId}`)">View</q-btn>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
               <q-separator spaced inset />
               <q-item>
                 <q-item-section >
@@ -241,11 +252,12 @@
                       @click="broadcastTransaction"
                       flat dense no-caps
                       :loading="multisigTransaction.isBroadcasting"
+                      :disable="multisigTransaction?.metadata?.status >= 3"
                       >
                       <template v-slot:default>
                         <div class="row justify-center">
                           <q-icon name="cell_tower" class="col-12"></q-icon>
-                          <div class="col-12">Submit</div>
+                          <div class="col-12">Broadcast</div>
                         </div>
                       </template>
                       <template v-slot:loading>
@@ -270,7 +282,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { useQuasar } from 'quasar'
+import { useQuasar, openURL } from 'quasar'
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { stringify, CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
@@ -294,7 +306,8 @@ const {
   getSignerXPrv,
   deleteTransaction,
   multisigWallets,
-  updateTransaction
+  updateTransaction,
+  txExplorerUrl
 } = useMultisigHelpers()
 
 const multisigTransaction = ref()
@@ -348,8 +361,7 @@ const broadcastTransaction = async () => {
 
   if (multisigTransaction.value?.signedTransaction) {
     const network = isChipnet.value ? 'chipnet' : 'mainnet'
-    const response = await multisigTransaction.value.broadcast({ network })
-    console.log('🚀 ~ broadcastTransaction ~ response:', await response.json())
+    await multisigTransaction.value.broadcast({ network })
   }
 }
 
@@ -376,9 +388,7 @@ const downloadPST = () => {
 }
 
 watch(() => multisigTransaction.value?.status, async (status, prevStatus) => {
-  console.log('status changed', status, prevStatus)
   if (status !== prevStatus) {
-    console.log('saving')
     await updateTransaction({
       index: route.params.index,
       multisigTransaction: JSON.parse(JSON.stringify(multisigTransaction.value))

@@ -19,6 +19,14 @@ export const useMultisigHelpers = () => {
     return $store.getters['global/isChipnet']
   })
 
+  const txExplorerUrl = computed(() => {
+    // TODO: get options from watchtower
+    if (isChipnet.value) {
+      return 'https://chipnet.chaingraph.cash/tx'
+    }
+    return 'https://blockchair.com/bitcoin-cash/transaction'
+  })
+
   const cashAddressNetworkPrefix = computed(() => {
     if (isChipnet.value) {
       return CashAddressNetworkPrefix.testnet
@@ -30,12 +38,11 @@ export const useMultisigHelpers = () => {
     const wallets = $store.getters['multisig/getWallets']?.map((walletObject) => {
       // const wallet = new MultisigWallet(walletObject)
       const wallet = MultisigWallet.createInstanceFromObject(walletObject)
-      return wallet.resolveDefaultAddress({ addressIndex: 0, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value})
+      return wallet.resolveDefaultAddress({ addressIndex: 0, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value })
     })
     console.log('MULTISIG WALLETS in helpers', wallets)
     return wallets
   })
-  
 
   const getSignerWalletFromVault = ({ xpub }) => {
     const vaultIndex = localWallets.value.findIndex((signerWallet) => {
@@ -100,8 +107,8 @@ export const useMultisigHelpers = () => {
       multisigTransaction
     )
   }
-  
-  const updateTransaction = async ({index, multisigTransaction}) => {
+
+  const updateTransaction = async ({ index, multisigTransaction }) => {
     await $store.dispatch('multisig/updateTransaction', { index, multisigTransaction })
   }
 
@@ -117,27 +124,21 @@ export const useMultisigHelpers = () => {
   const getMultisigWalletBchBalance = async (address) => {
     const watchtower = new Watchtower($store.getters['global/isChipnet'])
     const bch = await watchtower.getAddressBchBalance(address)
-    console.log('🚀 ~ onMounted ~ balance:', bch)
     return bch.balance
-  } 
-  
+  }
+
   const getTransactionsByWalletAddress = ({ address }) => {
     const transactions =
          $store.getters['multisig/getTransactionsByWalletAddress']({
-          address: address
+           address: address
          })
- 
-      return transactions.map(t => {
-        const multisigWallet = multisigWallets.value?.find((wallet) => {
-          return address === wallet.address
-        })
-        console.log('MULTISIG WALLET', multisigWallet)
-        //t.multisigWallet = multisigWallet
- 
-        // return MultisigTransaction.createInstanceFromObject(structuredClone(t))
-        return new MultisigTransaction({ ...structuredClone(t), multisigWallet: multisigWallet})
-      })
 
+    return transactions.map(t => {
+      const multisigWallet = multisigWallets.value?.find((wallet) => {
+        return address === wallet.address
+      })
+      return new MultisigTransaction({ ...structuredClone(t), multisigWallet: multisigWallet })
+    })
   }
 
   return {
@@ -154,6 +155,7 @@ export const useMultisigHelpers = () => {
     cashAddressNetworkPrefix,
     multisigWallets,
     getTransactionsByWalletAddress,
-    getMultisigWalletBchBalance
+    getMultisigWalletBchBalance,
+    txExplorerUrl
   }
 }
