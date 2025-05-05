@@ -3,15 +3,28 @@
     <div class="card-content">
       <div class="title-small" style="padding-top: 10px;">Transaction History</div>
 
-      <div class="transaction-list">
-        <!-- <div class="circle-frame">
-          <img :src="getUserAvatarLink('Nikki')">
-        </div> -->
-        <div v-if="loaded">
-          <div v-for="txn in transactions.slice(0,5)">
-            {{ txn.txid }} <br>
+      <div class="transaction-list" v-if="loaded">
+        <div class="row justify-between transaction q-py-sm" v-for="txn in transactions.slice(0,5)">
+          <div>
+            <div class="row">
+              <div class="circle-frame">
+                <img :src="getUserAvatarLink('Nikki')">
+              </div>
+              <div class="q-pl-md">
+                <span class="body-medium">Username</span><br>
+                <span class="label-small">{{ dateFormat(txn.date_created) }}</span>
+              </div>
+            </div>
           </div>
-        </div>
+          <div class="title-small" :class="txn.record_type === 'incoming' ? 'text-incoming': 'text-outgoing'">
+            <span v-if="isStablehedgeTx(txn) && stablehedgeTxData(txn)?.amount">
+              {{ parseFiatCurrency(stablehedgeTxData(txn)?.amount, stablehedgeTxData(txn)?.currency) }}
+            </span>
+            <span v-else>
+              {{ parseFiatCurrency(marketValueData(txn)?.marketValue, selectedMarketCurrency) }}
+            </span>
+          </div>
+      </div>
       </div>
     </div>
   </q-card>
@@ -19,6 +32,8 @@
 <script>
 import { getUserAvatarLink } from 'src/utils/theme-ui-revamp-utils.js'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const recordTypeMap = {
@@ -61,6 +76,7 @@ export default {
   watch: {
     loaded (val) {
       if (val) {
+        console.log('loading transaction')
         this.getTransactions()
       }
     }
@@ -80,7 +96,12 @@ export default {
     },
     showTokens () {
       return this.$store.getters['global/showTokens']
-    }
+    },
+    selectedMarketCurrency() {
+      const currency = this.$store.getters['market/selectedCurrency']
+      return currency?.symbol
+    },
+
   },
   mounted () {
     this.selectedNetwork = this.selectedNetworkProps
@@ -88,6 +109,66 @@ export default {
   },
   methods: {
     getUserAvatarLink,
+    extractStablehedgeTxData,
+    parseFiatCurrency,
+    badge (txn) {
+
+    },
+    asset (txn) {
+      return txn?.asset || this.selectedAsset
+    },
+    selectedAssetMarketPrice (txn) {
+      if (!this.asset(txn)) return
+      if (!this.selectedMarketCurrency) return
+      return $store.getters['market/getAssetPrice'](this.asset(txn), this.selectedMarketCurrency)
+    },
+    stablehedgeTxData (txn) {
+      return  extractStablehedgeTxData(txn)
+    },
+    isStablehedgeTx (txn) {
+      return Boolean(this.stablehedgeTxData(txn))
+    },
+    marketValueData(txn) {
+    const data = {
+      marketAssetPrice: null,
+      isHistoricalPrice: false,
+      marketValue: null
+    }
+    if (this.selectedMarketCurrency === 'USD' && txn?.usd_price) {
+      data.marketAssetPrice = txn.usd_price
+      data.isHistoricalPrice = true
+    } else if (txn?.market_prices?.[this.selectedMarketCurrency]) {
+      data.marketAssetPrice = txn?.market_prices?.[this.selectedMarketCurrency]
+      data.isHistoricalPrice = true
+    } else {
+      data.marketAssetPrice = this.selectedAssetMarketPrice(txn)
+      data.isHistoricalPrice = false
+    }
+
+    if (data.marketAssetPrice) {
+      data.marketValue = (Number(txn?.amount) * Number(data.marketAssetPrice)).toFixed(5)
+    }
+    return data
+    },
+    dateFormat (dateCreate) {
+      const date = new Date(dateCreate)
+      let currentYear = date.getFullYear()
+      let dateYear = date.getFullYear()
+
+      let hours = date.getHours()
+      let minutes = date.getMinutes().toString().padStart(2, "0")
+      let amPm = hours >= 12 ? "PM" : "AM"
+      hours = hours % 12 || 12 // Converts 0 to 12-hour format
+
+      let month = date.toLocaleString("en-US", { month: "short" })
+      let day = date.getDate()
+
+      // Add the year only if it's not the current year
+      let yearPart = dateYear !== currentYear ? `, ${dateYear}` : ""
+
+      let formattedDate = `${hours}:${minutes} ${amPm} | ${month} ${day}${yearPart}`
+      return formattedDate
+    },
     getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null }) {
       if (this.selectedNetwork === 'sBCH') {
         const address = this.$store.getters['global/getAddress']('sbch')
@@ -225,11 +306,11 @@ export default {
   }
   .transaction-list {
     margin-top: 10px;
+    width: 100%;
     .circle-frame {
       border-radius: 50%;
-      height: 100px;
-      width: 100px;
-      // background-color: aquamarine;
+      height: 42px;
+      width: 42px;
       display: flex;
       overflow: hidden;
     }
@@ -238,6 +319,9 @@ export default {
       height: 100%;
       object-fit: cover;
     }
+  }
+  .transaction {
+    width: 100%;
   }
 
 }
