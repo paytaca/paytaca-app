@@ -1,6 +1,6 @@
 const { waitForDebugger } = require("inspector")
 
-describe('Applications Page', () => {
+describe('Settings Page', () => {
   beforeEach(() => {
     //Restore localStorage and sessionStorage
     cy.readFile('cypress/fixtures/storage.json').then((data) => {
@@ -57,16 +57,16 @@ describe('Applications Page', () => {
     })
   })
 
-
-  it('should load the applications page', () => {
-    // Basic test to verify the page loads
-    cy.visit('http://localhost:9000/#/apps')
-  })
-
   it('Settings page elements function as expected', () => {
-    cy.contains('.pt-app-name', 'Settings').parent().find('.pt-app').click()
-    cy.url().should('include', '/apps/settings')
+    cy.visit('http://localhost:9000/#/apps',{timeout:1000})
 
+    cy.measureSettingsLoadTime(
+      'Settings',         // text to look for
+      '.pt-app-name',     // element to wait for, flaky, should increase timeout here
+      'Settings'          // label to expect
+    )
+    cy.url().should('include', '/apps/settings')
+    
     //Update all elements that can be subject to translations
     //Security
     cy.contains('Security').click()
@@ -94,5 +94,8 @@ describe('Applications Page', () => {
     cy.contains('App Info').click()
     cy.contains('Version').click()
     cy.contains('Source code repository').click()
+    
+    
+    
   })
 }) 

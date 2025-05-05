@@ -50,10 +50,14 @@ describe('Home Page', () => {
   })
 
   it('Checks Dashboard Tabs',() => {
-    cy.visit('/', {timeout:10000})
-    cy.get('#home-button',{timeout: 10000}).click()
-    cy.wait(5000)
+    cy.visit('/', { timeout: 10000 })
 
+    cy.measureHomeButtonLoadTime(
+      '#home-button',        // button selector
+      '#home-button',   // element to wait for
+      'Home'                 // label to expect
+    )
+    
     cy.get('#send-button').click()
     cy.wait(5000)
     cy.url().should('equal', 'http://localhost:9000/#/send/select-asset')
@@ -81,5 +85,7 @@ describe('Home Page', () => {
   
  
   
+
+
 
 

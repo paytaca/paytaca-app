@@ -19,3 +19,5 @@ To run, just click the specific spec file.
 - `send-page.cy.js`
 - `applications.cy.js`
 
+Custom commands can be found in the `command.js` file
+
