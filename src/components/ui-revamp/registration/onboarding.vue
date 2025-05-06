@@ -81,7 +81,7 @@ export default {
         this.nextStep()
         // document.querySelector(".image-container").classList.add("image-container-hidden");
       }, 1000)
-    }, 3000)
+    }, 1500)
   },
   emits: ['register'],
   methods: {
@@ -96,7 +96,7 @@ export default {
         if (this.step === 1){
           document.querySelector(`.button-container`).classList.add("visible");
         }
-      }, 500)}
+      }, 100)}
 
     }
   }

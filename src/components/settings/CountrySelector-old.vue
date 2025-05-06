@@ -6,19 +6,12 @@
     :dark="darkMode"
     @filter="filterCountries"
     popup-content-style="color: black;"
+    dense
     use-input
     fill-input
-    filled
+    borderless
     hide-selected
-    hide-dropdown-icon
-    bg-color="white"
   >
-    <template v-slot:prepend>
-      <q-avatar square>
-        <img :src="getCountryFlag(countryCode)">
-      </q-avatar>
-      <q-icon size="sm" name="keyboard_arrow_down" class="q-pr-sm"/>
-    </template>
     <template v-slot:option="scope">
       <q-item
         v-bind="scope.itemProps"
@@ -41,9 +34,9 @@
 </template>
 
 <script>
+
 const COUNTRIES = require('../../countries-info.json')
 import { supportedLangs } from '../../i18n'
-import { getCountryFlag } from 'src/utils/theme-ui-revamp-utils.js'
 
 export default {
   props: {
@@ -55,7 +48,6 @@ export default {
   data () {
     return {
       country: this.$store.getters['global/country'].name,
-      countryCode: this.$store.getters['global/country'].code,
       countries: [],
       defaultCountryOptions: [],
       countryOptions: []
@@ -77,8 +69,7 @@ export default {
     this.countries = COUNTRIES
   },
   methods: {
-    getCountryFlag,
-    filterCountries (val, update) {    
+    filterCountries (val, update) {
       if (!val) {
         this.countryOptions = this.defaultCountryOptions
       } else {
@@ -96,7 +87,6 @@ export default {
     country (n, o) {
       const vm = this
 
-      console.log('new: ', n)
       this.defaultCountryOptions = this.defaultCountryOptions.filter((o, index) => {
         o.label = vm.countries[index].name
 
@@ -112,7 +102,6 @@ export default {
             country: selectedCountry,
             denomination: this.$store.getters['global/denomination']
           })
-          this.countryCode = selectedCountry.code
 
           let currency = vm.currencyOptions.filter(o => o.symbol === selectedCountry.currency)
 
