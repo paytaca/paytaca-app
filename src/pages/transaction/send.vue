@@ -1337,6 +1337,7 @@ export default {
   async beforeMount () {
     const loadTasks = []
 
+    const vm = this
     if (Object.keys(vm.$store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
       loadTasks.push(vm.$store.dispatch('global/loadWalletLastAddressIndex'))
     }
@@ -1346,6 +1347,8 @@ export default {
     if (!vm.$store.getters['global/walletAddresses']) {
       loadTasks.push(vm.$store.dispatch('global/loadWalletAddresses'))
     }
+
+    if (!loadTasks.length) return
 
     const dialog = this.$q.dialog({
       component: LoadingWalletDialog,
