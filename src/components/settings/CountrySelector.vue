@@ -12,6 +12,7 @@
     hide-selected
     hide-dropdown-icon
     bg-color="white"
+    dense
   >
     <template v-slot:prepend>
       <q-avatar square>

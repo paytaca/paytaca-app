@@ -2,8 +2,7 @@
 	<div class="container">
 		<div class="image-container">
 	      <div class="centered-items">
-	        <img height="85px" width="85px" src="~/assets/paytaca_logo.png" alt="">
-	        <div class="title-medium text-center">Paytaca</div>
+	        <img height="85px" width="85px" src="paytaca-logo.png" alt="">	        
 	      </div>
 	    </div>
 
@@ -17,31 +16,28 @@
 		    	<LanguageSelector class="full-width q-mt-sm"/>
 	    	</div>  	
 	    </div>		
+	    <div class="button-container">
+          <div class="">
+            <q-btn outline label="Continue" class="full-width" style="border-radius: 10px; padding: 10px 0px 10px;" @click="$emit('done')"/>
+          </div>
+        </div>
 	</div>	
 </template>
 <script>
-import { getCountryFlag } from 'src/utils/theme-ui-revamp-utils.js'
-
 import CountrySelector from 'src/components/settings/CountrySelector.vue'
 import LanguageSelector from 'src/components/settings/LanguageSelector.vue'
 
 
 export default {
 	data () {
-		return {
-			model: null,
-			options: ['apple', 'banana', 'grapes'],
-			selectedCountry: null,
-			selectedLanguage: null
+		return {		
 		}
 	},
 	components: {
 		CountrySelector,
 		LanguageSelector
 	},
-	methods: {
-		getCountryFlag
-	}
+	emits: ['done']
 }
 </script>
 <style lang="scss" scoped>
@@ -66,6 +62,13 @@ display: flex;
 .selector {
 	padding: 0px 34px 0px;
 	position: absolute;
-	top: 40%;
+	top: 35%;
 } 
+.button-container {
+  position: absolute;
+  width: 100%;
+  padding: 0px 34px 25px;
+  // margin: 0px 16px 25px;
+  bottom: 0;
+}
 </style>

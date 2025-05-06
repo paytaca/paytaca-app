@@ -14,6 +14,7 @@
     hide-selected
     hide-dropdown-icon
     bg-color="white"
+    dense
   >
     <template v-slot:prepend>    
       <q-icon size="sm" name="keyboard_arrow_down" class="q-pr-sm"/>

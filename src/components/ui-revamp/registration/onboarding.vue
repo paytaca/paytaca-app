@@ -2,8 +2,7 @@
   <div class="onboarding-container">
     <div class="image-container" v-if="status === 'splash'">
       <div class="centered-image">
-        <img height="85px" width="85px" src="~/assets/paytaca_logo.png" alt="">
-        <div class="title-medium text-center">Paytaca</div>
+        <img height="85px" width="85px" src="paytaca-logo.png" alt="">        
       </div>
     </div>
     <div v-if="status === 'info'">
