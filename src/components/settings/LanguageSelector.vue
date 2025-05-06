@@ -7,12 +7,17 @@
     :dark="darkMode"
     @filter="filterLangSelection"
     popup-content-style="color: black;"
-    dense
+    filled
     use-input
     fill-input
     borderless
     hide-selected
+    hide-dropdown-icon
+    bg-color="white"
   >
+    <template v-slot:prepend>    
+      <q-icon size="sm" name="keyboard_arrow_down" class="q-pr-sm"/>
+    </template>
     <template v-slot:option="scope">
       <q-item
         v-bind="scope.itemProps"

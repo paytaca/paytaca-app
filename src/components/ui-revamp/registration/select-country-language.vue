@@ -8,10 +8,14 @@
 	    </div>
 
 	    <div class="selector full-width">
-	    	<div>
+	    	<div class="country-selector">
 	    		<span class="title-medium ">Select Your Country</span>
 		    	<CountrySelector class="full-width q-mt-sm"/>
-	    	</div>	    	
+	    	</div>	  
+	    	<div class="language-selector q-pt-md">
+	    		<span class="title-medium ">Select Language</span>
+		    	<LanguageSelector class="full-width q-mt-sm"/>
+	    	</div>  	
 	    </div>		
 	</div>	
 </template>
@@ -19,6 +23,8 @@
 import { getCountryFlag } from 'src/utils/theme-ui-revamp-utils.js'
 
 import CountrySelector from 'src/components/settings/CountrySelector.vue'
+import LanguageSelector from 'src/components/settings/LanguageSelector.vue'
+
 
 export default {
 	data () {
@@ -30,7 +36,8 @@ export default {
 		}
 	},
 	components: {
-		CountrySelector
+		CountrySelector,
+		LanguageSelector
 	},
 	methods: {
 		getCountryFlag
