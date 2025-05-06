@@ -2,10 +2,10 @@
   <div class="header-nav" :class="hasGradient ? 'gradient-bg':''" :style="{ height: getHeight }">
     <div class="nav-content row text-light">
       <div class="col-2">
-        <q-btn icon="arrow_back_ios" style="padding-left: 5px;" size="sm" class="button-border" @click="$router.go(-1)"/>
+        <q-btn icon="arrow_back_ios" style="padding-left: 5px;" size="sm" class="button-border" @click="useEmitBack ? $emit('back') : $router.go(-1)"/>
       </div>
       <div class="col-8 text-center title-large">
-        {{ title }}
+        {{ title }} <span class="title-small" v-if="subtitle">({{ subtitle }})</span>
       </div>
       <div class="col-2 text-right">
         <q-btn v-if="hasSettings" icon="settings" size="sm" class="button-border" @click="$router.push('/apps/settings')"/>
@@ -22,9 +22,13 @@ export default {
       type: String,
       default: ''
     },
+    subtitle: {
+      type: String,
+      default: ''
+    },
     height: {
       type: String,
-      default: 'small'
+      default: 'small' // small, medium, full-height
     },
     hasGradient: {
       type: Boolean,
@@ -37,6 +41,10 @@ export default {
     backnavpath: {
       type: String,
       default: ''
+    },
+    useEmitBack: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
@@ -52,7 +60,8 @@ export default {
           return '100%'
       }
     }
-  }
+  },
+  emits: ['back']
 }
 </script>
 <style lang="scss" scoped>

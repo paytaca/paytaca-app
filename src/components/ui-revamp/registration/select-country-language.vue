@@ -60,14 +60,14 @@ display: flex;
 }
 
 .selector {
-	padding: 0px 34px 0px;
+	padding: 0px 16px 0px;
 	position: absolute;
 	top: 35%;
 } 
 .button-container {
   position: absolute;
   width: 100%;
-  padding: 0px 34px 25px;
+  padding: 0px 16px 25px;
   // margin: 0px 16px 25px;
   bottom: 0;
 }
