@@ -3,10 +3,10 @@
     id="app-container"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
+    style="margin-top: 84px;"
   >
     <HeaderNav
-      title="AnyHedge"
-      backnavpath="/apps"
+      title="AnyHedge"      
       class="apps-header"
     />
     <q-tabs

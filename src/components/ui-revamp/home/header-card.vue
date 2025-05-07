@@ -29,7 +29,7 @@
             <div class="col-10 row q-gutter-sm">
               <!-- {{ iconPath+opt.icon }} -->
               <div v-for="opt in coinsOptions">
-                <q-btn  class="button-default" round>
+                <q-btn  class="button-default" round :disable="!loaded" @click="handleButton(opt.name)">
                   <q-icon size="18px" :name="`img:ui-revamp/${opt.icon}`"/>
                 </q-btn>
                 <div class="q-pt-sm text-center text-capitalize title-smaller text-primary">{{ opt.name }}</div>
@@ -52,10 +52,10 @@ export default {
   data () {
     return {
       coinsOptions: [
-        { name: 'freeze', icon: 'freeze.png'},
-        { name: 'send', icon: 'send-bch.png'},
-        { name: 'receive', icon: 'receive-bch.png'},
-        { name: 'cashin', icon: 'cashin.png'}
+        { name: 'freeze', icon: 'freeze.png', path: ''},
+        { name: 'send', icon: 'send-bch.png', path: 'transaction-send-select-asset'},
+        { name: 'receive', icon: 'receive-bch.png', path: 'transaction-receive-select-asset'},
+        { name: 'cashin', icon: 'cashin.png', path: ''}
       ]
     }
   },
@@ -77,6 +77,7 @@ export default {
     }
 
   },
+  emits: ['cashin'],
   methods: {
     parseFiatCurrency,
     openPriceChart () {
@@ -84,6 +85,21 @@ export default {
           component: PriceChart
         })
     },
+    handleButton (name) {
+      switch (name) {
+        case 'freeze': 
+          break
+        case 'send':
+          this.$router.push({ name: 'transaction-send-select-asset' })
+          break 
+        case 'receive':
+          this.$router.push({ name: 'transaction-receive-select-asset' })
+          break
+        case 'cashin':
+          this.$emit('cashin')
+
+      } 
+    }
 
   }
 }

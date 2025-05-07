@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
+  <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate" style="margin-top: 84px;">
     <router-view :key="$route.path"></router-view>
   </div>
   <OngoingMaintenanceDialog v-if="appDisabled"/>

@@ -59,7 +59,7 @@
     </div>
 
       <!-- Header Card -->
-    <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded"/>
+    <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/>
 
       <!-- Ellipses Note: Add Carousel later-->
     <div class="text-center q-pt-md">
@@ -113,6 +113,7 @@ import packageInfo from '../../../package.json'
 // Old
 import Watchtower from 'watchtower-cash-js'
 import TokenSuggestionsDialog from 'src/components/TokenSuggestionsDialog.vue';
+import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import AddNewAsset from './dialog/AddNewAsset.vue';
 import PriceChart from './dialog/PriceChart.vue';
 import versionUpdate from './dialog/versionUpdate.vue';
@@ -262,6 +263,7 @@ export default {
   },
   async mounted () {
     const vm = this
+    vm.$store.commit('global/updateActiveMenu', 'home')
 
     await this.checkVersionUpdate()
 
@@ -388,6 +390,15 @@ export default {
   methods: {
     getDarkModeClass,
     // Methods from old page
+    async openCashIn () {
+      await this.checkCashinAvailable()
+      this.$q.dialog({
+        component: CashIn,
+        componentProps: {
+          fiatCurrencies: this.availableCashinFiat
+        }
+      })
+    },
     bchBalanceText() {
       if (!this.balanceLoaded && this.selectedAsset?.id === this?.bchAsset?.id) return '0'
       const currentDenomination = this.selectedDenomination

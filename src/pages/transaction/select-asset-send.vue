@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" :class="getDarkModeClass(darkMode)" style="margin-top: 84px;">
     <header-nav :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">

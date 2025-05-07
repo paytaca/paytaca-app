@@ -3,8 +3,9 @@
     id="app-container"
     :class="getDarkModeClass(darkMode)"
     @refresh="getCollectibles"
+    style="margin-top: 84px;"
   >
-    <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
+    <header-nav :title="$t('Collectibles')" />
     <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
       <q-menu>
         <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px">

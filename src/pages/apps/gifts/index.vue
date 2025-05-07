@@ -1,9 +1,8 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" :class="getDarkModeClass(darkMode)" style="margin-top: 84px;">
       <HeaderNav
-        :title="$t('Gifts')"
-        backnavpath="/apps"
+        :title="$t('Gifts')"        
         class="q-px-sm apps-header gift-app-header"
       />
       <q-pull-to-refresh @refresh="fetchGifts">

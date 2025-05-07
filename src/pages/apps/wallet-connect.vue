@@ -6,8 +6,7 @@
     />
     <div id="app-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
-        :title="$t('WalletConnect')"
-        backnavpath="/apps"
+        :title="$t('WalletConnect')"        
       />
 
       <div class="q-mx-md q-mt-lg" style="margin-top: 50px;">

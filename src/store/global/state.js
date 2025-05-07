@@ -121,6 +121,7 @@ export default function () {
     merchantActivity: {
       active: false,
       verified: false
-    }
+    },
+    activeMenu: 'home'
   }
 }

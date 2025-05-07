@@ -2,7 +2,7 @@
   <div class="header-nav" :class="hasGradient ? 'gradient-bg':''" :style="{ height: getHeight }">
     <div class="nav-content row text-light">
       <div class="col-2">
-        <q-btn icon="arrow_back_ios" style="padding-left: 5px;" size="sm" class="button-border" @click="useEmitBack ? $emit('back') : $router.go(-1)"/>
+        <q-btn icon="arrow_back_ios" style="padding-left: 5px;" size="sm" class="button-border" @click="previousPage()"/>
       </div>
       <div class="col-8 text-center title-large">
         {{ title }} <span class="title-small" v-if="subtitle">({{ subtitle }})</span>
@@ -45,6 +45,10 @@ export default {
     useEmitBack: {
       type: Boolean,
       default: false
+    },
+    doubleBack: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
@@ -59,9 +63,23 @@ export default {
         case 'full-height':
           return '100%'
       }
-    }
+    },    
   },
-  emits: ['back']
+  emits: ['back'],
+  methods: {
+    previousPage() {
+      const vm = this
+      if(vm.useEmitBack) {
+        vm.$emit('back')
+      } else {
+        if (vm.backnavpath) {
+          vm.$router.push(vm.backnavpath)
+        } else {
+          vm.$router.go(-1)
+        }
+      }
+    }
+  }
 }
 </script>
 <style lang="scss" scoped>

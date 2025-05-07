@@ -3,10 +3,10 @@
     id="app-container"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
+    style="margin-top: 84px;"
   >
     <HeaderNav
-      :title="$t('MerchantAdmin', {}, 'Merchant Admin')"
-      backnavpath="/apps"
+      :title="$t('MerchantAdmin', {}, 'Merchant Admin')"      
       class="apps-header"
     />
     <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">

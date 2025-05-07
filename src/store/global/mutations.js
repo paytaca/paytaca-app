@@ -5,6 +5,10 @@ export function updateAppControl (state, data) {
   state.appControl = data
 }
 
+export function updateActiveMenu(state, data) {
+  state.activeMenu = data
+}
+
 export function updateMerchantActivity (state, data) {
   state.merchantActivity.active = data.active
   state.merchantActivity.verified = data.verified

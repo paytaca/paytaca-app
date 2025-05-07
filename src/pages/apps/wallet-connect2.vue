@@ -9,10 +9,10 @@
     class="wallet-connect-container"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
+    style="margin-top: 84px;"
   >
     <HeaderNav
-      :title="$t('WalletConnect')"
-      backnavpath="/apps"
+      :title="$t('WalletConnect')"      
     />
     <q-tabs
       dense

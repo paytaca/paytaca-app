@@ -7,7 +7,7 @@
     </div>
     <div v-if="status === 'info'">
       <div v-if="step === 1" class="stepper-content">
-        <div class="image-container">
+        <div class="image-container text-center">
           <div class="stepper">
             <img height="362px" width="362px" src="ui-revamp/onboarding-1.png" alt="">
             <div class="text-center">
@@ -21,7 +21,7 @@
         </div>
       </div>
       <div v-if="step === 2" class="stepper-content">
-        <div class="image-container">
+        <div class="image-container text-center">
           <div class="stepper">
             <img height="362px" width="362px" src="ui-revamp/onboarding-2.png" alt="">
             <div class="text-center">
@@ -36,7 +36,7 @@
         </div>
       </div>
       <div v-if="step === 3" class="stepper-content">
-        <div class="image-container">
+        <div class="image-container text-center">
           <div class="stepper">
             <img height="362px" width="362px" src="ui-revamp/onboarding-3.png" alt="">
             <div class="text-center">

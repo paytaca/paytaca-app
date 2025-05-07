@@ -5,13 +5,13 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Marketplace')" backnavpath="/apps" class="header-nav">
+    <HeaderNav :title="$t('Marketplace')" class="header-nav">
       <template v-slot:top-right-menu>
         <MarketplaceHeaderMenu/>
       </template>
     </HeaderNav>
 
-    <div class="q-mx-sm q-my-sm">
+    <div class="q-mx-sm q-my-sm" >
       <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
 

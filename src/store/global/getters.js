@@ -275,3 +275,7 @@ export function appControl (state) {
 export function merchantActivity (state) {
   return state.merchantActivity
 }
+
+export function activeMenu (state) {
+  return state.activeMenu
+}

@@ -1,6 +1,6 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('WalletBackup')" backnavpath="/apps" class="apps-header" />
+  <div id="app-container" :class="getDarkModeClass(darkMode)" style="margin-top: 84px;">
+    <header-nav :title="$t('WalletBackup')" class="apps-header" />
 
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <div class="col-12 q-px-lg q-mt-lg">
