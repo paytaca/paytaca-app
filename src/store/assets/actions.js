@@ -243,7 +243,7 @@ export async function getAssetMetadata (context, assetId) {
 
   if (tokenType !== 'ct') return
 
-  const url = 'tokens/' + tokenId
+  const url = 'tokens/' + tokenId + '/'
   const response = await getBcmrBackend().get(url)
   const _metadata = response.data
   let data
