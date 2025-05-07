@@ -14,7 +14,7 @@ import Watchtower from "watchtower-cash-js"
 import PromoContractCash from 'src/cashscripts/rewards/PromoContract.cash'
 
 const watchtower = new Watchtower(false)
-const promoTokens = 2
+const promoTokensDecimals = 2
 
 /**
  * Represents an instance of a promo contract. May vary
@@ -281,8 +281,7 @@ export default class PromoContract {
       })
       const promoToken = tokens.filter(t => t.category === process.env.PROMO_TOKEN_ID)
       if (promoToken.length > 0) {
-        balance = Number(promoToken[0].balance)
-        // balance = Number(promoToken[0].balance) / (10 ** promoTokens)
+        balance = Number(promoToken[0].balance) / (10 ** promoTokensDecimals)
       }
     }).catch(async _error => {
       // retrieve balance from contract token utxos
@@ -291,11 +290,8 @@ export default class PromoContract {
           return result.filter(r => r.token?.category === process.env.PROMO_TOKEN_ID)
         })
       balance = promoTokenUtxos.reduce((total, el) => {
-        return total + Number(el.token?.amount)
+        return total + (Number(el.token?.amount) / (10 ** promoTokensDecimals))
       }, 0)
-      // balance = promoTokenUtxos.reduce((total, el) => {
-      //   return total + (Number(el.token?.amount) / (10 ** promoTokens))
-      // }, 0)
     })
 
     return balance
