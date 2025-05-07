@@ -1041,6 +1041,11 @@ export default {
       }
       vm.transactionsPageHasNext = false
       await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store)
+      if (id == 'bch' && vm.stablehedgeView) {
+        await vm.$store.dispatch('stablehedge/updateTokenBalances')
+          .then(() => vm.$store.dispatch('stablehedge/updateTokenPrices', { minAge: 60 * 1000 }))
+          .catch(console.error)
+      }
       vm.balanceLoaded = true
     },
     refresh (done) {

@@ -22,22 +22,13 @@ async function _updateAssetBalanceOnLoad (id, wallet, store) {
       store.commit(updateAssetBalance, { id, balance: response.balance })
     })
   } else {
-    // store.commit('stablehedge/reset');
-    const fetchBchBalancePromises = Promise.all([
-      getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
-        store.commit(updateAssetBalance, {
-          id,
-          balance: response.balance,
-          spendable: response.spendable,
-          yield: response.yield
-        })
-      }),
-      store.dispatch('stablehedge/updateTokenBalances')
-        .then(() => store.dispatch('stablehedge/updateTokenPrices', { minAge: 60 * 1000 }))
-        .catch(console.error),
-    ])
-
-    const results = await fetchBchBalancePromises
-    return results[0]
+    return getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
+      store.commit(updateAssetBalance, {
+        id,
+        balance: response.balance,
+        spendable: response.spendable,
+        yield: response.yield
+      })
+    })
   }
 }
