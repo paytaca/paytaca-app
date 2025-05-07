@@ -430,7 +430,7 @@ import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
-import { getMnemonic, Wallet } from '../../wallet'
+import { getMnemonic } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
@@ -1608,16 +1608,18 @@ export default {
         this.checkSecurityPreferenceSetup()
       })
 
+    this.handleOpenedNotification()
+
     try {
-      this.checkCashinAvailable()
-      this.setupCashinWebSocket()
-      this.resetCashinOrderPagination()
-      this.checkCashinAlert()
+      await Promise.all([
+        this.checkCashinAvailable(),
+        this.setupCashinWebSocket(),
+        this.resetCashinOrderPagination(),
+        this.checkCashinAlert(),
+      ])
     } catch(error) {
       console.error(error)
     }
-
-    this.handleOpenedNotification()
 
     // refactored to fetch tokens in batch by 3 instead of all at once
     const assets = vm.$store.getters['assets/getAssets']
