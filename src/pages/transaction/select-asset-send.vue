@@ -203,7 +203,7 @@ export default {
     if (this.$route.query.error === 'token-mismatch') {
       this.$router.replace({ path: this.$route.path })
       this.$q.dialog({
-        title: this.$('TokenMismatch'),
+        title: this.$t('TokenMismatch'),
         message: this.$t('TokenMismatchMessage'),
         persistent: true,
         seamless: true,
