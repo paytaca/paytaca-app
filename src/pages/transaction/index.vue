@@ -1257,7 +1257,9 @@ export default {
       }
       this.adjustTransactionsDivHeight()
     },
-    async handleOpenedNotification(openedNotification) {
+    async handleOpenedNotification() {
+      const openedNotification = this.$store.getters['notification/openedNotification']
+
       if(openedNotification) {
         const notificationTypes = this.$store.getters['notification/types']
         if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {
