@@ -1049,13 +1049,16 @@ export default {
       vm.balanceLoaded = true
     },
     refresh (done) {
-      this.checkCashinAlert()
-      this.assets.map(function (asset) {
-        return vm.getBalance(asset.id)
-      })
-      this.transactions = []
-      this.$refs['transaction-list-component'].getTransactions()
-      done()
+      try {
+        this.checkCashinAlert()
+        this.assets.map((asset) => {
+          return this.getBalance(asset.id)
+        })
+        this.transactions = []
+        this.$refs['transaction-list-component'].getTransactions()
+      } finally {
+        done()
+      }
     },
     setTransactionsFilter(value) {
       const transactionsFilters = this.transactionsFilterOpts.map(opt => opt?.value)
