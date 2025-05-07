@@ -19,15 +19,19 @@
 
       <div class="row justify-center text-center q-gutter-y-xs">
         <q-icon name="celebration" size="70px" color="green" />
-        <span class="text-body1 q-mt-md">
-          {{ $t('PointsReceivedDescription1') }}
-        </span>
-        <span v-if="hasReceivedCashinPoints" class="text-body1">
-          {{ $t('PointsReceivedDescription2') }}
-        </span>
-        <span class="text-body2 q-mt-md">
-          {{ $t('PointsReceivedDescription3') }}
-        </span>
+        <span
+          class="text-body1 q-mt-md"
+          v-html="parseHtmlText('PointsReceivedDescription1')"
+        />
+        <span
+          v-if="hasReceivedCashinPoints"
+          class="text-body1"
+          v-html="parseHtmlText('PointsReceivedDescription2')"
+        />
+        <span
+          class="text-body1 q-mt-md"
+          v-html="parseHtmlText('PointsReceivedDescription3')"
+        />
       </div>
     </q-card>
   </q-dialog>
@@ -51,7 +55,10 @@ export default {
   },
 
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    parseHtmlText (text) {
+      return this.$t(text)
+    }
   }
 }
 </script>

@@ -152,17 +152,7 @@
                         />
                         <div class="col-10">
                           <template v-if="item.ref_id !== '' && item.date != ''">
-                            {{ $t(
-                                'EarnedFirstSeven',
-                                {
-                                  pointsEarned: item.points_earned,
-                                  refId: item.ref_id,
-                                  date: item.date
-                                },
-                                `Earned <strong>${item.points_earned}</strong> from `
-                                  + `${item.ref_id} last ${parseLocaleDate(item.date)}`
-                              )
-                            }}
+                            <span v-html="firstSevenHtmlText(item)" />
                           </template>
                           <span
                             v-else
@@ -449,6 +439,18 @@ export default {
         vm.points = await vm.urContract.getTokenBalance()
         vm.isLoading = false
       })
+    },
+    firstSevenHtmlText (item) {
+      return this.$t(
+        'EarnedFirstSeven',
+        {
+          pointsEarned: item.points_earned,
+          refId: item.ref_id,
+          date: this.parseLocaleDate(item.date)
+        },
+        `Earned <strong>${item.points_earned}</strong> from `
+          + `${item.ref_id} last ${this.parseLocaleDate(item.date)}`
+      )
     }
   }
 }
