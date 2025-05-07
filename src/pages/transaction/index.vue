@@ -463,6 +463,7 @@ import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
 import { asyncSleep } from 'src/wallet/transaction-listener'
+import { cachedLoadWallet } from '../../wallet'
 
 const sep20IdRegexp = /sep20\/(.*)/
 
@@ -1161,10 +1162,7 @@ export default {
 
     async loadWallets () {
       const vm = this
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
-
-      const wallet = new Wallet(mnemonic, vm.selectedNetwork)
+      const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
       vm.wallet = markRaw(wallet)
 
       const storedWalletHash = vm.$store.getters['global/getWallet']('bch').walletHash
