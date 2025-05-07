@@ -59,11 +59,10 @@
   </div>
 </template>
 <script>
-import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
-import { getMnemonic, Wallet } from 'src/wallet'
+import { cachedLoadWallet } from 'src/wallet'
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
@@ -204,7 +203,7 @@ export default {
     if (this.$route.query.error === 'token-mismatch') {
       this.$router.replace({ path: this.$route.path })
       this.$q.dialog({
-        title: this.$('TokenMismatch'),
+        title: this.$t('TokenMismatch'),
         message: this.$t('TokenMismatchMessage'),
         persistent: true,
         seamless: true,
@@ -226,14 +225,16 @@ export default {
     }
 
     // update balance of assets
-    await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
-      let wallet = new Wallet(mnemonic, vm.network)
-      wallet = markRaw(wallet)
-
-      assets.forEach(async (asset) => {
-        await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
+    const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
+    for (var i = 0; i < assets.length; i = i + 3) {
+      const balanceUpdatePromises = assets.slice(i, i + 3).map(asset => {
+        return updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
       })
-    })
+      const assetMetadataUpdatePromises = assets.slice(i, i + 3).map(asset => {
+        return vm.$store.dispatch('assets/getAssetMetadata', asset.id)
+      })
+      await Promise.allSettled([...balanceUpdatePromises, ...assetMetadataUpdatePromises])
+    }
   }
 }
 </script>

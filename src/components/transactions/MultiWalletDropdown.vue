@@ -90,12 +90,13 @@ export default {
     }
   },
 
-  mounted () {
-    this.$store.dispatch(
-      'global/syncWalletName',
-      { walletIndex: this.walletIndex }
-    )
-  }
+  // Commented out due to redundant api call done inside child component `MultiWallet`
+  // mounted () {
+  //   this.$store.dispatch(
+  //     'global/syncWalletName',
+  //     { walletIndex: this.walletIndex }
+  //   )
+  // }
 }
 </script>
 
