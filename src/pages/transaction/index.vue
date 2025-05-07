@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="light">
+  <div id="app-container" :class="darkmode ? 'dark': 'light'">
     <!-- Gradient Panel -->
     <div id="gradient-panel"></div>
 
@@ -263,6 +263,7 @@ export default {
   },
   async mounted () {
     const vm = this
+    console.log('darkmode: ', this.darkmode)
     vm.$store.commit('global/updateActiveMenu', 'home')
 
     await this.checkVersionUpdate()

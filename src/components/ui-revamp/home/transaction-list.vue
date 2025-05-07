@@ -1,5 +1,5 @@
 <template>
-  <q-card class="transaction-history br-15" :style="{ 'padding-bottom': $q.platform.is.ios ? '110px' : '100px'}">
+  <q-card class="transaction-history br-15" :class="darkmode ? 'text-light' : 'text-dark'" :style="{ 'padding-bottom': $q.platform.is.ios ? '110px' : '100px'}">
     <div class="card-content">
       <div class="title-small" style="padding-top: 10px;">Transaction History</div>
 
@@ -44,7 +44,7 @@ const recordTypeMap = {
 
 export default {
   data () {
-    return {
+    return {    
       transactions: [],
       transactionsPage: 0,
       transactionsPageHasNext: false,
@@ -82,7 +82,7 @@ export default {
     }
   },
   computed: {
-    darkMode () {
+    darkmode () {
       return this.$store.getters['darkmode/getStatus']
     },
     earliestBlock () {
@@ -120,7 +120,7 @@ export default {
     selectedAssetMarketPrice (txn) {
       if (!this.asset(txn)) return
       if (!this.selectedMarketCurrency) return
-      return $store.getters['market/getAssetPrice'](this.asset(txn), this.selectedMarketCurrency)
+      return this.$store.getters['market/getAssetPrice'](this.asset(txn), this.selectedMarketCurrency)
     },
     stablehedgeTxData (txn) {
       return  extractStablehedgeTxData(txn)

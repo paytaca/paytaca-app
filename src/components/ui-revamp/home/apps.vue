@@ -1,5 +1,5 @@
 <template>
-  <div class="apps-container">
+  <div class="apps-container" :class="darkmode ? 'text-light' : 'text-dark'">
     <div class="row justify-between">
       <div class="title-medium">Paytaca Apps</div>
       <div class="text-capitalize body-small text-link">View more</div>
@@ -25,6 +25,7 @@
 export default {
   data () {
     return {
+      darkmode: this.$store.getters['darkmode/getStatus'],
       iconPath: 'img:ui-revamp/',
       apps: [
         { name: 'Merchant Admin' , icon: 'img:ui-revamp/merchant-admin.svg', path: '/apps/pos-admin'},

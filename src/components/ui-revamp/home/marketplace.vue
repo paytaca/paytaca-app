@@ -1,5 +1,5 @@
 <template>
-  <div class="marketplace">
+  <div class="marketplace" :class="darkmode ? 'text-light' : 'text-dark'">
     <div class="row justify-between">
       <div class="title-medium">Shop in our Marketplace</div>
       <div class="text-capitalize body-small text-link">View more</div>
@@ -19,6 +19,7 @@
 export default {
   data () {
     return {
+      darkmode: this.$store.getters['darkmode/getStatus'],
       marketplaceOpt: [
         { name: 'Entertainment', icon: 'entertainment.svg' },
         { name: 'Food and Beverage', icon: 'food-and-beverage.svg' },
