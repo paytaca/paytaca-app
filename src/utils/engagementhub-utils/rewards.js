@@ -66,10 +66,13 @@ export async function getWalletTokenAddress () {
 
 export function convertPoints (points, pointsDivisor) {
   const fiat = points / pointsDivisor
-  const bch = convertToBCH(denomination(), (fiat / bchMarketPrice()))
+  // use PHP for conversion basis
+  const phpFiat = Store.getters['market/getAssetPrice']('bch', 'PHP')
+  const bch = convertToBCH(denomination(), fiat / phpFiat)
 
-  const finalFiat = `${fiat} ${fiatCurrency()}`
+  const convertedFiat = Store.getters['market/getAssetPrice']('bch', fiatCurrency())
   const bchNum = Number(bch) === 0 || Number.isNaN(Number(bch)) ? '0' : bch.toFixed(8)
+  const finalFiat = `${(bchNum * convertedFiat).toFixed(2)} ${fiatCurrency()}`
   const finalBch = `${bchNum} ${denomination()}`
 
   return `${finalFiat} or ${finalBch}`
