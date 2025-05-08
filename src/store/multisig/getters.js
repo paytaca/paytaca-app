@@ -1,11 +1,30 @@
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+import { MultisigWallet } from 'src/lib/multisig'
+
 export function getSettings (state) {
   return state.settings
 }
 
 export function getWallet (state) {
   return ({ address }) => {
-    const wallet = state.wallets.filter((wallet) => {
-      return wallet.address === decodeURIComponent(address)
+    console.log('address provided', address)
+
+    const wallet = state.wallets.filter((walletObject) => {
+      const cashAddressNetworkPrefix = address.startsWith(CashAddressNetworkPrefix.testnet) ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
+      const wallet = new MultisigWallet(walletObject)
+      wallet.resolveDefaultAddress({
+        address: 0,
+        CashAddressNetworkPrefix: CashAddressNetworkPrefix.testnet
+      })
+
+      if (address.startsWith(CashAddressNetworkPrefix.testnet)) {
+        wallet.resolveDefaultAddress({
+          address: 0,
+          CashAddressNetworkPrefix: CashAddressNetworkPrefix.testnet
+        })
+      }
+      const defaultWalletAddress = wallet.getAddress({ addressIndex: 0, cashAddressNetworkPrefix })
+      return defaultWalletAddress === address
     })
     return wallet?.[0]
   }
@@ -17,12 +36,6 @@ export function getWallets (state) {
 
 export function getTransactionsLastIndex (state) {
   return state.transactions.length - 1
-}
-
-export function getTransactionsByAddress (state) {
-  return ({ address }) => {
-    return state.transactions.filter((t) => t.metadata?.address === decodeURIComponent(address))
-  }
 }
 
 export function getTransactionsByWalletAddress (state) {
