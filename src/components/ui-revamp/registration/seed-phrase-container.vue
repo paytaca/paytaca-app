@@ -14,11 +14,16 @@
 			<div class="title-small">Enter Seed Phrase</div>
 			<div class="body-small" style="padding-bottom: 24px;">Select each word in the order it was presented to you.</div>
 
-			<q-card class="br-15" style="border: 1px dashed #295BF6; padding: 16px;">
+			<q-card :dark="darkmode" class="br-15" style="border: 1px dashed #295BF6; padding: 16px;">
 				<div class="grid-container">
-					<div class="grid-item" v-for="i in 12" contenteditable="true">Hello</div>
+					<div id="grid" class="grid-item" v-for="i in 12" @click="selectGrid(i)" :style="i === selectedIndex ? 'border: 2px solid #416EB4;' : 'border: 1px solid #ccc;'">
+						<span class="non-editable text-royal-blue">{{ i }}</span>						
+						<q-input :ref="`grid${i}`" dense v-model="seedPhrase[i - 1]" input-style="text-align: center;" borderless @update:model-value="updateText()" @keyup.enter = "handleEnter()"/>
+					</div>
 				</div>
 			</q-card>
+
+			<q-btn :disable="hasEmptyStrings()" class="full-width button-default" no-caps label="Proceed" style="margin-top: 24px; border-radius: 10px; height: 54px;"/>
 		</q-card>	
 	</div>	
 </template>
@@ -29,14 +34,58 @@ export default{
 	data () {
 		return {
 			darkmode: this.$store.getters['darkmode/getStatus'],
+			seedPhrase: new Array(12).fill(''),
+			selectedIndex: null
 		}		
 	},
 	components: {
 		headerNav
 	},
+	watch: {		
+		selectedIndex () {
+			this.updateText()
+		}
+	},
 	emits: ['back'],
 	mounted () {
-		console.log('here: ', this.darkmode)
+		console.log('here: ', this.darkmode)		
+	},
+	methods: {
+		 updateText() {
+		 	// console.log(event.target.innerText.split('\n')[0])
+		 	let temp = this.cleanUpSeedPhrase(this.seedPhrase[this.selectedIndex - 1]) 
+
+		 	// console.log(temp)
+		 	this.seedPhrase[this.selectedIndex - 1] = temp
+            // this.seedPhrase[this.selectedIndex - 1] = event.target.innerText // Updates Vue variable
+        },
+        selectGrid (index) {
+        	this.selectedIndex = index
+
+        	this.$refs[`grid${index}`][0].focus()
+        },
+        cleanUpSeedPhrase (seedPhrase) {
+        	return seedPhrase.toLowerCase().trim()
+		 					.replace(/\s+/g, "")
+		 					.replace(/\s{2,}/g, ' ')
+		 					.replace(/[^\x00-\x7F]/g, '')
+		 					.replace(/[0-9]/g, "")
+		 					.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '') 	      
+	    },
+	    handleEnter () {
+	    	if (this.selectedIndex < 12) {
+	    		this.selectedIndex++
+
+	    		this.selectGrid(this.selectedIndex)
+	    	} else if (this.selectedIndex === 12) {
+	    		this.selectedIndex = 1
+	    		this.selectGrid(this.selectedIndex)
+	    	}	    	
+	    },
+	    hasEmptyStrings() {
+		    return this.seedPhrase.some(str => str === "")
+		}
+
 	}
 }	
 </script>
@@ -59,11 +108,24 @@ export default{
 
 }
 .grid-item {
-     background-color: lightblue;
-    padding: 20px;
+     background-color: #eaefff;
+    padding-top: 20px;
+    padding-bottom: 20px;    
     text-align: center;
-    font-weight: bold;
-    border: 1px solid #ccc;
     border-radius: 10px;
+    position: relative;
+    user-select: none;
 }
+[contenteditable] {
+  outline: 0px solid transparent;
+}
+.non-editable {
+    user-select: none; /* Prevents selection */
+    pointer-events: none; /* Disables interaction */
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 12px;
+}
+
 </style>
