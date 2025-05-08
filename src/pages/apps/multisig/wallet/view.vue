@@ -16,11 +16,22 @@
             <q-list>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="text-h6">{{ wallet.name }}</q-item-label>
+                  <q-item-label class="text-h6">{{ wallet.name }}
+                  <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <!-- <q-item-label caption>5 min ago</q-item-label> -->
-                  <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                  <q-btn icon="settings" color="grad">
+                   <q-menu fit anchor="bottom right" self="top right" class="pt-card" :class="getDarkModeClass(darkMode)">
+                      <q-item clickable @click="syncWalletAcrossDevices" v-close-popup>
+                        <q-item-section>Share Online</q-item-section>
+                      </q-item>
+                      <q-item clickable>
+                      <q-item-section>New incognito tab</q-item-section>
+                      </q-item>
+                    </q-menu>
+                  </q-btn>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -103,8 +114,8 @@
               <q-separator spaced inset />
               <q-item>
                 <q-item-section >
-                  <div class="flex flex-wrap justify-around">
-                    <q-btn  flat dense no-caps :to="{ name: 'app-multisig-wallet-receive', address: route.params.address }">
+                  <div class="row justify-around q-gutter-sm">
+                    <q-btn size="sm" color="primary" dense no-caps :to="{ name: 'app-multisig-wallet-receive', address: route.params.address }" class="col">
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-qrcode" class="col-12"></q-icon>
@@ -112,27 +123,27 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn   flat dense no-caps @click="$emit('Send')">
+                <q-btn size="sm" dense no-caps @click="$emit('Send')" color="primary" class="col">
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-plus" class="col-12"></q-icon>
-                      <div class="col-12">Transaction</div>
+                      <div class="col-12">Tx</div>
                     </div>
                   </template>
                 </q-btn>
-                <q-btn  flat dense no-caps @click="$emit('delete')">
-                  <template v-slot:default>
-                    <div class="row justify-center">
-                      <q-icon name="mdi-delete-outline" class="col-12"></q-icon>
-                      <div class="col-12">Delete</div>
-                    </div>
-                  </template>
-                </q-btn>
-                <q-btn  flat dense no-caps @click="exportWallet">
+                <q-btn size="sm" dense no-caps @click="exportWallet" color="primary" class="col">
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
                       <div class="col-12">Export</div>
+                    </div>
+                  </template>
+                </q-btn>
+                <q-btn size="sm" dense no-caps @click="$emit('delete')" class="col">
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="apps" class="col-12"></q-icon>
+                      <div class="col-12">...</div>
                     </div>
                   </template>
                 </q-btn>
@@ -168,13 +179,13 @@ import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
-
+import SyncWalletDialog from 'components/multisig/SyncWalletDialog.vue'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getMultisigWalletBchBalance } = useMultisigHelpers()
+const { getMultisigWalletBchBalance, getSignerXPrv } = useMultisigHelpers()
 const balance = ref()
 
 const darkMode = computed(() => {
@@ -272,6 +283,19 @@ const onUpdateTransactionFile = (file) => {
   }
 }
 
+const syncWalletAcrossDevices = () => {
+  $q.dialog({
+    component: SyncWalletDialog,
+    componentProps: {
+      multisigWallet: wallet.value,
+      darkMode: getDarkModeClass(darkMode.value),
+      onOk: async () => {
+        await $store.dispatch('multisig/saveWallet', { multisigWallet: wallet.value, syncAcrossDevices: true })
+      }
+    }
+  })
+}
+
 const openWalletActionsDialog = () => {
   $q.dialog({
     component: WalletActionsDialog,
@@ -284,11 +308,16 @@ const openWalletActionsDialog = () => {
   })
 }
 
+
 onMounted(async () => {
+  await $store.dispatch('multisig/saveWallet', { multisigWallet: structuredClone(wallet.value),  upload: true, uploaderSignerId: 1})  
   try {
     balance.value = await getMultisigWalletBchBalance(
       decodeURIComponent(route.params.address)
     )
+    if (wallet.value) {
+      await wallet.value.loadSignerXprivateKeys(getSignerXPrv)
+    }
   } catch (error) {}
 })
 </script>
@@ -297,4 +326,4 @@ onMounted(async () => {
 .light {
   color: #141414;
 }
-</style>
+</style>i
