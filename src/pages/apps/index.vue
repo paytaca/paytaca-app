@@ -95,7 +95,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Rewards',
+          name: this.$t('Rewards'),
           iconName: 'workspace_premium',
           path: '/apps/rewards',
           iconStyle: 'font-size: 4em',
@@ -114,6 +114,14 @@ export default {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
+          iconStyle: 'width:55%; height: 55%;',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: 'Token Trade',
+          iconName: 'mdi-swap-horizontal-bold',
+          path: '/apps/token-trade',
           iconStyle: 'width:55%; height: 55%;',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false

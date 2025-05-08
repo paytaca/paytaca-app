@@ -237,6 +237,16 @@ const routes = [
             component: () => import('src/pages/apps/rewards/promos/rfp.vue')
           }
         ]
+      },
+      {
+        path: 'token-trade',
+        children: [
+          {
+            path: '',
+            name: 'app-token-trade',
+            component: () => import('src/pages/apps/token-trade/index.vue')
+          }
+        ]
       }
     ]
   },
