@@ -1613,7 +1613,11 @@ export default {
         this.checkSecurityPreferenceSetup()
       })
 
-    this.handleOpenedNotification()
+    // Only handle notifications that were just received
+    const openedNotification = this.$store.getters['notification/openedNotification']
+    if (openedNotification?.id) {
+      this.handleOpenedNotification()
+    }
 
     try {
       await Promise.all([
