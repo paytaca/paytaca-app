@@ -70,7 +70,7 @@
     <tutorial-card/>
 
       <!-- Marketplace -->
-    <home-marketplace/>
+    <!-- <home-marketplace/> -->
 
       <!-- Apps -->
     <home-apps/>

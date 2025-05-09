@@ -16,7 +16,7 @@
 		    	
 			    	<q-btn no-caps label="Log In" class="full-width button-default" style="margin-top: 24px; border-radius: 10px;" @click="step++"/>
 			    	
-			    	<div class="text-center title-small text-link constant-padding" @click="proceedCreateAccount()">Don't have an account?</div>
+			    	<div class="text-center title-small text-link constant-padding" @click="proceedCreateAccount()">Create New Wallet</div>
 			    	<div class="text-center body-small text-capitalize constant-padding">{{ $t('or') }}</div>
 
 			    	<div class="full-width constant-padding">
@@ -24,13 +24,7 @@
 						    <img height="18px" width="18px" src="google.png" class="q-mr-sm">		     
 						    <span class="title-small">Continue with Google</span>
 			    		</q-btn>
-			    	</div>
-			    	<div class="full-width" style="padding-top: 10px;">
-			    		<q-btn no-caps class="full-width" style="border-radius: 10px;">		    			
-						    <img height="18px" width="18px" src="facebook.png" class="q-mr-sm">		     
-						    <span class="title-small">Continue with Facebook</span>
-			    		</q-btn>
-			    	</div>		    	
+			    	</div>			   		    
 	    		</div>
 
 	    		<div v-if="step === 2">	    			

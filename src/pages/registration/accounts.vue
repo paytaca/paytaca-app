@@ -13,7 +13,7 @@
           Generating new wallet
         </div>
         <div v-else>
-          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()"/>
+          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false"/>
           <div v-else class="text-dark">
             Login with shards
           </div>
