@@ -191,7 +191,7 @@ const selectMultisigAddress = (address) => {
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: item.address, address: item.address, index: item.address_index }))
-  multisigAddressOptions.value = props.multisigWallets?.map((item) => ({ label: item.name, address: item.address, isMultisig: true, walletName: item.template?.name }))
+  multisigAddressOptions.value = props.multisigWallets?.map((item) => ({ label: item.template.name, address: item.address, isMultisig: true }))
   if (props.walletAddresses) {
     addressSelected.value = props.walletAddresses[0].address
     addressOptions.value[0].selected = true

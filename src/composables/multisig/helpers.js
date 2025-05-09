@@ -1,7 +1,7 @@
 import { useStore } from 'vuex'
 import { computed } from 'vue'
 import { loadWallet } from 'src/wallet'
-import { MultisigWallet, MultisigTransaction } from 'src/lib/multisig'
+import { MultisigWallet, MultisigTransaction, getMultisigCashAddress } from 'src/lib/multisig'
 import { useRoute, useRouter } from 'vue-router'
 import Watchtower from 'src/lib/watchtower'
 import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
@@ -35,12 +35,14 @@ export const useMultisigHelpers = () => {
   })
 
   const multisigWallets = computed(() => {
-    const wallets = $store.getters['multisig/getWallets']?.map((walletObject) => {
-      // const wallet = new MultisigWallet(walletObject)
-      const wallet = MultisigWallet.createInstanceFromObject(walletObject)
-      return wallet.resolveDefaultAddress({ addressIndex: 0, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value })
+    const wallets = $store.getters['multisig/getWallets']?.map((w) => {
+      const wallet = structuredClone(w)
+      wallet.lockingData.hdKeys.addressIndex = 0
+      const address = getMultisigCashAddress({
+        ...wallet, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+      })
+      return { ...wallet, address }
     })
-    console.log('MULTISIG WALLETS in helpers', wallets)
     return wallets
   })
 
@@ -55,7 +57,6 @@ export const useMultisigHelpers = () => {
 
   const getSignerXPrv = async ({ xpub }) => {
     const signerWallet = getSignerWalletFromVault({ xpub })
-    console.log('🚀 ~ getSignerXPrv ~ signerWallet:', xpub, signerWallet)
     if (!signerWallet) return
     const { mnemonic } = await loadWallet('BCH', signerWallet.vaultIndex)
     if (!mnemonic) return
@@ -66,7 +67,6 @@ export const useMultisigHelpers = () => {
 
   const getSignerMnemonic = async ({ xpub }) => {
     const signerWallet = getSignerWalletFromVault({ xpub })
-    console.log('🚀 ~ getSignerXPrv ~ signerWallet:', xpub, signerWallet)
     if (!signerWallet) return
     const { mnemonic } = await loadWallet('BCH', signerWallet.vaultIndex)
     return mnemonic
@@ -131,14 +131,10 @@ export const useMultisigHelpers = () => {
     const transactions =
          $store.getters['multisig/getTransactionsByWalletAddress']({
            address: address
-         })
-
-    return transactions.map(t => {
-      const multisigWallet = multisigWallets.value?.find((wallet) => {
-        return address === wallet.address
-      })
-      return new MultisigTransaction({ ...structuredClone(t), multisigWallet: multisigWallet })
-    })
+         }).filter((transaction) => {
+	   return transaction.metadata.address === address
+	 }).map(transaction => structuredClone(transaction))
+   return transactions     
   }
 
   return {

@@ -149,16 +149,15 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { MultisigWallet, shortenString } from 'src/lib/multisig'
-import { useMultisigHelpers, cashAddressNetworkPrefix } from 'src/composables/multisig/helpers'
-import Watchtower from 'src/lib/watchtower'
+import { createTemplate, getMultisigCashAddress, shortenString } from 'src/lib/multisig'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
 
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
 const { t: $t } = useI18n()
-const { saveMultisigWallet } = useMultisigHelpers()
+const { saveMultisigWallet, cashAddressNetworkPrefix } = useMultisigHelpers()
 const mOptions = ref()
 const nOptions = ref()
 const wallet = ref()
@@ -234,14 +233,44 @@ const onResetClicked = () => {
 
 const onCreateClicked = async () => {
   console.log('create wallet', wallet.value)
-  const multisigWallet = new MultisigWallet(wallet.value)
-  const multisigWalletAddress = multisigWallet.getAddress({
-    addressIndex: 0, cashAddressNetworkPrefix
+  // const multisigWallet = new MultisigWallet(wallet.value)
+  // const multisigWalletAddress = multisigWallet.getAddress({
+  //   addressIndex: 0, cashAddressNetworkPrefix
+  // })
+
+  const hdPublicKeys = {}
+  const signerNames = {}
+
+  for (const signerIndex in wallet.value.signers) {
+    hdPublicKeys[`signer_${signerIndex}`] = wallet.value.signers[signerIndex].xpub
+    signerNames[`signer_${signerIndex}`] = wallet.value.signers[signerIndex].name
+  }
+
+  const template = createTemplate({
+    name: wallet.value.name,
+    m: wallet.value.m,
+    n: wallet.value.n,
+    signerNames
   })
-  await saveMultisigWallet(wallet.value)
+  const lockingData = {
+    hdKeys: {
+      addressIndex: 0,
+      hdPublicKeys
+    }
+  }
+
+  const multisigWallet = {
+    template, lockingData, requiredSignatures: wallet.value.m
+  }
+
+  await saveMultisigWallet({ multisigWallet })
   router.push({
     name: 'app-multisig-wallet-view',
-    params: { address: multisigWalletAddress }
+    params: {
+      address: getMultisigCashAddress({
+        ...multisigWallet, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+      })
+    }
   })
 }
 

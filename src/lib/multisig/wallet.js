@@ -15,9 +15,15 @@ import {
   binToBase64,
   base64ToBin,
   binToUtf8,
-  CashAddressNetworkPrefix
+  CashAddressNetworkPrefix,
+  binToHex,
+  generateTransaction,
+  extractResolvedVariables
 } from 'bitauth-libauth-v3'
-import { createTemplate } from './template.js'
+// import { createTemplate } from './template.js'
+
+import { transactionBinObjectsToUint8Array } from './utils.js'
+export { createTemplate } from './template.js'
 
 const getHdKeys = ({ signers, addressIndex = 0 /* { [signerIndex: number]: { xpub: string, name: string ...} } */ }) => {
   const hdKeys = {
@@ -172,12 +178,10 @@ export class MultisigWallet {
   }
 
   export () {
-    console.log('EXPORTING', stringify(this))
     return MultisigWallet.export(this)
   }
 
   toJSON () {
-    console.log('THIS', this)
     return {
       name: this.name,
       m: this.m,
@@ -194,7 +198,6 @@ export class MultisigWallet {
   static import (multisigWalletBase64) {
     const bin = base64ToBin(multisigWalletBase64)
     const parsed = JSON.parse(binToUtf8(bin))
-    console.log('🚀 ~ MultisigWallet ~ import ~ parsed:', parsed)
     const wallet = MultisigWallet.createInstanceFromObject(parsed)
     return wallet
   }
@@ -245,4 +248,89 @@ export class MultisigWallet {
     const instance = MultisigWallet.createInstanceFromObject(multisigWallet)
     return instance.getAddress({ addressIndex, cashAddressNetworkPrefix })
   }
+}
+
+export const getCompiler = ({ template }) => {
+  const parsedTemplate = importWalletTemplate(template)
+  if (typeof parsedTemplate === 'string') {
+    throw new Error('Failed creating multisig wallet template.')
+  }
+  return walletTemplateToCompilerBch(parsedTemplate)
+}
+
+export const getLockingBytecode = ({ lockingData, template }) => {
+  const compiler = getCompiler({ template })
+  const lockingBytecode = compiler.generateBytecode({
+    data: lockingData,
+    scriptId: 'lock'
+  })
+  return lockingBytecode
+}
+
+export const getMultisigCashAddress = ({
+  lockingData,
+  template,
+  cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
+}) => {
+  const lockingBytecode = getLockingBytecode({ lockingData, template })
+  const { address } = lockingBytecodeToCashAddress({
+    bytecode: lockingBytecode.bytecode,
+    prefix: cashAddressNetworkPrefix
+  })
+  return address
+}
+
+export const signerCanSign = ({ signerEntityKey, lockingData }) => {
+  return Boolean(lockingData.hdKeys.hdPrivateKeys?.[signerEntityKey])
+}
+
+export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
+  const node = deriveHdPath(
+    deriveHdPrivateNodeFromBip39Mnemonic(
+      mnemonic
+    ),
+    hdPath || "m/44'/145'/0'"
+  )
+  const { hdPrivateKey } = encodeHdPrivateKey({ network: network || 'mainnet', node })
+  const { hdPublicKey } = deriveHdPublicKey(hdPrivateKey)
+  return {
+    hdPrivateKey,
+    hdPublicKey
+  }
+}
+
+/**
+ * Populate's the hdPrivateKeys of lockingData
+ */
+export const populateHdPrivateKeys = async ({ lockingData, getSignerXPrv /* Function that resolves to xprv given an xpub */ }) => {
+  if (!lockingData.hdKeys?.hdPrivateKeys) {
+    lockingData.hdKeys = {
+      ...lockingData.hdKeys,
+      hdPrivateKeys: {}
+    }
+  }
+  for (const signerEntityId of Object.keys(lockingData.hdKeys.hdPublicKeys)) {
+    try {
+     const xprv = await getSignerXPrv({
+       xpub: lockingData.hdKeys.hdPublicKeys[signerEntityId]
+     })
+     lockingData.hdKeys.hdPrivateKeys[signerEntityId] = xprv
+    } catch(e) { console.log(e)}
+  }
+  return lockingData
+}
+
+export const removeHdPrivateKeys = ({ lockingData }) => {
+  delete lockingData.hdKeys.hdPublicKeys
+  return lockingData
+}
+
+export const exportMultisigWallet = (multisigWallet) => {
+  const bin = utf8ToBin(stringify(multisigWallet))
+  return binToBase64(bin)
+}
+
+export const importMultisigWallet = (multisigWalletBase64) => {
+  const bin = base64ToBin(multisigWalletBase64)
+  return JSON.parse(binToUtf8(bin))
 }

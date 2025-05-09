@@ -1,4 +1,4 @@
-import { MultisigWallet } from 'src/lib/multisig'
+import { MultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
 import { hashTransaction } from 'bitauth-libauth-v3'
 
 export function saveWallet (state, wallet) {
@@ -6,11 +6,11 @@ export function saveWallet (state, wallet) {
 }
 
 export function deleteWallet (state, { address }) {
-   const index = state.wallets.findIndex((wallet) => {
-	return MultisigWallet.getAddress({
-		multisigWallet: wallet, cashAddressNetworkPrefix: address.split(':')[0]
-	}) === address
-     })
+  const index = state.wallets.findIndex((wallet) => {
+    return getMultisigCashAddress({
+      ...wallet, cashAddressNetworkPrefix: address.split(':')[0]
+    }) === address
+  })
   if (index === -1) return
   state.wallets?.splice(index, 1)
 }
@@ -40,10 +40,10 @@ export function saveTransaction (state, multisigTransaction) {
   state.transactions.push(multisigTransaction)
 }
 
-export function updateTransaction(state, { index, multisigTransaction }) {
- if (index >= 0) {
-  state.transactions.splice(index, 1, multisigTransaction)
- }
+export function updateTransaction (state, { index, multisigTransaction }) {
+  if (index >= 0) {
+    state.transactions.splice(index, 1, multisigTransaction)
+  }
 }
 
 export function deleteTransaction (state, { index }) {

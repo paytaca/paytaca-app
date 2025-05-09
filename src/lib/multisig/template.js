@@ -111,7 +111,7 @@ export const generateEntity = ({
   const entityKey = `signer_${signerIndex}`
   const entityValue = {
     description: '',
-    name: signerNames?.[signerIndex] || `Signer ${signerIndex}`,
+    name: signerNames[entityKey] || `Signer ${signerIndex}`,
     scripts: signerScriptNames,
     variables: {
       [`key${signerIndex}`]: {
@@ -143,7 +143,7 @@ export const createTemplate = ({
   name /* ?: string */,
   m, n,
   signatureFormat, /*: 'ecdsa'|'schnorr' */ /* string[] */
-  signerNames /* ?: { [signerIndex: number]: string } */
+  signerNames /* ?: { [signerEntityId: string]: string } */
 }) => {
   const template = {
     name: '',

@@ -16,7 +16,7 @@
             <q-list>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="text-h6">{{ wallet.name }}
+                  <q-item-label class="text-h6">{{ wallet.template.name }}
                   <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
                   </q-item-label>
                 </q-item-section>
@@ -58,18 +58,18 @@
                   <q-item-label>Required Signatures</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label caption>{{ wallet.m }} of {{ wallet.n }}</q-item-label>
+                  <q-item-label caption>{{ wallet.requiredSignatures }} of {{ Object.keys(wallet.template.entities).length }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
               <q-item-label header>Signers</q-item-label>
-              <q-item v-for="signerIndex in Object.keys(wallet.signers)" :key="`app-multisig-view-signer-${signerIndex}`">
+              <q-item v-for="signerEntityKey in Object.keys(wallet.template.entities)" :key="`app-multisig-view-signer-${signerEntityKey}`">
                 <q-item-section>
-                  <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerIndex}}. {{ wallet.signers[signerIndex].name }}</q-item-label>
-                  <q-item-label caption >{{ shortenString(wallet.signers[signerIndex].xpub, 20) }}</q-item-label>
+                  <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerEntityKey}}. {{ wallet.template.entities[signerEntityKey].name }}</q-item-label>
+                  <q-item-label caption >{{ shortenString(wallet.lockingData.hdKeys.hdPublicKeys[signerEntityKey], 20) }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label caption><CopyButton :text="wallet.signers[signerIndex].xpub"/></q-item-label>
+                  <q-item-label caption><CopyButton :text="wallet.lockingData.hdKeys.hdPublicKeys[signerEntityKey]"/></q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
@@ -139,7 +139,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn size="sm" dense no-caps @click="$emit('delete')" class="col">
+                <q-btn size="sm" dense no-caps @click="deleteWallet" class="col">
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="apps" class="col-12"></q-icon>
@@ -174,7 +174,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { MultisigTransaction, shortenString, MultisigWallet } from 'src/lib/multisig'
+import { MultisigTransaction, shortenString, MultisigWallet, exportMultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
@@ -185,7 +185,7 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getMultisigWalletBchBalance, getSignerXPrv } = useMultisigHelpers()
+const { getMultisigWalletBchBalance, getSignerXPrv, multisigWallets } = useMultisigHelpers()
 const balance = ref()
 
 const darkMode = computed(() => {
@@ -195,26 +195,19 @@ const darkMode = computed(() => {
 const transactionFileElementRef = ref()
 const transactionFileModel = ref()
 const transactionInstance = ref()
-const transactionFromStore = ref()
 
 const wallet = computed(() => {
-  if (route.params?.address) {
-    const walletObject = $store.getters['multisig/getWallet']({
-      address: route.params.address
-    })
-    if (walletObject) {
-      return MultisigWallet.createInstanceFromObject(walletObject)
-    }
-  }
-  return null
+  return multisigWallets.value?.find((wallet) => {
+    return wallet.address === route.params.address
+  })
 })
 
 const transactions = computed(() => {
-  if (route.params?.address) {
-    return $store.getters['multisig/getTransactionsByWalletAddress']({
-      address: route.params.address
-    })
-  }
+   if (route.params?.address) {
+     return $store.getters['multisig/getTransactionsByWalletAddress']({
+       address: route.params.address
+     })
+   }
   return []
 })
 
@@ -229,18 +222,18 @@ const transactions = computed(() => {
 //   })
 // })
 
-const deleteWallet = (address) => {
-  $store.dispatch('multisig/deleteWallet', { address })
+const deleteWallet = async (address) => {
+  await $store.dispatch('multisig/deleteWallet', { address })
   router.push({ name: 'app-multisig' })
 }
 
 const exportWallet = () => {
-  const data = wallet.value.export()
+  const data = exportMultisigWallet(wallet.value)
   const blob = new Blob([data], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `${wallet.value.name || `${wallet.value.m}-of-${wallet.value.n}`}.pmwif`
+  a.download = `${wallet.value.template.name || `${wallet.value.requiredSignatures}-of-${Object.keys(wallet.value.template.entities)}`}.pmwif`
   document.body.appendChild(a)
   a.click()
 }
@@ -308,9 +301,7 @@ const openWalletActionsDialog = () => {
   })
 }
 
-
 onMounted(async () => {
-  await $store.dispatch('multisig/saveWallet', { multisigWallet: structuredClone(wallet.value),  upload: true, uploaderSignerId: 1})  
   try {
     balance.value = await getMultisigWalletBchBalance(
       decodeURIComponent(route.params.address)

@@ -66,7 +66,7 @@
                   <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
                     {{
                       getTotalBchChangeAmount(
-                        multisigTransaction.transaction, route.params.address,
+                        multisigTransaction.transaction, decodeURIComponent(route.params.address),
                         isChipnet? toP2shTestAddress: null
                       )
                     }}
@@ -133,7 +133,7 @@
                   </div>
                 </q-item-section>
                 <q-item-section side>
-                  {{ multisigWallet.m }}&nbsp;
+                  {{ multisigWallet.requiredSignatures }}&nbsp;
                 </q-item-section>
               </q-item>
               <q-item>
@@ -143,7 +143,7 @@
                   </div>
                 </q-item-section>
                 <q-item-section side>
-                  {{ multisigTransaction.getSignatureCount() }}&nbsp;
+                  {{ getSignatureCount({ multisigWallet, multisigTransaction}) }}&nbsp;
                 </q-item-section>
               </q-item>
               <q-expansion-item>
@@ -158,15 +158,15 @@
                   </code>
                 </q-item-label>
               </q-expansion-item>
-              <q-item v-for="signerEntityIndex in Object.keys(multisigWallet.signers)" :key="signerEntityIndex">
+              <q-item v-for="signerEntityKey in Object.keys(multisigWallet.template.entities)" :key="signerEntityKey">
                 <q-item-section >
                   <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
                     <div>
-                      {{ multisigWallet.signers[signerEntityIndex].name || `Signer ${signerEntityIndex}` }}
+                      {{ multisigWallet.template.entities[signerEntityKey].name || `Signer ${signerEntityKey}` }}
                     </div>
                     <q-icon
-                      :color="signerSigned({ multisigTransaction, signerEntityIndex })? 'green': 'grey-8'"
-                      :name="signerSigned({ multisigTransaction, signerEntityIndex })? 'done_all': ''"
+                      :color="isSignerSignatureOk({ signerEntityKey })? 'green': 'grey-8'"
+                      :name="isSignerSignatureOk({ signerEntityKey })? 'done_all': ''"
                       size="sm"
                       >
                     </q-icon>
@@ -175,13 +175,13 @@
                 <q-item-section side top>
                   <q-btn
                     label="Sign"
-                    :disable="!signerCanSign({ signerEntityIndex })"
-                    :icon="signerCanSign({ signerEntityIndex })? 'draw': 'edit_off'"
-                    @click="signTransaction({ signerEntityIndex, xprv: multisigWallet.signers[signerEntityIndex]?.xprv })"
+                    :disable="!signerCanSignOnThisDevice({ signerEntityKey })"
+                    :icon="signerCanSignOnThisDevice({ signerEntityKey })? 'draw': 'edit_off'"
+                    @click="signTransaction({ signerEntityKey })"
                     dense
                     no-caps
                     flat
-                    :class="signerCanSign({ signerEntityIndex }) ? 'default-text-color': 'inactive-color'"
+                    :class="signerCanSignOnThisDevice({ signerEntityKey }) ? 'default-text-color': 'inactive-color'"
                     >
                   </q-btn>
                 </q-item-section>
@@ -193,24 +193,24 @@
                 </q-item-section>
                 <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
                   <q-btn
-                    @click="() => multisigTransaction.refreshStatus()"
+                    @click="() => refreshTransactionStatus({ multisigWallet, multisigTransaction })"
                     :loading="multisigTransaction.metadata.isBroadcasting || multisigTransaction.metadata?.isRefreshingStatus"
                     flat
                     no-caps
                     dense
-                  >
+signerCanSignOnThisDevice                  >
                     <template v-slot:loading>
                       <div class="flex flex-nowrap items-center">
-			 <span v-if="multisigTransaction.metadata?.isBroadcasting">Broadcasting Tx</span>
-			 <span v-else-if="multisigTransaction.metadata?.isRefreshingStatus">Checking</span>
-			 <q-spinner-radio v-if="multisigTransaction.metadata?.isBroadcasting" class="on-right"></q-spinner-radio>
-			 <q-spinner-facebook v-else-if="multisigTransaction.metadata?.isRefreshingStatus" class="on-right"></q-spinner-facebook>
+                          <span v-if="multisigTransaction.metadata?.isBroadcasting">Broadcasting Tx</span>
+                          <span v-else-if="multisigTransaction.metadata?.isRefreshingStatus">Checking</span>
+                          <q-spinner-radio v-if="multisigTransaction.metadata?.isBroadcasting" class="on-right"></q-spinner-radio>
+                          <q-spinner-facebook v-else-if="multisigTransaction.metadata?.isRefreshingStatus" class="on-right"></q-spinner-facebook>
                       </div>
                   </template>
                     <template v-slot:default>
                       <div class="flex flex-nowrap items-center">
-			 <span>{{ multisigTransaction.status }}</span>
-			 <q-icon name="refresh" size="sm" class="q-ml-sm"></q-icon>
+                        <span>{{ MultisigTransactionStatusText[multisigTransaction.metadata.status] }}</span>
+                        <q-icon name="refresh" size="sm" class="q-ml-sm"></q-icon>
                       </div>
                   </template>
                   </q-btn>
@@ -218,12 +218,12 @@
               </q-item>
               <q-item v-if="multisigTransaction?.metadata?.status >= 3">
                 <q-item-section>
-		   <q-item-label>Transaction Id</q-item-label>
-                   <q-item-label caption lines="2">{{shortenString(multisigTransaction?.signedTransactionId,10)}}</q-item-label>
+                  <q-item-label>Transaction Id</q-item-label>
+                  <q-item-label caption lines="2">{{shortenString(multisigTransaction?.signedTransactionId,10)}}</q-item-label>
                 </q-item-section>
                 <q-item-section side top>
                   <q-item-label>
-	          <q-btn icon="launch" no-caps flat @click="openURL(`${txExplorerUrl}/${multisigTransaction?.signedTransactionId}`)">View</q-btn>
+                    <q-btn icon="launch" no-caps flat @click="openURL(`${txExplorerUrl}/${multisigTransaction?.signedTransactionId}`)">View</q-btn>
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -251,7 +251,7 @@
                       v-if="multisigTransaction.isFinalized"
                       @click="broadcastTransaction"
                       flat dense no-caps
-                      :loading="multisigTransaction.isBroadcasting"
+                      :loading="multisigTransaction.metadata?.isBroadcasting"
                       :disable="multisigTransaction?.metadata?.status >= 3"
                       >
                       <template v-slot:default>
@@ -285,17 +285,26 @@ import { useI18n } from 'vue-i18n'
 import { useQuasar, openURL } from 'quasar'
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { stringify, CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+import { stringify } from 'bitauth-libauth-v3'
 import { toP2shTestAddress } from 'src/utils/address-utils'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
-  MultisigTransaction,
   getTotalBchInputAmount,
   getTotalBchOutputAmount,
   getTotalBchChangeAmount,
   getTotalBchFee,
-  shortenString
+  shortenString,
+  refreshTransactionStatus,
+  populateHdPrivateKeys,
+  signTransaction as signMultisigTransaction,
+  finalizeTransaction,
+  broadcastTransaction as broadcastMultisigTransaction,
+  exportPst,
+  getSignatureCount,
+  signerHasSignature,
+  signerCanSign,
+  MultisigTransactionStatusText
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 const $store = useStore()
@@ -311,20 +320,28 @@ const {
 } = useMultisigHelpers()
 
 const multisigTransaction = ref()
-const signerSigned = computed(() => {
-  return ({ signerEntityIndex }) => {
+const multisigWallet = computed(() => {
+  return multisigWallets.value?.find((wallet) => {
+    return wallet.address === decodeURIComponent(route.params.address)
+  })
+})
+
+
+const isSignerSignatureOk = computed(() => {
+  return ({ signerEntityKey }) => {
     if (multisigWallet.value && multisigTransaction.value) {
-      return multisigTransaction.value?.signerSigned({
+      return signerHasSignature({
         multisigWallet: multisigWallet.value,
-        signerEntityId: `signer_${signerEntityIndex}`
+        multisigTransaction: multisigTransaction.value,
+        signerEntityKey
       })
     }
   }
 })
 
-const signerCanSign = computed(() => {
-  return ({ signerEntityIndex }) => {
-    return multisigWallet.value?.signerCanSign({ signerEntityIndex })
+const signerCanSignOnThisDevice = computed(() => {
+  return ({ signerEntityKey }) => {
+   return signerCanSign({ lockingData: multisigWallet.value.lockingData, signerEntityKey })
   }
 })
 
@@ -334,34 +351,33 @@ const darkMode = computed(() => {
 
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
-const multisigWallet = computed(() => {
-  return multisigWallets.value?.find((wallet) => {
-    return wallet.address === decodeURIComponent(route.params.address)
-  })
-})
-
-const signTransaction = async ({ signerEntityIndex }) => {
+const signTransaction = async ({ signerEntityKey }) => {
   if (!multisigWallet.value) return
-  multisigTransaction.value.signTransaction({
-    signerEntityIndex
+  await populateHdPrivateKeys({
+    lockingData: multisigWallet.value.lockingData,
+    getSignerXPrv
+  })
+  signMultisigTransaction({
+    multisigWallet: multisigWallet.value,
+    multisigTransaction: multisigTransaction.value,
+    signerEntityKey
   })
 }
 
 const broadcastTransaction = async () => {
-  const cashAddressNetworkPrefix =
-    isChipnet.value ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
-
   if (!multisigTransaction.value?.isFinalized) {
-    multisigTransaction.value?.finalize({
-      lockingData: multisigWallet.value.lockingData,
-      template: multisigWallet.value.template,
-      cashAddressNetworkPrefix
+    finalizeTransaction({
+      multisigWallet: multisigWallet.value,
+      multisigTransaction: multisigTransaction.value
     })
   }
 
   if (multisigTransaction.value?.signedTransaction) {
-    const network = isChipnet.value ? 'chipnet' : 'mainnet'
-    await multisigTransaction.value.broadcast({ network })
+    await broadcastMultisigTransaction({
+      multisigWallet: multisigWallet.value,
+      multisigTransaction: multisigTransaction.value,
+      chipnet: isChipnet.value
+    })
   }
 }
 
@@ -376,7 +392,11 @@ const downloadPST = () => {
     }
   }).onOk((filename) => {
     if (!filename) return
-    const data = multisigTransaction.value.exportPST({ signers: multisigWallet.value.signersSafe })
+    const data = exportPst({
+      multisigTransaction: multisigTransaction.value,
+      address: multisigWallet.value.address,
+      addressIndex: multisigWallet.value.lockingData.hdKeys.addressIndex
+    })
     const blob = new Blob([data], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -387,7 +407,7 @@ const downloadPST = () => {
   }).onCancel(() => {})
 }
 
-watch(() => multisigTransaction.value?.status, async (status, prevStatus) => {
+watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStatus) => {
   if (status !== prevStatus) {
     await updateTransaction({
       index: route.params.index,
@@ -395,20 +415,25 @@ watch(() => multisigTransaction.value?.status, async (status, prevStatus) => {
     })
   }
 })
+
 onMounted(async () => {
   if (multisigWallet.value) {
-    await multisigWallet.value?.loadSignerXprivateKeys(getSignerXPrv)
+    await populateHdPrivateKeys({
+     lockingData: multisigWallet.value.lockingData,
+     getSignerXPrv
+    })
+    console.log('mzig', multisigWallet.value)
     const transactions =
       $store.getters['multisig/getTransactionsByWalletAddress']({
-        address: route.params.address
+        address: decodeURIComponent(route.params.address)
       })
     if (transactions[route.params.index]) {
-      multisigTransaction.value =
-        MultisigTransaction.createInstanceFromObject({
-          ...structuredClone(transactions[route.params.index]),
-          multisigWallet: multisigWallet.value
-        })
-      await multisigTransaction.value.refreshStatus(multisigWallet.value)
+      multisigTransaction.value = structuredClone(transactions[route.params.index])
+      console.log('mtrans', multisigTransaction.value)
+      refreshTransactionStatus({
+        multisigWallet: multisigWallet.value,
+        multisigTransaction: multisigTransaction.value
+      })
     }
   }
 })

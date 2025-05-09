@@ -23,7 +23,6 @@ export const getTotalBchInputAmount = (tx, unit = 'bch') => {
 }
 
 export const getTotalBchOutputAmount = (tx, unit = 'bch') => {
-  console.log('🚀 ~ getTotalBchOutputAmount ~ tx:', tx)
   const amount = tx.outputs.reduce((total, output) => {
     return total + Number(output.valueSatoshis)
   }, 0)
@@ -53,14 +52,11 @@ export const getTotalBchChangeAmount = (tx, senderAddress, formatAddress, unit =
   }
   // Find outputs going back to the sender (i.e., change)
   const changeOutputs = tx.outputs.filter(output => {
-    console.log('formatAddress(output.address) === senderAddress', formatAddress(output.address))
-    console.log('formatAddress(output.address) === senderAddress', senderAddress)
     if (formatAddress) {
       return formatAddress(output.address) === senderAddress
     }
     return output.address === senderAddress
   })
-  console.log('🚀 ~ getTotalBchChangeAmount ~ changeOutputs:', changeOutputs)
 
   if (changeOutputs.length === 0) {
     return 0 // No change output
@@ -156,3 +152,4 @@ const parsed = parseStringified(stringified);
 const testVector = stringifyTestVector(example);
 const parsedTestVector = parseTestVector(testVector);
 */
+

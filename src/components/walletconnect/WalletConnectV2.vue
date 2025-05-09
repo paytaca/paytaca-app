@@ -242,7 +242,7 @@ import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import { loadLibauthHdWallet } from '../../wallet'
-import { MultisigTransaction, MultisigWallet } from 'src/lib/multisig'
+import { createMultisigTransactionFromWCSessionRequest, getUnsignedTransactionHash, getStatusUrl } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 const $emit = defineEmits([
   'request-scanner'
@@ -728,13 +728,14 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction') {
     try {
-      const walletAddress = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
-      if (walletAddress.signers) { // Account with active session is a multisig wallet
-        const multisigTransaction =
-          MultisigTransaction.createInstanceFromWCSessionRequest({
-            sessionRequest
-          })
-
+      const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
+      console.log('RESPONDDING', wallet)
+      if (wallet.template) { // Account with active session is a multisig wallet
+        const multisigTransaction = createMultisigTransactionFromWCSessionRequest({
+          sessionRequest,
+          addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
+        })
+        const unsignedTransactionHash = getUnsignedTransactionHash({ multisigTransaction })
         await saveMultisigTransaction(multisigTransaction)
         await web3Wallet.value.respondSessionRequest({
           topic: sessionRequest.topic,
@@ -745,7 +746,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
               status: 'accepted',
               signingType: 'multisig',
               message: 'Transaction accepted. Awaiting other signatures.',
-              statusUrl: multisigTransaction.getStatusUrl({ isChipnet: isChipnet.value })
+              statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value })
             }
           }
         })
@@ -753,7 +754,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
         return $router.push({
           name: 'app-multisig-wallet-transaction-view',
           params: {
-            address: encodeURIComponent(walletAddress.address),
+            address: wallet.address,
             index: multisigTransactionsLastIndex.value
           },
           query: {
@@ -761,7 +762,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           }
         })
       }
-      if (!walletAddress?.wif) {
+      if (!wallet?.wif) {
         return await new Promise((resolve, reject) => {
           $q.dialog({
             title: 'Unexpected request',
@@ -774,7 +775,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       response.result = await signBchTransaction(
         sessionRequest.params.request.params.transaction,
         sessionRequest.params.request.params.sourceOutputs,
-        walletAddress.wif
+        wallet.wif
       )
 
       if (sessionRequest.params.request.params?.broadcast) {
