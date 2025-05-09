@@ -237,6 +237,16 @@ const routes = [
             component: () => import('src/pages/apps/rewards/promos/rfp.vue')
           }
         ]
+      },
+      {
+        path: 'ptc-trade',
+        children: [
+          {
+            path: '',
+            name: 'app-ptc-trade',
+            component: () => import('src/pages/apps/ptc-trade/index.vue')
+          }
+        ]
       }
     ]
   },

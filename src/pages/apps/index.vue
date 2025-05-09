@@ -119,6 +119,14 @@ export default {
           smartBCHOnly: false
         },
         {
+          name: 'PTC Trade',
+          iconName: 'currency_exchange',
+          path: '/apps/ptc-trade',
+          iconStyle: 'font-size: 3.5em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('Map'),
           iconName: 'public',
           path: '/apps/map/',
