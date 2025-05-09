@@ -10,22 +10,31 @@
 		</q-card>
 	</div>	-->
 	<div class="card-container full-width">
-		<q-card class="main-card br-15" :dark="false" :class="darkmode ? 'card-dark' : 'card-light'">
+		<q-card class="main-card br-15" :dark="darkmode" :class="darkmode ? 'card-dark' : 'card-light'">
 			<div class="title-small">Enter Seed Phrase</div>
 			<div class="body-small" style="padding-bottom: 10px;">Select each word in the order it was presented to you.</div>
 
-			<a><div class="text-right q-px-md text-link" :style="invalidSeedPhrase ? 'padding-bottom: 5px;' : 'padding-bottom: 10px;'" @click="pasteSeedPhrase()"><q-icon name="arrow_back_ios" size="xs"/>Paste Seed Phrase</div></a>
+			<a v-if="isImport"><div class="text-right q-px-md text-link" :style="invalidSeedPhrase ? 'padding-bottom: 5px;' : 'padding-bottom: 10px;'" @click="pasteSeedPhrase()"><q-icon name="arrow_back_ios" size="xs"/>Paste Seed Phrase</div></a>
 			<div class="text-center body-small text-secondary" v-if="invalidSeedPhrase">Invalid Seed Phrase</div>
 			<q-card :dark="darkmode" class="br-15" style="border: 1px dashed #295BF6; padding: 16px;">
 				<div class="grid-container">
 					<div id="grid" class="grid-item" v-for="i in 12" @click="selectGrid(i)" :style="i === selectedIndex ? 'border: 2px solid #416EB4;' : 'border: 1px solid #ccc;'">
 						<span class="non-editable text-royal-blue">{{ i }}</span>						
-						<q-input :disable="!isImport" :ref="`grid${i}`" dense v-model="seedPhrase[i - 1]" input-style="text-align: center;" borderless @update:model-value="updateText()" @keyup.enter = "handleEnter()"/>
+						<q-input :disable="!isImport" :ref="`grid${i}`" dense v-model="seedPhrase[i - 1]" input-style="text-align: center; font-weight: 500; color: black;" borderless @update:model-value="updateText()" @keyup.enter = "handleEnter()"/>
 					</div>
 				</div>
 			</q-card>
 
+			<q-card v-if="!isImport && selector.length !== 0" :dark="darkmode" class="br-15" style="border: 1px dashed #295BF6; margin-top: 24px; padding: 16px;">
+				<div class="grid-container">
+					<div v-for="i in selector.length" class="text-center">
+						<q-btn @click="selectWord(i-1)" no-caps flat rounded filled class="full-width" :label="selector[i-1]" style="background-color: #416EB4; color: #fff;"/>
+					</div>					
+				</div>
+			</q-card>
+
 			<q-btn :disable="!isValidSeedPhrase()" class="full-width button-default" no-caps label="Proceed" style="margin-top: 24px; border-radius: 10px; height: 54px;"/>
+
 		</q-card>	
 	</div>	
 </template>
@@ -38,11 +47,22 @@ export default{
 		return {
 			darkmode: this.$store.getters['darkmode/getStatus'],
 			seedPhrase: new Array(12).fill(''),
+			selector: [],
 			selectedIndex: null,
+			currentIndex: 0,
 			invalidSeedPhrase: false
 		}		
 	},
+	computed: {
+		emptySeedPhrase () {
+			return this.seedPhrase.every(str => str === "");
+		}
+	},
 	props: {
+		mnemonic: {
+			type: String,
+			default: ''
+		},
 		isImport: {
 			type: Boolean,
 			default: false
@@ -58,7 +78,8 @@ export default{
 	},
 	emits: ['back', 'submit'],
 	mounted () {
-		console.log('here: ', this.darkmode)		
+		this.selector = this.mnemonic.split(" ")
+		console.log('here: ', this.mnemonic)		
 	},
 	methods: {
 		 updateText() {		 	
@@ -70,7 +91,23 @@ export default{
 	        	this.selectedIndex = index
 
 	        	this.$refs[`grid${index}`][0].focus()
-        	}        	
+        	} else {
+        		console.log('selecting grid')
+
+        		if (this.seedPhrase[index - 1] !== '') {
+        			this.selector.push(this.seedPhrase[index - 1])
+	        		// this.seedPhrase[index - 1] = ''
+	        		for (let i = (index-1); i < this.currentIndex; i++) {
+	        			console.log(i)
+	        			if (i < 11) {
+	        				this.seedPhrase[i] = this.seedPhrase[i + 1]
+	        			} else {
+	        				this.seedPhrase[i] = ''
+	        			} 			
+	        		}
+	        		this.currentIndex--
+        		}
+        	}
         },
         cleanUpSeedPhrase (seedPhrase) {
         	return seedPhrase.toLowerCase().trim()
@@ -123,6 +160,13 @@ export default{
 		  } else {
 		    return 0
 		  }
+		},
+		selectWord (index) {
+			this.seedPhrase[this.currentIndex++] = (this.selector[index])
+			console.log('seedPhrase: ', this.seedPhrase)
+			if (index >= 0 && index < this.selector.length) {
+		        this.selector.splice(index, 1) // Removes 1 item at the given index
+		    }
 		}
 	}
 }	

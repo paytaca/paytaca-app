@@ -10,10 +10,11 @@
       <!-- Import Seed Phrase or Use shards -->
       <div v-if="step === 3">
         <div v-if="createAccount">
-          Generating new wallet
+          <!-- Generating new wallet -->
+          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false" :mnemonic="mnemonic"/>
         </div>
         <div v-else>
-          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false"/>
+          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="true"/>
           <div v-else class="text-dark">
             Login with shards
           </div>
@@ -37,7 +38,8 @@ export default {
       loginType: '', // shards, seed-phrase
       step: 1,
       createAccount: false,
-      gradientBg: true
+      gradientBg: true,
+      mnemonic: "okay hub stuff penalty movie injury siege expand win virtual success despair"
     }
   },
   components: {
