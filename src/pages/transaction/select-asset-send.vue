@@ -93,7 +93,8 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: true
+      isCashToken: true,
+      tokenNotFoundDialog: null
     }
   },
   computed: {
@@ -214,7 +215,7 @@ export default {
 
     if (this.$route.query.error === 'token-not-found') {
       this.$router.replace({ path: this.$route.path })
-      this.$q.dialog({
+      this.tokenNotFoundDialog = this.$q.dialog({
         title: this.$t('TokenNotFound'),
         message: this.$t('TokenNotFoundMessage'),
         persistent: true,
@@ -235,6 +236,13 @@ export default {
       })
       await Promise.allSettled([...balanceUpdatePromises, ...assetMetadataUpdatePromises])
     }
+  },
+  beforeRouteLeave (to, from, next) {
+    // Close any open dialogs before leaving
+    if (this.tokenNotFoundDialog) {
+      this.tokenNotFoundDialog.hide()
+    }
+    next()
   }
 }
 </script>
