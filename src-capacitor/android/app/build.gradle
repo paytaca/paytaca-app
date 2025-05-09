@@ -8,8 +8,8 @@ android {
         applicationId "com.paytaca.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 112
-        versionName "v0.22.4"
+        versionCode 113
+        versionName "v0.22.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
