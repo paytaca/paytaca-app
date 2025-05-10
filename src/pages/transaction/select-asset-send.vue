@@ -220,7 +220,12 @@ export default {
         message: this.$t('TokenNotFoundMessage'),
         persistent: true,
         seamless: true,
-        ok: true,
+        ok: {
+          label: this.$t('OK'),
+          handler: () => {
+            this.$router.push('/')
+          }
+        },
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)} no-click-outside`
       })
     }

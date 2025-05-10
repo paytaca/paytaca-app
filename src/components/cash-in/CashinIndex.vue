@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" full-width position="bottom" transition-show="slide-up">
-    <q-card class="bottom-card br-15 pt-card-2 text-bow q-pb-lg" :class="getDarkModeClass(darkMode)">
+    <q-card class="bottom-card-small br-15 pt-card-2 text-bow q-pb-lg" :class="getDarkModeClass(darkMode)">
       <div v-if="loading || loggingIn">
         <div class="q-mt-lg q-pt-md row text-center justify-center q-mx-md text-blue" style="font-size: 21px;">
           Cash In
