@@ -1,10 +1,12 @@
-import axios from 'axios'
 import { deriveHdPrivateNodeFromSeed, deriveHdPath, secp256k1 } from '@bitauth/libauth'
+import axios from 'axios'
+
 import { Store } from 'src/store'
 import { convertToBCH } from 'src/utils/denomination-utils'
 import { getMnemonic } from 'src/wallet'
 import { getWallet } from 'src/utils/send-page-utils'
 import { convertCashAddress } from 'src/wallet/chipnet'
+import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
@@ -34,10 +36,6 @@ function fiatCurrency () {
 function bchMarketPrice () {
   if (!fiatCurrency()) return 0
   return Store.getters['market/getAssetPrice']('bch', fiatCurrency())
-}
-
-function getWalletHash () {
-  return Store.getters['global/getWallet']('bch')?.walletHash
 }
 
 // ================================
