@@ -119,8 +119,8 @@ export default {
 
           if (currency.length !== 0) {
             currency = currency[0]
-            vm.$store.commit('market/updateSelectedCurrency', currency)
-            vm.$store.dispatch('global/saveWalletPreferences')
+            vm.$store.commit('market/updateSelectedCurrency', currency)            
+            vm.$store.dispatch('global/saveWalletPreferences')            
           }
         }
         return o
