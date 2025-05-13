@@ -109,6 +109,26 @@ Cypress.on('uncaught:exception', (err) => {
 });
 });
 
+// cypress/support/commands.js (if not already added)
+Cypress.Commands.add('logRequestTime', (description, requestFn) => {
+  cy.then(() => {
+    performance.mark(`${description}-start`);
+    requestFn().then((response) => {
+      performance.mark(`${description}-end`);
+      performance.measure(description, `${description}-start`, `${description}-end`);
+      const duration = performance.getEntriesByName(description)[0].duration.toFixed(2);
+      cy.log(`${description} took ${duration} ms`);
+      performance.clearMarks();
+      performance.clearMeasures();
+    });
+  });
+});
+
+Cypress.Commands.add('clickContinue', () => {
+  cy.get('#Continue', { timeout: 10000 }).click();
+});
+
+
 
 
 
