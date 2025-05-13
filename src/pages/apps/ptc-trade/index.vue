@@ -50,7 +50,10 @@
         >
           <q-tab-panel name="seed" style="padding: 5px 0;">
             <template v-if="seedSaleContract">
-              contract yey
+              <seed-sale-contract
+                :saleContract="seedSaleContract"
+                :saleGroup="'Seed'"
+              />
             </template>
 
             <template v-else>
@@ -78,7 +81,10 @@
 
           <q-tab-panel name="priv" style="padding: 5px 0;">
             <template v-if="privSaleContract">
-              contract yey
+              <seed-sale-contract
+                :saleContract="privSaleContract"
+                :saleGroup="'Private'"
+              />
             </template>
 
             <template v-else>
@@ -112,17 +118,19 @@
 <script>
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { createSaleContractApi, getPtcTradeData } from 'src/utils/engagementhub-utils/ptc-trade'
+import { raiseNotifyError } from 'src/utils/send-page-utils'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { raiseNotifyError } from 'src/utils/send-page-utils'
+import SeedSaleContract from 'src/components/ptc-trade/SaleContractCard.vue'
 
 export default {
   name: 'PTCTradePage',
 
   components: {
     HeaderNav,
-    ProgressLoader
+    ProgressLoader,
+    SeedSaleContract
   },
 
   data () {
@@ -137,15 +145,6 @@ export default {
     }
   },
 
-  async mounted () {
-    this.isLoading = true
-
-    await getPtcTradeData()
-      .then(data => { this.parseData(data) })
-
-    this.isLoading = false
-  },
-
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -153,6 +152,17 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     }
+  },
+
+  async mounted () {
+    this.isLoading = true
+
+    await getPtcTradeData()
+      .then(data => {
+        if (data) this.parseData(data)
+      })
+
+    this.isLoading = false
   },
 
   methods: {
@@ -163,20 +173,19 @@ export default {
       this.isCreatingContract = true
 
       await createSaleContractApi(saleGroup)
-        .then(data => { this.parseData(data) })
+        .then(data => {
+          if (data) this.parseData(data)
+          else raiseNotifyError('Unable to create your contract. Please try again later.')
+        })
 
       this.isCreatingContract = false
     },
     parseData (data) {
-      if (data) {
-        if (data.seed_contract_ct_address) {
-          this.seedSaleContract = {
-            ctAddress: data.seed_contract_ct_address,
-            dateCreated: data.seed_contract_created
-          }
+      if (data.seed_contract_ct_address) {
+        this.seedSaleContract = {
+          ctAddress: data.seed_contract_ct_address,
+          dateCreated: data.seed_contract_created
         }
-      } else {
-        raiseNotifyError('Unable to create your contract. Please try again later.')
       }
     }
   }
