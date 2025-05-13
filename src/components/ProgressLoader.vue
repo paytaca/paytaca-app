@@ -1,5 +1,5 @@
 <template>
-  <div class="lds-ellipsis transparent">
+  <div class="lds-ellipsis transparent" :class="isTight ? 'tight' : ''">
     <div :class="`bg-${color}`"></div>
     <div :class="`bg-${color}`"></div>
     <div :class="`bg-${color}`"></div>
@@ -14,7 +14,8 @@ export default {
     color: {
       type: String,
       default: 'pink'
-    }
+    },
+    isTight: { type: Boolean, default: false }
   }
 }
 </script>
@@ -72,6 +73,16 @@ export default {
   }
   100% {
     transform: translate(24px, 0);
+  }
+}
+</style>
+
+<style lang="scss" scoped>
+.tight.lds-ellipsis {
+  height: 15px !important;
+
+  & div {
+    top: 10px !important;
   }
 }
 </style>

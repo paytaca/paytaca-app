@@ -187,7 +187,7 @@ import {
   customNumberFormatting
 } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
+import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { convertToFiatAmount } from 'src/utils/send-page-utils'
 

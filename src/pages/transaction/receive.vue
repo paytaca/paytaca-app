@@ -651,15 +651,26 @@ export default {
           // if unlisted token is detected, add to front of list
           // check if token already added in list
           if (!vm.tokens.map(a => a.id).includes(data.token_id)) {
-            const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
-            newTokenData.balance = amount
+            try {
+              const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
+              if (newTokenData) {
+                if (!newTokenData.decimals || newTokenData.isNft) {
+                  console.log('Not adding unrecognized token due to being an nft')
+                  return
+                }
+                
+                // Create a new object with the balance property
+                const tokenWithBalance = {
+                  ...newTokenData,
+                  balance: amount
+                }
 
-            if (!newTokenData?.decimals || newTokenData?.isNft) {
-              console.log('Not adding unrecognized token due to being an nft')
+                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, tokenWithBalance)
+                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+              }
+            } catch (error) {
+              console.error('Error adding new token:', error)
             }
-
-            vm.$store.commit(`${newTokenData.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, newTokenData)
-            vm.$store.commit(`${newTokenData.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
           }
         }
       }

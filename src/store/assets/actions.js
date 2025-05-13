@@ -1,8 +1,6 @@
 import { getMnemonic, Wallet } from '../../wallet'
 import { axiosInstance } from '../../boot/axios'
-import axios from 'axios'
-import { setupCache } from 'axios-cache-interceptor'
-import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import { convertIpfsUrl, getBcmrBackend } from 'src/wallet/cashtokens'
 import {
   getWatchtowerApiUrl,
   getBlockChainNetwork,
@@ -10,19 +8,6 @@ import {
 } from 'src/wallet/chipnet'
 import Watchtower from 'watchtower-cash-js'
 
-
-function getBcmrBackend() {
-  const network = getBlockChainNetwork()
-  if (network === 'chipnet') {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr-chipnet.paytaca.com/api',
-    }))
-  } else {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr.paytaca.com/api',
-    }))
-  }
-}
 
 function getTokenIdFromAssetId (assetId) {
   const match = String(assetId).match(/^slp\/([0-9a-fA-F]+)$/)
@@ -207,6 +192,7 @@ export async function saveExistingAsset (context, details) {
  * @param {Object} context 
  * @param {Object} opts 
  * @param {Boolean} opts.chipnet
+ * @param {Boolean} opts.excludeCurrentIndex
  */
 export async function updateVaultBchBalances(context, opts) {
   const watchtower = new Watchtower(opts?.chipnet)
@@ -223,6 +209,9 @@ export async function updateVaultBchBalances(context, opts) {
 
   const results = await Promise.allSettled(
     vault.map((assetsVault, index) => {
+      const walletIndex = context.rootGetters['global/getWalletIndex']
+      if (index === walletIndex && opts?.excludeCurrentIndex) return
+
       const assets = opts?.chipnet ? assetsVault?.chipnet_assets : assetsVault?.asset
 
       const bchAsset = assets?.find?.(asset => asset?.id === 'bch')
@@ -254,7 +243,7 @@ export async function getAssetMetadata (context, assetId) {
 
   if (tokenType !== 'ct') return
 
-  const url = 'tokens/' + tokenId
+  const url = 'tokens/' + tokenId + '/'
   const response = await getBcmrBackend().get(url)
   const _metadata = response.data
   let data

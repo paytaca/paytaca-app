@@ -216,6 +216,28 @@ const routes = [
           }
         ]
       },
+      {
+        path: 'rewards',
+        children: [
+          {
+            path: '',
+            name: 'app-rewards',
+            component: () => import('src/pages/apps/rewards/index.vue'),
+          },
+          {
+            path: 'user-rewards',
+            name: 'user-rewards',
+            props: route => route.query,
+            component: () => import('src/pages/apps/rewards/promos/user-rewards.vue')
+          },
+          {
+            path: 'rfp',
+            name: 'rfp',
+            props: route => route.query,
+            component: () => import('src/pages/apps/rewards/promos/rfp.vue')
+          }
+        ]
+      }
     ]
   },
   // Always leave this as last one,

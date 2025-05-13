@@ -432,7 +432,7 @@ import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
-import { getMnemonic, Wallet } from '../../wallet'
+import { getMnemonic } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
@@ -464,6 +464,8 @@ import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/Stabl
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
+import { asyncSleep } from 'src/wallet/transaction-listener'
+import { cachedLoadWallet } from '../../wallet'
 
 const sep20IdRegexp = /sep20\/(.*)/
 
@@ -1014,7 +1016,7 @@ export default {
       const address = vm.$store.getters['global/getAddress']('sbch')
       if (sep20IdRegexp.test(parsedId)) {
         const contractAddress = parsedId.match(sep20IdRegexp)[1]
-        vm.wallet.sBCH.getSep20TokenBalance(contractAddress, address)
+        return vm.wallet.sBCH.getSep20TokenBalance(contractAddress, address)
           .then(balance => {
             const commitName = 'sep20/updateAssetBalance'
             vm.$store.commit(commitName, {
@@ -1024,7 +1026,7 @@ export default {
             vm.balanceLoaded = true
           })
       } else {
-        vm.wallet.sBCH.getBalance(address)
+        return vm.wallet.sBCH.getBalance(address)
           .then(balance => {
             const commitName = 'sep20/updateAssetBalance'
             vm.$store.commit(commitName, {
@@ -1041,16 +1043,24 @@ export default {
       }
       vm.transactionsPageHasNext = false
       await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store)
+      if (id == 'bch' && vm.stablehedgeView) {
+        await vm.$store.dispatch('stablehedge/updateTokenBalances')
+          .then(() => vm.$store.dispatch('stablehedge/updateTokenPrices', { minAge: 60 * 1000 }))
+          .catch(console.error)
+      }
       vm.balanceLoaded = true
     },
     refresh (done) {
-      this.checkCashinAlert()
-      this.assets.map(function (asset) {
-        return vm.getBalance(asset.id)
-      })
-      this.transactions = []
-      this.$refs['transaction-list-component'].getTransactions()
-      done()
+      try {
+        this.checkCashinAlert()
+        this.assets.map((asset) => {
+          return this.getBalance(asset.id)
+        })
+        this.transactions = []
+        this.$refs['transaction-list-component'].getTransactions()
+      } finally {
+        done()
+      }
     },
     setTransactionsFilter(value) {
       const transactionsFilters = this.transactionsFilterOpts.map(opt => opt?.value)
@@ -1162,10 +1172,7 @@ export default {
 
     async loadWallets () {
       const vm = this
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
-
-      const wallet = new Wallet(mnemonic, vm.selectedNetwork)
+      const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
       vm.wallet = markRaw(wallet)
 
       const storedWalletHash = vm.$store.getters['global/getWallet']('bch').walletHash
@@ -1246,20 +1253,30 @@ export default {
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
 
-        vm.getBalance(vm.selectedAsset.id)
-        vm.$refs['transaction-list-component'].getTransactions()
+        const balancePromise = vm.getBalance(vm.selectedAsset.id)
+        const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
 
-        vm.$store.dispatch('assets/updateTokenIcons', { all: false })
+        let tokenIconUpdatePromise
         if (this.selectedNetwork === 'sBCH') {
-          vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+          tokenIconUpdatePromise = vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
+        } else {
+          tokenIconUpdatePromise = vm.$store.dispatch('assets/updateTokenIcons', { all: false })
         }
+
+        return Promise.allSettled([
+          balancePromise,
+          txFetchPromise,
+          tokenIconUpdatePromise,
+        ])
       } else {
         vm.balanceLoaded = true
         vm.transactionsLoaded = true
       }
       this.adjustTransactionsDivHeight()
     },
-    async handleOpenedNotification(openedNotification) {
+    async handleOpenedNotification() {
+      const openedNotification = this.$store.getters['notification/openedNotification']
+
       if(openedNotification) {
         const notificationTypes = this.$store.getters['notification/types']
         if (openedNotification?.data?.type === notificationTypes.MAIN_TRANSACTION) {
@@ -1430,6 +1447,9 @@ export default {
       )
       return tokens
     },
+    /**
+     * Returns boolean if app update prompt is shown
+     */
     async checkVersionUpdate () {
       const vm = this
       const appVer = packageInfo.version
@@ -1466,11 +1486,13 @@ export default {
                       data: response.data
                     }
                   })
+                  return true
                 }
               }
             }
           })
       }
+      return false
     },
     checkOutdatedVersion (appVer, minReqVer) {
       let isOutdated = false
@@ -1492,6 +1514,48 @@ export default {
         }
       }
       return isOutdated
+    },
+    /**
+     * Return boolean if security preference is set up
+     */
+    async checkSecurityPreferenceSetup() {
+      const vm = this
+      // Check if preferredSecurity and if it's set as PIN
+      const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
+      let forceRecreate = false
+      if (preferredSecurity === null) {
+        forceRecreate = true
+      } else if (preferredSecurity === 'pin') {
+        // If using PIN, check if it's 6 digits
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        const mnemonic = await getMnemonic(walletIndex)
+        try {
+          let pin = null
+          try {
+            pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
+          } catch (error) {
+            try {
+              // fallback for retrieving pin using unhashed mnemonic
+              pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+            } catch (error1) {
+              // fallback for old process of pin retrieval
+              pin = await SecureStoragePlugin.get({ key: 'pin' })
+            }
+          }
+          if (pin?.value.length < 6) {
+            forceRecreate = true
+          }
+        } catch {
+          forceRecreate = true
+        }
+      }
+      if (forceRecreate) {
+        this.securityOptionDialogStatus = 'show'
+        // await vm.$store.dispatch('global/updateOnboardingStep', 0)
+        // vm.$router.push('/accounts?recreate=true')
+      }
+
+      return !forceRecreate
     },
     resetCashinOrderPagination () {
       this.$store.commit('ramp/resetCashinOrderList')
@@ -1516,21 +1580,11 @@ export default {
   },
   created () {
     bus.on('cashin-alert', (value) => { this.hasCashinAlert = value })
-  },
-  async mounted () {
-    const vm = this
-    await this.checkVersionUpdate()
-    try {
-      this.checkCashinAvailable()
-      this.setupCashinWebSocket()
-      this.resetCashinOrderPagination()
-      this.checkCashinAlert()
-    } catch(error) {
-      console.error(error)
-    }
-    stablehedgePriceTracker.subscribe('main-page')
-
     bus.on('handle-push-notification', this.handleOpenedNotification)
+  },
+  beforeMount () {
+    const vm = this
+    stablehedgePriceTracker.subscribe('main-page')
 
     if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
       vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
@@ -1540,59 +1594,52 @@ export default {
       vm.assetsCloseButtonColor = 'color: #3B7BF6;'
     }
 
-    // Check if preferredSecurity and if it's set as PIN
-    const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
-    let forceRecreate = false
-    if (preferredSecurity === null) {
-      forceRecreate = true
-    } else if (preferredSecurity === 'pin') {
-      // If using PIN, check if it's 6 digits
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
-      try {
-        let pin = null
-        try {
-          pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
-        } catch (error) {
-          try {
-            // fallback for retrieving pin using unhashed mnemonic
-            pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-          } catch (error1) {
-            // fallback for old process of pin retrieval
-            pin = await SecureStoragePlugin.get({ key: 'pin' })
-          }
-        }
-        if (pin?.value.length < 6) {
-          forceRecreate = true
-        }
-      } catch {
-        forceRecreate = true
-      }
-    }
-    if (forceRecreate) {
-      this.securityOptionDialogStatus = 'show'
-      // await vm.$store.dispatch('global/updateOnboardingStep', 0)
-      // vm.$router.push('/accounts?recreate=true')
-    }
-
-    window.vm = this
-    this.handleOpenedNotification()
-
-    vm.adjustTransactionsDivHeight({ timeout: 50 })
-
+  },
+  async mounted () {
+    const vm = this
+    let walletLoadPromise
     if (navigator.onLine) {
-      vm.onConnectivityChange(true)
+      walletLoadPromise = vm.onConnectivityChange(true)
     } else {
-      vm.loadWallets()
+      walletLoadPromise = vm.loadWallets()
+    }
+    await Promise.race([ asyncSleep(500), walletLoadPromise ])
+
+    this.checkVersionUpdate()
+      .catch(error => {
+        console.error('Error checking version update:', error)
+        return false
+      })
+      .then(updatePromptShown => {
+        if (updatePromptShown) return true
+        this.checkSecurityPreferenceSetup()
+      })
+
+    // Only handle notifications that were just received
+    const openedNotification = this.$store.getters['notification/openedNotification']
+    if (openedNotification?.id) {
+      this.handleOpenedNotification()
     }
 
-    // If asset prices array is empty, immediately fetch asset prices
-    if (vm.$store.state.market.assetPrices.length === 0) {
-      vm.$store.dispatch('market/updateAssetPrices', {})
+    try {
+      await Promise.all([
+        this.checkCashinAvailable(),
+        this.setupCashinWebSocket(),
+        this.resetCashinOrderPagination(),
+        this.checkCashinAlert(),
+      ])
+    } catch(error) {
+      console.error(error)
     }
 
+    // refactored to fetch tokens in batch by 3 instead of all at once
     const assets = vm.$store.getters['assets/getAssets']
-    assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+    for (var i = 0; i < assets.length; i = i + 3) {
+      const chunk = assets.slice(i, i + 3).map(a => {
+        return vm.$store.dispatch('assets/getAssetMetadata', a.id)
+      })
+      await Promise.allSettled(chunk)
+    }
 
     // check if newly-received token is already stored in vuex store,
     // if not, then add it to the very first of the list
@@ -1609,29 +1656,6 @@ export default {
         vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
       })
     }
-
-    // TODO: Replace this with a websocket connection that periodically
-    // updates the app about watchtower status
-    //
-    // // Check for slow internet and/or accessibility of the backend
-    // let onlineStatus = true
-    // axios.get('https://watchtower.cash/api/status/', { timeout: 1000 * 60 }).then((resp) => {
-    //   console.log('ONLINE')
-    //   if (resp.status === 200) {
-    //     if (resp.data.status !== 'up') {
-    //       onlineStatus = false
-    //     }
-    //   }
-    // }).catch((error) => {
-    //   console.log('OFFLINE', error)
-    //   onlineStatus = false
-    // }).finally(() => {
-    //   if (!onlineStatus) {
-    //     vm.$store.dispatch('global/updateConnectivityStatus', false)
-    //     vm.balanceLoaded = true
-    //     vm.transactionsLoaded = true
-    //   }
-    // })
 
     vm.$store.dispatch('market/updateAssetPrices', {})
     vm.computeWalletYield()

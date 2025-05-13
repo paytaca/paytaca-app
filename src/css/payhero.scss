@@ -509,7 +509,7 @@ body.theme-payhero {
     background: $background-blue !important;
   }
 
-  .transaction-container {
+  .transaction-container, .points-earned-div {
     &.dark {
       background-color: $bg_container_dark;
     }
@@ -517,6 +517,10 @@ body.theme-payhero {
     &.light {
       background-color: $button_yellow;
     }
+  }
+
+  .points-earned-div:not(:has(.payhero)) {
+    color: white !important;
   }
 
   .btn-custom {
@@ -640,5 +644,11 @@ body.theme-payhero {
 
   .q-radio > .q-radio__inner--truthy {
     color: $brand_yellow !important;
+  }
+
+  .subtext-gray.not-earned-label {
+    &.dark, &.light {
+      color: rgb(200, 200, 200) !important;
+    }
   }
 }

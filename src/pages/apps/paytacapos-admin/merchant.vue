@@ -105,7 +105,8 @@
             @click.stop="openMerchantInfoDialog()"
           />
         </q-item>
-        <div class="text-center q-pt-xs q-px-md">
+        <!-- TODO: Uncomment this when cashout is ready -->
+        <!-- <div class="text-center q-pt-xs q-px-md">
           <q-btn
             outline
             rounded
@@ -121,7 +122,7 @@
           <div class="q-pt-xs text-grey-6 text-italic" style="font-size: 10px;">
             {{ cashoutErrorMsg }}
           </div>
-        </div>
+        </div> -->
       </q-card-section>
     </q-card>
 

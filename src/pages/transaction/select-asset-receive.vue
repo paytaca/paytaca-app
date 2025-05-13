@@ -97,11 +97,10 @@
   </div>
 </template>
 <script>
-import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
-import { getMnemonic, Wallet } from 'src/wallet'
+import { cachedLoadWallet } from 'src/wallet'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
@@ -243,14 +242,28 @@ export default {
         }
       }
     },
-    async checkIfFirstTimeReceiver (asset) {
-      // check wallet/assets if balance is zero and no transactions were made
-      const assetBalance = asset.balance ?? 0
+    async isFirstTimeReceiver(asset) {
+      if ((asset?.balance ?? 0) !== 0) return false
+      if ((asset?.txCount ?? 0) !== 0) return false
+      if (asset.id.split('/')[1] === 'unlisted') return false
+
       const transactionsLength = this.selectedNetwork === 'sBCH'
         ? await this.getSbchTransactions(asset)
         : await this.getBchTransactions(asset)
 
-      if (assetBalance === 0 && transactionsLength === 0 && asset.id.split('/')[1] !== 'unlisted') {
+      if (this.selectedNetwork !== 'sBCH') {
+        this.$store.commit('assets/updateAssetTxCount', {
+          id: asset?.id,
+          txCount: transactionsLength,
+        })
+      }
+
+      return transactionsLength === 0
+    },
+    async checkIfFirstTimeReceiver (asset) {
+      // check wallet/assets if balance is zero and no transactions were made
+      const displayFirstTimeReceiverWarning = await this.isFirstTimeReceiver(asset)
+      if (displayFirstTimeReceiverWarning) {
         this.$q.dialog({ component: FirstTimeReceiverWarning })
           .onOk(() => {
             this.$router.push({
@@ -323,18 +336,20 @@ export default {
     const vm = this
     vm.$store.dispatch('market/updateAssetPrices', {})
     const bchAssets = vm.$store.getters['assets/getAssets']
-    bchAssets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
     // update balance of assets
-    await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
-      let wallet = new Wallet(mnemonic, vm.network)
-      vm.wallet = markRaw(wallet)
-      if (vm.selectedNetwork === 'sBCH') vm.wallet.sBCH.getOrInitWallet()
-
-      bchAssets.forEach(async (asset) => {
-        await updateAssetBalanceOnLoad(asset.id, vm.wallet, vm.$store)
+    const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
+    vm.wallet = wallet // Initialize the wallet property
+    
+    for (var i = 0; i < bchAssets.length; i = i + 3) {
+      const balanceUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
+        return updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
       })
-    })
+      const assetMetadataUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
+        return vm.$store.dispatch('assets/getAssetMetadata', asset.id)
+      })
+      await Promise.allSettled([...balanceUpdatePromises, ...assetMetadataUpdatePromises])
+    }
   }
 }
 </script>

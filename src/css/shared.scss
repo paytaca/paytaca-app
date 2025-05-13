@@ -173,3 +173,22 @@ div#q-app:has(.marketplace-container) {
 .bottom-card-tall {
   @include bottom-card(90vh);
 }
+
+.subtext-gray {
+  &.dark {
+    color: rgb(200, 200, 200);
+  }
+  
+  &.light {
+    color: rgb(100, 100, 100)
+  }
+}
+
+.points-earned-div {
+  @include bottom-card(100vh);
+  position: fixed;
+  bottom: 0;
+
+  border-top-left-radius: 30px;
+  border-top-right-radius: 30px;
+}
