@@ -745,7 +745,7 @@ export default {
     }
   },
   async mounted () {
-    if (this.recreate) {
+    if (this.recreate) { // note: recreate is commented on transaction/index.vue // check later
       this.mnemonic = await getMnemonic(0) || ''
       if (this.mnemonic.split(" ").length === 12) {
         this.steps = 0

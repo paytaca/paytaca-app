@@ -16,7 +16,7 @@
 		    	
 			    	<q-btn no-caps label="Log In" class="full-width button-default" style="margin-top: 24px; border-radius: 10px;" @click="step++"/>
 			    	
-			    	<div class="text-center title-small text-link constant-padding" @click="proceedCreateAccount()">Create New Wallet</div>
+			    	<div class="text-center title-small text-link constant-padding" @click="proceedCreateAccount()">Create New Wallet?</div>
 			    	<div class="text-center body-small text-capitalize constant-padding">{{ $t('or') }}</div>
 
 			    	<div class="full-width constant-padding">

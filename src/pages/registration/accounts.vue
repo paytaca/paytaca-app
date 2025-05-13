@@ -4,29 +4,32 @@
     <onboarding v-if="showOnboarding" @register="showOnboarding = false"/>
     <div v-else>
       <!-- Select Language -->
-      <selectCountryLanguage v-if="step === 1" @done="step++"/>
+      <selectCountryLanguage v-if="status === 'country-lang-select'" @done="status = 'login'" :key="currencySelectorRerender"/>
       <!-- Login/Sign up -->
-      <login v-if="step === 2" @proceed="proceedAccountLogin"/>
-      <!-- Import Seed Phrase or Use shards -->
-      <div v-if="step === 3">
-        <div v-if="createAccount">
-          <!-- Generating new wallet -->
-          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false" :mnemonic="mnemonic"/>
-        </div>
-        <div v-else>
-          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="true"/>
+      <login v-if="status === 'login'" @proceed="proceedAccountLogin"/>
+      <!-- Import Seed Phrase or Use shards // Wallet Creation -->
+      <div v-if="status === 'wallet-create'">   
+        <div v-if="importSeedPhrase">
+          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="true" @submit="handleSeedPhraseContainer"/>
           <div v-else class="text-dark">
             Login with shards
           </div>
+        </div>
+        <div v-else>
+          <!-- Generating new wallet -->
+          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false" :mnemonic="mnemonic"/>
         </div>        
       </div>
 
       <!-- Generate New Wallet : Step = 0 -->
     </div>
+
+    <loadingDialog v-model="openLoadingDialog"/>
   </div>
 </template>
 <script>
 import onboarding from 'src/components/ui-revamp/registration/onboarding.vue'
+import loadingDialog from 'src/components/ui-revamp/registration/loadingDialog.vue'
 import selectCountryLanguage from 'src/components/ui-revamp/registration/select-country-language.vue'
 import seedPhraseContainer from 'src/components/ui-revamp/registration/seed-phrase-container.vue'
 import login from 'src/components/ui-revamp/registration/login.vue'
@@ -36,24 +39,40 @@ import { supportedLangs as supportedLangsI18n } from '../../i18n'
 export default {
   data () {
     return {
+      darkmode: this.$store.getters['darkmode/getStatus'],
       showOnboarding: false,
+      loading: false,
       loginType: '', // shards, seed-phrase
-      step: 1,
-      createAccount: false,
+      step: 0,
+      totalStep: 9,
+      createAccount: false, 
+      importSeedPhrase: false,
       gradientBg: true,
       creatingWallet: false,
-      mnemonic: "okay hub stuff penalty movie injury siege expand win virtual success despair",
+      seedPhraseBackup: null,
+      mnemonic: '',
+      newWalletHash: '',
+      currencySelectorRerender: false,
 
       walletIndex: 0,
+      openLoadingDialog: false,
+      status: 'country-lang-select', //  country-lang-select, login, wallet-create
+    }
+  },
+  computed: {
+    finalStep () {
+      return this.steps === this.totalStep
     }
   },
   components: {
     onboarding,
     selectCountryLanguage,
     login,
-    seedPhraseContainer
+    seedPhraseContainer,
+    loadingDialog
   },
   async mounted () {
+    this.loading = true
     if (this.$store.getters['global/isVaultEmpty']) {
       this.showOnboarding = true
     }
@@ -128,16 +147,27 @@ export default {
       this.serverOnline = true    
     }).catch(() => {
       this.serverOnline = false      
-    })    
+    })   
+    this.loading = false 
   },
   methods: {
     proceedAccountLogin (info) {
       console.log('login: ', info)
       this.loginType = info.type
       this.createAccount = info.createAccount
+      this.importSeedPhrase = !info.createAccount
 
-      this.step++
-      this.gradientBg = false
+      if (!this.importSeedPhrase) {
+        this.openLoadingDialog = true
+        console.log('continue')
+
+        setTimeout(() => { this.openLoadingDialog = false}, 5000)
+        // this.createWallets()
+
+      } else {
+        this.status = 'wallet-create'
+        this.gradientBg = false
+      } 
     },
     returnToLoginSelect () {
       this.gradientBg = true      
@@ -185,6 +215,11 @@ export default {
       this.$i18n.locale = languageCode
       this.$store.commit('global/setLanguage', languageCode)
     },
+    handleSeedPhraseContainer (phrase) {
+      this.seedPhraseBackup = phrase
+
+      console.log('mnemonic: ', this.seedPhraseBackup)
+    },
     async createWallets () {
       const vm = this
 
@@ -193,8 +228,10 @@ export default {
         if (vm.importSeedPhrase) {
           vm.mnemonicVerified = true
           vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
+          console.log('mnemonic: ', vm.mnemonic)
         } else {
           vm.mnemonic = await generateMnemonic(vm.walletIndex)
+          console.log('mnemonic: ', vm.mnemonic)
         }
       }
       vm.steps += 1

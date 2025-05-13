@@ -33,7 +33,7 @@
 				</div>
 			</q-card>
 
-			<q-btn :disable="!isValidSeedPhrase()" class="full-width button-default" no-caps label="Proceed" style="margin-top: 24px; border-radius: 10px; height: 54px;"/>
+			<q-btn :disable="!isValidSeedPhrase()" class="full-width button-default" no-caps label="Proceed" style="margin-top: 24px; border-radius: 10px; height: 54px;" @click="handleSubmit()"/>
 
 		</q-card>	
 	</div>	
@@ -126,6 +126,13 @@ export default{
 	    		this.selectedIndex = 1
 	    		this.selectGrid(this.selectedIndex)
 	    	}	    	
+	    },
+	    handleSubmit () {
+	    	if (this.isImport) {	    		
+	    		const mnemonic = this.seedPhrase.join(' ').trim()
+	    		// console.log(mnemonic)
+	    		this.$emit('submit', mnemonic)
+	    	}
 	    },
 	    isValidSeedPhrase() {	    	
 	    	const temp = this.seedPhrase.toString().trim()
