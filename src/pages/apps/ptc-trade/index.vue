@@ -54,6 +54,10 @@
                 :saleContract="seedSaleContract"
                 :saleGroup="'Seed'"
               />
+              
+              <tx-details-list
+                :saleContractTransactions="seedSaleContract.transactions"
+              />
             </template>
 
             <template v-else>
@@ -84,6 +88,10 @@
               <seed-sale-contract
                 :saleContract="privSaleContract"
                 :saleGroup="'Private'"
+              />
+
+              <tx-details-list
+                :saleContractTransactions="privSaleContract.transactions"
               />
             </template>
 
@@ -123,6 +131,7 @@ import { raiseNotifyError } from 'src/utils/send-page-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import SeedSaleContract from 'src/components/ptc-trade/SaleContractCard.vue'
+import TxDetailsList from 'src/components/ptc-trade/TxDetailsList.vue'
 
 export default {
   name: 'PTCTradePage',
@@ -130,7 +139,8 @@ export default {
   components: {
     HeaderNav,
     ProgressLoader,
-    SeedSaleContract
+    SeedSaleContract,
+    TxDetailsList
   },
 
   data () {
@@ -184,9 +194,13 @@ export default {
       if (data.seed_contract_ct_address) {
         this.seedSaleContract = {
           ctAddress: data.seed_contract_ct_address,
-          dateCreated: data.seed_contract_created
+          dateCreated: data.seed_contract_created,
+          transactions: data.wallet_sale_transactions
+            .filter(tx => tx.sale_group === 'seed')
         }
       }
+      console.log(this.seedSaleContract)
+      console.log(this.privSaleContract)
     }
   }
 }

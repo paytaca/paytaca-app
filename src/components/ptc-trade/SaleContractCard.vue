@@ -15,7 +15,7 @@
       </span>
       <div @click="copyToClipboard(saleContract.ctAddress)">
         <span>Token address: </span>
-        <span class="q-pr-sm">
+        <span class="q-px-sm">
           {{ parseTokenAddress(saleContract.ctAddress) }}
         </span>
         <q-icon name="fas fa-copy" style="font-size: 14px;" />
