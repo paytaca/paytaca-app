@@ -11,8 +11,13 @@
 	</div>	-->
 	<div class="card-container full-width">
 		<q-card class="main-card br-15" :dark="darkmode" :class="darkmode ? 'card-dark' : 'card-light'">
-			<div class="title-medium">Enter Seed Phrase</div>
-			<div class="body-medium" style="padding-bottom: 10px;">Select each word in the order it was presented to you.</div>
+			<div v-if="isImport">
+				<div class="title-medium">Enter Seed Phrase</div>
+				<div class="body-medium" style="padding-bottom: 10px;">Select each word in the order it was presented to you.</div>
+			</div>
+			<div v-else>
+				<div style="padding-bottom: 10px;" class="body-medium">Write it down on a paper to keep it in a safe place. You’ll asked to re-enter you secret recovery phrase in the next step.</div>
+			</div>			
 
 			<a v-if="isImport"><div class="text-right q-px-md text-link" :style="invalidSeedPhrase ? 'padding-bottom: 5px;' : 'padding-bottom: 10px;'" @click="pasteSeedPhrase()"><q-icon name="arrow_back_ios" size="xs"/>Paste Seed Phrase</div></a>
 			<div class="text-center body-small text-secondary" v-if="invalidSeedPhrase">Invalid Seed Phrase</div>
@@ -27,7 +32,7 @@
 					<div class="unblur-btn" v-if="blurPhrase">
 						<div class="title-medium text-center">Tap to reveal  Secret Recover Phrase</div>
 						<div class="body-large text-center" style="padding-bottom: 25px; padding-top: 10px;">Make sure no one is watching you.</div>
-						<q-btn color="primary" no-caps label="Reveal" class="text-center full-width" style="padding: 10px; border-radius: 10px;"/>
+						<q-btn color="primary" no-caps label="Reveal" class="text-center full-width" style="padding: 10px; border-radius: 10px;" @click="blurPhrase = false"/>
 					</div>
 				</div>				
 			</q-card>
@@ -112,21 +117,24 @@ export default{
 
 	        	this.$refs[`grid${index}`][0].focus()
         	} else {
-        		console.log('selecting grid')
 
-        		if (this.seedPhrase[index - 1] !== '') {
-        			this.selector.push(this.seedPhrase[index - 1])
-	        		// this.seedPhrase[index - 1] = ''
-	        		for (let i = (index-1); i < this.currentIndex; i++) {
-	        			console.log(i)
-	        			if (i < 11) {
-	        				this.seedPhrase[i] = this.seedPhrase[i + 1]
-	        			} else {
-	        				this.seedPhrase[i] = ''
-	        			} 			
+        		if (!this.showMnemonicPhrase) {
+        			console.log('selecting grid')
+
+	        		if (this.seedPhrase[index - 1] !== '') {
+	        			this.selector.push(this.seedPhrase[index - 1])
+		        		// this.seedPhrase[index - 1] = ''
+		        		for (let i = (index-1); i < this.currentIndex; i++) {
+		        			console.log(i)
+		        			if (i < 11) {
+		        				this.seedPhrase[i] = this.seedPhrase[i + 1]
+		        			} else {
+		        				this.seedPhrase[i] = ''
+		        			} 			
+		        		}
+		        		this.currentIndex--
 	        		}
-	        		this.currentIndex--
-        		}
+        		}         		
         	}
         },
         proceedToSelector () {
