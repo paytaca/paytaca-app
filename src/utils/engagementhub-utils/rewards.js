@@ -76,18 +76,6 @@ export function convertPoints (points, pointsDivisor) {
   return `${finalFiat} or ${finalBch}`
 }
 
-export function parseLocaleDate (date, isDayIncluded = true) {
-  const d = new Date(date)
-  const options = {
-    year: 'numeric',
-    month: 'long'
-  }
-
-  if (isDayIncluded) options.day = 'numeric'
-
-  return d.toLocaleDateString(undefined, options)
-}
-
 // ================================
 // functions with calls to engagement hub
 // ================================

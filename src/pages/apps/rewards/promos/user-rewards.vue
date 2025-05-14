@@ -244,7 +244,6 @@
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import {
   convertPoints,
-  parseLocaleDate,
   createUserRewardsData,
   getUserRewardsData,
   updateUserPromoData,
@@ -255,6 +254,7 @@ import {
   getContractInitialBalance,
   awardInitialUP
 } from 'src/utils/engagementhub-utils/rewards'
+import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'

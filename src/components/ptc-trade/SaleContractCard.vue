@@ -26,7 +26,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseLocaleDate } from 'src/utils/engagementhub-utils/rewards'
+import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 
 export default {
   name: 'SaleContractCard',
