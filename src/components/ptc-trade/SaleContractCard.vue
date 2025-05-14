@@ -33,7 +33,7 @@ export default {
 
   props: {
     saleContract: { type: Object, default: null },
-    saleGroup: { type: String, default: '' }
+    saleGroup: { type: String, default: 'seed' }
   },
 
   computed: {

@@ -1,7 +1,7 @@
 <template>
   <div class="row q-mt-md">
     <span
-      class="q-mb-md col-12 text-center text-bold"
+      class="col-12 text-center text-bold"
       style="font-size: 18px;"
     >
       Transactions List
@@ -13,18 +13,45 @@
           v-for="(tx, index) in saleContractTransactions"
           class="text-body1"
         >
+          <template v-if="index === 0">
+            <q-separator spaced="lg" />
+          </template>
+
           <div class="row col-12 justify-between text-bold">
             <span>{{ parseTxid(tx.purchase_tx_id) }}</span>
             <span>{{ parseAmount(tx.purchase_amount) }}</span>
           </div>
 
           <div class="row col-12 justify-between">
-            <span class="col-6">
-              Purchased on {{ parseLocaleDate(tx.purchase_date) }}
-            </span>
-            <span class="col-6 text-right">
-              Locked until {{ parseLocaleDate(tx.lockup_date) }}
-            </span>
+            <template v-if="new Date() > new Date(tx.lockup_date)">
+              <span class="q-pr-xs col-6">
+                <template v-if="tx.sale_transaction_details.length === 0">
+                  Lockup period is over
+                </template>
+                <template v-else>
+                  Last vesting period was
+                  {{ parseLocaleDate(tx.sale_transaction_details[0].vested_date) }}
+                </template>
+              </span>
+              <span class="q-pl-xs col-6 text-right">
+                <template v-if="checkVestingCount(tx.sale_transaction_details)">
+                  Vesting period is over
+                </template>
+                <template v-else>
+                  Next vesting priod is
+                  {{ parseNextVestingDate(tx.sale_transaction_details) }}
+                </template>
+              </span>
+            </template>
+
+            <template v-else>
+              <span class="q-pr-xs col-6">
+                Purchased on {{ parseLocaleDate(tx.purchase_date) }}
+              </span>
+              <span class="q-pl-xs col-6 text-right">
+                Locked until {{ parseLocaleDate(tx.lockup_date) }}
+              </span>
+            </template>
           </div>
 
           <q-separator spaced="lg" />
@@ -51,7 +78,8 @@ export default {
   name: 'SaleContractCard',
 
   props: {
-    saleContractTransactions: { type: Object, default: null }
+    saleContractTransactions: { type: Object, default: null },
+    saleGroup: { type: String, default: 'seed' }
   },
 
   computed: {
@@ -73,6 +101,22 @@ export default {
     },
     parseAmount (amount) {
       return `${new Intl.NumberFormat().format(amount)} PTC`
+    },
+    parseNextVestingDate (txDetails) {
+      let vestingMonth
+      if (this.saleGroup == 'seed') vestingMonth = 3
+      else if (this.saleGroup == 'priv') vestingMonth = 1
+
+      const vestingDate = new Date(txDetails[0].vested_date)
+      const nextDate = vestingDate.setMonth(vestingDate.getMonth() + vestingMonth)
+      return parseLocaleDate(nextDate)
+    },
+    checkVestingCount (txDetails) {
+      let vestingCount
+      if (this.saleGroup == 'seed') vestingCount = 4
+      else if (this.saleGroup == 'priv') vestingCount = 6
+
+      return txDetails.length === vestingCount
     }
   }
 }
