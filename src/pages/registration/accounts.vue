@@ -15,16 +15,23 @@
             Login with shards
           </div>
         </div>
-        <div v-else>
-          <!-- Generating new wallet -->
-          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false" :mnemonic="mnemonic"/>
+        <div v-else>          
+          <!-- Verify Wallet -->
+          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false" :mnemonic="mnemonic" @submit=""/>
         </div>        
-      </div>
-
-      <!-- Generate New Wallet : Step = 0 -->
+      </div>      
     </div>
 
     <loadingDialog v-model="openLoadingDialog"/>
+    <securityOptionDialog
+      :security-option-dialog-status="securityOptionDialogStatus"
+      v-on:preferredSecurity="setPreferredSecurity"
+    />
+    <pinDialog
+      v-model:pin-dialog-action="pinDialogAction"
+      v-on:nextAction="executeActionTaken"
+      :new-wallet-mnemonic="mnemonic"
+    />
   </div>
 </template>
 <script>
@@ -33,8 +40,12 @@ import loadingDialog from 'src/components/ui-revamp/registration/loadingDialog.v
 import selectCountryLanguage from 'src/components/ui-revamp/registration/select-country-language.vue'
 import seedPhraseContainer from 'src/components/ui-revamp/registration/seed-phrase-container.vue'
 import login from 'src/components/ui-revamp/registration/login.vue'
+import securityOptionDialog from '../../components/authOption'
+import pinDialog from '../../components/pin'
 
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
+import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
+import { NativeBiometric } from 'capacitor-native-biometric'
 
 export default {
   data () {
@@ -43,7 +54,7 @@ export default {
       showOnboarding: false,
       loading: false,
       loginType: '', // shards, seed-phrase
-      step: 0,
+      steps: 0,
       totalStep: 9,
       createAccount: false, 
       importSeedPhrase: false,
@@ -51,8 +62,11 @@ export default {
       creatingWallet: false,
       seedPhraseBackup: null,
       mnemonic: '',
+      mnemonicVerified: false,
+      pinDialogAction: '',
       newWalletHash: '',
       currencySelectorRerender: false,
+      securityOptionDialogStatus: 'show',
 
       walletIndex: 0,
       openLoadingDialog: false,
@@ -60,7 +74,7 @@ export default {
     }
   },
   computed: {
-    finalStep () {
+    isFinalStep () {
       return this.steps === this.totalStep
     }
   },
@@ -69,7 +83,9 @@ export default {
     selectCountryLanguage,
     login,
     seedPhraseContainer,
-    loadingDialog
+    loadingDialog,
+    securityOptionDialog,
+    pinDialog
   },
   async mounted () {
     this.loading = true
@@ -157,12 +173,9 @@ export default {
       this.createAccount = info.createAccount
       this.importSeedPhrase = !info.createAccount
 
-      if (!this.importSeedPhrase) {
-        this.openLoadingDialog = true
-        console.log('continue')
-
-        setTimeout(() => { this.openLoadingDialog = false}, 5000)
-        // this.createWallets()
+      if (!this.importSeedPhrase) {        
+        // setTimeout(() => { this.openLoadingDialog = false}, 5000)
+        this.createWallets()
 
       } else {
         this.status = 'wallet-create'
@@ -171,9 +184,95 @@ export default {
     },
     returnToLoginSelect () {
       this.gradientBg = true      
-      this.step--
+      this.status = 'login'
     },
+    setPreferredSecurity (auth) {
+      console.log('auth here: ', auth)
+      this.$q.localStorage.set('preferredSecurity', auth)
+      if (auth === 'pin') {
+        this.pinDialogAction = 'SET UP'
+      } else {
+        this.verifyBiometric()
+      }
+    },
+    checkFingerprintAuthEnabled () {
+      NativeBiometric.isAvailable()
+        .then(result => {
+          if (result.isAvailable !== false) {
+            this.securityOptionDialogStatus = 'show'
+          } else {
+            this.pinDialogAction = 'SET UP'
+            this.$q.localStorage.set('preferredSecurity', 'pin')
+          }
+        },
+        (error) => {
+          this.pinDialogAction = 'SET UP'
+          this.$q.localStorage.set('preferredSecurity', 'pin')
+          console.log('Implementation error: ', error)
+        })
+    },
+    executeActionTaken (action) {
+      const vm = this
+      if (action === 'proceed') {
+        vm.continueToDashboard()
+      } else {
+        vm.pinDialogAction = ''
+      }
+    },
+    continueToDashboard () {
+      const vm = this
+      vm.$store.dispatch('global/saveWalletPreferences')
+      vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
+        return vm.promptEnablePushNotification()?.catch?.(console.error)
+      }).then(function () {
+        vm.saveToVault()
+        vm.$router.push('/')
+      })
+    },
+    saveToVault () {
+      // saving to wallet vault
+      let wallet = this.$store.getters['global/getAllWalletTypes']
+      wallet = JSON.stringify(wallet)
+      wallet = JSON.parse(wallet)
 
+      let chipnet = this.$store.getters['global/getAllChipnetTypes']
+      chipnet = JSON.stringify(chipnet)
+      chipnet = JSON.parse(chipnet)
+
+      const info = { wallet, chipnet }
+
+      this.$store.commit('global/updateVault', info)
+      this.$store.commit('global/updateWalletIndex', this.walletIndex)
+
+      let asset = this.$store.getters['assets/getAllAssets']
+      asset = JSON.stringify(asset)
+      asset = JSON.parse(asset)
+
+      // remove all assets in assets and chip assets except bch
+      const adjustedAssets = asset.asset.filter((a) => a?.id === 'bch')
+      const adjustedChipnetAssets = asset.chipnet_assets.filter((a) => a?.id === 'bch')
+
+      asset.asset = adjustedAssets
+      asset.chipnet_assets = adjustedChipnetAssets
+
+      this.$store.commit('assets/updateVault', { index: this.walletIndex, asset: asset })
+      this.$store.commit('assets/updatedCurrentAssets', this.walletIndex)
+
+      // ramp reset
+      this.$store.commit('ramp/resetUser')
+      this.$store.commit('ramp/resetData')
+      this.$store.commit('ramp/resetChatIdentity')
+      this.$store.commit('ramp/resetPagination')
+      // this.$store.commit('ramp/resetStoreFilters')
+    },
+    async promptEnablePushNotification() {
+      await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+      if (!this.$pushNotifications.isEnabled) {
+        await this.$pushNotifications.openPushNotificationsSettingsPrompt({
+          message: 'Enable push notifications to receive updates from the app',
+        }).catch(console.log)
+      }
+    },
     async getIPGeolocationPreferences() {
       const result = {
         country: {
@@ -219,15 +318,17 @@ export default {
       this.seedPhraseBackup = phrase
 
       console.log('mnemonic: ', this.seedPhraseBackup)
+      this.createWallets()
     },
     async createWallets () {
       const vm = this
+      vm.openLoadingDialog = true
 
       // Create mnemonic seed, encrypt, and store
       if (!vm.mnemonic) {
         if (vm.importSeedPhrase) {
           vm.mnemonicVerified = true
-          vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
+          vm.mnemonic = await storeMnemonic(this.seedPhraseBackup, vm.walletIndex)
           console.log('mnemonic: ', vm.mnemonic)
         } else {
           vm.mnemonic = await generateMnemonic(vm.walletIndex)
@@ -235,6 +336,7 @@ export default {
         }
       }
       vm.steps += 1
+      console.log('steps: ', vm.steps)
 
       const wallet = new Wallet(vm.mnemonic)
       const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
@@ -256,6 +358,7 @@ export default {
             lastAddressIndex: 0,
           })
           vm.steps += 1
+          console.log('steps: ', vm.steps)
           try {
             vm.$store.dispatch('global/refetchWalletPreferences')
           } catch(error) { console.error(error) }
@@ -268,6 +371,7 @@ export default {
             xPubKey: xpub
           })
           vm.steps += 1
+          console.log('steps: ', vm.steps)
         })
       }
 
@@ -285,6 +389,7 @@ export default {
             lastAddressIndex: 0
           })
           vm.steps += 1
+          console.log('steps: ', vm.steps)
         })
 
         await slpWallet.getXPubKey().then(function (xpub) {
@@ -294,6 +399,7 @@ export default {
             xPubKey: xpub
           })
           vm.steps += 1
+          console.log('steps: ', vm.steps)
         })
       }
 
@@ -315,6 +421,21 @@ export default {
       ]
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash
+
+      console.log('new wallethash: ', this.newWalletHash)
+
+
+
+      this.openLoadingDialog = false
+
+      if (!vm.importSeedPhrase) {
+        this.status = 'wallet-create'
+        this.gradientBg = false
+        // this.status = 'final-step'
+      } else {
+        // this.status = 'final-step'
+        this.checkFingerprintAuthEnabled()
+      }      
     },
   }
 }

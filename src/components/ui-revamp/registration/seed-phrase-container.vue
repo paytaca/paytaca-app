@@ -1,5 +1,5 @@
 <template>
-	<headerNav title="Account Login" subtitle="Seed Phrase" :useEmitBack="true" :hasGradient="true" @back="$emit('back')"/>
+	<headerNav :title="isImport ? 'Account Login' : 'Create Account'" subtitle="Seed Phrase" :useEmitBack="true" :hasGradient="true" @back="$emit('back')"/>
 
 	<!--<div class="container" style="margin-top: 84px;">
 		<q-card dark="false" class="card-container card-light br-15">
@@ -11,18 +11,25 @@
 	</div>	-->
 	<div class="card-container full-width">
 		<q-card class="main-card br-15" :dark="darkmode" :class="darkmode ? 'card-dark' : 'card-light'">
-			<div class="title-small">Enter Seed Phrase</div>
-			<div class="body-small" style="padding-bottom: 10px;">Select each word in the order it was presented to you.</div>
+			<div class="title-medium">Enter Seed Phrase</div>
+			<div class="body-medium" style="padding-bottom: 10px;">Select each word in the order it was presented to you.</div>
 
 			<a v-if="isImport"><div class="text-right q-px-md text-link" :style="invalidSeedPhrase ? 'padding-bottom: 5px;' : 'padding-bottom: 10px;'" @click="pasteSeedPhrase()"><q-icon name="arrow_back_ios" size="xs"/>Paste Seed Phrase</div></a>
 			<div class="text-center body-small text-secondary" v-if="invalidSeedPhrase">Invalid Seed Phrase</div>
 			<q-card :dark="darkmode" class="br-15" style="border: 1px dashed #295BF6; padding: 16px;">
-				<div class="grid-container">
-					<div id="grid" class="grid-item" v-for="i in 12" @click="selectGrid(i)" :style="i === selectedIndex ? 'border: 2px solid #416EB4;' : 'border: 1px solid #ccc;'">
-						<span class="non-editable text-royal-blue">{{ i }}</span>						
-						<q-input :disable="!isImport" :ref="`grid${i}`" dense v-model="seedPhrase[i - 1]" input-style="text-align: center; font-weight: 500; color: black;" borderless @update:model-value="updateText()" @keyup.enter = "handleEnter()"/>
+				<div class="content">
+					<div class="grid-container" :class="blurPhrase ? 'blur-content' : ''">
+						<div id="grid" class="grid-item" v-for="i in 12" @click="selectGrid(i)" :style="i === selectedIndex ? 'border: 2px solid #416EB4;' : 'border: 1px solid #ccc;'">
+							<span class="non-editable text-royal-blue">{{ i }}</span>						
+							<q-input :disable="!isImport" :ref="`grid${i}`" dense v-model="seedPhrase[i - 1]" input-style="text-align: center; font-weight: 500; color: black;" borderless @update:model-value="updateText()" @keyup.enter = "handleEnter()"/>
+						</div>
 					</div>
-				</div>
+					<div class="unblur-btn" v-if="blurPhrase">
+						<div class="title-medium text-center">Tap to reveal  Secret Recover Phrase</div>
+						<div class="body-large text-center" style="padding-bottom: 25px; padding-top: 10px;">Make sure no one is watching you.</div>
+						<q-btn color="primary" no-caps label="Reveal" class="text-center full-width" style="padding: 10px; border-radius: 10px;"/>
+					</div>
+				</div>				
 			</q-card>
 
 			<q-card v-if="!isImport && selector.length !== 0" :dark="darkmode" class="br-15" style="border: 1px dashed #295BF6; margin-top: 24px; padding: 16px;">
@@ -33,7 +40,9 @@
 				</div>
 			</q-card>
 
-			<q-btn :disable="!isValidSeedPhrase()" class="full-width button-default" no-caps label="Proceed" style="margin-top: 24px; border-radius: 10px; height: 54px;" @click="handleSubmit()"/>
+			<q-btn v-if="showMnemonicPhrase" class="full-width button-default" no-caps label="Continue" style="margin-top: 24px; border-radius: 10px; height: 54px;" @click="proceedToSelector()"/>
+
+			<q-btn v-else :disable="!isValidSeedPhrase()" class="full-width button-default" no-caps label="Proceed" style="margin-top: 24px; border-radius: 10px; height: 54px;" @click="handleSubmit()"/>
 
 		</q-card>	
 	</div>	
@@ -50,7 +59,10 @@ export default{
 			selector: [],
 			selectedIndex: null,
 			currentIndex: 0,
-			invalidSeedPhrase: false
+			invalidSeedPhrase: false,
+			showMnemonicPhrase: false, // for copying mnemonic phrase
+			blurPhrase: false,
+
 		}		
 	},
 	computed: {
@@ -78,8 +90,16 @@ export default{
 	},
 	emits: ['back', 'submit'],
 	mounted () {
-		this.selector = this.mnemonic.split(" ")
-		console.log('here: ', this.mnemonic)		
+		if (!this.isImport) {
+			this.showMnemonicPhrase = true
+			this.seedPhrase = this.mnemonic.split(" ")
+			this.blurPhrase = true
+		}
+		// this.selector = this.mnemonic.split(" ")
+		// if (this.selector.length > 0) {
+		// 	this.shuffleSelector()
+		// }
+		// console.log('here: ', this.mnemonic)		
 	},
 	methods: {
 		 updateText() {		 	
@@ -109,6 +129,21 @@ export default{
         		}
         	}
         },
+        proceedToSelector () {
+        	this.selector = this.mnemonic.split(" ")
+			if (this.selector.length > 0) {
+				this.shuffleSelector()
+				this.seedPhrase = new Array(12).fill('')
+				this.showMnemonicPhrase = false
+			}
+
+        },
+        shuffleSelector() {
+		    for (let i = this.selector.length - 1; i > 0; i--) {
+		        let j = Math.floor(Math.random() * (i + 1)); // Random index
+		        [this.selector[i], this.selector[j]] = [this.selector[j], this.selector[i]]; // Swap elements
+		    }
+		},
         cleanUpSeedPhrase (seedPhrase) {
         	return seedPhrase.toLowerCase().trim()
 		 					.replace(/\s+/g, "")
@@ -181,7 +216,7 @@ export default{
 <style lang="scss" scoped>
 .main-card {
 	margin: 106px 16px;
-	padding: 24px;	
+	padding: 24px;
 }
 .seed-phrase-container {
 	background-color: aqua;	
@@ -217,4 +252,17 @@ export default{
     font-size: 12px;
 }
 
+.blur-content {
+    filter: blur(5px); /* Apply blur */
+    transition: 0.3s ease-in-out;
+}
+.unblur-btn {
+	position: absolute;
+}
+.content {
+	position: relative;
+	display: flex;
+	justify-content: center;
+    align-items: center;
+}
 </style>
