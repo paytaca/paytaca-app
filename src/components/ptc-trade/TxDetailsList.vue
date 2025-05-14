@@ -17,6 +17,7 @@
             clickable
             v-ripple
             class="q-my-sm text-body1"
+            @click="openMoreDetailsDialog(tx)"
           >
             <q-item-section class="row col-12">
               <q-item-label class="q-mb-xs row justify-between text-bold">
@@ -79,6 +80,8 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 
+import TxMoreDetailsDialog from 'src/components/ptc-trade/dialogs/TxMoreDetailsDialog.vue'
+
 export default {
   name: 'SaleContractCard',
 
@@ -122,6 +125,12 @@ export default {
       else if (this.saleGroup == 'priv') vestingCount = 6
 
       return txDetails.length === vestingCount
+    },
+    openMoreDetailsDialog (txDetails) {
+      this.$q.dialog({
+        component: TxMoreDetailsDialog,
+        componentProps: { txDetails }
+      })
     }
   }
 }

@@ -199,8 +199,6 @@ export default {
             .filter(tx => tx.sale_group === 'seed')
         }
       }
-      console.log(this.seedSaleContract)
-      console.log(this.privSaleContract)
     }
   }
 }
