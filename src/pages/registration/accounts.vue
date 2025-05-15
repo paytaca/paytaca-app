@@ -17,7 +17,7 @@
         </div>
         <div v-else>          
           <!-- Verify Wallet -->
-          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false" :mnemonic="mnemonic" @submit=""/>
+          <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false" :mnemonic="mnemonic" @submit="handleSeedPhraseContainer"/>
         </div>        
       </div>      
     </div>
@@ -316,10 +316,14 @@ export default {
       this.$store.commit('global/setLanguage', languageCode)
     },
     handleSeedPhraseContainer (phrase) {
-      this.seedPhraseBackup = phrase
+      if (this.importSeedPhrase) {
+        this.seedPhraseBackup = phrase
 
-      console.log('mnemonic: ', this.seedPhraseBackup)
-      this.createWallets()
+        console.log('mnemonic: ', this.seedPhraseBackup)
+        this.createWallets()
+      } else {
+        this.securityOptionDialogStatus = "show"
+      }
     },
     async createWallets () {
       const vm = this

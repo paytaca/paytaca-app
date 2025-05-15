@@ -16,7 +16,8 @@
 				<div class="body-medium" style="padding-bottom: 10px;">Select each word in the order it was presented to you.</div>
 			</div>
 			<div v-else>
-				<div style="padding-bottom: 10px;" class="body-medium">Write it down on a paper to keep it in a safe place. You’ll asked to re-enter you secret recovery phrase in the next step.</div>
+				<div v-if="showMnemonicPhrase" style="padding-bottom: 10px;" class="body-medium">Save your secret recovery phrase. Write it down on a paper to keep it in a safe place. You’ll asked to re-enter you secret recovery phrase in the next step.</div>
+				<div v-else style="padding-bottom: 10px;" class="body-medium">Please re-enter the recovery phrase in the order it was shown.</div>
 			</div>			
 
 			<a v-if="isImport"><div class="text-right q-px-md text-link" :style="invalidSeedPhrase ? 'padding-bottom: 5px;' : 'padding-bottom: 10px;'" @click="pasteSeedPhrase()"><q-icon name="arrow_back_ios" size="xs"/>Paste Seed Phrase</div></a>
@@ -45,7 +46,7 @@
 				</div>
 			</q-card>
 
-			<q-btn v-if="showMnemonicPhrase" class="full-width button-default" no-caps label="Continue" style="margin-top: 24px; border-radius: 10px; height: 54px;" @click="proceedToSelector()"/>
+			<q-btn :disable="blurPhrase" v-if="showMnemonicPhrase" class="full-width button-default" no-caps label="Continue" style="margin-top: 24px; border-radius: 10px; height: 54px;" @click="proceedToSelector()"/>
 
 			<q-btn v-else :disable="!isValidSeedPhrase()" class="full-width button-default" no-caps label="Proceed" style="margin-top: 24px; border-radius: 10px; height: 54px;" @click="handleSubmit()"/>
 
@@ -175,12 +176,21 @@ export default{
 	    		const mnemonic = this.seedPhrase.join(' ').trim()
 	    		// console.log(mnemonic)
 	    		this.$emit('submit', mnemonic)
+	    	} else {
+	    		this.$emit('submit')
 	    	}
 	    },
-	    isValidSeedPhrase() {	    	
+	    isValidSeedPhrase() {	    		    		
 	    	const temp = this.seedPhrase.toString().trim()
 	    	// console.log('Continue?: ', this.validateSeedPhrase(temp))
-		    return this.validateSeedPhrase(temp)
+	    	
+	    	console.log('mnemonic: ', this.mnemonic)
+	    	if (!this.isImport) {
+	    		console.log('result: ', this.seedPhrase.join(' ').trim() === this.mnemonic)
+	    		return this.validateSeedPhrase(temp) && (this.mnemonic === this.seedPhrase.join(' ').trim())
+	    	}else {
+	    		return this.validateSeedPhrase(temp)
+	    	}		    
 		},
 		async pasteSeedPhrase () {			
 			let clipboardText = await navigator.clipboard.readText()
@@ -213,7 +223,7 @@ export default{
 		},
 		selectWord (index) {
 			this.seedPhrase[this.currentIndex++] = (this.selector[index])
-			console.log('seedPhrase: ', this.seedPhrase)
+			// console.log('seedPhrase: ', this.seedPhrase)
 			if (index >= 0 && index < this.selector.length) {
 		        this.selector.splice(index, 1) // Removes 1 item at the given index
 		    }
