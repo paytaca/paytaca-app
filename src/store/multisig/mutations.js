@@ -5,6 +5,17 @@ export function saveWallet (state, wallet) {
   state.wallets.push(wallet)
 }
 
+export function updateWallet(state, { address, multisigWallet }) {
+  const index = state.wallets.findIndex((wallet) => {
+    return getMultisigCashAddress({
+      ...wallet, cashAddressNetworkPrefix: address.split(':')[0]
+    }) === address
+  })
+  if (index === -1) return
+  const updated = { ...state.wallets[index], ...multisigWallet }
+  state.wallets?.splice(index, 1, updated)
+}
+
 export function deleteWallet (state, { address }) {
   const index = state.wallets.findIndex((wallet) => {
     return getMultisigCashAddress({

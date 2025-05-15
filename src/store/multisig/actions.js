@@ -1,48 +1,57 @@
-import Watchtower from 'src/lib/watchtower'
-
+import axios from 'axios'
+import { getMultisigCashAddress } from 'src/lib/multisig'
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
-export async function saveWallet ({ commit, getters, rootGetters }, { multisigWallet, syncAcrossDevices = false }) {
-  if (!syncAcrossDevices) {
-    return commit('saveWallet', multisigWallet)
-  }
-
-  const signerLocalWallets = rootGetters['global/getVault']
-
-  if (!signerLocalWallet) { throw new Error('Signer\'s xpub not found on this device!') }
-
-  let nominatedUploader = null
-
-  for (const signerEntityKey in multisigWallet.lockingData.hdKeys.hdPublicKeys) {
-    const wallet = signerLocalWallets.find((localWallet) => {
-      return localWallet.wallet.bch.xPubKey === multisigWallet.lockingData.hdKeys.hdPublicKeys[signerEntityKey]
-    })
-    if (wallet) {
-      const hdKeys = await getHdKeys({ vaultIndex: wallet.vaultIndex })
-      nominatedUploaderSignerIndex = signerIndex
-      nominatedUploader = {
-        signerEntityKey,
-        hdKeys
-      }
-      break
-    }
-  }
-
-  if (!nominatedUploader || nominatedUploader?.hdKeys.hdPublicKey !== multisigWallet.signers[uploaderSignerId].xpub) { throw new Error('Sync requires atleast 1 signer can sign on this device.') }
+export async function syncWallet({ commit, getters, rootGetters }, { address, multisigWallet }) {
 
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  const getNonceResp = await fetch(`${watchtower}/api/nonce?length=15`)
-  if (!getNonceResp.ok) throw new Error('Problem contacting server. Please try again later.')
-  const resJson = await getNonceResp.json()
-  const message = `${resJson.data.nonce}|${hdKeys.hdPublicKey}`
-  const signature = signMessageWithHdPrivateKey({ message: '', hdPrivateKey: nominatedUploader.hdKeys.hdPrivateKey, addressIndex: 0 })
-  const postMultisigWalletResp = await fetch(`${watchtower}/api/multisig/wallets`, {
-    method: 'POST',
-    body: JSON.stringify({
-      ...multisigWallet
+  const response = await axios.post(`${watchtower}/api/multisig/wallets/`, multisigWallet)
+  if (response.data?.id) {
+    commit('updateWallet', { address, multisigWallet: response.data })
+  }
+  console.log('axios response', response.data)
+  return response.data
+}
 
-    })
-  })
+export async function saveWallet ({ commit, getters, rootGetters }, { multisigWallet }) {
+  return commit('saveWallet', multisigWallet)
+
+  // const signerLocalWallets = rootGetters['global/getVault']
+
+  // if (!signerLocalWallet) { throw new Error('Signer\'s xpub not found on this device!') }
+
+  // let nominatedUploader = null
+
+  // for (const signerEntityKey in multisigWallet.lockingData.hdKeys.hdPublicKeys) {
+  //   const wallet = signerLocalWallets.find((localWallet) => {
+  //     return localWallet.wallet.bch.xPubKey === multisigWallet.lockingData.hdKeys.hdPublicKeys[signerEntityKey]
+  //   })
+  //   if (wallet) {
+  //     const hdKeys = await getHdKeys({ vaultIndex: wallet.vaultIndex })
+  //     nominatedUploaderSignerIndex = signerIndex
+  //     nominatedUploader = {
+  //       signerEntityKey,
+  //       hdKeys
+  //     }
+  //     break
+  //   }
+  // }
+
+  // if (!nominatedUploader || nominatedUploader?.hdKeys.hdPublicKey !== multisigWallet.signers[uploaderSignerId].xpub) { throw new Error('Sync requires atleast 1 signer can sign on this device.') }
+
+  // const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+  // const getNonceResp = await fetch(`${watchtower}/api/nonce?length=15`)
+  // if (!getNonceResp.ok) throw new Error('Problem contacting server. Please try again later.')
+  // const resJson = await getNonceResp.json()
+  // const message = `${resJson.data.nonce}|${hdKeys.hdPublicKey}`
+  // const signature = signMessageWithHdPrivateKey({ message: '', hdPrivateKey: nominatedUploader.hdKeys.hdPrivateKey, addressIndex: 0 })
+  // const postMultisigWalletResp = await fetch(`${watchtower}/api/multisig/wallets`, {
+  //   method: 'POST',
+  //   body: JSON.stringify({
+  //     ...multisigWallet
+
+  //   })
+  // })
 }
 
 export function deleteWallet ({ commit }, { address }) {

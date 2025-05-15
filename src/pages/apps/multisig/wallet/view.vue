@@ -25,7 +25,7 @@
                   <q-btn icon="settings" color="grad">
                    <q-menu fit anchor="bottom right" self="top right" class="pt-card" :class="getDarkModeClass(darkMode)">
                       <q-item clickable @click="syncWalletAcrossDevices" v-close-popup>
-                        <q-item-section>Share Online</q-item-section>
+                        <q-item-section>Sync Across Devices</q-item-section>
                       </q-item>
                       <q-item clickable>
                       <q-item-section>New incognito tab</q-item-section>
@@ -33,6 +33,19 @@
                     </q-menu>
                   </q-btn>
                 </q-item-section>
+              </q-item>
+              <q-item>
+               <q-item-section>
+                <q-item-label>Sync Status</q-item-label> 
+               </q-item-section>
+               <q-item-section side>
+                 <q-item-label class="flex flex-wrap q-gutter-x-sm items-center">
+                  <q-chip style="background: inherit; color: inherit" class="q-gutter-sm">
+                   <span class="q-mr-sm">{{ !wallet.id ? 'Not Synced': 'Synced' }}</span>
+                   <q-icon size="sm" :name="wallet.id? 'cloud': 'smartphone'" :color="wallet.id? 'green': ''" /> 
+                  </q-chip>
+                 </q-item-label>
+               </q-item-section>
               </q-item>
               <q-item>
                 <q-item-section>
@@ -47,7 +60,7 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label>Balance</q-item-label>
+                 <q-item-label>Balance</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label caption>{{ balance || 0 }}</q-item-label>
@@ -281,11 +294,9 @@ const syncWalletAcrossDevices = () => {
     component: SyncWalletDialog,
     componentProps: {
       multisigWallet: wallet.value,
-      darkMode: getDarkModeClass(darkMode.value),
-      onOk: async () => {
-        await $store.dispatch('multisig/saveWallet', { multisigWallet: wallet.value, syncAcrossDevices: true })
-      }
-    }
+      darkMode: getDarkModeClass(darkMode.value) }
+  }).onOk(async() => {
+        await $store.dispatch('multisig/syncWallet', { multisigWallet: wallet.value, address: route.params.address })
   })
 }
 

@@ -311,11 +311,11 @@ export const populateHdPrivateKeys = async ({ lockingData, getSignerXPrv /* Func
   }
   for (const signerEntityId of Object.keys(lockingData.hdKeys.hdPublicKeys)) {
     try {
-     const xprv = await getSignerXPrv({
-       xpub: lockingData.hdKeys.hdPublicKeys[signerEntityId]
-     })
-     lockingData.hdKeys.hdPrivateKeys[signerEntityId] = xprv
-    } catch(e) { console.log(e)}
+      const xprv = await getSignerXPrv({
+        xpub: lockingData.hdKeys.hdPublicKeys[signerEntityId]
+      })
+      lockingData.hdKeys.hdPrivateKeys[signerEntityId] = xprv
+    } catch (e) { console.log(e) }
   }
   return lockingData
 }
