@@ -1,4 +1,5 @@
 <template>
+  <headerNav title="Account Login" subtitle="Shards" :useEmitBack="true" :hasGradient="true" @back="$emit('back')"/>
   <QrScanner
     v-model="showQrScanner"
     @decode="onScannerDecode"
@@ -6,7 +7,7 @@
 
   <QRUploader ref="qr-upload" @detect-upload="onUploadDetect" />
 
-  <div class="text-bow q-px-lg" :class="getDarkModeClass(darkMode)">
+  <div class="text-bow q-px-lg" :class="getDarkModeClass(darkMode)" style="padding-top: 90px;">
     <p class="text-center text-subtitle1">
       {{ $t('RestoreShardsDescription') }}
     </p>
@@ -19,7 +20,7 @@
         <q-btn
           round
           size="lg"
-          class="btn-scan button text-white bg-grad"
+          class="button-default"
           icon="mdi-qrcode"
           :disable="disablePersonal"
           @click="showQrScanner = true, isPersonalClicked = true"
@@ -27,7 +28,7 @@
         <q-btn
           round
           size="lg"
-          class="btn-scan button text-white bg-grad"
+          class="button-default"
           icon="upload"
           :disable="disablePersonal"
           @click="isPersonalClicked = true, $refs['qr-upload'].$refs['q-file'].pickFiles()"
@@ -43,7 +44,7 @@
         <q-btn
           round
           size="lg"
-          class="btn-scan button text-white bg-grad"
+          class="button-default"
           icon="mdi-qrcode"
           :disable="disableForSharing"
           @click="showQrScanner = true, isForSharingClicked = true"
@@ -51,7 +52,7 @@
         <q-btn
           round
           size="lg"
-          class="btn-scan button text-white bg-grad"
+          class="button-default"
           icon="upload"
           :disable="disableForSharing"
           @click="isForSharingClicked = true, $refs['qr-upload'].$refs['q-file'].pickFiles()"
@@ -91,7 +92,9 @@
     <div class="flex flex-center">
       <q-btn
         rounded
-        class="q-mt-md button"
+        outline
+        color="primary"
+        class="q-mt-md"
         :label="$t('ClearQR')"
         @click="clearQRs"
       />
@@ -99,7 +102,7 @@
 
     <q-btn
       rounded
-      class="full-width q-mt-lg q-mb-md button"
+      class="full-width q-mt-lg button-default"
       @click="$emit('restore-wallet')"
       :disable="!areQRCodesValid"
       :label="$t('RestoreWallet')"
@@ -114,17 +117,21 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import QrScanner from 'src/components/qr-scanner'
 import QRUploader from 'src/components/QRUploader'
 
+import headerNav from 'src/components/header-nav.vue'
+
 export default {
   name: 'ShardsImport',
 
   emits: [
     'set-seed-phrase',
-    'restore-wallet'
+    'restore-wallet',
+    'back'
   ],
 
   components: {
     QrScanner,
-    QRUploader
+    QRUploader,
+    headerNav
   },
 
   data () {
