@@ -5,13 +5,14 @@
 
     <q-menu
       ref="walletSelect"
-      class="wallet-select"
+      class="wallet-select"      
     >
       <q-virtual-scroll
         style="max-height: 250px;"
         :items="vault"
         separator
-        v-slot="{ item, index}"
+        v-slot="{ item, index}"   
+        :class="darkmode ? 'text-light' : 'text-dark'"     
       >
         <q-item clickable v-ripple class="body-small" v-close-popup @click="switchWallet(index)">
           {{ item.name }}
@@ -32,6 +33,7 @@ import { isChipnet } from 'src/store/global/getters';
 export default {
   data () {
     return {
+      darkmode: this.$store.getters['darkmode/getStatus'],
       currentIndex: this.$store.getters['global/getWalletIndex'],
       isChipnet: this.$store.getters['global/isChipnet'],
       isloading: false,

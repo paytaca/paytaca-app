@@ -66,7 +66,7 @@ export default {
       pinDialogAction: '',
       newWalletHash: '',
       currencySelectorRerender: false,
-      securityOptionDialogStatus: 'show',
+      securityOptionDialogStatus: 'dismiss',
 
       walletIndex: 0,
       openLoadingDialog: false,
@@ -186,9 +186,10 @@ export default {
       this.gradientBg = true      
       this.status = 'login'
     },
-    setPreferredSecurity (auth) {
+   async setPreferredSecurity (auth) {
       console.log('auth here: ', auth)
-      this.$q.localStorage.set('preferredSecurity', auth)
+      await this.$q.localStorage.set('preferredSecurity', auth)
+      console.log('here: ', this.$q.localStorage.getItem('preferredSecurity'))
       if (auth === 'pin') {
         this.pinDialogAction = 'SET UP'
       } else {
@@ -434,7 +435,8 @@ export default {
         // this.status = 'final-step'
       } else {
         // this.status = 'final-step'
-        this.checkFingerprintAuthEnabled()
+        this.securityOptionDialogStatus = 'show'
+        // this.checkFingerprintAuthEnabled()
       }      
     },
   }

@@ -38,6 +38,7 @@
           <q-menu
             ref="tokenMenu"
             class="token-menu"
+            :class="darkmode ? 'text-light' : 'text-dark'"
           >
             <q-list dense class="body-small">
               <!-- Check for token -->
@@ -133,6 +134,7 @@ import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { bus } from 'src/wallet/event-bus'
 import { markRaw } from '@vue/reactivity'
+import { sha256 } from 'js-sha256'
 
 const sep20IdRegexp = /sep20\/(.*)/
 
@@ -290,25 +292,27 @@ export default {
     // }
 
     // Check if preferredSecurity and if it's set as PIN
+    console.log('here: ', this.$q.localStorage.getItem('preferredSecurity'))
     const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
     let forceRecreate = false
     if (preferredSecurity === null) {
-      forceRecreate = true
-    } else if (preferredSecurity === 'pin') {
+      forceRecreate = true      
+    } else if (preferredSecurity === 'pin') {      
       // If using PIN, check if it's 6 digits
       const walletIndex = vm.$store.getters['global/getWalletIndex']
       const mnemonic = await getMnemonic(walletIndex)
+      // pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
       try {
         let pin = null
         try {
-          pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })
+          pin = await SecureStoragePlugin.get({ key: `pin-${sha256(mnemonic)}` })          
         } catch (error) {
           try {
             // fallback for retrieving pin using unhashed mnemonic
-            pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+            pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })            
           } catch (error1) {
             // fallback for old process of pin retrieval
-            pin = await SecureStoragePlugin.get({ key: 'pin' })
+            pin = await SecureStoragePlugin.get({ key: 'pin' })            
           }
         }
         if (pin?.value.length < 6) {
