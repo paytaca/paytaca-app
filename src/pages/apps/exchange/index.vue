@@ -70,7 +70,11 @@ export default {
           this.isloaded = true
         })
         .catch(error => {
-          console.error(error.response || error)
+          if (error.response.data.error === 'user does not exist') {
+            this.continue = true
+          } else {
+            console.error(error.response || error)
+          }
           this.isloaded = true
         })
     },
