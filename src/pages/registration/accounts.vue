@@ -12,7 +12,7 @@
         <div v-if="importSeedPhrase">
           <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="true" @submit="handleSeedPhraseContainer"/>
           <div v-else class="text-dark">
-            Login with shards
+            <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="handleShardProcess" />
           </div>
         </div>
         <div v-else>          
@@ -42,6 +42,9 @@ import seedPhraseContainer from 'src/components/ui-revamp/registration/seed-phra
 import login from 'src/components/ui-revamp/registration/login.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
+
+import ShardsProcess from 'src/components/registration/ShardsProcess'
+import ShardsImport from 'src/components/registration/ShardsImport'
 
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
@@ -85,7 +88,9 @@ export default {
     seedPhraseContainer,
     loadingDialog,
     securityOptionDialog,
-    pinDialog
+    pinDialog,
+    ShardsProcess,
+    ShardsImport
   },
   async mounted () {
     this.loading = true
@@ -324,6 +329,14 @@ export default {
       } else {
         this.securityOptionDialogStatus = "show"
       }
+    },
+    handleShardProcess () {
+      if (this.importSeedPhrase) {
+        this.createWallets()
+      }
+    },
+    onValidatedQrs (seedPhrase) {
+      this.seedPhraseBackup = seedPhrase
     },
     async createWallets () {
       const vm = this
