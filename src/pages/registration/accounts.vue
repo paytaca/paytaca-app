@@ -12,12 +12,19 @@
         <div v-if="importSeedPhrase">
           <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="true" @submit="handleSeedPhraseContainer"/>
           <div v-else class="text-dark">
-            <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="handleShardProcess" />
+            <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="handleShardProcess" @back="returnToLoginSelect()"/>
           </div>
         </div>
         <div v-else>          
           <!-- Verify Wallet -->
           <seedPhraseContainer v-if="loginType === 'seed-phrase'" @back="returnToLoginSelect()" :isImport="false" :mnemonic="mnemonic" @submit="handleSeedPhraseContainer"/>
+
+          <ShardsProcess
+            v-else
+            :mnemonic="mnemonic"
+            :walletHash="newWalletHash"   
+            @proceed-to-next-step="handleShardProcess"       
+          />
         </div>        
       </div>      
     </div>
@@ -333,6 +340,8 @@ export default {
     handleShardProcess () {
       if (this.importSeedPhrase) {
         this.createWallets()
+      } else {
+        this.securityOptionDialogStatus = "show"
       }
     },
     onValidatedQrs (seedPhrase) {

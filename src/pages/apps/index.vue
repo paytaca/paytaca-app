@@ -1,10 +1,10 @@
 <template>
-  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)">
+  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)" style="padding-bottom: 120px;">
     <div id="apps" ref="apps" class="text-center">
       <div>
         <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
           <p
-            class="section-title"
+            class="section-title text-dark"
             :class="{'text-blue-5': darkMode, 'text-grad': isNotDefaultTheme(theme)}"
             :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
           >
@@ -14,7 +14,7 @@
         <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div
-              class="pt-app bg-grad"
+              class="pt-app button-default br-15"              
               :class="[
                 buttonClassByState(app.active),
                 {'apps-border' : isNotDefaultTheme(theme)}
@@ -315,6 +315,8 @@ export default {
     }
   },
   mounted () {
+    this.$store.commit('global/updateActiveMenu', 'tools')
+
     const htmlTag1 = document.querySelector('.pt-app')
     const htmlTag = document.getElementsByClassName('pt-app')
     this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
