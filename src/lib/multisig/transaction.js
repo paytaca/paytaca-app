@@ -1010,7 +1010,7 @@ export const importPst = ({ pst }) => {
 
 export const exportPst = ({ multisigTransaction, address, addressIndex = 0, format = 'base64' }) => {
   // const includeSourceOutputs = this.transaction.inputs.some((input) => !input.sourceOutput)
-  const { wcSessionRequest, ...otherMetadata } = multisigTransaction.metadata
+  const { origin, prompt, status } = multisigTransaction.metadata
   const pst = {
     transaction: binToHex(encodeTransactionCommon(multisigTransaction.transaction)),
     sourceOutputs: multisigTransaction.sourceOutputs,
@@ -1019,7 +1019,9 @@ export const exportPst = ({ multisigTransaction, address, addressIndex = 0, form
       v: 1,
       address,
       addressIndex,
-      ...otherMetadata
+      origin,
+      prompt,
+      status
     }
   }
   // if (includeSourceOutputs) {

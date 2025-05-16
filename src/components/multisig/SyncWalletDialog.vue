@@ -33,7 +33,7 @@ Instead of exporting the multisig wallet as a file for manual sharing, you can s
         <q-btn
           :label="$t('Ok')"
           no-caps
-          @click="onDialogOk"
+          @click="onOkClick"
           color="primary"
         />
       </q-card-actions>
