@@ -186,7 +186,7 @@ export async function updateRfPromoData (id, data) {
 export async function processReferralCode (data) {
   await REWARDS_URL
     .post('userreward/process_referral_code/', data)
-    .then(_response => { return false })
+    .then(response => { return response.status !== 200 })
     .catch(error => {
       console.error(error)
       return true
