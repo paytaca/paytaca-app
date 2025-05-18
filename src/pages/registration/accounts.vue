@@ -151,16 +151,17 @@
       >
         <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
-            <div
+            <!-- <div
               v-if="moveToReferral && !openSettings"
             >
               <rewards-step
                 :walletHash="this.newWalletHash"
                 @on-proceed-to-next-step="onProceedToNextStep"
               />
-            </div>
+            </div> -->
 
-            <div class="row" v-else-if="!moveToReferral && openSettings">
+            <!-- <div class="row" v-else-if="!moveToReferral && openSettings"> -->
+            <div class="row" v-if="openSettings">
               <div class="col">
                 <div class="row justify-center text-center">
                   <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5><br />
@@ -318,7 +319,7 @@ import AuthenticationChooser from 'src/components/registration/AuthenticationCho
 import ShardsImport from 'src/components/registration/ShardsImport'
 import MnemonicProcessContainer from 'src/components/registration/MnemonicProcessContainer'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
-import RewardsStep from 'src/components/registration/RewardsStep.vue'
+// import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 function countWords(str) {
   if (str) {
@@ -348,8 +349,8 @@ export default {
     AuthenticationChooser,
     ShardsImport,
     MnemonicProcessContainer,
-    SeedPhraseContainer,
-    RewardsStep
+    SeedPhraseContainer//,
+    // RewardsStep
   },
   data () {
     return {
@@ -370,8 +371,8 @@ export default {
       openThemeSelector: false,
       useTextArea: false,
       authenticationPhase: 'options',
-      skipToBackupPhrase: false,
-      moveToReferral: false
+      skipToBackupPhrase: false//,
+      // moveToReferral: false
     }
   },
   watch: {
@@ -428,7 +429,10 @@ export default {
         cancel: true,
         seamless: true,
         class: 'text-white br-15 pt-card dark'
-      }).onOk(() => { vm.moveToReferral = true })
+      }).onOk(() => {
+        vm.openSettings = true
+        // vm.moveToReferral = true
+      })
     },
     saveToVault () {
       // saving to wallet vault
@@ -663,13 +667,14 @@ export default {
       this.steps = this.totalSteps
       this.authenticationPhase = 'options'
 
-      if (!this.importSeedPhrase) {
-        if (!this.moveToReferral) this.moveToReferral = true
-        else {
-          this.moveToReferral = false
-          this.openSettings = true
-        }
-      } else this.openSettings = true
+      // if (!this.importSeedPhrase) {
+      //   if (!this.moveToReferral) this.moveToReferral = true
+      //   else {
+      //     this.moveToReferral = false
+      //     this.openSettings = true
+      //   }
+      // } else this.openSettings = true
+      this.openSettings = true
     },
     onValidatedQrs (seedPhrase) {
       this.seedPhraseBackup = seedPhrase
@@ -741,7 +746,8 @@ export default {
       this.mnemonicVerified = value
     },
     onOpenSettings (value) {
-      this.moveToReferral = value
+      this.openSettings = value
+      // this.moveToReferral = value
     }
   },
   async mounted () {
