@@ -16,7 +16,7 @@
         <q-btn no-caps outline rounded padding="xs" size="sm" class="q-mx-xs">
           <span class="body-small q-px-xs">Help?</span>
         </q-btn>
-        <q-btn icon="notifications" size="sm" padding="sm" outline round class="q-mx-xs ">
+        <q-btn icon="notifications" size="sm" padding="sm" outline round class="q-mx-xs" @click="openNotificationsDialog()">
           <!-- <q-icon name="notifications" size=xs></q-icon> -->
         </q-btn>
         <q-btn icon="settings" size="sm" padding="sm" outline round class="q-mx-xs" @click="$router.push('/apps/settings')"/>
@@ -117,6 +117,7 @@ import TokenSuggestionsDialog from 'src/components/TokenSuggestionsDialog.vue';
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import AddNewAsset from './dialog/AddNewAsset.vue';
 import PriceChart from './dialog/PriceChart.vue';
+import Notifications from 'src/components/notifications/index.vue'
 import versionUpdate from './dialog/versionUpdate.vue';
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
@@ -132,6 +133,7 @@ import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
+import { getWalletUnreadNotifs } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { bus } from 'src/wallet/event-bus'
 import { markRaw } from '@vue/reactivity'
 import { sha256 } from 'js-sha256'
@@ -167,6 +169,8 @@ export default {
         logo: 'bch-logo.png',
         balance: 0
       },
+      notifsCount: 0,
+      notifSocket: null
     }
   },
   components: {
@@ -188,6 +192,12 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    isMobile () {
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    currentWalletHash () {
+      return this.$store.getters['global/getWallet']('bch')?.walletHash
     },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
@@ -283,6 +293,13 @@ export default {
 
     bus.on('handle-push-notification', this.handleOpenedNotification)
 
+    if (this.isMobile) {
+      vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
+      vm.notifSocket = new WebSocket(
+        `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
+      )
+      vm.addListenersToSocket()
+    }
     // if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
     //   vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
     //   vm.assetsCloseButtonColor = 'color: #ffbf00;'
@@ -394,7 +411,48 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    getWalletUnreadNotifs,
     // Methods from old page
+    addListenersToSocket () {
+      const vm = this
+
+      vm.notifSocket.addEventListener('message', (event) => {
+        const data = JSON.parse(event.data)
+        vm.notifsCount = data.unread_notifs_count
+      })
+
+      vm.notifSocket.addEventListener('open', (event) => {
+        console.log('Notification websocket opened.')
+      })
+
+      vm.notifSocket.addEventListener('close', (event) => {
+        console.log('Notification websocket closed. Reopening websocket...')
+        vm.notifSocket = new WebSocket(
+          `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
+        )
+        vm.addListenersToSocket()
+      })
+
+      vm.notifSocket.addEventListener('error', (event) => {
+        console.log('Notification websocket encountered an error. ', event)
+      })
+    },
+    async openNotificationsDialog () {
+      const vm = this
+
+      vm.$emit('hide-multi-wallet-dialog')
+      vm.$q.dialog({
+        component: Notifications,
+        componentProps: { onOpenTransaction: this.findAndOpenTransaction }
+      }).onDismiss(async () => {
+        if (this.isMobile) {
+          vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
+        }
+      })
+    },
+    // findAndOpenTransaction (data) {
+    //   this.$emit('find-and-open-transaction', data)
+    // },
     async openCashIn () {
       await this.checkCashinAvailable()
       this.$q.dialog({
@@ -554,6 +612,19 @@ export default {
         }
       }
       this.showTransactionDetails(transaction)
+    },
+    showTransactionDetails (transaction) {
+      const vm = this
+      vm.hideMultiWalletDialog()
+      vm.hideAssetInfo()
+      const txCheck = setInterval(function () {
+        if (transaction) {
+          if (!transaction?.asset) transaction.asset = vm.selectedAsset
+          vm.$refs.transaction.show(transaction)
+          vm.hideBalances = true
+          clearInterval(txCheck)
+        }
+      }, 100)
     },
     async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
       if (!data) return
