@@ -11,23 +11,23 @@ describe('Send Page', () => {
 
   const clickToken = (tokenId) => {
     cy.get('#token-popup').click();
-    cy.get(`#${tokenId}`).click();
+    cy.get(`#${tokenId}`).should('be.visible').click();
   };
 
-  it('Click Token Dropdown', () => {
-    clickToken('CashTokens');
-    clickToken('SLPtokens');
+  it('should switch between token options from dropdown', () => {
+    ['CashTokens', 'SLPtokens'].forEach(clickToken);
   });
 
-  it('Send', () => {
+  it('should allow sending BCH and show send form options', () => {
     cy.get('#bitcoin-cash').click();
     cy.get('#paste-address-container')
       .click()
       .type('bitcoincash:qzpwfkssk45lgfj2r7r7a6qu9al29hfemcvs8ycejc');
+
     cy.get('#send-to').click();
 
-    // Check send form options
-    cy.get('#send-form-qr');
-    cy.get('#send-form-upload');
+    ['#send-form-qr', '#send-form-upload'].forEach((selector) => {
+      cy.get(selector).should('be.visible');
+    });
   });
 });
