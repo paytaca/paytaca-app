@@ -56,7 +56,7 @@
         </q-card-section>
 
         <q-card-section class="q-px-sm q-mt-none">
-          <div class="row q-px-md pt-num-keys q-py-md bg-grad">
+          <div class="row q-px-md pt-num-keys q-py-md button-default">
             <div class="col-3 pt-col-key" v-for="(key, index) in 16" :key="index">
               <q-btn
                 push

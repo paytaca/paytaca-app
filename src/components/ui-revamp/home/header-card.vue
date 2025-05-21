@@ -29,7 +29,7 @@
             <div class="col-10 row q-gutter-sm">
               <!-- {{ iconPath+opt.icon }} -->
               <div v-for="opt in coinsOptions">
-                <q-btn  class="button-default" round :disable="!loaded" @click="handleButton(opt.name)">
+                <q-btn  class="button-default" round :disable="!loaded || opt.name === 'freeze'" @click="handleButton(opt.name)">
                   <q-icon size="18px" :name="`img:ui-revamp/${opt.icon}`"/>
                 </q-btn>
                 <div class="q-pt-sm text-center text-capitalize title-smaller text-primary">{{ opt.name }}</div>

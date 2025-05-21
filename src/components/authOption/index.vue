@@ -2,7 +2,6 @@
   <div>
     <q-dialog
       v-model="dialog"
-      seamless
       persistent
     >
       <q-card class="pt-card" :class="getDarkModeClass()">

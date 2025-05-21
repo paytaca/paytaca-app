@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)" style="margin-top: 84px;">
+  <div id="app-container" :class="darkMode ? 'text-light' : 'text-dark'" style="margin-top: 84px;">
     <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense

@@ -9,7 +9,7 @@
     <div id="list-container" class="apps-options">
       <div v-for="app in apps" class="app-item text-center">
         <q-btn  class="button-light br-15 app-button" square style="padding: 0px 10px 0px;" @click="$router.push(app.path)">
-          <q-icon size="24px" :name="app.icon"/>
+          <q-icon size="24px" :name="app.icon" :class="app.name === 'Wallet Backup' ? 'default-color' : ''"/>
         </q-btn>
         <p class="q-pt-md title-smaller app-text">{{ app.name }}</p>
       </div>
@@ -79,7 +79,7 @@ export default {
 
 }
 
-// #test {
-//   filter: brightness(0) saturate(100%) invert(41%) sepia(14%) saturate(2216%) hue-rotate(178deg) brightness(96%) contrast(88%);
-// }
+.default-color {  
+   filter: brightness(0) saturate(100%) invert(28%) sepia(5%) saturate(6346%) hue-rotate(179deg) brightness(106%) contrast(75%);
+}
 </style>
