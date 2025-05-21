@@ -29,7 +29,7 @@
       </div>      
     </div>
 
-    <loadingDialog v-model="openLoadingDialog"/>
+    <loadingDialog v-model="openLoadingDialog" :isloading="loading"/>
     <securityOptionDialog
       :security-option-dialog-status="securityOptionDialogStatus"
       v-on:preferredSecurity="setPreferredSecurity"
@@ -330,8 +330,7 @@ export default {
     handleSeedPhraseContainer (phrase) {
       if (this.importSeedPhrase) {
         this.seedPhraseBackup = phrase
-
-        console.log('mnemonic: ', this.seedPhraseBackup)
+        
         this.createWallets()
       } else {
         this.securityOptionDialogStatus = "show"
@@ -349,17 +348,16 @@ export default {
     },
     async createWallets () {
       const vm = this
+      this.loading = true
       vm.openLoadingDialog = true
 
       // Create mnemonic seed, encrypt, and store
       if (!vm.mnemonic) {
         if (vm.importSeedPhrase) {
           vm.mnemonicVerified = true
-          vm.mnemonic = await storeMnemonic(this.seedPhraseBackup, vm.walletIndex)
-          console.log('mnemonic: ', vm.mnemonic)
+          vm.mnemonic = await storeMnemonic(this.seedPhraseBackup, vm.walletIndex)          
         } else {
-          vm.mnemonic = await generateMnemonic(vm.walletIndex)
-          console.log('mnemonic: ', vm.mnemonic)
+          vm.mnemonic = await generateMnemonic(vm.walletIndex)          
         }
       }
       vm.steps += 1
@@ -452,18 +450,21 @@ export default {
       console.log('new wallethash: ', this.newWalletHash)
 
 
+      this.loading = false
 
-      this.openLoadingDialog = false
+      setTimeout(()=> {
+        this.openLoadingDialog = false
 
-      if (!vm.importSeedPhrase) {
-        this.status = 'wallet-create'
-        this.gradientBg = false
-        // this.status = 'final-step'
-      } else {
-        // this.status = 'final-step'
-        this.securityOptionDialogStatus = 'show'
-        // this.checkFingerprintAuthEnabled()
-      }      
+        if (!vm.importSeedPhrase) {
+          this.status = 'wallet-create'
+          this.gradientBg = false
+          // this.status = 'final-step'
+        } else {
+          // this.status = 'final-step'
+          this.securityOptionDialogStatus = 'show'
+          // this.checkFingerprintAuthEnabled()
+        }
+      }, 3000)        
     },
   }
 }
