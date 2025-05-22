@@ -26,7 +26,45 @@ import stablehedge from './stablehedge'
  */
 
 export const Store = createStore({
-  plugins: [createPersistedState()],
+  plugins: [
+    createPersistedState({
+      paths: [
+        'global.network',
+        'global.language',
+        'global.country',
+        'global.theme',
+        'global.isChipnet',
+        'global.showTokens',
+        'global.enableStablhedge',
+        'global.enableSmartBCH',
+        'global.user',
+        'global.online',
+        'global.walletIndex',
+        'global.denomination',
+        'global.merchantActivity',
+        'assets.assets',
+        'assets.ignoredAssets',
+        'assets.removedAssetIds'
+      ],
+      storage: window.localStorage,
+      getState: (key) => {
+        try {
+          const value = window.localStorage.getItem(key)
+          return value ? JSON.parse(value) : null
+        } catch (err) {
+          console.error('Error getting persisted state:', err)
+          return null
+        }
+      },
+      setState: (key, state) => {
+        try {
+          window.localStorage.setItem(key, JSON.stringify(state))
+        } catch (err) {
+          console.error('Error setting persisted state:', err)
+        }
+      }
+    })
+  ],
   modules: {
     anyhedge,
     global,
