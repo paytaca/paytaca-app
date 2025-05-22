@@ -110,17 +110,20 @@ Cypress.on('uncaught:exception', (err) => {
 });
 
 // cypress/support/commands.js (if not already added)
-Cypress.Commands.add('logRequestTime', (description, requestFn) => {
+Cypress.Commands.add('logRequestTime', (label, fn) => {
+  const start = Date.now();
+  fn().then(() => {
+    const time = Date.now() - start;
+    cy.task('logRequestTime', { url: label, time });
+  });
+});
+
+Cypress.Commands.add('logInteractionTime', (selector, fn) => {
+  const start = Date.now();
+  fn();
   cy.then(() => {
-    performance.mark(`${description}-start`);
-    requestFn().then((response) => {
-      performance.mark(`${description}-end`);
-      performance.measure(description, `${description}-start`, `${description}-end`);
-      const duration = performance.getEntriesByName(description)[0].duration.toFixed(2);
-      cy.log(`${description} took ${duration} ms`);
-      performance.clearMarks();
-      performance.clearMeasures();
-    });
+    const time = Date.now() - start;
+    cy.task('logInteraction', { element: selector, time });
   });
 });
 
