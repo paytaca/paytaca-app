@@ -115,7 +115,7 @@ export const useMultisigHelpers = () => {
   const saveMultisigWallet = async (multisigWallet) => {
     await $store.dispatch(
       'multisig/saveWallet',
-      multisigWallet
+      { multisigWallet }
     )
     const watchtower = new Watchtower($store.getters['global/isChipnet'])
     watchtower.subscribe({ address: multisigWallet.address })

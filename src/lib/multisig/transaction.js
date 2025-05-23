@@ -224,7 +224,7 @@ export class MultisigTransaction {
       signatures[key] =
         typeof value === 'string' ? hexToBin(value) : Uint8Array.from(Object.values(value))
     })
-    
+
     const transaction = MultisigTransaction.transactionBinObjectsToUint8Array(
       JSON.parse(JSON.stringify(this.transaction))
     )
@@ -342,8 +342,6 @@ export class MultisigTransaction {
     const finalCompilation = generateTransaction({
       ...transaction
     })
-    console.log('finalCompilation', finalCompilation)
-    // const missingSignerSignatures = {} // Same schema as signatures
     if (!finalCompilation.success) {
       const signersWithoutSignatures =
         this.identifySignersWithoutSignatures({
@@ -485,10 +483,16 @@ export class MultisigTransaction {
     const foundscriptIdentifierTemplateScriptMapping =
       scriptIdentifierTemplateScriptMap.find((scriptIdentifierAndScript) => {
       // ['key1.schnorr_signature.all_outputs', 'key3.schnorr_signature.all_outputs', ...].every()
-        return Object.keys(signatures[inputIndex]).every((signatureIdentifier) => {
-          const scriptId = Object.keys(scriptIdentifierAndScript)[0]
-          return scriptIdentifierAndScript[scriptId].includes(signatureIdentifier)
-        })
+        // return Object.keys(signatures[inputIndex]).every((signatureIdentifier) => {
+        // const scriptId = Object.keys(scriptIdentifierAndScript)[0]
+        // return scriptIdentifierAndScript[scriptId].includes(signatureIdentifier)
+        // })
+        return signatures
+		      .filter((signature) => Number(signature.inputIndex) === Number(inputIndex))
+          .every((signature) => {
+            const scriptId = Object.keys(scriptIdentifierAndScript)[0]
+            return scriptIdentifierAndScript[scriptId].includes(signature.sigKey)
+          })
       })
     return Object.keys(foundscriptIdentifierTemplateScriptMapping)[0]
   }
@@ -578,10 +582,17 @@ export const getUnlockingScriptId = ({ signatures, template, inputIndex }) => {
   const foundscriptIdentifierTemplateScriptMapping =
     scriptIdentifierTemplateScriptMap.find((scriptIdentifierAndScript) => {
     // ['key1.schnorr_signature.all_outputs', 'key3.schnorr_signature.all_outputs', ...].every()
-      return Object.keys(signatures[inputIndex]).every((signatureIdentifier) => {
-        const scriptId = Object.keys(scriptIdentifierAndScript)[0]
-        return scriptIdentifierAndScript[scriptId].includes(signatureIdentifier)
-      })
+      // return Object.keys(signatures[inputIndex]).every((signatureIdentifier) => {
+      // const scriptId = Object.keys(scriptIdentifierAndScript)[0]
+      // return scriptIdentifierAndScript[scriptId].includes(signatureIdentifier)
+      // })
+
+      return signatures
+        .filter((signature) => Number(signature.inputIndex) === Number(inputIndex))
+        .every((signature) => {
+          const scriptId = Object.keys(scriptIdentifierAndScript)[0]
+          return scriptIdentifierAndScript[scriptId].includes(signature.sigKey)
+        })
     })
   return Object.keys(foundscriptIdentifierTemplateScriptMapping)[0]
 }
@@ -637,7 +648,7 @@ export const createMultisigTransactionFromWCSessionRequest = ({ sessionRequest, 
   return {
     transaction: sessionRequest.params.request.params.transaction,
     sourceOutputs: sessionRequest.params.request.params.sourceOutputs,
-    signatures: {},
+    signatures: [],
     metadata
   }
 }
@@ -646,31 +657,35 @@ export const identifySignersWithoutSignatures = ({
   multisigWallet,
   multisigTransaction
 }) => {
-
   const { template, lockingData: lockingDataFromWallet } = multisigWallet
   const lockingData = structuredClone(lockingDataFromWallet)
-  delete lockingData.hdKeys.hdPrivateKeys	
+  delete lockingData.hdKeys.hdPrivateKeys
   const signatures = structuredClone(multisigTransaction.signatures)
-  console.log('SIGNATURE CLONE', Object.entries(signatures))  
-  console.log('LOCKING DATA CLONE', lockingData)
   // Sanitize
-  Object.keys(signatures).forEach((inputIndex) => {
-    Object.keys(signatures[inputIndex]).forEach((signatureKey) => {
-	if(typeof signatures[inputIndex][signatureKey] === 'string') { 
-	 signatures[inputIndex][signatureKey] = hexToBin(signatures[inputIndex][signatureKey]) 
-	} else {
-         signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(signatures[inputIndex][signatureKey]))
-	}
-	
-    })
+  // Object.keys(signatures).forEach((inputIndex) => {
+  //   Object.keys(signatures[inputIndex]).forEach((signatureKey) => {
+  //     if (typeof signatures[inputIndex][signatureKey] === 'string') {
+  //       signatures[inputIndex][signatureKey] = hexToBin(signatures[inputIndex][signatureKey])
+  //     } else {
+  //       signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(signatures[inputIndex][signatureKey]))
+  //     }
+  //   })
+  // })
+
+  signatures.forEach((signature) => {
+    if (typeof signature.sigValue === 'string') {
+      signature.sigValue = hexToBin(signature.sigValue)
+    } else {
+      signature.sigValue = Uint8Array.from(Object.values(signature.sigValue))
+    }
   })
   // Object.entries(signatures).forEach((signatureEntry) => {
-     // const [inputIndex, signature] = signatureEntry
-     // console.log('signature Entry', signatureEntry)
-    //const signatureK
-    //signatures[inputIndex] =
-     // typeof value === 'string' ? hexToBin(value) : Uint8Array.from(Object.values(value))
-  //})
+  // const [inputIndex, signature] = signatureEntry
+  // console.log('signature Entry', signatureEntry)
+  // const signatureK
+  // signatures[inputIndex] =
+  // typeof value === 'string' ? hexToBin(value) : Uint8Array.from(Object.values(value))
+  // })
 
   const transaction = transactionBinObjectsToUint8Array(
     JSON.parse(JSON.stringify(multisigTransaction.transaction))
@@ -680,7 +695,13 @@ export const identifySignersWithoutSignatures = ({
   const sourceOutputs = [] // will be used for verification
   const missingSigners = {}
   const missingSignersEntityIdSet = new Set()
-  const multisigWalletLockingBytecode = getLockingBytecode({ lockingData, template })
+  const pureLockingData = {
+    hdKeys: {
+      addressIndex: lockingData.hdKeys.addressIndex,
+      hdPublicKeys: lockingData.hdKeys.hdPublicKeys
+    }
+  }
+  const multisigWalletLockingBytecode = getLockingBytecode({ lockingData: pureLockingData, template })
   unlockingScriptIds.forEach((unlockingScriptId) => {
     for (const [inputIndex, input] of transaction.inputs.entries()) {
       let sourceOutput = input.sourceOutput
@@ -692,13 +713,21 @@ export const identifySignersWithoutSignatures = ({
         })
       }
       sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+      const inputSignatures = {}
 
+      signatures.forEach((sig) => {
+        // eslint-disable-next-line eqeqeq
+        if (sig.inputIndex == inputIndex) {
+          inputSignatures[sig.sigKey] = sig.sigValue
+        }
+      })
       if (binToHex(sourceOutput.lockingBytecode) === binToHex(multisigWalletLockingBytecode.bytecode)) {
-	//console.log('signature input', signatures[inputIndex])
+        // console.log('signature input', signatures[inputIndex])
         const inputUnlockingData = {
-         ...lockingData,
+          ...lockingData,
           bytecode: {
-            ...signatures[inputIndex]
+            // ...signatures[inputIndex]
+            ...inputSignatures
           }
         }
         input.unlockingBytecode = {
@@ -715,7 +744,6 @@ export const identifySignersWithoutSignatures = ({
     const finalCompilation = generateTransaction({
       ...transaction
     })
-    // const missingSignerSignatures = {} // Same schema as signatures
     if (!finalCompilation.success) {
       const missingSignerVariables = extractMissingVariables({ ...finalCompilation })
       missingSigners[unlockingScriptId] = missingSignerVariables
@@ -737,10 +765,8 @@ export const getSignatureCount = ({ multisigWallet, multisigTransaction } = {}) 
     multisigWallet,
     multisigTransaction
   })
-  console.log('signature count', signersWithoutSignatures)
-  console.log('required signatures', multisigWallet)
   const missingSignatures = Array.from(signersWithoutSignatures.missingSignersEntityIdSet || [])
-  const signatureCount =  Object.keys(multisigWallet.template.entities).length - missingSignatures.length
+  const signatureCount = Object.keys(multisigWallet.template.entities).length - missingSignatures.length
   if (signatureCount < 0) return 0
   return signatureCount
 }
@@ -761,13 +787,26 @@ export const finalizeTransaction = ({
   const { template, lockingData } = multisigWallet
 
   const signatures = structuredClone(multisigTransaction.signatures)
-  Object.entries(signatures).forEach((signatureEntry) => {
-    const [key, value] = signatureEntry
-    signatures[key] =
-      typeof value === 'string' ? hexToBin(value) : Uint8Array.from(Object.values(value))
+  // Object.entries(signatures).forEach((signatureEntry) => {
+  //   const [key, value] = signatureEntry
+  //   signatures[key] =
+  //     typeof value === 'string' ? hexToBin(value) : Uint8Array.from(Object.values(value))
+  // })
+  signatures.forEach((signature) => {
+    if (typeof signature.sigValue === 'string') {
+      signature.sigValue = hexToBin(signature.sigValue)
+    } else {
+      signature.sigValue = Uint8Array.from(Object.values(signature.sigValue))
+    }
   })
+  const pureLockingData = {
+    hdKeys: {
+      addressIndex: lockingData.hdKeys.addressIndex,
+      hdPublicKeys: lockingData.hdKeys.hdPublicKeys
+    }
+  }
   const compiler = getCompiler({ template })
-  const multisigWalletLockingBytecode = getLockingBytecode({ lockingData, template })
+  const multisigWalletLockingBytecode = getLockingBytecode({ lockingData: pureLockingData, template })
   const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
   const sourceOutputs = [] // will be used for verification
   for (const [inputIndex, input] of transaction.inputs.entries()) {
@@ -781,17 +820,24 @@ export const finalizeTransaction = ({
     }
 
     sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+    const inputSignatures = {}
+    signatures.forEach((sig) => {
+      // eslint-disable-next-line eqeqeq
+      if (sig.inputIndex == inputIndex) {
+        inputSignatures[sig.sigKey] = sig.sigValue
+      }
+    })
     if (binToHex(sourceOutput.lockingBytecode) === binToHex(multisigWalletLockingBytecode.bytecode)) {
       const inputUnlockingData = {
         ...lockingData,
         bytecode: {
-          ...multisigTransaction.signatures[inputIndex]
+          // ...multisigTransaction.signatures[inputIndex]
+          ...inputSignatures
         }
       }
       const unlockingScriptId = getUnlockingScriptId({
         signatures: multisigTransaction.signatures, template, inputIndex
       })
-
       input.unlockingBytecode = {
         compiler,
         data: inputUnlockingData,
@@ -806,7 +852,6 @@ export const finalizeTransaction = ({
   const finalCompilation = generateTransaction({
     ...transaction
   })
-  // const missingSignerSignatures = {} // Same schema as signatures
   if (!finalCompilation.success) {
     const signersWithoutSignatures =
       identifySignersWithoutSignatures({
@@ -827,11 +872,11 @@ export const finalizeTransaction = ({
   if (verificationResult !== true) {
     throw new Error('Transaction failed local vm verification')
   }
-  Object.keys(multisigTransaction.signatures).forEach((inputIndex) => {
-    Object.keys(multisigTransaction.signatures[inputIndex]).forEach((signatureKey) => {
-      multisigTransaction.signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(multisigTransaction.signatures[inputIndex][signatureKey]))
-    })
-  })
+  // Object.keys(multisigTransaction.signatures).forEach((inputIndex) => {
+  //   Object.keys(multisigTransaction.signatures[inputIndex]).forEach((signatureKey) => {
+  //     multisigTransaction.signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(multisigTransaction.signatures[inputIndex][signatureKey]))
+  //   })
+  // })
   const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
   multisigTransaction.signedTransaction = binToHex(encodedTransaction)
   multisigTransaction.signedTransactionComputedTxid = hashTransaction(multisigTransaction.signedTransaction)
@@ -845,16 +890,15 @@ export const signTransaction = ({
   multisigWallet,
   multisigTransaction,
   signerEntityKey
-  // signerEntityIndex,
-  // addressIndex = 0,
-  // signatureFormat = 'schnorr'
 }) => {
-  // this.requireMultisigWallet()
   const { lockingData, template } = multisigWallet
   if (!lockingData.hdKeys.hdPrivateKeys?.[signerEntityKey]) {
     throw new Error(`Missing private key of ${signerEntityKey}`)
   }
   const signatures = multisigTransaction.signatures
+  signatures.forEach((s) => {
+    s.sigValue = Uint8Array.from(Object.values(s.sigValue))
+  })
   const sourceOutputs = multisigTransaction.sourceOutputs
   const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
   // const lockingData = this.multisigWallet.getLockingData({ addressIndex })
@@ -867,10 +911,14 @@ export const signTransaction = ({
       }
     }
   }
-
-  // const template = this.multisigWallet.getTemplate({ signatureFormat })
+  const pureLockingData = {
+    hdKeys: {
+      addressIndex: lockingData.hdKeys.addressIndex,
+      hdPublicKeys: lockingData.hdKeys.hdPublicKeys
+    }
+  }
   const unlockingScriptId = multisigWallet.template.entities[signerEntityKey].scripts.filter((scriptId) => scriptId !== 'lock')[0]
-  const multisigWalletLockingBytecode = getLockingBytecode({ lockingData, template })
+  const multisigWalletLockingBytecode = getLockingBytecode({ lockingData: pureLockingData, template })
   for (const input of transaction.inputs) {
     let sourceOutput = input.sourceOutput
 
@@ -896,26 +944,27 @@ export const signTransaction = ({
 
   const signAttempt = generateTransaction({ ...transaction })
   for (const [inputIndex, error] of Object.entries(signAttempt.errors)) {
-    if (!signatures[inputIndex]) {
-      signatures[inputIndex] = {}
-    }
     const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
-    const signatureKey = Object.keys(signerResolvedVariables)[0]
-    const signatureValue = Object.values(signerResolvedVariables)[0]
-    signatures[inputIndex][signatureKey] = signatureValue
-  }
-  Object.keys(signatures).forEach((inputIndex) => {
-    Object.keys(signatures[inputIndex]).forEach((signatureKey) => {
-      signatures[inputIndex][signatureKey] = Uint8Array.from(Object.values(signatures[inputIndex][signatureKey]))
+    const sigKey = Object.keys(signerResolvedVariables)[0]
+    const sigValue = Object.values(signerResolvedVariables)[0]
+    const existingSigIndex = signatures.findIndex((sig) => {
+      // eslint-disable-next-line eqeqeq
+      return sig.inputIndex == inputIndex && sig.sigKey === sigKey
     })
-  })
+    if (existingSigIndex === -1) {
+      signatures.push({
+        inputIndex,
+        sigKey,
+        sigValue: Uint8Array.from(Object.values(sigValue))
+      })
+    }
+  }
   multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_PARTIALLY_SIGNED
   const finalizationResult = finalizeTransaction({
     multisigWallet,
     multisigTransaction
   })
   multisigTransaction.metadata.finalized = finalizationResult.success
-  console.log('MULTISIG TRANSACTION', multisigTransaction)
   return multisigTransaction
 }
 
@@ -957,7 +1006,6 @@ export const refreshTransactionStatus = async ({ multisigWallet, multisigTransac
     if (multisigTransaction.metadata.status === MultisigTransactionStatus.CONFIRMED) return
     if (!multisigTransaction.metadata.status || multisigTransaction.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
       const signatureCount = getSignatureCount({ multisigWallet, multisigTransaction })
-      console.log('SIGNATURE COUNT', signatureCount)
       if (signatureCount === 0) {
         multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_UNSIGNED
       }

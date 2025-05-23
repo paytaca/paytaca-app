@@ -317,8 +317,9 @@ onMounted(async () => {
     balance.value = await getMultisigWalletBchBalance(
       decodeURIComponent(route.params.address)
     )
+    console.log('WALLET ON VIEW',wallet.value)
     if (wallet.value) {
-      await wallet.value.loadSignerXprivateKeys(getSignerXPrv)
+    //  await wallet.value.loadSignerXprivateKeys(getSignerXPrv)
     }
   } catch (error) {}
 })

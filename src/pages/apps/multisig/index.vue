@@ -105,7 +105,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Pst, shortenString, MultisigWallet } from 'src/lib/multisig'
+import { Pst, shortenString, MultisigWallet, importMultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadLibauthHdWallet } from 'src/wallet'
@@ -187,9 +187,11 @@ const onUpdateWalletFileModelValue = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      walletInstance.value = MultisigWallet.import(reader.result)
-      const defaultAddress = walletInstance.value.getAddress({
-        addressIndex: 0, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+      walletInstance.value = importMultisigWallet(reader.result)
+      const defaultAddress = getMultisigCashAddress({
+        lockingData: walletInstance.value.lockingData,
+        template: walletInstance.value.template,
+        cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
       })
       saveMultisigWallet(walletInstance.value)
       router.push({

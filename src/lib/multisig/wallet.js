@@ -15,14 +15,10 @@ import {
   binToBase64,
   base64ToBin,
   binToUtf8,
-  CashAddressNetworkPrefix,
-  binToHex,
-  generateTransaction,
-  extractResolvedVariables
+  CashAddressNetworkPrefix
 } from 'bitauth-libauth-v3'
 // import { createTemplate } from './template.js'
 
-import { transactionBinObjectsToUint8Array } from './utils.js'
 export { createTemplate } from './template.js'
 
 const getHdKeys = ({ signers, addressIndex = 0 /* { [signerIndex: number]: { xpub: string, name: string ...} } */ }) => {
@@ -314,6 +310,7 @@ export const populateHdPrivateKeys = async ({ lockingData, getSignerXPrv /* Func
       const xprv = await getSignerXPrv({
         xpub: lockingData.hdKeys.hdPublicKeys[signerEntityId]
       })
+      if (!xprv) continue
       lockingData.hdKeys.hdPrivateKeys[signerEntityId] = xprv
     } catch (e) { console.log(e) }
   }

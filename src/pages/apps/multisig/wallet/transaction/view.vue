@@ -248,7 +248,7 @@ signerCanSignOnThisDevice                  >
                       </template>
                     </q-btn>
                     <q-btn
-                      v-if="multisigTransaction.isFinalized"
+                      v-if="multisigTransaction.metadata?.status === MultisigTransactionStatus.PENDING_FULLY_SIGNED"
                       @click="broadcastTransaction"
                       flat dense no-caps
                       :loading="multisigTransaction.metadata?.isBroadcasting"
@@ -304,6 +304,7 @@ import {
   getSignatureCount,
   signerHasSignature,
   signerCanSign,
+  MultisigTransactionStatus,
   MultisigTransactionStatusText
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -326,7 +327,6 @@ const multisigWallet = computed(() => {
   })
 })
 
-
 const isSignerSignatureOk = computed(() => {
   return ({ signerEntityKey }) => {
     if (multisigWallet.value && multisigTransaction.value) {
@@ -341,7 +341,7 @@ const isSignerSignatureOk = computed(() => {
 
 const signerCanSignOnThisDevice = computed(() => {
   return ({ signerEntityKey }) => {
-   return signerCanSign({ lockingData: multisigWallet.value.lockingData, signerEntityKey })
+    return signerCanSign({ lockingData: multisigWallet.value.lockingData, signerEntityKey })
   }
 })
 
@@ -357,6 +357,7 @@ const signTransaction = async ({ signerEntityKey }) => {
     lockingData: multisigWallet.value.lockingData,
     getSignerXPrv
   })
+ 
   signMultisigTransaction({
     multisigWallet: multisigWallet.value,
     multisigTransaction: multisigTransaction.value,
@@ -419,17 +420,15 @@ watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStat
 onMounted(async () => {
   if (multisigWallet.value) {
     await populateHdPrivateKeys({
-     lockingData: multisigWallet.value.lockingData,
-     getSignerXPrv
+      lockingData: multisigWallet.value.lockingData,
+      getSignerXPrv
     })
-    console.log('mzig', multisigWallet.value)
     const transactions =
       $store.getters['multisig/getTransactionsByWalletAddress']({
         address: decodeURIComponent(route.params.address)
       })
     if (transactions[route.params.index]) {
       multisigTransaction.value = structuredClone(transactions[route.params.index])
-      console.log('mtrans', multisigTransaction.value)
       refreshTransactionStatus({
         multisigWallet: multisigWallet.value,
         multisigTransaction: multisigTransaction.value
