@@ -127,6 +127,14 @@
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { createSaleContractApi, getPtcTradeData } from 'src/utils/engagementhub-utils/ptc-trade'
 import { raiseNotifyError } from 'src/utils/send-page-utils'
+import {
+  getKeyPairFromWalletMnemonic
+} from 'src/utils/engagementhub-utils/rewards'
+import {
+  binToHex
+} from "@bitauth/libauth";
+import { getMnemonic, Wallet } from 'src/wallet'
+import { markRaw } from 'vue'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -171,6 +179,21 @@ export default {
       .then(data => {
         if (data) this.parseData(data)
       })
+
+    // await getKeyPairFromWalletMnemonic().then(data => {
+    //   console.log(binToHex(data.privKey))
+    // })
+    const bchWalletInfo = this.$store.getters['global/getWallet']('bch')
+    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+    const wallet = markRaw(new Wallet(mnemonic))
+    if (bchWalletInfo) {
+      const { lastAddress, lastChangeAddress, lastAddressIndex } = bchWalletInfo
+      if (lastAddress && lastChangeAddress && lastAddressIndex >= 0) {
+        console.log(lastAddressIndex)
+        console.log(lastAddress)
+        console.log(await wallet.BCH.getPublicKey(`0/${lastAddressIndex}`))
+      }
+    }
 
     this.isLoading = false
   },
