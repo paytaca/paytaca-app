@@ -239,11 +239,19 @@ signerCanSignOnThisDevice                  >
                         </div>
                       </template>
                     </q-btn>
-                    <q-btn @click="downloadPST" flat dense no-caps :color="!darkMode && 'primary'">
+                    <q-btn @click="downloadPst" flat dense no-caps :color="!darkMode && 'primary'">
                       <template v-slot:default>
                         <div class="row justify-center">
                           <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
-                          <div class="col-12">Export</div>
+                          <div class="col-12">Export PST</div>
+                        </div>
+                      </template>
+                    </q-btn>
+                    <q-btn @click="sharePst" flat dense no-caps :color="!darkMode && 'primary'">
+                      <template v-slot:default>
+                        <div class="row justify-center">
+                          <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
+                          <div class="col-12">Share PST</div>
                         </div>
                       </template>
                     </q-btn>
@@ -382,7 +390,7 @@ const broadcastTransaction = async () => {
   }
 }
 
-const downloadPST = () => {
+const downloadPst = () => {
   const defaultFilename = (multisigTransaction.value.metadata?.prompt || '').toLowerCase().replace(' ', '-')
   $q.dialog({
     title: 'Enter Filename',
@@ -406,6 +414,20 @@ const downloadPST = () => {
     document.body.appendChild(a)
     a.click()
   }).onCancel(() => {})
+}
+
+const sharePst = () => { 
+  $q.dialog({
+    title: 'Share partially signed transaction',
+    message: 'This will upload the transaction proposal to the server, allowing your cosigners to access and sign it. Click `Proceed` to continue.',
+    class: `pt-card-2 text-bow ${getDarkModeClass(darkMode.value)} q-pb-md`,
+    position: 'bottom',
+    fullWidth: true,
+    ok: { label: 'Proceed', color: 'primary' },
+    cancel: true
+  }).onOk(async () => {
+    console.log('Sharing Online')
+  })
 }
 
 watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStatus) => {
