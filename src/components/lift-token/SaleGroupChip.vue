@@ -11,9 +11,9 @@
 <script>
 const SALE_GROUP_CHIP = {
   all: { label: 'All', color: 'purple' },
-  seed: { label: 'Seed Sale', color: 'red' },
-  priv: { label: 'Private Sale', color: 'blue' },
-  pblc: { label: 'Public Sale', color: 'green' }
+  seed: { label: 'Seed Round', color: 'red' },
+  priv: { label: 'Private Round', color: 'blue' },
+  pblc: { label: 'Public Round', color: 'green' }
 }
 
 export default {
