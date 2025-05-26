@@ -1,5 +1,7 @@
 import { Store } from 'src/store'
 
+const LIFT_DECIMALS = 2
+
 // ==============================
 // Store functions
 // ==============================
@@ -26,4 +28,11 @@ export function parseLocaleDate (date, isDayIncluded = true) {
   if (isDayIncluded) options.day = 'numeric'
 
   return d.toLocaleDateString(undefined, options)
+}
+
+export function parseLiftToken (amount) {
+  const newAmount = amount / (10 ** LIFT_DECIMALS)
+  const finalAmount = Number(newAmount).toLocaleString()
+
+  return `${finalAmount} LIFT`
 }
