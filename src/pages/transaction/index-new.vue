@@ -1,64 +1,9 @@
 <template>
-  <div id="app-container" class="grad">
-    <div class="header-top row justify-between">
-      <div>
-        <q-icon size="md" name="arrow_drop_down"/> <span class="title-medium">Main: Nikki</span> 
-      </div>
-      <div>
-        <q-icon class="q-pr-xs" size="md" name="notifications"/>
-        <q-icon size="md" name="settings"/> 
-      </div>
-    </div>
-
-    <div class="balance text-center">      
-      <div>
-        <q-skeleton v-if="!balanceLoaded" height="30px" width="200px"/>  
-        <div v-else>
-          <div class="headline-large bch-balance">{{ bchBalanceText()}} BCH</div>
-          <div class="title-large">{{ getAssetMarketBalance(bchAsset) }}</div>
-        </div>      
-      </div>       
-    </div>
-
-    <div class="button-container text-center title-medium">
-      <div class="q-pb-sm button-group">
-        <div class="q-mr-md">
-          <q-btn class="btn" no-caps round style="padding: 20px;">
-            <q-icon class="btn-icon" size="30px" name="img:app-send.svg"/> <br>                              
-          </q-btn>
-          <div class="q-pt-sm" @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</div>
-        </div>    
-        <div class="q-ml-md">
-          <q-btn class="btn" round style="padding: 20px;">
-            <q-icon class="btn-icon" size="30px" name="img:app-receive.svg"/>                
-          </q-btn>  
-          <div class="q-pt-sm" @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</div>
-        </div>           
-      </div>  
-      
-      <div class="q-pt-sm button-group">
-        <div class="q-mr-md">
-          <q-btn class="btn" no-caps round style="padding: 20px;">
-            <q-icon class="btn-icon" size="30px" name="img:app-qr.svg"/> <br>                              
-          </q-btn>
-          <div class="q-pt-sm">{{ 'QR' }}</div>
-        </div>    
-        <div class="q-ml-md">
-          <q-btn class="btn" round style="padding: 20px;">
-            <q-icon size="30px" name="img:ui-revamp/cashin.svg"/>                
-          </q-btn>  
-          <div class="q-pt-sm" @click="$router.push({ name: 'transaction-receive-select-asset' })">Cash in</div>
-        </div>  
-      </div>      
-    </div>
-
-    <tokenList/>
-
-    <footer-menu ref="footerMenu" />
-    <!-- <-- Gradient Panel --
+  <div id="app-container" :class="darkmode ? 'dark': 'light'">
+    <!-- Gradient Panel -->
     <div id="gradient-panel"></div>
 
-    <-- Header --
+    <!-- Header -->
     <div class="row justify-between text-light header">
       <div class="col-7 row">
         <img src='../../assets/paytaca_logo.png' id="header-logo"/>
@@ -72,13 +17,13 @@
           <span class="body-small q-px-xs">Help?</span>
         </q-btn>
         <q-btn icon="notifications" size="sm" padding="sm" outline round class="q-mx-xs" @click="openNotificationsDialog()">
-          <-- <q-icon name="notifications" size=xs></q-icon> --
+          <!-- <q-icon name="notifications" size=xs></q-icon> -->
         </q-btn>
         <q-btn icon="settings" size="sm" padding="sm" outline round class="q-mx-xs" @click="$router.push('/apps/settings')"/>
       </div>
     </div>
 
-    <-- Body --
+    <!-- Body -->
     <div class="row justify-between text-light manage-wallet">
       <div>
         <multi-wallet/>
@@ -89,14 +34,14 @@
           <q-icon name="keyboard_arrow_down" class="q-pr-sm"/>
           <q-icon><img src='ui-revamp/manage-token.svg'/></q-icon>
 
-          <-- Token Menu --
+          <!-- Token Menu -->
           <q-menu
             ref="tokenMenu"
             class="token-menu"
             :class="darkmode ? 'text-light' : 'text-dark'"
           >
             <q-list dense class="body-small">
-              <-- Check for token --
+              <!-- Check for token -->
               <q-item class="q-mt-sm" clickable v-close-popup v-ripple>
                 Manage Token
               </q-item>
@@ -114,24 +59,24 @@
       </div>
     </div>
 
-      <-- Header Card --
+      <!-- Header Card -->
     <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/>
 
-      <-- Ellipses Note: Add Carousel later--
+      <!-- Ellipses Note: Add Carousel later-->
     <div class="text-center q-pt-md">
       <q-icon padding="0" name="more_horiz" size="sm" color="black"/>
     </div>
 
-      <-- Tutorial Card --
+      <!-- Tutorial Card -->
     <tutorial-card/>
 
-      <-- Marketplace --
-    <-- <home-marketplace/> --
+      <!-- Marketplace -->
+    <!-- <home-marketplace/> -->
 
-      <-- Apps --
+      <!-- Apps -->
     <home-apps/>
 
-    <-- Transaction History --
+    <!-- Transaction History -->
     <transaction-list
       :loaded="balanceLoaded"
       :selectedAssetProps="selectedAsset"
@@ -142,7 +87,7 @@
 
     <div></div>
 
-    <-- Footer --
+    <!-- Footer -->
     <footer-menu ref="footerMenu" />
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
@@ -153,7 +98,7 @@
       :bch-wallet-hash="getWallet('bch').walletHash"
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
-    /> -->
+    />
   </div>
 </template>
 <script>
@@ -164,8 +109,6 @@ import homeMarketplace from 'src/components/ui-revamp/home/marketplace.vue';
 import homeApps from 'src/components/ui-revamp/home/apps.vue'
 import transactionList from 'src/components/ui-revamp/home/transaction-list.vue';
 import multiWallet from 'src/components/ui-revamp/home/multi-wallet.vue'
-import tokenList from 'src/components/ui-revamp/home/token-list.vue'
-
 import packageInfo from '../../../package.json'
 
 // Old
@@ -237,7 +180,6 @@ export default {
     homeApps,
     transactionList,
     multiWallet,
-    tokenList,
 
     TokenSuggestionsDialog,
     securityOptionDialog,
@@ -1131,31 +1073,5 @@ export default {
 .token-menu {
   border-radius: 50%;
   padding: 5px 5px 5px;
-}
-
-.header-top {
-  margin: 20px;
-}
-.button-container {
-  margin: 10px 50px 20px;  
-}
-.button-group {
-  display: flex;
-  justify-content: center;
-}
-.balance {
-  margin-top: 30px;
-  padding: 10px;
-  display: flex;
-  justify-content: center;
-}
-.btn {
-  background-color: #3B7BF6;
-}
-.btn-icon {
-  filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(0%) hue-rotate(151deg) brightness(106%) contrast(105%);
-}
-.bch-balance {
-  text-shadow: 2px 2px #20242e;
 }
 </style>

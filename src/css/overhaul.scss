@@ -31,6 +31,9 @@ body.theme-overhaul {
     &.light {
       background-color: $light_bg !important;
     }
+    &.grad {
+       background-image: linear-gradient(to bottom, #3b7bf6, #4e88f9, #6094fb, #71a1fd, #82adff) !important;
+    }
   }
 
   #gradient-panel {
@@ -45,12 +48,11 @@ body.theme-overhaul {
   .footer-menu {
     // height: 67px;
     position: fixed;
-    border-top: 3px $light_bg solid;
     bottom: 0;
     width: 100%;
-    background: $dark_bg;
-    z-index: 6;
-    -webkit-mask-image: radial-gradient(circle at top, transparent 30px, black 31px);
+    background-color: #d0ddff;
+    z-index: 6;  
+    box-shadow: 0px 0px 15px rgba(59, 123, 246, 0.8); /* Pink glow */  
 
   }
   .header-nav {

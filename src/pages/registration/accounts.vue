@@ -100,6 +100,9 @@ export default {
     ShardsImport
   },
   async mounted () {
+    // this.$store.commit('global/updateWalletIndex', 0)
+    // this.$store.commit('global/clearVault')
+
     this.loading = true
     if (this.$store.getters['global/isVaultEmpty']) {
       this.showOnboarding = true

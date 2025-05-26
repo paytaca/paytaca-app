@@ -1,0 +1,151 @@
+<template>
+  <div class="footer-menu"
+    :style="{width: $q.platform.is.bex ? '375px' : '100%', 'height': $q.platform.is.ios ? '80px' : '70px'}"
+  >
+    <div class="row text-light btn-container title-smaller">
+      <div class="col text-light">
+        <div class="row">
+          <div class="col text-center">
+            <q-btn no-caps class="icon-btn title-smaller" flat @click="selectMenu('transaction-index', 'home')">
+              <q-icon size="25px" name="home" :class="isActive('home') ? 'active' : 'inactive'">
+                <!-- <svg>
+                  <use xlink:href="app-home.svg#icon"></use>
+                </svg> -->
+              </q-icon>
+              <br>
+              <span>{{ $t('Home') }}</span>
+            </q-btn>
+          </div>
+          <div class="col text-center">
+            <q-btn no-caps class="icon-btn title-smaller" flat @click="selectMenu('', 'tx')" >
+              <q-icon size="25px" name="receipt_long" :class="isActive('tx') ? 'active' : 'inactive'">
+                <!-- <svg>
+                  <use xlink:href="app-send.svg#icon"></use>
+                </svg> -->
+              </q-icon>
+              <br>
+              <span>TX</span>
+            </q-btn>
+          </div>
+        </div>
+      </div>
+      <div class="col text-light text-center text-smaller" style="padding-top: 35px;">
+        Send/Receive
+      </div>
+      <div class="col text-light">
+        <div class="row">
+          <div class="col">
+            <q-btn flat no-caps class="icon-btn title-smaller" @click="selectMenu('app-marketplace', 'market')">
+              <q-icon size="25px" name="img:ui-revamp/marketplace-light.svg" :class="isActive('market') ? 'active' : 'inactive'">
+                <!-- <svg>
+                  <use xlink:href="app-receive.svg#icon"></use>
+                </svg> -->
+              </q-icon>
+              <br>
+              <span>Market</span>
+            </q-btn>
+          </div>
+          <div class="col">
+            <q-btn flat no-caps class="icon-btn title-smaller" @click="selectMenu('apps-dashboard', 'tools')">
+              <q-icon size="25px" name="img:ui-revamp/tools.svg" :class="isActive('tools') ? 'active' : 'inactive'">
+                <!-- <svg>
+                  <use xlink:href="apps.svg#icon"></use>
+                </svg> -->
+              </q-icon>
+              <br>
+              <span>Tools</span>
+            </q-btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="qr-scanner-container center" :style="{ 'padding-bottom': $q.platform.is.ios ? '60px' : '50px' }">
+    <div class="qr-scanner" @click="$router.push({ name: 'qr-reader' })">
+      <q-btn flat color="white" class="qr-button">
+        <q-icon size="25px" name="img:ui-revamp/qr.svg">
+          <!-- <svg>
+            <use xlink:href="app-qr.svg#icon"></use>
+          </svg> -->
+        </q-icon>
+      </q-btn>
+    </div>
+  </div>
+</template>
+<script>
+
+export default {
+  data () {
+    return {      
+    }
+  },
+  computed: {
+    activeMenu () {
+      return this.$store.getters['global/activeMenu']
+    }
+  },
+  methods: {
+    selectMenu (path, menu) {
+      this.$router.push({ name: path })      
+      this.$store.commit('global/updateActiveMenu', menu)
+    },
+    isActive(menu) {
+      return menu === this.activeMenu
+
+    }
+  }
+}
+</script>
+<style lang="scss" scoped>
+.btn-container {
+  margin: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  height: 100%;
+}
+// .btn-container {
+//   margin-top: 1px !important;
+//   overflow-x: auto;
+//   overflow-y: hidden;
+//   flex-wrap: nowrap;
+// }
+.icon-btn {
+  border-radius: 20px;
+  border: none;
+  width: 60px;
+  outline: none;
+  background-color: transparent;
+  padding-top: 15px;  
+}
+.active {
+  filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(0%) hue-rotate(142deg) brightness(105%) contrast(102%);
+}
+.inactive {
+  filter: brightness(0) saturate(100%) invert(44%) sepia(27%) saturate(144%) hue-rotate(176deg) brightness(97%) contrast(85%);
+}
+#qr-button {
+    z-index: 100 !important;
+  }
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.qr-scanner-container {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  z-index: 5;
+  .qr-scanner {
+    height: 50px;
+    width: 50px;
+    background-color: $primary;
+    border-radius: 15px;
+  }
+  .qr-button {
+    padding-top: 13px;
+    padding-left: 13px;
+  }
+}
+</style>
