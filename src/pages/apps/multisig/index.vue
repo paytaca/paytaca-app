@@ -105,12 +105,15 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { Pst, shortenString, MultisigWallet, importMultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
+import ImportWalletDialog from 'components/multisig/ImportWalletDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadLibauthHdWallet } from 'src/wallet'
-import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import { useMultisigHelpers, localWallets } from 'src/composables/multisig/helpers'
 const $store = useStore()
+const $q = useQuasar()
 const router = useRouter()
 const { t: $t } = useI18n()
 const {
@@ -180,7 +183,16 @@ const updatePstFile = (file) => {
 }
 
 const importWallet = () => {
-  walletFileElementRef.value.pickFiles()
+  
+  $q.dialog({
+    component: ImportWalletDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      onImportFromFile: () => walletFileElementRef.value.pickFiles(),
+      onImportFromServer: () => console.log('Importing from server')
+    }
+  })
+ // walletFileElementRef.value.pickFiles()
 }
 
 const onUpdateWalletFileModelValue = (file) => {

@@ -1,0 +1,40 @@
+<template>
+  <q-dialog ref="dialogRef" full-width position="bottom"
+    transition-hide="slide-down" transition-show="slide-up" transition-duration="500"
+    >
+    <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
+      <q-card-section class="flex flex-wrap justify-around">
+        <q-btn flat dense no-caps @click="$emit('importFromFile')">
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="file_open" class="col-12"></q-icon>
+              <div class="col-12">From File</div>
+            </div>
+          </template>
+        </q-btn>
+        <q-btn flat dense no-caps @click="$emit('importFromServer')">
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="cloud_download" class="col-12"></q-icon>
+              <div class="col-12">From Server</div>
+            </div>
+          </template>
+        </q-btn>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+</template>
+<script setup>
+import { useDialogPluginComponent } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
+const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+const $emit = defineEmits ([
+  'importFromFile',
+  'importFromServer',
+  ...useDialogPluginComponent.emits
+])
+defineProps({
+  darkMode: Boolean
+})
+</script>
