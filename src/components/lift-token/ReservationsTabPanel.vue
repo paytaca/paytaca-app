@@ -7,10 +7,26 @@
 
   <template v-else>
     <div class="row text-body1">
-      <sale-group-chip :saleGroup="'all'" />
-      <sale-group-chip :saleGroup="SaleGroup.SEED" />
-      <sale-group-chip :saleGroup="SaleGroup.PRIVATE" />
-      <sale-group-chip :saleGroup="SaleGroup.PUBLIC" />
+      <sale-group-chip
+        :outline="isChipOutline('all')"
+        :saleGroup="'all'"
+        @click="filterRsvpList('all')"
+      />
+      <sale-group-chip
+        :outline="isChipOutline(SaleGroup.SEED)"
+        :saleGroup="SaleGroup.SEED"
+        @click="filterRsvpList(SaleGroup.SEED)"
+      />
+      <sale-group-chip
+        :outline="isChipOutline(SaleGroup.PRIVATE)"
+        :saleGroup="SaleGroup.PRIVATE"
+        @click="filterRsvpList(SaleGroup.PRIVATE)"
+      />
+      <sale-group-chip
+        :outline="isChipOutline(SaleGroup.PUBLIC)"
+        :saleGroup="SaleGroup.PUBLIC"
+        @click="filterRsvpList(SaleGroup.PUBLIC)"
+      />
     </div>
 
     <q-separator spaced />
@@ -82,7 +98,9 @@ export default {
     return {
       SaleGroup,
 
-      finalRsvpList: []
+      finalRsvpList: [],
+
+      selectedFilter: 'all'
     }
   },
 
@@ -96,48 +114,26 @@ export default {
     getDarkModeClass,
     parseFiatCurrency,
     parseLocaleDate,
-    parseLiftToken
+    parseLiftToken,
+
+    filterRsvpList (saleGroup) {
+      this.selectedFilter = saleGroup
+      if (saleGroup === 'all') {
+        this.finalRsvpList = this.reservationsList
+      } else {
+        this.finalRsvpList = this.reservationsList.filter(
+          a => a.sale_group === saleGroup
+        )
+      }
+    },
+    isChipOutline (saleGroup) {
+      if (this.selectedFilter === 'all') return false
+      return saleGroup !== this.selectedFilter
+    }
   },
 
   async mounted () {
-    this.finalRsvpList = [
-      {
-        sale_group: 'seed',
-        amount_purchased_token: 100000000,
-        amount_purchased_usd: 15000,
-        approved_date: '2025-05-25T14:01:49.525Z'
-      },
-      {
-        sale_group: 'priv',
-        amount_purchased_token: 10000000,
-        amount_purchased_usd: 2500,
-        approved_date: '2025-05-25T14:01:49.525Z'
-      },
-      {
-        sale_group: 'pblc',
-        amount_purchased_token: 100000,
-        amount_purchased_usd: 50,
-        approved_date: '2025-05-25T14:01:49.525Z'
-      },
-      {
-        sale_group: 'seed',
-        amount_purchased_token: 100000000,
-        amount_purchased_usd: 15000,
-        approved_date: '2025-05-25T14:01:49.525Z'
-      },
-      {
-        sale_group: 'priv',
-        amount_purchased_token: 10000000,
-        amount_purchased_usd: 2500,
-        approved_date: '2025-05-25T14:01:49.525Z'
-      },
-      {
-        sale_group: 'pblc',
-        amount_purchased_token: 100000,
-        amount_purchased_usd: 50,
-        approved_date: '2025-05-25T14:01:49.525Z'
-      }
-    ]
+    this.finalRsvpList = this.reservationsList
   }
 }
 </script>

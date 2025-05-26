@@ -80,7 +80,44 @@ export default {
       isLoading: false,
       sectionTab: 'reserves',
 
-      reservationsList: []
+      reservationsList: [
+        {
+          sale_group: 'seed',
+          amount_purchased_token: 100000000,
+          amount_purchased_usd: 15000,
+          approved_date: '2025-05-25T14:01:49.525Z'
+        },
+        {
+          sale_group: 'priv',
+          amount_purchased_token: 10000000,
+          amount_purchased_usd: 2500,
+          approved_date: '2025-05-25T14:01:49.525Z'
+        },
+        {
+          sale_group: 'pblc',
+          amount_purchased_token: 100000,
+          amount_purchased_usd: 50,
+          approved_date: '2025-05-25T14:01:49.525Z'
+        },
+        {
+          sale_group: 'seed',
+          amount_purchased_token: 100000000,
+          amount_purchased_usd: 15000,
+          approved_date: '2025-05-25T14:01:49.525Z'
+        },
+        {
+          sale_group: 'priv',
+          amount_purchased_token: 10000000,
+          amount_purchased_usd: 2500,
+          approved_date: '2025-05-25T14:01:49.525Z'
+        },
+        {
+          sale_group: 'pblc',
+          amount_purchased_token: 100000,
+          amount_purchased_usd: 50,
+          approved_date: '2025-05-25T14:01:49.525Z'
+        }
+      ]
     }
   },
 
