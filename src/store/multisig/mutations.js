@@ -1,8 +1,20 @@
-import { MultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
-import { hashTransaction } from 'bitauth-libauth-v3'
+import { MultisigWallet, getMultisigCashAddress,getLockingBytecode } from 'src/lib/multisig'
+import { hashTransaction, binToHex } from 'bitauth-libauth-v3'
 
-export function saveWallet (state, wallet) {
-  state.wallets.push(wallet)
+export function saveWallet (state, multisigWallet) {
+  const lockingBytecode = getLockingBytecode({ template:multisigWallet.template, lockingData: multisigWallet.lockingData })
+  const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)	
+  console.log('lockingBytecodeHex', lockingBytecodeHex)
+  const index = state.wallets.findIndex((wallet) => {
+    const existingLockingBytecode = getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData })
+    const existingLockingBytecodeHex = binToHex(existingLockingBytecode.bytecode)
+    console.log('existing locking bytecode', existingLockingBytecodeHex)
+    return lockingBytecodeHex === existingLockingBytecodeHex
+  })
+  if (index === -1) {
+   return state.wallets.push(multisigWallet) 
+  }
+  state.wallets.splice(index, 1, multisigWallet)
 }
 
 export function updateWallet(state, { address, multisigWallet }) {

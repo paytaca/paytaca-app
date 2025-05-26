@@ -189,7 +189,9 @@ const importWallet = () => {
     componentProps: {
       darkMode: darkMode.value,
       onImportFromFile: () => walletFileElementRef.value.pickFiles(),
-      onImportFromServer: () => console.log('Importing from server')
+      onImportFromServer: async () => {
+       router.push({ name: 'app-multisig-wallets-synced' })    
+      }
     }
   })
  // walletFileElementRef.value.pickFiles()
