@@ -28,25 +28,25 @@ import stablehedge from './stablehedge'
 export const Store = createStore({
   plugins: [
     createPersistedState({
-      paths: [
-        'global.network',
-        'global.language',
-        'global.country',
-        'global.theme',
-        'global.isChipnet',
-        'global.showTokens',
-        'global.enableStablhedge',
-        'global.enableSmartBCH',
-        'global.user',
-        'global.online',
-        'global.walletIndex',
-        'global.denomination',
-        'global.merchantActivity',
-        'assets.assets',
-        'assets.ignoredAssets',
-        'assets.removedAssetIds'
-      ],
-      storage: window.localStorage,
+      // paths: [
+      //   'global.network',
+      //   'global.language',
+      //   'global.country',
+      //   'global.theme',
+      //   'global.isChipnet',
+      //   'global.showTokens',
+      //   'global.enableStablhedge',
+      //   'global.enableSmartBCH',
+      //   'global.user',
+      //   'global.online',
+      //   'global.walletIndex',
+      //   'global.denomination',
+      //   'global.merchantActivity',
+      //   'assets.assets',
+      //   'assets.ignoredAssets',
+      //   'assets.removedAssetIds'
+      // ],
+      // storage: window.localStorage,
       getState: (key) => {
         try {
           const value = window.localStorage.getItem(key)
