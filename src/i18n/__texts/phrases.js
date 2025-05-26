@@ -668,6 +668,8 @@ const phrases = {
       CampaignDescription: "You can group together gifts under a campaign where you can set the maximum sum of gifts that a wallet user can claim within the same campaign.",
       SelectCampaign: "Select Campaign",
       ScanClaimGift: "Scan to claim the gift",
+      BCHGift: 'BCH Gift',
+      ScanToClaimGift: 'Scan to claim the gift',
       ShareGiftLink: "Share gift link",
       CampaignLimitError: "Campaign limit per wallet cannot be greater than the gift amount",
       CreateNewCampaign: "Create New Campaign",

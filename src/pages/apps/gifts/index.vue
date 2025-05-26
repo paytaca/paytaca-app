@@ -57,124 +57,90 @@
             <div class="row items-start q-mt-sm">
               <template v-if="fetchingGifts">
                 <div
-                  v-for="i in 3"
-                  class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
+                  v-for="i in 4"
+                  class="col-6 q-pa-sm"
                 >
-                  <q-card class="q-py-sm q-px-md" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">
+                  <q-card class="q-pa-md" :class="getDarkModeClass(darkMode, 'text-white', 'text-black')">
                     <q-skeleton height="1.25em" class="q-mb-sm"/>
                     <q-skeleton height="1.25em" class="q-mb-sm"/>
-                    <q-separator spaced :dark="darkMode"/>
-                    <q-skeleton type="rect"/>
+                    <q-skeleton height="1.25em"/>
                   </q-card>
                 </div>
               </template>
-              <div v-else-if="!gifts?.length"
-                class="row items-center justify-center q-space text-center text-grey q-my-md q-gutter-sm"
+              <div v-else-if="!giftsList.length"
+                class="col-12 row items-center justify-center text-center text-grey q-my-md q-gutter-sm"
                 style="font-size:2rem"
               >
                 <div>{{ $t('NoGifts') }}</div>
                 <q-icon name="mdi-gift" size="1.25em"/>
               </div>
               <template v-else>
-                <div
-                  v-for="gift in gifts"
-                  :key="gift?.gift_code_hash"
-                  class="q-pa-xs col-xs-12 col-sm-6 col-md-4 col-lg-3 grid-style-transition text-black"
-                >
-                  <q-card
-                    class="q-py-sm q-px-md pt-card"
-                    :class="getDarkModeClass(darkMode, 'text-white', 'text-black')"
-                  >
-                    <div class="row">
-                      <div class="q-space">{{ $t('Amount') }}</div>
-                      <div class="text-caption text-grey">
-                        {{ getAssetDenomination(denomination, gift?.amount) }}
+                <div v-for="gift in giftsList" :key="gift.hash" class="col-6 q-pa-sm">
+                  <q-card class="gift-card">
+                    <q-card-section>
+                      <div class="text-h6">{{ getAssetDenomination(denomination, gift.amount) }}</div>
+                      <div class="text-caption q-mt-sm">
+                        {{ formatRelativeTimestamp(gift.date_created) }}
                       </div>
-                    </div>
-                    <div class="row">
-                      <div class="q-space">{{ $t('DateCreated') }}</div>
-                      <div class="text-caption text-grey">
-                        {{formatRelativeTimestamp(gift?.date_created)}}
+                      <div class="q-mt-md">
+                        <q-chip
+                          :color="gift.date_claimed !== 'None' ? 'positive' : 'primary'"
+                          text-color="white"
+                          size="sm"
+                          class="full-width"
+                        >
+                          {{ gift.date_claimed !== 'None' ? $t('Claimed') : $t('Unclaimed') }}
+                        </q-chip>
+                        <q-btn
+                          v-if="gift.status === 'failed'"
+                          color="negative"
+                          :loading="processing"
+                          class="full-width q-mt-sm"
+                          @click="resubmitGift(gift)"
+                        >
+                          {{ $t('Resubmit') }}
+                        </q-btn>
                       </div>
-                    </div>
-                    <div class="row" v-if="gift?.campaign_name">
-                      <div class="q-space">{{ $t('Campaign') }}</div>
-                      <div class="text-caption text-grey">
-                        <a style="text-decoration: underline;" @click="filterByCampaign(gift)">{{ gift?.campaign_name }}</a>
-                      </div>
-                    </div>
-                    <q-separator spaced :dark="darkMode"/>
-                    <div v-if="gift.date_claimed === 'None'" class="row items-center q-gutter-sm">
-                      <div class="q-space">
-                        <q-badge color="grey" class="q-my-xs">{{ $t('Unclaimed') }}</q-badge>
-                      </div>
-                      <div v-if="getGiftShare(gift?.gift_code_hash)">
+                      <div class="row justify-center q-mt-md q-gutter-md">
                         <q-btn
                           flat
-                          no-caps
-                          padding="2px 0.75rem"
-                          size="sm"
-                          icon="mdi-cash-refund"
-                          @click="() => confirmRecoverGift(gift)"
-                        />
+                          round
+                          color="primary"
+                          icon="mdi-share-variant"
+                          @click="copyToClipboard('https://gifts.paytaca.com/claim/?code=' + gift.qr)"
+                        >
+                          <q-tooltip>{{ $t('ShareGiftLink') }}</q-tooltip>
+                        </q-btn>
+                        <q-btn
+                          flat
+                          round
+                          color="primary"
+                          icon="mdi-qrcode"
+                          @click="showQr(gift.hash)"
+                        >
+                          <q-tooltip>{{ $t('ShowQRCode') }}</q-tooltip>
+                        </q-btn>
                       </div>
-                      <div v-else>
-                        <span style="color: red;">Gift code not found on this device</span>
-                      </div>
-                      <q-separator v-if="getGiftShare(gift?.gift_code_hash) && getQrShare(gift?.gift_code_hash)" vertical :dark="darkMode"/>
-                      <template v-if="getQrShare(gift?.gift_code_hash)">
-                        <div>
-                          <q-btn
-                            flat
-                            no-caps
-                            padding="2px 0.75rem"
-                            size="sm"
-                            icon="mdi-qrcode"
-                            @click="() => displayGift(gift)"
-                          />
-                        </div>
-                        <q-separator vertical :dark="darkMode"/>
-                        <div>
-                          <q-btn
-                            flat
-                            no-caps
-                            padding="2px 0.75rem"
-                            size="sm"
-                            icon="share"
-                            @click="() => shareGift(gift)"
-                          />
-                        </div>
-                      </template>
-                    </div>
-                    <div v-else class="row items-center q-gutter-sm">
-                      <div class="q-space">
-                        <q-badge v-if="gift?.recovered" color="blue" class="q-my-xs">
-                          {{ $t('Recovered') }}
-                        </q-badge>
-                        <q-badge v-else color="green" class="q-my-xs">
-                          {{ $t('Claimed') }}
-                        </q-badge>
-                      </div>
-                      <div class="text-caption text-grey">
-                        {{formatRelativeTimestamp(gift?.date_claimed)}}
-                      </div>
-                    </div>
+                    </q-card-section>
                   </q-card>
                 </div>
-                <div class="full-width row q-mt-sm items-center justify-center">
+                
+                <!-- Pagination -->
+                <div class="col-12 flex flex-center q-mt-lg">
                   <q-pagination
                     v-if="pageNumberPaginationData?.pageCount > 1"
-                    :modelValue="pageNumberPaginationData.currentPage"
+                    v-model="pageNumberPaginationData.currentPage"
                     :max="pageNumberPaginationData.pageCount"
                     :max-pages="6"
                     :dark="darkMode"
+                    direction-links
+                    boundary-links
                     padding="xs"
-                    boundary-numbers
-                    @update:modelValue="
-                      (val) => fetchGifts(null, opts={
+                    @update:model-value="
+                      (val) => fetchGifts(null, {
                         recordType: filterOpts.recordType.active,
-                        limit: pageNumberPaginationData.pageSize,
-                        offset: pageNumberPaginationData.pageSize * (val - 1)
+                        limit: 10,
+                        offset: (val - 1) * 10
                       })
                     "
                   />
@@ -192,13 +158,14 @@
 import HeaderNav from '../../../components/header-nav'
 import GiftDialog from 'src/components/gifts/GiftDialog.vue'
 import ShareGiftDialog from 'src/components/gifts/ShareGiftDialog.vue'
-// import { date } from 'quasar'
-// import { defineComponent, ref } from 'vue'
 import { capitalize } from 'vue'
 import { formatDistance } from 'date-fns'
 import axios from 'axios'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getMnemonic, Wallet } from '../../../wallet'
+import QRCode from 'qrcode'
+import QrDialog from 'src/components/gifts/QrDialog.vue'
 
 export default {
   name: 'Gift',
@@ -214,19 +181,48 @@ export default {
         }
       },
       fetchingGifts: false,
-      gifts: [],
       pagination: {
         count: 0,
         limit: 0,
         offset: 0,
       },
-      campaign_filter: {}
+      campaign_filter: {},
+      processing: false,
+      wallet: null
     }
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    gifts () {
+      return this.$store.state.gifts.gifts || {}
+    },
+    giftsList () {
+      const gifts = Object.entries(this.gifts).map(([hash, gift]) => ({
+        hash,
+        ...gift,
+        qr: this.$store.getters['gifts/getQr'](hash),
+        date_created: gift.payload?.date_created,
+        date_claimed: gift.payload?.date_claimed,
+        campaign_id: gift.payload?.campaign_id,
+        campaign_name: gift.payload?.campaign_name,
+        recovered: gift.payload?.recovered
+      }))
+
+      // Filter based on recordType
+      const filteredGifts = gifts.filter(gift => {
+        const recordType = this.filterOpts.recordType.active
+        if (recordType === 'unclaimed') return gift.date_claimed === 'None'
+        if (recordType === 'claimed') return gift.date_claimed !== 'None'
+        return true
+      })
+
+      // Sort by date_created in descending order (latest first)
+      return filteredGifts.sort((a, b) => {
+        return new Date(b.date_created) - new Date(a.date_created)
+      })
     },
     denomination () {
       return this.$store.getters['global/denomination']
@@ -241,7 +237,7 @@ export default {
 
       return {
         pageCount: Math.ceil(this.pagination.count / this.pagination.limit),
-        currentPage: Math.ceil(this.pagination.offset / this.pagination.limit) + 1,
+        currentPage: Math.floor(this.pagination.offset / this.pagination.limit) + 1,
         pageSize: this.pagination.limit
       }
     }
@@ -258,13 +254,16 @@ export default {
     fetchGifts(done, opts = { recordType: 'all', limit: 10, offset: 0 }) {
       const recordType = opts?.recordType || 'all'
       const url = `https://gifts.paytaca.com/api/gifts/${this.walletHash}/list`
-      const query = { limit: undefined, offset: undefined, claimed: undefined }
+      const query = {
+        limit: opts.limit || 10,
+        offset: opts.offset || 0,
+        claimed: undefined
+      }
+      
       if (recordType === 'claimed') query.claimed = true
       if (recordType === 'unclaimed') query.claimed = false
-      if (!isNaN(opts?.limit) || !isNaN(opts?.offset)) {
-        query.limit = opts.limit
-        query.offset = opts.offset
-        query.campaign = this.campaign_filter ? this.campaign_filter.id : null
+      if (this.campaign_filter?.id) {
+        query.campaign = this.campaign_filter.id
       }
 
       this.fetchingGifts = true
@@ -272,13 +271,38 @@ export default {
         .then(response => {
           if (!Array.isArray(response?.data?.gifts)) return Promise.reject({ response })
 
-          this.gifts = response.data.gifts.filter(gift => {
-            if (recordType === 'unclaimed') return gift.date_claimed === 'None'
-            if (recordType === 'claimed') return gift.date_claimed !== 'None'
+          // Transform gifts before storing
+          const transformedGifts = response.data.gifts.map(gift => ({
+            hash: gift.gift_code_hash,
+            amount: gift.amount,
+            date_created: gift.date_created,
+            date_claimed: gift.date_claimed,
+            campaign_id: gift.campaign_id,
+            campaign_name: gift.campaign_name,
+            recovered: gift.recovered,
+            status: gift.date_claimed !== 'None' ? 'completed' : 'processing'
+          }))
 
-            if (gift.date_claimed !== 'None') this.$store.dispatch('gifts/deleteGift', gift.gift_code_hash)
-            return true
+          // Store each gift individually
+          transformedGifts.forEach(gift => {
+            this.$store.commit('gifts/saveGift', {
+              giftCodeHash: gift.hash,
+              share: gift.share || null,
+              status: gift.status,
+              amount: gift.amount,
+              address: gift.address,
+              payload: {
+                gift_code_hash: gift.hash,
+                date_created: gift.date_created,
+                amount: gift.amount,
+                campaign_id: gift.campaign_id,
+                campaign_name: gift.campaign_name,
+                date_claimed: gift.date_claimed,
+                recovered: gift.recovered
+              }
+            })
           })
+
           return Promise.resolve(response)
         })
         .then(response => {
@@ -287,12 +311,12 @@ export default {
             this.filterOpts.recordType.active = this.filterOpts.recordType.default
           }
 
-          if (response?.data?.pagination) this.pagination = response?.data?.pagination
+          if (response?.data?.pagination) {
+            this.pagination = response.data.pagination
+          }
         })
         .finally(() => {
-          if (done) {
-            done()
-          }
+          if (done) done()
           this.fetchingGifts = false
         })
     },
@@ -343,23 +367,78 @@ export default {
       )
     },
     showQr (giftCodeHash) {
-      // const localShare = this.getQrShare(giftCodeHash)
-      const vm = this
-      this.$router.push(
-        {
-          name: 'show-qr',
-          query: {
-            actionProp: 'showQr',
-            giftCodeHash: giftCodeHash
-          }
+      const qrCode = this.$store.getters['gifts/getQr'](giftCodeHash)
+      const gift = this.giftsList.find(g => g.hash === giftCodeHash)
+      this.$q.dialog({
+        component: QrDialog,
+        componentProps: {
+          qrCode: qrCode,
+          amount: gift.amount,
+          claimed: gift.date_claimed !== 'None'
         }
-      )
+      })
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
+    },
+    async resubmitGift(gift) {
+      if (this.processing) return
+      
+      this.processing = true
+      const walletHash = this.wallet.BCH.getWalletHash()
+      const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
+      
+      try {
+        const resp = await axios.post(url, gift.payload)
+        if (resp.status === 200) {
+          const result = await this.wallet.BCH.sendBch(gift.amount, gift.address)
+          if (result.success) {
+            this.$store.dispatch('gifts/updateGiftStatus', {
+              giftCodeHash: gift.hash,
+              status: 'completed'
+            })
+            this.$q.notify({
+              message: this.$t('Success'),
+              color: 'positive'
+            })
+          } else {
+            this.$store.dispatch('gifts/updateGiftStatus', {
+              giftCodeHash: gift.hash,
+              status: 'failed'
+            })
+            this.$q.notify({
+              message: this.$t('GiftCreatedButTransactionPending'),
+              color: 'warning'
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Gift resubmission error:', error)
+        this.$store.dispatch('gifts/updateGiftStatus', {
+          giftCodeHash: gift.hash,
+          status: 'failed'
+        })
+        this.$q.notify({
+          message: this.$t('ErrorCreatingGiftPleaseRetry'),
+          color: 'negative'
+        })
+      } finally {
+        this.processing = false
+      }
+    },
+    copyToClipboard(text) {
+      this.$copyText(text)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        color: 'blue-9',
+        timeout: 800,
+        icon: 'mdi-clipboard-check'
+      })
     }
   },
-  mounted () {
+  async mounted() {
+    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+    this.wallet = new Wallet(mnemonic)
     this.fetchGifts(null)
   }
 }
