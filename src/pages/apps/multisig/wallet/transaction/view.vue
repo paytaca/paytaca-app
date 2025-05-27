@@ -426,7 +426,22 @@ const sharePst = () => {
     ok: { label: 'Proceed', color: 'primary' },
     cancel: true
   }).onOk(async () => {
-    console.log('Sharing Online')
+    console.log(multisigTransaction.value)
+    const pst = exportPst({
+     multisigTransaction: multisigTransaction.value,
+     address: '',
+     addressIndex: multisigWallet.value.lockingData.hdKeys.addressIndex,
+     format: 'json'
+    })
+    
+    const r = await $store.dispatch(
+	'multisig/uploadPst', 
+        { 
+          multisigTransaction: pst,
+          multisigWallet: multisigWallet.value
+        }
+      )
+    console.log('R', r)
   })
 }
 
