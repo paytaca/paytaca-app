@@ -51,7 +51,7 @@
           </q-tab-panel>
 
           <q-tab-panel name="purchase" style="padding: 5px 0;">
-            purchases here
+            <purchases-tab-panel :purchasesList="purchasesList" />
           </q-tab-panel>
         </q-tab-panels>
       </div>
@@ -65,6 +65,7 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReservationsTabPanel from 'src/components/lift-token/ReservationsTabPanel.vue'
+import PurchasesTabPanel from 'src/components/lift-token/PurchasesTabPanel.vue'
 
 export default {
   name: 'LiftTokenPage',
@@ -72,7 +73,8 @@ export default {
   components: {
     HeaderNav,
     ProgressLoader,
-    ReservationsTabPanel
+    ReservationsTabPanel,
+    PurchasesTabPanel
   },
 
   data () {
@@ -122,6 +124,62 @@ export default {
           amount_purchased_usd: 50,
           approved_date: '2025-05-25T14:01:49.525Z',
           bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
+        }
+      ],
+      purchasesList: [
+        {
+          sale_group: 'seed',
+          purchased_amount_tkn: 100000000,
+          purchased_amount_usd: 15000,
+          purchased_amount_bch: 12.34567890,
+          purchased_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2025-05-25T14:01:49.525Z',
+          vesting_details: []
+        },
+        {
+          sale_group: 'priv',
+          purchased_amount_tkn: 10000000,
+          purchased_amount_usd: 2500,
+          purchased_amount_bch: 1.23456789,
+          purchased_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2025-05-25T14:01:49.525Z',
+          vesting_details: []
+        },
+        {
+          sale_group: 'pblc',
+          purchased_amount_tkn: 100000,
+          purchased_amount_usd: 50,
+          purchased_amount_bch: 0.12345678,
+          purchased_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2025-05-25T14:01:49.525Z',
+          vesting_details: []
+        },
+        {
+          sale_group: 'seed',
+          purchased_amount_tkn: 100000000,
+          purchased_amount_usd: 15000,
+          purchased_amount_bch: 12.34567890,
+          purchased_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2025-05-25T14:01:49.525Z',
+          vesting_details: []
+        },
+        {
+          sale_group: 'priv',
+          purchased_amount_tkn: 10000000,
+          purchased_amount_usd: 2500,
+          purchased_amount_bch: 1.23456789,
+          purchased_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2025-05-25T14:01:49.525Z',
+          vesting_details: []
+        },
+        {
+          sale_group: 'pblc',
+          purchased_amount_tkn: 100000,
+          purchased_amount_usd: 50,
+          purchased_amount_bch: 0.12345678,
+          purchased_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2025-05-25T14:01:49.525Z',
+          vesting_details: []
         }
       ]
     }

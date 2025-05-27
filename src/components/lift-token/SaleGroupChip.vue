@@ -3,6 +3,7 @@
     dark
     clickable
     size="15px"
+    :square="parseSquare(saleGroup)"
     :color="parseSaleChipColor(saleGroup)"
     :label="parseSaleGroup(saleGroup)"
   />
@@ -10,10 +11,12 @@
 
 <script>
 const SALE_GROUP_CHIP = {
-  all: { label: 'All', color: 'purple' },
-  seed: { label: 'Seed Round', color: 'red' },
-  priv: { label: 'Private Round', color: 'blue' },
-  pblc: { label: 'Public Round', color: 'green' }
+  all: { label: 'All', color: 'purple', isSquare: false },
+  seed: { label: 'Seed Round', color: 'red', isSquare: false },
+  priv: { label: 'Private Round', color: 'blue', isSquare: false },
+  pblc: { label: 'Public Round', color: 'green', isSquare: false },
+  lock: { label: 'Lockup', color: 'red', isSquare: true },
+  vest: { label: 'Vesting', color: 'blue', isSquare: true }
 }
 
 export default {
@@ -29,6 +32,9 @@ export default {
     },
     parseSaleChipColor (saleGroup) {
       return SALE_GROUP_CHIP[saleGroup].color
+    },
+    parseSquare (saleGroup) {
+      return SALE_GROUP_CHIP[saleGroup].isSquare
     }
   }
 }
