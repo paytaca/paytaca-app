@@ -14,17 +14,17 @@
     </HeaderNav>
       <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center">
           <div class="col-xs-12 q-px-xs q-gutter-y-sm">
-            <q-list v-if="multisigWallets" separator class="text-bow" :class="getDarkModeClass(darkMode)">
+            <q-list v-if="multisigWallets" separator class="text-bow" :class="getDarkModeClass(darkMode)">              
               <q-item>
                 <q-item-section></q-item-section>
                 <q-item-section side top>
                   <q-btn
                     no-caps
-                    icon="mdi-wallet-plus"
-                    :to="{ name: 'app-multisig-wallet-create'}"
+                    icon="more_vert"
                     flat
                     dense
                     size="md"
+                    @click="openMainActionsDialog"
                   />
                 </q-item-section>
               </q-item>
@@ -109,6 +109,7 @@ import { useQuasar } from 'quasar'
 import { Pst, shortenString, MultisigWallet, importMultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
 import ImportWalletDialog from 'components/multisig/ImportWalletDialog.vue'
+import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadLibauthHdWallet } from 'src/wallet'
 import { useMultisigHelpers, localWallets } from 'src/composables/multisig/helpers'
@@ -183,7 +184,6 @@ const updatePstFile = (file) => {
 }
 
 const importWallet = () => {
-  
   $q.dialog({
     component: ImportWalletDialog,
     componentProps: {
@@ -194,7 +194,21 @@ const importWallet = () => {
       }
     }
   })
- // walletFileElementRef.value.pickFiles()
+}
+
+const openMainActionsDialog = () => {
+  $q.dialog({
+    component: MainActionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      onCreateWallet: () => {
+        router.push({ name: 'app-multisig-wallet-create' })  
+      },
+      onImportWallet: async () => {
+        importWallet()
+      }
+    }
+  })
 }
 
 const onUpdateWalletFileModelValue = (file) => {
