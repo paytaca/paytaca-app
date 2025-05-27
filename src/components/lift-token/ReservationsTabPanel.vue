@@ -8,8 +8,8 @@
   <template v-else>
     <div class="row text-body1">
       <sale-group-chip
-        :outline="isChipOutline('all')"
         :saleGroup="'all'"
+        :outline="isChipOutline('all')"
         @click="filterRsvpList('all')"
       />
       <sale-group-chip
@@ -39,9 +39,14 @@
           :class="getDarkModeClass(darkMode)"
         >
           <div class="row col-12 q-mb-xs justify-between items-center">
-            <span class="col-6 text-body1 text-bold">
-              {{ parseLiftToken(rsvp.amount_purchased_token) }}
-            </span>
+            <div class="col-6">
+              <span class="row col-12 text-body1 text-bold">
+                {{ parseLiftToken(rsvp.amount_purchased_token) }}
+              </span>
+              <span class="row col-12 text-subtitle2">
+                {{ parseFiatCurrency(rsvp.amount_purchased_usd, 'USD') }}
+              </span>
+            </div>
             <div class="row col-6 justify-end">
               <sale-group-chip :saleGroup="rsvp.sale_group" />
             </div>
@@ -51,8 +56,8 @@
             class="row col-12 justify-between text-subtitle2"
             style="line-height: 1.2em;"
           >
-            <span class="col-6">
-              {{ parseFiatCurrency(rsvp.amount_purchased_usd, 'USD') }}
+            <span class="col-6" style="overflow-wrap: anywhere;">
+              {{ parseBchAddress(rsvp.bch_address) }}
             </span>
             <span class="col-6 text-right">
               Approved last {{ parseLocaleDate(rsvp.approved_date) }}
@@ -124,6 +129,10 @@ export default {
         )
       }
     },
+    parseBchAddress (address) {
+      const addLen = address.length
+      return `${address.substring(0, 17)}...${address.substring(addLen - 7, addLen)}`
+    },
     isChipOutline (saleGroup) {
       if (this.selectedFilter === 'all') return false
       return saleGroup !== this.selectedFilter
@@ -136,7 +145,7 @@ export default {
     }
   },
 
-  async mounted () {
+  mounted () {
     this.finalRsvpList = this.reservationsList
   }
 }

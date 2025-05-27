@@ -85,37 +85,43 @@ export default {
           sale_group: 'seed',
           amount_purchased_token: 100000000,
           amount_purchased_usd: 15000,
-          approved_date: '2025-05-25T14:01:49.525Z'
+          approved_date: '2025-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
         },
         {
           sale_group: 'priv',
           amount_purchased_token: 10000000,
           amount_purchased_usd: 2500,
-          approved_date: '2025-05-25T14:01:49.525Z'
+          approved_date: '2025-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
         },
         {
           sale_group: 'pblc',
           amount_purchased_token: 100000,
           amount_purchased_usd: 50,
-          approved_date: '2025-05-25T14:01:49.525Z'
+          approved_date: '2025-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
         },
         {
           sale_group: 'seed',
           amount_purchased_token: 100000000,
           amount_purchased_usd: 15000,
-          approved_date: '2025-05-25T14:01:49.525Z'
+          approved_date: '2025-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
         },
         {
           sale_group: 'priv',
           amount_purchased_token: 10000000,
           amount_purchased_usd: 2500,
-          approved_date: '2025-05-25T14:01:49.525Z'
+          approved_date: '2025-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
         },
         {
           sale_group: 'pblc',
           amount_purchased_token: 100000,
           amount_purchased_usd: 50,
-          approved_date: '2025-05-25T14:01:49.525Z'
+          approved_date: '2025-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
         }
       ]
     }
