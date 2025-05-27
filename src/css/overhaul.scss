@@ -32,8 +32,10 @@ body.theme-overhaul {
       background-color: $light_bg !important;
     }
     &.grad {
-       /*background-image: linear-gradient(to bottom, #3b7bf6, #4e88f9, #6094fb, #71a1fd, #82adff) !important;*/
-        background-image: linear-gradient(to bottom, #3b7bf6, #6993fa, #8dacfc, #afc4fe, #d0ddff);
+      /*background-image: linear-gradient(to bottom, #3b7bf6, #4e88f9, #6094fb, #71a1fd, #82adff) !important;*/
+      /*background-image: linear-gradient(to bottom, #3b7bf6, #5891FF, #93B8FF, #afc4fe, #d0ddff);*/
+      background-image: linear-gradient(to bottom, #3b7bf6, #5f8df9, #7c9ffb, #96b2fd, #afc4fe);
+       /*background-image: linear-gradient(to top, #bac2e8, #acb7e6, #9dace4, #8ea1e1, #7e97df);*/
     }
   }
 
@@ -178,8 +180,12 @@ body.theme-overhaul {
   }
 
   // Buttons
-  .button-default {
+  /*.button-default {
     background-color: $primary !important;
+    color: #fff !important;
+  }*/
+  .button-default {
+    background-color: #3b7bf6 !important;
     color: #fff !important;
   }
   .button-light {

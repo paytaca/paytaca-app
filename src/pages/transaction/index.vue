@@ -5,17 +5,26 @@
         <q-icon size="md" name="arrow_drop_down"/> <span class="title-medium">Main: Nikki</span> 
       </div>
       <div>
-        <q-icon class="q-pr-xs" size="md" name="notifications"/>
-        <q-icon size="md" name="settings"/> 
+        <q-btn class="q-mr-sm" padding="xs" outline round icon="notifications"/>
+        <q-btn padding="xs" outline round icon="settings" @click="$router.push('/apps/settings')"/>
       </div>
     </div>
 
     <q-tabs
+        v-if="enableStablhedge"
         v-model="stablehedgeTab"
-        class="text-white"
+        class="text-white title-medium"
+        style="margin: 0px 60px 0px;"
+        no-caps
       >
-        <q-tab name="bch" label="BCH" />
-        <q-tab name="stablehedge" label="Stablehedge" />      
+        <q-tab name="bch">
+          <!-- <q-icon name="img:bch-logo.png" size="25px"/> -->
+          <span>BCH</span>
+        </q-tab>
+        <q-tab name="stablehedge">
+          <!-- <q-icon name="img:assets/img/stablehedge/stablehedge-bch.svg" size="25px"/> -->
+          <span>Stablehedge</span>
+        </q-tab>      
       </q-tabs>
 
       <!-- {{ stablehedgeWalletData }} -->
@@ -23,63 +32,81 @@
       <div>
         <q-skeleton v-if="!balanceLoaded" height="30px" width="200px"/>  
         <div v-else>
-          <div class="headline-large bch-balance">{{ bchBalanceText()}} BCH</div>
+          <div class="headline-large bch-balance">{{ bchBalanceText()}} 
+            <span class="headline-small">BCH</span>&nbsp;
+            <q-icon v-if="stablehedgeView" name="img:assets/img/stablehedge/stablehedge-bch.svg" size="40px"/>
+            <q-icon v-else name="img:bch-logo.png" size="40px"/>
+          </div>
           <div class="title-large">{{ getAssetMarketBalance(bchAsset) }}</div>
         </div>      
       </div>       
     </div>
 
     <div class="button-container text-center title-medium">
-      <div class="q-pb-sm button-group">
+      <div class="q-pb-sm button-group" v-if="stablehedgeView">
         <div class="q-mr-md">
           <q-btn class="btn" no-caps round style="padding: 20px;">
-            <q-icon class="btn-icon" size="30px" name="img:app-send.svg"/> <br>                              
+            <q-icon class="btn-icon" size="30px" name="ac_unit"/> <br>                              
           </q-btn>
-          <div class="q-pt-sm" @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</div>
+          <div class="q-pt-sm">{{ $t('Freeze') }}</div>
         </div>    
         <div class="q-ml-md">
           <q-btn class="btn" round style="padding: 20px;">
+            <q-icon class="btn-icon" size="30px" name="img:ui-revamp/unfreeze.svg"/>                
+          </q-btn>  
+          <div class="q-pt-sm">{{ $t('Unfreeze') }}</div>
+        </div>           
+      </div>
+      <div class="q-pb-sm button-group" v-else>
+        <div class="q-mr-md">
+          <q-btn class="btn" no-caps round style="padding: 20px;" @click="$router.push({ name: 'transaction-send-select-asset' })">
+            <q-icon class="btn-icon" size="30px" name="img:app-send.svg"/> <br>                              
+          </q-btn>
+          <div class="q-pt-sm">{{ $t('Send') }}</div>
+        </div>    
+        <div class="q-ml-md">
+          <q-btn class="btn" round style="padding: 20px;" @click="$router.push({ name: 'transaction-receive-select-asset' })">
             <q-icon class="btn-icon" size="30px" name="img:app-receive.svg"/>                
           </q-btn>  
-          <div class="q-pt-sm" @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</div>
+          <div class="q-pt-sm">{{ $t('Receive') }}</div>
         </div>           
       </div>  
       
-      <div class="q-pt-sm button-group">
+      <div class="q-pt-sm button-group" v-if="!stablehedgeView">
         <div class="q-mr-md">
-          <q-btn class="btn" no-caps round style="padding: 20px;">
+          <q-btn class="btn" no-caps round style="padding: 20px;" @click="$router.push({ name: 'qr-reader' })">
             <q-icon class="btn-icon" size="30px" name="img:app-qr.svg"/> <br>                              
           </q-btn>
           <div class="q-pt-sm">{{ 'QR' }}</div>
         </div>    
         <div class="q-ml-md">
-          <q-btn class="btn" round style="padding: 20px;">
+          <q-btn class="btn" round style="padding: 20px;" @click="openCashIn()">
             <q-icon size="30px" name="img:ui-revamp/cashin.svg"/>                
           </q-btn>  
           <div class="q-pt-sm" @click="$router.push({ name: 'transaction-receive-select-asset' })">Cash in</div>
         </div>  
       </div>      
     </div>
-    <q-card class="card-light token-card"> 
-    <div class="text-center">
-      <q-icon name="minimize" size="30px"/>     
-      <asset-cards
-              :assets="assets"
-              :manage-assets="manageAssets"
-              :selected-asset="selectedAsset"
-              :balance-loaded="balanceLoaded"
-              :network="selectedNetwork"
-              :wallet="wallet"
-              :isCashToken="isCashToken"
-              :currentCountry="currentCountry"
-              @select-asset="asset => setSelectedAsset(asset)"
-              @show-asset-info="asset => showAssetInfo(asset)"
-              @hide-asset-info="hideAssetInfo()"
-              @removed-asset="selectBch()"
-              @click="() => {txSearchActive = false; txSearchReference = ''}"
-            />
-    </div>
-  </q-card>    
+    <q-card class="card-light token-card br-15"> 
+      <div class="text-center">
+        <q-icon name="minimize" size="30px"/>     
+        <asset-cards
+                :assets="assets"
+                :manage-assets="manageAssets"
+                :selected-asset="selectedAsset"
+                :balance-loaded="balanceLoaded"
+                :network="selectedNetwork"
+                :wallet="wallet"
+                :isCashToken="isCashToken"
+                :currentCountry="currentCountry"
+                @select-asset="asset => setSelectedAsset(asset)"
+                @show-asset-info="asset => showAssetInfo(asset)"
+                @hide-asset-info="hideAssetInfo()"
+                @removed-asset="selectBch()"
+                @click="() => {txSearchActive = false; txSearchReference = ''}"
+              />
+      </div>
+    </q-card>    
     
     <!-- <tokenList :assets="assets"/> -->
 
