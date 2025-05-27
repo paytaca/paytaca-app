@@ -32,7 +32,8 @@ body.theme-overhaul {
       background-color: $light_bg !important;
     }
     &.grad {
-       background-image: linear-gradient(to bottom, #3b7bf6, #4e88f9, #6094fb, #71a1fd, #82adff) !important;
+       /*background-image: linear-gradient(to bottom, #3b7bf6, #4e88f9, #6094fb, #71a1fd, #82adff) !important;*/
+        background-image: linear-gradient(to bottom, #3b7bf6, #6993fa, #8dacfc, #afc4fe, #d0ddff);
     }
   }
 
@@ -50,7 +51,7 @@ body.theme-overhaul {
     position: fixed;
     bottom: 0;
     width: 100%;
-    background-color: #d0ddff;
+    background-color: #4174d9;
     z-index: 6;  
     box-shadow: 0px 0px 15px rgba(59, 123, 246, 0.8); /* Pink glow */  
 
@@ -193,10 +194,16 @@ body.theme-overhaul {
 
   // Custom Elements
   .gradient-bg {
-    background-image: $gradient_bg !important;
+    background-image: linear-gradient(to bottom, #3b7bf6, #6993fa, #8dacfc, #afc4fe, #d0ddff) !important;
   }
   .dark-bg {
     background-color: $dark_bg !important;
   }
-
+  .method-cards {
+    height: 78px;
+    min-width: 150px;
+    border-radius: 16px;
+    background-color: #3b7bf6;
+    box-shadow: 2px 2px 2px 2px #f2f2fc;
+  }
 }

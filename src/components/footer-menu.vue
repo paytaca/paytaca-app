@@ -2,7 +2,7 @@
   <div class="footer-menu"
     :style="{width: $q.platform.is.bex ? '375px' : '100%', 'height': $q.platform.is.ios ? '80px' : '70px'}"
   >
-    <div class="row text-dark btn-container title-smaller">
+    <div class="row text-light btn-container title-smaller">
       <div class="col text-center">
         <q-btn no-caps class="icon-btn title-smaller" flat @click="selectMenu('transaction-index', 'home')">
           <q-icon size="25px" name="img:app-home.svg" :class="isActive('home') ? 'active' : 'inactive'">               
@@ -95,10 +95,10 @@ export default {
   padding-top: 15px;  
 }
 .active {
-  filter: brightness(0) saturate(100%) invert(53%) sepia(49%) saturate(6303%) hue-rotate(205deg) brightness(98%) contrast(96%);
+  filter: brightness(0) saturate(100%) invert(99%) sepia(1%) saturate(3%) hue-rotate(138deg) brightness(102%) contrast(101%);
 }
 .inactive {
-  filter: brightness(0) saturate(100%) invert(53%) sepia(49%) saturate(6303%) hue-rotate(205deg) brightness(98%) contrast(96%);
+  filter: brightness(0) saturate(100%) invert(99%) sepia(1%) saturate(3%) hue-rotate(138deg) brightness(102%) contrast(101%);
 }
 #qr-button {
     z-index: 100 !important;

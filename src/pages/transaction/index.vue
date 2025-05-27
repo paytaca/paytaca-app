@@ -10,6 +10,15 @@
       </div>
     </div>
 
+    <q-tabs
+        v-model="stablehedgeTab"
+        class="text-white"
+      >
+        <q-tab name="bch" label="BCH" />
+        <q-tab name="stablehedge" label="Stablehedge" />      
+      </q-tabs>
+
+      <!-- {{ stablehedgeWalletData }} -->
     <div class="balance text-center">      
       <div>
         <q-skeleton v-if="!balanceLoaded" height="30px" width="200px"/>  
@@ -51,8 +60,28 @@
         </div>  
       </div>      
     </div>
-
-    <tokenList/>
+    <q-card class="card-light token-card"> 
+    <div class="text-center">
+      <q-icon name="minimize" size="30px"/>     
+      <asset-cards
+              :assets="assets"
+              :manage-assets="manageAssets"
+              :selected-asset="selectedAsset"
+              :balance-loaded="balanceLoaded"
+              :network="selectedNetwork"
+              :wallet="wallet"
+              :isCashToken="isCashToken"
+              :currentCountry="currentCountry"
+              @select-asset="asset => setSelectedAsset(asset)"
+              @show-asset-info="asset => showAssetInfo(asset)"
+              @hide-asset-info="hideAssetInfo()"
+              @removed-asset="selectBch()"
+              @click="() => {txSearchActive = false; txSearchReference = ''}"
+            />
+    </div>
+  </q-card>    
+    
+    <!-- <tokenList :assets="assets"/> -->
 
     <footer-menu ref="footerMenu" />
     <!-- <-- Gradient Panel --
@@ -172,6 +201,7 @@ import packageInfo from '../../../package.json'
 import Watchtower from 'watchtower-cash-js'
 import TokenSuggestionsDialog from 'src/components/TokenSuggestionsDialog.vue';
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
+import AssetCards from '../../components/asset-cards'
 import AddNewAsset from './dialog/AddNewAsset.vue';
 import PriceChart from './dialog/PriceChart.vue';
 import Notifications from 'src/components/notifications/index.vue'
@@ -213,6 +243,8 @@ export default {
       pinDialogAction: '',
       walletYield: null,
       denominationTabSelected: 'BCH',
+      stablehedgeView: false,
+      manageAssets: false,
 
       wallet: null,
       isCashToken: true,
@@ -238,6 +270,7 @@ export default {
     transactionList,
     multiWallet,
     tokenList,
+    AssetCards,
 
     TokenSuggestionsDialog,
     securityOptionDialog,
@@ -321,6 +354,48 @@ export default {
       return (isNotDefaultTheme(this.theme) &&
         (this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
         this.selectedNetwork !== 'sBCH')
+    },
+    enableStablhedge () {
+      return this.$store.getters['global/enableStablhedge']
+    },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
+    stablehedgeTab: {
+      get() {
+        return this.stablehedgeView ? 'stablehedge' : 'bch'
+      },
+      set(value) {
+        this.stablehedgeView = value === 'stablehedge'
+        // this.$nextTick(() => {
+        //   this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
+        //   this.$refs['transaction-list-component'].getTransactions()
+        // })
+      }
+    },
+    stablehedgeWalletData() {
+      const sats = this.$store.getters['stablehedge/totalTokenBalancesInSats']
+      console.log('sats: ', sats)
+      const balance = sats / 10 ** 8
+      const tokenBalances = this.$store.getters['stablehedge/tokenBalancesWithSats']
+      const balancesWithoutSats = tokenBalances.filter(tokenBalance => {
+        return !Number.isFinite(tokenBalance?.satoshis)
+      }).map(tokenBalance => {
+        const token = this.$store.getters['stablehedge/token']?.(tokenBalance?.category)
+        const decimals = parseInt(token?.decimals) || 0
+
+        return {
+          ...tokenBalance,
+          decimals: decimals,
+          currency: token?.currency,
+          standardizedAmount: tokenBalance?.amount / 10 ** decimals,
+        }
+      })
+      return {
+        balance,
+        tokenBalances,
+        balancesWithoutSats,
+      }
     },
   },
   created () {
@@ -523,10 +598,12 @@ export default {
     bchBalanceText() {
       if (!this.balanceLoaded && this.selectedAsset?.id === this?.bchAsset?.id) return '0'
       const currentDenomination = this.selectedDenomination
+      console.log('currentDenomination: ', currentDenomination)
       const balance = this.stablehedgeView
         ? this.stablehedgeWalletData.balance
         : this.bchAsset.balance
 
+      console.log('balance: ', balance)
       if (this.selectedNetwork === 'sBCH') {
         return `${String(balance).substring(0, 10)}`
         // return `${String(balance).substring(0, 10)} ${selectedNetwork}`
@@ -1134,7 +1211,7 @@ export default {
 }
 
 .header-top {
-  margin: 20px;
+  margin: 20px 20px 0px;
 }
 .button-container {
   margin: 10px 50px 20px;  
@@ -1144,7 +1221,7 @@ export default {
   justify-content: center;
 }
 .balance {
-  margin-top: 30px;
+  margin-top: 20px;
   padding: 10px;
   display: flex;
   justify-content: center;
@@ -1157,5 +1234,11 @@ export default {
 }
 .bch-balance {
   text-shadow: 2px 2px #20242e;
+}
+.token-card {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  padding-bottom: 80px;
 }
 </style>

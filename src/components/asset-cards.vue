@@ -1,6 +1,6 @@
 <template>
   <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
-    <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
+    <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 gradient-bg text-white" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
       :key="index"
@@ -218,7 +218,7 @@ export default {
   .method-cards {
     height: 78px;
     min-width: 150px;
-    border-radius: 16px;
+    border-radius: 16px;  
     margin-bottom: 5px !important;
     .asset-symbol {
       overflow: hidden;

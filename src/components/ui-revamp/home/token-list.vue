@@ -1,15 +1,34 @@
 <template>
 	<q-card class="card-light card"> 
 		<div class="text-center">
-			<q-icon name="minimize" size="30px"/>
+			<q-icon name="minimize" size="30px"/>			
 		</div>
 	</q-card>
 </template>
-<script></script>
+<script>
+
+export default {
+	data () {
+		return {
+			tokenList: []
+		}
+	},
+	props: {
+		assets: {
+			type: Object,
+			default: null
+		}
+	},
+	mounted () {
+		console.log('token list: ', this.assets)
+	}
+}
+</script>
 <style lang="scss" scoped>
 .card {
-	margin-top: 30px;
+	position: absolute;
+	bottom: 0;
 	width: 100%;
-	min-height: 300px;
+	min-height: 225px;
 }
 </style>
