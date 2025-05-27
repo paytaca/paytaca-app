@@ -1296,7 +1296,7 @@ export default {
   ShardsBackupPhaseDescription2: "Below are QR code images generated from the shards.",
   ShardsBackupPhaseDescription3: "You can screenshot them by yourself or use the button below to download them to your device.",
   ShareGift: "Share Gift",
-  ShareGiftLink: "BCH Gift",
+  ShareGiftLink: "Share gift link",
   ShopName: "Shop name",
   ShortPositions: "Short positions",
   ShortValue: "Short value",
