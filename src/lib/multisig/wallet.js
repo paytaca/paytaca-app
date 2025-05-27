@@ -15,7 +15,8 @@ import {
   binToBase64,
   base64ToBin,
   binToUtf8,
-  CashAddressNetworkPrefix
+  CashAddressNetworkPrefix,
+  binToHex
 } from 'bitauth-libauth-v3'
 // import { createTemplate } from './template.js'
 
@@ -330,4 +331,26 @@ export const exportMultisigWallet = (multisigWallet) => {
 export const importMultisigWallet = (multisigWalletBase64) => {
   const bin = base64ToBin(multisigWalletBase64)
   return JSON.parse(binToUtf8(bin))
+}
+
+export const getSignerInfos = (multisigWallet) => {
+  return Object.keys(multisigWallet.template.entities).map((signerEntityKey) => {
+     const signerEntityIndex = signerEntityKey.split('_')[1]
+     return {
+       signerEntityIndex,
+       name: multisigWallet.template.entities[signerEntityKey].name,
+       xpub: multisigWallet.lockingData.hdKeys.hdPublicKeys.xpub
+     }
+  })
+}
+
+export const findMultisigWalletByLockingData = ({ multisigWallets, template, lockingData }) => {
+  const lockingBytecode = getLockingBytecode({ template, lockingData })
+  const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)
+  const wallet = multisigWallets.find((wallet) => {
+      const existingLockingBytecode = getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData })
+      const existingLockingBytecodeHex = binToHex(existingLockingBytecode.bytecode)
+      return lockingBytecodeHex === existingLockingBytecodeHex
+  })
+  return wallet
 }
