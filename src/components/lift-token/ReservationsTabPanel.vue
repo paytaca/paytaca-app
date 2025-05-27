@@ -13,18 +13,18 @@
         @click="filterRsvpList('all')"
       />
       <sale-group-chip
-        :outline="isChipOutline(SaleGroup.SEED)"
         :saleGroup="SaleGroup.SEED"
+        :outline="isChipOutline(SaleGroup.SEED)"
         @click="filterRsvpList(SaleGroup.SEED)"
       />
       <sale-group-chip
-        :outline="isChipOutline(SaleGroup.PRIVATE)"
         :saleGroup="SaleGroup.PRIVATE"
+        :outline="isChipOutline(SaleGroup.PRIVATE)"
         @click="filterRsvpList(SaleGroup.PRIVATE)"
       />
       <sale-group-chip
-        :outline="isChipOutline(SaleGroup.PUBLIC)"
         :saleGroup="SaleGroup.PUBLIC"
+        :outline="isChipOutline(SaleGroup.PUBLIC)"
         @click="filterRsvpList(SaleGroup.PUBLIC)"
       />
     </div>
@@ -38,10 +38,6 @@
           class="row q-py-sm q-px-md full-width pt-card"
           :class="getDarkModeClass(darkMode)"
         >
-          <div class="row col-12 justify-end">
-            
-          </div>
-
           <div class="row col-12 q-mb-xs justify-between items-center">
             <span class="col-6 text-body1 text-bold">
               {{ parseLiftToken(rsvp.amount_purchased_token) }}
@@ -67,6 +63,7 @@
             <q-btn
               label="Purchase"
               class="button"
+              @click="openPayReservationDialog(rsvp)"
             />
           </div>
         </q-card>
@@ -82,6 +79,7 @@ import { parseLocaleDate, parseLiftToken } from 'src/utils/engagementhub-utils/s
 import { SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
 
 import SaleGroupChip from 'src/components/lift-token/SaleGroupChip.vue'
+import PayReservationDialog from 'src/components/lift-token/dialogs/PayReservationDialog.vue'
 
 export default {
   name: 'ReservationsTabPanel',
@@ -129,6 +127,12 @@ export default {
     isChipOutline (saleGroup) {
       if (this.selectedFilter === 'all') return false
       return saleGroup !== this.selectedFilter
+    },
+    openPayReservationDialog (rsvp) {
+      this.$q.dialog({
+        component: PayReservationDialog,
+        componentProps: { rsvp }
+      })
     }
   },
 

@@ -17,7 +17,7 @@
 
     <template v-else>
       <div
-        class="row q-mx-lg q-gutter-y-md"
+        class="row q-mx-lg q-gutter-y-xs"
         style="font-size: 18px; margin-top: -20px;"
       >
         <q-tabs
