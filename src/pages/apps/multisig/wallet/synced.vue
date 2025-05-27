@@ -9,7 +9,7 @@
       backnavpath="/apps/multisig"
       class="apps-header"
     />
-    <div class="row q-mt-lg justify-center">
+    <div class="row justify-center">
       <div class="col-xs-12 q-px-xs q-gutter-y-md">
           <q-list >
             <q-item>
@@ -20,6 +20,7 @@
                <q-btn icon="refresh" @click="fetchWallets" flat dense></q-btn>
              </q-item-section>
             </q-item>
+            <q-separator spaced/>
             <q-item v-for="wallet in multisigWallets?.filter(w => w.id && !w.enabled)">
                <q-item-section>
                  <q-item-label>{{ wallet.template?.name }}</q-item-label>
@@ -66,6 +67,11 @@ const darkMode = computed(() => {
 
 const enableWallet = (multisigWallet) => {
   $store.commit('multisig/enableWallet', multisigWallet)
+  $q.notify({
+    color: 'primary',
+    message: `${multisigWallet.template?.name || 'Wallet'} imported`,
+    timeout: 500
+  })
 }
 
 const fetchWallets = async () => {
