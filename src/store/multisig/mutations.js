@@ -1,18 +1,19 @@
-import { MultisigWallet, getMultisigCashAddress,getLockingBytecode } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, findMultisigWalletByLockingData } from 'src/lib/multisig'
 import { hashTransaction, binToHex } from 'bitauth-libauth-v3'
 
 export function saveWallet (state, multisigWallet) {
   const lockingBytecode = getLockingBytecode({ template:multisigWallet.template, lockingData: multisigWallet.lockingData })
   const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)	
-  console.log('lockingBytecodeHex', lockingBytecodeHex)
   const index = state.wallets.findIndex((wallet) => {
     const existingLockingBytecode = getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData })
     const existingLockingBytecodeHex = binToHex(existingLockingBytecode.bytecode)
-    console.log('existing locking bytecode', existingLockingBytecodeHex)
     return lockingBytecodeHex === existingLockingBytecodeHex
   })
   if (index === -1) {
    return state.wallets.push(multisigWallet) 
+  }
+  if (state.wallets[index].enabled) {
+    multisigWallet.enabled = true
   }
   state.wallets.splice(index, 1, multisigWallet)
 }
@@ -36,6 +37,16 @@ export function deleteWallet (state, { address }) {
   })
   if (index === -1) return
   state.wallets?.splice(index, 1)
+}
+
+export function enableWallet(state, multisigWallet) {
+  const wallet = findMultisigWalletByLockingData({
+	  multisigWallets: state.wallets,
+	  template: multisigWallet.template,
+	  lockingData: multisigWallet.lockingData
+  })
+  if (!wallet) return
+  wallet.enabled = true
 }
 
 export function deleteAllWallets (state) {
