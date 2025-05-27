@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { stringify } from 'bitauth-libauth-v3'
 import { getMultisigCashAddress } from 'src/lib/multisig'
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
@@ -54,6 +55,18 @@ export async function saveWallet ({ commit, getters, rootGetters }, { multisigWa
   // })
 }
 
+export async function fetchWallets({ commit, rootGetters }, { xpub }) {
+  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+  console.log('xpub', xpub)
+  const response = await axios.get(`${watchtower}/api/multisig/wallets/?xpub=${xpub}`)
+  console.log('axios response fetch wallet', response.data)
+  response?.data?.forEach((multisigWallet) => {
+    commit('saveWallet', multisigWallet)
+  })
+  return response.data
+}
+
+
 export function deleteWallet ({ commit }, { address }) {
   // TODO: mutate watchtower
   commit('deleteWallet', { address })
@@ -74,6 +87,7 @@ export function saveTransaction ({ commit }, multisigTransaction) {
   commit('deleteAllTransactions')
   commit('saveTransaction', multisigTransaction)
 }
+
 
 export function updateTransaction ({ commit }, { index, multisigTransaction }) {
   commit('updateTransaction', { index, multisigTransaction })
@@ -99,4 +113,17 @@ export function deletePstById ({ commit }, { id }) {
 
 export function deleteAllPsts ({ commit }) {
   commit('deleteAllPsts')
+}
+
+export async function uploadPst({ commit, rootGetters }, { multisigWallet, multisigTransaction }) {
+  console.log('uploading pst', multisigWallet, multisigTransaction)
+  if (multisigWallet.id) { 	
+   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+   const response = await axios.post(
+	   `${watchtower}/api/multisig/wallets/${multisigWallet.id}/transaction-proposals/`, 
+	   JSON.parse(stringify(multisigTransaction)),
+	   {headers: { 'Content-Type': 'application/json'}}
+   )
+   console.log('uploadPst response', response)
+  }
 }
