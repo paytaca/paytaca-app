@@ -119,14 +119,6 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'PTC Trade',
-          iconName: 'currency_exchange',
-          path: '/apps/ptc-trade',
-          iconStyle: 'font-size: 3.5em',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
           name: 'LIFT Token',
           iconName: 'img:lift-token.png',
           path: '/apps/lift-token',

@@ -239,16 +239,6 @@ const routes = [
         ]
       },
       {
-        path: 'ptc-trade',
-        children: [
-          {
-            path: '',
-            name: 'app-ptc-trade',
-            component: () => import('src/pages/apps/ptc-trade/index.vue')
-          }
-        ]
-      },
-      {
         path: 'lift-token',
         children: [
           {
