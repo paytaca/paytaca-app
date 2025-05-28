@@ -27,6 +27,14 @@
             </div>
           </template>
         </q-btn>
+        <q-btn flat dense no-caps @click="$emit('deleteWallet')" class="tile" v-close-popup>
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="delete_forever" class="col-12" color="red"></q-icon>
+              <div class="col-12 tile-label">Delete Wallet</div>
+            </div>
+          </template>
+        </q-btn>
       </q-card-section>
       <q-item-label header style="padding-top: 0px;padding-bottom:0px;">Transaction</q-item-label>
       <q-card-section class="flex flex-wrap justify-evenly"> 
@@ -79,12 +87,14 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginC
 const $emit = defineEmits ([
   'publishWallet',
   'exportWallet',
+  'deleteWallet',
   'importTx',
   'viewTxProposals',
   'send',
   'receive',
   ...useDialogPluginComponent.emits
 ])
+
 defineProps({
   darkMode: Boolean,
   txProposals: Array

@@ -33,8 +33,8 @@
                  <q-item-label class="flex flex-wrap q-gutter-x-sm items-center">
                   <q-chip style="background: inherit; color: inherit" class="q-gutter-sm">
                    <span class="q-mr-sm">{{ !wallet.id ? 'No': 'Yes' }}</span>
-                   <q-icon size="xs" :name="wallet.id? 'cloud': 'smartphone'" :color="wallet.id? 'green': ''" /> 
-                  </q-chip>
+                   <q-icon v-if="wallet.id" size="xs" :name="wallet.id? 'cloud': 'smartphone'" /> 
+                  </q-chip> 
                  </q-item-label>
                </q-item-section>
               </q-item>
@@ -229,13 +229,25 @@ const openWalletActionsDialog = () => {
   $q.dialog({
     component: WalletActionsDialog,
     componentProps: {
-      darkMode: getDarkModeClass(darkMode.value),
+      darkMode: darkMode.value,
       txProposals: transactions?.value,
       onPublishWallet: () => {
         publishWallet()
       },
       onExportWallet: () => { 
         exportWallet()
+      },
+      onDeleteWallet: () => {
+	$q.dialog({
+          message: 'Are you sure you want to delete wallet?',
+          ok: { label: 'Yes' },
+          cancel: { label: 'No' },
+          class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+        }).onOk(() => {
+           deleteWallet(route.params.address)
+        }).onCancel(() => {
+          openWalletActionsDialog()
+        })
       },
       onImportTx: () => {
         loadTransactionProposal()
