@@ -133,7 +133,7 @@ export default {
           purchased_amount_usd: 15000,
           purchased_amount_bch: 12.34567890,
           purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2026-05-25T14:01:49.525Z',
           vesting_details: []
         },
         {
@@ -142,25 +142,25 @@ export default {
           purchased_amount_usd: 2500,
           purchased_amount_bch: 1.23456789,
           purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2026-05-25T14:01:49.525Z',
           vesting_details: []
         },
-        {
-          sale_group: 'pblc',
-          purchased_amount_tkn: 100000,
-          purchased_amount_usd: 50,
-          purchased_amount_bch: 0.12345678,
-          purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2025-05-25T14:01:49.525Z',
-          vesting_details: []
-        },
+        // {
+        //   sale_group: 'pblc',
+        //   purchased_amount_tkn: 100000,
+        //   purchased_amount_usd: 50,
+        //   purchased_amount_bch: 0.12345678,
+        //   purchased_date: '2025-05-25T14:01:49.525Z',
+        //   lockup_date: '2026-05-25T14:01:49.525Z',
+        //   vesting_details: []
+        // },
         {
           sale_group: 'seed',
           purchased_amount_tkn: 100000000,
           purchased_amount_usd: 15000,
           purchased_amount_bch: 12.34567890,
           purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2026-05-25T14:01:49.525Z',
           vesting_details: []
         },
         {
@@ -169,18 +169,18 @@ export default {
           purchased_amount_usd: 2500,
           purchased_amount_bch: 1.23456789,
           purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2025-05-25T14:01:49.525Z',
+          lockup_date: '2026-05-25T14:01:49.525Z',
           vesting_details: []
-        },
-        {
-          sale_group: 'pblc',
-          purchased_amount_tkn: 100000,
-          purchased_amount_usd: 50,
-          purchased_amount_bch: 0.12345678,
-          purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2025-05-25T14:01:49.525Z',
-          vesting_details: []
-        }
+        }//,
+        // {
+        //   sale_group: 'pblc',
+        //   purchased_amount_tkn: 100000,
+        //   purchased_amount_usd: 50,
+        //   purchased_amount_bch: 0.12345678,
+        //   purchased_date: '2025-05-25T14:01:49.525Z',
+        //   lockup_date: '2026-05-25T14:01:49.525Z',
+        //   vesting_details: []
+        // }
       ]
     }
   },

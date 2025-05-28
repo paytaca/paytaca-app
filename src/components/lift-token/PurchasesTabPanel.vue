@@ -15,11 +15,11 @@
       :outline="isChipOutline(SaleGroup.PRIVATE)"
       @click="filterPurchasesList(SaleGroup.PRIVATE)"
     />
-    <sale-group-chip
+    <!-- <sale-group-chip
       :saleGroup="SaleGroup.PUBLIC"
       :outline="isChipOutline(SaleGroup.PUBLIC)"
       @click="filterPurchasesList(SaleGroup.PUBLIC)"
-    />
+    /> -->
     <sale-group-chip
       :saleGroup="'lock'"
       :outline="isChipOutline('lock')"
@@ -64,14 +64,48 @@
           </span>
 
           <div class="row col-12 justify-between text-subtitle1">
-            fds
+            <span class="col-6">
+              {{ parseFiatCurrency(purchase.purchased_amount_usd, 'usd') }}
+            </span>
+            <span class="col-6 text-right">
+              {{ getAssetDenomination('BCH', purchase.purchased_amount_bch) }}
+            </span>
           </div>
 
           <div
-            class="row col-12 justify-between text-subtitle2"
+            class="row col-12 q-pb-xs justify-between text-subtitle2"
             style="line-height: 1.2em;"
           >
-            gdf
+            <template v-if="new Date() > new Date(purchase.lockup_date)">
+              <span class="q-pr-xs col-6">
+                <template v-if="purchase.vesting_details.length === 0">
+                  Lockup period is over
+                </template>
+                <template v-else>
+                  Last vesting period was
+                  {{ parseLocaleDate(purchase.vesting_details[0].vested_date) }}
+                </template>
+              </span>
+              <span class="q-pl-xs col-6 text-right">
+                <template v-if="checkVestingCount(purchase.vesting_details)">
+                  Vesting period is over
+                </template>
+                <template v-else>
+                  Next vesting priod is
+                  {{ parseNextVestingDate(purchase.vesting_details) }}
+                </template>
+              </span>
+            </template>
+
+            <template v-else>
+              <span class="q-pr-xs col-6">
+                Purchased on {{ parseLocaleDate(purchase.purchased_date) }}
+              </span>
+              <span class="q-pl-xs col-6 text-right">
+                Locked until {{ parseLocaleDate(purchase.lockup_date) }}
+              </span>
+            </template>
+
           </div>
         </q-card>
       </div>
@@ -81,8 +115,9 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { parseLiftToken, parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import { SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
+import { parseFiatCurrency, getAssetDenomination } from 'src/utils/denomination-utils'
 
 import SaleGroupChip from 'src/components/lift-token/SaleGroupChip.vue'
 
@@ -116,6 +151,9 @@ export default {
   methods: {
     getDarkModeClass,
     parseLiftToken,
+    parseFiatCurrency,
+    getAssetDenomination,
+    parseLocaleDate,
 
     filterPurchasesList (saleGroup) {
       this.selectedFilter = saleGroup
@@ -139,6 +177,22 @@ export default {
       if (this.selectedFilter === 'all') return false
       return saleGroup !== this.selectedFilter
     },
+    parseNextVestingDate (txDetails) {
+      let vestingMonth
+      if (this.saleGroup == 'seed') vestingMonth = 3
+      else if (this.saleGroup == 'priv') vestingMonth = 1
+
+      const vestingDate = new Date(txDetails[0].vested_date)
+      const nextDate = vestingDate.setMonth(vestingDate.getMonth() + vestingMonth)
+      return parseLocaleDate(nextDate)
+    },
+    checkVestingCount (txDetails) {
+      let vestingCount
+      if (this.saleGroup == 'seed') vestingCount = 4
+      else if (this.saleGroup == 'priv') vestingCount = 6
+
+      return txDetails.length === vestingCount
+    }
   },
 
   mounted () {
