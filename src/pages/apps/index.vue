@@ -1,6 +1,19 @@
 <template>
-  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)" style="padding-bottom: 120px;">
-    <div id="apps" ref="apps" class="text-center">
+  <div id="apps-page-container" class="grad" style="padding-bottom: 120px;">
+    <div class="text-center title-large" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
+      {{ $t('Applications') }}
+    </div>  
+    <div class="app-list text-center">
+      <div class="q-pb-md" v-for="(app, index) in filteredApps" :key="index" @click="openApp(app)"
+>
+        <q-btn class="button-default" no-caps round style="padding: 20px;">
+          <q-icon class="btn-icon" size="30px" :name="app.iconName"/> <br>                              
+        </q-btn>
+        <div class="q-pt-sm text-center">{{ app.name }}</div>
+      </div> 
+      
+    </div>
+    <!-- <div id="apps" ref="apps" class="text-center">
       <div>
         <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
           <p
@@ -30,6 +43,9 @@
       </div>
     </div>
 
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
+    <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
+    <footer-menu /> -->
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
     <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
     <footer-menu />
@@ -317,19 +333,19 @@ export default {
   mounted () {
     this.$store.commit('global/updateActiveMenu', 'tools')
 
-    const htmlTag1 = document.querySelector('.pt-app')
-    const htmlTag = document.getElementsByClassName('pt-app')
-    this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    for (let i = 0; i < htmlTag.length; i++) {
-      htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
-    }
+    // const htmlTag1 = document.querySelector('.pt-app')
+    // const htmlTag = document.getElementsByClassName('pt-app')
+    // this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
+    // for (let i = 0; i < htmlTag.length; i++) {
+    //   htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
+    // }
 
-    window.addEventListener('resize', function () {
-      this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-      for (let i = 0; i < htmlTag.length; i++) {
-        htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
-      }
-    })
+    // window.addEventListener('resize', function () {
+    //   this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
+    //   for (let i = 0; i < htmlTag.length; i++) {
+    //     htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
+    //   }
+    // })
     this.fetchAppControl()
     this.closeExchangeWebsocket()
   }
@@ -337,6 +353,15 @@ export default {
 </script>
 
 <style scoped lang="scss">
+  .app-list {  
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 4 columns per row */      
+  }
+  app-button {
+    padding: 10px;    
+    cursor: pointer;
+  }
   #apps-page-container {
     background-color: #ECF3F3;
     min-height: 100vh;

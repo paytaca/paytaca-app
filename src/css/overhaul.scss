@@ -39,6 +39,22 @@ body.theme-overhaul {
     }
   }
 
+  #apps-page-container {
+    &.dark {
+      background: #273746 !important;
+    }
+
+    &.light {
+      background-color: #ecf3f3 !important;
+    }
+    &.grad {
+      /*background-image: linear-gradient(to bottom, #3b7bf6, #4e88f9, #6094fb, #71a1fd, #82adff) !important;*/
+      /*background-image: linear-gradient(to bottom, #3b7bf6, #5891FF, #93B8FF, #afc4fe, #d0ddff);*/
+      background-image: linear-gradient(to bottom, #3b7bf6, #5f8df9, #7c9ffb, #96b2fd, #afc4fe);
+       /*background-image: linear-gradient(to top, #bac2e8, #acb7e6, #9dace4, #8ea1e1, #7e97df);*/
+    }
+  }
+
   #gradient-panel {
     background-image: $gradient_bg;
     height: 227px;
@@ -84,7 +100,7 @@ body.theme-overhaul {
   }
 
   .title-large {
-    font-size: 16px;
+    font-size: 18px;
     line-height: 28px;
     letter-spacing: 0;
     font-weight: 700;
