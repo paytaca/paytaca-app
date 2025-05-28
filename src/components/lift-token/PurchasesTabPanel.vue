@@ -42,11 +42,13 @@
 
   <template v-else>
     <q-scroll-area style="height: 60vh; width: 100%">
-      <div class="row q-pt-sm q-pb-md q-px-sm q-gutter-y-md">
+      <div class="row q-pt-sm q-pb-md q-px-sm q-gutter-y-md cursor-pointer">
         <q-card
+          v-ripple
           v-for="(purchase, index) in finalPurchasesList"
           class="row q-py-sm q-px-md full-width pt-card"
           :class="getDarkModeClass(darkMode)"
+          @click="openPurchaseInfoDialog(purchase)"
         >
           <div class="row col-12 justify-between">
             <div class="row col-7 justify-start">
@@ -120,6 +122,7 @@ import { SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
 import { parseFiatCurrency, getAssetDenomination } from 'src/utils/denomination-utils'
 
 import SaleGroupChip from 'src/components/lift-token/SaleGroupChip.vue'
+import PurchaseInfoDialog from './dialogs/PurchaseInfoDialog.vue'
 
 export default {
   name: 'PurchasesTabPanel',
@@ -192,6 +195,12 @@ export default {
       else if (this.saleGroup == 'priv') vestingCount = 6
 
       return txDetails.length === vestingCount
+    },
+    openPurchaseInfoDialog (purchase) {
+      this.$q.dialog({
+        component: PurchaseInfoDialog,
+        componentProps: { purchase }
+      })
     }
   },
 

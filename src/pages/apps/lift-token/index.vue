@@ -134,6 +134,7 @@ export default {
           purchased_amount_bch: 12.34567890,
           purchased_date: '2025-05-25T14:01:49.525Z',
           lockup_date: '2026-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
           vesting_details: []
         },
         {
@@ -143,6 +144,7 @@ export default {
           purchased_amount_bch: 1.23456789,
           purchased_date: '2025-05-25T14:01:49.525Z',
           lockup_date: '2026-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
           vesting_details: []
         },
         // {
@@ -152,6 +154,7 @@ export default {
         //   purchased_amount_bch: 0.12345678,
         //   purchased_date: '2025-05-25T14:01:49.525Z',
         //   lockup_date: '2026-05-25T14:01:49.525Z',
+        //   bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
         //   vesting_details: []
         // },
         {
@@ -161,6 +164,7 @@ export default {
           purchased_amount_bch: 12.34567890,
           purchased_date: '2025-05-25T14:01:49.525Z',
           lockup_date: '2026-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
           vesting_details: []
         },
         {
@@ -170,6 +174,7 @@ export default {
           purchased_amount_bch: 1.23456789,
           purchased_date: '2025-05-25T14:01:49.525Z',
           lockup_date: '2026-05-25T14:01:49.525Z',
+          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
           vesting_details: []
         }//,
         // {
@@ -179,6 +184,7 @@ export default {
         //   purchased_amount_bch: 0.12345678,
         //   purchased_date: '2025-05-25T14:01:49.525Z',
         //   lockup_date: '2026-05-25T14:01:49.525Z',
+        //   bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
         //   vesting_details: []
         // }
       ]
