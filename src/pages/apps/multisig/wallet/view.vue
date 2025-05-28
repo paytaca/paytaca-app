@@ -216,7 +216,7 @@ const onUpdateTransactionFile = (file) => {
   }
 }
 
-const uploadWallet = () => {
+const syncWallet = () => {
   $q.dialog({
     component: SyncWalletDialog,
     componentProps: {
@@ -233,8 +233,8 @@ const openWalletActionsDialog = () => {
     componentProps: {
       darkMode: darkMode.value,
       txProposals: transactions?.value,
-      onUploadWallet: () => {
-        uploadWallet()
+      onSyncWallet: () => {
+        syncWallet()
       },
       onExportWallet: () => { 
         exportWallet()
@@ -282,10 +282,6 @@ onMounted(async () => {
     balance.value = await getMultisigWalletBchBalance(
       decodeURIComponent(route.params.address)
     )
-    console.log('WALLET ON VIEW',wallet.value)
-    if (wallet.value) {
-    //  await wallet.value.loadSignerXprivateKeys(getSignerXPrv)
-    }
   } catch (error) {}
 })
 </script>

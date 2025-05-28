@@ -1,17 +1,26 @@
 import axios from 'axios'
-import { stringify } from 'bitauth-libauth-v3'
-import { getMultisigCashAddress } from 'src/lib/multisig'
+import { stringify, binToHex } from 'bitauth-libauth-v3'
+import { getMultisigCashAddress, getLockingBytecode } from 'src/lib/multisig'
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
 export async function syncWallet({ commit, getters, rootGetters }, { address, multisigWallet }) {
 
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  const response = await axios.post(`${watchtower}/api/multisig/wallets/`, multisigWallet)
+  let identifier = multisigWallet.id
+  let response
+  if (!identifier) {
+   const { lockingData, template } = multisigWallet
+   identifier  = binToHex(getLockingBytecode({ lockingData, template }).bytecode)
+   response = await axios.get(`${watchtower}/api/multisig/wallets/${identifier}/`)
+  }
+  if (!response) {
+   response = await axios.post(`${watchtower}/api/multisig/wallets/`, multisigWallet)
+  }
   if (response.data?.id) {
-    commit('updateWallet', { address, multisigWallet: response.data })
+   commit('updateWallet', { address, multisigWallet: response.data })
   }
   console.log('axios response', response.data)
-  return response.data
+  return response?.data
 }
 
 export async function saveWallet ({ commit, getters, rootGetters }, multisigWallet) {
