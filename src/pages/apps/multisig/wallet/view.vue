@@ -111,7 +111,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { shortenString, getRequiredSignatures,  exportMultisigWallet } from 'src/lib/multisig'
+import { shortenString, getRequiredSignatures,  exportMultisigWallet, importPst } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
@@ -188,7 +188,7 @@ const onUpdateTransactionFile = (file) => {
     const reader = new FileReader()
     console.log('🚀 ~ onUpdateTransactionFile ~ reader:', reader.result)
     reader.onload = () => {
-      transactionInstance.value = MultisigTransaction.importPST({ pst: reader.result })
+      transactionInstance.value = importPst({ pst: reader.result })
       // const pstObjectFromStore = $store.getters['multisig/getPstById']({ id: transactionInstance.value.id })
       console.log('🚀 ~ onUpdateTransactionFile ~ transactionInstance:', transactionInstance.value)
       // if (pstObjectFromStore) {
