@@ -9,8 +9,8 @@
       backnavpath="/apps/multisig"
       class="apps-header"
     />
-    <div class="row q-mt-lg justify-center">
-      <div class="col-xs-12 q-px-sm q-gutter-y-md">
+    <div class="row justify-center">
+      <div class="col-xs-12 q-px-xs">
         <template v-if="wallet">
           <div>
             <q-list>
@@ -20,29 +20,20 @@
                   <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
                   </q-item-label>
                 </q-item-section>
-                <q-item-section side>
-                  <!-- <q-item-label caption>5 min ago</q-item-label> -->
-                  <q-btn icon="settings" color="grad">
-                   <q-menu fit anchor="bottom right" self="top right" class="pt-card" :class="getDarkModeClass(darkMode)">
-                      <q-item clickable @click="syncWalletAcrossDevices" v-close-popup>
-                        <q-item-section>Sync Across Devices</q-item-section>
-                      </q-item>
-                      <q-item clickable>
-                      <q-item-section>New incognito tab</q-item-section>
-                      </q-item>
-                    </q-menu>
-                  </q-btn>
+                <q-item-section top side>
+                  <q-btn icon="more_vert" @click="openWalletActionsDialog" flat dense>
+                 </q-btn>
                 </q-item-section>
               </q-item>
               <q-item>
                <q-item-section>
-                <q-item-label>Sync Status</q-item-label> 
+                <q-item-label>Published</q-item-label> 
                </q-item-section>
                <q-item-section side>
                  <q-item-label class="flex flex-wrap q-gutter-x-sm items-center">
                   <q-chip style="background: inherit; color: inherit" class="q-gutter-sm">
-                   <span class="q-mr-sm">{{ !wallet.id ? 'Not Synced': 'Synced' }}</span>
-                   <q-icon size="sm" :name="wallet.id? 'cloud': 'smartphone'" :color="wallet.id? 'green': ''" /> 
+                   <span class="q-mr-sm">{{ !wallet.id ? 'No': 'Yes' }}</span>
+                   <q-icon size="xs" :name="wallet.id? 'cloud': 'smartphone'" :color="wallet.id? 'green': ''" /> 
                   </q-chip>
                  </q-item-label>
                </q-item-section>
@@ -71,7 +62,7 @@
                   <q-item-label>Required Signatures</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label caption>{{ wallet.requiredSignatures }} of {{ Object.keys(wallet.template.entities).length }}</q-item-label>
+                  <q-item-label caption>{{ getRequiredSignatures(wallet.template) }} of {{ Object.keys(wallet.template.entities).length }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
@@ -90,79 +81,13 @@
                 :clickable="transactions?.length > 0"
                 :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
                 <q-item-section>
-                  <q-item-label>Tx Proposals</q-item-label>
-                  <!-- <div class="flex justify-end">
-                    <q-btn label="Import" icon="mdi-file-import-outline" flat dense no-caps @click="loadTransactionProposal">
-                    </q-btn>
-                  </div> -->
+                  <q-item-label style="position:relative">Tx Proposals</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label caption>{{ transactions?.length || 0 }}</q-item-label>
+                     <q-badge color="red" >{{ transactions?.length || 0 }}</q-badge>
                 </q-item-section>
               </q-item>
-              <div class="flex justify-end q-mr-md">
-                <q-btn
-                  size="sm"
-                  label="Import Tx From File" icon="mdi-file-import-outline" flat dense no-caps @click="loadTransactionProposal">
-                </q-btn>
-              </div>
-              <!-- <q-item>
-                <q-item-section side top>
-                  <div class="flex justify-end">
-                    <q-btn label="Import" icon="mdi-file-import-outline" flat dense no-caps @click="loadTransactionProposal">
-                    </q-btn>
-                  </div>
-                </q-item-section>
-              </q-item> -->
-              <!-- <q-item
-                :clickable="psts?.length"
-                :to="{name: 'app-multisig-wallet-psts', params: { address: route.params.address }}">
-                <q-item-section>
-                  <q-item-label>Partially Signed Transactions</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-item-label caption>{{ psts?.length || 0 }}</q-item-label>
-                </q-item-section>
-              </q-item> -->
               <q-separator spaced inset />
-              <q-item>
-                <q-item-section >
-                  <div class="row justify-around q-gutter-sm">
-                    <q-btn size="sm" color="primary" dense no-caps :to="{ name: 'app-multisig-wallet-receive', address: route.params.address }" class="col">
-                  <template v-slot:default>
-                    <div class="row justify-center">
-                      <q-icon name="mdi-qrcode" class="col-12"></q-icon>
-                      <div class="col-12">QR</div>
-                    </div>
-                  </template>
-                </q-btn>
-                <q-btn size="sm" dense no-caps @click="$emit('Send')" color="primary" class="col">
-                  <template v-slot:default>
-                    <div class="row justify-center">
-                      <q-icon name="mdi-plus" class="col-12"></q-icon>
-                      <div class="col-12">Tx</div>
-                    </div>
-                  </template>
-                </q-btn>
-                <q-btn size="sm" dense no-caps @click="exportWallet" color="primary" class="col">
-                  <template v-slot:default>
-                    <div class="row justify-center">
-                      <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
-                      <div class="col-12">Export</div>
-                    </div>
-                  </template>
-                </q-btn>
-                <q-btn size="sm" dense no-caps @click="deleteWallet" class="col">
-                  <template v-slot:default>
-                    <div class="row justify-center">
-                      <q-icon name="apps" class="col-12"></q-icon>
-                      <div class="col-12">...</div>
-                    </div>
-                  </template>
-                </q-btn>
-                  </div>
-                </q-item-section>
-              </q-item>
             </q-list>
           </div>
         </template>
@@ -187,7 +112,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { MultisigTransaction, shortenString, MultisigWallet, exportMultisigWallet } from 'src/lib/multisig'
+import { shortenString, getRequiredSignatures,  exportMultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
@@ -289,7 +214,7 @@ const onUpdateTransactionFile = (file) => {
   }
 }
 
-const syncWalletAcrossDevices = () => {
+const publishWallet = () => {
   $q.dialog({
     component: SyncWalletDialog,
     componentProps: {
@@ -305,9 +230,25 @@ const openWalletActionsDialog = () => {
     component: WalletActionsDialog,
     componentProps: {
       darkMode: getDarkModeClass(darkMode.value),
-      onDelete: () => { console.log('deleting beach') },
-      onImport: () => { console.log('deleting beach') },
-      onExport: () => { console.log('deleting beach') }
+      txProposals: transactions?.value,
+      onPublishWallet: () => {
+        publishWallet()
+      },
+      onExportWallet: () => { 
+        exportWallet()
+      },
+      onImportTx: () => {
+        loadTransactionProposal()
+      },
+      onViewTxProposals: () => {
+        router.push({ name: 'app-multisig-wallet-transactions', params: {address: route.params.address} })
+      },
+      onSendTx: () => {
+        console.log('Open Send Tx Dialog')
+      },
+      onReceiveTx: () => {
+        console.log('Open Qr Code')
+      }
     }
   })
 }
