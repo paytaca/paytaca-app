@@ -2,9 +2,9 @@
   <q-dialog ref="dialogRef" full-width full-height maximized>
     <q-card class="q-dialog-plugin pt-card row items-center justify-center text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
-        <div class="text-grad text-center text-h6">{{$t('Sync Wallet Across Devices')}}</div>
+        <div class="text-grad text-center text-h6">{{$t('Upload Wallet')}}</div>
         <div class="text-subtitle-2 text-justify">
-Instead of exporting the multisig wallet as a file for manual sharing, you can sync it directly across signers' devices. This operation uploads only the essential wallet details—such as the wallet name, signer xpubs, and required number of signatures—to the server. <strong>Private keys are never uploaded.</strong>
+Instead of exporting the multisig wallet as a file for manual sharing, you can upload it to the Paytaca server so you (on your other devices) and your cosigners can access it. This operation uploads only the essential wallet details—such as the wallet name, signer xpubs, and required number of signatures—to the server. <strong>Private keys are never uploaded.</strong>
         </div>
           <q-list v-if="false" separator>
            <q-item-label class="text-justify text-h6 q-mb-sm">This process involves signing a message that'll be verified by the server. It Looks like multiple signers can sign on this device. You may select which signer as 'admin' to the {{ multisigWallet.name || 'multisig'}} wallet. This is just for record keeping and has nothing to do with the transaction signing process. </q-item-label>
@@ -31,7 +31,7 @@ Instead of exporting the multisig wallet as a file for manual sharing, you can s
           flat
         />
         <q-btn
-          :label="$t('Ok')"
+          :label="$t('Upload')"
           no-caps
           @click="onOkClick"
           color="primary"

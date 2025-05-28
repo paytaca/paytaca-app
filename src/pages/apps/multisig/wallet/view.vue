@@ -16,7 +16,7 @@
             <q-list>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="text-h6">{{ wallet.template.name }}
+                  <q-item-label class="text-bold">{{ wallet.template.name }}
                   <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
                   </q-item-label>
                 </q-item-section>
@@ -27,7 +27,7 @@
               </q-item>
               <q-item>
                <q-item-section>
-                <q-item-label>Published</q-item-label> 
+                <q-item-label>Uploaded to server</q-item-label> 
                </q-item-section>
                <q-item-section side>
                  <q-item-label class="flex flex-wrap q-gutter-x-sm items-center">
@@ -40,7 +40,7 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label>Address</q-item-label>
+                  <q-item-label>Address - {{ wallet.lockingData?.hdKeys?.addressIndex}}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label >
@@ -54,7 +54,7 @@
                  <q-item-label>Balance</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label caption>{{ balance || 0 }}</q-item-label>
+                  <q-item-label caption>{{ balance || 0 }} BCH</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -66,7 +66,6 @@
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
-              <q-item-label header>Signers</q-item-label>
               <q-item v-for="signerEntityKey in Object.keys(wallet.template.entities)" :key="`app-multisig-view-signer-${signerEntityKey}`">
                 <q-item-section>
                   <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerEntityKey}}. {{ wallet.template.entities[signerEntityKey].name }}</q-item-label>
@@ -117,7 +116,10 @@ import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
+import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import SyncWalletDialog from 'components/multisig/SyncWalletDialog.vue'
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -214,12 +216,12 @@ const onUpdateTransactionFile = (file) => {
   }
 }
 
-const publishWallet = () => {
+const uploadWallet = () => {
   $q.dialog({
     component: SyncWalletDialog,
     componentProps: {
       multisigWallet: wallet.value,
-      darkMode: getDarkModeClass(darkMode.value) }
+      darkMode: darkMode.value }
   }).onOk(async() => {
         await $store.dispatch('multisig/syncWallet', { multisigWallet: wallet.value, address: route.params.address })
   })
@@ -231,8 +233,8 @@ const openWalletActionsDialog = () => {
     componentProps: {
       darkMode: darkMode.value,
       txProposals: transactions?.value,
-      onPublishWallet: () => {
-        publishWallet()
+      onUploadWallet: () => {
+        uploadWallet()
       },
       onExportWallet: () => { 
         exportWallet()
@@ -255,11 +257,21 @@ const openWalletActionsDialog = () => {
       onViewTxProposals: () => {
         router.push({ name: 'app-multisig-wallet-transactions', params: {address: route.params.address} })
       },
-      onSendTx: () => {
+      onSend: () => {
         console.log('Open Send Tx Dialog')
       },
-      onReceiveTx: () => {
-        console.log('Open Qr Code')
+      onReceive: () => { 
+        const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet: CashAddressNetworkPrefix.mainnet
+	$q.dialog({
+          component: WalletReceiveDialog,
+          componentProps: {
+            darkMode: darkMode.value,
+            multisigWallet: wallet.value,
+            cashAddressNetworkPrefix: addressPrefix
+          }
+        }).onOk(() => {
+           openWalletActionsDialog()
+        })
       }
     }
   })

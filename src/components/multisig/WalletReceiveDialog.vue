@@ -30,7 +30,7 @@
         </div -->
       </q-card-section>
       <q-card-actions>
-        <q-btn label="Close" color="red" v-close-popup></q-btn>
+        <q-btn label="Close" @click="onDialogOK" color="red" v-close-popup></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -53,13 +53,7 @@ const props = defineProps({
 const isCashtoken = ref(false)
 const address = ref()
 const addressIndex = ref(0)
-
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
-
-const onOkClick = () => {
-  onDialogOK()
-}
-
 
 watch(() => isCashtoken.value, (isTrue) => {
  if (!address.value) return
@@ -79,7 +73,8 @@ onMounted(() => {
     lockingData: props.multisigWallet.lockingData,
     template: props.multisigWallet.template,
     cashAddressNetworkPrefix: props.cashAddressNetworkPrefix
-   }) 
+   })
+   addressIndex.value = props.multisigWallet.lockingData.hdKeys.addressIndex 
 })
 
 </script>
