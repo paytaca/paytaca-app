@@ -2,7 +2,7 @@ import { getMultisigCashAddress, getLockingBytecode, findMultisigWalletByLocking
 import { hashTransaction, binToHex } from 'bitauth-libauth-v3'
 
 export function saveWallet (state, multisigWallet) {
-  const lockingBytecode = getLockingBytecode({ template:multisigWallet.template, lockingData: multisigWallet.lockingData })
+  const lockingBytecode = getLockingBytecode({ template: multisigWallet.template, lockingData: multisigWallet.lockingData })
   const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)	
   const index = state.wallets.findIndex((wallet) => {
     const existingLockingBytecode = getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData })

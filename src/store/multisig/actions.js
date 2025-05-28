@@ -14,7 +14,7 @@ export async function syncWallet({ commit, getters, rootGetters }, { address, mu
   return response.data
 }
 
-export async function saveWallet ({ commit, getters, rootGetters }, { multisigWallet }) {
+export async function saveWallet ({ commit, getters, rootGetters }, multisigWallet) {
   return commit('saveWallet', multisigWallet)
 
   // const signerLocalWallets = rootGetters['global/getVault']
