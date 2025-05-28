@@ -1,6 +1,6 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" :class="getDarkModeClass(darkMode)" class="text-bow">
       <HeaderNav
         :title="$t('Multisig Wallets')"
         backnavpath="/apps"
@@ -14,7 +14,7 @@
     </HeaderNav>
       <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center">
           <div class="col-xs-12 q-px-xs q-gutter-y-sm">
-            <q-list v-if="multisigWallets" separator class="text-bow" :class="getDarkModeClass(darkMode)">              
+            <q-list v-if="multisigWallets" separator :class="getDarkModeClass(darkMode)">              
               <q-item>
                 <q-item-section></q-item-section>
                 <q-item-section side top>
@@ -64,7 +64,7 @@
       </div>
       <div v-else class="row justify-center items-center" style="height: 80vh">
         <div class="col-10 text-center q-gutter-lg">
-         <div class="text-h6">No Multisig Wallet Found</div>
+         <div class="text-h6 text-bow-muted">No Multisig Wallet Found</div>
         <div>
         <q-btn
           no-caps

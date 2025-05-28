@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" full-width full-height maximized>
-    <q-card class="q-dialog-plugin pt-card row items-center justify-center" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-dialog-plugin pt-card row items-center justify-center text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
         <div class="text-grad text-center text-h6">{{$t('Sync Wallet Across Devices')}}</div>
         <div class="text-subtitle-2 text-justify">

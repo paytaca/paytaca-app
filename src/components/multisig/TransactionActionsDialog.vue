@@ -4,7 +4,7 @@
     seamless
     auto-close
     >
-    <q-card :class ="`q-pb-lg pt-card text-bow ${darkMode}`">
+    <q-card class ="q-pb-lg pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <q-bar class="full-width bg-inherit" style="padding: 0px;">
         <q-btn icon="keyboard_arrow_down" class="full-width" @click="dialogRef.hide()" flat></q-btn>
       </q-bar>
@@ -39,6 +39,7 @@
 </template>
 <script setup>
 import { useDialogPluginComponent } from 'quasar'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const $emit = defineEmits ([
   'broadcast',
@@ -47,6 +48,6 @@ const $emit = defineEmits ([
   ...useDialogPluginComponent.emits
 ])
 defineProps({
-  darkMode: String
+  darkMode: Boolean
 })
 </script>
