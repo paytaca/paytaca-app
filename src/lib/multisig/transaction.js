@@ -1030,6 +1030,30 @@ export const refreshTransactionStatus = async ({ multisigWallet, multisigTransac
   }
 }
 
+export const signatureValuesToUint8Array = ({ signatures }) => {
+  signatures.forEach((signature) => {
+    if (typeof(signature.sigValue) === 'string') {
+     signature.sigValue = hexToBin(signature.sigValue)
+    }
+    signature.sigValue = Uint8Array.from(Object.values(signature.sigValue))	  
+  })
+  return signatures
+}
+
+export const sourceOutputsValuesToUint8Array = ({ sourceOutputs }) => {
+ sourceOutputs.forEach((sourceOutput) => {
+   if (typeof(sourceOutput.lockingBytecode) === 'string') {
+     sourceOutput.lockingBytecode = hexToBin(sourceOutput.lockingBytecode)
+   }
+   if (typeof(sourceOutput.outpointTransactionHash) === 'string') {
+     sourceOutput.outpointTransactionHash = hexToBin(sourceOutput.outpointTransactionHash)
+   }
+     sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+     sourceOutput.outpointTransactionHash = Uint8Array.from(Object.values(sourceOutput.outpointTransactionHash))
+ })
+ return sourceOutputs
+}
+
 export const importPst = ({ pst }) => {
   if (typeof pst === 'string') {
     const bin = base64ToBin(pst)
@@ -1037,7 +1061,9 @@ export const importPst = ({ pst }) => {
     const decoded = decodeTransactionCommon(hexToBin(parsed.transaction))
     parsed.transaction = transactionBinObjectsToUint8Array(
       decoded
-    )
+    ) 
+    parsed.signatures = signatureValuesToUint8Array({ signatures: parsed.signatures })
+    parsed.sourceOutputs = sourceOutputsValuesToUint8Array({ sourceOutputs: parsed.sourceOutputs })
     if (parsed.sourceOutputs) {
       parsed.transaction.inputs.forEach((input) => {
       // embedding sourceOutput to input
@@ -1052,17 +1078,62 @@ export const importPst = ({ pst }) => {
       // inserting address to output
       output.address = lockingBytecodeToCashAddress({ bytecode: output.lockingBytecode }).address
     })
+    console.log('after import', parsed)
     return parsed
   }
 }
 
-export const exportPst = ({ multisigTransaction, address, addressIndex = 0, format = 'base64' }) => {
+export const exportPstRaw = ({ multisigTransaction, address, addressIndex = 0, format = 'base64' }) => {
   // const includeSourceOutputs = this.transaction.inputs.some((input) => !input.sourceOutput)
   const { origin, prompt, status } = multisigTransaction.metadata
   const pst = {
-    transaction: binToHex(encodeTransactionCommon(multisigTransaction.transaction)),
+    transaction: binToHex(encodeTransactionCommon(transactionBinObjectsToUint8Array(multisigTransaction.transaction))),
     sourceOutputs: multisigTransaction.sourceOutputs,
     signatures: multisigTransaction.signatures,
+    metadata: {
+      v: 1,
+      address,
+      addressIndex,
+      origin,
+      prompt,
+      status
+    }
+  }
+  // if (includeSourceOutputs) {
+  //   // EMBED
+  //   pst.sourceOutputs = this.sourceOutputs
+  // }
+  if (format === 'json') return JSON.stringify(pst)
+  if (format === 'electron-cash') throw new Error('Not yet implemented')
+  const bin = utf8ToBin(JSON.stringify(pst))
+  return binToBase64(bin)
+}
+
+
+export const exportPst = ({ multisigTransaction, address, addressIndex = 0, format = 'base64' }) => {
+  // const includeSourceOutputs = this.transaction.inputs.some((input) => !input.sourceOutput)
+  const { origin, prompt, status } = multisigTransaction.metadata
+  const sourceOutputs = structuredClone(multisigTransaction.sourceOutputs)
+  sourceOutputs.forEach((utxo) => {
+    console.log('typeof ', typeof(utxo.outpointTransactionHash))
+    if (typeof(utxo.outpointTransactionHash) !== 'string') {
+      utxo.outpointTransactionHash = binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash)))
+     
+    }
+    if (typeof(utxo.lockingBytecode) !== 'string') {
+      utxo.lockingBytecode = binToHex(Uint8Array.from(Object.values(utxo.lockingBytecode)))
+    }
+  })
+  const signatures = structuredClone(multisigTransaction.signatures)
+  signatures.forEach((signature) => {    
+    if (typeof(signature.sigValue) !== 'string') {
+      signature.sigValue = binToHex(Uint8Array.from(Object.values(signature.sigValue)))
+    }
+  })
+  const pst = {
+    transaction: binToHex(encodeTransactionCommon(transactionBinObjectsToUint8Array(multisigTransaction.transaction))),
+    sourceOutputs,
+    signatures,
     metadata: {
       v: 1,
       address,
