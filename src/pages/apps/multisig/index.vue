@@ -37,7 +37,7 @@
                 clickable
                 >
                 <q-item-section>
-                  <q-item-label class="text-h6 text-weight-bold flex items-center">
+                  <q-item-label class="text-weight-bold flex items-center">
                     <q-icon name="mdi-wallet-outline" color="grad" class="q-mr-sm"></q-icon><span>{{ wallet.template.name }}</span>
                   </q-item-label>
                   <q-item-label caption class="text-subtitle1">
@@ -49,7 +49,7 @@
                     </span>
                   </q-item-label>
                 </q-item-section>
-                <q-item-section side top>
+                <!--q-item-section side top>
                   <q-btn
                     icon="close"
                     @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.address) }"
@@ -57,7 +57,7 @@
                     dense
                   >
                   </q-btn>
-                </q-item-section>
+                </q-item-section-->
               </q-item>
             </q-list>
           </div>
