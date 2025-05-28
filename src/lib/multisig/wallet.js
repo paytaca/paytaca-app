@@ -344,6 +344,10 @@ export const getSignerInfos = (multisigWallet) => {
   })
 }
 
+export const getRequiredSignatures = (template) => {
+  return Number(template.scripts.lock.script.match(/OP_\d/)[0].split('_')[1])
+}
+
 export const findMultisigWalletByLockingData = ({ multisigWallets, template, lockingData }) => {
   const lockingBytecode = getLockingBytecode({ template, lockingData })
   const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)
@@ -354,3 +358,5 @@ export const findMultisigWalletByLockingData = ({ multisigWallets, template, loc
   })
   return wallet
 }
+
+
