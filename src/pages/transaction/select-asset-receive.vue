@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="darkMode ? 'text-light' : 'text-dark'" style="margin-top: 84px;">
+  <div id="app-container" class="grad text-light">
     <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense
@@ -26,12 +26,12 @@
       />
     </q-tabs>
     <template v-if="assets">
-      <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
-        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
+      <div :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
+        <!-- <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
           <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
             {{ $t('SelectAssetToBeReceived') }}
           </p>
-        </div>
+        </div> -->
         <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
@@ -42,7 +42,7 @@
           :key="index"
           @click="checkIfFirstTimeReceiver(asset)"
           role="button"
-          class="row q-pl-lg q-pr-lg"
+          class="row q-pl-lg q-pr-lg asset-button"
         >
           <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)" v-if="isCashToken">
             <div class="row q-pt-sm q-pb-xs q-pl-md">
@@ -55,7 +55,7 @@
               </div>
               <div class="col q-pl-sm q-pr-sm">
                 <p
-                  class="q-ma-none text-token text-weight-regular"
+                  class="q-ma-none title-large"
                   :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
                 >
                   {{ asset.name }}
@@ -364,5 +364,10 @@ export default {
   .pt-label {
     font-size: 16px;
     font-weight: 300;
+  }
+  .asset-button {
+    margin: 10px 20px 10px;
+    border: 1px solid #fff; 
+    border-radius: 10px;
   }
 </style>

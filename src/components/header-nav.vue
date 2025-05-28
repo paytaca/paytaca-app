@@ -2,7 +2,7 @@
   <div class="header-nav" :class="hasGradient ? 'gradient-bg':''" :style="{ height: getHeight }">
     <div class="nav-content row text-light">
       <div class="col-2">
-        <q-btn icon="arrow_back_ios" style="padding-left: 5px;" size="sm" class="button-border" @click="previousPage()"/>
+        <q-btn flat icon="arrow_back_ios" size="md" @click="previousPage()"/>
       </div>
       <div class="col-8 text-center title-large">
         {{ title }} <span class="title-small" v-if="subtitle">({{ subtitle }})</span>

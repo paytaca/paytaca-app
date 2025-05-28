@@ -37,7 +37,9 @@
 		    		<div class="constant-padding">
 		    			<q-btn @click="selectLoginType('seed-phrase')" class="full-width button-default" no-caps label="Seed Phrase" style="border-radius: 10px; padding: 10px 24px 10px;"/>
 		    		</div>
-		    		<div class="text-center title-small text-link constant-padding" @click="back()">Back to Log In</div>
+		    		<div class="text-center constant-padding" @click="back()">
+		    			<q-btn flat class="text-primary"><q-icon name="arrow_back_ios"/></q-btn>
+		    		</div>
 	    		</div>	    				    				   
 		    </q-card>
 	    </div>	

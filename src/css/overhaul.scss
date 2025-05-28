@@ -78,7 +78,7 @@ body.theme-overhaul {
     position: fixed;
     top: 0;
     width: 100%;
-    background-color: $header_nav_bg;
+    background-color: transparent;
     z-index: 6;
   }
   .page-content {
@@ -166,7 +166,7 @@ body.theme-overhaul {
     color: $dark_txt
   }
   .text-primary {
-    color: $primary
+    color: #3b7bf6;/*$primary*/
   }
   .text-royal-blue {
     color: #295BF6;

@@ -1,10 +1,9 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="grad" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="$t('Receive') + ' ' + asset.symbol"
-      backnavpath="/receive/select-asset"
     ></header-nav>
-    <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
+    <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)" style="margin-top: 50px;">
       <q-icon
         v-if="!isSep20"
         id="context-menu"
@@ -34,22 +33,22 @@
       </q-icon>
       <div>
         <div v-if="asset.id ==='bch'" class="row flex-center">
-          <div class="row flex-center" style="margin-top: 20px;">
+          <div class="row flex-center text-light" style="margin-top: 20px;">
             <q-img @click="isCt = false" src="bitcoin-cash-circle.svg" height="35px" width="35px" />
-            <span @click="isCt = false">&nbsp;BCH</span>
+            <span @click="isCt = false" class="title-medium">&nbsp;BCH</span>
             <q-toggle
               v-model="isCt"
               class="text-bow"
               style="margin: auto;"
-              keep-color
               color="teal-5"
               size="lg"
+              dark
               checked-icon="img:ct-logo.png"
               unchecked-icon="img:bch-logo.png"
               :class="getDarkModeClass(darkMode)"
             />
             <q-img @click="isCt = true" src="ct-logo.png" height="35px" width="35px" />
-            <span @click="isCt = true">&nbsp;{{ $t('CashToken') }}</span>
+            <span @click="isCt = true" class="title-medium">&nbsp;{{ $t('CashToken') }}</span>
           </div>
         </div>
         <div class="row">
@@ -61,7 +60,7 @@
                     :text="isCt ? address : addressAmountFormat"
                     :generating="generating"
                     border-width="3px"
-                    border-color="#ed5f59"
+                    border-color="#4174d9"
                     :size="220"
                     :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)"
                     class="q-mb-sm"
@@ -73,13 +72,13 @@
           </div>
         </div>
         <div v-if="!isCt && asset.id ==='bch'" class="row flex-center">
-          <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
-          <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
+          <q-icon color="white" v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
+          <q-icon color="white" v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
         </div>
         <div class="row q-mt-md" v-if="walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
           <q-toggle
             v-model="legacy"
-            class="text-bow"
+            class="text-bow text-light title-medium"
             style="margin-left: auto; margin-right: auto; margin-top: -10px;"
             :class="getDarkModeClass(darkMode)"
             keep-color
@@ -91,8 +90,8 @@
           <div class="col copy-container">
             <span class="qr-code-text text-weight-light text-center">
               <div
-                class="text-nowrap text-bow"
-                style="letter-spacing: 1px;"
+                class="text-nowrap text-bow text-light title-large"
+                style="letter-spacing: 1px; text-shadow: 1px 1px #20242e;"
                 @click="copyToClipboard(isCt ? address : addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
@@ -128,7 +127,7 @@
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
             >
-              <span class="cursor-pointer" @click="amountDialog = true; customKeyboardState = 'show';">
+              <span class="cursor-pointer text-light text-underline title-medium" @click="amountDialog = true; customKeyboardState = 'show';">
                 {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
               </span>
               <span class="q-ml-md text-negative cursor-pointer" @click="amount = ''">
@@ -139,7 +138,7 @@
         </div>
       </div>
     </div>
-    <div v-if="amountDialog">
+    <div v-if="amountDialog" style="margin-top: 50px;">
       <div class="text-right">
         <q-btn
           flat
@@ -839,9 +838,8 @@ export default {
     }
   }
   .qr-code-text {
-    font-family: monospace;
-    font-size: 17px;
-    color: #000;
+    font-size: 20px;
+    color: #fff;
   }
   .copy-container {
     padding: 20px 40px 0px 40px;

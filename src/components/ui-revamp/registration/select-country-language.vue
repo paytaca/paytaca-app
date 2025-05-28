@@ -18,7 +18,7 @@
 	    </div>		
 	    <div class="button-container">
           <div class="">
-            <q-btn outline label="Continue" class="full-width" style="border-radius: 10px; padding: 10px 0px 10px;" @click="$emit('done')"/>
+            <q-btn outline label="Continue" class="full-width button-default" style="border-radius: 10px; padding: 10px 0px 10px;" @click="$emit('done')"/>
           </div>
         </div>
 	</div>	

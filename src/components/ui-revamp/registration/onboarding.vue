@@ -50,14 +50,22 @@
           </div>
         </div>
       </div>
-      <div class="row button-container">
-          <div class="col-4 q-pr-sm">
+      <div class="button-container">
+        <div class="full-width">
+          <q-btn @click="nextStep()" padding="sm" label="Continue" class="full-width button-default" style="border-radius: 10px; padding: 10px 0px 10px"/>
+        </div>
+        <div class="text-center q-pt-sm">
+          <q-btn no-caps flat @click="$emit('register')">
+            <div class="text-underline">Skip</div>
+          </q-btn>
+        </div>
+          <!-- <div class="col-4 q-pr-sm">
             <q-btn outline label="Skip" class="full-width" style="border-radius: 10px; padding: 10px 0px 10px;" @click="$emit('register')"/>
           </div>
           <div class="col-8 q-pl-sm">
             <q-btn @click="nextStep()" padding="sm" label="Continue" class="full-width button-red" style="border-radius: 10px; padding: 10px 0px 10px"/>
-          </div>
-        </div>
+          </div>-->        
+      </div>
     </div>
   </div>
 </template>
