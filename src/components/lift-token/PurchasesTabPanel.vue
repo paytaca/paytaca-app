@@ -1,4 +1,39 @@
 <template>
+  <div class="row text-body1 justify-evenly">
+    <sale-group-chip
+      :saleGroup="'all'"
+      :outline="isChipOutline('all')"
+      @click="filterPurchasesList('all')"
+    />
+    <sale-group-chip
+      :saleGroup="SaleGroup.SEED"
+      :outline="isChipOutline(SaleGroup.SEED)"
+      @click="filterPurchasesList(SaleGroup.SEED)"
+    />
+    <sale-group-chip
+      :saleGroup="SaleGroup.PRIVATE"
+      :outline="isChipOutline(SaleGroup.PRIVATE)"
+      @click="filterPurchasesList(SaleGroup.PRIVATE)"
+    />
+    <sale-group-chip
+      :saleGroup="SaleGroup.PUBLIC"
+      :outline="isChipOutline(SaleGroup.PUBLIC)"
+      @click="filterPurchasesList(SaleGroup.PUBLIC)"
+    />
+    <sale-group-chip
+      :saleGroup="'lock'"
+      :outline="isChipOutline('lock')"
+      @click="filterPurchasesList('lock')"
+    />
+    <sale-group-chip
+      :saleGroup="'vest'"
+      :outline="isChipOutline('vest')"
+      @click="filterPurchasesList('vest')"
+    />
+  </div>
+
+  <q-separator spaced />
+
   <template v-if="finalPurchasesList?.length === 0">
     <div class="q-mt-md row flex-center full-width text-h5 text-grey">
       No purchases found
@@ -6,41 +41,6 @@
   </template>
 
   <template v-else>
-    <div class="row text-body1">
-      <sale-group-chip
-        :saleGroup="'all'"
-        :outline="isChipOutline('all')"
-        @click="filterPurchasesList('all')"
-      />
-      <sale-group-chip
-        :saleGroup="SaleGroup.SEED"
-        :outline="isChipOutline(SaleGroup.SEED)"
-        @click="filterPurchasesList(SaleGroup.SEED)"
-      />
-      <sale-group-chip
-        :saleGroup="SaleGroup.PRIVATE"
-        :outline="isChipOutline(SaleGroup.PRIVATE)"
-        @click="filterPurchasesList(SaleGroup.PRIVATE)"
-      />
-      <sale-group-chip
-        :saleGroup="SaleGroup.PUBLIC"
-        :outline="isChipOutline(SaleGroup.PUBLIC)"
-        @click="filterPurchasesList(SaleGroup.PUBLIC)"
-      />
-      <sale-group-chip
-        :saleGroup="'lock'"
-        :outline="isChipOutline('lock')"
-        @click="filterPurchasesList('lock')"
-      />
-      <sale-group-chip
-        :saleGroup="'vest'"
-        :outline="isChipOutline('vest')"
-        @click="filterPurchasesList('vest')"
-      />
-    </div>
-
-    <q-separator spaced />
-
     <q-scroll-area style="height: 60vh; width: 100%">
       <div class="row q-pt-sm q-pb-md q-px-sm q-gutter-y-md">
         <q-card
@@ -119,13 +119,21 @@ export default {
 
     filterPurchasesList (saleGroup) {
       this.selectedFilter = saleGroup
-      // if (saleGroup === 'all') {
-      //   this.finalRsvpList = this.reservationsList
-      // } else {
-      //   this.finalRsvpList = this.reservationsList.filter(
-      //     a => a.sale_group === saleGroup
-      //   )
-      // }
+      if (saleGroup === 'all') {
+        this.finalPurchasesList = this.purchasesList
+      } else if (saleGroup === 'lock') {
+        this.finalPurchasesList = this.purchasesList.filter(
+          a => a.vesting_details.length === 0
+        )
+      } else if (saleGroup === 'vest') {
+        this.finalPurchasesList = this.purchasesList.filter(
+          a => a.vesting_details.length > 0
+        )
+      } else {
+        this.finalPurchasesList = this.purchasesList.filter(
+          a => a.sale_group === saleGroup
+        )
+      }
     },
     isChipOutline (saleGroup) {
       if (this.selectedFilter === 'all') return false

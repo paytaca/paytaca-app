@@ -1,4 +1,29 @@
 <template>
+  <div class="row text-body1 justify-evenly">
+    <sale-group-chip
+      :saleGroup="'all'"
+      :outline="isChipOutline('all')"
+      @click="filterRsvpList('all')"
+    />
+    <sale-group-chip
+      :saleGroup="SaleGroup.SEED"
+      :outline="isChipOutline(SaleGroup.SEED)"
+      @click="filterRsvpList(SaleGroup.SEED)"
+    />
+    <sale-group-chip
+      :saleGroup="SaleGroup.PRIVATE"
+      :outline="isChipOutline(SaleGroup.PRIVATE)"
+      @click="filterRsvpList(SaleGroup.PRIVATE)"
+    />
+    <sale-group-chip
+      :saleGroup="SaleGroup.PUBLIC"
+      :outline="isChipOutline(SaleGroup.PUBLIC)"
+      @click="filterRsvpList(SaleGroup.PUBLIC)"
+    />
+  </div>
+
+  <q-separator spaced />
+
   <template v-if="finalRsvpList?.length === 0">
     <div class="q-mt-md row flex-center full-width text-h5 text-grey">
       No reservations found
@@ -6,31 +31,6 @@
   </template>
 
   <template v-else>
-    <div class="row text-body1">
-      <sale-group-chip
-        :saleGroup="'all'"
-        :outline="isChipOutline('all')"
-        @click="filterRsvpList('all')"
-      />
-      <sale-group-chip
-        :saleGroup="SaleGroup.SEED"
-        :outline="isChipOutline(SaleGroup.SEED)"
-        @click="filterRsvpList(SaleGroup.SEED)"
-      />
-      <sale-group-chip
-        :saleGroup="SaleGroup.PRIVATE"
-        :outline="isChipOutline(SaleGroup.PRIVATE)"
-        @click="filterRsvpList(SaleGroup.PRIVATE)"
-      />
-      <sale-group-chip
-        :saleGroup="SaleGroup.PUBLIC"
-        :outline="isChipOutline(SaleGroup.PUBLIC)"
-        @click="filterRsvpList(SaleGroup.PUBLIC)"
-      />
-    </div>
-
-    <q-separator spaced />
-
     <q-scroll-area style="height: 60vh; width: 100%">
       <div class="row q-pt-sm q-pb-md q-px-sm q-gutter-y-md">
         <q-card
