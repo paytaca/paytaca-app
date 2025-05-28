@@ -27,7 +27,7 @@
               class="q-py-md"
             >
               <q-item-section>
-                <q-item-label class="text-h6 text-weight-bold flex items-center">
+                <q-item-label class="text-weight-bold flex items-center">
                   <q-icon name="mdi-file-settings-outline" class="q-mr-sm"></q-icon><span>{{ multisigTransaction.metadata.prompt }}</span>
                 </q-item-label>
                 <q-item-label caption>
@@ -96,6 +96,7 @@ onBeforeMount(async () => {
 })
 
 onMounted(() => {
+  console.log('multisig tx', multisigTransactions.value)
   if (multisigTransactions.value?.length === 0) {
     router.push({ name: 'app-multisig-wallet-view', params: { address: route.params.address } })
   }

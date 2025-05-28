@@ -54,7 +54,6 @@
               </q-list>
             </div>
         </div>
-        <!-- display created wallets  -->
        </div>
       </div>
   </template>

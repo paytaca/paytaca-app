@@ -1,6 +1,7 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
+    class="text-bow"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
@@ -13,13 +14,10 @@
             <q-list>
               <q-item>
                 <q-item-section>
-                  <!-- <q-item-label class="text-h6">{{ transactionUserPrompt }}</q-item-label> -->
-                  <!-- <q-item-label caption lines="2">Origin: {{ transactionOrigin }}</q-item-label> -->
-                    <q-item-label class="text-h6">{{ multisigTransaction.metadata?.prompt }}</q-item-label>
-                    <q-item-label caption lines="2">Origin: {{ multisigTransaction.metadata?.origin }}</q-item-label>
+                    <q-item-label class="text-weight-bold">{{ multisigTransaction.metadata?.prompt }}</q-item-label>
+                    <q-item-label caption lines="2" class="text-subtitle-2">Origin: {{ multisigTransaction.metadata?.origin }}</q-item-label>
                 </q-item-section>
-                <q-item-section side>
-                  <!-- <q-item-label caption>5 min ago</q-item-label> -->
+                <q-item-section side top>
                   <q-icon name="payment" color="grad"></q-icon>
                 </q-item-section>
               </q-item>
@@ -36,7 +34,7 @@
                   <q-item-label>Spending</q-item-label>
                 </q-item-section>
                 <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
-                  <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
+                  <q-btn v-if="multisigTransaction.sourceOutputs" flat dense icon-right="img:bitcoin-cash-circle.svg">
                     {{ getTotalBchInputAmount(multisigTransaction.transaction) }}
                     &nbsp;
                   </q-btn>
@@ -103,7 +101,7 @@
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label >
-                    {{ shortenString(multisigWallet.address, 20) }}
+                    {{ shortenString(multisigWallet.address, 35) }}
                   </q-item-label>
                   <!-- <q-icon name="bch" color="green" /> -->
                 </q-item-section>
@@ -120,7 +118,7 @@
               </q-item> -->
               <q-item>
                 <q-item-section>
-                  <q-item-label class="text-h6">Signatures</q-item-label>
+                  <q-item-label class="text-bow-muted">Signatures</q-item-label>
                 </q-item-section>
                 <!-- <q-item-section side top>
                   <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
@@ -231,27 +229,27 @@ signerCanSignOnThisDevice                  >
               <q-item>
                 <q-item-section >
                   <div class="flex flex-wrap justify-around relative">
-                    <q-btn @click="deleteTransaction" class="footer-icon-btn default-text-color" flat dense no-caps :color="!darkMode && 'primary'">
+                    <q-btn @click="deleteTransaction" class="footer-icon-btn default-text-color tile" flat dense no-caps :color="!darkMode && 'primary'">
                       <template v-slot:default>
                         <div class="row justify-center">
-                          <q-icon name="delete_outline" class="col-12"></q-icon>
-                          <div class="col-12">Delete</div>
+                          <q-icon name="delete_forever" class="col-12" color="red" ></q-icon>
+                          <div class="col-12 tile-label">Delete</div>
                         </div>
                       </template>
                     </q-btn>
-                    <q-btn @click="downloadPst" flat dense no-caps :color="!darkMode && 'primary'">
+                    <q-btn @click="downloadPst" flat dense no-caps :color="!darkMode && 'primary'" class="tile">
                       <template v-slot:default>
                         <div class="row justify-center">
                           <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
-                          <div class="col-12">Export PST</div>
+                          <div class="col-12 tile-label">Export PST</div>
                         </div>
                       </template>
                     </q-btn>
-                    <q-btn @click="sharePst" flat dense no-caps :color="!darkMode && 'primary'">
+                    <q-btn @click="uploadPst" flat dense no-caps :color="!darkMode && 'primary'" class="tile">
                       <template v-slot:default>
                         <div class="row justify-center">
-                          <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
-                          <div class="col-12">Share PST</div>
+                          <q-icon name="upload" class="col-12"></q-icon>
+                          <div class="col-12 tile-label">Upload PST</div>
                         </div>
                       </template>
                     </q-btn>
@@ -261,11 +259,13 @@ signerCanSignOnThisDevice                  >
                       flat dense no-caps
                       :loading="multisigTransaction.metadata?.isBroadcasting"
                       :disable="multisigTransaction?.metadata?.status >= 3"
+                      class="tile"
+                      :color="!darkMode && 'primary'"
                       >
                       <template v-slot:default>
                         <div class="row justify-center">
                           <q-icon name="cell_tower" class="col-12"></q-icon>
-                          <div class="col-12">Broadcast</div>
+                          <div class="col-12 tile-label">Broadcast</div>
                         </div>
                       </template>
                       <template v-slot:loading>
@@ -316,6 +316,7 @@ import {
   MultisigTransactionStatusText
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import UploadPstDialog from 'components/multisig/UploadPstDialog.vue'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -416,17 +417,13 @@ const downloadPst = () => {
   }).onCancel(() => {})
 }
 
-const sharePst = () => { 
+const uploadPst = () => { 
   $q.dialog({
-    title: 'Share partially signed transaction',
-    message: 'This will upload the transaction proposal to the server, allowing your cosigners to access and sign it. Click `Proceed` to continue.',
-    class: `pt-card-2 text-bow ${getDarkModeClass(darkMode.value)} q-pb-md`,
-    position: 'bottom',
-    fullWidth: true,
-    ok: { label: 'Proceed', color: 'primary' },
-    cancel: true
+    component: UploadPstDialog,
+    componentProps: {
+      darkMode: darkMode.value
+    }
   }).onOk(async () => {
-    console.log(multisigTransaction.value)
     const pst = exportPst({
      multisigTransaction: multisigTransaction.value,
      address: '',
