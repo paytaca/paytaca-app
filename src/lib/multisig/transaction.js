@@ -1023,10 +1023,7 @@ export const refreshTransactionStatus = async ({ multisigWallet, multisigTransac
       // TODO: check if confirmed, then update
     }
   } catch (error) {} finally {
-    // console.log('🚀 ~ MultisigTransaction ~ refreshStatus ~ metadata:', this.metadata)
-    if (multisigTransaction.metadata?.isRefreshingStatus) {
-      delete multisigTransaction.metadata.isRefreshingStatus
-    }
+      delete multisigTransaction.metadata?.isRefreshingStatus
   }
 }
 
@@ -1052,6 +1049,29 @@ export const sourceOutputsValuesToUint8Array = ({ sourceOutputs }) => {
      sourceOutput.outpointTransactionHash = Uint8Array.from(Object.values(sourceOutput.outpointTransactionHash))
  })
  return sourceOutputs
+}
+
+export const combinePsts = ({ psts }) => {
+ const sameTransactions = psts.every((pst) => {
+   hashTransaction(pst.transaction) === hashTransaction(psts[0].transaction)
+ })
+ const combinedPst = psts[0]
+ const otherPsts = psts.slice(1)
+ for (let i = 0; i < otherPsts.length; i++) {
+   const signatures = otherPsts[i].signatures
+   signatures.forEach((signature) => {
+     const foundSignature = combinedPst.signatures.find((existingSignature) => {
+       return Number(existingSignature.inputIndex) === Number(signature.inputIndex) && 
+              existingSignature.sigKey === signature.sigKey && 
+	      binToHex(Uint8Array.from(Object.values(existingSignature.sigValue))) === binToHex(Uint8Array.from(Object.values(signature.sigValue)))
+     })
+     if (!foundSignature) {
+      combinedPst.signatures.push(signature)
+     }
+   })
+ }
+ console.log('sameTransactions', sameTransactions)
+ return combinedPst
 }
 
 export const importPst = ({ pst }) => {
