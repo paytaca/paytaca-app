@@ -101,7 +101,16 @@
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label >
-                    {{ shortenString(multisigWallet.address, 35) }}
+                    {{
+                       shortenString(
+                         getMultisigCashAddress({
+                           template: multisigWallet.template,
+                           lockingData: multisigWallet.lockingData,
+                           cashAddressNetworkPrefix 
+                         }), 
+                         35
+                       )
+                     }}
                   </q-item-label>
                   <!-- <q-icon name="bch" color="green" /> -->
                 </q-item-section>
@@ -335,7 +344,8 @@ const {
   deleteTransaction,
   multisigWallets,
   updateTransaction,
-  txExplorerUrl
+  txExplorerUrl,
+  cashAddressNetworkPrefix
 } = useMultisigHelpers()
 
 const multisigTransaction = ref()
