@@ -112,7 +112,6 @@
                        )
                      }}
                   </q-item-label>
-                  <!-- <q-icon name="bch" color="green" /> -->
                 </q-item-section>
               </q-item>
               <q-separator spaced inset></q-separator>
@@ -214,79 +213,26 @@ signerCanSignOnThisDevice                  >
                   </q-btn>
                 </q-item-section>
               </q-item>
-              <q-item v-if="multisigTransaction?.metadata?.status >= 3">
+              <q-item v-if="Boolean(multisigTransaction?.txid) && multisigTransaction?.metadata?.status >= 3">
                 <q-item-section>
                   <q-item-label>Transaction Id</q-item-label>
-                  <q-item-label caption lines="2">{{shortenString(multisigTransaction?.signedTransactionId,10)}}</q-item-label>
+                  <q-item-label caption lines="2">{{shortenString(multisigTransaction.txid,10)}}</q-item-label>
                 </q-item-section>
                 <q-item-section side top>
                   <q-item-label>
-                    <q-btn icon="launch" no-caps flat @click="openURL(`${txExplorerUrl}/${multisigTransaction?.signedTransactionId}`)">View</q-btn>
+                    <q-btn icon="launch" no-caps flat @click="openURL(`${txExplorerUrl}/${multisigTransaction?.txid}`)">View</q-btn>
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <q-separator spaced inset />
-              
-              <!--q-item>
-                <q-item-section >
-                  <div class="flex flex-wrap justify-around relative">
-                    <q-btn @click="deleteTransaction" class="footer-icon-btn default-text-color tile" flat dense no-caps :color="!darkMode && 'primary'">
-                      <template v-slot:default>
-                        <div class="row justify-center">
-                          <q-icon name="delete_forever" class="col-12" color="red" ></q-icon>
-                          <div class="col-12 tile-label">Delete</div>
-                        </div>
-                      </template>
-                    </q-btn>
-                    <q-btn @click="downloadPst" flat dense no-caps :color="!darkMode && 'primary'" class="tile">
-                      <template v-slot:default>
-                        <div class="row justify-center">
-                          <q-icon name="mdi-file-export-outline" class="col-12"></q-icon>
-                          <div class="col-12 tile-label">Export PST</div>
-                        </div>
-                      </template>
-                    </q-btn>
-                    <q-btn @click="loadCosignerPst" flat dense no-caps :color="!darkMode && 'primary'" class="tile">
-                      <template v-slot:default>
-                        <div class="row justify-center">
-                          <q-icon name="mdi-file-upload-outline" class="col-12"></q-icon>
-                          <div class="col-12 tile-label">Load Cosigner PST</div>
-                        </div>
-                      </template>
-                    </q-btn>
-                    <q-btn @click="uploadTransaction" flat dense no-caps :color="!darkMode && 'primary'" class="tile">
-                      <template v-slot:default>
-                        <div class="row justify-center">
-                          <q-icon name="mdi-cloud-upload-outline" class="col-12"></q-icon>
-                          <div class="col-12 tile-label">Upload Tx Proposal</div>
-                        </div>
-                      </template>
-                    </q-btn>
-                    <q-btn
-                      v-if="multisigTransaction.metadata?.status === MultisigTransactionStatus.PENDING_FULLY_SIGNED"
-                      @click="broadcastTransaction"
-                      flat dense no-caps
-                      :loading="multisigTransaction.metadata?.isBroadcasting"
-                      :disable="multisigTransaction?.metadata?.status >= 3"
-                      class="tile"
-                      :color="!darkMode && 'primary'"
-                      >
-                      <template v-slot:default>
-                        <div class="row justify-center">
-                          <q-icon name="cell_tower" class="col-12"></q-icon>
-                          <div class="col-12 tile-label">Broadcast</div>
-                        </div>
-                      </template>
-                      <template v-slot:loading>
-                        <q-spinner-radio class="on-left" />
-                      </template>
-                    </q-btn>
-                    <q-inner-loading :showing="visible">
-                      <q-spinner-gears size="50px" color="primary" />
-                    </q-inner-loading>
-                  </div>
+              <q-item >
+                <q-item-section>
+                  <q-item-label>Synced</q-item-label>
                 </q-item-section>
-              </q-item -->
+                <q-item-section side>
+		  <q-item-label>{{ multisigTransaction.id ? 'Yes': 'No' }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator spaced inset />
             </q-list>
              <q-btn
                       v-if="multisigTransaction.metadata?.status === MultisigTransactionStatus.PENDING_FULLY_SIGNED"
@@ -401,6 +347,7 @@ const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const signTransaction = async ({ signerEntityKey }) => {
   if (!multisigWallet.value) return
+  
   await populateHdPrivateKeys({
     lockingData: multisigWallet.value.lockingData,
     getSignerXPrv
@@ -411,6 +358,7 @@ const signTransaction = async ({ signerEntityKey }) => {
     multisigTransaction: multisigTransaction.value,
     signerEntityKey
   })
+   
 }
 
 const broadcastTransaction = async () => {
