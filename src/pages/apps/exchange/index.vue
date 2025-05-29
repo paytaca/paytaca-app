@@ -54,8 +54,7 @@ export default {
       }
     }
   },
-  async mounted () {
-    console.log('exchange index view')
+  async mounted () {    
     this.$q.loading.show()
 
     const appEnabled = this.$store.getters['global/appControl']
