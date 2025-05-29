@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { stringify, binToHex } from 'bitauth-libauth-v3'
-import { getMultisigCashAddress, getLockingBytecode } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, importPst } from 'src/lib/multisig'
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
 export async function syncWallet({ commit, getters, rootGetters }, { address, multisigWallet }) {
@@ -100,6 +100,11 @@ export function saveTransaction ({ commit }, multisigTransaction) {
 export function updateTransaction ({ commit }, { index, multisigTransaction }) {
   commit('updateTransaction', { index, multisigTransaction })
 }
+
+export function updateTransactionStatus ({ commit }, { index, status  }) {
+ commit('updateTransactionStatus', { index, status })
+}
+
 export function deleteTransaction ({ commit }, { index }) {
   commit('deleteTransaction', { index })
   // TODO: mutate watchtower
@@ -133,5 +138,10 @@ export async function uploadTransaction({ commit, rootGetters }, { multisigWalle
 	   {headers: { 'Content-Type': 'application/json'}}
    )
    console.log('uploadPst response', response)
+   if (response.data) {
+      const importedTransaction = importPst({ pst: response.data })
+      console.log('IMPORTED TRANSACTION', importedTransaction)
+      commit('multisig/saveTransaction', importedTransaction) 
+   }
   }
 }
