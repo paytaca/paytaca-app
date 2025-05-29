@@ -107,15 +107,6 @@
                 </q-item-section>
               </q-item>
               <q-separator spaced inset></q-separator>
-              <!-- <q-item>
-                <q-item-section>
-                  <q-item-label class="text-h6">Wallet</q-item-label>
-                  <q-item-label caption lines="2">{{ multisigWallet.address }}</q-item-label>
-                </q-item-section>
-                <q-item-section side top>
-                  <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
-                </q-item-section>
-              </q-item> -->
               <q-item>
                 <q-item-section>
                   <q-item-label class="text-bow-muted">Signatures</q-item-label>
@@ -127,7 +118,7 @@
               <q-item>
                 <q-item-section>
                   <div class="flex flex-wrap items-center">
-                    Required Signatures <q-icon name="draw" flat dense size="xs" class="q-ml-xs"></q-icon>
+                    Required Signatures
                   </div>
                 </q-item-section>
                 <q-item-section side>
@@ -137,7 +128,7 @@
               <q-item>
                 <q-item-section>
                   <div class="flex flex-wrap items-center">
-                    Current Signatures <q-icon name="draw" flat dense size="xs" class="q-ml-xs"></q-icon>
+                    Current Signatures 
                   </div>
                 </q-item-section>
                 <q-item-section side>
@@ -191,7 +182,7 @@
                 </q-item-section>
                 <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
                   <q-btn
-                    @click="() => refreshTransactionStatus({ multisigWallet, multisigTransaction })"
+                    @click="async () => await refreshTransactionStatus({ multisigWallet, multisigTransaction })"
                     :loading="multisigTransaction.metadata.isBroadcasting || multisigTransaction.metadata?.isRefreshingStatus"
                     flat
                     no-caps
@@ -245,11 +236,19 @@ signerCanSignOnThisDevice                  >
                         </div>
                       </template>
                     </q-btn>
-                    <q-btn @click="uploadPst" flat dense no-caps :color="!darkMode && 'primary'" class="tile">
+                    <q-btn @click="loadCosignerPst" flat dense no-caps :color="!darkMode && 'primary'" class="tile">
                       <template v-slot:default>
                         <div class="row justify-center">
-                          <q-icon name="upload" class="col-12"></q-icon>
-                          <div class="col-12 tile-label">Upload PST</div>
+                          <q-icon name="mdi-file-upload-outline" class="col-12"></q-icon>
+                          <div class="col-12 tile-label">Load Cosigner PST</div>
+                        </div>
+                      </template>
+                    </q-btn>
+                    <q-btn @click="uploadTransaction" flat dense no-caps :color="!darkMode && 'primary'" class="tile">
+                      <template v-slot:default>
+                        <div class="row justify-center">
+                          <q-icon name="mdi-cloud-upload-outline" class="col-12"></q-icon>
+                          <div class="col-12 tile-label">Upload Tx Proposal</div>
                         </div>
                       </template>
                     </q-btn>
@@ -282,6 +281,13 @@ signerCanSignOnThisDevice                  >
           </div>
         </template>
       </div>
+      <q-file
+	ref="pstFileElementRef"
+        v-model="pstFileModel"
+        :multiple="false"
+        style="visibility: hidden"
+        @update:model-value="onUpdatePstFile">
+      </q-file>
     </div>
   </q-pull-to-refresh>
 </template>
@@ -293,7 +299,7 @@ import { useI18n } from 'vue-i18n'
 import { useQuasar, openURL } from 'quasar'
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { stringify } from 'bitauth-libauth-v3'
+import { stringify, hashTransaction } from 'bitauth-libauth-v3'
 import { toP2shTestAddress } from 'src/utils/address-utils'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -313,7 +319,10 @@ import {
   signerHasSignature,
   signerCanSign,
   MultisigTransactionStatus,
-  MultisigTransactionStatusText
+  MultisigTransactionStatusText,
+  importPst,
+  combinePsts,
+  getMultisigCashAddress
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import UploadPstDialog from 'components/multisig/UploadPstDialog.vue'
@@ -335,6 +344,9 @@ const multisigWallet = computed(() => {
     return wallet.address === decodeURIComponent(route.params.address)
   })
 })
+
+const pstFileElementRef = ref()
+const pstFileModel = ref()
 
 const isSignerSignatureOk = computed(() => {
   return ({ signerEntityKey }) => {
@@ -417,7 +429,40 @@ const downloadPst = () => {
   }).onCancel(() => {})
 }
 
-const uploadPst = () => { 
+const loadCosignerPst = () => {
+  pstFileElementRef.value.pickFiles()
+}
+
+const onUpdatePstFile = (file) => {
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const importedPst = importPst({ pst: reader.result })
+      const hash = hashTransaction(importedPst.transaction)
+      const existingMultisigTransaction = $store.getters['multisig/getTransactionByHash']({ hash })
+      let combinedPst = null
+      if (existingMultisigTransaction) {
+         combinedPst = combinePsts({ psts: [structuredClone(existingMultisigTransaction), importedPst] })
+      console.log('multisigTransaction combined', multisigTransaction)
+      }
+      $store.dispatch('multisig/saveTransaction', combinedPst || importedPst)
+      const index = $store.getters['multisig/getTransactionIndexByHash']({ hash })
+      console.log('INDEX', index)
+      multisigTransaction.value = combinedPst || importedPst
+      
+      refreshTransactionStatus({
+        multisigWallet: multisigWallet.value,
+        multisigTransaction: multisigTransaction.value
+      })
+    }
+    reader.onerror = (err) => {
+      console.err(err)
+    }
+    reader.readAsText(file)
+  }
+}
+
+const uploadTransaction = () => { 
   $q.dialog({
     component: UploadPstDialog,
     componentProps: {
@@ -432,7 +477,7 @@ const uploadPst = () => {
     })
     
     const r = await $store.dispatch(
-	'multisig/uploadPst', 
+	'multisig/uploadTransaction', 
         { 
           multisigTransaction: pst,
           multisigWallet: multisigWallet.value
