@@ -1,6 +1,17 @@
 <template>
   <div id="app-container" class="grad" :class="getDarkModeClass(darkMode)">
       <header-nav :title="$t('Settings')" class="apps-header" />
+
+      <q-scroll-area :style="{ 'margin-top': $q.platform.is.ios ? '69px' : '49px', 'height': `${$q.screen.height}px`}">
+        <div>
+          <q-list class="settings-container br-15" dark bordered separator>
+            <q-item clickable v-ripple>
+              <q-item-section>{{ $t('SecurityAuthenticationSetup') }}</q-item-section>
+            </q-item>          
+          </q-list>
+        </div>        
+        
+      </q-scroll-area>
       <div class="row"   :style="{ 'margin-top': $q.platform.is.ios ? '69px' : '49px'}">
         <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Security') }}</p>
@@ -421,5 +432,8 @@ export default {
   }
   .pt-card {
     border-radius: 14px;
+  }
+  .settings-container {
+    margin: 20px;
   }
 </style>
