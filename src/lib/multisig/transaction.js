@@ -984,6 +984,7 @@ export const broadcastTransaction = async ({ multisigTransaction, multisigWallet
       multisigTransaction.signedTransaction
     )
     multisigTransaction.signedTransactionId = response.txid
+    multisigTransaction.txid = response.txid
     multisigTransaction.metadata.status = MultisigTransactionStatus.BROADCASTED
     return response
   } catch (error) {
@@ -1021,7 +1022,7 @@ export const refreshTransactionStatus = async ({ multisigWallet, multisigTransac
     }
     if (multisigTransaction.metadata.status === MultisigTransactionStatus.BROADCASTED) {
       // TODO: check if confirmed, then update
-    }
+    }	  
   } catch (error) {} finally {
       delete multisigTransaction.metadata?.isRefreshingStatus
   }
@@ -1075,9 +1076,11 @@ export const combinePsts = ({ psts }) => {
 }
 
 export const importPst = ({ pst }) => {
+  let parsed = pst
   if (typeof pst === 'string') {
     const bin = base64ToBin(pst)
-    const parsed = JSON.parse(binToUtf8(bin))
+    parsed = JSON.parse(binToUtf8(bin))
+  }
     const decoded = decodeTransactionCommon(hexToBin(parsed.transaction))
     parsed.transaction = transactionBinObjectsToUint8Array(
       decoded
@@ -1098,9 +1101,7 @@ export const importPst = ({ pst }) => {
       // inserting address to output
       output.address = lockingBytecodeToCashAddress({ bytecode: output.lockingBytecode }).address
     })
-    console.log('after import', parsed)
     return parsed
-  }
 }
 
 export const exportPstRaw = ({ multisigTransaction, address, addressIndex = 0, format = 'base64' }) => {
