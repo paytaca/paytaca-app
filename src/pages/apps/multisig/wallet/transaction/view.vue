@@ -18,7 +18,7 @@
                     <q-item-label caption lines="2" class="text-subtitle-2">Origin: {{ multisigTransaction.metadata?.origin }}</q-item-label>
                 </q-item-section>
                 <q-item-section side top>
-                  <q-icon name="payment" color="grad"></q-icon>
+                 <q-btn icon="more_vert" @click="openTransactionActionsDialog" flat dense />
                 </q-item-section>
               </q-item>
               <q-item>
@@ -226,7 +226,8 @@ signerCanSignOnThisDevice                  >
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
-              <q-item>
+              
+              <!--q-item>
                 <q-item-section >
                   <div class="flex flex-wrap justify-around relative">
                     <q-btn @click="deleteTransaction" class="footer-icon-btn default-text-color tile" flat dense no-caps :color="!darkMode && 'primary'">
@@ -285,8 +286,23 @@ signerCanSignOnThisDevice                  >
                     </q-inner-loading>
                   </div>
                 </q-item-section>
-              </q-item>
+              </q-item -->
             </q-list>
+             <q-btn
+                      v-if="multisigTransaction.metadata?.status === MultisigTransactionStatus.PENDING_FULLY_SIGNED"
+                      @click="broadcastTransaction"
+                      :loading="multisigTransaction.metadata?.isBroadcasting"
+                      :disable="multisigTransaction?.metadata?.status >= 3"
+                      icon="cell_tower"
+                      :color="!darkMode && 'primary'"
+                      label="Broadcast"
+                      style="width: 100%"
+                      class="q-mt-lg"
+                      >
+                      <template v-slot:loading>
+                        <q-spinner-radio class="on-left" />
+                      </template>
+                    </q-btn>
           </div>
         </template>
       </div>
@@ -335,6 +351,7 @@ import {
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import UploadPstDialog from 'components/multisig/UploadPstDialog.vue'
+import TransactionActionsDialog from 'components/multisig/TransactionActionsDialog.vue'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -496,6 +513,40 @@ const uploadTransaction = () => {
     console.log('R', r)
   })
 }
+
+const openTransactionActionsDialog = () => {
+  $q.dialog({
+    component: TransactionActionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      onDeleteTx: () => {
+        $q.dialog({
+          message: 'Are you sure you want to delete this transaction proposal?',
+          ok: { label: 'Yes' },
+          cancel: { label: 'No' },
+          class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+        }).onOk(() => {
+           deleteTransaction()
+        }).onCancel(() => {
+          openTransactionActionsDialog()
+        })
+      },
+      onExportPst: () => {
+        downloadPst()
+      },
+      onLoadCosignerPst: () => {
+        loadCosignerPst()
+      },
+      onUploadTx: () => {
+        uploadTransaction()
+      },
+      onBroadcastTx: () => { 
+        broadcastTransaction()
+      }
+    }
+  })
+}
+
 
 watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStatus) => {
   if (status !== prevStatus) {
