@@ -1,4 +1,4 @@
-import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, hashTransaction } from 'bitauth-libauth-v3'
 import { MultisigWallet } from 'src/lib/multisig'
 
 export function getSettings (state) {
@@ -41,6 +41,22 @@ export function getTransactionsLastIndex (state) {
 export function getTransactionsByWalletAddress (state) {
   return ({ address }) => {
     return state.transactions.filter((t) => t.metadata?.address === decodeURIComponent(address))
+  }
+}
+
+/**
+ * Returns transaction proposal with the same provided hash of the unsigned transaction.
+ */
+export function getTransactionByHash (state) {
+  return ({ hash }) => {
+  console.log('PROVIDED HASH', hash)
+    return state.transactions.find((t) => hash === hashTransaction(t.transaction))
+  }
+}
+
+export function getTransactionIndexByHash (state) {
+  return ({ hash }) => {
+    return state.transactions.findIndex((t) => hash === hashTransaction(t.transaction))
   }
 }
 
