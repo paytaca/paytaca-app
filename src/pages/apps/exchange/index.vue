@@ -36,6 +36,13 @@ export default {
     this.$store.commit('ramp/resetAppealListingTab')
   },
   watch: {
+    $route (to, from) {
+      if (from.path.includes('apps/exchange')) {
+        if ('ad_id' in to.query) {
+          this.$router?.push({ name: 'p2p-store', query: to.query })
+        }        
+      }
+    },
     continue (val) {
       if (val) {
         this.goToMainPage()
@@ -47,7 +54,7 @@ export default {
       }
     }
   },
-  async mounted () {
+  async mounted () {    
     this.$q.loading.show()
 
     const appEnabled = this.$store.getters['global/appControl']
