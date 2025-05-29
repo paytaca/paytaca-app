@@ -64,13 +64,16 @@ export function walletConnectSignTransactionRequest (state, { address, sessionRe
 }
 
 export function saveTransaction (state, multisigTransaction) {
+  console.log('multisigTransaction')
   const index = state.transactions.findIndex((storedMultisigTransaction) => {
     return (
       hashTransaction(multisigTransaction.transaction) ===
         hashTransaction(storedMultisigTransaction.transaction)
     )
   })
-  if (index !== -1) return
+  if (index !== -1) {
+    return state.transactions.splice(index, 1, multisigTransaction)
+  }
   state.transactions.push(multisigTransaction)
 }
 

@@ -49,7 +49,7 @@
             <div class="row justify-center">
               <q-icon name="cell_tower" class="col-12" color="primary" style="position:relative">
               </q-icon>
-              <div class="col-12 tile-label">broadcastTx</div>
+              <div class="col-12 tile-label">Broadcast</div>
             </div>
           </template>
         </q-btn>

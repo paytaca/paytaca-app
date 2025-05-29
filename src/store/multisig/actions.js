@@ -93,7 +93,6 @@ export function walletConnectSignTransactionRequest ({ commit }, { address, sess
 }
 
 export function saveTransaction ({ commit }, multisigTransaction) {
-  commit('deleteAllTransactions')
   commit('saveTransaction', multisigTransaction)
 }
 
@@ -124,7 +123,7 @@ export function deleteAllPsts ({ commit }) {
   commit('deleteAllPsts')
 }
 
-export async function uploadPst({ commit, rootGetters }, { multisigWallet, multisigTransaction }) {
+export async function uploadTransaction({ commit, rootGetters }, { multisigWallet, multisigTransaction }) {
   console.log('uploading pst', multisigWallet, multisigTransaction)
   if (multisigWallet.id) { 	
    const watchtower = rootGetters['global/getWatchtowerBaseUrl']
