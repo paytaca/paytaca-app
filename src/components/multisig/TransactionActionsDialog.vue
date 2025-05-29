@@ -1,35 +1,55 @@
 <template>
   <q-dialog ref="dialogRef" full-width position="bottom"
     transition-hide="slide-down" transition-show="slide-up" transition-duration="500"
-    seamless
-    auto-close
     >
-    <q-card class ="q-pb-lg pt-card text-bow" :class="getDarkModeClass(darkMode)">
-      <q-bar class="full-width bg-inherit" style="padding: 0px;">
-        <q-btn icon="keyboard_arrow_down" class="full-width" @click="dialogRef.hide()" flat></q-btn>
-      </q-bar>
-      <q-card-section class="flex flex-wrap justify-around">
-        <q-btn flat dense no-caps @click="$emit('delete')">
+    <q-card class="q-dialog-plugin q-pb-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
+       <q-toolbar>
+          <q-toolbar-title>
+            <span class="q-mr-sm">{{ $t('Options')}}</span>
+          </q-toolbar-title>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-toolbar>
+      <q-card-section class="flex flex-wrap justify-evenly"> 
+        <q-btn flat dense no-caps @click="$emit('deleteTx')" class="tile" v-close-popup>
           <template v-slot:default>
-            <div class="row justify-center">
-              <q-icon name="delete" class="col-12"></q-icon>
-              <div class="col-12">Delete</div>
+            <div class="row justify-around">
+              <q-icon name="delete_forever" class="col-12" color="red"></q-icon>
+              <div class="col-12 tile-label">Delete Tx</div>
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('broadcast')">
+        <q-btn flat dense no-caps @click="$emit('exportPst')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="cell_tower" class="col-12"></q-icon>
-              <div class="col-12">Broadcast</div>
+              <q-icon name="mdi-file-export-outline" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Export PST</div>
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('export')">
+        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" color="primary" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="share" class="col-12"></q-icon>
-              <div class="col-12">Export</div>
+              <q-icon name="mdi-file-upload-outline" class="col-12"></q-icon>
+              <div class="col-12 tile-label">Load Cosigner PST</div>
+            </div>
+          </template>
+        </q-btn>
+      </q-card-section>
+      <q-card-section class="flex flex-wrap justify-evenly"> 
+        <q-btn flat dense no-caps @click="$emit('uploadTx')" class="tile" v-close-popup>
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="mdi-cloud-upload-outline" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Upload Tx Proposal</div>
+            </div>
+          </template>
+        </q-btn>
+        <q-btn flat dense no-caps @click="$emit('broadcastTx')" class="tile" v-close-popup>
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="cell_tower" class="col-12" color="primary" style="position:relative">
+              </q-icon>
+              <div class="col-12 tile-label">broadcastTx</div>
             </div>
           </template>
         </q-btn>
@@ -40,13 +60,18 @@
 <script setup>
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { useI18n } from 'vue-i18n'
+const { t: $t } = useI18n()
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const $emit = defineEmits ([
-  'broadcast',
-  'export',
-  'delete',
+  'deleteTx',
+  'exportPst',
+  'loadCosignerPst',
+  'uploadTx',
+  'broadcastTx',
   ...useDialogPluginComponent.emits
 ])
+
 defineProps({
   darkMode: Boolean
 })

@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" full-width full-height maximized>
+  <q-dialog ref="dialogRef" full-width full-height maximized transition-show="slide-up" transition-hide="slide-down">
     <q-card class="q-dialog-plugin pt-card row items-center justify-center" :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
         <div class="text-grad text-center text-h6">{{ $t('Share Online') }}</div>

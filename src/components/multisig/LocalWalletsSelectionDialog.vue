@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" full-width maximized position="bottom">
-    <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-dialog-plugin q-pb-xs pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-grad text-center q-my-sm text-h6">{{$t('Select Wallet')}}</div>
       <q-card-section>
         <q-list separator>
