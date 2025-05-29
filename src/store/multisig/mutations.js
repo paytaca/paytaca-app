@@ -83,6 +83,15 @@ export function updateTransaction (state, { index, multisigTransaction }) {
   }
 }
 
+export function updateTransactionStatus (state, { index, status } ) {
+ if (index >= 0) {
+  const transaction = state.transactions[index]
+  if (transaction) {
+   transaction.metadata.status = status
+  }
+ }
+}
+
 export function deleteTransaction (state, { index }) {
   state.transactions.splice(index, 1)
 }
