@@ -1083,6 +1083,7 @@ export const importPst = ({ pst }) => {
       // inserting address to output
       output.address = lockingBytecodeToCashAddress({ bytecode: output.lockingBytecode }).address
     })
+    parsed.transactionHash = hashTransaction(parsed.transaction)
     return parsed
 }
 
