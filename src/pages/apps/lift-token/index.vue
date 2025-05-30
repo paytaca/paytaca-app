@@ -4,6 +4,7 @@
       class="apps-header"
       backnavpath="/apps"
       :title="'LIFT Token'"
+      id="header-nav"
     />
 
     <template v-if="isLoading">
@@ -24,6 +25,7 @@
           v-model="sectionTab"
           class="col-12"
           :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+          id="section-tab"
         >
           <q-tab
             name="reserves"
@@ -83,112 +85,8 @@ export default {
       isLoading: false,
       sectionTab: 'reserves',
 
-      reservationsList: [
-        {
-          sale_group: 'seed',
-          amount_purchased_token: 100000000,
-          amount_purchased_usd: 15000,
-          approved_date: '2025-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
-        },
-        {
-          sale_group: 'priv',
-          amount_purchased_token: 10000000,
-          amount_purchased_usd: 2500,
-          approved_date: '2025-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
-        },
-        {
-          sale_group: 'pblc',
-          amount_purchased_token: 100000,
-          amount_purchased_usd: 50,
-          approved_date: '2025-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
-        },
-        {
-          sale_group: 'seed',
-          amount_purchased_token: 100000000,
-          amount_purchased_usd: 15000,
-          approved_date: '2025-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
-        },
-        {
-          sale_group: 'priv',
-          amount_purchased_token: 10000000,
-          amount_purchased_usd: 2500,
-          approved_date: '2025-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
-        },
-        {
-          sale_group: 'pblc',
-          amount_purchased_token: 100000,
-          amount_purchased_usd: 50,
-          approved_date: '2025-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5'
-        }
-      ],
-      purchasesList: [
-        {
-          sale_group: 'seed',
-          purchased_amount_tkn: 100000000,
-          purchased_amount_usd: 15000,
-          purchased_amount_bch: 12.34567890,
-          purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2026-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
-          vesting_details: []
-        },
-        {
-          sale_group: 'priv',
-          purchased_amount_tkn: 10000000,
-          purchased_amount_usd: 2500,
-          purchased_amount_bch: 1.23456789,
-          purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2026-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
-          vesting_details: []
-        },
-        // {
-        //   sale_group: 'pblc',
-        //   purchased_amount_tkn: 100000,
-        //   purchased_amount_usd: 50,
-        //   purchased_amount_bch: 0.12345678,
-        //   purchased_date: '2025-05-25T14:01:49.525Z',
-        //   lockup_date: '2026-05-25T14:01:49.525Z',
-        //   bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
-        //   vesting_details: []
-        // },
-        {
-          sale_group: 'seed',
-          purchased_amount_tkn: 100000000,
-          purchased_amount_usd: 15000,
-          purchased_amount_bch: 12.34567890,
-          purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2026-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
-          vesting_details: []
-        },
-        {
-          sale_group: 'priv',
-          purchased_amount_tkn: 10000000,
-          purchased_amount_usd: 2500,
-          purchased_amount_bch: 1.23456789,
-          purchased_date: '2025-05-25T14:01:49.525Z',
-          lockup_date: '2026-05-25T14:01:49.525Z',
-          bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
-          vesting_details: []
-        }//,
-        // {
-        //   sale_group: 'pblc',
-        //   purchased_amount_tkn: 100000,
-        //   purchased_amount_usd: 50,
-        //   purchased_amount_bch: 0.12345678,
-        //   purchased_date: '2025-05-25T14:01:49.525Z',
-        //   lockup_date: '2026-05-25T14:01:49.525Z',
-        //   bch_address: 'bitcoincash:zpx2cpp67gfwe09039s5ykuss2as6kukagww3c7vd5',
-        //   vesting_details: []
-        // }
-      ]
+      reservationsList: [],
+      purchasesList: []
     }
   },
 
@@ -209,10 +107,9 @@ export default {
   async mounted () {
     this.isLoading = true
 
-    this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
-    // const results = await Promise.allSettled([
-    //   getReservationsData(), getPurchasesData()
-    // ])
+    const results = await Promise.allSettled([
+      getReservationsData(), getPurchasesData()
+    ])
     // this.reservationsList = results[0].value
     // this.purchasesList = results[1].value
 

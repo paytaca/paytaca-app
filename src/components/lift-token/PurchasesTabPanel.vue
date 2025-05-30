@@ -1,5 +1,5 @@
 <template>
-  <div class="row text-body1 justify-evenly">
+  <div class="row text-body1 justify-evenly" id="filter">
     <sale-group-chip
       :saleGroup="'all'"
       :outline="isChipOutline('all')"
@@ -36,7 +36,7 @@
   </template>
 
   <template v-else>
-    <q-scroll-area style="height: 60vh; width: 100%">
+    <q-scroll-area :style="`height: ${scrollAreaHeight}; width: 100%`">
       <div class="row q-pt-sm q-pb-md q-px-sm q-gutter-y-md cursor-pointer">
         <q-card
           v-ripple
@@ -136,7 +136,8 @@ export default {
 
       finalPurchasesList: [],
 
-      selectedFilter: 'all'
+      selectedFilter: 'all',
+      scrollAreaHeight: '63vh'
     }
   },
 
@@ -201,6 +202,14 @@ export default {
 
   mounted () {
     this.finalPurchasesList = this.purchasesList
+
+    const headerNavHeight = document.getElementById('header-nav')?.clientHeight
+    const sectionTabHeight = document.getElementById('section-tab')?.clientHeight
+    const filterHeight = document.getElementById('filter')?.clientHeight
+
+    const divsHeight = headerNavHeight + sectionTabHeight + filterHeight
+    const screenHeight = this.$q.screen.height
+    this.scrollAreaHeight = `${screenHeight - divsHeight - 35}px`
   }
 }
 </script>
