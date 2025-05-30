@@ -1207,7 +1207,7 @@ export default {
   SecurityAuthenticationSetup: "Security Authentication Setup",
   SecurityCheck: "Security Check",
   SecurityCheckFailed: "Security check failed",
-  SeeBasicWalletInfo: "Create New Campaign",
+  SeeBasicWalletInfo: "See Basic Wallet Info",
   SeedPhraseShards: "Seed Phrase Shards",
   Select: "Select",
   SelectAction: "Select Action",
