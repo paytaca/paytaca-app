@@ -15,11 +15,6 @@
       :outline="isChipOutline(SaleGroup.PRIVATE)"
       @click="filterPurchasesList(SaleGroup.PRIVATE)"
     />
-    <!-- <sale-group-chip
-      :saleGroup="SaleGroup.PUBLIC"
-      :outline="isChipOutline(SaleGroup.PUBLIC)"
-      @click="filterPurchasesList(SaleGroup.PUBLIC)"
-    /> -->
     <sale-group-chip
       :saleGroup="'lock'"
       :outline="isChipOutline('lock')"
