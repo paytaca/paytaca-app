@@ -496,7 +496,6 @@ const openTransactionActionsDialog = () => {
 }
 
 const loadHdPrivateKeys = async (hdPublicKeys) => {
-  hdPrivateKeys.value = {}
   for (const signerEntityId of Object.keys(hdPublicKeys)) {
     try {
       const xprv = await getSignerXPrv({
@@ -519,7 +518,6 @@ watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStat
 })
 
 onMounted(async () => {
-  
   if (multisigWallet.value) {
     await loadHdPrivateKeys(multisigWallet.value.lockingData.hdKeys.hdPublicKeys)
     const transactions =

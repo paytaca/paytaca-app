@@ -47,7 +47,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
@@ -71,6 +71,11 @@ const enableWallet = (multisigWallet) => {
     color: 'primary',
     message: `${multisigWallet.template?.name || 'Wallet'} imported`,
     timeout: 500
+  })
+  nextTick(() => {
+   if (multisigWallets.value?.filter((wallet) => wallet.id && !wallet.enabled)?.length === 0) {
+     router.back() 
+   }
   })
 }
 
