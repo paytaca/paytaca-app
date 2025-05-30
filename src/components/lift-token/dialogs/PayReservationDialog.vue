@@ -139,6 +139,7 @@ export default {
   },
 
   async mounted () {
+    this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
     this.bchAmount = getAssetDenomination(
       'BCH', this.getBchPrice(this.rsvp.amount_purchased_usd)
     )
