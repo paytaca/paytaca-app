@@ -107,11 +107,12 @@ export default {
   async mounted () {
     this.isLoading = true
 
+    this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
     const results = await Promise.allSettled([
       getReservationsData(), getPurchasesData()
     ])
-    // this.reservationsList = results[0].value
-    // this.purchasesList = results[1].value
+    this.reservationsList = results[0].value
+    this.purchasesList = results[1].value
 
     this.isLoading = false
   }
