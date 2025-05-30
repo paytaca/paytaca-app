@@ -12,6 +12,8 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) await loadRampWallet()
 
+  const chatIDRef = generateChatIdentityRef(wallet.walletHash)  
+
   const payload = {
     user_type: usertype,
     name: params.name,
@@ -19,7 +21,10 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   }
 
   // fetch chat identity if existing
-  let identity = await fetchChatIdentityById(payload.chat_identity_id)
+
+  let identity = await fetchChatIdentityByRef(chatIDRef)
+  // let identity = await fetchChatIdentityById(payload.chat_identity_id)  
+
   if (identity) {
     identity = chatIdentityManager.setIdentity(identity)
   }
@@ -218,8 +223,7 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
       members: members
     }
     chatBackend.patch(`chat/sessions/${chatRef}/members/`, body, { forceSign: true })
-      .then(response => {
-        // console.log('Added chat members:', response)
+      .then(response => {        
         resolve(response)
       })
       .catch(error => {
@@ -274,7 +278,7 @@ export function sendChatMessage (data, signData) {
     }
     chatBackend.post('chat/messages/', data, config)
       .then(response => {
-        console.log('Sent message:', response)
+        // console.log('Sent message:', response)
         resolve(response)
       })
       .catch(error => {
