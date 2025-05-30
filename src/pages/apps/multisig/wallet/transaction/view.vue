@@ -172,13 +172,13 @@
                 <q-item-section side top>
                   <q-btn
                     label="Sign"
-                    :disable="!signerCanSignOnThisDevice({ signerEntityKey })"
-                    :icon="signerCanSignOnThisDevice({ signerEntityKey })? 'draw': 'edit_off'"
+                    :disable="!hdPrivateKeys[signerEntityKey]"
+                    :icon="hdPrivateKeys[signerEntityKey]? 'draw': 'edit_off'"
                     @click="signTransaction({ signerEntityKey })"
                     dense
                     no-caps
                     flat
-                    :class="signerCanSignOnThisDevice({ signerEntityKey }) ? 'default-text-color': 'inactive-color'"
+                    :class="hdPrivateKeys[signerEntityKey] ? 'default-text-color': 'inactive-color'"
                     >
                   </q-btn>
                 </q-item-section>
@@ -281,7 +281,6 @@ import {
   getTotalBchFee,
   shortenString,
   refreshTransactionStatus,
-  populateHdPrivateKeys,
   signTransaction as signMultisigTransaction,
   finalizeTransaction,
   broadcastTransaction as broadcastMultisigTransaction,
@@ -311,6 +310,7 @@ const {
   cashAddressNetworkPrefix
 } = useMultisigHelpers()
 
+const hdPrivateKeys = ref({})
 const multisigTransaction = ref()
 const multisigWallet = computed(() => {
   return multisigWallets.value?.find((wallet) => {
@@ -347,18 +347,18 @@ const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const signTransaction = async ({ signerEntityKey }) => {
   if (!multisigWallet.value) return
-  
-  await populateHdPrivateKeys({
-    lockingData: multisigWallet.value.lockingData,
-    getSignerXPrv
-  })
+  if (hdPrivateKeys.value[signerEntityKey]) {
+    await loadHdPrivateKeys(multisigWallet.value.lockingData.hdKeys.hdPublicKeys)
+  }
+  if (!hdPrivateKeys.value[signerEntityKey]) retrun
  
-  signMultisigTransaction({
+  const signerSignatures = signMultisigTransaction({
     multisigWallet: multisigWallet.value,
     multisigTransaction: multisigTransaction.value,
-    signerEntityKey
+    signerEntityKey,
+    hdPrivateKey: hdPrivateKeys.value[signerEntityKey]
   })
-   
+  console.log('signerSignatures', signerSignatures)
 }
 
 const broadcastTransaction = async () => {
@@ -495,6 +495,19 @@ const openTransactionActionsDialog = () => {
   })
 }
 
+const loadHdPrivateKeys = async (hdPublicKeys) => {
+  hdPrivateKeys.value = {}
+  for (const signerEntityId of Object.keys(hdPublicKeys)) {
+    try {
+      const xprv = await getSignerXPrv({
+       xpub: hdPublicKeys[signerEntityId]
+      })
+      if (xprv) {
+       hdPrivateKeys.value[signerEntityId] = xprv
+      }
+    } catch (e) {} // getSignerXPrv throws if xprv not found, we'll just ignore
+  }
+} 
 
 watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStatus) => {
   if (status !== prevStatus) {
@@ -506,11 +519,9 @@ watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStat
 })
 
 onMounted(async () => {
+  
   if (multisigWallet.value) {
-    await populateHdPrivateKeys({
-      lockingData: multisigWallet.value.lockingData,
-      getSignerXPrv
-    })
+    await loadHdPrivateKeys(multisigWallet.value.lockingData.hdKeys.hdPublicKeys)
     const transactions =
       $store.getters['multisig/getTransactionsByWalletAddress']({
         address: decodeURIComponent(route.params.address)
