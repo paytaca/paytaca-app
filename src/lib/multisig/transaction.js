@@ -943,21 +943,22 @@ export const signTransaction = ({
   }
 
   const signAttempt = generateTransaction({ ...transaction })
+  const signerSignatures = []
   for (const [inputIndex, error] of Object.entries(signAttempt.errors)) {
     const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
     const sigKey = Object.keys(signerResolvedVariables)[0]
     const sigValue = Object.values(signerResolvedVariables)[0]
-    const existingSigIndex = signatures.findIndex((sig) => {
+	  
+    const sigDoesNotYetExist = signatures.findIndex((sig) => {
       // eslint-disable-next-line eqeqeq
       return sig.inputIndex == inputIndex && sig.sigKey === sigKey
-    })
-    if (existingSigIndex === -1) {
-      signatures.push({
-        inputIndex,
-        sigKey,
-        sigValue: Uint8Array.from(Object.values(sigValue))
-      })
+    }) === -1
+
+    const signerSignatureForInput = { inputIndex, sigKey, sigValue: Uint8Array.from(Object.values(sigValue))}
+    if (sigDoesNotYetExist) {
+      signatures.push(signerSignature)
     }
+    signerSignatures.push(signerSignatureForInput)
   }
   multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_PARTIALLY_SIGNED
   const finalizationResult = finalizeTransaction({
@@ -965,7 +966,7 @@ export const signTransaction = ({
     multisigTransaction
   })
   multisigTransaction.metadata.finalized = finalizationResult.success
-  return multisigTransaction
+  return { signer: signerEntityKey, signatures: signerSignatures }
 }
 
 export const broadcastTransaction = async ({ multisigTransaction, multisigWallet, chipnet = false }) => {
