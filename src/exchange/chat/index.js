@@ -24,14 +24,11 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
 
   let identity = await fetchChatIdentityByRef(chatIDRef)
   // let identity = await fetchChatIdentityById(payload.chat_identity_id)  
-
+  
   if (identity) {
     identity = chatIdentityManager.setIdentity(identity)
   }
 
-  // update verifying and encryption keypairs
-  await chatIdentityManager._updateSignerData() // (short-circuits when task is not necessary)
-  await chatIdentityManager._updateEncryptionKeypair(!!identity) // (short-circuits when task is not necessary)
 
   // create identity if not existing
   if (!identity) {
@@ -39,9 +36,13 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
     identity = await chatIdentityManager.create(payload)
   }
 
+  // update verifying and encryption keypairs
+  await chatIdentityManager._updateSignerData() // (short-circuits when task is not necessary)
+  await chatIdentityManager._updateEncryptionKeypair(!!identity) // (short-circuits when task is not necessary)
+
   // Update chat identity id (in watchtower) if currently unset (null) or mismatch
   if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
-    updateChatIdentityId(payload.user_type, identity.id)
+    await updateChatIdentityId(payload.user_type, identity.id)
   }
 
   Store.commit('ramp/updateChatIdentity', { ref: identity?.ref, chatIdentity: identity })

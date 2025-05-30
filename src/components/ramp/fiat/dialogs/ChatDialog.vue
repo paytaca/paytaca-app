@@ -460,7 +460,7 @@ export default {
     const members = [this.order?.members?.buyer.public_key, this.order?.members?.seller.public_key].join('')    
     this.chatRef = generateChatRef(this.order?.id, this.order?.created_at, members)    
     this.stopInfiniteScroll()
-    this.loadKeyPair()
+    await this.loadKeyPair()
     this.loadChatSession()
   },
   computed: {
@@ -546,19 +546,21 @@ export default {
       await fetchChatSession(vm.chatRef)
         .catch(error => {
           if (error.response) {
-            if (error.response?.status === 404) {
+            // if (error.response?.status === 404) {
               createSession = true
-            }
+            // }
           } else {
             bus.emit('network-error')
           }
         })      
+
       await vm.fetchOrderMembers(vm.order?.id).then(async (members) => {
         if (!['APL', 'RFN_PN', 'RLS_PN'].includes(this.order.status.value)) {
           members = members.filter(member => !member.is_arbiter)
         } else {
           vm.arbiterIdentity = members.filter(member => member.is_arbiter)[0]
         }
+        
         const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
         // Create session if necessary
         if (createSession) {
@@ -580,7 +582,10 @@ export default {
             }
           })
         }        
-        await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => { console.error(error) })
+        await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => {           
+          console.error(error) 
+        })
+
         // Refetch updated chat members and format
         await fetchChatMembers(vm.chatRef)
           .then(members => {
