@@ -192,7 +192,8 @@ export default {
         // HTTP status code error
         switch (error.response.status) {
           case 403:
-            bus.emit('session-expired')
+            // bus.emit('session-expired')
+            this.handleSessionEvent()
             break
           case 400:
             this.showErrorDialog('Bad Request. Please check the request parameters.')

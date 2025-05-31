@@ -12,7 +12,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) await loadRampWallet()
 
-  const chatIDRef = generateChatIdentityRef(wallet.walletHash)  
+  const chatIDRef = await generateChatIdentityRef(wallet.walletHash)  
 
   const payload = {
     user_type: usertype,
@@ -21,10 +21,10 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   }
 
   // fetch chat identity if existing
-
   let identity = await fetchChatIdentityByRef(chatIDRef)
   // let identity = await fetchChatIdentityById(payload.chat_identity_id)  
   
+
   if (identity) {
     identity = chatIdentityManager.setIdentity(identity)
   }
@@ -32,7 +32,7 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
 
   // create identity if not existing
   if (!identity) {
-    payload.ref = generateChatIdentityRef(wallet.walletHash)
+    payload.ref = chatIDRef//generateChatIdentityRef(wallet.walletHash)
     identity = await chatIdentityManager.create(payload)
   }
 
@@ -41,9 +41,9 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
   await chatIdentityManager._updateEncryptionKeypair(!!identity) // (short-circuits when task is not necessary)
 
   // Update chat identity id (in watchtower) if currently unset (null) or mismatch
-  if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
+  // if (!payload.chat_identity_id || payload.chat_identity_id !== identity.id) {
     await updateChatIdentityId(payload.user_type, identity.id)
-  }
+  // }
 
   Store.commit('ramp/updateChatIdentity', { ref: identity?.ref, chatIdentity: identity })
   return identity
