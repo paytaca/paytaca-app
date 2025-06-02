@@ -9,7 +9,7 @@
         <q-btn class="button-default" no-caps round style="padding: 20px;">
           <q-icon class="btn-icon" size="30px" :name="app.iconName"/> <br>                              
         </q-btn>
-        <div class="q-pt-sm text-center">{{ app.name }}</div>
+        <div class="q-pt-sm text-center title-small">{{ app.name }}</div>
       </div> 
       
     </div>

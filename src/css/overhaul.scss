@@ -8,10 +8,8 @@ body.theme-overhaul {
   $light_bg: #F8FAFC;
   $colored_bg: #D9EDFF;
   $header_nav_bg: #15315C;
-  $gradient_bg: linear-gradient(
-    #000E25,
-    #4C8BED
-  );
+  $gradient_bg: linear-gradient(to bottom, #3b7bf6, #3b90fc, #4ba4ff, #64b6ff, #81c8ff); 
+  /*linear-gradient(#000E25,#4C8BED);*/
 
   /* ----- GLOBAL ----- */
   body {
@@ -34,8 +32,8 @@ body.theme-overhaul {
     &.grad {
       /*background-image: linear-gradient(to bottom, #3b7bf6, #4e88f9, #6094fb, #71a1fd, #82adff) !important;*/
       /*background-image: linear-gradient(to bottom, #3b7bf6, #5891FF, #93B8FF, #afc4fe, #d0ddff);*/
-      background-image: linear-gradient(to bottom, #3b7bf6, #5f8df9, #7c9ffb, #96b2fd, #afc4fe);
-       /*background-image: linear-gradient(to top, #bac2e8, #acb7e6, #9dace4, #8ea1e1, #7e97df);*/
+      /*background-image: linear-gradient(to bottom, #3b7bf6, #5f8df9, #7c9ffb, #96b2fd, #afc4fe);*/
+      background-image: $gradient_bg;
     }
   }
 
@@ -71,7 +69,7 @@ body.theme-overhaul {
     width: 100%;
     background-color: #4174d9;
     z-index: 6;  
-    box-shadow: 0px 0px 15px rgba(59, 123, 246, 0.8); /* Pink glow */  
+    box-shadow: 0px 0px 15px rgba(59, 123, 246, 0.8); 
 
   }
   .header-nav {
@@ -206,7 +204,7 @@ body.theme-overhaul {
   }
   .button-light {
     background-color: #fff !important;
-    color: #415C87 !important;
+    color: #3b7bf6 !important;
   }
   .button-red {
     background-color: #F05253;
@@ -225,7 +223,7 @@ body.theme-overhaul {
     height: 78px;
     min-width: 150px;
     border-radius: 16px;
-    background-color: #3b7bf6;
+    background-image: $gradient_bg;
     box-shadow: 2px 2px 2px 2px #f2f2fc;
   }
 }

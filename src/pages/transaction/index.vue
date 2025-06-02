@@ -2,7 +2,8 @@
   <div id="app-container" class="grad">
     <div class="header-top row justify-between">
       <div>
-        <q-icon size="md" name="arrow_drop_down"/> <span class="title-medium">Main: Nikki</span> 
+        <multi-wallet/>
+        <!-- <q-icon size="md" name="arrow_drop_down"/> <span class="title-medium">Main: Nikki</span>  -->
       </div>
       <div>
         <q-btn class="q-mr-sm" padding="xs" outline round icon="notifications"/>
@@ -43,7 +44,14 @@
     </div>
 
     <div class="button-container text-center title-medium">
-      <div class="q-pb-sm button-group" v-if="stablehedgeView">
+      <StablehedgeButtons
+        v-if="stablehedgeView"
+        class="q-pb-sm button-group"
+        :selectedDenomination="selectedDenomination"
+        @deposit="onStablehedgeTransaction"
+        @redeem="onStablehedgeTransaction"
+      />
+      <!-- <div class="q-pb-sm button-group" v-if="stablehedgeView">
         <div class="q-mr-md">
           <q-btn class="btn" no-caps round style="padding: 20px;">
             <q-icon class="btn-icon" size="30px" name="ac_unit"/> <br>                              
@@ -56,7 +64,7 @@
           </q-btn>  
           <div class="q-pt-sm">{{ $t('Unfreeze') }}</div>
         </div>           
-      </div>
+      </div> -->
       <div class="q-pb-sm button-group" v-else>
         <div class="q-mr-md">
           <q-btn class="btn" no-caps round style="padding: 20px;" @click="$router.push({ name: 'transaction-send-select-asset' })">
@@ -72,7 +80,7 @@
         </div>           
       </div>  
       
-      <div class="q-pt-sm button-group" v-if="!stablehedgeView">
+      <div class="q-pt-sm button-group" v-if="!stablehedgeView">        
         <div class="q-mr-md">
           <q-btn class="btn" no-caps round style="padding: 20px;" @click="$router.push({ name: 'qr-reader' })">
             <q-icon class="btn-icon" size="30px" name="img:app-qr.svg"/> <br>                              
@@ -81,15 +89,16 @@
         </div>    
         <div class="q-ml-md">
           <q-btn class="btn" round style="padding: 20px;" @click="openCashIn()">
-            <q-icon size="30px" name="img:ui-revamp/cashin.svg"/>                
+            <q-icon class="btn-icon" size="30px" name="img:ui-revamp/cashin.svg"/>                
           </q-btn>  
           <div class="q-pt-sm" @click="$router.push({ name: 'transaction-receive-select-asset' })">Cash in</div>
         </div>  
       </div>      
     </div>
-    <q-card class="card-light token-card br-15"> 
-      <div class="text-center">
-        <q-icon name="minimize" size="30px"/>     
+    
+    <div class="card-light token-card">       
+      <div class="text-center assets">
+        <!-- <q-icon name="minimize" size="30px"/>      -->
         <asset-cards
                 :assets="assets"
                 :manage-assets="manageAssets"
@@ -106,7 +115,7 @@
                 @click="() => {txSearchActive = false; txSearchReference = ''}"
               />
       </div>
-    </q-card>    
+    </div>    
     
     <!-- <tokenList :assets="assets"/> -->
 
@@ -237,6 +246,7 @@ import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 // import MultiWallet from 'src/components/multi-wallet/index.vue'
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
+import StablehedgeButtons from 'src/components/stablehedge/StablehedgeButtons.vue'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
@@ -301,7 +311,8 @@ export default {
 
     TokenSuggestionsDialog,
     securityOptionDialog,
-    pinDialog
+    pinDialog,
+    StablehedgeButtons
     // MultiWallet
   },
   computed: {
@@ -1254,18 +1265,21 @@ export default {
   justify-content: center;
 }
 .btn {
-  background-color: #3B7BF6;
+  background-color: #fff;
 }
 .btn-icon {
-  filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(0%) hue-rotate(151deg) brightness(106%) contrast(105%);
+  filter: brightness(0) saturate(100%) invert(36%) sepia(86%) saturate(1918%) hue-rotate(207deg) brightness(101%) contrast(93%);
 }
 .bch-balance {
   text-shadow: 2px 2px #20242e;
 }
 .token-card {
   position: absolute;
+  padding-bottom: 80px;
   bottom: 0;
   width: 100%;
-  padding-bottom: 80px;
+}
+.assets {
+  padding-top: 20px;
 }
 </style>

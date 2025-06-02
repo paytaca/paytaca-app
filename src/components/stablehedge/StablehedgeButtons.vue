@@ -1,6 +1,18 @@
 <template>
   <div>
-    <q-btn
+    <div class="q-mr-md">
+      <q-btn class="btn" no-caps round style="padding: 20px;" @click.stop="() => openFreezeDialog()">
+        <q-icon class="btn-icon" size="30px" name="ac_unit"/> <br>                              
+      </q-btn>
+    <div class="q-pt-sm">{{ $t('Freeze') }}</div>
+    </div>    
+    <div class="q-ml-md">
+      <q-btn class="btn" round style="padding: 20px;" @click.stop="() => openUnfreezeDialog()">
+        <q-icon class="btn-icon" size="30px" name="img:ui-revamp/unfreeze.svg"/>                
+      </q-btn>  
+    <div class="q-pt-sm">{{ $t('Unfreeze') }}</div>
+  </div>
+    <!-- <q-btn
       rounded
       padding="2px 10px"
       no-caps :label="$t('Freeze')"
@@ -18,7 +30,7 @@
       :color="$q.dark.isActive ? 'teal' : 'teal-2'"
       :text-color="$q.dark.isActive ? '' : 'teal-9'"
       @click.stop="() => openUnfreezeDialog()"
-    />
+    /> -->
 
     <DepositFormDialog
       v-model="depositFormDialog.show"
@@ -327,3 +339,11 @@ export default defineComponent({
   }
 })
 </script>
+<style lang="scss" scoped>
+.btn-icon {
+  filter: brightness(0) saturate(100%) invert(36%) sepia(86%) saturate(1918%) hue-rotate(207deg) brightness(101%) contrast(93%);
+}
+.btn {
+  background-color: #fff; 
+}
+</style>

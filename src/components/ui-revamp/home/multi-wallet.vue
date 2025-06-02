@@ -1,7 +1,7 @@
 <template>
   <q-btn class="q-mr-sm" padding="0" size="sm" no-caps flat :loading="isloading">
     <q-icon name="keyboard_arrow_down" class="q-pr-sm"/>
-    <span class="body-small">Wallet Balance&nbsp;({{ walletName }})</span>&nbsp;
+    <span class="title-medium">{{ walletName }}</span>&nbsp;
 
     <q-menu
       ref="walletSelect"
