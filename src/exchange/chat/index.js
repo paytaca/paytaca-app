@@ -11,7 +11,7 @@ export const chatIdentityManager = new ChatIdentityManager()
 /**
  * Loads or creates a chat identity for a user
  * @async
- * @param {string} usertype - The type of user (required)
+ * @param {string} usertype - The type of user (required) (valid values: peer | arbiter)
  * @param {Object} params - Parameters for chat identity
  * @param {string} params.name - The chat identity name of the user (required)
  * @param {string|null} params.chat_identity_id - The ID of an existing chat identity, if any

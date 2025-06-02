@@ -298,7 +298,7 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { backend } from 'src/exchange/backend'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
-import { elements } from 'chart.js'
+import { fetchUser } from 'src/exchange/auth'
 
 export default {
   directives: {
@@ -547,7 +547,9 @@ export default {
       // Create chat identity if it doesn't exist
       if (!vm.chatIdentity) {
         console.log('Creating chat identity')
-        loadChatIdentity(chatIdentityRef)
+        const user = await fetchUser()
+        console.log('User', user)
+        loadChatIdentity ('peer', { name: user?.name, chat_identity_id: user?.chat_identity_id })
           .then(identity => {
             vm.chatIdentity = identity
             this.$store.commit('ramp/updateChatIdentity', { ref: identity.ref, chatIdentity: identity })
@@ -577,6 +579,7 @@ export default {
         } else {
           vm.arbiterIdentity = members.filter(member => member.is_arbiter)[0]
         }
+        console.log('Chat members', members)
         const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
 
         // Create session if necessary
