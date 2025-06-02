@@ -27,7 +27,7 @@ class Translator {
     ]
     this.regex = {
       interpolatedStrRegex: /\{(\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+\}|<(.|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+>/gu,
-      htmlClassRegex: /[“|"](\s|\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+[”|"]/gu,
+      htmlClassRegex: /[""](\s|\w|\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana})+[""]/gu,
     }
   }
 
@@ -235,10 +235,23 @@ class Translator {
   // writing to language index files
   write (data, to) {
     const toPath = `./${to}/${this.indexFile}`
-  
+    
+    // Ensure proper line endings and formatting
+    const formattedData = data
+      .replace(/\r\n/g, '\n') // Normalize line endings
+      .replace(/\n{3,}/g, '\n\n') // Remove excessive newlines
+      .replace(/,\s*}/g, '}') // Remove trailing commas
+      .replace(/,\s*]/g, ']') // Remove trailing commas in arrays
+      .replace(/\\"/g, '"') // Fix escaped quotes
+      .replace(/\\\\/g, '\\') // Fix escaped backslashes
+      .replace(/[""]/g, '"') // Replace smart quotes
+      .replace(/['']/g, "'") // Replace smart single quotes
+      .replace(/[–—]/g, "-") // Replace em/en dashes
+      .replace(/…/g, "...") // Replace ellipsis
+
     fs.writeFile(
       toPath,
-      data,
+      formattedData,
       (err) => {
         if (err) throw err
       }
