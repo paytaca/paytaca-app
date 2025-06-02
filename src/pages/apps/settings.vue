@@ -2,18 +2,148 @@
   <div id="app-container" class="grad" :class="getDarkModeClass(darkMode)">
       <header-nav :title="$t('Settings')" class="apps-header" />
 
-      <q-scroll-area :style="{ 'margin-top': $q.platform.is.ios ? '69px' : '49px', 'height': `${$q.screen.height}px`}">
-        <div>
-          <q-list class="settings-container br-15" dark bordered separator>
-            <q-item clickable v-ripple>
+      <q-scroll-area :style="{ 'margin-top': $q.platform.is.ios ? '69px' : '49px', 'height': `${$q.screen.height - 100}px`}">
+        <div class="settings-container">
+          <p class="q-px-sm q-my-sm text-light section-title text-h6">{{ $t('Security') }}</p>
+          <q-list class="br-15" dark bordered separator>
+            <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
               <q-item-section>{{ $t('SecurityAuthenticationSetup') }}</q-item-section>
-            </q-item>          
+              <q-item-section avatar>
+                <q-icon name="security" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+              </q-item-section>
+            </q-item> 
+            <q-item :disable="!pinStatus" clickable v-ripple @click="setNewPin">
+              <q-item-section>
+                <q-item-label>
+                    {{ $t('ChangePin') }} {{ !pinStatus ? $t('(disabled)') : '' }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-icon name="mdi-pin" class="q-pr-sm pin-icon"></q-icon>
+              </q-item-section>
+            </q-item>         
+          </q-list>
+
+          <p class="q-px-sm q-my-sm text-light section-title text-h6">{{ $t('Wallet') }}</p>
+          <q-list bordered separator class="br-15" dark>
+            <q-item>
+              <q-item-section>
+                <q-item-label>
+                  {{ $t('Currency') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side style="width: 30vh">
+                <CurrencySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>
+                <q-item-label>
+                  {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  v-model="showTokens"
+                  color="blue-9"                  
+                />
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>
+                <q-item-label>
+                  {{ $t(isHongKong(currentCountry) ? 'ManageIgnoredPoints' : 'ManageIgnoredTokens') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-btn
+                  flat
+                  :label="$t('Manage')"
+                  no-caps
+                  :to="{
+                    path: '/apps/settings/ignored-tokens',
+                    query: { backNavPath: '/apps/settings' }
+                  }"
+                />
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-ripple @click="isChipnet = !isChipnet">
+              <q-item-section>
+                <q-item-label>
+                  {{ $t('UseChipnetNetwork') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  v-model="isChipnet"
+                  color="blue-9"                    
+                />
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-ripple @click="autoGenerateAddress = !autoGenerateAddress">
+              <q-item-section>
+                <q-item-label>
+                  {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
+                </q-item-label>
+                <q-item-label caption style="line-height:1;margin-top:3px;" >
+                  {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  v-model="autoGenerateAddress"
+                  color="blue-9"                      
+                />
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-ripple @click="enableStablhedge = !enableStablhedge">
+              <q-item-section>
+                <q-item-label>
+                  {{ $t('EnableStablhedge') }} <q-badge color="red" align="top">ALPHA</q-badge>
+                </q-item-label>
+                <q-item-label caption style="line-height:1;margin-top:3px;" >
+                  {{ $t('StablehedgeIntroText', {}, 'Safeguard your funds from market volatlity and access them whenever you need.') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  v-model="enableStablhedge"
+                  color="blue-9"                      
+                />
+              </q-item-section>
+            </q-item>
+            <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('EnableSmartBCH') }}
+                      </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-toggle
+                      v-model="enableSmartBCH"
+                      color="blue-9"
+                      keep-color
+                    />
+                  </q-item-section>
+              </q-item> -->
+            <q-item>
+              <q-item-section>
+                <q-item-label>
+                  {{ $t('SelectBCHDenomination') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side style="width: 30vh;">
+                <DenominatorSelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
           </q-list>
         </div>        
         
       </q-scroll-area>
+
+
       <div class="row"   :style="{ 'margin-top': $q.platform.is.ios ? '69px' : '49px'}">
-        <div class="col-12 q-px-lg q-mt-md">
+        <!-- <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Security') }}</p>
             <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
@@ -37,9 +167,9 @@
                   </q-item-section>
               </q-item>
             </q-list>
-        </div>
+        </div> -->
 
-        <div class="col-12 q-px-lg q-mt-md">
+        <!-- <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Wallet') }}</p>
             <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
               <q-item>
@@ -133,7 +263,7 @@
                     />
                   </q-item-section>
               </q-item>
-              <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
+              <-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('EnableSmartBCH') }}
@@ -146,7 +276,7 @@
                       keep-color
                     />
                   </q-item-section>
-              </q-item> -->
+              </q-item> --
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -158,7 +288,7 @@
                 </q-item-section>
               </q-item>
             </q-list>
-        </div>
+        </div> -->
 
         <div class="col-12 q-px-lg q-mt-md">
           <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Personalize') }}</p>
