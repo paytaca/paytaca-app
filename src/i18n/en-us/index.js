@@ -678,7 +678,7 @@ export default {
   LoadingRequests: "Loading requests",
   LoadingSevices: "Connecting to server",
   LoadingShards: "Loading shards",
-  LoadingWallet: "Wallet Balance",
+  LoadingWallet: "Loading Wallet",
   Locate: "Locate",
   Location: "Location",
   LockedPrice: "Locked Price",

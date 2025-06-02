@@ -676,7 +676,7 @@ const phrases = {
       SeeBasicWalletInfo: "See Basic Wallet Info",
       WalletName: "Wallet Name",
       WalletBalanceCap: "Wallet Balance",
-      LoadingWallet: "Loading wallet",
+      LoadingWallet: "Loading Wallet",
       ReceiverWarningText1: "First time receiving funds for this asset? Please",
       ReceiverWarningText2: "backup your seed phrase",
       ReceiverWarningText3: "before proceeding.",
