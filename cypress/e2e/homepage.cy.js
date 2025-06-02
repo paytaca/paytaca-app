@@ -52,6 +52,21 @@ describe('Home Page', () => {
     });
   });
 
+  //Different format:for exploration
+  // const appScreens = [
+  //   {
+  //     name: 'Home',
+  //     selector: '#home-container',
+  //     navigate: () => cy.visit('/home'),
+  //   },
+  //   {
+  //     name: 'Settings',
+  //     selector: '#settings-title',
+  //     navigate: () => cy.visit('/settings'),
+  //   },
+  // ];
+
+
   //Verify API responses if the screen loads data.
   cy.intercept('**/api/**').as('apiCalls'); // Watch API requests
 
