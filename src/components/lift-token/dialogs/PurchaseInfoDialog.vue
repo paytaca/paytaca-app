@@ -9,9 +9,7 @@
       <div class="row justify-between items-center q-mb-xs">
         <div>
           <sale-group-chip :saleGroup="purchase.sale_group" />
-          <sale-group-chip
-            :saleGroup="purchase.vesting_details.length > 0 ? 'vest' : 'lock'"
-          />
+          <sale-group-chip :saleGroup="parseStatus()" />
         </div>
 
         <q-btn
@@ -40,10 +38,12 @@
             {{ parseLocaleDate(purchase.purchased_date) }}
           </span>
 
-          <span class="col-12 text-body2 dim-text">Lockup Period</span>
-          <span class="col-12 q-mb-sm">
-            {{ parseLocaleDate(purchase.lockup_date) }}
-          </span>
+          <template v-if="purchase.sale_group !== SaleGroup.PUBLIC">
+            <span class="col-12 text-body2 dim-text">Lockup Period</span>
+            <span class="col-12 q-mb-sm">
+              {{ parseLocaleDate(purchase.lockup_date) }}
+            </span>
+          </template>
 
           <span class="col-12 text-body2 dim-text">BCH Address</span>
           <span class="col-12 q-mb-sm">
@@ -51,7 +51,10 @@
           </span>
         </div>
 
-        <span class="q-mb-sm col-12 text-center text-body1 dim-text">
+        <span
+          v-if="purchase.sale_group !== SaleGroup.PUBLIC"
+          class="q-mb-sm col-12 text-center text-body1 dim-text"
+        >
           Vesting Progress
         </span>
 
@@ -85,6 +88,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLiftToken, parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import { parseFiatCurrency, getAssetDenomination } from 'src/utils/denomination-utils'
+import { SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
 
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import SaleGroupChip from '../SaleGroupChip.vue'
@@ -103,6 +107,8 @@ export default {
 
   data () {
     return {
+      SaleGroup,
+
       vestingDetailsList: []
     }
   },
@@ -123,6 +129,10 @@ export default {
     parseBchAddress (address) {
       const addLen = address.length
       return `${address.substring(0, 17)}...${address.substring(addLen - 7, addLen)}`
+    },
+    parseStatus () {
+      if (this.purchase.vesting_details.length === 4) return 'comp'
+      return this.purchase.vesting_details.length > 0 ? 'vest' : 'lock'
     }
   },
 
