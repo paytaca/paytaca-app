@@ -339,6 +339,8 @@ export default {
 
     // update balance of assets
     const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
+    vm.wallet = wallet // Initialize the wallet property
+    
     for (var i = 0; i < bchAssets.length; i = i + 3) {
       const balanceUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
         return updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)

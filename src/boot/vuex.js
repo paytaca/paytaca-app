@@ -9,7 +9,27 @@ import useStore from 'src/store'
  * Pinia is now recommended for global state management
  */
 export default boot((obj) => {
-  const store = useStore();
-  const { app } = obj
-  app.use(store)
+  try {
+    const store = useStore();
+    const { app } = obj
+    
+    // Add error handler for store mutations
+    store.subscribe((mutation, state) => {
+      try {
+        // Log any state changes that might be problematic
+        if (mutation.type.includes('update') || mutation.type.includes('set')) {
+          console.debug('Store mutation:', mutation.type, mutation.payload)
+        }
+      } catch (err) {
+        console.error('Error in store mutation:', err)
+      }
+    })
+
+    app.use(store)
+  } catch (err) {
+    console.error('Error initializing Vuex store:', err)
+    // Initialize store with default state if hydration fails
+    const store = useStore()
+    obj.app.use(store)
+  }
 })

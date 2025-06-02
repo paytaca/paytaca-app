@@ -378,12 +378,25 @@ export default {
         }
 
         if (payProData.paypro.category) {
-          query.assetId = `ct/${payProData.paypro.category}`
+          // Check if wallet has the requested token
+          const tokenCategory = payProData.paypro.category
+          const walletAssets = this.$store.getters['assets/getAssets']
+          const hasToken = walletAssets.some(asset => asset.id === `ct/${tokenCategory}`)
+
+          if (!hasToken) {
+            this.$router.push({
+              name: 'transaction-send-select-asset',
+              query: { error: 'token-not-found' }
+            })
+            return false
+          }
+
+          query.assetId = `ct/${tokenCategory}`
 
           if (payProData.paypro.fungible) {
             query.fungible = payProData.paypro.fungible
           }
-          vm.$router.push({
+          this.$router.push({
             name: 'transaction-send',
             query
           })

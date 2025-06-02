@@ -199,10 +199,8 @@
         dense
         v-model="message"
         :placeholder="$t('EnterMessage')"
-        @focus="()=> {
-          console.log($refs.container.$el)
-          let element = $refs.container.$el
-          console.log('element: ', element)
+        @focus="()=> {          
+          let element = $refs.container.$el          
 
           element.scrollTop = element.scrollHeight
         }"
@@ -459,8 +457,8 @@ export default {
   },
   async mounted () {
     // Set Data Here
-    const members = [this.order?.members?.buyer.public_key, this.order?.members?.seller.public_key].join('')
-    this.chatRef = generateChatRef(this.order?.id, this.order?.created_at, members)
+    const members = [this.order?.members?.buyer.public_key, this.order?.members?.seller.public_key].join('')    
+    this.chatRef = generateChatRef(this.order?.id, this.order?.created_at, members)    
     this.stopInfiniteScroll()
     this.loadKeyPair()
     this.loadChatSession()
@@ -541,8 +539,9 @@ export default {
     },
     async loadChatSession () {
       const vm = this
-      const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
-      vm.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
+      const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)      
+      vm.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)          
+
       let createSession = false
       await fetchChatSession(vm.chatRef)
         .catch(error => {
@@ -553,7 +552,7 @@ export default {
           } else {
             bus.emit('network-error')
           }
-        })
+        })      
       await vm.fetchOrderMembers(vm.order?.id).then(async (members) => {
         if (!['APL', 'RFN_PN', 'RLS_PN'].includes(this.order.status.value)) {
           members = members.filter(member => !member.is_arbiter)
@@ -564,19 +563,23 @@ export default {
         // Create session if necessary
         if (createSession) {
           await createChatSession(vm.order?.id, vm.chatRef).catch(error => { console.error(error) })
-          await updateChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
+          await updateChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })          
         } else {
           // Add or update current chat members if any
           fetchChatMembers(vm.chatRef).then(async currentChatMembers => {
-            if (currentChatMembers?.length !== chatMembers?.length) {
-              const chatMemberIds = chatMembers.map(el => el.chat_identity_id)
+            let chatMemberIds = chatMembers.map(el => el.chat_identity_id)
+            chatMemberIds = chatMemberIds.filter(id => currentChatMembers.some(member => member.chat_identity.id === id))
+            
+            // if (currentChatMembers?.length !== chatMembers?.length) {
+            if (currentChatMembers?.length !== chatMemberIds?.length) {              
+              // const chatMemberIds = chatMembers.map(el => el.chat_identity_id)
               const membersToRemove = (currentChatMembers.filter(function (member) {
                 return !chatMemberIds.includes(member.chat_identity.id)
-              })).map(el => el.chat_identity.id)
+              })).map(el => el.chat_identity.id)              
               await updateChatMembers(vm.chatRef, chatMembers, membersToRemove).catch(error => { console.error(error) })
             }
           })
-        }
+        }        
         await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => { console.error(error) })
         // Refetch updated chat members and format
         await fetchChatMembers(vm.chatRef)
@@ -593,8 +596,7 @@ export default {
                 pubkeys: member.chat_identity.pubkeys
               }
             })
-          })
-
+          })          
         // Fetch and decrypt messages
         fetchChatMessages(vm.chatRef)
           .then(async (data) => {
@@ -625,7 +627,7 @@ export default {
           } else {
             bus.emit('network-error')
           }
-        })
+        })        
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
