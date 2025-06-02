@@ -41,10 +41,10 @@
           <div class="row col-12 q-mb-xs justify-between items-center">
             <div class="col-6">
               <span class="row col-12 text-body1 text-bold">
-                {{ parseLiftToken(rsvp.amount_purchased_token) }}
+                {{ parseLiftToken(rsvp.reserved_amount_tkn) }}
               </span>
               <span class="row col-12 text-subtitle2">
-                {{ parseFiatCurrency(rsvp.amount_purchased_usd, 'USD') }}
+                {{ parseFiatCurrency(rsvp.reserved_amount_usd, 'USD') }}
               </span>
             </div>
             <div class="row col-6 justify-end">

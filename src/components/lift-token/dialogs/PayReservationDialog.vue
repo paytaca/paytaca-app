@@ -44,13 +44,13 @@
             </q-menu>
           </div>
           <span class="col-12 q-mt-xs text-subtitle1">
-            ({{ parseFiatCurrency(rsvp.amount_purchased_usd, 'usd') }})
+            ({{ parseFiatCurrency(rsvp.reserved_amount_usd, 'usd') }})
           </span>
         </template>
         
         <span class="col-12 q-my-sm text-grey">for</span>
         <span class="col-12 text-h5 text-bold">
-          {{ parseLiftToken(rsvp.amount_purchased_token) }}
+          {{ parseLiftToken(rsvp.reserved_amount_tkn) }}
         </span>
       </div>
 
@@ -153,7 +153,7 @@ export default {
           reset?.()
           this.intervalId = setInterval(() => {
             this.bchAmount = getAssetDenomination(
-              'BCH', this.getBchPrice(this.rsvp.amount_purchased_usd)
+              'BCH', this.getBchPrice(this.rsvp.reserved_amount_usd)
             )
           }, 3000)
         })
@@ -165,11 +165,11 @@ export default {
   async mounted () {
     this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
     this.bchAmount = getAssetDenomination(
-      'BCH', this.getBchPrice(this.rsvp.amount_purchased_usd)
+      'BCH', this.getBchPrice(this.rsvp.reserved_amount_usd)
     )
     this.intervalId = setInterval(() => {
       this.bchAmount = getAssetDenomination(
-        'BCH', this.getBchPrice(this.rsvp.amount_purchased_usd)
+        'BCH', this.getBchPrice(this.rsvp.reserved_amount_usd)
       )
     }, 5000)
 
