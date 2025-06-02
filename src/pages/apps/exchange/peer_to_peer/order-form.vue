@@ -229,6 +229,8 @@ import { createChatSession, updateChatMembers, generateChatRef } from 'src/excha
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
+import { fetchUser } from 'src/exchange/auth'
+import { loadChatIdentity } from 'src/exchange/chat'
 import ShareDialog from 'src/components/ramp/fiat/dialogs/ShareDialog.vue'
 
 export default {
@@ -532,11 +534,16 @@ export default {
       }
       try {
         await backend.post('/ramp-p2p/order/', body, { authorize: true })
-          .then((response) => {
+          .then(async (response) => {
             vm.order = response.data.order
 
             vm.state = 'order-process'
             vm.$emit('updatePageName', 'order-process')
+
+            // Create chat identity first, if it does not exist
+            const user = await fetchUser()
+            await loadChatIdentity ('peer', { name: user?.name, chat_identity_id: user.chat_identity_id })
+
             vm.fetchOrderMembers(vm.order.id)
               .then(members => {
                 vm.createGroupChat(vm.order.id, members, vm.order.created_at)
@@ -603,6 +610,7 @@ export default {
         })
     },
     createGroupChat (orderId, members, createdAt) {
+      console.log('createGroupChat', orderId, members, createdAt)
       const vm = this
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
       const _members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
@@ -877,6 +885,7 @@ export default {
             this.showErrorDialog('Internal Server Error. Please try again later.')
             break
           default:
+            this.showErrorDialog(`Unexpected error: ${error.response.statusText}. Please try again later.`)
             console.log(`Error: ${error.response.status}. ${error.response.statusText}`)
         }
       }
