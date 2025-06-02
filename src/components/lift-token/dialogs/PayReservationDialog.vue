@@ -123,8 +123,12 @@ export default {
 
   watch: {
     bchAmount (value) {
-      if (Number(`${value}`.split(' ')[0]) === 0) this.isLoading = true
-      else this.isLoading = false
+      const bch = Number(value.split(' ')[0])
+      if (bch === 0) this.isLoading = true
+      else {
+        this.isLoading = false
+        this.isSufficientBalance = this.walletBalance >= bch
+      }
     }
   },
 
