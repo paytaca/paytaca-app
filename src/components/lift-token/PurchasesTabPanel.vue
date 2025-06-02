@@ -16,6 +16,11 @@
       @click="filterPurchasesList(SaleGroup.PRIVATE)"
     />
     <sale-group-chip
+      :saleGroup="SaleGroup.PUBLIC"
+      :outline="isChipOutline(SaleGroup.PUBLIC)"
+      @click="filterPurchasesList(SaleGroup.PUBLIC)"
+    />
+    <sale-group-chip
       :saleGroup="'lock'"
       :outline="isChipOutline('lock')"
       @click="filterPurchasesList('lock')"
@@ -24,6 +29,11 @@
       :saleGroup="'vest'"
       :outline="isChipOutline('vest')"
       @click="filterPurchasesList('vest')"
+    />
+    <sale-group-chip
+      :saleGroup="'comp'"
+      :outline="isChipOutline('comp')"
+      @click="filterPurchasesList('comp')"
     />
   </div>
 
@@ -165,6 +175,10 @@ export default {
       } else if (saleGroup === 'vest') {
         this.finalPurchasesList = this.purchasesList.filter(
           a => a.vesting_details.length > 0
+        )
+      } else if (saleGroup === 'comp') {
+        this.finalPurchasesList = this.purchasesList.filter(
+          a => a.vesting_details.length === 4
         )
       } else {
         this.finalPurchasesList = this.purchasesList.filter(

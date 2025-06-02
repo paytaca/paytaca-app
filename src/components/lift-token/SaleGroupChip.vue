@@ -16,7 +16,8 @@ const SALE_GROUP_CHIP = {
   priv: { label: 'Private Round', color: 'blue', isSquare: false },
   pblc: { label: 'Public Round', color: 'green', isSquare: false },
   lock: { label: 'Lockup', color: 'red', isSquare: true },
-  vest: { label: 'Vesting', color: 'blue', isSquare: true }
+  vest: { label: 'Vesting', color: 'blue', isSquare: true },
+  comp: { label: 'Complete', color: 'green', isSquare: true }
 }
 
 export default {
