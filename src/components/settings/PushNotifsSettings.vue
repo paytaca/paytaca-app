@@ -1,10 +1,10 @@
 <template>
-  <div class="col-12 q-px-lg q-mt-md">
-    <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('PushNotifications') }}</p>
-    <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+  <!-- <div class="col-12 q-px-lg q-mt-md"> -->
+    <p class="q-px-sm q-my-sm text-light section-title text-h6">{{ $t('PushNotifications') }}</p>
+    <q-list bordered separator class="br-15" dark>
       <q-item>
         <q-item-section>
-          <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+          <q-item-label>
             {{ $t('EnablePushNotifications') }}
           </q-item-label>
         </q-item-section>
@@ -15,8 +15,7 @@
           <template v-else>
             <q-toggle
               v-model="enablePushNotifs"
-              color="blue-9"
-              keep-color
+              color="blue-9"              
               @click="handleNotifsSubscription"
             />
           </template>
@@ -101,7 +100,7 @@
         </template>
       </template>
     </q-list>
-  </div>
+  <!-- </div> -->
 </template>
 
 <script>
