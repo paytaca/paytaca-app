@@ -1,5 +1,3 @@
-const { waitForDebugger } = require("inspector");
-
 describe('P2P Exchange Page', () => {
   beforeEach(() => {
     cy.restoreLocalStorage();
@@ -11,41 +9,33 @@ describe('P2P Exchange Page', () => {
     cy.saveLocalStorage();
   });
 
-  it('should load the applications page', () => {
-    cy.visit('http://localhost:9000/#/apps');
-  });
-
-  const clickTab = (label, expectedUrlPart) => {
+  const clickTab = (label, urlPart) => {
     cy.contains(label).click();
-    cy.url().should('include', expectedUrlPart);
+    cy.url().should('include', urlPart);
   };
 
-  const clickMultipleLabels = (labels) => {
-    labels.forEach(label => {
-      cy.contains(label).click();
-    });
+  const clickLabels = (labels) => {
+    labels.forEach(label => cy.contains(label).click());
   };
 
-  it('P2P Page elements function as expected', () => {
-    // Launch P2P Exchange app
-    cy.contains('.pt-app-name', 'P2P Exchange').parent().find('.pt-app').click();
+  it('should navigate through P2P Exchange sections and verify elements', () => {
+    // Launch P2P Exchange
+    cy.contains('.pt-app-name', 'P2P Exchange')
+      .closest('.pt-app')
+      .click();
+
     cy.url().should('include', '/apps/exchange');
 
-    // Store / Home tab
-    clickTab('Home', '/exchange/peer-to-peer/store/');
-    cy.contains('P2P Exchange').click();
-    clickMultipleLabels(['Buy BCH', 'Sell BCH']);
+    const tabs = [
+      { name: 'Home', url: '/exchange/peer-to-peer/store/', labels: ['Buy BCH', 'Sell BCH'] },
+      { name: 'Ads', url: '/exchange/peer-to-peer/ads/', labels: ['Buy Ads', 'Sell Ads'] },
+      { name: 'Orders', url: '/exchange/peer-to-peer/orders/', labels: ['Ongoing', 'Completed'] },
+      { name: 'Profile', url: '/exchange/peer-to-peer/profile/', labels: ['REVIEWS', 'ADS'] }
+    ];
 
-    // Ads tab
-    clickTab('Ads', '/exchange/peer-to-peer/ads/');
-    clickMultipleLabels(['Buy Ads', 'Sell Ads']);
-
-    // Orders tab
-    clickTab('Orders', '/exchange/peer-to-peer/orders/');
-    clickMultipleLabels(['Ongoing', 'Completed']);
-
-    // Profile tab
-    clickTab('Profile', '/exchange/peer-to-peer/profile/');
-    clickMultipleLabels(['REVIEWS', 'ADS']);
+    tabs.forEach(({ name, url, labels }) => {
+      clickTab(name, url);
+      clickLabels(labels);
+    });
   });
 });
