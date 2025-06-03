@@ -6,7 +6,7 @@
         <!-- <q-icon size="md" name="arrow_drop_down"/> <span class="title-medium">Main: Nikki</span>  -->
       </div>
       <div>
-        <q-btn class="q-mr-sm" padding="xs" outline round icon="notifications"/>
+        <q-btn class="q-mr-sm" padding="xs" outline round icon="notifications" @click="openNotificationsDialog()"/>
         <q-btn padding="xs" outline round icon="settings" @click="$router.push('/apps/settings')"/>
       </div>
     </div>
@@ -67,7 +67,7 @@
       </div> -->
       <div class="q-pb-sm button-group" v-else>
         <div class="q-mr-md">
-          <q-btn class="btn" no-caps round style="padding: 20px;" @click="$router.push({ name: 'transaction-send-select-asset' })">
+          <q-btn class="btn" no-caps round style="padding: 20px;" @click="$router.push({ name: 'transaction-send' })">
             <q-icon class="btn-icon" size="30px" name="img:app-send.svg"/> <br>                              
           </q-btn>
           <div class="q-pt-sm">{{ $t('Send') }}</div>

@@ -1,7 +1,7 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
-    class="marketplace-container"
+    class="marketplace-container grad"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
