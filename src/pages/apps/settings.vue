@@ -137,8 +137,9 @@
               </q-item-section>
             </q-item>
           </q-list>
-        </div>        
-        
+
+          <p class="q-px-sm q-my-sm text-light section-title text-h6">{{ $t('Personalize') }}</p>
+        </div>                    
       </q-scroll-area>
 
 
