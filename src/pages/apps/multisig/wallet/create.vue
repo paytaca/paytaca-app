@@ -232,11 +232,6 @@ const onResetClicked = () => {
 }
 
 const onCreateClicked = async () => {
-  console.log('create wallet', wallet.value)
-  // const multisigWallet = new MultisigWallet(wallet.value)
-  // const multisigWalletAddress = multisigWallet.getAddress({
-  //   addressIndex: 0, cashAddressNetworkPrefix
-  // })
 
   const hdPublicKeys = {}
   const signerNames = {}
@@ -263,7 +258,7 @@ const onCreateClicked = async () => {
     template, lockingData, requiredSignatures: wallet.value.m
   }
 
-  await saveMultisigWallet({ multisigWallet })
+  await saveMultisigWallet(multisigWallet)
   router.push({
     name: 'app-multisig-wallet-view',
     params: {

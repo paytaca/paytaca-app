@@ -1,4 +1,4 @@
-import { CashAddressNetworkPrefix, hashTransaction } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, hashTransaction, binToHex } from 'bitauth-libauth-v3'
 import { MultisigWallet } from 'src/lib/multisig'
 
 export function getSettings (state) {
@@ -41,6 +41,18 @@ export function getTransactionsLastIndex (state) {
 export function getTransactionsByWalletAddress (state) {
   return ({ address }) => {
     return state.transactions.filter((t) => t.metadata?.address === decodeURIComponent(address))
+  }
+}
+
+export function getTransactionsByLockingBytecode (state) {
+  return ({ lockingBytecodeHex }) => {
+    return state.transactions?.filter((t) => {
+	const transaction = t.transaction.inputs.find((input) => {
+	   const targetLockingBytecodeHex = binToHex(Uint8Array.from(Object.values(input.sourceOutput.lockingBytecode)))
+           return targetLockingBytecodeHex === lockingBytecodeHex
+	})
+	return Boolean(transaction)
+    })
   }
 }
 
