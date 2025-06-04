@@ -1324,6 +1324,7 @@ export default {
       if (!asset?.id && tokenId.startsWith('ct/')) {
         asset = await this.wallet.BCH.getTokenDetails(tokenId.split('/')[1])
         this.$store.commit(`assets/addNewAsset`, asset)
+        this.$store.commit(`assets/moveAssetToBeginning`)
       }
 
       if (asset?.id) {
