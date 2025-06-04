@@ -43,9 +43,25 @@
               <span class="row col-12 text-body1 text-bold">
                 {{ parseLiftToken(rsvp.reserved_amount_tkn) }}
               </span>
-              <span class="row col-12 text-subtitle2">
-                {{ parseFiatCurrency(rsvp.reserved_amount_usd, 'USD') }}
-              </span>
+              <div class="row col-12 text-subtitle2 items-center">
+                <span class="q-pr-xs">
+                  {{ parseFiatCurrency(rsvp.reserved_amount_usd, 'USD') }}
+                </span>
+                <template v-if="rsvp.discount > 0">
+                  <q-icon name="info" size="1em"/>
+                  <q-menu
+                    touch-position
+                    class="pt-card text-bow q-py-sm q-px-md br-15"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <div class="row items-center q-gutter-sm">
+                      <div class="q-space">
+                        You have a 1500 USD discount
+                      </div>
+                    </div>
+                  </q-menu>
+                </template>
+              </div>
             </div>
             <div class="row col-6 justify-end">
               <sale-group-chip :saleGroup="rsvp.sale_group" />
@@ -143,6 +159,9 @@ export default {
         component: PayReservationDialog,
         componentProps: { rsvp }
       })
+    },
+    computeDiscount (usd, discount) {
+      return '' // TODO need more info
     }
   },
 
