@@ -1,4 +1,4 @@
-import { CashAddressNetworkPrefix, hashTransaction, binToHex } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, hashTransaction, binToHex, cashAddressToLockingBytecode } from 'bitauth-libauth-v3'
 import { MultisigWallet } from 'src/lib/multisig'
 
 export function getSettings (state) {
@@ -38,11 +38,6 @@ export function getTransactionsLastIndex (state) {
   return state.transactions.length - 1
 }
 
-export function getTransactionsByWalletAddress (state) {
-  return ({ address }) => {
-    return state.transactions.filter((t) => t.metadata?.address === decodeURIComponent(address))
-  }
-}
 
 export function getTransactionsByLockingBytecode (state) {
   return ({ lockingBytecodeHex }) => {
@@ -56,6 +51,12 @@ export function getTransactionsByLockingBytecode (state) {
   }
 }
 
+export function getTransactionsByWalletAddress (state, getters) {
+  return ({ address }) => {
+    const lockingBytecodeHex = binToHex(cashAddressToLockingBytecode(address).bytecode)
+    return getters.getTransactionsByLockingBytecode({ lockingBytecodeHex })
+  }
+}
 /**
  * Returns transaction proposal with the same provided hash of the unsigned transaction.
  */
