@@ -98,7 +98,7 @@ export default {
       BarcodeScanner.stopScan()
       this.adjustComponentsClasslist(false)
 
-      if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
+      // if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     },
     async prepareScanner () {
       const status = await this.checkPermission()

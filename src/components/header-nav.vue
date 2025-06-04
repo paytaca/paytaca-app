@@ -71,7 +71,7 @@ export default {
       const vm = this
       if(vm.useEmitBack) {
         vm.$emit('back')
-      } else {
+      } else {        
         if (vm.backnavpath) {
           vm.$router.push(vm.backnavpath)
         } else {

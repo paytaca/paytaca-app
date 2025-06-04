@@ -1,6 +1,6 @@
 <template>
 	<div id="app-container" class="grad">
-		<header-nav></header-nav>
+		<header-nav :useEmitBack="step > 1" @back="handleBack"></header-nav>
 		
 		<div class="send-container" :style="{ 'margin-top': $q.platform.is.ios ? '69px' : '49px' }">
 			<div v-if="step === 1">
@@ -14,7 +14,7 @@
 			        </div>
 			        <div style="margin-top: 20px;">
 			        	<q-list>
-			        		<q-item clickable v-ripple v-for="(asset, index) in assets" :key="index" class="asset-button">
+			        		<q-item clickable v-ripple v-for="(asset, index) in assets" :key="index" class="asset-button" @click="selectAsset(asset)">
 			        			<q-item-section avatar>
 						          <q-avatar>
 						            <img :src="getImageUrl(asset)" width="50" alt="">
@@ -32,80 +32,19 @@
 						        </q-item-section>
 			        		</q-item>
 			        	</q-list>
-						<!-- <div style="overflow-y: scroll;">
-					        <div
-					          v-for="(asset, index) in assets"
-					          :key="index"
-					          @click="redirectToSend(asset)"
-					          role="button"
-					          class="row q-pl-lg q-pr-lg asset-button"          
-					        >
-					         	<div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)">
-					            	<div class="row q-pt-sm q-pb-xs q-pl-md">
-					              		<div>
-							                <img
-							                  :src="getImageUrl(asset)"
-							                  width="50"
-							                  alt=""
-							                />
-					              		</div>
-					              		<div class="col q-pl-sm q-pr-sm">
-							                <p
-							                  class="q-ma-none title-large text-dark"					                  
-							                >
-							                  {{ asset.name }}
-							                </p>					                
-							                <p v-if="asset.id.startsWith('ct/')" class="q-ma-none amount-text text-dark">
-							                 	{{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
-							                </p>
-							                <p v-else class="q-ma-none amount-text text-dark">
-							                  {{ parseAssetDenomination(denomination, asset) }}
-							                </p>
-					              		</div>
-					            	</div>
-					          	</div>
-					        </div>
-					    </div> -->			          
-			        </div>
-
-			       
-
-			        <!-- <div style="overflow-y: scroll;">
-				        <div
-				          v-for="(asset, index) in assets"
-				          :key="index"				          
-				          role="button"
-				          class="row q-pl-lg q-pr-lg asset-button"          
-				        >
-				          <div class="col row group-currency q-mb-sm">
-				            <div class="row q-pt-sm q-pb-xs q-pl-md">
-				              <div>
-				                <img
-				                  :src="getImageUrl(asset)"
-				                  width="50"
-				                  alt=""
-				                />
-				              </div>
-				              <div class="col q-pl-sm q-pr-sm">
-				                <p
-				                  class="q-ma-none title-large"				                  
-				                >
-				                  {{ asset.name }}
-				                </p>
-				                <p v-if="asset.id.startsWith('ct/')" class="q-ma-none amount-text">
-				                  {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
-				                </p>
-				                <p v-else class="q-ma-none amount-text">
-				                  {{ parseAssetDenomination(denomination, asset) }}
-				                </p>
-				              </div>
-				            </div>
-				          </div>
-				        </div>
-				      </div> -->
+			      </div>
 				</div>
 					
-			</div>			
+			</div>	
+			<div v-if="step === 2">
+				<div class="title-large">Step #2</div>			
+				<sendForm
+					:assetId="selectedAsset.id"
+					:tokenType="1"
+					:network="selectedNetwork"
+					:address="address"
+				/>	
+			</div>		
 		</div>
 
 		<footer-menu />
@@ -114,6 +53,7 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
+import sendForm from '../../components/ui-revamp/send/send-form.vue'
 
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
@@ -172,7 +112,8 @@ export default {
 	},
 	components: {
 		HeaderNav,
-		AssetFilter
+		AssetFilter,
+		sendForm
 	},
 	async mounted () {
 		const vm = this
@@ -192,20 +133,29 @@ export default {
 	      return logoGenerator(String(asset && asset.id))
 	    },
 		getImageUrl (asset) {
-	      if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
-	        return 'assets/img/theme/payhero/deem-logo.png'
-	      } else {
-	        if (asset.logo) {
-	          if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
-	            return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-	          } else {
-	            return asset.logo
-	          }
+	    if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
+	    	return 'assets/img/theme/payhero/deem-logo.png'
+	    } else {
+	    	if (asset.logo) {
+	      	if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+	          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
 	        } else {
-	          return this.getFallbackAssetLogo(asset)
+	          return asset.logo
 	        }
+	      } else {
+	        return this.getFallbackAssetLogo(asset)
 	      }
-	    },
+	    }
+	  },
+	  selectAsset(asset) {
+	  	this.selectedAsset = asset
+	  	this.step++	  
+	  	console.log('asset: ', asset)
+	  },
+	  handleBack() {
+	  	console.log('handling back btn')
+	  	this.step--
+	  }
 	}
 }
 </script>
