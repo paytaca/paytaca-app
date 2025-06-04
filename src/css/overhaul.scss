@@ -83,7 +83,7 @@ body.theme-overhaul {
     z-index: 1;
   }
 
-  // Typography
+  /* ----- Typography ------ */
   .headline-large {
     font-size: 32px;
     line-height: 40px;
@@ -156,7 +156,7 @@ body.theme-overhaul {
     font-weight: 400;
   }
 
-  // Color
+  /* ----- Colors ------ */
   .text-light {
     color: #FFF
   }
@@ -179,7 +179,7 @@ body.theme-overhaul {
     color: #22C55E;
   }
 
-  // Cards
+  /* ----- Cards ------ */
   .card-light {
     background-color: #FFF;
     color: $dark_txt;
@@ -193,14 +193,14 @@ body.theme-overhaul {
     color: #000;
   }
 
-  // Buttons
+  /* ----- Buttons ------ */
   /*.button-default {
     background-color: $primary !important;
     color: #fff !important;
   }*/
   .button-default {
-    background-color: #3b7bf6 !important;
-    color: #fff !important;
+    background-color: #fff !important;
+    color: #3b7bf6 !important;
   }
   .button-light {
     background-color: #fff !important;
@@ -211,8 +211,12 @@ body.theme-overhaul {
     color: #fff;
   }
 
+  /* ----- Icons ------ */
+  .icon-default {
+    filter: brightness(0) saturate(100%) invert(36%) sepia(86%) saturate(1918%) hue-rotate(207deg) brightness(101%) contrast(93%) !important;
+  }
 
-  // Custom Elements
+  /* ----- Custom Elements ------ */
   .gradient-bg {
     background-image: linear-gradient(to bottom, #3b7bf6, #6993fa, #8dacfc, #afc4fe, #d0ddff) !important;
   }

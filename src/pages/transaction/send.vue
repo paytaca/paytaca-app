@@ -47,7 +47,7 @@
 			</div>		
 		</div>
 
-		<footer-menu />
+		<footer-menu :visible="step === 1"/>	
 	</div>
 </template>
 <script>

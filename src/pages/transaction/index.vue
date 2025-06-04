@@ -51,30 +51,16 @@
         @deposit="onStablehedgeTransaction"
         @redeem="onStablehedgeTransaction"
       />
-      <!-- <div class="q-pb-sm button-group" v-if="stablehedgeView">
-        <div class="q-mr-md">
-          <q-btn class="btn" no-caps round style="padding: 20px;">
-            <q-icon class="btn-icon" size="30px" name="ac_unit"/> <br>                              
-          </q-btn>
-          <div class="q-pt-sm">{{ $t('Freeze') }}</div>
-        </div>    
-        <div class="q-ml-md">
-          <q-btn class="btn" round style="padding: 20px;">
-            <q-icon class="btn-icon" size="30px" name="img:ui-revamp/unfreeze.svg"/>                
-          </q-btn>  
-          <div class="q-pt-sm">{{ $t('Unfreeze') }}</div>
-        </div>           
-      </div> -->
       <div class="q-pb-sm button-group" v-else>
         <div class="q-mr-md">
-          <q-btn class="btn" no-caps round style="padding: 20px;" @click="$router.push({ name: 'transaction-send' })">
-            <q-icon class="btn-icon" size="30px" name="img:app-send.svg"/> <br>                              
+          <q-btn class="button-default" no-caps round style="padding: 20px;" @click="$router.push({ name: 'transaction-send' })">
+            <q-icon class="icon-default" size="30px" name="img:app-send.svg"/> <br>                              
           </q-btn>
           <div class="q-pt-sm">{{ $t('Send') }}</div>
         </div>    
         <div class="q-ml-md">
-          <q-btn class="btn" round style="padding: 20px;" @click="$router.push({ name: 'transaction-receive-select-asset' })">
-            <q-icon class="btn-icon" size="30px" name="img:app-receive.svg"/>                
+          <q-btn class="button-default" round style="padding: 20px;" @click="$router.push({ name: 'transaction-receive-select-asset' })">
+            <q-icon class="icon-default" size="30px" name="img:app-receive.svg"/>                
           </q-btn>  
           <div class="q-pt-sm">{{ $t('Receive') }}</div>
         </div>           
@@ -82,14 +68,14 @@
       
       <div class="q-pt-sm button-group" v-if="!stablehedgeView">        
         <div class="q-mr-md">
-          <q-btn class="btn" no-caps round style="padding: 20px;" @click="$router.push({ name: 'qr-reader' })">
-            <q-icon class="btn-icon" size="30px" name="img:app-qr.svg"/> <br>                              
+          <q-btn class="button-default" no-caps round style="padding: 20px;" @click="$router.push({ name: 'qr-reader' })">
+            <q-icon class="icon-default" size="30px" name="img:app-qr.svg"/> <br>                              
           </q-btn>
           <div class="q-pt-sm">{{ 'QR' }}</div>
         </div>    
         <div class="q-ml-md">
-          <q-btn class="btn" round style="padding: 20px;" @click="openCashIn()">
-            <q-icon class="btn-icon" size="30px" name="img:ui-revamp/cashin.svg"/>                
+          <q-btn class="button-default" round style="padding: 20px;" @click="openCashIn()">
+            <q-icon class="icon-default" size="30px" name="img:ui-revamp/cashin.svg"/>                
           </q-btn>  
           <div class="q-pt-sm" @click="$router.push({ name: 'transaction-receive-select-asset' })">Cash in</div>
         </div>  
@@ -1263,12 +1249,6 @@ export default {
   padding: 10px;
   display: flex;
   justify-content: center;
-}
-.btn {
-  background-color: #fff;
-}
-.btn-icon {
-  filter: brightness(0) saturate(100%) invert(36%) sepia(86%) saturate(1918%) hue-rotate(207deg) brightness(101%) contrast(93%);
 }
 .bch-balance {
   text-shadow: 2px 2px #20242e;

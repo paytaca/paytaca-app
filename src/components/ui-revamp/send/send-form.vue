@@ -1,5 +1,9 @@
 <template>
-  <div class="static-container">
+  <div class="text-center" v-if="initLoading">
+      <p class="q-pt-lg q-px-xl text-h6">{{ this.$t('ProcessingNecessaryDetails') }} ...</p>
+      <ProgressLoader color="white" />
+  </div>
+  <div class="static-container" v-else>
     <QrScanner
       v-model="showQrScanner"
       @decode="onScannerDecode"
@@ -44,7 +48,7 @@
             <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
               <q-icon name="error" left/> {{ scanner.error }}
             </div>
-            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">
+            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">              
               <div class="col-12">
                 <q-input
                   bottom-slots
@@ -127,6 +131,9 @@
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
               <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
                 <template v-if="!isNFT">
+                  <div class="text-right" style="padding-right: 20px;">
+                    <q-btn flat no-caps padding="0"><span class="text-underline text-light title-medium">Add Recipient</span></q-btn>
+                  </div>
                   <q-expansion-item
                     default-opened
                     dense
@@ -367,6 +374,7 @@ export default {
 
   data () {
     return {
+      initLoading: false,
       asset: {},
       scanner: {
         show: false,
@@ -1308,14 +1316,17 @@ export default {
   },
 
   async beforeMount () {
-    const dialog = this.$q.dialog({
-      component: LoadingWalletDialog,
-      componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
-    })
+    // const dialog = this.$q.dialog({
+    //   component: LoadingWalletDialog,
+    //   componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
+    // })
+    this.initLoading = true
+
     await this.$store.dispatch('global/loadWalletLastAddressIndex')
     await this.$store.dispatch('global/loadWalletAddresses')
     await this.$store.dispatch('global/loadWalletConnectedApps')
-    dialog.hide()
+    // dialog.hide()
+    this.initLoading = false
   },
 
   async mounted () {
@@ -1410,7 +1421,7 @@ export default {
     }
   }
   .send-form-container {
-    margin-top: 50px;
+    margin-top: 20px;
     max-height: 70vh;
     overflow-y: scroll;
     &.sent {

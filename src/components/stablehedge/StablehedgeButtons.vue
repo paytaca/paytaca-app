@@ -1,14 +1,14 @@
 <template>
   <div>
     <div class="q-mr-md">
-      <q-btn class="btn" no-caps round style="padding: 20px;" @click.stop="() => openFreezeDialog()">
-        <q-icon class="btn-icon" size="30px" name="ac_unit"/> <br>                              
+      <q-btn class="button-default" no-caps round style="padding: 20px;" @click.stop="() => openFreezeDialog()">
+        <q-icon class="icon-default" size="30px" name="ac_unit"/> <br>                              
       </q-btn>
     <div class="q-pt-sm">{{ $t('Freeze') }}</div>
     </div>    
     <div class="q-ml-md">
-      <q-btn class="btn" round style="padding: 20px;" @click.stop="() => openUnfreezeDialog()">
-        <q-icon class="btn-icon" size="30px" name="img:ui-revamp/unfreeze.svg"/>                
+      <q-btn class="button-default" round style="padding: 20px;" @click.stop="() => openUnfreezeDialog()">
+        <q-icon class="icon-default" size="30px" name="img:ui-revamp/unfreeze.svg"/>                
       </q-btn>  
     <div class="q-pt-sm">{{ $t('Unfreeze') }}</div>
   </div>
@@ -339,11 +339,3 @@ export default defineComponent({
   }
 })
 </script>
-<style lang="scss" scoped>
-.btn-icon {
-  filter: brightness(0) saturate(100%) invert(36%) sepia(86%) saturate(1918%) hue-rotate(207deg) brightness(101%) contrast(93%);
-}
-.btn {
-  background-color: #fff; 
-}
-</style>

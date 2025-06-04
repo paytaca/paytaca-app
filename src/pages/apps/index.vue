@@ -7,7 +7,7 @@
       <div class="q-pb-md" v-for="(app, index) in filteredApps" :key="index" @click="openApp(app)"
 >
         <q-btn class="button-default" no-caps round style="padding: 20px;">
-          <q-icon class="btn-icon" size="30px" :name="app.iconName"/> <br>                              
+          <q-icon class="icon-default" size="30px" :name="app.iconName"/> <br>                              
         </q-btn>
         <div class="q-pt-sm text-center title-small">{{ app.name }}</div>
       </div> 

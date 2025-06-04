@@ -1,6 +1,7 @@
 <template>
   <div class="footer-menu"
     :style="{width: $q.platform.is.bex ? '375px' : '100%', 'height': $q.platform.is.ios ? '80px' : '70px'}"
+    v-if="visible"
   >
     <div class="row text-light btn-container title-smaller">
       <div class="col text-center">
@@ -53,6 +54,12 @@
 export default {
   data () {
     return {      
+    }
+  },
+  props: {
+    visible: {
+      type: Boolean,
+      default: true
     }
   },
   computed: {
