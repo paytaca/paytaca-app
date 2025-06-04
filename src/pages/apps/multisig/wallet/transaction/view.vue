@@ -130,7 +130,7 @@
                   </div>
                 </q-item-section>
                 <q-item-section side>
-                  {{ multisigWallet.requiredSignatures }}&nbsp;
+                  {{ getRequiredSignatures(multisigWallet.template) }}&nbsp;
                 </q-item-section>
               </q-item>
               <q-item>
@@ -292,7 +292,8 @@ import {
   MultisigTransactionStatusText,
   importPst,
   combinePsts,
-  getMultisigCashAddress
+  getMultisigCashAddress,
+  getRequiredSignatures
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import UploadPstDialog from 'components/multisig/UploadPstDialog.vue'
@@ -358,6 +359,7 @@ const signTransaction = async ({ signerEntityKey }) => {
     signerEntityKey,
     hdPrivateKey: hdPrivateKeys.value[signerEntityKey]
   })
+  await $store.dispatch('multisig/addTransactionSignatures', { index: route.params.index, signerSignatures })
   console.log('signerSignatures', signerSignatures)
 }
 
