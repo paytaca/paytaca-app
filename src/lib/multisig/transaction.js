@@ -112,7 +112,6 @@ export const createMultisigTransactionFromWCSessionRequest = ({ sessionRequest, 
     address,
     addressIndex
   }
-
   return {
     transaction: sessionRequest.params.request.params.transaction,
     sourceOutputs: sessionRequest.params.request.params.sourceOutputs,
@@ -521,6 +520,9 @@ export const importPst = ({ pst }) => {
     output.address = lockingBytecodeToCashAddress({ bytecode: output.lockingBytecode }).address
   })
   parsed.transactionHash = hashTransaction(parsed.transaction)
+  if (!parsed.id) {
+    parsed.id = hashTransaction(parsed.transaction)
+  }
   return parsed
 }
 
@@ -550,7 +552,6 @@ export const exportPstRaw = ({ multisigTransaction, address, addressIndex = 0, f
 }
 
 export const exportPst = ({ multisigTransaction, address, addressIndex = 0, format = 'base64' }) => {
-  // const includeSourceOutputs = this.transaction.inputs.some((input) => !input.sourceOutput)
   const { origin, prompt, status } = multisigTransaction.metadata
   const sourceOutputs = structuredClone(multisigTransaction.sourceOutputs)
   sourceOutputs.forEach((utxo) => {
@@ -568,8 +569,10 @@ export const exportPst = ({ multisigTransaction, address, addressIndex = 0, form
       signature.sigValue = binToHex(Uint8Array.from(Object.values(signature.sigValue)))
     }
   })
+  const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
   const pst = {
-    transaction: binToHex(encodeTransactionCommon(transactionBinObjectsToUint8Array(multisigTransaction.transaction))),
+    id: multisigTransaction.id,
+    transaction: binToHex(encodeTransactionCommon(transaction)),
     sourceOutputs,
     signatures,
     metadata: {
@@ -580,6 +583,9 @@ export const exportPst = ({ multisigTransaction, address, addressIndex = 0, form
       prompt,
       status
     }
+  }
+  if (!pst.id) {
+    id: hashTransaction(transaction)
   }
   // if (includeSourceOutputs) {
   //   // EMBED

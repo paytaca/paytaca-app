@@ -21,29 +21,24 @@
                   </q-item-label>
                 </q-item-section>
                 <q-item-section top side>
-                  <q-btn icon="more_vert" @click="openWalletActionsDialog" flat dense>
-                 </q-btn>
+                  <q-btn icon="more_vert" @click="openWalletActionsDialog" style="margin-right: -5px" flat dense round></q-btn>
                 </q-item-section>
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label>Id
-                  </q-item-label>
+                  <q-item-label>Id</q-item-label>
                 </q-item-section>
-                <q-item-section  side>
-                  <q-item-label>{{ shortenString(`${wallet.id}`, 20) }}</q-item-label>
+                <q-item-section side>
+                  <q-item-label class="q-mr-sm">{{ shortenString(`${wallet.id}`, 20) }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
                <q-item-section>
-                <q-item-label>Synced</q-item-label> 
+                <q-item-label>Stored In</q-item-label> 
                </q-item-section>
                <q-item-section side>
                  <q-item-label class="flex flex-wrap q-gutter-x-sm items-center">
-                  <q-chip style="background: inherit; color: inherit" class="q-gutter-sm">
-                   <span class="q-mr-sm">{{ isSynced(wallet)? 'Yes': 'No' }}</span>
-                   <!--q-icon v-if="wallet.id" size="xs" :name="wallet.id? 'cloud': 'smartphone'" /--> 
-                  </q-chip> 
+                   <q-icon class="q-mr-sm" size="xs" :name="isSynced(wallet)? 'cloud': 'smartphone'" /> 
                  </q-item-label>
                </q-item-section>
               </q-item>
@@ -97,6 +92,33 @@
               <q-separator spaced inset />
             </q-list>
           </div>
+          <div class="flex flex-wrap justify-around q-mt-lg"> 
+           <q-btn flat dense no-caps @click="openShareWalletActionsDialog" class="tile" v-close-popup>
+            <template v-slot:default>
+             <div class="row justify-around">
+              <q-icon name="mdi-share-all" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Share Wallet</div>
+             </div>
+            </template>
+           </q-btn>
+           <q-btn flat dense no-caps @click="loadTransactionProposal" class="tile" v-close-popup>
+             <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="mdi-file-export" class="col-12" color="primary"></q-icon>
+                <div class="col-12 tile-label">Import Tx</div>
+              </div>
+             </template>
+           </q-btn>
+           <q-btn flat dense no-caps @click="openWalletActionsDialog" class="tile" v-close-popup>
+             <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="more_vert" class="col-12" color="primary"></q-icon>
+                <div class="col-12 tile-label">More Options</div>
+              </div>
+             </template>
+           </q-btn>
+          </div>
+
         </template>
       </div>
       <q-file
@@ -126,6 +148,8 @@ import Watchtower from 'src/lib/watchtower'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import SyncWalletDialog from 'components/multisig/SyncWalletDialog.vue'
+import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
+import ShareWalletActionsDialog from 'components/multisig/ShareWalletActionsDialog.vue'
 import { CashAddressNetworkPrefix, hashTransaction, binToHex } from 'bitauth-libauth-v3'
 
 const $store = useStore()
@@ -195,14 +219,29 @@ const onUpdateTransactionFile = (file) => {
   }
 }
 
-const syncWallet = () => {
+const uploadWallet = () => {
   $q.dialog({
-    component: SyncWalletDialog,
+    component: UploadWalletDialog,
     componentProps: {
       multisigWallet: wallet.value,
       darkMode: darkMode.value }
   }).onOk(async() => {
-        await $store.dispatch('multisig/syncWallet', { multisigWallet: wallet.value, address: route.params.address })
+        await $store.dispatch('multisig/uploadWallet', { multisigWallet: wallet.value, address: route.params.address })
+  })
+}
+
+const openShareWalletActionsDialog = () => {
+  $q.dialog({
+    component: ShareWalletActionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      onUploadWallet: () => {
+        uploadWallet()
+      },
+      onExportWallet: () => { 
+        exportWallet()
+      }
+    }
   })
 }
 
@@ -212,8 +251,8 @@ const openWalletActionsDialog = () => {
     componentProps: {
       darkMode: darkMode.value,
       txProposals: transactions?.value,
-      onSyncWallet: () => {
-        syncWallet()
+      onUploadWallet: () => {
+        uploadWallet()
       },
       onExportWallet: () => { 
         exportWallet()

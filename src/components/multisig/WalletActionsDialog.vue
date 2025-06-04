@@ -11,11 +11,11 @@
         </q-toolbar>
       <q-item-label header style="padding-top: 0px;padding-bottom:0px;">Wallet</q-item-label>
       <q-card-section class="flex flex-wrap justify-evenly"> 
-        <q-btn flat dense no-caps @click="$emit('syncWallet')" class="tile" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('uploadWallet')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-around">
-              <q-icon name="mdi-publish" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Sync Wallet</div>
+              <q-icon name="cloud_upload" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Share Online</div>
             </div>
           </template>
         </q-btn>
@@ -23,7 +23,7 @@
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-file-export" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Export Wallet</div>
+              <div class="col-12 tile-label">Export Wallet File</div>
             </div>
           </template>
         </q-btn>
@@ -85,7 +85,7 @@ import { useI18n } from 'vue-i18n'
 const { t: $t } = useI18n()
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const $emit = defineEmits ([
-  'syncWallet',
+  'uploadWallet',
   'exportWallet',
   'deleteWallet',
   'importTx',
