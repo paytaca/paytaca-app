@@ -325,10 +325,9 @@ export default {
             vm.$router.push({ name: 'transaction-send', query })
           } else { // payment received notif
             const transactionDetails = notif.extra_data.split(';')
-            let tokenId = ''
-            if (transactionDetails[1] !== '1') { // token, not bch
-              const symbol = notif.message.split(' ').pop()
-              tokenId = this.mainchainAssets.find(a => a.symbol === symbol)?.id || ''
+            let tokenId = transactionDetails[1]
+            if (parseInt(tokenId) === 1) { // for backwards compatibility with bch notifs
+              tokenId = 'bch'
             }
 
             this.onOpenTransaction({

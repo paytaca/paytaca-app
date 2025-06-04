@@ -1331,7 +1331,8 @@ export default {
         if (this.selectedNetwork != chain) this.changeNetwork(chain, asset)
         const refetchTxList = this.selectedAsset?.id != asset?.id
         if (refetchTxList) {
-          this.setSelectedAsset(asset)
+          if (asset?.id === 'bch') this.selectBch()
+          else this.setSelectedAsset(asset)
         }
       } else {
         transaction.asset = {
