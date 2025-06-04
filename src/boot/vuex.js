@@ -1,18 +1,22 @@
 import { boot } from 'quasar/wrappers'
+import { migrateVuexLocalStorage } from 'src/utils/migrate-localstorage-to-indexdb'
 import useStore from 'src/store'
 
 /**
  * Support for vuex in quasar is dropped in @quasar/app-webpack v4.x.x
  * https://quasar.dev/quasar-cli-webpack/upgrade-guide
- * 
+ *
  * Still usable but manual installation is needed
  * Pinia is now recommended for global state management
  */
-export default boot((obj) => {
+export default boot(async (obj) => {
   try {
+    // Migrate old localStorage to IndexedDB (localforage)
+    await migrateVuexLocalStorage()
+
     const store = useStore();
     const { app } = obj
-    
+
     // Add error handler for store mutations
     store.subscribe((mutation, state) => {
       try {
