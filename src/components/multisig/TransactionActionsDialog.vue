@@ -5,42 +5,42 @@
     <q-card class="q-dialog-plugin q-pb-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
        <q-toolbar>
           <q-toolbar-title>
-            <span class="q-mr-sm">{{ $t('Options')}}</span>
+            <span class="q-mr-sm">{{ $t('Transaction Proposal Options')}}</span>
           </q-toolbar-title>
           <q-btn flat round dense icon="close" v-close-popup />
         </q-toolbar>
-      <q-card-section class="flex flex-wrap justify-evenly"> 
+      <q-card-section class="flex justify-around"> 
         <q-btn flat dense no-caps @click="$emit('deleteTx')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-around">
               <q-icon name="delete_forever" class="col-12" color="red"></q-icon>
-              <div class="col-12 tile-label">Delete Tx</div>
+              <div class="col-12 tile-label">Delete</div>
             </div>
           </template>
         </q-btn>
         <q-btn flat dense no-caps @click="$emit('exportPst')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="mdi-file-export-outline" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Export PST</div>
+              <q-icon name="mdi-file-export" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Export File</div>
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('uploadTx')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="mdi-file-upload-outline" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Load Cosigner PST</div>
+              <q-icon name="mdi-cloud-upload" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Upload</div>
             </div>
           </template>
         </q-btn>
       </q-card-section>
       <q-card-section class="flex flex-wrap justify-evenly"> 
-        <q-btn flat dense no-caps @click="$emit('uploadTx')" class="tile" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="mdi-cloud-upload-outline" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Upload Tx Proposal</div>
+              <q-icon name="mdi-file-upload" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Load Cosigner PST</div>
             </div>
           </template>
         </q-btn>

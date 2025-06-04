@@ -18,7 +18,17 @@
                     <q-item-label caption lines="2" class="text-subtitle-2">Origin: {{ multisigTransaction.metadata?.origin }}</q-item-label>
                 </q-item-section>
                 <q-item-section side top>
-                 <q-btn icon="more_vert" @click="openTransactionActionsDialog" flat dense />
+                 <q-btn icon="more_vert" @click="openTransactionActionsDialog" flat dense style="margin-right: -5px"/>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label>Proposal Id</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="flex flex-wrap items-center"> 
+                  {{ shortenString(multisigTransaction.id, 20) }}&nbsp;<q-icon :name="isSynced(multisigTransaction) ? 'cloud' : 'smartphone'"></q-icon>
+                  </div>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -224,14 +234,6 @@ signerCanSignOnThisDevice                  >
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item >
-                <q-item-section>
-                  <q-item-label>Synced</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-		  <q-item-label>{{ multisigTransaction.id ? 'Yes': 'No' }}</q-item-label>
-                </q-item-section>
-              </q-item>
               <q-separator spaced inset />
             </q-list>
              <q-btn
@@ -251,6 +253,47 @@ signerCanSignOnThisDevice                  >
                     </q-btn>
           </div>
         </template>
+        <div class="flex items-center justify-around q-mt-lg">
+         <q-btn flat dense no-caps @click="openShareTransactionActionsDialog" class="tile" :disable="multisigTransaction.metadata?.isBroadcasting" v-close-popup>
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="mdi-share-all" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Share Tx Proposal</div>
+            </div>
+          </template>
+         </q-btn>
+         <q-btn v-if="multisigTransaction.metadata?.status != MultisigTransactionStatus.PENDING_FULLY_SIGNED" flat dense no-caps @click="loadCosignerPst" class="tile" v-close-popup>
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="mdi-file-upload" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Load Cosigner PST</div>
+            </div>
+          </template>
+        </q-btn>
+        
+         <q-btn v-else :loading="multisigTransaction.metadata?.isBroadcasting" @click="broadcastTransaction" class="tile" flat dense no-caps>
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="cell_tower" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Broadcast Tx</div>
+            </div>
+          </template>
+          <template v-slot:loading>
+            <div class="row justify-center">
+              <q-spinner-radio color="warning" />
+              <div class="col-12 tile-label">Broadcasting Tx...</div>
+            </div>
+          </template>
+         </q-btn>
+         <q-btn flat dense no-caps @click="openTransactionActionsDialog" class="tile" :disable="multisigTransaction.metadata?.isBroadcasting">
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="more_vert" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">More Options</div>
+            </div>
+          </template>
+        </q-btn>
+        </div>
       </div>
       <q-file
 	ref="pstFileElementRef"
@@ -295,9 +338,11 @@ import {
   getMultisigCashAddress,
   getRequiredSignatures
 } from 'src/lib/multisig'
+import { isSynced } from 'src/lib/multisig/transaction'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import UploadPstDialog from 'components/multisig/UploadPstDialog.vue'
 import TransactionActionsDialog from 'components/multisig/TransactionActionsDialog.vue'
+import ShareTransactionActionsDialog from 'components/multisig/ShareTransactionActionsDialog.vue'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -460,10 +505,23 @@ const uploadTransaction = () => {
           multisigWallet: multisigWallet.value
         }
       )
-    console.log('R', r)
   })
 }
 
+const openShareTransactionActionsDialog = () => {
+  $q.dialog({
+    component: ShareTransactionActionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      onUploadTransaction: () => {
+        uploadTransaction()
+      },
+      onExportTransaction: () => { 
+        downloadPst()
+      }
+    }
+  })
+}
 const openTransactionActionsDialog = () => {
   $q.dialog({
     component: TransactionActionsDialog,
