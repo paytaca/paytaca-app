@@ -1320,15 +1320,19 @@ export default {
         })
         return
       }
+
+      if (!asset?.id && tokenId.startsWith('ct/')) {
+        asset = await this.wallet.BCH.getTokenDetails(tokenId.split('/')[1])
+        this.$store.commit(`assets/addNewAsset`, asset)
+        this.$store.commit(`assets/moveAssetToBeginning`)
+      }
+
       if (asset?.id) {
         if (this.selectedNetwork != chain) this.changeNetwork(chain, asset)
         const refetchTxList = this.selectedAsset?.id != asset?.id
-        this.selectedAsset = asset
         if (refetchTxList) {
-          this.transactions = []
-          this.transactionsPage = 0
-          this.transactionsLoaded = false
-          this.$refs['transaction-list-component'].getTransactions()
+          if (asset?.id === 'bch') this.selectBch()
+          else this.setSelectedAsset(asset)
         }
       } else {
         transaction.asset = {
