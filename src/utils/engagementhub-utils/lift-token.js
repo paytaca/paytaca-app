@@ -35,3 +35,11 @@ export async function getPurchasesData() {
     })
     .catch(_error => { return [] })
 }
+
+export async function processPurchaseApi(data) {
+  data.wallet_hash = getWalletHash()
+  return await LIFTTOKEN_URL
+    .post('purchase/process_purchase/', data)
+    .then(response => { return response.status === 201 })
+    .catch(_error => { return false })
+}

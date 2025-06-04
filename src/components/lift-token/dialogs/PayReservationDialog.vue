@@ -58,7 +58,7 @@
         <drag-slide v-if="!isLoading" disable-absolute-bottom @swiped="securityCheck" />
       </template>
       <template v-else>
-        <span class="row q-px-lg q-pb-md text-center text-body1 dim-text">
+        <span class="row q-px-lg q-pb-md justify-center text-body1 dim-text">
           Not enough balance to pay for reserved LIFT tokens
         </span>
       </template>
@@ -70,6 +70,7 @@
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { parseFiatCurrency, getAssetDenomination } from 'src/utils/denomination-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
+import { processPurchaseApi, SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
 
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
@@ -152,7 +153,7 @@ export default {
       this.$q.dialog({
         component: SecurityCheckDialog,
       })
-        .onOk(() => { console.log('yey') })
+        .onOk(() => this.processPurchase())
         .onCancel(() => {
           reset?.()
           this.intervalId = setInterval(() => {
@@ -163,6 +164,31 @@ export default {
         })
 
       this.isLoading = false
+    },
+    async processPurchase () {
+      console.log('process yey')
+      // send paid bch to lift swap contract
+
+      // record transaction
+      
+      const bch = Number(this.bchAmount.split(' ')[0])
+      const satsWithFee = bch * (10 ** 8) + 1000
+      
+      let lockupYears = 0
+      if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
+      else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
+      const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
+
+      const data = {
+        purchased_amount_sats: satsWithFee,
+        purchased_date: new Date().toISOString(),
+        lockup_date: new Date(lockupPeriod).toISOString(),
+        reservation: this.rsvp.id,
+        tx_id: ''
+      }
+
+      const isSuccessful = await processPurchaseApi(data)
+      console.log(isSuccessful)
     }
   },
 
