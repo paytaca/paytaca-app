@@ -100,6 +100,12 @@ export const transactionBinObjectsToUint8Array = (transactionObject) => {
   }
 }
 
+export const generateTempId = multisigTransaction => {
+  let transaction = structuredClone(multisigTransaction.transaction)
+  transaction = transactionBinObjectsToUint8Array(transaction)
+  return hashTransaction(transaction)
+}
+
 export const createMultisigTransactionFromWCSessionRequest = ({ sessionRequest, addressIndex }) => {
   const address =
     sessionRequest.session.namespaces.bch.accounts[0].replace('bch:', '')
@@ -112,12 +118,15 @@ export const createMultisigTransactionFromWCSessionRequest = ({ sessionRequest, 
     address,
     addressIndex
   }
-  return {
+  
+  const multisigTransaction = {
     transaction: sessionRequest.params.request.params.transaction,
     sourceOutputs: sessionRequest.params.request.params.sourceOutputs,
     signatures: [],
     metadata
   }
+  multisigTransaction.id = generateTempId(multisigTransaction)
+  return multisigTransaction
 }
 
 export const identifySignersWithoutSignatures = ({
@@ -521,7 +530,7 @@ export const importPst = ({ pst }) => {
   })
   parsed.transactionHash = hashTransaction(parsed.transaction)
   if (!parsed.id) {
-    parsed.id = hashTransaction(parsed.transaction)
+    parsed.id = generateTempId(parsed)
   }
   return parsed
 }
@@ -585,7 +594,7 @@ export const exportPst = ({ multisigTransaction, address, addressIndex = 0, form
     }
   }
   if (!pst.id) {
-    id: hashTransaction(transaction)
+    id: generateTempId(pst)
   }
   // if (includeSourceOutputs) {
   //   // EMBED
