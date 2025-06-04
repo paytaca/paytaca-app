@@ -30,7 +30,7 @@
           </span>
           <div class="col-12 text-subtitle2">
             <span>
-              + 0.00001 BCH
+              + ~0.00001 BCH
             </span>
             <q-icon name="info" size="1em"/>
             <q-menu
@@ -55,7 +55,16 @@
       </div>
 
       <template v-if="isSufficientBalance">
-        <drag-slide v-if="!isLoading" disable-absolute-bottom @swiped="securityCheck" />
+        <drag-slide
+          v-if="!isSliderLoading"
+          disable-absolute-bottom
+          @swiped="securityCheck"
+        />
+        <div v-if="isSliderLoading" class="flex flex-center">
+          <progress-loader
+            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+          />
+        </div>
       </template>
       <template v-else>
         <span class="row q-px-lg q-pb-md justify-center text-body1 dim-text">
@@ -71,6 +80,8 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { parseFiatCurrency, getAssetDenomination } from 'src/utils/denomination-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { processPurchaseApi, SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
+import { getChangeAddress, raiseNotifyError } from 'src/utils/send-page-utils'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
 
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
@@ -81,6 +92,7 @@ export default {
 
   props: {
     rsvp: { type: Object, default: null },
+    wallet: { type: Object, default: null },
     liftSwapContractAddress: { type: String, default: null }
   },
 
@@ -94,6 +106,7 @@ export default {
       bchAmount: 0,
       intervalId: null,
       isLoading: false,
+      isSliderLoading: false,
       isSufficientBalance: true
     }
   },
@@ -126,9 +139,12 @@ export default {
   watch: {
     bchAmount (value) {
       const bch = Number(value.split(' ')[0])
-      if (bch === 0) this.isLoading = true
-      else {
+      if (bch === 0) {
+        this.isLoading = true
+        this.isSliderLoading = true
+      } else {
         this.isLoading = false
+        this.isSliderLoading = false
         this.isSufficientBalance = this.walletBalance >= bch
       }
     }
@@ -148,7 +164,7 @@ export default {
     },
 
     securityCheck (reset = () => {}) {
-      this.isLoading = true
+      this.isSliderLoading = true
       clearInterval(this.intervalId)
 
       this.$q.dialog({
@@ -162,34 +178,52 @@ export default {
               'BCH', this.getBchPrice(this.rsvp.reserved_amount_usd)
             )
           }, 3000)
+          this.isSliderLoading = false
         })
-
-      this.isLoading = false
     },
     async processPurchase () {
-      console.log('process yey')
+      this.isSliderLoading = true
+
       // send paid bch to lift swap contract
-
-      // record transaction
-      
       const bch = Number(this.bchAmount.split(' ')[0])
-      const satsWithFee = bch * (10 ** 8) + 1000
-      
-      let lockupYears = 0
-      if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
-      else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
-      const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
+      const recipient = [{
+        address: this.liftSwapContractAddress,
+        amount: bch,
+        tokenAmount: undefined
+      }]
+      const changeAddress = getChangeAddress('bch')
+      const result = await getWalletByNetwork(this.wallet, 'bch')
+        .sendBch(0, '', changeAddress, null, undefined, recipient)
 
-      const data = {
-        purchased_amount_sats: satsWithFee,
-        purchased_date: new Date().toISOString(),
-        lockup_date: new Date(lockupPeriod).toISOString(),
-        reservation: this.rsvp.id,
-        tx_id: ''
+      if (result.success) {
+        // record transaction
+        const satsWithFee = bch * (10 ** 8) + 1000
+        
+        let lockupYears = 0
+        if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
+        else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
+        const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
+  
+        const data = {
+          purchased_amount_sats: satsWithFee,
+          purchased_date: new Date().toISOString(),
+          lockup_date: new Date(lockupPeriod).toISOString(),
+          reservation: this.rsvp.id,
+          tx_id: result.txid
+        }
+  
+        const isSuccessful = await processPurchaseApi(data)
+
+        if (isSuccessful) {
+          console.log('notif success yey')
+        } else {
+          raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
+        }
+      } else {
+        raiseNotifyError('Unable to process your purchase. Please try again later.')
       }
 
-      const isSuccessful = await processPurchaseApi(data)
-      console.log(isSuccessful)
+      this.isSliderLoading = false
     }
   },
 

@@ -97,10 +97,12 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { parseLocaleDate, parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
+import { getMnemonic, Wallet } from 'src/wallet'
 
 import SaleGroupChip from 'src/components/lift-token/SaleGroupChip.vue'
 import PayReservationDialog from 'src/components/lift-token/dialogs/PayReservationDialog.vue'
@@ -123,6 +125,7 @@ export default {
 
       finalRsvpList: [],
 
+      wallet: null,
       selectedFilter: 'all',
       scrollAreaHeight: '63vh'
     }
@@ -140,6 +143,12 @@ export default {
     parseLocaleDate,
     parseLiftToken,
 
+    async initWallet () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
+      const wallet = new Wallet(mnemonic, 'BCH')
+      this.wallet = markRaw(wallet)
+    },
     filterRsvpList (saleGroup) {
       this.selectedFilter = saleGroup
       if (saleGroup === 'all') {
@@ -163,6 +172,7 @@ export default {
         component: PayReservationDialog,
         componentProps: {
           rsvp,
+          wallet: this.wallet,
           liftSwapContractAddress: this.liftSwapContractAddress
         }
       })
@@ -172,7 +182,7 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
     this.finalRsvpList = this.reservationsList
 
     const headerNavHeight = document.getElementById('header-nav')?.clientHeight
@@ -182,6 +192,8 @@ export default {
     const divsHeight = headerNavHeight + sectionTabHeight + filterHeight
     const screenHeight = this.$q.screen.height
     this.scrollAreaHeight = `${screenHeight - divsHeight - 35}px`
+
+    await this.initWallet()
   }
 }
 </script>
