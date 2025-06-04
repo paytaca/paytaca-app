@@ -247,7 +247,6 @@ export class MultisigWallet {
 }
 
 export const getCompiler = ({ template }) => {
-  console.log('template', template)
   const parsedTemplate = importWalletTemplate(template)
   if (typeof parsedTemplate === 'string') {
     throw new Error('Failed creating multisig wallet template.')
@@ -371,8 +370,13 @@ export const findMultisigWalletByLockingData = ({ multisigWallets, template, loc
   return wallet
 }
 
-export const isSynced = (multisigWallet) => {
+export const isSynced = multisigWallet => {
    if (!multisigWallet.id) return false
    if (!/^[0-9]+$/.test(multisigWallet.id)) return false
    return true 
-} 
+}
+
+export const generateFilename = multisigWallet => {
+  if (multisigWallet.template?.name) return `${multisigWallet.template.name}.pmwif`
+  return `${getRequiredSignatures(multisigWallet.template)}-of-${Object.keys(multisigWallet.template.entities)}-multisig-wallet.pmwif`
+}
