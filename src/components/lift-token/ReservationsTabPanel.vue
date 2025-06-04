@@ -109,7 +109,8 @@ export default {
   name: 'ReservationsTabPanel',
 
   props: {
-    reservationsList: { type: Array, default: null }
+    reservationsList: { type: Array, default: null },
+    liftSwapContractAddress: { type: String, default: null }
   },
 
   components: {
@@ -160,7 +161,10 @@ export default {
     openPayReservationDialog (rsvp) {
       this.$q.dialog({
         component: PayReservationDialog,
-        componentProps: { rsvp }
+        componentProps: {
+          rsvp,
+          liftSwapContractAddress: this.liftSwapContractAddress
+        }
       })
     },
     computeDiscount (usd, discount) {

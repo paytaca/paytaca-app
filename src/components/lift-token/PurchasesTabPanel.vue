@@ -136,7 +136,8 @@ export default {
   name: 'PurchasesTabPanel',
 
   props: {
-    purchasesList: { type: Array, default: null }
+    purchasesList: { type: Array, default: null },
+    liftSwapContractAddress: { type: String, default: null }
   },
 
   components: {

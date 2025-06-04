@@ -49,11 +49,17 @@
           :class="getDarkModeClass(darkMode)"
         >
           <q-tab-panel name="reserves" style="padding: 5px 0;">
-            <reservations-tab-panel :reservationsList="reservationsList" />
+            <reservations-tab-panel
+              :reservationsList="reservationsList"
+              :liftSwapContractAddress="liftSwapContractAddress"
+            />
           </q-tab-panel>
 
           <q-tab-panel name="purchase" style="padding: 5px 0;">
-            <purchases-tab-panel :purchasesList="purchasesList" />
+            <purchases-tab-panel
+              :purchasesList="purchasesList"
+              :liftSwapContractAddress="liftSwapContractAddress"
+            />
           </q-tab-panel>
         </q-tab-panels>
       </div>
@@ -68,7 +74,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReservationsTabPanel from 'src/components/lift-token/ReservationsTabPanel.vue'
 import PurchasesTabPanel from 'src/components/lift-token/PurchasesTabPanel.vue'
-import { getPurchasesData, getReservationsData } from 'src/utils/engagementhub-utils/lift-token'
+import { getContractAddressApi, getPurchasesData, getReservationsData } from 'src/utils/engagementhub-utils/lift-token'
 
 export default {
   name: 'LiftTokenPage',
@@ -84,6 +90,7 @@ export default {
     return {
       isLoading: false,
       sectionTab: 'reserves',
+      liftSwapContractAddress: '',
 
       reservationsList: [],
       purchasesList: []
@@ -109,10 +116,11 @@ export default {
 
     this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
     const results = await Promise.allSettled([
-      getReservationsData(), getPurchasesData()
+      getReservationsData(), getPurchasesData(), getContractAddressApi()
     ])
     this.reservationsList = results[0].value
     this.purchasesList = results[1].value
+    this.liftSwapContractAddress = results[2].value
 
     this.isLoading = false
   }

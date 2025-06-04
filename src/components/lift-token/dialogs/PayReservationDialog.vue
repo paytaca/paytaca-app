@@ -80,7 +80,8 @@ export default {
   name: 'PayReservationDialog',
 
   props: {
-    rsvp: { type: Object, default: null }
+    rsvp: { type: Object, default: null },
+    liftSwapContractAddress: { type: String, default: null }
   },
 
   components: {

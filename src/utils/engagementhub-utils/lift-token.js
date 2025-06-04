@@ -43,3 +43,13 @@ export async function processPurchaseApi(data) {
     .then(response => { return response.status === 201 })
     .catch(_error => { return false })
 }
+
+export async function getContractAddressApi () {
+  return await LIFTTOKEN_URL
+    .get('purchase/get_contract_address/')
+    .then(response => {
+      if (response.status === 200) return response.data.address
+      return null
+    })
+    .catch(_error => { return null } )
+}
