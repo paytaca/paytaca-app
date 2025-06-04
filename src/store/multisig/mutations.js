@@ -18,15 +18,12 @@ export function saveWallet (state, multisigWallet) {
   state.wallets.splice(index, 1, multisigWallet)
 }
 
-export function updateWallet(state, { address, multisigWallet }) {
+export function updateWallet(state, { id, multisigWallet }) {
   const index = state.wallets.findIndex((wallet) => {
-    return getMultisigCashAddress({
-      ...wallet, cashAddressNetworkPrefix: address.split(':')[0]
-    }) === address
+    return wallet.id === id
   })
   if (index === -1) return
-  const updated = { ...state.wallets[index], ...multisigWallet }
-  state.wallets?.splice(index, 1, updated)
+  state.wallets?.splice(index, 1, multisigWallet)
 }
 
 export function deleteWallet (state, { address }) {
@@ -90,6 +87,23 @@ export function updateTransactionStatus (state, { index, status } ) {
    transaction.metadata.status = status
   }
  }
+}
+
+export function addTransactionSignatures (state, { index, signerSignatures }) {
+    const { signer, signatures } = signerSignatures
+    if (!state.transactions?.[index]) return
+    signatures.forEach((signature) => {
+      const signatureIndex = state.transactions[index].signatures?.findIndex((sig) => {
+	 return sig.inputIndex == signature.inputIndex && sig.sigKey === signature.sigKey
+      })
+      
+      const sigDoesNotYetExist = signatureIndex === -1
+
+      if(sigDoesNotYetExist) {
+        return state.transactions[index].signatures.push(signatures)
+      }
+      state.transactions[index].signatures.splice(signatureIndex, 1, signature)
+    })
 }
 
 export function deleteTransaction (state, { index }) {

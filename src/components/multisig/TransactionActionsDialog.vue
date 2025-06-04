@@ -26,10 +26,10 @@
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" color="primary" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="mdi-file-upload-outline" class="col-12"></q-icon>
+              <q-icon name="mdi-file-upload-outline" class="col-12" color="primary"></q-icon>
               <div class="col-12 tile-label">Load Cosigner PST</div>
             </div>
           </template>
