@@ -18,7 +18,6 @@ import {
   CashAddressNetworkPrefix,
   binToHex
 } from 'bitauth-libauth-v3'
-// import { createTemplate } from './template.js'
 
 export { createTemplate } from './template.js'
 
@@ -248,6 +247,7 @@ export class MultisigWallet {
 }
 
 export const getCompiler = ({ template }) => {
+  console.log('template', template)
   const parsedTemplate = importWalletTemplate(template)
   if (typeof parsedTemplate === 'string') {
     throw new Error('Failed creating multisig wallet template.')
@@ -255,12 +255,16 @@ export const getCompiler = ({ template }) => {
   return walletTemplateToCompilerBch(parsedTemplate)
 }
 
-export const getLockingBytecode = ({ lockingData, template }) => {
+export const getLockingBytecode = ({ lockingData, template, hex = false }) => {
   const compiler = getCompiler({ template })
   const lockingBytecode = compiler.generateBytecode({
     data: lockingData,
     scriptId: 'lock'
   })
+  if (hex) {
+    lockingBytecode.bytecode = binToHex(lockingBytecode.bytecode)
+    return lockingBytecode	  
+  }
   return lockingBytecode
 }
 
@@ -328,9 +332,17 @@ export const exportMultisigWallet = (multisigWallet) => {
   return binToBase64(bin)
 }
 
+export const generateTempId = ({ template, lockingData }) => {
+   return getLockingBytecode({ template, lockingData, hex: true }).bytecode
+}
+
 export const importMultisigWallet = (multisigWalletBase64) => {
-  const bin = base64ToBin(multisigWalletBase64)
-  return JSON.parse(binToUtf8(bin))
+  const bin = base64ToBin(multisigWalletBase64)	
+  const multisigWallet = JSON.parse(binToUtf8(bin))
+  if (!multisigWallet.id) {
+   multisigWallet.id = generateTempId({ template: multisigWallet.template, lockingData: multisigWallet.lockingData })
+  }
+  return multisigWallet
 }
 
 export const getSignerInfos = (multisigWallet) => {
@@ -359,4 +371,8 @@ export const findMultisigWalletByLockingData = ({ multisigWallets, template, loc
   return wallet
 }
 
-
+export const isSynced = (multisigWallet) => {
+   if (!multisigWallet.id) return false
+   if (!/^[0-9]+$/.test(multisigWallet.id)) return false
+   return true 
+} 

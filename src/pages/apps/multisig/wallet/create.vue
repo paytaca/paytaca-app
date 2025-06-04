@@ -149,7 +149,7 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { createTemplate, getMultisigCashAddress, shortenString } from 'src/lib/multisig'
+import { createTemplate, getMultisigCashAddress, shortenString, generateTempId } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
 
@@ -253,9 +253,11 @@ const onCreateClicked = async () => {
       hdPublicKeys
     }
   }
-
   const multisigWallet = {
-    template, lockingData, requiredSignatures: wallet.value.m
+    id: generateTempId({ template, lockingData }),
+    template,
+    lockingData,
+    requiredSignatures: wallet.value.m
   }
 
   await saveMultisigWallet(multisigWallet)
