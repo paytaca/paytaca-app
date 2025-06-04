@@ -57,7 +57,10 @@
         >
           <div class="row col-12 justify-between">
             <div class="row col-7 justify-start">
-              <sale-group-chip :saleGroup="purchase.sale_group" />
+              <sale-group-chip
+                :saleGroup="purchase.sale_group"
+                @click="filterPurchasesList(purchase.sale_group)"
+              />
             </div>
             <div class="row col-5 justify-end">
               <sale-group-chip

@@ -64,7 +64,10 @@
               </div>
             </div>
             <div class="row col-6 justify-end">
-              <sale-group-chip :saleGroup="rsvp.sale_group" />
+              <sale-group-chip
+                :saleGroup="rsvp.sale_group"
+                @click="filterRsvpList(rsvp.sale_group)"
+              />
             </div>
           </div>
 
