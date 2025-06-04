@@ -1,10 +1,10 @@
 import { useStore } from 'vuex'
 import { computed } from 'vue'
 import { loadWallet } from 'src/wallet'
-import { MultisigWallet, MultisigTransaction, getMultisigCashAddress } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, deriveHdKeysFromMnemonic } from 'src/lib/multisig'
 import { useRoute, useRouter } from 'vue-router'
 import Watchtower from 'src/lib/watchtower'
-import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, binToHex } from 'bitauth-libauth-v3'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
@@ -60,7 +60,7 @@ export const useMultisigHelpers = () => {
     if (!signerWallet) return
     const { mnemonic } = await loadWallet('BCH', signerWallet.vaultIndex)
     if (!mnemonic) return
-    const hdKeys = MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic })
+    const hdKeys = deriveHdKeysFromMnemonic({ mnemonic })
     if (xpub !== hdKeys.hdPublicKey) return
     return hdKeys.hdPrivateKey
   }
@@ -137,6 +137,11 @@ export const useMultisigHelpers = () => {
    return transactions     
   }
 
+  const getTransactionsByMultisigWallet = (wallet) => {
+    const lockingBytecodeHex = binToHex(getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData}).bytecode)
+    return $store.getters['multisig/getTransactionsByLockingBytecode']({ lockingBytecodeHex})
+  }
+
   return {
     localWallets,
     getSignerWalletFromVault,
@@ -151,6 +156,7 @@ export const useMultisigHelpers = () => {
     cashAddressNetworkPrefix,
     multisigWallets,
     getTransactionsByWalletAddress,
+    getTransactionsByMultisigWallet,
     getMultisigWalletBchBalance,
     txExplorerUrl
   }
