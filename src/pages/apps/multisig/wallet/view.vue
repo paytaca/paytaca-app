@@ -26,13 +26,22 @@
                 </q-item-section>
               </q-item>
               <q-item>
+                <q-item-section>
+                  <q-item-label>Id
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section  side>
+                  <q-item-label>{{ shortenString(`${wallet.id}`, 20) }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
                <q-item-section>
                 <q-item-label>Synced</q-item-label> 
                </q-item-section>
                <q-item-section side>
                  <q-item-label class="flex flex-wrap q-gutter-x-sm items-center">
                   <q-chip style="background: inherit; color: inherit" class="q-gutter-sm">
-                   <span class="q-mr-sm">{{ !wallet.id ? 'No': 'Yes' }}</span>
+                   <span class="q-mr-sm">{{ isSynced(wallet)? 'Yes': 'No' }}</span>
                    <!--q-icon v-if="wallet.id" size="xs" :name="wallet.id? 'cloud': 'smartphone'" /--> 
                   </q-chip> 
                  </q-item-label>
@@ -110,14 +119,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { shortenString, getRequiredSignatures,  exportMultisigWallet, importPst } from 'src/lib/multisig'
+import { shortenString, getRequiredSignatures,  exportMultisigWallet, importPst, getLockingBytecode, isSynced, generateFilename } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import SyncWalletDialog from 'components/multisig/SyncWalletDialog.vue'
-import { CashAddressNetworkPrefix, hashTransaction } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, hashTransaction, binToHex } from 'bitauth-libauth-v3'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -142,12 +151,7 @@ const wallet = computed(() => {
 })
 
 const transactions = computed(() => {
-   if (route.params?.address) {
-     return $store.getters['multisig/getTransactionsByWalletAddress']({
-       address: route.params.address
-     })
-   }
-  return []
+  return $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
 })
 
 const deleteWallet = async (address) => {
@@ -161,7 +165,7 @@ const exportWallet = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `${wallet.value.template.name || `${wallet.value.requiredSignatures}-of-${Object.keys(wallet.value.template.entities)}`}.pmwif`
+  a.download = generateFilename(wallet.value)
   document.body.appendChild(a)
   a.click()
 }
@@ -174,24 +178,9 @@ const loadTransactionProposal = () => {
 const onUpdateTransactionFile = (file) => {
   if (file) {
     const reader = new FileReader()
-    console.log('🚀 ~ onUpdateTransactionFile ~ reader:', reader.result)
     reader.onload = () => {
       transactionInstance.value = importPst({ pst: reader.result })
       const transactionFromStore = $store.getters['multisig/getTransactionByHash']({ hash: hashTransaction(transactionInstance.value.transaction)})
-      console.log('tx from store', transactionFromStore)
-      // const pstObjectFromStore = $store.getters['multisig/getPstById']({ id: transactionInstance.value.id })
-      console.log('🚀 ~ onUpdateTransactionFile ~ transactionInstance:', transactionInstance.value)
-      // if (pstObjectFromStore) {
-      //   // TODO: ask before combine? redirect to pst compare page
-      //   // TODO: combine with multiple pst files
-      //   transactionFromStore.value = MultisigTransaction.createInstanceFromObject(pstObjectFromStore)
-      //   transactionFromStore.value.combine({ psts: [transactionInstance.value] })
-      //   transactionFromStore.value.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
-      //   return router.push({
-      //     name: 'app-multisig-wallet-pst-view',
-      //     params: { address: transactionFromStore.value.metadata.walletAddress, id: transactionFromStore.value.id }
-      //   })
-      // }
       $store.dispatch('multisig/saveTransaction', transactionInstance.value)
       const index = transactions.value?.length - 1
       router.push({
@@ -272,6 +261,7 @@ onMounted(async () => {
     balance.value = await getMultisigWalletBchBalance(
       decodeURIComponent(route.params.address)
     )
+    await $store.dispatch('multisig/fetchTransactions', wallet.value )
   } catch (error) {}
 })
 </script>
