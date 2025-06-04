@@ -261,7 +261,7 @@ export async function getAssetMetadata (context, assetId) {
       'id': 'ct/' + tokenId,
       'isNft': _metadata.is_nft,
       'name': _metadata.name,
-      'description': _metadata.description,
+      // 'description': _metadata.description,
       'symbol': _metadata.token.symbol,
       'decimals': parseInt(_metadata.token.decimals) || 0,
       'logo': convertIpfsUrl(imageUrl)

@@ -234,7 +234,7 @@ export class BchWallet {
         'logo': convertIpfsUrl(imageUrl),
         'id': 'ct/' + tokenId,
         'name': _metadata.name,
-        'description': _metadata.description,
+        // 'description': _metadata.description,
         'symbol': _metadata.token.symbol,
         'decimals': _metadata.token.decimals,
         'is_nft': _metadata.is_nft
