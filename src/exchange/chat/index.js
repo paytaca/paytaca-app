@@ -354,10 +354,15 @@ export async function updateOrCreateKeypair (update = true) {
   const seed = await getKeypairSeed()
   const keypair = generateKeypair({ seed: seed })
 
-  const storedKeypair = await getKeypair()
-  if (storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
-    console.log('Chat encryption keypair still updated')
-    return
+  try {
+    const storedKeypair = await getKeypair()
+    if (storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
+      console.log('Chat encryption keypair still updated')
+      return
+    }
+
+  } catch (error) {
+    console.error(error)
   }
 
   if (update) {
@@ -376,6 +381,7 @@ export async function updateOrCreateKeypair (update = true) {
 
   return keypair
 }
+
 export function generateChatRef (id, createdAt, members) {
   if (!members) throw Error('Missing required value: members')
   const hashVal = id + createdAt + members

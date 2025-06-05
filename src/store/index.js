@@ -1,5 +1,4 @@
 import { createStore } from 'vuex'
-import createPersistedState from 'vuex-persistedstate'
 import VuexPersistence from 'vuex-persist'
 import localforage from 'localforage'
 import { sanitizeForIndexedDB } from 'src/utils/migrate-localstorage-to-indexdb'
