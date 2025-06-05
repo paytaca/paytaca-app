@@ -52,7 +52,7 @@ export async function migrateVuexLocalStorage() {
       const sanitizedState = sanitizeForIndexedDB(migratedState)
       await localforage.setItem(key, sanitizedState)
       console.info('[Migration] Vuex state migrated to IndexedDB.')
-      // localStorage.removeItem(key) // optional: cleanup
+      localStorage.removeItem(key) // optional: cleanup
       window.localStorage.setItem(MIGRATION_FLAG, true) // Mark migration done
     } else {
       console.info('[Migration] No Vuex localStorage data to migrate.')
