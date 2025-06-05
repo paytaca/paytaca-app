@@ -76,6 +76,7 @@
 </template>
 
 <script>
+import { decodePrivateKeyWif, secp256k1 } from '@bitauth/libauth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { parseFiatCurrency, getAssetDenomination } from 'src/utils/denomination-utils'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
@@ -184,44 +185,60 @@ export default {
     async processPurchase () {
       this.isSliderLoading = true
 
-      // send paid bch to lift swap contract
-      const bch = Number(this.bchAmount.split(' ')[0])
-      const recipient = [{
-        address: this.liftSwapContractAddress,
-        amount: bch,
-        tokenAmount: undefined
-      }]
-      const changeAddress = getChangeAddress('bch')
-      const result = await getWalletByNetwork(this.wallet, 'bch')
-        .sendBch(0, '', changeAddress, null, undefined, recipient)
+      // get pubkey hex of bch address used for reservation
+      const bchWalletInfo = this.$store.getters['global/getWallet']('bch')
+      const walletAddress = bchWalletInfo.walletAddresses
+        .filter(a => a.address === this.rsvp.bch_address)
 
-      if (result.success) {
-        // record transaction
-        const satsWithFee = bch * (10 ** 8) + 1000
-        
-        let lockupYears = 0
-        if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
-        else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
-        const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
+      if (walletAddress.length > 0) {
+        const lastAddressWif = walletAddress[0].wif
+        const decodedWif = decodePrivateKeyWif(lastAddressWif)
+        const pubkey = secp256k1.derivePublicKeyCompressed(decodedWif.privateKey)
+        const pubkeyHex = Buffer.from(pubkey).toString('hex')
   
-        const data = {
-          purchased_amount_sats: satsWithFee,
-          purchased_date: new Date().toISOString(),
-          lockup_date: new Date(lockupPeriod).toISOString(),
-          reservation: this.rsvp.id,
-          tx_id: result.txid
-        }
+        // send paid bch to lift swap contract
+        const bch = Number(this.bchAmount.split(' ')[0])
+        const recipient = [{
+          address: this.liftSwapContractAddress,
+          amount: bch,
+          tokenAmount: undefined
+        }]
+        const changeAddress = getChangeAddress('bch')
+        const result = await getWalletByNetwork(this.wallet, 'bch')
+          .sendBch(0, '', changeAddress, null, undefined, recipient)
   
-        const isSuccessful = await processPurchaseApi(data)
-
-        if (isSuccessful) {
-          console.log('notif success yey')
+        if (result.success) {
+          // record transaction
+          const satsWithFee = bch * (10 ** 8) + 1000
+          
+          let lockupYears = 0
+          if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
+          else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
+          const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
+    
+          const data = {
+            purchased_amount_sats: satsWithFee,
+            purchased_date: new Date().toISOString(),
+            lockup_date: new Date(lockupPeriod).toISOString(),
+            reservation: this.rsvp.id,
+            tx_id: result.txid,
+            buyer_pubkey: pubkeyHex
+          }
+    
+          const isSuccessful = await processPurchaseApi(data)
+  
+          if (isSuccessful) {
+            console.log('notif success yey')
+          } else {
+            raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
+          }
         } else {
-          raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
+          raiseNotifyError('Unable to process your purchase. Please try again later.')
         }
       } else {
-        raiseNotifyError('Unable to process your purchase. Please try again later.')
+        raiseNotifyError('The BCH address used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.')
       }
+
 
       this.isSliderLoading = false
     }
