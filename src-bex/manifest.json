@@ -2,7 +2,7 @@
   "all": {
     "name": "Paytaca",
     "description": "Secure and convenient Bitcoin Cash wallet app",
-    "version": "0.22.6",
+    "version": "0.22.7",
     "manifest_version": 3,
 
     "icons": {
