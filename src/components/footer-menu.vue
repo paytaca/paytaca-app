@@ -47,13 +47,13 @@
           </div>
           <div class="col">
             <q-btn flat no-caps class="icon-btn title-smaller" @click="selectMenu('apps-dashboard', 'tools')">
-              <q-icon size="25px" name="img:ui-revamp/tools.svg" :class="isActive('tools') ? 'active' : 'inactive'">
+              <q-icon size="25px" name="img:apps.svg" :class="isActive('tools') ? 'active' : 'inactive'">
                 <!-- <svg>
                   <use xlink:href="apps.svg#icon"></use>
                 </svg> -->
               </q-icon>
               <br>
-              <span>Tools</span>
+              <span>Apps</span>
             </q-btn>
           </div>
         </div>

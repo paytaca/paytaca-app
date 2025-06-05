@@ -1,80 +1,123 @@
 <template>
   <div id="app-container" :class="darkmode ? 'dark': 'light'">
     <!-- Gradient Panel -->
-    <div id="gradient-panel"></div>
-
-    <!-- Header -->
-    <div class="row justify-between text-light header">
-      <div class="col-7 row">
-        <img src='../../assets/paytaca_logo.png' id="header-logo"/>
-        <div class="q-pl-sm" style="line-height: 0px;">
-          <span class="label-medium">Welcome to</span><br>
-          <span class="title-small">Paytaca BCH Wallet</span>
+    <div id="gradient-panel">
+      <!-- Header -->
+      <div class="row justify-between text-light header">
+        <div class="col-7 row">
+          <img src='../../assets/paytaca_logo.png' id="header-logo"/>
+          <div class="q-pl-sm" style="line-height: 0px;">
+            <span class="label-medium">Welcome to</span><br>
+            <span class="title-small">Paytaca BCH Wallet</span>
+          </div>
         </div>
-      </div>
-      <div class="col row justify-end q-pt-sm" style="right: 0px">
-        <q-btn no-caps outline rounded padding="xs" size="sm" class="q-mx-xs">
-          <span class="body-small q-px-xs">Help?</span>
-        </q-btn>
-        <q-btn icon="notifications" size="sm" padding="sm" outline round class="q-mx-xs" @click="openNotificationsDialog()">
-          <!-- <q-icon name="notifications" size=xs></q-icon> -->
-        </q-btn>
-        <q-btn icon="settings" size="sm" padding="sm" outline round class="q-mx-xs" @click="$router.push('/apps/settings')"/>
-      </div>
+        <div class="col row justify-end q-pt-sm" style="right: 0px">
+          <q-btn no-caps outline rounded padding="xs" size="sm" class="q-mx-xs">
+            <span class="body-small q-px-xs">Help?</span>
+          </q-btn>
+          <q-btn icon="notifications" size="sm" padding="sm" outline round class="q-mx-xs" @click="openNotificationsDialog()">
+            <!-- <q-icon name="notifications" size=xs></q-icon> -->
+          </q-btn>
+          <q-btn icon="settings" size="sm" padding="sm" outline round class="q-mx-xs" @click="$router.push('/apps/settings')"/>
+        </div>
+      </div>  
+
+      <!-- BCH/Stablehedge -->
+      <q-tabs
+        v-if="enableStablhedge"
+        v-model="stablehedgeTab"
+        class="text-white title-medium"
+        style="margin: 0px 60px 0px;"
+        no-caps
+      >
+        <q-tab name="bch">
+          <!-- <q-icon name="img:bch-logo.png" size="25px"/> -->
+          <span>BCH</span>
+        </q-tab>
+        <q-tab name="stablehedge">
+          <!-- <q-icon name="img:assets/img/stablehedge/stablehedge-bch.svg" size="25px"/> -->
+          <span>Stablehedge</span>
+        </q-tab>      
+      </q-tabs>
+
+      <!-- Menu -->
+        <div class="row justify-between text-light manage-wallet">
+          <div>
+            <multi-wallet/>
+            <q-icon name="visibility_off" class="q-pr-sm"/>
+          </div>
+          <div>
+            <q-btn flat size="sm" >
+              <q-icon name="keyboard_arrow_down" class="q-pr-sm"/>
+              <q-icon><img src='ui-revamp/manage-token.svg'/></q-icon>
+
+              <!-- Token Menu -->
+              <q-menu
+                ref="tokenMenu"
+                class="token-menu"
+                :class="darkmode ? 'text-light' : 'text-dark'"
+              >
+                <q-list dense class="body-small">
+                  <!-- Check for token -->
+                  <q-item class="q-mt-sm" clickable v-close-popup v-ripple>
+                    Manage Token
+                  </q-item>
+                  <q-separator />
+                  <q-item class="q-mt-sm" clickable v-close-popup v-ripple @click="addNewAsset">
+                    Add Token
+                  </q-item>
+                  <q-separator />
+                  <q-item class="q-mt-sm" clickable v-close-popup v-ripple @click="checkMissingAssets({autoOpen: true})">
+                    Scan Token
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+          </div>
+        </div>
+
+        <!-- Balance -->
+        <div class="balance text-light text-center">
+          <div class="row justify-center">
+            <!-- Price -->
+            <q-skeleton type="rect" v-if="!balanceLoaded" style="width: 250px"/>
+            <div v-else class="headline-large">{{ bchBalanceText() }} <span class="headline-small">BCH</span></div>
+            <!-- Token Icon -->
+            <div v-if="balanceLoaded">
+              <q-icon id="asset-logo" v-if="stablehedgeView" name="img:assets/img/stablehedge/stablehedge-bch.svg"/>
+              <q-icon id="asset-logo" v-else name="img:bch-logo.png"/>
+            </div>            
+            <!-- <q-img v-if="balanceLoaded" src="bch-logo.png" id="header-logo"/> -->
+          </div>
+          <!-- Fiat Equivalent -->
+          <div class="row justify-center">
+            <q-skeleton v-if="!balanceLoaded" type="text" style="width: 50px;"/>
+            <div v-else class="body-medium">
+              <span class="text-uppercase">{{ selectedMarketCurrency }}</span> &nbsp; {{ equivalentExchangeText }}
+            </div>
+          </div>        
+        </div>
     </div>
 
-    <!-- Body -->
-    <div class="row justify-between text-light manage-wallet">
-      <div>
-        <multi-wallet/>
-        <q-icon name="visibility_off" class="q-pr-sm"/>
-      </div>
-      <div>
-        <q-btn flat size="sm" >
-          <q-icon name="keyboard_arrow_down" class="q-pr-sm"/>
-          <q-icon><img src='ui-revamp/manage-token.svg'/></q-icon>
-
-          <!-- Token Menu -->
-          <q-menu
-            ref="tokenMenu"
-            class="token-menu"
-            :class="darkmode ? 'text-light' : 'text-dark'"
-          >
-            <q-list dense class="body-small">
-              <!-- Check for token -->
-              <q-item class="q-mt-sm" clickable v-close-popup v-ripple>
-                Manage Token
-              </q-item>
-              <q-separator />
-              <q-item class="q-mt-sm" clickable v-close-popup v-ripple @click="addNewAsset">
-                Add Token
-              </q-item>
-              <q-separator />
-              <q-item class="q-mt-sm" clickable v-close-popup v-ripple @click="checkMissingAssets({autoOpen: true})">
-                Scan Token
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-btn>
-      </div>
-    </div>
+    <!-- Asset Buttons -->
+    <asset-option :stablehedgeView="stablehedgeView"/>
 
       <!-- Header Card -->
-    <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/>
+    <!-- <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/> -->
 
       <!-- Ellipses Note: Add Carousel later-->
-    <div class="text-center q-pt-md">
+    <!-- <div class="text-center q-pt-md">
       <q-icon padding="0" name="more_horiz" size="sm" color="black"/>
-    </div>
+    </div> -->
 
       <!-- Tutorial Card -->
-    <tutorial-card/>
+    <!-- <tutorial-card/> -->
 
       <!-- Marketplace -->
     <!-- <home-marketplace/> -->
 
       <!-- Apps -->
-    <home-apps/>
+    <!-- <home-apps/> -->
 
     <!-- Transaction History -->
     <transaction-list
@@ -108,6 +151,7 @@ import tutorialCard from 'src/components/ui-revamp/home/tutorial-card.vue'
 import homeMarketplace from 'src/components/ui-revamp/home/marketplace.vue';
 import homeApps from 'src/components/ui-revamp/home/apps.vue'
 import transactionList from 'src/components/ui-revamp/home/transaction-list.vue';
+import assetOption from 'src/components/ui-revamp/home/asset-option.vue'
 import multiWallet from 'src/components/ui-revamp/home/multi-wallet.vue'
 import packageInfo from '../../../package.json'
 
@@ -160,8 +204,7 @@ export default {
       wallet: null,
       isCashToken: true,
       balanceLoaded: false,
-      transactionsLoaded: false,
-      stablehedgeView: false,
+      transactionsLoaded: false,      
       selectedAsset: {
         id: 'bch',
         symbol: 'BCH',
@@ -170,7 +213,7 @@ export default {
         balance: 0
       },
       notifsCount: 0,
-      notifSocket: null
+      notifSocket: null,
     }
   },
   components: {
@@ -180,6 +223,7 @@ export default {
     homeApps,
     transactionList,
     multiWallet,
+    assetOption,
 
     TokenSuggestionsDialog,
     securityOptionDialog,
@@ -195,6 +239,9 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    equivalentExchangeText () {
+      return this.getAssetMarketBalance(this.bchAsset).replace(/[^0-9.]/g, '')
     },
     currentWalletHash () {
       return this.$store.getters['global/getWallet']('bch')?.walletHash
@@ -263,6 +310,48 @@ export default {
       return (isNotDefaultTheme(this.theme) &&
         (this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
         this.selectedNetwork !== 'sBCH')
+    },
+    enableStablhedge () {
+      return this.$store.getters['global/enableStablhedge']
+    },
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
+    },
+    stablehedgeTab: {
+      get() {
+        return this.stablehedgeView ? 'stablehedge' : 'bch'
+      },
+      set(value) {
+        this.stablehedgeView = value === 'stablehedge'
+        // this.$nextTick(() => {
+        //   this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
+        //   this.$refs['transaction-list-component'].getTransactions()
+        // })
+      }
+    },
+    stablehedgeWalletData() {
+      const sats = this.$store.getters['stablehedge/totalTokenBalancesInSats']
+      console.log('sats: ', sats)
+      const balance = sats / 10 ** 8
+      const tokenBalances = this.$store.getters['stablehedge/tokenBalancesWithSats']
+      const balancesWithoutSats = tokenBalances.filter(tokenBalance => {
+        return !Number.isFinite(tokenBalance?.satoshis)
+      }).map(tokenBalance => {
+        const token = this.$store.getters['stablehedge/token']?.(tokenBalance?.category)
+        const decimals = parseInt(token?.decimals) || 0
+
+        return {
+          ...tokenBalance,
+          decimals: decimals,
+          currency: token?.currency,
+          standardizedAmount: tokenBalance?.amount / 10 ** decimals,
+        }
+      })
+      return {
+        balance,
+        tokenBalances,
+        balancesWithoutSats,
+      }
     },
   },
   created () {
@@ -1061,10 +1150,16 @@ export default {
 .header {
   padding: 24px 16px 0;
   z-index: 1;
-  #header-logo {
-    height: 34px;
-    width: 36px;
-  }
+}
+#header-logo {
+  margin: 5px 5px 0px;
+  height: 28px;
+  width: 28px;
+}
+#asset-logo {
+  margin: 5px 5px 0px;
+  height: 40px;
+  width: 40px;
 }
 .manage-wallet {
   z-index: 1;
@@ -1073,5 +1168,9 @@ export default {
 .token-menu {
   border-radius: 50%;
   padding: 5px 5px 5px;
+}
+.balance {
+  margin-bottom: 25px;  
+  padding: 10px 16px 0;
 }
 </style>

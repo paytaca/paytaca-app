@@ -35,17 +35,17 @@ body.theme-overhaul {
 
   #gradient-panel {
     background-image: $gradient_bg;
-    height: 227px;
+/*    height: 227px;*/
     width: 100%;
-    position: absolute;
-    z-index: 0;
+    /*position: absolute;
+    z-index: 0;*/
   }
 
   /* ----- CLASSES ----- */
   .footer-menu {
     // height: 67px;
     position: fixed;
-    border-top: 3px $light_bg solid;
+/*    border-top: 3px $light_bg solid;*/
     bottom: 0;
     width: 100%;
     background: $dark_bg;
@@ -64,7 +64,7 @@ body.theme-overhaul {
     z-index: 1;
   }
 
-  // Typography
+  /* Typography */
   .headline-large {
     font-size: 32px;
     line-height: 40px;
@@ -137,7 +137,7 @@ body.theme-overhaul {
     font-weight: 400;
   }
 
-  // Color
+  /* Color */
   .text-light {
     color: #FFF
   }
@@ -160,7 +160,7 @@ body.theme-overhaul {
     color: #22C55E;
   }
 
-  // Cards
+  /* Cards  */
   .card-light {
     background-color: #FFF;
     color: $dark_txt;
@@ -189,7 +189,7 @@ body.theme-overhaul {
   }
 
 
-  // Custom Elements
+  /* Custom Elements  */
   .gradient-bg {
     background-image: $gradient_bg !important;
   }
