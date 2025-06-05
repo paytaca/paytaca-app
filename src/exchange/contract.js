@@ -70,7 +70,9 @@ export class RampContract {
    * Both confirmed and unconfirmed UTXOs are included.
    */
   async getUtxos () {
-    return await this.contract.getUtxos()
+    const address = this.getAddress()
+    const result = await watchtower.BCH.getBchUtxos(address)
+    return result.utxos
   }
 
   /**
@@ -173,7 +175,6 @@ export class RampContract {
         txInfo
       }
     }
-    // console.log('result:', JSON.stringify(result))
     return result
   }
 
@@ -210,7 +211,7 @@ export class RampContract {
         .refund(this.publicKeys.arbiter, arbiterSig, this.hash)
         .to(outputs)
         .withHardcodedFee(BigInt(parseInt(this.fees.contractFee)))
-        .send()
+        .build()
       
       txInfo = await this.broadcastTransaction(txHex)
 
@@ -225,7 +226,6 @@ export class RampContract {
         txInfo: txInfo
       }
     }
-    // console.log('result:', JSON.stringify(result))
     return result
   }
 

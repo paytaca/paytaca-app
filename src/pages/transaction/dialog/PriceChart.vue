@@ -90,6 +90,7 @@ export default {
               return [parseInt(_data.timestamp), parseFloat(_data.price_value)]
             })
           }
+          response.data.prices.reverse()
           return response
         })
       } else {

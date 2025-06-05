@@ -32,6 +32,7 @@ export default {
     }
   },
   mounted () {
+    console.log('Query', this.$route.query)
     if ('ad_id' in this.$route.query) {
       this.$router?.push({ name: 'p2p-store-form', params: { ad: this.$route.query.ad_id } })
     }

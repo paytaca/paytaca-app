@@ -205,18 +205,35 @@ export async function saveExistingWallet (context) {
   }
 }
 
+export async function syncCurrentWalletToVault(context) {
+  const currentIndex = context.getters.getWalletIndex
+  const wallet = context.getters.getAllWalletTypes
+  const chipnet = context.getters.getAllChipnetTypes
+
+  const walletName = context.getters.getVault[currentIndex].name
+
+  const info = {
+    index: currentIndex,
+    walletSnapshot: wallet,
+    chipnetSnapshot: chipnet,
+    name: walletName
+  }
+
+  const asset = context.rootGetters['assets/getAllAssets']
+
+  context.commit('updateWalletSnapshot', info)
+  context.commit(
+    'assets/updateVaultSnapshot',
+    { index: currentIndex, snapshot: asset },
+    { root: true }
+  )
+}
+
 export async function switchWallet (context, index) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       try {
-        const currentIndex = context.getters.getWalletIndex
-        const asset = context.rootGetters['assets/getAllAssets']
-        context.commit(
-          'assets/updateVaultSnapshot',
-          { index: currentIndex, snapshot: asset },
-          { root: true }
-        )
-        context.commit('assets/updatedCurrentAssets', index, { root: true })
+        context.dispatch('syncCurrentWalletToVault', )
         context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
         context.commit('paytacapos/clearBranchInfo', {}, { root: true })
         context.commit('ramp/resetUser', {}, { root: true })
@@ -225,18 +242,6 @@ export async function switchWallet (context, index) {
         context.commit('ramp/resetPagination', {}, { root: true })
         deleteAuthToken()
 
-        const wallet = context.getters.getAllWalletTypes
-        const chipnet = context.getters.getAllChipnetTypes
-
-        const walletName = context.getters.getVault[currentIndex].name
-
-        const info = {
-          index: currentIndex,
-          walletSnapshot: wallet,
-          chipnetSnapshot: chipnet,
-          name: walletName
-        }
-        context.commit('updateWalletSnapshot', info)
         context.commit('updateWalletIndex', index)
         context.commit('updateCurrentWallet', index)
 

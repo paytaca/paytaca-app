@@ -70,7 +70,6 @@ import { backend } from 'src/exchange/backend'
 import { loadAuthenticatedUser } from 'src/exchange/auth'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
-import axios from 'axios'
 
 export default {
   data () {

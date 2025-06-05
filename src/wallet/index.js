@@ -74,6 +74,16 @@ export async function loadWallet(network = 'BCH', index = 0) {
   return new Wallet(mnemonic, network)
 }
 
+
+/** @type {Wallet[]} */
+const _wallets = []
+export async function cachedLoadWallet(network='BCH', index = 0) {
+  if (!_wallets[index]) {
+    _wallets[index] = loadWallet(network, index)
+  }
+  return _wallets[index]
+}
+
 export async function loadLibauthHdWallet(index=0, chipnet=false) {
   const mnemonic = await getMnemonic(index)
   return new LibauthHDWallet(mnemonic, undefined, chipnet ? 'chipnet' : 'mainnet')
