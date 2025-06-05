@@ -370,6 +370,13 @@ export default boot(({ app }) => {
         store.dispatch('notification/handleOpenedNotification')
       },
     )
+
+    // Clear notification state when app is closed
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) {
+        store.commit('notification/clearOpenedNotification')
+      }
+    })
   
     app.config.globalProperties.$pushNotifications = manager
     app.provide('$pushNotifications', manager)

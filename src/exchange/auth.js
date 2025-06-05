@@ -121,7 +121,7 @@ export class ExchangeUser {
   }
 }
 
-async function fetchUser () {
+export async function fetchUser () {
   const { data: userData } = await backend.get('/auth/')
   return new ExchangeUser(userData)
 }
@@ -129,12 +129,17 @@ async function fetchUser () {
 export async function loadAuthenticatedUser (forceLogin = false) {
   try {
     const user = await fetchUser()
+
     user.emitSignal(null, { signal: 'logging-in', data: true })
+
     await user.login(!user.is_authenticated || forceLogin)
     await Promise.all([user.fetchChatIdentity(), user.savePubkeyAndAddress()])
+
     user.emitSignal(null, { signal: 'logging-in', data: false })
+
     return Promise.resolve(user)
   } catch (error) {
+    console.error(error)
     bus.emit('logging-in', false)
     return Promise.reject(error)
   }

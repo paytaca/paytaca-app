@@ -116,7 +116,7 @@ import {
   parseDeviceId,
   deleteDeviceNotifType,
   getCountryCityData
-} from 'src/utils/engagementhub-utils'
+} from 'src/utils/engagementhub-utils/engagementhub-utils'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import EnterCountryCityDialog from 'src/components/settings/EnterCountryCityDialog.vue'

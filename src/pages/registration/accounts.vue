@@ -52,7 +52,7 @@
                 class="full-width button button-text-primary"
                 :class="getDarkModeClass(darkMode)"
                 @click="!$router.push('/')"
-                v-if="!$store.getters['global/isVaultEmpty']"
+                v-if="!isVaultEmpty"
               />
             </div>
           </div>
@@ -151,6 +151,16 @@
       >
         <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
           <div class="q-pa-lg" style="padding-top: 28px;">
+            <!-- <div
+              v-if="moveToReferral && !openSettings"
+            >
+              <rewards-step
+                :walletHash="this.newWalletHash"
+                @on-proceed-to-next-step="onProceedToNextStep"
+              />
+            </div> -->
+
+            <!-- <div class="row" v-else-if="!moveToReferral && openSettings"> -->
             <div class="row" v-if="openSettings">
               <div class="col">
                 <div class="row justify-center text-center">
@@ -309,6 +319,7 @@ import AuthenticationChooser from 'src/components/registration/AuthenticationCho
 import ShardsImport from 'src/components/registration/ShardsImport'
 import MnemonicProcessContainer from 'src/components/registration/MnemonicProcessContainer'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
+// import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 function countWords(str) {
   if (str) {
@@ -338,7 +349,8 @@ export default {
     AuthenticationChooser,
     ShardsImport,
     MnemonicProcessContainer,
-    SeedPhraseContainer
+    SeedPhraseContainer//,
+    // RewardsStep
   },
   data () {
     return {
@@ -348,6 +360,26 @@ export default {
       seedPhraseBackup: null,
       mnemonic: '',
       newWalletHash: '',
+      newWalletSnapshot: {
+        walletInfo: [].map(() => {
+          return {
+            isChipnet: false,
+            type: 'bch', // or slp
+            walletHash: '',
+            derivationPath: '',
+            lastAddress: '',
+            lastChangeAddress: '',
+            lastAddressIndex: -1,
+          }
+        }),
+        xpubKeysInfo: [].map(() => {
+          return {
+            isChipnet: false,
+            type: 'bch', // or slp
+            xPubKey: '',
+          }
+        }),
+      },
       steps: -1,
       totalSteps: 9,
       mnemonicVerified: false,
@@ -359,7 +391,8 @@ export default {
       openThemeSelector: false,
       useTextArea: false,
       authenticationPhase: 'options',
-      skipToBackupPhrase: false
+      skipToBackupPhrase: false//,
+      // moveToReferral: false,
     }
   },
   watch: {
@@ -384,6 +417,9 @@ export default {
     },
     currentCountry () {
       return this.$store.getters['global/country'].code
+    },
+    isVaultEmpty() {
+      return this.$store.getters['global/isVaultEmpty']
     },
     isFinalStep () {
       return this.steps === this.totalSteps
@@ -416,9 +452,24 @@ export default {
         cancel: true,
         seamless: true,
         class: 'text-white br-15 pt-card dark'
-      }).onOk(() => { vm.openSettings = true })
+      }).onOk(() => {
+        vm.openSettings = true
+        // vm.moveToReferral = true
+      })
     },
     saveToVault () {
+      if (this.$store.getters['global/getWalletIndex'] !== this.walletIndex) {
+        this.$store.dispatch('global/syncCurrentWalletToVault')
+      }
+
+      this.newWalletSnapshot.walletInfo.map(walletInfo => {
+        this.$store.commit('global/updateWallet', walletInfo)
+      })
+
+      this.newWalletSnapshot.xpubKeysInfo.map(xPubInfo => {
+        this.$store.commit('global/updateXPubKey', xPubInfo)
+      })
+
       // saving to wallet vault
       let wallet = this.$store.getters['global/getAllWalletTypes']
       wallet = JSON.stringify(wallet)
@@ -429,7 +480,6 @@ export default {
       chipnet = JSON.parse(chipnet)
 
       const info = { wallet, chipnet }
-
       this.$store.commit('global/updateVault', info)
       this.$store.commit('global/updateWalletIndex', this.walletIndex)
 
@@ -488,13 +538,15 @@ export default {
       const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
       const slpWallets = [wallet.SLP, wallet.SLP_TEST]
 
+      vm.newWalletSnapshot.walletInfo = []
+      vm.newWalletSnapshot.xpubKeysInfo = []
+
       for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
         await bchWallet.getNewAddressSet(0).then(function (response) {
           const addresses = response?.addresses || null
-
-          vm.$store.commit('global/updateWallet', {
+          const walletTypeInfo = {
             isChipnet,
             type: 'bch',
             walletHash: bchWallet.walletHash,
@@ -502,7 +554,10 @@ export default {
             lastAddress: addresses !== null ? addresses.receiving : '',
             lastChangeAddress: addresses !== null ? addresses.change : '',
             lastAddressIndex: 0,
-          })
+          }
+
+          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
+          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
           vm.steps += 1
           try {
             vm.$store.dispatch('global/refetchWalletPreferences')
@@ -510,11 +565,14 @@ export default {
         })
 
         await bchWallet.getXPubKey().then(function (xpub) {
-          vm.$store.commit('global/updateXPubKey', {
+          const xPubInfo = {
             isChipnet,
             type: 'bch',
             xPubKey: xpub
-          })
+          }
+
+          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
+          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
           vm.steps += 1
         })
       }
@@ -523,7 +581,7 @@ export default {
         const isChipnet = slpWallets.indexOf(slpWallet) === 1
 
         await slpWallet.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
+          const walletTypeInfo = {
             isChipnet,
             type: 'slp',
             walletHash: slpWallet.walletHash,
@@ -531,27 +589,36 @@ export default {
             lastAddress: addresses !== null ? addresses.receiving : '',
             lastChangeAddress: addresses !== null ? addresses.change : '',
             lastAddressIndex: 0
-          })
+          }
+
+          if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
+          else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
           vm.steps += 1
         })
 
         await slpWallet.getXPubKey().then(function (xpub) {
-          vm.$store.commit('global/updateXPubKey', {
+          const xPubInfo = {
             isChipnet,
             type: 'slp',
             xPubKey: xpub
-          })
+          }
+
+          if (vm.isVaultEmpty) vm.$store.commit('global/updateXPubKey', xPubInfo)
+          else vm.newWalletSnapshot.xpubKeysInfo.push(xPubInfo)
           vm.steps += 1
         })
       }
 
       await wallet.sBCH.subscribeWallet().then(function () {
-        vm.$store.commit('global/updateWallet', {
+        const walletTypeInfo = {
           type: 'sbch',
           derivationPath: wallet.sBCH.derivationPath,
           walletHash: wallet.sBCH.walletHash,
           lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
-        })
+        }
+
+        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
+        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
       })
 
       const walletHashes = [
@@ -650,6 +717,14 @@ export default {
     onProceedToNextStep () {
       this.steps = this.totalSteps
       this.authenticationPhase = 'options'
+
+      // if (!this.importSeedPhrase) {
+      //   if (!this.moveToReferral) this.moveToReferral = true
+      //   else {
+      //     this.moveToReferral = false
+      //     this.openSettings = true
+      //   }
+      // } else this.openSettings = true
       this.openSettings = true
     },
     onValidatedQrs (seedPhrase) {
@@ -723,6 +798,7 @@ export default {
     },
     onOpenSettings (value) {
       this.openSettings = value
+      // this.moveToReferral = value
     }
   },
   async mounted () {
@@ -735,11 +811,7 @@ export default {
     }
 
     // get walletIndex
-    this.walletIndex = this.$store.getters['global/getVault'].length
-
-    if (this.$store.getters['global/isVaultEmpty']) {
-      this.walletIndex = 0
-    }
+    this.walletIndex = this.isVaultEmpty ? 0 : this.$store.getters['global/getVault'].length
 
     await this.$store.dispatch('market/updateSupportedCurrencies', {})
 
@@ -766,7 +838,7 @@ export default {
     //   // previous implementation dont want en-us if there are other languages, so we filter it out
     // const ipGeoLang = supportedIpGeoLangs[0] || defaultLang
 
-    if (this.$store.getters['global/isVaultEmpty']) {
+    if (this.isVaultEmpty) {
       // let finalLang = ''
 
       // // Adjust paytaca language according to phone's language (if supported by paytaca)

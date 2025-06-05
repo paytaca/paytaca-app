@@ -61,7 +61,7 @@
                                     <div class="currency-icon" v-html="transaction.shift_info.settle.icon"></div>
                                   </q-avatar>
                                 </div>
-                                <p
+                                <div
                                   :class="{'text-grey': darkMode}"
                                   class="q-pt-md q-mb-none transactions-wallet float-right text-right"
                                 >
@@ -69,7 +69,7 @@
                                   <div class="subtext shift-status text-grey" :class="{'pt-label dark': darkMode}">
                                     {{ transaction.shift_status.toUpperCase() }}
                                   </div>
-                                </p>
+                                </div>
                               </div>
                               <div class="col">
                                 <span

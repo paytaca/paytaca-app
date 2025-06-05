@@ -1,0 +1,8 @@
+pragma cashscript ^0.10.0;
+
+contract PromoContract(pubkey userPubKey, string promo) {
+    function transfer(sig userSig, string promoCheck) {
+        require(checkSig(userSig, userPubKey));
+        require(promoCheck == promo);
+    }
+}

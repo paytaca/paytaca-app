@@ -2,17 +2,19 @@ import axios from "axios"
 import { getBlockChainNetwork } from './chipnet'
 import { setupCache } from 'axios-cache-interceptor'
 
+const BCMR_BACKEND_CHIP = setupCache(axios.create({
+  baseURL: 'https://bcmr-chipnet.paytaca.com/api',
+}))
+const BCMR_BACKEND_MAIN = setupCache(axios.create({
+  baseURL: 'https://bcmr.paytaca.com/api',
+}))
 
-function getBcmrBackend() {
+export function getBcmrBackend() {
   const network = getBlockChainNetwork()
   if (network === 'chipnet') {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr-chipnet.paytaca.com/api',
-    }))
+    return BCMR_BACKEND_CHIP
   } else {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr.paytaca.com/api',
-    }))
+    return BCMR_BACKEND_MAIN
   }
 }
 

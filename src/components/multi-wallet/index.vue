@@ -139,7 +139,7 @@ export default {
       vm.processDefaultVaultName()
 
       const tempVault = vm.$store.getters['global/getVault']
-      await tempVault.forEach(async (wallet, index) => {
+      const vaultNameUpdatePromises = tempVault.map(async (wallet, index) => {
         let tempName = wallet.name
         if (wallet.name === '') { // from vuex store
           tempName = `Personal Wallet #${index + 1}`
@@ -155,6 +155,7 @@ export default {
 
         vm.$store.commit('global/updateWalletName', { index, name: tempName })
       })
+      await Promise.allSettled(vaultNameUpdatePromises)
 
       vm.arrangeVaultData()
       vm.isloading = false
@@ -265,7 +266,10 @@ export default {
   async mounted () {
     const vm = this
 
-    vm.$store.dispatch('assets/updateVaultBchBalances', { chipnet: vm.isChipnet })?.catch(console.error)
+    vm.$store.dispatch('assets/updateVaultBchBalances', {
+      chipnet: vm.isChipnet,
+      excludeCurrentIndex: true,
+    })?.catch(console.error)
 
     // double checking if vault is empty
     await vm.$store.dispatch('global/saveExistingWallet')
