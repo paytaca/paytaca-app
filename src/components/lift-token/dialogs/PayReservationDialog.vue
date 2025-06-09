@@ -87,6 +87,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import { SignatureTemplate } from 'cashscript0.10.0'
 
 export default {
   name: 'PayReservationDialog',
@@ -195,6 +196,10 @@ export default {
         const decodedWif = decodePrivateKeyWif(lastAddressWif)
         const pubkey = secp256k1.derivePublicKeyCompressed(decodedWif.privateKey)
         const pubkeyHex = Buffer.from(pubkey).toString('hex')
+        let buyerSig = null
+        if (this.rsvp.sale_group === SaleGroup.PUBLIC) {
+          buyerSig = new SignatureTemplate(decodedWif.privateKey)
+        }
   
         // send paid bch to lift swap contract
         const bch = Number(this.bchAmount.split(' ')[0])
@@ -222,7 +227,8 @@ export default {
             lockup_date: new Date(lockupPeriod).toISOString(),
             reservation: this.rsvp.id,
             tx_id: result.txid,
-            buyer_pubkey: pubkeyHex
+            buyer_pubkey: pubkeyHex,
+            buyer_sig: buyerSig
           }
     
           const isSuccessful = await processPurchaseApi(data)
