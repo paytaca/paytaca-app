@@ -36,6 +36,10 @@ export const MultisigTransactionStatusText = Object.freeze({
   [MultisigTransactionStatus.CONFIRMED]: 'Confirmed'
 })
 
+export const UNSIGNED = 'unsigned'
+export const PARTIAL = 'partial'
+export const FULL = 'full'
+
 export const getUnsignedTransactionHash = ({ multisigTransaction, hex = true }) => {
   const transaction = encodeTransactionCommon(multisigTransaction.transaction)
   if (hex) {
@@ -471,6 +475,14 @@ export const signatureValuesToHex = ({ signatures }) => {
   signature.sigValue = binToHex(Uint8Array.from(Object.values(signature.sigValue)))
  })
  return s
+}
+
+export const getSigningStatus = ({ multisigWallet, multisigTransaction }) => {
+  const signatureCount = getSignatureCount({ multisigWallet, multisigTransaction })
+  if (signatureCount === 0) return UNSIGNED
+  const requiredSignatures = getRequiredSignatures(multisigWallet.template)
+  if (signatureCount < requiredSignatures) return PARTIAL
+  if (signatureCount === requiredSignatures) return FULL 
 }
 
 export const sourceOutputsValuesToUint8Array = ({ sourceOutputs }) => {
