@@ -88,6 +88,7 @@ import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { SignatureTemplate } from 'cashscript0.10.0'
+import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
 
 export default {
   name: 'PayReservationDialog',
@@ -220,6 +221,7 @@ export default {
           if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
           else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
           const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
+          const tokenAddress = await getWalletTokenAddress()
     
           const data = {
             purchased_amount_sats: satsWithFee,
@@ -228,7 +230,8 @@ export default {
             reservation: this.rsvp.id,
             tx_id: result.txid,
             buyer_pubkey: pubkeyHex,
-            buyer_sig: buyerSig
+            buyer_sig: buyerSig,
+            buyer_token_address: tokenAddress
           }
     
           const isSuccessful = await processPurchaseApi(data)
