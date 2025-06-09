@@ -29,18 +29,11 @@
                   <q-item-label>Id</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label class="q-mr-sm">{{ shortenString(`${wallet.id}`, 20) }}</q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item>
-               <q-item-section>
-                <q-item-label>Stored In</q-item-label> 
-               </q-item-section>
-               <q-item-section side>
-                 <q-item-label class="flex flex-wrap q-gutter-x-sm items-center">
-                   <q-icon class="q-mr-sm" size="xs" :name="isSynced(wallet)? 'cloud': 'smartphone'" /> 
+                 <q-item-label class="flex flex-wrap items-center">
+                   <span>{{ shortenString(`${wallet.id}`, 20)}}</span>
+                   <q-icon class="q-ml-xs" size="xs" :name="isSynced(wallet)? 'cloud': 'smartphone'"/> 
                  </q-item-label>
-               </q-item-section>
+                </q-item-section>
               </q-item>
               <q-item>
                 <q-item-section>

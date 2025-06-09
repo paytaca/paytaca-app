@@ -22,7 +22,7 @@
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-file-export" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Export Tx Proposal File</div>
+              <div class="col-12 tile-label">Export File</div>
             </div>
           </template>
         </q-btn>

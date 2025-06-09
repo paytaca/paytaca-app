@@ -74,10 +74,11 @@ export function saveTransaction (state, multisigTransaction) {
   state.transactions.push(multisigTransaction)
 }
 
-export function updateTransaction (state, { index, multisigTransaction }) {
-  if (index >= 0) {
-    state.transactions.splice(index, 1, multisigTransaction)
-  }
+export function updateTransaction (state, { id, multisigTransaction }) {
+  console.log('STATE', state.transactions, id)
+  const index = state.transactions.find(t => t.id === id) 
+  if (index === -1) return
+  state.transactions.splice(index, 1, multisigTransaction)
 }
 
 export function updateTransactionStatus (state, { index, status } ) {

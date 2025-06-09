@@ -454,13 +454,23 @@ export const refreshTransactionStatus = async ({ multisigWallet, multisigTransac
 }
 
 export const signatureValuesToUint8Array = ({ signatures }) => {
-  signatures.forEach((signature) => {
+  const s = structuredClone(signatures)
+  s.forEach((signature) => {
     if (typeof (signature.sigValue) === 'string') {
       signature.sigValue = hexToBin(signature.sigValue)
     }
     signature.sigValue = Uint8Array.from(Object.values(signature.sigValue))
   })
-  return signatures
+  return s
+}
+
+export const signatureValuesToHex = ({ signatures }) => {
+ const s = structuredClone(signatures)
+ s.forEach((signature) => {
+  if (typeof (signature.sig) === 'string') return
+  signature.sigValue = binToHex(Uint8Array.from(Object.values(signature.sigValue)))
+ })
+ return s
 }
 
 export const sourceOutputsValuesToUint8Array = ({ sourceOutputs }) => {
@@ -604,6 +614,12 @@ export const exportPst = ({ multisigTransaction, address, addressIndex = 0, form
   if (format === 'electron-cash') throw new Error('Not yet implemented')
   const bin = utf8ToBin(JSON.stringify(pst))
   return binToBase64(bin)
+}
+
+export const isSynced = multisigTransaction => {
+  if (!multisigTransaction.id) return false
+  if (!/^[0-9]+$/.test(multisigTransaction.id)) return false
+  return true
 }
 
 // {

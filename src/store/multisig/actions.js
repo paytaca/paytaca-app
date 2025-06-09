@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { stringify, binToHex } from 'bitauth-libauth-v3'
-import { getMultisigCashAddress, getLockingBytecode, importPst } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, importPst, signatureValuesToHex } from 'src/lib/multisig'
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
 export async function uploadWallet({ commit, getters, rootGetters }, { address, multisigWallet }) {
@@ -94,22 +94,19 @@ export function saveTransaction ({ commit }, multisigTransaction) {
   commit('saveTransaction', multisigTransaction)
 }
 
-export async function addTransactionSignatures ({ commit, state }, { index, signerSignatures }) {
+export async function addTransactionSignatures ({ commit, state, rootGetters }, { index, signerSignatures }) {
   const { signer, signatures } = signerSignatures
+  const signaturesExportFormat = signatureValuesToHex({ signatures })
   const multisigTransaction = state.transactions[index]
   if (multisigTransaction.id) {
     const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-    const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.transactionHash}/signatures/${signer}`, signatures)
-    if (response.data?.id) {	    
-      commit('addTransactionSignatures', { index, signerSignatures })
-    }
-    return
-  } 
-  commit('addTransactionSignatures', { index, signerSignatures })
+    const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/${signer}`, signaturesExportFormat)
+    console.log('signature', response.data)
+  }
 }
 
-export function updateTransaction ({ commit }, { index, multisigTransaction }) {
-  commit('updateTransaction', { index, multisigTransaction })
+export function updateTransaction ({ commit }, { id, multisigTransaction }) {
+  commit('updateTransaction', { id, multisigTransaction })
 }
 
 export function updateTransactionStatus ({ commit }, { index, status  }) {
@@ -168,7 +165,7 @@ export async function uploadTransaction({ commit, rootGetters }, { multisigWalle
       console.log('RESPONSE DATA')
       const importedTransaction = importPst({ pst: response.data })
       console.log('IMPORTED TRANSACTION', importedTransaction)
-      commit('saveTransaction', importedTransaction) 
+      commit('updateTransaction', { id: multisigTransaction.id, multisigTransaction: importedTransaction }) 
    }
   }
 }

@@ -27,7 +27,7 @@
                 </q-item-section>
                 <q-item-section side>
                   <div class="flex flex-wrap items-center"> 
-                  {{ shortenString(multisigTransaction.id, 20) }}&nbsp;<q-icon :name="isSynced(multisigTransaction) ? 'cloud' : 'smartphone'"></q-icon>
+                  {{ shortenString(`${multisigTransaction.id}`, 20) }}&nbsp;<q-icon :name="isSynced(multisigTransaction) ? 'cloud' : 'smartphone'"></q-icon>
                   </div>
                 </q-item-section>
               </q-item>
@@ -201,7 +201,7 @@
                 <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
                   <q-btn
                     @click="async () => await refreshTransactionStatus({ multisigWallet, multisigTransaction })"
-                    :loading="multisigTransaction.metadata.isBroadcasting || multisigTransaction.metadata?.isRefreshingStatus"
+                    :loading="multisigTransaction.metadata?.isBroadcasting || multisigTransaction.metadata?.isRefreshingStatus"
                     flat
                     no-caps
                     dense
@@ -236,24 +236,8 @@ signerCanSignOnThisDevice                  >
               </q-item>
               <q-separator spaced inset />
             </q-list>
-             <q-btn
-                      v-if="multisigTransaction.metadata?.status === MultisigTransactionStatus.PENDING_FULLY_SIGNED"
-                      @click="broadcastTransaction"
-                      :loading="multisigTransaction.metadata?.isBroadcasting"
-                      :disable="multisigTransaction?.metadata?.status >= 3"
-                      icon="cell_tower"
-                      :color="!darkMode && 'primary'"
-                      label="Broadcast"
-                      style="width: 100%"
-                      class="q-mt-lg"
-                      >
-                      <template v-slot:loading>
-                        <q-spinner-radio class="on-left" />
-                      </template>
-                    </q-btn>
           </div>
-        </template>
-        <div class="flex items-center justify-around q-mt-lg">
+        <div class="flex items-center justify-between q-mt-lg">
          <q-btn flat dense no-caps @click="openShareTransactionActionsDialog" class="tile" :disable="multisigTransaction.metadata?.isBroadcasting" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
@@ -294,6 +278,7 @@ signerCanSignOnThisDevice                  >
           </template>
         </q-btn>
         </div>
+        </template>
       </div>
       <q-file
 	ref="pstFileElementRef"
@@ -493,7 +478,6 @@ const uploadTransaction = () => {
   }).onOk(async () => {
     const pst = exportPst({
      multisigTransaction: multisigTransaction.value,
-     address: '',
      addressIndex: multisigWallet.value.lockingData.hdKeys.addressIndex,
      format: 'json'
     })
@@ -571,7 +555,7 @@ const loadHdPrivateKeys = async (hdPublicKeys) => {
 watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStatus) => {
   if (status !== prevStatus) {
     await updateTransaction({
-      index: route.params.index,
+      id: multisigTransaction.id,
       multisigTransaction: JSON.parse(JSON.stringify(multisigTransaction.value))
     })
   }
