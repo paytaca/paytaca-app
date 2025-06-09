@@ -31,7 +31,7 @@
                 <q-item-section side>
                  <q-item-label class="flex flex-wrap items-center">
                    <span>{{ shortenString(`${wallet.id}`, 20)}}</span>
-                   <q-icon class="q-ml-xs" size="xs" :name="isSynced(wallet)? 'cloud': 'smartphone'"/> 
+                   <q-icon class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'cloud': 'smartphone'"/> 
                  </q-item-label>
                 </q-item-section>
               </q-item>
@@ -134,7 +134,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { shortenString, getRequiredSignatures,  exportMultisigWallet, importPst, getLockingBytecode, isSynced, generateFilename } from 'src/lib/multisig'
+import { shortenString, getRequiredSignatures,  exportMultisigWallet, importPst, getLockingBytecode, isMultisigWalletSynced, generateFilename } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
