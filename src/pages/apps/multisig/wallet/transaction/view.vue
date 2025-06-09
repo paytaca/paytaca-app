@@ -153,6 +153,16 @@
                   {{ getSignatureCount({ multisigWallet, multisigTransaction}) }}&nbsp;
                 </q-item-section>
               </q-item>
+               <q-item>
+                <q-item-section>
+                  <div class="flex flex-wrap items-center">
+                    Signing Progress
+                  </div>
+                </q-item-section>
+                <q-item-section side>
+                  {{ getSigningProgress({ multisigWallet, multisigTransaction}) }}&nbsp;
+                </q-item-section>
+              </q-item>
               <q-expansion-item>
                 <template v-slot:header>
                   <q-item-section>
@@ -321,7 +331,8 @@ import {
   importPst,
   combinePsts,
   getMultisigCashAddress,
-  getRequiredSignatures
+  getRequiredSignatures,
+  getSigningProgress
 } from 'src/lib/multisig'
 import { isMultisigTransactionSynced } from 'src/lib/multisig/transaction'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
