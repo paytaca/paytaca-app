@@ -107,6 +107,21 @@ export function addTransactionSignatures (state, { index, signerSignatures }) {
     })
 }
 
+export function syncTransactionSignatures(state, { multisigTransaction, signatures }) {
+  const foundMultisigTransaction = state.transactions.find((m) => m.id === multisigTransaction.id)
+  console.log('syncing', foundMultisigTransaction, signatures)
+  if (!foundMultisigTransaction) return
+  signatures.forEach((signature) => {
+    const i = foundMultisigTransaction.signatures.findIndex((s) => {
+	    return Number(s.inputIndex) === Number(signature.inputIndex) && s.sigKey === signature.sigKey 
+    })
+    if (i === -1) {
+      return foundMultisigTransaction.signatures.push(signature)
+    }
+    foundMultisigTransaction.signatures[i] = { ...foundMultisigTransaction.signatures[i], ...signature}
+  })
+}
+
 export function deleteTransaction (state, { index }) {
   state.transactions.splice(index, 1)
 }

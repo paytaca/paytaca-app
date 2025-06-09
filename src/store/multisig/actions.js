@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { stringify, binToHex } from 'bitauth-libauth-v3'
-import { getMultisigCashAddress, getLockingBytecode, importPst, signatureValuesToHex } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, importPst, signatureValuesToHex, signatureValuesToUint8Array, isMultisigTransactionSynced, isMultisigWalletSynced } from 'src/lib/multisig'
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
 export async function uploadWallet({ commit, getters, rootGetters }, { address, multisigWallet }) {
@@ -94,16 +94,26 @@ export function saveTransaction ({ commit }, multisigTransaction) {
   commit('saveTransaction', multisigTransaction)
 }
 
-export async function addTransactionSignatures ({ commit, state, rootGetters }, { index, signerSignatures }) {
+export async function addTransactionSignatures ({ commit, state, rootGetters }, { multisigTransaction, signerSignatures }) {
   const { signer, signatures } = signerSignatures
   const signaturesExportFormat = signatureValuesToHex({ signatures })
-  const multisigTransaction = state.transactions[index]
-  if (multisigTransaction.id) {
+  if (isMultisigTransactionSynced(multisigTransaction)) {
     const watchtower = rootGetters['global/getWatchtowerBaseUrl']
     const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/${signer}`, signaturesExportFormat)
-    console.log('signature', response.data)
+    if (response.data) {
+    	const signaturesImportFormat = signatureValuesToUint8Array({ signatures: response.data})
+        commit('syncTransactionSignatures', { multisigTransaction, signatures: signaturesImportFormat })
+    }
   }
 }
+
+//export async function syncTransactionSignatures ({ commit, state, rootGetters }, { multisigTransaction, signatures = [] }) {
+//  if (signatures && signatures.length > 0) {
+//    const signaturesImportFormat = signatureValuesToUint8Array({ signatures })
+//    commit('syncTransactionSignatures', { multisigTransaction, signatures })
+//    return
+//  }
+//} 
 
 export function updateTransaction ({ commit }, { id, multisigTransaction }) {
   commit('updateTransaction', { id, multisigTransaction })
@@ -153,7 +163,7 @@ export async function uploadTransaction({ commit, rootGetters }, { multisigWalle
   if (!wallet_identifier) {
     wallet_identifier = binToHex(getLockingBytecode({ template: multisigWallet.template, lockingData: multisigWallet.lockingData}).bytecode)
   }
-  if (multisigWallet.id) { 	
+  if (isMultisigWalletSynced(multisigWallet)) { 	
    const watchtower = rootGetters['global/getWatchtowerBaseUrl']
    const response = await axios.post(
 	   `${watchtower}/api/multisig/wallets/${multisigWallet.id}/transaction-proposals/`, 

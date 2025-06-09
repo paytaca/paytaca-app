@@ -27,7 +27,7 @@
                 </q-item-section>
                 <q-item-section side>
                   <div class="flex flex-wrap items-center"> 
-                  {{ shortenString(`${multisigTransaction.id}`, 20) }}&nbsp;<q-icon :name="isSynced(multisigTransaction) ? 'cloud' : 'smartphone'"></q-icon>
+                  {{ shortenString(`${multisigTransaction.id}`, 20) }}&nbsp;<q-icon :name="isMultisigTransactionSynced(multisigTransaction) ? 'cloud' : 'smartphone'"></q-icon>
                   </div>
                 </q-item-section>
               </q-item>
@@ -323,7 +323,7 @@ import {
   getMultisigCashAddress,
   getRequiredSignatures
 } from 'src/lib/multisig'
-import { isSynced } from 'src/lib/multisig/transaction'
+import { isMultisigTransactionSynced } from 'src/lib/multisig/transaction'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import UploadPstDialog from 'components/multisig/UploadPstDialog.vue'
 import TransactionActionsDialog from 'components/multisig/TransactionActionsDialog.vue'
@@ -389,7 +389,7 @@ const signTransaction = async ({ signerEntityKey }) => {
     signerEntityKey,
     hdPrivateKey: hdPrivateKeys.value[signerEntityKey]
   })
-  await $store.dispatch('multisig/addTransactionSignatures', { index: route.params.index, signerSignatures })
+  await $store.dispatch('multisig/addTransactionSignatures', { index: route.params.index, multisigTransaction: multisigTransaction.value, signerSignatures })
   console.log('signerSignatures', signerSignatures)
 }
 
