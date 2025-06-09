@@ -616,7 +616,7 @@ export const exportPst = ({ multisigTransaction, address, addressIndex = 0, form
   return binToBase64(bin)
 }
 
-export const isSynced = multisigTransaction => {
+export const isMultisigTransactionSynced = multisigTransaction => {
   if (!multisigTransaction.id) return false
   if (!/^[0-9]+$/.test(multisigTransaction.id)) return false
   return true

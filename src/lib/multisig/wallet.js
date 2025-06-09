@@ -370,7 +370,7 @@ export const findMultisigWalletByLockingData = ({ multisigWallets, template, loc
   return wallet
 }
 
-export const isSynced = multisigWallet => {
+export const isMultisigWalletSynced = multisigWallet => {
    if (!multisigWallet.id) return false
    if (!/^[0-9]+$/.test(multisigWallet.id)) return false
    return true 
