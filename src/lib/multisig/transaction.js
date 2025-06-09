@@ -37,8 +37,8 @@ export const MultisigTransactionStatusText = Object.freeze({
 })
 
 export const UNSIGNED = 'unsigned'
-export const PARTIAL = 'partial'
-export const FULL = 'full'
+export const PARTIALLY_SIGNED = 'partially-signed'
+export const FULLY_SIGNED = 'fully-signed'
 
 export const getUnsignedTransactionHash = ({ multisigTransaction, hex = true }) => {
   const transaction = encodeTransactionCommon(multisigTransaction.transaction)
@@ -318,6 +318,10 @@ export const finalizeTransaction = ({
   if (multisigTransaction.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
     multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
   }
+  finalCompilation.vmVerificationResult = verificationResult
+  finalCompilation.unsignedTransactionHash = hashTransaction(transaction)
+  finalCompilation.signedTransaction = binToHex(encodedTransaction)
+  finalCompilation.signedTransactionHash = hashTransaction(finalCompilation.signedTransaction)
   return finalCompilation
 }
 
@@ -477,12 +481,12 @@ export const signatureValuesToHex = ({ signatures }) => {
  return s
 }
 
-export const getSigningStatus = ({ multisigWallet, multisigTransaction }) => {
+export const getSigningProgress = ({ multisigWallet, multisigTransaction }) => {
   const signatureCount = getSignatureCount({ multisigWallet, multisigTransaction })
   if (signatureCount === 0) return UNSIGNED
   const requiredSignatures = getRequiredSignatures(multisigWallet.template)
-  if (signatureCount < requiredSignatures) return PARTIAL
-  if (signatureCount === requiredSignatures) return FULL 
+  if (signatureCount < requiredSignatures) return PARTIALLY_SIGNED
+  if (signatureCount === requiredSignatures) return FULLY_SIGNED
 }
 
 export const sourceOutputsValuesToUint8Array = ({ sourceOutputs }) => {
