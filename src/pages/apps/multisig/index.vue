@@ -148,41 +148,6 @@ const deleteAllWallets = () => {
   $store.dispatch('multisig/deleteAllWallets')
 }
 
-const loadPstFile = () => {
-  console.log('PSTFILE REF', pstFileElementRef.value)
-  pstFileElementRef.value.pickFiles()
-}
-
-const updatePstFile = (file) => {
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = () => {
-      pstFromFile.value = Pst.createInstanceFromBase64(reader.result)
-      const pstObjectFromStore = $store.getters['multisig/getPstById']({ id: pstFromFile.value.id })
-      if (pstObjectFromStore) {
-        // TODO: ask before combine? redirect to pst compare page
-        // TODO: combine with multiple pst files
-        pstFromStore.value = Pst.createInstanceFromObject(pstObjectFromStore)
-        pstFromStore.value.combine({ psts: [pstFromFile.value] })
-        pstFromStore.value.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
-        return router.push({
-          name: 'app-multisig-wallet-pst-view',
-          params: { address: pstFromStore.value.address, id: pstFromStore.value.id }
-        })
-      }
-      pstFromFile.value.save((pstValue) => $store.dispatch('multisig/savePst', pstValue))
-      router.push({
-        name: 'app-multisig-wallet-pst-view',
-        params: { address: pstFromFile.value.address, id: pstFromFile.value.id }
-      })
-    }
-    reader.onerror = (err) => {
-      console.err(err)
-    }
-    reader.readAsText(file)
-  }
-}
-
 const importWallet = () => {
   $q.dialog({
     component: ImportWalletDialog,

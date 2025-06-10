@@ -130,21 +130,3 @@ export function deleteAllTransactions (state) {
   state.transactions = []
 }
 
-export function savePst (state, pst) {
-  const index = state.psts.findIndex(item => item.id === pst.id)
-  if (index === -1) {
-    return state.psts.push(pst)
-  }
-  state.psts[index] = pst
-}
-
-export function deleteAllPsts (state) {
-  state.psts = []
-}
-
-export function deletePstById (state, { id }) {
-  const pstIndex = state.psts.findIndex(item => item.id === id)
-  if (pstIndex !== -1) {
-    state.psts.splice(pstIndex, 1)
-  }
-}

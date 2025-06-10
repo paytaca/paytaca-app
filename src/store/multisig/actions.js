@@ -144,19 +144,6 @@ export function deleteAllTransactions ({ commit }) {
   // TODO: mutate watchtower
 }
 
-export function savePst ({ commit }, pst) {
-  console.log('saving pst', pst)
-  commit('savePst', pst)
-}
-
-export function deletePstById ({ commit }, { id }) {
-  commit('deletePstById', { id })
-}
-
-export function deleteAllPsts ({ commit }) {
-  commit('deleteAllPsts')
-}
-
 export async function fetchTransactions({ commit, rootGetters }, multisigWallet) {
    console.log('WALLET', multisigWallet) 
    const watchtower = rootGetters['global/getWatchtowerBaseUrl']
