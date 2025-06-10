@@ -31,8 +31,10 @@ export async function uploadWallet({ commit, getters, rootGetters }, { address, 
   return response?.data
 }
 
-export async function saveWallet ({ commit, getters, rootGetters }, multisigWallet) {
-  return commit('saveWallet', multisigWallet)
+export async function saveWallet ({ commit, getters, rootGetters, dispatch }, multisigWallet) {
+  
+  commit('saveWallet', multisigWallet)
+  dispatch('uploadWallet', { multisigWallet })
 
   // const signerLocalWallets = rootGetters['global/getVault']
 
