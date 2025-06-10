@@ -39,7 +39,7 @@ module.exports = defineConfig((ctx) => {
       'i18n',
       'axios',
       'leaflet',
-      'push-notifications',
+      // 'push-notifications',
       'qrcodecomponent',
       'qrcodereader',
       'clipboard',

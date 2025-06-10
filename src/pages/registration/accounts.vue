@@ -17,7 +17,7 @@
             <div class="col-12 q-mt-md q-px-lg q-py-none">
               <div class="row">
                 <div class="col-12 q-py-sm">
-                  <q-btn
+                  <q-btn id="create-new-wallet"
                     rounded
                     class="full-width bg-blue-9 text-white button"
                     @click="initCreateWallet()"
@@ -183,7 +183,7 @@
                       <q-item-section>
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
                       </q-item-section>
-                      <q-item-section side>
+                      <q-item-section side id="country-selector">
                         <CountrySelector :darkMode="darkMode" />
                       </q-item-section>
                     </q-item>
@@ -201,14 +201,15 @@
                       <q-item-section>
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Currency') }}</q-item-label>
                       </q-item-section>
-                      <q-item-section side>
-                        <CurrencySelector :darkMode="darkMode" :key="currencySelectorRerender" />
+                      <q-item-section side id="currency">
+                        <CurrencySelector :darkMode="darkMode" 
+                        :key="currencySelectorRerender" />
                       </q-item-section>
                     </q-item>
                   </q-list>
                 </div>
                 <div class="row justify-center">
-                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="setOpenThemeSelector"/>
+                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="setOpenThemeSelector" id="Continue"/> 
                 </div>
                 <div class="row justify-center">
                   <transition appear enter-active-class="animated fadeIn">
@@ -236,7 +237,7 @@
                         {{ $t('WalletRestoredDescription') }}
                       </p>
                     </div>
-                    <q-btn
+                    <q-btn id="Continue"
                       rounded
                       :label="$t('Continue')"
                       class="q-mt-lg full-width button"

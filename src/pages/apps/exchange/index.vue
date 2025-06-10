@@ -64,6 +64,9 @@ export default {
       await this.checkVersionUpdate()
       await loadRampWallet()
       await this.getUser()
+      if (this.$route.name === 'exchange') {
+        this.goToMainPage()
+      }
     }
   },
   methods: {

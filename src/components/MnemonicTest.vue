@@ -30,8 +30,8 @@
       {{ $t('VerifyMnemonicBackupPhrase') }}
     </div>
     <div class="q-mx-sm q-mt-sm">
-      <div class="row justify-around q-gutter-sm">
-        <q-btn
+      <div class="row justify-around q-gutter-sm" id="shuffled"> 
+        <q-btn class="shuffledphrase"
           v-for="word in shuffledSeedphrase"
           :key="word"
           rounded
