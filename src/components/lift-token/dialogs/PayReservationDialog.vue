@@ -199,7 +199,7 @@ export default {
         const pubkeyHex = Buffer.from(pubkey).toString('hex')
         let buyerSig = null
         if (this.rsvp.sale_group === SaleGroup.PUBLIC) {
-          buyerSig = new SignatureTemplate(decodedWif.privateKey)
+          buyerSig = this.serializeSig(new SignatureTemplate(decodedWif.privateKey))
         }
   
         // send paid bch to lift swap contract
@@ -248,8 +248,26 @@ export default {
         raiseNotifyError('The BCH address used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.')
       }
 
-
       this.isSliderLoading = false
+    },
+
+    serializeSig(sig) {
+      try {
+        const sigParsed = {}
+        for (const key in sig) {
+          if (sig.hasOwnProperty(key)) {
+            if (sig[key] instanceof Uint8Array) {
+              sigParsed[key] = Array.from(sig[key]) // Convert Uint8Array to a normal array
+            } else {
+              sigParsed[key] = sig[key]
+            }
+          }
+        }
+        return JSON.stringify(sigParsed);
+      } catch (error) {
+        console.error(error)
+        return sig
+      }
     }
   },
 
