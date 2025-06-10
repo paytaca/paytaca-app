@@ -255,7 +255,6 @@ const $router = useRouter()
 const { t: $t } = useI18n()
 const $store = useStore()
 const {
-  saveTransaction: saveMultisigTransaction,
   transactionsLastIndex: multisigTransactionsLastIndex,
   multisigWallets
 } = useMultisigHelpers()
@@ -737,14 +736,14 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction') {
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
-      console.log('RESPONDDING', wallet)
       if (wallet.template) { // Account with active session is a multisig wallet
         const multisigTransaction = createMultisigTransactionFromWCSessionRequest({
           sessionRequest,
           addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
         })
         const unsignedTransactionHash = getUnsignedTransactionHash({ multisigTransaction })
-        await saveMultisigTransaction(multisigTransaction)
+        await $store.dispatch('multisig/saveTransaction', multisigTransaction)
+        await $store.dispatch('multisig/uploadTransaction', { multisigWallet: wallet, multisigTransaction })
         await web3Wallet.value.respondSessionRequest({
           topic: sessionRequest.topic,
           response: {
