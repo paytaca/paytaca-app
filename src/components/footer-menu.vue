@@ -15,7 +15,9 @@
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push('/')">{{ $t('Home') }}</span>
+        <span 
+          id="home-button"
+          @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'transaction-send-select-asset' }">
@@ -27,7 +29,9 @@
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
+        <span 
+          id="send-button"
+          @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
       </button>
       <div style="width: 50px;"></div>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
@@ -40,7 +44,9 @@
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</span>
+        <span
+          id="receive-button" 
+          @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'apps-dashboard' }">
@@ -52,7 +58,9 @@
           </q-icon>
         </router-link>
         <br>
-        <span @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
+        <span 
+          id="apps-button"
+          @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
       </button>
     </div>
 
@@ -68,7 +76,9 @@
         </router-link>
       </button>
       <br>
-      <span :class="getDarkModeClass()" @click="$router.push({ name: 'qr-reader' })">{{ 'QR' }}</span>
+      <span 
+        id="qr-reader-button"
+        :class="getDarkModeClass()" @click="$router.push({ name: 'qr-reader' })">{{ 'QR' }}</span>
     </div>
   </div>
 </template>

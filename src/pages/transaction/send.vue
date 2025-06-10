@@ -49,7 +49,7 @@
               <q-icon name="error" left/> {{ scanner.error }}
             </div>
             <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">
-              <div class="col-12">
+              <div id="paste-address-container" class="col-12">
                 <q-input
                   bottom-slots
                   filled
@@ -84,7 +84,7 @@
               </div>
               <q-slide-transition :duration="750">
                 <div v-if="manualAddress && validateAddress(manualAddress)?.valid" class="text-center">
-                  <q-btn
+                  <q-btn id="send-to"
                     no-caps
                     class="button q-mb-lg q-mt-sm"
                     size="lg"
@@ -210,7 +210,7 @@
             </form>
           </div>
 
-          <customKeyboard
+          <customKeyboard 
             :custom-keyboard-state="customKeyboardState"
             v-on:addKey="setAmount"
             v-on:makeKeyAction="makeKeyAction"

@@ -8,7 +8,8 @@
   "scripts": {
     "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
     "test": "echo \"No test specified\" && exit 0",
-    "postinstall": "quasar prepare"
+    "postinstall": "quasar prepare",
+    "test": "cypress run"
   },
   "dependencies": {
     "@asoltys/bip38": "^4.0.3",

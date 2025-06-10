@@ -1,5 +1,5 @@
 <template>
-  <q-btn-dropdown
+  <q-btn-dropdown id="token-popup"
     :content-style="contentStyle"
     :text-color="darkMode ? 'white' : ''"
     unelevated class="float-right q-mr-md"
@@ -9,14 +9,15 @@
       <TokenTypeBadge :assetId="assetId" />
     </template>
     <q-list>
-      <q-item clickable v-close-popup @click="filterTokens('ct')">
+      <q-item 
+        clickable v-close-popup @click="filterTokens('ct')">
         <q-item-section>
-          <q-item-label>{{ $t('CashTokens') }}</q-item-label>
+          <q-item-label id="CashTokens">{{ $t('CashTokens') }}</q-item-label>
         </q-item-section>
       </q-item>
       <q-item clickable v-close-popup @click="filterTokens('slp')">
         <q-item-section>
-          <q-item-label>{{ $t('SLPTokens') }}</q-item-label>
+          <q-item-label id="SLPtokens">{{ $t('SLPTokens') }}</q-item-label>
         </q-item-section>
       </q-item>
     </q-list>

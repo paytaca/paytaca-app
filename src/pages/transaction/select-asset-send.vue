@@ -1,26 +1,30 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
+    <header-nav id="SEND"
+      :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
-          <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
+          <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)" id="select-asset-to-send">
             {{ $t('SelectAssetToSend') }}
           </p>
         </div>
-        <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
+        <div
+          class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
         <div
+          id = "asset-dropdown"
           v-for="(asset, index) in assets"
           :key="index"
           @click="redirectToSend(asset)"
           role="button"
           class="row q-pl-lg q-pr-lg"
         >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)">
+          <div id="bitcoin-cash"
+            class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)">
             <div class="row q-pt-sm q-pb-xs q-pl-md">
               <div>
                 <img

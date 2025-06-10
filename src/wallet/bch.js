@@ -99,8 +99,9 @@ export class BchWallet {
       walletHash: this.walletHash,
       addressIndex: index
     }
+    console.log("random random", data)
     const result = await this.watchtower.subscribe(data)
-
+    console.log("random", result)
     if (result.success) {
       return {
         addresses: addressSet

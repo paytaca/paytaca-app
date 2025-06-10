@@ -3,7 +3,7 @@
     <div id="apps" ref="apps" class="text-center">
       <div>
         <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
-          <p
+          <p id="Applications"
             class="section-title"
             :class="{'text-blue-5': darkMode, 'text-grad': isNotDefaultTheme(theme)}"
             :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
@@ -14,11 +14,12 @@
         <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <div
-              class="pt-app bg-grad"
+              class="pt-app bg-grad" 
               :class="[
                 buttonClassByState(app.active),
                 {'apps-border' : isNotDefaultTheme(theme)}
               ]"
+              :data-test="app.path.replace(/\//g, '-').slice(1)"
               @click="openApp(app)"
               v-on-long-press="[e => onLongPressApp(e, app), { delay: 1000, modifiers: { stop: true, prevent: true } }]"
             >
