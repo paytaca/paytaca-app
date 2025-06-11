@@ -85,7 +85,7 @@ export async function fetchWallets({ commit, rootGetters }, { xpub }) {
 }
 
 export async function deleteWallet ({ commit, rootGetters }, { multisigWallet }) {
-  commit('deleteWallet', { multisigWallet })
+  return commit('deleteWallet', { multisigWallet })
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
   const response = await axios.delete(`${watchtower}/api/multisig/wallets/${multisigWallet.id}/`)
   console.log('delete wallet', response.data)
@@ -102,7 +102,7 @@ export function walletConnectSignTransactionRequest ({ commit }, { address, sess
   commit('walletConnectSignTransactionRequest', { address, sessionRequest })
 }
 
-export function saveTransaction ({ commit }, multisigTransaction) {
+export function saveTransaction ({ commit, dispatch }, multisigTransaction) {
   commit('saveTransaction', multisigTransaction)
 }
 
@@ -124,8 +124,11 @@ export async function syncTransactionSignatures ({ commit, state, rootGetters },
     const signaturesExportFormat = signatureValuesToHex({ signatures: multisigTransaction.signatures })
     const watchtower = rootGetters['global/getWatchtowerBaseUrl']
     const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/`, signaturesExportFormat)
-    const signaturesImportFormat = signatureValuesToUint8Array({ signatures: response.data })
-    console.log('signatures import format', signaturesImportFormat)
+    if (response.data) {
+      const signaturesImportFormat = signatureValuesToUint8Array({ signatures: response.data })
+      commit('syncTransactionSignatures', { multisigTransaction, signatures: signaturesImportFormat })
+      console.log('signatures import format', signaturesImportFormat)
+    }
   }
 } 
 

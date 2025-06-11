@@ -405,18 +405,23 @@ const signTransaction = async ({ signerEntityKey }) => {
 }
 
 const broadcastTransaction = async () => {
-  if (!multisigTransaction.value?.isFinalized) {
-    finalizeTransaction({
-      multisigWallet: multisigWallet.value,
-      multisigTransaction: multisigTransaction.value
-    })
-  }
-
-  if (multisigTransaction.value?.signedTransaction) {
+  const finalizationResult = finalizeTransaction({
+    multisigWallet: multisigWallet.value,
+    multisigTransaction: multisigTransaction.value
+  })
+  if (finalizationResult.success && finalizationResult.vmVerificationSuccess) {
+   if (multisigTransaction.value?.signedTransaction) {
     await broadcastMultisigTransaction({
       multisigWallet: multisigWallet.value,
       multisigTransaction: multisigTransaction.value,
       chipnet: isChipnet.value
+    })
+   }
+  } else {
+    $q.dialog({
+      title: 'Error',
+      message: 'Error Finalizing Transaction',
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
     })
   }
 }
@@ -464,6 +469,7 @@ const onUpdatePstFile = (file) => {
       console.log('multisigTransaction combined', multisigTransaction)
       }
       $store.dispatch('multisig/saveTransaction', combinedPst || importedPst)
+      $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: combinedPst || importedPst })
       const index = $store.getters['multisig/getTransactionIndexByHash']({ hash })
       console.log('INDEX', index)
       multisigTransaction.value = combinedPst || importedPst
@@ -487,16 +493,11 @@ const uploadTransaction = () => {
       darkMode: darkMode.value
     }
   }).onOk(async () => {
-    const pst = exportPst({
-     multisigTransaction: multisigTransaction.value,
-     addressIndex: multisigWallet.value.lockingData.hdKeys.addressIndex,
-     format: 'json'
-    })
     
     const r = await $store.dispatch(
 	'multisig/uploadTransaction', 
         { 
-          multisigTransaction: pst,
+          multisigTransaction: multisigTransaction.value,
           multisigWallet: multisigWallet.value
         }
       )

@@ -199,6 +199,7 @@ const onUpdateTransactionFile = (file) => {
       transactionInstance.value = importPst({ pst: reader.result })
       const transactionFromStore = $store.getters['multisig/getTransactionByHash']({ hash: hashTransaction(transactionInstance.value.transaction)})
       $store.dispatch('multisig/saveTransaction', transactionInstance.value)
+      $store.dispatch('multisig/uploadTransaction', { multisigWallet: wallet.value, multisigTransaction: transactionInstance.value })
       const index = transactions.value?.length - 1
       router.push({
         name: 'app-multisig-wallet-transaction-view',
