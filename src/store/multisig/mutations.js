@@ -26,14 +26,19 @@ export function updateWallet(state, { id, multisigWallet }) {
   state.wallets?.splice(index, 1, multisigWallet)
 }
 
-export function deleteWallet (state, { address }) {
+export function deleteWallet (state, { multisigWallet }) {
+  //const index = state.wallets.findIndex((wallet) => {
+    //return getMultisigCashAddress({
+      //...wallet, cashAddressNetworkPrefix: address.split(':')[0]
+    //}) === address
+  //})
+  //if (index === -1) return
+  //state.wallets?.splice(index, 1)
   const index = state.wallets.findIndex((wallet) => {
-    return getMultisigCashAddress({
-      ...wallet, cashAddressNetworkPrefix: address.split(':')[0]
-    }) === address
+    return wallet.id == multisigWallet.id
   })
   if (index === -1) return
-  state.wallets?.splice(index, 1)
+  state.wallets.splice(index, 1)
 }
 
 export function enableWallet(state, multisigWallet) {

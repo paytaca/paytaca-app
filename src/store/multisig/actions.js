@@ -84,10 +84,11 @@ export async function fetchWallets({ commit, rootGetters }, { xpub }) {
   return response.data
 }
 
-
-export function deleteWallet ({ commit }, { address }) {
-  // TODO: mutate watchtower
-  commit('deleteWallet', { address })
+export async function deleteWallet ({ commit, rootGetters }, { multisigWallet }) {
+  commit('deleteWallet', { multisigWallet })
+  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+  const response = await axios.delete(`${watchtower}/api/multisig/wallets/${multisigWallet.id}/`)
+  console.log('delete wallet', response.data)
 }
 
 export function deleteAllWallets ({ commit }) {
@@ -118,13 +119,15 @@ export async function addTransactionSignatures ({ commit, state, rootGetters }, 
   }
 }
 
-//export async function syncTransactionSignatures ({ commit, state, rootGetters }, { multisigTransaction, signatures = [] }) {
-//  if (signatures && signatures.length > 0) {
-//    const signaturesImportFormat = signatureValuesToUint8Array({ signatures })
-//    commit('syncTransactionSignatures', { multisigTransaction, signatures })
-//    return
-//  }
-//} 
+export async function syncTransactionSignatures ({ commit, state, rootGetters }, { multisigTransaction }) {
+  if (multisigTransaction.signatures && multisigTransaction.signatures.length > 0) {
+    const signaturesExportFormat = signatureValuesToHex({ signatures: multisigTransaction.signatures })
+    const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+    const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/`, signaturesExportFormat)
+    const signaturesImportFormat = signatureValuesToUint8Array({ signatures: response.data })
+    console.log('signatures import format', signaturesImportFormat)
+  }
+} 
 
 export function updateTransaction ({ commit }, { id, multisigTransaction }) {
   commit('updateTransaction', { id, multisigTransaction })

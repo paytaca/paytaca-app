@@ -172,7 +172,7 @@ const transactions = computed(() => {
 })
 
 const deleteWallet = async (address) => {
-  await $store.dispatch('multisig/deleteWallet', { address })
+  await $store.dispatch('multisig/deleteWallet', { multisigWallet: wallet.value })
   router.push({ name: 'app-multisig' })
 }
 
