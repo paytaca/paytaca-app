@@ -178,11 +178,13 @@ export default {
         this.finalPurchasesList = this.purchasesList
       } else if (saleGroup === 'lock') {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.purchase_vesting_details.length === 0
+          a => a.purchase_vesting_details.length === 0 &&
+            a.purchase_more_details.sale_group !== SaleGroup.PUBLIC
         )
       } else if (saleGroup === 'vest') {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.purchase_vesting_details.length > 0
+          a => a.purchase_vesting_details.length > 0 &&
+            a.purchase_more_details.sale_group !== SaleGroup.PUBLIC
         )
       } else if (saleGroup === 'comp') {
         this.finalPurchasesList = this.purchasesList.filter(
