@@ -120,6 +120,7 @@ export default {
     ])
     this.reservationsList = results[0].value
     this.purchasesList = results[1].value
+    console.log(results[1].value)
     this.liftSwapContractAddress = results[2].value
 
     this.isLoading = false

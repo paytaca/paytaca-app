@@ -58,27 +58,25 @@
           <div class="row col-12 justify-between">
             <div class="row col-7 justify-start">
               <sale-group-chip
-                :saleGroup="purchase.sale_group"
-                @click="filterPurchasesList(purchase.sale_group)"
+                :saleGroup="purchase.purchase_more_details.sale_group"
+                @click="filterPurchasesList(purchase.purchase_more_details.sale_group)"
               />
             </div>
             <div class="row col-5 justify-end">
-              <sale-group-chip
-                :saleGroup="purchase.vesting_details.length > 0 ? 'vest' : 'lock'"
-              />
+              <sale-group-chip :saleGroup="parseLockupStatusChip(purchase)" />
             </div>
           </div>
 
           <span class="row col-12 flex-center text-bold">
-            {{ parseLiftToken(purchase.purchased_amount_tkn) }}
+            {{ parseLiftToken(purchase.purchase_more_details.reserved_amount_tkn) }}
           </span>
 
           <div class="row col-12 justify-between text-subtitle1">
             <span class="col-6">
-              {{ parseFiatCurrency(purchase.purchased_amount_usd, 'usd') }}
+              {{ parseFiatCurrency(purchase.purchase_more_details.reserved_amount_usd, 'usd') }}
             </span>
             <span class="col-6 text-right">
-              {{ getAssetDenomination('BCH', purchase.purchased_amount_bch) }}
+              {{ getAssetDenomination('BCH', purchase.purchased_amount_sats / (10 ** 8)) }}
             </span>
           </div>
 
@@ -86,32 +84,38 @@
             class="row col-12 q-pb-xs justify-between text-subtitle2"
             style="line-height: 1.2em;"
           >
-            <template v-if="new Date() > new Date(purchase.lockup_date)">
-              <span class="q-pr-xs col-6">
-                <template v-if="purchase.vesting_details.length === 0">
+            <template v-if="purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC">
+              <span class="row col-12 flex-center q-pr-xs">
+                Purchased on {{ parseLocaleDate(purchase.purchased_date) }}
+              </span>
+            </template>
+
+            <template v-else-if="new Date() > new Date(purchase.lockup_date)">
+              <span class="col-6 q-pr-xs">
+                <template v-if="purchase.purchase_vesting_details.length === 0">
                   Lockup period is over
                 </template>
                 <template v-else>
                   Last vesting period was
-                  {{ parseLocaleDate(purchase.vesting_details[0].vested_date) }}
+                  {{ parseLocaleDate(purchase.purchase_vesting_details[0].vested_date) }}
                 </template>
               </span>
-              <span class="q-pl-xs col-6 text-right">
-                <template v-if="checkVestingCount(purchase.vesting_details)">
+              <span class="col-6 text-right q-pl-xs">
+                <template v-if="purchase.purchase_vesting_details.length === 4">
                   Vesting period is over
                 </template>
                 <template v-else>
                   Next vesting priod is
-                  {{ parseNextVestingDate(purchase.vesting_details) }}
+                  {{ parseNextVestingDate(purchase.purchase_vesting_details) }}
                 </template>
               </span>
             </template>
 
             <template v-else>
-              <span class="q-pr-xs col-6">
+              <span class="col-6 q-pr-xs">
                 Purchased on {{ parseLocaleDate(purchase.purchased_date) }}
               </span>
-              <span class="q-pl-xs col-6 text-right">
+              <span class="col-6 text-right q-pl-xs">
                 Locked until {{ parseLocaleDate(purchase.lockup_date) }}
               </span>
             </template>
@@ -174,19 +178,20 @@ export default {
         this.finalPurchasesList = this.purchasesList
       } else if (saleGroup === 'lock') {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.vesting_details.length === 0
+          a => a.purchase_vesting_details.length === 0
         )
       } else if (saleGroup === 'vest') {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.vesting_details.length > 0
+          a => a.purchase_vesting_details.length > 0
         )
       } else if (saleGroup === 'comp') {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.vesting_details.length === 4
+          a => a.purchase_vesting_details.length === 4 ||
+            a.purchase_more_details.sale_group === SaleGroup.PUBLIC
         )
       } else {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.sale_group === saleGroup
+          a => a.purchase_more_details.sale_group === saleGroup
         )
       }
     },
@@ -194,21 +199,19 @@ export default {
       if (this.selectedFilter === 'all') return false
       return saleGroup !== this.selectedFilter
     },
-    parseNextVestingDate (txDetails) {
-      let vestingMonth
-      if (this.saleGroup == 'seed') vestingMonth = 3
-      else if (this.saleGroup == 'priv') vestingMonth = 1
-
-      const vestingDate = new Date(txDetails[0].vested_date)
-      const nextDate = vestingDate.setMonth(vestingDate.getMonth() + vestingMonth)
-      return parseLocaleDate(nextDate)
+    parseLockupStatusChip (purchase) {
+      if (
+        purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC ||
+        purchase.purchase_vesting_details.length === 4
+      ) {
+        return 'comp'
+      }
+      return purchase.purchase_vesting_details.length > 0 ? 'vest' : 'lock'
     },
-    checkVestingCount (txDetails) {
-      let vestingCount
-      if (this.saleGroup == 'seed') vestingCount = 4
-      else if (this.saleGroup == 'priv') vestingCount = 6
-
-      return txDetails.length === vestingCount
+    parseNextVestingDate (txDetails) {
+      const vestingDate = new Date(txDetails[0].vested_date)
+      const nextDate = vestingDate.setMonth(vestingDate.getMonth() + 3)
+      return parseLocaleDate(nextDate)
     },
     openPurchaseInfoDialog (purchase) {
       this.$q.dialog({

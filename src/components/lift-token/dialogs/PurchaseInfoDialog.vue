@@ -8,7 +8,7 @@
     <q-card class="q-pa-md pt-card-2 text-bow full-width" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center q-mb-xs">
         <div>
-          <sale-group-chip :saleGroup="purchase.sale_group" />
+          <sale-group-chip :saleGroup="purchase.purchase_more_details.sale_group" />
           <sale-group-chip :saleGroup="parseStatus()" />
         </div>
 
@@ -26,11 +26,11 @@
         <div class="row col-12 text-body1">
           <span class="col-12 text-body2 dim-text">Amount Purchased</span>
           <span class="col-12">
-            {{ parseLiftToken(purchase.purchased_amount_tkn) }}
+            {{ parseLiftToken(purchase.purchase_more_details.reserved_amount_tkn) }}
           </span>
           <span class="col-12 q-mb-sm">
-            {{ parseFiatCurrency(purchase.purchased_amount_usd, 'USD') }} |
-            {{ getAssetDenomination('BCH', purchase.purchased_amount_bch) }}
+            {{ parseFiatCurrency(purchase.purchase_more_details.reserved_amount_usd, 'USD') }} |
+            {{ getAssetDenomination('BCH', purchase.purchased_amount_sats / (10 ** 8)) }}
           </span>
 
           <span class="col-12 text-body2 dim-text">Date Purchased</span>
@@ -38,7 +38,9 @@
             {{ parseLocaleDate(purchase.purchased_date) }}
           </span>
 
-          <template v-if="purchase.sale_group !== SaleGroup.PUBLIC">
+          <template
+            v-if="purchase.purchase_more_details.sale_group !== SaleGroup.PUBLIC"
+          >
             <span class="col-12 text-body2 dim-text">Lockup Period</span>
             <span class="col-12 q-mb-sm">
               {{ parseLocaleDate(purchase.lockup_date) }}
@@ -47,38 +49,37 @@
 
           <span class="col-12 text-body2 dim-text">BCH Address</span>
           <span class="col-12 q-mb-sm">
-            {{ parseBchAddress(purchase.bch_address) }}
+            {{ parseBchAddress(purchase.purchase_more_details.bch_address) }}
           </span>
         </div>
 
-        <span
-          v-if="purchase.sale_group !== SaleGroup.PUBLIC"
-          class="q-mb-sm col-12 text-center text-body1 dim-text"
-        >
-          Vesting Progress
-        </span>
-
-        <div
-          v-for="(details, index) in vestingDetailsList"
-          class="q-mb-sm row col-12"
-        >
-          <status-chip
-            :isCompleted="!!details"
-            :index="index + 1"
-          />
-
-          <template v-if="details">
-            <div class="q-pl-sm col-10">
-              <span col-12>{{ parseLocaleDate(details.vested_date) }}</span>
-              <span col-12>Vested {{ parseLiftToken(details.vested_amount) }}</span>
-            </div>
-
-          </template>
-
-          <template v-else>
-            <span class="q-pl-sm text-grey">Vesting has not occurred yet</span>
-          </template>
-        </div>
+        <template v-if="purchase.purchase_more_details.sale_group !== SaleGroup.PUBLIC">
+          <span class="q-mb-sm col-12 text-center text-body1 dim-text">
+            Vesting Progress
+          </span>
+  
+          <div
+            v-for="(details, index) in vestingDetailsList"
+            class="q-mb-sm row col-12"
+          >
+            <status-chip
+              :isCompleted="!!details"
+              :index="index + 1"
+            />
+  
+            <template v-if="details">
+              <div class="q-pl-sm col-10">
+                <span col-12>{{ parseLocaleDate(details.vested_date) }}</span>
+                <span col-12>Vested {{ parseLiftToken(details.vested_amount_tkn) }}</span>
+              </div>
+  
+            </template>
+  
+            <template v-else>
+              <span class="q-pl-sm text-grey">Vesting has not occurred yet</span>
+            </template>
+          </div>
+        </template>
       </div>
     </q-card>
   </q-dialog>
@@ -131,14 +132,23 @@ export default {
       return `${address.substring(0, 17)}...${address.substring(addLen - 7, addLen)}`
     },
     parseStatus () {
-      if (this.purchase.vesting_details.length === 4) return 'comp'
+      if (
+        this.purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC ||
+        this.purchase.purchase_vesting_details.length === 4
+      ) {
+        return 'comp'
+      }
       return this.purchase.vesting_details.length > 0 ? 'vest' : 'lock'
     }
   },
 
   mounted () {
     for (let i = 0; i < 4; i++) {
-      this.vestingDetailsList.push(null)
+      try {
+        this.vestingDetailsList.push(this.purchase.purchase_vesting_details[i])
+      } catch {
+        this.vestingDetailsList.push(null)
+      }
     }
   }
 }
