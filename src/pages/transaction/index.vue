@@ -41,7 +41,7 @@
       </q-tabs>
 
       <!-- Menu -->
-        <div class="row justify-between text-light manage-wallet">
+        <!-- <div class="row justify-between text-light manage-wallet">
           <div>
             <multi-wallet/>
             <q-icon name="visibility_off" class="q-pr-sm"/>
@@ -51,14 +51,14 @@
               <q-icon name="keyboard_arrow_down" class="q-pr-sm"/>
               <q-icon><img src='ui-revamp/manage-token.svg'/></q-icon>
 
-              <!-- Token Menu -->
+              <!-- Token Menu --
               <q-menu
                 ref="tokenMenu"
                 class="token-menu"
                 :class="darkmode ? 'text-light' : 'text-dark'"
               >
                 <q-list dense class="body-small">
-                  <!-- Check for token -->
+                  <!-- Check for token --
                   <q-item class="q-mt-sm" clickable v-close-popup v-ripple>
                     Manage Token
                   </q-item>
@@ -74,7 +74,7 @@
               </q-menu>
             </q-btn>
           </div>
-        </div>
+        </div> -->
 
         <!-- Balance -->
         <div class="balance text-light text-center">
@@ -100,7 +100,25 @@
     </div>
 
     <!-- Asset Buttons -->
-    <asset-option :stablehedgeView="stablehedgeView"/>
+    <asset-option :stablehedgeView="stablehedgeView" :loaded="balanceLoaded" @cashin="openCashIn()" @chart="openPriceChart()"/>
+    <div class="text-center assets">
+        <!-- <q-icon name="minimize" size="30px"/>      -->
+        <asset-cards
+                :assets="assets"
+                :manage-assets="manageAssets"
+                :selected-asset="selectedAsset"
+                :balance-loaded="balanceLoaded"
+                :network="selectedNetwork"
+                :wallet="wallet"
+                :isCashToken="isCashToken"
+                :currentCountry="currentCountry"
+                @select-asset="asset => setSelectedAsset(asset)"
+                @show-asset-info="asset => showAssetInfo(asset)"
+                @hide-asset-info="hideAssetInfo()"
+                @removed-asset="selectBch()"
+                @click="() => {txSearchActive = false; txSearchReference = ''}"
+              />
+      </div>
 
       <!-- Header Card -->
     <!-- <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/> -->
@@ -160,6 +178,7 @@ import Watchtower from 'watchtower-cash-js'
 import TokenSuggestionsDialog from 'src/components/TokenSuggestionsDialog.vue';
 import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import AddNewAsset from './dialog/AddNewAsset.vue';
+import AssetCards from '../../components/asset-cards'
 import PriceChart from './dialog/PriceChart.vue';
 import Notifications from 'src/components/notifications/index.vue'
 import versionUpdate from './dialog/versionUpdate.vue';
@@ -227,7 +246,8 @@ export default {
 
     TokenSuggestionsDialog,
     securityOptionDialog,
-    pinDialog
+    pinDialog,
+    AssetCards
     // MultiWallet
   },
   computed: {
@@ -550,6 +570,11 @@ export default {
           fiatCurrencies: this.availableCashinFiat
         }
       })
+    },
+    openPriceChart () {
+       this.$q.dialog({
+          component: PriceChart
+        })
     },
     bchBalanceText() {
       if (!this.balanceLoaded && this.selectedAsset?.id === this?.bchAsset?.id) return '0'
@@ -1148,7 +1173,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .header {
-  padding: 24px 16px 0;
+  padding: 25px 16px 25px;
   z-index: 1;
 }
 #header-logo {

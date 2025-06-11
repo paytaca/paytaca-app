@@ -1,10 +1,10 @@
 <template>
   <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
-    <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
+    <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 gradient-bg text-white" @click="addNewAsset">+</button>
     <div
       v-for="(asset, index) in assets"
       :key="index"
-      class="method-cards asset-card-border q-pa-md q-mr-none"
+      class="method-cards asset-card-border gradient-bg q-pa-md q-mr-none"
       :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
       @click="(event) => {
         selectAsset(event, asset)
@@ -219,7 +219,7 @@ export default {
     height: 78px;
     min-width: 150px;
     border-radius: 16px;
-    margin-bottom: 5px !important;
+    margin: 25px 0px 0px;    
     .asset-symbol {
       overflow: hidden;
       text-overflow: ellipsis;
