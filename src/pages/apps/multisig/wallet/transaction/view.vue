@@ -156,17 +156,7 @@
                   {{ getRequiredSignatures(multisigWallet.template) }}-of-{{getSignatureCount({ multisigWallet, multisigTransaction}) }}&nbsp;
                 </q-item-section>
               </q-item>
-               <q-item>
-                <q-item-section>
-                  <div class="flex flex-wrap items-center">
-                    Signing Progress
-                  </div>
-                </q-item-section>
-                <q-item-section side>
-                  {{ getSigningProgress({ multisigWallet, multisigTransaction}) }}&nbsp;
-                </q-item-section>
-              </q-item>
-              <q-expansion-item>
+                             <q-expansion-item>
                 <template v-slot:header>
                   <q-item-section>
                     Raw Sig Details
@@ -197,6 +187,7 @@
                     label="Sign"
                     :disable="!hdPrivateKeys[signerEntityKey]"
                     :icon="hdPrivateKeys[signerEntityKey]? 'draw': 'edit_off'"
+                    :color="hdPrivateKeys[signerEntityKey]? 'primary': ''"
                     @click="signTransaction({ signerEntityKey })"
                     dense
                     no-caps
@@ -209,28 +200,43 @@
               <q-separator spaced inset />
               <q-item>
                 <q-item-section>
-                  <q-item-label>Status</q-item-label>
+                  <div class="flex flex-wrap items-center">
+                    Signing Progress
+                  </div>
                 </q-item-section>
-                <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
+                <q-item-section side>
+                  {{ signingProgress }}&nbsp;
+                </q-item-section>
+              </q-item>
+
+              <q-item>
+                <q-item-section>
+                  <q-item-label>Broadcast Status</q-item-label>
+                </q-item-section>
+                <q-item-section side top>
                   <q-btn
-                    @click="async () => await refreshTransactionStatus({ multisigWallet, multisigTransaction })"
-                    :loading="multisigTransaction.metadata?.isBroadcasting || multisigTransaction.metadata?.isRefreshingStatus"
+                    @click="updateBroadcastStatus"
+                    :loading="updatingBroadcastStatus"
                     flat
                     no-caps
-                    dense
-signerCanSignOnThisDevice                  >
+                    dense>
                     <template v-slot:loading>
                       <div class="flex flex-nowrap items-center">
                           <span v-if="multisigTransaction.metadata?.isBroadcasting">Broadcasting Tx</span>
-                          <span v-else-if="multisigTransaction.metadata?.isRefreshingStatus">Checking</span>
+                          <span v-else-if="updatingBroadcastStatus">Checking</span>
                           <q-spinner-radio v-if="multisigTransaction.metadata?.isBroadcasting" class="on-right"></q-spinner-radio>
-                          <q-spinner-facebook v-else-if="multisigTransaction.metadata?.isRefreshingStatus" class="on-right"></q-spinner-facebook>
+                          <q-spinner-facebook v-else-if="updatingBroadcastStatus" class="on-right"></q-spinner-facebook>
                       </div>
                   </template>
                     <template v-slot:default>
                       <div class="flex flex-nowrap items-center">
-                        <span>{{ MultisigTransactionStatusText[multisigTransaction.metadata.status] }}</span>
-                        <q-icon name="refresh" size="sm" class="q-ml-sm"></q-icon>
+                        <span>{{ multisigTransaction.broadcastStatus || '?' }}</span>
+                        <q-icon 
+			  :name="multisigTransaction.broadcastStatus === 'done'? 'done_all': 'refresh'"
+			  :color="multisigTransaction.broadcastStatus === 'done'? 'green': 'primary'"
+                          size="sm" class="q-ml-sm"
+                          >
+                        </q-icon>
                       </div>
                   </template>
                   </q-btn>
@@ -268,7 +274,11 @@ signerCanSignOnThisDevice                  >
           </template>
         </q-btn>
         
-         <q-btn v-else :loading="multisigTransaction.metadata?.isBroadcasting" @click="broadcastTransaction" class="tile" flat dense no-caps>
+         <q-btn v-else 
+          :loading="multisigTransaction.metadata?.isBroadcasting"
+          @click="broadcastTransaction"
+          :disable="multisigTransaction.broadcastStatus === 'done'"
+          class="tile" flat dense no-caps>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="cell_tower" class="col-12" color="primary"></q-icon>
@@ -352,7 +362,8 @@ const {
   multisigWallets,
   updateTransaction,
   txExplorerUrl,
-  cashAddressNetworkPrefix
+  cashAddressNetworkPrefix,
+  getTransactionsByMultisigWallet
 } = useMultisigHelpers()
 
 const hdPrivateKeys = ref({})
@@ -363,6 +374,8 @@ const multisigWallet = computed(() => {
   })
 })
 
+const updatingBroadcastStatus = ref(false)
+const signingProgress = ref()
 const pstFileElementRef = ref()
 const pstFileModel = ref()
 
@@ -403,7 +416,11 @@ const signTransaction = async ({ signerEntityKey }) => {
     signerEntityKey,
     hdPrivateKey: hdPrivateKeys.value[signerEntityKey]
   })
-  await $store.dispatch('multisig/addTransactionSignatures', { index: route.params.index, multisigTransaction: multisigTransaction.value, signerSignatures })
+  await $store.dispatch('multisig/addTransactionSignatures', {
+    index: route.params.index,
+    multisigTransaction: multisigTransaction.value,
+    signerSignatures 
+  })
   console.log('signerSignatures', signerSignatures)
 }
 
@@ -469,15 +486,13 @@ const onUpdatePstFile = (file) => {
       let combinedPst = null
       if (existingMultisigTransaction) {
          combinedPst = combinePsts({ psts: [structuredClone(existingMultisigTransaction), importedPst] })
-      console.log('multisigTransaction combined', multisigTransaction)
       }
       $store.dispatch('multisig/saveTransaction', combinedPst || importedPst)
       $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: combinedPst || importedPst })
       const index = $store.getters['multisig/getTransactionIndexByHash']({ hash })
-      console.log('INDEX', index)
       multisigTransaction.value = combinedPst || importedPst
-      
-      refreshTransactionStatus({
+      updateBroadcastStatus()
+      signingProgress.value = getSigningProgress({
         multisigWallet: multisigWallet.value,
         multisigTransaction: multisigTransaction.value
       })
@@ -567,28 +582,51 @@ const loadHdPrivateKeys = async (hdPublicKeys) => {
   }
 } 
 
-watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStatus) => {
-  if (status !== prevStatus) {
-    await updateTransaction({
-      id: multisigTransaction.id,
-      multisigTransaction: JSON.parse(JSON.stringify(multisigTransaction.value))
+//watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStatus) => {
+//  if (status !== prevStatus) {
+//    await updateTransaction({
+//      id: multisigTransaction.id,
+//      multisigTransaction: JSON.parse(JSON.stringify(multisigTransaction.value))
+//    })
+//  }
+//})
+
+const updateBroadcastStatus = async () => {
+  try {
+    updatingBroadcastStatus.value = true
+    await $store.dispatch('multisig/updateBroadcastStatus', {
+     multisigTransaction: multisigTransaction.value
     })
-  }
-})
+    const transactions = getTransactionsByMultisigWallet(multisigWallet.value)
+    console.log('transactions', transactions)
+    if (transactions[route.params.index]) {
+      multisigTransaction.value = structuredClone(transactions[route.params.index])
+    }
+   } catch(e) { 
+     console.log(e)
+   } finally {
+     updatingBroadcastStatus.value = false
+   }
+
+}
 
 onMounted(async () => {
   if (multisigWallet.value) {
     await loadHdPrivateKeys(multisigWallet.value.lockingData.hdKeys.hdPublicKeys)
-    const transactions =
-      $store.getters['multisig/getTransactionsByWalletAddress']({
-        address: decodeURIComponent(route.params.address)
-      })
+    const transactions = getTransactionsByMultisigWallet(multisigWallet.value)
     if (transactions[route.params.index]) {
       multisigTransaction.value = structuredClone(transactions[route.params.index])
-      refreshTransactionStatus({
-        multisigWallet: multisigWallet.value,
-        multisigTransaction: multisigTransaction.value
+      //refreshTransactionStatus({
+        //multisigWallet: multisigWallet.value,
+        //multisigTransaction: multisigTransaction.value
+      //})
+      updateBroadcastStatus(multisigTransaction.value)
+      signingProgress.value = getSigningProgress({
+          multisigTransaction: multisigTransaction.value,
+          multisigWallet: multisigWallet.value
       })
+      
+      
     }
   }
 })

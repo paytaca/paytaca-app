@@ -28,16 +28,14 @@
             >
               <q-item-section>
                 <q-item-label class="text-weight-bold flex items-center">
-                  <q-icon name="mdi-file-settings-outline" class="q-mr-sm"></q-icon><span>{{ multisigTransaction.metadata.prompt }}</span>
-                </q-item-label>
+                  <span>{{i + 1}}. {{ multisigTransaction.metadata.prompt }}</span>
+		</q-item-label>
                 <q-item-label caption>
                   Origin: {{ multisigTransaction.metadata.origin }}
                 </q-item-label>
                 <q-item-label caption>
-                  Required Signatures: {{ getRequiredSignatures(multisigWallet.template) }}
-                </q-item-label>
-                <q-item-label caption>
-                  Current Signatures: {{ getSignatureCount({ multisigWallet, multisigTransaction }) }}
+                  Current Signatures: {{ getRequiredSignatures(multisigWallet.template) }} of 
+		  {{ getSignatureCount({ multisigWallet, multisigTransaction }) }}
                 </q-item-label>
               </q-item-section>
               <q-item-section side top>
@@ -65,7 +63,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getSignatureCount, getLockingBytecode, getRequiredSignatures } from 'src/lib/multisig'
+import { getSignatureCount, getLockingBytecode, getRequiredSignatures, getSigningProgress } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import HeaderNav from 'components/header-nav'
 

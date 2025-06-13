@@ -129,8 +129,12 @@ export function updateTransaction ({ commit }, { id, multisigTransaction }) {
   commit('updateTransaction', { id, multisigTransaction })
 }
 
-export function updateTransactionStatus ({ commit }, { index, status  }) {
- commit('updateTransactionStatus', { index, status })
+export async function updateBroadcastStatus ({ commit, rootGetters }, { multisigTransaction }) {
+ const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+ const response = await axios.get(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/status/`)
+ if(response?.data?.broadcastStatus) {
+   commit('updateBroadcastStatus', { multisigTransaction, broadcastStatus: response.data.broadcastStatus })
+ }
 }
 
 export function deleteTransaction ({ commit }, { index }) {

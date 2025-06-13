@@ -125,10 +125,10 @@ export function finalizeTransaction(state, { multisigTransaction, finalCompilati
   foundMultisigTransaction.signedTransactionHash = finalCompilationResult.signedTransactionHash
 }
 
-export function updateTransactionStatus(state, { multisigStransaction, status }) {
+export function updateBroadcastStatus(state, { multisigTransaction, broadcastStatus }) {
   const foundMultisigTransaction = state.transactions?.find(m => m.id == multisigTransaction.id)
   if (!foundMultisigTransaction) return
-  foundMultisigTransaction.status = status
+  foundMultisigTransaction.broadcastStatus = broadcastStatus
 }
 
 export function deleteTransaction (state, { index }) {
