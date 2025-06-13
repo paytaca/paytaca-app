@@ -27,7 +27,7 @@
         v-if="enableStablhedge"
         v-model="stablehedgeTab"
         class="text-white title-medium"
-        style="margin: 0px 60px 0px;"
+        style="margin: 0px 60px 25px;"
         no-caps
       >
         <q-tab name="bch">
@@ -100,7 +100,15 @@
     </div>
 
     <!-- Asset Buttons -->
-    <asset-option :stablehedgeView="stablehedgeView" :loaded="balanceLoaded" @cashin="openCashIn()" @chart="openPriceChart()"/>
+    <asset-option 
+      :stablehedgeView="stablehedgeView" 
+      :loaded="balanceLoaded" 
+      :selectedDenomination="selectedDenomination" 
+      @cashin="openCashIn()" 
+      @price-chart="openPriceChart()"
+      @deposit="onStablehedgeTransaction"
+      @redeem="onStablehedgeTransaction"
+    />
     <div class="text-center assets">
         <!-- <q-icon name="minimize" size="30px"/>      -->
         <asset-cards
@@ -138,15 +146,13 @@
     <!-- <home-apps/> -->
 
     <!-- Transaction History -->
-    <transaction-list
+    <!-- <transaction-list
       :loaded="balanceLoaded"
       :selectedAssetProps="selectedAsset"
       :denominationTabSelected="denominationTabSelected"
       :wallet="wallet"
       :selectedNetworkProps="selectedNetwork"
-      />
-
-    <div></div>
+      /> -->    
 
     <!-- Footer -->
     <footer-menu ref="footerMenu" />
@@ -219,6 +225,8 @@ export default {
       pinDialogAction: '',
       walletYield: null,
       denominationTabSelected: 'BCH',
+      manageAssets: false,
+      transactionsFilter: 'all',
 
       wallet: null,
       isCashToken: true,
@@ -1167,6 +1175,27 @@ export default {
       }).onOk((asset) => {
         if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
+    },
+    onStablehedgeTransaction(data) {
+      this.setTransactionsFilter(this.transactionsFilter)
+      this.$store.dispatch('stablehedge/updateTokenBalances')
+
+      data.map(txData => txData?.category)
+        .map(category => {
+          return this.assets.find(asset => asset?.id?.includes(category))?.id
+        })
+        .filter(Boolean)
+        .map(assetId => updateAssetBalanceOnLoad(assetId, this.wallet, this.$store))
+    },
+    setTransactionsFilter(value) {
+      // const transactionsFilters = this.transactionsFilterOpts.map(opt => opt?.value)
+      // if (transactionsFilters.indexOf(value) >= 0) this.transactionsFilter = value
+      // else this.transactionsFilter = 'all'
+
+      // this.$nextTick(() => {
+      //   this.$refs['transaction-list-component'].resetValues(value)
+      //   this.$refs['transaction-list-component'].getTransactions()
+      // })
     },
   }
 }
