@@ -1,15 +1,7 @@
 import axios from 'axios'
 import { stringify, binToHex } from 'bitauth-libauth-v3'
-import {
-  getMultisigCashAddress,
-  getLockingBytecode,
-  importPst,
-  signatureValuesToHex,
-  signatureValuesToUint8Array,
-  isMultisigTransactionSynced,
-  isMultisigWalletSynced,
-  exportPst
-} from 'src/lib/multisig'
+import * as ms from 'src/lib/multisig'
+
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
 export async function uploadWallet({ commit, getters, rootGetters }, { address, multisigWallet }) {
@@ -18,7 +10,7 @@ export async function uploadWallet({ commit, getters, rootGetters }, { address, 
   let response
   if (!identifier) {
    const { lockingData, template } = multisigWallet
-   identifier  = binToHex(getLockingBytecode({ lockingData, template }).bytecode)
+   identifier  = binToHex(ms.getLockingBytecode({ lockingData, template }).bytecode)
    response = await axios.get(`${watchtower}/api/multisig/wallets/${identifier}/`)
   }
   if (!response) {
@@ -108,12 +100,12 @@ export function saveTransaction ({ commit, dispatch }, multisigTransaction) {
 
 export async function addTransactionSignatures ({ commit, state, rootGetters }, { multisigTransaction, signerSignatures }) {
   const { signer, signatures } = signerSignatures
-  const signaturesExportFormat = signatureValuesToHex({ signatures })
-  if (isMultisigTransactionSynced(multisigTransaction)) {
+  const signaturesExportFormat = ms.signatureValuesToHex({ signatures })
+  if (ms.isMultisigTransactionSynced(multisigTransaction)) {
     const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-    const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/${signer}`, signaturesExportFormat)
+    const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/${signer}/`, signaturesExportFormat)
     if (response.data) {
-    	const signaturesImportFormat = signatureValuesToUint8Array({ signatures: response.data})
+    	const signaturesImportFormat = ms.signatureValuesToUint8Array({ signatures: response.data})
         commit('syncTransactionSignatures', { multisigTransaction, signatures: signaturesImportFormat })
     }
   }
@@ -121,16 +113,17 @@ export async function addTransactionSignatures ({ commit, state, rootGetters }, 
 
 export async function syncTransactionSignatures ({ commit, state, rootGetters }, { multisigTransaction }) {
   if (multisigTransaction.signatures && multisigTransaction.signatures.length > 0) {
-    const signaturesExportFormat = signatureValuesToHex({ signatures: multisigTransaction.signatures })
+    const signaturesExportFormat = ms.signatureValuesToHex({ signatures: multisigTransaction.signatures })
     const watchtower = rootGetters['global/getWatchtowerBaseUrl']
     const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/`, signaturesExportFormat)
     if (response.data) {
-      const signaturesImportFormat = signatureValuesToUint8Array({ signatures: response.data })
+      const signaturesImportFormat = ms.signatureValuesToUint8Array({ signatures: response.data })
       commit('syncTransactionSignatures', { multisigTransaction, signatures: signaturesImportFormat })
       console.log('signatures import format', signaturesImportFormat)
     }
   }
 } 
+
 
 export function updateTransaction ({ commit }, { id, multisigTransaction }) {
   commit('updateTransaction', { id, multisigTransaction })
@@ -156,7 +149,7 @@ export async function fetchTransactions({ commit, rootGetters }, multisigWallet)
    const response = await axios.get(`${watchtower}/api/multisig/wallets/${multisigWallet.id}/transaction-proposals/`)
    console.log('fetch', response.data)
    response.data?.forEach((multisigTransaction) => {
-     const transaction = importPst({ pst: multisigTransaction })
+     const transaction = ms.importPst({ pst: multisigTransaction })
      commit('saveTransaction', transaction)
    })
 }
@@ -164,14 +157,14 @@ export async function fetchTransactions({ commit, rootGetters }, multisigWallet)
 export async function uploadTransaction({ commit, rootGetters }, { multisigWallet, multisigTransaction }) {
   let wallet_identifier = multisigWallet.id
   if (!wallet_identifier) {
-    wallet_identifier = binToHex(getLockingBytecode({ template: multisigWallet.template, lockingData: multisigWallet.lockingData}).bytecode)
+    wallet_identifier = binToHex(ms.getLockingBytecode({ template: multisigWallet.template, lockingData: multisigWallet.lockingData}).bytecode)
   }
-  const multisigTransactionExportFormat = exportPst({
+  const multisigTransactionExportFormat = ms.exportPst({
 	  multisigTransaction,
 	  addressIndex: multisigWallet.lockingData.hdKeys.addressIndex,
 	  format: 'json'
   })
-  if (isMultisigWalletSynced(multisigWallet)) { 	
+  if (ms.isMultisigWalletSynced(multisigWallet)) { 	
    const watchtower = rootGetters['global/getWatchtowerBaseUrl']
    const response = await axios.post(
 	   `${watchtower}/api/multisig/wallets/${multisigWallet.id}/transaction-proposals/`, 
@@ -179,19 +172,33 @@ export async function uploadTransaction({ commit, rootGetters }, { multisigWalle
 	   {headers: { 'Content-Type': 'application/json'}}
    )
    if (response.data) {
-      const importedTransaction = importPst({ pst: response.data })
+      const importedTransaction = ms.importPst({ pst: response.data })
       commit('updateTransaction', { id: multisigTransaction.id, multisigTransaction: importedTransaction }) 
    }
   }
 }
 
-//export async function broadcastTransaction({ commit, rootGetters }, multisigTransaction ) {
-//   if (isMultisigWalletSynced(multisigTransaction)) { 	
-//    const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-//    const response = await axios.post(
-//	   `${watchtower}/api/multisig/wallets/${multisigWallet.id}/transaction-proposals/${multisigTransaction.id}/broadcast`, 
-//	   JSON.parse(stringify(multisigTransaction)),
-//	   {headers: { 'Content-Type': 'application/json'}}
-//    )
-//   }
-//}
+export async function finalizeTransaction({ commit, rootGetters, dispatch }, { multisigTransaction, multisigWallet }) {
+    const finalCompilationResult = ms.finalizeTransaction({ multisigTransaction, multisigWallet })
+    if (finalCompilationResult.success && finalCompilationResult.vmVerificationSuccess) {
+      commit('finalizeTransaction', { multisigTransaction, finalCompilationResult })    
+      const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+      const response = await axios.post(
+	   `${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/finalize/`,
+	   {headers: { 'Content-Type': 'application/json'}}
+      )
+    }
+    return finalCompilationResult	
+}
+
+export async function broadcastTransaction({ commit, rootGetters }, multisigTransaction) {
+     const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+     const response = await axios.post(
+	 `${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/broadcast/`,
+	 { headers: { 'Content-Type': 'application/json'} }
+     )
+     if (response?.data?.success || response?.data?.error?.includes('tx-already-known')) {
+       commit('updateTransactionStatus', { multisigTransaction, status: 'broadcasted' })
+     }
+     console.log('BROADCAST RESPONSE DATA', response.data)
+}

@@ -313,12 +313,12 @@ export const finalizeTransaction = ({
     throw new Error('Transaction failed local vm verification')
   }
   const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
-  multisigTransaction.signedTransaction = binToHex(encodedTransaction)
-  multisigTransaction.signedTransactionComputedTxid = hashTransaction(multisigTransaction.signedTransaction)
-  if (multisigTransaction.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
-    multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
-  }
-  finalCompilation.vmVerificationResult = verificationResult
+  //multisigTransaction.signedTransaction = binToHex(encodedTransaction)
+  //multisigTransaction.signedTransactionComputedTxid = hashTransaction(multisigTransaction.signedTransaction)
+  //if (multisigTransaction.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
+    //multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
+  //}
+  finalCompilation.vmVerificationSuccess = verificationResult
   finalCompilation.unsignedTransactionHash = hashTransaction(transaction)
   finalCompilation.signedTransaction = binToHex(encodedTransaction)
   finalCompilation.signedTransactionHash = hashTransaction(finalCompilation.signedTransaction)
@@ -507,6 +507,7 @@ export const combinePsts = ({ psts }) => {
   const sameTransactions = psts.every((pst) => {
     return hashTransaction(pst.transaction) === hashTransaction(psts[0].transaction)
   })
+  if (!sameTransactions) return
   const combinedPst = psts[0]
   const otherPsts = psts.slice(1)
   for (let i = 0; i < otherPsts.length; i++) {

@@ -23,12 +23,15 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label>Proposal Id</q-item-label>
+                  <q-item-label>
+                    <div class="flex flex-wrap items-center">
+                    <span class="q-mr-xs">Proposal Id</span>
+                    <q-icon :name="isMultisigTransactionSynced(multisigTransaction) ? 'cloud' : 'smartphone'" color="grey-6"></q-icon>
+                    </div>
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <div class="flex flex-wrap items-center"> 
-                  {{ shortenString(`${multisigTransaction.id}`, 20) }}&nbsp;<q-icon :name="isMultisigTransactionSynced(multisigTransaction) ? 'cloud' : 'smartphone'"></q-icon>
-                  </div>
+                  {{ shortenString(`${multisigTransaction.id}`, 20) }}
                 </q-item-section>
               </q-item>
               <q-item>
@@ -133,7 +136,7 @@
                   <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
                 </q-item-section> -->
               </q-item>
-              <q-item>
+              <!--q-item>
                 <q-item-section>
                   <div class="flex flex-wrap items-center">
                     Required Signatures
@@ -142,7 +145,7 @@
                 <q-item-section side>
                   {{ getRequiredSignatures(multisigWallet.template) }}&nbsp;
                 </q-item-section>
-              </q-item>
+              </q-item-->
               <q-item>
                 <q-item-section>
                   <div class="flex flex-wrap items-center">
@@ -150,7 +153,7 @@
                   </div>
                 </q-item-section>
                 <q-item-section side>
-                  {{ getSignatureCount({ multisigWallet, multisigTransaction}) }}&nbsp;
+                  {{ getRequiredSignatures(multisigWallet.template) }}-of-{{getSignatureCount({ multisigWallet, multisigTransaction}) }}&nbsp;
                 </q-item-section>
               </q-item>
                <q-item>
@@ -405,18 +408,18 @@ const signTransaction = async ({ signerEntityKey }) => {
 }
 
 const broadcastTransaction = async () => {
-  const finalizationResult = finalizeTransaction({
-    multisigWallet: multisigWallet.value,
-    multisigTransaction: multisigTransaction.value
-  })
-  if (finalizationResult.success && finalizationResult.vmVerificationSuccess) {
-   if (multisigTransaction.value?.signedTransaction) {
-    await broadcastMultisigTransaction({
-      multisigWallet: multisigWallet.value,
-      multisigTransaction: multisigTransaction.value,
-      chipnet: isChipnet.value
-    })
-   }
+  
+  //const finalCompilationResult = finalizeTransaction({
+    //multisigWallet: multisigWallet.value,
+    //multisigTransaction: multisigTransaction.value
+  //})
+  const finalCompilationResult = await $store.dispatch(
+	'multisig/finalizeTransaction',
+        { multisigTransaction: multisigTransaction.value, multisigWallet: multisigWallet.value }
+  )
+  console.log('finalization', finalCompilationResult)
+  if (finalCompilationResult.success && finalCompilationResult.vmVerificationSuccess) {
+   $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
   } else {
     $q.dialog({
       title: 'Error',

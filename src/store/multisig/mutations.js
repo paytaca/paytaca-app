@@ -86,15 +86,6 @@ export function updateTransaction (state, { id, multisigTransaction }) {
   state.transactions.splice(index, 1, multisigTransaction)
 }
 
-export function updateTransactionStatus (state, { index, status } ) {
- if (index >= 0) {
-  const transaction = state.transactions[index]
-  if (transaction) {
-   transaction.metadata.status = status
-  }
- }
-}
-
 export function addTransactionSignatures (state, { index, signerSignatures }) {
     const { signer, signatures } = signerSignatures
     if (!state.transactions?.[index]) return
@@ -125,6 +116,19 @@ export function syncTransactionSignatures(state, { multisigTransaction, signatur
     }
     foundMultisigTransaction.signatures[i] = { ...foundMultisigTransaction.signatures[i], ...signature}
   })
+}
+
+export function finalizeTransaction(state, { multisigTransaction, finalCompilationResult }) {
+  const foundMultisigTransaction = state.transactions?.find(m => m.id == multisigTransaction.id)
+  if (!foundMultisigTransaction) return
+  foundMultisigTransaction.signedTransaction = finalCompilationResult.signedTransaction
+  foundMultisigTransaction.signedTransactionHash = finalCompilationResult.signedTransactionHash
+}
+
+export function updateTransactionStatus(state, { multisigStransaction, status }) {
+  const foundMultisigTransaction = state.transactions?.find(m => m.id == multisigTransaction.id)
+  if (!foundMultisigTransaction) return
+  foundMultisigTransaction.status = status
 }
 
 export function deleteTransaction (state, { index }) {
