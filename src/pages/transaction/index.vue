@@ -109,7 +109,9 @@
       @deposit="onStablehedgeTransaction"
       @redeem="onStablehedgeTransaction"
     />
-    <div class="text-center assets">
+
+
+    <q-card class="text-center assets full-width br-15">
         <!-- <q-icon name="minimize" size="30px"/>      -->
         <asset-cards
                 :assets="assets"
@@ -126,7 +128,7 @@
                 @removed-asset="selectBch()"
                 @click="() => {txSearchActive = false; txSearchReference = ''}"
               />
-      </div>
+      </q-card>
 
       <!-- Header Card -->
     <!-- <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/> -->
@@ -1226,5 +1228,10 @@ export default {
 .balance {
   margin-bottom: 25px;  
   padding: 10px 16px 0;
+}
+.assets {
+  position: fixed;
+  bottom: 0;
+  padding: 25px 0px 120px;
 }
 </style>

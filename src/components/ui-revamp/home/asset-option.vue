@@ -26,13 +26,13 @@
       v-model="depositFormDialog.show"
       :redemptionContract="depositFormDialog.redemptionContract"
       :selectedDenomination="selectedDenomination"
-      @ok="deposit()"
+      @ok="deposit"
     />
     <RedeemFormDialog
       v-model="redeemFormDialog.show"
       :redemptionContracts="redeemFormDialog.redemptionContracts"
       :selectedDenomination="selectedDenomination"
-      @ok="redeem()"
+      @ok="redeem"
     />
 
 </template>
@@ -128,18 +128,16 @@ export default {
 		          this.$emit('cashin')
 		          break
 		        case 'price chart':
-		          this.$emit('chart')
+		          this.$emit('price-chart')
 		          break
 		      } 
 		},
-		async openFreezeDialog() { 
-			console.log('freeze')
+		async openFreezeDialog() { 			
 			const { contract } = (await this.findContractForFreeze())
 		    this.depositFormDialog.show = true
 		    this.depositFormDialog.redemptionContract = contract
 		},
-		async openUnfreezeDialog () { 
-			console.log('unfreeze')
+		async openUnfreezeDialog () { 			
 			const { redemptionContracts } = (await this.getContractsForUnfreeze())
       		this.redeemFormDialog.show = true
       		this.redeemFormDialog.redemptionContracts = redemptionContracts
