@@ -17,7 +17,7 @@
             </q-btn>
           </div>
           <div class="col text-center">
-            <q-btn no-caps class="icon-btn title-smaller" flat @click="selectMenu('', 'tx')" >
+            <q-btn no-caps class="icon-btn title-smaller" flat @click="selectMenu('transaction-list', 'tx')" >
               <q-icon size="25px" name="receipt_long" :class="isActive('tx') ? 'active' : 'inactive'">
                 <!-- <svg>
                   <use xlink:href="app-send.svg#icon"></use>

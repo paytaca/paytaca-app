@@ -1,17 +1,16 @@
 <template>
-  <div id="apps-page-container" class="gradient-bg" style="padding-bottom: 120px;">
-    <div class="text-center title-large" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
+  <div id="app-container" :class="darkMode ? 'dark': 'light'" style="padding-bottom: 120px;">
+    <div class="text-center title-large gradient-bg" style="padding: 25px 0px 25px;">
       {{ $t('Applications') }}
     </div>  
-    <div class="app-list text-center">
+    <div class="app-list text-center" :class="darkMode ? 'text-light' : 'text-primary'">
       <div class="q-pb-md" v-for="(app, index) in filteredApps" :key="index" @click="openApp(app)"
 >
         <q-btn class="button-default" no-caps round style="padding: 20px;">
-          <q-icon class="icon-default" size="30px" :name="app.iconName"/> <br>                              
+          <q-icon size="30px" :name="app.iconName"/> <br>                              
         </q-btn>
         <div class="q-pt-sm text-center title-small">{{ app.name }}</div>
       </div> 
-      
     </div>
     <!-- <div id="apps" ref="apps" class="text-center">
       <div>
@@ -391,5 +390,8 @@ export default {
     justify-content: center;
     align-items: center;
     border-radius: 50%;    
+  }
+  .icon-default {
+    filter: brightness(0) saturate(100%) invert(34%) sepia(11%) saturate(2296%) hue-rotate(178deg) brightness(91%) contrast(82%);
   }
 </style>

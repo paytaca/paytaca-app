@@ -1,12 +1,12 @@
 <template>
-	<div class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-dark'">
+	<div class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-primary'">
 		<div v-if="stablehedgeView">
 			<div class="row">
 				<div class="col" v-for="opt in stablehedgeOpt">
 		            <q-btn  class="button-default" round :disable="!loaded" @click="handleButton(opt.name)">
 		            	<q-icon size="18px" :name="opt.icon"/>
 		            </q-btn>
-		            <div class="q-pt-sm text-center text-capitalize title-smaller text-primary">{{ opt.name }}</div>
+		            <div class="q-pt-sm text-center text-capitalize title-smaller">{{ opt.name }}</div>
 		        </div>	         
 			</div>			
 		</div>
@@ -16,7 +16,7 @@
 	                <q-btn  class="button-default" round :disable="!loaded" @click="handleButton(opt.name)">
 	                  <q-icon size="18px" :name="opt.icon"/>
 	                </q-btn>
-	                <div class="q-pt-sm text-center text-capitalize title-smaller text-primary">{{ opt.name }}</div>
+	                <div class="q-pt-sm text-center text-capitalize title-smaller">{{ opt.name }}</div>
 	              </div>
 	            </div>
 		</div>

@@ -77,6 +77,12 @@ const routes = [
         path: 'generate-qr',
         name: 'generate-qr',
         component: () => import('pages/qr/generate-qr.vue')
+      },
+      {
+        path: 'transaction-list',
+        name: 'transaction-list',
+        props: route => route.query,
+        component: () => import('src/pages/transaction/transaction-list.vue')
       }
     ]
   },

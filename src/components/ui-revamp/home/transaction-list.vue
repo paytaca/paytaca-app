@@ -8,7 +8,7 @@
           <div>
             <div class="row">
               <div class="circle-frame">
-                <img :src="getUserAvatarLink('Nikki')">
+                <img :src="getUserAvatarLink('Username')">
               </div>
               <div class="q-pl-md">
                 <span class="body-medium">Username</span><br>

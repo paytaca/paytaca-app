@@ -5,6 +5,7 @@ body.theme-overhaul {
   // $color_4: #fff;
   $dark_txt: #282A37;
   $dark_bg: #0F1928;
+  $dark_bg_2: #212f3d;
   $light_bg: #F8FAFC;
   $colored_bg: #D9EDFF;
   $header_nav_bg: #15315C;
@@ -25,7 +26,7 @@ body.theme-overhaul {
   /* ----- IDS ----- */
   #app-container {
     &.dark {
-      background: $dark_bg !important;
+      background: $dark_bg_2 !important;
     }
 
     &.light {
