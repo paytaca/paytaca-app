@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" :class="darkMode ? 'dark': 'light'" style="padding-bottom: 120px;">
-    <div class="text-center title-large gradient-bg" style="padding: 25px 0px 25px;">
+    <div class="text-center title-large default-bg" style="padding: 25px 0px 25px;">
       {{ $t('Applications') }}
     </div>  
     <div class="app-list text-center" :class="darkMode ? 'text-light' : 'text-primary'">

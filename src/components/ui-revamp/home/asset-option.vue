@@ -16,7 +16,7 @@
 	                <q-btn  class="button-default" round :disable="!loaded" @click="handleButton(opt.name)">
 	                  <q-icon size="18px" :name="opt.icon"/>
 	                </q-btn>
-	                <div class="q-pt-sm text-center text-capitalize title-smaller">{{ opt.name }}</div>
+	                <div class="q-pt-sm text-center text-capitalize title-small">{{ opt.name }}</div>
 	              </div>
 	            </div>
 		</div>

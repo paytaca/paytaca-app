@@ -99,6 +99,8 @@
         </div>
     </div>
 
+    <div class="title-small multiwallet-btn" :class="darkmode ? 'text-light' : 'text-primary'">Change Wallet<q-icon name="arrow_forward_ios"/></div>
+
     <!-- Asset Buttons -->
     <asset-option 
       :stablehedgeView="stablehedgeView" 
@@ -111,7 +113,7 @@
     />
 
 
-    <q-card class="text-center assets full-width br-15">
+    <div class="text-center full-width br-15">
         <!-- <q-icon name="minimize" size="30px"/>      -->
         <asset-cards
                 :assets="assets"
@@ -128,7 +130,7 @@
                 @removed-asset="selectBch()"
                 @click="() => {txSearchActive = false; txSearchReference = ''}"
               />
-      </q-card>
+      </div>
 
       <!-- Header Card -->
     <!-- <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/> -->
@@ -148,13 +150,13 @@
     <!-- <home-apps/> -->
 
     <!-- Transaction History -->
-    <!-- <transaction-list
+    <transaction-list
       :loaded="balanceLoaded"
       :selectedAssetProps="selectedAsset"
       :denominationTabSelected="denominationTabSelected"
       :wallet="wallet"
       :selectedNetworkProps="selectedNetwork"
-      /> -->    
+      />  
 
     <!-- Footer -->
     <footer-menu ref="footerMenu" />
@@ -1233,5 +1235,8 @@ export default {
   position: fixed;
   bottom: 0;
   padding: 25px 0px 120px;
+}
+.multiwallet-btn {
+  margin: 10px 25px 10px;
 }
 </style>
