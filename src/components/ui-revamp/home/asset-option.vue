@@ -354,6 +354,6 @@ export default {
 </script>
 <style lang="scss" scoped>
 .asset-option {
-	margin: 25px 0px 25px;
+	margin: 15px 0px 25px;
 }
 </style>

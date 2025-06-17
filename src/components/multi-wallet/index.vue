@@ -1,5 +1,5 @@
 <template>
-  <q-dialog
+  <!-- <q-dialog
     ref="multi-wallet"
     seamless
     full-width
@@ -7,14 +7,14 @@
     transition-show="fade"
     transition-hide="fade"
     @before-hide="$emit('dialog-hide')"
-  >
-    <q-card class="q-mt-xl q-mx-sm wallet-card" :class="getDarkModeClass(darkMode)">
+  > -->
+    <div ref="multi-wallet" class="q-mt-xl q-mx-sm wallet-card" :class="darkMode ? 'text-light' : 'text-dark'">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-h5 q-space q-mt-sm title">
-          {{ $t('Wallets') }}
+         
         </div>
-        <div
-          clickable
+        <q-btn
+          flat no-caps padding="none"
           class="text-blue-9 create-import-button"
           :class="{'text-grad': isNotDefaultTheme(theme)}"
           @click="() => {
@@ -23,7 +23,7 @@
           }"
         >
           {{ $t('CreateOrImportWallet') }}
-        </div>
+        </q-btn>
       </div>
       <q-card-section class="q-pt-sm flex flex-center" v-if="isloading">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
@@ -56,7 +56,7 @@
                     </span>
                   </div>
                   <q-menu anchor="bottom right" self="top end" >
-                    <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
+                    <q-list class="text-h5 pt-card" :class="darkMode ? 'text-light' : 'text-dark'">
                       <q-item clickable v-close-popup>
                         <q-item-section
                           class="pt-label"
@@ -92,8 +92,8 @@
           </template>
         </q-virtual-scroll>
       </q-card-section>
-    </q-card>
-  </q-dialog>
+    </div>
+  <!-- </q-dialog> -->
 </template>
 <script>
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
@@ -242,7 +242,7 @@ export default {
       })
     },
     hide () {
-      this.$refs['multi-wallet'].hide()
+      // this.$refs['multi-wallet'].hide()
     }
   },
   computed: {
@@ -283,7 +283,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .wallet-card {
-  height: 525px;
+  padding-top: 20px;  
   .title {
     font-size: 18px;
   }

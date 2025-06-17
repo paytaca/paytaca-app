@@ -6,7 +6,7 @@
     <div class="app-list text-center" :class="darkMode ? 'text-light' : 'text-primary'">
       <div class="q-pb-md" v-for="(app, index) in filteredApps" :key="index" @click="openApp(app)"
 >
-        <q-btn class="button-default" no-caps round style="padding: 20px;">
+        <q-btn class="button-grad" no-caps round style="padding: 20px;">
           <q-icon size="30px" :name="app.iconName"/> <br>                              
         </q-btn>
         <div class="q-pt-sm text-center title-small">{{ app.name }}</div>

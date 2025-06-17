@@ -180,6 +180,10 @@ body.theme-overhaul {
     background-color: $primary !important;
     color: #fff !important;
   }
+  .button-grad {
+    background-image: $gradient_bg !important;
+    color: #fff !important
+  }
   .button-light {
     background-color: #fff !important;
     color: #415C87 !important;

@@ -83,6 +83,12 @@ const routes = [
         name: 'transaction-list',
         props: route => route.query,
         component: () => import('src/pages/transaction/transaction-list.vue')
+      },
+      {
+        path: 'wallets',
+        name: 'multi-wallet',
+        props: route => route.query,
+        component: () => import('src/pages/transaction/multi-wallet.vue')
       }
     ]
   },

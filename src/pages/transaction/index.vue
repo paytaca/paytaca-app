@@ -99,7 +99,9 @@
         </div>
     </div>
 
-    <div class="title-small multiwallet-btn" :class="darkmode ? 'text-light' : 'text-primary'">Change Wallet<q-icon name="arrow_forward_ios"/></div>
+    <div class="title-small multiwallet-btn" :class="darkmode ? 'text-light' : 'text-primary'">
+        <q-btn :disable="!balanceLoaded" padding="none" flat no-caps @click="$router.push({ name: 'multi-wallet' })   ">Change Wallet<q-icon size="18px" name="arrow_forward_ios"/></q-btn>
+    </div>
 
     <!-- Asset Buttons -->
     <asset-option 
@@ -150,13 +152,15 @@
     <!-- <home-apps/> -->
 
     <!-- Transaction History -->
-    <transaction-list
-      :loaded="balanceLoaded"
-      :selectedAssetProps="selectedAsset"
-      :denominationTabSelected="denominationTabSelected"
-      :wallet="wallet"
-      :selectedNetworkProps="selectedNetwork"
-      />  
+    <KeepAlive>
+      <transaction-list
+        :loaded="balanceLoaded"
+        :selectedAssetProps="selectedAsset"
+        :denominationTabSelected="denominationTabSelected"
+        :wallet="wallet"
+        :selectedNetworkProps="selectedNetwork"
+        />  
+    </KeepAlive>
 
     <!-- Footer -->
     <footer-menu ref="footerMenu" />
@@ -1237,6 +1241,6 @@ export default {
   padding: 25px 0px 120px;
 }
 .multiwallet-btn {
-  margin: 10px 25px 10px;
+  margin: 10px 25px 0px;
 }
 </style>
