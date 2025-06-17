@@ -100,7 +100,7 @@
     </div>
 
     <div class="title-small multiwallet-btn" :class="darkmode ? 'text-light' : 'text-primary'">
-        <q-btn :disable="!balanceLoaded" padding="none" flat no-caps @click="$router.push({ name: 'multi-wallet' })   ">Change Wallet<q-icon size="18px" name="arrow_forward_ios"/></q-btn>
+        <q-btn :disable="!balanceLoaded" padding="none" flat no-caps @click="$router.push({ name: 'multi-wallet' })   ">Switch Wallet<q-icon size="18px" name="arrow_forward_ios"/></q-btn>
     </div>
 
     <!-- Asset Buttons -->
@@ -152,7 +152,7 @@
     <!-- <home-apps/> -->
 
     <!-- Transaction History -->
-    <KeepAlive>
+    <!-- <KeepAlive> -->
       <transaction-list
         :loaded="balanceLoaded"
         :selectedAssetProps="selectedAsset"
@@ -160,7 +160,7 @@
         :wallet="wallet"
         :selectedNetworkProps="selectedNetwork"
         />  
-    </KeepAlive>
+    <!-- </KeepAlive> -->
 
     <!-- Footer -->
     <footer-menu ref="footerMenu" />
@@ -200,6 +200,7 @@ import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 // import MultiWallet from 'src/components/multi-wallet/index.vue'
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
+import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
