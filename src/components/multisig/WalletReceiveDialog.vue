@@ -22,8 +22,12 @@
           <span @click="isCashtoken = true">&nbsp;{{ $t('CashToken') }}</span>
         </div>
         <qr-code :text="address" :size="220" :icon="isCashtoken ? 'ct-logo.png': 'bch-logo.png' "></qr-code>
-        <div v-if="address" class="text-center text-caption flex flex-wrap justify-center items-center q-gutter-x-sm">
-            <span>Address-{{ addressIndex }}: {{shortenString(address, 35)}}</span>
+        <div v-if="address" class="text-center text-caption flex flex-wrap justify-center items-center q-mt-sm q-gutter-x-sm">
+            <q-btn icon="content_copy"
+             @click="$copyText(address)"
+             flat dense no-caps
+             >Address-{{ addressIndex }}: {{shortenString(address, 35)}}
+            </q-btn>
         </div>
         <!--div class="text-center text-caption flex flex-wrap justify-center items-center q-gutter-x-sm">
             <span>Address Index:</span> <q-input v-model="addressIndex" type="number" outlined dense readonly></q-input>
@@ -37,12 +41,14 @@
 </template>
 <script setup>
 import { useStore } from 'vuex'
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, inject } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { shortenString, getMultisigCashAddress } from 'src/lib/multisig'
 import { CashAddressType, decodeCashAddress, encodeCashAddress, CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+
+const $copyText = inject('$copyText')
 
 const props = defineProps({
   multisigWallet: Object,
