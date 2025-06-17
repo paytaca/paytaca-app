@@ -53,45 +53,45 @@ function selectUtxos(utxos, options) {
 		tokenFilter
 	}  = options
 
-let candidates = utxos.filter(utxo=>{
+	let candidates = utxos.filter(utxo=>{
 	
-	if (strategy === 'bch-only' && utxo.token) return false
-	if (strategy === 'token-only' && !utxo.token) return false
+		if (strategy === 'bch-only' && utxo.token) return false
+		if (strategy === 'token-only' && !utxo.token) return false
 
-	if (tokenFilter && utxo.token){
-		if (tokenFilter.category && utxo.token.category !== tokenFilter.category)return false
-		if (tokenFilter.capability && utxo.token.capability !== tokenFilter.capability)return false
-		if (tokenFilter.minAmount && BigInt(utxo.token.amount) < tokenFilter.minAmount)return false
-	}  else if (tokenFilter) {
-		return false
+		if (tokenFilter && utxo.token){
+			if (tokenFilter.category && utxo.token.category !== tokenFilter.category)return false
+			if (tokenFilter.capability && utxo.token.capability !== tokenFilter.capability)return false
+			if (tokenFilter.minAmount && BigInt(utxo.token.amount) < tokenFilter.minAmount)return false
+		}  else if (tokenFilter) {
+			return false
+		} 
+
+		return true
+
+	})
+
+	switch(strategy){
+		case'largest':
+			candidates.sort((a,b)=> b.value - a.value)
+			break
+		case'smallest':
+			candidates.sort((a,b)=> a.value - b.value)
+			break
+		case'oldest':
+			candidates.sort((a,b)=> ( a.age || 0) - (b.age || 0))
+			break
 	} 
 
-	return true
+	const selected = []
+	let total = 0
 
-} )
-
-switch(strategy){
-	case'largest':
-		candidates.sort((a,b)=> b.value - a.value)
-		break
-	case'smallest':
-		candidates.sort((a,b)=> a.value - b.value)
-		break
-	case'oldest':
-		candidates.sort((a,b)=> ( a.age || 0) - (b.age || 0))
-		break
+	for(const utxo of candidates){
+		selected.push(utxo)
+		total += utxo.value
+		if (total >= targetSatoshis) break
 	} 
 
-const selected = []
-let total = 0
-
-for(const utxo of candidates){
-	selected.push(utxo)
-	total += utxo.value
-	if (total >= targetSatoshis) break
-} 
-
-return {
+	return {
 		selected,
 		total,
 		satisfied: total >= targetSatoshis,
