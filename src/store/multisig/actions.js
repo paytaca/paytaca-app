@@ -1,33 +1,35 @@
 import axios from 'axios'
-import { stringify, binToHex } from 'bitauth-libauth-v3'
+import { stringify, binToHex, CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import * as ms from 'src/lib/multisig'
 
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
-export async function uploadWallet({ commit, getters, rootGetters }, { address, multisigWallet }) {
-  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  let identifier = multisigWallet.id
-  let response
-  if (!identifier) {
-   const { lockingData, template } = multisigWallet
-   identifier  = binToHex(ms.getLockingBytecode({ lockingData, template }).bytecode)
-   response = await axios.get(`${watchtower}/api/multisig/wallets/${identifier}/`)
+export async function subscribeWalletAddress ({ commit, getters, rootGetters }, multisigWallet) {
+  const options = { ...multisigWallet }
+  if (rootGetters['global/isChipnet']) {
+    options.cashAddressNetworkPrefix = CashAddressNetworkPrefix.testnet
   }
-  if (!response) {
-   response = await axios.post(`${watchtower}/api/multisig/wallets/`, multisigWallet)
+  const address = ms.getMultisigCashAddress(options)
+  const response = await axios.post(`${rootGetters['global/getWatchtowerBaseUrl']}/api/subscription/`, { address })
+}
+
+export async function uploadWallet({ commit, getters, rootGetters }, { multisigWallet }) {
+  const response = await axios.post(`${rootGetters['global/getWatchtowerBaseUrl']}/api/multisig/wallets/`, multisigWallet)
+  if (response?.data?.id) {
+    commit('updateWallet', { oldMultisigWallet: multisigWallet, newMultisigWallet: response.data })
   }
-  if (response.data?.id) {
-   commit('updateWallet', { id: multisigWallet.id, multisigWallet: response.data })
-  }
-  console.log('axios response', response.data)
   return response?.data
 }
 
-export async function saveWallet ({ commit, getters, rootGetters, dispatch }, multisigWallet) {
-  
-  commit('saveWallet', multisigWallet)
+export async function createWallet({ commit, getters, rootGetters, dispatch}, multisigWallet) { 
+  const lockingBytecodeHex = ms.generateTempId(multisigWallet)
+  const existingWallet = getters['getWalletByLockingBytecode']({ lockingBytecodeHex })  
+  dispatch('subscribeWalletAddress', multisigWallet)
+  if (existingWallet) return existingWallet
+  multisigWallet.id = lockingBytecodeHex
+  commit('createWallet', multisigWallet)
+  dispatch('subscribeWalletAddress', multisigWallet)
   dispatch('uploadWallet', { multisigWallet })
-
   // const signerLocalWallets = rootGetters['global/getVault']
 
   // if (!signerLocalWallet) { throw new Error('Signer\'s xpub not found on this device!') }
@@ -64,7 +66,7 @@ export async function saveWallet ({ commit, getters, rootGetters, dispatch }, mu
 
   //   })
   // })
-}
+}             
 
 export async function fetchWallets({ commit, rootGetters }, { xpub }) {
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
@@ -77,10 +79,9 @@ export async function fetchWallets({ commit, rootGetters }, { xpub }) {
 }
 
 export async function deleteWallet ({ commit, rootGetters }, { multisigWallet }) {
-  return commit('deleteWallet', { multisigWallet })
+  commit('deleteWallet', { multisigWallet })
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  const response = await axios.delete(`${watchtower}/api/multisig/wallets/${multisigWallet.id}/`)
-  console.log('delete wallet', response.data)
+  await axios.delete(`${watchtower}/api/multisig/wallets/${multisigWallet.id}/`)
 }
 
 export function deleteAllWallets ({ commit }) {

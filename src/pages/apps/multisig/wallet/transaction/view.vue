@@ -8,7 +8,7 @@
     <HeaderNav :title="$t('Transaction')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.address}`}`" class="header-nav">
     </HeaderNav>
     <div class="row justify-center" style="margin-bottom: 4em;">
-      <div class="col-xs-12 col-md-8 q-px-xs">
+      <div class="col-xs-12 q-px-xs">
         <template v-if="multisigWallet && multisigTransaction?.transaction">
           <div>
             <q-list>
@@ -242,7 +242,7 @@
                   </q-btn>
                 </q-item-section>
               </q-item>
-              <q-item v-if="Boolean(multisigTransaction?.txid) && multisigTransaction?.metadata?.status >= 3">
+              <q-item v-if="Boolean(multisigTransaction?.txid)">
                 <q-item-section>
                   <q-item-label>Transaction Id</q-item-label>
                   <q-item-label caption lines="2">{{shortenString(multisigTransaction.txid,10)}}</q-item-label>
