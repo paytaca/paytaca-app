@@ -134,7 +134,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { shortenString, getRequiredSignatures,  exportMultisigWallet, importPst, getLockingBytecode, isMultisigWalletSynced, generateFilename } from 'src/lib/multisig'
+import {
+  shortenString,
+  getRequiredSignatures,
+  exportMultisigWallet,
+  importPst,
+  getLockingBytecode,
+  isMultisigWalletSynced,
+  generateFilename,
+  getWalletHash
+} from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import Watchtower from 'src/lib/watchtower'
@@ -267,10 +276,10 @@ const openWalletActionsDialog = () => {
         loadTransactionProposal()
       },
       onViewTxProposals: () => {
-        router.push({ name: 'app-multisig-wallet-transactions', params: {address: route.params.address} })
+        router.push({ name: 'app-multisig-wallet-transactions', params: { address: route.params.address } })
       },
-      onSend: () => {
-        console.log('Open Send Tx Dialog')
+      onCreateTxProposal: () => {
+        router.push({ name: 'app-multisig-wallet-transaction-create', params: { address: route.params.address }})
       },
       onReceive: () => { 
         const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet: CashAddressNetworkPrefix.mainnet
