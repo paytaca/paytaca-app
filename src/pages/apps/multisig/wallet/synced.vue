@@ -21,7 +21,12 @@
              </q-item-section>
             </q-item>
             <q-separator spaced/>
-            <q-item v-for="wallet in multisigWallets?.filter(w => w.id && !w.enabled)">
+	    <q-item v-if="multisigWallets?.filter(w => !w.enabled).length === 0">
+		<q-item-section>
+		 <q-item-label>No Data</q-item-label>
+		</q-item-section>
+	    </q-item>	
+            <q-item v-for="wallet in multisigWallets?.filter(w => !w.enabled)">
                <q-item-section>
                  <q-item-label>{{ wallet.template?.name }}</q-item-label>
                  <q-item-label caption lines="2">
