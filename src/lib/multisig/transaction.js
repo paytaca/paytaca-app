@@ -58,7 +58,6 @@ export const getUnlockingScriptId = ({ signatures, template, inputIndex }) => {
   })
   const foundscriptIdentifierTemplateScriptMapping =
     scriptIdentifierTemplateScriptMap.find((scriptIdentifierAndScript) => {
-
       return signatures
         .filter((signature) => Number(signature.inputIndex) === Number(inputIndex))
         .every((signature) => {
@@ -104,7 +103,7 @@ export const transactionBinObjectsToUint8Array = (transactionObject) => {
   }
 }
 
-export const generateTempId = multisigTransaction => {
+export const generateTempProposalId = multisigTransaction => {
   let transaction = structuredClone(multisigTransaction.transaction)
   transaction = transactionBinObjectsToUint8Array(transaction)
   return hashTransaction(transaction)
@@ -122,15 +121,25 @@ export const createMultisigTransactionFromWCSessionRequest = ({ sessionRequest, 
     address,
     addressIndex
   }
-  
+
   const multisigTransaction = {
     transaction: sessionRequest.params.request.params.transaction,
     sourceOutputs: sessionRequest.params.request.params.sourceOutputs,
     signatures: [],
     metadata
   }
-  multisigTransaction.id = generateTempId(multisigTransaction)
+  multisigTransaction.id = generateTempProposalId(multisigTransaction)
   return multisigTransaction
+}
+
+export const initEmptyMultisigTransaction = ({ userPrompt, origin = 'paytaca-wallet', walletId, addressIndex = 0 }) => {
+  const metadata = { origin, userPrompt, addressIndex }
+  return {
+    signatures: [],
+    transaction: { inputs: [], outputs: [], version: 2, locktime: 0 },
+    metadata,
+    walletId
+  }
 }
 
 export const identifySignersWithoutSignatures = ({
@@ -313,11 +322,6 @@ export const finalizeTransaction = ({
     throw new Error('Transaction failed local vm verification')
   }
   const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
-  //multisigTransaction.signedTransaction = binToHex(encodedTransaction)
-  //multisigTransaction.signedTransactionComputedTxid = hashTransaction(multisigTransaction.signedTransaction)
-  //if (multisigTransaction.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
-    //multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
-  //}
   finalCompilation.vmVerificationSuccess = verificationResult
   finalCompilation.unsignedTransactionHash = hashTransaction(transaction)
   finalCompilation.signedTransaction = binToHex(encodedTransaction)
@@ -473,12 +477,12 @@ export const signatureValuesToUint8Array = ({ signatures }) => {
 }
 
 export const signatureValuesToHex = ({ signatures }) => {
- const s = structuredClone(signatures)
- s.forEach((signature) => {
-  if (typeof (signature.sig) === 'string') return
-  signature.sigValue = binToHex(Uint8Array.from(Object.values(signature.sigValue)))
- })
- return s
+  const s = structuredClone(signatures)
+  s.forEach((signature) => {
+    if (typeof (signature.sig) === 'string') return
+    signature.sigValue = binToHex(Uint8Array.from(Object.values(signature.sigValue)))
+  })
+  return s
 }
 
 export const getSigningProgress = ({ multisigWallet, multisigTransaction }) => {
@@ -557,7 +561,7 @@ export const importPst = ({ pst }) => {
   })
   parsed.transactionHash = hashTransaction(parsed.transaction)
   if (!parsed.id) {
-    parsed.id = generateTempId(parsed)
+    parsed.id = generateTempProposalId(parsed)
   }
   return parsed
 }
@@ -621,7 +625,7 @@ export const exportPst = ({ multisigTransaction, address, addressIndex = 0, form
     }
   }
   if (!pst.id) {
-    id: generateTempId(pst)
+    pst.id = generateTempProposalId(pst)
   }
   // if (includeSourceOutputs) {
   //   // EMBED
