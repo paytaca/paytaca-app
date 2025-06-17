@@ -1,4 +1,3 @@
-
 import { hexToBin } from 'bitauth-libauth-v3'
 
 export const shortenString = (str, maxLength) => {
@@ -73,83 +72,44 @@ export const getTotalBchChangeAmount = (tx, senderAddress, formatAddress, unit =
 }
 
 /**
- * Parses a libauth stringified value back into its original JavaScript types.
- * Handles special types formatted by the stringify function:
+ * Revives special types formatted by the stringify function:
  * - `<Uint8Array: 0x...>` → Uint8Array
  * - `<bigint: ...n>` → bigint
  * - `<function: ...>` → string representation (cannot fully reconstruct)
  * - `<symbol: ...>` → string representation (cannot fully reconstruct)
  *
- * @param str - The stringified value to parse
+ * @param { string } _ - Key
+ * @param { any } value
  * @returns The reconstructed JavaScript value with proper types
  */
-export const parseStringified = (str) => {
-  // First, parse the basic JSON structure
-  const parsed = JSON.parse(str, (_, value) => {
-    if (typeof value !== 'string') return value
+export const libauthStringifyReviver = (_, value) => {
+  if (typeof value !== 'string') return value
 
-    // Uint8Array pattern: "<Uint8Array: 0x...>"
-    const uint8ArrayMatch = value.match(/^<Uint8Array: 0x([0-9a-f]+)>$/i)
-    if (uint8ArrayMatch) {
-      return hexToBin(uint8ArrayMatch[1])
-    }
+  // Uint8Array pattern: "<Uint8Array: 0x...>"
+  const uint8ArrayMatch = value.match(/^<Uint8Array: 0x([0-9a-f]+)>$/i)
+  if (uint8ArrayMatch) {
+    return hexToBin(uint8ArrayMatch[1])
+  }
 
-    // Bigint pattern: "<bigint: ...n>"
-    const bigintMatch = value.match(/^<bigint: (-?\d+)n>$/)
-    if (bigintMatch) {
-      return BigInt(bigintMatch[1])
-    }
+  // Bigint pattern: "<bigint: ...n>"
+  const bigintMatch = value.match(/^<bigint: (-?\d+)n>$/)
+  if (bigintMatch) {
+    return BigInt(bigintMatch[1])
+  }
 
-    // Function pattern: "<function: ...>"
-    const functionMatch = value.match(/^<function: (.+)>$/)
-    if (functionMatch) {
-      // Note: We can't reconstruct actual functions, just return the string representation
-      return { type: 'function', value: functionMatch[1] }
-    }
+  // Function pattern: "<function: ...>"
+  const functionMatch = value.match(/^<function: (.+)>$/)
+  if (functionMatch) {
+    // Note: We can't reconstruct actual functions, just return the string representation
+    return { type: 'function', value: functionMatch[1] }
+  }
 
-    // Symbol pattern: "<symbol: ...>"
-    const symbolMatch = value.match(/^<symbol: (.+)>$/)
-    if (symbolMatch) {
-      // Note: We can't reconstruct actual symbols, just return the string representation
-      return { type: 'symbol', value: symbolMatch[1] }
-    }
+  // Symbol pattern: "<symbol: ...>"
+  const symbolMatch = value.match(/^<symbol: (.+)>$/)
+  if (symbolMatch) {
+    // Note: We can't reconstruct actual symbols, just return the string representation
+    return { type: 'symbol', value: symbolMatch[1] }
+  }
 
-    return value
-  })
-
-  return parsed
+  return value
 }
-
-/**
- * Parses a test vector string (output from stringifyTestVector) back into
- * proper JavaScript types.
- *
- * @param str - The stringified test vector to parse
- * @returns The reconstructed JavaScript value with proper types
- */
-export const parseTestVector = (str) => {
-  // Convert test vector format to something JSON.parse can handle
-  const jsonCompatible = str
-    .replace(/hexToBin\('([0-9a-f]+)'\)/gi, '"<Uint8Array: 0x$1>"')
-    .replace(/(\d+)n/g, '"<bigint: $1n>"')
-
-  return parseStringified(jsonCompatible)
-}
-
-// Example usage:
-/*
-const example = {
-  num: 42,
-  big: BigInt(123),
-  bytes: Uint8Array.from([1, 2, 3]),
-  fn: (x) => x * 2,
-  sym: Symbol('test')
-};
-
-const stringified = stringify(example);
-const parsed = parseStringified(stringified);
-
-const testVector = stringifyTestVector(example);
-const parsedTestVector = parseTestVector(testVector);
-*/
-
