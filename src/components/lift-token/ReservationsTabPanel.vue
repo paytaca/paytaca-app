@@ -25,8 +25,10 @@
   <q-separator spaced />
 
   <template v-if="finalRsvpList?.length === 0">
-    <div class="q-mt-md row flex-center full-width text-h5 text-grey">
-      No reservations found
+    <div class="row full-width flex-center text-center q-mt-md text-h5">
+      <span class="q-mb-md">You don't have any reservations yet.</span>
+      <span class="q-mb-sm">Don't miss out on the whitelisting opportunity!</span>
+      <span>Visit the <a href="https://www.paytaca.com/token" target="_blank">LIFT token website</a> to learn more.</span>
     </div>
   </template>
 
@@ -176,9 +178,6 @@ export default {
           liftSwapContractAddress: this.liftSwapContractAddress
         }
       })
-    },
-    computeDiscount (usd, discount) {
-      return '' // TODO need more info
     }
   },
 

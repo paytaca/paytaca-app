@@ -40,8 +40,8 @@
   <q-separator spaced />
 
   <template v-if="finalPurchasesList?.length === 0">
-    <div class="q-mt-md row flex-center full-width text-h5 text-grey">
-      No purchases found
+    <div class="q-mt-md row flex-center full-width text-h5">
+      You don't have any purchases yet.
     </div>
   </template>
 
