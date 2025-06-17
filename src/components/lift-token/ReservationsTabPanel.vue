@@ -46,7 +46,10 @@
                 {{ parseLiftToken(rsvp.reserved_amount_tkn) }}
               </span>
               <div class="row col-12 text-subtitle2 items-center">
-                <span class="q-pr-xs">
+                <span v-if="rsvp.discounted_amount > 0" class="q-pr-xs">
+                  {{ parseFiatCurrency(rsvp.discounted_amount, 'USD') }}
+                </span>
+                <span v-else class="q-pr-xs">
                   {{ parseFiatCurrency(rsvp.reserved_amount_usd, 'USD') }}
                 </span>
                 <template v-if="rsvp.discount > 0">
@@ -58,7 +61,7 @@
                   >
                     <div class="row items-center q-gutter-sm">
                       <div class="q-space">
-                        You have a 1500 USD discount
+                        You have a {{ parseFiatCurrency(rsvp.reserved_amount_usd - rsvp.discounted_amount, 'USD') }} discount
                       </div>
                     </div>
                   </q-menu>

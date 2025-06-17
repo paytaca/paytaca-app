@@ -44,7 +44,7 @@
             </q-menu>
           </div>
           <span class="col-12 q-mt-xs text-subtitle1">
-            ({{ parseFiatCurrency(rsvp.reserved_amount_usd, 'usd') }})
+            ({{ parseFiatCurrency(useAmount, 'usd') }})
           </span>
         </template>
         
@@ -107,6 +107,7 @@ export default {
   data () {
     return {
       bchAmount: 0,
+      useAmount: 0,
       intervalId: null,
       isLoading: false,
       isSliderLoading: false,
@@ -178,7 +179,7 @@ export default {
           reset?.()
           this.intervalId = setInterval(() => {
             this.bchAmount = getAssetDenomination(
-              'BCH', this.getBchPrice(this.rsvp.reserved_amount_usd)
+              'BCH', this.getBchPrice(this.useAmount)
             )
           }, 3000)
           this.isSliderLoading = false
@@ -272,14 +273,15 @@ export default {
   },
 
   async mounted () {
+    this.useAmount =
+      this.rsvp.discounted_amount > 0
+        ? this.rsvp.discounted_amount
+        : this.rsvp.reserved_amount_usd;
+    
     this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
-    this.bchAmount = getAssetDenomination(
-      'BCH', this.getBchPrice(this.rsvp.reserved_amount_usd)
-    )
+    this.bchAmount = getAssetDenomination('BCH', this.getBchPrice(this.useAmount))
     this.intervalId = setInterval(() => {
-      this.bchAmount = getAssetDenomination(
-        'BCH', this.getBchPrice(this.rsvp.reserved_amount_usd)
-      )
+      this.bchAmount = getAssetDenomination('BCH', this.getBchPrice(this.useAmount))
     }, 5000)
 
     const bch = this.bchAmount.split(' ')[0]
