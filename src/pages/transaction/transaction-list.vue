@@ -305,8 +305,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .transaction-row {
-   position: fixed;
-   margin-top: 355px;
+   margin-top: 100px;
    width: 100%;
 }
 .transaction-container {
