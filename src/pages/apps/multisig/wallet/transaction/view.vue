@@ -7,7 +7,7 @@
   >
     <HeaderNav :title="$t('Transaction')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.address}`}`" class="header-nav">
     </HeaderNav>
-    <div class="row justify-center" style="margin-bottom: 4em;">
+    <div class="row justify-center">
       <div class="col-xs-12 q-px-xs">
         <template v-if="multisigWallet && multisigTransaction?.transaction">
           <div>
@@ -44,7 +44,7 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label>Spending</q-item-label>
+                  <q-item-label>Total Output</q-item-label>
                 </q-item-section>
                 <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
                   <q-btn v-if="multisigTransaction.sourceOutputs" flat dense icon-right="img:bitcoin-cash-circle.svg">
@@ -130,44 +130,16 @@
               <q-separator spaced inset></q-separator>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="text-bow-muted">Signatures</q-item-label>
+                  <q-item-label>Signing Progress</q-item-label>
+                  <q-item-label caption lines="2">
+                   Provided: {{ getSignatureCount({ multisigWallet, multisigTransaction })}},
+                   Requires: {{ getRequiredSignatures(multisigWallet.template)}}
+                  </q-item-label>
                 </q-item-section>
-                <!-- <q-item-section side top>
-                  <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
-                </q-item-section> -->
-              </q-item>
-              <!--q-item>
-                <q-item-section>
-                  <div class="flex flex-wrap items-center">
-                    Required Signatures
-                  </div>
-                </q-item-section>
-                <q-item-section side>
-                  {{ getRequiredSignatures(multisigWallet.template) }}&nbsp;
-                </q-item-section>
-              </q-item-->
-              <q-item>
-                <q-item-section>
-                  <div class="flex flex-wrap items-center">
-                    Current Signatures 
-                  </div>
-                </q-item-section>
-                <q-item-section side>
-                  {{ getRequiredSignatures(multisigWallet.template) }}-of-{{getSignatureCount({ multisigWallet, multisigTransaction}) }}&nbsp;
+                <q-item-section side top>
+                  {{ signingProgress }}
                 </q-item-section>
               </q-item>
-                             <q-expansion-item>
-                <template v-slot:header>
-                  <q-item-section>
-                    Raw Sig Details
-                  </q-item-section>
-                </template>
-                <q-item-label class="q-pa-md">
-                  <code style="word-break: break-all; filter: brightness(80%)">
-                    {{ stringify(multisigTransaction.signatures) }}
-                  </code>
-                </q-item-label>
-              </q-expansion-item>
               <q-item v-for="signerEntityKey in Object.keys(multisigWallet.template.entities)" :key="signerEntityKey">
                 <q-item-section >
                   <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
@@ -197,18 +169,20 @@
                   </q-btn>
                 </q-item-section>
               </q-item>
+              <q-expansion-item>
+                <template v-slot:header>
+                  <q-item-section>
+                    Raw Sig Details
+                  </q-item-section>
+                </template>
+                <q-item-label class="q-pa-md">
+                  <code style="word-break: break-all; filter: brightness(80%)">
+                    {{ stringify(multisigTransaction.signatures) }}
+                  </code>
+                </q-item-label>
+              </q-expansion-item>
+              
               <q-separator spaced inset />
-              <q-item>
-                <q-item-section>
-                  <div class="flex flex-wrap items-center">
-                    Signing Progress
-                  </div>
-                </q-item-section>
-                <q-item-section side>
-                  {{ signingProgress }}&nbsp;
-                </q-item-section>
-              </q-item>
-
               <q-item>
                 <q-item-section>
                   <q-item-label>Broadcast Status</q-item-label>
