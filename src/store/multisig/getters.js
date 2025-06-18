@@ -21,6 +21,15 @@ export function getWalletByLockingBytecode (state) {
   }
 }
 
+export function getWalletByAddress (state) {
+  return ({ address }) => {
+    return state.wallets.find(w => {
+        const targetLockingBytecodeHex = binToHex(cashAddressToLockingBytecode(address).bytecode)
+        return targetLockingBytecodeHex === getLockingBytecode({ ...w, hex: true }).bytecode
+    })
+  }
+}
+
 export function getTransactionsByLockingBytecode (state) {
   return ({ lockingBytecodeHex }) => {
     return state.transactions?.filter((t) => {
@@ -55,4 +64,15 @@ export function getTransactionIndexByHash (state) {
   }
 }
 
+export function getWalletUtxos (state) {
+  return ({ address }) => {
+    return state.walletsUtxos[address]
+  }
+}
+
+export function getWalletUtxosLastUpdate (state) {
+  return ({ address }) => {
+    return state.walletsUtxosLastUpdate[address]?.utxos
+  }
+}
 

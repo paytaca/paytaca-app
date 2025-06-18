@@ -91,6 +91,14 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
+const utxos = computed(() => {
+ return structuredClone($store.getters['multisig/getWalletUtxos']({ address: route.params.address }))
+})
+
+const utxosLastUpdate = computed(() => {
+ return utxos.value?.lastUpdate
+})
+
 const addRecipient = () => {
   multisigTransaction.value.transaction.outputs.push({
    address: '',
@@ -99,33 +107,30 @@ const addRecipient = () => {
   })
 }
 
+const updateAssetsOptions = (utxos) => {
+ const options = new Set()
+ utxos?.forEach((utxo) => {
+  if (utxo?.token?.category) options.add(utxo.token.category)
+ })
+ assetOptions.value = ['Bitcoin Cash', ...Array.from(options)]
+}
+
+watch(utxosLastUpdate.value, (value, oldValue) => {
+   updateAssetsOptions(utxos.value?.utxos)
+})
+
+onBeforeMount(async () => {
+   await $store.dispatch('multisig/fetchWalletUtxos', route.params.address )
+})
+
+
 onMounted(() => {
   multisigWallet.value = $store.getters['multisig/getWalletByAddress']({ address: route.params.address })
-  multisigTransaction.value = initEmptyMultisigTransaction({ userPrompt: 'Spend BCH from wallet', walletId: multisigWallet.id })
+  multisigTransaction.value = initEmptyMultisigTransaction({
+   userPrompt: 'Spend BCH from wallet', walletId: multisigWallet.id
+  })
   addRecipient()
+  updateAssetsOptions(utxos.value?.utxos)
 })
 </script>
 
-<!-- <style scoped>
-::v-deep(.q-stepper__header) {
-  flex-wrap: wrap; /* 👈 Allow wrapping */
-  gap: 1rem;
-  justify-content: flex-start; /* Or center if you prefer */
-}
-
-::v-deep(.q-stepper__tab) {
-  flex: 0 1 auto;
-  min-width: 120px;
-  padding: 6px 10px;
-  font-size: 14px;
-  text-align: center;
-}
-
-::v-deep(.q-stepper__title) {
-  font-size: 13px;
-  white-space: normal; /* Allow text wrapping if needed */
-}
-.light {
-  color: #141414;
-}
-</style> -->

@@ -1,7 +1,14 @@
 import axios from 'axios'
-import { stringify, binToHex, CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+import {
+ stringify,
+ binToHex,
+ CashAddressNetworkPrefix,
+ cashAddressToLockingBytecode,
+ lockingBytecodeToCashAddress,
+ decodeCashAddress
+} from 'bitauth-libauth-v3'
 import * as ms from 'src/lib/multisig'
-
+import { watchtowerUtxoToCommonUtxo } from 'src/utils/utxo-utils'
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
 
 export async function subscribeWalletAddress ({ commit, getters, rootGetters }, multisigWallet) {
@@ -28,7 +35,6 @@ export async function createWallet({ commit, getters, rootGetters, dispatch}, mu
   if (existingWallet) return existingWallet
   multisigWallet.id = lockingBytecodeHex
   commit('createWallet', multisigWallet)
-  dispatch('subscribeWalletAddress', multisigWallet)
   dispatch('uploadWallet', { multisigWallet })
   // const signerLocalWallets = rootGetters['global/getVault']
 
@@ -78,8 +84,9 @@ export async function fetchWallets({ commit, rootGetters }, { xpub }) {
   return response.data
 }
 
-export async function deleteWallet ({ commit, rootGetters }, { multisigWallet }) {
+export async function deleteWallet ({ commit, rootGetters, getters }, { multisigWallet }) {
   commit('deleteWallet', { multisigWallet })
+  
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
   await axios.delete(`${watchtower}/api/multisig/wallets/${multisigWallet.id}/`)
 }
@@ -206,4 +213,38 @@ export async function broadcastTransaction({ commit, rootGetters }, multisigTran
        commit('updateTransactionStatus', { multisigTransaction, status: 'broadcasted' })
      }
      console.log('BROADCAST RESPONSE DATA', response.data)
+}
+
+export async function fetchWalletUtxos ({ commit, rootGetters }, cashAddress) {
+     
+     const decoded = decodeCashAddress(cashAddress)
+     
+     let watchtower = 'https://watchtower.cash'
+     if (decoded.prefix === 'bchtest') {
+       watchtower = 'https://chipnet.watchtower.cash'
+     }
+
+    const tokenAddress = lockingBytecodeToCashAddress({
+	bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
+	prefix: decoded.prefix,
+	tokenSupport: true
+     }).address
+    const bchUtxosUrl = `${watchtower}/api/utxo/bch/${cashAddress}/`
+    const tokenUtxosUrl = `${watchtower}/api/utxo/ct/${tokenAddress}/`
+     
+     const fetchBchUtxos = async () => {
+          let response = await axios.get(bchUtxosUrl)
+	  if (response.data?.utxos) { 
+	    const utxos = response.data.utxos.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
+            commit('addWalletUtxos', { walletAddress: cashAddress, utxos })
+	  }
+     }
+     const fetchTokenUtxos = async () => {
+          let response = await axios.get(tokenUtxosUrl)
+	  if (response.data) {
+	    const utxos = response.data.utxos.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
+            commit('addWalletUtxos', { walletAddress: cashAddress, utxos })
+	  }
+     }
+    await Promise.all([fetchBchUtxos(), fetchTokenUtxos()])     
 }
