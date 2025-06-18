@@ -1211,7 +1211,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .header {
-  padding: 25px 16px 25px;
+  padding: 25px 16px 15px;
   z-index: 1;
 }
 #header-logo {
@@ -1234,7 +1234,7 @@ export default {
 }
 .balance {
   margin-bottom: 25px;  
-  padding: 10px 16px 0;
+  padding: 0px 16px 0;
 }
 .assets {
   position: fixed;

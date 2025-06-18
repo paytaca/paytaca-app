@@ -129,8 +129,8 @@ export default {
       const vm = this
 
       const screenHeight = vm.$q.screen.height
-      const fixedSectionHeight = vm.$parent.$parent.$refs.fixedSection.clientHeight
-      const footerMenuHeight = vm.$parent.$parent.$refs.footerMenu.$el.clientHeight
+      const fixedSectionHeight = 0//vm.$parent.$refs.transactionSection.clientHeight
+      const footerMenuHeight = 0//vm.$parent.$refs.footerMenu.$el.clientHeight
       vm.transactionsListHeight = `${screenHeight - (fixedSectionHeight + footerMenuHeight)}px`
     },
     scrollToBottomTransactionList () {
