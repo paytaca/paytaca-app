@@ -70,14 +70,15 @@ import { hexToBin } from 'bitauth-libauth-v3'
 */
 export function selectUtxos (utxos, options) {
   const {
-    targetSatoshis,
-    strategy = 'largest',
+    targetAmount,
+    filterStrategy = 'bch-only',
+    sortStrategy = 'largest',
     tokenFilter
   } = options
 
   const candidates = utxos.filter(utxo => {
-    if (strategy === 'bch-only' && utxo.token) return false
-    if (strategy === 'token-only' && !utxo.token) return false
+    if (filterStrategy === 'bch-only' && utxo.token) return false
+    if (filterStrategy === 'token-only' && !utxo.token) return false
 
     if (tokenFilter && utxo.token) {
       if (tokenFilter.category && utxo.token.category !== tokenFilter.category) return false
@@ -89,13 +90,23 @@ export function selectUtxos (utxos, options) {
 
     return true
   })
-
-  switch (strategy) {
+  
+  switch (sortStrategy) {
     case 'largest':
-      candidates.sort((a, b) => b.satoshis - a.satoshis)
+      if (filterStrategy === 'bch-only') {
+        candidates.sort((a, b) => b.satoshis - a.satoshis)
+      }
+      if (filterStrategy === 'token-only') {
+        candidates.sort((a, b) => b.token.amount - a.token.amount)
+      }
       break
     case 'smallest':
-      candidates.sort((a, b) => a.satoshis - b.satoshis)
+      if (filterStrategy === 'bch-only') {
+        candidates.sort((a, b) => a.satoshis - b.satoshis)
+      }
+      if (filterStrategy === 'token-only') {
+        candidates.sort((a, b) => a.token.amount - b.token.amount)
+      }
       break
     case 'oldest':
       candidates.sort((a, b) => (a.age || 0) - (b.age || 0))
@@ -103,24 +114,29 @@ export function selectUtxos (utxos, options) {
   }
 
   const selected = []
-  let total = 0
+  let total = 0n
 
   for (const utxo of candidates) {
     selected.push(utxo)
-    total += utxo.satoshis
-    if (total >= targetSatoshis) break
+    if (filterStrategy === 'bch-only') {
+      total += BigInt(utxo.satoshis)
+    }
+    if (filterStrategy === 'token-only') {
+      total += BigInt(utxo.token.amount)
+    }
+    if (total >= targetAmount) break
   }
 
   return {
     selected,
     total,
-    satisfied: total >= targetSatoshis,
+    satisfied: total >= targetAmount,
     remaining: utxos.filter(u => !selected.includes(u))
   }
 }
 
 /**
- * @param { WatchtowerUtxoWatchtowerUtxo } utxo
+ * @param { WatchtowerUtxo } utxo
  * @returns { CommonUTXO[] }
  */
 export function watchtowerUtxoToCommonUtxo (utxo) {
@@ -131,7 +147,7 @@ export function watchtowerUtxoToCommonUtxo (utxo) {
 
   return {
     txid: utxo?.txid,
-    vout: utxo?.vout,
+    vout: Number(utxo?.vout),
     satoshis: BigInt(utxo?.value),
     token: !utxo?.tokenid
       ? undefined
