@@ -1,3 +1,4 @@
+import axios from 'axios'
 import WatchtowerSdk from 'watchtower-cash-js'
 import { secp256k1, decodePrivateKeyWif, binToHex, instantiateSha256 } from '@bitauth/libauth'
 import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils'
@@ -172,12 +173,24 @@ class Watchtower extends WatchtowerSdk {
     }
   }
 
-  async saveMultisigWallet (multisigWallet) {
+  async uploadMultisigWallet(multisigWallet) {
     return await fetch(`${this._baseUrl}multisig/wallets`, {
       method: 'POST',
       body: JSON.stringify(multisigWallet)
     })
   }
+  
+  async getAddressBchBalance(address) {
+    return await axios.get(`${this._baseUrl}balance/bch/${address}/`)
+  }
+  
+  async getAddressTokenBalance(tokenAddress, category = '') {
+    if (category) {	
+     return await axios.get(`${this._baseUrl}balance/ct/${tokenAddress}/${category}/`)
+    }
+    return await axios.get(`${this._baseUrl}balance/ct/${tokenAddress}/`)
+  }
+
 }
 
 export default Watchtower
