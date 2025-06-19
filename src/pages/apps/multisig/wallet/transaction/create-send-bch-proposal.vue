@@ -206,7 +206,7 @@ const createProposal = () => {
   // selectWithFee
   selectUtxosOptions.targetAmount = sendAmount + minimumFee
   const finalSelected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
-  const finalInputs = finalSelected.selectedUtxos
+  const finalInputs = finalSelected.selectedUtxos.map(u => commonUtxoToLibauthInput(u)) // without unlocking bytecode
   const finalChangeOutput = {
    lockingBytecode: getLockingBytecode(multisigWallet.value).bytecode,
    valueSatoshis: finalSelected.total - sendAmount - minimumFee
@@ -218,7 +218,8 @@ const createProposal = () => {
   }
   
   const finalTransaction = {
-    ...transactionForFeeEstimation,
+    locktime: 0,
+    version: 2,
     inputs: finalInputs,
     outputs: outputs
   }
