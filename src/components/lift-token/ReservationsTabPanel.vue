@@ -111,6 +111,7 @@ import { getMnemonic, Wallet } from 'src/wallet'
 
 import SaleGroupChip from 'src/components/lift-token/SaleGroupChip.vue'
 import PayReservationDialog from 'src/components/lift-token/dialogs/PayReservationDialog.vue'
+import PayReservationConfirmDialog from 'src/components/lift-token/dialogs/PayReservationConfirmDialog.vue'
 
 export default {
   name: 'ReservationsTabPanel',
@@ -175,6 +176,7 @@ export default {
     openPayReservationDialog (rsvp) {
       this.$q.dialog({
         component: PayReservationDialog,
+        // component: PayReservationConfirmDialog,
         componentProps: {
           rsvp,
           wallet: this.wallet,

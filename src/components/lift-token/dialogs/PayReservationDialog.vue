@@ -3,11 +3,14 @@
     persistent
     seamless
     ref="dialogRef"
-    position="bottom"
-    class="br-15 no-click-outside"
+    class="no-click-outside"
   >
-    <q-card class="q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-end items-center">
+    <q-card
+      class="full-width q-pa-md pt-card-2 text-body1 text-bow"
+      :class="getDarkModeClass(darkMode)"
+    >
+      <div class="row justify-between items-center q-mb-md">
+        <span class="text-h6">Purchase LIFT</span>
         <q-btn
           flat
           round
@@ -18,77 +21,110 @@
         />
       </div>
 
-      <div class="row flex-center full-width q-mb-md text-center text-h6">
-        <span class="col-12 q-mb-sm">Pay</span>
-
-        <template v-if="isLoading">
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
-        </template>
-        <template v-else>
-          <span class="col-12 text-h5 text-bold">
-            {{ bchAmount }}
-          </span>
-          <div class="col-12 text-subtitle2">
-            <span>
-              + ~0.00001 BCH
-            </span>
-            <q-icon name="info" size="1em"/>
-            <q-menu
-              touch-position
-              class="pt-card text-bow q-py-sm q-px-md br-15"
-              :class="getDarkModeClass(darkMode)"
-            >
-              <div class="row items-center q-gutter-sm">
-                <div class="q-space">{{ $t('NetworkFee') }}</div>
-              </div>
-            </q-menu>
-          </div>
-          <span class="col-12 q-mt-xs text-subtitle1">
-            ({{ parseFiatCurrency(useAmount, 'usd') }})
-          </span>
-        </template>
-        
-        <span class="col-12 q-my-sm text-grey">for</span>
-        <span class="col-12 text-h5 text-bold">
-          {{ parseLiftToken(rsvp.reserved_amount_tkn) }}
-        </span>
+      <div class="row justify-between q-mb-md">
+        <span>{{ SaleGroupPrice[rsvp.sale_group] }} USD/LIFT</span>
+        <span>{{ currentUsdPrice }} USD/BCH</span>
       </div>
 
-      <template v-if="isSufficientBalance">
-        <drag-slide
-          v-if="!isSliderLoading"
-          disable-absolute-bottom
-          @swiped="securityCheck"
-        />
-        <div v-if="isSliderLoading" class="flex flex-center">
-          <progress-loader
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
-          />
-        </div>
-      </template>
-      <template v-else>
-        <span class="row q-px-lg q-pb-md justify-center text-body1 dim-text">
-          Not enough balance to pay for reserved LIFT tokens
-        </span>
-      </template>
+      <div class="row full-width q-gutter-y-xs q-mb-sm">
+        <q-input
+          filled
+          type="text"
+          inputmode="none"
+          class="col-12"
+          ref="input-tkn"
+          v-model="amountTkn"
+          @focus="customKeyboardState = 'show'"
+          :label="$t('Amount')"
+          :dark="darkMode"
+          :error="
+            Number(amountBch) > walletBalance || Number(amountTkn) > rsvp.reserved_amount_tkn
+          "
+          :error-message="$t('BalanceExceeded')"
+        >
+          <template v-slot:append>
+            <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
+              LIFT
+            </div>
+          </template>
+        </q-input>
+
+        <span class="col-12 q-pl-md">{{ getAssetDenomination('BCH', amountBch) }}</span>
+        <span class="col-12 q-pl-md">{{ parseFiatCurrency(amountUsd, 'USD') }}</span>
+
+        <!--
+        <q-input
+          filled
+          type="text"
+          inputmode="none"
+          ref="input-bch"
+          class="q-mb-sm"
+          v-model="amountBch"
+          @focus="customKeyboardState = 'show'; focusedInput = 'bch'"
+          :label="$t('Amount')"
+          :dark="darkMode"
+          :error="Number(amountBch) > walletBalance"
+        >
+          <template v-slot:append>
+            <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
+              BCH
+            </div>
+          </template>
+        </q-input>
+
+        <q-input
+          filled
+          type="text"
+          inputmode="none"
+          ref="input-usd"
+          class="q-mb-sm"
+          v-model="amountUsd"
+          @focus="customKeyboardState = 'show'; focusedInput = 'usd'"
+          :label="$t('Amount')"
+          :dark="darkMode"
+          :error="Number(amountBch) > walletBalance"
+        >
+          <template v-slot:append>
+            <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
+              USD
+            </div>
+          </template>
+        </q-input>
+        -->
+      </div>
+
+      <div class="row justify-between">
+        <span>Wallet balance:</span>
+        <span>{{ getAssetDenomination('BCH', bchBalance) }}</span>
+      </div>
+
+      <div class="row justify-between">
+        <span>Unpaid LIFT:</span>
+        <span>{{ parseLiftToken(unpaidLift) }}</span>
+      </div>
+
+      <!-- <div class="row justify-between">
+        <span>Unpaid LIFT:</span>
+        <span>{{ rsvp.reserved_amount_tkn }} LIFT | {{ rsvp.reserved_amount_usd }} USD</span>
+      </div> -->
     </q-card>
+
+    <custom-keyboard
+      :custom-keyboard-state="customKeyboardState"
+      v-on:addKey="setAmount"
+      v-on:makeKeyAction="makeKeyAction"
+    />
   </q-dialog>
 </template>
 
 <script>
-import { decodePrivateKeyWif, secp256k1 } from '@bitauth/libauth'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
-import { parseFiatCurrency, getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseKey } from 'src/utils/custom-keyboard-utils'
+import { SaleGroupPrice } from 'src/utils/engagementhub-utils/lift-token'
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { processPurchaseApi, SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
-import { getChangeAddress, raiseNotifyError } from 'src/utils/send-page-utils'
-import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
-import DragSlide from 'src/components/drag-slide.vue'
-import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { SignatureTemplate } from 'cashscript0.10.0'
-import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
+import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
 
 export default {
   name: 'PayReservationDialog',
@@ -100,27 +136,26 @@ export default {
   },
 
   components: {
-    DragSlide,
-    ProgressLoader
+    CustomKeyboard
   },
 
   data () {
     return {
-      bchAmount: 0,
-      useAmount: 0,
+      SaleGroupPrice,
+
       intervalId: null,
-      isLoading: false,
-      isSliderLoading: false,
-      isSufficientBalance: true
+      customKeyboardState: 'dismiss',
+      amountUsd: 0,
+      amountBch: 0,
+      amountTkn: 0,
+      unpaidLift: 0,
+      bchBalance: 0
     }
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
@@ -132,7 +167,7 @@ export default {
         this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
         usdPrice = this.$store.getters['market/getAssetPrice']('bch', 'USD')
       }
-      return usdPrice
+      return usdPrice || 0
     },
     walletBalance () {
       const asset = this.$store.getters['assets/getAssets'][0]
@@ -140,152 +175,70 @@ export default {
     }
   },
 
-  watch: {
-    bchAmount (value) {
-      const bch = Number(value.split(' ')[0])
-      if (bch === 0) {
-        this.isLoading = true
-        this.isSliderLoading = true
-      } else {
-        this.isLoading = false
-        this.isSliderLoading = false
-        this.isSufficientBalance = this.walletBalance >= bch
-      }
-    }
-  },
-
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
-    parseFiatCurrency,
     parseLiftToken,
+    getAssetDenomination,
+    parseFiatCurrency,
 
-    getBchPrice (amount) {
-      let bch = amount / this.currentUsdPrice
+    computeUsdBch () {
+      this.amountUsd = Number(this.amountTkn) * SaleGroupPrice[this.rsvp.sale_group]
+
+      let bch = this.amountUsd / this.currentUsdPrice
       if (bch === Infinity) bch = `${this.bchAmount}`.split(' ')[0]
 
-      return bch
+      this.amountBch = bch ?? 0
+    },
+    computeBalances () {
+      this.bchBalance = (this.walletBalance - this.amountBch).toFixed(8)
+      this.unpaidLift = this.rsvp.reserved_amount_tkn - Number(this.amountTkn * (10 ** 2))
     },
 
-    securityCheck (reset = () => {}) {
-      this.isSliderLoading = true
-      clearInterval(this.intervalId)
+    setAmount (key) {
+      this.$refs['input-tkn'].nativeEl.focus({ focusVisible: true })
 
-      this.$q.dialog({
-        component: SecurityCheckDialog,
-      })
-        .onOk(() => this.processPurchase())
-        .onCancel(() => {
-          reset?.()
-          this.intervalId = setInterval(() => {
-            this.bchAmount = getAssetDenomination(
-              'BCH', this.getBchPrice(this.useAmount)
-            )
-          }, 3000)
-          this.isSliderLoading = false
-        })
+      const currentAmount = this.amountTkn
+      const currentCaret = this.$refs['input-tkn'].nativeEl.selectionStart
+      const parsedAmount = parseKey(key, currentAmount, currentCaret, null)
+
+      this.amountTkn = parsedAmount
+      this.computeUsdBch()
+      this.computeBalances()
     },
-    async processPurchase () {
-      this.isSliderLoading = true
-
-      // get pubkey hex of bch address used for reservation
-      const bchWalletInfo = this.$store.getters['global/getWallet']('bch')
-      const walletAddress = bchWalletInfo.walletAddresses
-        .filter(a => a.address === this.rsvp.bch_address)
-
-      if (walletAddress.length > 0) {
-        const lastAddressWif = walletAddress[0].wif
-        const decodedWif = decodePrivateKeyWif(lastAddressWif)
-        const pubkey = secp256k1.derivePublicKeyCompressed(decodedWif.privateKey)
-        const pubkeyHex = Buffer.from(pubkey).toString('hex')
-        let buyerSig = null
-        if (this.rsvp.sale_group === SaleGroup.PUBLIC) {
-          buyerSig = this.serializeSig(new SignatureTemplate(decodedWif.privateKey))
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        this.$refs['input-tkn'].nativeEl.focus({ focusVisible: true })
+        try {
+          this.amountTkn = this.amountTkn.slice(0, -1)
+        } catch {
+          this.amountBch = 0
+          this.amountUsd = 0
+          this.amountTkn = 0
         }
-  
-        // send paid bch to lift swap contract
-        const bch = Number(this.bchAmount.split(' ')[0])
-        const recipient = [{
-          address: this.liftSwapContractAddress,
-          amount: bch,
-          tokenAmount: undefined
-        }]
-        const changeAddress = getChangeAddress('bch')
-        const result = await getWalletByNetwork(this.wallet, 'bch')
-          .sendBch(0, '', changeAddress, null, undefined, recipient)
-  
-        if (result.success) {
-          // record transaction
-          const satsWithFee = bch * (10 ** 8) + 1000
-          
-          let lockupYears = 0
-          if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
-          else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
-          const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
-          const tokenAddress = await getWalletTokenAddress()
-    
-          const data = {
-            purchased_amount_sats: satsWithFee,
-            purchased_date: new Date().toISOString(),
-            lockup_date: new Date(lockupPeriod).toISOString(),
-            reservation: this.rsvp.id,
-            tx_id: result.txid,
-            buyer_pubkey: pubkeyHex,
-            buyer_sig: buyerSig,
-            buyer_token_address: tokenAddress
-          }
-    
-          const isSuccessful = await processPurchaseApi(data)
-  
-          if (isSuccessful) {
-            console.log('notif success yey')
-          } else {
-            raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
-          }
-        } else {
-          raiseNotifyError('Unable to process your purchase. Please try again later.')
-        }
-      } else {
-        raiseNotifyError('The BCH address used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.')
-      }
-
-      this.isSliderLoading = false
-    },
-
-    serializeSig(sig) {
-      try {
-        const sigParsed = {}
-        for (const key in sig) {
-          if (sig.hasOwnProperty(key)) {
-            if (sig[key] instanceof Uint8Array) {
-              sigParsed[key] = Array.from(sig[key]) // Convert Uint8Array to a normal array
-            } else {
-              sigParsed[key] = sig[key]
-            }
-          }
-        }
-        return JSON.stringify(sigParsed);
-      } catch (error) {
-        console.error(error)
-        return sig
-      }
+      } else if (action === 'delete') {
+        this.$refs['input-tkn'].nativeEl.focus({ focusVisible: true })
+        this.amountBch = 0
+        this.amountUsd = 0
+        this.amountTkn = 0
+      } else this.customKeyboardState = 'dismiss'
+      
+      this.computeUsdBch()
+      this.computeBalances()
     }
   },
 
-  async mounted () {
-    this.useAmount =
-      this.rsvp.discounted_amount > 0
-        ? this.rsvp.discounted_amount
-        : this.rsvp.reserved_amount_usd;
-    
+  mounted () {
     this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
-    this.bchAmount = getAssetDenomination('BCH', this.getBchPrice(this.useAmount))
-    this.intervalId = setInterval(() => {
-      this.bchAmount = getAssetDenomination('BCH', this.getBchPrice(this.useAmount))
-    }, 5000)
+    this.computeUsdBch()
+    this.computeBalances()
 
-    const bch = this.bchAmount.split(' ')[0]
-    this.isSufficientBalance = this.walletBalance >= Number(bch)
+    this.intervalId = setInterval(() => {
+      this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
+      this.computeUsdBch()
+      this.computeBalances()
+    }, 20000);
+
+    console.log(this.rsvp)
   },
 
   unmounted () {
@@ -294,9 +247,13 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-  .dim-text {
-    color: #ed5f59;
-    font-weight: 600;
+<style lang="scss">
+.q-field--dark.q-field--error {
+  .text-negative,
+  .q-field__messages,
+  .q-field__label,
+  .q-field__control.text-negative {
+    color: #e57373 !important
   }
+}
 </style>

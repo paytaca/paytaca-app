@@ -8,6 +8,12 @@ export const SaleGroup = {
   PUBLIC: 'pblc'
 }
 
+export const SaleGroupPrice = {
+  seed: 0.015,
+  priv: 0.025,
+  pblc: 0.05
+}
+
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const LIFTTOKEN_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}lifttoken/` })
