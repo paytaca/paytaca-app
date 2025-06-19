@@ -114,10 +114,10 @@
       @redeem="onStablehedgeTransaction"
     />
 
-    <asset-list :assets="assets"/>
+    <asset-list :key="assetListKey" :assets="assets"/>
 
-   <!--  <div class="text-center full-width br-15">
-        <-- <q-icon name="minimize" size="30px"/>      --
+    <div class="text-center full-width br-15">
+        <!-- <q-icon name="minimize" size="30px"/>      -->
         <asset-cards
                 :assets="assets"
                 :manage-assets="manageAssets"
@@ -133,7 +133,7 @@
                 @removed-asset="selectBch()"
                 @click="() => {txSearchActive = false; txSearchReference = ''}"
               />
-      </div> -->
+      </div>
 
       <!-- Header Card -->
     <!-- <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/> -->
@@ -154,13 +154,13 @@
 
     <!-- Transaction History -->
     <!-- <KeepAlive> -->
-      <transaction-list
+      <!-- <transaction-list
         :loaded="balanceLoaded"
         :selectedAssetProps="selectedAsset"
         :denominationTabSelected="denominationTabSelected"
         :wallet="wallet"
         :selectedNetworkProps="selectedNetwork"
-        />  
+        />  --> 
     <!-- </KeepAlive> -->
 
     <!-- Footer -->
@@ -252,6 +252,8 @@ export default {
       },
       notifsCount: 0,
       notifSocket: null,
+
+      assetListKey: 0
     }
   },
   components: {
@@ -393,6 +395,11 @@ export default {
         balancesWithoutSats,
       }
     },
+  },
+  watch: {
+    stablehedgeTab () {
+      this.assetListKey++
+    }
   },
   created () {
     bus.on('cashin-alert', (value) => { this.hasCashinAlert = value })
