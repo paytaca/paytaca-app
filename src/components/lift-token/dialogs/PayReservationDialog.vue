@@ -210,6 +210,11 @@ export default {
       this.$q.dialog({
         component: PayReservationConfirmDialog,
         componentProps: {
+          purchase: {
+            tkn: Number(this.amountTkn) * (10 ** 2),
+            bch: Number(this.amountBch),
+            usd: Number(this.amountUsd)
+          },
           rsvp: this.rsvp,
           wallet: this.wallet,
           liftSwapContractAddress: this.liftSwapContractAddress
