@@ -262,9 +262,16 @@ export const getLockingBytecode = ({ lockingData, template, hex = false }) => {
   })
   if (hex) {
     lockingBytecode.bytecode = binToHex(lockingBytecode.bytecode)
-    return lockingBytecode	  
+    return lockingBytecode
   }
   return lockingBytecode
+}
+
+/**
+ * The locking bytecode hex of the addressIndex 0 locking data
+ */
+export const getWalletHash = ({ lockingData, template }) => {
+  return getLockingBytecode({ lockingData, template, hex: true }).bytecode
 }
 
 export const getMultisigCashAddress = ({
@@ -302,7 +309,9 @@ export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
 /**
  * Populate's the hdPrivateKeys of lockingData
  */
-export const populateHdPrivateKeys = async ({ lockingData, getSignerXPrv /* Function that resolves to xprv given an xpub */ }) => {
+export const populateHdPrivateKeys = async ({
+  lockingData, getSignerXPrv /* Function that resolves to xprv given an xpub */
+}) => {
   if (!lockingData.hdKeys?.hdPrivateKeys) {
     lockingData.hdKeys = {
       ...lockingData.hdKeys,
@@ -332,26 +341,28 @@ export const exportMultisigWallet = (multisigWallet) => {
 }
 
 export const generateTempId = ({ template, lockingData }) => {
-   return getLockingBytecode({ template, lockingData, hex: true }).bytecode
+  return getLockingBytecode({ template, lockingData, hex: true }).bytecode
 }
 
 export const importMultisigWallet = (multisigWalletBase64) => {
-  const bin = base64ToBin(multisigWalletBase64)	
+  const bin = base64ToBin(multisigWalletBase64)
   const multisigWallet = JSON.parse(binToUtf8(bin))
   if (!multisigWallet.id) {
-   multisigWallet.id = generateTempId({ template: multisigWallet.template, lockingData: multisigWallet.lockingData })
+    multisigWallet.id = generateTempId({
+      template: multisigWallet.template, lockingData: multisigWallet.lockingData
+    })
   }
   return multisigWallet
 }
 
 export const getSignerInfos = (multisigWallet) => {
   return Object.keys(multisigWallet.template.entities).map((signerEntityKey) => {
-     const signerEntityIndex = signerEntityKey.split('_')[1]
-     return {
-       signerEntityIndex,
-       name: multisigWallet.template.entities[signerEntityKey].name,
-       xpub: multisigWallet.lockingData.hdKeys.hdPublicKeys.xpub
-     }
+    const signerEntityIndex = signerEntityKey.split('_')[1]
+    return {
+      signerEntityIndex,
+      name: multisigWallet.template.entities[signerEntityKey].name,
+      xpub: multisigWallet.lockingData.hdKeys.hdPublicKeys.xpub
+    }
   })
 }
 
@@ -359,24 +370,34 @@ export const getRequiredSignatures = (template) => {
   return Number(template.scripts.lock.script.match(/OP_\d/)[0].split('_')[1])
 }
 
+export const getTotalSigners = (template) => {
+  return Object.keys(template.entities).length
+}
+
 export const findMultisigWalletByLockingData = ({ multisigWallets, template, lockingData }) => {
   const lockingBytecode = getLockingBytecode({ template, lockingData })
   const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)
   const wallet = multisigWallets.find((wallet) => {
-      const existingLockingBytecode = getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData })
-      const existingLockingBytecodeHex = binToHex(existingLockingBytecode.bytecode)
-      return lockingBytecodeHex === existingLockingBytecodeHex
+    const existingLockingBytecode = getLockingBytecode({
+      template: wallet.template, lockingData: wallet.lockingData
+    })
+    const existingLockingBytecodeHex = binToHex(existingLockingBytecode.bytecode)
+    return lockingBytecodeHex === existingLockingBytecodeHex
   })
   return wallet
 }
 
 export const isMultisigWalletSynced = multisigWallet => {
-   if (!multisigWallet.id) return false
-   if (!/^[0-9]+$/.test(multisigWallet.id)) return false
-   return true 
+  if (!multisigWallet.id) return false
+  if (!/^[0-9]+$/.test(multisigWallet.id)) return false
+  return true
 }
 
 export const generateFilename = multisigWallet => {
-  if (multisigWallet.template?.name) return `${multisigWallet.template.name}.pmwif`
-  return `${getRequiredSignatures(multisigWallet.template)}-of-${Object.keys(multisigWallet.template.entities)}-multisig-wallet.pmwif`
+  if (multisigWallet.template?.name) {
+    return `${multisigWallet.template.name}.pmwif`
+  }
+  const m = getRequiredSignatures(multisigWallet.template)
+  const n = getTotalSigners(multisigWallet.template)
+  return `${m}-of-${n})}-multisig-wallet.pmwif`
 }
