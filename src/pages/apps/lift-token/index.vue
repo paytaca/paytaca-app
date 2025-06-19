@@ -52,6 +52,7 @@
             <reservations-tab-panel
               :reservationsList="reservationsList"
               :liftSwapContractAddress="liftSwapContractAddress"
+              @on-successful-purchase="retrieveData"
             />
           </q-tab-panel>
 
@@ -108,21 +109,25 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme
+    isNotDefaultTheme,
+
+    async retrieveData () {
+      this.isLoading = true
+
+      const results = await Promise.allSettled([
+        getReservationsData(), getPurchasesData(), getContractAddressApi()
+      ])
+      this.reservationsList = results[0].value
+      this.purchasesList = results[1].value
+      this.liftSwapContractAddress = results[2].value
+
+      this.isLoading = false
+    }
   },
 
   async mounted () {
-    this.isLoading = true
-
     this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
-    const results = await Promise.allSettled([
-      getReservationsData(), getPurchasesData(), getContractAddressApi()
-    ])
-    this.reservationsList = results[0].value
-    this.purchasesList = results[1].value
-    this.liftSwapContractAddress = results[2].value
-
-    this.isLoading = false
+    await this.retrieveData()
   }
 }
 </script>

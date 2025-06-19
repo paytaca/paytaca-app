@@ -2,7 +2,7 @@
   <q-dialog
     persistent
     seamless
-    ref="dialogRef"
+    ref="purchaseDialogRef"
     class="no-click-outside"
   >
     <q-card
@@ -38,7 +38,8 @@
           :label="$t('Amount')"
           :dark="darkMode"
           :error="
-            Number(amountBch) > walletBalance || Number(amountTkn) > rsvp.reserved_amount_tkn
+            Number(amountBch) > walletBalance ||
+            (Number(amountTkn) * (10 ** 2)) > rsvp.reserved_amount_tkn
           "
           :error-message="$t('BalanceExceeded')"
         >
@@ -62,6 +63,28 @@
         <span>Unpaid LIFT:</span>
         <span>{{ parseLiftToken(unpaidLift) }}</span>
       </div>
+
+      <div class="row full-width justify-evenly q-mt-md">
+        <q-btn
+          rounded
+          outline
+          class="button button-text-primary"
+          :class="getDarkModeClass(darkMode)"
+          :label="$t('Cancel')"
+          v-close-popup
+        />
+        <q-btn
+          rounded
+          class="button"
+          :label="'Purchase'"
+          :disable="
+            Number(amountTkn) === 0 ||
+            Number(amountBch) > walletBalance ||
+            (Number(amountTkn) * (10 ** 2)) > rsvp.reserved_amount_tkn
+          "
+          @click="openConfirmDialog"
+        />
+      </div>
     </q-card>
 
     <custom-keyboard
@@ -80,6 +103,7 @@ import { parseLiftToken } from 'src/utils/engagementhub-utils/shared'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+import PayReservationConfirmDialog from 'src/components/lift-token/dialogs/PayReservationConfirmDialog.vue'
 
 export default {
   name: 'PayReservationDialog',
@@ -179,6 +203,29 @@ export default {
       
       this.computeUsdBch()
       this.computeBalances()
+    },
+
+    openConfirmDialog () {
+      clearInterval(this.intervalId)
+      this.$q.dialog({
+        component: PayReservationConfirmDialog,
+        componentProps: {
+          rsvp: this.rsvp,
+          wallet: this.wallet,
+          liftSwapContractAddress: this.liftSwapContractAddress
+        }
+      })
+        .onCancel(() => {
+          this.intervalId = setInterval(() => {
+            this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
+            this.computeUsdBch()
+            this.computeBalances()
+          }, 20000)
+        })
+        .onOk(() => {
+          this.$refs.purchaseDialogRef.$emit('ok')
+          this.$refs.purchaseDialogRef.hide()
+        })
     }
   },
 

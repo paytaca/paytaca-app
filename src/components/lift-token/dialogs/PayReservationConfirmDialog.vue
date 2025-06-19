@@ -2,7 +2,7 @@
   <q-dialog
     persistent
     seamless
-    ref="dialogRef"
+    ref="confirmDialogRef"
     position="bottom"
     class="br-15 no-click-outside"
   >
@@ -242,6 +242,8 @@ export default {
   
           if (isSuccessful) {
             console.log('notif success yey')
+            this.$refs.confirmDialogRef.$emit('ok')
+            this.$refs.confirmDialogRef.hide()
           } else {
             raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
           }
@@ -249,7 +251,9 @@ export default {
           raiseNotifyError('Unable to process your purchase. Please try again later.')
         }
           */
-         console.log('notif success yey')
+        console.log('notif success yey')
+        this.$refs.confirmDialogRef.$emit('ok')
+        this.$refs.confirmDialogRef.hide()
       } else {
         raiseNotifyError('The BCH address used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.')
       }

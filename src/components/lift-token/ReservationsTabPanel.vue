@@ -111,7 +111,6 @@ import { getMnemonic, Wallet } from 'src/wallet'
 
 import SaleGroupChip from 'src/components/lift-token/SaleGroupChip.vue'
 import PayReservationDialog from 'src/components/lift-token/dialogs/PayReservationDialog.vue'
-import PayReservationConfirmDialog from 'src/components/lift-token/dialogs/PayReservationConfirmDialog.vue'
 
 export default {
   name: 'ReservationsTabPanel',
@@ -120,6 +119,8 @@ export default {
     reservationsList: { type: Array, default: null },
     liftSwapContractAddress: { type: String, default: null }
   },
+
+  emits: ['on-successful-purchase'],
 
   components: {
     SaleGroupChip
@@ -176,13 +177,20 @@ export default {
     openPayReservationDialog (rsvp) {
       this.$q.dialog({
         component: PayReservationDialog,
-        // component: PayReservationConfirmDialog,
         componentProps: {
           rsvp,
           wallet: this.wallet,
           liftSwapContractAddress: this.liftSwapContractAddress
         }
       })
+        .onOk(() => {
+          this.$q.notify({
+            type: 'positive',
+            timeout: 3000,
+            message: 'Purchase processed successfully.'
+          })
+          this.$emit('on-successful-purchase')
+        })
     }
   },
 
