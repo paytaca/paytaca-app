@@ -84,7 +84,9 @@ import {
  encodeTransactionCommon,
  generateTransaction,
  getMinimumFee,
- hexToBin
+ hexToBin,
+ getDustThreshold,
+ isDustOutput
 } from 'bitauth-libauth-v3'
 
 import Watchtower from 'src/lib/watchtower'
@@ -97,7 +99,8 @@ import {
   getRequiredSignatures,
   getTotalSigners,
   getCompiler,
-  getUnlockingScriptId
+  getUnlockingScriptId,
+  getLockingBytecode
 } from 'src/lib/multisig'
 import { commonUtxoToLibauthInput, selectUtxos } from 'src/utils/utxo-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -141,22 +144,38 @@ const addRecipient = () => {
 }
 
 const createProposal = () => {
+ 
   const sendAmount = recipients.value.reduce((amtAccumulator, nextRecipient) => {
     const amountNoDecimals = Math.floor(nextRecipient.amount * `1e${assetDecimals.value}`)
     amtAccumulator += BigInt(amountNoDecimals)
     return amtAccumulator
   }, 0n)
-
+    
   const selectUtxosOptions = {
     targetAmount: sendAmount,
     filterStrategy: 'bch-only',
     sortStrategy: 'smallest'
   }
 
-  const selected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
+  let selected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
+  console.log('SELECTED BEFORE FEE ESTIMATE', selected)
+  // Construct inputs
+  const inputs = selected.selectedUtxos
+  //const inputs = selected.selectedUtxos.map(u => {
+    //return commonUtxoToLibauthInput(u, sampleUnlockingBytecode)
+  //})
+  
+  // Construct outputs
+  const outputs = recipients.value.map((recipient) => {
+    let valueSatoshis = BigInt(Math.floor(recipient.amount * `1e${assetDecimals.value}`))
+    const output = {
+      lockingBytecode: cashAddressToLockingBytecode(recipient.address).bytecode,
+      valueSatoshis
+    }
+    return output
+  })
 
-  console.log('selected', selected)
-  // TODO: construct multisigTransaction proposal
+  // Estimate fee
   const template = multisigWallet.value.template
   const compiler = getCompiler({ template })
   const sampleEntityId = Object.keys(template.entities)[0]
@@ -164,43 +183,54 @@ const createProposal = () => {
   const scenario = compiler.generateScenario({
     unlockingScriptId: sampleScriptId
   })
-  const sampleUnlockingBytecode = scenario.program.transaction.inputs[0].unlockingBytecode
-  const inputsFromSelectedUtxos = selected.selectedUtxos.map(u => {
-    return commonUtxoToLibauthInput(u, sampleUnlockingBytecode)
-  })
-  scenario.program.transaction.inputs = inputsFromSelectedUtxos
-  // ADD OUTPUTS
-  const outputs = recipients.value.map((recipient) => {
-    let valueSatoshis = BigInt(Math.floor(recipient.amount * `1e${assetDecimals.value}`))
-    let token = null
-    if (isSendingToken) {
-      valueSatoshis = 1000n
-      token = {
-        category: hexToBin(assetSelected.value),
-        amount: BigInt(recipient.amount)
-      }
-    }
-    const output = {
-      lockingBytecode: cashAddressToLockingBytecode(recipient.address).bytecode,
-      valueSatoshis
-    }
-    if (token) {
-      output.token = token
-    }
-    return output
-  })
-  
-  scenario.program.transaction.outputs = outputs
 
-  const generatedTransaction = generateTransaction(scenario.program.transaction)
-  const estimatedTransactionSize = encodeTransactionCommon(generatedTransaction.transaction).length
-  const minimumFee = getMinimumFee(BigInt(estimatedTransactionSize), 1000n)
-  if (selected.total < sendAmount + minimumFee) {
+  const unlockingBytecode = scenario.program.transaction.inputs[0].unlockingBytecode
+  
+  const changeOutput = {
+    lockingBytecode: getLockingBytecode(multisigWallet.value).bytecode,
+    valueSatoshis: selected.total - sendAmount // Temp value, tx fee not yet accounted for, will just be used for scenario
+  }
+
+  scenario.program.transaction.inputs = inputs.map(u => commonUtxoToLibauthInput(u, unlockingBytecode))
+  scenario.program.transaction.outputs = [ ...outputs, changeOutput ]
+  
+  if (!isDustOutput(changeOutput)) {
+    scenario.program.transaction.outputs.push(changeOutput)
+  }
+  
+  const dustRelayFeeSatPerKb = 1100n // 1.1 per byte
+  const transactionForFeeEstimation = generateTransaction(scenario.program.transaction)
+  const estimatedTransactionSize = encodeTransactionCommon(transactionForFeeEstimation.transaction).length
+  const minimumFee = getMinimumFee(BigInt(estimatedTransactionSize), dustRelayFeeSatPerKb)
+  
+  // selectWithFee
+  selectUtxosOptions.targetAmount = sendAmount + minimumFee
+  const finalSelected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
+  const finalInputs = finalSelected.selectedUtxos
+  const finalChangeOutput = {
+   lockingBytecode: getLockingBytecode(multisigWallet.value).bytecode,
+   valueSatoshis: finalSelected.total - sendAmount - minimumFee
+  }
+  const changeOutputIsDust = isDustOutput(finalChangeOutput, dustRelayFeeSatPerKb)
+  console.log('Change output is dust', changeOutputIsDust)
+  if (!isDustOutput(finalChangeOutput)) {
+    outputs.push(finalChangeOutput)
+  }
+  
+  const finalTransaction = {
+    ...transactionForFeeEstimation,
+    inputs: finalInputs,
+    outputs: outputs
+  }
+
+  console.log('Final utxo selections', finalSelected) 
+  if (finalSelected.total < sendAmount + minimumFee) {
     $q.dialog({ message: 'Insufficient Balance' })
   }
-  // 
-  //TODO: add, bch change output, prepare multisig tx proposal for signing
+  
+  //TODO: prepare multisig tx proposal for signing
   console.log('TRANSACTION', scenario.program.transaction)
+  console.log('FINAL TRANSACTION', finalTransaction)
 }
 
 const updateAssetsOptions = (utxos) => {
