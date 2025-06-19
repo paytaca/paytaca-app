@@ -36,10 +36,10 @@ import { hexToBin } from 'bitauth-libauth-v3'
 
 /**
 * @typedef { Object } CoinSelectResult
-* @property { CommonUTXO[] } selected
+* @property { CommonUTXO[] } selectedUtxos
 * @property { number } total
 * @property { boolean } satisfied
-* @property { CommonUTXO[] } remaining
+* @property { CommonUTXO[] } remainingUtxos
 */
 
 /**
@@ -90,7 +90,7 @@ export function selectUtxos (utxos, options) {
 
     return true
   })
-  
+
   switch (sortStrategy) {
     case 'largest':
       if (filterStrategy === 'bch-only') {
@@ -128,10 +128,10 @@ export function selectUtxos (utxos, options) {
   }
 
   return {
-    selected,
     total,
     satisfied: total >= targetAmount,
-    remaining: utxos.filter(u => !selected.includes(u))
+    selectedUtxos: selected,
+    remainingUtxos: utxos.filter(u => !selected.includes(u))
   }
 }
 
