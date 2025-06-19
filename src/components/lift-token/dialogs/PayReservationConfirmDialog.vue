@@ -21,56 +21,44 @@
       <div class="row flex-center full-width q-mb-md text-center text-h6">
         <span class="col-12 q-mb-sm">Pay</span>
 
-        <template v-if="isLoading">
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
-        </template>
-        <template v-else>
-          <span class="col-12 text-h5 text-bold">
-            {{ bchAmount }}
+        <span class="col-12 text-h5 text-bold">
+          {{ getAssetDenomination('BCH', purchase.bch) }}
+        </span>
+        <div class="col-12 text-subtitle2">
+          <span>
+            + ~0.00001 BCH
           </span>
-          <div class="col-12 text-subtitle2">
-            <span>
-              + ~0.00001 BCH
-            </span>
-            <q-icon name="info" size="1em"/>
-            <q-menu
-              touch-position
-              class="pt-card text-bow q-py-sm q-px-md br-15"
-              :class="getDarkModeClass(darkMode)"
-            >
-              <div class="row items-center q-gutter-sm">
-                <div class="q-space">{{ $t('NetworkFee') }}</div>
-              </div>
-            </q-menu>
-          </div>
-          <span class="col-12 q-mt-xs text-subtitle1">
-            ({{ parseFiatCurrency(useAmount, 'usd') }})
-          </span>
-        </template>
+          <q-icon name="info" size="1em"/>
+          <q-menu
+            touch-position
+            class="pt-card text-bow q-py-sm q-px-md br-15"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <div class="row items-center q-gutter-sm">
+              <div class="q-space">{{ $t('NetworkFee') }}</div>
+            </div>
+          </q-menu>
+        </div>
+        <span class="col-12 q-mt-xs text-subtitle1">
+          ({{ parseFiatCurrency(purchase.usd, 'usd') }})
+        </span>
         
         <span class="col-12 q-my-sm text-grey">for</span>
         <span class="col-12 text-h5 text-bold">
-          {{ parseLiftToken(rsvp.reserved_amount_tkn) }}
+          {{ parseLiftToken(purchase.tkn) }}
         </span>
       </div>
 
-      <template v-if="isSufficientBalance">
-        <drag-slide
-          v-if="!isSliderLoading"
-          disable-absolute-bottom
-          @swiped="securityCheck"
+      <drag-slide
+        v-if="!isSliderLoading"
+        disable-absolute-bottom
+        @swiped="securityCheck"
+      />
+      <div v-if="isSliderLoading" class="flex flex-center">
+        <progress-loader
+          :color="isNotDefaultTheme(theme) ? theme : 'pink'"
         />
-        <div v-if="isSliderLoading" class="flex flex-center">
-          <progress-loader
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
-          />
-        </div>
-      </template>
-      <template v-else>
-        <span class="row q-px-lg q-pb-md justify-center text-body1 dim-text">
-          Not enough balance to pay for reserved LIFT tokens
-        </span>
-      </template>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -94,6 +82,7 @@ export default {
   name: 'PayReservationDialog',
 
   props: {
+    purchase: { type: Object, default: null },
     rsvp: { type: Object, default: null },
     wallet: { type: Object, default: null },
     liftSwapContractAddress: { type: String, default: null }
@@ -106,12 +95,7 @@ export default {
 
   data () {
     return {
-      bchAmount: 0,
-      useAmount: 0,
-      intervalId: null,
-      isLoading: false,
-      isSliderLoading: false,
-      isSufficientBalance: true
+      isSliderLoading: false
     }
   },
 
@@ -121,36 +105,6 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
-    },
-    selectedMarketCurrency () {
-      const currency = this.$store.getters['market/selectedCurrency']
-      return currency?.symbol
-    },
-    currentUsdPrice () {
-      let usdPrice = this.$store.getters['market/getAssetPrice']('bch', 'USD')
-      if (!usdPrice) {
-        this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
-        usdPrice = this.$store.getters['market/getAssetPrice']('bch', 'USD')
-      }
-      return usdPrice
-    },
-    walletBalance () {
-      const asset = this.$store.getters['assets/getAssets'][0]
-      return asset.spendable
-    }
-  },
-
-  watch: {
-    bchAmount (value) {
-      const bch = Number(value.split(' ')[0])
-      if (bch === 0) {
-        this.isLoading = true
-        this.isSliderLoading = true
-      } else {
-        this.isLoading = false
-        this.isSliderLoading = false
-        this.isSufficientBalance = this.walletBalance >= bch
-      }
     }
   },
 
@@ -159,17 +113,10 @@ export default {
     isNotDefaultTheme,
     parseFiatCurrency,
     parseLiftToken,
-
-    getBchPrice (amount) {
-      let bch = amount / this.currentUsdPrice
-      if (bch === Infinity) bch = `${this.bchAmount}`.split(' ')[0]
-
-      return bch
-    },
+    getAssetDenomination,
 
     securityCheck (reset = () => {}) {
       this.isSliderLoading = true
-      clearInterval(this.intervalId)
 
       this.$q.dialog({
         component: SecurityCheckDialog,
@@ -177,11 +124,6 @@ export default {
         .onOk(() => this.processPurchase())
         .onCancel(() => {
           reset?.()
-          this.intervalId = setInterval(() => {
-            this.bchAmount = getAssetDenomination(
-              'BCH', this.getBchPrice(this.useAmount)
-            )
-          }, 3000)
           this.isSliderLoading = false
         })
     },
@@ -201,7 +143,6 @@ export default {
         const pubkeyHex = Buffer.from(pubkey).toString('hex')
         let buyerSig = null
         if (this.rsvp.sale_group === SaleGroup.PUBLIC) {
-          // buyerSig = this.serializeSig(new SignatureTemplate(decodedWif.privateKey))
           buyerSig = new SignatureTemplate(decodedWif.privateKey)
           console.log(buyerSig)
         }
@@ -259,46 +200,7 @@ export default {
       }
 
       this.isSliderLoading = false
-    },
-
-    serializeSig(sig) {
-      try {
-        const sigParsed = {}
-        for (const key in sig) {
-          if (sig.hasOwnProperty(key)) {
-            if (sig[key] instanceof Uint8Array) {
-              sigParsed[key] = Array.from(sig[key]) // Convert Uint8Array to a normal array
-            } else {
-              sigParsed[key] = sig[key]
-            }
-          }
-        }
-        return JSON.stringify(sigParsed);
-      } catch (error) {
-        console.error(error)
-        return sig
-      }
     }
-  },
-
-  async mounted () {
-    this.useAmount =
-      this.rsvp.discounted_amount > 0
-        ? this.rsvp.discounted_amount
-        : this.rsvp.reserved_amount_usd;
-    
-    this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
-    this.bchAmount = getAssetDenomination('BCH', this.getBchPrice(this.useAmount))
-    this.intervalId = setInterval(() => {
-      this.bchAmount = getAssetDenomination('BCH', this.getBchPrice(this.useAmount))
-    }, 5000)
-
-    const bch = this.bchAmount.split(' ')[0]
-    this.isSufficientBalance = this.walletBalance >= Number(bch)
-  },
-
-  unmounted () {
-    clearInterval(this.intervalId)
   }
 }
 </script>
