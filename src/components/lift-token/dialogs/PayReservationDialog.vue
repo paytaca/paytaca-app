@@ -164,9 +164,9 @@ export default {
       this.amountUsd = Number(this.amountTkn) * SaleGroupPrice[this.rsvp.sale_group]
 
       let bch = this.amountUsd / this.currentUsdPrice
-      if (bch === Infinity) bch = `${this.bchAmount}`.split(' ')[0]
+      if (bch === Infinity) bch = this.amountBch
 
-      this.amountBch = bch ?? 0
+      this.amountBch = bch || 0
     },
     computeBalances () {
       this.bchBalance = (this.walletBalance - this.amountBch).toFixed(8)
