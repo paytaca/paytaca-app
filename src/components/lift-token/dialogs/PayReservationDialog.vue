@@ -51,46 +51,6 @@
 
         <span class="col-12 q-pl-md">{{ getAssetDenomination('BCH', amountBch) }}</span>
         <span class="col-12 q-pl-md">{{ parseFiatCurrency(amountUsd, 'USD') }}</span>
-
-        <!--
-        <q-input
-          filled
-          type="text"
-          inputmode="none"
-          ref="input-bch"
-          class="q-mb-sm"
-          v-model="amountBch"
-          @focus="customKeyboardState = 'show'; focusedInput = 'bch'"
-          :label="$t('Amount')"
-          :dark="darkMode"
-          :error="Number(amountBch) > walletBalance"
-        >
-          <template v-slot:append>
-            <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-              BCH
-            </div>
-          </template>
-        </q-input>
-
-        <q-input
-          filled
-          type="text"
-          inputmode="none"
-          ref="input-usd"
-          class="q-mb-sm"
-          v-model="amountUsd"
-          @focus="customKeyboardState = 'show'; focusedInput = 'usd'"
-          :label="$t('Amount')"
-          :dark="darkMode"
-          :error="Number(amountBch) > walletBalance"
-        >
-          <template v-slot:append>
-            <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-              USD
-            </div>
-          </template>
-        </q-input>
-        -->
       </div>
 
       <div class="row justify-between">
@@ -102,11 +62,6 @@
         <span>Unpaid LIFT:</span>
         <span>{{ parseLiftToken(unpaidLift) }}</span>
       </div>
-
-      <!-- <div class="row justify-between">
-        <span>Unpaid LIFT:</span>
-        <span>{{ rsvp.reserved_amount_tkn }} LIFT | {{ rsvp.reserved_amount_usd }} USD</span>
-      </div> -->
     </q-card>
 
     <custom-keyboard
@@ -236,9 +191,7 @@ export default {
       this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
       this.computeUsdBch()
       this.computeBalances()
-    }, 20000);
-
-    console.log(this.rsvp)
+    }, 20000)
   },
 
   unmounted () {
