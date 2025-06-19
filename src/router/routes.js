@@ -228,6 +228,9 @@ const routes = [
           { path: 'wallet/:address/send', component: () => import('src/pages/apps/multisig/wallet/send.vue'), name: 'app-multisig-wallet-send' },
           { path: 'wallet/:address/transaction', component: () => import('src/pages/apps/multisig/wallet/transaction/index.vue'), name: 'app-multisig-wallet-transactions' },
           { path: 'wallet/:address/transaction/:index', component: () => import('src/pages/apps/multisig/wallet/transaction/view.vue'), name: 'app-multisig-wallet-transaction-view' },
+	  { path: 'wallet/:address/transaction/create', component: () => import('src/pages/apps/multisig/wallet/transaction/create.vue'), name: 'app-multisig-wallet-transaction-create' }, 
+	  { path: 'wallet/:address/transaction/send-bch', component: () => import('src/pages/apps/multisig/wallet/transaction/create-send-bch-proposal.vue'), name: 'app-multisig-wallet-transaction-send-bch' }
+ 
         ]
       }
     ]

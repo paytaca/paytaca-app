@@ -58,15 +58,23 @@
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('send')" class="tile" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('createTxProposal')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="send" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Send</div>
+              <q-icon name="add" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">New Tx</div>
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('receive')" class="tile" v-close-popup>
+         <q-btn flat dense no-caps @click="$emit('createSendBchProposal')" class="tile" v-close-popup>
+          <template v-slot:default>
+            <div class="row justify-center">
+              <q-icon name="add" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Send BCH</div>
+            </div>
+          </template>
+        </q-btn>
+       <q-btn flat dense no-caps @click="$emit('receive')" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="call_received" class="col-12" color="primary"></q-icon>
@@ -90,7 +98,8 @@ const $emit = defineEmits ([
   'deleteWallet',
   'importTx',
   'viewTxProposals',
-  'send',
+  'createTxProposal',
+  'createSendBchProposal',
   'receive',
   ...useDialogPluginComponent.emits
 ])

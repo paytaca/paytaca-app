@@ -281,6 +281,9 @@ const openWalletActionsDialog = () => {
       onCreateTxProposal: () => {
         router.push({ name: 'app-multisig-wallet-transaction-create', params: { address: route.params.address }})
       },
+      onCreateSendBchProposal: () => {
+        router.push({ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address }})
+      },
       onReceive: () => { 
         const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet: CashAddressNetworkPrefix.mainnet
 	$q.dialog({
