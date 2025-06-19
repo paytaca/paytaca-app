@@ -13,7 +13,7 @@
 	          <div class="row no-wrap justify-between">
 	            <p class="q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
 	              <template v-if="!txSearchActive">
-	                {{ selectedAsset.symbol }} {{ $t('Transactions') }}
+	                {{ selectedAsset.symbol }}
 	                <span>
 	                  &nbsp;<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
 	                </span>
@@ -305,7 +305,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .transaction-row {
-   margin-top: 100px;
+   margin-top:50px;
    width: 100%;
 }
 .transaction-container {

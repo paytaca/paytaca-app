@@ -114,9 +114,10 @@
       @redeem="onStablehedgeTransaction"
     />
 
+    <asset-list :assets="assets"/>
 
-    <div class="text-center full-width br-15">
-        <!-- <q-icon name="minimize" size="30px"/>      -->
+   <!--  <div class="text-center full-width br-15">
+        <-- <q-icon name="minimize" size="30px"/>      --
         <asset-cards
                 :assets="assets"
                 :manage-assets="manageAssets"
@@ -132,7 +133,7 @@
                 @removed-asset="selectBch()"
                 @click="() => {txSearchActive = false; txSearchReference = ''}"
               />
-      </div>
+      </div> -->
 
       <!-- Header Card -->
     <!-- <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/> -->
@@ -185,6 +186,7 @@ import homeApps from 'src/components/ui-revamp/home/apps.vue'
 import transactionList from 'src/components/ui-revamp/home/transaction-list.vue';
 import assetOption from 'src/components/ui-revamp/home/asset-option.vue'
 import multiWallet from 'src/components/ui-revamp/home/multi-wallet.vue'
+import assetList from 'src/components/ui-revamp/home/asset-list.vue'
 import packageInfo from '../../../package.json'
 
 // Old
@@ -260,6 +262,7 @@ export default {
     transactionList,
     multiWallet,
     assetOption,
+    assetList,  
 
     TokenSuggestionsDialog,
     securityOptionDialog,
