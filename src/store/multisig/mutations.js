@@ -132,6 +132,13 @@ export function deleteTransaction (state, { index }) {
   state.transactions.splice(index, 1)
 }
 
+export function deleteTransactionById(state, { id }) {
+  const index = state.transactions.findIndex(t => t.id === id)
+  if (index !== -1 ) {
+    state.transactions.splice(index, 1)
+  }
+}
+
 export function deleteAllTransactions (state) {
   state.transactions = []
 }
