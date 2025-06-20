@@ -39,7 +39,7 @@
           :dark="darkMode"
           :error="
             Number(amountBch) > walletBalance ||
-            (Number(amountTkn) * (10 ** 2)) > rsvp.reserved_amount_tkn
+            (Number(amountTkn) * (10 ** 2)) > tknBalance
           "
           :error-message="$t('BalanceExceeded')"
         >
@@ -98,7 +98,7 @@
           :disable="
             Number(amountTkn) === 0 ||
             Number(amountBch) > walletBalance ||
-            (Number(amountTkn) * (10 ** 2)) > rsvp.reserved_amount_tkn
+            (Number(amountTkn) * (10 ** 2)) > tknBalance
           "
           @click="openConfirmDialog"
         />
@@ -146,7 +146,8 @@ export default {
       amountBch: 0,
       amountTkn: 0,
       unpaidLift: 0,
-      bchBalance: 0
+      bchBalance: 0,
+      tknBalance: 0
     }
   },
 
@@ -191,7 +192,12 @@ export default {
     },
     computeBalances () {
       this.bchBalance = (this.walletBalance - this.amountBch).toFixed(8)
-      this.unpaidLift = this.rsvp.reserved_amount_tkn - Number(this.amountTkn * (10 ** 2))
+      let tkn = this.rsvp.reserved_amount_tkn
+      if (Object.keys(this.rsvp.reservation_partial_purchase).length > 0) {
+        tkn = this.rsvp.reservation_partial_purchase.tkn_unpaid
+      }
+      this.tknBalance = tkn
+      this.unpaidLift = tkn - Number(this.amountTkn * (10 ** 2))
     },
 
     setAmount (key) {

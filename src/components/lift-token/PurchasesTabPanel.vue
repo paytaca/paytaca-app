@@ -232,7 +232,7 @@ export default {
 
     const divsHeight = headerNavHeight + sectionTabHeight + filterHeight
     const screenHeight = this.$q.screen.height
-    this.scrollAreaHeight = `${screenHeight - divsHeight - 35}px`
+    this.scrollAreaHeight = `${screenHeight - divsHeight - 65}px`
   }
 }
 </script>

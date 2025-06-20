@@ -78,7 +78,7 @@
           </div>
 
           <div
-            class="row col-12 justify-between text-subtitle2"
+            class="row col-12 justify-between q-gutter-y-sm text-subtitle2"
             style="line-height: 1.2em;"
           >
             <span class="col-6" style="overflow-wrap: anywhere;">
@@ -87,6 +87,17 @@
             <span class="col-6 text-right">
               Approved last {{ parseLocaleDate(rsvp.approved_date) }}
             </span>
+
+            <template
+              v-if="Object.keys(rsvp.reservation_partial_purchase).length > 0"
+            >
+              <span class="col-6" style="overflow-wrap: anywhere;">
+                Paid for {{ parseLiftToken(rsvp.reservation_partial_purchase.tkn_paid) }}
+              </span>
+              <span class="col-6 text-right">
+                {{ parseLiftToken(rsvp.reservation_partial_purchase.tkn_unpaid) }} left unpaid
+              </span>
+            </template>
           </div>
 
           <div class="row col-12 justify-center q-mt-md q-mb-xs">

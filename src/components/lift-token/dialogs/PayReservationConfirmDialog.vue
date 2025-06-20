@@ -146,7 +146,7 @@ export default {
         }
   
         // send paid bch to lift swap contract
-        // const bch = this.purchase.bch
+        const bch = this.purchase.bch
         // const recipient = [{
         //   address: this.liftSwapContractAddress,
         //   amount: bch,
@@ -155,7 +155,7 @@ export default {
         // const changeAddress = getChangeAddress('bch')
         // const result = await getWalletByNetwork(this.wallet, 'bch')
         //   .sendBch(0, '', changeAddress, null, undefined, recipient)
-        const result = { success: true }
+        const result = { success: true, txid: '' }
   
         if (result.success) {
           // record transaction
@@ -174,6 +174,7 @@ export default {
             purchased_date: new Date().toISOString(),
             lockup_date: new Date(lockupPeriod).toISOString(),
             reservation: this.rsvp.id,
+            partial_purchase: this.rsvp.reservation_partial_purchase.id,
             tx_id: result.txid,
             buyer_pubkey: pubkeyHex,
             buyer_sig: buyerSig,

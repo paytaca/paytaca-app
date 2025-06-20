@@ -26,10 +26,10 @@
         <div class="row col-12 text-body1">
           <span class="col-12 text-body2 dim-text">Amount Purchased</span>
           <span class="col-12">
-            {{ parseLiftToken(purchase.purchase_more_details.reserved_amount_tkn) }}
+            {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
           </span>
           <span class="col-12 q-mb-sm">
-            {{ parseFiatCurrency(purchase.purchase_more_details.reserved_amount_usd, 'USD') }} |
+            {{ parseFiatCurrency(purchase.purchase_partial_details.usd_paid, 'USD') }} |
             {{ getAssetDenomination('BCH', purchase.purchased_amount_sats / (10 ** 8)) }}
           </span>
 
