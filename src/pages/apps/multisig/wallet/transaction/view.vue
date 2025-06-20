@@ -294,7 +294,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useQuasar, openURL } from 'quasar'
 import { computed, ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { stringify, hashTransaction } from 'bitauth-libauth-v3'
 import { toP2shTestAddress } from 'src/utils/address-utils'
 import HeaderNav from 'components/header-nav'
@@ -330,9 +330,9 @@ const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const {
   getSignerXPrv,
-  deleteTransaction,
   multisigWallets,
   updateTransaction,
   txExplorerUrl,
@@ -522,7 +522,8 @@ const openTransactionActionsDialog = () => {
           cancel: { label: 'No' },
           class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onOk(() => {
-           deleteTransaction()
+           $store.dispatch('multisig/deleteTransactionById', { id: multisigTransaction.value.id })
+           router.back()
         }).onCancel(() => {
           openTransactionActionsDialog()
         })
