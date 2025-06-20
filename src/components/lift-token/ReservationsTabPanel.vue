@@ -61,7 +61,8 @@
                   >
                     <div class="row items-center q-gutter-sm">
                       <div class="q-space">
-                        You have a {{ parseFiatCurrency(rsvp.reserved_amount_usd - rsvp.discounted_amount, 'USD') }} discount
+                        A {{ rsvp.discount }}% discount is applied, saving you
+                        {{ parseFiatCurrency(rsvp.reserved_amount_usd * (rsvp.discount / 100), 'USD') }}
                       </div>
                     </div>
                   </q-menu>

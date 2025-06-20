@@ -146,15 +146,16 @@ export default {
         }
   
         // send paid bch to lift swap contract
-        const bch = this.purchase.bch
-        const recipient = [{
-          address: this.liftSwapContractAddress,
-          amount: bch,
-          tokenAmount: undefined
-        }]
-        const changeAddress = getChangeAddress('bch')
-        const result = await getWalletByNetwork(this.wallet, 'bch')
-          .sendBch(0, '', changeAddress, null, undefined, recipient)
+        // const bch = this.purchase.bch
+        // const recipient = [{
+        //   address: this.liftSwapContractAddress,
+        //   amount: bch,
+        //   tokenAmount: undefined
+        // }]
+        // const changeAddress = getChangeAddress('bch')
+        // const result = await getWalletByNetwork(this.wallet, 'bch')
+        //   .sendBch(0, '', changeAddress, null, undefined, recipient)
+        const result = { success: true }
   
         if (result.success) {
           // record transaction

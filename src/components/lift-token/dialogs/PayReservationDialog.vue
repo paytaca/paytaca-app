@@ -259,7 +259,6 @@ export default {
     this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
     this.computeUsdBch()
     this.computeBalances()
-    console.log(this.rsvp)
 
     this.intervalId = setInterval(() => {
       this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
