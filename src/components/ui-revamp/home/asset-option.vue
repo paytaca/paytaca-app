@@ -122,7 +122,7 @@ export default {
 		          this.$router.push({ name: 'transaction-send' })
 		          break 
 		        case 'receive':
-		          this.$router.push({ name: 'transaction-receive-select-asset' })
+		          this.$router.push({ name: 'transaction-receive' })
 		          break
 		        case 'cashin':
 		          this.$emit('cashin')

@@ -53,7 +53,7 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
-import sendForm from '../../components/ui-revamp/send/send-form.vue'
+import sendForm from '../../components/ui-revamp/transactions/send-form.vue'
 
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
