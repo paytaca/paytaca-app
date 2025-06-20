@@ -145,7 +145,7 @@ export function updateTransaction ({ commit }, { id, multisigTransaction }) {
 }
 
 export async function updateBroadcastStatus ({ commit, rootGetters }, { multisigTransaction }) {
-  const watchtower = rootgetters['global/getWatchtowerBaseUrl']
+  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
   const response = await axios.get(`${watchtower}/api/multisig/transaction-proposals/${multisigtransaction.id}/status/`)
   if (response?.data?.broadcastStatus) {
     commit('updateBroadcastStatus', { multisigTransaction, broadcastStatus: response.data.broadcastStatus })

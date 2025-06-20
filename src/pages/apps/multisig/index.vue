@@ -186,7 +186,7 @@ const onUpdateWalletFileModelValue = (file) => {
         template: walletInstance.value.template,
         cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
       })
-      saveMultisigWallet(walletInstance.value)
+      $store.dispatch('multisig/createWallet', walletInstance.value)
       router.push({
         name: 'app-multisig-wallet-view',
         params: { address: defaultAddress }
