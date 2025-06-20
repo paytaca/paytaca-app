@@ -170,7 +170,7 @@ export function watchtowerUtxoToCommonUtxo (utxo) {
  */
 export function commonUtxoToLibauthInput (utxo, unlockingBytecode, sequenceNumber = 0) {
   return {
-    outpointIndex: hexToBin(utxo.vout),
+    outpointIndex: Number(utxo.vout),
     outpointTransactionHash: hexToBin(utxo.txid),
     sequenceNumber,
     unlockingBytecode
