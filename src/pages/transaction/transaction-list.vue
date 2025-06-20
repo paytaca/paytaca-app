@@ -3,6 +3,7 @@
 		<header-nav :title="$t('Transactions')" class="apps-header" />
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
+		<asset-list class="asset-list" :key="assetListKey" :assets="assets"/>
 		<div ref="transactionSection" class="row transaction-row">
 	        <transaction
 	          ref="transaction"
@@ -110,6 +111,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 import Transaction from '../../components/transaction'
+import assetList from 'src/components/ui-revamp/home/asset-list.vue'
 import TransactionList from 'src/components/transactions/TransactionList'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import headerNav from 'src/components/header-nav'
@@ -117,6 +119,7 @@ import headerNav from 'src/components/header-nav'
 export default {
 	data () {
 		return {
+			assetListKey: 0,
 			stablehedgeView: false,
 			hideBalances: false,
 			wallet: null,
@@ -207,7 +210,8 @@ export default {
 		headerNav,
 		Transaction,
 		TransactionList,
-		StablehedgeHistory
+		StablehedgeHistory,
+		assetList
 	},
 	async mounted () {
 		await this.loadWallets()
@@ -304,15 +308,16 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.asset-list {
+	margin-top: 100px;
+}
 .transaction-row {
-   margin-top:50px;
    width: 100%;
 }
 .transaction-container {
     overflow: hidden;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
-    margin-top: 24px;
 }
 .transaction-wallet {
    font-size: 20px;

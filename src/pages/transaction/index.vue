@@ -100,7 +100,7 @@
     </div>
 
     <div class="title-small multiwallet-btn" :class="darkmode ? 'text-light' : 'text-primary'">
-        <q-btn :disable="!balanceLoaded" padding="none" flat no-caps @click="$router.push({ name: 'multi-wallet' })   ">Switch Wallet<q-icon size="18px" name="arrow_forward_ios"/></q-btn>
+        <q-btn :disable="!balanceLoaded" padding="none" flat no-caps @click="$router.push({ name: 'multi-wallet' })   ">{{ walletName }}&nbsp;<q-icon size="18px" name="arrow_forward_ios"/></q-btn>
     </div>
 
     <!-- Asset Buttons -->
@@ -116,8 +116,8 @@
 
     <asset-list :key="assetListKey" :assets="assets"/>
 
-    <div class="text-center full-width br-15">
-        <!-- <q-icon name="minimize" size="30px"/>      -->
+    <!-- <div class="text-center full-width br-15">
+        <-- <q-icon name="minimize" size="30px"/>      --
         <asset-cards
                 :assets="assets"
                 :manage-assets="manageAssets"
@@ -133,7 +133,7 @@
                 @removed-asset="selectBch()"
                 @click="() => {txSearchActive = false; txSearchReference = ''}"
               />
-      </div>
+      </div> -->
 
       <!-- Header Card -->
     <!-- <header-card :balance="bchBalanceText()" :equivalentExchange="getAssetMarketBalance(bchAsset)" :loaded="balanceLoaded" @cashin="openCashIn()"/> -->
@@ -275,6 +275,12 @@ export default {
   computed: {
     darkmode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    walletName () {
+      return this.$store.getters['global/getVault'][this.walletIndex].name
+    },
+    walletIndex () {
+      return this.$store.getters['global/getWalletIndex']
     },
     theme () {
       return this.$store.getters['global/theme']

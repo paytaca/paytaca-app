@@ -119,7 +119,7 @@ export default {
 		          this.openUnfreezeDialog()
 		          break
 		        case 'send':
-		          this.$router.push({ name: 'transaction-send-select-asset' })
+		          this.$router.push({ name: 'transaction-send' })
 		          break 
 		        case 'receive':
 		          this.$router.push({ name: 'transaction-receive-select-asset' })

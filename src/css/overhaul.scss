@@ -32,6 +32,10 @@ body.theme-overhaul {
     &.light {
       background-color: $light_bg !important;
     }
+
+    &.grad {
+      background-image: $gradient_bg !important;
+    }
   }
 
   #gradient-panel {
