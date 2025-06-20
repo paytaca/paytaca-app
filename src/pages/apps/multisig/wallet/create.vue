@@ -157,7 +157,7 @@ const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
 const { t: $t } = useI18n()
-const { saveMultisigWallet, cashAddressNetworkPrefix } = useMultisigHelpers()
+const { cashAddressNetworkPrefix } = useMultisigHelpers()
 const mOptions = ref()
 const nOptions = ref()
 const wallet = ref()
@@ -247,20 +247,21 @@ const onCreateClicked = async () => {
     n: wallet.value.n,
     signerNames
   })
-  const lockingData = {
+ 
+ const lockingData = {
     hdKeys: {
       addressIndex: 0,
       hdPublicKeys
     }
   }
+
   const multisigWallet = {
-    id: generateTempId({ template, lockingData }),
     template,
-    lockingData,
-    requiredSignatures: wallet.value.m
+    lockingData
   }
 
-  await saveMultisigWallet(multisigWallet)
+  await $store.dispatch('multisig/createWallet', multisigWallet)
+
   router.push({
     name: 'app-multisig-wallet-view',
     params: {
