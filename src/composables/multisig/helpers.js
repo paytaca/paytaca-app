@@ -93,14 +93,6 @@ export const useMultisigHelpers = () => {
     return $store.getters['multisig/getTransactionsLastIndex']
   })
 
-  const deleteTransaction = async () => {
-    await $store.dispatch(
-      'multisig/deleteTransaction',
-      { index: route.params.index }
-    )
-    router.back()
-  }
-
   const saveTransaction = async (multisigTransaction) => {
     await $store.dispatch(
       'multisig/saveTransaction',
@@ -110,15 +102,6 @@ export const useMultisigHelpers = () => {
 
   const updateTransaction = async ({ index, multisigTransaction }) => {
     await $store.dispatch('multisig/updateTransaction', { index, multisigTransaction })
-  }
-
-  const saveMultisigWallet = async (multisigWallet) => {
-    await $store.dispatch(
-      'multisig/saveWallet',
-      multisigWallet
-    )
-    const watchtower = new Watchtower($store.getters['global/isChipnet'])
-    watchtower.subscribe({ address: multisigWallet.address })
   }
 
   const getMultisigWalletBchBalance = async (address) => {
@@ -148,10 +131,8 @@ export const useMultisigHelpers = () => {
     getSignerXPrv,
     getSignerMnemonic,
     identifyPossiblePstCreator,
-    deleteTransaction,
     saveTransaction,
     updateTransaction,
-    saveMultisigWallet,
     transactionsLastIndex,
     cashAddressNetworkPrefix,
     multisigWallets,
