@@ -68,12 +68,12 @@
           </div>
 
           <span class="row col-12 flex-center text-bold">
-            {{ parseLiftToken(purchase.purchase_more_details.reserved_amount_tkn) }}
+            {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
           </span>
 
           <div class="row col-12 justify-between text-subtitle1">
             <span class="col-6">
-              {{ parseFiatCurrency(purchase.purchase_more_details.reserved_amount_usd, 'usd') }}
+              {{ parseFiatCurrency(purchase.purchase_partial_details.usd_paid, 'usd') }}
             </span>
             <span class="col-6 text-right">
               {{ getAssetDenomination('BCH', purchase.purchased_amount_sats / (10 ** 8)) }}
