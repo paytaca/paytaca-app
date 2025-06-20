@@ -1,5 +1,5 @@
 <template>
-	<div class="row text-dark asset-list justify-center">
+	<div class="row text-dark asset-list justify-center" v-if="assetList.length">
 		<q-btn :disable="assetIndex === 0" class="col-2" icon="arrow_back_ios" flat @click="updateAssetIndex('dec')"/>
 		<q-card class="col-8 asset-card br-15 gradient-bg text-light">
 			<div class="row" v-if="loaded">
@@ -45,6 +45,7 @@ export default {
 	async mounted () {
 		this.assetList = [...this.assets]
 		console.log('assets: ', this.assetList)
+		console.log('length: ', this.assetList.length)		
 		this.loaded = true
 	},
 	methods: {
