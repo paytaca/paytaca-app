@@ -34,9 +34,17 @@ export function getTransactionsByLockingBytecode (state) {
   return ({ lockingBytecodeHex }) => {
     return state.transactions?.filter((t) => {
 	const transaction = t.transaction.inputs.find((input) => {
+	   if (!input.sourceOutput) return false
 	   const targetLockingBytecodeHex = binToHex(Uint8Array.from(Object.values(input.sourceOutput.lockingBytecode)))
            return targetLockingBytecodeHex === lockingBytecodeHex
 	})
+	if (!transaction) {
+          // Try from source outputs data if source outputs isn't attached to corresponding inputs yet.
+	  t.sourceOutputs?.find(sourceOutput => {
+	   const targetLockingBytecodeHex = binToHex(Uint8Array.from(Object.values(sourceOutput.lockingBytecode)))
+           return targetLockingBytecodeHex === lockingBytecodeHex
+	  })
+	}
 	return Boolean(transaction)
     })
   }
