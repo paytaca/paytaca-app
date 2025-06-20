@@ -50,8 +50,26 @@
           </template>
         </q-input>
 
-        <span class="col-12 q-pl-md">{{ getAssetDenomination('BCH', amountBch) }}</span>
-        <span class="col-12 q-pl-md">{{ parseFiatCurrency(amountUsd, 'USD') }}</span>
+        <span class="col-12 q-pl-md">
+          {{ getAssetDenomination('BCH', amountBch) }}
+        </span>
+        <span class="col-12 q-pl-md">
+          {{ parseFiatCurrency(amountUsd, 'USD') }}
+          <template v-if="this.rsvp.discount > 0">
+            <q-icon name="info" size="1em"/>
+            <q-menu
+              touch-position
+              class="pt-card text-bow q-py-sm q-px-md br-15"
+              :class="getDarkModeClass(darkMode)"
+            >
+              <div class="row items-center q-gutter-sm">
+                <div class="q-space">
+                  A {{ this.rsvp.discount }}% discount is applied
+                </div>
+              </div>
+            </q-menu>
+          </template>
+        </span>
       </div>
 
       <div class="row justify-between">
@@ -162,6 +180,9 @@ export default {
 
     computeUsdBch () {
       this.amountUsd = Number(this.amountTkn) * SaleGroupPrice[this.rsvp.sale_group]
+      if (this.rsvp.discount > 0) {
+        this.amountUsd = this.amountUsd - (this.amountUsd * (this.rsvp.discount / 100))
+      }
 
       let bch = this.amountUsd / this.currentUsdPrice
       if (bch === Infinity) bch = this.amountBch
@@ -238,6 +259,7 @@ export default {
     this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })
     this.computeUsdBch()
     this.computeBalances()
+    console.log(this.rsvp)
 
     this.intervalId = setInterval(() => {
       this.$store.dispatch('market/updateAssetPrices', { customCurrency: 'USD' })

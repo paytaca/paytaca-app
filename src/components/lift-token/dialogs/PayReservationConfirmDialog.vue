@@ -136,7 +136,6 @@ export default {
         .filter(a => a.address === this.rsvp.bch_address)
 
       if (walletAddress.length > 0) {
-        /**
         const lastAddressWif = walletAddress[0].wif
         const decodedWif = decodePrivateKeyWif(lastAddressWif)
         const pubkey = secp256k1.derivePublicKeyCompressed(decodedWif.privateKey)
@@ -144,11 +143,10 @@ export default {
         let buyerSig = null
         if (this.rsvp.sale_group === SaleGroup.PUBLIC) {
           buyerSig = new SignatureTemplate(decodedWif.privateKey)
-          console.log(buyerSig)
         }
   
         // send paid bch to lift swap contract
-        const bch = Number(this.bchAmount.split(' ')[0])
+        const bch = this.purchase.bch
         const recipient = [{
           address: this.liftSwapContractAddress,
           amount: bch,
@@ -169,6 +167,8 @@ export default {
           const tokenAddress = await getWalletTokenAddress()
     
           const data = {
+            purchased_amount_usd: this.purchase.usd,
+            purchased_amount_tkn: this.purchase.tkn,
             purchased_amount_sats: satsWithFee,
             purchased_date: new Date().toISOString(),
             lockup_date: new Date(lockupPeriod).toISOString(),
@@ -182,7 +182,6 @@ export default {
           const isSuccessful = await processPurchaseApi(data)
   
           if (isSuccessful) {
-            console.log('notif success yey')
             this.$refs.confirmDialogRef.$emit('ok')
             this.$refs.confirmDialogRef.hide()
           } else {
@@ -191,10 +190,6 @@ export default {
         } else {
           raiseNotifyError('Unable to process your purchase. Please try again later.')
         }
-          */
-        console.log('notif success yey')
-        this.$refs.confirmDialogRef.$emit('ok')
-        this.$refs.confirmDialogRef.hide()
       } else {
         raiseNotifyError('The BCH address used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.')
       }
