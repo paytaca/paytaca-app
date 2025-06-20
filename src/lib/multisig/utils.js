@@ -113,3 +113,104 @@ export const libauthStringifyReviver = (_, value) => {
 
   return value
 }
+
+/**
+  * @typedef { Object } MultisigSpec
+  * @property { Number } m
+  * @property { Number } n
+*/
+
+/**
+ * Estimates the serialized size (in bytes) of a P2SH multisig input,
+ * taking into account whether the UTXO is a CashToken.
+ *
+ * @param { import('../../utils/utxo-utils').CommonUTXO } utxo
+ * @param { MultisigSpec } multisigSpec
+ * @param { 'ecdsa'|'schnorr' } [sigType='schnorr'] - Signature type to estimate size for.
+ * @returns {number} Estimated byte size of the input.
+ */
+export const estimateP2SHMultisigInputSize = (utxo, multisigSpec, sigType = 'schnorr') => {
+  const sigSize = sigType === 'ecdsa' ? 73 : 64 // ECDSA is DER-encoded
+  const sigPushSize = 1
+
+  const { m, n } = multisigSpec
+
+  if (typeof m !== 'number' || typeof n !== 'number') {
+    throw new Error('Multisig spec (m-of-n) is required')
+  }
+
+  const signatureBytes = m * (sigSize + sigPushSize)
+
+  const redeemScriptSize =
+    1 + // OP_m
+    (n * 33) + // pubkeys
+    1 + // OP_n
+    1 // OP_CHECKMULTISIG
+
+  const redeemScriptPushSize =
+    redeemScriptSize < 76
+      ? 1
+      : redeemScriptSize < 256
+        ? 2
+        : 3
+
+  const scriptSigSize =
+    1 + // OP_0 dummy
+    signatureBytes +
+    redeemScriptPushSize +
+    redeemScriptSize
+
+  let inputSize =
+    32 + // outpoint txid
+    4 + // outpoint index
+    1 + // scriptSig varint length
+    scriptSigSize +
+    4 // sequence
+
+  if (utxo.token) {
+    const TOKEN_INPUT_OVERHEAD = 10 // adjust as needed for BCH CashTokens
+    inputSize += TOKEN_INPUT_OVERHEAD
+  }
+
+  return inputSize
+}
+
+/**
+ * Estimate unlocking bytecode size (scriptSig) for a P2SH m-of-n multisig input.
+ *
+ * @param {number} m - Number of required signatures.
+ * @param {number} n - Total number of public keys.
+ * @param {'ecdsa' | 'schnorr'} [sigType='ecdsa'] - Signature type.
+ * @returns {number} Estimated scriptSig size in bytes.
+ */
+export const estimateUnlockingBytecodeSize = (m, n, sigType = 'ecdsa') => {
+  const sigSize = sigType === 'schnorr' ? 64 : 72 // avg sizes
+  const sigPushOverhead = 1 // push opcode per signature
+
+  const totalSigSize = m * (sigSize + sigPushOverhead)
+
+  const pubkeySize = 33 // compressed pubkeys
+
+  const redeemScriptSize =
+    1 + // OP_m
+    (n * pubkeySize) + // n pubkeys
+    1 + // OP_n
+    1 // OP_CHECKMULTISIG
+
+  const redeemScriptPushSize =
+    // eslint-disable-next-line multiline-ternary
+    redeemScriptSize < 0x4c ? 1 // direct push
+      // eslint-disable-next-line multiline-ternary
+      : redeemScriptSize <= 0xff ? 2 // OP_PUSHDATA1
+        // eslint-disable-next-line multiline-ternary
+        : redeemScriptSize <= 0xffff ? 3 // OP_PUSHDATA2
+          : 5 // OP_PUSHDATA4
+
+  const scriptSigSize =
+    1 + // OP_0
+    totalSigSize +
+    redeemScriptPushSize +
+    redeemScriptSize
+
+  return scriptSigSize
+}
