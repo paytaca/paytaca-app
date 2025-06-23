@@ -1,167 +1,156 @@
 <template>
-  <div id="app-container" class="grad text-light">
+  <div id="app-container" class="grad">
     <header-nav :useEmitBack="step > 1" @back="handleBack"></header-nav>
-    <!-- <header-nav :title="$t('Receive')" backnavpath="/"></header-nav> -->
-    <q-tabs
-      dense
-      v-if="enableSmartBCH"
-      active-color="brandblue"
-      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
-      :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
-      class="col-12 q-px-lg"
-      :modelValue="selectedNetwork"
-      @update:modelValue="changeNetwork"
-    >
-      <q-tab
-        name="BCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        :label="networks.BCH.name"
-      />
-      <q-tab
-        name="sBCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        :label="networks.sBCH.name"
-        :disable="isChipnet"
-      />
-    </q-tabs>
-    <template v-if="assets">
-      <div :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
-        <!-- <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
-          <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
-            {{ $t('SelectAssetToBeReceived') }}
-          </p>
-        </div> -->
-        <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
-          <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
-        </div>
-      </div>
-      <div style="overflow-y: scroll;">
-        <div
-          v-for="(asset, index) in assets"
-          :key="index"
-          @click="checkIfFirstTimeReceiver(asset)"
-          role="button"
-          class="row q-pl-lg q-pr-lg asset-button"
-        >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)" v-if="isCashToken">
-            <div class="row q-pt-sm q-pb-xs q-pl-md">
-              <div>
-                <img
-                  :src="getImageUrl(asset)"
-                  width="50"
-                  alt=""
-                >
-              </div>
-              <div class="col q-pl-sm q-pr-sm">
-                <p
-                  class="q-ma-none title-large"
-                  :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
-                >
-                  {{ asset.name }}
-                </p>
-                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
-                  <template v-if="!asset.name.includes('New')">
-                    <span v-if="asset.id.startsWith('ct/')">
-                      {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
-                    </span>
-                    <span v-else>
-                      {{ parseAssetDenomination(denomination, asset, false, 16) }}
-                    </span>
-                  </template>
-                  {{ asset.name.includes('New') ? asset.symbol : '' }}
-                </p>
-              </div>
+    <div :style="{ 'margin-top': $q.platform.is.ios ? '60px' : '40px'}">
+      <q-tabs
+        dense    
+        v-if="enableSmartBCH"
+        indicator-color="white"      
+        class="col-12 q-px-lg"
+        :modelValue="selectedNetwork"
+        @update:modelValue="changeNetwork"
+      >
+        <q-tab
+          name="BCH"
+          class="network-selection-tab"         
+          :label="networks.BCH.name"
+        />
+        <q-tab
+          name="sBCH"
+          class="network-selection-tab"
+          :label="networks.sBCH.name"
+          :disable="isChipnet"
+        />
+      </q-tabs>
+
+      <div class="receive-container" >
+        <div v-if="step === 1">
+          <div class="title-large">Step #1</div>
+          <div class="body-large q-pt-md">Select Asset</div>
+
+          <div v-if="assets">      
+            <div class="col-3" v-show="selectedNetwork === networks.BCH.name">
+              <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
+              <div>&nbsp</div>  
             </div>
+            <div style="margin-top: 20px;">
+                <q-list>
+                  <q-item clickable v-ripple v-for="(asset, index) in assets" :key="index" class="asset-button" @click="checkIfFirstTimeReceiver(asset)">
+                    <q-item-section avatar>
+                      <q-avatar>
+                        <img :src="getImageUrl(asset)" width="50" alt="">
+                      </q-avatar>
+                    </q-item-section>
+
+                    <q-item-section class="text-dark text-left">
+                      <q-item-label class="title-medium">{{ asset.name }}</q-item-label>
+                      <q-item-label v-if="asset.id.startsWith('ct/')">
+                        {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
+                    </q-item-label>
+                      <q-item-label v-else>
+
+                        {{ parseAssetDenomination(denomination, asset, false, 16) }}
+                      </q-item-label>                     
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+            </div>
+
+            <!-- <div
+              v-for="(asset, index) in assets"
+              :key="index"
+              @click="checkIfFirstTimeReceiver(asset)"
+              role="button"
+              class="row q-pl-lg q-pr-lg asset-button"
+            >
+              <div class="col row group-currency q-mb-sm" v-if="isCashToken">
+                <div class="row q-pt-sm q-pb-xs q-pl-md">
+                  <div>
+                    <img
+                      :src="getImageUrl(asset)"
+                      width="50"
+                      alt=""
+                    >
+                  </div>
+                  <div class="col q-pl-sm q-pr-sm">
+                    <p
+                      class="q-ma-none title-large"
+                      :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
+                    >
+                      {{ asset.name }}
+                    </p>
+                    <p class="q-ma-none amount-text text-dark">
+                      <template v-if="!asset.name.includes('New')">
+                        <span v-if="asset.id.startsWith('ct/')">
+                          {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
+                        </span>
+                        <span v-else>
+                          {{ parseAssetDenomination(denomination, asset, false, 16) }}
+                        </span>
+                      </template>
+                      {{ asset.name.includes('New') ? asset.symbol : '' }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div> -->
+
           </div>
         </div>
-        <q-banner
-          v-if="!isCashToken"
-          inline-actions
-          class="bg-red text-center q-mt-lg text-bow slp-disabled-banner"
-          :class="getDarkModeClass(darkMode)"
-        >
-          {{ `Receiving SLP ${isHongKong(currentCountry) ? 'points' : 'tokens'} is temporarily disabled until further notice.` }}
-        </q-banner>
       </div>
-      <div class="vertical-space" v-if="assets.length > 5"></div>
-    </template>
-    <div
-      v-else
-      class="q-pa-sm text-grey text-center text-h6"
-    >
-      No assets available
-    </div>
-
-    <footer-menu />
+    </div>    
   </div>
 </template>
 <script>
-import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
-import { cachedLoadWallet } from 'src/wallet'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
-import { parseAssetDenomination } from 'src/utils/denomination-utils'
+
 import { convertTokenAmount, getWalletByNetwork } from 'src/wallet/chipnet'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import { cachedLoadWallet } from 'src/wallet'
 
 export default {
-  name: 'Receive-page',
-  mixins: [
-    walletAssetsMixin
-  ],
-  components: {
-    HeaderNav,
-    AssetFilter,
-    FirstTimeReceiverWarning
-  },
-  data () {
+  data() {
     return {
+      step: 1,
       networks: {
         BCH: { name: 'BCH' },
         sBCH: { name: 'SmartBCH' }
       },
-      activeBtn: 'btn-bch',
-      result: '',
-      error: '',
       isCashToken: true,
-      wallet: null,
-      step: 1
+      wallet: null
     }
+  },
+  components: {
+    HeaderNav,
+    AssetFilter
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
-    currentCountry () {
-      return this.$store.getters['global/country'].code
-    },
     denomination () {
       return this.$store.getters['global/denomination']
     },
-    theme () {
-      return this.$store.getters['global/theme']
+    enableSmartBCH () {
+      return this.$store.getters['global/enableSmartBCH']
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
-    },
-    enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
     },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
       },
-      set (value) {
+      set (value) {        
         return this.$store.commit('global/setNetwork', value)
       }
     },
     assets () {
       let _assets
-      const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${this.$store.getters['global/theme']}/` : ''
+      const themedIconPath = ''
       const themedNewTokenIcon = `${themedIconPath}new-token.png`
 
       if (this.selectedNetwork === 'sBCH') {
@@ -213,21 +202,35 @@ export default {
       return _assets
     }
   },
+  async mounted () {
+    const vm = this
+    vm.$store.dispatch('market/updateAssetPrices', {})
+    const bchAssets = vm.$store.getters['assets/getAssets']
+
+    // update balance of assets
+    const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
+    vm.wallet = wallet // Initialize the wallet property
+    
+    for (var i = 0; i < bchAssets.length; i = i + 3) {
+      const balanceUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
+        return updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
+      })
+      const assetMetadataUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
+        return vm.$store.dispatch('assets/getAssetMetadata', asset.id)
+      })
+      await Promise.allSettled([...balanceUpdatePromises, ...assetMetadataUpdatePromises])
+    }
+  },
   methods: {
-    convertTokenAmount,
     parseAssetDenomination,
-    getDarkModeClass,
-    isNotDefaultTheme,
-    isHongKong,
-    hadleback() {
-      this.step--
-    },
-    getFallbackAssetLogo (asset) {
-      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
-      return logoGenerator(String(asset && asset.id))
-    },
+    convertTokenAmount,
     changeNetwork (newNetwork = 'BCH') {
+      console.log('value: ', newNetwork)
       this.selectedNetwork = newNetwork
+    },
+    handleBack() {
+      console.log('handling back btn')
+      this.step--
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
@@ -247,24 +250,6 @@ export default {
         }
       }
     },
-    async isFirstTimeReceiver(asset) {
-      if ((asset?.balance ?? 0) !== 0) return false
-      if ((asset?.txCount ?? 0) !== 0) return false
-      if (asset.id.split('/')[1] === 'unlisted') return false
-
-      const transactionsLength = this.selectedNetwork === 'sBCH'
-        ? await this.getSbchTransactions(asset)
-        : await this.getBchTransactions(asset)
-
-      if (this.selectedNetwork !== 'sBCH') {
-        this.$store.commit('assets/updateAssetTxCount', {
-          id: asset?.id,
-          txCount: transactionsLength,
-        })
-      }
-
-      return transactionsLength === 0
-    },
     async checkIfFirstTimeReceiver (asset) {
       // check wallet/assets if balance is zero and no transactions were made
       const displayFirstTimeReceiverWarning = await this.isFirstTimeReceiver(asset)
@@ -282,6 +267,24 @@ export default {
           query: { assetId: asset.id, network: this.selectedNetwork }
         })
       }
+    },
+    async isFirstTimeReceiver(asset) {
+      if ((asset?.balance ?? 0) !== 0) return false
+      if ((asset?.txCount ?? 0) !== 0) return false
+      if (asset.id.split('/')[1] === 'unlisted') return false
+
+      const transactionsLength = this.selectedNetwork === 'sBCH'
+        ? await this.getSbchTransactions(asset)
+        : await this.getBchTransactions(asset)
+
+      if (this.selectedNetwork !== 'sBCH') {
+        this.$store.commit('assets/updateAssetTxCount', {
+          id: asset?.id,
+          txCount: transactionsLength,
+        })
+      }
+
+      return transactionsLength === 0
     },
     async getBchTransactions (asset) {
       const vm = this
@@ -336,43 +339,23 @@ export default {
       })
       return historyLength
     }
-  },
-  async mounted () {
-    const vm = this
-    vm.$store.dispatch('market/updateAssetPrices', {})
-    const bchAssets = vm.$store.getters['assets/getAssets']
-
-    // update balance of assets
-    const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
-    vm.wallet = wallet // Initialize the wallet property
-    
-    for (var i = 0; i < bchAssets.length; i = i + 3) {
-      const balanceUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
-        return updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
-      })
-      const assetMetadataUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
-        return vm.$store.dispatch('assets/getAssetMetadata', asset.id)
-      })
-      await Promise.allSettled([...balanceUpdatePromises, ...assetMetadataUpdatePromises])
-    }
   }
 }
 </script>
-
 <style lang="scss" scoped>
-  .group-currency {
-    width: 100%;
-    border-radius: 7px;
-    margin-top: 5px;
-    margin-bottom: 5px;
-  }
-  .pt-label {
-    font-size: 16px;
-    font-weight: 300;
-  }
-  .asset-button {
-    margin: 10px 20px 10px;
-    border: 1px solid #fff; 
-    border-radius: 10px;
-  }
+.receive-container {
+  text-align: center;
+  margin-top: 50px;
+}  
+.pt-label {
+  font-size: 16px;
+  font-weight: 300;
+}
+.asset-button {
+  background-color: #fff;
+  margin: 10px 20px 10px;
+  padding: 15px;
+  border: 2px solid #4174d9; 
+  border-radius: 10px;
+}
 </style>

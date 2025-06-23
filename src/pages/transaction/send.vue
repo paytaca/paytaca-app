@@ -11,7 +11,7 @@
 					<div v-show="selectedNetwork === networks.BCH.name">
 						<AssetFilter @filterTokens="isCT => isCashToken = isCT" />
 						<div>&nbsp</div>			          
-			        </div>
+			    </div>
 			        <div style="margin-top: 20px;">
 			        	<q-list>
 			        		<q-item clickable v-ripple v-for="(asset, index) in assets" :key="index" class="asset-button" @click="selectAsset(asset)">
