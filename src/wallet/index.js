@@ -117,6 +117,8 @@ export async function getMnemonic (index = 0) {
   if (index !== 0) {
     key = key + index
   }
+
+  console.log('[localstorage] getting mnemonic, key:', key)
   try {
     // For versions up to v0.9.1 that used to have aes256-encrypted mnemonic
     const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
@@ -126,7 +128,9 @@ export async function getMnemonic (index = 0) {
     try {
       mnemonic = await SecureStoragePlugin.get({ key: key })
       mnemonic = mnemonic.value
-    } catch (err) {}
+    } catch (err) {
+      console.error(err)
+    }
   }
   return mnemonic
 }
