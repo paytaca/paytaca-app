@@ -153,10 +153,12 @@ export async function updateBroadcastStatus ({ commit, rootGetters }, { multisig
 }
 
 // TODO: Add deleteById, deleteByIndex
-export async function deleteTransactionById ({ commit, rootGetters }, { id }) {
+export async function deleteTransactionById ({ commit, rootGetters }, { id, sync = true }) {
   commit('deleteTransactionById', { id })
-  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  await axios.delete(`${watchtower}/api/multisig/transaction-proposals/${id}/`)
+  if(sync) {
+    const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+    await axios.delete(`${watchtower}/api/multisig/transaction-proposals/${id}/`)
+  }
 }
 
 export function deleteAllTransactions ({ commit }) {
@@ -209,7 +211,7 @@ export async function finalizeTransaction ({ commit, rootGetters, dispatch }, { 
   return finalCompilationResult
 }
 
-export async function broadcastTransaction ({ commit, rootGetters }, multisigTransaction) {
+export async function broadcastTransaction ({ commit, rootGetters, dispatch }, multisigTransaction) {
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
   const response = await axios.post(
     `${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/broadcast/`,
@@ -217,6 +219,7 @@ export async function broadcastTransaction ({ commit, rootGetters }, multisigTra
   )
   if (response?.data?.success || response?.data?.error?.includes('tx-already-known')) {
     commit('updateTransactionStatus', { multisigTransaction, status: 'broadcasted' })
+    dispatch('deleteTransaction', { id: multisigTransaction.id, sync: false })
   }
   console.log('BROADCAST RESPONSE DATA', response.data)
 }
