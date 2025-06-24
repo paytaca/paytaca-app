@@ -169,7 +169,7 @@ export default {
         </div>
       </div>
     </div>
-    <div v-if="amountDialog" style="margin-top: 50px;">
+    <div v-if="amountDialog">
       <div class="text-right">
         <q-btn
           flat
