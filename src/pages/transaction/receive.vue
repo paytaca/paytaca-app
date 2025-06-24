@@ -44,42 +44,7 @@
 
                     <q-item-section class="text-dark text-left">
                       <q-item-label class="title-medium">{{ asset.name }}</q-item-label>
-                      <q-item-label v-if="asset.id.startsWith('ct/')">
-                        {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
-                    </q-item-label>
-                      <q-item-label v-else>
-
-                        {{ parseAssetDenomination(denomination, asset, false, 16) }}
-                      </q-item-label>                     
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-            </div>
-
-            <!-- <div
-              v-for="(asset, index) in assets"
-              :key="index"
-              @click="checkIfFirstTimeReceiver(asset)"
-              role="button"
-              class="row q-pl-lg q-pr-lg asset-button"
-            >
-              <div class="col row group-currency q-mb-sm" v-if="isCashToken">
-                <div class="row q-pt-sm q-pb-xs q-pl-md">
-                  <div>
-                    <img
-                      :src="getImageUrl(asset)"
-                      width="50"
-                      alt=""
-                    >
-                  </div>
-                  <div class="col q-pl-sm q-pr-sm">
-                    <p
-                      class="q-ma-none title-large"
-                      :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
-                    >
-                      {{ asset.name }}
-                    </p>
-                    <p class="q-ma-none amount-text text-dark">
+                      
                       <template v-if="!asset.name.includes('New')">
                         <span v-if="asset.id.startsWith('ct/')">
                           {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
@@ -88,14 +53,18 @@
                           {{ parseAssetDenomination(denomination, asset, false, 16) }}
                         </span>
                       </template>
-                      {{ asset.name.includes('New') ? asset.symbol : '' }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div> -->
-
+                      {{ asset.name.includes('New') ? asset.symbol : '' }}                      
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+            </div>
           </div>
+        </div>
+        <div v-if="step === 2">
+          <div class="title-large">Step #2</div>
+          <div class="body-large q-pt-md">Select Asset</div>
+
+          <receive-address :network="selectedNetwork" :assetID="this.selectedAsset.id"/>
         </div>
       </div>
     </div>    
@@ -104,6 +73,7 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
+import ReceiveAddress from 'src/components/ui-revamp/transactions/receive-address.vue'
 import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
 
 import { convertTokenAmount, getWalletByNetwork } from 'src/wallet/chipnet'
@@ -120,12 +90,14 @@ export default {
         sBCH: { name: 'SmartBCH' }
       },
       isCashToken: true,
-      wallet: null
+      wallet: null,
+      selectedAsset: null
     }
   },
   components: {
     HeaderNav,
-    AssetFilter
+    AssetFilter,
+    ReceiveAddress
   },
   computed: {
     darkMode () {
@@ -251,21 +223,25 @@ export default {
       }
     },
     async checkIfFirstTimeReceiver (asset) {
+      console.log('entering func')
       // check wallet/assets if balance is zero and no transactions were made
       const displayFirstTimeReceiverWarning = await this.isFirstTimeReceiver(asset)
+      this.selectedAsset = asset
       if (displayFirstTimeReceiverWarning) {
         this.$q.dialog({ component: FirstTimeReceiverWarning })
           .onOk(() => {
-            this.$router.push({
-              name: 'transaction-receive',
-              query: { assetId: asset.id, network: this.selectedNetwork }
-            })
+            // this.$router.push({
+            //   name: 'transaction-receive',
+            //   query: { assetId: asset.id, network: this.selectedNetwork }
+            // })
+            this.step++
           })
       } else {
-        this.$router.push({
-          name: 'transaction-receive',
-          query: { assetId: asset.id, network: this.selectedNetwork }
-        })
+        // this.$router.push({
+        //   name: 'transaction-receive',
+        //   query: { assetId: asset.id, network: this.selectedNetwork }
+        // })
+        this.step++
       }
     },
     async isFirstTimeReceiver(asset) {
