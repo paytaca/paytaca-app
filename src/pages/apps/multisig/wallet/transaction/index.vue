@@ -23,7 +23,7 @@
             <q-item
               v-for="multisigTransaction, i in multisigTransactions"
               :key="i" clickable
-              :to="{ name: 'app-multisig-wallet-transaction-view', params: { address: route.params.address, index: i } }"
+              :to="{ name: 'app-multisig-wallet-transaction-view', params: { address: route.params.address, hash: generateTransactionHash(multisigTransaction) } }"
               class="q-py-md"
             >
               <q-item-section>
@@ -63,7 +63,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getSignatureCount, getLockingBytecode, getRequiredSignatures, getSigningProgress } from 'src/lib/multisig'
+import { getSignatureCount, getLockingBytecode, getRequiredSignatures, getSigningProgress, generateTransactionHash } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import HeaderNav from 'components/header-nav'
 

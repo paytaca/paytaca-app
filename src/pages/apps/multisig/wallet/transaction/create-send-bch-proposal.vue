@@ -95,7 +95,9 @@ import {
   getMultisigCashAddress,
   getCompiler,
   getLockingBytecode,
-  generateTempProposalId
+  generateTempProposalId,
+  generateTransactionHash,
+  attachSourceOutputsToInputs
 } from 'src/lib/multisig'
 import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from 'src/utils/utxo-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -246,11 +248,16 @@ const createProposal = async () => {
     addressIndex: multisigWallet.value.lockingData.hdKeys.addressIndex,
     address: route.params.address
   }
+  attachSourceOutputsToInputs(multisigTransaction)
   console.log('Multisig Transaction', multisigTransaction)
   await $store.dispatch('multisig/createTransaction', { multisigWallet: multisigWallet.value, multisigTransaction })
-  const index = $store.getters['multisig/getTransactionsLastIndex']  
-  console.log('LAST INDEX', index)
-  router.push({ name: 'app-multisig-wallet-transaction-view', params: { address: route.params.address, index } })
+  
+  router.push({ 
+   name: 'app-multisig-wallet-transaction-view',
+   params: {
+    address: route.params.address,
+    hash: generateTransactionHash(multisigTransaction)} 
+  })
 }
 
 onBeforeMount(async () => {
