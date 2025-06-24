@@ -1,6 +1,40 @@
+<!-- <template>
+  <div class="text-center">
+    <div>
+      Hello World
+    </div>
+  </div>
+</template>
+<script>
+
+export default {
+  data () {
+    return {
+
+    }
+  },
+  props: {
+    network: {
+      type: String,
+      default: 'BCH'
+    },
+    assetId: {
+      type: String,
+      required: false,
+      default: ''
+    }
+  },
+  mounted () {
+    console.log('network: ', this.network)
+    console.log('assetId: ', this.assetId)
+  }
+}
+</script> -->
+
+
 <template>
-  <div id="app-container" class="grad" :class="getDarkModeClass(darkMode)">
-    <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)" style="margin-top: 50px;">
+  <div>
+    <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)" style="margin-top: 0px;">
       <q-icon
         v-if="!isSep20"
         id="context-menu"
@@ -231,7 +265,8 @@ export default {
       amountDialog: false,
       customKeyboardState: 'dismiss',
       setAmountInFiat: true,
-      tokens: []
+      tokens: [],
+      loaded: false
     }
   },
   props: {
@@ -785,6 +820,7 @@ export default {
 
   created () {
     const vm = this
+    vm.loaded = false
     if (vm.assetId.endsWith('unlisted')) {
       vm.asset = {
         id: vm.assetId,
@@ -793,12 +829,14 @@ export default {
         logo: vm.assetId.split('/')[0] + '-logo.png'
       }
     } else {
+      console.log('here')
       vm.asset = vm.getAsset(vm.assetId)
       if (vm.assetId.startsWith('ct/')) {
         vm.setAmountInFiat = false
       }
     }
     vm.generating = false
+    vm.loaded = true
   }
 }
 </script>

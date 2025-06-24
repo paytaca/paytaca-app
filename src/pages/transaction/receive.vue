@@ -61,10 +61,9 @@
           </div>
         </div>
         <div v-if="step === 2">
-          <div class="title-large">Step #2</div>
-          <div class="body-large q-pt-md">Select Asset</div>
+          <div class="title-large">Step #2</div>          
 
-          <receive-address :network="selectedNetwork" :assetID="this.selectedAsset.id"/>
+          <receive-address v-if="selectedAsset" :network="selectedNetwork" :assetId="selectedAsset.id"/>
         </div>
       </div>
     </div>    
@@ -243,6 +242,7 @@ export default {
         // })
         this.step++
       }
+      console.log('asset: ', this.selectedAsset.id)
     },
     async isFirstTimeReceiver(asset) {
       if ((asset?.balance ?? 0) !== 0) return false
