@@ -1,4 +1,5 @@
-import { hexToBin } from 'bitauth-libauth-v3'
+import Big from 'big.js'
+import { hexToBin, cashAddressToLockingBytecode, binToHex } from 'bitauth-libauth-v3'
 
 export const shortenString = (str, maxLength) => {
   // If the string is shorter than or equal to the maxLength, return it as is.
@@ -42,7 +43,8 @@ export const getTotalBchFee = (tx, unit = 'bch') => {
  * @param {function} formatAddress - Function to format output's address
  * @returns {number} - Change amount in satoshis.
  */
-export const getTotalBchChangeAmount = (tx, senderAddress, formatAddress, unit = 'bch') => {
+export const getTotalBchChangeAmount = (tx, senderAddress, unit = 'bch') => { 
+  const senderLockingBytecode = binToHex(cashAddressToLockingBytecode(senderAddress).bytecode)
   if (!tx || !Array.isArray(tx.inputs) || !Array.isArray(tx.outputs)) {
     throw new Error("Transaction must have 'inputs' and 'outputs' arrays.")
   }
@@ -51,23 +53,18 @@ export const getTotalBchChangeAmount = (tx, senderAddress, formatAddress, unit =
   }
   // Find outputs going back to the sender (i.e., change)
   const changeOutputs = tx.outputs.filter(output => {
-    if (formatAddress) {
-      return formatAddress(output.address) === senderAddress
+    if (senderLockingBytecode === binToHex(Uint8Array.from(Object.values(output.lockingBytecode)))) {
+      return true
     }
-    return output.address === senderAddress
+    return false
+    //return senderLockingBytecode == binToHex(Uint8Array.from(Object.values(output.lockingBytecode)))
   })
-
-  if (changeOutputs.length === 0) {
-    return 0 // No change output
-  }
   // Sum the value of change outputs (some wallets may split change across multiple outputs)
   const amount = changeOutputs.reduce((total, output) => {
-    // if (typeof output.valueSatoshis !== 'number') {
-    //   throw new Error("Each output must have a numeric 'value' in satoshis.")
-    // }
-    return total + Number(output.valueSatoshis)
-  }, 0)
-  if (unit === 'bch') return amount / 1e8
+    total = total + BigInt(output.valueSatoshis)
+    return total
+  }, 0n)
+  if (unit === 'bch') return Big(amount) / Big(1e8)
   return amount
 }
 
