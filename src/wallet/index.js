@@ -15,7 +15,7 @@ import {
  secp256k1,
  ut8ToBin,
  binToHex
-} import 'bitauth-libauth-v3' 
+} from 'bitauth-libauth-v3' 
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 
@@ -142,9 +142,9 @@ export async function deleteMnemonic (index) {
   await SecureStoragePlugin.remove({ key })
 }
 
-export async function getHdKeys (vaultIndex = 0) {
-    const mnemonic= getMnemonic(vaultIndex)
-    const { wallet } = loadWallet('BCH', vaultIndex)
+export async function getHdKeys ({ vaultIndex = 0 }) {
+    const mnemonic = await getMnemonic(vaultIndex)
+    const { wallet } = await loadWallet('BCH', vaultIndex)
     const node = deriveHdPath(
       deriveHdPrivateNodeFromBip39Mnemonic(
         mnemonic
@@ -156,7 +156,7 @@ export async function getHdKeys (vaultIndex = 0) {
     return { hdPrivateKey, hdPublicKey }
 }
 
-export async function signMessageWithHdKey (hdPrivateKey, addressIndex, message, hex = false) {
+export function signMessageWithHdPrivateKey ({ hdPrivateKey, addressIndex, message, hex = false }) {
  const decodedHdPrivateKey = decodeHdPrivateKey(hdPrivateKey, addressIndex)
  const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, addressIndex)
  const messageHash = sha256.hash(utf8ToBin(message))
