@@ -77,9 +77,7 @@
                   <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
                     {{
                       getTotalBchChangeAmount(
-                        multisigTransaction.transaction, decodeURIComponent(route.params.address),
-                        isChipnet? toP2shTestAddress: null
-                      )
+                        toValue(multisigTransaction.transaction), decodeURIComponent(route.params.address))
                     }}
                     &nbsp;
                   </q-btn>
@@ -132,7 +130,7 @@
                 <q-item-section>
                   <q-item-label>Signing Progress</q-item-label>
                   <q-item-label caption lines="2">
-                   Provided: {{ getSignatureCount({ multisigWallet, multisigTransaction })}},
+                   Provided: {{ signatureCount }},
                    Requires: {{ getRequiredSignatures(multisigWallet.template)}}
                   </q-item-label>
                 </q-item-section>
@@ -293,7 +291,7 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useQuasar, openURL } from 'quasar'
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch, toValue } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stringify, hashTransaction } from 'bitauth-libauth-v3'
 import { toP2shTestAddress } from 'src/utils/address-utils'
@@ -352,6 +350,16 @@ const updatingBroadcastStatus = ref(false)
 const signingProgress = ref()
 const pstFileElementRef = ref()
 const pstFileModel = ref()
+
+const signatureCount = computed(() => {
+  if (multisigWallet.value && multisigTransaction.value) {
+    return getSignatureCount({
+      multisigWallet: multisigWallet.value,
+      multisigTransaction: multisigTransaction.value
+    })
+    return 0
+  }  
+})
 
 const isSignerSignatureOk = computed(() => {
   return ({ signerEntityKey }) => {
@@ -412,9 +420,10 @@ const broadcastTransaction = async () => {
   if (finalCompilationResult.success && finalCompilationResult.vmVerificationSuccess) {
    $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
   } else {
+    const message = finalCompilationResult.error || finalCompilationResult.vmVerificationError
     $q.dialog({
       title: 'Error',
-      message: 'Error Finalizing Transaction',
+      message,
       class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
     })
   }
@@ -572,37 +581,36 @@ const updateBroadcastStatus = async () => {
     await $store.dispatch('multisig/updateBroadcastStatus', {
      multisigTransaction: multisigTransaction.value
     })
-    const transactions = getTransactionsByMultisigWallet(multisigWallet.value)
-    console.log('transactions', transactions)
-    if (transactions[route.params.index]) {
-      multisigTransaction.value = structuredClone(transactions[route.params.index])
-    }
+    multisigTransaction.value = structuredClone($store.getters['multisig/getTransactionByHash']({ hash: route.params.hash }))
    } catch(e) { 
      console.log(e)
    } finally {
      updatingBroadcastStatus.value = false
    }
-
 }
+
+watch(() => signatureCount.value, () => {
+   if (!multisigWallet.value || !multisigTransaction.value) return
+   signingProgress.value = getSigningProgress({
+     multisigWallet: multisigWallet.value,
+     multisigTransaction: multisigTransaction.value
+   })
+})
 
 onMounted(async () => {
   if (multisigWallet.value) {
     await loadHdPrivateKeys(multisigWallet.value.lockingData.hdKeys.hdPublicKeys)
-    const transactions = getTransactionsByMultisigWallet(multisigWallet.value)
-    if (transactions[route.params.index]) {
-      multisigTransaction.value = structuredClone(transactions[route.params.index])
-      //refreshTransactionStatus({
-        //multisigWallet: multisigWallet.value,
-        //multisigTransaction: multisigTransaction.value
-      //})
-      updateBroadcastStatus(multisigTransaction.value)
+    multisigTransaction.value = structuredClone(
+      $store.getters['multisig/getTransactionByHash']({ hash: route.params.hash })
+    )
+    if (multisigTransaction.value) {
       signingProgress.value = getSigningProgress({
           multisigTransaction: multisigTransaction.value,
           multisigWallet: multisigWallet.value
       })
-      
-      
-    }
+      updateBroadcastStatus({ multisigTransaction: multisigTransaction.value })
+      console.log('change amount', getTotalBchChangeAmount(multisigTransaction.value.transaction, route.params.address ))
+    } 
   }
 })
 
