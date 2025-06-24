@@ -56,10 +56,19 @@ export default {
   beforeRouteEnter (to, from, next) {
     next(vm => {
       vm.previousRoute = from.path
+
+      // console.log('previous: ', vm.previousRoute)
       if (from.name === 'exchange') {
         vm.previousRoute = '/apps'
       }
     })
+  },
+  beforeRouteLeave (to, from, next) {    
+    if (to.name === 'exchange') {
+      this.$router.push({ name: 'apps-dashboard' })
+    } else {
+      next()
+    }    
   },
   computed: {
     multipleAdLimitMessage () {
@@ -73,14 +82,14 @@ export default {
     bus.on('session-expired', this.handleSessionEvent)
     bus.on('post-notice', this.postNotice)
     bus.on('handle-request-error', this.handleRequestError)
-  },
-  async mounted () {
+  },  
+  async mounted () {    
     await this.loadWallet()
     this.fetchUser()
     this.setupWebsocket()
   },
-  beforeUnmount () {
-    this.$q.loading.hide()
+  beforeUnmount () {    
+    this.$q.loading.hide()    
   },
   methods: {
     isNotDefaultTheme,
