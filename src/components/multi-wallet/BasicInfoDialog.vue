@@ -108,9 +108,11 @@ export default {
     parseFiatCurrency,
     getAssetData () {
       const index = this.vaultIndex
+      const vault = this.$store.getters['assets/getVault']
+      if (!vault) return {}
       return this.isChipnet
-        ? this.$store.getters['assets/getVault'][index].chipnet_assets[0]
-        : this.$store.getters['assets/getVault'][index].asset[0]
+        ? vault[index].chipnet_assets[0]
+        : vault[index].asset[0]
     },
     getAssetMarketBalance (asset) {
       if (!asset?.id) return ''

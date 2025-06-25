@@ -2,6 +2,7 @@ import { SlpWallet } from './slp'
 import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import { LibauthHDWallet } from './bch-libauth'
+import { sha256 } from 'js-sha256'
 import aes256 from 'aes256'
 
 import 'capacitor-secure-storage-plugin'
@@ -118,7 +119,6 @@ export async function getMnemonic (index = 0) {
     key = key + index
   }
 
-  console.log('[localstorage] getting mnemonic, key:', key)
   try {
     // For versions up to v0.9.1 that used to have aes256-encrypted mnemonic
     const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
@@ -141,6 +141,12 @@ export async function deleteMnemonic (index) {
     key = key + index
   }
   await SecureStoragePlugin.remove({ key })
+}
+
+export async function deletePin (index) {
+  const mnemonic = await getMnemonic(index)
+  const pinKey = `pin-${sha256(mnemonic)}`
+  await SecureStoragePlugin.remove({ key: pinKey })
 }
 
 export { Address } from 'watchtower-cash-js';

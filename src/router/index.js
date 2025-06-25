@@ -42,7 +42,6 @@ export default function () {
       try {
         // Check if first mnemonic exists
         const currentWalletIndex = store.getters['global/getWalletIndex']
-        console.log('[vuex] currentWalletIndex:', currentWalletIndex)
         const mnemonic = await getMnemonic(currentWalletIndex)
 
         // if mnemonic does not exist but not first wallet,
@@ -60,12 +59,9 @@ export default function () {
           location.reload()
         }
 
-        console.log('[vuex] walletIndex:', walletIndex)
-
         if (mnemonic) {
           next()
         } else {
-          console.log('failed to find mnemonic from walletIndex')
           next('/accounts')
         }
       } catch (err) {
