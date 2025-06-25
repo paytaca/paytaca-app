@@ -237,7 +237,7 @@
             </div>
           </template>
          </q-btn>
-         <q-btn v-if="multisigTransaction.metadata?.status != MultisigTransactionStatus.PENDING_FULLY_SIGNED" flat dense no-caps @click="loadCosignerPst" class="tile" v-close-popup>
+         <q-btn v-if="signingProgress != 'fully-signed'" flat dense no-caps @click="loadCosignerPst" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-file-upload" class="col-12" color="primary"></q-icon>
@@ -306,7 +306,6 @@ import {
   refreshTransactionStatus,
   signTransaction as signMultisigTransaction,
   finalizeTransaction,
-  broadcastTransaction as broadcastMultisigTransaction,
   exportPst,
   getSignatureCount,
   signerHasSignature,
@@ -407,18 +406,16 @@ const signTransaction = async ({ signerEntityKey }) => {
 }
 
 const broadcastTransaction = async () => {
-  
-  //const finalCompilationResult = finalizeTransaction({
-    //multisigWallet: multisigWallet.value,
-    //multisigTransaction: multisigTransaction.value
-  //})
   const finalCompilationResult = await $store.dispatch(
 	'multisig/finalizeTransaction',
         { multisigTransaction: multisigTransaction.value, multisigWallet: multisigWallet.value }
   )
-  console.log('finalization', finalCompilationResult)
   if (finalCompilationResult.success && finalCompilationResult.vmVerificationSuccess) {
-   $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
+    await $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
+    await updateBroadcastStatus()
+    if (multisigTransaction.value?.broadcastStatus === 'done') {
+      router.back()
+    }
   } else {
     const message = finalCompilationResult.error || finalCompilationResult.vmVerificationError
     $q.dialog({
@@ -565,15 +562,6 @@ const loadHdPrivateKeys = async (hdPublicKeys) => {
     } catch (e) {} // getSignerXPrv throws if xprv not found, we'll just ignore
   }
 } 
-
-//watch(() => multisigTransaction.value?.metadata?.status, async (status, prevStatus) => {
-//  if (status !== prevStatus) {
-//    await updateTransaction({
-//      id: multisigTransaction.id,
-//      multisigTransaction: JSON.parse(JSON.stringify(multisigTransaction.value))
-//    })
-//  }
-//})
 
 const updateBroadcastStatus = async () => {
   try {

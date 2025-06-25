@@ -147,7 +147,7 @@ const createProposal = async () => {
     filterStrategy: 'bch-only',
     sortStrategy: 'smallest'
   }
-
+  console.log('UTXOS', utxos.value.utxos)
   const selected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
   console.log('SELECTED BEFORE FEE ESTIMATE', selected)
   // Construct inputs
@@ -195,7 +195,7 @@ const createProposal = async () => {
   selectUtxosOptions.targetAmount = sendAmount + minimumFee
   const finalSelected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
   console.log('final selected', finalSelected)
-  
+
   const finalInputs = finalSelected.selectedUtxos.map(u => commonUtxoToLibauthInput(u, [])) // without unlocking bytecode
   console.log('final inputs', finalInputs)
   const finalChangeOutput = {
@@ -230,7 +230,7 @@ const createProposal = async () => {
   console.log('FINAL TRANSACTION', finalTransaction)
   const sourceOutputs =
     finalSelected.selectedUtxos
-     .map(u => {
+      .map(u => {
         const utxo = commonUtxoToLibauthOutput(u)
         return {
           ...utxo,
@@ -238,7 +238,7 @@ const createProposal = async () => {
           outpointTransactionHash: hexToBin(u.txid),
           outpointIndex: Number(u.vout)
         }
-     })
+      })
   console.log('SOURCE OUTPUTS', sourceOutputs)
   const multisigTransaction = {
     origin: 'paytaca',
@@ -251,12 +251,13 @@ const createProposal = async () => {
   attachSourceOutputsToInputs(multisigTransaction)
   console.log('Multisig Transaction', multisigTransaction)
   await $store.dispatch('multisig/createTransaction', { multisigWallet: multisigWallet.value, multisigTransaction })
-  
-  router.push({ 
-   name: 'app-multisig-wallet-transaction-view',
-   params: {
-    address: route.params.address,
-    hash: generateTransactionHash(multisigTransaction)} 
+
+  router.push({
+    name: 'app-multisig-wallet-transaction-view',
+    params: {
+      address: route.params.address,
+      hash: generateTransactionHash(multisigTransaction)
+    }
   })
 }
 
