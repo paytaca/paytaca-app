@@ -83,7 +83,7 @@ export function selectUtxos (utxos, options) {
     if (tokenFilter && utxo.token) {
       if (tokenFilter.category && utxo.token.category !== tokenFilter.category) return false
       if (tokenFilter.capability && utxo.token.capability !== tokenFilter.capability) return false
-      if (tokenFilter.minAmount && BigInt(utxo.token.amount) < tokenFilter.minAmount) return false
+      if (tokenFilter.minAmount && BigInt(utxo.token.amount) < BigInt(tokenFilter.minAmount)) return false
     } else if (tokenFilter) {
       return false
     }
@@ -94,18 +94,26 @@ export function selectUtxos (utxos, options) {
   switch (sortStrategy) {
     case 'largest':
       if (filterStrategy === 'bch-only') {
-        candidates.sort((a, b) => b.satoshis - a.satoshis)
+        candidates.sort((a, b) => Number(b.satoshis) - Number(a.satoshis))
       }
       if (filterStrategy === 'token-only') {
-        candidates.sort((a, b) => b.token.amount - a.token.amount)
+        candidates.sort((a, b) => {
+	   if (BigInt(a.token.amount) > BigInt(b.token.amount)) return -1
+	   if (BigInt(a.token.amount) < BigInt(b.token.amount)) return 1
+	   return 0
+	})
       }
       break
     case 'smallest':
       if (filterStrategy === 'bch-only') {
-        candidates.sort((a, b) => a.satoshis - b.satoshis)
+        candidates.sort((a, b) => Number(a.satoshis) - Number(b.satoshis))
       }
       if (filterStrategy === 'token-only') {
-        candidates.sort((a, b) => a.token.amount - b.token.amount)
+        candidates.sort((a, b) => {
+	  if (BigInt(a.token.amount) < BigInt(b.token.amount)) return -1
+	  if (BigInt(a.token.amount) > BigInt(b.token.amount)) return 1
+	  return 0
+	})
       }
       break
     case 'oldest':
