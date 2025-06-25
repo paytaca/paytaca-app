@@ -1,5 +1,6 @@
 import { boot } from 'quasar/wrappers'
 import { migrateVuexLocalStorage } from 'src/utils/migrate-localstorage-to-indexdb'
+import { hydrateWallet } from 'src/utils/wallet-hydration'
 import useStore from 'src/store'
 
 /**
@@ -16,6 +17,8 @@ export default boot(async (obj) => {
 
     const store = useStore();
     const { app } = obj
+
+    await hydrateWallet()
 
     // Add error handler for store mutations
     store.subscribe((mutation, state) => {

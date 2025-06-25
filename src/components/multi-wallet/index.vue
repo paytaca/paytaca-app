@@ -230,7 +230,9 @@ export default {
       if (this.currentIndex === index) {
         return this.isChipnet ? this.$store.getters['assets/getAllAssets'].chipnet_assets[0] : this.$store.getters['assets/getAllAssets'].asset[0]
       } else {
-        return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
+        const assetVault = this.$store.getters['assets/getVault']
+        if (!assetVault) return {}
+        return this.isChipnet ? assetVault[index].chipnet_assets[0] : assetVault[index].asset[0]
       }
     },
     openBasicInfoDialog () {
