@@ -77,7 +77,6 @@ export async function createWallet ({ commit, getters, rootGetters, dispatch }, 
 export async function fetchWallets ({ commit, rootGetters }, { xpub }) {
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
   const response = await axios.get(`${watchtower}/api/multisig/wallets/?xpub=${xpub}`)
-  console.log('axios response fetch wallet', response.data)
   response?.data?.forEach((multisigWallet) => {
     commit('saveWallet', multisigWallet)
   })
@@ -107,7 +106,6 @@ export function saveTransaction ({ commit, dispatch }, multisigTransaction) {
 }
 
 export function createTransaction ({ commit, dispatch }, { multisigWallet, multisigTransaction }) {
-  console.log('CREATING TRANSACTION', multisigTransaction)
   multisigTransaction.id = ms.generateTempProposalId(multisigTransaction)
   multisigTransaction.signatures = []
   commit('saveTransaction', multisigTransaction)
@@ -135,7 +133,6 @@ export async function syncTransactionSignatures ({ commit, state, rootGetters },
     if (response.data) {
       const signaturesImportFormat = ms.signatureValuesToUint8Array({ signatures: response.data })
       commit('syncTransactionSignatures', { multisigTransaction, signatures: signaturesImportFormat })
-      console.log('signatures import format', signaturesImportFormat)
     }
   }
 }
@@ -167,10 +164,8 @@ export function deleteAllTransactions ({ commit }) {
 }
 
 export async function fetchTransactions ({ commit, rootGetters }, multisigWallet) {
-  console.log('WALLET', multisigWallet)
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
   const response = await axios.get(`${watchtower}/api/multisig/wallets/${multisigWallet.id}/transaction-proposals/`)
-  console.log('fetch', response.data)
   response.data?.forEach((multisigTransaction) => {
     const transaction = ms.importPst({ pst: multisigTransaction })
     commit('saveTransaction', transaction)
@@ -178,7 +173,6 @@ export async function fetchTransactions ({ commit, rootGetters }, multisigWallet
 }
 
 export async function uploadTransaction ({ commit, rootGetters }, { multisigWallet, multisigTransaction }) {
-  console.log('uploading multisig', multisigTransaction)
   const multisigTransactionExportFormat = ms.exportPst({
     multisigTransaction,
     addressIndex: multisigWallet.lockingData.hdKeys.addressIndex,
@@ -217,11 +211,11 @@ export async function broadcastTransaction ({ commit, rootGetters, dispatch }, m
     `${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/broadcast/`,
     { headers: { 'Content-Type': 'application/json' } }
   )
-  if (response?.data?.success || response?.data?.error?.includes('tx-already-known')) {
-    commit('updateTransactionStatus', { multisigTransaction, status: 'broadcasted' })
+  if (response?.success || response?.error?.includes('tx-already-known')) {
+    commit('updateTransactionBroadcastStatus', { id: multisigTransaction.id, broadcastStatus: 'done' })
     dispatch('deleteTransaction', { id: multisigTransaction.id, sync: false })
   }
-  console.log('BROADCAST RESPONSE DATA', response.data)
+  return response
 }
 
 export async function fetchWalletUtxos ({ commit, rootGetters }, cashAddress) {
@@ -239,17 +233,17 @@ export async function fetchWalletUtxos ({ commit, rootGetters }, cashAddress) {
   }).address
   const bchUtxosUrl = `${watchtower}/api/utxo/bch/${cashAddress}/`
   const tokenUtxosUrl = `${watchtower}/api/utxo/ct/${tokenAddress}/`
-
+  commit('clearWalletUtxos', { walletAddress: cashAddress })
   const fetchBchUtxos = async () => {
     const response = await axios.get(bchUtxosUrl)
-    if (response.data?.utxos) {
+    if (response.status === 200) {
       const utxos = response.data.utxos.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
       commit('addWalletUtxos', { walletAddress: cashAddress, utxos })
     }
   }
   const fetchTokenUtxos = async () => {
     const response = await axios.get(tokenUtxosUrl)
-    if (response.data) {
+    if (response.status === 200) {
       const utxos = response.data.utxos.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
       commit('addWalletUtxos', { walletAddress: cashAddress, utxos })
     }
