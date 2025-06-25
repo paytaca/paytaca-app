@@ -214,6 +214,7 @@ export async function fetchOrders (context, { statusType = null, params = null, 
       if (params.ownership?.owned === params.ownership?.notOwned) {
         owned = null
       }
+      console.log('params: ', params)
       const parameters = {
         page: pageNumber,
         currency: params.currency,

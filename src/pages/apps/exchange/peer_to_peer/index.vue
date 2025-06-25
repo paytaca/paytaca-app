@@ -1,14 +1,16 @@
 <template>
   <router-view :key="$route.path"></router-view>
   <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
+  <PendingOrders v-if="showPendingOrders"/>
   <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
-  <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false"/>
+  <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false; showPendingOrders = true"/>
 </template>
 <script>
 import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
 import FooterMenu from 'src/components/ramp/fiat/footerMenu.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import PendingOrders from 'src/components/ramp/fiat/PendingOrders.vue'
 import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
@@ -38,14 +40,16 @@ export default {
       showNoticeBoard: false,
       noticeBoardMessage: null,
       forceLogin: false,
-      wallet: null
+      wallet: null,
+      showPendingOrders: false
     }
   },
   components: {
     FooterMenu,
     RampLogin,
     ProgressLoader,
-    NoticeBoardDialog
+    NoticeBoardDialog,
+    PendingOrders
   },
   props: {
     notif: {
@@ -116,6 +120,7 @@ export default {
     fetchUser () {
       backend.get('ramp-p2p/user').then(response => {
         this.updateUnreadCount(response?.data?.user?.unread_orders_count)
+        this.showPendingOrders = true
       })
         .catch(error => {
           if (error.response) {
