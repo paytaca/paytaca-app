@@ -83,6 +83,13 @@ export function updateTransaction (state, { id, multisigTransaction }) {
   state.transactions.splice(index, 1, multisigTransaction)
 }
 
+export function updateTransactionBroadcastStatus(state, { id, broadcastStatus }) {
+ const transaction = state.transactions.find(t => t.id === id)
+ if (transaction) {
+   transaction.broadcastStatus = broadcastStatus
+ } 
+}
+
 export function addTransactionSignatures (state, { index, signerSignatures }) {
     const { signer, signatures } = signerSignatures
     if (!state.transactions?.[index]) return
@@ -141,6 +148,12 @@ export function deleteTransactionById(state, { id }) {
 
 export function deleteAllTransactions (state) {
   state.transactions = []
+}
+
+export function clearWalletUtxos (state, { walletAddress }) {
+  if (state.walletsUtxos[walletAddress]) {
+    state.walletsUtxos[walletAddress] = { utxos: [], lastUpdate: Math.floor(Date.now() / 1000 )}
+  }
 }
 
 export function addWalletUtxos (state, { walletAddress, utxos }) {
