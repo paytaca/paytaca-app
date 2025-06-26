@@ -592,6 +592,7 @@ onMounted(async () => {
       $store.getters['multisig/getTransactionByHash']({ hash: route.params.hash })
     )
     if (multisigTransaction.value) {
+      await $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: multisigTransaction.value })
       signingProgress.value = getSigningProgress({
           multisigTransaction: multisigTransaction.value,
           multisigWallet: multisigWallet.value
