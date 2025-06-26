@@ -60,8 +60,9 @@
                 <q-item-section side top class="flex flex-wrap items-center q-gutter-x-xs">
                   <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg">
                     {{
-                      getTotalBchOutputAmount(
-                        multisigTransaction.transaction
+                      getTotalBchDebitAmount(
+                        multisigTransaction.transaction,
+                        [route.params.address]
                       )
                     }}
                     &nbsp;
@@ -130,8 +131,8 @@
                 <q-item-section>
                   <q-item-label>Signing Progress</q-item-label>
                   <q-item-label caption lines="2">
-                   Provided: {{ signatureCount }},
-                   Requires: {{ getRequiredSignatures(multisigWallet.template)}}
+                   Signature Provided: {{ signatureCount }},
+                   Signature Required: {{ getRequiredSignatures(multisigWallet.template)}}
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side top>
@@ -300,10 +301,10 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   getTotalBchInputAmount,
   getTotalBchOutputAmount,
+  getTotalBchDebitAmount,
   getTotalBchChangeAmount,
   getTotalBchFee,
   shortenString,
-  refreshTransactionStatus,
   signTransaction as signMultisigTransaction,
   finalizeTransaction,
   exportPst,
@@ -402,7 +403,6 @@ const signTransaction = async ({ signerEntityKey }) => {
     multisigTransaction: multisigTransaction.value,
     signerSignatures 
   })
-  console.log('signerSignatures', signerSignatures)
 }
 
 const broadcastTransaction = async () => {
@@ -598,7 +598,6 @@ onMounted(async () => {
           multisigWallet: multisigWallet.value
       })
       updateBroadcastStatus({ multisigTransaction: multisigTransaction.value })
-      console.log('change amount', getTotalBchChangeAmount(multisigTransaction.value.transaction, route.params.address ))
     } 
   }
 })
