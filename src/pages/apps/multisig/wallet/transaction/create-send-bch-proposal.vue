@@ -79,6 +79,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, ref, onBeforeMount, onMounted, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
+import Big from 'big.js'
 import {
   cashAddressToLockingBytecode,
   encodeTransactionCommon,
@@ -137,7 +138,7 @@ const addRecipient = () => {
 
 const createProposal = async () => {
   const sendAmount = recipients.value.reduce((amtAccumulator, nextRecipient) => {
-    const amountNoDecimals = Math.floor(nextRecipient.amount * `1e${assetDecimals.value}`)
+    const amountNoDecimals = Big(nextRecipient.amount).mul(`1e${assetDecimals.value}`).toNumber()
     amtAccumulator += BigInt(amountNoDecimals)
     return amtAccumulator
   }, 0n)
@@ -147,14 +148,12 @@ const createProposal = async () => {
     filterStrategy: 'bch-only',
     sortStrategy: 'smallest'
   }
-  console.log('UTXOS', utxos.value.utxos)
   const selected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
-  console.log('SELECTED BEFORE FEE ESTIMATE', selected)
   // Construct inputs
   const inputs = selected.selectedUtxos
   // Construct outputs
   const outputs = recipients.value.map((recipient) => {
-    const valueSatoshis = BigInt(Math.floor(recipient.amount * `1e${assetDecimals.value}`))
+    const valueSatoshis = BigInt(Big(recipient.amount).mul(`1e${assetDecimals.value}`))
     const output = {
       lockingBytecode: cashAddressToLockingBytecode(recipient.address).bytecode,
       valueSatoshis
@@ -251,7 +250,7 @@ const createProposal = async () => {
   attachSourceOutputsToInputs(multisigTransaction)
   console.log('Multisig Transaction', multisigTransaction)
   await $store.dispatch('multisig/createTransaction', { multisigWallet: multisigWallet.value, multisigTransaction })
-
+  console.log('TRANSACTION HASH', generateTransactionHash(multisigTransaction))
   router.push({
     name: 'app-multisig-wallet-transaction-view',
     params: {
