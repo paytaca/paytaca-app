@@ -53,7 +53,7 @@
             <q-spinner-dots color="primary" size="40px" />
           </div>
           <q-pull-to-refresh @refresh="refreshData">
-            <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
+            <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto; padding-bottom: 120px;">
               <div v-for="(listing, index) in listings" :key="index">
                 <q-item>
                   <q-item-section>

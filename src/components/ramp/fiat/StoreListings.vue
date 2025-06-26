@@ -94,7 +94,7 @@
             <q-spinner-dots color="primary" size="40px" />
           </div>
           <q-pull-to-refresh @refresh="refreshData">
-            <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
+            <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto; padding-bottom: 120px;" >
               <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
                 <q-item-section>
                   <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">

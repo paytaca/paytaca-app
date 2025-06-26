@@ -123,7 +123,7 @@
             {{ $t('ADS') }}
           </button>
         </div>
-        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto; padding-bottom: 100px;">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">

@@ -8,7 +8,7 @@
 					<div>{{ userNameView(counterparty(order)) }}</div>	
 					<div>
 						<span v-if="order.is_cash_in"><q-badge outline rounded size="sm" color="warning"  label="Cashin" /> &nbsp;</span>
-						<span class="text-grey-5" style="font-size: 12px">{{ order.status.label }}</span>
+						<span :class="darkMode ? 'text-grey-5' : 'text-grey-6'" style="font-size: 12px">{{ order.status.label }}</span>
 					</div>
         		</q-card>
       		</div>
@@ -50,10 +50,7 @@ export default {
 			default: true
 		}
 	},
-	async mounted () {
-
-		const here = this.getStatus('sell')
-
+	async mounted () {		
 		await this.fetchOrders()
 		this.sortOrders()		
 	},
