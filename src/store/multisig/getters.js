@@ -1,5 +1,6 @@
-import { CashAddressNetworkPrefix, hashTransaction, binToHex, cashAddressToLockingBytecode } from 'bitauth-libauth-v3'
-import { getLockingBytecode } from 'src/lib/multisig'
+import { get } from '@vueuse/core'
+import { CashAddressNetworkPrefix, hashTransaction, binToHex, cashAddressToLockingBytecode, encodeTransactionCommon } from 'bitauth-libauth-v3'
+import { getLockingBytecode, transactionBinObjectsToUint8Array } from 'src/lib/multisig'
 
 export function getSettings (state) {
   return state.settings
@@ -61,8 +62,10 @@ export function getTransactionsByWalletAddress (state, getters) {
  */
 export function getTransactionByHash (state) {
   return ({ hash }) => {
-  console.log('PROVIDED HASH', hash)
-    return state.transactions.find((t) => hash === hashTransaction(t.transaction))
+    return state.transactions.find(t => {
+	  const txUnsignedHash = hashTransaction(encodeTransactionCommon(transactionBinObjectsToUint8Array(t.transaction))) 
+	  return hash === txUnsignedHash
+    })
   }
 }
 
@@ -81,6 +84,18 @@ export function getWalletUtxos (state) {
 export function getWalletUtxosLastUpdate (state) {
   return ({ address }) => {
     return state.walletsUtxosLastUpdate[address]?.utxos
+  }
+}
+
+export function getWalletById (state) {
+  return ({ id }) => {
+    return state.wallets.find(wallet => {
+      const targetIdIsTempId = !/^[0-9]+$/.test(id)
+      if (targetIdIsTempId) {
+        return getLockingBytecode({ ...wallet, hex: true }).bytecode === id
+      }
+      return wallet.id === Number(id)
+    })
   }
 }
 
