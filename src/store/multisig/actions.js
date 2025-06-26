@@ -126,11 +126,14 @@ export async function addTransactionSignatures ({ commit, state, rootGetters }, 
 }
 
 export async function syncTransactionSignatures ({ commit, state, rootGetters }, { multisigTransaction }) {
-  if (multisigTransaction.signatures && multisigTransaction.signatures.length > 0) {
-    const signaturesExportFormat = ms.signatureValuesToHex({ signatures: multisigTransaction.signatures })
+  if (ms.isMultisigTransactionSynced(multisigTransaction)) {
+    let signaturesExportFormat = [] 
+    if (multisigTransaction.signatures?.length > 0) { 
+      signaturesExportFormat = ms.signatureValuesToHex({ signatures: multisigTransaction.signatures }) 
+    }
     const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-    const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/`, signaturesExportFormat)
-    if (response.data) {
+    const response = await axios.post(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/signatures/?sync=true`, signaturesExportFormat) 
+    if (response.status === 200) { 
       const signaturesImportFormat = ms.signatureValuesToUint8Array({ signatures: response.data })
       commit('syncTransactionSignatures', { multisigTransaction, signatures: signaturesImportFormat })
     }
