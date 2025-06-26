@@ -105,13 +105,14 @@ export const transactionBinObjectsToUint8Array = (transactionObject) => {
 export const generateTempProposalId = multisigTransaction => {
   let transaction = structuredClone(multisigTransaction.transaction)
   transaction = transactionBinObjectsToUint8Array(transaction)
-  return hashTransaction(transaction)
+  return hashTransaction(encodeTransactionCommon(transaction))
 }
 
 export const generateTransactionHash = multisigTransaction => {
   let transaction = structuredClone(multisigTransaction.transaction)
   transaction = transactionBinObjectsToUint8Array(transaction)
-  return hashTransaction(transaction)
+  const encoded = encodeTransactionCommon(transaction)
+  return hashTransaction(encoded)
 }
 
 export const createMultisigTransactionFromWCSessionRequest = ({ sessionRequest, addressIndex }) => {
@@ -338,16 +339,16 @@ export const finalizeTransaction = ({
     ...transaction
   })
   if (!finalCompilation.success) {
-    const signersWithoutSignatures =
-      identifySignersWithoutSignatures({
-        multisigWallet,
-        multisigTransaction
-      })
-    multisigTransaction.metadata.signersWithoutSignatures = signersWithoutSignatures
+    //const signersWithoutSignatures =
+      //identifySignersWithoutSignatures({
+        //multisigWallet,
+       // multisigTransaction
+     // })
+    //multisigTransaction.metadata.signersWithoutSignatures = signersWithoutSignatures
     return finalCompilation
   }
 
-  multisigTransaction.metadata.finalized = finalCompilation.success
+  multisigTransaction.finalized = finalCompilation.success
   const vm = createVirtualMachineBch()
     const verificationResult = vm.verify({
     sourceOutputs: sourceOutputs, transaction: finalCompilation.transaction
@@ -358,7 +359,7 @@ export const finalizeTransaction = ({
   }
   const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
   finalCompilation.vmVerificationSuccess = verificationResult
-  finalCompilation.unsignedTransactionHash = hashTransaction(transaction)
+  finalCompilation.unsignedTransactionHash = hashTransaction(encodeTransactionCommon(transaction))
   finalCompilation.signedTransaction = binToHex(encodedTransaction)
   finalCompilation.signedTransactionHash = hashTransaction(encodedTransaction)
   
@@ -528,7 +529,7 @@ export const sourceOutputsValuesToUint8Array = ({ sourceOutputs }) => {
 
 export const combinePsts = ({ psts }) => {
   const sameTransactions = psts.every((pst) => {
-    return hashTransaction(pst.transaction) === hashTransaction(psts[0].transaction)
+    return hashTransaction(encodeTransactionCommon(pst.transaction)) === hashTransaction(encodeTransactionCommon(psts[0].transaction))
   })
   if (!sameTransactions) return
   const combinedPst = psts[0]
@@ -594,7 +595,7 @@ export const importPst = ({ pst }) => {
     // inserting address to output
     output.address = lockingBytecodeToCashAddress({ bytecode: output.lockingBytecode }).address
   })
-  parsed.transactionHash = hashTransaction(parsed.transaction)
+  parsed.transactionHash = hashTransaction(encodeTransactionCommon(parsed.transaction))
   if (!parsed.id) {
     parsed.id = generateTempProposalId(parsed)
   }
