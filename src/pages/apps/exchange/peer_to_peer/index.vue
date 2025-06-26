@@ -1,9 +1,9 @@
 <template>
   <router-view :key="$route.path"></router-view>
-  <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
-  <PendingOrders v-if="showPendingOrders"/>
+  <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>  
+  <PendingOrders :key="pendingOrderKey" v-if="showPendingOrders" :visible="showFooterMenu"/>
   <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
-  <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false; showPendingOrders = true"/>
+  <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false; showPending();"/>
 </template>
 <script>
 import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
@@ -41,7 +41,8 @@ export default {
       noticeBoardMessage: null,
       forceLogin: false,
       wallet: null,
-      showPendingOrders: false
+      showPendingOrders: false,
+      pendingOrderKey: 0
     }
   },
   components: {
@@ -97,6 +98,9 @@ export default {
   },
   methods: {
     isNotDefaultTheme,
+    showPending() {      
+      this.showPendingOrders=true      
+    },
     async loadWallet () {
       const isChipnet = this.$store.getters['global/isChipnet']
       const walletIndex = this.$store.getters['global/getWalletIndex']
@@ -120,7 +124,7 @@ export default {
     fetchUser () {
       backend.get('ramp-p2p/user').then(response => {
         this.updateUnreadCount(response?.data?.user?.unread_orders_count)
-        this.showPendingOrders = true
+        this.showPendingOrders = true        
       })
         .catch(error => {
           if (error.response) {
@@ -194,7 +198,7 @@ export default {
         }
       })
     },
-    handleRequestError (error) {
+    handleRequestError (error) {     
       console.error('Handling error:', error?.response || error)
       if (error?.code === 'ECONNABORTED') {
         // Request timeout
@@ -206,7 +210,9 @@ export default {
         // HTTP status code error
         switch (error.response.status) {
           case 403:
+            this.showPendingOrders = false
             bus.emit('session-expired')
+            console.log('here')
             break
           case 400:
             this.showErrorDialog('Bad Request. Please check the request parameters.')

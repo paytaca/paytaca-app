@@ -1,53 +1,31 @@
 <template>
-	<div class="orders-container text-black" v-if="orders.length !== 0">
-		<q-scroll-area style="height: 100px" class="full-width">
+	<div class="orders-container text-black" v-if="visible">
+		<q-scroll-area style="height: 90px" class="full-width" v-if="isSorted">
       		<div class="row no-wrap">
-        		<div v-for="order in orders" class="orders-card q-pa-sm q-mx-xs br-15" :class="order.trade_type === 'BUY' ? 'buy-order' : 'sell-order'">        
-					<div>Order #{{ order.id}}</div>	
-					<div>{{ order.type }}</div>	
-        		</div>
+        		<q-card bordered @click="selectOrder(order)" v-for="order in orders" class="orders-card pt-card q-pa-sm q-px-md q-mx-xs br-15" 
+        			:class="[getDarkModeClass(darkMode), darkMode ? 'text-white' : 'text-black']">        
+					<div class="text-bold">Order #{{ order.id}}</div>	
+					<div>{{ userNameView(counterparty(order)) }}</div>	
+					<div>
+						<span v-if="order.is_cash_in"><q-badge outline rounded size="sm" color="warning"  label="Cashin" /> &nbsp;</span>
+						<span class="text-grey-5" style="font-size: 12px">{{ order.status.label }}</span>
+					</div>
+        		</q-card>
       		</div>
     	</q-scroll-area>	
 	</div> 
 </template>
 <script>
 import { backend } from 'src/exchange/backend'
+import { wallet } from 'src/exchange/wallet'
+import { bus } from 'src/wallet/event-bus.js'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
 	data () {
 		return {
-			orders: [
-				{
-					name: 'Nikki',
-					status: 'Escrowed',
-					amount: 'PHP 50',
-					type: 'Buy'
-				},	
-				{
-					name: 'Azzy',
-					status: 'Escrowed',
-					amount: 'PHP 50',
-					type: 'Sell'
-				},
-				{
-					name: 'Heart',
-					status: 'Escrowed',
-					amount: 'PHP 50',
-					type: 'Buy'
-				},
-				{
-					name: 'Hani',
-					status: 'Escrowed',
-					amount: 'PHP 50',
-					type: 'Sell'
-				},
-				{
-					name: 'Elle',
-					status: 'Escrowed',
-					amount: 'PHP 50',
-					type: 'Buy'
-				},
-			],
+			darkMode: this.$store.getters['darkmode/getStatus'],
+			orders: [],
 			ongoingStatuses: [		       
 		        { value: 'ESCRW_PN', label: this.$t('EscrowPending') },
 		        { value: 'ESCRW', label: this.$t('Escrowed') },
@@ -57,55 +35,102 @@ export default {
 		        { value: 'RLS_PN', label: this.$t('ReleasePending') },
 		        { value: 'RFN_PN', label: this.$t('RefundPending') }
 		      ],
+			isSorted: false
 
 		}
 	},
+	computed: {
+		userInfo () {
+	      return this.$store.getters['ramp/getUser']
+	    },
+	},
+	props: {
+		visible: {
+			type: Boolean,
+			default: true
+		}
+	},
 	async mounted () {
+
 		const here = this.getStatus('sell')
 
 		await this.fetchOrders()
-		this.sortOrders()
-		console.log('status: ', here)
+		this.sortOrders()		
 	},
 	methods: {
+		getDarkModeClass,
 		async fetchOrders () {
+			this.isSorted = false
 			let tempList = []
 			let apiURL = '/ramp-p2p/order/'
 			let params = {
 				page: 1,
 				limit: 50,
-				status_type: 'ONGOING',				
+				status_type: 'ONGOING',	
+				sort_by: 'ASCENDING'			
 			}	
 
-			const temp = this.getStatus('buy')
+			let temp = null			
+			// Fetch Cashout Orders
+			const parameters = {
+		      wallet_hash: wallet.walletHash,
+		      page: 1,
+		      limit: 50,
+		      status_type: 'ONGOING',
+		      owned: false
+		    }
+		   	let url = '/ramp-p2p/order/cash-in/'
+		    await backend.get(url, { params: parameters })
+		    	.then(response => {		    		
+		    		if (response.data.count > 0) {
+						tempList.push(...response.data?.orders)					
+					}
+		    	})
+		    	.catch(error => {
+		    		bus.emit('handle-request-error', error)
+		    	})
+			
+			// Fetch Buy Orders
+			temp = this.getStatus('buy')
 
 			if (temp?.length > 0) {
 		        const status = temp.join('&status=')
 		        const prefix = '?'
 		        apiURL = `${apiURL}${prefix}status=${status}`	     
-		      }
-			// for buy
-		      console.log('apiURL: ', apiURL)
+		      }		      
 		    params.trade_type = 'BUY'
 			await backend.get(apiURL, { params: params, authorize: true})
-				.then(response => {
-					console.log('here: ', response.data)
+				.then(response => {					
 					if (response.data.count > 0) {
-						tempList.push(...response.data?.orders)					}					
+						tempList.push(...response.data?.orders)					
+					}					
 				})
+				.catch(error => {
+		    		bus.emit('handle-request-error', error)
+		    	})
 
-			// sell
+			apiURL = '/ramp-p2p/order/'
+
+			// Fetch Sell Orders
+			temp = this.getStatus('sell')
+
+			if (temp?.length > 0) {
+		        const status = temp.join('&status=')
+		        const prefix = '?'
+		        apiURL = `${apiURL}${prefix}status=${status}`	     
+		      }		    
 			params.trade_type = 'SELL'
 			await backend.get(apiURL, { params: params, authorize: true })
-				.then(response => {
-					console.log('here: ', response.data)
+				.then(response => {					
 					if (response.data.count > 0) {
 						tempList.push(...response.data?.orders)
 					}					
 				})
+				.catch(error => {
+		    		bus.emit('handle-request-error', error)
+		    	})
 
-			this.orders = tempList
-			console.log('temp: ', tempList)
+			this.orders = tempList			
 		},
 		getStatus (type = 'buy') {
 			let temp = this.ongoingStatuses
@@ -125,10 +150,24 @@ export default {
 			return temp
 		},
 		sortOrders () {
-			this.orders = this.orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+			this.orders = this.orders.sort((a, b) => new Date(b.last_modified_at) - new Date(a.last_modified_at));
 
-			console.log('sorted: ', this.orders)
-		}
+			this.isSorted = true			
+		},
+		selectOrder (data) {
+			this.$router.push({ name: 'p2p-order', params: { order: data?.id } })
+		},
+		counterparty (order) {
+	      if (order?.owner?.name === this.userInfo?.name) {
+	        return order?.ad?.owner?.name
+	      }
+	      return order?.owner?.name
+	    },
+	    userNameView (name) {
+	      if (!name) return
+	      const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name
+	      return limitedView
+	    },
 	}
 }
 
@@ -142,8 +181,7 @@ export default {
 	margin: 0px 10px 0px;
 }
 .orders-card {
-	width: 150px;
-	height: 100px;
+	width: 185px;	
 	background: #fff;
 }
 .sell-order {
