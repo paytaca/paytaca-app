@@ -442,12 +442,10 @@ export const signTransaction = ({
     }
     signerSignatures.push(signerSignatureForInput)
   }
-  multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_PARTIALLY_SIGNED
   const finalizationResult = finalizeTransaction({
     multisigWallet,
     multisigTransaction
   })
-  multisigTransaction.metadata.finalized = finalizationResult.success
   return { signer: signerEntityKey, signatures: signerSignatures }
 }
 
