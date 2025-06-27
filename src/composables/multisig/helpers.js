@@ -106,8 +106,8 @@ export const useMultisigHelpers = () => {
 
   const getMultisigWalletBchBalance = async (address) => {
     const watchtower = new Watchtower($store.getters['global/isChipnet'])
-    const bch = await watchtower.getAddressBchBalance(address)
-    return bch.balance
+    const response = await watchtower.getAddressBchBalance(address)
+    return response?.data?.balance
   }
 
   const getTransactionsByWalletAddress = ({ address }) => {
