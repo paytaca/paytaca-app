@@ -147,20 +147,20 @@
                             {{ `${walletYield} ${selectedMarketCurrency}` }}
                           </span>
                         </q-badge>
-                        <StablehedgeButtons
+                        <!-- <StablehedgeButtons
                           v-if="stablehedgeView"
                           class="q-mt-xs"
                           :selectedDenomination="selectedDenomination"
                           @deposit="onStablehedgeTransaction"
                           @redeem="onStablehedgeTransaction"
-                        />
-                        <div v-else-if="hasCashin">
+                        /> -->
+                        <!-- <div v-else-if="hasCashin">
                           <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
                             <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
                             <div style="padding-right: 10px;">Cash In</div>
                             <q-badge v-if="hasCashinAlert" align-left floating rounded color="red"/>
                           </q-btn>
-                        </div>
+                        </div> -->
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
@@ -183,6 +183,18 @@
               </div>
             </div>
           </div>
+
+          <asset-options 
+            :stablehedgeView="stablehedgeView"
+            :loaded="balanceLoaded"
+            :selectedDenomination="selectedDenomination"
+            :hasCashin="hasCashin"
+            @cashin="openCashIn()"
+            @price-chart="openPriceChart()"
+            @deposit="onStablehedgeTransaction"
+            @redeem="onStablehedgeTransaction"
+
+          />
           <div
             v-if="!showTokens"
             class="text-center button button-text-primary show-tokens-label"
@@ -314,7 +326,7 @@
           <div v-if="showTokens && assets.length == 0" style="height: 10px;"></div>
         </div>
       </q-pull-to-refresh>
-      <div ref="transactionSection" class="row transaction-row">
+      <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
           ref="transaction"
           :wallet="wallet"
@@ -406,7 +418,7 @@
             />
           </KeepAlive>
         </div>
-      </div>
+      </div> -->
       <footer-menu ref="footerMenu" />
     </div>
 
@@ -462,6 +474,7 @@ import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/Stabl
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
+import AssetOptions from 'src/components/asset-options.vue'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
 
@@ -483,7 +496,8 @@ export default {
     StablehedgeButtons,
     StablehedgeHistory,
     StablehedgeMarketsDialog,
-    NotificationButton
+    NotificationButton,
+    AssetOptions
   },
   directives: {
     dragscroll
@@ -597,8 +611,8 @@ export default {
       set(value) {
         this.stablehedgeView = value === 'stablehedge'
         this.$nextTick(() => {
-          this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
-          this.$refs['transaction-list-component'].getTransactions()
+          // this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
+          // this.$refs['transaction-list-component'].getTransactions()
         })
       }
     },
@@ -899,11 +913,11 @@ export default {
         if (setAsset?.id && vm.assets.find(asset => asset?.id == setAsset?.id)) {
           vm.selectedAsset = setAsset
         }
-        vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
+        // vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
         vm.assets.map(function (asset) {
           return vm.getBalance(asset.id)
         })
-        vm.$refs['transaction-list-component'].getTransactions()
+        // vm.$refs['transaction-list-component'].getTransactions()
       }
     },
     selectBch () {
@@ -914,8 +928,8 @@ export default {
       vm.txSearchReference = ''
       
       vm.$nextTick(() => {
-        vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
-        vm.$refs['transaction-list-component'].getTransactions()
+        // vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
+        // vm.$refs['transaction-list-component'].getTransactions()
       })
       vm.assetClickCounter += 1
       if (vm.assetClickCounter >= 2) {
@@ -1252,7 +1266,7 @@ export default {
         }
 
         const balancePromise = vm.getBalance(vm.selectedAsset.id)
-        const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
+        // const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
 
         let tokenIconUpdatePromise
         if (this.selectedNetwork === 'sBCH') {
@@ -1263,7 +1277,7 @@ export default {
 
         return Promise.allSettled([
           balancePromise,
-          txFetchPromise,
+          // txFetchPromise,
           tokenIconUpdatePromise,
         ])
       } else {
