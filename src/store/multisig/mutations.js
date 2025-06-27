@@ -90,6 +90,13 @@ export function updateTransactionBroadcastStatus(state, { id, broadcastStatus })
  } 
 }
 
+export function updateTransactionTxid(state, { id, txid }) {
+ const transaction = state.transactions.find(t => t.id === id)
+ if (transaction) {
+   transaction.txid = txid
+ } 
+}
+
 export function addTransactionSignatures (state, { index, signerSignatures }) {
     const { signer, signatures } = signerSignatures
     if (!state.transactions?.[index]) return

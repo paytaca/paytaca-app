@@ -90,19 +90,19 @@
             <template v-slot:default>
              <div class="row justify-around">
               <q-icon name="mdi-share-all" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Share Wallet</div>
+              <div class="col-12 tile-label">Share</div>
              </div>
             </template>
            </q-btn>
-           <q-btn flat dense no-caps @click="loadTransactionProposal" class="tile" v-close-popup>
+           <q-btn flat dense no-caps @click="exportWallet" class="tile" v-close-popup>
              <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="mdi-file-export" class="col-12" color="primary"></q-icon>
-                <div class="col-12 tile-label">Import Tx</div>
+                <div class="col-12 tile-label">Export</div>
               </div>
              </template>
            </q-btn>
-           <q-btn flat dense no-caps @click="openWalletActionsDialog" class="tile" v-close-popup>
+<q-btn flat dense no-caps @click="openWalletActionsDialog" class="tile" v-close-popup>
              <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="more_vert" class="col-12" color="primary"></q-icon>

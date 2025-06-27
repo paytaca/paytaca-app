@@ -216,6 +216,7 @@ export async function broadcastTransaction ({ commit, rootGetters, dispatch }, m
   )
   if (response?.success || response?.error?.includes('tx-already-known')) {
     commit('updateTransactionBroadcastStatus', { id: multisigTransaction.id, broadcastStatus: 'done' })
+    commit('updateTransactionTxid'), { id: multisigTransaction.id, txid: response.txid}
     dispatch('deleteTransaction', { id: multisigTransaction.id, sync: false })
   }
   return response
