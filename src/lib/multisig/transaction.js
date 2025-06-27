@@ -359,7 +359,6 @@ export const finalizeTransaction = ({
   }
   const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
   finalCompilation.vmVerificationSuccess = verificationResult
-  finalCompilation.unsignedTransactionHash = hashTransaction(encodeTransactionCommon(transaction))
   finalCompilation.signedTransaction = binToHex(encodedTransaction)
   finalCompilation.signedTransactionHash = hashTransaction(encodedTransaction)
   
