@@ -3,8 +3,8 @@
 		<div v-if="stablehedgeView">
 			<div class="row">
 				<div class="col" v-for="opt in stablehedgeOpt">
-		            <q-btn color="primary" round :disable="!loaded" @click="handleButton(opt.name)">
-		            	<q-icon class="default-text-color" size="20px" :name="opt.icon"/>
+		            <q-btn color="primary" round size="18px" :disable="!loaded" @click="handleButton(opt.name)">
+		            	<q-icon class="default-text-color" size="30px" :name="opt.icon"/>
 		            </q-btn>
 		            <div class="q-pt-sm text-center text-capitalize title-smaller">{{ opt.name }}</div>
 		        </div>	         
@@ -13,8 +13,8 @@
 		<div v-else>
 			<div class="row">	             
 	              <div class="col" v-for="opt in bchOpt">	              	
-	                <q-btn color="primary" class="button-default" round :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
-	                  <q-icon class="default-text-color"  size="20px" :name="opt.icon"/>
+	                <q-btn color="primary" class="button-default" round size="18px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
+	                  <q-icon class="default-text-color"  size="30px" :name="opt.icon"/>
 	                </q-btn>
 	                <div class="q-pt-sm text-center text-capitalize title-small">{{ opt.name }}</div>
 	              </div>
