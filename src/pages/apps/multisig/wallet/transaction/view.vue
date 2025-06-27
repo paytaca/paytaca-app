@@ -324,6 +324,7 @@ import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import UploadPstDialog from 'components/multisig/UploadPstDialog.vue'
 import TransactionActionsDialog from 'components/multisig/TransactionActionsDialog.vue'
 import ShareTransactionActionsDialog from 'components/multisig/ShareTransactionActionsDialog.vue'
+import BroadcastSuccessDialog from 'components/multisig/BroadcastSuccessDialog.vue'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -405,6 +406,20 @@ const signTransaction = async ({ signerEntityKey }) => {
   })
 }
 
+const showBroadcastSuccessDialog = async () => {
+    $q.dialog({
+	   component: BroadcastSuccessDialog, 
+	   componentProps: {
+	     amountSent: getTotalBchDebitAmount(multisigTransaction.value.transaction, [route.params.address]),
+	     txid: multisigTransaction.value.txid,
+	     message: 'Successfully Sent',
+	     darkMode: darkMode.value
+	   }
+     }).onOk(() => {
+        router.push({ name: 'app-multisig-wallet-view', params: { address: route.params.address }})
+     })
+
+}
 const broadcastTransaction = async () => {
   const finalCompilationResult = await $store.dispatch(
 	'multisig/finalizeTransaction',
@@ -414,7 +429,7 @@ const broadcastTransaction = async () => {
     await $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
     await updateBroadcastStatus()
     if (multisigTransaction.value?.broadcastStatus === 'done') {
-      router.back()
+      await showBroadcastSuccessDialog()
     }
   } else {
     const message = finalCompilationResult.error || finalCompilationResult.vmVerificationError
