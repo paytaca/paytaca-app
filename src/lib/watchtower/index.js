@@ -190,7 +190,10 @@ class Watchtower extends WatchtowerSdk {
     }
     return await axios.get(`${this._baseUrl}balance/ct/${tokenAddress}/`)
   }
-
+  
+  async subscribeAddress (address) {
+     return await axios.post(`${this._baseUrl}subscription/`, { address })
+  }
 }
 
 export default Watchtower
