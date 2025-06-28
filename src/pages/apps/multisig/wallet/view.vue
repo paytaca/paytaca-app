@@ -94,7 +94,13 @@
             </q-list>
           </div>
           <div class="flex flex-wrap justify-around q-mt-lg"> 
-           <q-btn flat dense no-caps @click="openShareWalletActionsDialog" class="tile" v-close-popup>
+           <q-btn
+            :to="{ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address }}" 
+            class="tile"
+            flat
+            dense
+            no-caps
+            v-close-popup>
             <template v-slot:default>
              <div class="row justify-around">
               <q-icon name="send" class="col-12" color="primary"></q-icon>
@@ -102,7 +108,7 @@
              </div>
             </template>
            </q-btn>
-           <q-btn flat dense no-caps @click="exportWallet" class="tile" v-close-popup>
+           <q-btn flat dense no-caps @click="showWalletReceiveDialog" class="tile" v-close-popup>
              <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
