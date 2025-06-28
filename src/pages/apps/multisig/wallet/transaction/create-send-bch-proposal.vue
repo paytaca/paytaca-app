@@ -63,8 +63,14 @@
               </template>
               </div>
             </div>
-            <div class="q-my-lg q-mx-sm"> </div>
-              <q-btn @click="createProposal" label="Create Proposal" color="primary"></q-btn>
+            <q-btn :loading="loading" @click="createProposal" class="q-mt-lg" label="Create Proposal" color="primary">
+              <template v-slot:loading>
+                <div class="flex flex-nowrap items-center">
+                   <span v-if="loading">Preparing Proposal</span>
+                   <q-spinner-facebook v-if="loading" class="on-right"></q-spinner-facebook>
+                </div>
+              </template>
+            </q-btn>
           </div>
         </div>
       </q-page>
@@ -76,7 +82,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, ref, onBeforeMount, onMounted, inject } from 'vue'
+import { computed, ref, onBeforeMount, onMounted, inject, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -115,6 +121,7 @@ const assetBalance = ref()
 const purpose = ref('Send Bitcoin Cash')
 const recipients = ref([])
 const watchtower = ref()
+const loading = ref(false)
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
@@ -137,6 +144,8 @@ const addRecipient = () => {
 }
 
 const createProposal = async () => {
+  loading.value = true
+  await $store.dispatch('multisig/fetchWalletUtxos', route.params.address)
   const sendAmount = recipients.value.reduce((amtAccumulator, nextRecipient) => {
     const amountNoDecimals = Big(nextRecipient.amount).mul(`1e${assetDecimals.value}`).toNumber()
     amtAccumulator += BigInt(amountNoDecimals)
@@ -193,16 +202,11 @@ const createProposal = async () => {
   // selectWithFee
   selectUtxosOptions.targetAmount = sendAmount + minimumFee
   const finalSelected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
-  console.log('final selected', finalSelected)
-
   const finalInputs = finalSelected.selectedUtxos.map(u => commonUtxoToLibauthInput(u, [])) // without unlocking bytecode
-  console.log('final inputs', finalInputs)
   const finalChangeOutput = {
     lockingBytecode: getLockingBytecode(multisigWallet.value).bytecode,
     valueSatoshis: finalSelected.total - sendAmount - minimumFee
   }
-
-  console.log('Change output is dust', isDustOutput(finalChangeOutput))
 
   if (!isDustOutput(finalChangeOutput)) {
     outputs.push(finalChangeOutput)
@@ -220,13 +224,6 @@ const createProposal = async () => {
     $q.dialog({ message: 'Insufficient Balance' })
   }
 
-  // TODO: prepare multisig tx proposal for signing
-  console.log('Final inputs', finalInputs)
-  console.log('Total Output', finalSelected.total)
-  console.log('Send Amount', sendAmount)
-  console.log('Minimum Fee', minimumFee)
-  console.log('Change Amount', finalChangeOutput.valueSatoshis)
-  console.log('FINAL TRANSACTION', finalTransaction)
   const sourceOutputs =
     finalSelected.selectedUtxos
       .map(u => {
@@ -238,7 +235,7 @@ const createProposal = async () => {
           outpointIndex: Number(u.vout)
         }
       })
-  console.log('SOURCE OUTPUTS', sourceOutputs)
+
   const multisigTransaction = {
     origin: 'paytaca',
     purpose: purpose.value,
@@ -247,10 +244,10 @@ const createProposal = async () => {
     addressIndex: multisigWallet.value.lockingData.hdKeys.addressIndex,
     address: route.params.address
   }
+
   attachSourceOutputsToInputs(multisigTransaction)
-  console.log('Multisig Transaction', multisigTransaction)
   await $store.dispatch('multisig/createTransaction', { multisigWallet: multisigWallet.value, multisigTransaction })
-  console.log('TRANSACTION HASH', generateTransactionHash(multisigTransaction))
+  loading.value = false
   router.push({
     name: 'app-multisig-wallet-transaction-view',
     params: {
@@ -260,11 +257,9 @@ const createProposal = async () => {
   })
 }
 
-onBeforeMount(async () => {
-  await $store.dispatch('multisig/fetchWalletUtxos', route.params.address)
-})
-
 onMounted(async () => {
+  try {
+  loading.value = true
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
   const response = await watchtower.value.getAddressBchBalance(route.params.address)
   if (response.data) {
@@ -272,5 +267,9 @@ onMounted(async () => {
   }
   multisigWallet.value = $store.getters['multisig/getWalletByAddress']({ address: route.params.address })
   addRecipient()
+  $store.dispatch('multisig/fetchWalletUtxos', route.params.address)
+ }
+ catch(e) { console.log(e) }
+ finally { loading.value = false }
 })
 </script>
