@@ -10,6 +10,7 @@ import {
 import * as ms from 'src/lib/multisig'
 import { watchtowerUtxoToCommonUtxo } from 'src/utils/utxo-utils'
 import { getMnemonic, getHdKeys, signMessageWithHdPrivateKey } from 'src/wallet'
+import Watchtower from 'src/lib/watchtower'
 
 export async function subscribeWalletAddress ({ commit, getters, rootGetters }, multisigWallet) {
   const options = { ...multisigWallet }
@@ -17,7 +18,8 @@ export async function subscribeWalletAddress ({ commit, getters, rootGetters }, 
     options.cashAddressNetworkPrefix = CashAddressNetworkPrefix.testnet
   }
   const address = ms.getMultisigCashAddress(options)
-  const response = await axios.post(`${rootGetters['global/getWatchtowerBaseUrl']}/api/subscription/`, { address })
+  const watchtower = new Watchtower(rootGetters['global/isChipnet'])
+  return await  watchtower.subscribeAddress(address)
 }
 
 export async function uploadWallet ({ commit, getters, rootGetters }, { multisigWallet }) {
