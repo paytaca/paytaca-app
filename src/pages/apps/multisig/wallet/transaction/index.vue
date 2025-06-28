@@ -99,7 +99,19 @@ onBeforeMount(async () => {
 onMounted(() => {
   console.log('multisig tx', multisigTransactions.value)
   if (multisigTransactions.value?.length === 0) {
-    router.push({ name: 'app-multisig-wallet-view', params: { address: route.params.address } })
+    router.push({
+      name: 'app-multisig-wallet-view',
+      params: { address: route.params.address } 
+    })
+  }
+  if (multisigTransactions.value?.length === 1) {
+    router.push({
+      name: 'app-multisig-wallet-transaction-view',
+      params: {
+        address: route.params.address,
+        hash: generateTransactionHash(multisigTransactions.value[0])
+      }
+    })
   }
 })
 
