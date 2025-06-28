@@ -138,9 +138,8 @@
               <q-item>
                 <q-item-section>
                   <q-item-label>Signing Progress</q-item-label>
-                  <q-item-label caption lines="2">
-                   Signature Provided: {{ signatureCount }},
-                   Signature Required: {{ getRequiredSignatures(multisigWallet.template)}}
+                  <q-item-label caption>
+                   Signatures: {{ signatureCount }}, Required: {{ getRequiredSignatures(multisigWallet.template)}}
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side top>
@@ -148,7 +147,6 @@
                     @click="checkSigningProgress"
                     :loading="checkingSigningProgress"
                     flat
-                    no-caps
                     dense>
                     <template v-slot:loading>
                       <div class="flex flex-nowrap items-center">
@@ -162,7 +160,7 @@
                         <q-icon 
 			  :name="signingProgress === 'fully-signed'? 'done_all': 'refresh'"
 			  :color="signingProgress === 'done'? 'green': 'primary'"
-                          size="sm" class="q-ml-sm"
+                          size="sm" class="q-ml-xs"
                           >
                         </q-icon>
                       </div>
@@ -222,7 +220,6 @@
                     @click="updateBroadcastStatus"
                     :loading="updatingBroadcastStatus"
                     flat
-                    no-caps
                     dense>
                     <template v-slot:loading>
                       <div class="flex flex-nowrap items-center">
@@ -238,7 +235,7 @@
                         <q-icon 
 			  :name="multisigTransaction.broadcastStatus === 'done'? 'done_all': 'refresh'"
 			  :color="multisigTransaction.broadcastStatus === 'done'? 'green': 'primary'"
-                          size="sm" class="q-ml-sm"
+                          size="sm" class="q-ml-xs"
                           >
                         </q-icon>
                       </div>
@@ -439,6 +436,7 @@ const signTransaction = async ({ signerEntityKey }) => {
 }
 
 const showBroadcastSuccessDialog = async () => {
+   
     $q.dialog({
 	   component: BroadcastSuccessDialog, 
 	   componentProps: {
@@ -568,6 +566,7 @@ const openTransactionActionsDialog = () => {
     component: TransactionActionsDialog,
     componentProps: {
       darkMode: darkMode.value,
+      broadcastDone: multisigTransaction.value?.broadcastStatus === 'done',
       onDeleteTx: () => {
         $q.dialog({
           message: 'Are you sure you want to delete this transaction proposal?',
@@ -632,6 +631,7 @@ const checkSigningProgress = async () => {
      multisigWallet: multisigWallet.value,
      multisigTransaction: multisigTransaction.value
    })
+   multisigTransaction.value = structuredClone($store.getters['multisig/getTransactionByHash']({ hash: route.params.hash }))
   } catch(e) {
     console.log(e)
   } finally {

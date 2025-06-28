@@ -163,8 +163,8 @@ export function updateTransaction ({ commit }, { id, multisigTransaction }) {
 export async function updateBroadcastStatus ({ commit, rootGetters }, { multisigTransaction }) {
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
   const response = await axios.get(`${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/status/`)
-  if (response?.data?.broadcastStatus) {
-    commit('updateBroadcastStatus', { multisigTransaction, broadcastStatus: response.data.broadcastStatus })
+  if (response.data?.broadcastStatus) {
+    commit('updateBroadcastStatus', { multisigTransaction, broadcastStatus: response.data?.broadcastStatus })
   }
 }
 
@@ -230,10 +230,10 @@ export async function broadcastTransaction ({ commit, rootGetters, dispatch }, m
     `${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/broadcast/`,
     { headers: { 'Content-Type': 'application/json' } }
   )
-  if (response?.success || response?.error?.includes('tx-already-known')) {
+  if (response.data?.success || response.data?.error?.includes('txn-already-known') || response.data?.error?.includes('txn-already-in-mempool')) {
     commit('updateTransactionBroadcastStatus', { id: multisigTransaction.id, broadcastStatus: 'done' })
-    commit('updateTransactionTxid'), { id: multisigTransaction.id, txid: response.txid}
-    dispatch('deleteTransaction', { id: multisigTransaction.id, sync: false })
+    commit('updateTransactionTxid', { id: multisigTransaction.id, txid: response.data?.txid})
+    dispatch('deleteTransactionById', { id: multisigTransaction.id, sync: false })
   }
   return response
 }

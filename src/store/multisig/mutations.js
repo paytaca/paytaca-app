@@ -71,7 +71,6 @@ export function walletConnectSignTransactionRequest (state, { address, sessionRe
 }
 
 export function saveTransaction (state, multisigTransaction) {
-  console.log('multisigTransaction')
   const index = state.transactions.findIndex((storedMultisigTransaction) => {
     return (
       hashTransaction(multisigTransaction.transaction) ===
@@ -85,7 +84,6 @@ export function saveTransaction (state, multisigTransaction) {
 }
 
 export function updateTransaction (state, { id, multisigTransaction }) {
-  console.log('STATE', state.transactions, id)
   const index = state.transactions.find(t => t.id === id) 
   if (index === -1) return
   state.transactions.splice(index, 1, multisigTransaction)
@@ -99,9 +97,9 @@ export function updateTransactionBroadcastStatus(state, { id, broadcastStatus })
 }
 
 export function updateTransactionTxid(state, { id, txid }) {
- const transaction = state.transactions.find(t => t.id === id)
- if (transaction) {
-   transaction.txid = txid
+ const multisigTransaction = state.transactions.find(t => t.id === id)
+ if (multisigTransaction) {
+   multisigTransaction.txid = txid
  } 
 }
 
@@ -124,7 +122,6 @@ export function addTransactionSignatures (state, { index, signerSignatures }) {
 
 export function syncTransactionSignatures(state, { multisigTransaction, signatures }) {
   const foundMultisigTransaction = state.transactions.find((m) => m.id === multisigTransaction.id)
-  console.log('syncing', foundMultisigTransaction, signatures)
   if (!foundMultisigTransaction) return
   signatures.forEach((signature) => {
     const i = foundMultisigTransaction.signatures.findIndex((s) => {
