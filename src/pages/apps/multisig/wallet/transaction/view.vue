@@ -14,7 +14,16 @@
             <q-list>
               <q-item>
                 <q-item-section>
-                    <q-item-label class="text-weight-bold">{{ multisigTransaction.metadata?.prompt }}</q-item-label>
+                    <q-item-label class="text-weight-bold">
+                      <div class="flex items-center">
+                       <span>{{ multisigTransaction.metadata?.prompt }}</span>
+                       <q-icon 
+                         :name="isMultisigTransactionSynced(multisigTransaction) ? 'mdi-cloud-check' : 'smartphone'"
+                         :color="isMultisigTransactionSynced(multisigTransaction)? 'green': 'grey-6'"
+                         class="q-ml-sm"
+                       />
+                      </div>
+                    </q-item-label>
                     <q-item-label caption lines="2" class="text-subtitle-2">Origin: {{ multisigTransaction.metadata?.origin }}</q-item-label>
                 </q-item-section>
                 <q-item-section side top>
@@ -26,12 +35,11 @@
                   <q-item-label>
                     <div class="flex flex-wrap items-center">
                     <span class="q-mr-xs">Proposal Id</span>
-                    <q-icon :name="isMultisigTransactionSynced(multisigTransaction) ? 'cloud' : 'smartphone'" color="grey-6"></q-icon>
                     </div>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  {{ shortenString(`${multisigTransaction.id}`, 20) }}
+                  <span class="q-mr-xs">{{ shortenString(`${multisigTransaction.id}`, 20) }}</span>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -136,7 +144,30 @@
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side top>
-                  {{ signingProgress }}
+                <q-btn
+                    @click="checkSigningProgress"
+                    :loading="checkingSigningProgress"
+                    flat
+                    no-caps
+                    dense>
+                    <template v-slot:loading>
+                      <div class="flex flex-nowrap items-center">
+                          <span v-if="checkingSigningProgress">Checking</span>
+                          <q-spinner-facebook v-if="checkingSigningProgress" class="on-right"></q-spinner-facebook>
+                      </div>
+                  </template>
+                    <template v-slot:default>
+                      <div class="flex flex-nowrap items-center">
+                        <span>{{ signingProgress || '?' }}</span>
+                        <q-icon 
+			  :name="signingProgress === 'fully-signed'? 'done_all': 'refresh'"
+			  :color="signingProgress === 'done'? 'green': 'primary'"
+                          size="sm" class="q-ml-sm"
+                          >
+                        </q-icon>
+                      </div>
+                  </template>
+                  </q-btn>
                 </q-item-section>
               </q-item>
               <q-item v-for="signerEntityKey in Object.keys(multisigWallet.template.entities)" :key="signerEntityKey">
@@ -348,6 +379,7 @@ const multisigWallet = computed(() => {
 })
 
 const updatingBroadcastStatus = ref(false)
+const checkingSigningProgress = ref(false)
 const signingProgress = ref()
 const pstFileElementRef = ref()
 const pstFileModel = ref()
@@ -592,6 +624,21 @@ const updateBroadcastStatus = async () => {
    }
 }
 
+const checkSigningProgress = async () => {
+  try {
+   checkingSigningProgress.value = true
+   await $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: multisigTransaction.value })
+   signingProgress.value = getSigningProgress({
+     multisigWallet: multisigWallet.value,
+     multisigTransaction: multisigTransaction.value
+   })
+  } catch(e) {
+    console.log(e)
+  } finally {
+    checkingSigningProgress.value = false
+  }
+}
+
 watch(() => signatureCount.value, () => {
    if (!multisigWallet.value || !multisigTransaction.value) return
    signingProgress.value = getSigningProgress({
@@ -607,11 +654,7 @@ onMounted(async () => {
       $store.getters['multisig/getTransactionByHash']({ hash: route.params.hash })
     )
     if (multisigTransaction.value) {
-      await $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: multisigTransaction.value })
-      signingProgress.value = getSigningProgress({
-          multisigTransaction: multisigTransaction.value,
-          multisigWallet: multisigWallet.value
-      })
+      checkSigningProgress()
       updateBroadcastStatus({ multisigTransaction: multisigTransaction.value })
     } 
   }
