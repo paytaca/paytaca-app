@@ -13,6 +13,14 @@ export function updateWallet (state, { oldMultisigWallet, newMultisigWallet }) {
   state.wallets?.splice(index, 1, newMultisigWallet)
 }
 
+export function updateWalletId(state, { oldId, newId }) {
+  const wallet = state.wallets.find(wallet => {
+      return wallet.id === oldId
+  })
+  if (!wallet) return
+  wallet.id = newId
+}
+
 export function saveWallet (state, multisigWallet) {
   const lockingBytecode = getLockingBytecode({ template: multisigWallet.template, lockingData: multisigWallet.lockingData })
   const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)	
