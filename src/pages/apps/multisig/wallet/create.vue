@@ -256,6 +256,7 @@ const onCreateClicked = async () => {
   }
 
   const multisigWallet = {
+    id: generateTempId({ lockingData, template }),
     template,
     lockingData
   }
@@ -265,6 +266,7 @@ const onCreateClicked = async () => {
   router.push({
     name: 'app-multisig-wallet-view',
     params: {
+      id: multisigWallet,
       address: getMultisigCashAddress({
         ...multisigWallet, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
       })
