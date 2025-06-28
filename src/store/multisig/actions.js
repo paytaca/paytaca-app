@@ -5,7 +5,7 @@ import {
   CashAddressNetworkPrefix,
   cashAddressToLockingBytecode,
   lockingBytecodeToCashAddress,
-  decodeCashAddress
+  decodeCashAddress,
 } from 'bitauth-libauth-v3'
 import * as ms from 'src/lib/multisig'
 import { watchtowerUtxoToCommonUtxo } from 'src/utils/utxo-utils'
@@ -22,12 +22,26 @@ export async function subscribeWalletAddress ({ commit, getters, rootGetters }, 
   return await  watchtower.subscribeAddress(address)
 }
 
-export async function uploadWallet ({ commit, getters, rootGetters }, { multisigWallet }) {
+export async function uploadWallet ({ commit, getters, rootGetters }, multisigWallet ) {
   const response = await axios.post(`${rootGetters['global/getWatchtowerBaseUrl']}/api/multisig/wallets/`, multisigWallet)
   if (response?.data?.id) {
     commit('updateWallet', { oldMultisigWallet: multisigWallet, newMultisigWallet: response.data })
   }
   return response?.data
+}
+
+export async function syncWallet ({ commit, getWatchtowerBaseUrletters, rootGetters, dispatch },  multisigWallet ) {
+    axios.get(`${rootGetters['global/getWatchtowerBaseUrl']}/api/multisig/wallets/${multisigWallet.id}/`)
+	  .then(response => {
+		if (response.data?.id && !ms.isMultisigWalletSynced(multisigWallet)) {
+		      commit('updateWalletId', { oldId: multisigWallet.id, newId: response.data.id })
+		}
+	  })
+	  .catch(error => {
+	        if (error.response?.status === 404 && ms.isMultisigWalletSynced(multisigWallet)) {
+		     commit('updateWalletId', { oldId: multisigWallet.id, newId: ms.generateTempId(multisigWallet) }) 
+		}
+	  })
 }
 
 export async function createWallet ({ commit, getters, rootGetters, dispatch }, multisigWallet) {
@@ -37,7 +51,7 @@ export async function createWallet ({ commit, getters, rootGetters, dispatch }, 
   if (existingWallet) return existingWallet
   multisigWallet.id = lockingBytecodeHex
   commit('createWallet', multisigWallet)
-  dispatch('uploadWallet', { multisigWallet })
+  dispatch('uploadWallet', multisigWallet )
   // const signerLocalWallets = rootGetters['global/getVault']
 
   // if (!signerLocalWallet) { throw new Error('Signer\'s xpub not found on this device!') }

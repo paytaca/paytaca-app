@@ -273,7 +273,6 @@ export function appControl (state) {
 }
 
 export function getWatchtowerBaseUrl (state) {
-  return 'http://localhost:8000'
   if (state.isChipnet) {
     return 'https://chipnet.watchtower.cash'
   }
