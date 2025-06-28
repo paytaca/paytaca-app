@@ -16,8 +16,14 @@
             <q-list>
               <q-item>
                 <q-item-section>
-                  <q-item-label class="text-bold">{{ wallet.template.name }}
-                  <q-icon name="mdi-wallet-outline" color="grad"></q-icon>
+                  <q-item-label class="text-bold">
+                  <div class="flex items-center">
+                  <div>{{ wallet.template.name }}</div>
+		  <q-icon
+			class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'smartphone'"
+			:color="isMultisigWalletSynced(wallet)? 'green': ''"
+		  /> 
+                  </div>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section top side>
@@ -31,7 +37,6 @@
                 <q-item-section side>
                  <q-item-label class="flex flex-wrap items-center">
                    <span>{{ shortenString(`${wallet.id}`, 20)}}</span>
-                   <q-icon class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'cloud': 'smartphone'"/> 
                  </q-item-label>
                 </q-item-section>
               </q-item>
@@ -50,7 +55,7 @@
                  <q-item-label>Balance</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label caption>{{ balance || 0 }} BCH</q-item-label>
+                  <q-item-label caption>{{ balance || '?' }} BCH</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -76,10 +81,13 @@
                 :clickable="transactions?.length > 0"
                 :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
                 <q-item-section>
-                  <q-item-label style="position:relative">Tx Proposals</q-item-label>
+                  <q-item-label style="position:relative">Tx Proposal</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                     <q-badge color="red" >{{ transactions?.length || 0 }}</q-badge>
+                     <div class="flex items-center">
+                     <q-badge :color="transactions?.length > 0? 'red': 'grey-8'" >{{ transactions?.length || 0 }}</q-badge> 
+                     <q-icon v-if="transactions?.length > 0" name="arrow_forward_ios" class="q-ml-sm" /> 
+                     </div>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
@@ -89,16 +97,16 @@
            <q-btn flat dense no-caps @click="openShareWalletActionsDialog" class="tile" v-close-popup>
             <template v-slot:default>
              <div class="row justify-around">
-              <q-icon name="mdi-share-all" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Share</div>
+              <q-icon name="send" class="col-12" color="primary"></q-icon>
+              <div class="col-12 tile-label">Send BCH</div>
              </div>
             </template>
            </q-btn>
            <q-btn flat dense no-caps @click="exportWallet" class="tile" v-close-popup>
              <template v-slot:default>
               <div class="row justify-center">
-                <q-icon name="mdi-file-export" class="col-12" color="primary"></q-icon>
-                <div class="col-12 tile-label">Export</div>
+                <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
+                <div class="col-12 tile-label">Deposit</div>
               </div>
              </template>
            </q-btn>
@@ -197,7 +205,6 @@ const exportWallet = () => {
 }
 
 const loadTransactionProposal = () => {
-  console.log('transactionFileModel REF', transactionFileElementRef.value)
   transactionFileElementRef.value.pickFiles()
 }
 
@@ -229,7 +236,7 @@ const uploadWallet = () => {
       multisigWallet: wallet.value,
       darkMode: darkMode.value }
   }).onOk(async() => {
-        await $store.dispatch('multisig/uploadWallet', { multisigWallet: wallet.value, address: route.params.address })
+        await $store.dispatch('multisig/uploadWallet', wallet.value)
   })
 }
 
@@ -248,12 +255,28 @@ const openShareWalletActionsDialog = () => {
   })
 }
 
+const showWalletReceiveDialog = () => {
+	const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet: CashAddressNetworkPrefix.mainnet
+	$q.dialog({
+          component: WalletReceiveDialog,
+          componentProps: {
+            darkMode: darkMode.value,
+            multisigWallet: wallet.value,
+            cashAddressNetworkPrefix: addressPrefix
+          }
+        }).onOk(() => {
+           openWalletActionsDialog()
+        })
+
+}
+
 const openWalletActionsDialog = () => {
   $q.dialog({
     component: WalletActionsDialog,
     componentProps: {
       darkMode: darkMode.value,
       txProposals: transactions?.value,
+      isMultisigWalletSynced: isMultisigWalletSynced(wallet.value),
       onUploadWallet: () => {
         uploadWallet()
       },
@@ -285,17 +308,7 @@ const openWalletActionsDialog = () => {
         router.push({ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address }})
       },
       onReceive: () => { 
-        const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet: CashAddressNetworkPrefix.mainnet
-	$q.dialog({
-          component: WalletReceiveDialog,
-          componentProps: {
-            darkMode: darkMode.value,
-            multisigWallet: wallet.value,
-            cashAddressNetworkPrefix: addressPrefix
-          }
-        }).onOk(() => {
-           openWalletActionsDialog()
-        })
+        showWalletReceiveDialog()
       }
     }
   })
@@ -306,7 +319,9 @@ onMounted(async () => {
     balance.value = await getMultisigWalletBchBalance(
       decodeURIComponent(route.params.address)
     )
+    await $store.dispatch('multisig/syncWallet', wallet.value)
     await $store.dispatch('multisig/fetchTransactions', wallet.value )
+    console.log('WALLET', wallet.value.id)
   } catch (error) {}
 })
 </script>
