@@ -26,7 +26,7 @@
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('uploadTx')" class="tile" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('uploadTx')" class="tile" :disable="broadcastDone" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-cloud-upload" class="col-12" color="primary"></q-icon>
@@ -36,7 +36,7 @@
         </q-btn>
       </q-card-section>
       <q-card-section class="flex flex-wrap justify-evenly"> 
-        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" :disable="broadcastDone" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-file-upload" class="col-12" color="primary"></q-icon>
@@ -44,7 +44,7 @@
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('broadcastTx')" class="tile" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('broadcastTx')" class="tile" :disable="broadcastDone" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="cell_tower" class="col-12" color="primary" style="position:relative">
@@ -73,6 +73,7 @@ const $emit = defineEmits ([
 ])
 
 defineProps({
-  darkMode: Boolean
+  darkMode: Boolean,
+  broadcastDone: Boolean
 })
 </script>
