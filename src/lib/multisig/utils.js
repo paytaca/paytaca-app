@@ -30,6 +30,18 @@ export const getTotalBchOutputAmount = (tx, unit = 'bch') => {
   return amount
 }
 
+export const getTotalBchDebitAmount = (tx, senderAddresses, unit = 'bch') => {
+  const senderLockingBytecodes = senderAddresses.map(address => binToHex(cashAddressToLockingBytecode(address).bytecode))
+  const amount = tx.outputs.reduce((total, output) => {
+    if (senderLockingBytecodes.includes(binToHex(Uint8Array.from(Object.values(output.lockingBytecode))))) {
+      return total
+    }
+    return total + Number(output.valueSatoshis)
+  }, 0)
+  if (unit === 'bch') return amount / 1e8
+  return amount
+}
+
 export const getTotalBchFee = (tx, unit = 'bch') => {
   const amount = getTotalBchInputAmount(tx, 'satoshis') - getTotalBchOutputAmount(tx, 'satoshis')
   if (unit === 'bch') return amount / 1e8
