@@ -242,7 +242,7 @@ import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import { loadLibauthHdWallet } from '../../wallet'
-import { createMultisigTransactionFromWCSessionRequest, getUnsignedTransactionHash, getStatusUrl,isMultisigWalletSynced } from 'src/lib/multisig'
+import { createMultisigTransactionFromWCSessionRequest, getUnsignedTransactionHash, getStatusUrl, isMultisigWalletSynced } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 const $emit = defineEmits([
   'request-scanner'
@@ -713,18 +713,14 @@ const approveSessionProposal = async (sessionProposal) => {
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
     await saveConnectedApp(session)
-    const deffered = [ loadSessionProposals(), $store.dispatch('global/loadWalletConnectedApps') ]
+    const deffered = [loadSessionProposals(), $store.dispatch('global/loadWalletConnectedApps')]
     const isMultisigWallet = Boolean(selectedAddress.template)
     if (isMultisigWallet) {
       const multisigWallet = selectedAddress
       if (!isMultisigWalletSynced(multisigWallet)) {
-        deffered.push( $store.dispatch('multisig/uploadWallet', { multisigWallet }) ) 
+        deffered.push($store.dispatch('multisig/uploadWallet', multisigWallet ))
       }
     }
-    //Promise.all([
-      //loadSessionProposals(),
-      //$store.dispatch('global/loadWalletConnectedApps')
-    //])
     Promise.all(deffered)
   } finally {
     processingSession.value[sessionProposal.pairingTopic] = ''
@@ -742,8 +738,12 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
         })
         const unsignedTransactionHash = getUnsignedTransactionHash({ multisigTransaction })
-        await $store.dispatch('multisig/saveTransaction', multisigTransaction)
-        await $store.dispatch('multisig/uploadTransaction', { multisigWallet: wallet, multisigTransaction })
+        // await $store.dispatch('multisig/saveTransaction', multisigTransaction)
+        // await $store.dispatch('multisig/uploadTransaction', { multisigWallet: wallet, multisigTransaction })
+        await $store.dispatch('multisig/createTransaction', {
+          multisigWallet: wallet,
+          multisigTransaction
+        })
         await web3Wallet.value.respondSessionRequest({
           topic: sessionRequest.topic,
           response: {
