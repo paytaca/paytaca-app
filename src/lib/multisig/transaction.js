@@ -129,7 +129,7 @@ export const createMultisigTransactionFromWCSessionRequest = ({ sessionRequest, 
   }
 
   const multisigTransaction = {
-    origin: sessionRequest.verifyContext?.verified?.origin + '|paytaca',
+    origin: sessionRequest.verifyContext?.verified?.origin + '|paytaca-wallet',
     purpose: sessionRequest.params?.request?.params?.userPrompt,
     transaction: sessionRequest.params.request.params.transaction,
     sourceOutputs: sessionRequest.params.request.params.sourceOutputs,
