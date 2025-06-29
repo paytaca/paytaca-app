@@ -159,7 +159,7 @@
                         <span>{{ signingProgress || '?' }}</span>
                         <q-icon 
 			  :name="signingProgress === 'fully-signed'? 'done_all': 'refresh'"
-			  :color="signingProgress === 'done'? 'green': 'primary'"
+			  :color="signingProgress === 'fully-signed'? 'green': 'primary'"
                           size="sm" class="q-ml-xs"
                           >
                         </q-icon>
@@ -258,11 +258,15 @@
             </q-list>
           </div>
         <div class="flex items-center justify-between q-mt-lg">
-         <q-btn flat dense no-caps @click="openShareTransactionActionsDialog" class="tile" :disable="multisigTransaction.metadata?.isBroadcasting" v-close-popup>
+         <q-btn flat dense no-caps @click="openShareTransactionActionsDialog" class="tile" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="mdi-share-all" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Share Tx Proposal</div>
+              <q-icon name="mdi-share-all" class="col-12" color="primary">
+                <q-badge v-if="isMultisigTransactionSynced(multisigTransaction)" color="green" style="margin-right: 25px;" size="xs" floating>
+                  <span style="color: white">&#10003;</span>
+                </q-badge>
+              </q-icon>
+              <div class="col-12 tile-label">Share Online</div>
             </div>
           </template>
          </q-btn>
@@ -443,7 +447,7 @@ const showBroadcastSuccessDialog = async (txid) => {
 	     amountSent: getTotalBchDebitAmount(multisigTransaction.value.transaction, [route.params.address]),
 	     txid: txid,
 	     message: message,
-	     darkMode: darkMode.value
+	     darkMode: darkMode.value,
 	   }
      }).onOk(() => {
         router.push({ name: 'app-multisig-wallet-view', params: { address: route.params.address }})
@@ -566,6 +570,11 @@ const openTransactionActionsDialog = () => {
     componentProps: {
       darkMode: darkMode.value,
       broadcastDone: multisigTransaction.value?.broadcastStatus === 'done',
+      signingProgress: getSigningProgress({
+         multisigTransaction: multisigTransaction.value,
+         multisigWallet: multisigWallet.value
+      }),
+      shared: isMultisigTransactionSynced(multisigTransaction.value),
       onDeleteTx: () => {
         $q.dialog({
           message: 'Are you sure you want to delete this transaction proposal?',

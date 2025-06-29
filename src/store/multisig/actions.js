@@ -121,11 +121,11 @@ export function saveTransaction ({ commit, dispatch }, multisigTransaction) {
   commit('saveTransaction', multisigTransaction)
 }
 
-export function createTransaction ({ commit, dispatch }, { multisigWallet, multisigTransaction }) {
+export async function createTransaction ({ commit, dispatch }, { multisigWallet, multisigTransaction }) {
   multisigTransaction.id = ms.generateTempProposalId(multisigTransaction)
   multisigTransaction.signatures = []
   commit('saveTransaction', multisigTransaction)
-  dispatch('uploadTransaction', { multisigWallet, multisigTransaction })
+  await dispatch('uploadTransaction', { multisigWallet, multisigTransaction })
 }
 
 export async function addTransactionSignatures ({ commit, state, rootGetters }, { multisigTransaction, signerSignatures }) {
