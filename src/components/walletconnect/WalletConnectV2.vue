@@ -242,7 +242,12 @@ import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import { loadLibauthHdWallet } from '../../wallet'
-import { createMultisigTransactionFromWCSessionRequest, getUnsignedTransactionHash, getStatusUrl, isMultisigWalletSynced } from 'src/lib/multisig'
+import {
+ createMultisigTransactionFromWCSessionRequest,
+ generateTransactionHash,
+ getStatusUrl,
+ isMultisigWalletSynced
+} from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 const $emit = defineEmits([
   'request-scanner'
@@ -738,9 +743,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           sessionRequest,
           addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
         })
-        const unsignedTransactionHash = getUnsignedTransactionHash({ multisigTransaction })
-        // await $store.dispatch('multisig/saveTransaction', multisigTransaction)
-        // await $store.dispatch('multisig/uploadTransaction', { multisigWallet: wallet, multisigTransaction })
+        const unsignedTransactionHash = generateTransactionHash(multisigTransaction)
         await $store.dispatch('multisig/createTransaction', {
           multisigWallet: wallet,
           multisigTransaction
@@ -758,12 +761,11 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             }
           }
         })
-        console.log('🚀 ~ respondToSignTransactionRequest ~ multisigTransactionsLastIndex:', multisigTransactionsLastIndex)
         return $router.push({
           name: 'app-multisig-wallet-transaction-view',
           params: {
             address: wallet.address,
-            index: multisigTransactionsLastIndex.value
+            hash: unsignedTransactionHash
           },
           query: {
             backnavpath: '/apps/wallet-connect'
