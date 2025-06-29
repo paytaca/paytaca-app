@@ -148,28 +148,22 @@ export function selectUtxos (utxos, options) {
  * @returns { CommonUTXO[] }
  */
 export function watchtowerUtxoToCommonUtxo (utxo) {
-  let tokenAmount
-  if (utxo?.tokenid) {
-    tokenAmount = BigInt(utxo?.amount)
+  const commonUtxo = {
+    txid: utxo.txid,
+    satoshis: BigInt(utxo.satoshis),
+    vout: Number(utxo.vout),
+    height: utxo.height
   }
-
-  return {
-    txid: utxo?.txid,
-    vout: Number(utxo?.vout),
-    satoshis: BigInt(utxo?.value),
-    token: !utxo?.tokenid
-      ? undefined
-      : {
-          category: utxo?.tokenid,
-          amount: tokenAmount,
-          nft: !utxo?.capability
-            ? undefined
-            : {
-                capability: utxo?.capability,
-                commitment: utxo?.commitment
-              }
-        }
+  if (utxo.token) {
+    commonUtxo.token = {
+      amount: BigInt(utxo.token.amount || 0),
+      category: utxo.token.category
+    }
+    if (utxo.token.nft) {
+      commonUtxo.token.nft = utxo.token.nft
+    }
   }
+  return commonUtxo
 }
 
 /**
