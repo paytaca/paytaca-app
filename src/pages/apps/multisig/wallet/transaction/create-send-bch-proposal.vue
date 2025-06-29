@@ -237,7 +237,7 @@ const createProposal = async () => {
       })
 
   const multisigTransaction = {
-    origin: 'paytaca',
+    origin: 'paytaca-wallet',
     purpose: purpose.value,
     transaction: finalTransaction,
     sourceOutputs,

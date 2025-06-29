@@ -6,12 +6,12 @@
 	  <div class="q-px-md text-center sent-success-container">
 	    <q-icon size="70px" name="check_circle" color="green-5" />
 	    <div>
-	      <p style="font-size: 22px;">{{ $t('SuccessfullySent') }}</p>
+	      <p style="font-size: 22px;">{{ successMessage }}</p>
 	      <template v-if="isNft">
 		<p class="amount-label">{{ name }}</p>
 	      </template>
 	      <template v-else>
-		<p class="amount-label">{{ amountSent }} {{ assetSymbol }}</p>
+		<p v-if="amountSent && Number(amountSent) > 0" class="amount-label">{{ amountSent }} {{ assetSymbol }}</p>
 	      </template>
 	      <div class="text-center q-mt-lg">
 		<div class="text-grey">{{ $t('ReferenceId')}}</div>

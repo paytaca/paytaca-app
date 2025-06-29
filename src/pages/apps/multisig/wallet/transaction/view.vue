@@ -441,14 +441,14 @@ const signTransaction = async ({ signerEntityKey }) => {
 }
 
 const showBroadcastSuccessDialog = async (txid) => {
-    const message = multisigTransaction.value.purpose ? `${multisigTransaction.value.purpose} success` : 'Successfully Sent'
+    const message = multisigTransaction.value.purpose ? `${multisigTransaction.value.purpose} success` : 'Successfully Sent'  
     $q.dialog({
 	   component: BroadcastSuccessDialog, 
 	   componentProps: {
 	     amountSent: getTotalBchDebitAmount(multisigTransaction.value.transaction, [route.params.address]),
 	     txid: txid,
-	     message: message,
-	     darkMode: darkMode.value,
+	     successMessage: message,
+	     darkMode: darkMode.value
 	   }
      }).onOk(() => {
         router.push({ name: 'app-multisig-wallet-view', params: { address: route.params.address }})
