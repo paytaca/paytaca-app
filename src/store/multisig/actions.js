@@ -240,33 +240,9 @@ export async function broadcastTransaction ({ commit, rootGetters, dispatch }, m
 
 export async function fetchWalletUtxos ({ commit, rootGetters }, cashAddress) {
   const decoded = decodeCashAddress(cashAddress)
-
-  let watchtower = 'https://watchtower.cash'
-  if (decoded.prefix === 'bchtest') {
-    watchtower = 'https://chipnet.watchtower.cash'
-  }
-
-  const tokenAddress = lockingBytecodeToCashAddress({
-    bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
-    prefix: decoded.prefix,
-    tokenSupport: true
-  }).address
-  const bchUtxosUrl = `${watchtower}/api/utxo/bch/${cashAddress}/`
-  const tokenUtxosUrl = `${watchtower}/api/utxo/ct/${tokenAddress}/`
-  commit('clearWalletUtxos', { walletAddress: cashAddress })
-  const fetchBchUtxos = async () => {
-    const response = await axios.get(bchUtxosUrl)
-    if (response.status === 200) {
-      const utxos = response.data.utxos.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
-      commit('addWalletUtxos', { walletAddress: cashAddress, utxos })
-    }
-  }
-  const fetchTokenUtxos = async () => {
-    const response = await axios.get(tokenUtxosUrl)
-    if (response.status === 200) {
-      const utxos = response.data.utxos.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
-      commit('addWalletUtxos', { walletAddress: cashAddress, utxos })
-    }
-  }
-  await Promise.all([fetchBchUtxos(), fetchTokenUtxos()])
+  const watchtower = new Watchtower(rootGetters['global/isChipnet'])
+  const response = await watchtower.getMultisigWalletUtxos(cashAddress)
+  const utxos = response.data?.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
+  commit('addWalletUtxos', { walletAddress: cashAddress, utxos })
+  return utxos
 }
