@@ -58,28 +58,36 @@ class Watchtower extends WatchtowerSdk {
   }
 
   /**
-   * Associates an address with a (d)app.
-   * E.g. address was connected to a (d)app
+   * Associates an address with a DAPP.
+   *
+   * @param { object } options
+   * @param { string } options.address Use for authentication. Assumed as the address connected to DAPP.
+   * @param { Uint8Array } options.privateKey The private key that owns options.address.
+   * @param { string } options.appName Name of the DAPP
+   * @param { string } options.appUrl Url of the DAPP. E.g. origin of the wallet connect transaction.
+   * @param { string } [options.appIcon] Icon of the DAPP
+   * @param { string } [options.addressToConnect] Will use as address connected to DAPP if present.
+   * @returns { Promise<boolean> } true on success
    */
   async saveConnectedApp ({
-    address/*: string */,
-    appName/*: string */,
-    appUrl/*: string */,
-    appIcon/* ?:string */,
-    privateKey/*: Uint8Array */ /* For signing */,
-    addressIsMultisig /* ?: boolean */
-  })/*: Promise<boolean> */ {
+    address,
+    appName,
+    appUrl,
+    appIcon,
+    privateKey,
+    addressToConnect
+  }) {
     if (!appName || !appUrl) return false
 
     const nonce = await this.getNonce()
     if (nonce) {
-      const message = `${nonce}|${address}|${appName}|${appUrl}`
+      const message = `${nonce}|${address}|${appName}|${appUrl}|${addressToConnect}`
       const publicKeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey) /* as Uint8Array */
       let pkToCashAddress = privateKeyToCashAddress(privateKey)
       if (this.isChipnet) {
         pkToCashAddress = toP2pkhTestAddress(pkToCashAddress)
       }
-      if (address !== pkToCashAddress && !addressIsMultisig) {
+      if (address !== pkToCashAddress) {
         throw new Error('Address isn\'t owned by the privateKey!')
       }
 
@@ -92,8 +100,7 @@ class Watchtower extends WatchtowerSdk {
         signature: derSignatureHex,
         message: message,
         extra: {
-          app_icon: appIcon,
-          address_is_multisig: addressIsMultisig
+          app_icon: appIcon
         }
       }
       const postResponse = await fetch(`${this._baseUrl}wallet-address-app/`, {
