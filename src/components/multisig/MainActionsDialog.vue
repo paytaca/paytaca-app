@@ -4,7 +4,7 @@
     >
     <q-card class="q-dialog-plugin q-pb-md pt-card" :class="getDarkModeClass(darkMode)">
        <q-toolbar>
-          <q-toolbar-title><span class="q-mr-sm">{{ $t('Choose an Option')}}</span><q-icon name="import_export"/></q-toolbar-title>
+          <q-toolbar-title><span class="q-mr-sm"></span></q-toolbar-title>
           <q-btn flat round dense icon="close" v-close-popup />
         </q-toolbar>
       <q-card-section class="flex flex-wrap justify-around">
