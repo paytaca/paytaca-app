@@ -43,6 +43,7 @@
     "aes256": "^1.1.0",
     "axios": "^0.21.4",
     "axios-cache-interceptor": "^0.10.2",
+    "big.js": "^7.0.1",
     "bip39": "^3.0.4",
     "bitauth-libauth-v3": "npm:@bitauth/libauth@^3.1.0-next.4",
     "bitcoincashjs-lib": "^3.3.3",

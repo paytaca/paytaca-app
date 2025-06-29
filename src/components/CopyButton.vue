@@ -5,6 +5,7 @@
 
 <script setup>
 import { ref, inject } from 'vue'
+import { copyToClipboard } from 'quasar'
 const $copyText = inject('$copyText')
 
 defineProps({ text: String })
@@ -16,8 +17,8 @@ const delay = async (seconds) => {
 const copied = ref('')
 const copy = async (text) => {
   copied.value = 'copied'
+  await copyToClipboard(text)
   await delay(500)
   copied.value = ''
-  $copyText(text || '')
 }
 </script>
