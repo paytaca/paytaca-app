@@ -16,7 +16,7 @@
                 <q-item-section>
                     <q-item-label class="text-weight-bold">
                       <div class="flex items-center">
-                       <span>{{ multisigTransaction.metadata?.prompt }}</span>
+                       <span>{{ multisigTransaction.purpose }}</span>
                        <q-icon 
                          :name="isMultisigTransactionSynced(multisigTransaction) ? 'mdi-cloud-check' : 'smartphone'"
                          :color="isMultisigTransactionSynced(multisigTransaction)? 'green': 'grey-6'"
@@ -24,7 +24,7 @@
                        />
                       </div>
                     </q-item-label>
-                    <q-item-label caption lines="2" class="text-subtitle-2">Origin: {{ multisigTransaction.metadata?.origin }}</q-item-label>
+                    <q-item-label caption lines="2" class="text-subtitle-2">Origin: {{ multisigTransaction.origin }}</q-item-label>
                 </q-item-section>
                 <q-item-section side top>
                  <q-btn icon="more_vert" @click="openTransactionActionsDialog" flat dense style="margin-right: -5px"/>
@@ -223,9 +223,9 @@
                     dense>
                     <template v-slot:loading>
                       <div class="flex flex-nowrap items-center">
-                          <span v-if="multisigTransaction.metadata?.isBroadcasting">Broadcasting Tx</span>
+                          <span v-if="isBroadcasting">Broadcasting Tx</span>
                           <span v-else-if="updatingBroadcastStatus">Checking</span>
-                          <q-spinner-radio v-if="multisigTransaction.metadata?.isBroadcasting" class="on-right"></q-spinner-radio>
+                          <q-spinner-radio v-if="isBroadcasting" class="on-right"></q-spinner-radio>
                           <q-spinner-facebook v-else-if="updatingBroadcastStatus" class="on-right"></q-spinner-facebook>
                       </div>
                   </template>
@@ -258,7 +258,7 @@
             </q-list>
           </div>
         <div class="flex items-center justify-between q-mt-lg">
-         <q-btn flat dense no-caps @click="openShareTransactionActionsDialog" class="tile" v-close-popup>
+         <q-btn flat dense no-caps @click="openShareTransactionActionsDialog" class="tile" :disable="isMultisigTransactionSynced(multisigTransaction)" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-share-all" class="col-12" color="primary">
@@ -280,7 +280,7 @@
         </q-btn>
         
          <q-btn v-else 
-          :loading="multisigTransaction.metadata?.isBroadcasting"
+          :loading="isBroadcasting"
           @click="broadcastTransaction"
           :disable="multisigTransaction.broadcastStatus === 'done'"
           class="tile" flat dense no-caps>
@@ -292,12 +292,12 @@
           </template>
           <template v-slot:loading>
             <div class="row justify-center">
-              <q-spinner-radio color="warning" />
+              <q-spinner-radio color="primary"/>
               <div class="col-12 tile-label">Broadcasting Tx...</div>
             </div>
           </template>
          </q-btn>
-         <q-btn flat dense no-caps @click="openTransactionActionsDialog" class="tile" :disable="multisigTransaction.metadata?.isBroadcasting">
+         <q-btn flat dense no-caps @click="openTransactionActionsDialog" class="tile" :disable="isBroadcasting">
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="more_vert" class="col-12" color="primary"></q-icon>
@@ -324,7 +324,7 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useQuasar, openURL } from 'quasar'
-import { computed, ref, onMounted, watch, toValue } from 'vue'
+import { computed, ref, onMounted, watch, toValue, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stringify, hashTransaction } from 'bitauth-libauth-v3'
 import { toP2shTestAddress } from 'src/utils/address-utils'
@@ -379,6 +379,7 @@ const multisigWallet = computed(() => {
   })
 })
 
+const isBroadcasting = ref(false)
 const updatingBroadcastStatus = ref(false)
 const checkingSigningProgress = ref(false)
 const signingProgress = ref()
@@ -455,6 +456,7 @@ const showBroadcastSuccessDialog = async (txid) => {
 
 }
 const broadcastTransaction = async () => {
+  isBroadcasting.value = true
   const finalCompilationResult = await $store.dispatch(
 	'multisig/finalizeTransaction',
         { multisigTransaction: multisigTransaction.value, multisigWallet: multisigWallet.value }
@@ -472,6 +474,7 @@ const broadcastTransaction = async () => {
       class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
     })
   }
+  isBroadcasting.value = false
 }
 
 const downloadPst = () => {
@@ -653,6 +656,10 @@ watch(() => signatureCount.value, () => {
      multisigWallet: multisigWallet.value,
      multisigTransaction: multisigTransaction.value
    })
+})
+
+onBeforeUnmount(() => {
+  updateBroadcastStatus({ multisigTransaction: multisigTransaction.value })
 })
 
 onMounted(async () => {
