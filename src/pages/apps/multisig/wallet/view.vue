@@ -78,8 +78,8 @@
               </q-item>
               <q-separator spaced inset />
               <q-item
-                :clickable="false" 
-                :to="transactions.length > 0? { name: 'app-multisig-wallet-transactions', params: { address: route.params.address } }: null">
+                clickable
+                @click="onTxProposalClick">
                 <q-item-section>
                   <q-item-label style="position:relative">Tx Proposal</q-item-label>
                 </q-item-section>
@@ -100,6 +100,7 @@
             flat
             dense
             no-caps
+            :disable="transactions.length > 0"
             v-close-popup>
             <template v-slot:default>
              <div class="row justify-around">
@@ -260,7 +261,7 @@ const openShareWalletActionsDialog = () => {
       },
       onExportWallet: () => { 
         exportWallet()
-      }
+      },
     }
   })
 }
@@ -287,6 +288,7 @@ const openWalletActionsDialog = () => {
       darkMode: darkMode.value,
       txProposals: transactions?.value,
       isMultisigWalletSynced: isMultisigWalletSynced(wallet.value),
+      disable: ['send-bch'],
       onUploadWallet: () => {
         uploadWallet()
       },
@@ -322,6 +324,16 @@ const openWalletActionsDialog = () => {
       }
     }
   })
+}
+
+const onTxProposalClick = async () => {
+  await $store.dispatch('multisig/fetchTransactions', wallet.value )
+  if (transactions.value.length > 0) {
+    router.push({
+     name: 'app-multisig-wallet-transactions', 
+     params: { address: route.params.address } 
+    })
+  }
 }
 
 onMounted(async () => {
