@@ -23,12 +23,8 @@
         </div>
         <qr-code :text="address" :size="220" :icon="isCashtoken ? 'ct-logo.png': 'bch-logo.png' "></qr-code>
         <div v-if="address" class="text-center text-caption flex flex-wrap justify-center items-center q-mt-sm q-gutter-x-sm">
-            <q-btn icon="content_copy"
-              @click="$copyText(address)"
-              flat dense no-caps
-            >
-              Address-{{ addressIndex }}: {{shortenAddressForDisplay(address)}}
-            </q-btn>
+            Address-{{ addressIndex }}: {{shortenAddressForDisplay(address)}}
+            <CopyButton :text="address"/>
         </div>
       </q-card-section>
       <q-card-actions>
@@ -44,6 +40,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getMultisigCashAddress } from 'src/lib/multisig'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { CashAddressType, decodeCashAddress, encodeCashAddress } from 'bitauth-libauth-v3'
+import CopyButton from 'src/components/CopyButton.vue'
 
 // eslint-disable-next-line no-undef
 const props = defineProps({
@@ -51,7 +48,6 @@ const props = defineProps({
   darkMode: Boolean,
   cashAddressNetworkPrefix: String
 })
-const $copyText = inject('$copyText')
 const isCashtoken = ref(false)
 const address = ref()
 const addressIndex = ref(0)
