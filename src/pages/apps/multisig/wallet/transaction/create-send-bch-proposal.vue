@@ -3,7 +3,7 @@
     <q-page-container>
       <q-page>
         <div class="static-container">
-          <div id="app-container" :class="getDarkModeClass(darkMode)">
+          <div id="app-container" class="text-bow" :class="getDarkModeClass(darkMode)">
             <HeaderNav
               :title="$t('Send')"
               :backnavpath="`/apps/multisig/wallet/${route.params.address}`"

@@ -436,13 +436,13 @@ const signTransaction = async ({ signerEntityKey }) => {
 }
 
 const showBroadcastSuccessDialog = async () => {
-   
+    const message = multisigTransaction.value.purpose ? `${multisigTransaction.value.purpose} success` : 'Successfully Sent'
     $q.dialog({
 	   component: BroadcastSuccessDialog, 
 	   componentProps: {
 	     amountSent: getTotalBchDebitAmount(multisigTransaction.value.transaction, [route.params.address]),
 	     txid: multisigTransaction.value.txid,
-	     message: 'Successfully Sent',
+	     message: message,
 	     darkMode: darkMode.value
 	   }
      }).onOk(() => {
