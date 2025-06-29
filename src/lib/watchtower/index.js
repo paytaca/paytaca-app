@@ -199,7 +199,11 @@ class Watchtower extends WatchtowerSdk {
   }
   
   async subscribeAddress (address) {
-     return await axios.post(`${this._baseUrl}subscription/`, { address })
+    return await axios.post(`${this._baseUrl}subscription/`, { address })
+  }
+
+  async getMultisigWalletUtxos(address) {
+    return await axios.get(`${this._baseUrl}multisig/wallets/utxos/${address}`)
   }
 }
 
