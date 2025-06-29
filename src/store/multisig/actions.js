@@ -243,6 +243,6 @@ export async function fetchWalletUtxos ({ commit, rootGetters }, cashAddress) {
   const watchtower = new Watchtower(rootGetters['global/isChipnet'])
   const response = await watchtower.getMultisigWalletUtxos(cashAddress)
   const utxos = response.data?.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
-  commit('addWalletUtxos', { walletAddress: cashAddress, utxos })
+  commit('updateWalletUtxos', { walletAddress: cashAddress, utxos })
   return utxos
 }

@@ -168,26 +168,13 @@ export function clearWalletUtxos (state, { walletAddress }) {
   }
 }
 
-export function addWalletUtxos (state, { walletAddress, utxos }) {
+export function updateWalletUtxos (state, { walletAddress, utxos }) {
+  console.log('UPDATING UTXOS', utxos)
   if (!state.walletsUtxos[walletAddress]) {
-    state.walletsUtxos[walletAddress] = {
-      utxos,
-      lastUpdate: Math.floor(Date.now() / 1000 )
-    }
-    state.walletsUtxosLastUpdate[walletAddress] = Math.floor(Date.now() / 1000)
-    return
+    state.walletsUtxos[walletAddress] = {}
   }
-  let updated = false
-  utxos.forEach((utxo) => {
-    const index = state.walletsUtxos[walletAddress]?.utxos?.findIndex(( existingUtxo ) => {
-      return existingUtxo.txid === utxo.txid && existingUtxo.vout === utxo.vout
-    })
-    if (index === -1) {
-      updated = true
-      return state.walletsUtxos[walletAddress].utxos.push(utxo)
-    }
-  })
-  if (updated) {
-    state.walletsUtxos[walletAddress].lastUpdate = Math.floor(Date.now() / 1000)
-  }	
+  state.walletsUtxos[walletAddress] = {
+    utxos,
+    lastUpdate: Math.floor(Date.now() / 1000)
+  }
 }
