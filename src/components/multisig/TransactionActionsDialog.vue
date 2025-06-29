@@ -29,7 +29,11 @@
         <q-btn flat dense no-caps @click="$emit('uploadTx')" class="tile" :disable="broadcastDone" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
-              <q-icon name="mdi-cloud-upload" class="col-12" color="primary"></q-icon>
+              <q-icon name="mdi-cloud-upload" class="col-12" color="primary">
+                <q-badge v-if="shared" color="green" style="margin-right: 25px;" floating>
+                 <span style="color: white">&#10003;</span>
+                </q-badge>
+              </q-icon>
               <div class="col-12 tile-label">Share Online</div>
             </div>
           </template>
@@ -44,7 +48,7 @@
             </div>
           </template>
         </q-btn>
-        <q-btn flat dense no-caps @click="$emit('broadcastTx')" class="tile" :disable="broadcastDone" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('broadcastTx')" class="tile" :disable="broadcastDone || signingProgress !== 'fully-signed'" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="cell_tower" class="col-12" color="primary" style="position:relative">
@@ -74,6 +78,7 @@ const $emit = defineEmits ([
 
 defineProps({
   darkMode: Boolean,
-  broadcastDone: Boolean
+  broadcastDone: Boolean,
+  shared: Boolean
 })
 </script>
