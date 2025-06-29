@@ -78,8 +78,8 @@
               </q-item>
               <q-separator spaced inset />
               <q-item
-                :clickable="transactions?.length > 0"
-                :to="{name: 'app-multisig-wallet-transactions', params: { address: route.params.address}}">
+                :clickable="false" 
+                :to="transactions.length > 0? { name: 'app-multisig-wallet-transactions', params: { address: route.params.address } }: null">
                 <q-item-section>
                   <q-item-label style="position:relative">Tx Proposal</q-item-label>
                 </q-item-section>
@@ -156,7 +156,8 @@ import {
   getLockingBytecode,
   isMultisigWalletSynced,
   generateFilename,
-  getWalletHash
+  getWalletHash,
+  generateTransactionHash
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
@@ -191,7 +192,9 @@ const wallet = computed(() => {
 })
 
 const transactions = computed(() => {
-  return $store.getters['multisig/getTransactionsByWalletAddress']({ address: route.params.address })
+  return $store.getters['multisig/getTransactionsByWalletAddress']({
+    address: route.params.address 
+   })?.filter(mt => mt.broadcastStatus !== 'done')
 })
 
 const deleteWallet = async (address) => {
@@ -223,9 +226,10 @@ const onUpdateTransactionFile = (file) => {
       $store.dispatch('multisig/saveTransaction', transactionInstance.value)
       $store.dispatch('multisig/uploadTransaction', { multisigWallet: wallet.value, multisigTransaction: transactionInstance.value })
       const index = transactions.value?.length - 1
+      const hash = generateTransactionHash(transactionInstance.value)
       router.push({
         name: 'app-multisig-wallet-transaction-view',
-        params: { address: transactionInstance.value.address, index }
+        params: { address: transactionInstance.value.address, hash }
       })
     }
     reader.onerror = (err) => {
