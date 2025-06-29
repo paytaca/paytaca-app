@@ -435,13 +435,13 @@ const signTransaction = async ({ signerEntityKey }) => {
   })
 }
 
-const showBroadcastSuccessDialog = async () => {
+const showBroadcastSuccessDialog = async (txid) => {
     const message = multisigTransaction.value.purpose ? `${multisigTransaction.value.purpose} success` : 'Successfully Sent'
     $q.dialog({
 	   component: BroadcastSuccessDialog, 
 	   componentProps: {
 	     amountSent: getTotalBchDebitAmount(multisigTransaction.value.transaction, [route.params.address]),
-	     txid: multisigTransaction.value.txid,
+	     txid: txid,
 	     message: message,
 	     darkMode: darkMode.value
 	   }
@@ -456,10 +456,9 @@ const broadcastTransaction = async () => {
         { multisigTransaction: multisigTransaction.value, multisigWallet: multisigWallet.value }
   )
   if (finalCompilationResult.success && finalCompilationResult.vmVerificationSuccess) {
-    await $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
-    await updateBroadcastStatus()
-    if (multisigTransaction.value?.broadcastStatus === 'done') {
-      await showBroadcastSuccessDialog()
+    const response = await $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
+    if (response.data?.txid) {
+      await showBroadcastSuccessDialog(response.data.txid)
     }
   } else {
     const message = finalCompilationResult.error || finalCompilationResult.vmVerificationError
