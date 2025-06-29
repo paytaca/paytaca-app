@@ -147,6 +147,5 @@ export async function loadRampWallet () {
   const globalWallet = Store.getters['global/getWallet']('bch')
   wallet = new RampWallet(walletIndex, globalWallet.walletHash, ADDRESS_INDEX, isChipnet)
   await wallet.loadWallet()
-  console.log('Loaded wallet:', wallet)
   return wallet
 }

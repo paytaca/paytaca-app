@@ -97,6 +97,8 @@ const routes = [
       { path: 'anyhedge', component: () => import('src/pages/apps/anyhedge.vue'), name: 'app-any-hedge', props: route => route.query },
       { path: 'pos-admin', component: () => import('src/pages/apps/paytacapos-admin/index.vue'), name: 'app-pos-admin', props: route => route.query },
       { path: 'pos-admin/merchant', component: () => import('src/pages/apps/paytacapos-admin/merchant.vue'), name: 'app-pos-merchant', props: route => route.query },
+      { path: 'pos-admin/merchant/cashout', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/index.vue'), name: 'app-pos-cashout', props: route => route.query },
+      { path: 'pos-admin/merchant/cashout/order', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/order-form.vue'), name: 'app-pos-cashout-form', props: route => route.query },
       { path: 'wallet-connect', component: () => import('src/pages/apps/wallet-connect2.vue'), name: 'app-wallet-connect', props: route => route.query },
       { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
       { path: 'bridge', component: () => import('src/pages/apps/bridge.vue'), name: 'app-bridge' },
@@ -215,20 +217,42 @@ const routes = [
         ]
       },
       {
+        path: 'rewards',
+        children: [
+          {
+            path: '',
+            name: 'app-rewards',
+            component: () => import('src/pages/apps/rewards/index.vue'),
+          },
+          {
+            path: 'user-rewards',
+            name: 'user-rewards',
+            props: route => route.query,
+            component: () => import('src/pages/apps/rewards/promos/user-rewards.vue')
+          },
+          {
+            path: 'rfp',
+            name: 'rfp',
+            props: route => route.query,
+            component: () => import('src/pages/apps/rewards/promos/rfp.vue')
+          }
+        ]
+      },
+      {
         path: 'multisig',
         component: () => import('src/layouts/Apps.vue'),
         children: [
           { path: '', component: () => import('src/pages/apps/multisig/index.vue'), name: 'app-multisig' },
           { path: 'settings', component: () => import('src/pages/apps/multisig/settings.vue'), name: 'app-multisig-settings' },
           { path: 'wallet', component: () => import('src/pages/apps/multisig/wallet/index.vue'), name: 'app-multisig-wallets' },
-          { path: 'wallet/synced', component: () => import('src/pages/apps/multisig/wallet/synced.vue'), name: 'app-multisig-wallets-synced' },
+          { path: 'wallet/synced', component: () => import('src/pages/apps/multisig/wallet/synced.vue'), name: 'app-multisig-wallets-synced'},
           { path: 'wallet/create', component: () => import('src/pages/apps/multisig/wallet/create.vue'), name: 'app-multisig-wallet-create' },
           { path: 'wallet/signer/qrcode', component: () => import('src/pages/apps/multisig/wallet/signer/qrcode.vue'), name: 'app-multisig-signer-qrcode' },
           { path: 'wallet/:address', component: () => import('src/pages/apps/multisig/wallet/view.vue'), name: 'app-multisig-wallet-view' },
           { path: 'wallet/:address/send', component: () => import('src/pages/apps/multisig/wallet/send.vue'), name: 'app-multisig-wallet-send' },
           { path: 'wallet/:address/transaction', component: () => import('src/pages/apps/multisig/wallet/transaction/index.vue'), name: 'app-multisig-wallet-transactions' },
           { path: 'wallet/:address/transaction/:hash', component: () => import('src/pages/apps/multisig/wallet/transaction/view.vue'), name: 'app-multisig-wallet-transaction-view' },
-          { path: 'wallet/:address/transaction/create', component: () => import('src/pages/apps/multisig/wallet/transaction/create.vue'), name: 'app-multisig-wallet-transaction-create' },
+          { path: 'wallet/:address/transaction/create', component: () => import('src/pages/apps/multisig/wallet/transaction/create.vue'), name: 'app-multisig-wallet-transaction-create' }, 
           { path: 'wallet/:address/transaction/send-bch', component: () => import('src/pages/apps/multisig/wallet/transaction/create-send-bch-proposal.vue'), name: 'app-multisig-wallet-transaction-send-bch' }
         ]
       }

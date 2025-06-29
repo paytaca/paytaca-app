@@ -15,18 +15,19 @@
         <q-menu anchor="bottom right" self="top end">
           <q-list class="pt-card" style="min-width: 100px" :class="getDarkModeClass(darkMode)">
             <q-item clickable v-close-popup>
-              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="generateNewAddress">
-                {{ $t('GenerateNewAddress') }}
+              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="showPublicKey">
+                {{ $t('ShowPublicKey') }}
               </q-item-section>
             </q-item>
             <q-item clickable v-close-popup>
-              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="copyPrivateKey">
-                <template v-if="copying">
-                  {{ $t('Copying') }}...
-                </template>
-                <template v-else>
-                  {{ $t('CopyPrivateKey') }}
-                </template>
+              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="showPrivateKey">
+                {{ $t('ShowPrivateKey') }}
+              </q-item-section>
+            </q-item>
+            <q-separator />
+            <q-item clickable v-close-popup>
+              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="generateNewAddress">
+                {{ $t('GenerateNewAddress') }}
               </q-item-section>
             </q-item>
           </q-list>
@@ -59,6 +60,7 @@
                 <div class="col row justify-center q-pt-md">
                   <qr-code
                     :text="isCt ? address : addressAmountFormat"
+                    :generating="generating"
                     border-width="3px"
                     border-color="#ed5f59"
                     :size="220"
@@ -226,7 +228,7 @@ export default {
       showLegacy: false,
       lnsName: '',
       generateAddressOnLeave: false,
-      copying: false,
+      generating: false,
       amount: '',
       tempAmount: '',
       readonlyState: false,
@@ -461,6 +463,7 @@ export default {
     },
     generateNewAddress () {
       const vm = this
+      vm.generating = true
       const lastAddressIndex = vm.getLastAddressIndex()
       const newAddressIndex = lastAddressIndex + 1
 
@@ -479,6 +482,8 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             try { vm.setupListener() } catch {}
+          }).finally(() => {
+            vm.generating = false
           })
         }
         if (vm.walletType === 'slp') {
@@ -500,17 +505,53 @@ export default {
         }
       })
     },
-    async copyPrivateKey () {
+    async showPrivateKey () {
+      const vm = this
       try {
-        this.copying = true
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
         const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const privateKey = await dynamicWallet.getPrivateKey('0/' + String(lastAddressIndex))
-        this.copyToClipboard(privateKey)
-      } finally {
-        this.copying = false
+        
+        // Show private key in a dialog
+        this.$q.dialog({
+          title: this.$t('PrivateKey'),
+          message: `<div style="word-break: break-all; font-family: monospace; padding: 15px; background: ${this.darkMode ? '#2d2d2d' : '#ffffff'}; border-radius: 8px; border: 1px solid ${this.darkMode ? '#404040' : '#e0e0e0'}; color: ${this.darkMode ? '#ffffff' : '#333333'}; font-size: 14px; line-height: 1.4; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">${privateKey}</div>`,
+          html: true,
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          ok: {
+            label: this.$t('OK'),
+            color: 'primary',
+            class: 'full-width q-mt-md'
+          }
+        })
+      } catch (error) {
+        console.error('Error showing private key:', error)
+      }
+    },
+    async showPublicKey () {
+      try {
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+        const wallet = new Wallet(mnemonic, this.network)
+        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
+        const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
+        
+        // Show public key in a dialog
+        this.$q.dialog({
+          title: this.$t('PublicKey'),
+          message: `<div style="word-break: break-all; font-family: monospace; padding: 15px; background: ${this.darkMode ? '#2d2d2d' : '#ffffff'}; border-radius: 8px; border: 1px solid ${this.darkMode ? '#404040' : '#e0e0e0'}; color: ${this.darkMode ? '#ffffff' : '#333333'}; font-size: 14px; line-height: 1.4; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">${publicKey}</div>`,
+          html: true,
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          ok: {
+            label: this.$t('OK'),
+            color: 'primary',
+            class: 'full-width q-mt-md'
+          }
+        })
+      } catch (error) {
+        console.error('Error showing public key:', error)
       }
     },
     getAddress (forListener = false) {
@@ -539,6 +580,7 @@ export default {
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
     copyToClipboard (value) {
+      console.log('copyToClipboard', value)
       this.$copyText(value)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),
@@ -646,15 +688,26 @@ export default {
           // if unlisted token is detected, add to front of list
           // check if token already added in list
           if (!vm.tokens.map(a => a.id).includes(data.token_id)) {
-            const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
-            newTokenData.balance = amount
+            try {
+              const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
+              if (newTokenData) {
+                if (!newTokenData.decimals || newTokenData.isNft) {
+                  console.log('Not adding unrecognized token due to being an nft')
+                  return
+                }
+                
+                // Create a new object with the balance property
+                const tokenWithBalance = {
+                  ...newTokenData,
+                  balance: amount
+                }
 
-            if (!newTokenData?.decimals || newTokenData?.isNft) {
-              console.log('Not adding unrecognized token due to being an nft')
+                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, tokenWithBalance)
+                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+              }
+            } catch (error) {
+              console.error('Error adding new token:', error)
             }
-
-            vm.$store.commit(`${newTokenData.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, newTokenData)
-            vm.$store.commit(`${newTokenData.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
           }
         }
       }
@@ -750,7 +803,6 @@ export default {
 
   async mounted () {
     const vm = this
-
     vm.setupListener()
     this.updateLnsName()
 
@@ -787,60 +839,61 @@ export default {
         vm.setAmountInFiat = false
       }
     }
+    vm.generating = false
   }
 }
 </script>
 
 <style lang="scss" scoped>
-  body {
-    overflow: hidden;
-  }
-  .q-icon {
-    position: relative;
-    z-index: 10; /* Ensure the icon is clickable over the card */
-  }
-  #context-menu {
-    position: fixed;
-    top: 16px;
-    color: #3b7bf6;
-    z-index: 150;
-  }
+body {
+  overflow: hidden;
+}
+.q-icon {
+  position: relative;
+  z-index: 10; /* Ensure the icon is clickable over the card */
+}
+#context-menu {
+  position: fixed;
+  top: 16px;
+  color: #3b7bf6;
+  z-index: 150;
+}
+.qr-code-container {
+  margin-top: 20px;
+  padding-left: 28px;
+  padding-right: 28px;
+}
+/* iPhone 5/SE */
+@media (min-width: 280px) and (max-width: 320px) {
   .qr-code-container {
-    margin-top: 20px;
-    padding-left: 28px;
-    padding-right: 28px;
+    margin-top: 30px;
   }
-  /* iPhone 5/SE */
-  @media (min-width: 280px) and (max-width: 320px) {
-    .qr-code-container {
-      margin-top: 30px;
-    }
+}
+/* Galaxy Fold */
+@media (min-width: 200px) and (max-width: 280px) {
+  .qr-code-container {
+    margin-top: 66px;
   }
-  /* Galaxy Fold */
-  @media (min-width: 200px) and (max-width: 280px) {
-    .qr-code-container {
-      margin-top: 66px;
-    }
+}
+.qr-code-text {
+  font-family: monospace;
+  font-size: 17px;
+  color: #000;
+}
+.copy-container {
+  padding: 20px 40px 0px 40px;
+  overflow-wrap: break-word;
+  .receive-label {
+    font-size: 15px;
+    letter-spacing: 1px;
   }
-  .qr-code-text {
-    font-family: monospace;
-    font-size: 17px;
-    color: #000;
+  .receive-amount-label {
+    font-size: 18px;
+    letter-spacing: 1px;
   }
-  .copy-container {
-    padding: 20px 40px 0px 40px;
-    overflow-wrap: break-word;
-    .receive-label {
-      font-size: 15px;
-      letter-spacing: 1px;
-    }
-    .receive-amount-label {
-      font-size: 18px;
-      letter-spacing: 1px;
-    }
-  }
-  .set-amount-button {
-    margin-left: 35px;
-    font-weight: 500;
-  }
+}
+.set-amount-button {
+  margin-left: 35px;
+  font-weight: 500;
+}
 </style>

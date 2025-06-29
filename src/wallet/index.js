@@ -2,6 +2,7 @@ import { SlpWallet } from './slp'
 import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import { LibauthHDWallet } from './bch-libauth'
+import { sha256 } from 'js-sha256'
 import aes256 from 'aes256'
 import {
  encodeHdPrivateKey,
@@ -13,7 +14,7 @@ import {
  deriveHdPathRelative,
  sha256,
  secp256k1,
- ut8ToBin,
+ utf8ToBin,
  binToHex
 } from 'bitauth-libauth-v3' 
 import 'capacitor-secure-storage-plugin'
@@ -86,6 +87,16 @@ export async function loadWallet(network = 'BCH', index = 0) {
   return new Wallet(mnemonic, network)
 }
 
+
+/** @type {Wallet[]} */
+const _wallets = []
+export async function cachedLoadWallet(network='BCH', index = 0) {
+  if (!_wallets[index]) {
+    _wallets[index] = loadWallet(network, index)
+  }
+  return _wallets[index]
+}
+
 export async function loadLibauthHdWallet(index=0, chipnet=false) {
   const mnemonic = await getMnemonic(index)
   return new LibauthHDWallet(mnemonic, undefined, chipnet ? 'chipnet' : 'mainnet')
@@ -119,6 +130,7 @@ export async function getMnemonic (index = 0) {
   if (index !== 0) {
     key = key + index
   }
+
   try {
     // For versions up to v0.9.1 that used to have aes256-encrypted mnemonic
     const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
@@ -128,7 +140,9 @@ export async function getMnemonic (index = 0) {
     try {
       mnemonic = await SecureStoragePlugin.get({ key: key })
       mnemonic = mnemonic.value
-    } catch (err) {}
+    } catch (err) {
+      console.error(err)
+    }
   }
   return mnemonic
 }
@@ -166,6 +180,12 @@ export function signMessageWithHdPrivateKey ({ hdPrivateKey, addressIndex, messa
    return { schnorr: binToHex(schnorr), der: binToHex(der) }
  }
  return { schnorr, der }
+}
+
+export async function deletePin (index) {
+  const mnemonic = await getMnemonic(index)
+  const pinKey = `pin-${sha256(mnemonic)}`
+  await SecureStoragePlugin.remove({ key: pinKey })
 }
 
 export { Address } from 'watchtower-cash-js';

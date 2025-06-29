@@ -13,40 +13,68 @@
         :class="getDarkModeClass(darkMode)"
         :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}"
       >
-        <div class="text-center" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
+        <div class="text-center text-h6" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
           <p>{{ $t('Scanning') }}...</p>
           <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
         </div>
-        <q-form v-if="!submitted" class="text-center wide-margin-top">
-          <textarea
-            v-if="tokens.length === 0"
-            v-model="wif"
-            class="sweep-input"
-            rows="2"
-            :placeholder="$t('SweepInputPlaceholder')"
-          >
-          </textarea>
-          <br>
-          <template v-if="!wif">
-            <div class="text-uppercase or-label">
-              {{ $t('or') }}
-            </div>
-            <q-btn round size="lg" class="button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
-          </template>
-          <div style="margin-top: 20px; ">
-            <q-btn
-              class="button"
-              color="primary"
-              v-if="tokens.length === 0 && wif"
-              @click.prevent="getTokens"
+
+        <div class="text-center text-h6" v-if="isDecrypting" style="margin-top: 25px;">
+          <p>{{ $t('Decrypting') }}...</p>
+          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        </div>
+
+        <template v-if="!submitted">
+          <q-form v-if="bip38String === ''" class="text-center wide-margin-top">
+            <textarea
+              v-if="tokens.length === 0"
+              v-model="wif"
+              class="sweep-input"
+              rows="2"
+              :placeholder="$t('SweepInputPlaceholder')"
             >
-              {{ $t('Scan') }}
-            </q-btn>
-            <p v-if="wif && error" style="color: red;">
-              {{ error }}
-            </p>
+            </textarea>
+            <br>
+            <template v-if="!wif">
+              <div class="text-uppercase or-label">
+                {{ $t('or') }}
+              </div>
+              <q-btn round size="lg" class="button bg-grad" icon="mdi-qrcode" @click="showQrScanner = true" />
+            </template>
+            <div style="margin-top: 20px; ">
+              <q-btn
+                class="button"
+                color="primary"
+                v-if="tokens.length === 0 && wif"
+                @click.prevent="getTokens"
+              >
+                {{ $t('Scan') }}
+              </q-btn>
+              <p v-if="wif && error" style="color: red;">
+                {{ error }}
+              </p>
+            </div>
+          </q-form>
+
+          <div v-else class="flex flex-center text-center text-h6 q-mt-lg">
+            <span class="q-mb-md">{{ $t('BIP38WalletDetected') }}</span>
+            <q-input
+              outlined
+              autogrow
+              v-model="passPhrase"
+              class="full-width passphrase-input"
+              type="textarea"
+              :dark="darkMode"
+              :placeholder="$t('BIP38WalletPassphrase')"
+            />
+            <q-btn
+              class="q-mt-md button passphrase-input"
+              :label="$t('Decrypt')"
+              :disabled="passPhrase.length === 0"
+              @click.prevent="decryptEncryptedWallet"
+            />
           </div>
-        </q-form>
+        </template>
+
         <div v-else-if="emptyAssets && showSuccess" class="text-center wide-margin-top">
           <q-icon
             name="check_circle" size="150px"
@@ -255,6 +283,8 @@ import { getMnemonic, Wallet } from '../../wallet'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { CashNonFungibleToken } from 'src/wallet/cashtokens'
 import { convertCashAddress } from 'src/wallet/chipnet'
+import bip38 from '@asoltys/bip38'
+import * as wifPackage from 'wif'
 
 export default {
   name: 'sweep',
@@ -265,6 +295,7 @@ export default {
   },
   props: {
     w: String,
+    bip38String: { type: String, default: '' }
   },
   data () {
     return {
@@ -305,6 +336,9 @@ export default {
       showSuccess: false,
       showQrScanner: false,
       error: null,
+      passPhrase: '',
+      isDecrypting: false,
+
       sweepTxidMap: {
         'bch': '',
         /** 'token-id-and-commitment': '', */
@@ -321,6 +355,11 @@ export default {
       if (value.length === 0) {
         this.error = null
       }
+    },
+    w() {
+      if (this.wif || this.sweeper) return
+      this.wif = extractWifFromUrl(this.w) || this.w
+      this.getTokens(true)
     }
   },
   computed: {
@@ -422,10 +461,14 @@ export default {
       ])
 
       await this.sweeper.getBchBalance().then((data) => {
-        this.bchBalance = data.spendable || 0
-        this.fetching = false
-        this.sweeping = false
+        // add timeout to allow subscription to finish
+        setTimeout(() => {
+          this.bchBalance = data.spendable || 0
+          this.fetching = false
+          this.sweeping = false
+        }, 1000);
       })
+
     },
     sweepToken (token) {
       const vm = this
@@ -529,14 +572,34 @@ export default {
     onScannerDecode (content) {
       this.showQrScanner = false
       this.wif = content
-    }
-  },
-  watch: {
-    w() {
-      if (this.wif || this.sweeper) return
-      this.wif = extractWifFromUrl(this.w) || this.w
-      this.getTokens(true)
-    }
+    },
+    decryptEncryptedWallet () {
+      this.isDecrypting = true
+      this.submitted = true
+      setTimeout(() => {
+        try {
+          const decryptedKey = bip38.decrypt(this.bip38String, this.passPhrase)
+          const wifKey = wifPackage.encode({
+            version: 0x80,
+            privateKey: decryptedKey.privateKey,
+            compressed: decryptedKey.compressed
+          })
+          this.isDecrypting = false
+          this.wif = wifKey
+          this.getTokens(true)
+        } catch {
+          this.isDecrypting = false
+          this.submitted = false
+          this.wif = ''
+          this.$q.notify({
+            type: 'negative',
+            color: 'red-4',
+            timeout: 3000,
+            message: this.$t('BIP38DecryptError')
+          })
+        }
+      }, 1000);
+    },
   },
   mounted () {
     const vm = this
@@ -562,31 +625,108 @@ export default {
     z-index: 1 !important;
     min-height: 100vh;
   }
+
   .sweep-input {
     width: 100%;
-    font-size: 18px;
-    color: black;
+    font-size: 1.125rem;
+    color: var(--q-primary);
     background: white;
-    padding: map-get($space-xs, 'y') map-get($space-sm, 'x');
-    border-radius: map-get($space-sm, 'x');
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    resize: none;
+
+    &:focus {
+      outline: none;
+      border-color: var(--q-primary);
+      box-shadow: 0 0 0 2px rgba(var(--q-primary), 0.1);
+    }
+
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.4);
+    }
   }
+
   .or-label {
-    margin: 20px 0;
-    font-size: 15px;
-    color: grey;
+    margin: 24px 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.05em;
   }
+
   .bch-balance {
-    border: 1px solid black;
-    padding: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 16px;
+
+    p {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: rgba(0, 0, 0, 0.87);
+    }
+
+    .text-red {
+      color: #d32f2f;
+      font-size: 0.875rem;
+      font-style: italic;
+    }
   }
+
   .token-details {
-    border: 1px solid black;
-    padding: 10px;
-    margin-bottom: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    p {
+      margin: 0 0 8px;
+      font-size: 0.9375rem;
+      color: rgba(0, 0, 0, 0.87);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .q-icon {
+        font-size: 1.25rem;
+        opacity: 0.7;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+
+    img {
+      border-radius: 8px;
+      margin: 8px 0;
+    }
+
+    .q-btn {
+      margin-right: 12px;
+    }
   }
 
   .toggle-expand {
     transition: transform 0.3s ease-in-out;
+    opacity: 0.7;
+
+    &:hover {
+      opacity: 1;
+    }
   }
 
   .toggle-expand.flipped {
@@ -595,5 +735,71 @@ export default {
 
   .wide-margin-top {
     margin-top: 85px;
+  }
+
+  .passphrase-input {
+    font-size: 1rem;
+    border-radius: 12px;
+
+    :deep(.q-field__control) {
+      border-radius: 12px;
+    }
+  }
+
+  .text-subtitle1 {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+  }
+
+  .q-select {
+    border-radius: 12px;
+    
+    :deep(.q-field__control) {
+      border-radius: 12px;
+    }
+  }
+
+  .button {
+    border-radius: 8px;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    padding: 8px 24px;
+    min-height: 40px;
+  }
+
+  // Dark mode adjustments
+  :deep(.dark) {
+    .sweep-input {
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      border-color: rgba(255, 255, 255, 0.1);
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+    }
+
+    .or-label {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .bch-balance,
+    .token-details {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+
+      p {
+        color: rgba(255, 255, 255, 0.87);
+      }
+    }
+
+    .text-subtitle1 {
+      color: rgba(255, 255, 255, 0.87);
+    }
+
+    .text-red {
+      color: #ef5350;
+    }
   }
 </style>

@@ -17,7 +17,9 @@ import { nativeFileAPI } from 'src/utils/native-file'
 import { base64ImageToFile, dataUrlToFile, resizeImage } from 'src/marketplace/chat/attachment'
 import { Camera } from '@capacitor/camera'
 import { useQuasar } from 'quasar'
-import { defineComponent, ref, watch } from 'vue'
+import { defineComponent, ref, watch, computed } from 'vue'
+import { useStore } from 'vuex'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 
 export default defineComponent({
@@ -30,6 +32,8 @@ export default defineComponent({
   },
   setup(props, { emit: $emit }) {
     const $q = useQuasar()
+    const $store = useStore()
+    const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
     const innerVal = ref(props?.modelValue)
     watch(() => props.modelValue, () => innerVal.value = props.modelValue)
@@ -66,7 +70,7 @@ export default defineComponent({
       if (request) permission = await Camera.requestPermissions()
       return {
         camera: permission.camera === 'granted',
-        photos: permission.photos === 'photos',
+        photos: permission.photos === 'granted' || permission.photos === 'limited',
       }
     }
 
@@ -83,6 +87,7 @@ export default defineComponent({
       return Camera.getPhoto({
         presentationStyle: 'popover',
         resultType: 'dataUrl',
+        source: 'PROMPT', // This will show both camera and gallery options
       })
         .then(async (photo) => {
           let file
@@ -122,6 +127,8 @@ export default defineComponent({
       openFileAttachementField,
       attemptResize,
       selectPhoto,
+      darkMode,
+      getDarkModeClass,
     } 
   },
 })

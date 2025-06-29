@@ -49,7 +49,7 @@
               <q-icon name="error" left/> {{ scanner.error }}
             </div>
             <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">
-              <div class="col-12">
+              <div id="paste-address-container" class="col-12">
                 <q-input
                   bottom-slots
                   filled
@@ -84,7 +84,7 @@
               </div>
               <q-slide-transition :duration="750">
                 <div v-if="manualAddress && validateAddress(manualAddress)?.valid" class="text-center">
-                  <q-btn
+                  <q-btn id="send-to"
                     no-caps
                     class="button q-mb-lg q-mt-sm"
                     size="lg"
@@ -210,7 +210,7 @@
             </form>
           </div>
 
-          <customKeyboard
+          <customKeyboard 
             :custom-keyboard-state="customKeyboardState"
             v-on:addKey="setAmount"
             v-on:makeKeyAction="makeKeyAction"
@@ -254,7 +254,7 @@ import { NativeAudio } from '@capacitor-community/native-audio'
 import { pushNotificationsManager } from 'src/boot/push-notifications'
 import { getMnemonic, Wallet, Address } from 'src/wallet'
 import { getNetworkTimeDiff } from 'src/utils/time'
-import { getCashbackAmount } from 'src/utils/engagementhub-utils'
+import { getCashbackAmount } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import {
@@ -270,6 +270,7 @@ import {
 } from 'src/utils/denomination-utils'
 import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
+import { processCashinPoints, processOnetimePoints } from 'src/utils/engagementhub-utils/rewards'
 
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
@@ -281,6 +282,8 @@ import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
 import SendSuccessBlock from 'src/components/send-page/SendSuccessBlock.vue'
+import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 
@@ -1285,7 +1288,7 @@ export default {
       }
       throw new Error('Error in sending to recipient(s)')
     },
-    submitPromiseResponseHandler (result, walletType) {
+    async submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
       if (result.success) {
@@ -1294,6 +1297,28 @@ export default {
         vm.playSound(true)
         vm.sending = false
         vm.sent = true
+
+        if (!vm.assetId?.startsWith?.('ct/')) {
+          // api call for processing first transaction 5 PHP worth of BCH
+          const cashinResp = await processCashinPoints({
+            bch_address: sendPageUtils.getWallet('bch')?.lastAddress
+          })
+          // api call for processing one-time user points
+          const onetimePointsResp = await processOnetimePoints({
+            bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+            ref_id: result.txid.substring(0, 6)
+          })
+  
+          if (cashinResp || onetimePointsResp) {
+            vm.$q.dialog({
+              component: PointsReceivedDialog,
+              componentProps: {
+                hasReceivedCashinPoints: cashinResp,
+                hasReceivedOneTimePoints: onetimePointsResp
+              }
+            })
+          }
+        }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
 
@@ -1310,9 +1335,28 @@ export default {
   },
 
   async beforeMount () {
-    await this.$store.dispatch('global/loadWalletLastAddressIndex')
-    await this.$store.dispatch('global/loadWalletAddresses')
-    await this.$store.dispatch('global/loadWalletConnectedApps')
+    const loadTasks = []
+
+    const vm = this
+    if (Object.keys(vm.$store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
+      loadTasks.push(vm.$store.dispatch('global/loadWalletLastAddressIndex'))
+    }
+    if (!vm.$store.getters['global/walletConnectedApps']) {
+      loadTasks.push(vm.$store.dispatch('global/loadWalletConnectedApps'))
+    }
+    if (!vm.$store.getters['global/walletAddresses']) {
+      loadTasks.push(vm.$store.dispatch('global/loadWalletAddresses'))
+    }
+
+    if (!loadTasks.length) return
+
+    const dialog = this.$q.dialog({
+      component: LoadingWalletDialog,
+      componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
+    })
+
+    await Promise.allSettled(loadTasks)
+    dialog.hide()
   },
 
   async mounted () {
@@ -1350,16 +1394,6 @@ export default {
 
     if (this.inputExtras.length === 1) {
       this.inputExtras[0].selectedDenomination = this.denomination
-    }
-
-    if (Object.keys(vm.$store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
-      await vm.$store.dispatch('global/loadWalletLastAddressIndex')
-    }
-    if (!vm.$store.getters['global/walletConnectedApps']) {
-      await vm.$store.dispatch('global/loadWalletConnectedApps')
-    }
-    if (!vm.$store.getters['global/walletAddresses']) {
-      await vm.$store.dispatch('global/loadWalletAddresses')
     }
   },
 

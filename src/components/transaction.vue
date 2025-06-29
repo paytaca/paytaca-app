@@ -550,7 +550,8 @@ export default {
       if (!transaction) return ''
       if (!this.marketAssetPrice) return ''
       if (transaction.usd_price || Object.keys(transaction.market_prices).length > 0) {
-        const currentFiatMarketPrice = transaction.market_prices[this.selectedMarketCurrency]
+        const marketPrices = transaction.market_prices
+        const currentFiatMarketPrice = marketPrices ? marketPrices[this.selectedMarketCurrency] : marketPrices
         if (currentFiatMarketPrice) {
           return (Number(transaction.amount) * Number(currentFiatMarketPrice)).toFixed(5)
         }

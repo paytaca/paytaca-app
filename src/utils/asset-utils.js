@@ -1,6 +1,15 @@
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 
-export async function updateAssetBalanceOnLoad (id, wallet, store) {
+const balanceFetchMap = { /** id: Promise */}
+export async function updateAssetBalanceOnLoad(id, wallet, store) {
+  if (!balanceFetchMap[id]) {
+    balanceFetchMap[id] = _updateAssetBalanceOnLoad(id, wallet, store)
+      .finally(() => delete balanceFetchMap[id])
+  }
+  return balanceFetchMap[id]
+}
+
+async function _updateAssetBalanceOnLoad (id, wallet, store) {
   const tokenId = id.split('/')[1]
   const updateAssetBalance = 'assets/updateAssetBalance'
 
@@ -13,22 +22,13 @@ export async function updateAssetBalanceOnLoad (id, wallet, store) {
       store.commit(updateAssetBalance, { id, balance: response.balance })
     })
   } else {
-    // store.commit('stablehedge/reset');
-    const fetchBchBalancePromises = Promise.all([
-      getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
-        store.commit(updateAssetBalance, {
-          id,
-          balance: response.balance,
-          spendable: response.spendable,
-          yield: response.yield
-        })
-      }),
-      store.dispatch('stablehedge/updateTokenBalances')
-        .then(() => store.dispatch('stablehedge/updateTokenPrices', { minAge: 60 * 1000 }))
-        .catch(console.error),
-    ])
-
-    const results = await fetchBchBalancePromises
-    return results[0]
+    return getWalletByNetwork(wallet, 'bch').getBalance().then(function (response) {
+      store.commit(updateAssetBalance, {
+        id,
+        balance: response.balance,
+        spendable: response.spendable,
+        yield: response.yield
+      })
+    })
   }
 }

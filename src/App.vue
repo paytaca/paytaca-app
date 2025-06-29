@@ -224,6 +224,11 @@ export default {
       }
     }
   },
+  beforeMount() {
+    if (typeof navigator.onLine === 'boolean') {
+      this.onConnectivityChange(navigator.onLine) 
+    }
+  },
   async mounted () {
     const vm = this
 

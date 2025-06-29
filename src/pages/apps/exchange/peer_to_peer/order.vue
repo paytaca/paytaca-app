@@ -32,17 +32,8 @@
               @view-reviews="showReviews=true"
               @view-chat="openChat=true"/>
           </div>
-          <!-- Ad Owner Confirm / Decline -->
-          <ReceiveOrder
-            v-if="state === 'order-confirm-decline'"
-            ref="receiveOrderRef"
-            :data="receiveOrderData"
-            :errorMessage="receiveOrderError"
-            @confirm="confirmingOrder"
-            @cancel="cancellingOrder"
-            @back="onBack"
-          />
           <EscrowTransfer
+            ref="escrowTransferRef"
             v-if="state === 'escrow-bch'"
             :key="escrowTransferKey"
             :data="escrowTransferData"
@@ -120,7 +111,7 @@ import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialo
 import HeaderNav from 'src/components/header-nav.vue'
 import RampContract from 'src/exchange/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import ReceiveOrder from 'src/components/ramp/fiat/ReceiveOrder.vue'
+// import ReceiveOrder from 'src/components/ramp/fiat/ReceiveOrder.vue'
 import EscrowTransfer from 'src/components/ramp/fiat/EscrowTransfer.vue'
 import VerifyTransaction from 'src/components/ramp/fiat/VerifyTransaction.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
@@ -190,13 +181,11 @@ export default {
       sendingBch: false,
       verifyingTx: false,
       showStatusHistory: false,
-      receiveOrderError: null,
       noticeType: 'info',
       showNoticeDialog: false
     }
   },
   components: {
-    ReceiveOrder,
     StandByDisplay,
     ProgressLoader,
     MiscDialogs,
@@ -251,7 +240,9 @@ export default {
       switch (this.state) {
         case 'order-confirm-decline':
         case 'standby-view':
-          return this.order?.status?.label
+          if (this.order?.status?.value === 'CNF') {
+            return 'Escrow Pending'
+          } else { return this.order?.status?.label }
         case 'escrow-bch':
           return 'Escrow bch'
         case 'tx-confirmation':
@@ -312,12 +303,6 @@ export default {
         },
         errors: this.errorMessages,
         escrow: this.escrowContract
-      }
-    },
-    receiveOrderData () {
-      return {
-        order: this.order,
-        ad: this.ad
       }
     },
     transferAmount () {
@@ -552,6 +537,7 @@ export default {
         }
         case 'ESCRW': // Escrowed
           state = this.getEscrowedState(kwargs)
+          this.reloadChildComponents()
           break
         case 'PD_PN': // Paid Pending
           this.txid = null
@@ -666,21 +652,6 @@ export default {
 
     clearStoredTxids (orderId) {
       this.$store.commit('ramp/clearOrderTxids', orderId)
-    },
-
-    async confirmOrder () {
-      const vm = this
-      const url = `/ramp-p2p/order/${vm.order.id}/confirm/`
-      await backend.post(url, {}, { authorize: true })
-        .then(response => {
-          vm.handleNewStatus(response.data.status)
-        })
-        .catch(error => {
-          if (error?.response?.status === 400) {
-            this.receiveOrderError = error?.response?.data?.error
-          }
-          this.handleRequestError(error)
-        })
     },
 
     async cancelOrder () {
@@ -815,25 +786,14 @@ export default {
       switch (vm.dialogType) {
         case 'confirmCancelOrder':
           if (this.$refs.standbyRef) { this.$refs.standbyRef.loadCancelButton = true }
-          if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadDeclineButton = true }
+          if (this.$refs.escrowTransferRef) { this.$refs.escrowTransferRef.loadCancelButton = true}
           vm.cancelOrder()
           vm.onBack()
-          break
-        case 'confirmOrder':
-          if (this.$refs.receiveOrderRef) { this.$refs.receiveOrderRef.loadConfirmButton = true }
-          vm.confirmOrder()
           break
       }
       vm.title = ''
       vm.text = ''
       vm.isloaded = true
-    },
-
-    // Opening Dialog
-    confirmingOrder () {
-      this.dialogType = 'confirmOrder'
-      this.title = this.$t('ConfirmOrder')
-      this.openDialog = true
     },
 
     cancellingOrder () {

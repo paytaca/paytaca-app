@@ -65,7 +65,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { updateDeviceNotifType, parseDeviceId } from 'src/utils/engagementhub-utils'
+import { updateDeviceNotifType, parseDeviceId } from 'src/utils/engagementhub-utils/engagementhub-utils'
 
 export default {
   name: 'EnterCountryCityDialog',

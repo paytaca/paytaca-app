@@ -206,6 +206,15 @@ export default {
           return true
       }
     },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
     onUpdateIdentifierType () {
       if (this.paymentMethod.account_identifier) {
         this.$refs.accIdentifierRef.validate()
@@ -233,7 +242,7 @@ export default {
     },
     async fetchPaymentTypes () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency }, authorize: true })
+      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency } })
         .then(response => {
           vm.paymentTypeOpts = response.data
         })

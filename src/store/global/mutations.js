@@ -1,8 +1,13 @@
-import { deleteMnemonic } from './../../wallet'
+import { deleteMnemonic, deletePin, getMnemonic } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 
 export function updateAppControl (state, data) {
   state.appControl = data
+}
+
+export function updateMerchantActivity (state, data) {
+  state.merchantActivity.active = data.active
+  state.merchantActivity.verified = data.verified
 }
 
 function getWalletData (state, details) {
@@ -79,9 +84,14 @@ export function updateCurrentWallet (state, index) {
   state.chipnet__wallets = chipnet
 }
 
-export function deleteWallet (state, index) {
+export async function deleteWallet (state, index) {
+
   // Mark wallet as deleted
   state.vault[index].deleted = true
+  
+  // Delete pin (awaited to avoid race condition with deleteMnemonic)
+  await deletePin(index)
+  
   // Delete the mnemonic seed phrase for this wallet
   deleteMnemonic(index)
 }

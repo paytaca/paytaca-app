@@ -38,7 +38,7 @@
       <q-input
         filled
         dense
-        readonly
+        :readonly="txidLoaded && transactionId?.length > 0"
         :dark="darkMode"
         :loading="!txidLoaded && !transactionId"
         v-model="transactionId"
@@ -58,9 +58,6 @@
           @click="submitAction">
         </q-btn>
       </div>
-      <!-- <div class="q-my-sm" v-if="verifyingTx && hideBtn">
-        <q-spinner class="q-mr-sm"/>{{ $t('VerifyingPleaseWait') }}
-      </div> -->
     </div>
   </div>
 </template>
@@ -123,8 +120,11 @@ export default {
       if (!this.transactionId) {
         this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
       }
-      await this.fetchTransactions()
+      if (!this.transactionId) {
+        await this.fetchTransactions(this.data?.action)
+      }
       console.log('transactionId:', this.transactionId)
+      this.txidLoaded = true
     },
     loadContract () {
       this.fetchContract().then(this.fetchContractBalance())
@@ -141,12 +141,13 @@ export default {
           .catch(error => reject(error))
       })
     },
-    async fetchTransactions () {
+    async fetchTransactions (action) {
       const utxos = await this.data?.escrow?.getUtxos()
       if (utxos.length > 0) {
-        this.transactionId = utxos[0]?.txid
+        let index = 1
+        if (action === 'ESCROW') index = 0
+        this.transactionId = utxos[index]?.tx_hash
       }
-      this.txidLoaded = true
     },
     fetchContract () {
       return new Promise((resolve, reject) => {

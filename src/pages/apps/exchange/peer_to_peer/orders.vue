@@ -39,7 +39,12 @@ export default {
         switch (to.name) {
           case 'p2p-order':
           case 'exchange':
-            next('/apps')
+            console.log('to: ', to)
+            if ('ad_id' in to.query) {
+              next()
+            } else {
+              next('/apps')
+            }            
             break
           default:
             next()

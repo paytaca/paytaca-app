@@ -59,21 +59,6 @@
           class="col q-mx-lg q-mb-md q-my-sm button"
           @click="submitAction">
         </q-btn>
-        <!-- <div v-if="hideBtn && !errorMessage"> -->
-          <!-- <span v-if="verifyingTx">
-            <q-spinner class="q-mr-sm"/>
-            <span v-if="waitSeconds">
-              {{
-                $t(
-                  'VerifyingWithSeconds',
-                  { seconds: waitSeconds },
-                  `Verifying, please wait. (${ waitSeconds }s)`
-                )
-              }}
-            </span>
-            <span v-else>{{ $t('VerifyingPleaseWait2') }}</span>
-          </span> -->
-        <!-- </div> -->
       </div>
     </div>
   </div>
@@ -110,10 +95,6 @@ export default {
   emits: ['back', 'updatePageName', 'verifying-tx'],
   props: {
     data: Object
-    // escrowContract: Object,
-    // orderId: Number,
-    // txid: String,
-    // action: String
   },
   watch: {
     txidLoaded () {

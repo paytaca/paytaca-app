@@ -278,3 +278,7 @@ export function getWatchtowerBaseUrl (state) {
   }
   return 'https://watchtower.cash'
 }
+
+export function merchantActivity (state) {
+  return state.merchantActivity
+}

@@ -68,6 +68,9 @@
                 outlined
                 :disabled="disable"
                 :model-value="cartItem.quantity"
+                no-error-icon
+                hide-bottom-space
+                :error="cartItem.lackingQuantity > 0"
                 class="quantity-input"
                 @update:model-value="value => updateQuantity(value, cart, cartItem)"
               />
@@ -92,6 +95,9 @@
         </div>
         <q-space/>
         <div>{{ round(addon?.markupPrice * cartItem?.quantity, 2) }} {{ currency }}</div>
+      </div>
+      <div v-if="cartItem.lackingQuantity > 0" class="text-red text-caption">
+        Not enough stocks
       </div>
     </div>
   </div>

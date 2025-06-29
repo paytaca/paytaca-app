@@ -200,9 +200,7 @@
         v-model="message"
         :placeholder="$t('EnterMessage')"
         @focus="()=> {
-          console.log($refs.container.$el)
           let element = $refs.container.$el
-          console.log('element: ', element)
 
           element.scrollTop = element.scrollHeight
         }"
@@ -288,7 +286,8 @@ import {
   fetchChatMessages,
   generateChatRef,
   updateLastRead,
-  generateChatIdentityRef
+  generateChatIdentityRef,
+  loadChatIdentity
 } from 'src/exchange/chat'
 import { ChatMessage } from 'src/exchange/chat/objects'
 import { formatDate } from 'src/exchange'
@@ -299,7 +298,7 @@ import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-ut
 import { backend } from 'src/exchange/backend'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
-import { elements } from 'chart.js'
+import { fetchUser } from 'src/exchange/auth'
 
 export default {
   directives: {
@@ -543,6 +542,25 @@ export default {
       const vm = this
       const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
       vm.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
+      console.log('Chat Identity', vm.chatIdentity)
+
+      // Create chat identity if it doesn't exist
+      if (!vm.chatIdentity) {
+        console.log('Creating chat identity')
+        const user = await fetchUser()
+        console.log('User', user)
+        loadChatIdentity ('peer', { name: user?.name, chat_identity_id: user?.chat_identity_id })
+          .then(identity => {
+            vm.chatIdentity = identity
+            this.$store.commit('ramp/updateChatIdentity', { ref: identity.ref, chatIdentity: identity })
+            console.log('Chat Identity loaded', vm.chatIdentity)
+          })
+          .catch(error => {
+            console.error('Error loading chat identity:', error)
+          })
+      }
+
+      // Check if chat session exists
       let createSession = false
       await fetchChatSession(vm.chatRef)
         .catch(error => {
@@ -554,22 +572,28 @@ export default {
             bus.emit('network-error')
           }
         })
+
       await vm.fetchOrderMembers(vm.order?.id).then(async (members) => {
         if (!['APL', 'RFN_PN', 'RLS_PN'].includes(this.order.status.value)) {
           members = members.filter(member => !member.is_arbiter)
         } else {
           vm.arbiterIdentity = members.filter(member => member.is_arbiter)[0]
         }
+        console.log('Chat members', members)
         const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+
         // Create session if necessary
         if (createSession) {
           await createChatSession(vm.order?.id, vm.chatRef).catch(error => { console.error(error) })
           await updateChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
         } else {
-          // Add or update current chat members if any
+          // Fetch current chat members and compare with provided members
           fetchChatMembers(vm.chatRef).then(async currentChatMembers => {
-            if (currentChatMembers?.length !== chatMembers?.length) {
-              const chatMemberIds = chatMembers.map(el => el.chat_identity_id)
+            let chatMemberIds = chatMembers.map(el => el.chat_identity_id)
+            chatMemberIds = chatMemberIds.filter(id => currentChatMembers.some(member => member.chat_identity.id === id))
+
+            // If current chat members are not the same as chat members, update them
+            if (currentChatMembers?.length !== chatMemberIds?.length) {
               const membersToRemove = (currentChatMembers.filter(function (member) {
                 return !chatMemberIds.includes(member.chat_identity.id)
               })).map(el => el.chat_identity.id)
@@ -577,14 +601,15 @@ export default {
             }
           })
         }
+
         await fetchChatPubkeys(vm.chatRef).then(pubkeys => { vm.chatPubkeys = pubkeys }).catch(error => { console.error(error) })
-        // Refetch updated chat members and format
+
+        // Refetch and format the updated chat members
+        console.log('Fetching chat members')
         await fetchChatMembers(vm.chatRef)
           .then(members => {
-            // if mismatched name
             vm.chatMembers = members.map(member => {
               const name = this.$store.getters['ramp/getUser'].name
-
               return {
                 id: member.chat_identity.id,
                 name: member.chat_identity.ref === vm.chatIdentity.ref ? name : member.chat_identity.name,
@@ -593,18 +618,19 @@ export default {
                 pubkeys: member.chat_identity.pubkeys
               }
             })
+            console.log('Chat members fetched', vm.chatMembers)
           })
 
         // Fetch and decrypt messages
         fetchChatMessages(vm.chatRef)
           .then(async (data) => {
-            // set offset
             vm.totalMessages = data.count
             vm.offset += data.results.length
+
             const messages = data.results
             vm.convo.messages = messages.reverse()
+
             await vm.decryptMessages(messages)
-            // Update last read
             updateLastRead(vm.chatRef, vm.convo.messages).then(() => { bus.emit('last-read-update') })
           })
           .finally(() => {

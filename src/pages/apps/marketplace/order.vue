@@ -81,7 +81,7 @@
         </div>
       </div>
       <div class="q-mx-xs q-my-sm">
-        <OrderProgressPanel v-if="order?.status !== 'completed'" :order="order">
+        <OrderProgressPanel v-if="!order?.isCompleted" :order="order">
           <template v-slot:bottom>
             <div v-if="order?.isStorePickup && order?.isReadyForPickup">
               <q-btn
@@ -168,6 +168,24 @@
               @click="() => showPaymentDialog = true"
             />
           </div>
+        </q-banner>
+      </template>
+      <template v-if="order?.isCompleted && order?.totalPendingPayment">
+        <q-banner
+          class="q-mx-xs q-my-sm pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
+          inline-actions
+        >
+          <div>Payments in escrow</div>
+          <div class="text-subtitle1">
+            <template v-if="displayBch">{{ orderAmounts.totalPendingPayment.bch }} BCH</template>
+            <template v-else>{{ orderAmounts.totalPendingPayment.currency }} {{ orderCurrency }}</template>  
+          </div>
+          <template v-slot:action>
+            <q-btn rounded outlined no-caps class="button" padding="1px md" @click="() => releaseEscrowPayments()">
+              Release escrow
+            </q-btn>
+          </template>
         </q-banner>
       </template>
       <q-banner
@@ -518,6 +536,18 @@
                   <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(round(addon?.markupPrice * orderItem?.quantity, 3)) }}</td>
                 </tr>
               </template>
+              <tr v-if="orderAmounts?.cutlerySubtotal">
+                <td colspan="4" class="q-py-xs">
+                  <div class="text-weight-medium">{{ $t('Cutlery') }}</div>
+                  <div class="text-caption bottom">
+                    {{ $t('AdditionalChargesForCutlery') }}
+                  </div>
+                </td>
+                <td class="text-center">
+                  <div v-if="displayBch">{{ orderAmounts.cutlerySubtotal.bch }} BCH</div>
+                  <div v-else>{{ orderAmounts.cutlerySubtotal.currency }} {{ orderCurrency }}</div>
+                </td>
+              </tr>
             </q-markup-table>
           </q-card>
         </div>
@@ -698,10 +728,13 @@ import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/marketplace/backend'
 import { marketplaceRpc } from 'src/marketplace/rpc'
 import { Delivery, Order, OrderDispute, Payment, Review, Storefront } from 'src/marketplace/objects'
-import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
+import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { errorParser, formatDateRelative, formatTimestampToText, parsePaymentStatusColor, round } from 'src/marketplace/utils'
+import { fetchOrderPaymentsForSettlements, generateSettlementTransactions } from 'src/marketplace/escrow'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
+import { Device } from '@capacitor/device';
 import { debounce, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted, inject, onActivated, onDeactivated } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
@@ -735,6 +768,7 @@ onDeactivated(() => pageActive.value = false)
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $q = useQuasar()
+const { t: $t } = useI18n()
 
 const customer = computed(() => $store.getters['marketplace/customer'])
 
@@ -809,6 +843,7 @@ fetchOrder.debounced = debounce(fetchOrder, 500)
 const orderAmounts = computed(() => {
   const data = {
     subtotal: { currency: order.value?.markupSubtotal || 0, bch: 0 },
+    cutlerySubtotal: { currency: order.value?.cutlerySubtotal || 0, bch: 0 },
     deliveryFee: { currency: order.value?.payment?.deliveryFee || 0, bch: 0 },
     total: { currency: order.value?.total, bch: 0 },
     totalPaid: { currency: parseFloat(order.value?.totalPaid), bch: 0 },
@@ -819,6 +854,7 @@ const orderAmounts = computed(() => {
   }
 
   data.subtotal.bch = fiatToBch(data.subtotal.currency)
+  data.cutlerySubtotal.bch = fiatToBch(data.cutlerySubtotal.currency)
   data.deliveryFee.bch = fiatToBch(data.deliveryFee.currency)
   data.total.bch = fiatToBch(data.total.currency)
   data.totalPaid.bch = fiatToBch(data.totalPaid.currency)
@@ -1346,20 +1382,34 @@ function cancelOrder() {
 
 const completingOrder = ref(false)
 const showOrderCompletedPrompt = ref(false)
-async function completeOrderConfirm() {
-  if (!order.value.isStorePickup) return completeOrder()
-  await new Promise((resolve, reject) => {
-    $q.dialog({
-      title: 'Order complete',
-      message: 'This action cannot be reversed. Are you sure?',
-      ok: true,
-      cancel: true,
-      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-    }).onOk(resolve).onDismiss(reject)
-  }).catch(() => {})
-  return completeOrder()
+/**
+ * @param {import('quasar').DialogChainObject} dialog
+ */
+async function createPaymentSettlementTransactions(dialog) {
+  try {
+    dialog.update({ message: $t('FetchingPaymentData') })
+    const escrowContracts = await fetchOrderPaymentsForSettlements(order.value?.id)
+    if (!wallet.value) await initWallet()
+
+    const settlementResults = await generateSettlementTransactions({
+      escrowContracts, wallet: wallet.value, settlementType: 'release', dialog
+    })
+    return settlementResults.map(result => {
+      return {
+        escrow_contract_address: result.escrowContract.address,
+        tx_hex: result.txHex,
+      }
+    })
+  } catch(error) {
+    let message = error?.name === 'SettlementTransactionError'
+      ? error?.message
+      : $t('UnknownErrorOccurred')
+
+    dialog.update({ message: message, persistent: false, progress: false })
+    throw error
+  }
 }
-function completeOrder() {
+async function completeOrder() {
   const isDelivered = order.value?.isDelivered
   const isPickedUp = order.value?.isStorePickup && order.value?.isPickedUp
   if (!isDelivered && !isPickedUp) return
@@ -1374,6 +1424,12 @@ function completeOrder() {
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
+  if (order.value.totalPendingPayment > 0) {
+    dialog.update({ title: 'Signing payment settlement' })
+    data.escrow_settlements = await createPaymentSettlementTransactions(dialog)
+  }
+
+  dialog.update({ title: 'Completing order', message: '' })
   completingOrder.value = true
   return backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
     .then(response => {
@@ -1397,6 +1453,56 @@ function completeOrder() {
       dialog.update({ persistent: false, progress: false })
       completingOrder.value = false
     })
+}
+
+async function releaseEscrowPayments() {
+  if (!order.value.isCompleted) {
+    await new Promise((resolve, reject) => {
+      $q.dialog({
+        title: 'Order incomplete',
+        message: 'Order is not yet completed',
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+      }).onOk(resolve).onDismiss(reject)
+    })
+  }
+
+  const dialog = $q.dialog({
+    title: 'Releasing escrow',
+    progress: true,
+    persistent: true,
+    ok: false,
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  })
+  try {
+    const settlementTransactions = await createPaymentSettlementTransactions(dialog)
+    const data = {
+      status: Order.Status.COMPLETED,
+      escrow_settlements: settlementTransactions
+    }
+    dialog.update({ message: 'Verifying & sending transaction' })
+    return await backend.post(`connecta/orders/${order.value.id}/update_status/`, data)
+      .then(response => {
+        order.value.raw = response?.data
+        dialog.hide()
+      })
+      .catch(error => {
+        const data = error?.response?.data
+        const fieldError = errorParser.firstElementOrValue(
+          data?.escrow_settlements?.filter?.(Boolean)?.[0]
+        )
+        let errorMessage = errorParser.firstElementOrValue(data?.detail) ||
+                          errorParser.firstElementOrValue(data?.non_field_errors) ||
+                          errorParser.firstElementOrValue(data?.status) ||
+                          fieldError
+
+        if (typeof data === 'string' && data.length < 200) errorMessage = data
+        dialog.update({
+          message: errorMessage || 'An unknown error occurred',
+        })
+      })
+  } finally {
+    dialog.update({ persistent: false , progress: false })
+  }
 }
 
 const orderDispute = ref([].map(OrderDispute.parse)[0])
@@ -1545,7 +1651,7 @@ async function updateCashbackAmounts() {
       const data = {
         merchant_address: payment.value?.escrowContract?.sellerAddress,
         customer_address: payment.value?.escrowContract?.buyerAddress,
-        satoshis: payment.value.escrowContract?.amountSats,
+        satoshis: payment.escrowContract?.amountSats,
         device_id: deviceId.uuid || deviceId.identifier,
       }
       if (!data.merchant_address || !data.customer_address || !data.satoshis) return

@@ -1,26 +1,30 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
+    <header-nav id="SEND"
+      :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
-          <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)">
+          <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)" id="select-asset-to-send">
             {{ $t('SelectAssetToSend') }}
           </p>
         </div>
-        <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
+        <div
+          class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
           <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
         <div
+          id = "asset-dropdown"
           v-for="(asset, index) in assets"
           :key="index"
           @click="redirectToSend(asset)"
           role="button"
           class="row q-pl-lg q-pr-lg"
         >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)">
+          <div id="bitcoin-cash"
+            class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)">
             <div class="row q-pt-sm q-pb-xs q-pl-md">
               <div>
                 <img
@@ -59,11 +63,10 @@
   </div>
 </template>
 <script>
-import { markRaw } from '@vue/reactivity'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
-import { getMnemonic, Wallet } from 'src/wallet'
+import { cachedLoadWallet } from 'src/wallet'
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
@@ -94,7 +97,8 @@ export default {
       activeBtn: 'btn-bch',
       result: '',
       error: '',
-      isCashToken: true
+      isCashToken: true,
+      tokenNotFoundDialog: null
     }
   },
   computed: {
@@ -204,7 +208,7 @@ export default {
     if (this.$route.query.error === 'token-mismatch') {
       this.$router.replace({ path: this.$route.path })
       this.$q.dialog({
-        title: this.$('TokenMismatch'),
+        title: this.$t('TokenMismatch'),
         message: this.$t('TokenMismatchMessage'),
         persistent: true,
         seamless: true,
@@ -215,25 +219,39 @@ export default {
 
     if (this.$route.query.error === 'token-not-found') {
       this.$router.replace({ path: this.$route.path })
-      this.$q.dialog({
+      this.tokenNotFoundDialog = this.$q.dialog({
         title: this.$t('TokenNotFound'),
         message: this.$t('TokenNotFoundMessage'),
         persistent: true,
         seamless: true,
-        ok: true,
+        ok: {
+          label: this.$t('OK'),
+          handler: () => {
+            this.$router.push('/')
+          }
+        },
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)} no-click-outside`
       })
     }
 
     // update balance of assets
-    await getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
-      let wallet = new Wallet(mnemonic, vm.network)
-      wallet = markRaw(wallet)
-
-      assets.forEach(async (asset) => {
-        await updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
+    const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
+    for (var i = 0; i < assets.length; i = i + 3) {
+      const balanceUpdatePromises = assets.slice(i, i + 3).map(asset => {
+        return updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
       })
-    })
+      const assetMetadataUpdatePromises = assets.slice(i, i + 3).map(asset => {
+        return vm.$store.dispatch('assets/getAssetMetadata', asset.id)
+      })
+      await Promise.allSettled([...balanceUpdatePromises, ...assetMetadataUpdatePromises])
+    }
+  },
+  beforeRouteLeave (to, from, next) {
+    // Close any open dialogs before leaving
+    if (this.tokenNotFoundDialog) {
+      this.tokenNotFoundDialog.hide()
+    }
+    next()
   }
 }
 </script>

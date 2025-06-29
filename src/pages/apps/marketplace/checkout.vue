@@ -61,6 +61,15 @@
             :cart="checkout?.cart"
             :currency="checkoutCurrency"
           />
+          <div v-if="checkout?.cart?.requireCutlery" class="row items-center q-px-xs">
+            <div class="q-pa-xs">
+              <div class="text-body2">{{ $t('Cutlery') }}</div>
+              <div class="text-grey text-caption bottom">{{ $t('CutleryIncludedMsg') }}</div>
+            </div>
+            <q-space/>
+            <div class="q-pa-xs">{{ checkout?.cart?.cutlerySubtotal }} {{ checkoutCurrency }}</div>
+          </div>
+          <q-separator/>
           <div v-if="checkout?.cart?.markupSubtotal" class="q-px-xs q-mt-md row items-center text-subtitle1">
             <div class="q-space">Subtotal</div>
             <div>{{ checkout?.cart?.markupSubtotal }} {{ checkoutCurrency }}</div>
@@ -620,52 +629,56 @@
               <div class="q-px-sm text-subtitle1">Items</div>
               <q-separator :dark="darkMode" class="q-mx-sm"/>
               <table class="full-width items-table">
-                <tr>
-                  <th colspan="2" class="full-width">Item</th>
-                  <th>Quantity</th>
-                  <th>Subtotal</th>
-                </tr>
-                <template v-for="cartItem in checkout?.cart?.items" :key="cartItem?.variant?.id">
+                <thead>
                   <tr>
-                    <td colspan="2">
-                      <q-btn
-                        flat no-caps
-                        padding="none"
-                        :to="{
-                          name: 'app-marketplace-product',
-                          params: { productId: cartItem?.variant?.product?.id },
-                          query: { variantId: cartItem?.variant?.id },
-                        }"
-                      >
-                        <div class="row items-center justify-left no-wrap full-width text-left">
-                          <q-img
-                            v-if="cartItem?.variant?.itemImage"
-                            :src="cartItem?.variant?.itemImage"
-                            width="35px"
-                            ratio="1"
-                            style="min-width:35px;"
-                            class="rounded-borders q-mr-xs"
-                          />
-                          <div class="q-space">
-                            <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
-                            <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
+                    <th colspan="2" class="full-width">Item</th>
+                    <th>Quantity</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template v-for="cartItem in checkout?.cart?.items" :key="cartItem?.variant?.id">
+                    <tr>
+                      <td colspan="2">
+                        <q-btn
+                          flat no-caps
+                          padding="none"
+                          :to="{
+                            name: 'app-marketplace-product',
+                            params: { productId: cartItem?.variant?.product?.id },
+                            query: { variantId: cartItem?.variant?.id },
+                          }"
+                        >
+                          <div class="row items-center justify-left no-wrap full-width text-left">
+                            <q-img
+                              v-if="cartItem?.variant?.itemImage"
+                              :src="cartItem?.variant?.itemImage"
+                              width="35px"
+                              ratio="1"
+                              style="min-width:35px;"
+                              class="rounded-borders q-mr-xs"
+                            />
+                            <div class="q-space">
+                              <div class="text-weight-medium">{{ cartItem?.variant?.itemName }}</div>
+                              <div class="text-caption bottom">{{ cartItem?.propertiesText }} </div>
+                            </div>
                           </div>
-                        </div>
-                      </q-btn>
-                    </td>
-                    <td class="text-center" style="white-space:nowrap;">{{ cartItem?.quantity }}</td>
-                    <td class="text-right" style="white-space:nowrap;">{{ (cartItem?.variant?.markupPrice * cartItem?.quantity) }} {{ checkoutCurrency }}</td>
-                  </tr>
-                  <tr v-for="(addon, index) in cartItem.addons" :key="`${cartItem?.id}-${index}`">
-                    <td></td>
-                    <td>
-                      <div>{{ addon?.label }}</div>
-                      <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
-                    </td>
-                    <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
-                    <td class="text-right" style="white-space:nowrap;">{{ round(addon?.markupPrice * cartItem?.quantity, 3) }} {{ checkoutCurrency }}</td>
-                  </tr>
-                </template>
+                        </q-btn>
+                      </td>
+                      <td class="text-center" style="white-space:nowrap;">{{ cartItem?.quantity }}</td>
+                      <td class="text-right" style="white-space:nowrap;">{{ (cartItem?.variant?.markupPrice * cartItem?.quantity) }} {{ checkoutCurrency }}</td>
+                    </tr>
+                    <tr v-for="(addon, index) in cartItem.addons" :key="`${cartItem?.id}-${index}`">
+                      <td></td>
+                      <td>
+                        <div>{{ addon?.label }}</div>
+                        <div v-if="addon?.inputValue" class="text-caption bottom">{{ addon?.inputValue }}</div>
+                      </td>
+                      <td class="text-center" style="white-space:nowrap;">{{ addon?.quantity }}</td>
+                      <td class="text-right" style="white-space:nowrap;">{{ round(addon?.markupPrice * cartItem?.quantity, 3) }} {{ checkoutCurrency }}</td>
+                    </tr>
+                  </template>
+                </tbody>
               </table>
               </q-card>
             </div>
@@ -801,7 +814,7 @@ import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDi
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
-import { parseCashbackMessage } from 'src/utils/engagementhub-utils'
+import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
 
 const forceShowReview = ref(false)
 onMounted(() => {
@@ -1214,6 +1227,7 @@ function fetchCheckout() {
     const data = {
       delivery_type: props.deliveryType || Checkout.DeliveryTypes.LOCAL_DELIVERY,
       delivery_address: { location: parsedSessionLocationData },
+      check_stocks: true,
     }
     if (props.checkoutId) request = backend.patch(`connecta/checkouts/${props.checkoutId}/`, data)
     else if (props.cartId) request = backend.post(`connecta/carts/${props.cartId}/checkout/`, data)
