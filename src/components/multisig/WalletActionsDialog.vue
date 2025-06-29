@@ -55,11 +55,11 @@
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-text-box-multiple" class="col-12" color="primary" style="position:relative">
-                <q-badge color="red" v-if="txproposals?.length > 0" style="margin-right: 20px;" floating>
-                 {{txproposals.length}}
+                <q-badge color="red" v-if="txProposals?.length > 0" style="margin-right: 20px;" floating>
+                 {{txProposals.length}}
                 </q-badge>
               </q-icon>
-              <div class="col-12 tile-label">Proposals</div>
+              <div class="col-12 tile-label">Tx Proposal</div>
             </div>
           </template>
         </q-btn>
@@ -71,7 +71,7 @@
             </div>
           </template>
         </q-btn-->
-         <q-btn flat dense no-caps @click="$emit('createSendBchProposal')" class="tile" v-close-popup>
+         <q-btn flat dense no-caps @click="$emit('createSendBchProposal')" class="tile" :disable="disable?.includes('send-bch')" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="send" class="col-12" color="primary"></q-icon>
@@ -112,6 +112,7 @@ const $emit = defineEmits ([
 defineProps({
   darkMode: Boolean,
   txProposals: Array,
-  isMultisigWalletSynced: Boolean
+  isMultisigWalletSynced: Boolean,
+  disable: Array
 })
 </script>
