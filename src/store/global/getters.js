@@ -272,6 +272,13 @@ export function appControl (state) {
   return state.appControl
 }
 
+export function getWatchtowerBaseUrl (state) {
+  if (state.isChipnet) {
+    return 'https://chipnet.watchtower.cash'
+  }
+  return 'https://watchtower.cash'
+}
+
 export function merchantActivity (state) {
   return state.merchantActivity
 }

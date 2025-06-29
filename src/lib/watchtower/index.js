@@ -1,3 +1,4 @@
+import axios from 'axios'
 import WatchtowerSdk from 'watchtower-cash-js'
 import { secp256k1, decodePrivateKeyWif, binToHex, instantiateSha256 } from '@bitauth/libauth'
 import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils'
@@ -20,7 +21,7 @@ class Watchtower extends WatchtowerSdk {
   /**
    * Returns list of external addresses
    */
-  async getWalletExternalAddresses (walletHash /*:string*/) /*: Promise<string[]>*/ {
+  async getWalletExternalAddresses (walletHash /*: string */) /*: Promise<string[]> */ {
     let addresses = []
     const response = await fetch(`${this._baseUrl}wallet-addresses/${walletHash}/?change_index=0`)
     if (response.ok) {
@@ -32,7 +33,7 @@ class Watchtower extends WatchtowerSdk {
   /**
    * Fetch wallet's last address index
    */
-  async getLastExternalAddressIndex (walletHash/*:string*/) /*: Promise<{ address:string; address_index: number } | null>*/ {
+  async getLastExternalAddressIndex (walletHash/*: string */) /*: Promise<{ address:string; address_index: number } | null> */ {
     const response = await fetch(`${this._baseUrl}last-address-index/wallet/${walletHash}/?exclude_pos=true`)
     let addressAndIndex = null
     if (response.ok) {
@@ -57,23 +58,31 @@ class Watchtower extends WatchtowerSdk {
   }
 
   /**
-   * Associates an address with a (d)app.
-   * E.g. address was connected to a (d)app
+   * Associates an address with a DAPP.
+   *
+   * @param { object } options
+   * @param { string } options.address Use for authentication. Assumed as the address connected to DAPP.
+   * @param { Uint8Array } options.privateKey The private key that owns options.address.
+   * @param { string } options.appName Name of the DAPP
+   * @param { string } options.appUrl Url of the DAPP. E.g. origin of the wallet connect transaction.
+   * @param { string } [options.appIcon] Icon of the DAPP
+   * @param { string } [options.addressToConnect] Will use as address connected to DAPP if present.
+   * @returns { Promise<boolean> } true on success
    */
   async saveConnectedApp ({
-      address/*:string*/,
-      appName/*:string*/,
-      appUrl/*:string*/,
-      appIcon/*?:string*/,
-      privateKey/*: Uint8Array*/ /* For signing */
-    })/*: Promise<boolean>*/ {
-
+    address,
+    appName,
+    appUrl,
+    appIcon,
+    privateKey,
+    addressToConnect
+  }) {
     if (!appName || !appUrl) return false
 
     const nonce = await this.getNonce()
     if (nonce) {
-      const message = `${nonce}|${address}|${appName}|${appUrl}`
-      const publicKeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey) /*as Uint8Array*/
+      const message = `${nonce}|${address}|${appName}|${appUrl}|${addressToConnect}`
+      const publicKeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey) /* as Uint8Array */
       let pkToCashAddress = privateKeyToCashAddress(privateKey)
       if (this.isChipnet) {
         pkToCashAddress = toP2pkhTestAddress(pkToCashAddress)
@@ -84,7 +93,7 @@ class Watchtower extends WatchtowerSdk {
 
       const sha256 = (await instantiateSha256()).hash
       const hashedMessage = sha256(new TextEncoder().encode(message))
-      const derSignature = secp256k1.signMessageHashDER(privateKey, hashedMessage) /*as Uint8Array*/
+      const derSignature = secp256k1.signMessageHashDER(privateKey, hashedMessage) /* as Uint8Array */
       const derSignatureHex = binToHex(derSignature)
       const postData = {
         public_key: binToHex(publicKeyCompressed),
@@ -94,7 +103,6 @@ class Watchtower extends WatchtowerSdk {
           app_icon: appIcon
         }
       }
-
       const postResponse = await fetch(`${this._baseUrl}wallet-address-app/`, {
         method: 'POST',
         headers: {
@@ -138,15 +146,64 @@ class Watchtower extends WatchtowerSdk {
     }
     return addressPeerAppList
   }
-  
+
+  async getAddressBchBalance (address) {
+    const response = await fetch(`${this._baseUrl}balance/bch/${address}`)
+    if (response.ok) {
+      return await response.json()
+    }
+  }
+
+  async broadcastTx (tx) {
+    const r = await fetch(`${this._baseUrl}broadcast/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        transaction: tx
+      })
+    })
+    if (r.status >= 400) {
+      this.error =
+        'Problem occured while contacting server. Please try again later.'
+      throw this.error
+    }
+    return await r.json()
+  }
 
   set isChipnet (yes) {
     if (yes) {
-      this._baseUrl = 'https://chipnet.watchtower.cash/api/';
+      this._baseUrl = 'https://chipnet.watchtower.cash/api/'
+    } else {
+      this._baseUrl = 'https://watchtower.cash/api/'
     }
-    else {
-        this._baseUrl = 'https://watchtower.cash/api/';
+  }
+
+  async uploadMultisigWallet(multisigWallet) {
+    return await fetch(`${this._baseUrl}multisig/wallets`, {
+      method: 'POST',
+      body: JSON.stringify(multisigWallet)
+    })
+  }
+  
+  async getAddressBchBalance(address) {
+    return await axios.get(`${this._baseUrl}balance/bch/${address}/`)
+  }
+  
+  async getAddressTokenBalance(tokenAddress, category = '') {
+    if (category) {	
+     return await axios.get(`${this._baseUrl}balance/ct/${tokenAddress}/${category}/`)
     }
+    return await axios.get(`${this._baseUrl}balance/ct/${tokenAddress}/`)
+  }
+  
+  async subscribeAddress (address) {
+    return await axios.post(`${this._baseUrl}subscription/`, { address })
+  }
+
+  async getMultisigWalletUtxos(address) {
+    return await axios.get(`${this._baseUrl}multisig/wallets/utxos/${address}`)
   }
 }
 
