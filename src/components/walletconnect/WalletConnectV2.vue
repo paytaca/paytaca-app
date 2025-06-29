@@ -472,24 +472,25 @@ async function saveConnectedApp (session) {
           privateKey: decodedPrivkey.privateKey
         })
       }
+      return // TODO: remember multisig address, update watchtower endpoint
       // Try if it's a multisig wallet
       const multisigAddress = multisigWallets.value.find((walletAddress) => {
         // eslint-disable-next-line eqeqeq
         return walletAddress.address == accountWCPrefixRemoved
       })
-
       if (multisigAddress) {
         // We'll borrow the regular wallet 0's pk for signing the watchtower post message
-        const wallet = await loadLibauthHdWallet(0, isChipnet.value)
-        const wif = wallet.getPrivateKeyWifAt('0/0')
+        const localWallet = await loadLibauthHdWallet(0, isChipnet.value)
+        const localWalletAddress = localWallet.getAddressAt('0')
+        const wif = localWallet.getPrivateKeyWifAt('0/0')
         const decodedPrivkey = decodePrivateKeyWif(wif)
         return watchtower.value.saveConnectedApp({
-          address: accountWCPrefixRemoved,
+          address: localWalletAddress,
+          privateKey: decodedPrivkey.privateKey,
           appName: session?.peer?.metadata?.name || session?.peer?.metadata?.url,
           appUrl: session?.peer?.metadata?.url,
           appIcon: session?.peer?.metadata?.icons?.[0],
-          privateKey: decodedPrivkey.privateKey,
-          addressIsMultisig: true
+          addressToConnect: accountWCPrefixRemoved
         })
       }
     })
