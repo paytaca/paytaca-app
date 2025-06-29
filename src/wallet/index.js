@@ -12,7 +12,7 @@ import {
  decodeHdPrivateKey,
  decodeHdPublicKey,
  deriveHdPathRelative,
- sha256,
+ sha256 as sha256Libauth,
  secp256k1,
  utf8ToBin,
  binToHex
@@ -173,7 +173,7 @@ export async function getHdKeys ({ vaultIndex = 0 }) {
 export function signMessageWithHdPrivateKey ({ hdPrivateKey, addressIndex, message, hex = false }) {
  const decodedHdPrivateKey = decodeHdPrivateKey(hdPrivateKey, addressIndex)
  const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, addressIndex)
- const messageHash = sha256.hash(utf8ToBin(message))
+ const messageHash = sha256Libauth.hash(utf8ToBin(message))
  const schnorr = secp256k1.signMessageHashSchnorr(privateKey, messageHash)
  const der = secp256k1.signMessageHashDer(privateKey, messageHash)
  if (hex) {
