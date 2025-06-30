@@ -85,11 +85,25 @@ export function updateWalletSnapshot (state, details) {
 export function updateCurrentWallet (state, index) {
   console.log('[updateCurrentWallet] Updating current wallet for index:', index)
   
+  // Safety check: ensure vault exists and index is valid
+  if (!state.vault || !Array.isArray(state.vault)) {
+    console.error('[updateCurrentWallet] Vault is not initialized or not an array')
+    return
+  }
+  
   const vault = state.vault[index]
   
   if (!vault) {
-    console.error('[updateCurrentWallet] No vault found at index', index)
+    console.error('[updateCurrentWallet] No vault found at index', index, 'Available indices:', state.vault.map((v, i) => v ? i : null).filter(i => i !== null))
     return
+  }
+
+  // Special check for index 1
+  if (index === 1) {
+    console.log('[updateCurrentWallet] DEBUG: Processing wallet index 1')
+    console.log('[updateCurrentWallet] DEBUG: Vault entry structure:', Object.keys(vault))
+    console.log('[updateCurrentWallet] DEBUG: Has wallet:', !!vault.wallet)
+    console.log('[updateCurrentWallet] DEBUG: Has chipnet:', !!vault.chipnet)
   }
 
   if (!vault.wallet || !vault.chipnet) {
@@ -108,6 +122,9 @@ export function updateCurrentWallet (state, index) {
   chipnet = JSON.parse(chipnet)
 
   state.chipnet__wallets = chipnet
+  
+  console.log('[updateCurrentWallet] Successfully updated current wallet. New state.wallets:', state.wallets)
+  console.log('[updateCurrentWallet] New state.chipnet__wallets:', state.chipnet__wallets)
 }
 
 export function deleteWallet (state, index) {
@@ -293,6 +310,11 @@ export function setWalletConnectedApps(state, connectedApps) {
   } else {
     state.wallets.bch.connectedApps = connectedApps
   }
+}
+
+export function updateVaultFromHydration (state, vault) {
+  console.log('[updateVaultFromHydration] Restoring vault data from hydration:', vault)
+  state.vault = vault
 }
 
 

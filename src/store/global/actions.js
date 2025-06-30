@@ -242,36 +242,93 @@ export async function syncCurrentWalletToVault(context) {
 }
 
 export async function switchWallet (context, index) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      try {
-        context.dispatch('syncCurrentWalletToVault', )
-        context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
-        context.commit('paytacapos/clearBranchInfo', {}, { root: true })
-        context.commit('ramp/resetUser', {}, { root: true })
-        context.commit('ramp/resetData', {}, { root: true })
-        context.commit('ramp/resetChatIdentity', {}, { root: true })
-        context.commit('ramp/resetPagination', {}, { root: true })
-        deleteAuthToken()
+  console.log('[switchWallet] Starting wallet switch to index:', index)
+  
+  try {
+    console.log('[switchWallet] Syncing current wallet to vault...')
+    // Sync current wallet to vault before switching
+    await context.dispatch('syncCurrentWalletToVault')
+    
+    console.log('[switchWallet] Clearing various states...')
+    // Clear various states
+    context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
+    context.commit('paytacapos/clearBranchInfo', {}, { root: true })
+    context.commit('ramp/resetUser', {}, { root: true })
+    context.commit('ramp/resetData', {}, { root: true })
+    context.commit('ramp/resetChatIdentity', {}, { root: true })
+    context.commit('ramp/resetPagination', {}, { root: true })
+    deleteAuthToken()
 
-        context.commit('updateWalletIndex', index)
-        context.commit('updateCurrentWallet', index)
+    console.log('[switchWallet] Updating wallet index and loading new wallet...')
+    // Update wallet index and load the new wallet
+    context.commit('updateWalletIndex', index)
+    context.commit('updateCurrentWallet', index)
+    
+    console.log('[switchWallet] Ensuring persistence...')
+    // Ensure the new wallet index is persisted to indexedDB
+    // Wait a bit more to ensure persistence
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-        resolve()
-      } catch (error) {
-        reject(error)
-      }
-    }, 1000)
-  })
+    console.log('[switchWallet] Wallet switch completed successfully for index:', index)
+  } catch (error) {
+    console.error('[switchWallet] Error switching wallet:', error)
+    throw error
+  }
 }
 
 export async function deleteWallet (context, index) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      context.commit('deleteWallet', index)
-      resolve()
-    }, 1000)
-  })
+  console.log('[deleteWallet] Starting wallet deletion for index:', index)
+  console.log('[deleteWallet] Current wallet index before deletion:', context.getters.getWalletIndex)
+  console.log('[deleteWallet] Current vault before deletion:', context.getters.getVault)
+  
+  try {
+    // Mark the wallet as deleted
+    context.commit('deleteWallet', index)
+    console.log('[deleteWallet] Wallet marked as deleted at index:', index)
+    
+    // Find the next available wallet to switch to
+    const vault = context.getters.getVault
+    const undeletedWallets = []
+    
+    vault.forEach((wallet, walletIndex) => {
+      if (wallet && wallet.deleted !== true) {
+        undeletedWallets.push(walletIndex)
+      }
+    })
+    
+    console.log('[deleteWallet] Available wallets after deletion:', undeletedWallets)
+    console.log('[deleteWallet] Current vault after marking as deleted:', vault)
+    
+    // If no wallets left, clear vault and resolve
+    if (undeletedWallets.length === 0) {
+      console.log('[deleteWallet] No wallets left, clearing vault')
+      context.commit('clearVault')
+      return
+    }
+    
+    // Switch to the first available wallet
+    const nextWalletIndex = undeletedWallets[0]
+    console.log('[deleteWallet] Switching to next available wallet at index:', nextWalletIndex)
+    
+    // Update wallet index and load the wallet data
+    context.commit('updateWalletIndex', nextWalletIndex)
+    console.log('[deleteWallet] Wallet index updated to:', nextWalletIndex)
+    
+    context.commit('updateCurrentWallet', nextWalletIndex)
+    console.log('[deleteWallet] Current wallet updated to index:', nextWalletIndex)
+    
+    // Ensure persistence to indexedDB
+    console.log('[deleteWallet] Ensuring persistence to indexedDB...')
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    console.log('[deleteWallet] Final wallet index:', context.getters.getWalletIndex)
+    console.log('[deleteWallet] Final vault state:', context.getters.getVault)
+    
+    console.log('[deleteWallet] Wallet deletion and switch completed successfully')
+  } catch (error) {
+    console.error('[deleteWallet] Error during wallet deletion:', error)
+    throw error
+  }
 }
 
 /**

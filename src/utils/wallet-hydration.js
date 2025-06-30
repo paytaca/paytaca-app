@@ -26,11 +26,11 @@ export async function hydrateWallet() {
     console.log('[Hydration] Updating store with wallet index...')
     store.commit('global/updateWalletIndex', walletIndex)
     
-    // Only handle vault if it has valid data
+    // Update the store's vault state with persisted data
     if (vault && Array.isArray(vault) && vault.length > 0) {
-        console.log('[Hydration] Vault has data, updating...')
-        // For now, just ensure the wallet data is properly loaded
-        // The vault will be populated when saveExistingWallet is called
+        console.log('[Hydration] Vault has data, updating store vault...')
+        // Update the store's vault state
+        store.commit('global/updateVaultFromHydration', vault)
     } else {
         console.log('[Hydration] No valid vault data found')
     }
