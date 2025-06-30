@@ -63,11 +63,43 @@ export function updateWalletIndex (state, index) {
 }
 
 export function updateWalletName (state, details) {
+  // Safety check: ensure vault exists and index is valid
+  if (!state.vault || !Array.isArray(state.vault)) {
+    console.error('[updateWalletName] Vault is not initialized or not an array')
+    return
+  }
+  
+  if (details.index === undefined || details.index === null) {
+    console.error('[updateWalletName] Invalid index provided:', details.index)
+    return
+  }
+  
+  if (!state.vault[details.index]) {
+    console.error('[updateWalletName] No vault entry found at index:', details.index)
+    return
+  }
+  
   state.vault[details.index].name = details.name
 }
 
 export function updateWalletSnapshot (state, details) {
   console.log('[updateWalletSnapshot] Updating wallet snapshot for index:', details.index)
+  
+  // Safety check: ensure vault exists and index is valid
+  if (!state.vault || !Array.isArray(state.vault)) {
+    console.error('[updateWalletSnapshot] Vault is not initialized or not an array')
+    return
+  }
+  
+  if (details.index === undefined || details.index === null) {
+    console.error('[updateWalletSnapshot] Invalid index provided:', details.index)
+    return
+  }
+  
+  if (!state.vault[details.index]) {
+    console.error('[updateWalletSnapshot] No vault entry found at index:', details.index)
+    return
+  }
   
   let wallet = details.walletSnapshot
   wallet = JSON.stringify(wallet)
@@ -128,6 +160,22 @@ export function updateCurrentWallet (state, index) {
 }
 
 export function deleteWallet (state, index) {
+  // Safety check: ensure vault exists and index is valid
+  if (!state.vault || !Array.isArray(state.vault)) {
+    console.error('[deleteWallet] Vault is not initialized or not an array')
+    return
+  }
+  
+  if (index === undefined || index === null) {
+    console.error('[deleteWallet] Invalid index provided:', index)
+    return
+  }
+  
+  if (!state.vault[index]) {
+    console.error('[deleteWallet] No vault entry found at index:', index)
+    return
+  }
+  
   // Mark wallet as deleted
   state.vault[index].deleted = true
   
