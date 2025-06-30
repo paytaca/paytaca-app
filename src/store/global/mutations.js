@@ -37,12 +37,24 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
-  const len = state.vault.push(details)
-
-  state.vault[len - 1].name = ''
+  console.log('[updateVault] Updating vault with details:', details)
+  
+  // Simple approach: if vault is empty, create first entry, otherwise push new entry
+  if (!state.vault || state.vault.length === 0) {
+    state.vault = [details]
+  } else {
+    state.vault.push(details)
+  }
+  
+  // Ensure the entry has a name
+  const targetIndex = state.vault.length - 1
+  if (state.vault[targetIndex] && !state.vault[targetIndex].name) {
+    state.vault[targetIndex].name = ''
+  }
 }
 
 export function clearVault (state) {
+  console.log('[clearVault] Clearing vault')
   state.vault = []
 }
 
@@ -55,6 +67,8 @@ export function updateWalletName (state, details) {
 }
 
 export function updateWalletSnapshot (state, details) {
+  console.log('[updateWalletSnapshot] Updating wallet snapshot for index:', details.index)
+  
   let wallet = details.walletSnapshot
   wallet = JSON.stringify(wallet)
   wallet = JSON.parse(wallet)
@@ -69,7 +83,19 @@ export function updateWalletSnapshot (state, details) {
 }
 
 export function updateCurrentWallet (state, index) {
+  console.log('[updateCurrentWallet] Updating current wallet for index:', index)
+  
   const vault = state.vault[index]
+  
+  if (!vault) {
+    console.error('[updateCurrentWallet] No vault found at index', index)
+    return
+  }
+
+  if (!vault.wallet || !vault.chipnet) {
+    console.error('[updateCurrentWallet] Invalid vault structure at index', index, vault)
+    return
+  }
 
   let wallet = vault.wallet
   wallet = JSON.stringify(wallet)
@@ -84,16 +110,12 @@ export function updateCurrentWallet (state, index) {
   state.chipnet__wallets = chipnet
 }
 
-export async function deleteWallet (state, index) {
-
+export function deleteWallet (state, index) {
   // Mark wallet as deleted
   state.vault[index].deleted = true
   
-  // Delete pin (awaited to avoid race condition with deleteMnemonic)
-  await deletePin(index)
-  
-  // Delete the mnemonic seed phrase for this wallet
-  deleteMnemonic(index)
+  // Note: deletePin and deleteMnemonic should be handled in actions, not mutations
+  // These async operations will be handled by the calling action
 }
 
 export function toggleIsChipnet (state) {
