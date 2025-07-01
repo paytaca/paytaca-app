@@ -68,6 +68,9 @@ body.theme-default {
     &.light {
       background-color: #ecf3f3 !important;
     }
+    &.grad {
+      background-image: $bg_gradient;
+    }
   }
 
   /* ----- CLASSES ----- */

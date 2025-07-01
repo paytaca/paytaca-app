@@ -1,5 +1,6 @@
 <template>
-  <div :class="theme" id="registration-container">
+  <onboarding v-if="isOnboarding" @register="isOnboarding=false"/>   
+  <div v-else :class="theme" id="registration-container">
     <div class="row q-pb-sm">
       <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
         <img src="~/assets/paytaca_logo.png" height="60" alt="">
@@ -53,7 +54,7 @@
                 :class="getDarkModeClass(darkMode)"
                 @click="!$router.push('/')"
                 v-if="!isVaultEmpty"
-              />
+              />              
             </div>
           </div>
           <div class="row" v-else style="margin-top: 60px;">
@@ -320,6 +321,7 @@ import AuthenticationChooser from 'src/components/registration/AuthenticationCho
 import ShardsImport from 'src/components/registration/ShardsImport'
 import MnemonicProcessContainer from 'src/components/registration/MnemonicProcessContainer'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
+import Onboarding from 'src/components/registration/Onboarding.vue'
 // import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 function countWords(str) {
@@ -350,7 +352,8 @@ export default {
     AuthenticationChooser,
     ShardsImport,
     MnemonicProcessContainer,
-    SeedPhraseContainer//,
+    SeedPhraseContainer,
+    Onboarding
     // RewardsStep
   },
   data () {
@@ -392,7 +395,8 @@ export default {
       openThemeSelector: false,
       useTextArea: false,
       authenticationPhase: 'options',
-      skipToBackupPhrase: false//,
+      skipToBackupPhrase: false,
+      isOnboarding: this.isVaultEmpty//,
       // moveToReferral: false,
     }
   },
@@ -424,7 +428,10 @@ export default {
     },
     isFinalStep () {
       return this.steps === this.totalSteps
-    }
+    },
+    // isOnboarding () {
+    //   return this.isVaultEmpty
+    // }
   },
   methods: {
     isNotDefaultTheme,
@@ -803,6 +810,8 @@ export default {
     }
   },
   async mounted () {
+    this.isOnboarding = this.isVaultEmpty
+
     if (this.recreate) {
       this.mnemonic = await getMnemonic(0) || ''
       if (this.mnemonic.split(" ").length === 12) {
