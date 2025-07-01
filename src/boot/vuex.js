@@ -1,5 +1,5 @@
 import { boot } from 'quasar/wrappers'
-import { migrateVuexLocalStorage } from 'src/utils/migrate-localstorage-to-indexdb'
+import { migrateVuexStorage } from 'src/utils/rollback-vuex-storage'
 import useStore from 'src/store'
 
 /**
@@ -11,8 +11,8 @@ import useStore from 'src/store'
  */
 export default boot(async (obj) => {
   try {
-    // Migrate old localStorage to IndexedDB (localforage)
-    await migrateVuexLocalStorage()
+    // Rollbacks Vuex storage from IndexedDB to localStorage
+    await migrateVuexStorage()
 
     const store = useStore();
     const { app } = obj
