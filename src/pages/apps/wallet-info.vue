@@ -596,13 +596,11 @@ export default {
 
         vm.$store.dispatch('global/switchWallet', index).then(function () {
           vm.$router.push('/')
-          setTimeout(() => { location.reload() }, 1500)
+          setTimeout(() => { location.reload() }, 500)
         })
       }
     },
     async deleteWallet (vm) {
-      console.log('[deleteWallet] Component method called')
-      
       if (!vm.wallet) await vm.loadWallet()
       if (vm.$q.platform.is.mobile) {
         const walletHashes = [
@@ -625,44 +623,25 @@ export default {
         }
         await Promise.all(promises)
       }
-      
       const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
-      console.log('[deleteWallet] Component - Current wallet index before deletion:', currentWalletIndex)
-      console.log('[deleteWallet] Component - Current vault before deletion:', vm.$store.state.global.vault)
-      
-      try {
-        // The deleteWallet action now handles switching to the next available wallet
-        console.log('[deleteWallet] Component - Calling deleteWallet action...')
-        await vm.$store.dispatch('global/deleteWallet', currentWalletIndex)
-        console.log('[deleteWallet] Component - Action completed successfully')
-        
-        // Check if there are any wallets left
+      vm.$store.dispatch('global/deleteWallet', currentWalletIndex).then(() => {
+      }).then(function () {
         const vault = vm.$store.state.global.vault
-        const undeletedWallets = vault.filter(wallet => wallet && wallet.deleted !== true)
-        console.log('[deleteWallet] Component - Undeleted wallets after action:', undeletedWallets)
-        console.log('[deleteWallet] Component - Current wallet index after action:', vm.$store.getters['global/getWalletIndex'])
-        
-        if (undeletedWallets.length === 0) {
-          // No wallets left, go to accounts page
-          console.log('[deleteWallet] Component - No wallets left, going to accounts page')
+        const undeletedWallets = []
+        const vaultCheck = vault.filter(function (wallet, index) {
+          if (wallet.deleted !== true) {
+            undeletedWallets.push(index)
+            return wallet
+          }
+        })
+        if (vaultCheck.length === 0) {
           vm.$store.commit('global/clearVault')
           vm.$router.push('/accounts')
-          setTimeout(() => { location.reload() }, 1500)
+          setTimeout(() => { location.reload() }, 500)
         } else {
-          // The action should have already switched to the first available wallet
-          // Just reload to ensure everything is properly updated
-          console.log('[deleteWallet] Component - Wallets remain, reloading page')
-          vm.$router.push('/')
-          setTimeout(() => { location.reload() }, 1500)
+          vm.switchWallet(undeletedWallets[0])
         }
-      } catch (error) {
-        console.error('[deleteWallet] Component - Error during wallet deletion:', error)
-        vm.$q.notify({
-          color: 'negative',
-          message: 'Failed to delete wallet. Please try again.',
-          icon: 'error'
-        })
-      }
+      })
     }
   },
   beforeUnmount() {
