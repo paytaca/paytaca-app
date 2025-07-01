@@ -1,5 +1,6 @@
 import { boot } from 'quasar/wrappers'
 import { migrateVuexStorage } from 'src/utils/rollback-vuex-storage'
+import { initWalletsFromStorage } from 'src/utils/wallet-rehydration'
 import useStore from 'src/store'
 
 /**
@@ -24,6 +25,8 @@ export default boot(async (obj) => {
       store.replaceState(JSON.parse(persistedState))
       console.log('[Hydration] Vuex state manually hydrated.')
     }
+
+    await initWalletsFromStorage()
 
     // Add error handler for store mutations
     store.subscribe((mutation, state) => {

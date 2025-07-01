@@ -2,7 +2,6 @@ const sha256 = require('js-sha256')
 
 function getWalletData (state, walletType) {
   const hasTestnetWallets = ['bch', 'slp']
-  console.log('wallets:', state.wallets)
   if (hasTestnetWallets.includes(walletType)) {
     if (state.isChipnet) {
       return state.chipnet__wallets[walletType]
