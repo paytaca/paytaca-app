@@ -1,6 +1,7 @@
 <template>
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('Receive')" backnavpath="/"></header-nav>
+    <header-nav id="RECEIVE" 
+      :title="$t('Receive')" backnavpath="/"></header-nav>
     <q-tabs
       dense
       v-if="enableSmartBCH"

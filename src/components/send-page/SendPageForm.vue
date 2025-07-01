@@ -21,18 +21,18 @@
           inputExtras.scannedRecipientAddress
         ]"
       >
-        <template v-slot:label>
+        <template v-slot:label id="sub-btn"> 
           {{ $t('Recipient') }}
         </template>
         <template v-slot:append>
-          <q-btn
+          <q-btn id="send-form-qr"
             round
             class="q-ml-xs btn-scan button text-white bg-grad"
             icon="mdi-qrcode"
             size="md"
             @click="onQRScannerClick(true), onInputFocus(index, '')"
           />
-          <q-btn
+          <q-btn id="send-form-upload"
             round
             class="q-ml-sm btn-scan button text-white bg-grad"
             icon="upload"
@@ -365,7 +365,7 @@ export default {
       const message = this.inputExtras.cashbackData.message
       const amountBch = this.inputExtras.cashbackData.cashback_amount
       const amountFiat = parseFiatCurrency(
-        convertToFiatAmount(this.inputExtras.cashbackData.cashback_amount),
+        convertToFiatAmount(amountBch, this.selectedAssetMarketPrice),
         this.currentSendPageCurrency()
       )
       const merchantName = this.inputExtras.cashbackData.merchant_name

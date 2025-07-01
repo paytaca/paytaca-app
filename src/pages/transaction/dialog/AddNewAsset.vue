@@ -227,6 +227,7 @@ export default {
 
       if (this.isSep20) {
         this.$store.commit('sep20/addNewAsset', this.asset)
+        this.$store.commit(`sep20/moveAssetToBeginning`)
         this.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
         this.$store.dispatch('sep20/updateTokenIcon', { assetId: this.asset.id })
         return
@@ -242,6 +243,7 @@ export default {
           decimals: 0,
         }, this.asset, { balance: 0 })
       )
+      this.$store.commit(`assets/moveAssetToBeginning`)
     },
     onOKClick () {
       this.addAsset()

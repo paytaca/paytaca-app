@@ -7,8 +7,8 @@
     hide-selected
     borderless
     :dark="darkMode"
-    :option-label="opt => String(opt && opt.name)"
-    v-model="selectedCurrency"
+    :option-label="opt => String(opt && opt.name)" 
+    v-model="selectedCurrency" id="selected-currency"
     :options="filteredCurrencyOptions"
     @filter="filterCurrencyOptionSelection"
   >
@@ -17,7 +17,7 @@
         v-bind="scope.itemProps"
       >
         <q-item-section>
-          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }"> 
             {{ String(scope.opt.symbol).toUpperCase() }}
           </q-item-label>
           <q-item-label

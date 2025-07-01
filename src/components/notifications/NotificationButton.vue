@@ -30,7 +30,9 @@ export default {
   data () {
     return {
       notifsCount: 0,
-      notifSocket: null
+      notifSocket: null,
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5
     }
   },
 
@@ -42,24 +44,117 @@ export default {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
     currentWalletHash () {
-      return this.$store.getters['global/getWallet']('bch')?.walletHash
+      const wallet = this.$store.getters['global/getWallet']('bch')
+      return wallet?.walletHash || ''
+    }
+  },
+
+  watch: {
+    currentWalletHash: {
+      handler(newWalletHash) {
+        if (newWalletHash && this.isMobile && !this.notifSocket) {
+          this.initializeNotifications()
+        }
+      },
+      immediate: true
     }
   },
 
   async mounted () {
-    const vm = this
+    if (this.currentWalletHash && this.isMobile) {
+      this.initializeNotifications()
+    }
+  },
 
-    if (this.isMobile) {
-      vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
-      vm.notifSocket = new WebSocket(
-        `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
-      )
-      vm.addListenersToSocket()
+  beforeUnmount() {
+    if (this.notifSocket) {
+      this.notifSocket.close()
+      this.notifSocket = null
     }
   },
 
   methods: {
     getDarkModeClass,
+    
+    async initializeNotifications() {
+      if (!this.currentWalletHash) {
+        console.log('Wallet hash not available, skipping notification initialization')
+        return
+      }
+
+      try {
+        this.notifsCount = await getWalletUnreadNotifs(this.currentWalletHash)
+        this.connectWebSocket()
+      } catch (error) {
+        console.error('Failed to initialize notifications:', error)
+      }
+    },
+
+    connectWebSocket() {
+      if (!this.currentWalletHash) {
+        console.log('Cannot connect WebSocket: wallet hash not available')
+        return
+      }
+
+      if (this.notifSocket) {
+        this.notifSocket.close()
+        this.notifSocket = null
+      }
+      
+      try {
+        this.notifSocket = new WebSocket(
+          `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${this.currentWalletHash}/`
+        )
+        this.addListenersToSocket()
+      } catch (error) {
+        console.error('Failed to create WebSocket:', error)
+      }
+    },
+
+    addListenersToSocket () {
+      const vm = this
+
+      vm.notifSocket.addEventListener('message', (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          vm.notifsCount = data.unread_notifs_count
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error)
+        }
+      })
+
+      vm.notifSocket.addEventListener('open', (event) => {
+        console.log('Notification websocket opened.')
+        vm.reconnectAttempts = 0 // Reset reconnect attempts on successful connection
+      })
+
+      vm.notifSocket.addEventListener('close', (event) => {
+        console.log('Notification websocket closed.')
+        vm.notifSocket = null
+        
+        // Only attempt to reconnect if we haven't exceeded max attempts and wallet hash is available
+        if (vm.reconnectAttempts < vm.maxReconnectAttempts && vm.currentWalletHash) {
+          vm.reconnectAttempts++
+          const delay = Math.min(1000 * Math.pow(2, vm.reconnectAttempts), 30000) // Exponential backoff, max 30s
+          
+          console.log(`Reconnecting in ${delay}ms (attempt ${vm.reconnectAttempts}/${vm.maxReconnectAttempts})`)
+          setTimeout(() => {
+            if (vm.currentWalletHash) {
+              vm.connectWebSocket()
+            }
+          }, delay)
+        } else if (vm.reconnectAttempts >= vm.maxReconnectAttempts) {
+          console.log('Max reconnection attempts reached, stopping reconnection attempts')
+        } else {
+          console.log('Cannot reconnect: wallet hash not available')
+        }
+      })
+
+      vm.notifSocket.addEventListener('error', (event) => {
+        console.log('Notification websocket encountered an error:', event)
+      })
+    },
+
     async openNotificationsDialog () {
       const vm = this
 
@@ -68,35 +163,12 @@ export default {
         component: Notifications,
         componentProps: { onOpenTransaction: this.findAndOpenTransaction }
       }).onDismiss(async () => {
-        if (this.isMobile) {
+        if (this.isMobile && this.currentWalletHash) {
           vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
         }
       })
     },
-    addListenersToSocket () {
-      const vm = this
 
-      vm.notifSocket.addEventListener('message', (event) => {
-        const data = JSON.parse(event.data)
-        vm.notifsCount = data.unread_notifs_count
-      })
-
-      vm.notifSocket.addEventListener('open', (event) => {
-        console.log('Notification websocket opened.')
-      })
-
-      vm.notifSocket.addEventListener('close', (event) => {
-        console.log('Notification websocket closed. Reopening websocket...')
-        vm.notifSocket = new WebSocket(
-          `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
-        )
-        vm.addListenersToSocket()
-      })
-
-      vm.notifSocket.addEventListener('error', (event) => {
-        console.log('Notification websocket encountered an error. ', event)
-      })
-    },
     findAndOpenTransaction (data) {
       this.$emit('find-and-open-transaction', data)
     }

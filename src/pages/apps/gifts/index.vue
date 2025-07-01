@@ -120,6 +120,16 @@
                         >
                           <q-tooltip>{{ $t('ShowQRCode') }}</q-tooltip>
                         </q-btn>
+                        <q-btn
+                          v-if="gift.date_claimed === 'None' && getGiftShare(gift.hash)"
+                          flat
+                          round
+                          color="warning"
+                          icon="mdi-refresh"
+                          @click="confirmRecoverGift(gift)"
+                        >
+                          <q-tooltip>{{ $t('RecoverGift') }}</q-tooltip>
+                        </q-btn>
                       </div>
                     </q-card-section>
                   </q-card>
@@ -285,9 +295,13 @@ export default {
 
           // Store each gift individually
           transformedGifts.forEach(gift => {
+            // Get existing gift data to preserve local share
+            const existingGift = this.$store.getters['gifts/getGift'](gift.hash)
+            const existingShare = existingGift?.share || null
+            
             this.$store.commit('gifts/saveGift', {
               giftCodeHash: gift.hash,
-              share: gift.share || null,
+              share: existingShare, // Preserve existing local share
               status: gift.status,
               amount: gift.amount,
               address: gift.address,
@@ -351,7 +365,7 @@ export default {
         seamless: true,
         class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
-        .onOk(() => this.recoverGift(gift?.gift_code_hash))
+        .onOk(() => this.recoverGift(gift?.hash))
     },
     recoverGift (giftCodeHash) {
       const localShare = this.getGiftShare(giftCodeHash)
@@ -413,7 +427,6 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Gift resubmission error:', error)
         this.$store.dispatch('gifts/updateGiftStatus', {
           giftCodeHash: gift.hash,
           status: 'failed'

@@ -37,7 +37,8 @@
     </div>
 
     <div class="row q=mt-md" v-if="isFinalStep">
-      <q-btn
+     
+      <q-btn id="continue-verify-phrase-button"
         v-if="mnemonicVerified"
         rounded
         class="full-width button"
@@ -47,7 +48,8 @@
 
       <template v-else>
         <template v-if="$q.platform.is.mobile">
-          <q-btn
+          <q-btn 
+            id="mnem-continue-btn1"
             v-if="showMnemonicTest"
             no-caps
             rounded
@@ -56,17 +58,22 @@
           >
             {{ $t('SkipVerification') }}
           </q-btn>
-          <q-btn
+        
+          <q-btn 
+            id="mnem-continue-btn2"
             v-else
             rounded
             class="full-width bg-blue-9 text-white"
             :label="$t('Continue')"
             @click="showMnemonicTest = true"
           />
+        
         </template>
 
         <template v-else>
-          <q-btn
+          
+          <q-btn 
+            id="mnem-continue-btn3"
             rounded
             class="full-width bg-blue-9 text-white"
             :label="$t('Continue')"

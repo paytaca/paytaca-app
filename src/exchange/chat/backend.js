@@ -29,6 +29,7 @@ chatBackend.interceptors.request.use(async (config) => {
     const signResponse = await signRequestData(data)
     if (!signResponse.signature) return config
 
+    console.log('signResponse.walletHash:', signResponse.walletHash)
     const chatIdentityRef = generateChatIdentityRef(signResponse.walletHash)
     config.headers['X-Chat-Identity'] = [chatIdentityRef, timestamp, signResponse.signature].join(':')
   }
