@@ -15,7 +15,10 @@
       <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
         <div class="q-py-lg">
           <div v-if="serverOnline" v-cloak>
-            <div class="col-12 q-mt-md q-px-lg q-py-none">
+            <div>
+              <login/>
+            </div>
+            <!-- <div class="col-12 q-mt-md q-px-lg q-py-none">
               <div class="row">
                 <div class="col-12 q-py-sm">
                   <q-btn id="create-new-wallet"
@@ -43,7 +46,7 @@
                   />
                 </div>
               </div>
-            </div>
+            </div> -->
             <div class="col-12 q-mt-md">
               <q-btn
                 flat
@@ -83,7 +86,7 @@
       v-if="importSeedPhrase && mnemonic.length === 0"
     >
       <template v-if="authenticationPhase === 'options'">
-        <div>
+        <div>          
           <AuthenticationChooser
             :importSeedPhrase="importSeedPhrase"
             @change-authentication-phase="onChangeAuthenticationPhase"
@@ -322,6 +325,7 @@ import ShardsImport from 'src/components/registration/ShardsImport'
 import MnemonicProcessContainer from 'src/components/registration/MnemonicProcessContainer'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import Onboarding from 'src/components/registration/Onboarding.vue'
+import Login from 'src/components/registration/Login.vue'
 // import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 function countWords(str) {
@@ -353,7 +357,8 @@ export default {
     ShardsImport,
     MnemonicProcessContainer,
     SeedPhraseContainer,
-    Onboarding
+    Onboarding,
+    Login
     // RewardsStep
   },
   data () {
