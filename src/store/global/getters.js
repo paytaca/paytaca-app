@@ -113,7 +113,8 @@ export function getAllChipnetTypes (state) {
 export function getVault (state) {
   const vault = state.vault
   // Sanitize the vault to ensure it contains only valid objects,
-  // cause some entries are arrays.
+  // cause for some reason some entries are arrays.
+  // This is a temporary fix to prevent errors in the app.
   
   // Check for invalid entries in the vault
   const invalidEntry = vault.filter(entry => Array.isArray(entry))
