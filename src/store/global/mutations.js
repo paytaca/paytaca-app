@@ -37,9 +37,20 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
-  const len = state.vault.push(details)
-
-  state.vault[len - 1].name = ''
+  console.log('[updateVault] Updating vault with details:', details)
+  
+  // Simple approach: if vault is empty, create first entry, otherwise push new entry
+  if (!state.vault || state.vault.length === 0) {
+    state.vault = [details]
+  } else {
+    state.vault.push(details)
+  }
+  
+  // Ensure the entry has a name
+  const targetIndex = state.vault.length - 1
+  if (state.vault[targetIndex] && !state.vault[targetIndex].name) {
+    state.vault[targetIndex].name = ''
+  }
 }
 
 export function clearVault (state) {
