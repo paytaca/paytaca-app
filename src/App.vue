@@ -9,7 +9,7 @@
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
-import { useQuasar } from 'quasar'
+import { is, useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
@@ -222,7 +222,101 @@ export default {
           })
         })
       }
-    }
+    },
+    async initWallets(startIndex = 0) {
+      const vm = this
+      let mnemonic = await getMnemonic(startIndex)
+
+      let walletIndex = startIndex
+      while(mnemonic && walletIndex < 10) {
+        mnemonic = await getMnemonic(walletIndex)
+        console.log('Initializing wallet for index:', startIndex)
+        console.log('mnemonic:', mnemonic)
+
+        if (!mnemonic) {
+          console.warn('No mnemonic found for index:', startIndex)
+          break
+        }
+
+        // Load the wallet for the current mnemonic
+        const wallet = new Wallet(mnemonic)
+        console.log('Loaded wallet:', wallet)
+        const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
+        const slpWallets = [wallet.SLP, wallet.SLP_TEST]
+
+        for (const bchWallet of bchWallets) {
+          const isChipnet = bchWallets.indexOf(bchWallet) === 1
+
+          await bchWallet.getNewAddressSet(0).then(function (response) {
+            const addresses = response?.addresses || null
+            const walletTypeInfo = {
+              isChipnet,
+              type: 'bch',
+              walletHash: bchWallet.walletHash,
+              derivationPath: bchWallet.derivationPath,
+              lastAddress: addresses !== null ? addresses.receiving : '',
+              lastChangeAddress: addresses !== null ? addresses.change : '',
+              lastAddressIndex: 0,
+            }
+
+            vm.$store.commit('global/updateWallet', walletTypeInfo)
+            try {
+              vm.$store.dispatch('global/refetchWalletPreferences')
+            } catch(error) { console.error(error) }
+          })
+
+          await bchWallet.getXPubKey().then(function (xpub) {
+            const xPubInfo = {
+              isChipnet,
+              type: 'bch',
+              xPubKey: xpub
+            }
+
+            vm.$store.commit('global/updateXPubKey', xPubInfo)
+          })
+        }
+
+        for (const slpWallet of slpWallets) {
+          const isChipnet = slpWallets.indexOf(slpWallet) === 1
+
+          await slpWallet.getNewAddressSet(0).then(function (addresses) {
+            const walletTypeInfo = {
+              isChipnet,
+              type: 'slp',
+              walletHash: slpWallet.walletHash,
+              derivationPath: slpWallet.derivationPath,
+              lastAddress: addresses !== null ? addresses.receiving : '',
+              lastChangeAddress: addresses !== null ? addresses.change : '',
+              lastAddressIndex: 0
+            }
+
+            vm.$store.commit('global/updateWallet', walletTypeInfo)
+          })
+
+          await slpWallet.getXPubKey().then(function (xpub) {
+            const xPubInfo = {
+              isChipnet,
+              type: 'slp',
+              xPubKey: xpub
+            }
+
+            vm.$store.commit('global/updateXPubKey', xPubInfo)
+          })
+        }
+
+        const walletHashes = [
+          wallet.BCH.walletHash,
+          wallet.BCH_CHIP.walletHash,
+          wallet.SLP.walletHash,
+          wallet.SLP_TEST.walletHash,
+          wallet.sBCH.walletHash,
+        ]
+        vm.$pushNotifications?.subscribe?.(walletHashes, walletIndex, true)
+
+        walletIndex++
+      }
+
+    },
   },
   beforeMount() {
     if (typeof navigator.onLine === 'boolean') {
@@ -237,7 +331,20 @@ export default {
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
+
+    // Check if vault and stored wallets are empty but mnemonics are available
+    // If so, reinitialize the wallets and vault from these mnemonics
+    const isVaultEmpty = this.$store.getters['global/isVaultEmpty']
+    const isWalletsEmpty = this.$store.getters['global/getWallet']('bch')?.walletHash === '' &&
+                          this.$store.getters['global/getWallet']('slp')?.walletHash === ''
+
+    if (isVaultEmpty && isWalletsEmpty && mnemonic) {
+      console.log('[App] Vault and wallets are empty, reinitializing from mnemonics')
+      await vm.initWallets(index)
+    }
+    
     if (mnemonic) {
+
       vm.$q.lang.set(vm.$store.getters['global/language'].value)
       await vm.savingInitialChipnet(mnemonic)
       // first check if vaults are empty

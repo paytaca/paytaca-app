@@ -177,6 +177,7 @@ export async function saveWalletPreferences (context) {
 }
 
 export async function saveExistingWallet (context) {
+  console.log('Saving existing wallet to vault...')
   const vault = context.getters.getVault
 
   // check if vault keys are valid
@@ -188,8 +189,14 @@ export async function saveExistingWallet (context) {
     }
   }
 
+  console.log('Vault before saving:', vault)
+  console.log('Is vault empty:', context.getters.isVaultEmpty)
+
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters.getWallet('bch')?.walletHash
+
+    console.log('Saving wallet to vault with hash:', walletHash)
+    
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes
       wallet = JSON.stringify(wallet)
