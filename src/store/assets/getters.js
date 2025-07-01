@@ -49,7 +49,20 @@ export function getAsset (state) {
 }
 
 export function getVault (state) {
-  return state.vault
+  const vault = state.vault
+
+  // Sanitize the vault to ensure it contains only valid objects,
+  // cause some entries are arrays.
+  console.log('Sanitizing vault:', vault)
+  const sanitizedVault = vault.filter(
+    item =>
+      typeof item === 'object' &&  // must be object
+      !Array.isArray(item) &&      // but not an array
+      item !== null                // and not null
+  )
+  console.log('Sanitized vault:', sanitizedVault)
+  
+  return sanitizedVault
 }
 
 export function isVaultEmpty (state) {

@@ -117,7 +117,10 @@ export async function syncWalletName (context, opts) {
   if (!vault) throw new Error('No vault found')
 
   const walletHash = vault?.wallet?.bch?.walletHash
-  if (!walletHash) throw new Error('No wallet hash found')
+  if (!walletHash) {
+    console.error('No wallet hash found in vault:', vault)
+    return // throw new Error('No wallet hash found')
+  }
 
   const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
   const decryptedName = decryptWalletName(walletName, walletHash)
@@ -138,7 +141,6 @@ export async function updateWalletNameInPreferences (context, data) {
 
   try {
     const decryptedName = decryptWalletName(data.walletName, walletHash)
-    console.log('Updating wallet name: ', data.walletIndex, decryptedName)
     context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
   } catch (error) {
     console.error(error)
