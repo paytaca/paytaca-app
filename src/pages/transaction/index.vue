@@ -1178,8 +1178,8 @@ export default {
 
       if (storedWalletHash !== derivedWalletHash) {
         console.log('INCONSISTENCY DETECTED!')
-        console.log('Wallet index:', this.$store.getters['global/getWalletIndex'])
-        this.$store.commit('global/updateCurrentWallet', this.$store.getters['global/getWalletIndex'])
+        console.log('Wallet index:', walletIndex)
+        this.$store.commit('global/updateCurrentWallet', walletIndex)
         // location.reload()
       }
 
@@ -1341,7 +1341,7 @@ export default {
       }
       this.showTransactionDetails(transaction)
     },
-    async findTransaction(data = {txid, assetId, chain: 'BCH'}) {
+    async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
       if (!data) return
       const { txid, assetId, chain, logIndex } = data
       const transaction = this.transactions?.find?.(tx => (tx?.txid || tx?.tx_hash) === txid)

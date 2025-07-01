@@ -139,21 +139,7 @@ export default {
       vm.processDefaultVaultName()
 
       const tempVault = vm.$store.getters['global/getVault']
-      
-      // Safety check: ensure vault exists and is an array
-      if (!tempVault || !Array.isArray(tempVault)) {
-        console.error('[processVaultName] Invalid vault structure:', tempVault)
-        vm.isloading = false
-        return
-      }
-      
       const vaultNameUpdatePromises = tempVault.map(async (wallet, index) => {
-        // Safety check: ensure wallet exists
-        if (!wallet) {
-          console.error('[processVaultName] No wallet found at index:', index)
-          return
-        }
-        
         let tempName = wallet.name
         if (wallet.name === '') { // from vuex store
           tempName = `Personal Wallet #${index + 1}`
@@ -195,7 +181,7 @@ export default {
 
       vm.$store.dispatch('global/switchWallet', index).then(function () {
         vm.$router.push('/')
-        setTimeout(() => { location.reload() }, 1500)
+        setTimeout(() => { location.reload() }, 500)
       })
 
       loadingDialog.hide()
@@ -241,20 +227,11 @@ export default {
       vm.vault = tempVault
     },
     getAssetData (index) {
-      // Safety check: ensure index is valid
-      if (index === undefined || index === null) {
-        console.error('[getAssetData] Invalid index provided:', index)
-        return {}
-      }
-      
       if (this.currentIndex === index) {
         return this.isChipnet ? this.$store.getters['assets/getAllAssets'].chipnet_assets[0] : this.$store.getters['assets/getAllAssets'].asset[0]
       } else {
         const assetVault = this.$store.getters['assets/getVault']
-        if (!assetVault || !assetVault[index]) {
-          console.error('[getAssetData] No asset vault found at index:', index)
-          return {}
-        }
+        if (!assetVault) return {}
         return this.isChipnet ? assetVault[index].chipnet_assets[0] : assetVault[index].asset[0]
       }
     },

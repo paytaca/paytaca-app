@@ -113,45 +113,21 @@ export async function fetchWalletName (context, walletHash) {
  * @param {Number} opts.walletIndex
  */
 export async function syncWalletName (context, opts) {
-  // Safety check: ensure opts and walletIndex are valid
-  if (!opts || opts.walletIndex === undefined || opts.walletIndex === null) {
-    console.error('[syncWalletName] Invalid opts or walletIndex provided:', opts)
-    throw new Error('Invalid wallet index provided')
-  }
-  
-  const vault = context.getters.getVault?.[opts.walletIndex]
-  if (!vault) {
-    console.error('[syncWalletName] No vault found at index:', opts.walletIndex)
-    throw new Error('No vault found')
-  }
+  const vault = context.getters.getVault?.[opts?.walletIndex]
+  if (!vault) throw new Error('No vault found')
 
   const walletHash = vault?.wallet?.bch?.walletHash
-  if (!walletHash) {
-    console.error('[syncWalletName] No wallet hash found for vault at index:', opts.walletIndex)
-    throw new Error('No wallet hash found')
-  }
+  if (!walletHash) throw new Error('No wallet hash found')
 
   const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
   const decryptedName = decryptWalletName(walletName, walletHash)
-  context.commit('updateWalletName', { index: opts.walletIndex, name: decryptedName })
+  context.commit('updateWalletName', { index: opts?.walletIndex, name: decryptedName })
   return decryptedName
 }
 
 export async function updateWalletNameInPreferences (context, data) {
-  // Safety check: ensure data and walletIndex are valid
-  if (!data || data.walletIndex === undefined || data.walletIndex === null) {
-    console.error('[updateWalletNameInPreferences] Invalid data or walletIndex provided:', data)
-    throw new Error('Invalid wallet index provided')
-  }
-  
-  const vault = context.rootGetters['global/getVault']
-  if (!vault || !vault[data.walletIndex]) {
-    console.error('[updateWalletNameInPreferences] No vault found at index:', data.walletIndex)
-    throw new Error('No vault found')
-  }
-  
   const selectedCurrency = context.rootGetters['market/selectedCurrency']
-  const walletHash = vault[data.walletIndex].wallet.bch.walletHash
+  const walletHash = context.rootGetters['global/getVault'][data.walletIndex].wallet.bch.walletHash
   const payload = {
     wallet_hash: walletHash,
     selected_currency: selectedCurrency?.symbol,
@@ -166,7 +142,7 @@ export async function updateWalletNameInPreferences (context, data) {
     context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
   } catch (error) {
     console.error(error)
-    context.dispatch('syncWalletName', { walletIndex: data.walletIndex })
+    context.dispatch('syncWalletName', { walletIndex: data?.walletIndex })
   }
 }
 
@@ -243,23 +219,10 @@ export async function saveExistingWallet (context) {
 
 export async function syncCurrentWalletToVault(context) {
   const currentIndex = context.getters.getWalletIndex
-  
-  // Safety check: ensure currentIndex is valid
-  if (currentIndex === undefined || currentIndex === null) {
-    console.error('[syncCurrentWalletToVault] Invalid current wallet index:', currentIndex)
-    return
-  }
-  
-  const vault = context.getters.getVault
-  if (!vault || !vault[currentIndex]) {
-    console.error('[syncCurrentWalletToVault] No vault found at current index:', currentIndex)
-    return
-  }
-  
   const wallet = context.getters.getAllWalletTypes
   const chipnet = context.getters.getAllChipnetTypes
 
-  const walletName = vault[currentIndex].name
+  const walletName = context.getters.getVault[currentIndex].name
 
   const info = {
     index: currentIndex,
