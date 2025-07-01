@@ -176,13 +176,11 @@ export async function saveWalletPreferences (context) {
 
 export async function saveExistingWallet (context) {
   const vault = context.getters.getVault
-  console.log('saveExistingWallet - vault:', vault, 'isVaultEmpty:', context.getters.isVaultEmpty)
 
   // check if vault keys are valid
   if (vault.length > 0) {
     if (vault[0]) {
       if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
-        console.log('saveExistingWallet - Invalid vault structure, clearing vault')
         context.commit('clearVault')
       }
     }
@@ -190,7 +188,6 @@ export async function saveExistingWallet (context) {
 
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters.getWallet('bch')?.walletHash
-    console.log('saveExistingWallet - isVaultEmpty, walletHash:', walletHash)
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes
       wallet = JSON.stringify(wallet)
@@ -203,16 +200,7 @@ export async function saveExistingWallet (context) {
         wallet: wallet,
         chipnet: chipnet
       }
-      console.log('saveExistingWallet - Saving to vault:', info)
       context.commit('updateVault', info)
-    }
-  } else {
-    // If vault is not empty, ensure current wallet data is loaded from vault
-    const currentIndex = context.getters.getWalletIndex
-    console.log('saveExistingWallet - vault not empty, currentIndex:', currentIndex, 'vault[currentIndex]:', vault[currentIndex])
-    if (vault[currentIndex]) {
-      console.log('saveExistingWallet - Calling updateCurrentWallet with index:', currentIndex)
-      context.commit('updateCurrentWallet', currentIndex)
     }
   }
 }

@@ -97,8 +97,6 @@ export const Store = createStore({
   strict: process.env.DEBUGGING
 })
 
-console.log('[Store] Vuex store created')
-
 export default function (/* { ssrContext } */) {
   return Store
 }
