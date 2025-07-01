@@ -3,6 +3,9 @@ import localforage from 'localforage'
 const ROLLBACK_FLAG = 'vuex-rollback-done'
 
 export async function migrateVuexStorage() {
+  // This function rolls back Vuex storage from IndexedDB to localStorage
+  // IndexedDB data will not be deleted
+
   console.log('[Migration] Initializing rollback of Vuex storage to localStorage')
 
   const alreadyRolledBack = window.localStorage.getItem(ROLLBACK_FLAG)
@@ -23,6 +26,7 @@ export async function migrateVuexStorage() {
     
     // Fallback: try to get from IndexedDB
     const indexedDBState = await localforage.getItem(key)
+
     if (indexedDBState) {
       localStorage.setItem(key, JSON.stringify(indexedDBState))
       console.info('[Migration] Vuex state restored from IndexedDB to localStorage.')

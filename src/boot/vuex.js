@@ -11,11 +11,19 @@ import useStore from 'src/store'
  */
 export default boot(async (obj) => {
   try {
-    // Rollbacks Vuex storage from IndexedDB to localStorage
+
     await migrateVuexStorage()
 
     const store = useStore();
     const { app } = obj
+
+    // Hydrate Vuex store from localStorage if available
+    // This is a manual hydration step to ensure the store is populated
+    const persistedState = localStorage.getItem('vuex')
+    if (persistedState) {
+      store.replaceState(JSON.parse(persistedState))
+      console.log('[Hydration] Vuex state manually hydrated.')
+    }
 
     // Add error handler for store mutations
     store.subscribe((mutation, state) => {
