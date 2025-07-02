@@ -14,7 +14,7 @@
     </HeaderNav>
       <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center">
           <div class="col-xs-12 q-px-xs q-gutter-y-sm">
-            <q-list v-if="multisigWallets" separator :class="getDarkModeClass(darkMode)">              
+            <q-list v-if="multisigWallets" separator :class="getDarkModeClass(darkMode)">
               <q-item>
                 <q-item-section></q-item-section>
                 <q-item-section side top>
@@ -103,30 +103,23 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { Pst, shortenString, MultisigWallet, importMultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
+import { shortenString, importMultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
 import ImportWalletDialog from 'components/multisig/ImportWalletDialog.vue'
 import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { loadLibauthHdWallet } from 'src/wallet'
-import { useMultisigHelpers, localWallets } from 'src/composables/multisig/helpers'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
 const { t: $t } = useI18n()
 const {
   multisigWallets,
-  cashAddressNetworkPrefix,
-  saveMultisigWallet
+  cashAddressNetworkPrefix
 } = useMultisigHelpers()
-
-const pstFileElementRef = ref()
-const pstFile = ref()
-const pstFromFile = ref()
-const pstFromStore = ref()
 
 const walletFileElementRef = ref()
 const walletFileModel = ref()
@@ -140,14 +133,6 @@ const darkMode = computed(() => {
 //   return MultisigWallet.createInstanceFromObjects($store.getters['multisig/getWallets'])
 // })
 
-const deleteWallet = (address) => {
-  $store.dispatch('multisig/deleteWallet', { address })
-}
-
-const deleteAllWallets = () => {
-  $store.dispatch('multisig/deleteAllWallets')
-}
-
 const importWallet = () => {
   $q.dialog({
     component: ImportWalletDialog,
@@ -155,7 +140,7 @@ const importWallet = () => {
       darkMode: darkMode.value,
       onImportFromFile: () => walletFileElementRef.value.pickFiles(),
       onImportFromServer: async () => {
-       router.push({ name: 'app-multisig-wallets-synced' })    
+        router.push({ name: 'app-multisig-wallets-synced' })
       }
     }
   })
@@ -167,7 +152,7 @@ const openMainActionsDialog = () => {
     componentProps: {
       darkMode: darkMode.value,
       onCreateWallet: () => {
-        router.push({ name: 'app-multisig-wallet-create' })  
+        router.push({ name: 'app-multisig-wallet-create' })
       },
       onImportWallet: async () => {
         importWallet()
@@ -198,22 +183,4 @@ const onUpdateWalletFileModelValue = (file) => {
     reader.readAsText(file)
   }
 }
-
-onMounted(async () => {
-  // $store.getters['global/getWallet']('bch') = Loads the currently selected wallet from the homepage
-  const tempVault = $store.getters['global/getVault']
-  console.log('🚀 ~ onMounted ~ tempVault:', tempVault)
-  // con:st currentWallet = $store.getters['global/getWallet']('bch')
-  // console.log('CURRENT WALLET', currentWallet)
-  // const wx = await loadLibauthHdWallet()
-  // console.log('🚀 ~ onMounted ~ wx:', wx)
-  // const w1 = await loadLibauthHdWallet(0)
-  // console.log('🚀 ~ onMounted ~ w1:', w1)
-  // const w2 = await loadLibauthHdWallet(1)
-  // console.log('🚀 ~ onMounted ~ w2:', w2)
-  // const w3 = await loadLibauthHdWallet(2)
-  // console.log('🚀 ~ onMounted ~ w3:', w3)
-  // console.log('wallets', multisigWallets.value)
-})
-
 </script>
