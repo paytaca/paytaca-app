@@ -14,10 +14,8 @@
     >
       <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
         <div class="q-py-lg">
-          <div v-if="serverOnline" v-cloak>
-            <div>
-              <login/>
-            </div>
+          <div v-if="serverOnline" v-cloak>            
+            <login/>            
             <!-- <div class="col-12 q-mt-md q-px-lg q-py-none">
               <div class="row">
                 <div class="col-12 q-py-sm">

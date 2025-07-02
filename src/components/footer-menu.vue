@@ -20,7 +20,7 @@
           @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'transaction-index' }">
+        <router-link :to="{ name: 'transaction-list' }">
           <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-send.png" size="30px" />
           <q-icon v-else name="receipt_long" class="default-text-color mb-2" size="30px">
             <!-- <svg>
@@ -31,7 +31,7 @@
         <br>
         <span 
           id="send-button"
-          @click="$router.push({ name: 'transaction-index' })">{{ $t('TX') }}</span>
+          @click="$router.push({ name: 'transaction-list' })">{{ $t('TX') }}</span>
       </button>
       <div style="width: 50px;"></div>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
