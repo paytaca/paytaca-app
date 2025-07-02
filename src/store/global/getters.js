@@ -10,6 +10,10 @@ function getWalletData (state, walletType) {
   return state.wallets[walletType]
 }
 
+export function isWalletsRecovered (state) {
+  return state.walletsRecovered
+}
+
 export function theme (state) {
   return state.theme
 }

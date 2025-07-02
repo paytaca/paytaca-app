@@ -1,6 +1,10 @@
 import { deleteMnemonic } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 
+export function setWalletsRecovered (state, value) {
+  state.walletsRecovered = Boolean(value)
+}
+
 export function updateAppControl (state, data) {
   state.appControl = data
 }
@@ -37,13 +41,21 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
-  console.log('[updateVault] Updating vault with details:', details)
-  
   // Simple approach: if vault is empty, create first entry, otherwise push new entry
   if (!state.vault || state.vault.length === 0) {
     state.vault = [details]
   } else {
-    state.vault.push(details)
+    // Check for duplicate entries
+    const existingIndex = state.vault.findIndex(v => {
+      return v.wallet?.bch?.walletHash === details.wallet?.bch?.walletHash
+    })
+    if (existingIndex !== -1) {
+      // Update existing entry
+      state.vault[existingIndex] = details
+    } else {
+      // Add new entry
+      state.vault.push(details)
+    }
   }
   
   // Ensure the entry has a name

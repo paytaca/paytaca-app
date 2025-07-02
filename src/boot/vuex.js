@@ -26,8 +26,6 @@ export default boot(async (obj) => {
       console.log('[Hydration] Vuex state manually hydrated.')
     }
 
-    await recoverWalletsFromStorage()
-
     // Add error handler for store mutations
     store.subscribe((mutation, state) => {
       try {
@@ -41,6 +39,9 @@ export default boot(async (obj) => {
     })
 
     app.use(store)
+
+    await recoverWalletsFromStorage()
+    
   } catch (err) {
     console.error('Error initializing Vuex store:', err)
     // Initialize store with default state if hydration fails
