@@ -762,7 +762,9 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
                 sigAlgo: 'schnorr'
               },
               message: `${sessionRequest.params?.request?.params?.userPrompt} Accepted. Waiting for signatures.`,
-              statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value })
+              statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value }),
+              txid: unsignedTransactionHash,
+              txidIsUnsignedHash: true
             }
           }
         })
