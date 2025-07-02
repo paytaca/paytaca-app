@@ -29,13 +29,13 @@
               <q-item-section>
                 <q-item-label class="text-weight-bold flex items-center">
                   <span>{{i + 1}}. {{ multisigTransaction.metadata.prompt }}</span>
-		</q-item-label>
+                </q-item-label>
                 <q-item-label caption>
                   Origin: {{ multisigTransaction.metadata.origin }}
                 </q-item-label>
                 <q-item-label caption>
-                  Current Signatures: {{ getRequiredSignatures(multisigWallet.template) }} of 
-		  {{ getSignatureCount({ multisigWallet, multisigTransaction }) }}
+                  Current Signatures: {{ getRequiredSignatures(multisigWallet.template) }} of
+                  {{ getSignatureCount({ multisigWallet, multisigTransaction }) }}
                 </q-item-label>
               </q-item-section>
               <q-item-section side top>
@@ -63,7 +63,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getSignatureCount, getLockingBytecode, getRequiredSignatures, getSigningProgress, generateTransactionHash } from 'src/lib/multisig'
+import { getSignatureCount, getRequiredSignatures, generateTransactionHash } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import HeaderNav from 'components/header-nav'
 
@@ -71,7 +71,7 @@ const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getSignerXPrv, getTransactionsByMultisigWallet, multisigWallets } = useMultisigHelpers()
+const { getTransactionsByMultisigWallet, multisigWallets } = useMultisigHelpers()
 const multisigWallet = ref()
 
 const darkMode = computed(() => {
@@ -79,10 +79,10 @@ const darkMode = computed(() => {
 })
 
 const multisigTransactions = computed(() => {
- if (multisigWallet.value) {
-   return getTransactionsByMultisigWallet(multisigWallet.value)
- }
-
+  if (multisigWallet.value) {
+    return getTransactionsByMultisigWallet(multisigWallet.value)
+  }
+  return undefined
 })
 
 const deleteAllTransactions = async () => {
@@ -101,7 +101,7 @@ onMounted(() => {
   if (multisigTransactions.value?.length === 0) {
     router.push({
       name: 'app-multisig-wallet-view',
-      params: { address: route.params.address } 
+      params: { address: route.params.address }
     })
   }
   if (multisigTransactions.value?.length === 1) {

@@ -12,12 +12,12 @@
             <div class="row justify-center">
               <div class="col-xs-12 q-px-sm q-gutter-y-sm">
                <template v-if="multisigWallet && multisigTransaction">
-		<q-form class="q-gutter-md">
-		  <div class="q-gutter-y-sm">
+                <q-form class="q-gutter-md">
+                  <div class="q-gutter-y-sm">
                    <q-label class="text-bold">Select Asset</q-label>
                    <q-select
                     :options="assetOptions"
-		    v-model="assetSelected"
+                    v-model="assetSelected"
                     hint="The asset to send"
                     outlined dense>
                    </q-select>
@@ -26,7 +26,7 @@
                   <div class="q-gutter-y-sm">
                    <q-label class="text-bold">Purpose</q-label>
                    <q-input
-		    v-model="purpose"
+                    v-model="purpose"
                     hint="Friendly message for cosigner"
                     outlined dense>
                    </q-input>
@@ -44,7 +44,7 @@
                   </div>
                   <div class="q-gutter-y-md">
                     <q-label class="text-bold">To</q-label>
-                    <div v-for="recipient, i in recipients" class="q-gutter-y-md">
+                    <div v-for="(recipient, i) in recipients" :key="i" class="q-gutter-y-md">
 
                      <div class="flex justify-between items-center">
                         <span class="text-italic">Recipient {{ i + 1 }}</span>
@@ -81,18 +81,14 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, watch, onBeforeMount, onMounted, inject } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   getMultisigCashAddress,
   initEmptyMultisigTransaction,
-  estimateP2SHMultisigInputSize,
-  getRequiredSignatures,
-  getTotalSigners,
-  getCompiler,
-  getUnlockingScriptId
+  getCompiler
 } from 'src/lib/multisig'
 import { commonUtxoToLibauthInput, selectUtxos } from 'src/utils/utxo-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -101,13 +97,11 @@ import { cashAddressToLockingBytecode, encodeTransactionCommon, generateTransact
 const $store = useStore()
 const $q = useQuasar()
 const $copyText = inject('$copyText')
-const router = useRouter()
 const route = useRoute()
 const { t: $t } = useI18n()
 const { cashAddressNetworkPrefix } = useMultisigHelpers()
 const multisigWallet = ref()
 const multisigTransaction = ref({ name: '' })
-const assetSelectTab = ref('bch')
 const assetSelected = ref('Bitcoin Cash')
 const assetOptions = ref(['Bitcoin Cash'])
 const assetDecimals = ref(8)
@@ -195,7 +189,7 @@ const createProposal = () => {
     }
     return output
   })
-  
+
   scenario.program.transaction.outputs = outputs
 
   const generatedTransaction = generateTransaction(scenario.program.transaction)
@@ -204,7 +198,7 @@ const createProposal = () => {
   if (selected.total < sendAmount + minimumFee) {
     $q.dialog({ message: 'Insufficient Balance' })
   }
-  
+
   console.log('TRANSACTION', scenario.program.transaction)
 }
 
@@ -216,7 +210,7 @@ const updateAssetsOptions = (utxos) => {
   assetOptions.value = ['Bitcoin Cash', ...Array.from(options)]
 }
 
-watch(utxosLastUpdate.value, (value, oldValue) => {
+watch(utxosLastUpdate.value, () => {
   updateAssetsOptions(utxos.value?.utxos)
 })
 
