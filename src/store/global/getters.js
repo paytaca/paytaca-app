@@ -114,31 +114,7 @@ export function getAllChipnetTypes (state) {
 }
 
 export function getVault (state) {
-  const vault = state.vault
-  // Sanitize the vault to ensure it contains only valid objects,
-  // cause for some reason some entries are arrays.
-  // This is a temporary fix to prevent errors in the app.
-  
-  // Check for invalid entries in the vault
-  const invalidEntry = vault.filter(entry => Array.isArray(entry))
-  console.log('[getVault] Invalid entry found:', invalidEntry.length, 'entries:', invalidEntry)
-
-  let sanitizedVault = vault
-
-  if (invalidEntry.length > 0) {
-    console.warn('[getVault] Invalid entries found in vault, sanitizing...')
-    console.log('Sanitizing vault:', vault)
-    const sanitizedVault = vault.filter(
-      item =>
-        typeof item === 'object' &&  // must be object
-        !Array.isArray(item) &&      // but not an array
-        item !== null                // and not null
-    )
-    console.log('Sanitized vault:', sanitizedVault)
-    // state.vault = sanitizedVault // Remove invalid entries from the vault
-    console.log('[updateVault] Vault after sanitization:', state.vault)
-  }
-  return sanitizedVault
+  return state.vault
 }
 
 export function getWalletIndex (state) {

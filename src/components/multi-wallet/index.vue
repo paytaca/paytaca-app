@@ -140,8 +140,6 @@ export default {
     getDarkModeClass,
     isNotDefaultTheme,
     async processVaultName () {
-      console.log('[MultiWallet] Processing vault names...')
-
       const vm = this
       vm.isloading = true
 
