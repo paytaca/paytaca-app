@@ -617,6 +617,7 @@ const loadHdPrivateKeys = async (hdPublicKeys) => {
 const updateBroadcastStatus = async () => {
   try {
     updatingBroadcastStatus.value = true
+    checkSigningProgress()
     await $store.dispatch('multisig/updateBroadcastStatus', {
       multisigTransaction: multisigTransaction.value
     })
