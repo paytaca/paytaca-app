@@ -1,6 +1,5 @@
 import { getMnemonic, Wallet } from 'src/wallet'
 import { Store } from 'src/store'
-import { tr } from 'date-fns/locale';
 
 async function getWalletIndicesFromStorage() {
     const lsKeys = Object.keys(localStorage)
@@ -17,25 +16,22 @@ async function getWalletIndicesFromStorage() {
     return walletIndices
 }
 
-async function initWallet(index, save=false) {
+async function recoverWallet(index, save=false) {
     const store = Store
     const mnemonic = await getMnemonic(index)
-    console.log('[WalletRehydration] Initializing wallet for index:', index)
-    console.log('[WalletRehydration] mnemonic:', mnemonic)
+    console.log('[Wallet Recovery] Initializing wallet for index:', index)
 
     if (!mnemonic) {
-        console.warn('[WalletRehydration] No mnemonic found for index:', index)
+        console.warn('[Wallet Recovery] No mnemonic found for index:', index)
         return null
     }
 
     const wallet = new Wallet(mnemonic)
-    console.log('[WalletRehydration] Loaded wallet:', wallet)
     const bchWallets = [wallet.BCH, wallet.BCH_CHIP]
     const slpWallets = [wallet.SLP, wallet.SLP_TEST]
 
-    console.log('[WalletRehydration] bchWallets:', bchWallets)
-    console.log('[WalletRehydration] slpWallets:', slpWallets)
-
+    const chipnetWalletsInfo = {}
+    const bchWalletsInfo = {}
     for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
@@ -58,7 +54,11 @@ async function initWallet(index, save=false) {
                 } catch(error) { console.error(error) }
             }
 
-            console.log('[WalletRehydration] bchWallet:', walletTypeInfo)
+            if (isChipnet) {
+                chipnetWalletsInfo['bch'] = walletTypeInfo
+            } else {
+                bchWalletsInfo['bch'] = walletTypeInfo
+            }
         })
 
         await bchWallet.getXPubKey().then(function (xpub) {
@@ -68,9 +68,7 @@ async function initWallet(index, save=false) {
                 xPubKey: xpub
             }
 
-            if (save) {
-                store.commit('global/updateXPubKey', xPubInfo)
-            }
+            if (save) store.commit('global/updateXPubKey', xPubInfo)
         })
     }
 
@@ -88,11 +86,13 @@ async function initWallet(index, save=false) {
                 lastAddressIndex: 0
             }
 
-            if (save) {
-                store.commit('global/updateWallet', walletTypeInfo)
+            if (save) store.commit('global/updateWallet', walletTypeInfo)
+
+            if (isChipnet) {
+                chipnetWalletsInfo['slp'] = walletTypeInfo
+            } else {
+                bchWalletsInfo['slp'] = walletTypeInfo
             }
-            
-            console.log('[WalletRehydration] slpWallet:', walletTypeInfo)
         })
 
         await slpWallet.getXPubKey().then(function (xpub) {
@@ -102,11 +102,23 @@ async function initWallet(index, save=false) {
                 xPubKey: xpub
             }
 
-            if (save) {
-                store.commit('global/updateXPubKey', xPubInfo)
-            }
+            if (save) store.commit('global/updateXPubKey', xPubInfo)
         })
     }
+
+    await wallet.sBCH.subscribeWallet().then(function () {
+        const walletTypeInfo = {
+            type: 'sbch',
+            derivationPath: wallet.sBCH.derivationPath,
+            walletHash: wallet.sBCH.walletHash,
+            lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
+        }
+
+        if (save) store.commit('global/updateWallet', walletTypeInfo)
+        console.log('[Wallet Recovery] sBCH Wallet:', walletTypeInfo)
+
+        bchWalletsInfo['sbch'] = walletTypeInfo
+    })
 
     const walletHashes = [
         wallet.BCH.walletHash,
@@ -117,22 +129,21 @@ async function initWallet(index, save=false) {
     ]
     // $pushNotifications?.subscribe?.(walletHashes, walletIndex, true)
 
-    // let wallet = .getters.getAllWalletTypes
-    // wallet = JSON.stringify(wallet)
-    // wallet = JSON.parse(wallet)
+    let asset = store.getters['assets/getAllAssets']
+    asset = JSON.stringify(asset)
+    asset = JSON.parse(asset)
 
-    // let chipnet = context.getters.getAllChipnetTypes
-    // chipnet = JSON.stringify(chipnet)
-    // chipnet = JSON.parse(chipnet)
-    // const info = {
-    //   wallet: wallet,
-    //   chipnet: chipnet
-    // }
-    // context.commit('updateVault', info)   
+    store.commit('assets/updateVault', { index: index, asset: asset })
+    store.commit('assets/updatedCurrentAssets', index)
+
+    store.commit('global/updateVault', {
+        wallet: bchWalletsInfo,
+        chipnet: chipnetWalletsInfo
+    })
 }
 
-export async function initWalletsFromStorage() {
-    console.log('[WalletRehydration] Initializing wallets from storage...')
+export async function recoverWalletsFromStorage() {
+    console.log('[Wallet Recovery] Checking for empty vault and wallet...')
     
     // Check first if vault and wallets are empty
     const isVaultEmpty = Store.getters['global/isVaultEmpty']
@@ -140,22 +151,20 @@ export async function initWalletsFromStorage() {
     const storedSlpWallet = Store.getters['global/getWallet']('slp')
 
     if (!isVaultEmpty || (storedBchWallet?.walletHash !== '' && storedSlpWallet?.walletHash === '')) {
-        console.log('[WalletRehydration] Vault or wallets are not empty, skipping rehydration.')
+        console.log('[Wallet Recovery] Vault or wallets are not empty, skipping wallet recovery.')
         return 
     }
 
+    // Find mnemonic wallet indices
     const walletIndices = await getWalletIndicesFromStorage()
-    console.log('[WalletRehydration] walletIndices:', walletIndices);
+    console.log('[Wallet Recovery] walletIndices found:', walletIndices);
 
     // Await the first wallet only
     const firstIndex = walletIndices[0]
-    await initWallet(firstIndex, true)
+    await recoverWallet(firstIndex, true)
 
     walletIndices.shift()
-
     for (const index of walletIndices) {
-        initWallet(index)
+        recoverWallet(index)
     }
-    console.log('[WalletRehydration] walletTypes====:', Store.getters['global/getAllWalletTypes'])
-
 }

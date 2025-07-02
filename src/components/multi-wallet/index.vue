@@ -1,6 +1,7 @@
 <template>
   <q-dialog
     ref="multi-wallet"
+    v-model="isMultiWalletOpen"
     seamless
     full-width
     position="top"
@@ -115,7 +116,8 @@ export default {
       vault: [],
       isloading: false,
       secondDialog: false,
-      selectedIndex: null
+      selectedIndex: null,
+      isMultiWalletOpen: false
     }
   },
   components: {
@@ -124,12 +126,21 @@ export default {
     LoadingWalletDialog,
     ProgressLoader
   },
+  watch: {
+    isMultiWalletOpen (newVal) {
+      if (newVal) {
+        this.processVaultName()
+      }
+    }
+  },
   methods: {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
     isNotDefaultTheme,
     async processVaultName () {
+      console.log('[MultiWallet] Processing vault names...')
+
       const vm = this
       vm.isloading = true
 
