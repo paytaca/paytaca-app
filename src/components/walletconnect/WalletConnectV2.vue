@@ -243,10 +243,12 @@ import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import { loadLibauthHdWallet } from '../../wallet'
 import {
- createMultisigTransactionFromWCSessionRequest,
- generateTransactionHash,
- getStatusUrl,
- isMultisigWalletSynced
+  createMultisigTransactionFromWCSessionRequest,
+  generateTransactionHash,
+  getRequiredSignatures,
+  getStatusUrl,
+  getTotalSigners,
+  isMultisigWalletSynced
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 const $emit = defineEmits([
@@ -260,7 +262,6 @@ const $router = useRouter()
 const { t: $t } = useI18n()
 const $store = useStore()
 const {
-  transactionsLastIndex: multisigTransactionsLastIndex,
   multisigWallets
 } = useMultisigHelpers()
 
@@ -273,13 +274,15 @@ const watchtower = ref()
  */
 // const walletExternalAddresses = ref/* <string[]> */()
 
-const walletAddresses = ref([]) /* <{index: number, address: string, wif: string}[]> */
-// const multisigWallets = ref([])
+/* <{index: number, address: string, wif: string}[]> */
+const walletAddresses = ref([])
+
 /**
  * Mapping of session proposal pairing topic and the address approved
  * for this proposal.
+ * { [topic: string]: {index: number, address: string, wif: string} }
  */
-const sessionTopicWalletAddressMapping = ref /* <{ [topic: string]: {index: number, address: string, wif: string}  }> */ ({}) //
+const sessionTopicWalletAddressMapping = ref({})
 const wallet = ref()
 const showActiveSessions = ref(false)
 const activeSessions = ref({})
@@ -287,9 +290,6 @@ const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
 const sessionProposals = ref([])
 const sessionRequests = ref([])
 const web3Wallet = ref()
-// const web3WalletPromise = ref()
-
-// const bchWallet = computed(() => $store.getters['global/getWallet']('bch'))
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
@@ -477,27 +477,27 @@ async function saveConnectedApp (session) {
           privateKey: decodedPrivkey.privateKey
         })
       }
-      return // TODO: remember multisig address, update watchtower endpoint
+      // TODO: remember multisig address, update watchtower endpoint
       // Try if it's a multisig wallet
-      const multisigAddress = multisigWallets.value.find((walletAddress) => {
-        // eslint-disable-next-line eqeqeq
-        return walletAddress.address == accountWCPrefixRemoved
-      })
-      if (multisigAddress) {
-        // We'll borrow the regular wallet 0's pk for signing the watchtower post message
-        const localWallet = await loadLibauthHdWallet(0, isChipnet.value)
-        const localWalletAddress = localWallet.getAddressAt('0')
-        const wif = localWallet.getPrivateKeyWifAt('0/0')
-        const decodedPrivkey = decodePrivateKeyWif(wif)
-        return watchtower.value.saveConnectedApp({
-          address: localWalletAddress,
-          privateKey: decodedPrivkey.privateKey,
-          appName: session?.peer?.metadata?.name || session?.peer?.metadata?.url,
-          appUrl: session?.peer?.metadata?.url,
-          appIcon: session?.peer?.metadata?.icons?.[0],
-          addressToConnect: accountWCPrefixRemoved
-        })
-      }
+      // const multisigAddress = multisigWallets.value.find((walletAddress) => {
+      //   // eslint-disable-next-line eqeqeq
+      //   return walletAddress.address == accountWCPrefixRemoved
+      // })
+      // if (multisigAddress) {
+      //   // We'll borrow the regular wallet 0's pk for signing the watchtower post message
+      //   const localWallet = await loadLibauthHdWallet(0, isChipnet.value)
+      //   const localWalletAddress = localWallet.getAddressAt('0')
+      //   const wif = localWallet.getPrivateKeyWifAt('0/0')
+      //   const decodedPrivkey = decodePrivateKeyWif(wif)
+      //   return watchtower.value.saveConnectedApp({
+      //     address: localWalletAddress,
+      //     privateKey: decodedPrivkey.privateKey,
+      //     appName: session?.peer?.metadata?.name || session?.peer?.metadata?.url,
+      //     appUrl: session?.peer?.metadata?.url,
+      //     appIcon: session?.peer?.metadata?.icons?.[0],
+      //     addressToConnect: accountWCPrefixRemoved
+      //   })
+      // }
     })
   } catch (error) { console.log('🚀 ~ saveConnectedApp ~ error:', error) }
 }
@@ -584,7 +584,9 @@ const pairURI = async (uri) => {
       },
       class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
     })
-  } finally {}
+  } finally {
+    loading.value = ''
+  }
 }
 
 const disconnectSession = async (activeSession) => {
@@ -606,8 +608,6 @@ const disconnectSession = async (activeSession) => {
         class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
       }).onOk(() => resolve()).onCancel(() => reject())
     })
-
-    const firstSessionUrl = activeSession.peer.metadata.url
 
     activeSessions.value && delete activeSessions.value[activeSession.topic]
     sessionTopicWalletAddressMapping.value[activeSession.topic] && delete sessionTopicWalletAddressMapping.value[activeSession.topic]
@@ -724,7 +724,7 @@ const approveSessionProposal = async (sessionProposal) => {
     if (isMultisigWallet) {
       const multisigWallet = selectedAddress
       if (!isMultisigWalletSynced(multisigWallet)) {
-        deffered.push($store.dispatch('multisig/uploadWallet', multisigWallet ))
+        deffered.push($store.dispatch('multisig/uploadWallet', multisigWallet))
       }
     }
     Promise.all(deffered)
@@ -755,8 +755,13 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             jsonrpc: '2.0',
             result: {
               status: 'accepted',
-              signingType: 'multisig',
-              message: 'Transaction accepted. Awaiting other signatures.',
+              walletType: 'p2shMultisig',
+              walletSpec: {
+                m: getRequiredSignatures(wallet.lockingData?.hdKeys?.signers),
+                n: getTotalSigners(wallet.template),
+                sigAlgo: 'schnorr'
+              },
+              message: `${sessionRequest.params?.request?.params?.userPrompt} Accepted. Waiting for signatures.`,
               statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value })
             }
           }
@@ -901,7 +906,7 @@ const respondToSessionRequest = async (sessionRequest) => {
       case 'bch_signMessage':
         await respondToSignMessageRequest(sessionRequest)
         break
-      default:
+      default: {
         // respond with error
         const response = {
           id,
@@ -910,6 +915,7 @@ const respondToSessionRequest = async (sessionRequest) => {
           error: { code: -32601, reason: 'Method not found' }
         }
         await web3Wallet.value.respondSessionRequest({ topic, response })
+      }
     }
   } catch (error) {
   } finally {
