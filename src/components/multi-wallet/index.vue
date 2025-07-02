@@ -131,7 +131,7 @@ export default {
   },
   watch: {
     isWalletsRecovered (val) {
-      if (val) this.processVaultName()
+      if (val) this.loadData()
     }
   },
   methods: {
