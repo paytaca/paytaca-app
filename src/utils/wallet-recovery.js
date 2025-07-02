@@ -37,6 +37,7 @@ async function recoverWallet(index, save=false) {
     for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
+        let walletSnapshot = {}
         await bchWallet.getNewAddressSet(0).then(function (response) {
             const addresses = response?.addresses || null
             const walletTypeInfo = {
@@ -56,7 +57,7 @@ async function recoverWallet(index, save=false) {
                 } catch(error) { console.error(error) }
             }
 
-            const vaultSnapshot = {
+            walletSnapshot = {
                 walletHash: walletTypeInfo.walletHash,
                 derivationPath: walletTypeInfo.derivationPath,
                 lastAddress: walletTypeInfo.lastAddress,
@@ -64,11 +65,6 @@ async function recoverWallet(index, save=false) {
                 lastAddressIndex: walletTypeInfo.lastAddressIndex
             }
 
-            if (isChipnet) {
-                chipnetWalletsInfo['bch'] = vaultSnapshot
-            } else {
-                bchWalletsInfo['bch'] = vaultSnapshot
-            }
         })
 
         await bchWallet.getXPubKey().then(function (xpub) {
@@ -78,13 +74,22 @@ async function recoverWallet(index, save=false) {
                 xPubKey: xpub
             }
 
+            walletSnapshot.xPubKey = xpub
+
             if (save) store.commit('global/updateXPubKey', xPubInfo)
         })
+
+        if (isChipnet) {
+            chipnetWalletsInfo['bch'] = walletSnapshot
+        } else {
+            bchWalletsInfo['bch'] = walletSnapshot
+        }
     }
 
     for (const slpWallet of slpWallets) {
         const isChipnet = slpWallets.indexOf(slpWallet) === 1
 
+        let walletSnapshot = {}
         await slpWallet.getNewAddressSet(0).then(function (addresses) {
             const walletTypeInfo = {
                 isChipnet,
@@ -98,18 +103,12 @@ async function recoverWallet(index, save=false) {
 
             if (save) store.commit('global/updateWallet', walletTypeInfo)
 
-            const vaultSnapshot = {
+            walletSnapshot = {
                 walletHash: walletTypeInfo.walletHash,
                 derivationPath: walletTypeInfo.derivationPath,
                 lastAddress: walletTypeInfo.lastAddress,
                 lastChangeAddress: walletTypeInfo.lastChangeAddress,
                 lastAddressIndex: walletTypeInfo.lastAddressIndex
-            }
-
-            if (isChipnet) {
-                chipnetWalletsInfo['slp'] = vaultSnapshot
-            } else {
-                bchWalletsInfo['slp'] = vaultSnapshot
             }
         })
 
@@ -120,8 +119,16 @@ async function recoverWallet(index, save=false) {
                 xPubKey: xpub
             }
 
+            walletSnapshot.xPubKey = xpub
+
             if (save) store.commit('global/updateXPubKey', xPubInfo)
         })
+
+        if (isChipnet) {
+            chipnetWalletsInfo['slp'] = walletSnapshot
+        } else {
+            bchWalletsInfo['slp'] = walletSnapshot
+        }
     }
 
     await wallet.sBCH.subscribeWallet().then(function () {
@@ -133,15 +140,14 @@ async function recoverWallet(index, save=false) {
         }
 
         if (save) store.commit('global/updateWallet', walletTypeInfo)
-        console.log('[Wallet Recovery] sBCH Wallet:', walletTypeInfo)
 
-        const vaultSnapshot = {
+        const walletSnapshot = {
             walletHash: walletTypeInfo.walletHash,
             derivationPath: walletTypeInfo.derivationPath,
             lastAddress: walletTypeInfo.lastAddress
         }
 
-        bchWalletsInfo['sbch'] = vaultSnapshot
+        bchWalletsInfo['sbch'] = walletSnapshot
     })
 
     // const walletHashes = [
@@ -152,9 +158,6 @@ async function recoverWallet(index, save=false) {
     //     wallet.sBCH.walletHash,
     // ]
     // $pushNotifications?.subscribe?.(walletHashes, walletIndex, true)
-
-    const vault = store.state.global.vault
-    console.log('[Wallet Recovery] Vault before update:', vault)
 
     let asset = store.getters['assets/getAllAssets']
     asset = JSON.stringify(asset)
@@ -167,14 +170,12 @@ async function recoverWallet(index, save=false) {
         wallet: bchWalletsInfo,
         chipnet: chipnetWalletsInfo
     })
+
 }
 
 export async function recoverWalletsFromStorage() {
     // Check first if vault and wallets are empty
     const isVaultEmpty = Store.getters['global/isVaultEmpty']
-    const storedBchWallet = Store.getters['global/getWallet']('bch')
-    const storedSlpWallet = Store.getters['global/getWallet']('slp')
-
     const vault = Store.state.global.vault
 
     // Find mnemonic wallet indices
