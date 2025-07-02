@@ -1,6 +1,7 @@
 import { boot } from 'quasar/wrappers'
 import { migrateVuexStorage } from 'src/utils/rollback-vuex-storage'
 import { recoverWalletsFromStorage } from 'src/utils/wallet-recovery'
+import { sanitizeVault } from 'src/utils/wallet-vault'
 import useStore from 'src/store'
 
 /**
@@ -40,6 +41,7 @@ export default boot(async (obj) => {
 
     app.use(store)
 
+    sanitizeVault()
     await recoverWalletsFromStorage()
     
   } catch (err) {

@@ -190,8 +190,6 @@ export async function saveExistingWallet (context) {
 
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters.getWallet('bch')?.walletHash
-
-    console.log('Saving wallet to vault with hash:', walletHash)
     
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes

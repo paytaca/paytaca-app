@@ -181,6 +181,11 @@ export async function recoverWalletsFromStorage() {
     const walletIndices = await getWalletIndicesFromStorage()
     console.log('[Wallet Recovery] walletIndices found:', walletIndices);
 
+    // Only recover the last 30 wallet indices
+    if (walletIndices.length > 30) {
+        walletIndices.splice(0, walletIndices.length - 30)
+    }
+
     const hasRecoverableWallets = vault.length < walletIndices.length
     console.log('[Wallet Recovery] hasRecoverableWallets:', hasRecoverableWallets);
 
