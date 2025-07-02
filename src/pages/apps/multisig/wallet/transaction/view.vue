@@ -1,3 +1,4 @@
+<!-- eslint-disable no-mixed-spaces-and-tabs -->
 <template>
   <q-pull-to-refresh
     id="app-container"
@@ -17,7 +18,7 @@
                     <q-item-label class="text-weight-bold">
                       <div class="flex items-center">
                        <span>{{ multisigTransaction.purpose }}</span>
-                       <q-icon 
+                       <q-icon
                          :name="isMultisigTransactionSynced(multisigTransaction) ? 'mdi-cloud-check' : 'smartphone'"
                          :color="isMultisigTransactionSynced(multisigTransaction)? 'green': 'grey-6'"
                          class="q-ml-sm"
@@ -126,8 +127,8 @@
                          getMultisigCashAddress({
                            template: multisigWallet.template,
                            lockingData: multisigWallet.lockingData,
-                           cashAddressNetworkPrefix 
-                         }), 
+                           cashAddressNetworkPrefix
+                         }),
                          35
                        )
                      }}
@@ -157,9 +158,9 @@
                     <template v-slot:default>
                       <div class="flex flex-nowrap items-center">
                         <span>{{ signingProgress || '?' }}</span>
-                        <q-icon 
-			  :name="signingProgress === 'fully-signed'? 'done_all': 'refresh'"
-			  :color="signingProgress === 'fully-signed'? 'green': 'primary'"
+                        <q-icon
+                          :name="signingProgress === 'fully-signed'? 'done_all': 'refresh'"
+                          :color="signingProgress === 'fully-signed'? 'green': 'primary'"
                           size="sm" class="q-ml-xs"
                           >
                         </q-icon>
@@ -209,7 +210,7 @@
                   </code>
                 </q-item-label>
               </q-expansion-item>
-              
+
               <q-separator spaced inset />
               <q-item>
                 <q-item-section>
@@ -232,9 +233,9 @@
                     <template v-slot:default>
                       <div class="flex flex-nowrap items-center">
                         <span>{{ multisigTransaction.broadcastStatus || '?' }}</span>
-                        <q-icon 
-			  :name="multisigTransaction.broadcastStatus === 'done'? 'done_all': 'refresh'"
-			  :color="multisigTransaction.broadcastStatus === 'done'? 'green': 'primary'"
+                        <q-icon
+                          :name="multisigTransaction.broadcastStatus === 'done'? 'done_all': 'refresh'"
+                          :color="multisigTransaction.broadcastStatus === 'done'? 'green': 'primary'"
                           size="sm" class="q-ml-xs"
                           >
                         </q-icon>
@@ -278,8 +279,8 @@
             </div>
           </template>
         </q-btn>
-        
-         <q-btn v-else 
+
+         <q-btn v-else
           :loading="isBroadcasting"
           @click="broadcastTransaction"
           :disable="multisigTransaction.broadcastStatus === 'done'"
@@ -309,7 +310,7 @@
         </template>
       </div>
       <q-file
-	ref="pstFileElementRef"
+        ref="pstFileElementRef"
         v-model="pstFileModel"
         :multiple="false"
         style="visibility: hidden"
@@ -327,24 +328,18 @@ import { useQuasar, openURL } from 'quasar'
 import { computed, ref, onMounted, watch, toValue, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stringify, hashTransaction } from 'bitauth-libauth-v3'
-import { toP2shTestAddress } from 'src/utils/address-utils'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   getTotalBchInputAmount,
-  getTotalBchOutputAmount,
   getTotalBchDebitAmount,
   getTotalBchChangeAmount,
   getTotalBchFee,
   shortenString,
   signTransaction as signMultisigTransaction,
-  finalizeTransaction,
   exportPst,
   getSignatureCount,
   signerHasSignature,
-  signerCanSign,
-  MultisigTransactionStatus,
-  MultisigTransactionStatusText,
   importPst,
   combinePsts,
   getMultisigCashAddress,
@@ -365,10 +360,8 @@ const router = useRouter()
 const {
   getSignerXPrv,
   multisigWallets,
-  updateTransaction,
   txExplorerUrl,
-  cashAddressNetworkPrefix,
-  getTransactionsByMultisigWallet
+  cashAddressNetworkPrefix
 } = useMultisigHelpers()
 
 const hdPrivateKeys = ref({})
@@ -392,8 +385,8 @@ const signatureCount = computed(() => {
       multisigWallet: multisigWallet.value,
       multisigTransaction: multisigTransaction.value
     })
-    return 0
-  }  
+  }
+  return 0
 })
 
 const isSignerSignatureOk = computed(() => {
@@ -408,25 +401,17 @@ const isSignerSignatureOk = computed(() => {
   }
 })
 
-const signerCanSignOnThisDevice = computed(() => {
-  return ({ signerEntityKey }) => {
-    return signerCanSign({ lockingData: multisigWallet.value.lockingData, signerEntityKey })
-  }
-})
-
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
-
-const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
 const signTransaction = async ({ signerEntityKey }) => {
   if (!multisigWallet.value) return
   if (hdPrivateKeys.value[signerEntityKey]) {
     await loadHdPrivateKeys(multisigWallet.value.lockingData.hdKeys.hdPublicKeys)
   }
-  if (!hdPrivateKeys.value[signerEntityKey]) retrun
- 
+  if (!hdPrivateKeys.value[signerEntityKey]) return
+
   const signerSignatures = signMultisigTransaction({
     multisigWallet: multisigWallet.value,
     multisigTransaction: multisigTransaction.value,
@@ -436,45 +421,56 @@ const signTransaction = async ({ signerEntityKey }) => {
   await $store.dispatch('multisig/addTransactionSignatures', {
     index: route.params.index,
     multisigTransaction: multisigTransaction.value,
-    signerSignatures 
+    signerSignatures
   })
 }
 
 const showBroadcastSuccessDialog = async (txid) => {
-    const message = multisigTransaction.value.purpose ? `${multisigTransaction.value.purpose} success` : 'Successfully Sent'  
-    $q.dialog({
-	   component: BroadcastSuccessDialog, 
-	   componentProps: {
-	     amountSent: getTotalBchDebitAmount(multisigTransaction.value.transaction, [route.params.address]),
-	     txid: txid,
-	     successMessage: message,
-	     darkMode: darkMode.value
-	   }
-     }).onOk(() => {
-        router.push({ name: 'app-multisig-wallet-view', params: { address: route.params.address }})
-     })
-
+  const message = multisigTransaction.value.purpose ? `${multisigTransaction.value.purpose} success` : 'Successfully Sent'
+  $q.dialog({
+    component: BroadcastSuccessDialog,
+    componentProps: {
+      amountSent: getTotalBchDebitAmount(multisigTransaction.value.transaction, [route.params.address]),
+      txid: txid,
+      successMessage: message,
+      darkMode: darkMode.value
+    }
+  }).onOk(() => {
+    router.push({ name: 'app-multisig-wallet-view', params: { address: route.params.address } })
+  })
 }
 const broadcastTransaction = async () => {
   isBroadcasting.value = true
-  const finalCompilationResult = await $store.dispatch(
-	'multisig/finalizeTransaction',
-        { multisigTransaction: multisigTransaction.value, multisigWallet: multisigWallet.value }
-  )
-  if (finalCompilationResult.success && finalCompilationResult.vmVerificationSuccess) {
-    const response = await $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
-    if (response.data?.txid) {
-      await showBroadcastSuccessDialog(response.data.txid)
+  try {
+    const finalCompilationResult = await $store.dispatch(
+      'multisig/finalizeTransaction',
+      { multisigTransaction: multisigTransaction.value, multisigWallet: multisigWallet.value }
+    )
+
+    if (finalCompilationResult.success && finalCompilationResult.vmVerificationSuccess) {
+      const response = await $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
+      console.log('response', response)
+      if (response.data?.txid) {
+        await showBroadcastSuccessDialog(response.data.txid)
+      }
+    } else {
+      const message = finalCompilationResult.error || finalCompilationResult.vmVerificationError
+      $q.dialog({
+        title: 'Error',
+        message,
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+      })
     }
-  } else {
-    const message = finalCompilationResult.error || finalCompilationResult.vmVerificationError
+  } catch (error) {
+    console.log(error)
     $q.dialog({
       title: 'Error',
-      message,
-      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+      message: error.message || 'An error occurred while broadcasting the transaction.',
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
     })
+  } finally {
+    isBroadcasting.value = false
   }
-  isBroadcasting.value = false
 }
 
 const downloadPst = () => {
@@ -516,11 +512,10 @@ const onUpdatePstFile = (file) => {
       const existingMultisigTransaction = $store.getters['multisig/getTransactionByHash']({ hash })
       let combinedPst = null
       if (existingMultisigTransaction) {
-         combinedPst = combinePsts({ psts: [structuredClone(existingMultisigTransaction), importedPst] })
+        combinedPst = combinePsts({ psts: [structuredClone(existingMultisigTransaction), importedPst] })
       }
       $store.dispatch('multisig/saveTransaction', combinedPst || importedPst)
       $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: combinedPst || importedPst })
-      const index = $store.getters['multisig/getTransactionIndexByHash']({ hash })
       multisigTransaction.value = combinedPst || importedPst
       updateBroadcastStatus()
       signingProgress.value = getSigningProgress({
@@ -535,21 +530,20 @@ const onUpdatePstFile = (file) => {
   }
 }
 
-const uploadTransaction = () => { 
+const uploadTransaction = () => {
   $q.dialog({
     component: UploadPstDialog,
     componentProps: {
       darkMode: darkMode.value
     }
   }).onOk(async () => {
-    
-    const r = await $store.dispatch(
-	'multisig/uploadTransaction', 
-        { 
-          multisigTransaction: multisigTransaction.value,
-          multisigWallet: multisigWallet.value
-        }
-      )
+    await $store.dispatch(
+      'multisig/uploadTransaction',
+      {
+        multisigTransaction: multisigTransaction.value,
+        multisigWallet: multisigWallet.value
+      }
+    )
   })
 }
 
@@ -561,7 +555,7 @@ const openShareTransactionActionsDialog = () => {
       onUploadTransaction: () => {
         uploadTransaction()
       },
-      onExportTransaction: () => { 
+      onExportTransaction: () => {
         downloadPst()
       }
     }
@@ -574,8 +568,8 @@ const openTransactionActionsDialog = () => {
       darkMode: darkMode.value,
       broadcastDone: multisigTransaction.value?.broadcastStatus === 'done',
       signingProgress: getSigningProgress({
-         multisigTransaction: multisigTransaction.value,
-         multisigWallet: multisigWallet.value
+        multisigTransaction: multisigTransaction.value,
+        multisigWallet: multisigWallet.value
       }),
       shared: isMultisigTransactionSynced(multisigTransaction.value),
       onDeleteTx: () => {
@@ -585,8 +579,8 @@ const openTransactionActionsDialog = () => {
           cancel: { label: 'No' },
           class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onOk(() => {
-           $store.dispatch('multisig/deleteTransactionById', { id: multisigTransaction.value.id })
-           router.back()
+          $store.dispatch('multisig/deleteTransactionById', { id: multisigTransaction.value.id })
+          router.back()
         }).onCancel(() => {
           openTransactionActionsDialog()
         })
@@ -600,7 +594,7 @@ const openTransactionActionsDialog = () => {
       onUploadTx: () => {
         uploadTransaction()
       },
-      onBroadcastTx: () => { 
+      onBroadcastTx: () => {
         broadcastTransaction()
       }
     }
@@ -611,39 +605,39 @@ const loadHdPrivateKeys = async (hdPublicKeys) => {
   for (const signerEntityId of Object.keys(hdPublicKeys)) {
     try {
       const xprv = await getSignerXPrv({
-       xpub: hdPublicKeys[signerEntityId]
+        xpub: hdPublicKeys[signerEntityId]
       })
       if (xprv) {
-       hdPrivateKeys.value[signerEntityId] = xprv
+        hdPrivateKeys.value[signerEntityId] = xprv
       }
     } catch (e) {} // getSignerXPrv throws if xprv not found, we'll just ignore
   }
-} 
+}
 
 const updateBroadcastStatus = async () => {
   try {
     updatingBroadcastStatus.value = true
     await $store.dispatch('multisig/updateBroadcastStatus', {
-     multisigTransaction: multisigTransaction.value
+      multisigTransaction: multisigTransaction.value
     })
     multisigTransaction.value = structuredClone($store.getters['multisig/getTransactionByHash']({ hash: route.params.hash }))
-   } catch(e) { 
-     console.log(e)
-   } finally {
-     updatingBroadcastStatus.value = false
-   }
+  } catch (e) {
+    console.log(e)
+  } finally {
+    updatingBroadcastStatus.value = false
+  }
 }
 
 const checkSigningProgress = async () => {
   try {
-   checkingSigningProgress.value = true
-   await $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: multisigTransaction.value })
-   signingProgress.value = getSigningProgress({
-     multisigWallet: multisigWallet.value,
-     multisigTransaction: multisigTransaction.value
-   })
-   multisigTransaction.value = structuredClone($store.getters['multisig/getTransactionByHash']({ hash: route.params.hash }))
-  } catch(e) {
+    checkingSigningProgress.value = true
+    await $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: multisigTransaction.value })
+    signingProgress.value = getSigningProgress({
+      multisigWallet: multisigWallet.value,
+      multisigTransaction: multisigTransaction.value
+    })
+    multisigTransaction.value = structuredClone($store.getters['multisig/getTransactionByHash']({ hash: route.params.hash }))
+  } catch (e) {
     console.log(e)
   } finally {
     checkingSigningProgress.value = false
@@ -651,11 +645,11 @@ const checkSigningProgress = async () => {
 }
 
 watch(() => signatureCount.value, () => {
-   if (!multisigWallet.value || !multisigTransaction.value) return
-   signingProgress.value = getSigningProgress({
-     multisigWallet: multisigWallet.value,
-     multisigTransaction: multisigTransaction.value
-   })
+  if (!multisigWallet.value || !multisigTransaction.value) return
+  signingProgress.value = getSigningProgress({
+    multisigWallet: multisigWallet.value,
+    multisigTransaction: multisigTransaction.value
+  })
 })
 
 onBeforeUnmount(() => {
@@ -671,7 +665,7 @@ onMounted(async () => {
     if (multisigTransaction.value) {
       checkSigningProgress()
       updateBroadcastStatus({ multisigTransaction: multisigTransaction.value })
-    } 
+    }
   }
 })
 
