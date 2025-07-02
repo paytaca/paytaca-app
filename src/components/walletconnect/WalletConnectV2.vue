@@ -757,7 +757,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
               status: 'accepted',
               walletType: 'p2shMultisig',
               walletSpec: {
-                m: getRequiredSignatures(wallet.lockingData?.hdKeys?.signers),
+                m: getRequiredSignatures(wallet.template),
                 n: getTotalSigners(wallet.template),
                 sigAlgo: 'schnorr'
               },
