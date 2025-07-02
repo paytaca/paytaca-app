@@ -189,7 +189,8 @@ export async function recoverWalletsFromStorage() {
     const hasRecoverableWallets = vault.length < walletIndices.length
     console.log('[Wallet Recovery] hasRecoverableWallets:', hasRecoverableWallets);
 
-    if (!hasRecoverableWallets && (storedBchWallet?.walletHash !== '' && storedSlpWallet?.walletHash !== '')) {
+    if (!hasRecoverableWallets) {
+        Store.commit('global/setWalletsRecovered', true)
         console.log('[Wallet Recovery] No recoverable wallets found, exiting recovery process.')
         return 
     }
