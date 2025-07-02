@@ -9,7 +9,7 @@
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
-import { useQuasar } from 'quasar'
+import { is, useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
@@ -168,60 +168,8 @@ export default {
       const vm = this
 
       const chipnetHash = vm.$store.getters['global/getAllChipnetTypes'].bch.walletHash
-      const mainnetHash = vm.$store.getters['global/getAllWalletTypes'].bch.walletHash
-      const isChipnet = vm.$store.getters['global/isChipnet']
 
-      console.log('savingInitialChipnet - chipnetHash:', chipnetHash, 'mainnetHash:', mainnetHash, 'isChipnet:', isChipnet)
-
-      // If we're in mainnet mode but only have chipnet data, generate mainnet data
-      if (!isChipnet && chipnetHash.length > 0 && mainnetHash.length === 0) {
-        console.log('savingInitialChipnet - Generating mainnet wallet data')
-        const wallet = new Wallet(mnemonic, 'BCH')
-        const bchMainWallet = wallet.BCH
-        const slpMainWallet = wallet.SLP
-
-        // save BCH mainnet
-        await bchMainWallet.getNewAddressSet(0).then(function ({ addresses }) {
-          vm.$store.commit('global/updateWallet', {
-            type: 'bch',
-            walletHash: bchMainWallet.walletHash,
-            derivationPath: bchMainWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0,
-          })
-        })
-
-        bchMainWallet.getXPubKey().then(function (xpub) {
-          vm.$store.commit('global/updateXPubKey', {
-            type: 'bch',
-            xPubKey: xpub
-          })
-        })
-
-        // save SLP mainnet
-        slpMainWallet.getNewAddressSet(0).then(function (addresses) {
-          vm.$store.commit('global/updateWallet', {
-            type: 'slp',
-            walletHash: slpMainWallet.walletHash,
-            derivationPath: slpMainWallet.derivationPath,
-            lastAddress: addresses !== null ? addresses.receiving : '',
-            lastChangeAddress: addresses !== null ? addresses.change : '',
-            lastAddressIndex: 0
-          })
-        })
-
-        slpMainWallet.getXPubKey().then(function (xpub) {
-          vm.$store.commit('global/updateXPubKey', {
-            type: 'slp',
-            xPubKey: xpub
-          })
-        })
-      }
-
-      // Generate chipnet data if it doesn't exist
       if (chipnetHash.length === 0) {
-        console.log('savingInitialChipnet - Generating chipnet wallet data')
         const wallet = new Wallet(mnemonic, 'BCH')
 
         const bchChipWallet = wallet.BCH_CHIP
@@ -282,43 +230,6 @@ export default {
     }
   },
   async mounted () {
-    console.log('App.vue - mounted() called')
-    
-    // Debug: Check if Vuex has any data at all
-    const store = this.$store
-    console.log('App.vue - Full store state:', store.state)
-    console.log('App.vue - Global state:', store.state.global)
-    console.log('App.vue - Vault:', store.state.global.vault)
-    console.log('App.vue - Wallet index:', store.state.global.walletIndex)
-    console.log('App.vue - Is chipnet:', store.state.global.isChipnet)
-    
-    // Debug: Check localStorage for migration flag
-    const migrationFlag = window.localStorage.getItem('vuex-migration-done')
-    console.log('App.vue - Migration flag:', migrationFlag)
-    
-    // Debug: Check if there's any data in localStorage
-    const localStorageVuex = window.localStorage.getItem('vuex')
-    console.log('App.vue - localStorage vuex data:', localStorageVuex)
-    
-    // Debug: Check indexedDB directly
-    try {
-      const localforage = await import('localforage')
-      const indexedDBData = await localforage.default.getItem('vuex')
-      console.log('App.vue - indexedDB vuex data:', indexedDBData)
-    } catch (err) {
-      console.error('App.vue - Error checking indexedDB:', err)
-    }
-    
-    // Debug: Check if there are any wallets at all
-    const allWallets = store.getters['global/getAllWalletTypes']
-    const allChipnetWallets = store.getters['global/getAllChipnetTypes']
-    console.log('App.vue - All wallets:', allWallets)
-    console.log('App.vue - All chipnet wallets:', allChipnetWallets)
-    
-    // Debug: Check current wallet hash
-    const currentWalletHash = store.getters['global/getCurrentWalletHash']
-    console.log('App.vue - Current wallet hash:', currentWalletHash)
-    
     const vm = this
 
     // Forcibly disable SmartBCH, in preparation for future deprecation
@@ -326,7 +237,9 @@ export default {
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
+
     if (mnemonic) {
+
       vm.$q.lang.set(vm.$store.getters['global/language'].value)
       await vm.savingInitialChipnet(mnemonic)
       // first check if vaults are empty

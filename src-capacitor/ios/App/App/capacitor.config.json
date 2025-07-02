@@ -19,11 +19,6 @@
 				"sound",
 				"alert"
 			]
-		},
-		"Camera": {
-			"android": {
-				"usePhotoPicker": true
-			}
 		}
 	},
 	"ios": {

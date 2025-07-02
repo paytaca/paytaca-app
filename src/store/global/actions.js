@@ -113,45 +113,24 @@ export async function fetchWalletName (context, walletHash) {
  * @param {Number} opts.walletIndex
  */
 export async function syncWalletName (context, opts) {
-  // Safety check: ensure opts and walletIndex are valid
-  if (!opts || opts.walletIndex === undefined || opts.walletIndex === null) {
-    console.error('[syncWalletName] Invalid opts or walletIndex provided:', opts)
-    throw new Error('Invalid wallet index provided')
-  }
-  
-  const vault = context.getters.getVault?.[opts.walletIndex]
-  if (!vault) {
-    console.error('[syncWalletName] No vault found at index:', opts.walletIndex)
-    throw new Error('No vault found')
-  }
+  const vault = context.getters.getVault?.[opts?.walletIndex]
+  if (!vault) throw new Error('No vault found')
 
   const walletHash = vault?.wallet?.bch?.walletHash
   if (!walletHash) {
-    console.error('[syncWalletName] No wallet hash found for vault at index:', opts.walletIndex)
-    throw new Error('No wallet hash found')
+    console.error('No wallet hash found in vault:', vault)
+    return // throw new Error('No wallet hash found')
   }
 
   const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
   const decryptedName = decryptWalletName(walletName, walletHash)
-  context.commit('updateWalletName', { index: opts.walletIndex, name: decryptedName })
+  context.commit('updateWalletName', { index: opts?.walletIndex, name: decryptedName })
   return decryptedName
 }
 
 export async function updateWalletNameInPreferences (context, data) {
-  // Safety check: ensure data and walletIndex are valid
-  if (!data || data.walletIndex === undefined || data.walletIndex === null) {
-    console.error('[updateWalletNameInPreferences] Invalid data or walletIndex provided:', data)
-    throw new Error('Invalid wallet index provided')
-  }
-  
-  const vault = context.rootGetters['global/getVault']
-  if (!vault || !vault[data.walletIndex]) {
-    console.error('[updateWalletNameInPreferences] No vault found at index:', data.walletIndex)
-    throw new Error('No vault found')
-  }
-  
   const selectedCurrency = context.rootGetters['market/selectedCurrency']
-  const walletHash = vault[data.walletIndex].wallet.bch.walletHash
+  const walletHash = context.rootGetters['global/getVault'][data.walletIndex].wallet.bch.walletHash
   const payload = {
     wallet_hash: walletHash,
     selected_currency: selectedCurrency?.symbol,
@@ -162,11 +141,10 @@ export async function updateWalletNameInPreferences (context, data) {
 
   try {
     const decryptedName = decryptWalletName(data.walletName, walletHash)
-    console.log('Updating wallet name: ', data.walletIndex, decryptedName)
     context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
   } catch (error) {
     console.error(error)
-    context.dispatch('syncWalletName', { walletIndex: data.walletIndex })
+    context.dispatch('syncWalletName', { walletIndex: data?.walletIndex })
   }
 }
 
@@ -200,13 +178,11 @@ export async function saveWalletPreferences (context) {
 
 export async function saveExistingWallet (context) {
   const vault = context.getters.getVault
-  console.log('saveExistingWallet - vault:', vault, 'isVaultEmpty:', context.getters.isVaultEmpty)
 
   // check if vault keys are valid
   if (vault.length > 0) {
     if (vault[0]) {
       if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
-        console.log('saveExistingWallet - Invalid vault structure, clearing vault')
         context.commit('clearVault')
       }
     }
@@ -214,7 +190,9 @@ export async function saveExistingWallet (context) {
 
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters.getWallet('bch')?.walletHash
-    console.log('saveExistingWallet - isVaultEmpty, walletHash:', walletHash)
+
+    console.log('Saving wallet to vault with hash:', walletHash)
+    
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes
       wallet = JSON.stringify(wallet)
@@ -227,39 +205,17 @@ export async function saveExistingWallet (context) {
         wallet: wallet,
         chipnet: chipnet
       }
-      console.log('saveExistingWallet - Saving to vault:', info)
       context.commit('updateVault', info)
-    }
-  } else {
-    // If vault is not empty, ensure current wallet data is loaded from vault
-    const currentIndex = context.getters.getWalletIndex
-    console.log('saveExistingWallet - vault not empty, currentIndex:', currentIndex, 'vault[currentIndex]:', vault[currentIndex])
-    if (vault[currentIndex]) {
-      console.log('saveExistingWallet - Calling updateCurrentWallet with index:', currentIndex)
-      context.commit('updateCurrentWallet', currentIndex)
     }
   }
 }
 
 export async function syncCurrentWalletToVault(context) {
   const currentIndex = context.getters.getWalletIndex
-  
-  // Safety check: ensure currentIndex is valid
-  if (currentIndex === undefined || currentIndex === null) {
-    console.error('[syncCurrentWalletToVault] Invalid current wallet index:', currentIndex)
-    return
-  }
-  
-  const vault = context.getters.getVault
-  if (!vault || !vault[currentIndex]) {
-    console.error('[syncCurrentWalletToVault] No vault found at current index:', currentIndex)
-    return
-  }
-  
   const wallet = context.getters.getAllWalletTypes
   const chipnet = context.getters.getAllChipnetTypes
 
-  const walletName = vault[currentIndex].name
+  const walletName = context.getters.getVault[currentIndex].name
 
   const info = {
     index: currentIndex,
@@ -279,93 +235,36 @@ export async function syncCurrentWalletToVault(context) {
 }
 
 export async function switchWallet (context, index) {
-  console.log('[switchWallet] Starting wallet switch to index:', index)
-  
-  try {
-    console.log('[switchWallet] Syncing current wallet to vault...')
-    // Sync current wallet to vault before switching
-    await context.dispatch('syncCurrentWalletToVault')
-    
-    console.log('[switchWallet] Clearing various states...')
-    // Clear various states
-    context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
-    context.commit('paytacapos/clearBranchInfo', {}, { root: true })
-    context.commit('ramp/resetUser', {}, { root: true })
-    context.commit('ramp/resetData', {}, { root: true })
-    context.commit('ramp/resetChatIdentity', {}, { root: true })
-    context.commit('ramp/resetPagination', {}, { root: true })
-    deleteAuthToken()
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try {
+        context.dispatch('syncCurrentWalletToVault', )
+        context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
+        context.commit('paytacapos/clearBranchInfo', {}, { root: true })
+        context.commit('ramp/resetUser', {}, { root: true })
+        context.commit('ramp/resetData', {}, { root: true })
+        context.commit('ramp/resetChatIdentity', {}, { root: true })
+        context.commit('ramp/resetPagination', {}, { root: true })
+        deleteAuthToken()
 
-    console.log('[switchWallet] Updating wallet index and loading new wallet...')
-    // Update wallet index and load the new wallet
-    context.commit('updateWalletIndex', index)
-    context.commit('updateCurrentWallet', index)
-    
-    console.log('[switchWallet] Ensuring persistence...')
-    // Ensure the new wallet index is persisted to indexedDB
-    // Wait a bit more to ensure persistence
-    await new Promise(resolve => setTimeout(resolve, 1000))
+        context.commit('updateWalletIndex', index)
+        context.commit('updateCurrentWallet', index)
 
-    console.log('[switchWallet] Wallet switch completed successfully for index:', index)
-  } catch (error) {
-    console.error('[switchWallet] Error switching wallet:', error)
-    throw error
-  }
+        resolve()
+      } catch (error) {
+        reject(error)
+      }
+    }, 1000)
+  })
 }
 
 export async function deleteWallet (context, index) {
-  console.log('[deleteWallet] Starting wallet deletion for index:', index)
-  console.log('[deleteWallet] Current wallet index before deletion:', context.getters.getWalletIndex)
-  console.log('[deleteWallet] Current vault before deletion:', context.getters.getVault)
-  
-  try {
-    // Mark the wallet as deleted
-    context.commit('deleteWallet', index)
-    console.log('[deleteWallet] Wallet marked as deleted at index:', index)
-    
-    // Find the next available wallet to switch to
-    const vault = context.getters.getVault
-    const undeletedWallets = []
-    
-    vault.forEach((wallet, walletIndex) => {
-      if (wallet && wallet.deleted !== true) {
-        undeletedWallets.push(walletIndex)
-      }
-    })
-    
-    console.log('[deleteWallet] Available wallets after deletion:', undeletedWallets)
-    console.log('[deleteWallet] Current vault after marking as deleted:', vault)
-    
-    // If no wallets left, clear vault and resolve
-    if (undeletedWallets.length === 0) {
-      console.log('[deleteWallet] No wallets left, clearing vault')
-      context.commit('clearVault')
-      return
-    }
-    
-    // Switch to the first available wallet
-    const nextWalletIndex = undeletedWallets[0]
-    console.log('[deleteWallet] Switching to next available wallet at index:', nextWalletIndex)
-    
-    // Update wallet index and load the wallet data
-    context.commit('updateWalletIndex', nextWalletIndex)
-    console.log('[deleteWallet] Wallet index updated to:', nextWalletIndex)
-    
-    context.commit('updateCurrentWallet', nextWalletIndex)
-    console.log('[deleteWallet] Current wallet updated to index:', nextWalletIndex)
-    
-    // Ensure persistence to indexedDB
-    console.log('[deleteWallet] Ensuring persistence to indexedDB...')
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    console.log('[deleteWallet] Final wallet index:', context.getters.getWalletIndex)
-    console.log('[deleteWallet] Final vault state:', context.getters.getVault)
-    
-    console.log('[deleteWallet] Wallet deletion and switch completed successfully')
-  } catch (error) {
-    console.error('[deleteWallet] Error during wallet deletion:', error)
-    throw error
-  }
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      context.commit('deleteWallet', index)
+      resolve()
+    }, 1000)
+  })
 }
 
 /**

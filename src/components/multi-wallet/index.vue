@@ -92,6 +92,11 @@
           </template>
         </q-virtual-scroll>
       </q-card-section>
+      <div v-if="!isWalletsRecovered" class="row justify-center text-center q-pb-md q-mx-lg q-px-lg">
+        <span class="q-mb-md" :class="getDarkModeClass(darkMode)">
+          <q-spinner class="q-mr-sm"/><i>Recovering your wallets, please wait</i>
+        </span>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -124,6 +129,11 @@ export default {
     LoadingWalletDialog,
     ProgressLoader
   },
+  watch: {
+    isWalletsRecovered (val) {
+      if (val) this.processVaultName()
+    }
+  },
   methods: {
     parseAssetDenomination,
     parseFiatCurrency,
@@ -139,21 +149,7 @@ export default {
       vm.processDefaultVaultName()
 
       const tempVault = vm.$store.getters['global/getVault']
-      
-      // Safety check: ensure vault exists and is an array
-      if (!tempVault || !Array.isArray(tempVault)) {
-        console.error('[processVaultName] Invalid vault structure:', tempVault)
-        vm.isloading = false
-        return
-      }
-      
       const vaultNameUpdatePromises = tempVault.map(async (wallet, index) => {
-        // Safety check: ensure wallet exists
-        if (!wallet) {
-          console.error('[processVaultName] No wallet found at index:', index)
-          return
-        }
-        
         let tempName = wallet.name
         if (wallet.name === '') { // from vuex store
           tempName = `Personal Wallet #${index + 1}`
@@ -195,7 +191,7 @@ export default {
 
       vm.$store.dispatch('global/switchWallet', index).then(function () {
         vm.$router.push('/')
-        setTimeout(() => { location.reload() }, 1500)
+        setTimeout(() => { location.reload() }, 500)
       })
 
       loadingDialog.hide()
@@ -241,21 +237,10 @@ export default {
       vm.vault = tempVault
     },
     getAssetData (index) {
-      // Safety check: ensure index is valid
-      if (index === undefined || index === null) {
-        console.error('[getAssetData] Invalid index provided:', index)
-        return {}
-      }
-      
       if (this.currentIndex === index) {
         return this.isChipnet ? this.$store.getters['assets/getAllAssets'].chipnet_assets[0] : this.$store.getters['assets/getAllAssets'].asset[0]
       } else {
-        const assetVault = this.$store.getters['assets/getVault']
-        if (!assetVault || !assetVault[index]) {
-          console.error('[getAssetData] No asset vault found at index:', index)
-          return {}
-        }
-        return this.isChipnet ? assetVault[index].chipnet_assets[0] : assetVault[index].asset[0]
+        return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
     },
     openBasicInfoDialog () {
@@ -268,6 +253,21 @@ export default {
     },
     hide () {
       this.$refs['multi-wallet'].hide()
+    },
+    async loadData () {
+      const vm = this
+      vm.$store.dispatch('assets/updateVaultBchBalances', {
+        chipnet: vm.isChipnet,
+        excludeCurrentIndex: true,
+      })?.catch(console.error)
+
+      // double checking if vault is empty
+      await vm.$store.dispatch('global/saveExistingWallet')
+      await vm.$store.dispatch('assets/saveExistingAsset', {
+        index: vm.$store.getters['global/getWalletIndex'],
+        walletHash: vm.$store.getters['global/getWallet']('bch')?.walletHash
+      })
+      await vm.processVaultName()
     }
   },
   computed: {
@@ -286,23 +286,14 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
+    },
+    isWalletsRecovered () {
+      const recovered = this.$store.getters['global/isWalletsRecovered']
+      return recovered
     }
   },
   async mounted () {
-    const vm = this
-
-    vm.$store.dispatch('assets/updateVaultBchBalances', {
-      chipnet: vm.isChipnet,
-      excludeCurrentIndex: true,
-    })?.catch(console.error)
-
-    // double checking if vault is empty
-    await vm.$store.dispatch('global/saveExistingWallet')
-    await vm.$store.dispatch('assets/saveExistingAsset', {
-      index: vm.$store.getters['global/getWalletIndex'],
-      walletHash: vm.$store.getters['global/getWallet']('bch')?.walletHash
-    })
-    await vm.processVaultName()
+   this.loadData()
   }
 }
 </script>

@@ -121,6 +121,7 @@ export default function () {
     merchantActivity: {
       active: false,
       verified: false
-    }
+    },
+    walletsRecovered: false, // Flag to check if wallets have been recovered from storage
   }
 }

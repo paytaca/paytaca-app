@@ -1,5 +1,9 @@
-import { deleteMnemonic, deletePin, getMnemonic } from './../../wallet'
+import { deleteMnemonic } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
+
+export function setWalletsRecovered (state, value) {
+  state.walletsRecovered = Boolean(value)
+}
 
 export function updateAppControl (state, data) {
   state.appControl = data
@@ -37,13 +41,21 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
-  console.log('[updateVault] Updating vault with details:', details)
-  
   // Simple approach: if vault is empty, create first entry, otherwise push new entry
   if (!state.vault || state.vault.length === 0) {
     state.vault = [details]
   } else {
-    state.vault.push(details)
+    // Check for duplicate entries
+    const existingIndex = state.vault.findIndex(v => {
+      return v.wallet?.bch?.walletHash === details.wallet?.bch?.walletHash
+    })
+    if (existingIndex !== -1) {
+      // Update existing entry
+      state.vault[existingIndex] = details
+    } else {
+      // Add new entry
+      state.vault.push(details)
+    }
   }
   
   // Ensure the entry has a name
@@ -54,7 +66,6 @@ export function updateVault (state, details) {
 }
 
 export function clearVault (state) {
-  console.log('[clearVault] Clearing vault')
   state.vault = []
 }
 
@@ -63,44 +74,10 @@ export function updateWalletIndex (state, index) {
 }
 
 export function updateWalletName (state, details) {
-  // Safety check: ensure vault exists and index is valid
-  if (!state.vault || !Array.isArray(state.vault)) {
-    console.error('[updateWalletName] Vault is not initialized or not an array')
-    return
-  }
-  
-  if (details.index === undefined || details.index === null) {
-    console.error('[updateWalletName] Invalid index provided:', details.index)
-    return
-  }
-  
-  if (!state.vault[details.index]) {
-    console.error('[updateWalletName] No vault entry found at index:', details.index)
-    return
-  }
-  
   state.vault[details.index].name = details.name
 }
 
 export function updateWalletSnapshot (state, details) {
-  console.log('[updateWalletSnapshot] Updating wallet snapshot for index:', details.index)
-  
-  // Safety check: ensure vault exists and index is valid
-  if (!state.vault || !Array.isArray(state.vault)) {
-    console.error('[updateWalletSnapshot] Vault is not initialized or not an array')
-    return
-  }
-  
-  if (details.index === undefined || details.index === null) {
-    console.error('[updateWalletSnapshot] Invalid index provided:', details.index)
-    return
-  }
-  
-  if (!state.vault[details.index]) {
-    console.error('[updateWalletSnapshot] No vault entry found at index:', details.index)
-    return
-  }
-  
   let wallet = details.walletSnapshot
   wallet = JSON.stringify(wallet)
   wallet = JSON.parse(wallet)
@@ -115,33 +92,7 @@ export function updateWalletSnapshot (state, details) {
 }
 
 export function updateCurrentWallet (state, index) {
-  console.log('[updateCurrentWallet] Updating current wallet for index:', index)
-  
-  // Safety check: ensure vault exists and index is valid
-  if (!state.vault || !Array.isArray(state.vault)) {
-    console.error('[updateCurrentWallet] Vault is not initialized or not an array')
-    return
-  }
-  
   const vault = state.vault[index]
-  
-  if (!vault) {
-    console.error('[updateCurrentWallet] No vault found at index', index, 'Available indices:', state.vault.map((v, i) => v ? i : null).filter(i => i !== null))
-    return
-  }
-
-  // Special check for index 1
-  if (index === 1) {
-    console.log('[updateCurrentWallet] DEBUG: Processing wallet index 1')
-    console.log('[updateCurrentWallet] DEBUG: Vault entry structure:', Object.keys(vault))
-    console.log('[updateCurrentWallet] DEBUG: Has wallet:', !!vault.wallet)
-    console.log('[updateCurrentWallet] DEBUG: Has chipnet:', !!vault.chipnet)
-  }
-
-  if (!vault.wallet || !vault.chipnet) {
-    console.error('[updateCurrentWallet] Invalid vault structure at index', index, vault)
-    return
-  }
 
   let wallet = vault.wallet
   wallet = JSON.stringify(wallet)
@@ -154,33 +105,13 @@ export function updateCurrentWallet (state, index) {
   chipnet = JSON.parse(chipnet)
 
   state.chipnet__wallets = chipnet
-  
-  console.log('[updateCurrentWallet] Successfully updated current wallet. New state.wallets:', state.wallets)
-  console.log('[updateCurrentWallet] New state.chipnet__wallets:', state.chipnet__wallets)
 }
 
 export function deleteWallet (state, index) {
-  // Safety check: ensure vault exists and index is valid
-  if (!state.vault || !Array.isArray(state.vault)) {
-    console.error('[deleteWallet] Vault is not initialized or not an array')
-    return
-  }
-  
-  if (index === undefined || index === null) {
-    console.error('[deleteWallet] Invalid index provided:', index)
-    return
-  }
-  
-  if (!state.vault[index]) {
-    console.error('[deleteWallet] No vault entry found at index:', index)
-    return
-  }
-  
   // Mark wallet as deleted
   state.vault[index].deleted = true
-  
-  // Note: deletePin and deleteMnemonic should be handled in actions, not mutations
-  // These async operations will be handled by the calling action
+  // Delete the mnemonic seed phrase for this wallet
+  deleteMnemonic(index)
 }
 
 export function toggleIsChipnet (state) {
@@ -358,11 +289,6 @@ export function setWalletConnectedApps(state, connectedApps) {
   } else {
     state.wallets.bch.connectedApps = connectedApps
   }
-}
-
-export function updateVaultFromHydration (state, vault) {
-  console.log('[updateVaultFromHydration] Restoring vault data from hydration:', vault)
-  state.vault = vault
 }
 
 
