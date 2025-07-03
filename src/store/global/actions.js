@@ -177,12 +177,13 @@ export async function saveWalletPreferences (context) {
 }
 
 export async function saveExistingWallet (context) {
+
   const vault = context.getters.getVault
 
   // check if vault keys are valid
   if (vault.length > 0) {
     if (vault[0]) {
-      if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+      if (!vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
         context.commit('clearVault')
       }
     }
@@ -190,8 +191,6 @@ export async function saveExistingWallet (context) {
 
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters.getWallet('bch')?.walletHash
-
-    console.log('Saving wallet to vault with hash:', walletHash)
     
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes
@@ -239,6 +238,7 @@ export async function switchWallet (context, index) {
     setTimeout(() => {
       try {
         context.dispatch('syncCurrentWalletToVault', )
+        context.commit('assets/updatedCurrentAssets', index, { root: true })
         context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
         context.commit('paytacapos/clearBranchInfo', {}, { root: true })
         context.commit('ramp/resetUser', {}, { root: true })
