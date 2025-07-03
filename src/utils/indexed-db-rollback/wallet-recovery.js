@@ -188,9 +188,13 @@ async function recoverWallet(index, save=false) {
     // ]
     // $pushNotifications?.subscribe?.(walletHashes, walletIndex, true)
 
-    let asset = store.getters['assets/getAllAssets']
-    asset = JSON.stringify(asset)
-    asset = JSON.parse(asset)
+    let asset = store.getters['assets/getVault']?.[index]
+    if (asset) {
+        asset = JSON.stringify(asset)
+        asset = JSON.parse(asset)
+    } else {
+        asset = getAllAssets(initialAssetState())
+    }
 
     store.commit('assets/updateVault', { index: index, asset: asset })
     store.commit('assets/updatedCurrentAssets', index)
