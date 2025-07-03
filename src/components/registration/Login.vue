@@ -17,5 +17,20 @@
 	</div>
 </template>
 <script>
-	
+
+export default {
+	data () {
+		return {
+
+		}
+	},
+	computed: {
+		darkmode () {
+	      return this.$store.getters['darkmode/getStatus']
+	    },
+	},
+	props: {
+
+	}
+}
 </script>

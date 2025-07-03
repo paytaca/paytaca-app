@@ -228,3 +228,12 @@ export function moveAssetToBeginning (state) {
     state.assets.splice(1, 0, item)
   }
 }
+
+export function updateAssetFavorite (state, data) {
+  const index = state.assets.findIndex(a => a && a.id === data.id)
+
+  console.log('index: ', index)
+  if (index > -1) {
+    state.assets[index]["favorite"] = data.favorite
+  }
+}

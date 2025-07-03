@@ -8,7 +8,8 @@ export default function () {
         logo: 'bch-logo.png',
         balance: 0,
         spendable: 0,
-        yield: {}
+        yield: {},
+        favorite: false
       }
     ],
     chipnet__assets: [
@@ -19,7 +20,8 @@ export default function () {
         logo: 'bch-logo.png',
         balance: 0,
         spendable: 0,
-        yield: {}
+        yield: {},
+        favorite: false
       }
     ],
     ignoredAssets: [],

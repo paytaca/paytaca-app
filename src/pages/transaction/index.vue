@@ -224,6 +224,16 @@
                   @click="toggleManageAssets"
                 />
                 <q-btn
+                  flat
+                  padding="none"
+                  v-if="!stablehedgeView"
+                  size="sm"
+                  icon="settings"
+                  class="settings-button"           
+                  :class="getDarkModeClass(darkMode)"
+                  @click="$router.push({ name: 'asset-list' })"
+                />
+                <!-- <q-btn
                   v-if="!stablehedgeView"
                   flat
                   padding="none"
@@ -256,7 +266,7 @@
                       </q-item>
                     </q-list>
                   </q-menu>
-                </q-btn>
+                </q-btn> -->
               </p>
             </div>
 
@@ -992,14 +1002,14 @@ export default {
       const vm = this
       vm.hideMultiWalletDialog()
       vm.hideAssetInfo()
-      const txCheck = setInterval(function () {
-        if (transaction) {
-          if (!transaction?.asset) transaction.asset = vm.selectedAsset
-          vm.$refs.transaction.show(transaction)
-          vm.hideBalances = true
-          clearInterval(txCheck)
-        }
-      }, 100)
+      // const txCheck = setInterval(function () {
+      //   if (transaction) {
+      //     if (!transaction?.asset) transaction.asset = vm.selectedAsset
+      //     vm.$refs.transaction.show(transaction)
+      //     vm.hideBalances = true
+      //     clearInterval(txCheck)
+      //   }
+      // }, 100)
     },
     setSelectedAsset(asset) {
       const assetExists = this.assets.find(a => a?.id == asset?.id)

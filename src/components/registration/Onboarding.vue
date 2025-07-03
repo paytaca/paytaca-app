@@ -1,11 +1,11 @@
 <template>
-  <div id="app-container" class="grad">
+  <div id="app-container" class="light">
     <div class="image-container" v-if="status === 'splash'">
       <div class="centered-image">
         <img height="85px" width="85px" src="~/assets/paytaca_logo.png" alt="">        
       </div>
     </div>
-    <div v-if="status === 'info'">
+    <div v-if="status === 'info'" class="text-black">
       <div v-if="step === 1" class="stepper-content">
         <div class="image-container text-center">
           <div class="stepper">
@@ -52,7 +52,7 @@
       </div>
       <div class="button-container">
         <div class="full-width">
-          <q-btn @click="nextStep()" color="primary" padding="sm" label="Continue" class="full-width" style="border-radius: 10px; padding: 10px 0px 10px"/>
+          <q-btn @click="nextStep()" padding="sm" label="Continue" class="full-width bg-grad" style="border-radius: 10px; padding: 10px 0px 10px"/>
         </div>
         <div class="text-center q-pt-sm">
           <q-btn no-caps flat @click="$emit('register')">
