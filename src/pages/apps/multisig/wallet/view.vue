@@ -19,10 +19,10 @@
                   <q-item-label class="text-bold">
                   <div class="flex items-center">
                   <div>{{ wallet.template.name }}</div>
-		  <q-icon
-			class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'smartphone'"
-			:color="isMultisigWalletSynced(wallet)? 'green': ''"
-		  /> 
+                    <q-icon
+                    class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'smartphone'"
+                    :color="isMultisigWalletSynced(wallet)? 'green': ''"
+                    />
                   </div>
                   </q-item-label>
                 </q-item-section>
@@ -84,18 +84,19 @@
                   <q-item-label style="position:relative">Tx Proposal</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                     <div class="flex items-center">
-                     <q-badge :color="transactions?.length > 0? 'red': 'grey-8'" >{{ transactions?.length || 0 }}</q-badge> 
-                     <q-icon v-if="transactions?.length > 0" name="arrow_forward_ios" class="q-ml-sm" /> 
-                     </div>
+                  <div class="flex items-center">
+                    <q-badge :color="transactions?.length > 0? 'red': 'grey-8'" >{{ transactions?.length || 0 }}</q-badge>
+                    <q-icon v-if="transactions?.length > 0" name="arrow_forward_ios" class="q-ml-sm" />
+                    <q-icon v-else name="refresh" class="q-ml-sm" />
+                  </div>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
             </q-list>
           </div>
-          <div class="flex flex-wrap justify-around q-mt-lg"> 
+          <div class="flex flex-wrap justify-around q-mt-lg">
            <q-btn
-            :to="{ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address }}" 
+            :to="{ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address }}"
             class="tile"
             flat
             dense
@@ -154,28 +155,23 @@ import {
   getRequiredSignatures,
   exportMultisigWallet,
   importPst,
-  getLockingBytecode,
   isMultisigWalletSynced,
   generateFilename,
-  getWalletHash,
   generateTransactionHash
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
-import Watchtower from 'src/lib/watchtower'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
-import SyncWalletDialog from 'components/multisig/SyncWalletDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import ShareWalletActionsDialog from 'components/multisig/ShareWalletActionsDialog.vue'
-import { CashAddressNetworkPrefix, hashTransaction, binToHex } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getMultisigWalletBchBalance, getSignerXPrv, multisigWallets } = useMultisigHelpers()
+const { getMultisigWalletBchBalance, multisigWallets } = useMultisigHelpers()
 const balance = ref()
 
 const darkMode = computed(() => {
@@ -194,11 +190,11 @@ const wallet = computed(() => {
 
 const transactions = computed(() => {
   return $store.getters['multisig/getTransactionsByWalletAddress']({
-    address: route.params.address 
-   })?.filter(mt => mt.broadcastStatus !== 'done')
+    address: route.params.address
+  })?.filter(mt => mt.broadcastStatus !== 'done')
 })
 
-const deleteWallet = async (address) => {
+const deleteWallet = async () => {
   await $store.dispatch('multisig/deleteWallet', { multisigWallet: wallet.value })
   router.push({ name: 'app-multisig' })
 }
@@ -223,10 +219,8 @@ const onUpdateTransactionFile = (file) => {
     const reader = new FileReader()
     reader.onload = () => {
       transactionInstance.value = importPst({ pst: reader.result })
-      const transactionFromStore = $store.getters['multisig/getTransactionByHash']({ hash: hashTransaction(transactionInstance.value.transaction)})
       $store.dispatch('multisig/saveTransaction', transactionInstance.value)
       $store.dispatch('multisig/uploadTransaction', { multisigWallet: wallet.value, multisigTransaction: transactionInstance.value })
-      const index = transactions.value?.length - 1
       const hash = generateTransactionHash(transactionInstance.value)
       router.push({
         name: 'app-multisig-wallet-transaction-view',
@@ -245,40 +239,25 @@ const uploadWallet = () => {
     component: UploadWalletDialog,
     componentProps: {
       multisigWallet: wallet.value,
-      darkMode: darkMode.value }
-  }).onOk(async() => {
-        await $store.dispatch('multisig/uploadWallet', wallet.value)
-  })
-}
-
-const openShareWalletActionsDialog = () => {
-  $q.dialog({
-    component: ShareWalletActionsDialog,
-    componentProps: {
-      darkMode: darkMode.value,
-      onUploadWallet: () => {
-        uploadWallet()
-      },
-      onExportWallet: () => { 
-        exportWallet()
-      },
+      darkMode: darkMode.value
     }
+  }).onOk(async () => {
+    await $store.dispatch('multisig/uploadWallet', wallet.value)
   })
 }
 
 const showWalletReceiveDialog = () => {
-	const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet: CashAddressNetworkPrefix.mainnet
-	$q.dialog({
-          component: WalletReceiveDialog,
-          componentProps: {
-            darkMode: darkMode.value,
-            multisigWallet: wallet.value,
-            cashAddressNetworkPrefix: addressPrefix
-          }
-        }).onOk(() => {
-           openWalletActionsDialog()
-        })
-
+  const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
+  $q.dialog({
+    component: WalletReceiveDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      multisigWallet: wallet.value,
+      cashAddressNetworkPrefix: addressPrefix
+    }
+  }).onOk(() => {
+    openWalletActionsDialog()
+  })
 }
 
 const openWalletActionsDialog = () => {
@@ -292,17 +271,17 @@ const openWalletActionsDialog = () => {
       onUploadWallet: () => {
         uploadWallet()
       },
-      onExportWallet: () => { 
+      onExportWallet: () => {
         exportWallet()
       },
       onDeleteWallet: () => {
-	$q.dialog({
+        $q.dialog({
           message: 'Are you sure you want to delete wallet?',
           ok: { label: 'Yes' },
           cancel: { label: 'No' },
           class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onOk(() => {
-           deleteWallet(route.params.address)
+          deleteWallet(route.params.address)
         }).onCancel(() => {
           openWalletActionsDialog()
         })
@@ -314,12 +293,12 @@ const openWalletActionsDialog = () => {
         router.push({ name: 'app-multisig-wallet-transactions', params: { address: route.params.address } })
       },
       onCreateTxProposal: () => {
-        router.push({ name: 'app-multisig-wallet-transaction-create', params: { address: route.params.address }})
+        router.push({ name: 'app-multisig-wallet-transaction-create', params: { address: route.params.address } })
       },
       onCreateSendBchProposal: () => {
-        router.push({ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address }})
+        router.push({ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address } })
       },
-      onReceive: () => { 
+      onReceive: () => {
         showWalletReceiveDialog()
       }
     }
@@ -327,11 +306,11 @@ const openWalletActionsDialog = () => {
 }
 
 const onTxProposalClick = async () => {
-  await $store.dispatch('multisig/fetchTransactions', wallet.value )
+  await $store.dispatch('multisig/fetchTransactions', wallet.value)
   if (transactions.value.length > 0) {
     router.push({
-     name: 'app-multisig-wallet-transactions', 
-     params: { address: route.params.address } 
+      name: 'app-multisig-wallet-transactions',
+      params: { address: route.params.address }
     })
   }
 }
@@ -342,8 +321,7 @@ onMounted(async () => {
       decodeURIComponent(route.params.address)
     )
     await $store.dispatch('multisig/syncWallet', wallet.value)
-    await $store.dispatch('multisig/fetchTransactions', wallet.value )
-    console.log('WALLET', wallet.value.id)
+    await $store.dispatch('multisig/fetchTransactions', wallet.value)
   } catch (error) {}
 })
 </script>

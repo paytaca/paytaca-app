@@ -761,9 +761,10 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
                 n: getTotalSigners(wallet.template),
                 sigAlgo: 'schnorr'
               },
-              message: `${sessionRequest.params?.request?.params?.userPrompt} Proposal Created`,
+              message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
               statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value }),
               txid: unsignedTransactionHash,
+              unsignedHash: unsignedTransactionHash,
               txidIsUnsignedHash: true
             }
           }
