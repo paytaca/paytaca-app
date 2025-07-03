@@ -208,9 +208,7 @@ async function recoverWallet(index, save=false) {
         chipnet: chipnetWalletsInfo
     }
 
-    console.log('[Wallet Recovery] updateVault [', index, ']:', vaultEntry)
     store.commit('global/updateVault', vaultEntry)
-
 }
 
 export async function recoverWalletsFromStorage() {
@@ -228,8 +226,6 @@ export async function recoverWalletsFromStorage() {
     }
 
     const currentActiveWallet = Store.getters['global/getWallet']('bch')
-    console.log('[Wallet Recovery] currentActiveWallet:', currentActiveWallet)
-
     const reloadCurrentActiveWallet = !currentActiveWallet.xPubKey || currentActiveWallet.xPubKey === ''
     console.log('[Wallet Recovery] reloadCurrentActiveWallet:', reloadCurrentActiveWallet)
 
