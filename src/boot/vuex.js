@@ -3,6 +3,7 @@ import { migrateVuexStorage } from 'src/utils/indexed-db-rollback/rollback-vuex-
 import { recoverWalletsFromStorage } from 'src/utils/indexed-db-rollback/wallet-recovery'
 import { sanitizeVault } from 'src/utils/indexed-db-rollback/wallet-vault'
 import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferences'
+import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
 import useStore from 'src/store'
 
 /**
@@ -44,6 +45,7 @@ export default boot(async (obj) => {
 
     sanitizeVault()
     await recoverWalletsFromStorage()
+    await resetWalletsAssetsList()
     updatePreferences()
     
   } catch (err) {
