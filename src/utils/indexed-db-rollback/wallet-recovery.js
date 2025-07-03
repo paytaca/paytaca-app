@@ -1,6 +1,10 @@
 import { getMnemonic, Wallet } from 'src/wallet'
 import { Store } from 'src/store'
 
+import initialAssetState from 'src/store/assets/state'
+import { getAllAssets } from 'src/store/assets/getters';
+
+
 /**
  * Finds unique wallet indices by scanning localStorage for keys like `cap_sec_mn1`, `cap_sec_mn2`, etc.
  * 
