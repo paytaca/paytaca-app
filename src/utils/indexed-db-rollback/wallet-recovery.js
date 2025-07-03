@@ -11,7 +11,7 @@ import { getAllAssets } from 'src/store/assets/getters';
  * If multiple keys have the same mnemonic value, only the first one is kept to avoid recovering the same wallet twice.
  * The final list is sorted ascending.
  */
-async function getWalletIndicesFromStorage() {
+export async function getWalletIndicesFromStorage() {
     // Get all localStorage keys
     const lsKeys = Object.keys(localStorage);
 
@@ -49,6 +49,20 @@ async function getWalletIndicesFromStorage() {
     walletIndices.sort((a, b) => a - b);
 
     return walletIndices;
+}
+
+export function resetAssetsList(index) {
+    const store = Store;
+    let asset = store.getters['assets/getVault']?.[index]
+    if (asset) {
+        asset = JSON.stringify(asset)
+        asset = JSON.parse(asset)
+    } else {
+        asset = getAllAssets(initialAssetState())
+    }
+
+    store.commit('assets/updateVault', { index: index, asset: asset })
+    store.commit('assets/updatedCurrentAssets', index)
 }
 
 async function recoverWallet(index, save=false) {
@@ -192,16 +206,7 @@ async function recoverWallet(index, save=false) {
     // ]
     // $pushNotifications?.subscribe?.(walletHashes, walletIndex, true)
 
-    let asset = store.getters['assets/getVault']?.[index]
-    if (asset) {
-        asset = JSON.stringify(asset)
-        asset = JSON.parse(asset)
-    } else {
-        asset = getAllAssets(initialAssetState())
-    }
-
-    store.commit('assets/updateVault', { index: index, asset: asset })
-    store.commit('assets/updatedCurrentAssets', index)
+    resetAssetsList(index)
 
     const vaultEntry = {
         wallet: bchWalletsInfo,
