@@ -2,6 +2,7 @@ import { getWalletIndicesFromStorage } from "./wallet-recovery"
 
 import initialAssetState from 'src/store/assets/state'
 import { getAllAssets } from 'src/store/assets/getters';
+import { Store } from "src/store";
 
 
 const RESET_ASSETS_FLAG = 'asset-list-reset'
@@ -21,9 +22,10 @@ export async function resetWalletsAssetsList() {
   }
 
   walletIndices.map(index => {
+    
     const asset = getAllAssets(initialAssetState())
-    store.commit('assets/updateVault', { index: index, asset: asset })
-    store.commit('assets/updatedCurrentAssets', index)
+    Store.commit('assets/updateVault', { index: index, asset: asset })
+    Store.commit('assets/updatedCurrentAssets', index)
   })
 
   window.localStorage.setItem(RESET_ASSETS_FLAG, true) // Mark rollback done
