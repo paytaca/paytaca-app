@@ -1590,7 +1590,7 @@ export default {
     },
     hideMultiWalletDialog () {
       this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
-    }
+    },
   },
 
   beforeRouteEnter (to, from, next) {

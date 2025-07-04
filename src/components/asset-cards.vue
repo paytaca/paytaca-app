@@ -2,7 +2,7 @@
   <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
     <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
     <div
-      v-for="(asset, index) in assets"
+      v-for="(asset, index) in filteredFavAssets"
       :key="index"
       class="method-cards asset-card-border q-pa-md q-mr-none"
       :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
@@ -89,6 +89,9 @@ export default {
     },
     isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
+    },
+    filteredFavAssets () {
+      return this.assets.filter(asset => asset.favorite === 1)
     }
   },
   methods: {

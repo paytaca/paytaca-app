@@ -273,3 +273,11 @@ export async function getAssetMetadata (context, assetId) {
     return data
   }
 }
+
+export function filterFavoriteAssets (state, assets) {
+  let temp = []
+
+  console.log('here: ', assets)
+  return assets.filter(asset => asset.favorite === 1)
+
+}

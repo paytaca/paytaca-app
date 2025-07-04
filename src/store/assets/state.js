@@ -9,7 +9,7 @@ export default function () {
         balance: 0,
         spendable: 0,
         yield: {},
-        favorite: false
+        favorite: 0
       }
     ],
     chipnet__assets: [
@@ -21,7 +21,7 @@ export default function () {
         balance: 0,
         spendable: 0,
         yield: {},
-        favorite: false
+        favorite: 0
       }
     ],
     ignoredAssets: [],

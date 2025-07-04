@@ -8,8 +8,8 @@
 
 			<AssetFilter v-if="!stablehedgeView" @filterTokens="isCT => isCashToken = isCT" />
 			<div class="full-width" style="margin-top: 20px ;">
-			    <q-list separator class="br-15 q-pa-md">
-			      <q-item clickable v-ripple v-for="asset in assets" class="q-pa-sm">
+			    <q-list :key="assetListKey" separator class="br-15 q-pa-md">
+			      <q-item clickable v-ripple v-for="(asset, index) in assets" class="q-pa-sm">
 			      	<q-item-section avatar>
 			          <q-avatar>
 			            <img :src="asset.logo">
@@ -23,14 +23,15 @@
 			        </q-item-section>
 			      	<q-item-section side>			      		
 			      		<q-rating
-					        v-model="favorite"
+			      			readonly
+					        v-model="asset.favorite"
 					        max="1"
 					        size="2em"
 					        color="amber-6"
 					        icon="star_border"
 					        icon-selected="star"
-					        @click.stop="''"					      
-					      />			      					      		
+					        @click.stop="updateFavorite(asset)"					      
+					      />			      						      				      	
 			      	</q-item-section>
 			      </q-item>
 			     			      
@@ -51,7 +52,8 @@ export default {
 	data () {
 		return {
 			isCashToken: true,
-			favorite: 0
+			favorites: [],
+			assetListKey: 0
 		}
 	},
 	computed: {
@@ -104,9 +106,12 @@ export default {
 		headerNav,
 		AssetFilter
 	},
+	watch: {		
+	},
 	async mounted () {
-		console.log('hello world: ', this.assets)
 		this.checkEmptyFavorites()
+
+		this.favorites = this.assets.map(asset => asset.favorite)
 	},
 	methods: {
 		getDarkModeClass,
@@ -116,21 +121,30 @@ export default {
 	        'en-US', { maximumFractionDigits: parseInt(asset?.decimals) || 0 },
 	      )
 	    },
+	    refreshList() {
+	    	this.assetListKey++
+	    },
 	    checkEmptyFavorites () {
 	    	const vm = this
 
-	    	vm.assets.forEach((asset) => {
-	    		console.log('asset: ', asset)	    		
+	    	vm.assets.forEach((asset) => {	    		    	
 	    		if (!('favorite' in asset)) {
 	    			let temp = {
 	    				id: asset.id,
-	    				favorite: false
-	    			}
-
-	    			console.log('none')
+	    				favorite: 0
+	    			}	    			
 	    			vm.$store.commit('assets/updateAssetFavorite',  temp)
 	    		}
-	    	})
+	    	})	    
+	    },
+	    updateFavorite (asset) {
+	    	const vm = this	    	
+	    	const temp = {
+	    		id: asset.id,
+	    		favorite: asset.favorite === 0 ? 1 : 0
+	    	}	    	
+	    	vm.$store.commit('assets/updateAssetFavorite',  temp)
+	    	// vm.refreshList()
 	    }
 	}	
 }
