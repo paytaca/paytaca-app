@@ -86,9 +86,11 @@ export function updateWalletSnapshot (state, details) {
   chipnet = JSON.stringify(chipnet)
   chipnet = JSON.parse(chipnet)
 
+  if (!state.vault[details.index]) state.vault[details.index] = {}
   state.vault[details.index].wallet = wallet
   state.vault[details.index].chipnet = chipnet
   state.vault[details.index].name = details.name
+  state.vault[details.index].deleted = details.deleted
 }
 
 export function updateCurrentWallet (state, index) {
