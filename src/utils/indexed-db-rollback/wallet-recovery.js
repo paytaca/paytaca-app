@@ -203,24 +203,22 @@ async function recoverWallet(index, save=false) {
         }
     }
 
-    await wallet.sBCH.subscribeWallet().then(function () {
-        const walletTypeInfo = {
-            type: 'sbch',
-            derivationPath: wallet.sBCH.derivationPath,
-            walletHash: wallet.sBCH.walletHash,
-            lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
-        }
-
-        if (save) store.commit('global/updateWallet', walletTypeInfo)
-
-        const walletSnapshot = {
-            walletHash: walletTypeInfo.walletHash,
-            derivationPath: walletTypeInfo.derivationPath,
-            lastAddress: walletTypeInfo.lastAddress
-        }
-
-        bchWalletsInfo['sbch'] = walletSnapshot
-    })
+    // sbch wallet info creation, skipped wallet subscription,
+    // will assume it's already subscribed if it's being recovered
+    await wallet.sBCH.getOrInitWallet();
+    const walletTypeInfo = {
+        type: 'sbch',
+        derivationPath: wallet.sBCH.derivationPath,
+        walletHash: wallet.sBCH.walletHash,
+        lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
+    }
+    if (save) store.commit('global/updateWallet', walletTypeInfo)
+    const walletSnapshot = {
+        walletHash: walletTypeInfo.walletHash,
+        derivationPath: walletTypeInfo.derivationPath,
+        lastAddress: walletTypeInfo.lastAddress
+    }
+    bchWalletsInfo['sbch'] = walletSnapshot
 
     // const walletHashes = [
     //     wallet.BCH.walletHash,
