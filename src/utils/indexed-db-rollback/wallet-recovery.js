@@ -304,7 +304,8 @@ export async function recoverWalletsFromStorage() {
     const reloadCurrentActiveWallet = !currentActiveWallet.xPubKey || currentActiveWallet.xPubKey === ''
     console.log('[Wallet Recovery] reloadCurrentActiveWallet:', reloadCurrentActiveWallet)
 
-    const hasRecoverableWallets = vault.length < walletIndices.length || reloadCurrentActiveWallet
+    const lastWalletIndex = Math.max(...walletIndices)
+    const hasRecoverableWallets = vault.length < lastWalletIndex+1 || reloadCurrentActiveWallet
     console.log('[Wallet Recovery] hasRecoverableWallets:', hasRecoverableWallets);
 
     if (!hasRecoverableWallets) {
