@@ -65,6 +65,33 @@ function emptyAssetsList() {
     return getAllAssets(initialAssetState())
 }
 
+export function populateMissingVaults() {
+    console.log('[Wallet Recovery] Populating null vaults')
+    // this will autofill of earlier indices since indices might skip due to previously deleted wallets
+    // skipped indices give a null element which breaks stuff in the app
+    const walletVaults = Store.getters['global/getVault'];
+    for (var i = 0; i < walletVaults.length; i++) {
+        if (walletVaults[i]) continue
+        console.log(`[Wallet Recovery] Adding empty wallet snapshot for ${i}`)
+        const emptyWalletSnapshot = getEmptyWalletSnapshot()
+        Store.commit('global/updateWalletSnapshot', {
+            index: i,
+            name: emptyWalletSnapshot.name,
+            walletSnapshot: emptyWalletSnapshot.wallet,
+            chipnetSnapshot: emptyWalletSnapshot.chipnet,
+            deleted: true,
+        })
+    }
+
+    const assetVaults = Store.getters['assets/getVault'];
+    for(var i = 0; i < assetVaults.length; i++) {
+        if (assetVaults[i]) continue
+        console.log(`[Wallet Recovery] Adding base assets list for ${i}`)
+        Store.commit('assets/updateVault', { index: i, asset: emptyAssetsList() })
+    }
+}
+
+
 export function resetAssetsList(index) {
     const store = Store;
     const vault = store.getters['assets/getVault'];

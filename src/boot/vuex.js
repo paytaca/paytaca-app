@@ -1,6 +1,6 @@
 import { boot } from 'quasar/wrappers'
 import { migrateVuexStorage } from 'src/utils/indexed-db-rollback/rollback-vuex-storage'
-import { recoverWalletsFromStorage } from 'src/utils/indexed-db-rollback/wallet-recovery'
+import { populateMissingVaults, recoverWalletsFromStorage } from 'src/utils/indexed-db-rollback/wallet-recovery'
 import { sanitizeVault } from 'src/utils/indexed-db-rollback/wallet-vault'
 import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferences'
 import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
@@ -47,6 +47,7 @@ export default boot(async (obj) => {
     await recoverWalletsFromStorage()
     await resetWalletsAssetsList()
     updatePreferences()
+    populateMissingVaults()
     
   } catch (err) {
     console.error('Error initializing Vuex store:', err)
