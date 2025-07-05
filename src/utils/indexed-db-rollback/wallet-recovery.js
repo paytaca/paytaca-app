@@ -4,6 +4,8 @@ import { Store } from 'src/store'
 import initialAssetState from 'src/store/assets/state'
 import { getAllAssets } from 'src/store/assets/getters';
 
+import initialGlobalState from 'src/store/global/state'
+
 
 /**
  * Finds unique wallet indices by scanning localStorage for keys like `cap_sec_mn1`, `cap_sec_mn2`, etc.
@@ -51,14 +53,62 @@ export async function getWalletIndicesFromStorage() {
     return walletIndices;
 }
 
+function getEmptyWalletSnapshot() {
+    return {
+        name: '',
+        wallet: initialGlobalState().wallets,
+        chipnet: initialGlobalState().chipnet__wallets,
+    }
+}
+
+function emptyAssetsList() {
+    return getAllAssets(initialAssetState())
+}
+
+export async function populateMissingVaults() {
+    console.log('[Wallet Recovery] Populating null vaults')
+    // this will autofill of earlier indices since indices might skip due to previously deleted wallets
+    // skipped indices give a null element which breaks stuff in the app
+    const walletVaults = Store.getters['global/getVault'];
+    for (var i = 0; i < walletVaults.length; i++) {
+        const mnemonic = await getMnemonic(i)
+        if (walletVaults[i] && mnemonic) continue
+        console.log(`[Wallet Recovery] Adding empty wallet snapshot for ${i}`)
+        const emptyWalletSnapshot = getEmptyWalletSnapshot()
+        Store.commit('global/updateWalletSnapshot', {
+            index: i,
+            name: emptyWalletSnapshot.name,
+            walletSnapshot: emptyWalletSnapshot.wallet,
+            chipnetSnapshot: emptyWalletSnapshot.chipnet,
+            deleted: true,
+        })
+    }
+
+    const assetVaults = Store.getters['assets/getVault'];
+    for(var i = 0; i < assetVaults.length; i++) {
+        if (assetVaults[i]) continue
+        console.log(`[Wallet Recovery] Adding base assets list for ${i}`)
+        Store.commit('assets/updateVault', { index: i, asset: emptyAssetsList() })
+    }
+}
+
+
 export function resetAssetsList(index) {
     const store = Store;
-    let asset = store.getters['assets/getVault']?.[index]
-    if (asset) {
-        asset = JSON.stringify(asset)
-        asset = JSON.parse(asset)
-    } else {
-        asset = getAllAssets(initialAssetState())
+    const vault = store.getters['assets/getVault'];
+
+    let asset = emptyAssetsList();
+    if (vault[index]) {
+        asset = JSON.parse(
+            JSON.stringify(vault[index])
+        )
+    }
+
+    // this will autofill of earlier indices since indices might skip due to previously deleted wallets
+    for(var i = vault.length; i <= index; i++) {
+        if (vault[i]) continue
+        console.log(`[Wallet Recovery] Adding base assets list for ${i} in ${index}`)
+        store.commit('assets/updateVault', { index: i, asset: emptyAssetsList() })
     }
 
     store.commit('assets/updateVault', { index: index, asset: asset })
@@ -83,10 +133,11 @@ async function recoverWallet(index, save=false) {
     const bchWalletsInfo = {}
     for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
+        const networkName = isChipnet ? 'chipnet' : 'mainnet'
+        console.log(`[Wallet Recovery] Creating ${networkName} BCH wallet info for index ${index}`)
 
         let walletSnapshot = {}
-        await bchWallet.getNewAddressSet(0).then(function (response) {
-            const addresses = response?.addresses || null
+        await bchWallet.getAddressSetAt(0).then(function (addresses) {
             const walletTypeInfo = {
                 isChipnet,
                 type: 'bch',
@@ -136,8 +187,11 @@ async function recoverWallet(index, save=false) {
     for (const slpWallet of slpWallets) {
         const isChipnet = slpWallets.indexOf(slpWallet) === 1
 
+        const networkName = isChipnet ? 'chipnet' : 'mainnet'
+        console.log(`[Wallet Recovery] Creating ${networkName} SLP wallet info for index ${index}`)
+
         let walletSnapshot = {}
-        await slpWallet.getNewAddressSet(0).then(function (addresses) {
+        await slpWallet.getAddressSetAt(0).then(function (addresses) {
             const walletTypeInfo = {
                 isChipnet,
                 type: 'slp',
@@ -178,24 +232,22 @@ async function recoverWallet(index, save=false) {
         }
     }
 
-    await wallet.sBCH.subscribeWallet().then(function () {
-        const walletTypeInfo = {
-            type: 'sbch',
-            derivationPath: wallet.sBCH.derivationPath,
-            walletHash: wallet.sBCH.walletHash,
-            lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
-        }
-
-        if (save) store.commit('global/updateWallet', walletTypeInfo)
-
-        const walletSnapshot = {
-            walletHash: walletTypeInfo.walletHash,
-            derivationPath: walletTypeInfo.derivationPath,
-            lastAddress: walletTypeInfo.lastAddress
-        }
-
-        bchWalletsInfo['sbch'] = walletSnapshot
-    })
+    // sbch wallet info creation, skipped wallet subscription,
+    // will assume it's already subscribed if it's being recovered
+    await wallet.sBCH.getOrInitWallet();
+    const walletTypeInfo = {
+        type: 'sbch',
+        derivationPath: wallet.sBCH.derivationPath,
+        walletHash: wallet.sBCH.walletHash,
+        lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
+    }
+    if (save) store.commit('global/updateWallet', walletTypeInfo)
+    const walletSnapshot = {
+        walletHash: walletTypeInfo.walletHash,
+        derivationPath: walletTypeInfo.derivationPath,
+        lastAddress: walletTypeInfo.lastAddress
+    }
+    bchWalletsInfo['sbch'] = walletSnapshot
 
     // const walletHashes = [
     //     wallet.BCH.walletHash,
@@ -213,7 +265,25 @@ async function recoverWallet(index, save=false) {
         chipnet: chipnetWalletsInfo
     }
 
-    store.commit('global/updateVault', vaultEntry)
+    const vault = store.getters['global/getVault'];
+    for (var i = vault.length; i <= index; i++) {
+        if (vault[i]) continue
+        console.log(`[Wallet Recovery] Adding empty wallet snapshot for ${i} in ${index}`)
+        const emptyWalletSnapshot = getEmptyWalletSnapshot()
+        store.commit('global/updateWalletSnapshot', {
+            index: i,
+            name: emptyWalletSnapshot.name,
+            walletSnapshot: emptyWalletSnapshot.wallet,
+            chipnetSnapshot: emptyWalletSnapshot.chipnet,
+            deleted: true,
+        })
+    }
+
+    store.commit('global/updateWalletSnapshot', {
+        index,
+        walletSnapshot: vaultEntry.wallet,
+        chipnetSnapshot: vaultEntry.chipnet,
+    })
 }
 
 export async function recoverWalletsFromStorage() {
@@ -234,7 +304,8 @@ export async function recoverWalletsFromStorage() {
     const reloadCurrentActiveWallet = !currentActiveWallet.xPubKey || currentActiveWallet.xPubKey === ''
     console.log('[Wallet Recovery] reloadCurrentActiveWallet:', reloadCurrentActiveWallet)
 
-    const hasRecoverableWallets = vault.length < walletIndices.length || reloadCurrentActiveWallet
+    const lastWalletIndex = Math.max(...walletIndices)
+    const hasRecoverableWallets = vault.length < lastWalletIndex+1 || reloadCurrentActiveWallet
     console.log('[Wallet Recovery] hasRecoverableWallets:', hasRecoverableWallets);
 
     if (!hasRecoverableWallets) {
@@ -249,6 +320,7 @@ export async function recoverWalletsFromStorage() {
         // If the vault was previously empty await the first wallet only
         const firstIndex = walletIndices[0]
         await recoverWallet(firstIndex, true)
+        Store.commit('global/updateWalletIndex', firstIndex)
         walletIndices.shift()
     }
 
