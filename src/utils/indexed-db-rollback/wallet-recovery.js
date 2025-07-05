@@ -85,7 +85,7 @@ async function recoverWallet(index, save=false) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
 
         let walletSnapshot = {}
-        await bchWallet.getNewAddressSet(0).then(function (response) {
+        await bchWallet.getAddressSetAt(0).then(function (response) {
             const addresses = response?.addresses || null
             const walletTypeInfo = {
                 isChipnet,
@@ -137,7 +137,7 @@ async function recoverWallet(index, save=false) {
         const isChipnet = slpWallets.indexOf(slpWallet) === 1
 
         let walletSnapshot = {}
-        await slpWallet.getNewAddressSet(0).then(function (addresses) {
+        await slpWallet.getAddressSetAt(0).then(function (addresses) {
             const walletTypeInfo = {
                 isChipnet,
                 type: 'slp',
