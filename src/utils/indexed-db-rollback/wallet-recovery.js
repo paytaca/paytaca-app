@@ -78,8 +78,9 @@ export function resetAssetsList(index) {
 
     // this will autofill of earlier indices since indices might skip due to previously deleted wallets
     for(var i = vault.length; i <= index; i++) {
+        if (vault[i]) continue
         console.log(`[Wallet Recovery] Adding base assets list for ${i} in ${index}`)
-        store.commit('assets/updateVault', { index, asset: emptyAssetsList() })
+        store.commit('assets/updateVault', { index: i, asset: emptyAssetsList() })
     }
 
     store.commit('assets/updateVault', { index: index, asset: asset })
@@ -238,6 +239,7 @@ async function recoverWallet(index, save=false) {
 
     const vault = store.getters['global/getVault'];
     for (var i = vault.length; i <= index; i++) {
+        if (vault[i]) continue
         console.log(`[Wallet Recovery] Adding empty wallet snapshot for ${i} in ${index}`)
         const emptyWalletSnapshot = getEmptyWalletSnapshot()
         store.commit('global/updateWalletSnapshot', {
