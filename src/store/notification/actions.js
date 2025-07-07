@@ -1,22 +1,24 @@
 import { bus } from 'src/wallet/event-bus'
 import { types } from './getters'
+import Router from 'src/router'
 
 const NotificationTypes = types()
 
 export async function handleOpenedNotification(context) {
-  const $router = this.$router
+  const $router = Router()
   const openedNotification = context.getters['openedNotification']
   const route = await context.dispatch('getOpenedNotificationRoute')
 
   const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index)
   const currentWalletIndex = context.rootGetters['global/getWalletIndex']
+
   if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
     console.log(
       'current wallet index:', currentWalletIndex,
       'push notification wallet index:', multiWalletIndex,
       'redirecting to push notification page',
     )
-    $router.push({ name: 'push-notification-router' })
+    $router.push($router.resolve({ name: 'push-notification-router' }))
     return
   }
 
@@ -29,7 +31,7 @@ export function emitOpenedNotification(context) {
   context.commit('clearOpenedNotification')
 }
 export function getOpenedNotificationRoute(context) {
-  const $router = this.$router
+  const $router = Router()
   const openedNotification = context.getters['openedNotification']
   console.log('openedNotification', openedNotification)
 

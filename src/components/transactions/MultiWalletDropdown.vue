@@ -58,7 +58,7 @@ export default {
       return this.$store.getters['global/getWalletIndex']
     },
     walletName () {
-      return this.$store.getters['global/getVault'][this.walletIndex].name
+      return this.$store.getters['global/getVault'][this.walletIndex]?.name
     },
     walletNameLabel () {
       if (this.walletName) return this.walletName
@@ -90,12 +90,13 @@ export default {
     }
   },
 
-  mounted () {
-    this.$store.dispatch(
-      'global/syncWalletName',
-      { walletIndex: this.walletIndex }
-    )
-  }
+  // Commented out due to redundant api call done inside child component `MultiWallet`
+  // mounted () {
+  //   this.$store.dispatch(
+  //     'global/syncWalletName',
+  //     { walletIndex: this.walletIndex }
+  //   )
+  // }
 }
 </script>
 

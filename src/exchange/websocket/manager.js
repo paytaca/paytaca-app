@@ -19,6 +19,10 @@ export class WebSocketManager {
     this._connectToWebSocket()
   }
 
+  isOpen () {
+    return !!this.websocketService
+  }
+
   // Expose a method to close connection without reconnection retries
   closeConnection () {
     this.websocketService?.closeConnection({ retry: false })
@@ -104,7 +108,4 @@ export class WebSocketManager {
   }
 }
 
-const mainWebSocketManager = new WebSocketManager()
-export {
-  mainWebSocketManager
-}
+export const webSocketManager = new WebSocketManager()

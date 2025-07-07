@@ -7,10 +7,23 @@ import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
 
 export const chatIdentityManager = new ChatIdentityManager()
+
+/**
+ * Loads or creates a chat identity for a user
+ * @async
+ * @param {string} usertype - The type of user (required) (valid values: peer | arbiter)
+ * @param {Object} params - Parameters for chat identity
+ * @param {string} params.name - The chat identity name of the user (required)
+ * @param {string|null} params.chat_identity_id - The ID of an existing chat identity, if any
+ * @throws {Error} Will throw an error if usertype or params.name is missing
+ * @returns {Promise<Object>} The loaded or created chat identity object
+ */
 export async function loadChatIdentity (usertype, params = { name: null, chat_identity_id: null }) {
   if (!usertype) throw new Error('missing required parameter: usertype')
   if (!params.name) throw new Error('missing required parameter: params.name')
   if (!wallet) await loadRampWallet()
+
+  // const chatIDRef = generateChatIdentityRef(wallet.walletHash)
 
   const payload = {
     user_type: usertype,
@@ -18,17 +31,19 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
     chat_identity_id: params.chat_identity_id
   }
 
-  // fetch chat identity if existing
+  // let identity = await fetchChatIdentityByRef(chatIDRef)
+  // fetch chat identity if existing, will return null if not existing
   let identity = await fetchChatIdentityById(payload.chat_identity_id)
+
   if (identity) {
     identity = chatIdentityManager.setIdentity(identity)
   }
 
-  // update verifying and encryption keypairs
-  await chatIdentityManager._updateSignerData() // (short-circuits when task is not necessary)
-  await chatIdentityManager._updateEncryptionKeypair(!!identity) // (short-circuits when task is not necessary)
+  // Update chat verifying and encryption keypairs (short-circuits when not necessary)
+  await chatIdentityManager._updateSignerData()
+  await chatIdentityManager._updateEncryptionKeypair(!!identity)
 
-  // create identity if not existing
+  // Create identity, if not existing
   if (!identity) {
     payload.ref = generateChatIdentityRef(wallet.walletHash)
     identity = await chatIdentityManager.create(payload)
@@ -65,7 +80,7 @@ export function updateOrderChatSessionRef (orderId, chatRef) {
 export async function updateChatIdentityId (userType, id) {
   return new Promise((resolve, reject) => {
     const payload = { chat_identity_id: id }
-    backend.patch(`/ramp-p2p/${userType}/detail`, payload, { authorize: true })
+    backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: true })
       .then(response => {
         console.log('Updated chat identity id:', response.data)
         resolve(response)
@@ -121,6 +136,7 @@ export async function fetchChatIdentityByRef (ref) {
 }
 
 export async function fetchChatIdentityById (id) {
+  if (!id) return null
   return new Promise((resolve, reject) => {
     chatBackend.get(`chat/identities/${id}/`)
       .then(response => {
@@ -219,7 +235,6 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
     }
     chatBackend.patch(`chat/sessions/${chatRef}/members/`, body, { forceSign: true })
       .then(response => {
-        // console.log('Added chat members:', response)
         resolve(response)
       })
       .catch(error => {
@@ -235,7 +250,7 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
 
 export async function fetchChatMembers (chatRef) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/members/full_info/?chat_ref=${chatRef}`, { forceSign: true })
+    chatBackend.get(`chat/members/full_info/?chat_ref=${chatRef}`)
       .then(response => {
         // console.log('Fetched chat members:', response)
         resolve(response.data.results)
@@ -261,7 +276,6 @@ export async function updateLastRead (chatRef, messages) {
   }
   return chatBackend.post(`chat/sessions/${chatRef}/chat_member/`, data, { forceSign: true })
     .then(response => {
-      console.log('Updated last read timestamp:', data)
       return response
     })
 }
@@ -274,7 +288,7 @@ export function sendChatMessage (data, signData) {
     }
     chatBackend.post('chat/messages/', data, config)
       .then(response => {
-        console.log('Sent message:', response)
+        // console.log('Sent message:', response)
         resolve(response)
       })
       .catch(error => {
@@ -340,10 +354,15 @@ export async function updateOrCreateKeypair (update = true) {
   const seed = await getKeypairSeed()
   const keypair = generateKeypair({ seed: seed })
 
-  const storedKeypair = await getKeypair()
-  if (storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
-    console.log('Chat encryption keypair still updated')
-    return
+  try {
+    const storedKeypair = await getKeypair()
+    if (storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
+      console.log('Chat encryption keypair still updated')
+      return
+    }
+
+  } catch (error) {
+    console.error(error)
   }
 
   if (update) {
@@ -362,6 +381,7 @@ export async function updateOrCreateKeypair (update = true) {
 
   return keypair
 }
+
 export function generateChatRef (id, createdAt, members) {
   if (!members) throw Error('Missing required value: members')
   const hashVal = id + createdAt + members

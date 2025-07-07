@@ -7,7 +7,7 @@
 // }
 
 // type AddressAndIndex = {
-//   address: String, 
+//   address: String,
 //   address_index: number
 // }
 
@@ -56,7 +56,7 @@ export default function () {
         connectedAddress: '',
         connectedAddressIndex: '0/0',
         connectedSites: {},
-        
+
       },
       sbch: {
         subscribed: false,
@@ -80,7 +80,7 @@ export default function () {
         connectedAddressIndex: '0/0',
         connectedSites: {},
         lastAddressAndIndex: {},
-        connectedApps: [], 
+        connectedApps: [],
         walletAddresses: []
       },
       slp: {
@@ -117,6 +117,11 @@ export default function () {
     walletIndex: 0,
     vault: [],
     denomination: 'BCH',
-    appControl: null
+    appControl: null,
+    merchantActivity: {
+      active: false,
+      verified: false
+    },
+    walletsRecovered: false, // Flag to check if wallets have been recovered from storage
   }
 }

@@ -1,15 +1,11 @@
-import BCHJS from '@psf/bch-js';
 import { Contract, ElectrumNetworkProvider, SignatureTemplate } from 'cashscript';
-import { compileString } from 'cashc';
-import bitcoincash from 'bitcoincashjs-lib'
 import { binToHex, cashAddressToLockingBytecode } from '@bitauth/libauth';
 import { intToHexString, pkHashToCashAddr, toTokenAddress } from '../../utils.js';
 import { ESCROW_TX_FEE, P2PKH_DUST, CASHTOKEN_DUST, defaultNetwork, defaultAddressType } from '../../constants.js';
 
 import escrowV1Artifact from './escrow.artifact.json'
 import escrowV2Artifact from './escrow-v2.artifact.json'
-
-const bchjs = new BCHJS()
+import { pubkeyToPkHash } from 'src/utils/crypto.js';
 
 
 export class Escrow {
@@ -95,55 +91,6 @@ export class Escrow {
            this.fundingAmounts.txFee
   }
 
-  getFundingOutputs(txHex='') {
-    const contract = this.getContract()
-    const lockingBytecode = Buffer.from(cashAddressToLockingBytecode(contract.address).bytecode).toString('hex')
-    const tx = bitcoincash.Transaction.fromHex(txHex)
-
-    return tx.outs.map((out, index) => {
-      const script = Buffer.from(out.script).toString('hex');
-      return { index: index, script, value: out.value }
-    }).filter(output => output?.script == lockingBytecode)
-  }
-
-  validateFundingTx(txHex='') {
-    const outputs = this.getFundingOutputs(txHex)
-    if (outputs.length !== 1) {
-      return { valid: false, error: `Found ${outputs.length} outputs for contract` }
-    }
-
-    if (outputs[0].value != this.fundingSats) {
-      return { valid: false, error: `Expected ${this.fundingSats} satoshis but got ${outputs[0].value}`}
-    }
-
-    return { valid: true, utxo: outputs[0] }
-  }
-
-  validateRefundTx(txHex='') {
-    const expectedOutputs = [
-      {address: pkHashToCashAddr(this.params.buyerPkHash, this.isChipnet), value: parseInt(this.fundingAmounts.amount + this.fundingAmounts.deliveryFee) },
-      {address: pkHashToCashAddr(this.params.servicerPkHash, this.isChipnet), value: parseInt(this.fundingAmounts.serviceFee) },
-      {address: pkHashToCashAddr(this.params.arbiterPkHash, this.isChipnet), value: parseInt(this.fundingAmounts.arbitrationFee) },
-    ]
-
-    const tx = bitcoincash.Transaction.fromHex(txHex)
-    const parsedOutputs = tx.outs.map((out, index) => {
-      const script = bitcoincash.script.decompile(out.script);
-      const address = bchjs.Address.toCashAddress(bitcoincash.address.fromOutputScript(script))
-      return { index: index, address: address, value: out.value }
-    })
-
-    let error = ''
-    if (parsedOutputs.length != expectedOutputs.length) error = `Transaction does not have exactly ${expectedOutputs.length} outputs`
-    expectedOutputs.forEach((output, index) => {
-      if (parsedOutputs[index]?.address != output.address) error = `Output ${index} must be ${output.address}`
-      if (parsedOutputs[index]?.value != output.value) error = `Output ${index} must have ${output.value} sats`
-    })
-    if (error) return { valid: false, error: error }
-
-    return { valid: true }
-  }
-
   getContract() {
     // const provider = new ElectrumNetworkProvider('testnet4');
     const provider = new ElectrumNetworkProvider(this.network);
@@ -190,12 +137,10 @@ export class Escrow {
       satoshis: BigInt(utxo?.satoshis),
     }
 
-    const keyPair = bchjs.ECPair.fromWIF(wif)
-    const sig = new SignatureTemplate(keyPair)
-
-    const pubkeyBytes = bchjs.ECPair.toPublicKey(keyPair)
-    const pubkey = pubkeyBytes.toString('hex')
-    const pkHash = bchjs.Crypto.hash160(pubkeyBytes).toString('hex')
+    const sig = new SignatureTemplate(wif)
+    const pubkeyBytes = sig.getPublicKey()
+    const pubkey = binToHex(pubkeyBytes)
+    const pkHash = pubkeyToPkHash(pubkey)
 
     if (pkHash != this.params.arbiterPkHash && pkHash != this.params.buyerPkHash) {
       throw new Error('Private key must be from arbiter or buyer')
@@ -245,12 +190,11 @@ export class Escrow {
       satoshis: BigInt(utxo?.satoshis),
     }
 
-    const keyPair = bchjs.ECPair.fromWIF(wif)
-    const sig = new SignatureTemplate(keyPair)
+    const sig = new SignatureTemplate(wif)
+    const pubkeyBytes = sig.getPublicKey()
+    const pubkey = binToHex(pubkeyBytes)
+    const pkHash = pubkeyToPkHash(pubkey)
 
-    const pubkeyBytes = bchjs.ECPair.toPublicKey(keyPair)
-    const pubkey = pubkeyBytes.toString('hex')
-    const pkHash = bchjs.Crypto.hash160(pubkeyBytes).toString('hex')
     if (pkHash != this.params.arbiterPkHash) throw new Error('Pubkey hash mismatch')
  
     const outputs = [
@@ -276,13 +220,12 @@ export class Escrow {
       vout: utxo?.vout,
       satoshis: BigInt(utxo?.satoshis),
     }
+    
+    const sig = new SignatureTemplate(wif)
+    const pubkeyBytes = sig.getPublicKey()
+    const pubkey = binToHex(pubkeyBytes)
+    const pkHash = pubkeyToPkHash(pubkey)
 
-    const keyPair = bchjs.ECPair.fromWIF(wif)
-    const sig = new SignatureTemplate(keyPair)
-
-    const pubkeyBytes = bchjs.ECPair.toPublicKey(keyPair)
-    const pubkey = pubkeyBytes.toString('hex')
-    const pkHash = bchjs.Crypto.hash160(pubkeyBytes).toString('hex')
     if (pkHash != this.params.arbiterPkHash) throw new Error('Pubkey hash mismatch')
 
     const refundAmount = BigInt(

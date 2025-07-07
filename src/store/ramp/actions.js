@@ -335,7 +335,7 @@ export function fetchPaymentTypes (context, { currency = null }) {
   const previousPT = toRaw(context.state?.paymentTypes[currency === null ? 'All' : currency])
 
   return new Promise((resolve, reject) => {
-    backend.get('/ramp-p2p/payment-type', { params: { currency: currency }, authorize: true })
+    backend.get('/ramp-p2p/payment-type', { params: { currency: currency } })
       .then(response => {
         const paymentTypes = response.data
         // adding new payment type to default payment type filter

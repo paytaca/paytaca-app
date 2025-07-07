@@ -7,6 +7,7 @@ import { loadLibauthHdWallet } from '../../wallet'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
 import { backend } from 'src/exchange/backend'
+import { backend as posBackend } from 'src/wallet/pos'
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
 
@@ -15,6 +16,19 @@ export function fetchAppControl (context) {
     backend.get('/app-control/')
       .then(response => {
         context.commit('updateAppControl', response.data)
+        resolve(response.data)
+      })
+      .catch(error => {
+        reject(error)
+      })
+  })
+}
+
+export function fetchMerchant (context, merchantId) {
+  return new Promise((resolve, reject) => {
+    posBackend.get(`/paytacapos/merchants/${merchantId}`, { authorize: true })
+      .then(response => {
+        context.commit('updateMerchantActivity', response.data)
         resolve(response.data)
       })
       .catch(error => {
@@ -103,7 +117,10 @@ export async function syncWalletName (context, opts) {
   if (!vault) throw new Error('No vault found')
 
   const walletHash = vault?.wallet?.bch?.walletHash
-  if (!walletHash) throw new Error('No wallet hash found')
+  if (!walletHash) {
+    console.error('No wallet hash found in vault:', vault)
+    return // throw new Error('No wallet hash found')
+  }
 
   const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
   const decryptedName = decryptWalletName(walletName, walletHash)
@@ -124,7 +141,6 @@ export async function updateWalletNameInPreferences (context, data) {
 
   try {
     const decryptedName = decryptWalletName(data.walletName, walletHash)
-    console.log('Updating wallet name: ', data.walletIndex, decryptedName)
     context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
   } catch (error) {
     console.error(error)
@@ -161,12 +177,13 @@ export async function saveWalletPreferences (context) {
 }
 
 export async function saveExistingWallet (context) {
+
   const vault = context.getters.getVault
 
   // check if vault keys are valid
   if (vault.length > 0) {
     if (vault[0]) {
-      if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+      if (!vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
         context.commit('clearVault')
       }
     }
@@ -174,6 +191,7 @@ export async function saveExistingWallet (context) {
 
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters.getWallet('bch')?.walletHash
+    
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes
       wallet = JSON.stringify(wallet)
@@ -191,17 +209,35 @@ export async function saveExistingWallet (context) {
   }
 }
 
+export async function syncCurrentWalletToVault(context) {
+  const currentIndex = context.getters.getWalletIndex
+  const wallet = context.getters.getAllWalletTypes
+  const chipnet = context.getters.getAllChipnetTypes
+
+  const walletName = context.getters.getVault[currentIndex].name
+
+  const info = {
+    index: currentIndex,
+    walletSnapshot: wallet,
+    chipnetSnapshot: chipnet,
+    name: walletName
+  }
+
+  const asset = context.rootGetters['assets/getAllAssets']
+
+  context.commit('updateWalletSnapshot', info)
+  context.commit(
+    'assets/updateVaultSnapshot',
+    { index: currentIndex, snapshot: asset },
+    { root: true }
+  )
+}
+
 export async function switchWallet (context, index) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       try {
-        const currentIndex = context.getters.getWalletIndex
-        const asset = context.rootGetters['assets/getAllAssets']
-        context.commit(
-          'assets/updateVaultSnapshot',
-          { index: currentIndex, snapshot: asset },
-          { root: true }
-        )
+        context.dispatch('syncCurrentWalletToVault', )
         context.commit('assets/updatedCurrentAssets', index, { root: true })
         context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
         context.commit('paytacapos/clearBranchInfo', {}, { root: true })
@@ -211,18 +247,6 @@ export async function switchWallet (context, index) {
         context.commit('ramp/resetPagination', {}, { root: true })
         deleteAuthToken()
 
-        const wallet = context.getters.getAllWalletTypes
-        const chipnet = context.getters.getAllChipnetTypes
-
-        const walletName = context.getters.getVault[currentIndex].name
-
-        const info = {
-          index: currentIndex,
-          walletSnapshot: wallet,
-          chipnetSnapshot: chipnet,
-          name: walletName
-        }
-        context.commit('updateWalletSnapshot', info)
         context.commit('updateWalletIndex', index)
         context.commit('updateCurrentWallet', index)
 

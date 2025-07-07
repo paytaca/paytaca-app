@@ -1,28 +1,11 @@
 import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
-import { getWatchtowerApiUrl, getBlockChainNetwork, convertCashAddress } from './chipnet'
-import { convertIpfsUrl } from './cashtokens'
+import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
+import { convertIpfsUrl, getBcmrBackend } from './cashtokens'
 import { isTokenAddress } from '../utils/address-utils'
-import axios from 'axios'
 
 const bchjs = new BCHJS()
-
-import { setupCache } from 'axios-cache-interceptor';
-
-
-function getBcmrBackend() {
-  const network = getBlockChainNetwork()
-  if (network === 'chipnet') {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr-chipnet.paytaca.com/api',
-    }))
-  } else {
-    return setupCache(axios.create({
-      baseURL: 'https://bcmr.paytaca.com/api',
-    }))
-  }
-}
 
 
 export class BchWallet {
@@ -116,8 +99,9 @@ export class BchWallet {
       walletHash: this.walletHash,
       addressIndex: index
     }
+    console.log("random random", data)
     const result = await this.watchtower.subscribe(data)
-
+    console.log("random", result)
     if (result.success) {
       return {
         addresses: addressSet
@@ -251,7 +235,7 @@ export class BchWallet {
         'logo': convertIpfsUrl(imageUrl),
         'id': 'ct/' + tokenId,
         'name': _metadata.name,
-        'description': _metadata.description,
+        // 'description': _metadata.description,
         'symbol': _metadata.token.symbol,
         'decimals': _metadata.token.decimals,
         'is_nft': _metadata.is_nft

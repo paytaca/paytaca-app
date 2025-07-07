@@ -1,20 +1,3 @@
 {
-  "extends": "@quasar/app-webpack/tsconfig-preset",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "target": "esnext",
-    "noImplicitAny": false
-  },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src-capacitor",
-    "src-electron",
-    "src-bex/www",
-  ],
-  "include": [
-    "src/**/*",
-    "src-bex/**/*",
-    ".quasar/**/*"
-  ],
+  "extends": "./.quasar/tsconfig.json"
 }

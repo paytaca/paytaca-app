@@ -35,7 +35,7 @@ export async function updatePubkeyAndAddress (user) {
 
   const respdata = { success: true }
   if (payload.public_key !== user.public_key || payload.address !== user.address || payload.address_path !== user.address_path) {
-    backend.patch(`/ramp-p2p/${userType}/detail`, payload, { authorize: true })
+    backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: true })
       .then(response => {
         console.log('Updated pubkey and address:', response.data)
         respdata.data = response.data

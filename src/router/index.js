@@ -2,7 +2,7 @@ import { createRouter, createMemoryHistory, createWebHistory, createWebHashHisto
 import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../wallet'
 import routes from './routes'
-import Store from '../store'
+import useStore from '../store'
 
 import { parseWalletConnectUri } from '../wallet/walletconnect'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
@@ -15,22 +15,22 @@ import { isValidWif, extractWifFromUrl } from 'src/wallet/sweep'
  * The function below can be async too; either use
  * async/await or return a Promise which resolves
  * with the Router instance.
- */
+*/
+const createHistory = process.env.SERVER
+  ? createMemoryHistory
+  : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
+export const Router = createRouter({
+  scrollBehavior: () => ({ left: 0, top: 0 }),
+  routes,
 
-export default function ({ store }) {
-  const createHistory = process.env.SERVER
-    ? createMemoryHistory
-    : process.env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory
+  // Leave this as is and make changes in quasar.config.js instead!
+  // quasar.config.js -> build -> vueRouterMode
+  // quasar.config.js -> build -> publicPath
+  history: createHistory(process.env.MODE === 'ssr' ? void 0 : process.env.VUE_ROUTER_BASE)
+})
 
-  const Router = createRouter({
-    scrollBehavior: () => ({ left: 0, top: 0 }),
-    routes,
-
-    // Leave this as is and make changes in quasar.config.js instead!
-    // quasar.config.js -> build -> vueRouterMode
-    // quasar.config.js -> build -> publicPath
-    history: createHistory(process.env.MODE === 'ssr' ? void 0 : process.env.VUE_ROUTER_BASE)
-  })
+export default function () {
+  const store = useStore()
 
   window.popStateDetected = false
   window.addEventListener('popstate', () => {
@@ -41,7 +41,7 @@ export default function ({ store }) {
     if (to.path === '/') {
       try {
         // Check if first mnemonic exists
-        const currentWalletIndex = store.getters['global/getWalletIndex']
+        const currentWalletIndex = store.getters['global/getWalletIndex']        
         const mnemonic = await getMnemonic(currentWalletIndex)
 
         // if mnemonic does not exist but not first wallet,

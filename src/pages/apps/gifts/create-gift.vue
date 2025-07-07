@@ -140,6 +140,23 @@
             <div class="text-subtitle1 text-left">{{ $t('ShareGiftLink') }}:</div>
             <ShareGiftPanel :qr-share="qrCodeContents" :amount="amountBCH"/>
           </div>
+          <div class="q-mt-md">
+            <q-chip
+              :color="giftStatus === 'completed' ? 'positive' : giftStatus === 'processing' ? 'warning' : 'negative'"
+              text-color="white"
+            >
+              {{ giftStatus === 'completed' ? $t('Completed') : giftStatus === 'processing' ? $t('Processing') : $t('Failed') }}
+            </q-chip>
+            <q-btn
+              v-if="giftStatus === 'failed'"
+              color="primary"
+              :loading="processing"
+              class="q-mt-sm"
+              @click="resubmitGift(failedGiftDetails)"
+            >
+              {{ $t('Resubmit') }}
+            </q-btn>
+          </div>
         </div>
       </div>
     </div>
@@ -189,7 +206,9 @@ export default {
       processing: false,
       completed: false,
       wallet: null,
-      showCampaignInfo: false
+      showCampaignInfo: false,
+      giftStatus: null,
+      failedGiftDetails: null
     }
   },
   watch: {
@@ -223,7 +242,6 @@ export default {
       return this.$store.getters['global/theme']
     },
     amountBCH () {
-      // const parsedAmount = Number(this.getAmountOnDenomination(this.giftAmount)) || 0
       return Number(this.convertToBCH(this.denomination, this.giftAmount))
     },
     selectedMarketCurrency () {
@@ -246,6 +264,12 @@ export default {
       const balance = asset[0].spendable
       if (!Number.isFinite(balance)) return null
       return balance
+    },
+    giftShare() {
+      return this.$store.getters['gifts/getGiftShare'](this.giftCodeHash)
+    },
+    giftStatus() {
+      return this.$store.getters['gifts/getGiftStatus'](this.giftCodeHash)
     }
   },
   methods: {
@@ -299,8 +323,6 @@ export default {
       const shares = stateShare.map((share) => { return toHex(share) })
       const encryptedShard = this.encryptShard(shares[0])
 
-      // let finalAmount = this.getAmountOnDenomination(this.amountBCH)
-      // finalAmount = this.convertToBCH(this.denomination, finalAmount)
       vm.giftCodeHash = sha256(encryptedShard.code)
       const payload = {
         gift_code_hash: vm.giftCodeHash,
@@ -321,35 +343,128 @@ export default {
           }
         }
       }
+
+      // Save gift details first with processing status
+      vm.$store.dispatch('gifts/saveGift', { 
+        giftCodeHash: vm.giftCodeHash, 
+        share: shares[2],
+        status: 'processing',
+        amount: this.amountBCH,
+        address: address,
+        payload: payload
+      })
+      vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: encryptedShard.code })
+
       const walletHash = this.wallet.BCH.getWalletHash()
       const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
-      axios.post(url, payload).then((resp) => {
-        if (resp.status === 200) {
-          vm.qrCodeContents = encryptedShard.code
-          vm.wallet.BCH.sendBch(this.amountBCH, address).then(function (result, err) {
-            if (result.success) {
-              vm.processing = false
-              vm.$store.dispatch('gifts/saveGift', { giftCodeHash: vm.giftCodeHash, share: shares[2] })
-              vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: encryptedShard.code })
-              vm.completed = true
+      
+      this.submitGiftToServer(url, payload, shares[2], encryptedShard.code, address)
+    },
 
-              vm.wallet.BCH.getBalance().then(function (response) {
-                vm.$store.commit('assets/updateAssetBalance', {
-                  id: 'bch',
-                  balance: response.balance,
-                  spendable: response.spendable
-                })
+    async submitGiftToServer(url, payload, share, qrCode, address) {
+      const vm = this
+      try {
+        const resp = await axios.post(url, payload)
+        if (resp.status === 200) {
+          vm.qrCodeContents = qrCode
+          try {
+            const result = await vm.wallet.BCH.sendBch(this.amountBCH, address)
+            if (result.success) {
+              // Update gift status to completed
+              vm.$store.dispatch('gifts/updateGiftStatus', {
+                giftCodeHash: vm.giftCodeHash,
+                status: 'completed'
+              })
+              vm.processing = false
+              vm.completed = true
+              vm.giftStatus = 'completed'
+
+              // Update balance
+              const response = await vm.wallet.BCH.getBalance()
+              vm.$store.commit('assets/updateAssetBalance', {
+                id: 'bch',
+                balance: response.balance,
+                spendable: response.spendable
               })
             } else {
+              // Update status to failed
+              vm.$store.dispatch('gifts/updateGiftStatus', {
+                giftCodeHash: vm.giftCodeHash,
+                status: 'failed'
+              })
               vm.processing = false
+              vm.giftStatus = 'failed'
+              vm.failedGiftDetails = {
+                payload: payload,
+                share: share,
+                qr: qrCode,
+                address: address
+              }
+              vm.$q.notify({
+                message: vm.$t('GiftCreatedButTransactionPending'),
+                color: 'warning',
+                timeout: 5000
+              })
             }
-          })
+          } catch (sendError) {
+            console.error('Send BCH error:', sendError)
+            vm.$store.dispatch('gifts/updateGiftStatus', {
+              giftCodeHash: vm.giftCodeHash,
+              status: 'failed'
+            })
+            vm.processing = false
+            vm.giftStatus = 'failed'
+            vm.failedGiftDetails = {
+              payload: payload,
+              share: share,
+              qr: qrCode,
+              address: address
+            }
+            vm.$q.notify({
+              message: vm.$t('GiftCreatedButTransactionPending'),
+              color: 'warning',
+              timeout: 5000
+            })
+          }
         }
-      }).catch((error) => {
-        console.log(error)
+      } catch (error) {
+        console.error('Gift creation API error:', error)
+        vm.$store.dispatch('gifts/updateGiftStatus', {
+          giftCodeHash: vm.giftCodeHash,
+          status: 'failed'
+        })
         vm.processing = false
-      })
+        vm.giftStatus = 'failed'
+        vm.failedGiftDetails = {
+          payload: payload,
+          share: share,
+          qr: qrCode,
+          address: address
+        }
+        vm.$q.notify({
+          message: vm.$t('ErrorCreatingGiftPleaseRetry'),
+          color: 'negative',
+          timeout: 5000
+        })
+      }
     },
+
+    async resubmitGift(giftDetails) {
+      if (this.processing) return
+      
+      this.processing = true
+      const walletHash = this.wallet.BCH.getWalletHash()
+      const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
+      
+      await this.submitGiftToServer(
+        url,
+        giftDetails.payload,
+        giftDetails.share,
+        giftDetails.qr,
+        giftDetails.address
+      )
+    },
+
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({

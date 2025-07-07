@@ -375,6 +375,17 @@ const words = [
     below: "below",
     above: "above",
     Example: "Example",
+    Decrypt: 'Decrypt',
+    Decrypting: 'Decrypting'
+  },
+  {
+    Cutlery: 'Cutlery',
+    Rewards: 'Rewards',
+    Rate: 'Rate',
+    Convert: 'Convert',
+    Help: 'Help',
+    Promo: 'Promo',
+    Remaning: 'remaining'
   }
 ]
 

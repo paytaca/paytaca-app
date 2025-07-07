@@ -1,39 +1,87 @@
 <template>
   <div>
-    <div
-      ref="header-nav"
-      class="pt-header row no-wrap"
-      :style="{'padding-top': $q.platform.is.ios ? '63px' : '18px', 'height': $q.platform.is.ios ? '85px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
-      :class="{'pt-card-3': darkMode}">
-      <div class="col-1">
-        <router-link
-          :to="{ path: backnavpath }"
-          class="pt-arrow-left-link"
-          :class="{'text-grad': isNotDefaultTheme || darkMode}"
-          :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-          <span class="material-icons" @click="onClick">
-              arrow_back
-          </span>
-        </router-link>
+    <template v-if="rewardsPage === ''">
+      <div
+        ref="header-nav"
+        class="pt-header row no-wrap"
+        :style="{'padding-top': $q.platform.is.ios ? '63px' : '18px', 'height': $q.platform.is.ios ? '85px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
+        :class="{'pt-card-3': darkMode}"
+      >
+        <div class="col-1">
+          <router-link
+            :to="{ path: backnavpath }"
+            class="pt-arrow-left-link"
+            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            <span class="material-icons" @click="onClick">
+                arrow_back
+            </span>
+          </router-link>
+        </div>
+        <div class="col-10">
+          <p
+            ref="header-title"
+            class="text-h5 text-uppercase text-center q-my-none"
+            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+          >
+            {{ title }}
+          </p>
+        </div>
+        <div class="col-1">
+          <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>
+        </div>
       </div>
-      <div class="col-10">
-        <p
-          ref="header-title"
-          class="text-h5 text-uppercase text-center q-my-none"
-          :class="{'text-grad': isNotDefaultTheme || darkMode}"
-          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-          {{ title }}
-        </p>
+    </template>
+
+    <template v-else>
+      <div
+        ref="header-nav"
+        class="row no-wrap pt-header justify-between"
+        :style="{
+          'padding-top': $q.platform.is.ios ? '63px' : '18px',
+          'height': $q.platform.is.ios ? '85px' : '70px',
+          'padding-bottom': $q.platform.is.ios ? '45px' : '0px'
+        }"
+        :class="{'pt-card-3': darkMode}"
+      >
+        <div class="col-1">
+          <router-link
+            :to="{ path: backnavpath }"
+            class="pt-arrow-left-link"
+            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            <span class="material-icons" @click="onClick">
+                arrow_back
+            </span>
+          </router-link>
+        </div>
+        <div>
+          <p
+            ref="header-title"
+            class="text-h5 text-uppercase text-center q-my-none"
+            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+          >
+            {{ title }}
+          </p>
+        </div>
+        <div class="col-1 q-mr-sm">
+          <q-btn
+            round
+            class="button"
+            icon="question_mark"
+            size="sm"
+            @click="openRewardsHelpDialog"
+          />
+        </div>
       </div>
-      <div class="col-1">
-        <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <script>
-import { onUnmounted } from 'vue'
+import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 
 export default {
   name: 'header-nav',
@@ -45,10 +93,17 @@ export default {
     backnavpath: {
       type: String,
       default: ''
+    },
+    rewardsPage: {
+      type: String,
+      default: ''
     }
   },
+  components: {
+    HelpDialog
+  },
   emits: ['click'],
-  data() {
+  data () {
     return {
       addedBodyPadding: false
     }
@@ -70,14 +125,13 @@ export default {
       this.$refs['header-nav'].setAttribute('style', `height: ${headerTitleHeight > 32 ? '100' : '70'}px;`)
       if (headerTitleHeight > 32) {
         // move all elements 30px down due to the change in height
-        document.body.style.paddingTop = '30px';
+        document.body.style.paddingTop = '30px'
         this.addedBodyPadding = true
       }
-
     }
   },
-  beforeUnmount() {
-    if (this.addedBodyPadding) document.body.style.paddingTop = '';
+  beforeUnmount () {
+    if (this.addedBodyPadding) document.body.style.paddingTop = ''
   },
   methods: {
     async onClick () {
@@ -87,6 +141,12 @@ export default {
         this.$router.go(-1)
       }
       this.$emit('click')
+    },
+    openRewardsHelpDialog () {
+      this.$q.dialog({
+        component: HelpDialog,
+        componentProps: { page: this.rewardsPage }
+      })
     }
   }
 }

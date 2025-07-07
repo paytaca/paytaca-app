@@ -148,15 +148,27 @@ div#q-app:has(.marketplace-container) {
   background-color: rgba($color: #000000, $alpha: 0.3)
 }
 
-@mixin bottom-card($height-percentage) {
-  position: fixed;
-  bottom: 0;
+@mixin bottom-card--base {
   width: 100%;
   max-height: 100vh;
+  body.platform-ios & {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-height: 100vh;
+  }
+}
+
+@mixin bottom-card($height-percentage) {
+  @include bottom-card--base;
   height: calc(#{$height-percentage} - env(safe-area-inset-bottom));
 }
 
 .bottom-card {
+  @include bottom-card(unset);
+}
+
+.bottom-card-small {
   @include bottom-card(60vh);
 }
 
@@ -174,4 +186,22 @@ div#q-app:has(.marketplace-container) {
 
 .light .q-btn .tile-label {
   color: black;
+}
+.subtext-gray {
+  &.dark {
+    color: rgb(200, 200, 200);
+  }
+  
+  &.light {
+    color: rgb(100, 100, 100)
+  }
+}
+
+.points-earned-div {
+  @include bottom-card(100vh);
+  position: fixed;
+  bottom: 0;
+
+  border-top-left-radius: 30px;
+  border-top-right-radius: 30px;
 }

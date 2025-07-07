@@ -9,7 +9,7 @@
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
-import { useQuasar } from 'quasar'
+import { is, useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
@@ -224,6 +224,11 @@ export default {
       }
     }
   },
+  beforeMount() {
+    if (typeof navigator.onLine === 'boolean') {
+      this.onConnectivityChange(navigator.onLine) 
+    }
+  },
   async mounted () {
     const vm = this
 
@@ -232,7 +237,9 @@ export default {
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
+
     if (mnemonic) {
+
       vm.$q.lang.set(vm.$store.getters['global/language'].value)
       await vm.savingInitialChipnet(mnemonic)
       // first check if vaults are empty

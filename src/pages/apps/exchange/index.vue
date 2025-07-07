@@ -24,7 +24,8 @@ export default {
       user: null,
       isloaded: false,
       openVersionUpdate: false,
-      appDisabled: false
+      appDisabled: false,
+      continue: false
     }
   },
   async created () {
@@ -34,7 +35,28 @@ export default {
     this.$store.commit('ramp/resetListingTabs')
     this.$store.commit('ramp/resetAppealListingTab')
   },
-  async mounted () {
+  watch: {
+    $route (to, from) {
+      if (from.path.includes('apps/exchange')) {
+        if ('ad_id' in to.query) {
+          this.$router?.push({ name: 'p2p-store', query: to.query })
+        }        
+      }
+    },
+    continue (val) {
+      if (val) {
+        this.goToMainPage()
+      }
+    },
+    isloaded (val) {
+      if (val) {
+        this.$q.loading.hide()
+      }
+    }
+  },
+  async mounted () {    
+    this.$q.loading.show()
+
     const appEnabled = this.$store.getters['global/appControl']
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled
@@ -42,7 +64,9 @@ export default {
       await this.checkVersionUpdate()
       await loadRampWallet()
       await this.getUser()
-      this.goToMainPage()
+      if (this.$route.name === 'exchange') {
+        this.goToMainPage()
+      }
     }
   },
   methods: {
@@ -52,12 +76,20 @@ export default {
       await backend.get('auth')
         .then(async (response) => {
           this.user = response.data
+          this.continue = true
+          this.isloaded = true
         })
         .catch(error => {
-          console.error(error.response || error)
+          if (error.response.data.error === 'user does not exist') {
+            this.continue = true
+          } else {
+            console.error(error.response || error)
+          }
+          this.isloaded = true
         })
     },
     goToMainPage () {
+      this.$store.commit('ramp/updateUser', this.user)
       if (this.user?.is_arbiter) {
         this.$router?.push({ name: 'arbiter-appeals' })
       } else {
@@ -133,6 +165,7 @@ export default {
           .catch(error => {
             console.error(error)
             this.appDisabled = true
+            this.isloaded = true
           })
       }
     }

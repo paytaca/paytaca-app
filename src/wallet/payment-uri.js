@@ -11,6 +11,8 @@ import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
 import { getWalletByNetwork } from './chipnet'
 import SingleWallet from './single-wallet'
+import { TransactionBalancer } from './stablehedge/transaction-utils'
+import { SignatureTemplate } from 'cashscript'
 
 const bchjs = new BCHJS()
 /**
@@ -266,6 +268,7 @@ export class JPPSourceTypes {
       if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
       if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
       if (link.host.indexOf('watchtower.cash') >= 0) return this.WATCHTOWER
+      if (link.host.indexOf('localhost') >= 0) return this.WATCHTOWER
       if (link.host.indexOf('anypay') >= 0) return this.ANYPAY
       return this.DEFAULT
     } catch(error) {
@@ -449,18 +452,11 @@ export class JSONPaymentProtocol {
     if (bchUtxos.cumulativeValue < this.totalSendAmountSats) {
       throw JsonPaymentProtocolError('Not enough balance')
     }
-
-    const txBuilder = new bchjs.TransactionBuilder()
-    const inputs = []
-    let p2pkhOutputsCount =  0
-    let p2shOutputsCount = 0
-    let totalInput = new BigNumber(0)
-    let totalOutput = new BigNumber(0)
+    const txBuilder = new TransactionBalancer()
+    txBuilder.feePerByte = this.parsed.requiredFeePerByte || 1.1
 
     for (let i = 0; i < bchUtxos.utxos.length; i++ ) {
       const utxo = bchUtxos.utxos[i]
-      txBuilder.addInput(utxo.tx_hash, utxo.tx_pos)
-      totalInput = totalInput.plus(utxo.value)
 
       let utxoPkWif
       if (wallet instanceof SingleWallet) {
@@ -470,80 +466,47 @@ export class JSONPaymentProtocol {
         utxoPkWif = await getWalletByNetwork(wallet, 'bch').getPrivateKey(addressPath)
       }
 
-      inputs.push({
-        utxo: utxo,
-        keyPair: bchjs.ECPair.fromWIF(utxoPkWif),
+      const template = new SignatureTemplate(utxoPkWif)
+      txBuilder.inputs.push({
+        txid: utxo.tx_hash,
+        vout: utxo.tx_pos,
+        satoshis: utxo.value,
+        template: template,
       })
     }
 
     for (let i = 0; i < this.parsed.outputs.length; i++) {
       const output = this.parsed.outputs[i]
       const sendAmount = new BigNumber(output.amount)
-      txBuilder.addOutput(
-        bchjs.Address.toLegacyAddress(output.address),
-        parseInt(sendAmount),
-      )
+      txBuilder.outputs.push({
+        to: output.address,
+        amount: BigInt(sendAmount),
+      })
+    }
 
-      if (bchjs.Address.isP2SHAddress(output.address)) {
-        p2shOutputsCount += 1
+    if (!changeAddress) {
+      if (wallet instanceof SingleWallet) {
+        changeAddress = wallet.isChipnet ? wallet.testnetAddress : wallet.cashAddress
       } else {
-        p2pkhOutputsCount += 1
+        changeAddress = (await getWalletByNetwork(wallet, 'bch').getAddressSetAt(0)).change
       }
-      totalOutput = totalOutput.plus(sendAmount)
     }
 
-    p2pkhOutputsCount += 1  // Add extra for sending the BCH change,if any
-    const byteCount = bchjs.BitcoinCash.getByteCount(
-      { P2PKH: inputs.length },
-      {
-        P2PKH: p2pkhOutputsCount,
-        P2SH: p2shOutputsCount
-      }
-    )
-    const feeRate = this.parsed.requiredFeePerByte || 1.1 // 1.1 sats/byte fee rate
-    const txFee = Math.ceil(byteCount * feeRate)
-
-    const senderRemainder = totalInput.minus(totalOutput.plus(txFee))
-    const watchtower = (wallet instanceof SingleWallet ? wallet : getWalletByNetwork(wallet, 'bch')).watchtower
-    const dustLimit = watchtower.BCH.getDustLimit()
-    if (senderRemainder.isGreaterThanOrEqualTo(dustLimit)) {
-      // generate change address if no change address provided
-      if (!changeAddress) {
-        if (wallet instanceof SingleWallet) {
-          changeAddress = wallet.isChipnet ? wallet.testnetAddress : wallet.cashAddress
-        } else {
-          changeAddress = (await getWalletByNetwork(wallet, 'bch').getAddressSetAt(0)).change
-        }
-      }
-      console.log('changeAddress', changeAddress)
-      txBuilder.addOutput(
-        bchjs.Address.toLegacyAddress(changeAddress),
-        parseInt(senderRemainder)
-      )
+    if (txBuilder.excessSats > 546n) {
+      const changeOutput = { to: changeAddress, amount: txBuilder.excessSats }
+      txBuilder.outputs.push(changeOutput)
+      changeOutput.amount += txBuilder.excessSats
     }
-
-    this.preparedTx = { inputs: inputs, builder: txBuilder, verified: false }
+  
+    this.preparedTx = { builder: txBuilder, verified: false }
     return this.preparedTx
   }
 
   signPreparedTx() {
     if (!this.preparedTx?.builder) throw new JsonPaymentProtocolError('Transaction unprepared')
     if (!this.preparedTx?.verified) throw new JsonPaymentProtocolError('Transaction not verified')
-    if (!Array.isArray(this.preparedTx?.inputs)) throw new JsonPaymentProtocolError('Invalid keypair')
 
-    let redeemScript
-    for (let i = 0; i < this.preparedTx.inputs.length; i++) {
-      const input = this.preparedTx.inputs[i]
-      this.preparedTx.builder.sign(
-        i,
-        input.keyPair,
-        redeemScript,
-        this.preparedTx.builder.hashTypes.SIGHASH_ALL,
-        parseInt(input.utxo.value),
-      )
-    }
-
-    this.signedTxHex = this.preparedTx.builder.build().toHex()
+    this.signedTxHex = this.preparedTx.builder.build()
     return this.signedTxHex
   }
 
@@ -555,7 +518,7 @@ export class JSONPaymentProtocol {
     }
 
     if (!this?.preparedTx?.builder) throw JsonPaymentProtocolError('Transaction not prepared') 
-    const unsignedTransaction = this?.preparedTx?.builder?.transaction.tx.toHex() || ''
+    const unsignedTransaction = this?.preparedTx?.builder?.buildUnsigned()
 
     const requestOpts = {
       url: this.parsed.paymentUrl,
@@ -805,6 +768,7 @@ export class JSONPaymentProtocol {
       parsedData = response.data
       parsedData.paymentUrl = parsedData.payment_url || parsedData.paymentUrl
       parsedData.paymentId = parsedData.payment_id || parsedData.paymentId
+      parsedData.requiredFeePerByte = parsedData.required_fee_per_byte || parsedData.requiredFeePerByte
       if (parsedData?.payment?.paid_at) {
         parsedData.payment.paidAt = parsedData?.payment?.paid_at
       }

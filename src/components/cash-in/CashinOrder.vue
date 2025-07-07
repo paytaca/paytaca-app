@@ -112,6 +112,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import CashinConfirmPayment from './CashinConfirmPayment.vue'
 import { satoshiToBch } from 'src/exchange'
+import { processCashinPoints } from 'src/utils/engagementhub-utils/rewards'
 
 export default {
   components: {
@@ -308,6 +309,15 @@ export default {
               this.txid = tx.txid
             }
           })
+
+          // call API from engagement hub to compute user points
+          // for cash-in transaction (for 1st time transaction only)
+          try {
+            const bchAddress = this.order?.members?.buyer?.address
+            await processCashinPoints({ bch_address: bchAddress })
+          } catch (_error) {
+            console.log('Unable to process user points')
+          }
           break
         }
         case 'APL':
