@@ -1,6 +1,9 @@
 import { boot } from 'quasar/wrappers'
-import { migrateVuexLocalStorage } from 'src/utils/migrate-localstorage-to-indexdb'
-import { hydrateWallet } from 'src/utils/wallet-hydration'
+import { migrateVuexStorage } from 'src/utils/indexed-db-rollback/rollback-vuex-storage'
+import { populateMissingVaults, recoverWalletsFromStorage } from 'src/utils/indexed-db-rollback/wallet-recovery'
+import { sanitizeVault } from 'src/utils/indexed-db-rollback/wallet-vault'
+import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferences'
+import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
 import useStore from 'src/store'
 
 /**
@@ -11,38 +14,43 @@ import useStore from 'src/store'
  * Pinia is now recommended for global state management
  */
 export default boot(async (obj) => {
-  console.log('[Vuex Boot] Starting Vuex initialization...')
-  
   try {
-    // Migrate old localStorage to IndexedDB (localforage)
-    console.log('[Vuex Boot] Starting migration...')
-    await migrateVuexLocalStorage()
-    console.log('[Vuex Boot] Migration completed')
+
+    await migrateVuexStorage()
 
     const store = useStore();
     const { app } = obj
-    
-    console.log('[Vuex Boot] Store created, starting wallet hydration...')
-    await hydrateWallet()
-    console.log('[Vuex Boot] Wallet hydration completed')
+
+    // Hydrate Vuex store from localStorage if available
+    // This is a manual hydration step to ensure the store is populated
+    const persistedState = localStorage.getItem('vuex')
+    if (persistedState) {
+      store.replaceState(JSON.parse(persistedState))
+      console.log('[Hydration] Vuex state manually hydrated.')
+    }
 
     // Add error handler for store mutations
     store.subscribe((mutation, state) => {
       try {
         // Log any state changes that might be problematic
         if (mutation.type.includes('update') || mutation.type.includes('set')) {
-          console.debug('[Vuex Boot] Store mutation:', mutation.type, mutation.payload)
+          console.debug('Store mutation:', mutation.type, mutation.payload)
         }
       } catch (err) {
-        console.error('[Vuex Boot] Error in store mutation:', err)
+        console.error('Error in store mutation:', err)
       }
     })
 
-    console.log('[Vuex Boot] Adding store to app...')
     app.use(store)
-    console.log('[Vuex Boot] Vuex initialization completed successfully')
+
+    sanitizeVault()
+    await recoverWalletsFromStorage()
+    await resetWalletsAssetsList()
+    updatePreferences()
+    populateMissingVaults()
+    
   } catch (err) {
-    console.error('[Vuex Boot] Error initializing Vuex store:', err)
+    console.error('Error initializing Vuex store:', err)
     // Initialize store with default state if hydration fails
     const store = useStore()
     obj.app.use(store)
