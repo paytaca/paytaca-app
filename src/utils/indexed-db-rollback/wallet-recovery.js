@@ -112,7 +112,9 @@ export function resetAssetsList(index) {
     }
 
     store.commit('assets/updateVault', { index: index, asset: asset })
-    store.commit('assets/updatedCurrentAssets', index)
+    if (index === store.getters['global/getWalletIndex']) {
+        store.commit('assets/updatedCurrentAssets', index)
+    }
 }
 
 async function recoverWallet(index, save=false) {
@@ -300,12 +302,8 @@ export async function recoverWalletsFromStorage() {
         walletIndices.splice(0, walletIndices.length - 30)
     }
 
-    const currentActiveWallet = Store.getters['global/getWallet']('bch')
-    const reloadCurrentActiveWallet = !currentActiveWallet.xPubKey || currentActiveWallet.xPubKey === ''
-    console.log('[Wallet Recovery] reloadCurrentActiveWallet:', reloadCurrentActiveWallet)
-
     const lastWalletIndex = Math.max(...walletIndices)
-    const hasRecoverableWallets = vault.length < lastWalletIndex+1 || reloadCurrentActiveWallet
+    const hasRecoverableWallets = vault.length < lastWalletIndex+1 && walletIndices.length > 0
     console.log('[Wallet Recovery] hasRecoverableWallets:', hasRecoverableWallets);
 
     if (!hasRecoverableWallets) {
@@ -316,7 +314,7 @@ export async function recoverWalletsFromStorage() {
 
     Store.commit('global/setWalletsRecovered', false)
 
-    if (isVaultEmpty || reloadCurrentActiveWallet) {
+    if (isVaultEmpty || hasRecoverableWallets) {
         // If the vault was previously empty await the first wallet only
         const firstIndex = walletIndices[0]
         await recoverWallet(firstIndex, true)
