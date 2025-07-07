@@ -6,6 +6,7 @@ import { getAllAssets } from 'src/store/assets/getters';
 
 import initialGlobalState from 'src/store/global/state'
 
+const WALLET_RECOVERY2_FLAG_KEY = 'v2-wallet-recovery-done'
 
 /**
  * Finds unique wallet indices by scanning localStorage for keys like `cap_sec_mn1`, `cap_sec_mn2`, etc.
@@ -17,9 +18,6 @@ export async function getWalletIndicesFromStorage() {
     // Get all localStorage keys
     const lsKeys = Object.keys(localStorage);
 
-    // Track unique mnemonic values to avoid duplicates
-    const uniqueValues = new Set();
-
     // This will store the valid wallet indices
     const walletIndices = [];
 
@@ -28,23 +26,14 @@ export async function getWalletIndicesFromStorage() {
         const match = key.match(/^cap_sec_mn(\d+)$/);
         if (match && match[1]) {
             const index = parseInt(match[1], 10);
-            const value = localStorage.getItem(key);
-
-            // If this mnemonic value hasn't been added yet, keep it
-            if (!uniqueValues.has(value)) {
-                uniqueValues.add(value);
-                walletIndices.push(index);
-            }
+            walletIndices.push(index);
         }
     }
 
     // Special case: check for generic key 'cap_sec_mn'
     if (lsKeys.includes('cap_sec_mn')) {
-        const genericValue = localStorage.getItem('cap_sec_mn');
-        if (!uniqueValues.has(genericValue)) {
-            // Use index 0 for generic key
-            walletIndices.push(0);
-        }
+        // Use index 0 for generic key
+        walletIndices.push(0);
     }
 
     // Sort indices ascending for predictable order
@@ -112,7 +101,9 @@ export function resetAssetsList(index) {
     }
 
     store.commit('assets/updateVault', { index: index, asset: asset })
-    store.commit('assets/updatedCurrentAssets', index)
+    if (index === store.getters['global/getWalletIndex']) {
+        store.commit('assets/updatedCurrentAssets', index)
+    }
 }
 
 async function recoverWallet(index, save=false) {
@@ -300,15 +291,13 @@ export async function recoverWalletsFromStorage() {
         walletIndices.splice(0, walletIndices.length - 30)
     }
 
-    const currentActiveWallet = Store.getters['global/getWallet']('bch')
-    const reloadCurrentActiveWallet = !currentActiveWallet.xPubKey || currentActiveWallet.xPubKey === ''
-    console.log('[Wallet Recovery] reloadCurrentActiveWallet:', reloadCurrentActiveWallet)
-
     const lastWalletIndex = Math.max(...walletIndices)
-    const hasRecoverableWallets = vault.length < lastWalletIndex+1 || reloadCurrentActiveWallet
+    const hasRecoverableWallets = vault.length < lastWalletIndex+1 && walletIndices.length > 0
     console.log('[Wallet Recovery] hasRecoverableWallets:', hasRecoverableWallets);
 
-    if (!hasRecoverableWallets) {
+    const walletRecoveryV2Done = localStorage.getItem(WALLET_RECOVERY2_FLAG_KEY)
+    console.log('[Wallet Recovery] walletRecoveryV2Done:', walletRecoveryV2Done)
+    if (!hasRecoverableWallets && walletRecoveryV2Done) {
         Store.commit('global/setWalletsRecovered', true)
         console.log('[Wallet Recovery] No recoverable wallets found, exiting recovery process.')
         return 
@@ -316,18 +305,17 @@ export async function recoverWalletsFromStorage() {
 
     Store.commit('global/setWalletsRecovered', false)
 
-    if (isVaultEmpty || reloadCurrentActiveWallet) {
-        // If the vault was previously empty await the first wallet only
-        const firstIndex = walletIndices[0]
-        await recoverWallet(firstIndex, true)
-        Store.commit('global/updateWalletIndex', firstIndex)
-        walletIndices.shift()
-    }
+    // Await the first wallet only
+    const firstIndex = walletIndices[0]
+    await recoverWallet(firstIndex, true)
+    Store.commit('global/updateWalletIndex', firstIndex)
+    walletIndices.shift()
 
     // Start the recovery process for remaining wallets in parallel so it wont block boot
     const promises = walletIndices.map(index => recoverWallet(index))
     Promise.all(promises).then(() => {
         Store.commit('global/setWalletsRecovered', true)
+        localStorage.setItem(WALLET_RECOVERY2_FLAG_KEY, true)
         console.log('[Wallet Recovery] All wallets recovered successfully.')
     })
 }
