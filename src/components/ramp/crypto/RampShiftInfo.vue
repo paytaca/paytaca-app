@@ -114,7 +114,6 @@
 </template>
 
 <script>
-import { objectTypeAnnotation } from '@babel/types';
 import RampDepositInfo from './RampDepositInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 
