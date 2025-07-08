@@ -40,7 +40,7 @@
         </q-btn>
       </q-card-section>
       <q-card-section class="flex flex-wrap justify-evenly"> 
-        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" :disable="broadcastDone" v-close-popup>
+        <q-btn flat dense no-caps @click="$emit('loadCosignerPst')" class="tile" :disable="broadcastDone || signingProgress === 'fully-signed'" v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-file-upload" class="col-12" color="primary"></q-icon>
