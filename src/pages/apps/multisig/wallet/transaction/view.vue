@@ -186,7 +186,7 @@
                 <q-item-section side top>
                   <q-btn
                     label="Sign"
-                    :disable="!hdPrivateKeys[signerEntityKey]"
+                    :disable="!hdPrivateKeys[signerEntityKey] || signingProgress === 'fully-signed'"
                     :icon="hdPrivateKeys[signerEntityKey]? 'draw': 'edit_off'"
                     :color="hdPrivateKeys[signerEntityKey]? 'primary': ''"
                     @click="initiateSignTransaction({ signerEntityKey })"
