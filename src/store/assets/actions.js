@@ -274,10 +274,28 @@ export async function getAssetMetadata (context, assetId) {
   }
 }
 
-export function filterFavoriteAssets (state, assets) {
+export function filterFavoriteAssets (context, assets) {
   let temp = []
 
   console.log('here: ', assets)
   return assets.filter(asset => asset.favorite === 1)
 
+}
+
+
+export async function initializeFavorites (context, assets) {  
+  let iterate = assets.length > 7 ? 7 : assets.length
+
+  const isInitialized = context.getters.initializedFavorites  
+
+  if (!isInitialized) {    
+    for (let i = 0; i < iterate; i++) {
+      let temp = {
+        id: assets[i].id,
+        favorite: 1
+      }  
+     context.commit('updateAssetFavorite', temp)
+    }
+    context.commit('initializeFavorites', true)    
+  }  
 }

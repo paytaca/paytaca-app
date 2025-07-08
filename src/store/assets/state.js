@@ -27,6 +27,7 @@ export default function () {
     ignoredAssets: [],
     vault: [],
     chipnet__ignoredAssets: [],
-    removedAssetIds: []
+    removedAssetIds: [],
+    initializedFavorites: false 
   }
 }

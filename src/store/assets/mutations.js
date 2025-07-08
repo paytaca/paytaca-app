@@ -237,3 +237,7 @@ export function updateAssetFavorite (state, data) {
     state.assets[index]["favorite"] = data.favorite
   }
 }
+
+export function initializeFavorites (state, data) {
+  state.initializedFavorites = data
+}

@@ -42,7 +42,7 @@
 			        </q-item-section>
 			        <q-item-section>
 			        	<div class="text-bold ">{{ asset.name}}</div>
-			        	<div class="text-grey-8">
+			        	<div :class="darkmode ? 'text-grey-6' : 'text-grey-8'">
 			      			{{ formatAssetTokenAmount(asset) }}			      			
 			      		</div>
 			        </q-item-section>
@@ -164,6 +164,7 @@ export default {
       	this.wallet = markRaw(wallet)
 
 		this.checkEmptyFavorites()
+		this.$store.dispatch('assets/initializeFavorites', this.assets)
 
 		this.favorites = this.assets.map(asset => asset.favorite)
 	},
