@@ -157,9 +157,8 @@ export default {
           const pubkey = secp256k1.derivePublicKeyCompressed(decodedWif.privateKey)
 
           const pubkeyHex = Buffer.from(pubkey).toString('hex')
-          const sigData = await generateSignature(result.txid, lastAddressWif)
-          const signature = sigData.signature
-          const satsWithFee = bch * (10 ** 8) // + sigData.txFee
+          const signature = await generateSignature(result.txid, lastAddressWif)
+          const satsWithFee = Math.floor(bch * (10 ** 8))
           
           let lockupYears = 0
           if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
@@ -178,7 +177,10 @@ export default {
             tx_id: result.txid,
             buyer_pubkey: pubkeyHex,
             buyer_sig: signature,
-            buyer_token_address: tokenAddress
+            buyer_token_address: tokenAddress,
+            // bch address used for this transaction, can be or
+            // not be the bch address used for the reservation
+            buyer_tx_address: this.$store.getters['global/getAddress']('bch')
           }
     
           const isSuccessful = await processPurchaseApi(data)

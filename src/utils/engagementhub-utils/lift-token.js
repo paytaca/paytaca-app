@@ -82,10 +82,7 @@ export async function generateSignature(txId, wif) {
     sourceOutputs,
   })
 
-  return {
-    signature: Buffer.from(signature).toString('hex'),
-    txFee: tx.tx_fee
-  }
+  return Buffer.from(signature).toString('hex')
 }
 
 /**
