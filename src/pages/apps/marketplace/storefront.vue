@@ -161,10 +161,20 @@
         rounded
         class="q-my-md q-mx-sm bg-grad"
       >
-        <div class="text-h6" style="line-height:1.2">
+        <div class="text-h6" style="line-height:1.2" v-if="cashbackCampaign?.is_one_time_claim">
           {{
             $t(
-              'MarketplaceCashbackMsg1',
+              'MarketplaceCashbackMsgOneTime',
+              { percent: parseInt(cashbackCampaign?.firstCashbackPercentage * 100) },
+              `Get ${parseInt(cashbackCampaign?.firstCashbackPercentage * 100)}% ` +
+              'cashback!'
+            )
+          }}
+        </div>
+        <div class="text-h6" style="line-height:1.2" v-else>
+          {{
+            $t(
+              'MarketplaceCashbackMsg',
               {
                 min: parseInt(cashbackCampaign?.succeedingCashbackPercentage * 100),
                 max: parseInt(cashbackCampaign?.firstCashbackPercentage * 100)
@@ -178,14 +188,35 @@
         <div >{{ cashbackCampaign?.name }}</div>
         <q-slide-transition>
           <div v-if="showCashbackCampaignDetails" class="text-caption" style="line-height:1.3">
-            <div>{{ cashbackCampaign?.description }}</div>
             <div v-if="cashbackLimitFiat">
+              <div v-if="cashbackCampaign?.is_one_time_claim">
+                {{
+                  $t(
+                    'MarketplaceCashbackDescOneTime',
+                    { percent: parseInt(cashbackCampaign?.firstCashbackPercentage * 100) },
+                    `Order now and get ${parseInt(cashbackCampaign?.firstCashbackPercentage * 100)}% cashback!`
+                  )
+                }}
+              </div>
+              <div v-else>
+                {{
+                  $t(
+                    'MarketplaceCashbackDesc',
+                    {
+                      min: parseInt(cashbackCampaign?.succeedingCashbackPercentage * 100),
+                      max: parseInt(cashbackCampaign?.firstCashbackPercentage * 100)
+                    },
+                    `Order now and get ${parseInt(cashbackCampaign?.succeedingCashbackPercentage * 100)}` +  
+                    ` - ${parseInt(cashbackCampaign?.firstCashbackPercentage * 100)}% ` +
+                    'cashback!'
+                  )
+                }}
+              </div>
               {{
                 $t(
-                  'MarketplaceCashbackMsg2',
+                  'MarketplaceCashbackDescSub',
                   { amount: cashbackLimitFiat, currency: currency },
-                  `Get upto ${cashbackLimitFiat} ${currency}` +  
-                  ' on your order'
+                  `Get up to maximum cashback value of ${cashbackLimitFiat} ${currency}.`
                 )
               }}
             </div>
