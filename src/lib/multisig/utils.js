@@ -48,6 +48,17 @@ export const getTotalBchFee = (tx, unit = 'bch') => {
   return amount
 }
 
+export const getTxRecipientsCount = (tx, senderAddresses) => {
+  const senderLockingBytecodes = senderAddresses.map(address => binToHex(cashAddressToLockingBytecode(address).bytecode))
+  const recipientCount = tx.outputs.reduce((count, output) => {
+    if (!senderLockingBytecodes.includes(binToHex(Uint8Array.from(Object.values(output.lockingBytecode))))) {
+      count = count + 1
+    }
+    return count
+  }, 0)
+  return recipientCount
+}
+
 /**
  * Compute the change amount in a BCH transaction.
  * @param {Object} tx - Transaction object with 'inputs' and 'outputs'.
