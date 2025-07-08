@@ -43,7 +43,10 @@
       </q-card-section>
       <q-item-label header style="padding-top: 0px;padding-bottom:0px;">Transaction</q-item-label>
       <q-card-section class="flex flex-wrap justify-evenly"> 
-        <q-btn flat dense no-caps @click="$emit('importTx')" class="tile" v-close-popup>
+        <q-btn 
+          flat dense no-caps @click="$emit('importTx')" class="tile" 
+          :disable="disable?.includes('import-tx')"
+          v-close-popup>
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-file-import" class="col-12" color="primary"></q-icon>

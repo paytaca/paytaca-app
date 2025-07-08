@@ -261,13 +261,18 @@ const showWalletReceiveDialog = () => {
 }
 
 const openWalletActionsDialog = () => {
+  const disableActions = []
+  if (transactions.value?.length > 0) {
+    disableActions.push('send-bch')
+    disableActions.push('import-tx')
+  }
   $q.dialog({
     component: WalletActionsDialog,
     componentProps: {
       darkMode: darkMode.value,
       txProposals: transactions?.value,
       isMultisigWalletSynced: isMultisigWalletSynced(wallet.value),
-      disable: ['send-bch'],
+      disable: disableActions,
       onUploadWallet: () => {
         uploadWallet()
       },
