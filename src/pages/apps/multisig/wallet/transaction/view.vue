@@ -48,7 +48,7 @@
                   <q-item-label>Number of recipients</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  {{ multisigTransaction.transaction.outputs.length }}&nbsp;
+                  {{ getTxRecipientsCount(multisigTransaction.transaction, [route.params.address]) }}&nbsp;
                 </q-item-section>
               </q-item>
               <q-item>
@@ -189,7 +189,7 @@
                     :disable="!hdPrivateKeys[signerEntityKey]"
                     :icon="hdPrivateKeys[signerEntityKey]? 'draw': 'edit_off'"
                     :color="hdPrivateKeys[signerEntityKey]? 'primary': ''"
-                    @click="signTransaction({ signerEntityKey })"
+                    @click="initiateSignTransaction({ signerEntityKey })"
                     dense
                     no-caps
                     flat
@@ -258,56 +258,62 @@
               <q-separator spaced inset />
             </q-list>
           </div>
-        <div class="flex items-center justify-between q-mt-lg">
-         <q-btn flat dense no-caps @click="openShareTransactionActionsDialog" class="tile" :disable="isMultisigTransactionSynced(multisigTransaction)" v-close-popup>
-          <template v-slot:default>
-            <div class="row justify-center">
-              <q-icon name="mdi-share-all" class="col-12" color="primary">
-                <q-badge v-if="isMultisigTransactionSynced(multisigTransaction)" color="green" style="margin-right: 25px;" size="xs" floating>
-                  <span style="color: white">&#10003;</span>
-                </q-badge>
-              </q-icon>
-              <div class="col-12 tile-label">Share Online</div>
-            </div>
-          </template>
-         </q-btn>
-         <q-btn v-if="signingProgress != 'fully-signed'" flat dense no-caps @click="loadCosignerPst" class="tile" v-close-popup>
-          <template v-slot:default>
-            <div class="row justify-center">
-              <q-icon name="mdi-file-upload" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Load Cosigner PST</div>
-            </div>
-          </template>
-        </q-btn>
+          <div class="flex items-center justify-between q-mt-lg">
+          <q-btn flat dense no-caps @click="openShareTransactionActionsDialog" class="tile" :disable="isMultisigTransactionSynced(multisigTransaction)" v-close-popup>
+            <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="mdi-share-all" class="col-12" color="primary">
+                  <q-badge v-if="isMultisigTransactionSynced(multisigTransaction)" color="green" style="margin-right: 25px;" size="xs" floating>
+                    <span style="color: white">&#10003;</span>
+                  </q-badge>
+                </q-icon>
+                <div class="col-12 tile-label">Share Online</div>
+              </div>
+            </template>
+          </q-btn>
+          <q-btn v-if="signingProgress != 'fully-signed'" flat dense no-caps @click="loadCosignerPst" class="tile" v-close-popup>
+            <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="mdi-file-upload" class="col-12" color="primary"></q-icon>
+                <div class="col-12 tile-label">Load Cosigner PST</div>
+              </div>
+            </template>
+          </q-btn>
 
-         <q-btn v-else
-          :loading="isBroadcasting"
-          @click="broadcastTransaction"
-          :disable="multisigTransaction.broadcastStatus === 'done'"
-          class="tile" flat dense no-caps>
-          <template v-slot:default>
-            <div class="row justify-center">
-              <q-icon name="cell_tower" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Broadcast Tx</div>
-            </div>
-          </template>
-          <template v-slot:loading>
-            <div class="row justify-center">
-              <q-spinner-radio color="primary"/>
-              <div class="col-12 tile-label">Broadcasting Tx...</div>
-            </div>
-          </template>
-         </q-btn>
-         <q-btn flat dense no-caps @click="openTransactionActionsDialog" class="tile" :disable="isBroadcasting">
-          <template v-slot:default>
-            <div class="row justify-center">
-              <q-icon name="more_vert" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">More Options</div>
-            </div>
-          </template>
-        </q-btn>
-        </div>
+          <q-btn v-else
+            :loading="isBroadcasting"
+            @click="broadcastTransaction"
+            :disable="multisigTransaction.broadcastStatus === 'done'"
+            class="tile" flat dense no-caps>
+            <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="cell_tower" class="col-12" color="primary"></q-icon>
+                <div class="col-12 tile-label">Broadcast Tx</div>
+              </div>
+            </template>
+            <template v-slot:loading>
+              <div class="row justify-center">
+                <q-spinner-radio color="primary"/>
+                <div class="col-12 tile-label">Broadcasting Tx...</div>
+              </div>
+            </template>
+          </q-btn>
+          <q-btn flat dense no-caps @click="openTransactionActionsDialog" class="tile" :disable="isBroadcasting">
+            <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="more_vert" class="col-12" color="primary"></q-icon>
+                <div class="col-12 tile-label">More Options</div>
+              </div>
+            </template>
+          </q-btn>
+          </div>
         </template>
+        <DragSlide
+          v-if="showActionConfirmationSlider"
+          @swiped="onConfirmSliderSwiped"
+          text="Swipe to confirm"
+          class="absolute-bottom"
+        />
       </div>
       <q-file
         ref="pstFileElementRef"
@@ -344,7 +350,8 @@ import {
   combinePsts,
   getMultisigCashAddress,
   getRequiredSignatures,
-  getSigningProgress
+  getSigningProgress,
+  getTxRecipientsCount
 } from 'src/lib/multisig'
 import { isMultisigTransactionSynced } from 'src/lib/multisig/transaction'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -352,6 +359,8 @@ import UploadPstDialog from 'components/multisig/UploadPstDialog.vue'
 import TransactionActionsDialog from 'components/multisig/TransactionActionsDialog.vue'
 import ShareTransactionActionsDialog from 'components/multisig/ShareTransactionActionsDialog.vue'
 import BroadcastSuccessDialog from 'components/multisig/BroadcastSuccessDialog.vue'
+import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
+import DragSlide from 'components/drag-slide.vue'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -378,6 +387,8 @@ const checkingSigningProgress = ref(false)
 const signingProgress = ref()
 const pstFileElementRef = ref()
 const pstFileModel = ref()
+const showActionConfirmationSlider = ref(false)
+const signTransactionInitiatedBy = ref('')
 
 const signatureCount = computed(() => {
   if (multisigWallet.value && multisigTransaction.value) {
@@ -405,7 +416,14 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const signTransaction = async ({ signerEntityKey }) => {
+
+const initiateSignTransaction = async ({ signerEntityKey }) => {
+ showActionConfirmationSlider.value = true
+ signTransactionInitiatedBy.value = signerEntityKey
+}
+
+const executeSignTransaction = async ({ signerEntityKey }) => {
+  signTransactionInitiatedBy.value = '' // Reset
   if (!multisigWallet.value) return
   if (hdPrivateKeys.value[signerEntityKey]) {
     await loadHdPrivateKeys(multisigWallet.value.lockingData.hdKeys.hdPublicKeys)
@@ -643,6 +661,24 @@ const checkSigningProgress = async () => {
   } finally {
     checkingSigningProgress.value = false
   }
+}
+
+const onConfirmSliderSwiped = async (reset) => {
+  showActionConfirmationSlider.value = false
+  await new Promise((resolve, reject) => {
+    $q.dialog({ component: SecurityCheckDialog })
+    .onOk(() => {
+      showActionConfirmationSlider.value = false
+      executeSignTransaction({ signerEntityKey: signTransactionInitiatedBy.value })
+      resolve(true)
+    })
+    .onDismiss(() => {
+      signTransactionInitiatedBy.value = ''
+      reset?.()
+      resolve(false)
+    })
+
+  })
 }
 
 watch(() => signatureCount.value, () => {
