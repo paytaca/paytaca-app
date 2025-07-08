@@ -136,62 +136,63 @@ export default {
         .filter(a => a.address === this.rsvp.bch_address)
 
       if (walletAddress.length > 0) {
-        const lastAddressWif = walletAddress[0].wif
-        const decodedWif = decodePrivateKeyWif(lastAddressWif)
-        const pubkey = secp256k1.derivePublicKeyCompressed(decodedWif.privateKey)
-        const pubkeyHex = Buffer.from(pubkey).toString('hex')
-        let buyerSig = null
-        if (this.rsvp.sale_group === SaleGroup.PUBLIC) {
-          buyerSig = new SignatureTemplate(decodedWif.privateKey)
-        }
-  
         // send paid bch to lift swap contract
         const bch = this.purchase.bch
-        // const recipient = [{
-        //   address: this.liftSwapContractAddress,
-        //   amount: bch,
-        //   tokenAmount: undefined
-        // }]
-        // const changeAddress = getChangeAddress('bch')
-        // const result = await getWalletByNetwork(this.wallet, 'bch')
-        //   .sendBch(0, '', changeAddress, null, undefined, recipient)
-        const result = { success: true, txid: '' }
+        const recipient = [{
+          address: this.liftSwapContractAddress,
+          amount: bch,
+          tokenAmount: undefined
+        }]
+        const changeAddress = getChangeAddress('bch')
+        const result = await getWalletByNetwork(this.wallet, 'bch')
+          .sendBch(0, '', changeAddress, null, undefined, recipient)
+        console.log(result)
+        // const result = { success: true, txid: '' }
   
-        if (result.success) {
-          // record transaction
-          const satsWithFee = bch * (10 ** 8) + 1000
+        // if (result.success) {
+        //   // record transaction
+        //   const lastAddressWif = walletAddress[0].wif
+        //   const decodedWif = decodePrivateKeyWif(lastAddressWif)
+        //   const pubkey = secp256k1.derivePublicKeyCompressed(decodedWif.privateKey)
+        //   const pubkeyHex = Buffer.from(pubkey).toString('hex')
+        //   let buyerSig = null
+        //   if (this.rsvp.sale_group === SaleGroup.PUBLIC) {
+        //     buyerSig = new SignatureTemplate(decodedWif.privateKey)
+        //   }
           
-          let lockupYears = 0
-          if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
-          else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
-          const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
-          const tokenAddress = await getWalletTokenAddress()
+        //   const satsWithFee = bch * (10 ** 8) + 1000
+          
+        //   let lockupYears = 0
+        //   if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
+        //   else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
+        //   const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
+        //   const tokenAddress = await getWalletTokenAddress()
     
-          const data = {
-            purchased_amount_usd: this.purchase.usd,
-            purchased_amount_tkn: this.purchase.tkn,
-            purchased_amount_sats: satsWithFee,
-            purchased_date: new Date().toISOString(),
-            lockup_date: new Date(lockupPeriod).toISOString(),
-            reservation: this.rsvp.id,
-            partial_purchase: this.rsvp.reservation_partial_purchase.id,
-            tx_id: result.txid,
-            buyer_pubkey: pubkeyHex,
-            buyer_sig: buyerSig,
-            buyer_token_address: tokenAddress
-          }
+        //   const data = {
+        //     purchased_amount_usd: this.purchase.usd,
+        //     purchased_amount_tkn: this.purchase.tkn,
+        //     purchased_amount_sats: satsWithFee,
+        //     purchased_date: new Date().toISOString(),
+        //     lockup_date: new Date(lockupPeriod).toISOString(),
+        //     reservation: this.rsvp.id,
+        //     partial_purchase: this.rsvp.reservation_partial_purchase.id,
+        //     tx_id: result.txid,
+        //     buyer_pubkey: pubkeyHex,
+        //     buyer_sig: buyerSig,
+        //     buyer_token_address: tokenAddress
+        //   }
     
-          const isSuccessful = await processPurchaseApi(data)
+        //   const isSuccessful = await processPurchaseApi(data)
   
-          if (isSuccessful) {
-            this.$refs.confirmDialogRef.$emit('ok')
-            this.$refs.confirmDialogRef.hide()
-          } else {
-            raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
-          }
-        } else {
-          raiseNotifyError('Unable to process your purchase. Please try again later.')
-        }
+        //   if (isSuccessful) {
+        //     this.$refs.confirmDialogRef.$emit('ok')
+        //     this.$refs.confirmDialogRef.hide()
+        //   } else {
+        //     raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
+        //   }
+        // } else {
+        //   raiseNotifyError('Unable to process your purchase. Please try again later.')
+        // }
       } else {
         raiseNotifyError('The BCH address used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.')
       }

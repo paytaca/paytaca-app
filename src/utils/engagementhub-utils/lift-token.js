@@ -1,6 +1,7 @@
-import axios from 'axios'
-
+import { createSighashPreimage, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils"
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
+
+import axios from 'axios'
 
 export const SaleGroup = {
   SEED: 'seed',
@@ -17,6 +18,37 @@ export const SaleGroupPrice = {
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const LIFTTOKEN_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}lifttoken/` })
+
+// ================================
+// non-Promise functions
+// ================================
+
+export function processGenerateSigParams() {
+  
+}
+
+/**
+ * @param {Object} params
+ * @param {SignatureTemplate} params.template
+ * @param {Number} params.inputIndex
+ * @param {import("@bitauth/libauth").TransactionBCH} params.transaction
+ * @param {import("@bitauth/libauth").Output[]} params.sourceOutputs
+ * @param {Boolean} [params.includeSignature]
+ */
+export function generateP2PKHSig(params) {
+  const template = params?.template
+  const transaction = params?.transaction
+  const sourceOutputs = params?.sourceOutputs
+  const inputIndex = params?.inputIndex
+
+  const pubkey = template.getPublicKey();
+  const prevOutScript = publicKeyToP2PKHLockingBytecode(pubkey);
+  const hashtype = template.getHashType();
+  const preimage = createSighashPreimage(transaction, sourceOutputs, inputIndex, prevOutScript, hashtype);
+  const sighash = hash256(preimage);
+
+  return template.generateSignature(sighash);
+}
 
 // ================================
 // functions with calls to engagement hub
