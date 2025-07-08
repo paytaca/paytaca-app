@@ -418,8 +418,10 @@ const darkMode = computed(() => {
 
 
 const initiateSignTransaction = async ({ signerEntityKey }) => {
- showActionConfirmationSlider.value = true
- signTransactionInitiatedBy.value = signerEntityKey
+  const progress = await checkSigningProgress()
+  if (progress.value === 'fully-signed') return
+  showActionConfirmationSlider.value = true
+  signTransactionInitiatedBy.value = signerEntityKey
 }
 
 const executeSignTransaction = async ({ signerEntityKey }) => {
@@ -656,6 +658,7 @@ const checkSigningProgress = async () => {
       multisigTransaction: multisigTransaction.value
     })
     multisigTransaction.value = structuredClone($store.getters['multisig/getTransactionByHash']({ hash: route.params.hash }))
+    return signingProgress.value
   } catch (e) {
     console.log(e)
   } finally {
