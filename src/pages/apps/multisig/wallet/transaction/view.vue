@@ -419,7 +419,7 @@ const darkMode = computed(() => {
 
 const initiateSignTransaction = async ({ signerEntityKey }) => {
   const progress = await checkSigningProgress()
-  if (progress.value === 'fully-signed') return
+  if (progress === 'fully-signed') return
   showActionConfirmationSlider.value = true
   signTransactionInitiatedBy.value = signerEntityKey
 }
