@@ -1,24 +1,5 @@
 import axios from 'axios'
 
-export function updateCoinsList (context, { force = true }) {
-  if (Array.isArray(context.state.coinsList) && context.state.coinsList.length && !force) {
-    return { data: context.state.coinsList, _fromVuexStore: true }
-  }
-
-  return axios
-    .get(
-      'https://api.coingecko.com/api/v3/coins/list',
-      { params: { include_platform: true } }
-    )
-    .then(response => {
-      if (Array.isArray(response.data)) {
-        context.commit('updateCoinsList', response.data)
-        return response
-      }
-      return Promise.reject({ response })
-    })
-}
-
 export async function updateSupportedCurrencies (context, { force = true }) {
   if (Array.isArray(context.state.currencyOptions) && context.state.currencyOptions.length >= 1 && !force) return
 

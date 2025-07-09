@@ -342,12 +342,10 @@ export default {
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 
-      vm.$store.dispatch('market/updateCoinsList', { force: false })
-        .finally(() => {
-          vm.assetPricesUpdateIntervalId = setInterval(() => {
-            vm.$store.dispatch('market/updateAssetPrices', {})
-          }, 60 * 1000)
-        })
+      vm.$store.commit('market/updateCoinsList', [])
+      vm.assetPricesUpdateIntervalId = setInterval(() => {
+        vm.$store.dispatch('market/updateAssetPrices', {})
+      }, 60 * 1000)
     }, 500)
   }
 }
