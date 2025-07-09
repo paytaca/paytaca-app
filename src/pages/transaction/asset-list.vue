@@ -21,7 +21,7 @@
 				<div class="col text-right">
 					<div class="row">
 						<div class="col">
-							<AssetFilter v-if="!stablehedgeView" :float="false" @filterTokens="isCT => isCashToken = isCT" />
+							<AssetFilter :float="false" @filterTokens="isCT => isCashToken = isCT" />
 						</div>
 						<div class="col">
 							<q-btn round flat padding="3px" @click="addNewAsset()">
@@ -32,42 +32,69 @@
 				</div>				
 			</div>
 
-			<div class="full-width" style="margin-top: 20px ;">
+			<div class="text-black full-width" style="margin-top: 20px ;">
 			    <q-list :key="assetListKey" separator class="br-15 q-pa-md">
-			      <q-item v-for="(asset, index) in assets" class="q-pa-sm">
-			      	<q-item-section avatar>
-			          <q-avatar>
-			            <img :src="asset.logo">
-			          </q-avatar>
-			        </q-item-section>
-			        <q-item-section>
-			        	<div class="text-bold ">{{ asset.name}}</div>
-			        	<div :class="darkmode ? 'text-grey-6' : 'text-grey-8'">
-			      			{{ formatAssetTokenAmount(asset) }}			      			
-			      		</div>
-			        </q-item-section>
-			      	<q-item-section side  v-if="!editAssets">			      		
-			      		<q-rating
-			      			readonly
-					        v-model="asset.favorite"
-					        max="1"
-					        size="2em"
-					        color="amber-6"
-					        icon="star_border"
-					        icon-selected="star"
-					        @click.stop="updateFavorite(asset)"					      
-					      />			      						      				      	
-			      	</q-item-section>
-			      	<q-item-section side v-else>	
-			      		<q-btn round flat padding="3px" @click="removeAsset(asset)">		      		
-			      			<q-icon name="close" color="red"></q-icon>			      						      				      	
-			      		</q-btn>
-			      	</q-item-section>
-			      </q-item>
-			     			      
+			      	<draggable			      		
+			      		:list="assetList" 
+						group="assets" 
+						@start="drag=true" 
+						@end="drag=false" 
+						handle=".handle"
+						item-key="id"
+			      	>
+			      	    <template #item="{element: asset, index}">
+			      	    	<q-item class="q-pa-sm">		
+			      	    	  <i v-if="editAssets" class="fa fa-align-justify handle"></i>			      	    			      	    	
+						      <q-item-section avatar class="q-pl-md">
+						          <q-avatar>
+						            <img :src="asset.logo">
+						          </q-avatar>
+						        </q-item-section>
+						        <q-item-section>
+						        	<div class="text-bold ">{{ asset.name}}</div>
+						        	<div :class="darkmode ? 'text-grey-6' : 'text-grey-8'">
+						      			{{ formatAssetTokenAmount(asset) }}			      			
+						      		</div>
+						        </q-item-section>
+						      	<q-item-section side  v-if="!editAssets">			      		
+						      		<q-rating
+						      			readonly
+								        v-model="asset.favorite"
+								        max="1"
+								        size="2em"
+								        color="amber-6"
+								        icon="star_border"
+								        icon-selected="star"
+								        @click.stop="updateFavorite(asset)"					      
+								      />			      						      				      	
+						      	</q-item-section>
+						      	<q-item-section side v-else>	
+						      		<q-btn round flat padding="3px" @click="removeAsset(asset)">		      		
+						      			<q-icon name="close" color="red"></q-icon>			      						      				      	
+						      		</q-btn>
+						      	</q-item-section>
+						      </q-item>
+
+			      	    </template>
+				      <!-- <q-item v-for="(asset, index) in assets" class="q-pa-sm"> -->
+
+			        </draggable>  
 			    </q-list>
 			  </div>	
 		</div>
+
+		<!-- <div class="text-black">
+			<draggable 
+			  v-model="assetList" 
+			  group="assets" 
+			  @start="drag=true" 
+			  @end="drag=false" 
+			  item-key="id">
+			  <template #item="{element}">
+			    <div>{{element.name}}</div>
+			   </template>
+			</draggable>
+		</div> -->
 		<footer-menu ref="footerMenu" />
 		<TokenSuggestionsDialog
 	      ref="tokenSuggestionsDialog"
@@ -83,6 +110,7 @@ import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme
 import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from '../../wallet'
 import { markRaw } from '@vue/reactivity'
+import draggable from 'vuedraggable'
 
 import headerNav from 'src/components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
@@ -94,11 +122,17 @@ export default {
 	data () {
 		return {
 			isCashToken: true,
+			assetList: [],
 			favorites: [],
 			assetListKey: 0,
 			showTokenSuggestionsDialog: false,
 			editAssets: false,
-			wallet: null,		
+			wallet: null,	
+			drag: false,	
+			test: [
+				{id: 1, name: 'apple' }, 
+				{id: 2, name: 'banana' },
+				{id: 3, name: 'coconut' }]
 		}
 	},
 	computed: {
@@ -155,7 +189,8 @@ export default {
 		AssetFilter,
 		TokenSuggestionsDialog,
 		AddNewAsset,
-		RemoveAsset
+		RemoveAsset,
+		draggable
 	},
 	watch: {		
 	},
@@ -165,6 +200,8 @@ export default {
 
 		this.checkEmptyFavorites()
 		this.$store.dispatch('assets/initializeFavorites', this.assets)
+
+		this.assetList = this.assets
 
 		this.favorites = this.assets.map(asset => asset.favorite)
 	},
@@ -253,5 +290,10 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+.handle {
+  float: left;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
 
 </style>
