@@ -138,7 +138,7 @@ export default {
       ) {
         return 'comp'
       }
-      return this.purchase.vesting_details.length > 0 ? 'vest' : 'lock'
+      return this.purchase.purchase_vesting_details.length > 0 ? 'vest' : 'lock'
     }
   },
 
