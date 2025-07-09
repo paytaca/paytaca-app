@@ -172,6 +172,7 @@ export default {
             purchased_amount_sats: satsWithFee,
             purchased_date: new Date().toISOString(),
             lockup_date: new Date(lockupPeriod).toISOString(),
+            lockup_years: lockupYears,
             reservation: this.rsvp.id,
             partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1,
             tx_id: result.txid,
