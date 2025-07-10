@@ -51,10 +51,16 @@ export function getTransactionsByLockingBytecode (state) {
   }
 }
 
+// export function getTransactionsByWalletAddress (state, getters) {
+//   return ({ address }) => {
+//     const lockingBytecodeHex = binToHex(cashAddressToLockingBytecode(address).bytecode)
+//     return getters.getTransactionsByLockingBytecode({ lockingBytecodeHex })
+//   }
+// }
+
 export function getTransactionsByWalletAddress (state, getters) {
   return ({ address }) => {
-    const lockingBytecodeHex = binToHex(cashAddressToLockingBytecode(address).bytecode)
-    return getters.getTransactionsByLockingBytecode({ lockingBytecodeHex })
+    return state.transactions?.filter(t => t.address === address)
   }
 }
 /**
