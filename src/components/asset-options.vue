@@ -43,6 +43,7 @@ import DepositFormDialog from 'src/components/stablehedge/DepositFormDialog.vue'
 import RedeemFormDialog from 'src/components/stablehedge/RedeemFormDialog.vue'
 import DepositDialog from 'src/components/stablehedge/DepositDialog.vue';
 import RedeemDialog from 'src/components/stablehedge/RedeemDialog.vue';
+import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue'
 
 export default {
 	data () {
@@ -64,7 +65,7 @@ export default {
 			stablehedgeOpt: [		
 		        { name: 'freeze', icon: 'ac_unit' },
 		        { name: 'unfreeze', icon: 'img:unfreeze.svg' },		        
-		        { name: 'price chart', icon: 'query_stats' }
+		        { name: 'stats', icon: 'query_stats' }
 			],
 		}
 	},
@@ -93,8 +94,9 @@ export default {
 	emits: [
 		'cashin', 
 		'price-chart',
-    	'deposit',
-    	'redeem'
+		'stats',
+    'deposit',
+    'redeem'
   	],
 	computed: {
 		darkmode () {
@@ -134,6 +136,9 @@ export default {
 		        case 'price chart':
 		          this.$emit('price-chart')
 		          break
+		        case 'stats':
+		        	this.$emit('stats')
+		        	break
 		      } 
 		},
 		disableButton (name) {

@@ -193,6 +193,7 @@
             @price-chart="openPriceChart()"
             @deposit="onStablehedgeTransaction"
             @redeem="onStablehedgeTransaction"
+            @stats="openStablehedgeMarketsDialog = true"
 
           />
           <div
@@ -279,7 +280,7 @@
               <KeepAlive>
                 <div v-if="stablehedgeView" class="row items-center q-px-lg">
                   <q-space/>
-                  <q-btn
+                  <!-- <q-btn
                     flat
                     no-caps
                     icon="query_stats"
@@ -287,7 +288,7 @@
                     class="button button-text-primary"
                     :class="getDarkModeClass(darkMode)"
                     @click="() => openStablehedgeMarketsDialog = true"
-                  />
+                  /> -->
                   <StablehedgeMarketsDialog v-model="openStablehedgeMarketsDialog"/>
                 </div>
               </KeepAlive>

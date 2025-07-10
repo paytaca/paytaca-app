@@ -6,13 +6,13 @@
 	    ></header-nav>
 		<div :class="darkmode ? 'text-white' : 'text-black'">
 
-			<div class="row"> 
+			<div class="row" v-if="!editAssets"> 
 				<div class="col">
 					<div class="row q-px-lg">						
 						<q-btn round flat padding="3px" @click="checkMissingAssets({autoOpen: true})">
 							<q-icon class="primary-filter" size="25px" name="img:scan.svg"/>
 						</q-btn>
-						<q-btn round class="q-ml-sm" flat padding="3px" @click="editAssets = !editAssets">
+						<q-btn round class="q-ml-sm" flat padding="3px" @click="editAssets = true">
 							<q-icon class="primary-filter" size="25px" name="edit"/>
 						</q-btn>
 					</div>					
@@ -30,6 +30,11 @@
 						</div>						
 					</div>					
 				</div>				
+			</div>
+			<div v-else>
+				<div class="q-px-lg text-right">
+					<q-btn flat round padding="3px" icon="close" color="red" @click="editAssets = false"/>
+				</div>
 			</div>
 
 			<div class="text-black full-width" style="margin-top: 20px ;">
@@ -283,7 +288,7 @@ export default {
 	        })
 	        vm.$emit('removed-asset', asset)
 	      }).onCancel(() => {
-	      	this.editAssets = false	      	
+	      	// this.editAssets = false	      	
 	      })
 	    },
 	}	
