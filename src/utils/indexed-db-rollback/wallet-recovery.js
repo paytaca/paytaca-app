@@ -307,7 +307,9 @@ export async function recoverWalletsFromStorage() {
 
     // Await the first wallet only
     const firstIndex = walletIndices[0]
-    await recoverWallet(firstIndex, true)
+    await recoverWallet(firstIndex, true).catch(error => {
+        Store.commit('global/setWalletRecoveryMessage', String(error))
+    })
     Store.commit('global/updateWalletIndex', firstIndex)
     walletIndices.shift()
 
@@ -317,5 +319,7 @@ export async function recoverWalletsFromStorage() {
         Store.commit('global/setWalletsRecovered', true)
         localStorage.setItem(WALLET_RECOVERY2_FLAG_KEY, true)
         console.log('[Wallet Recovery] All wallets recovered successfully.')
+    }).catch(error => {
+        Store.commit('global/setWalletRecoveryMessage', String(error))
     })
 }

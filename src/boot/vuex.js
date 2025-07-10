@@ -42,7 +42,9 @@ export default boot(async (obj) => {
 
     app.use(store)
 
-    await recoverWalletsFromStorage()
+    await recoverWalletsFromStorage().catch(error => {
+      store.commit('global/setWalletRecoveryMessage', String(error))
+    })
     await resetWalletsAssetsList()
     updatePreferences()
     populateMissingVaults()
