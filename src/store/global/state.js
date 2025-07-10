@@ -123,5 +123,6 @@ export default function () {
       verified: false
     },
     walletsRecovered: false, // Flag to check if wallets have been recovered from storage
+    walletRecoveryMessage: '',
   }
 }

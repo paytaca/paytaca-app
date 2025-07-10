@@ -207,6 +207,7 @@ import {
 } from 'src/wallet/chipnet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
+import { toTokenAddress } from 'src/utils/crypto'
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
 
@@ -799,6 +800,14 @@ export default {
     })
 
     await self.wakeLock.release()
+  },
+
+  async beforeMount() {
+    const result = await this.$store.dispatch('global/autoGenerateAddress', {
+      walletType: this.walletType,
+      tokenId: this.assetId.replace('ct/', '').replace('slp/', '')
+    })
+    console.log('Auto generate address', result)
   },
 
   async mounted () {

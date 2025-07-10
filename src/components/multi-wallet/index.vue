@@ -95,6 +95,7 @@
       <div v-if="!isWalletsRecovered" class="row justify-center text-center q-pb-md q-mx-lg q-px-lg">
         <span class="q-mb-md" :class="getDarkModeClass(darkMode)">
           <q-spinner class="q-mr-sm"/><i>Recovering your wallets, please wait</i>
+          <div v-if="walletRecoveryMessage">{{ walletRecoveryMessage }}</div>
         </span>
       </div>
     </q-card>
@@ -290,6 +291,9 @@ export default {
     isWalletsRecovered () {
       const recovered = this.$store.getters['global/isWalletsRecovered']
       return recovered
+    },
+    walletRecoveryMessage() {
+      return this.$store.getters['global/walletRecoveryMessage']
     }
   },
   async mounted () {
