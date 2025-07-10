@@ -1,6 +1,6 @@
 <template>
 	<div id="app-container" :class="darkmode ? 'dark' : 'light'">
-		<header-nav :title="$t('Transactions')" class="apps-header" />
+		<header-nav :title="$t('Transactions')" class="apps-header" backnavpath="/"/>
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
@@ -215,10 +215,17 @@ export default {
 		StablehedgeHistory,
 		// assetList
 	},
-	async mounted () {
+	async mounted () {		
+		const asset = this.$store.getters['assets/getAsset'](this.$route.query.assetID)		
+
+
+		if (asset.length > 0) {
+			this.selectedAsset = asset[0]			
+		}
+
 		await this.loadWallets()
 		this.$nextTick(() => {
-	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter)
+	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, asset.length > 0 ? this.selectedAsset : null )
 	        this.$refs['transaction-list-component'].getTransactions()
 	      })
 	},

@@ -1018,11 +1018,13 @@ export default {
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
       this.getBalance(asset.id)
-      this.$nextTick(() => {
-        this.$refs['transaction-list-component'].resetValues(null, null, asset)
-        this.$refs['transaction-list-component'].getTransactions()
-      })
+      // this.$nextTick(() => {
+      //   this.$refs['transaction-list-component'].resetValues(null, null, asset)
+      //   this.$refs['transaction-list-component'].getTransactions()
+      // })
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
+
+      this.$router.push({name: 'transaction-list', query: { assetID: asset.id }})
     },
     getBalance (id) {
       const vm = this
