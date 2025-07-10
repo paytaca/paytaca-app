@@ -186,17 +186,14 @@ export function deleteAllTransactions ({ commit }) {
 }
 
 export async function fetchTransactions ({ commit, rootGetters }, multisigWallet) {
-  console.log('fetching transactions')
+  
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  console.log('watchtower', watchtower)
   const walletVault = rootGetters['global/getVault']
-  console.log('walletVault', walletVault)
   const authCredentials = await generateAuthCredentialsForFirstSignerWithPrivateKey({ 
     multisigWallet,
-    walletVault: rootGetters['global/getVault'] 
+    walletVault
   })
   
-  console.log('AUTH CREDENTIALS', authCredentials)
   const response = await axios.get(
     `${watchtower}/api/multisig/wallets/${multisigWallet.id}/transaction-proposals/`,
     {
@@ -205,9 +202,14 @@ export async function fetchTransactions ({ commit, rootGetters }, multisigWallet
       }
     }
   )
-  console.log('response', response)
+  
   response.data?.forEach((multisigTransaction) => {
     const transaction = ms.importPst({ pst: multisigTransaction })
+    if (!transaction.address) {
+      const cashAddressNetworkPrefix = rootGetters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet: CashAddressNetworkPrefix.mainnet
+      transaction.address = ms.getMultisigCashAddress({ 
+        ...multisigWallet, cashAddressNetworkPrefix })
+    }
     commit('saveTransaction', transaction)
   })
 }
