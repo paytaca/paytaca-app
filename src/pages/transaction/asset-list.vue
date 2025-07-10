@@ -33,7 +33,7 @@
 			</div>
 
 			<div class="text-black full-width" style="margin-top: 20px ;">
-			    <q-list :key="assetListKey" separator class="br-15 q-pa-md">
+			    <q-list :key="assetListKey" bordered class="br-15 q-ma-md" style="background-color: #fff">
 			      	<draggable			      		
 			      		:list="assetList" 
 						group="assets" 
@@ -43,8 +43,8 @@
 						item-key="id"
 			      	>
 			      	    <template #item="{element: asset, index}">
-			      	    	<q-item class="q-pa-sm">		
-			      	    	  <i v-if="editAssets" class="fa fa-align-justify handle"></i>			      	    			      	    	
+			      	    	<q-item class="q-pa-sm" :class="index%2 === 0 ? 'asset-item': ''">
+			      	    	  <i v-if="editAssets" class="q-pl-sm fa fa-align-justify handle"></i>			      	    			      	    	
 						      <q-item-section avatar class="q-pl-md">
 						          <q-avatar>
 						            <img :src="asset.logo">
@@ -70,7 +70,7 @@
 						      	</q-item-section>
 						      	<q-item-section side v-else>	
 						      		<q-btn round flat padding="3px" @click="removeAsset(asset)">		      		
-						      			<q-icon name="close" color="red"></q-icon>			      						      				      	
+						      			<q-icon name="delete" color="gray"></q-icon>			      						      				      	
 						      		</q-btn>
 						      	</q-item-section>
 						      </q-item>
@@ -294,6 +294,9 @@ export default {
   float: left;
   padding-top: 8px;
   padding-bottom: 8px;
+  color:gray; 
 }
-
+.asset-item {	
+	background-color: #dce9e9 !important; 
+}
 </style>
