@@ -1,6 +1,6 @@
 export default function () {
   return {
-    coinsList: [],
+    coinsList: [], // this won't be used anymore but kept to clear this existing wallets' vuex storage
     currencyOptions: [
       { name: 'United States Dollar', symbol: 'USD' }
     ],

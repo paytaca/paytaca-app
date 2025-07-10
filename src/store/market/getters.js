@@ -1,8 +1,3 @@
-export function coinsList (state) {
-  if (Array.isArray(state.coinsList)) return []
-  return state.coinsList
-}
-
 export function currencyOptions (state) {
   if (!Array.isArray(state.currencyOptions)) return []
   return state.currencyOptions

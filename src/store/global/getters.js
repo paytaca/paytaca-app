@@ -14,6 +14,10 @@ export function isWalletsRecovered (state) {
   return state.walletsRecovered
 }
 
+export function walletRecoveryMessage(state) {
+  return state.walletRecoveryMessage
+}
+
 export function theme (state) {
   return state.theme
 }

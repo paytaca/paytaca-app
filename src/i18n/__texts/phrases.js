@@ -1371,6 +1371,13 @@ const phrases = {
       PageLiveTimeframe: '{days} days, {hours} hours, {minutes} minutes, {seconds} seconds',
       RewardsRedeemDyn1: 'When redeeming your {points}, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.',
       RewardsRedeemDyn2: 'This action will convert your points to Paytaca tokens. Conversion rate is 1 {points} = 1 PTC.',
+    },
+    {
+      MarketplaceCashbackMsgOneTime: 'Get {percent}% cashback!',
+      MarketplaceCashbackMsg: 'Get {min} - {max}% cashback!',
+      MarketplaceCashbackDescOneTime: 'Order now and get {percent}% cashback!',
+      MarketplaceCashbackDesc: 'Order now and get {mix} - {max}% cashback!',
+      MarketplaceCashbackDescSub: 'Get up to maximum cashback value of {amount} {currency}.'
     }
   ]
 }

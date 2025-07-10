@@ -15,14 +15,14 @@ export function sanitizeVault() {
 
                 // Check for critical fields: e.g., valid non-empty xPubKey
                 const hasValidXPubKey = typeof entry?.wallet?.bch?.xPubKey === 'string' && entry?.wallet?.bch?.xPubKey.trim() !== '';
-                return hasValidXPubKey;
+                return hasValidXPubKey || entry?.deleted;
             }
         );
         
         console.log('[Sanitize Vault] sanitizedVault:', sanitizedVault)
         if (sanitizedVault.length !== vault.length) {
             Store.commit('global/clearVault')
-            Store.commit('global/updateVault', sanitizedVault);
+            sanitizedVault.forEach(vault => Store.commit('global/updateVault', vault))
             console.log('[Sanitize Vault] Invalid entries removed from vault');
         }
     }
