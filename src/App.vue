@@ -232,6 +232,11 @@ export default {
   async mounted () {
     const vm = this
 
+    this.$store.dispatch('global/autoGenerateAddress', { walletType: 'bch' })
+      .then((...results) => console.log('Auto gen address bch', ...results))
+    this.$store.dispatch('global/autoGenerateAddress', { walletType: 'slp' })
+      .then((...results) => console.log('Auto gen address slp', ...results))
+
     // Forcibly disable SmartBCH, in preparation for future deprecation
     this.$store.commit('global/disableSmartBCH')
 

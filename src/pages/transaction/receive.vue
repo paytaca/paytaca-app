@@ -751,36 +751,6 @@ export default {
       if (this.sBCHListener && this.sBCHListener.stop && this.sBCHListener.stop.call) {
         this.sBCHListener.stop()
       }
-    },
-
-    async runAutoGenerateAddressFromBalance() {
-      if (!this.$store.getters['global/autoGenerateAddress']) return 
-      const categoryId = this.assetId?.indexOf?.('ct/') >= 0 ? this.assetId.replace('ct/', '') : ''
-
-      const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
-      const address = this.getAddress(true)
-      
-      const promises = [
-        this.$axios.get(`${baseUrl}/api/balance/bch/${address}/`)
-          .then(response => response?.data?.balance > 0)
-          .catch(() => false)
-      ]
-
-      if (categoryId) {
-        const tokenAddress = toTokenAddress(address)
-        promises.push(
-          this.$axios.get(`${baseUrl}/api/balance/ct/${tokenAddress}/${categoryId}/`)
-            .then(response => response?.data?.balance > 0)
-            .catch(() => false)
-        )
-      }
-
-      const promiseResults = await Promise.all(promises)
-      console.log(promiseResults)
-      const generateNewAddress = promiseResults.some(Boolean)
-      if (generateNewAddress) {
-        this.generateNewAddress()
-      }
     }
   },
 
@@ -833,7 +803,11 @@ export default {
   },
 
   async beforeMount() {
-    await this.runAutoGenerateAddressFromBalance()
+    const result = await this.$store.dispatch('global/autoGenerateAddress', {
+      walletType: this.walletType,
+      tokenId: this.assetId.replace('ct/', '').replace('slp/', '')
+    })
+    console.log('Auto generate address', result)
   },
 
   async mounted () {
