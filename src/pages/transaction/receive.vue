@@ -801,6 +801,19 @@ export default {
     await self.wakeLock.release()
   },
 
+  beforeMount() {
+    if (this.$store.getters['global/autoGenerateAddress']) {
+      const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+      const address = this.getAddress(true)
+      this.$axios.get(`${baseUrl}/api/balance/bch/${address}/`)
+        .then(response => {
+          if (response?.data?.balance > 0) {
+            this.generateNewAddress();
+          }
+        })
+    }
+  },
+
   async mounted () {
     const vm = this
     vm.setupListener()
