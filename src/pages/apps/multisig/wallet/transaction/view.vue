@@ -441,6 +441,7 @@ const executeSignTransaction = async ({ signerEntityKey }) => {
   await $store.dispatch('multisig/addTransactionSignatures', {
     index: route.params.index,
     multisigTransaction: multisigTransaction.value,
+    multisigWallet: multisigWallet.value,
     signerSignatures
   })
 }
@@ -468,7 +469,10 @@ const broadcastTransaction = async () => {
     )
 
     if (finalCompilationResult.success && finalCompilationResult.vmVerificationSuccess) {
-      const response = await $store.dispatch('multisig/broadcastTransaction', multisigTransaction.value)
+      const response = await $store.dispatch(
+        'multisig/broadcastTransaction', 
+        { multisigTransaction: multisigTransaction.value, multisigWallet: multisigWallet.value }
+      )
       console.log('response', response)
       if (response.data?.txid) {
         await showBroadcastSuccessDialog(response.data.txid)
@@ -535,7 +539,7 @@ const onUpdatePstFile = (file) => {
         combinedPst = combinePsts({ psts: [structuredClone(existingMultisigTransaction), importedPst] })
       }
       $store.dispatch('multisig/saveTransaction', combinedPst || importedPst)
-      $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: combinedPst || importedPst })
+      $store.dispatch('multisig/syncTransactionSignatures', { multisigWallet: multisigWallet.value, multisigTransaction: combinedPst || importedPst })
       multisigTransaction.value = combinedPst || importedPst
       updateBroadcastStatus()
       signingProgress.value = getSigningProgress({
@@ -599,7 +603,7 @@ const openTransactionActionsDialog = () => {
           cancel: { label: 'No' },
           class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onOk(() => {
-          $store.dispatch('multisig/deleteTransactionById', { id: multisigTransaction.value.id })
+          $store.dispatch('multisig/deleteTransactionById', { id: multisigTransaction.value.id, multisigWallet: multisigWallet.value })
           router.back()
         }).onCancel(() => {
           openTransactionActionsDialog()
@@ -652,7 +656,7 @@ const updateBroadcastStatus = async () => {
 const checkSigningProgress = async () => {
   try {
     checkingSigningProgress.value = true
-    await $store.dispatch('multisig/syncTransactionSignatures', { multisigTransaction: multisigTransaction.value })
+    await $store.dispatch('multisig/syncTransactionSignatures', { multisigWallet: multisigWallet.value, multisigTransaction: multisigTransaction.value })
     signingProgress.value = getSigningProgress({
       multisigWallet: multisigWallet.value,
       multisigTransaction: multisigTransaction.value
