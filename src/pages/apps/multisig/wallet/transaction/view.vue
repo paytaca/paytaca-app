@@ -603,7 +603,10 @@ const openTransactionActionsDialog = () => {
           cancel: { label: 'No' },
           class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onOk(() => {
-          $store.dispatch('multisig/deleteTransactionById', { id: multisigTransaction.value.id, multisigWallet: multisigWallet.value })
+          $store.dispatch(
+            'multisig/deleteTransactionById', 
+            { id: multisigTransaction.value.id, multisigWallet: multisigWallet.value }
+          )
           router.back()
         }).onCancel(() => {
           openTransactionActionsDialog()
@@ -656,7 +659,10 @@ const updateBroadcastStatus = async () => {
 const checkSigningProgress = async () => {
   try {
     checkingSigningProgress.value = true
-    await $store.dispatch('multisig/syncTransactionSignatures', { multisigWallet: multisigWallet.value, multisigTransaction: multisigTransaction.value })
+    await $store.dispatch(
+      'multisig/syncTransactionSignatures', 
+      { multisigWallet: multisigWallet.value, multisigTransaction: multisigTransaction.value }
+    )
     signingProgress.value = getSigningProgress({
       multisigWallet: multisigWallet.value,
       multisigTransaction: multisigTransaction.value
