@@ -5,6 +5,10 @@ export function setWalletsRecovered (state, value) {
   state.walletsRecovered = Boolean(value)
 }
 
+export function setWalletRecoveryMessage(state, value) {
+  state.walletRecoveryMessage = value
+}
+
 export function updateAppControl (state, data) {
   state.appControl = data
 }

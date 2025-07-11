@@ -1,12 +1,10 @@
 /**
- *
  * @param {Object} state vuex module state
  * @param {{ id: String, name: String, symbol: String, platforms: Object }[]} coinsList
  * @see {@link https://www.coingecko.com/en/api/documentation}
  */
 export function updateCoinsList (state, coinsList) {
-  if (!Array.isArray(coinsList) || !coinsList.length) return
-
+  if (!Array.isArray(coinsList)) return
   state.coinsList = coinsList
 }
 

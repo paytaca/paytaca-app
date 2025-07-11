@@ -385,7 +385,8 @@ const words = [
     Convert: 'Convert',
     Help: 'Help',
     Promo: 'Promo',
-    Remaning: 'remaining'
+    Remaning: 'remaining',
+    MoreInfo: 'More info',
   }
 ]
 

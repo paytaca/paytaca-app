@@ -232,6 +232,11 @@ export default {
   async mounted () {
     const vm = this
 
+    this.$store.dispatch('global/autoGenerateAddress', { walletType: 'bch' })
+      .then((...results) => console.log('Auto gen address bch', ...results))
+    this.$store.dispatch('global/autoGenerateAddress', { walletType: 'slp' })
+      .then((...results) => console.log('Auto gen address slp', ...results))
+
     // Forcibly disable SmartBCH, in preparation for future deprecation
     this.$store.commit('global/disableSmartBCH')
 
@@ -342,12 +347,10 @@ export default {
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 
-      vm.$store.dispatch('market/updateCoinsList', { force: false })
-        .finally(() => {
-          vm.assetPricesUpdateIntervalId = setInterval(() => {
-            vm.$store.dispatch('market/updateAssetPrices', {})
-          }, 60 * 1000)
-        })
+      vm.$store.commit('market/updateCoinsList', [])
+      vm.assetPricesUpdateIntervalId = setInterval(() => {
+        vm.$store.dispatch('market/updateAssetPrices', {})
+      }, 60 * 1000)
     }, 500)
   }
 }
