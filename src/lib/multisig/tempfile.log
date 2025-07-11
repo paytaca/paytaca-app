@@ -1,0 +1,181 @@
+/* eslint-disable camelcase */
+
+import test from 'ava';
+
+import type { CompilationData, TransactionCommon } from '../lib.js';
+import {
+  CashAddressNetworkPrefix,
+  createVirtualMachineBCH,
+  decodeTransactionCommon,
+  encodeTransactionCommon,
+  extractMissingVariables,
+  extractResolvedVariables,
+  generateTransaction,
+  hexToBin,
+  importWalletTemplate,
+  lockingBytecodeToCashAddress,
+  safelyExtendCompilationData,
+  stringify,
+  walletTemplateToCompilerBCH,
+} from '../lib.js';
+
+import {
+  hdPrivateKey0H,
+  hdPrivateKey2H,
+  hdPublicKey0H,
+  hdPublicKey1H,
+  hdPublicKey2H,
+  twoOfThreeJson,
+} from './transaction-e2e.spec.helper.js';
+
+const vm = createVirtualMachineBCH();
+
+// eslint-disable-next-line complexity
+test('transaction e2e tests: 2-of-3 multisig', (t) => {
+  const template = importWalletTemplate(twoOfThreeJson);
+  if (typeof template === 'string') {
+    t.fail(template);
+    return;
+  }
+
+  /**
+   * The HD public keys shared between the entities at wallet creation time
+   */
+  const hdPublicKeys = {
+    signer_1: hdPublicKey0H,
+    signer_2: hdPublicKey1H,
+    signer_3: hdPublicKey2H,
+  };
+
+  const lockingData: CompilationData<never> = {
+    hdKeys: { addressIndex: 0, hdPublicKeys },
+  };
+
+  const lockingScript = 'lock';
+  const compiler = walletTemplateToCompilerBCH(template);
+  const lockingBytecode = compiler.generateBytecode({
+    data: lockingData,
+    scriptId: lockingScript,
+  });
+
+  
+  const address = lockingBytecodeToCashAddress({
+    bytecode: lockingBytecode.bytecode,
+    prefix: CashAddressNetworkPrefix.testnet,
+  });
+
+  const valueSatoshis = 10000;
+  const utxoOutput = {
+    lockingBytecode: lockingBytecode.bytecode,
+    valueSatoshis: BigInt(valueSatoshis),
+  };
+
+  const input1 = {
+    outpointIndex: 1,
+    outpointTransactionHash: hexToBin(
+      '3423be78a1976b4ae3516cda594577df004663ff24f1beb9d5bb63056b1b0a60',
+    ),
+    sequenceNumber: 0,
+    unlockingBytecode: {
+      compiler,
+      script: '1_and_3',
+      valueSatoshis: utxoOutput.valueSatoshis,
+    },
+  };
+
+  const transactionProposal = {
+    locktime: 0,
+    outputs: [
+      {
+        lockingBytecode: hexToBin('6a0b68656c6c6f20776f726c64'),
+        valueSatoshis: 0n,
+      },
+    ],
+    version: 2,
+  };
+
+  const signer1UnlockingData: CompilationData<never> = {
+    ...lockingData,
+    hdKeys: {
+      ...lockingData.hdKeys,
+      hdPrivateKeys: {
+        signer_1: hdPrivateKey0H,
+      },
+    },
+  };
+
+  const signer1Attempt = generateTransaction({
+    ...transactionProposal,
+    inputs: [
+      {
+        ...input1,
+        unlockingBytecode: {
+          ...input1.unlockingBytecode,
+          data: signer1UnlockingData,
+        },
+      },
+    ],
+  });
+
+
+
+  const signer1MissingVariables = extractMissingVariables(signer1Attempt);
+
+
+  const signer1ResolvedVariables = extractResolvedVariables(signer1Attempt);
+
+  const expectedSigner1Signature = hexToBin(
+    '304402205e7d56c4e7854f9c672977d6606dd2f0af5494b8e61108e2a92fc920bf8049fc022065262675b0e1a3850d88bd3c56e0eb5fb463d9cdbe49f2f625da5c0f82c7653041',
+  );
+
+)
+
+  const signer3UnlockingData: CompilationData<never> = {
+    hdKeys: {
+      addressIndex: 0,
+      hdPrivateKeys: {
+        signer_3: hdPrivateKey2H,
+      },
+      hdPublicKeys,
+    },
+  };
+
+  const signer3Attempt = generateTransaction({
+    ...transactionProposal,
+    inputs: [
+      {
+        ...input1,
+        unlockingBytecode: {
+          ...input1.unlockingBytecode,
+          data: signer3UnlockingData,
+        },
+      },
+    ],
+  });
+
+  const signer3UnlockingDataWithMissingVariables = safelyExtendCompilationData(
+    signer3Attempt,
+    signer3UnlockingData,
+    {
+      signer_1: signer1ResolvedVariables,
+    },
+  ) as CompilationData<never>;
+
+  
+  const successfulCompilation = generateTransaction({
+    ...transactionProposal,
+    inputs: [
+      {
+        ...input1,
+        unlockingBytecode: {
+          ...input1.unlockingBytecode,
+          data: signer3UnlockingDataWithMissingVariables,
+        },
+      },
+    ],
+  });
+
+  
+  const { transaction } = successfulCompilation;
+  const result = vm.verify({ sourceOutputs: [utxoOutput], transaction });
+});

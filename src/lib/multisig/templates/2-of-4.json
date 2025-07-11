@@ -1,0 +1,124 @@
+{
+    "$schema": "https://libauth.org/schemas/wallet-template-v0.schema.json",
+    "description": "",
+    "name": "2-of-4 Multisig",
+    "entities": {
+      "signer_1": {
+        "description": "",
+        "name": "Signer 1",
+        "scripts": [
+          "lock",
+          "1_and_2",
+          "1_and_3",
+          "1_and_4"
+        ],
+        "variables": {
+          "key1": {
+            "description": "",
+            "name": "key1",
+            "type": "HdKey"
+          }
+        }
+      },
+      "signer_2": {
+        "description": "",
+        "name": "Signer 2",
+        "scripts": [
+          "lock",
+          "1_and_2",
+          "2_and_3",
+          "2_and_4"
+        ],
+        "variables": {
+          "key2": {
+            "description": "",
+            "name": "key2",
+            "type": "HdKey"
+          }
+        }
+      },
+      "signer_3": {
+        "description": "",
+        "name": "Signer 3",
+        "scripts": [
+          "lock",
+          "1_and_3",
+          "2_and_3",
+          "3_and_4"
+        ],
+        "variables": {
+          "key3": {
+            "description": "",
+            "name": "key3",
+            "type": "HdKey"
+          }
+        }
+      },
+      "signer_4": {
+        "description": "",
+        "name": "signer_4",
+        "scripts": [
+          "lock",
+          "1_and_4",
+          "2_and_4",
+          "3_and_4"
+        ],
+        "variables": {
+          "key4": {
+            "description": "",
+            "name": "key4",
+            "type": "HdKey"
+          }
+        }
+      }
+    },
+    "scripts": {
+      "1_and_2": {
+        "name": "Cosigner 1 & 2",
+        "script": "<0b11>\n<key1.schnorr_signature.all_outputs>\n<key2.schnorr_signature.all_outputs>",
+        "unlocks": "lock"
+      },
+      "1_and_3": {
+        "name": "Cosigner 1 & 3",
+        "script": "<0b101>\n<key1.schnorr_signature.all_outputs>\n<key3.schnorr_signature.all_outputs>",
+        "unlocks": "lock"
+      },
+      "1_and_4": {
+        "name": "Cosigner 1 & 4",
+        "script": "<0b1001>\n<key1.schnorr_signature.all_outputs>\n<key4.schnorr_signature.all_outputs>",
+        "unlocks": "lock"
+      },
+      "2_and_3": {
+        "name": "Cosigner 2 & 3",
+        "script": "<0b110>\n<key2.schnorr_signature.all_outputs>\n<key3.schnorr_signature.all_outputs>",
+        "unlocks": "lock"
+      },
+      "2_and_4": {
+        "name": "Cosigner 2 & 4",
+        "script": "<0b1010>\n<key2.schnorr_signature.all_outputs>\n<key4.schnorr_signature.all_outputs>",
+        "unlocks": "lock"
+      },
+      "3_and_4": {
+        "name": "Cosigner 3 & 4",
+        "script": "<0b1100>\n<key3.schnorr_signature.all_outputs>\n<key4.schnorr_signature.all_outputs>",
+        "unlocks": "lock"
+      },
+      "lock": {
+        "lockingType": "p2sh20",
+        "name": "2-of-3 Vault",
+        "script": "OP_2\n<key1.public_key>\n<key2.public_key>\n<key3.public_key>\n<key4.public_key>\nOP_4\nOP_CHECKMULTISIG\n"
+      }
+    },
+    "supported": [
+      "BCH_2020_05",
+      "BCH_2021_05",
+      "BCH_2022_05",
+      "BCH_2023_05",
+      "BCH_2024_05",
+      "BCH_2025_05",
+      "BCH_2026_05",
+      "BCH_SPEC",
+      "BTC_2017_08"
+    ],
+    "version": 0
+  }
