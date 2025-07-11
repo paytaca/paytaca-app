@@ -184,13 +184,17 @@ export default {
             buyer_tx_address: this.$store.getters['global/getAddress']('bch')
           }
     
-          const isSuccessful = await processPurchaseApi(data)
+          const resp = await processPurchaseApi(data)
   
-          if (isSuccessful) {
+          if (resp.isSuccessful) {
             this.$refs.confirmDialogRef.$emit('ok')
             this.$refs.confirmDialogRef.hide()
           } else {
-            raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
+            if (resp.message === 'purchase_return_success') {
+              raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
+            } else {
+              raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent will be returned to your wallet shortly.')
+            }
           }
         } else {
           raiseNotifyError('Unable to process your purchase. Please try again later.')

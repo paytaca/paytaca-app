@@ -7,19 +7,21 @@
   >
     <q-card class="q-pa-md pt-card-2 text-bow full-width" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center q-mb-xs">
-        <div>
+        <div class="col-10">
           <sale-group-chip :saleGroup="purchase.purchase_more_details.sale_group" />
           <sale-group-chip :saleGroup="parseStatus()" />
         </div>
 
-        <q-btn
-          flat
-          round
-          padding="xs"
-          icon="close"
-          class="close-button"
-          v-close-popup
-        />
+        <div class="row col-2 justify-end">
+          <q-btn
+            flat
+            round
+            padding="xs"
+            icon="close"
+            class="close-button"
+            v-close-popup
+          />
+        </div>
       </div>
 
       <div class="row">
