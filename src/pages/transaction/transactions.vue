@@ -5,23 +5,20 @@
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
 		<div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-			<div ref="transactionSection" class="row transaction-row">
-		        <transaction
-		          ref="transaction"
-		          :wallet="wallet"
-		          :denominationTabSelected="denominationTabSelected"
-		        />
-		        <div class="col transaction-container" :class="darkmode ? 'text-light' : 'text-dark'">
-		          <div class="row no-wrap justify-between">
-		            <p class="q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
-		              <template v-if="!txSearchActive">
-		                {{ selectedAsset.symbol }}
-		                <span>
-		                  &nbsp;<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
-		                </span>
-		              </template>
-		            </p>
-		            <div class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
+			<div v-if="!txSearchActive" class="row q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
+				<div class="col-9">
+					<!-- <q-item clickable v-ripple class="br-15" > -->
+						<span>
+							<q-icon name="arrow_drop_down"/>
+						</span>
+						{{ selectedAsset.symbol }}
+					<!-- </q-item> -->
+				</div>
+				<div class="col-3 text-right">
+					<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
+				</div>
+			</div>
+			<div v-else class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
 		              <div v-if="txSearchActive" class="full-width">
 		                <q-input
 		                  ref="tx-search"
@@ -59,6 +56,60 @@
 		                />
 		              </template> -->
 		            </div>
+			<div ref="transactionSection" class="row transaction-row">				
+		        <transaction
+		          ref="transaction"
+		          :wallet="wallet"
+		          :denominationTabSelected="denominationTabSelected"
+		        />
+		        <div class="col transaction-container" :class="darkmode ? 'text-light' : 'text-dark'">
+		          <div class="row no-wrap justify-between">
+		            <!-- <p class="q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
+		              <template v-if="!txSearchActive">
+		                {{ selectedAsset.symbol }}
+		                <span>
+		                  &nbsp;<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
+		                </span>
+		              </template>
+		            </p> -->
+		            <!--<div class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
+		              <div v-if="txSearchActive" class="full-width">
+		                <q-input
+		                  ref="tx-search"
+		                  style="margin-left: -20px; padding-bottom: 22px;"
+		                  maxlength="6"
+		                  label="Search by Reference ID"
+		                  v-model="txSearchReference"
+		                  debounce="200"
+		                  @update:model-value="(val) => { txSearchReference = val.toUpperCase().slice(0, 6); executeTxSearch(val) }"
+		                >
+		                  <template v-slot:prepend>
+		                    <q-icon name="search" />
+		                  </template>
+		                  <template v-slot:append>
+		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
+		                  </template>
+		                </q-input>
+		              </div>
+		              <-- <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
+		                <q-btn
+		                  v-if="darkMode"
+		                  unelevated
+		                  @click="openPriceChart"
+		                  icon="img:assets/img/theme/payhero/price-chart.png"
+		                />
+		                <q-btn
+		                  v-else
+		                  round
+		                  color="blue-9"
+		                  padding="xs"
+		                  icon="mdi-chart-line-variant"
+		                  class="q-ml-md"
+		                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
+		                  @click="openPriceChart"
+		                />
+		              </template> --
+		            </div>-->
 		          </div>
 		          <!-- <div
 		            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"
