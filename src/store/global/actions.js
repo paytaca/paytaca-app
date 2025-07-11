@@ -373,7 +373,7 @@ export async function autoGenerateAddress(context, opts) {
     )
   } else {
     promises.push(
-      axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => false)
+      axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => false)
     )
 
     if (opts?.tokenId) {
