@@ -63,7 +63,7 @@
             </q-item-section>
           </q-item>
         <q-separator></q-separator>
-        <q-item-label header>Multisig Address</q-item-label>
+        <q-item-label v-if="multisigAddressOptions?.length > 0" header>Multisig Address</q-item-label>
         <q-item
           v-for="item in multisigAddressOptions"
             :key="item.address"
