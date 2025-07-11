@@ -223,7 +223,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { loadWallet } from 'src/wallet'
-import { buildApprovedNamespaces, getSdkError } from '@walletconnect/utils'
+import { buildApprovedNamespaces, getSdkError, mergeRequiredAndOptionalNamespaces } from '@walletconnect/utils'
 import Watchtower from 'src/lib/watchtower'
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
@@ -624,7 +624,7 @@ const disconnectSession = async (activeSession) => {
   }
 }
 
-const openAddressSelectionDialog = async (sessionProposal) => {
+const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
   try {
     const lastUsedWalletAddress =
       $store.getters['global/lastUsedAddressAtAppUrl'](sessionProposal?.proposer?.metadata?.url)
@@ -637,7 +637,7 @@ const openAddressSelectionDialog = async (sessionProposal) => {
           sessionProposal: sessionProposal,
           darkMode: darkMode.value,
           walletAddresses: walletAddresses.value,
-          multisigWallets: multisigWallets.value,
+          multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })
@@ -669,7 +669,8 @@ const rejectSessionProposal = async (sessionProposal) => {
 const approveSessionProposal = async (sessionProposal) => {
   const proposalExpiry = sessionProposal.expiryTimestamp // Assuming expiry is a timestamp in seconds
   const currentTime = Math.floor(Date.now() / 1000)
-
+  const namespaces = mergeRequiredAndOptionalNamespaces(sessionProposal.requiredNamespaces, sessionProposal.optionalNamespaces)
+  const supportP2SHMultisig = namespaces['bch'].methods.includes('bch_signTransactionP2SHMultisig')
   if (currentTime > proposalExpiry) {
     throw new Error('Session proposal has expired.')
   }
@@ -678,13 +679,14 @@ const approveSessionProposal = async (sessionProposal) => {
   if (walletAddresses.value?.length > 1 || multisigWallets.value.length > 0) {
     // let user select the address wallet has more than 1 address
     processingSession.value[sessionProposal.pairingTopic] = 'Selecting Address'
-    const { selectedWalletAddress } = await openAddressSelectionDialog(sessionProposal)
+    const { selectedWalletAddress } = await openAddressSelectionDialog(sessionProposal, supportP2SHMultisig)
     selectedAddress = selectedWalletAddress
     if (!selectedWalletAddress) {
       processingSession.value[sessionProposal.pairingTopic] = ''
       return
     }
   }
+
   sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic] = selectedAddress
   delete processingSession.value[sessionProposal.pairingTopic]
   processingSession.value[sessionProposal.pairingTopic] = 'Connecting'
@@ -692,12 +694,13 @@ const approveSessionProposal = async (sessionProposal) => {
     const chains = [
       $store.getters['global/isChipnet'] ? CHAINID_CHIPNET : CHAINID_MAINNET
     ]
-    const namespaces = {
+    const supportedNamespaces = {
       bch: {
         methods: [
           'bch_getAddresses',
           'bch_signTransaction',
-          'bch_signMessage'
+          'bch_signMessage',
+          'bch_signTransactionP2SHMultisig'
         ],
         chains: chains,
         events: [
@@ -708,7 +711,7 @@ const approveSessionProposal = async (sessionProposal) => {
     }
     const approvedNamespaces = buildApprovedNamespaces({
       proposal: sessionProposal,
-      supportedNamespaces: namespaces
+      supportedNamespaces: supportedNamespaces
     })
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
@@ -735,7 +738,7 @@ const approveSessionProposal = async (sessionProposal) => {
 
 const respondToSignTransactionRequest = async (sessionRequest) => {
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
-  if (sessionRequest?.params?.request?.method === 'bch_signTransaction') {
+  if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
       if (wallet.template) { // Account with active session is a multisig wallet
