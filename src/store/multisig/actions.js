@@ -4,7 +4,7 @@ import {
   decodeCashAddress,
 } from 'bitauth-libauth-v3'
 import * as ms from 'src/lib/multisig'
-import { generateAuthCredentialsForFirstSignerWithPrivateKey } from 'src/utils/multisig-utils'
+import { generateAuthCredentialsForFirstSignerWithPrivateKey, generateAuthCredentialsForXPub } from 'src/utils/multisig-utils'
 import { watchtowerUtxoToCommonUtxo } from 'src/utils/utxo-utils'
 import Watchtower from 'src/lib/watchtower'
 
@@ -61,8 +61,8 @@ export async function createWallet ({ commit, getters, dispatch }, multisigWalle
 }
 
 export async function fetchWallets ({ commit, rootGetters }, { xpub }) {
-  const authCredentials = await generateAuthCredentialsForFirstSignerWithPrivateKey({ 
-    multisigWallet,
+  const authCredentials = await generateAuthCredentialsForXPub({ 
+    xpub,
     walletVault: rootGetters['global/getVault'] 
   })
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']

@@ -88,7 +88,9 @@ const fetchWallets = async () => {
  localWallets.value?.forEach(async (localWallet) => {
    if (localWallet?.deleted) return 
    if (!localWallet?.wallet?.bch?.xPubKey) return
-   await $store.dispatch('multisig/fetchWallets', { xpub: localWallet.wallet.bch.xPubKey})
+   await $store.dispatch('multisig/fetchWallets', {
+    xpub: localWallet.wallet.bch.xPubKey
+   })
  })
 }
 

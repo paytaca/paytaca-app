@@ -65,3 +65,29 @@ export const generateAuthCredentialsForFirstSignerWithPrivateKey = async ({ mult
     }
     return {}
 }
+
+export const generateAuthCredentialsForXPub = async ({ xpub, walletVault }) => {
+
+    const xprv = await getSignerXPrv({
+        walletVault,
+        xpub
+    })
+
+    if (xprv && xpub) {
+        const decodedPrivateKey = decodeHdPrivateKey(xprv)
+        const decodedPublicKey = decodeHdPublicKey(xpub)
+        const privateKey = deriveHdPathRelative(decodedPrivateKey.node, '0')
+        const publicKey = deriveHdPathRelative(decodedPublicKey.node, '0')
+        const rawMessage = `multisig:${Date.now()}`
+        const message = utf8ToBin(rawMessage);
+        const hash = sha256.hash(message)
+        const schnorr = secp256k1.signMessageHashSchnorr(privateKey.privateKey, hash)
+        const der = secp256k1.signMessageHashDER(privateKey.privateKey, hash)
+        return {
+            'X-Auth-PubKey': binToHex(publicKey.publicKey),
+            'X-Auth-Signature': `schnorr=${binToHex(schnorr)};der=${binToHex(der)}`,
+            'X-Auth-Message': rawMessage
+        }
+    }
+    return {}
+}
