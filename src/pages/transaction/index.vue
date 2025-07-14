@@ -335,6 +335,8 @@
             </asset-cards>
           </template>
           <div v-if="showTokens && assets.length == 0" style="height: 10px;"></div>
+
+          <PendingTransactions/>
         </div>
       </q-pull-to-refresh>
       <!-- <div ref="transactionSection" class="row transaction-row">
@@ -486,6 +488,7 @@ import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
 import AssetOptions from 'src/components/asset-options.vue'
+import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
 
@@ -508,7 +511,8 @@ export default {
     StablehedgeHistory,
     StablehedgeMarketsDialog,
     NotificationButton,
-    AssetOptions
+    AssetOptions,
+    PendingTransactions
   },
   directives: {
     dragscroll
