@@ -250,6 +250,7 @@ export async function finalizeTransaction ({ commit, rootGetters }, { multisigTr
     const watchtower = rootGetters['global/getWatchtowerBaseUrl']
     await axios.post(
       `${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/finalize/`,
+      {},
       { headers: { 'Content-Type': 'application/json', ...authCredentials } }
     )
   }
@@ -264,6 +265,7 @@ export async function broadcastTransaction ({ commit, rootGetters, dispatch }, {
   const watchtower = rootGetters['global/getWatchtowerBaseUrl']
   const response = await axios.post(
     `${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/broadcast/`,
+    {},
     { headers: { 'Content-Type': 'application/json', ...authCredentials } }
   )
   if (response.data?.success || response.data?.error?.includes('txn-already-known') || response.data?.error?.includes('txn-already-in-mempool')) {
