@@ -69,7 +69,11 @@
               <q-separator spaced inset />
               <q-item v-for="signerEntityKey in Object.keys(wallet.template.entities)" :key="`app-multisig-view-signer-${signerEntityKey}`">
                 <q-item-section>
-                  <q-item-label class="text-capitalize text-bold" style="font-variant-numeric: proportional-nums">{{signerEntityKey}}. {{ wallet.template.entities[signerEntityKey].name }}</q-item-label>
+                  <q-item-label
+                    class="text-capitalize text-bold"
+                    style="font-variant-numeric: proportional-nums">
+                    {{signerEntityKey}}. {{ wallet.template.entities[signerEntityKey].name }} <q-icon v-if="hdPrivateKeys?.[signerEntityKey]" name="key" color="warning"></q-icon>
+                    </q-item-label>
                   <q-item-label caption >{{ shortenString(wallet.lockingData.hdKeys.hdPublicKeys[signerEntityKey], 20) }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
@@ -171,9 +175,9 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getMultisigWalletBchBalance, multisigWallets } = useMultisigHelpers()
+const { getMultisigWalletBchBalance, multisigWallets, getSignerXPrv } = useMultisigHelpers()
 const balance = ref()
-
+const hdPrivateKeys = ref()
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
@@ -320,6 +324,23 @@ const onTxProposalClick = async () => {
   }
 }
 
+const loadHdPrivateKeys = async (hdPublicKeys) => {
+  if (!hdPrivateKeys.value) {
+    hdPrivateKeys.value = {}
+  }
+  for (const signerEntityId of Object.keys(hdPublicKeys)) {
+    try {
+      const xprv = await getSignerXPrv({
+        xpub: hdPublicKeys[signerEntityId]
+      })
+      if (xprv) {
+        hdPrivateKeys.value[signerEntityId] = xprv
+      }
+      
+    } catch (e) {} // getSignerXPrv throws if xprv not found, we'll just ignore
+  }
+}
+
 onMounted(async () => {
   try {
     balance.value = await getMultisigWalletBchBalance(
@@ -327,6 +348,7 @@ onMounted(async () => {
     )
     await $store.dispatch('multisig/syncWallet', wallet.value)
     await $store.dispatch('multisig/fetchTransactions', wallet.value)
+    await loadHdPrivateKeys(wallet.value?.lockingData?.hdKeys?.hdPublicKeys)
   } catch (error) {}
 })
 </script>
