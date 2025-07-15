@@ -1,7 +1,7 @@
 <template>
   <div
     class="row text-body1 justify-evenly"
-    id="filter"
+    id="purchases-filter"
     v-if="finalPurchasesList?.length > 0"
   >
     <sale-group-chip
@@ -247,10 +247,13 @@ export default {
 
   mounted () {
     this.finalPurchasesList = this.purchasesList
+  },
 
+  render () {
     const headerNavHeight = document.getElementById('header-nav')?.clientHeight
     const sectionTabHeight = document.getElementById('section-tab')?.clientHeight
-    const filterHeight = document.getElementById('filter')?.clientHeight
+    const filterHeight = document.getElementById('purchases-filter')?.clientHeight
+    console.log(filterHeight)
 
     const divsHeight = headerNavHeight + sectionTabHeight + filterHeight
     const screenHeight = this.$q.screen.height

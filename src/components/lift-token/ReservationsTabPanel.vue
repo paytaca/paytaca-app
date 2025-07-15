@@ -1,7 +1,7 @@
 <template>
   <div
     class="row text-body1 justify-evenly"
-    id="filter"
+    id="rsvp-filter"
     v-if="finalRsvpList?.length > 0"
   >
     <sale-group-chip
@@ -236,7 +236,7 @@ export default {
 
     const headerNavHeight = document.getElementById('header-nav')?.clientHeight
     const sectionTabHeight = document.getElementById('section-tab')?.clientHeight
-    const filterHeight = document.getElementById('filter')?.clientHeight
+    const filterHeight = document.getElementById('rsvp-filter')?.clientHeight
 
     const divsHeight = headerNavHeight + sectionTabHeight + filterHeight
     const screenHeight = this.$q.screen.height
