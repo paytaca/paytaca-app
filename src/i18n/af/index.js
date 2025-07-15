@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "U het 'n nalatenskaplike adres geplak.Maak seker dat dit 'n <span class=\"highlighted-word\">BCH deposit address</span> is, nie 'n BTC-deposito-adres nie.",
   Leverage: "Hefboomfinansiering",
   LiftLeftUnpaid: "{lift} onbetaalde gelaat",
-  LiftToken: "Lift Token",
   LightMode: "Ligte modus",
   Limit: "Limiet",
   Limits: "Perke",

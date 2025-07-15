@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "Ka fitar da adireshin gado.Da fatan za a tabbatar cewa ƙaramin sparar aji ne = \"Ma'anar-Word\"> Adireshin ajiya na BCH <span class=\"highlighted-word\">BCH deposit address</span> ba adireshin ajiya na BCH ba.",
   Leverage: "Leverage",
   LiftLeftUnpaid: "{lift} hagu ba a biya ba",
-  LiftToken: "Ya ɗaga alama",
   LightMode: "Yanayin haske",
   Limit: "Matuƙa",
   Limits: "Iyaka",

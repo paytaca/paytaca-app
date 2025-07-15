@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "レガシーアドレスを貼り付けました。BTCデポジットアドレスではなく、<span class=\"highlighted-word\">BCH deposit address</span>であることを確認してください。",
   Leverage: "てこの作用",
   LiftLeftUnpaid: "{lift}左未払い",
-  LiftToken: "トークンを持ち上げます",
   LightMode: "ライトモード",
   Limit: "制限",
   Limits: "制限",

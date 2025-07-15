@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "Nag -paste ka ng isang legacy address.Mangyaring tiyakin na ito ay isang <span class=\"highlighted-word\">BCH deposit address</span>, hindi isang BTC Deposit Address.",
   Leverage: "Leverage",
   LiftLeftUnpaid: "{lift} Kaliwa walang bayad",
-  LiftToken: "Iangat ang token",
   LightMode: "Light mode",
   Limit: "Limitahan",
   Limits: "Mga Limitasyon",

@@ -120,7 +120,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('LiftToken'),
+          name: `LIFT ${this.$t('Token')}`,
           iconName: 'img:lift-token.png',
           path: '/apps/lift-token',
           iconStyle: 'width: 50%; height: 60%;',

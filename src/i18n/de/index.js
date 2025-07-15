@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "Sie haben eine Legacy -Adresse eingefügt.Bitte stellen Sie sicher, dass es sich um eine <span class=\"highlighted-word\">BCH deposit address</span> handelt, keine BTC-Einzahlungsadresse.",
   Leverage: "Hebelwirkung",
   LiftLeftUnpaid: "{lift} links unbezahlt",
-  LiftToken: "Heben Sie Token auf",
   LightMode: "Lichtmodus",
   Limit: "Limit",
   Limits: "Grenzen",

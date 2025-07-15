@@ -3,7 +3,7 @@
     <header-nav
       class="apps-header"
       backnavpath="/apps"
-      :title="$t('LiftToken')"
+      :title="`LIFT ${this.$t('Token')}`"
       id="header-nav"
     />
 
@@ -147,8 +147,8 @@ export default {
               public_key: pubkeyHex
             })
           }
+          updateRsvpPublicKeys(rsvp_payload)
         }
-        updateRsvpPublicKeys(rsvp_payload)
       }
 
       this.isLoading = false

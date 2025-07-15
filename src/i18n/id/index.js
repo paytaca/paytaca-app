@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "Anda menempelkan alamat warisan.Pastikan itu adalah <span class=\"highlighted-word\">BCH deposit address</span>, bukan alamat setoran BTC.",
   Leverage: "Manfaat",
   LiftLeftUnpaid: "{lift} dibiarkan tidak dibayar",
-  LiftToken: "Angkat token",
   LightMode: "Mode Cahaya",
   Limit: "Membatasi",
   Limits: "Batas",

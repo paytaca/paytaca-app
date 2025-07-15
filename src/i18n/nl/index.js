@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "Je hebt een legacy -adres geplakt.Zorg ervoor dat het een <span class=\"highlighted-word\">BCH deposit address</span>, geen BTC-stortingsadres.",
   Leverage: "Hefboom",
   LiftLeftUnpaid: "{lift} achtergelaten onbetaald",
-  LiftToken: "Lifttoken",
   LightMode: "Lichtmodus",
   Limit: "Beperken",
   Limits: "Grenzen",

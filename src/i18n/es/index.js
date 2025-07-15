@@ -669,7 +669,6 @@ export default {
   LegacyAddressWarning: "Pegó una dirección heredada.Asegúrese de que sea una dirección de depósito <span class=\"highlighted-word\">BCH deposit address</span>, no una dirección de depósito BTC.",
   Leverage: "Aprovechar",
   LiftLeftUnpaid: "{lift} Izquierda no pagada",
-  LiftToken: "Token de elevación",
   LightMode: "Modo de luz",
   Limit: "Límite",
   Limits: "Límites",

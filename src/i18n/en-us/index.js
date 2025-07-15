@@ -669,7 +669,6 @@ export default {
   LegacyAddressWarning: "You pasted a legacy address. Please make sure that it is a <span class=\"highlighted-word\">BCH deposit address</span>, not a BTC deposit address.",
   Leverage: "Leverage",
   LiftLeftUnpaid: "{lift} left unpaid",
-  LiftToken: "LIFT Token",
   LightMode: "Light Mode",
   Limit: "Limit",
   Limits: "Limits",

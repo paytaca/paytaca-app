@@ -387,7 +387,6 @@ const words = [
     Promo: 'Promo',
     Remaning: 'remaining',
     MoreInfo: 'More info',
-    LiftToken: 'LIFT Token',
     RetrievingDetails: 'Retrieving details',
     Reservations: 'Reservations',
     Purchases: 'Purchases',

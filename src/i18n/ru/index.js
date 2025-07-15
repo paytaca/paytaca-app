@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "Вы встали на устаревший адрес.Пожалуйста, убедитесь, что это A <span class=\"highlighted-word\">BCH deposit address</span>, а не адрес депозита BTC.",
   Leverage: "Использовать",
   LiftLeftUnpaid: "{lift} оставил неоплаченным",
-  LiftToken: "Подъем жетона",
   LightMode: "Легкий режим",
   Limit: "Предел",
   Limits: "Ограничения",

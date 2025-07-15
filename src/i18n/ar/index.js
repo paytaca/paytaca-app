@@ -671,7 +671,6 @@ export default {
   LegacyAddressWarning: "لقد لصق عنوانًا قديمًا.يرجى التأكد من أنه <span class=\"highlighted-word\">BCH deposit address</span> ، وليس عنوان إيداع BTC.",
   Leverage: "تَأثِير",
   LiftLeftUnpaid: "{lift} اليسار غير مدفوع الأجر",
-  LiftToken: "ارفع الرمز",
   LightMode: "وضع الضوء",
   Limit: "حد",
   Limits: "حدود",
