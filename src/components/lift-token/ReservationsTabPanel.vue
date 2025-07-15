@@ -1,5 +1,9 @@
 <template>
-  <div class="row text-body1 justify-evenly" id="filter">
+  <div
+    class="row text-body1 justify-evenly"
+    id="filter"
+    v-if="finalRsvpList?.length > 0"
+  >
     <sale-group-chip
       :saleGroup="'all'"
       :outline="isChipOutline('all')"
