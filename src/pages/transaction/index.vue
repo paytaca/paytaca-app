@@ -1706,7 +1706,7 @@ export default {
     }
   }
   .fixed-container {
-    position: fixed;
+    
     top: 0 !important;
     right: 0;
     left: 0;

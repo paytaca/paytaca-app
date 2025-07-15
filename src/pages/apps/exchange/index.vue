@@ -37,11 +37,11 @@ export default {
   },
   watch: {
     $route (to, from) {
-      if (from.path.includes('apps/exchange')) {
+      if (from.path.includes('apps/exchange')) {        
         if ('ad_id' in to.query) {
           this.$router?.push({ name: 'p2p-store', query: to.query })
-        }        
-      }
+        }             
+      }      
     },
     continue (val) {
       if (val) {
@@ -95,6 +95,9 @@ export default {
       } else {
         if ('ad_id' in this.$route.query) {
           this.$router?.push({ name: 'p2p-store', query: this.$route.query })
+        }
+        else if ('order_id' in this.$route.query) {
+          this.$router?.push({ name: 'p2p-orders', query: this.$route.query })
         } else {
           this.$router?.push({ name: 'p2p-store' })
         }

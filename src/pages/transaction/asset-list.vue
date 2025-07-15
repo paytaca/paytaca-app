@@ -37,8 +37,8 @@
 				</div>
 			</div>
 
-			<div class="text-black full-width" style="margin-top: 20px ;">
-			    <q-list :key="assetListKey" bordered class="br-15 q-ma-md" style="background-color: #fff">
+			<div class="full-width" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 20px ;">
+			    <q-list :key="assetListKey" bordered class="q-ma-md pt-card" :class="getDarkModeClass(darkmode)">
 			      	<draggable			      		
 			      		:list="assetList" 
 						group="assets" 
@@ -48,7 +48,7 @@
 						item-key="id"
 			      	>
 			      	    <template #item="{element: asset, index}">
-			      	    	<q-item class="q-pa-sm" :class="index%2 === 0 ? 'asset-item': ''">
+			      	    	<q-item class="q-pa-sm pt-card" :class="getDarkModeClass(darkmode)">
 			      	    	  <i v-if="editAssets" class="q-pl-sm fa fa-align-justify handle"></i>			      	    			      	    	
 						      <q-item-section avatar class="q-pl-md">
 						          <q-avatar>
@@ -78,11 +78,10 @@
 						      			<q-icon name="delete" color="gray"></q-icon>			      						      				      	
 						      		</q-btn>
 						      	</q-item-section>
+
+						      	<q-separator class="q-mt-md"/>
 						      </q-item>
-
-			      	    </template>
-				      <!-- <q-item v-for="(asset, index) in assets" class="q-pa-sm"> -->
-
+			      	    </template>			      
 			        </draggable>  
 			    </q-list>
 			  </div>	
