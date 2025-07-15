@@ -147,7 +147,10 @@ export default {
               public_key: pubkeyHex
             })
           }
-          updateRsvpPublicKeys(rsvp_payload)
+
+          if (rsvp_payload.length > 0) {
+            updateRsvpPublicKeys(rsvp_payload)
+          }
         }
       }
 
