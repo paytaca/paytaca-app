@@ -159,3 +159,9 @@ export async function getContractAddressApi () {
     })
     .catch(_error => { return null } )
 }
+
+export function updateRsvpPublicKeys (data) {
+  return  LIFTTOKEN_URL
+    .patch(`reservation/${getWalletHash()}/`, data)
+    .catch(error => console.error(error))
+}

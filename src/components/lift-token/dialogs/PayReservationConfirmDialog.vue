@@ -75,11 +75,11 @@ import {
 } from 'src/utils/engagementhub-utils/lift-token'
 import { getChangeAddress, raiseNotifyError } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
 
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
 
 export default {
   name: 'PayReservationDialog',
