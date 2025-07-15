@@ -26,7 +26,7 @@
         <span>{{ currentUsdPrice }} USD/BCH</span>
       </div>
 
-      <div class="row full-width q-gutter-y-xs q-mb-sm">
+      <div class="row full-width q-gutter-y-xs q-mb-xs">
         <q-input
           filled
           type="text"
@@ -50,10 +50,21 @@
           </template>
         </q-input>
 
-        <span class="col-12 q-pl-md">
+        <div class="row col-12 justify-end q-px-md">
+          <span
+            class="text-weight-bolder max-button text-grad"
+            style="cursor: pointer;"
+            :class="getDarkModeClass(darkMode)"
+            @click="onMaxClick"
+          >
+            {{ $t('MAX') }}
+          </span>
+        </div>
+
+        <span class="col-12 q-px-md">
           {{ getAssetDenomination('BCH', amountBch) }}
         </span>
-        <span class="col-12 q-pl-md">
+        <span class="col-12 q-px-md">
           {{ parseFiatCurrency(amountUsd, 'USD') }}
           <template v-if="this.rsvp.discount > 0">
             <q-icon name="info" size="1em"/>
@@ -228,6 +239,11 @@ export default {
         this.amountTkn = 0
       } else this.customKeyboardState = 'dismiss'
       
+      this.computeUsdBch()
+      this.computeBalances()
+    },
+    onMaxClick () {
+      this.amountTkn = this.unpaidLift / (10 ** 2)
       this.computeUsdBch()
       this.computeBalances()
     },
