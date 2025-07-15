@@ -3,7 +3,19 @@ import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import { LibauthHDWallet } from './bch-libauth'
 import aes256 from 'aes256'
-
+import {
+ encodeHdPrivateKey,
+ deriveHdPublicKey,
+ deriveHdPath,
+ deriveHdPrivateNodeFromBip39Mnemonic,
+ decodeHdPrivateKey,
+ decodeHdPublicKey,
+ deriveHdPathRelative,
+ sha256,
+ secp256k1,
+ ut8ToBin,
+ binToHex
+} from 'bitauth-libauth-v3' 
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 
@@ -131,12 +143,39 @@ export async function getMnemonic (index = 0) {
   return mnemonic
 }
 
+
 export async function deleteMnemonic (index) {
   let key = 'mn'
   if (index !== 0) {
     key = key + index
   }
   await SecureStoragePlugin.remove({ key })
+}
+
+export async function getHdKeys ({ vaultIndex = 0 }) {
+    const mnemonic = await getMnemonic(vaultIndex)
+    const { wallet } = await loadWallet('BCH', vaultIndex)
+    const node = deriveHdPath(
+      deriveHdPrivateNodeFromBip39Mnemonic(
+        mnemonic
+      ),
+      wallet.bch.derivationPath,
+    );
+    const { hdPrivateKey } = encodeHdPrivateKey({ network: 'mainnet', node })
+    const { hdPublicKey } = deriveHdPublicKey(hdPrivateKey);
+    return { hdPrivateKey, hdPublicKey }
+}
+
+export function signMessageWithHdPrivateKey ({ hdPrivateKey, addressIndex, message, hex = false }) {
+ const decodedHdPrivateKey = decodeHdPrivateKey(hdPrivateKey, addressIndex)
+ const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, addressIndex)
+ const messageHash = sha256.hash(utf8ToBin(message))
+ const schnorr = secp256k1.signMessageHashSchnorr(privateKey, messageHash)
+ const der = secp256k1.signMessageHashDer(privateKey, messageHash)
+ if (hex) {
+   return { schnorr: binToHex(schnorr), der: binToHex(der) }
+ }
+ return { schnorr, der }
 }
 
 export { Address } from 'watchtower-cash-js';

@@ -82,9 +82,15 @@ In html/template:
 .text-bow { // black or white
   &.dark {
     color: white;
+    .text-bow-muted {
+      color: darken(#fff, 30%);
+    }
   }
   &.light {
-    color: black
+    color: black;
+    .text-bow-muted {
+      color: lighten(#000, 30%);
+    }
   }
 }
 
@@ -174,6 +180,13 @@ div#q-app:has(.marketplace-container) {
   @include bottom-card(90vh);
 }
 
+.q-btn .tile-label {
+  font-size: .8em;
+}
+
+.light .q-btn .tile-label {
+  color: black;
+}
 .subtext-gray {
   &.dark {
     color: rgb(200, 200, 200);

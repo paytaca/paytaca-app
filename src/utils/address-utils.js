@@ -31,3 +31,12 @@ export const toP2pkhTestTokenAddress = (p2pkhAddress /* :string */) => {
   return encodeCashAddress(CashAddressNetworkPrefix.testnet, CashAddressType.p2pkhWithTokens, decodedAddress.payload)
 }
 
+export const toP2shTestAddress = (p2shAddress /* :string */) => {
+  const decodedAddress = decodeCashAddress(p2shAddress)
+  return encodeCashAddress(CashAddressNetworkPrefix.testnet, CashAddressType.p2sh, decodedAddress.payload)
+}
+
+export const toP2shTestTokenAddress = (p2shAddress /* :string */) => {
+  const decodedAddress = decodeCashAddress(p2shAddress)
+  return encodeCashAddress(CashAddressNetworkPrefix.testnet, CashAddressType.p2shWithTokens, decodedAddress.payload)
+}

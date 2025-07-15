@@ -111,14 +111,13 @@ const account = computed(() => {
   // session request
   if (props.session?.session?.namespaces?.bch?.accounts[0]) 
     return props.session?.session?.namespaces?.bch?.accounts[0]
-  
   return ''
 })
 
 const formattedAccount = computed(() => {
-  if (account.value && props.addressDisplayFormatter) {
-    return props.addressDisplayFormatter(account.value.replace('bch:', ''))
-  }
+  //if (account.value && props.addressDisplayFormatter) {
+    //return props.addressDisplayFormatter(account.value.replace('bch:', ''))
+  //}
   if (account.value) {
     return shortenAddressForDisplay(account.value.replace('bch:', ''))
   }
