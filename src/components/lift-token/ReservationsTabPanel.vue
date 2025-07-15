@@ -234,6 +234,10 @@ export default {
   async mounted () {
     this.finalRsvpList = this.reservationsList
 
+    await this.initWallet()
+  },
+
+  render () {
     const headerNavHeight = document.getElementById('header-nav')?.clientHeight
     const sectionTabHeight = document.getElementById('section-tab')?.clientHeight
     const filterHeight = document.getElementById('rsvp-filter')?.clientHeight
@@ -241,8 +245,6 @@ export default {
     const divsHeight = headerNavHeight + sectionTabHeight + filterHeight
     const screenHeight = this.$q.screen.height
     this.scrollAreaHeight = `${screenHeight - divsHeight - 35}px`
-
-    await this.initWallet()
   }
 }
 </script>
