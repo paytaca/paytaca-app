@@ -12,9 +12,9 @@
 <script>
 const SALE_GROUP_CHIP = {
   all: { label: 'All', color: 'purple', isSquare: false },
-  seed: { label: 'Seed Round', color: 'amber-9', isSquare: false },
-  priv: { label: 'Private Round', color: 'blue', isSquare: false },
-  pblc: { label: 'Public Round', color: 'green', isSquare: false },
+  seed: { label: 'SeedRound', color: 'amber-9', isSquare: false },
+  priv: { label: 'PrivateRound', color: 'blue', isSquare: false },
+  pblc: { label: 'PublicRound', color: 'green', isSquare: false },
   lock: { label: 'Lockup', color: 'amber-9', isSquare: true },
   vest: { label: 'Vesting', color: 'blue', isSquare: true },
   comp: { label: 'Complete', color: 'green', isSquare: true }
@@ -29,7 +29,7 @@ export default {
 
   methods: {
     parseSaleGroup (saleGroup) {
-      return SALE_GROUP_CHIP[saleGroup].label
+      return this.$t(SALE_GROUP_CHIP[saleGroup].label)
     },
     parseSaleChipColor (saleGroup) {
       return SALE_GROUP_CHIP[saleGroup].color

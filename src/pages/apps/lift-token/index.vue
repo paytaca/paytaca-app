@@ -3,14 +3,14 @@
     <header-nav
       class="apps-header"
       backnavpath="/apps"
-      :title="'LIFT Token'"
+      :title="$t('LiftToken')"
       id="header-nav"
     />
 
     <template v-if="isLoading">
       <div class="q-mt-xl q-pt-xl row flex-center text-center text-h5 full-width">
         <span class="q-mb-md col-12 text-bow" :class="getDarkModeClass(darkMode)">
-          Retrieving details ...
+          {{ $t('RetrievingDetails') }} ...
         </span>
         <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
       </div>
@@ -29,13 +29,13 @@
         >
           <q-tab
             name="reserves"
-            :label="'Reservations'"
+            :label="$t('Reservations')"
             class="network-selection-tab"
             :class="getDarkModeClass(darkMode)"
           />
           <q-tab
             name="purchase"
-            :label="'Purchases'"
+            :label="$t('Purchases')"
             class="network-selection-tab"
             :class="getDarkModeClass(darkMode)"
           />

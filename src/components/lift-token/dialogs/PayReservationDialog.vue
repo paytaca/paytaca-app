@@ -10,7 +10,7 @@
       :class="getDarkModeClass(darkMode)"
     >
       <div class="row justify-between items-center q-mb-md">
-        <span class="text-h6">Purchase LIFT</span>
+        <span class="text-h6">{{ $t('PurchaseLift') }}</span>
         <q-btn
           flat
           round
@@ -75,7 +75,11 @@
             >
               <div class="row items-center q-gutter-sm">
                 <div class="q-space">
-                  A {{ this.rsvp.discount }}% discount is applied
+                  {{ $t(
+                    'DiscountApplied2',
+                    { discount: this.rsvp.discount },
+                    `A ${this.rsvp.discount}% discount is applied`
+                  ) }}
                 </div>
               </div>
             </q-menu>
@@ -84,12 +88,12 @@
       </div>
 
       <div class="row justify-between">
-        <span>Wallet balance:</span>
+        <span>{{ $t('WalletBalance') }}:</span>
         <span>{{ getAssetDenomination('BCH', bchBalance) }}</span>
       </div>
 
       <div class="row justify-between">
-        <span>Unpaid LIFT:</span>
+        <span>{{ $t('UnpaidLift') }}:</span>
         <span>{{ parseLiftToken(unpaidLift) }}</span>
       </div>
 
@@ -105,7 +109,7 @@
         <q-btn
           rounded
           class="button"
-          :label="'Purchase'"
+          :label="$t('Purchase')"
           :disable="
             Number(amountTkn) === 0 ||
             Number(amountBch) > walletBalance ||

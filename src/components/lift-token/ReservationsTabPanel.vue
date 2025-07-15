@@ -26,9 +26,9 @@
 
   <template v-if="finalRsvpList?.length === 0">
     <div class="row full-width flex-center text-center q-mt-md text-h5">
-      <span class="q-mb-md">You don't have any approved reservations yet.</span>
-      <span class="q-mb-sm">Don't miss out on the whitelisting opportunity!</span>
-      <span>Visit the <a href="https://www.paytaca.com/token" target="_blank">LIFT token website</a> to learn more.</span>
+      <span class="q-mb-md">{{ $t('EmptyReservations1') }}</span>
+      <span class="q-mb-sm">{{ $t('EmptyReservations2') }}</span>
+      <span v-html="$t('EmptyReservations3')" />
     </div>
   </template>
 
@@ -61,8 +61,17 @@
                   >
                     <div class="row items-center q-gutter-sm">
                       <div class="q-space">
-                        A {{ rsvp.discount }}% discount is applied, saving you
-                        {{ parseFiatCurrency(rsvp.reserved_amount_usd * (rsvp.discount / 100), 'USD') }}
+                        {{ $t(
+                          'DiscountApplied1',
+                          {
+                            discount: rsvp.discount,
+                            currency: parseFiatCurrency(
+                              rsvp.reserved_amount_usd * (rsvp.discount / 100), 'USD'
+                            )
+                          },
+                          `A ${rsvp.discount}% discount is applied, saving you ` +
+                          `${parseFiatCurrency(rsvp.reserved_amount_usd * (rsvp.discount / 100), 'USD')}.`
+                          ) }}
                       </div>
                     </div>
                   </q-menu>
@@ -85,25 +94,37 @@
               {{ parseBchAddress(rsvp.bch_address) }}
             </span>
             <span class="col-6 text-right">
-              Approved last {{ parseLocaleDate(rsvp.approved_date) }}
+              {{ $t(
+                'ApprovedLastDate',
+                { date: parseLocaleDate(rsvp.approved_date) },
+                `Approved last ${parseLocaleDate(rsvp.approved_date)}`
+              ) }}
             </span>
 
             <template
               v-if="Object.keys(rsvp.reservation_partial_purchase).length > 0"
             >
               <span class="col-6" style="overflow-wrap: anywhere;">
-                Paid for {{ parseLiftToken(rsvp.reservation_partial_purchase.tkn_paid) }}
+                {{ $t(
+                  'PaidForLift',
+                  { lift: parseLiftToken(rsvp.reservation_partial_purchase.tkn_paid) },
+                  `Paid for ${parseLiftToken(rsvp.reservation_partial_purchase.tkn_paid)}`
+                ) }}
               </span>
               <span class="col-6 text-right">
-                {{ parseLiftToken(rsvp.reservation_partial_purchase.tkn_unpaid) }} left unpaid
+                {{ $t(
+                  'LiftLeftUnpaid',
+                  { lift: parseLiftToken(rsvp.reservation_partial_purchase.tkn_unpaid) },
+                  `${parseLiftToken(rsvp.reservation_partial_purchase.tkn_unpaid)} left unpaid`
+                ) }}
               </span>
             </template>
           </div>
 
           <div class="row col-12 justify-center q-mt-md q-mb-xs">
             <q-btn
-              label="Purchase"
               class="button"
+              :label="$t('Purchase')"
               @click="openPayReservationDialog(rsvp)"
             />
           </div>
@@ -199,7 +220,7 @@ export default {
           this.$q.notify({
             type: 'positive',
             timeout: 3000,
-            message: 'Purchase processed successfully.'
+            message: this.$t('SuccessfulPurchaseMessage')
           })
           this.$emit('on-successful-purchase')
         })

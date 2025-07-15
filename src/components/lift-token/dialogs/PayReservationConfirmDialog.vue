@@ -19,7 +19,7 @@
       </div>
 
       <div class="row flex-center full-width q-mb-md text-center text-h6">
-        <span class="col-12 q-mb-sm">Pay</span>
+        <span class="col-12 q-mb-sm">{{ $t('Pay') }}</span>
 
         <span class="col-12 text-h5 text-bold">
           {{ getAssetDenomination('BCH', purchase.bch) }}
@@ -43,7 +43,7 @@
           ({{ parseFiatCurrency(purchase.usd, 'usd') }})
         </span>
         
-        <span class="col-12 q-my-sm text-grey">for</span>
+        <span class="col-12 q-my-sm text-grey">{{ $t('For') }}</span>
         <span class="col-12 text-h5 text-bold">
           {{ parseLiftToken(purchase.tkn) }}
         </span>
@@ -58,6 +58,7 @@
         <progress-loader
           :color="isNotDefaultTheme(theme) ? theme : 'pink'"
         />
+        <span v-if="processingMessage !== ''">{{ processingMessage }} ...</span>
       </div>
     </q-card>
   </q-dialog>
@@ -88,7 +89,8 @@ export default {
     purchase: { type: Object, default: null },
     rsvp: { type: Object, default: null },
     wallet: { type: Object, default: null },
-    liftSwapContractAddress: { type: String, default: null }
+    liftSwapContractAddress: { type: String, default: null },
+    processingMessage: ''
   },
 
   components: {
@@ -132,6 +134,7 @@ export default {
     },
     async processPurchase () {
       this.isSliderLoading = true
+      this.processingMessage = this.$t('SendingPayment')
 
       // get pubkey hex of bch address used for reservation
       const bchWalletInfo = this.$store.getters['global/getWallet']('bch')
@@ -151,6 +154,8 @@ export default {
           .sendBch(0, '', changeAddress, null, undefined, recipient)
   
         if (result.success) {
+          this.processingMessage = this.$t('ProcessingPurchase')
+
           // record transaction
           const lastAddressWif = walletAddress[0].wif
           const decodedWif = decodePrivateKeyWif(lastAddressWif)
@@ -187,21 +192,12 @@ export default {
           const resp = await processPurchaseApi(data)
   
           if (resp.isSuccessful) {
+            this.processingMessage = ''
             this.$refs.confirmDialogRef.$emit('ok')
             this.$refs.confirmDialogRef.hide()
-          } else {
-            if (resp.message === 'purchase_return_success') {
-              raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent has been returned to your wallet.')
-            } else {
-              raiseNotifyError('Something happened while processing your purchase. Please try again later. BCH sent will be returned to your wallet shortly.')
-            }
-          }
-        } else {
-          raiseNotifyError('Unable to process your purchase. Please try again later.')
-        }
-      } else {
-        raiseNotifyError('The BCH address used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.')
-      }
+          } else raiseNotifyError(this.$t('PurchasePaymentError'))
+        } else raiseNotifyError(this.$t('PaymentSendingError'))
+      } else raiseNotifyError(this.$t('AddressNotFound'))
 
       this.isSliderLoading = false
     }

@@ -41,7 +41,7 @@
 
   <template v-if="finalPurchasesList?.length === 0">
     <div class="q-mt-md row flex-center text-center full-width text-h5">
-      You don't have any purchases yet.
+      {{ $t('EmptyPurchases') }}
     </div>
   </template>
 
@@ -86,37 +86,55 @@
           >
             <template v-if="purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC">
               <span class="row col-12 flex-center q-pr-xs">
-                Purchased on {{ parseLocaleDate(purchase.purchased_date) }}
+                {{ $t(
+                  'PurchasedOnDate',
+                  { date: parseLocaleDate(purchase.purchased_date) },
+                  `Purchased on ${parseLocaleDate(purchase.purchased_date)}`
+                ) }}
               </span>
             </template>
 
             <template v-else-if="new Date() > new Date(purchase.lockup_date)">
               <span class="col-6 q-pr-xs">
                 <template v-if="purchase.purchase_vesting_details.length === 0">
-                  Lockup period is over
+                  {{ $t('LockupPeriodOver') }}
                 </template>
                 <template v-else>
-                  Last vesting period was
-                  {{ parseLocaleDate(purchase.purchase_vesting_details[0].vested_date) }}
+                  {{ $t(
+                    'LastVestingDate',
+                    { date: parseLocaleDate(purchase.purchase_vesting_details[0].vested_date) },
+                    `Last vesting period was ${parseLocaleDate(purchase.purchase_vesting_details[0].vested_date)}`
+                  ) }}
                 </template>
               </span>
               <span class="col-6 text-right q-pl-xs">
                 <template v-if="purchase.purchase_vesting_details.length === 4">
-                  Vesting period is over
+                  {{ $t('VestingPeriodOver') }}
                 </template>
                 <template v-else>
-                  Next vesting priod is
-                  {{ parseNextVestingDate(purchase.purchase_vesting_details) }}
+                  {{ $t(
+                    'NextVestingDate',
+                    { date: parseNextVestingDate(purchase.purchase_vesting_details) },
+                    `Next vesting period is ${parseNextVestingDate(purchase.purchase_vesting_details)}`
+                  ) }}
                 </template>
               </span>
             </template>
 
             <template v-else>
               <span class="col-6 q-pr-xs">
-                Purchased on {{ parseLocaleDate(purchase.purchased_date) }}
+                {{ $t(
+                  'PurchasedOnDate',
+                  { date: parseLocaleDate(purchase.purchased_date) },
+                  `Purchased on ${parseLocaleDate(purchase.purchased_date)}`
+                ) }}
               </span>
               <span class="col-6 text-right q-pl-xs">
-                Locked until {{ parseLocaleDate(purchase.lockup_date) }}
+                {{ $t(
+                  'LockedUntilDate',
+                  { date: parseLocaleDate(purchase.lockup_date) },
+                  `Locked until ${parseLocaleDate(purchase.lockup_date)}`
+                ) }}
               </span>
             </template>
 

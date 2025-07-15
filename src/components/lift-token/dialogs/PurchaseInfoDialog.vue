@@ -26,7 +26,7 @@
 
       <div class="row">
         <div class="row col-12 text-body1">
-          <span class="col-12 text-body2 dim-text">Amount Purchased</span>
+          <span class="col-12 text-body2 dim-text">{{ $t('AmountPurchased') }}</span>
           <span class="col-12">
             {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
           </span>
@@ -35,7 +35,7 @@
             {{ getAssetDenomination('BCH', purchase.purchased_amount_sats / (10 ** 8)) }}
           </span>
 
-          <span class="col-12 text-body2 dim-text">Date Purchased</span>
+          <span class="col-12 text-body2 dim-text">{{ $t('DatePurchased') }}</span>
           <span class="col-12 q-mb-sm">
             {{ parseLocaleDate(purchase.purchased_date) }}
           </span>
@@ -43,13 +43,13 @@
           <template
             v-if="purchase.purchase_more_details.sale_group !== SaleGroup.PUBLIC"
           >
-            <span class="col-12 text-body2 dim-text">Lockup Period</span>
+            <span class="col-12 text-body2 dim-text">{{ $t('LockupPeriod') }}</span>
             <span class="col-12 q-mb-sm">
               {{ parseLocaleDate(purchase.lockup_date) }}
             </span>
           </template>
 
-          <span class="col-12 text-body2 dim-text">BCH Address</span>
+          <span class="col-12 text-body2 dim-text">{{ $t('BchAddress') }}</span>
           <span class="col-12 q-mb-sm">
             {{ parseBchAddress(purchase.purchase_more_details.bch_address) }}
           </span>
@@ -57,7 +57,7 @@
 
         <template v-if="purchase.purchase_more_details.sale_group !== SaleGroup.PUBLIC">
           <span class="q-mb-sm col-12 text-center text-body1 dim-text">
-            Vesting Progress
+            {{ $t('VestingProgress') }}
           </span>
   
           <div
@@ -72,13 +72,19 @@
             <template v-if="details">
               <div class="q-pl-sm col-10">
                 <span col-12>{{ parseLocaleDate(details.vested_date) }}</span>
-                <span col-12>Vested {{ parseLiftToken(details.vested_amount_tkn) }}</span>
+                <span col-12>
+                  {{ $t(
+                    'VestedLift',
+                    { lift: parseLiftToken(details.vested_amount_tkn) },
+                    `Vested ${parseLiftToken(details.vested_amount_tkn)}`
+                  ) }}
+                </span>
               </div>
   
             </template>
   
             <template v-else>
-              <span class="q-pl-sm text-grey">Vesting has not occurred yet</span>
+              <span class="q-pl-sm text-grey">{{ $t('VestingNotOccured') }}</span>
             </template>
           </div>
         </template>
