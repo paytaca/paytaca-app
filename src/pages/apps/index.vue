@@ -120,6 +120,15 @@ export default {
           smartBCHOnly: false
         },
         {
+          name: `LIFT ${this.$t('Token')}`,
+          iconName: 'img:lift-token.png',
+          path: '/apps/lift-token',
+          iconStyle: 'width: 50%; height: 60%;',
+          active: !this.$store.getters['global/isChipnet'],
+          // property used for checking if user's whitelisting has been approved
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('Map'),
           iconName: 'public',
           path: '/apps/map/',

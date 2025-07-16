@@ -254,6 +254,16 @@ const routes = [
           { path: 'wallet/:address/transaction/create', component: () => import('src/pages/apps/multisig/wallet/transaction/create.vue'), name: 'app-multisig-wallet-transaction-create' },
           { path: 'wallet/:address/transaction/send-bch', component: () => import('src/pages/apps/multisig/wallet/transaction/create-send-bch-proposal.vue'), name: 'app-multisig-wallet-transaction-send-bch' }
         ]
+      },
+      {
+        path: 'lift-token',
+        children: [
+          {
+            path: '',
+            name: 'app-lift-token',
+            component: () => import('src/pages/apps/lift-token/index.vue')
+          }
+        ]
       }
     ]
   },

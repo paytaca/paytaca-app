@@ -1277,6 +1277,19 @@ const phrases = {
       RewardsRedeem4: 'This action will swap your points to BCH. BCH conversion rate may vary depending on the BCH market value.',
       RewardsRedeem5: 'Convert to Tokens',
       RewardsRedeemRP2: 'Note that you can only redeem up to 10,000 RP per month.'
+    },
+    {
+      EmptyReservations1: 'You do not have any approved reservations yet.',
+      EmptyReservations2: 'Do not miss out on the whitelisting opportunity!',
+      EmptyReservations3: 'Visit the <a href="https://www.paytaca.com/token" target="_blank">LIFT token website</a> to learn more.',
+      SuccessfulPurchase: 'Purchase processed successfully.',
+      PurchasePaymentError: 'Something happened while processing your purchase. Please try again later. Please message us to refund this purchase.',
+      PaymentSendingError: 'Something happened while sending your payment. Please try again later. Your balance was not deducted.',
+      AddressNotFound: 'The BCH address you used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.',
+      EmptyPurchases: 'You do not have any purchases yet.',
+      LockupPeriodOver: 'Lockup period is over',
+      VestingPeriodOver: 'Vesting period is over',
+      VestingNotOccured: 'Vesting has not occurred yet'
     }
   ],
   dynamic: [
@@ -1378,6 +1391,18 @@ const phrases = {
       MarketplaceCashbackDescOneTime: 'Order now and get {percent}% cashback!',
       MarketplaceCashbackDesc: 'Order now and get {mix} - {max}% cashback!',
       MarketplaceCashbackDescSub: 'Get up to maximum cashback value of {amount} {currency}.'
+    },
+    {
+      ApprovedLastDate: 'Approved last {date}',
+      DiscountApplied1: 'A {discount}% discount is applied, saving you {currency}',
+      DiscountApplied2: 'A {discount}% discount is applied',
+      PaidForLift: 'Paid for {lift}',
+      LiftLeftUnpaid: '{lift} left unpaid',
+      PurchasedOnDate: 'Purchased on {date}',
+      LastVestingDate: 'Last vesting period was {date}',
+      NextVestingDate: 'Next vesting period is {date}',
+      LockedUntilDate: 'Locked until {date}',
+      VestedLift: 'Vested {lift}'
     }
   ]
 }

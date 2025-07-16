@@ -387,6 +387,26 @@ const words = [
     Promo: 'Promo',
     Remaning: 'remaining',
     MoreInfo: 'More info',
+    RetrievingDetails: 'Retrieving details',
+    Reservations: 'Reservations',
+    Purchases: 'Purchases',
+    SeedRound: 'Seed Round',
+    PrivateRound: 'Private Round',
+    PublicRound: 'Public Round',
+    Lockup: 'Lockup',
+    Vesting: 'Vesting',
+    Complete: 'Complete',
+    Purchase: 'Purchase',
+    PurchaseLift: 'Purchase LIFT',
+    UnpaidLift: 'Unpaid LIFT',
+    Pay: 'Pay',
+    For: 'for',
+    SendingPayment: 'Sending payment',
+    ProcessingPurchase: 'Processing purchase',
+    AmountPurchased: 'Amount Purchased',
+    DatePurchased: 'Date Purchased',
+    LockupPeriod: 'Lockup Period',
+    VestingProgress: 'Vesting Progress'
   }
 ]
 

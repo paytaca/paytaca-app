@@ -128,13 +128,13 @@ import {
   getRfPromoData,
   createRfPromoData,
   updateUserPromoData,
-  parseLocaleDate,
   getPromoPointsDivisorData,
   updateRfPromoData,
   Promos,
   getKeyPairFromWalletMnemonic,
   getContractInitialBalance
 } from 'src/utils/engagementhub-utils/rewards'
+import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
