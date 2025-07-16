@@ -32,7 +32,6 @@ export async function migrateVuexStorage() {
         indexedDBState.multisig = {
           wallets: [],
           transactions: [],
-          wallet,
           walletsUtxos: {},
           settings: {
             defaultSignerWalletIndex: 0 /* The index of the personal wallet that'll be used as signer */
