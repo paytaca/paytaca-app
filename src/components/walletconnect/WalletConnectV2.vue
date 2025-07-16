@@ -360,7 +360,10 @@ const loadActiveSessions = async ({ showLoading } = { showLoading: true }) => {
     }
     mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
     return activeSessions.value
-  } catch (error) {} finally {
+  } catch (error) {
+    console.log(error)
+  } finally {
+    
     loading.value = undefined
   }
 }
@@ -377,7 +380,9 @@ const loadSessionProposals = async ({ showLoading } = { showLoading: true }) => 
         return p.requiredNamespaces?.bch?.chains?.includes(chainIdFilter)
       })
     }
-  } catch (error) {} finally {
+  } catch (error) {
+    console.log(error)
+  } finally {
     if (showLoading) {
       loading.value = undefined
     }
@@ -387,50 +392,36 @@ const loadSessionProposals = async ({ showLoading } = { showLoading: true }) => 
 /**
  * Check for session requests, i.e signature requests, get accounts requests
  */
-const loadSessionRequests = async ({ showLoading } = { showLoading: true }, sessionRequest = null) => {
+const loadSessionRequests = async ({ showLoading } = { showLoading: true }) => {
   try {
     loading.value = showLoading && $t('LoadingRequests')
 
     if (web3Wallet.value) {
-      let requests = []
-
-      if (sessionRequest?.id && !sessionRequests.value?.find((s) => s.id === sessionRequest.id)) {
-        requests = [sessionRequest]
-      }
-
-      if (!sessionRequest) {
-        requests = await web3Wallet.value.getPendingSessionRequests()
-      }
-
+      
+      let requests = await web3Wallet.value.getPendingSessionRequests()
       const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
-      sessionRequests.value = requests.filter((r) => {
+      
+      requests = requests.filter((r) => {
         return r.params?.chainId == chainIdFilter
-      })
-      sessionRequests.value = sessionRequests.value.map(sessionRequest => {
+      }).map(sessionRequest => {
         const parsedSessionRequest = parseSessionRequest(sessionRequest)
-
         parsedSessionRequest.session = activeSessions.value[parsedSessionRequest.topic]
-        // console.log('🚀 ~ loadSessionRequests ~ parsedSessionRequest?.topic:', parsedSessionRequest?.topic)
-        // const defaultTopic = Object.getOwnPropertyNames(activeSessions.value)[0]
-        // console.log('🚀 ~ loadSessionRequests ~ defaultTopic:', defaultTopic)
-        // console.log('🚀 ~ loadSessionRequests ~ activeSessions:', activeSessions.value)
-        // // if (!parsedSessionRequest.session) parsedSessionRequest.session = activeSessions.value[defaultTopic]
-        // if (!parsedSessionRequest.session) parsedSessionRequest.session = activeSessions.value[parsedSessionRequest.topic]
         return parsedSessionRequest
       })
 
-      // Respond to whitelisted methods immediately
-      sessionRequests.value?.forEach((sessionRequest) => {
+      requests.forEach((sessionRequest) => { // Respond to whitelisted methods immediately
         if (whitelistedMethods.includes(sessionRequest.params.request.method)) {
           respondToSessionRequest(sessionRequest)
         }
       })
-      // Remove whitelisted methods
-      sessionRequests.value = sessionRequests.value.filter((sessionRequest) => {
+      
+      sessionRequests.value = requests.filter((sessionRequest) => { // Remove whitelisted methods
         return !whitelistedMethods.includes(sessionRequest.params.request.method)
       })
     }
-  } catch (error) {} finally {
+  } catch (error) {
+    console.log(error)
+  } finally {
     loading.value = ''
   }
 }
@@ -443,11 +434,11 @@ const loadSessionRequests = async ({ showLoading } = { showLoading: true }, sess
 const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWallets) => {
   for (const topic in activeSessions) {
     activeSessions?.[topic]?.namespaces?.bch?.accounts?.forEach((account) => {
-      let addressInfo = walletAddresses.find((addressInfo) => {
+      let addressInfo = walletAddresses?.find((addressInfo) => {
         return account.includes(addressInfo.address)
       })
       if (!addressInfo) {
-        addressInfo = multisigWallets.find((addressInfo) => {
+        addressInfo = multisigWallets?.find((addressInfo) => {
           return account.includes(addressInfo.address)
         })
       }
@@ -713,9 +704,16 @@ const approveSessionProposal = async (sessionProposal) => {
       proposal: sessionProposal,
       supportedNamespaces: supportedNamespaces
     })
+
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
-      namespaces: approvedNamespaces
+      namespaces: approvedNamespaces,
+      sessionProperties: {
+        wallet: {
+          address: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.address,
+          template: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.template
+        }
+      }
     })
     await web3Wallet.value.getActiveSessions()
     activeSessions.value[session.topic] = session
@@ -759,6 +757,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             result: {
               status: 'accepted',
               walletType: 'p2shMultisig',
+              walletLockingType: 'p2shMultisig',
               walletSpec: {
                 m: getRequiredSignatures(wallet.template),
                 n: getTotalSigners(wallet.template),
@@ -1005,7 +1004,7 @@ const onSessionProposal = async (sessionProposal) => {
 }
 
 const onSessionRequest = async (sessionRequest) => {
-  await loadSessionRequests({ showLoading: true }, sessionRequest)
+  await loadSessionRequests({ showLoading: true })
 }
 
 const onSessionUpdate = async (data) => {
