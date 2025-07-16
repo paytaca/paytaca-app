@@ -178,15 +178,17 @@ export default {
             purchased_date: new Date().toISOString(),
             lockup_date: new Date(lockupPeriod).toISOString(),
             lockup_years: lockupYears,
-            reservation: this.rsvp.id,
-            partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1,
+
             tx_id: result.txid,
             buyer_pubkey: pubkeyHex,
             buyer_sig: signature,
             buyer_token_address: tokenAddress,
             // bch address used for this transaction, can be or
             // not be the bch address used for the reservation
-            buyer_tx_address: this.$store.getters['global/getAddress']('bch')
+            buyer_tx_address: this.$store.getters['global/getAddress']('bch'),
+
+            reservation: this.rsvp.id,
+            partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1
           }
     
           const isSuccessful = await processPurchaseApi(data)
