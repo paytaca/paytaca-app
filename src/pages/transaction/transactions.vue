@@ -6,7 +6,7 @@
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
 		<div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
 			<div v-if="!txSearchActive" class="row q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
-				<div class="col-9">
+				<div class="col-9" @click="selectAsset">
 					<!-- <q-item clickable v-ripple class="br-15" > -->
 						<span>
 							<q-icon name="arrow_drop_down"/>
@@ -162,10 +162,12 @@ import { markRaw } from '@vue/reactivity'
 import { cachedLoadWallet } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
 import TransactionList from 'src/components/transactions/TransactionList'
+import AssetListDialog from '../../pages/transaction/dialog/AssetListDialog.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import headerNav from 'src/components/header-nav'
 
@@ -241,22 +243,42 @@ export default {
 	        if (item && item.id !== 'bch') return item
 	      })
 	    },
+	    // assets () {
+	    //   const vm = this
+	    //   if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
+	      
+	    //   if (vm.stablehedgeView) {
+	    //     return vm.$store.getters['stablehedge/tokenBalancesAsAssets']
+	    //   }
+
+	    //   return vm.mainchainAssets.filter(token => {
+	    //     const assetId = token.id?.split?.('/')?.[0]
+	    //     return (
+	    //       vm.isCashToken && assetId === 'ct' ||
+	    //       !vm.isCashToken && assetId === 'slp'
+	    //     )
+	    //   })
+	    // },
 	    assets () {
 	      const vm = this
-	      if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
-	      
-	      if (vm.stablehedgeView) {
-	        return vm.$store.getters['stablehedge/tokenBalancesAsAssets']
-	      }
 
-	      return vm.mainchainAssets.filter(token => {
-	        const assetId = token.id?.split?.('/')?.[0]
-	        return (
-	          vm.isCashToken && assetId === 'ct' ||
-	          !vm.isCashToken && assetId === 'slp'
-	        )
+	      // eslint-disable-next-line array-callback-return
+	      const assets = vm.$store.getters['assets/getAssets'].filter(function (item) {
+	        if (item) {
+	          const isBch = item?.id === 'bch'
+	          const tokenType = item?.id?.split?.('/')?.[0]
+
+	          if (vm.isCashToken) return tokenType === 'ct' || isBch
+	          return tokenType === 'slp' || isBch
+	        }
 	      })
-	    },
+
+	      // if (vm.address !== '' && vm.address.includes('bitcoincash:zq')) {
+	      //   return assets.splice(1)
+	      // }
+
+	      return assets
+	    }
 
 	},
 	components: {
@@ -264,9 +286,10 @@ export default {
 		Transaction,
 		TransactionList,
 		StablehedgeHistory,
+		AssetListDialog,
 		// assetList
 	},
-	async mounted () {		
+	async mounted () {				
 		const asset = this.$store.getters['assets/getAsset'](this.$route.query.assetID)		
 
 
@@ -298,6 +321,14 @@ export default {
 	      }
 
 	      console.log('wallet: ', vm.wallet)
+	    },
+	    selectAsset () {
+	    	this.$q.dialog({
+                    component: AssetListDialog,
+                    componentProps: {
+                      assets: this.assets
+                    }
+                  })
 	    },
 	    toggleHideBalances () {
 	      this.hideBalances = !this.hideBalances

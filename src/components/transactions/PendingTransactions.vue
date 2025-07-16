@@ -9,7 +9,7 @@
         			<div class="col-7">
         				<!-- Label -->
 		        		<q-badge v-if="item.is_cash_in" outline color="primary">Cash In</q-badge>
-		        		<q-badge outline color="primary">P2P Exchange</q-badge>
+		        		<q-badge v-else outline color="primary">P2P Exchange</q-badge>
 
 		        		<div class="q-pt-sm text-bold">Order# {{ item.id }}</div>     
 		        		<div style="font-size: 12px;">
