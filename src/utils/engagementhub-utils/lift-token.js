@@ -136,18 +136,8 @@ export async function processPurchaseApi(data) {
   data.wallet_hash = getWalletHash()
   return await LIFTTOKEN_URL
     .post('purchase/process_purchase/', data)
-    .then(response => {
-      return {
-        isSuccessful: response.status === 201,
-        message: response.data?.message
-      }
-    })
-    .catch(_error => { 
-      return {
-        isSuccessful: false,
-        message: ''
-      }
-    })
+    .then(response => { response.status === 201 })
+    .catch(_error => { return false })
 }
 
 export async function getContractAddressApi () {

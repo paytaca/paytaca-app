@@ -189,9 +189,9 @@ export default {
             buyer_tx_address: this.$store.getters['global/getAddress']('bch')
           }
     
-          const resp = await processPurchaseApi(data)
+          const isSuccessful = await processPurchaseApi(data)
   
-          if (resp.isSuccessful) {
+          if (isSuccessful) {
             this.processingMessage = ''
             this.$refs.confirmDialogRef.$emit('ok')
             this.$refs.confirmDialogRef.hide()
