@@ -40,7 +40,7 @@ export async function migrateVuexStorage() {
     
     // Fallback: try to get from IndexedDB
     const indexedDBState = await localforage.getItem(key)
-    console.log('INDEXED DB', indexedDBState)
+    
     if (indexedDBState) {
       if (!indexedDBState.multisig) {
         indexedDBState.multisig = {
