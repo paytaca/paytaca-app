@@ -750,6 +750,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
             result: {
               status: 'accepted',
               walletType: 'p2shMultisig',
+              walletLockingType: 'p2shMultisig',
               walletSpec: {
                 m: getRequiredSignatures(wallet.template),
                 n: getTotalSigners(wallet.template),
