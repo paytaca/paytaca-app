@@ -195,8 +195,8 @@ export function commonUtxoToLibauthOutput (utxo, lockingBytecode) {
 
   if (utxo.token) {
     output.token = {}
-    output.token.amount = BigInt(output.token.amount)
-    output.token.category = hexToBin(output.token.category)
+    output.token.amount = BigInt(utxo.token.amount)
+    output.token.category = hexToBin(utxo.token.category)
     if (utxo.token.nft) {
       output.token.nft.capability = utxo.token.nft.capability
       output.token.nft.commitment = hexToBin(utxo.token.nft.commitment)
