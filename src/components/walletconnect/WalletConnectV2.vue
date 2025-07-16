@@ -704,9 +704,16 @@ const approveSessionProposal = async (sessionProposal) => {
       proposal: sessionProposal,
       supportedNamespaces: supportedNamespaces
     })
+
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
-      namespaces: approvedNamespaces
+      namespaces: approvedNamespaces,
+      sessionProperties: {
+        wallet: {
+          address: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.address,
+          template: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.template
+        }
+      }
     })
     await web3Wallet.value.getActiveSessions()
     activeSessions.value[session.topic] = session
