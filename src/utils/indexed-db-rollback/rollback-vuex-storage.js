@@ -28,6 +28,17 @@ export async function migrateVuexStorage() {
     const indexedDBState = await localforage.getItem(key)
 
     if (indexedDBState) {
+      if (!indexedDBState.multisig) {
+        indexedDBState.multisig = {
+          wallets: [],
+          transactions: [],
+          wallet,
+          walletsUtxos: {},
+          settings: {
+            defaultSignerWalletIndex: 0 /* The index of the personal wallet that'll be used as signer */
+          }
+        }
+      }
       localStorage.setItem(key, JSON.stringify(indexedDBState))
       console.info('[Migration] Vuex state restored from IndexedDB to localStorage.')
       window.localStorage.setItem(ROLLBACK_FLAG, true) // Mark rollback done
