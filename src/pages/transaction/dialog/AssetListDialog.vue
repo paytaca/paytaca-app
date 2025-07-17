@@ -30,11 +30,17 @@
 		          </template>
 		        </q-input>
 		      </q-card-section>
-			<div :class="darkMode ? 'text-black' : 'text-white'">
-				<q-list>
-					<q-item v-for="asset in assets" >
-						{{ asset.name }}
+			<div :class="darkMode ? 'text-white' : 'text-black'">
+				<q-list separator class="q-px-lg">
+					<q-item class="q-py-md" clickable v-ripple v-for="asset in assets" @click="onOKClick(asset)">
+						<q-item-section avatar>
+		          <q-avatar>
+		            <img :src="asset.logo">
+		          </q-avatar>
+		        </q-item-section>
+		        <q-item-section class="text-bold">{{ asset.name }}</q-item-section>
 					</q-item>
+
 				</q-list>
 			</div>
 		</q-card>
@@ -58,10 +64,16 @@ export default {
 		assets: Array
 	},
 	mounted () {
-		console.log('assets: ', this.assets)
+		// console.log('assets: ', this.assets)
 	},
 	methods: {
-		getDarkModeClass
+		getDarkModeClass,
+		onOKClick (asset) {
+      // if (coin.offline === false) {
+      this.$emit('ok', asset)
+      this.$refs.dialog.hide()
+      // }
+    },
 	}
 }
 </script>

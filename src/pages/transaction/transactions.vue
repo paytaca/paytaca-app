@@ -318,17 +318,22 @@ export default {
 	        console.log('Wallet index:', walletIndex)
 	        this.$store.commit('global/updateCurrentWallet', walletIndex)
 	        // location.reload()
-	      }
-
-	      console.log('wallet: ', vm.wallet)
+	      }	      
 	    },
 	    selectAsset () {
 	    	this.$q.dialog({
-                    component: AssetListDialog,
-                    componentProps: {
-                      assets: this.assets
-                    }
-                  })
+                component: AssetListDialog,
+                componentProps: {
+                    assets: this.assets
+                }
+            })
+            .onOk(asset => {	            
+	            this.selectedAsset = asset
+	            this.$nextTick(() => {
+			        this.$refs['transaction-list-component'].resetValues(null, null, asset)
+			        this.$refs['transaction-list-component'].getTransactions()
+			      })
+	          })
 	    },
 	    toggleHideBalances () {
 	      this.hideBalances = !this.hideBalances
