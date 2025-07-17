@@ -71,6 +71,40 @@ export class Location {
   }
 }
 
+export class FungibleCashToken {
+  static parse(data) {
+    return new FungibleCashToken(data)
+  }
+  
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data 
+   * @param {String} data.category
+   * @param {String} data.name
+   * @param {String} data.description
+   * @param {String} data.symbol
+   * @param {Number} data.decimals
+   * @param {String} data.image_url
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.category = data?.category
+    this.name = data?.name
+    this.description = data?.description
+    this.symbol = data?.symbol
+    this.decimals = data?.decimals
+    this.imageUrl = data?.image_url
+  }
+}
+
 
 export class User {
   static parse(data) {
@@ -1011,6 +1045,8 @@ export class Checkout {
       bchPrice: BchPrice.parse(data?.payment?.bch_price),
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
+      amountToken: data?.payment?.amount_token ? FungibleCashToken.parse(data?.payment?.amount_token) : null,
+      deliveryFeeToken: data?.payment?.delivery_fee_token ? FungibleCashToken.parse(data?.payment?.delivery_fee_token) : null,
     }
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
@@ -1734,9 +1770,13 @@ export class EscrowContract {
    * @param {Number} data.amount_sats
    * @param {Number} data.service_fee_sats
    * @param {Number} data.arbitration_fee_sats
+   * @param {String} [data.amount_category]
+   * @param {String} [data.service_fee_category]
+   * @param {String} [data.arbitration_fee_category]
    * @param {Object} [data.delivery_fee_key_nft]
    * @param {Number} data.delivery_fee_key_nft.amount
    * @param {Number} data.delivery_fee_key_nft.nft_id
+   * @param {String} data.delivery_fee_key_nft.category
    * @param {String} data.delivery_fee_key_nft.current_address
    * @param {String} data.delivery_fee_key_nft.current_txid
    * @param {Number} data.delivery_fee_key_nft.current_index
@@ -1771,9 +1811,14 @@ export class EscrowContract {
     this.amountSats = data?.amount_sats
     this.serviceFeeSats = data?.service_fee_sats
     this.arbitrationFeeSats = data?.arbitration_fee_sats
+
+    this.amountCategory = data?.amount_category
+    this.serviceFeeCategory = data?.service_fee_category
+    this.arbitrationFeeCategory = data?.arbitration_fee_category
     this.deliveryFeeKeyNft = {
       amount: data?.delivery_fee_key_nft?.amount,
       nftId: data?.delivery_fee_key_nft?.nft_id,
+      category: data?.delivery_fee_key_nft?.category,
       currentAddress: data?.delivery_fee_key_nft?.current_address,
       currentTxid: data?.delivery_fee_key_nft?.current_txid,
       currentIndex: data?.delivery_fee_key_nft?.current_index,
@@ -1847,6 +1892,10 @@ export class EscrowContract {
   
   get isSettled() {
     return Boolean(this.settlementTxid)
+  }
+
+  get requiresTokens() {
+    return Boolean(this.amountCategory || this.serviceFeeCategory || this.arbitrationFeeCategory || this.deliveryFeeKeyNft?.category)
   }
 
   get fiatAmount() {
