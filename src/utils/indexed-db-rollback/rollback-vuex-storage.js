@@ -2,6 +2,21 @@ import localforage from 'localforage'
 
 const ROLLBACK_FLAG = 'vuex-rollback-done'
 
+const forceInitMultisigLocalStorageState = () => {
+  const vuex = JSON.parse(localStorage.getItem('vuex'))
+  if (vuex && !vuex.multisig) {
+    vuex.multisig = {
+      wallets: [],
+      transactions: [],
+      walletsUtxos: {},
+      settings: {
+        defaultSignerWalletIndex: 0 /* The index of the personal wallet that'll be used as signer */
+      }
+    }
+    localStorage.setItem('vuex', JSON.stringify(vuex))
+  }
+}
+
 export async function migrateVuexStorage() {
   // This function rolls back Vuex storage from IndexedDB to localStorage
   // IndexedDB data will not be deleted
@@ -9,28 +24,13 @@ export async function migrateVuexStorage() {
   console.log('[Migration] Initializing rollback of Vuex storage to localStorage')
 
   const key = 'vuex'
-
-  const alreadyRolledBack = window.localStorage.getItem(ROLLBACK_FLAG)
-  if (Boolean(alreadyRolledBack) === true) {
-    console.log('[Migration] Already rolled back:', alreadyRolledBack)
-    const vuex = JSON.parse(localStorage.getItem(key))
-    if (!vuex.multisig) {
-      vuex.multisig = {
-        wallets: [],
-        transactions: [],
-        walletsUtxos: {},
-        settings: {
-          defaultSignerWalletIndex: 0 /* The index of the personal wallet that'll be used as signer */
-        }
-      }
-      localStorage.setItem(key, JSON.stringify(vuex))
+  
+  try {  
+    const alreadyRolledBack = window.localStorage.getItem(ROLLBACK_FLAG)
+    if (Boolean(alreadyRolledBack) === true) {
+      console.log('[Migration] Already rolled back:', alreadyRolledBack)
+      return
     }
-    return
-  }
-
-  try {
-    
-
     // Check if localStorage already has valid data
     const localState = localStorage.getItem(key)
     if (localState) {
@@ -42,16 +42,6 @@ export async function migrateVuexStorage() {
     const indexedDBState = await localforage.getItem(key)
     
     if (indexedDBState) {
-      if (!indexedDBState.multisig) {
-        indexedDBState.multisig = {
-          wallets: [],
-          transactions: [],
-          walletsUtxos: {},
-          settings: {
-            defaultSignerWalletIndex: 0 /* The index of the personal wallet that'll be used as signer */
-          }
-        }
-      }
       localStorage.setItem(key, JSON.stringify(indexedDBState))
       console.info('[Migration] Vuex state restored from IndexedDB to localStorage.')
       window.localStorage.setItem(ROLLBACK_FLAG, true) // Mark rollback done
@@ -61,5 +51,7 @@ export async function migrateVuexStorage() {
 
   } catch (err) {
     console.error('Error rolling back Vuex state to localStorage:', err)
+  } finally {
+    forceInitMultisigLocalStorageState()
   }
 }
