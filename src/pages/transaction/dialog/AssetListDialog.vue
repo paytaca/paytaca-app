@@ -32,7 +32,7 @@
 		      </q-card-section>
 			<div :class="darkMode ? 'text-white' : 'text-black'">
 				<q-list separator class="q-px-lg">
-					<q-item class="q-py-md" clickable v-ripple v-for="asset in assets" @click="onOKClick(asset)">
+					<q-item class="q-py-md" clickable v-ripple v-for="asset in filteredList" @click="onOKClick(asset)">
 						<q-item-section avatar>
 		          <q-avatar>
 		            <img :src="asset.logo">
@@ -57,8 +57,22 @@ export default {
 	},
 	computed: {
 		darkMode () {
-	      return this.$store.getters['darkmode/getStatus']
-	    },
+	    return this.$store.getters['darkmode/getStatus']
+	  },
+	  filteredList () {
+      if (!this.searchText) return this.assets
+
+      const needle = String(this.searchText).toLowerCase()
+
+      return this.assets
+        .filter(asset => {
+          if (!this.searchText) return true
+          if (!asset) return false
+          if (/0x[0-9a-f]+/.test(needle) && (asset.symbol.toLowerCase() === needle || asset.name.toLowerCase() === needle)) return true
+
+          return String(asset.symbol).toLowerCase().includes(needle) || String(asset.name).toLowerCase().includes(needle)
+        })
+    }
 	},
 	props: {
 		assets: Array

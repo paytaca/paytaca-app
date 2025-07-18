@@ -7,11 +7,16 @@
 		<div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
 			<div v-if="!txSearchActive" class="row q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
 				<div class="col-9" @click="selectAsset">
+					<q-btn class="full-width" align="left"  flat padding="0px">
 					<!-- <q-item clickable v-ripple class="br-15" > -->
+						<q-avatar size="35px">
+				            <img  :src="selectedAsset.logo">
+				          </q-avatar>
+						<span class="q-pl-sm">{{ selectedAsset.symbol }}</span>
 						<span>
 							<q-icon name="arrow_drop_down"/>
-						</span>
-						{{ selectedAsset.symbol }}
+						</span>						
+					</q-btn>
 					<!-- </q-item> -->
 				</div>
 				<div class="col-3 text-right">
@@ -22,7 +27,7 @@
 		              <div v-if="txSearchActive" class="full-width">
 		                <q-input
 		                  ref="tx-search"
-		                  style="margin-left: -20px; padding-bottom: 22px;"
+		                  style="margin: 0px 30px 0px; padding-bottom: 22px;"
 		                  maxlength="6"
 		                  label="Search by Reference ID"
 		                  v-model="txSearchReference"
