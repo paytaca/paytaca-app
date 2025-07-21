@@ -401,3 +401,64 @@ export const generateFilename = multisigWallet => {
   const n = getTotalSigners(multisigWallet.template)
   return `${m}-of-${n})}-multisig-wallet.pmwif`
 }
+
+// Bip67
+
+export const getPublicKeySet = ({ hdPublicKeys, relativePath = '0/0', bip67 = true }) => {
+  let publicKeys = hdPublicKeys
+    .map(xpub => decodeHdPublicKey(xpub, relativePath))
+    .map(decodedHdPublicKey => deriveHdPathRelative(decodedHdPublicKey.node, relativePath).publicKey)
+  if(!bip67) {
+    return publicKeys 
+  }
+  publicKeys = 
+    publicKeys
+      .map(pk => binToHex(pk))
+      .sort((a, b) => a.localeCompare(b))
+      .map(pk=> hexToBin(pk))
+  return publicKeys
+}
+
+export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkPrefix.mainnet }) => {
+  const lockingBytecode = compiler.generateBytecode({
+      data: lockingData,
+      scriptId: lockingScript,
+      debug: true
+    })
+
+    const address = lockingBytecodeToCashAddress({
+      bytecode: lockingBytecode.bytecode,
+      prefix: prefix
+    });
+    return address.address
+}
+
+export const getMultisigDepositAddress = ({ hdPublicKeys, compiler, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
+    
+    const publicKeySet = getPublicKeySet({ hdPublicKeys, relativePath: `0/${addressIndex}` })
+    const lockingData = {
+      bytecode: {}
+    }
+
+    for(const index in publicKeySet) {
+      lockingData.bytecode[`key${index + 1}.public_key`] = publicKeySet[index]
+    }
+
+    return getAddress({ lockingData, compiler, prefix })
+    
+} 
+
+export const getMultisigChangeAddress = ({ hdPublicKeys, compiler, addressIndex, prefix = CashAddressNetworkPrefix.mainnet }) => {
+    
+    const publicKeySet = getPublicKeySet({ hdPublicKeys, relativePath: `1/${addressIndex}` })
+    const lockingData = {
+      bytecode: {}
+    }
+
+    for(const index in publicKeySet) {
+      lockingData.bytecode[`key${index + 1}.public_key`] = publicKeySet[index]
+    }
+
+   return getAddress({ lockingData, compiler, prefix })
+    
+} 
