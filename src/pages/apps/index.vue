@@ -11,7 +11,7 @@
             {{ $t('Applications') }}
           </p>
         </div>
-        <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
+        <div class="row q-pt-lg" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
               <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              

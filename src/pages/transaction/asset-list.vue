@@ -38,7 +38,7 @@
 			</div>
 
 			<div class="full-width" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 20px ;">
-			    <q-list :key="assetListKey" bordered class="q-ma-md pt-card" :class="getDarkModeClass(darkmode)">
+			    <q-list v-if="assetList.length > 0" :key="assetListKey" bordered class="q-ma-md pt-card" :class="getDarkModeClass(darkmode)">
 			      	<draggable			      		
 			      		:list="assetList" 
 						group="assets" 
@@ -84,6 +84,10 @@
 			      	    </template>			      
 			        </draggable>  
 			    </q-list>
+			    <div v-else class="text-center" style="margin-top: 50px;">
+		            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+		            <p :class="{ 'text-black': !darkMode }">{{ $t('No Assets To Display') }}</p>
+		          </div>
 			  </div>	
 		</div>
 
@@ -194,7 +198,10 @@ export default {
 		RemoveAsset,
 		draggable
 	},
-	watch: {		
+	watch: {
+		isCashToken () {
+			this.assetList = this.assets
+		}		
 	},
 	async mounted () {
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])

@@ -1,10 +1,10 @@
 <template>
-	<div class="pending-order" :class="getDarkModeClass(darkMode)">		 
+	<div v-if="pending.length > 0" class="pending-order" :class="getDarkModeClass(darkMode)">		 
 		<div class="q-ml-lg q-gutter-x-sm button button-text-primary" style="font-size: 20px;">                
         	{{ $t('Pending') }}
         </div>
         <div class="pending-list q-mx-lg " :class="darkMode ? 'text-white': 'text-black'">
-        	<div v-for="item in pending" class="pending-card q-pa-md" @click="selectTransaction(item)">
+        	<div v-for="item in pending" class="pending-card q-pa-md" @click="selectTransaction(item)" style="border-bottom: 1px solid #fff;">
         		<div class="row">
         			<div class="col-7">
         				<!-- Label -->
