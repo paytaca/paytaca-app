@@ -106,6 +106,9 @@
 	      :bch-wallet-hash="getWallet('bch').walletHash"
 	      :slp-wallet-hash="getWallet('slp').walletHash"
 	      :sbch-address="getWallet('sbch').lastAddress"
+	      @update:modelValue="() => { 
+	      	assetList = assets	      	
+	      }"
 	    />
 	</div>
 </template>
@@ -132,11 +135,7 @@ export default {
 			showTokenSuggestionsDialog: false,
 			editAssets: false,
 			wallet: null,	
-			drag: false,	
-			test: [
-				{id: 1, name: 'apple' }, 
-				{id: 2, name: 'banana' },
-				{id: 3, name: 'coconut' }]
+			drag: false,				
 		}
 	},
 	computed: {
@@ -158,8 +157,7 @@ export default {
 	      }
 	    },
 	    assets () {
-	      const vm = this
-	      console.log('here: ')
+	      const vm = this	      
 	      if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
 	      
 	      // if (vm.stablehedgeView) {
@@ -285,6 +283,9 @@ export default {
 	          vaultIndex: walletIndex,
 	          id: asset.id
 	        })
+
+	        vm.assetList = this.assets
+	        vm.editAssets = false
 	        vm.$emit('removed-asset', asset)
 	      }).onCancel(() => {
 	      	// this.editAssets = false	      	
