@@ -60,7 +60,10 @@
                   <img :src="token?.imageUrl" width="50" class="q-mr-sm"/>
                   <div class="text-subtitle1">{{ token?.name }}</div>
                   <q-space/>
-                  <div>{{ token?.symbol }}</div>
+                  <div>
+                    {{ getTokenBalance(token?.category || null) }}
+                    {{ token?.symbol }}
+                  </div>
                 </div>
               </div>
 
@@ -101,8 +104,13 @@ const bchPaymentOpt = FungibleCashToken.parse({ name: 'Bitcoin Cash', symbol: 'B
 const paymentOptions = ref([bchPaymentOpt])
 
 onMounted(() => fetchTokenOptions())
+watch(() => props.checkout?.cart?.storefrontId, () => fetchTokenOptions())
 function fetchTokenOptions() {
-  return backend.get(`http://localhost:8000/api/cashtokens/fungible/`)
+  const params = {
+    checkout_id: props.checkout?.id || null,
+  }
+
+  return backend.get(`cashtokens/fungible/`, { params })
     .then(response => {
       const results = response?.data?.results
       if (!Array.isArray(results)) return
@@ -167,5 +175,17 @@ function savePaymentOptions() {
       })
       return response
     })
+}
+
+function getTokenBalance(category=null) {
+  const assetId = category == null ? 'bch' : `ct/${category}`
+  const assets = $store.getters['assets/getAssets']
+  if (!Array.isArray(assets)) return null
+
+  const asset = assets?.find(asset => asset?.id === assetId)
+  if (!asset) return 0
+  const decimals = parseInt(asset?.decimals) || 0
+  const parsedBalance = asset?.balance / 10 ** decimals
+  return parsedBalance || 0
 }
 </script>
