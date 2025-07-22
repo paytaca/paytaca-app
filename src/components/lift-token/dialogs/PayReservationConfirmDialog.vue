@@ -54,11 +54,16 @@
         disable-absolute-bottom
         @swiped="securityCheck"
       />
-      <div v-if="isSliderLoading" class="flex flex-center">
+      <div v-if="isSliderLoading" class="row flex-center">
         <progress-loader
           :color="isNotDefaultTheme(theme) ? theme : 'pink'"
         />
-        <span v-if="processingMessage !== ''">{{ processingMessage }} ...</span>
+        <span
+          v-if="processingMessage !== ''"
+          class="col-12 text-center text-h6 q-mb-sm"
+        >
+          {{ processingMessage }} ...
+        </span>
       </div>
     </q-card>
   </q-dialog>
@@ -90,7 +95,6 @@ export default {
     rsvp: { type: Object, default: null },
     wallet: { type: Object, default: null },
     liftSwapContractAddress: { type: String, default: null },
-    processingMessage: ''
   },
 
   components: {
@@ -100,7 +104,8 @@ export default {
 
   data () {
     return {
-      isSliderLoading: false
+      isSliderLoading: false,
+      processingMessage: ''
     }
   },
 
@@ -174,7 +179,7 @@ export default {
 
             current_date: new Date().toISOString(),
             tx_id: result.txid,
-            
+
             buyer_pubkey: pubkeyHex,
             buyer_sig: signature,
             buyer_token_address: tokenAddress,
