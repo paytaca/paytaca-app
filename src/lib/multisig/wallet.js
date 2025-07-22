@@ -404,20 +404,29 @@ export const generateFilename = multisigWallet => {
 
 // Bip67
 
-export const getPublicKeySet = ({ hdPublicKeys, relativePath = '0/0', bip67 = true }) => {
-  let publicKeys = hdPublicKeys
-    .map(xpub => decodeHdPublicKey(xpub, relativePath))
-    .map(decodedHdPublicKey => deriveHdPathRelative(decodedHdPublicKey.node, relativePath).publicKey)
-  if(!bip67) {
-    return publicKeys 
-  }
-  publicKeys = 
-    publicKeys
-      .map(pk => binToHex(pk))
-      .sort((a, b) => a.localeCompare(b))
-      .map(pk=> hexToBin(pk))
-  return publicKeys
+/**
+ * @param {Object} params
+ * @param {MultisigWalletSigner[]} params.signers
+ * @param {string} [params.relativeDerivationPath='0/0']
+ * @returns {MultisigWalletSigner[]} The multisig wallet signers with publicKey at `relativeDerivationPath` set
+ */
+export const derivePublicKeys = ({ signers, relativeDerivationPath = '0/0', bip67Sort = true }) => {
+  const signersWithPublicKeys = signers.map(signer => {
+    const decodedHdPublicKey = decodeHdPublicKey(signer.xpub, relativeDerivationPath)
+    const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, relativeDerivationPath)
+    signer.publicKey = binToHex(publicKey)
+    return signer
+  })
+
+  if (!bip67Sort) return signersWithPublicKeys
+
+  signersWithPublicKeys.sort((signerA, signerB) => {
+    return signerA.publicKey.localeCompare(signerB.publicKey)
+  })
+
+  return signersWithPublicKeys
 }
+
 
 export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkPrefix.mainnet }) => {
   const lockingBytecode = compiler.generateBytecode({
@@ -433,24 +442,24 @@ export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkP
     return address.address
 }
 
-export const getMultisigDepositAddress = ({ hdPublicKeys, compiler, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
+export const getDepositAddress = ({ signers, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
     
-    const publicKeySet = getPublicKeySet({ hdPublicKeys, relativePath: `0/${addressIndex}` })
+    const signersSortedByPublicKeys = derivePublicKeys({ signers, relativeDerivationPath: `0/${addressIndex}` })
     const lockingData = {
       bytecode: {}
     }
 
-    for(const index in publicKeySet) {
-      lockingData.bytecode[`key${index + 1}.public_key`] = publicKeySet[index]
+    for(const index in signersWithPublicKeys) {
+      lockingData.bytecode[`key${index + 1}.public_key`] = signersSortedByPublicKeys[index]
     }
 
     return getAddress({ lockingData, compiler, prefix })
     
 } 
 
-export const getMultisigChangeAddress = ({ hdPublicKeys, compiler, addressIndex, prefix = CashAddressNetworkPrefix.mainnet }) => {
+export const getChangeAddress = ({ signers, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
     
-    const publicKeySet = getPublicKeySet({ hdPublicKeys, relativePath: `1/${addressIndex}` })
+    const publicKeySet = derivePublicKeys({ signers, relativeDerivationPath: `1/${addressIndex}` })
     const lockingData = {
       bytecode: {}
     }
