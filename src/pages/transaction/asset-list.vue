@@ -269,6 +269,7 @@ export default {
 	        component: AddNewAsset
 	      }).onOk((asset) => {
 	      	console.log('asset: ', )
+	      	vm.assetList = this.assets
 	        // if (asset.data?.id) vm.selectAsset(null, asset.data)
 	      })
 	    },

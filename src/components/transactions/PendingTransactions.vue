@@ -29,6 +29,8 @@
 	</div>
 </template>
 <script>
+import { Order, Storefront } from 'src/marketplace/objects'
+import { backend as marketBackend} from 'src/marketplace/backend'
 import { backend } from 'src/exchange/backend'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { wallet } from 'src/exchange/wallet'
@@ -50,7 +52,13 @@ export default {
 		        { value: 'RFN_PN', label: this.$t('RefundPending') }
 		      ],
 			exchangeOrders: [],
-			marketplaceOrders: []
+			marketplaceOrders: [],
+			marketplacePagination: {
+				count: 0,
+				limit: 10,
+				offset: 0				
+			},
+			fetchingOrders: false
 		}
 	},
 	computed: {
@@ -64,7 +72,7 @@ export default {
 	components: {
 
 	},
-	mounted () {
+	async mounted () {
 		console.log('pending')
 		this.fetchOrders()
 
@@ -72,9 +80,6 @@ export default {
 	methods: {
 		getDarkModeClass,
 		async fetchOrders () {
-			console.log('fetching order')
-			console.log('wallet hash: ', this.$store.getters['global/getWallet']('bch').walletHash)
-
 			const vm = this 
 
 			vm.isSorted = false
@@ -128,7 +133,44 @@ export default {
 	    		redirect: true
 	    	}
 	    	this.$router.push({ name: 'exchange', query: { order_id: order.id } })
-	    }
+	    },
+	    async fetchOrders(opts={limit: 0, offset: 0 }) {
+	    	const vm = this	
+		  	const params = {
+			    ref: await vm.$store.dispatch('marketplace/getCartRef'),
+			    limit: vm.marketplacePagination?.limit || 10,
+			    offset: vm.marketplacePagination?.offset || undefined,
+			    storefront_id: undefined,
+			  }
+
+		  	vm.fetchingOrders = true
+		  	return marketBackend.get(`connecta/orders/`, { params })
+		    	.then(response => {
+		      		if(!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+		      		
+		      		vm.marketplaceOrders = response?.data?.results?.map(Order.parse)
+
+		      		vm.marketplaceOrders.forEach(order => {
+				        if (!order?.storefrontId) return
+				        order.storefront = vm.$store.getters['marketplace/storefronts']
+				          .find(storefront => storefront?.id == order?.storefrontId)
+
+		        	// if (order.storefront) return
+
+			        // order.fetchStorefront()?.then(() => {
+			        //   $store.commit('marketplace/cacheStorefront', order.storefront?.raw)
+			        // })
+			      })
+			      vm.marketplacePagination.count = response?.data?.count
+			      vm.marketplacePagination.limit = response?.data?.limit
+			      vm.marketplacePagination.offset = response?.data?.offset
+			      // setStorefront(params.storefront_id)
+			      return response
+			    })
+			    .finally(() => {
+			      vm.fetchingOrders = false
+			    })
+		}
 	}
 }	
 </script>
