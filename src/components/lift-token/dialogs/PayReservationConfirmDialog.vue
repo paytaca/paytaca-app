@@ -163,23 +163,18 @@ export default {
 
           const pubkeyHex = Buffer.from(pubkey).toString('hex')
           const signature = await generateSignature(result.txid, lastAddressWif)
-          const satsWithFee = Math.floor(bch * (10 ** 8))
+          const satsWithFee = Math.floor(bch * (10 ** 8)) // compute p2pkh
           
-          let lockupYears = 0
-          if (this.rsvp.sale_group === SaleGroup.SEED) lockupYears = 2
-          else if (this.rsvp.sale_group === SaleGroup.PRIVATE) lockupYears = 1
-          const lockupPeriod = new Date().setFullYear(new Date().getFullYear() + lockupYears)
           const tokenAddress = await getWalletTokenAddress()
     
           const data = {
             purchased_amount_usd: this.purchase.usd,
             purchased_amount_tkn: this.purchase.tkn,
             purchased_amount_sats: satsWithFee,
-            purchased_date: new Date().toISOString(),
-            lockup_date: new Date(lockupPeriod).toISOString(),
-            lockup_years: lockupYears,
 
+            current_date: new Date().toISOString(),
             tx_id: result.txid,
+            
             buyer_pubkey: pubkeyHex,
             buyer_sig: signature,
             buyer_token_address: tokenAddress,
