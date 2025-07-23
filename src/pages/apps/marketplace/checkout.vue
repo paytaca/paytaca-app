@@ -823,6 +823,7 @@ import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { useCheckoutDetails } from 'src/composables/marketplace/checkout'
+import { sendEscrowPayment } from 'src/marketplace/escrow'
 
 const forceShowReview = ref(false)
 onMounted(() => {
@@ -1616,6 +1617,35 @@ const createPayment = debounce(async () => {
 }, 250)
 
 
+const fundingPaymentRequirements = ref({
+  address: '',
+  fundingRequiments: [].map(() => {
+    return {
+      amount: 0,
+      token: { amount: 0, category: 0 },
+    }
+  })
+})
+watch(() => [payment.value?.escrowContractAddress], () => fetchFundingRequirements())
+async function fetchFundingRequirements() {
+  const escrowContractAddress = payment.value?.escrowContractAddress
+  if (!escrowContractAddress) {
+    fundingPaymentRequirements.value = { address: '', fundingRequiments: [] }
+    return
+  }
+
+  return backend.get(`connecta/escrow/${escrowContractAddress}/funding_requirements/`)
+    .then(response => {
+      if (response?.data?.address !== payment.value?.escrowContractAddress) {
+        return
+      }
+      fundingPaymentRequirements.value = response.data
+    })
+    .catch(error => {
+      console.error(error)
+    })
+}
+
 const bchPaymentState = ref({ tab: '' })
 const bchPaymentData = computed(() => {
   const data = {
@@ -1626,6 +1656,10 @@ const bchPaymentData = computed(() => {
     fiatAmount: 0,
     currency: payment.value?.bchPrice?.currency?.symbol,
     url: '',
+    fundingRequiments: [],
+  }
+  if (fundingPaymentRequirements.value?.address == payment.value?.escrowContractAddress) {
+    data.fundingRequiments = fundingPaymentRequirements.value
   }
   if (!data.address || !data.bchAmount) return data
   if (data.escrowContract?.requiresTokens) return data
@@ -1782,9 +1816,9 @@ async function sendBchPayment() {
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
-  const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
-  bchWallet.sendBch(amount, address, changeAddress)
+  sendEscrowPayment(bchPaymentData.value?.escrowContract, wallet.value, dialog)
     .then(async result => {
+      console.log('Escrow payment', result)
       if (!result.success) return Promise.reject(result)
 
       await asyncSleep(1000)
@@ -1795,6 +1829,7 @@ async function sendBchPayment() {
       dialog.hide()
     })
     .catch(error => {
+      console.error('Escrow payment error', error)
       let errorMessage = error?.error || ''
       if (errorMessage.indexOf('not enough balance in sender') > -1) {
         errorMessage = 'Not enough balance to cover the send amount and transaction fee'
