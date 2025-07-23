@@ -559,7 +559,9 @@ export default {
       hasCashinAlert: false,
       availableCashinFiat: null,
       isPriceChartDialogShown: false,
-      websocketManager: null
+      websocketManager: null,
+      assetClickTimer: null,
+      assetClickCounter: 0
     }
   },
 
@@ -935,33 +937,38 @@ export default {
         // vm.$refs['transaction-list-component'].getTransactions()
       }
     },
-    selectBch () {
-      const vm = this
-      vm.selectedAsset = this.bchAsset
-      vm.getBalance(this.bchAsset.id)
-      vm.txSearchActive = false
-      vm.txSearchReference = ''
+    selectBch () {     
+      const vm = this       
+      // vm.selectedAsset = this.bchAsset
+      // vm.getBalance(this.bchAsset.id)
+      // vm.txSearchActive = false
+      // vm.txSearchReference = ''
       
-      vm.$nextTick(() => {
+      // vm.$nextTick(() => {
         // vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
         // vm.$refs['transaction-list-component'].getTransactions()
-      })
+      // })
       vm.assetClickCounter += 1
-      if (vm.assetClickCounter >= 2) {
+      if (vm.assetClickCounter >= 2) {        
         vm.showAssetInfo(this.bchAsset)
         vm.assetClickTimer = setTimeout(() => {
           clearTimeout(vm.assetClickTimer)
           vm.assetClickTimer = null
           vm.assetClickCounter = 0
         }, 600)
-      } else {
-        vm.hideAssetInfo()
-        vm.assetClickTimer = setTimeout(() => {
+      } else {        
+        // vm.hideAssetInfo()
+        vm.assetClickTimer = setTimeout(() => {          
+          if (vm.assetClickCounter === 1) {
+            this.$router.push({ name: 'transaction-list'}) 
+          }            
           clearTimeout(vm.assetClickTimer)
           vm.assetClickTimer = null
           vm.assetClickCounter = 0
-        }, 600)
+        }, 600)       
       }
+
+      // this.$router.push({ name: 'transaction-list'})
     },
     toggleManageAssets () {
       const vm = this
@@ -1086,7 +1093,7 @@ export default {
           return this.getBalance(asset.id)
         })
         this.transactions = []
-        this.$refs['transaction-list-component'].getTransactions()
+        // this.$refs['transaction-list-component'].getTransactions()
       } finally {
         done()
       }
