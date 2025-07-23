@@ -194,6 +194,13 @@ export default {
     getAssetDenomination,
     parseFiatCurrency,
 
+    parseToken () {
+      let tkn = this.rsvp.reserved_amount_tkn
+      if (Object.keys(this.rsvp.reservation_partial_purchase).length > 0) {
+        tkn = this.rsvp.reservation_partial_purchase.tkn_unpaid
+      }
+      return tkn
+    },
     computeUsdBch () {
       this.amountUsd = Number(this.amountTkn) * SaleGroupPrice[this.rsvp.sale_group]
       if (this.rsvp.discount > 0) {
@@ -206,13 +213,11 @@ export default {
       this.amountBch = bch || 0
     },
     computeBalances () {
+      const tkn = this.parseToken()
+      
       this.bchBalance = (this.walletBalance - this.amountBch).toFixed(8)
-      let tkn = this.rsvp.reserved_amount_tkn
-      if (Object.keys(this.rsvp.reservation_partial_purchase).length > 0) {
-        tkn = this.rsvp.reservation_partial_purchase.tkn_unpaid
-      }
       this.tknBalance = tkn
-      this.unpaidLift = tkn - Number(this.amountTkn * (10 ** 2))
+      this.unpaidLift = this.parseToken() - Number(this.amountTkn * (10 ** 2))
     },
 
     setAmount (key) {
@@ -247,7 +252,7 @@ export default {
       this.computeBalances()
     },
     onMaxClick () {
-      this.amountTkn = this.unpaidLift / (10 ** 2)
+      this.amountTkn = this.parseToken() / (10 ** 2)
       this.computeUsdBch()
       this.computeBalances()
     },
