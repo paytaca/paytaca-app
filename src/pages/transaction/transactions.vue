@@ -121,7 +121,9 @@
 		            :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')"
 		          > -->
 		          <div
-		            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"	           
+		            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"	 
+		            :class="getDarkModeClass(darkmode)"
+		            :style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`"        
 		          >
 		            <button
 		              v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
@@ -309,6 +311,7 @@ export default {
 	      })
 	},
 	methods: {
+		getDarkModeClass,
 		async loadWallets () {
 	      const vm = this
 	      const walletIndex = vm.$store.getters['global/getWalletIndex']

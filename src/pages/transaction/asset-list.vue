@@ -38,7 +38,7 @@
 			</div>
 
 			<div class="full-width" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 20px ;">
-			    <q-list v-if="assetList.length > 0" :key="assetListKey" bordered class="q-ma-md pt-card" :class="getDarkModeClass(darkmode)">
+			    <q-list v-if="assetList.length > 0" :key="assetListKey" class="q-ma-md">
 			      	<draggable			      		
 			      		:list="assetList" 
 						group="assets" 
@@ -47,8 +47,8 @@
 						handle=".handle"
 						item-key="id"
 			      	>
-			      	    <template #item="{element: asset, index}">
-			      	    	<q-item class="q-pa-sm pt-card" :class="getDarkModeClass(darkmode)">
+			      	    <template #item="{element: asset, index}"> 
+			      	    	<q-item class="q-pa-sm" style="border-bottom: 1.5px solid #b0bec5;">
 			      	    	  <i v-if="editAssets" class="q-pl-sm fa fa-align-justify handle"></i>			      	    			      	    	
 						      <q-item-section avatar class="q-pl-md">
 						          <q-avatar>
@@ -57,7 +57,7 @@
 						        </q-item-section>
 						        <q-item-section>
 						        	<div class="text-bold ">{{ asset.name}}</div>
-						        	<div :class="darkmode ? 'text-grey-6' : 'text-grey-8'">
+						        	<div :class="darkmode ? 'text-grey-5' : 'text-grey-8'">
 						      			{{ formatAssetTokenAmount(asset) }}			      			
 						      		</div>
 						        </q-item-section>
