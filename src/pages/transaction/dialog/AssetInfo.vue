@@ -18,7 +18,7 @@
         <div style="text-align: center;">
           <img :src="getImageUrl(asset)" height="50" class="q-mr-xs">
         </div>
-        <div style="text-align: center; font-size: 18px; margin-top: 6px;">
+        <div style="text-align: center; font-size: 18px; margin-top: 6px;" class="pt-label" :class="getDarkModeClass(darkMode)">
           {{ formatBalance(asset) }}
         </div>
         <div style="text-align: center; margin-top: 10px;" v-if="asset.id !== 'bch'">
