@@ -16,8 +16,11 @@ import {
   base64ToBin,
   binToUtf8,
   CashAddressNetworkPrefix,
-  binToHex
+  binToHex,
+  hexToBin,
+  sha256
 } from 'bitauth-libauth-v3'
+import { createTemplate } from './template.js'
 
 export { createTemplate } from './template.js'
 
@@ -50,200 +53,25 @@ export const derivePubKeyFromXPubKey = ({ xpub, addressIndex /* ?: e.g. '0/0' */
   }
 }
 
-export const getLockingData = ({ signers, addressIndex }) => {
-  return {
-    hdKeys: getHdKeys({ signers, addressIndex })
-  }
-}
+// export const getLockingData = ({ signers, addressIndex }) => {
+//   return {
+//     hdKeys: getHdKeys({ signers, addressIndex })
+//   }
+// }
 
-/**
- * m: number
- * n: number
- * signers: { [signerIndex: number]: { xpub: string, name: string, derivationPath: string } }
- */
-export class MultisigWallet {
-  constructor ({ m, n, signers, name }) {
-    this.m = m
-    this.n = n
-    this.name = name
-    this.signers = signers
+export const getLockingData = ({ signers, addressDerivationPath }) => {
+  const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
+  const lockingData = {
+    bytecode: {}
   }
-
-  get lockingScriptId () {
-    return 'lock'
-  }
-
-  get signersSafe () {
-    const signers = structuredClone(this.signers)
-    for (const k of Object.keys(signers)) {
-      delete signers[k].xprv
+  for (const index in signersWithPublicKeys) {
+    let publicKey = signersWithPublicKeys[index].publicKey 
+    if (typeof(publicKey) === 'string') {
+      publicKey = hexToBin(publicKey)
     }
-    return signers
+    lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
   }
-
-  /**
-   * Primary multisig wallet address. Address at index 0.
-   * @deprecated Use getAddress({ addressIndex, cashAddressNetworkPrefix }) instead
-   * so that cashAddressNetworkPrefix can be removed as class dependency.
-   * Need to refactor WalletConnect before removing this.
-   */
-  getSignerNames () {
-    const signerNames = Object.entries(this.signers).map((entry) => {
-      const key = entry[0]
-      const value = entry[1]
-      return [key, value.name]
-    })
-    return Object.fromEntries(signerNames)
-  }
-
-  getTemplate ({ signatureFormat = 'schnorr' }) {
-    const signerNames = this.getSignerNames()
-    return createTemplate({
-      name: this.name,
-      m: this.m,
-      n: this.n,
-      signatureFormat,
-      signerNames
-    })
-  }
-
-  getCompiler ({ template }) {
-    const parsedTemplate = importWalletTemplate(template)
-    if (typeof parsedTemplate === 'string') {
-      throw new Error('Failed creating multisig wallet template.')
-    }
-    return walletTemplateToCompilerBch(parsedTemplate)
-  }
-
-  getLockingData ({ addressIndex = 0 }) {
-    return getLockingData({ signers: this.signers, addressIndex })
-  }
-
-  getLockingBytecode ({ addressIndex = 0, signatureFormat = 'schnorr' }) {
-    const lockingData = this.getLockingData({ addressIndex })
-    const template = this.getTemplate({ signatureFormat })
-    const compiler = this.getCompiler({ template })
-    const lockingBytecode = compiler.generateBytecode({
-      data: lockingData,
-      scriptId: this.lockingScriptId
-    })
-    return lockingBytecode
-  }
-
-  /**
-   * Resolves and set default address (index 0) as value of address property.
-   */
-  resolveDefaultAddress ({
-    cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
-  }) {
-    this.address = this.getAddress({
-      addressIndex: 0,
-      cashAddressNetworkPrefix
-    })
-    return this
-  }
-
-  getAddress ({
-    addressIndex = 0 /* CashAddressNetworkPrefix */,
-    cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
-  }) {
-    const lockingBytecode = this.getLockingBytecode({ addressIndex })
-    const { address } = lockingBytecodeToCashAddress({
-      bytecode: lockingBytecode.bytecode,
-      prefix: cashAddressNetworkPrefix
-    })
-    return address
-  }
-
-  signerCanSign ({ signerEntityIndex }) {
-    return Boolean(this.signers[signerEntityIndex].xprv)
-  }
-
-  /**
-   * @param {function} getSignerXPrv Function that returns the private key given an xpub
-   */
-  async loadSignerXprivateKeys (getSignerXPrv) {
-    for (const signerEntityIndex of Object.keys(this.signers || {})) {
-      const xprv = await getSignerXPrv({ xpub: this.signers[signerEntityIndex].xpub })
-      this.signers[signerEntityIndex].xprv = xprv
-    }
-  }
-
-  deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
-    return MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic, network, hdPath })
-  }
-
-  export () {
-    return MultisigWallet.export(this)
-  }
-
-  toJSON () {
-    return {
-      name: this.name,
-      m: this.m,
-      n: this.n,
-      signers: this.signers
-    }
-  }
-
-  static export (multisigWallet) {
-    const bin = utf8ToBin(stringify(multisigWallet.toJSON()))
-    return binToBase64(bin)
-  }
-
-  static import (multisigWalletBase64) {
-    const bin = base64ToBin(multisigWalletBase64)
-    const parsed = JSON.parse(binToUtf8(bin))
-    const wallet = MultisigWallet.createInstanceFromObject(parsed)
-    return wallet
-  }
-
-  static fromJSON (stringifiedWallet) {
-    const parsed = JSON.parse(stringifiedWallet)
-    const wallet = new MultisigWallet({
-      m: parsed.m,
-      n: parsed.n,
-      network: parsed.network,
-      signers: parsed.signers
-    })
-    // wallet.createTemplate()
-    return wallet
-  }
-
-  static createInstanceFromObjects (wallets) {
-    const walletInstances = wallets.map((wallet) => {
-      return MultisigWallet.createInstanceFromObject(wallet)
-    })
-    return walletInstances
-  }
-
-  static createInstanceFromObject (wallet) {
-    const multisigWallet = new MultisigWallet(structuredClone(wallet))
-    return multisigWallet
-  }
-
-  static deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
-    const node = deriveHdPath(
-      deriveHdPrivateNodeFromBip39Mnemonic(
-        mnemonic
-      ),
-      hdPath || "m/44'/145'/0'"
-    )
-    const { hdPrivateKey } = encodeHdPrivateKey({ network: network || 'mainnet', node })
-    const { hdPublicKey } = deriveHdPublicKey(hdPrivateKey)
-    return {
-      hdPrivateKey,
-      hdPublicKey
-    }
-  }
-
-  static getAddress ({ multisigWallet, addressIndex, cashAddressNetworkPrefix }) {
-    if (multisigWallet instanceof MultisigWallet) {
-      return multisigWallet.getAddress({ addressIndex, cashAddressNetworkPrefix })
-    }
-    const instance = MultisigWallet.createInstanceFromObject(multisigWallet)
-    return instance.getAddress({ addressIndex, cashAddressNetworkPrefix })
-  }
+  return lockingData
 }
 
 export const getCompiler = ({ template }) => {
@@ -270,9 +98,9 @@ export const getLockingBytecode = ({ lockingData, template, hex = false }) => {
 /**
  * The locking bytecode hex of the addressIndex 0 locking data
  */
-export const getWalletHash = ({ lockingData, template }) => {
-  return getLockingBytecode({ lockingData, template, hex: true }).bytecode
-}
+// export const getWalletHash = ({ lockingData, template }) => {
+//   return getLockingBytecode({ lockingData, template, hex: true }).bytecode
+// }
 
 export const getMultisigCashAddress = ({
   lockingData,
@@ -347,11 +175,11 @@ export const generateTempId = ({ template, lockingData }) => {
 export const importMultisigWallet = (multisigWalletBase64) => {
   const bin = base64ToBin(multisigWalletBase64)
   const multisigWallet = JSON.parse(binToUtf8(bin))
-  if (!multisigWallet.id) {
-    multisigWallet.id = generateTempId({
-      template: multisigWallet.template, lockingData: multisigWallet.lockingData
-    })
-  }
+  // if (!multisigWallet.id) {
+  //   multisigWallet.id = generateTempId({
+  //     template: multisigWallet.template, lockingData: multisigWallet.lockingData
+  //   })
+  // }
   return multisigWallet
 }
 
@@ -394,12 +222,10 @@ export const isMultisigWalletSynced = multisigWallet => {
 }
 
 export const generateFilename = multisigWallet => {
-  if (multisigWallet.template?.name) {
-    return `${multisigWallet.template.name}.pmwif`
+  if (multisigWallet.name) {
+    return `${multisigWallet.name}.pmwif`
   }
-  const m = getRequiredSignatures(multisigWallet.template)
-  const n = getTotalSigners(multisigWallet.template)
-  return `${m}-of-${n})}-multisig-wallet.pmwif`
+  return `${multisigWallet.m}-of-${multisigWallet.signers.length}-multisig-wallet.pmwif`
 }
 
 // Bip67
@@ -407,13 +233,14 @@ export const generateFilename = multisigWallet => {
 /**
  * @param {Object} params
  * @param {MultisigWalletSigner[]} params.signers
- * @param {string} [params.relativeDerivationPath='0/0']
- * @returns {MultisigWalletSigner[]} The multisig wallet signers with publicKey at `relativeDerivationPath` set
+ * @param {string} [params.addressDerivationPath='0/0']
+ * @returns {MultisigWalletSigner[]} The multisig wallet signers with publicKey at `addressDerivationPath` set
  */
-export const derivePublicKeys = ({ signers, relativeDerivationPath = '0/0', bip67Sort = true }) => {
-  const signersWithPublicKeys = signers.map(signer => {
-    const decodedHdPublicKey = decodeHdPublicKey(signer.xpub, relativeDerivationPath)
-    const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, relativeDerivationPath)
+export const derivePublicKeys = ({ signers, addressDerivationPath = '0/0', bip67Sort = true }) => {
+  const _signers = structuredClone(signers)
+  const signersWithPublicKeys = _signers.map(signer => {
+    const decodedHdPublicKey = decodeHdPublicKey(signer.xpub, addressDerivationPath)
+    const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, addressDerivationPath)
     signer.publicKey = binToHex(publicKey)
     return signer
   })
@@ -423,15 +250,13 @@ export const derivePublicKeys = ({ signers, relativeDerivationPath = '0/0', bip6
   signersWithPublicKeys.sort((signerA, signerB) => {
     return signerA.publicKey.localeCompare(signerB.publicKey)
   })
-
   return signersWithPublicKeys
 }
 
-
 export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkPrefix.mainnet }) => {
-  const lockingBytecode = compiler.generateBytecode({
+    const lockingBytecode = compiler.generateBytecode({
       data: lockingData,
-      scriptId: lockingScript,
+      scriptId: 'lock',
       debug: true
     })
 
@@ -442,32 +267,65 @@ export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkP
     return address.address
 }
 
-export const getDepositAddress = ({ signers, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
-    
-    const signersSortedByPublicKeys = derivePublicKeys({ signers, relativeDerivationPath: `0/${addressIndex}` })
-    const lockingData = {
-      bytecode: {}
-    }
+export const createWallet = ({ name, m, signers }) => {
+  // const lockingData = getLockingData({ signers, addressDerivationPath: '0/0' })
+  // const template = createTemplate({ name, m, signers })
+  // const id = generateTempId({ lockingData, template })
+  return {
+    // id,
+    name, 
+    m, 
+    signers
+  }
+}
 
-    for(const index in signersWithPublicKeys) {
-      lockingData.bytecode[`key${index + 1}.public_key`] = signersSortedByPublicKeys[index]
-    }
+/**
+ * Uses the wallet's locking bytecode at 0/0 as UUID 
+ * @param {MultisigWallet}
+ * @returns {string} - Locking bytecode at 0/0 in hex
+ */
+export const getWalletUUID = multisigWallet => {
+  const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath: '0/0' })
+  const template = createTemplate({ ...multisigWallet })
+  const lockingBytecode = getLockingBytecode({ lockingData, template, hex: true })
+  return lockingBytecode.bytecode
+}
 
+/**
+ * Sha256 hash of the UUID
+ */
+export const getWalletHash = multisigWallet => {
+  const uuid = getWalletUUID(multisigWallet)
+  const hash = sha256.hash(hexToBin(uuid))
+  return binToHex(hash)
+}
+
+export const getDepositAddress = ({ multisigWallet, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
+    const template = createTemplate({ ...multisigWallet })
+    const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath: `0/${addressIndex}` })
+    const compiler = getCompiler({ template })
     return getAddress({ lockingData, compiler, prefix })
     
 } 
 
-export const getChangeAddress = ({ signers, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
-    
-    const publicKeySet = derivePublicKeys({ signers, relativeDerivationPath: `1/${addressIndex}` })
-    const lockingData = {
-      bytecode: {}
-    }
+export const getChangeAddress = ({ multisigWallet, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
+    const template = createTemplate({ ...multisigWallet })
+    const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath: `1/${addressIndex}` })
+    const compiler = getCompiler({ template })
+    return getAddress({ lockingData, compiler, prefix })
+}
 
-    for(const index in publicKeySet) {
-      lockingData.bytecode[`key${index + 1}.public_key`] = publicKeySet[index]
-    }
+export const issueNewChangeAddress = ({ multisigWallet, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
+  // TODO: enable this when we add a bit of privacy and implement auto issuance of change address
+  // let lastIssuedChangeAddress = multisigWallet.lastIssuedChangeAddress || 0
+  // lastIssuedChangeAddress++ 
+  // changeAddress = getChangeAddress({ multisigWallet, addressIndex: lastIssuedChangeAddress, prefix })
+  // MUST: Watch the multisigWallet and save the lastIssuedChangeAddress
+  
+  // For Now: We'll use the deposit address index 0 as change address
+  return getDepositAddress({ multisigWallet, addressIndex: 0 })
+}
 
-   return getAddress({ lockingData, compiler, prefix })
-    
-} 
+
+
+
