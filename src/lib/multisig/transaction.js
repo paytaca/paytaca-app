@@ -13,10 +13,18 @@ import {
   stringify,
   decodeTransactionCommon,
   createVirtualMachineBch,
-  extractMissingVariables
+  extractMissingVariables,
+  decodeHdPrivateKey,
+  deriveHdPublicKey,
+  deriveHdPublicNode,
+  deriveHdPath,
+  binsAreEqual,
+  deriveHdPathRelative,
+  compilerConfigurationToCompiler,
+  walletTemplateToCompilerBch
 } from 'bitauth-libauth-v3'
 
-import { getLockingBytecode, getCompiler, getRequiredSignatures } from './wallet.js'
+import { getLockingBytecode, getCompiler, getRequiredSignatures, getLockingData, createTemplate, derivePublicKeys } from './wallet.js'
 
 // export const MultisigTransactionStatus = Object.freeze({
 //   PENDING_UNSIGNED: 0,
@@ -60,7 +68,7 @@ export const getUnlockingScriptId = ({ signatures, template, inputIndex }) => {
         .filter((signature) => Number(signature.inputIndex) === Number(inputIndex))
         .every((signature) => {
           const scriptId = Object.keys(scriptIdentifierAndScript)[0]
-          return scriptIdentifierAndScript[scriptId].includes(signature.sigKey)
+          return scriptIdentifierAndScript[scriptId].includes(signature.variable)
         })
     })
   return Object.keys(foundscriptIdentifierTemplateScriptMapping)[0]
@@ -254,232 +262,198 @@ export const signerHasSignature = ({ signerEntityKey, multisigWallet, multisigTr
   return hasSig
 }
 
-export const finalizeTransaction = ({
-  multisigWallet,
-  multisigTransaction
-}) => {
-  const { template, lockingData } = multisigWallet
+// export const finalizeTransaction = ({
+//   multisigWallet,
+//   multisigTransaction
+// }) => {
+//   const { template, lockingData } = multisigWallet
 
-  const signatures = structuredClone(multisigTransaction.signatures)
-  signatures.forEach((signature) => {
-    if (typeof signature.sigValue === 'string') {
-      signature.sigValue = hexToBin(signature.sigValue)
-    } else {
-      signature.sigValue = Uint8Array.from(Object.values(signature.sigValue))
-    }
-  })
-  const compiler = getCompiler({ template })
-  const multisigWalletLockingBytecode = getLockingBytecode({ lockingData, template })
-  const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
-  const sourceOutputs = [] // will be used for verification
-  for (const [inputIndex, input] of transaction.inputs.entries()) {
-    let sourceOutput = input.sourceOutput
-    if (!sourceOutput) {
-      sourceOutput = multisigTransaction.sourceOutputs.find((utxo) => {
-        return utxo.outpointIndex === input.outpointIndex &&
-              binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
-              binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
-      })
-    }
-
-    sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
-    const inputSignatures = {}
-    signatures.forEach((sig) => {
-      // eslint-disable-next-line eqeqeq
-      if (sig.inputIndex == inputIndex) {
-        inputSignatures[sig.sigKey] = sig.sigValue
-      }
-    })
-    if (binToHex(sourceOutput.lockingBytecode) === binToHex(multisigWalletLockingBytecode.bytecode)) {
-      const inputUnlockingData = {
-        ...lockingData,
-        bytecode: {
-          ...inputSignatures
-        }
-      }
-      const unlockingScriptId = getUnlockingScriptId({
-        signatures: multisigTransaction.signatures, template, inputIndex
-      })
-      if (sourceOutput.token?.amount) {
-        sourceOutput.token.amount = BigInt(sourceOutput.token.amount)
-      }
-      input.unlockingBytecode = {
-        compiler,
-        data: inputUnlockingData,
-        valueSatoshis: BigInt(sourceOutput.valueSatoshis),
-        script: unlockingScriptId,
-        token: sourceOutput.token
-      }
-    }
-    sourceOutputs.push(sourceOutput)
-  }
-
-  // Type checks before tx generation
-  sourceOutputs.forEach((output) => {
-    output.valueSatoshis = BigInt(output.valueSatoshis)
-    if (output.valueSatoshis) {
-      output.valueSatoshis = BigInt(output.valueSatoshis)
-    }
-    if (output.token?.amount) {
-      output.token.amount = BigInt(output.token.amount)
-    }
-  })
-
-  transaction.outputs.forEach((output) => {
-    if (output.valueSatoshis) {
-      output.valueSatoshis = BigInt(output.valueSatoshis)
-    }
-    if (output.token?.amount) {
-      output.token.amount = BigInt(output.token.amount)
-    }
-  })
-
-  const finalCompilation = generateTransaction({
-    ...transaction
-  })
-  if (!finalCompilation.success) {
-    // const signersWithoutSignatures =
-    // identifySignersWithoutSignatures({
-    // multisigWallet,
-    // multisigTransaction
-    // })
-    // multisigTransaction.metadata.signersWithoutSignatures = signersWithoutSignatures
-    return finalCompilation
-  }
-
-  multisigTransaction.finalized = finalCompilation.success
-  const vm = createVirtualMachineBch()
-  const verificationResult = vm.verify({
-    sourceOutputs: sourceOutputs, transaction: finalCompilation.transaction
-  })
-  if (verificationResult !== true) {
-    finalCompilation.vmVerificationError = verificationResult
-    return finalCompilation
-  }
-  const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
-  finalCompilation.vmVerificationSuccess = verificationResult
-  finalCompilation.signedTransaction = binToHex(encodedTransaction)
-  finalCompilation.signedTransactionHash = hashTransaction(encodedTransaction)
-
-  return finalCompilation
-}
-
-export const signTransaction = ({
-  multisigWallet,
-  multisigTransaction,
-  signerEntityKey,
-  hdPrivateKey
-}) => {
-  const { lockingData, template } = multisigWallet
-  if (!hdPrivateKey) {
-    throw new Error(`Missing private key of ${signerEntityKey}`)
-  }
-  const signatures = multisigTransaction.signatures
-  signatures.forEach((s) => {
-    s.sigValue = Uint8Array.from(Object.values(s.sigValue))
-  })
-  const sourceOutputs = multisigTransaction.sourceOutputs
-  const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
-  const entityUnlockingData = {
-    hdKeys: {
-      addressIndex: lockingData.hdKeys.addressIndex,
-      hdPublicKeys: lockingData.hdKeys.hdPublicKeys,
-      hdPrivateKeys: {
-        [signerEntityKey]: hdPrivateKey
-      }
-    }
-  }
-  const unlockingScriptId = template.entities[signerEntityKey].scripts.filter((scriptId) => scriptId !== 'lock')[0]
-  const multisigWalletLockingBytecode = getLockingBytecode({ lockingData, template })
-  for (const input of transaction.inputs) {
-    let sourceOutput = input.sourceOutput
-
-    if (!sourceOutput) {
-      sourceOutput = sourceOutputs.find((utxo) => {
-        return (
-          utxo.outpointIndex ===
-          input.outpointIndex && binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
-          binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
-        )
-      })
-    }
-
-    const sourceOutputLockingBytecodeHex =
-      binToHex(Uint8Array.from(Object.values(sourceOutput.lockingBytecode)))
-
-    if (sourceOutputLockingBytecodeHex === binToHex(multisigWalletLockingBytecode.bytecode)) {
-      const compiler = getCompiler({ template })
-      input.unlockingBytecode = {
-        compiler,
-        data: entityUnlockingData,
-        valueSatoshis: BigInt(sourceOutput.valueSatoshis),
-        script: unlockingScriptId,
-        token: sourceOutput.token
-      }
-    }
-  }
-
-  const signAttempt = generateTransaction({ ...transaction })
-  const signerSignatures = []
-  for (const [inputIndex, error] of Object.entries(signAttempt.errors)) {
-    const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
-    const sigKey = Object.keys(signerResolvedVariables)[0]
-    const sigValue = Object.values(signerResolvedVariables)[0]
-    const sigDoesNotYetExist = signatures.findIndex((sig) => {
-      // eslint-disable-next-line eqeqeq
-      return sig.inputIndex == inputIndex && sig.sigKey === sigKey
-    }) === -1
-
-    const signerSignatureForInput = {
-      inputIndex,
-      sigKey,
-      sigValue: Uint8Array.from(Object.values(sigValue))
-    }
-
-    if (sigDoesNotYetExist) {
-      signatures.push(signerSignatureForInput)
-    }
-    signerSignatures.push(signerSignatureForInput)
-  }
-  finalizeTransaction({
-    multisigWallet,
-    multisigTransaction
-  })
-  return { signer: signerEntityKey, signatures: signerSignatures }
-}
-
-// export const refreshTransactionStatus = async ({ multisigWallet, multisigTransaction } = {}) => {
-//   try {
-//     if (!multisigTransaction.metadata) {
-//       multisigTransaction.metadata = {}
+//   const signatures = structuredClone(multisigTransaction.signatures)
+//   signatures.forEach((signature) => {
+//     if (typeof signature.sigValue === 'string') {
+//       signature.sigValue = hexToBin(signature.sigValue)
+//     } else {
+//       signature.sigValue = Uint8Array.from(Object.values(signature.sigValue))
 //     }
-//     multisigTransaction.metadata.isRefreshingStatus = true
-//     await new Promise((resolve) => {
-//       setTimeout(() => { resolve() }, 3000)
+//   })
+//   const compiler = getCompiler({ template })
+//   const multisigWalletLockingBytecode = getLockingBytecode({ lockingData, template })
+//   const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
+//   const sourceOutputs = [] // will be used for verification
+//   for (const [inputIndex, input] of transaction.inputs.entries()) {
+//     let sourceOutput = input.sourceOutput
+//     if (!sourceOutput) {
+//       sourceOutput = multisigTransaction.sourceOutputs.find((utxo) => {
+//         return utxo.outpointIndex === input.outpointIndex &&
+//               binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
+//               binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+//       })
+//     }
+
+//     sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+//     const inputSignatures = {}
+//     signatures.forEach((sig) => {
+//       // eslint-disable-next-line eqeqeq
+//       if (sig.inputIndex == inputIndex) {
+//         inputSignatures[sig.sigKey] = sig.sigValue
+//       }
 //     })
-//     if (multisigTransaction.metadata.status === MultisigTransactionStatus.CONFIRMED) return
-//     if (!multisigTransaction.metadata.status || multisigTransaction.metadata.status < MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
-//       const signatureCount = getSignatureCount({ multisigWallet, multisigTransaction })
-//       if (signatureCount === 0) {
-//         multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_UNSIGNED
+//     if (binToHex(sourceOutput.lockingBytecode) === binToHex(multisigWalletLockingBytecode.bytecode)) {
+//       const inputUnlockingData = {
+//         ...lockingData,
+//         bytecode: {
+//           ...inputSignatures
+//         }
 //       }
-//       const requiredSignatures = getRequiredSignatures(multisigWallet.template)
-//       if (signatureCount > 0 && signatureCount < requiredSignatures) {
-//         multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_PARTIALLY_SIGNED
+//       const unlockingScriptId = getUnlockingScriptId({
+//         signatures: multisigTransaction.signatures, template, inputIndex
+//       })
+//       if (sourceOutput.token?.amount) {
+//         sourceOutput.token.amount = BigInt(sourceOutput.token.amount)
 //       }
-//       if (signatureCount >= requiredSignatures) {
-//         multisigTransaction.metadata.status = MultisigTransactionStatus.PENDING_FULLY_SIGNED
+//       input.unlockingBytecode = {
+//         compiler,
+//         data: inputUnlockingData,
+//         valueSatoshis: BigInt(sourceOutput.valueSatoshis),
+//         script: unlockingScriptId,
+//         token: sourceOutput.token
 //       }
 //     }
-//     if (multisigTransaction.metadata.status === MultisigTransactionStatus.PENDING_FULLY_SIGNED) {
-//       // TODO: check if submitted or confirmed then update
-//     }
-//     if (multisigTransaction.metadata.status === MultisigTransactionStatus.BROADCASTED) {
-//       // TODO: check if confirmed, then update
-//     }
-//   } catch (error) {} finally {
-//     delete multisigTransaction.metadata?.isRefreshingStatus
+//     sourceOutputs.push(sourceOutput)
 //   }
+
+//   // Type checks before tx generation
+//   sourceOutputs.forEach((output) => {
+//     output.valueSatoshis = BigInt(output.valueSatoshis)
+//     if (output.valueSatoshis) {
+//       output.valueSatoshis = BigInt(output.valueSatoshis)
+//     }
+//     if (output.token?.amount) {
+//       output.token.amount = BigInt(output.token.amount)
+//     }
+//   })
+
+//   transaction.outputs.forEach((output) => {
+//     if (output.valueSatoshis) {
+//       output.valueSatoshis = BigInt(output.valueSatoshis)
+//     }
+//     if (output.token?.amount) {
+//       output.token.amount = BigInt(output.token.amount)
+//     }
+//   })
+
+//   const finalCompilation = generateTransaction({
+//     ...transaction
+//   })
+//   if (!finalCompilation.success) {
+//     // const signersWithoutSignatures =
+//     // identifySignersWithoutSignatures({
+//     // multisigWallet,
+//     // multisigTransaction
+//     // })
+//     // multisigTransaction.metadata.signersWithoutSignatures = signersWithoutSignatures
+//     return finalCompilation
+//   }
+
+//   multisigTransaction.finalized = finalCompilation.success
+//   const vm = createVirtualMachineBch()
+//   const verificationResult = vm.verify({
+//     sourceOutputs: sourceOutputs, transaction: finalCompilation.transaction
+//   })
+//   if (verificationResult !== true) {
+//     finalCompilation.vmVerificationError = verificationResult
+//     return finalCompilation
+//   }
+//   const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
+//   finalCompilation.vmVerificationSuccess = verificationResult
+//   finalCompilation.signedTransaction = binToHex(encodedTransaction)
+//   finalCompilation.signedTransactionHash = hashTransaction(encodedTransaction)
+
+//   return finalCompilation
+// }
+
+// export const signTransaction = ({
+//   multisigWallet,
+//   multisigTransaction,
+//   signerEntityKey,
+//   hdPrivateKey
+// }) => {
+//   const { lockingData, template } = multisigWallet
+//   if (!hdPrivateKey) {
+//     throw new Error(`Missing private key of ${signerEntityKey}`)
+//   }
+//   const signatures = multisigTransaction.signatures
+//   signatures.forEach((s) => {
+//     s.sigValue = Uint8Array.from(Object.values(s.sigValue))
+//   })
+//   const sourceOutputs = multisigTransaction.sourceOutputs
+//   const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
+//   const entityUnlockingData = {
+//     hdKeys: {
+//       addressIndex: lockingData.hdKeys.addressIndex,
+//       hdPublicKeys: lockingData.hdKeys.hdPublicKeys,
+//       hdPrivateKeys: {
+//         [signerEntityKey]: hdPrivateKey
+//       }
+//     }
+//   }
+//   const unlockingScriptId = template.entities[signerEntityKey].scripts.filter((scriptId) => scriptId !== 'lock')[0]
+//   const multisigWalletLockingBytecode = getLockingBytecode({ lockingData, template })
+//   for (const input of transaction.inputs) {
+//     let sourceOutput = input.sourceOutput
+
+//     if (!sourceOutput) {
+//       sourceOutput = sourceOutputs.find((utxo) => {
+//         return (
+//           utxo.outpointIndex ===
+//           input.outpointIndex && binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
+//           binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+//         )
+//       })
+//     }
+
+//     const sourceOutputLockingBytecodeHex =
+//       binToHex(Uint8Array.from(Object.values(sourceOutput.lockingBytecode)))
+
+//     if (sourceOutputLockingBytecodeHex === binToHex(multisigWalletLockingBytecode.bytecode)) {
+//       const compiler = getCompiler({ template })
+//       input.unlockingBytecode = {
+//         compiler,
+//         data: entityUnlockingData,
+//         valueSatoshis: BigInt(sourceOutput.valueSatoshis),
+//         script: unlockingScriptId,
+//         token: sourceOutput.token
+//       }
+//     }
+//   }
+
+//   const signAttempt = generateTransaction({ ...transaction })
+//   const signerSignatures = []
+//   for (const [inputIndex, error] of Object.entries(signAttempt.errors)) {
+//     const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
+//     const sigKey = Object.keys(signerResolvedVariables)[0]
+//     const sigValue = Object.values(signerResolvedVariables)[0]
+//     const sigDoesNotYetExist = signatures.findIndex((sig) => {
+//       // eslint-disable-next-line eqeqeq
+//       return sig.inputIndex == inputIndex && sig.sigKey === sigKey
+//     }) === -1
+
+//     const signerSignatureForInput = {
+//       inputIndex,
+//       sigKey,
+//       sigValue: Uint8Array.from(Object.values(sigValue))
+//     }
+
+//     if (sigDoesNotYetExist) {
+//       signatures.push(signerSignatureForInput)
+//     }
+//     signerSignatures.push(signerSignatureForInput)
+//   }
+//   finalizeTransaction({
+//     multisigWallet,
+//     multisigTransaction
+//   })
+//   return { signer: signerEntityKey, signatures: signerSignatures }
 // }
 
 export const signatureValuesToUint8Array = ({ signatures }) => {
@@ -696,3 +670,239 @@ export const isMultisigTransactionSynced = multisigTransaction => {
 //     }
 //   }
 // }
+
+
+// New ---------------------------------------------------------------------
+
+export const signTransaction = ({
+  multisigTransaction,
+  multisigWallet,
+  xprv
+}) => {
+  const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
+  let signer = multisigWallet.signers.find(signer => signer.xpub === xpub)
+
+  if (!signer) {
+    throw new Error('Private key provided does not match any signer')
+  }
+
+  const signatures = multisigTransaction.signatures
+  signatures.forEach((s) => {
+    s.sigValue = Uint8Array.from(Object.values(s.sigValue))
+  })
+  const sourceOutputs = multisigTransaction.sourceOutputs
+  const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
+  for (const input of transaction.inputs) {
+    let sourceOutput = input.sourceOutput
+
+    if (!sourceOutput) {
+      sourceOutput = sourceOutputs.find((utxo) => {
+        return (
+          utxo.outpointIndex ===
+          input.outpointIndex && binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
+          binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+        )
+      })
+    }
+    // TODO: watchtower should attach address_path to utxo so we can use utxos from other external/internal addresses
+    // If address_path is missing, assume the utxo is locked on the first address ('0/0')
+    const addressDerivationPath = sourceOutput.addressPath || '0/0'
+    // Locking data and template is now specific to a particular source output being locked
+    // because the source output could be locked on other address
+    const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath })
+    const sortedSignersWithPublicKeys = derivePublicKeys({ signers: multisigWallet.signers, addressDerivationPath }) 
+    const template = createTemplate({ m: multisigWallet.m, signers: sortedSignersWithPublicKeys })
+    const lockingBytecode = getLockingBytecode({ lockingData, template })
+
+    const sourceOutputLockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+    if (binsAreEqual(sourceOutputLockingBytecode, lockingBytecode.bytecode)) {
+      const compiler = getCompiler({ template })
+      const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
+      const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, addressDerivationPath)
+      // Determine the position of the signer on the locking script, sortedSignersWit... is already sorted
+      // so signer position is implicit using this method
+      const signerIndex = sortedSignersWithPublicKeys.findIndex(s => s.xpub === signer.xpub)
+      // Remember signer so we can include it on the signature output
+      signer = sortedSignersWithPublicKeys[signerIndex]
+
+      const sourceOutputUnlockingData = {
+        ...lockingData,
+        keys: {
+          privateKeys: {
+            [`key${signerIndex + 1}`]: privateKey
+          }
+        }
+      }
+      // Select the unlocking script based on this output specific wallet template
+      const unlockingScriptId = template.entities[`signer_${signerIndex + 1}`].scripts.filter((scriptId) => scriptId !== 'lock')[0]
+      input.unlockingBytecode = {
+        compiler,
+        data: sourceOutputUnlockingData,
+        valueSatoshis: BigInt(sourceOutput.valueSatoshis),
+        script: unlockingScriptId,
+        token: sourceOutput.token
+      }
+    }
+  }
+
+  const signAttempt = generateTransaction({ ...transaction })
+  const signerSignatures = []
+  for (const [inputIndex, error] of Object.entries(signAttempt.errors)) {
+    const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
+    const sigKey = Object.keys(signerResolvedVariables)[0]
+    const sigValue = Object.values(signerResolvedVariables)[0]
+    
+    const sigDoesNotYetExist = signatures.findIndex((sig) => {
+      // eslint-disable-next-line eqeqeq
+      return sig.inputIndex == inputIndex && sig.sigKey === sigKey
+    }) === -1
+    
+    const lockingData = transaction.inputs?.[inputIndex]?.unlockingBytecode?.data?.bytecode 
+    Object.keys(lockingData || []).forEach((k) => {
+      lockingData[k] = binToHex(lockingData[k])
+    })
+
+    const signerSignatureForInput = {
+      inputIndex: Number(inputIndex),
+      sigKey,
+      sigValue: Uint8Array.from(Object.values(sigValue)),
+      variable: sigKey,
+      value: Uint8Array.from(Object.values(sigValue)),
+      signer: signer.name,
+      m: multisigWallet.m,
+      lockingData
+    }
+
+    if (sigDoesNotYetExist) {
+      signatures.push(signerSignatureForInput)
+    }
+    signerSignatures.push(signerSignatureForInput)
+  }
+  // finalizeTransaction({
+  //   multisigWallet,
+  //   multisigTransaction
+  // })
+  return { signer, signatures: signerSignatures }
+}
+
+export const finalizeTransaction = (
+  multisigTransaction
+) => {
+
+  const signatures = structuredClone(multisigTransaction.signatures)
+  signatures.forEach((signature) => {
+    if (typeof signature.value === 'string') {
+      signature.value = hexToBin(signature.sigValue)
+    } else {
+      signature.value = Uint8Array.from(Object.values(signature.sigValue))
+    }
+  })
+  // const multisigWalletLockingBytecode = getLockingBytecode({ lockingData, template })
+  const transaction = transactionBinObjectsToUint8Array(multisigTransaction.transaction)
+  const sourceOutputs = [] // will be used for verification
+  for (const [inputIndex, input] of transaction.inputs.entries()) {
+    let sourceOutput = input.sourceOutput
+    if (!sourceOutput) {
+      sourceOutput = multisigTransaction.sourceOutputs.find((utxo) => {
+        return utxo.outpointIndex === input.outpointIndex &&
+              binToHex(Uint8Array.from(Object.values(utxo.outpointTransactionHash))) ===
+              binToHex(Uint8Array.from(Object.values(input.outpointTransactionHash)))
+      })
+    }
+
+    sourceOutput.lockingBytecode = Uint8Array.from(Object.values(sourceOutput.lockingBytecode))
+
+    const inputSignatures = {}
+    signatures.forEach((sig) => {
+      // eslint-disable-next-line eqeqeq
+      if (Number(sig.inputIndex) === Number(inputIndex)) {
+        inputSignatures[sig.variable] = sig.value
+      }
+    })
+
+    const signature = signatures.find(s => Number(s.inputIndex) === Number(inputIndex))
+
+    Object.keys(signature.lockingData).forEach((k)=> {
+      if (typeof(signature.lockingData[k]) === 'string') {
+        signature.lockingData[k] = hexToBin(signature.lockingData[k])
+      }
+    })
+
+    const template = createTemplate({ m: signature.m, signers: Object.keys(signature.lockingData).map((k) => ({ name: k })) })
+    const compiler = walletTemplateToCompilerBch(template)
+    const lockingBytecode = getLockingBytecode({ lockingData: { bytecode: { ...signature.lockingData }}, template })
+    if (binsAreEqual(sourceOutput.lockingBytecode, lockingBytecode.bytecode)) {
+      const inputUnlockingData = {
+        bytecode: {
+          ...signature.lockingData,
+          ...inputSignatures
+        }
+      }
+      const unlockingScriptId = getUnlockingScriptId({
+        signatures: multisigTransaction.signatures, template, inputIndex
+      })
+      
+      if (sourceOutput.token?.amount) {
+        sourceOutput.token.amount = BigInt(sourceOutput.token.amount)
+      }
+
+      input.unlockingBytecode = {
+        compiler,
+        data: inputUnlockingData,
+        valueSatoshis: BigInt(sourceOutput.valueSatoshis),
+        script: unlockingScriptId,
+        token: sourceOutput.token
+      }
+    }
+    sourceOutputs.push(sourceOutput)
+  }
+
+  // Type checks before tx generation
+  sourceOutputs.forEach((output) => {
+    output.valueSatoshis = BigInt(output.valueSatoshis)
+    if (output.valueSatoshis) {
+      output.valueSatoshis = BigInt(output.valueSatoshis)
+    }
+    if (output.token?.amount) {
+      output.token.amount = BigInt(output.token.amount)
+    }
+  })
+
+  transaction.outputs.forEach((output) => {
+    if (output.valueSatoshis) {
+      output.valueSatoshis = BigInt(output.valueSatoshis)
+    }
+    if (output.token?.amount) {
+      output.token.amount = BigInt(output.token.amount)
+    }
+  })
+
+  const finalCompilation = generateTransaction({
+    ...transaction
+  })
+  if (!finalCompilation.success) {
+    // const signersWithoutSignatures =
+    // identifySignersWithoutSignatures({
+    // multisigWallet,
+    // multisigTransaction
+    // })
+    // multisigTransaction.metadata.signersWithoutSignatures = signersWithoutSignatures
+    return finalCompilation
+  }
+
+  // multisigTransaction.finalized = finalCompilation.success
+  const vm = createVirtualMachineBch()
+  const verificationResult = vm.verify({
+    sourceOutputs: sourceOutputs, transaction: finalCompilation.transaction
+  })
+  if (verificationResult !== true) {
+    finalCompilation.vmVerificationError = verificationResult
+    return finalCompilation
+  }
+  const encodedTransaction = encodeTransactionCommon(finalCompilation.transaction)
+  finalCompilation.vmVerificationSuccess = verificationResult
+  finalCompilation.signedTransaction = binToHex(encodedTransaction)
+  finalCompilation.signedTransactionHash = hashTransaction(encodedTransaction)
+
+  return finalCompilation
+}
