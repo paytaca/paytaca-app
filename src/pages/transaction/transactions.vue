@@ -5,10 +5,50 @@
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
 		<div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-			<div v-if="!txSearchActive" class="row q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
+			{{ formatBalance(selectedAsset) }}
+			<div class="row q-mt-xs q-pb-md">
+              <div class="col text-white" @click="selectBch">
+                <q-card id="bch-card">
+                  <q-card-section horizontal>
+                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">
+                      <div v-if="!balanceLoaded" class="bch-skeleton">
+                        <q-skeleton class="text-h5" type="rect"/>
+                      </div>
+                      <div v-else>
+                        <p class="q-mb-none">
+                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
+                          <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
+                            {{ bchBalanceText }}
+                          </span>
+                        </p>                     
+                        <div>Equivalent exchange</div>
+                        <!-- <div>{{ getAssetMarketBalance(bchAsset) }}</div> -->                   
+                      </div>
+                    </q-card-section>
+                    <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
+                      <div v-if="selectedNetwork === 'sBCH'">
+                        <img src="sep20-logo.png" alt="" style="height: 75px;"/>
+                      </div>
+                      <div v-else>
+                        <img
+                          :src="denominationTabSelected === $t('DEEM')
+                            ? 'assets/img/theme/payhero/deem-logo.png'
+                            : 'bch-logo.png'
+                          "
+                          alt=""
+                          style="height: 75px;"
+                        />
+                      </div>
+                    </q-card-section>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
+
+			<!-- <div v-if="!txSearchActive" class="row q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
 				<div class="col-9" @click="selectAsset">
 					<q-btn class="full-width" align="left"  flat padding="0px">
-					<!-- <q-item clickable v-ripple class="br-15" > -->
+					<-- <q-item clickable v-ripple class="br-15" > --
 						<q-avatar size="35px">
 				            <img  :src="selectedAsset.logo">
 				          </q-avatar>
@@ -17,7 +57,7 @@
 							<q-icon name="arrow_drop_down"/>
 						</span>						
 					</q-btn>
-					<!-- </q-item> -->
+					<-- </q-item> --
 				</div>
 				<div class="col-3 text-right">
 					<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
@@ -28,6 +68,70 @@
 		                <q-input
 		                  ref="tx-search"
 		                  style="margin: 0px 30px 0px; padding-bottom: 22px;"
+		                  maxlength="6"
+		                  label="Search by Reference ID"
+		                  v-model="txSearchReference"
+		                  debounce="200"
+		                  @update:model-value="(val) => { txSearchReference = val.toUpperCase().slice(0, 6); executeTxSearch(val) }"
+		                >
+		                  <template v-slot:prepend>
+		                    <q-icon name="search" />
+		                  </template>
+		                  <template v-slot:append>
+		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
+		                  </template>
+		                </q-input>
+		              </div>
+		              <-- <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
+		                <q-btn
+		                  v-if="darkMode"
+		                  unelevated
+		                  @click="openPriceChart"
+		                  icon="img:assets/img/theme/payhero/price-chart.png"
+		                />
+		                <q-btn
+		                  v-else
+		                  round
+		                  color="blue-9"
+		                  padding="xs"
+		                  icon="mdi-chart-line-variant"
+		                  class="q-ml-md"
+		                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
+		                  @click="openPriceChart"
+		                />
+		              </template> --
+		            </div> -->
+			<div ref="transactionSection" class="transaction-row">				
+		        <transaction
+		          ref="transaction"
+		          :wallet="wallet"
+		          :denominationTabSelected="denominationTabSelected"
+		        />
+		        <div v-if="!txSearchActive" class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
+		        	<div class="col-11 br-15 pt-card" :class="getDarkModeClass(darkmode)"
+		            :style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`" >
+		        		<button
+			              v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
+			              class="btn-custom q-mt-none"
+			              :class="[
+			                darkmode ? 'text-light' : 'text-dark', 
+			                `btn-${transactionFilterOpt.value}`,
+			                {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
+			              ]"
+			              @click="setTransactionsFilter(transactionFilterOpt.value)"
+			            >
+			              {{ transactionFilterOpt?.label }}
+			            </button>
+		        	</div>
+		        	<div class="col text-right">
+		        		<q-icon size="20px" name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
+		        	</div>
+		        </div>	
+		        <div v-else class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
+		              <div v-if="txSearchActive" class="full-width">
+		                <q-input
+		                  ref="tx-search"
+		                  style="margin: 0px 30px 0px;"
 		                  maxlength="6"
 		                  label="Search by Reference ID"
 		                  v-model="txSearchReference"
@@ -61,67 +165,10 @@
 		                />
 		              </template> -->
 		            </div>
-			<div ref="transactionSection" class="row transaction-row">				
-		        <transaction
-		          ref="transaction"
-		          :wallet="wallet"
-		          :denominationTabSelected="denominationTabSelected"
-		        />
-		        <div class="col transaction-container" :class="darkmode ? 'text-light' : 'text-dark'">
-		          <div class="row no-wrap justify-between">
-		            <!-- <p class="q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
-		              <template v-if="!txSearchActive">
-		                {{ selectedAsset.symbol }}
-		                <span>
-		                  &nbsp;<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
-		                </span>
-		              </template>
-		            </p> -->
-		            <!--<div class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
-		              <div v-if="txSearchActive" class="full-width">
-		                <q-input
-		                  ref="tx-search"
-		                  style="margin-left: -20px; padding-bottom: 22px;"
-		                  maxlength="6"
-		                  label="Search by Reference ID"
-		                  v-model="txSearchReference"
-		                  debounce="200"
-		                  @update:model-value="(val) => { txSearchReference = val.toUpperCase().slice(0, 6); executeTxSearch(val) }"
-		                >
-		                  <template v-slot:prepend>
-		                    <q-icon name="search" />
-		                  </template>
-		                  <template v-slot:append>
-		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
-		                  </template>
-		                </q-input>
-		              </div>
-		              <-- <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
-		                <q-btn
-		                  v-if="darkMode"
-		                  unelevated
-		                  @click="openPriceChart"
-		                  icon="img:assets/img/theme/payhero/price-chart.png"
-		                />
-		                <q-btn
-		                  v-else
-		                  round
-		                  color="blue-9"
-		                  padding="xs"
-		                  icon="mdi-chart-line-variant"
-		                  class="q-ml-md"
-		                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
-		                  @click="openPriceChart"
-		                />
-		              </template> --
-		            </div>-->
-		          </div>
+
+		        <div class="transaction-container" :class="darkmode ? 'text-light' : 'text-dark'">
 		          <!-- <div
-		            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"
-		            :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')"
-		          > -->
-		          <div
-		            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"	 
+		            class="q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"	 
 		            :class="getDarkModeClass(darkmode)"
 		            :style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`"        
 		          >
@@ -137,7 +184,7 @@
 		            >
 		              {{ transactionFilterOpt?.label }}
 		            </button>
-		          </div>
+		          </div> -->
 		          <KeepAlive>
 		            <StablehedgeHistory
 		              v-if="stablehedgeView && selectedNetwork === 'BCH'"
@@ -170,6 +217,7 @@ import { cachedLoadWallet } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
@@ -199,14 +247,21 @@ export default {
 		        balance: 0
 		      },
 		    assetInfoShown: false,
+		    balanceLoaded: false
 		}
 	},
 	computed: {
 		darkmode () {
 	      return this.$store.getters['darkmode/getStatus']
 	    },
+	    theme () {
+	      return this.$store.getters['global/theme']
+	    },
 	    denomination () {
 	      return this.$store.getters['global/denomination']
+	    },
+	    balance () {
+	      return this.$store.getters['assets/getAssets'][0].balance
 	    },
 	    transactionsFilterOpts() {
 	      if (this.stablehedgeView) {
@@ -311,7 +366,21 @@ export default {
 	      })
 	},
 	methods: {
+		parseAssetDenomination,
 		getDarkModeClass,
+		async getBchBalance (id, vm) {
+	      if (!id) {
+	        id = vm.selectedAsset.id
+	      }
+	      vm.transactionsPageHasNext = false
+	      await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store)
+	      if (id == 'bch' && vm.stablehedgeView) {
+	        await vm.$store.dispatch('stablehedge/updateTokenBalances')
+	          .then(() => vm.$store.dispatch('stablehedge/updateTokenPrices', { minAge: 60 * 1000 }))
+	          .catch(console.error)
+	      }
+	      vm.balanceLoaded = true
+	    },
 		async loadWallets () {
 	      const vm = this
 	      const walletIndex = vm.$store.getters['global/getWalletIndex']
@@ -408,13 +477,31 @@ export default {
 	        // this.$refs['asset-info'].hide()
 	      } catch {}
 	    },
+	    formatBalance (asset) {
+	      if (asset.id.includes('ct') || asset.id.includes('sep20')) {
+	        const convertedBalance = asset.balance / 10 ** asset.decimals
+	        return `${(convertedBalance || 0).toLocaleString('en-us', {maximumFractionDigits: asset.decimals})} ${asset.symbol}`
+	      } else if (asset.id.includes('bch')) {
+	        return this.parseAssetDenomination(this.denomination, asset)
+	      }
+
+	      return `${asset.balance || 0} ${asset.symbol}`
+	    }	
 	    // hideMultiWalletDialog () { this.$refs
 	    // ['multi-wallet-component'].$refs['multi-wallet-parent'].$refs
 	    // ['multi-wallet'].hide() }
-	}
+		},		
 }
 </script>
 <style lang="scss" scoped>
+#bch-card {
+    margin: 0px 20px 10px 20px;
+    border-radius: 15px;
+    .bch-skeleton {
+      height: 53px;
+      width: 100%
+    }
+  }
 .asset-list {
 	margin-top: 100px;
 }
