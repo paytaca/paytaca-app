@@ -73,7 +73,7 @@
               </div>
               <q-btn
                 flat
-                :disable="escrowContract?.isFunded"
+                :disable="escrowContract?.isFunded || escrowContract?.requiresTokens"
                 icon="qr_code"
                 size="1.5em"
                 padding="md"
@@ -114,38 +114,61 @@
             <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
               <div class="row items-start">
                 <div class="text-grey q-space">{{ $t('Amount') }}</div>
-                <div v-if="displayBch">{{ escrowContract?.bchAmounts?.amount }} BCH</div>
+                <div v-if="displayBch">
+                  {{ cryptoAmounts?.amount?.value }}
+                  {{ cryptoAmounts?.amount?.symbol }}
+                </div>
                 <div v-else>{{ fiatAmounts?.amount }} {{ currency }}</div>
               </div>
               <div class="q-pl-sm">
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('DeliveryFee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.deliveryFee?.value }}
+                    {{ cryptoAmounts?.deliveryFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('ServiceFee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.serviceFee?.value }}
+                    {{ cryptoAmounts?.serviceFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('ArbitrationFee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.arbitrationFee?.value }}
+                    {{ cryptoAmounts?.arbitrationFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('NetworkFee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.networkFee?.value }}
+                    {{ cryptoAmounts?.networkFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
                 </div>
               </div>
 
               <div class="row items-start">
                 <div class="text-grey q-space">{{ $t('Total') }}</div>
-                <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
+                <div v-if="displayBch">
+                  <template v-if="cryptoAmounts?.total?.value">
+                    {{ cryptoAmounts?.total?.value }}
+                    {{ cryptoAmounts?.total?.symbol }}
+                  </template>
+                  <span v-else class="text-grey">
+                    N/A
+                  </span>
+                </div>
                 <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
               </div>
             </div>
@@ -203,6 +226,14 @@ export default defineComponent({
     modelValue: Boolean,
     escrowContract: EscrowContract,
     bchPrice: BchPrice,
+    tokenPrices: { default: () => [].map(BchPrice.parse) },
+    fundingRequirements: {
+      default: () => [].map(() => {
+        return {
+          amount: 0, token: { category: '', amount: 0 },
+        }
+      })
+    },
     currency: String,
   },
   emits: [
@@ -225,6 +256,34 @@ export default defineComponent({
 
     const tab = ref('details') // details | qrcode
 
+    const cryptoAmounts = computed(() => {
+      const escrowContract = props.escrowContract
+      const deliveryFeeKeyNft = escrowContract?.deliveryFeeKeyNft
+      return {
+        amount: resolveValue(
+          escrowContract?.amountSats,
+          escrowContract?.amountCategory,
+        ),
+        serviceFee: resolveValue(
+          escrowContract?.serviceFeeSats,
+          escrowContract?.serviceFeeCategory,
+        ),
+        arbitrationFee: resolveValue(
+          escrowContract?.arbitrationFeeSats,
+          escrowContract?.arbitrationFeeCategory,
+        ),
+        deliveryFee: resolveValue(
+          deliveryFeeKeyNft?.amount || 0,
+          deliveryFeeKeyNft?.category,
+        ),
+        networkFee: resolveValue(getNetworkFeeFromFundingReqs()),
+        total: {
+          value: !escrowContract?.requiresTokens ? escrowContract?.bchAmounts?.total : NaN,
+          symbol: 'BCH',
+        },
+      }
+    })
+
     const fiatAmounts = computed(() => {
       const data = {
         amount: null,
@@ -235,17 +294,75 @@ export default defineComponent({
         total: null,
       }
       if (!isFinite(props.bchPrice?.price)) return data
-      const rate = props.bchPrice?.price
+      const satsToFiatRate = getFiatRate();
       const round = (amount, decimals) => Math.round(amount * 10 ** decimals) / 10 ** decimals
-      data.amount = round(props.escrowContract?.bchAmounts?.amount * rate, 3)
-      data.serviceFee = round(props.escrowContract?.bchAmounts?.serviceFee * rate, 3)
-      data.arbitrationFee = round(props.escrowContract?.bchAmounts?.arbitrationFee * rate, 3)
-      data.deliveryFee = round(props.escrowContract?.bchAmounts?.deliveryFee * rate, 3)
-      data.networkFee = round(props.escrowContract?.bchAmounts?.networkFee * rate, 3)
-      data.total = round(props.escrowContract?.bchAmounts?.total * rate, 3)
+      const escrowContract = props.escrowContract;
 
+      const amountInFiat = escrowContract?.amountSats * getFiatRate(escrowContract?.amountCategory)
+      const serviceFeeInFiat = escrowContract?.serviceFeeSats * getFiatRate(escrowContract?.serviceFeeCategory)
+      const arbitrationFeeInFiat = escrowContract?.arbitrationFeeSats * getFiatRate(escrowContract?.arbitrationFeeCategory);
+      const deliveryFeeKeyNft = escrowContract?.deliveryFeeKeyNft;
+      const deliveryFeeInFiat = (deliveryFeeKeyNft?.amount || 0) * getFiatRate(deliveryFeeKeyNft?.category);
+      const networkFeeInFiat = (cryptoAmounts.value.networkFee.value * 10 ** 8) * satsToFiatRate;
+      const totalInFiat = amountInFiat + serviceFeeInFiat +
+                          arbitrationFeeInFiat + deliveryFeeInFiat +
+                          networkFeeInFiat;
+
+      data.amount = round(amountInFiat, 3)
+      data.serviceFee = round(serviceFeeInFiat, 3)
+      data.arbitrationFee = round(arbitrationFeeInFiat, 3)
+      data.deliveryFee = round(deliveryFeeInFiat, 3)
+      data.networkFee = round(networkFeeInFiat, 3)
+      data.total = round(totalInFiat, 3)
       return data
     })
+    
+    function resolveValue(units, category) {
+      const round = (amount, decimals) => Math.round(amount * 10 ** decimals) / 10 ** decimals
+      if (!category) return { value: round(units / 10 ** 8, 8), symbol: 'BCH' }
+
+      const tokenPrice = getTokenPrice(category)
+      const decimals = tokenPrice?.decimals || 0;
+      const symbol = tokenPrice?.currency?.symbol;
+      return { value: units / 10 ** decimals, symbol };
+    }
+
+    function getFiatRate(category) {
+      const bchPriceValue = parseFloat(props.bchPrice?.price);
+      if (!category) return bchPriceValue / 10 ** 8;
+
+      const tokenPrice = getTokenPrice(category)
+      const tokenPriceValue = parseFloat(tokenPrice?.price);
+      const decimals = parseInt(tokenPrice?.decimals) || 0;
+      const rate = (bchPriceValue / tokenPriceValue);
+      return rate / 10 ** decimals;
+    }
+
+    function getTokenPrice(category) {
+      return props.tokenPrices?.find(tokenPrice => {
+        return tokenPrice?.currency?.code == `ct/${category}`
+      })
+    }
+
+    /**
+     * This actually includes dust from cashtokens instead of just pure transaction fee from
+     * settlement tx, since there are a lot of rows in the amount already to add another for DUST
+     */
+    function getNetworkFeeFromFundingReqs() {
+      const escrowContract = props.escrowContract;
+      if (!escrowContract.requiresTokens) return escrowContract.sats.networkFee
+      console.log(props.fundingRequirements);
+      if (!Array.isArray(props.fundingRequirements) || !props.fundingRequirements.length) return NaN
+
+      const totalSats = props.fundingRequirements.reduce((subtotal, data) => subtotal + data.amount, 0)
+      let settlementSats = 0;
+      if (!escrowContract?.amountCategory) settlementSats += escrowContract.sats.amount;
+      if (!escrowContract?.serviceFeeCategory) settlementSats += escrowContract.sats.serviceFee;
+      if (!escrowContract?.arbitrationFeeCategory) settlementSats += escrowContract.sats.arbitrationFee;
+      if (!escrowContract?.deliveryFeeKeyNft?.category) settlementSats += escrowContract.sats.deliveryFee;
+
+      return totalSats - settlementSats;
+    }
 
     const displayBch = ref(true)
     function toggleAmountsDisplay() {
@@ -279,6 +396,7 @@ export default defineComponent({
       innerVal,
       tab,
 
+      cryptoAmounts,
       fiatAmounts,
       displayBch,
       toggleAmountsDisplay,

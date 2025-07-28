@@ -536,9 +536,18 @@
                 </div>
                 <div class="text-center q-my-md" @click="() => showBchPaymentEscrowContract()">
                   <q-icon name="open_in_new" class="float-right button button-text-primary" :class="getDarkModeClass(darkMode)" />
-                  <div class="text-h5">{{ bchPaymentData?.bchAmount }} BCH</div>
-                  <div v-if="bchPaymentData?.fiatAmount" class="text-subtitle1 q-mb-md" style="line-height:0.75em;">
-                    {{ bchPaymentData?.fiatAmount }} {{ bchPaymentData?.currency }}
+                  <div class="text-h5">{{ fundingRequirementFiatAmounts?.totalSats / 10 ** 8 }} BCH</div>
+                  <div v-if="fundingRequirementFiatAmounts?.hasTokens" class="q-mb-sm">
+                    <div v-for="(tokenAmountData, index) in fundingRequirementFiatAmounts?.tokensWithAmount" :key="index" class="text-h6 text-weight-regular" style="margin-top:-0.4em;">
+                      {{ tokenAmountData?.tokenAmount }} {{ tokenAmountData?.tokenSymbol }}
+                    </div>
+                    <div v-if="fundingRequirementFiatAmounts?.tokensWithoutAmount?.length" class="text-subtitle2 text-weight-regular" style="margin-top:-0.4em;">
+                      + {{ fundingRequirementFiatAmounts?.tokensWithoutAmount?.length }}
+                      {{ fundingRequirementFiatAmounts?.tokensWithoutAmount?.length == 1 ? $t('Token') : $t('Tokens') }}
+                    </div>
+                  </div>
+                  <div v-if="fundingRequirementFiatAmounts?.totalFiatValue" class="text-subtitle1 q-mb-md" style="line-height:0.75em;">
+                    {{ fundingRequirementFiatAmounts?.totalFiatValue }} {{ bchPaymentData?.currency }}
                   </div>
                   <div class="text-body1" style="word-break: break-all;">{{ bchPaymentData?.address }}</div>
                 </div>
@@ -1619,7 +1628,7 @@ const createPayment = debounce(async () => {
 
 const fundingPaymentRequirements = ref({
   address: '',
-  fundingRequiments: [].map(() => {
+  fundingRequirements: [].map(() => {
     return {
       amount: 0,
       token: { amount: 0, category: 0 },
@@ -1630,7 +1639,7 @@ watch(() => [payment.value?.escrowContractAddress], () => fetchFundingRequiremen
 async function fetchFundingRequirements() {
   const escrowContractAddress = payment.value?.escrowContractAddress
   if (!escrowContractAddress) {
-    fundingPaymentRequirements.value = { address: '', fundingRequiments: [] }
+    fundingPaymentRequirements.value = { address: '', fundingRequirements: [] }
     return
   }
 
@@ -1639,27 +1648,71 @@ async function fetchFundingRequirements() {
       if (response?.data?.address !== payment.value?.escrowContractAddress) {
         return
       }
-      fundingPaymentRequirements.value = response.data
+      fundingPaymentRequirements.value = {
+        address: response.data?.address,
+        fundingRequirements: response.data?.funding_requirements,
+      }
     })
     .catch(error => {
       console.error(error)
     })
 }
+const fundingRequirementFiatAmounts = computed(() => {
+  if (fundingPaymentRequirements.value?.address != payment.value?.escrowContractAddress) return []
+  if (!Array.isArray(fundingPaymentRequirements.value?.fundingRequirements)) return []
+
+  const fiatPrice = parseFloat(payment.value?.bchPrice?.price)
+  const amountsData = fundingPaymentRequirements.value?.fundingRequirements.map(fundingReq => {
+    const category = fundingReq?.token?.category;
+    const tokenPrice = payment.value.getTokenPrice(category);
+    const tokenDecimals = parseInt(tokenPrice?.decimals) || 0;
+    const tokenSymbol = tokenPrice?.currency?.symbol;
+
+    const tokenFiatRate = tokenPrice?.price / fiatPrice
+    const amountInFiat = fiatPrice
+      ? Math.round(fundingReq.amount * fiatPrice * 10 ** 3) / 10 ** 11
+      : 0;
+    const tokenInFiat = tokenFiatRate
+      ? Math.round(fundingReq?.token?.amount / tokenFiatRate) / 10 ** tokenDecimals
+      : 0;
+    return {
+      category,
+      satoshis: fundingReq.amount,
+      tokenAmount: fundingReq?.token?.amount / 10 ** tokenDecimals,
+      tokenUnits: fundingReq?.token?.amount,
+      fiatValue: amountInFiat + tokenInFiat,
+      amountInFiat, tokenInFiat,
+      tokenSymbol,
+    }
+  })
+
+  const tokens = amountsData.filter(amountData => amountData?.category);
+  const tokensWithInfo = tokens.filter(tokens => tokens.tokenUnits && tokens.tokenSymbol)
+  const tokensWithoutInfo = tokens.filter(tokens => !tokens.tokenUnits || !tokens.tokenSymbol)
+  return {
+    totalSats: amountsData.reduce((subtotal, amountData) => subtotal + amountData.satoshis, 0),
+    totalFiatValue: amountsData.reduce((subtotal, amountData) => subtotal + amountData.fiatValue, 0),
+    tokensWithAmount: tokensWithInfo,
+    tokensWithoutAmount: tokensWithoutInfo,
+    hasTokens: tokensWithInfo.length > 0 || tokensWithoutInfo.length > 0,
+  }
+})
 
 const bchPaymentState = ref({ tab: '' })
 const bchPaymentData = computed(() => {
   const data = {
     escrowContract: payment.value?.escrowContract,
     bchPrice: payment.value?.bchPrice,
+    tokenPrices: payment.value?.tokenPrices,
     address: payment.value?.escrowContract?.address || payment.value?.escrowContractAddress,
     bchAmount: parseFloat(payment.value?.escrowContract?.bchAmounts?.total),
     fiatAmount: 0,
     currency: payment.value?.bchPrice?.currency?.symbol,
     url: '',
-    fundingRequiments: [],
+    fundingRequirements: [],
   }
   if (fundingPaymentRequirements.value?.address == payment.value?.escrowContractAddress) {
-    data.fundingRequiments = fundingPaymentRequirements.value
+    data.fundingRequirements = fundingPaymentRequirements.value?.fundingRequirements
   }
   if (!data.address || !data.bchAmount) return data
   if (data.escrowContract?.requiresTokens) return data

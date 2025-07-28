@@ -946,6 +946,7 @@ export class BchPrice {
    * @param {{ code:String, symbol: String }} data.currency
    * @param {Number} data.price
    * @param {String | Number} data.timestamp
+   * @param {Number} [data.decimals]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -953,6 +954,7 @@ export class BchPrice {
     this.price = data?.price
     if (data?.timestamp) this.timestamp = new Date(data?.timestamp)
     else if (this.timestamp) delete this.timestamp
+    this.decimals = data?.decimals
   }
 }
 
@@ -1625,6 +1627,7 @@ export class Payment {
    * @param {{ code:String, symbol:String }} data.currency
    * @param {String} data.status
    * @param {Object} data.bch_price
+   * @param {Object[]} data.token_prices
    * @param {Number} data.amount
    * @param {Number} data.delivery_fee
    * @param {Number} data.markup_amount
@@ -1642,6 +1645,7 @@ export class Payment {
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.status = data?.status
     this.bchPrice = BchPrice.parse(data?.bch_price)
+    if (Array.isArray(data?.token_prices)) this.tokenPrices = data?.token_prices.map(BchPrice.parse)
     this.amount = data?.amount
     this.deliveryFee = data?.delivery_fee
     this.markupAmount = data?.markup_amount
@@ -1673,6 +1677,10 @@ export class Payment {
 
   get canReceive() {
     return ['pending', 'sent'].indexOf(this?.status) >= 0
+  }
+
+  getTokenPrice(category) {
+    return this.tokenPrices.find(tokenPrice => tokenPrice?.currency?.code === `ct/${category}`)
   }
 
   async fetchEscrowContract() {
@@ -1856,12 +1864,17 @@ export class EscrowContract {
   }
 
   get sats() {
+    const CASHTOKEN_DUST_SATS = 1000;
+    const deliveryFeeAmount = this.deliveryFeeKeyNft?.amount || 0;
+    const deliveryFeeCategory = this.deliveryFeeKeyNft?.category;
     return {
-      amount: this.amountSats,
-      serviceFee: this.serviceFeeSats,
-      arbitrationFee: this.arbitrationFeeSats,
-      deliveryFee: this.deliveryFeeKeyNft?.amount || 0,
-      networkFee: 1000,
+      amount: this.amountCategory ? CASHTOKEN_DUST_SATS : this.amountSats,
+      serviceFee: this.serviceFeeCategory ? CASHTOKEN_DUST_SATS : this.serviceFeeSats,
+      arbitrationFee: this.arbitrationFeeCategory ? CASHTOKEN_DUST_SATS : this.arbitrationFeeSats,
+      deliveryFee: (deliveryFeeAmount && deliveryFeeCategory)
+        ? CASHTOKEN_DUST_SATS * 2
+        : deliveryFeeAmount,
+      networkFee: this.requiresTokens ? NaN : 1000,
     }
   }
 
