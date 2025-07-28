@@ -1,8 +1,8 @@
 <template>
-	<div v-if="pending.length > 0" class="pending-order" :class="getDarkModeClass(darkMode)">		 
+	<div class="pending-order" :class="getDarkModeClass(darkMode)">		 
 		<div class="q-ml-lg q-gutter-x-sm button button-text-primary" style="font-size: 20px;">                
         	{{ $t('Pending') }}
-        </div>
+        </div>        
         <div class="pending-list q-mx-lg " :class="darkMode ? 'text-white': 'text-black'">
         	<div v-for="item in pending" class="pending-card q-pa-md" @click="selectTransaction(item)" style="border-bottom: 1px solid #fff;">
         		<div class="row">
@@ -23,6 +23,25 @@
         			</div>
         		</div> 
         		<q-separator class="q-mt-md"/>       		
+        	</div>
+        	<div v-for="item in marketplaceOrders" class="pending-card q-pa-md" style="border-bottom: 1px solid #fff;">
+        		<div class="row">
+        			<div class="col-7">
+        				<!-- Label -->		        		
+		        		<q-badge outline color="primary">Marketplace</q-badge>
+
+		        		<div class="q-pt-sm text-bold">Order# {{ item.id }}</div>     
+		        		<div style="font-size: 12px;">
+		        			from {{ item.storefront.name }}
+		        		</div>   			
+        			</div>
+        			<div class="col-5 text-right q-py-lg">
+        				<div class="text-bold" :class="darkMode ? 'text-blue-grey-5' : 'text-blue-grey-6'">
+        					{{ item.status }}
+        				</div>
+        			</div>
+        		</div> 
+        		<q-separator class="q-mt-md"/> 
         	</div>
         </div>
         <div style="height: 120px"></div>
@@ -75,6 +94,7 @@ export default {
 	async mounted () {
 		console.log('pending')
 		this.fetchOrders()
+		this.fetchMarketOrders()
 
 	},
 	methods: {
@@ -134,7 +154,7 @@ export default {
 	    	}
 	    	this.$router.push({ name: 'exchange', query: { order_id: order.id } })
 	    },
-	    async fetchOrders(opts={limit: 0, offset: 0 }) {
+	    async fetchMarketOrders(opts={limit: 0, offset: 0 }) {	    	
 	    	const vm = this	
 		  	const params = {
 			    ref: await vm.$store.dispatch('marketplace/getCartRef'),
@@ -145,7 +165,7 @@ export default {
 
 		  	vm.fetchingOrders = true
 		  	return marketBackend.get(`connecta/orders/`, { params })
-		    	.then(response => {
+		    	.then(response => {		    		
 		      		if(!Array.isArray(response?.data?.results)) return Promise.reject({ response })
 		      		
 		      		vm.marketplaceOrders = response?.data?.results?.map(Order.parse)
@@ -165,6 +185,7 @@ export default {
 			      vm.marketplacePagination.limit = response?.data?.limit
 			      vm.marketplacePagination.offset = response?.data?.offset
 			      // setStorefront(params.storefront_id)
+			      
 			      return response
 			    })
 			    .finally(() => {
