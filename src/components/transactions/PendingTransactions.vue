@@ -4,7 +4,7 @@
         	{{ $t('Pending') }}
         </div>        
         <div class="pending-list q-mx-lg " :class="darkMode ? 'text-white': 'text-black'">
-        	<div v-for="item in pending" class="pending-card q-pa-md" @click="selectTransaction(item)" style="border-bottom: 1px solid #fff;">
+        	<div v-for="item in pending" class="pending-card q-pa-md" @click="selectTransaction(item.id, 'exchange')" style="border-bottom: 1px solid #fff;">
         		<div class="row">
         			<div class="col-7">
         				<!-- Label -->
@@ -24,19 +24,21 @@
         		</div> 
         		<q-separator class="q-mt-md"/>       		
         	</div>
-        	<div v-for="item in marketplaceOrders" class="pending-card q-pa-md" style="border-bottom: 1px solid #fff;">
+        	<div v-for="item in marketplaceOrders" class="pending-card q-pa-md" style="border-bottom: 1px solid #fff;"
+   				@click="selectTransaction(item.id, 'marketplace')"
+        	>
         		<div class="row">
         			<div class="col-7">
         				<!-- Label -->		        		
 		        		<q-badge outline color="primary">Marketplace</q-badge>
 
 		        		<div class="q-pt-sm text-bold">Order# {{ item.id }}</div>     
-		        		<div style="font-size: 12px;">
-		        			from {{ item.storefront.name }}
+		        		<div style="font-size: 15px;">
+		        			{{ item.storefront.name }}
 		        		</div>   			
         			</div>
         			<div class="col-5 text-right q-py-lg">
-        				<div class="text-bold" :class="darkMode ? 'text-blue-grey-5' : 'text-blue-grey-6'">
+        				<div class="text-bold text-capitalize" :class="darkMode ? 'text-blue-grey-5' : 'text-blue-grey-6'">
         					{{ item.status }}
         				</div>
         			</div>
@@ -146,13 +148,18 @@ export default {
 	      }
 	      return order?.owner?.name
 	    },
-	    selectTransaction(order) {
-	    	console.log('order: ', order.id)
-	    	const params = {
-	    		order: order.id,
-	    		redirect: true
+	    selectTransaction(orderID, type) {
+	    	console.log('order: ', orderID)
+
+	    	if (type === 'exchange') {
+	    		const params = {
+		    		order: order.id,
+		    		redirect: true
+		    	}
+		    	this.$router.push({ name: 'exchange', query: { order_id: orderID } })
+	    	} else if (type === 'marketplace') {
+	    		this.$router.push({ name: 'app-marketplace-order', params: { orderId: orderID } })
 	    	}
-	    	this.$router.push({ name: 'exchange', query: { order_id: order.id } })
 	    },
 	    async fetchMarketOrders(opts={limit: 0, offset: 0 }) {	    	
 	    	const vm = this	
