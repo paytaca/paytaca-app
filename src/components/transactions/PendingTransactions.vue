@@ -4,7 +4,7 @@
         	{{ $t('Pending') }}
         </div>        
         <div class="pending-list q-mx-lg " :class="darkMode ? 'text-white': 'text-black'">
-        	<div v-for="item in pending" class="pending-card q-pa-md" @click="selectTransaction(item.id, 'exchange')" style="border-bottom: 1px solid #fff;">
+        	<q-card flat v-for="item in pending" class="pending-card q-pa-md q-my-sm br-15" @click="selectTransaction(item.id, 'exchange')">
         		<div class="row">
         			<div class="col-7">
         				<!-- Label -->
@@ -17,14 +17,13 @@
 		        		</div>   			
         			</div>
         			<div class="col-5 text-right q-py-lg">
-        				<div class="text-bold" :class="darkMode ? 'text-blue-grey-5' : 'text-blue-grey-6'">
+        				<div class="text-bold" :class="darkMode ? 'text-blue-grey-3' : 'text-blue-grey-6'">
         					{{ item.status.label }}
         				</div>
         			</div>
-        		</div> 
-        		<q-separator class="q-mt-md"/>       		
-        	</div>
-        	<div v-for="item in marketplaceOrders" class="pending-card q-pa-md" style="border-bottom: 1px solid #fff;"
+        		</div>         		     	
+        	</q-card>
+        	<q-card flat v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
    				@click="selectTransaction(item.id, 'marketplace')"
         	>
         		<div class="row">
@@ -38,13 +37,12 @@
 		        		</div>   			
         			</div>
         			<div class="col-5 text-right q-py-lg">
-        				<div class="text-bold text-capitalize" :class="darkMode ? 'text-blue-grey-5' : 'text-blue-grey-6'">
+        				<div class="text-bold text-capitalize" :class="darkMode ? 'text-blue-grey-3' : 'text-blue-grey-6'">
         					{{ item.status }}
         				</div>
         			</div>
-        		</div> 
-        		<q-separator class="q-mt-md"/> 
-        	</div>
+        		</div>         		
+        	</q-card>
         </div>
         <div style="height: 120px"></div>
 	</div>
@@ -153,7 +151,7 @@ export default {
 
 	    	if (type === 'exchange') {
 	    		const params = {
-		    		order: order.id,
+		    		order: orderID,
 		    		redirect: true
 		    	}
 		    	this.$router.push({ name: 'exchange', query: { order_id: orderID } })

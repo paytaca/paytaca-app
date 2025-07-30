@@ -5,8 +5,8 @@
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
 		<div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
-			{{ formatBalance(selectedAsset) }}
-			<div class="row q-mt-xs q-pb-md">
+			<!-- {{ formatBalance(selectedAsset) }} -->
+			<!-- <div class="row q-mt-xs q-pb-md">
               <div class="col text-white" @click="selectBch">
                 <q-card id="bch-card">
                   <q-card-section horizontal>
@@ -16,13 +16,13 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
-                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
+                          <-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> --
                           <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
                             {{ bchBalanceText }}
                           </span>
                         </p>                     
                         <div>Equivalent exchange</div>
-                        <!-- <div>{{ getAssetMarketBalance(bchAsset) }}</div> -->                   
+                        <-- <div>{{ getAssetMarketBalance(bchAsset) }}</div> --                 
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
@@ -43,12 +43,12 @@
                   </q-card-section>
                 </q-card>
               </div>
-            </div>
+            </div> -->
 
-			<!-- <div v-if="!txSearchActive" class="row q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
+			<div v-if="!txSearchActive" class="row q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
 				<div class="col-9" @click="selectAsset">
 					<q-btn class="full-width" align="left"  flat padding="0px">
-					<-- <q-item clickable v-ripple class="br-15" > --
+					<!-- <q-item clickable v-ripple class="br-15" > -->
 						<q-avatar size="35px">
 				            <img  :src="selectedAsset.logo">
 				          </q-avatar>
@@ -57,7 +57,7 @@
 							<q-icon name="arrow_drop_down"/>
 						</span>						
 					</q-btn>
-					<-- </q-item> --
+					<!-- </q-item> -->
 				</div>
 				<div class="col-3 text-right">
 					<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
@@ -82,7 +82,7 @@
 		                  </template>
 		                </q-input>
 		              </div>
-		              <-- <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
+		              <!-- <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
 		                <q-btn
 		                  v-if="darkMode"
 		                  unelevated
@@ -99,8 +99,8 @@
 		                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
 		                  @click="openPriceChart"
 		                />
-		              </template> --
-		            </div> -->
+		              </template> -->
+		            </div>
 			<div ref="transactionSection" class="transaction-row">				
 		        <transaction
 		          ref="transaction"
