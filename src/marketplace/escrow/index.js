@@ -130,9 +130,9 @@ export async function sendEscrowPayment(escrowContract, wallet) {
     // const mempoolAcceptUrl = `${bchWallet.baseUrl}/stablehedge/test-utils/test_mempool_accept/`
     // const response = await backend.post(mempoolAcceptUrl, { transaction: txHex })
     // const broadcastResult = response?.data
-    const broadcastResult = await bchWallet.watchtower.BCH.broadcastTransaction(txHex);
-    const txid = broadcastResult?.result || broadcastResult?.txid;
-    if (!broadcastResult?.success && !txid) throw broadcastResult?.result || broadcastResult?.erorr
+    const setFundingTxResult = await setEscrowFundingTransaction(escrowContractAddress, txHex)
+    const txid = setFundingTxResult?.escrowContract.fundingTxid;
+    if (!setFundingTxResult?.success && !txid) throw setFundingTxResult?.error
     return { success: true, txid: txid, txFee: txHex.length / 2 }
   } catch(error) {
     console.error(error)
@@ -237,4 +237,28 @@ async function generateEscrowFundingTransaction(bchWallet, escrowContractAddress
   return {
     txHex: txBuilder.build(),
   };
+}
+
+async function setEscrowFundingTransaction(escrowContractAddress, txHex) {
+  return await backend.post(
+    `connecta/escrow/${escrowContractAddress}/set_funding_transaction/`,
+    { funding_tx_hex: txHex },
+  ).then(response => {
+    return { success: true, escrowContract: EscrowContract.parse(response?.data) }
+  }).catch(error => {
+    let errorMessage;
+    if (typeof error?.message === 'string') {
+      errorMessage = error?.message;
+    } else if (typeof error?.response?.data?.[0] === 'string') {
+      errorMessage = error?.response?.data?.[0]
+    } else if (typeof error?.response?.data?.non_field_errors?.[0] === 'string') {
+      errorMessage = error?.response?.data?.non_field_errors?.[0]
+    } else if (typeof error?.response?.detail === 'string') {
+      errorMessage = error?.response?.detail;
+    }
+
+    if (!errorMessage) errorMessage = 'Unknown error occurred';
+
+    return { success: false, error: errorMessage };
+  });
 }

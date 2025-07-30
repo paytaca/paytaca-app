@@ -1879,7 +1879,7 @@ async function sendBchPayment() {
       if (!result.success) return Promise.reject(result)
 
       await asyncSleep(1000)
-      savePaymentFundingTx({ txid: result.txid, address: address }, { awaitCheckout: true }).then(() => {
+      fetchCheckout().then(() => {
         if (tabs.value.active == 'payment') nextTab()
         if (checkout.value.change <= 0) completeCheckout()
       })
