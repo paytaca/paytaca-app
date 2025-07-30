@@ -1205,7 +1205,7 @@ function toggleAmountsDisplay() {
  */
 function setCheckoutData(data, opts) {
   checkout.value = Checkout.parse(data)
-  if (opts?.updateBchPrice) updateBchPrice()
+  if (opts?.updateBchPrice) updateBchPrice({ age: 0 })
   if (opts?.checkNewPayment && !payment.value && checkout.value?.balanceToPay > 0) attemptCreatePayment()
 }
 function fetchCheckout() {
@@ -1265,12 +1265,16 @@ function saveCart() {
 
 const updateBchPricePromise = ref()
 function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
+  console.log('UPDATE BCH PRICE PROMISE', updateBchPricePromise.value)
   if (!updateBchPricePromise.value) {
     loadingState.value.price = true
     updateBchPricePromise.value = checkout.value.updateBchPrice(opts)
+      .finally(() => {
+        updateBchPricePromise.value = undefined
+        console.log('RESET UPDATE BCH PRICE PROMISE')
+      })
       .then(() => resetFormData())
       .finally(() => loadingState.value.price = false)
-      .finally(() => updateBchPricePromise.value = undefined)
   }
   return updateBchPricePromise.value
 }
