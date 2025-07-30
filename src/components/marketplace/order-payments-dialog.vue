@@ -67,6 +67,7 @@
         v-model="escrowContractDialog.show"
         :escrow-contract="escrowContractDialog.escrowContract"
         :bch-price="escrowContractDialog.bchPrice"
+        :token-prices="escrowContractDialog.tokenPrices"
         :currency="escrowContractDialog.currency"
       />
     </q-card>
@@ -107,6 +108,7 @@ const escrowContractDialog = ref({
   show: false,
   escrowContract: EscrowContract.parse(),
   bchPrice: BchPrice.parse(),
+  tokenPrices: [].map(BchPrice.parse),
   currency: '',
 })
 async function displayPaymentEscrowContract(payment=Payment.parse()) {
@@ -116,6 +118,7 @@ async function displayPaymentEscrowContract(payment=Payment.parse()) {
 
   escrowContractDialog.value.escrowContract = payment.escrowContract
   escrowContractDialog.value.bchPrice = payment.bchPrice
+  escrowContractDialog.value.tokenPrices = payment.tokenPrices
   escrowContractDialog.value.currency = payment.currency.symbol
   escrowContractDialog.value.show = true
 }
