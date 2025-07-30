@@ -110,6 +110,55 @@
               </div>
             </div>
 
+            <div
+              v-if="escrowContract?.amountCategory"
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.amountCategory)"
+            >
+              <div class="text-caption text-grey top">{{ $t('AmountToken') }}</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.amountCategory }}
+                <q-icon name="content_copy"/>
+              </div>
+            </div>
+            <div
+              v-if="escrowContract?.deliveryFeeKeyNft?.category"
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.deliveryFeeKeyNft?.category)"
+            >
+              <div class="text-caption text-grey top">{{ $t('DeliveryFeeToken') }}</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.deliveryFeeKeyNft?.category }}
+                <q-icon name="content_copy"/>
+              </div>
+            </div>
+            <div
+              v-if="escrowContract?.serviceFeeCategory"
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.serviceFeeCategory)"
+            >
+              <div class="text-caption text-grey top">{{ $t('ServiceFeeToken') }}</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.serviceFeeCategory }}
+                <q-icon name="content_copy"/>
+              </div>
+            </div>
+            <div
+              v-if="escrowContract?.arbitrationFeeCategory"
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.arbitrationFeeCategory)"
+            >
+              <div class="text-caption text-grey top">{{ $t('ArbiterFeeToken') }}</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.arbitrationFeeCategory }}
+                <q-icon name="content_copy"/>
+              </div>
+            </div>
+
             <q-separator :dark="darkMode" spaced/>
             <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
               <div class="row items-start">
@@ -151,10 +200,18 @@
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('NetworkFee') }}</div>
                   <div v-if="displayBch">
-                    {{ cryptoAmounts?.networkFee?.value }}
-                    {{ cryptoAmounts?.networkFee?.symbol }}
+                    <template v-if="!Number.isNaN(cryptoAmounts?.networkFee?.value)">
+                      {{ cryptoAmounts?.networkFee?.value }}
+                      {{ cryptoAmounts?.networkFee?.symbol }}
+                    </template>
+                    <span v-else class="text-grey">N/A</span>
                   </div>
-                  <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
+                  <div v-else>
+                    <template v-if="!Number.isNaN(fiatAmounts?.networkFee)">
+                      {{ fiatAmounts?.networkFee }} {{ currency }}
+                    </template>
+                    <span v-else class="text-grey">N/A</span>
+                  </div>
                 </div>
               </div>
 
@@ -165,11 +222,14 @@
                     {{ cryptoAmounts?.total?.value }}
                     {{ cryptoAmounts?.total?.symbol }}
                   </template>
-                  <span v-else class="text-grey">
-                    N/A
-                  </span>
+                  <span v-else class="text-grey">N/A</span>
                 </div>
-                <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
+                <div v-else>
+                  <template v-if="!Number.isNaN(fiatAmounts?.total)">
+                    {{ fiatAmounts?.total }} {{ currency }}
+                  </template>
+                  <span v-else class="text-grey">N/A</span>
+                </div>
               </div>
             </div>
           </q-tab-panel>
