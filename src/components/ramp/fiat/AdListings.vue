@@ -80,8 +80,8 @@
                               {{
                                 $t(
                                   'CompletionPercentage',
-                                  { percentage: Number(listing.completion_rate.toFixed(2)) },
-                                  `${ Number(listing.completion_rate.toFixed(2)) }% completion`
+                                  { percentage: Number(listing.completion_rate?.toFixed(2)) },
+                                  `${ Number(listing.completion_rate?.toFixed(2)) }% completion`
                                 )
                               }}
                             </span>
@@ -148,7 +148,9 @@
                         </div>
                       </div>
                       <div class="q-gutter-sm q-pt-xs">
-                        <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method" />
+                        <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'">
+                          {{ typeof(method) === 'object' ? method?.payment_type?.short_name : method }}
+                        </q-badge>
                       </div>
                     </div>
                   </q-item-section>
@@ -335,7 +337,7 @@ export default {
       this.visibilityLoading[ad.id] = true
       await backend.put(`ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
         .then(response => {
-          this.listings[index] = response.data
+          this.listings[index].is_public = response.data.is_public
         })
         .catch(error => {
           this.handleRequestError(error)
