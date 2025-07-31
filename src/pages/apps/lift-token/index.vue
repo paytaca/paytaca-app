@@ -137,6 +137,12 @@ export default {
       this.purchasesList = results[1].value;
       this.liftSwapContractAddress = results[2].value;
 
+      // check if walletAddresses is empty
+      // if empty, call dispatch to auto-populate values
+      const bchWalletInfo = this.$store.getters["global/getWallet"]("bch");
+      if (bchWalletInfo.walletAddresses.length === 0)
+        this.$store.dispatch("global/loadWalletAddresses");
+
       // work in background
       // update the public keys of reservations if they are empty
       if (this.reservationsList.length > 0) {
