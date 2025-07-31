@@ -45,7 +45,7 @@
 
   <template v-if="finalPurchasesList?.length === 0">
     <div class="q-mt-md row flex-center text-center full-width text-h5">
-      {{ $t('EmptyPurchases') }}
+      {{ $t("EmptyPurchases") }}
     </div>
   </template>
 
@@ -63,7 +63,9 @@
             <div class="row col-7 justify-start">
               <sale-group-chip
                 :saleGroup="purchase.purchase_more_details.sale_group"
-                @click="filterPurchasesList(purchase.purchase_more_details.sale_group)"
+                @click="
+                  filterPurchasesList(purchase.purchase_more_details.sale_group)
+                "
               />
             </div>
             <div class="row col-5 justify-end">
@@ -77,71 +79,106 @@
 
           <div class="row col-12 justify-between text-subtitle1">
             <span class="col-6">
-              {{ parseFiatCurrency(purchase.purchase_partial_details.usd_paid, 'usd') }}
+              {{
+                parseFiatCurrency(
+                  purchase.purchase_partial_details.usd_paid,
+                  "usd"
+                )
+              }}
             </span>
             <span class="col-6 text-right">
-              {{ getAssetDenomination('BCH', purchase.purchased_amount_sats / (10 ** 8)) }}
+              {{
+                getAssetDenomination(
+                  "BCH",
+                  purchase.purchased_amount_sats / 10 ** 8
+                )
+              }}
             </span>
           </div>
 
           <div
             class="row col-12 q-pb-xs justify-between text-subtitle2"
-            style="line-height: 1.2em;"
+            style="line-height: 1.2em"
           >
-            <template v-if="purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC">
+            <template
+              v-if="
+                purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC
+              "
+            >
               <span class="row col-12 flex-center q-pr-xs">
-                {{ $t(
-                  'PurchasedOnDate',
-                  { date: parseLocaleDate(purchase.purchased_date) },
-                  `Purchased on ${parseLocaleDate(purchase.purchased_date)}`
-                ) }}
+                {{
+                  $t(
+                    "PurchasedOnDate",
+                    { date: parseLocaleDate(purchase.purchased_date) },
+                    `Purchased on ${parseLocaleDate(purchase.purchased_date)}`
+                  )
+                }}
               </span>
             </template>
 
             <template v-else-if="new Date() > new Date(purchase.lockup_date)">
               <span class="col-6 q-pr-xs">
                 <template v-if="purchase.purchase_vesting_details.length === 0">
-                  {{ $t('LockupPeriodOver') }}
+                  {{ $t("LockupPeriodOver") }}
                 </template>
                 <template v-else>
-                  {{ $t(
-                    'LastVestingDate',
-                    { date: parseLocaleDate(purchase.purchase_vesting_details[0].vested_date) },
-                    `Last vesting period was ${parseLocaleDate(purchase.purchase_vesting_details[0].vested_date)}`
-                  ) }}
+                  {{
+                    $t(
+                      "LastVestingDate",
+                      {
+                        date: parseLocaleDate(
+                          purchase.purchase_vesting_details[0].vested_date
+                        ),
+                      },
+                      `Last vesting period was ${parseLocaleDate(
+                        purchase.purchase_vesting_details[0].vested_date
+                      )}`
+                    )
+                  }}
                 </template>
               </span>
               <span class="col-6 text-right q-pl-xs">
                 <template v-if="purchase.purchase_vesting_details.length === 4">
-                  {{ $t('VestingPeriodOver') }}
+                  {{ $t("VestingPeriodOver") }}
                 </template>
                 <template v-else>
-                  {{ $t(
-                    'NextVestingDate',
-                    { date: parseNextVestingDate(purchase.purchase_vesting_details) },
-                    `Next vesting period is ${parseNextVestingDate(purchase.purchase_vesting_details)}`
-                  ) }}
+                  {{
+                    $t(
+                      "NextVestingDate",
+                      {
+                        date: parseNextVestingDate(
+                          purchase.purchase_vesting_details
+                        ),
+                      },
+                      `Next vesting period is ${parseNextVestingDate(
+                        purchase.purchase_vesting_details
+                      )}`
+                    )
+                  }}
                 </template>
               </span>
             </template>
 
             <template v-else>
               <span class="col-6 q-pr-xs">
-                {{ $t(
-                  'PurchasedOnDate',
-                  { date: parseLocaleDate(purchase.purchased_date) },
-                  `Purchased on ${parseLocaleDate(purchase.purchased_date)}`
-                ) }}
+                {{
+                  $t(
+                    "PurchasedOnDate",
+                    { date: parseLocaleDate(purchase.purchased_date) },
+                    `Purchased on ${parseLocaleDate(purchase.purchased_date)}`
+                  )
+                }}
               </span>
               <span class="col-6 text-right q-pl-xs">
-                {{ $t(
-                  'LockedUntilDate',
-                  { date: parseLocaleDate(purchase.lockup_date) },
-                  `Locked until ${parseLocaleDate(purchase.lockup_date)}`
-                ) }}
+                {{
+                  $t(
+                    "LockedUntilDate",
+                    { date: parseLocaleDate(purchase.lockup_date) },
+                    `Locked until ${parseLocaleDate(purchase.lockup_date)}`
+                  )
+                }}
               </span>
             </template>
-
           </div>
         </q-card>
       </div>
@@ -150,41 +187,47 @@
 </template>
 
 <script>
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseLiftToken, parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
-import { SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
-import { parseFiatCurrency, getAssetDenomination } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
+import {
+  parseLiftToken,
+  parseLocaleDate,
+} from "src/utils/engagementhub-utils/shared";
+import { SaleGroup } from "src/utils/engagementhub-utils/lift-token";
+import {
+  parseFiatCurrency,
+  getAssetDenomination,
+} from "src/utils/denomination-utils";
 
-import SaleGroupChip from 'src/components/lift-token/SaleGroupChip.vue'
-import PurchaseInfoDialog from './dialogs/PurchaseInfoDialog.vue'
+import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
+import PurchaseInfoDialog from "./dialogs/PurchaseInfoDialog.vue";
 
 export default {
-  name: 'PurchasesTabPanel',
+  name: "PurchasesTabPanel",
 
   props: {
     purchasesList: { type: Array, default: null },
-    liftSwapContractAddress: { type: String, default: null }
+    liftSwapContractAddress: { type: String, default: null },
   },
 
   components: {
-    SaleGroupChip
+    SaleGroupChip,
   },
 
-  data () {
+  data() {
     return {
       SaleGroup,
 
       finalPurchasesList: [],
 
-      selectedFilter: 'all',
-      scrollAreaHeight: '63vh'
-    }
+      selectedFilter: "all",
+      scrollAreaHeight: "63vh",
+    };
   },
 
   computed: {
-    darkMode () {
-      return this.$store.getters['darkmode/getStatus']
-    }
+    darkMode() {
+      return this.$store.getters["darkmode/getStatus"];
+    },
   },
 
   methods: {
@@ -194,70 +237,75 @@ export default {
     getAssetDenomination,
     parseLocaleDate,
 
-    filterPurchasesList (saleGroup) {
-      this.selectedFilter = saleGroup
-      if (saleGroup === 'all') {
-        this.finalPurchasesList = this.purchasesList
-      } else if (saleGroup === 'lock') {
+    filterPurchasesList(saleGroup) {
+      this.selectedFilter = saleGroup;
+      if (saleGroup === "all") {
+        this.finalPurchasesList = this.purchasesList;
+      } else if (saleGroup === "lock") {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.purchase_vesting_details.length === 0 &&
+          (a) =>
+            a.purchase_vesting_details.length === 0 &&
             a.purchase_more_details.sale_group !== SaleGroup.PUBLIC
-        )
-      } else if (saleGroup === 'vest') {
+        );
+      } else if (saleGroup === "vest") {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.purchase_vesting_details.length > 0 &&
+          (a) =>
+            a.purchase_vesting_details.length > 0 &&
             a.purchase_more_details.sale_group !== SaleGroup.PUBLIC
-        )
-      } else if (saleGroup === 'comp') {
+        );
+      } else if (saleGroup === "comp") {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.purchase_vesting_details.length === 4 ||
+          (a) =>
+            a.purchase_vesting_details.length === 4 ||
             a.purchase_more_details.sale_group === SaleGroup.PUBLIC
-        )
+        );
       } else {
         this.finalPurchasesList = this.purchasesList.filter(
-          a => a.purchase_more_details.sale_group === saleGroup
-        )
+          (a) => a.purchase_more_details.sale_group === saleGroup
+        );
       }
     },
-    isChipOutline (saleGroup) {
-      if (this.selectedFilter === 'all') return false
-      return saleGroup !== this.selectedFilter
+    isChipOutline(saleGroup) {
+      if (this.selectedFilter === "all") return false;
+      return saleGroup !== this.selectedFilter;
     },
-    parseLockupStatusChip (purchase) {
+    parseLockupStatusChip(purchase) {
       if (
         purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC ||
         purchase.purchase_vesting_details.length === 4
       ) {
-        return 'comp'
+        return "comp";
       }
-      return purchase.purchase_vesting_details.length > 0 ? 'vest' : 'lock'
+      return purchase.purchase_vesting_details.length > 0 ? "vest" : "lock";
     },
-    parseNextVestingDate (txDetails) {
-      const vestingDate = new Date(txDetails[0].vested_date)
-      const nextDate = vestingDate.setMonth(vestingDate.getMonth() + 3)
-      return parseLocaleDate(nextDate)
+    parseNextVestingDate(txDetails) {
+      const vestingDate = new Date(txDetails[0].vested_date);
+      const nextDate = vestingDate.setMonth(vestingDate.getMonth() + 3);
+      return parseLocaleDate(nextDate);
     },
-    openPurchaseInfoDialog (purchase) {
+    openPurchaseInfoDialog(purchase) {
       this.$q.dialog({
         component: PurchaseInfoDialog,
-        componentProps: { purchase }
-      })
-    }
+        componentProps: { purchase },
+      });
+    },
   },
 
-  mounted () {
-    this.finalPurchasesList = this.purchasesList
+  mounted() {
+    this.finalPurchasesList = this.purchasesList;
   },
 
-  render () {
-    const headerNavHeight = document.getElementById('header-nav')?.clientHeight
-    const sectionTabHeight = document.getElementById('section-tab')?.clientHeight
-    const filterHeight = document.getElementById('purchases-filter')?.clientHeight
-    console.log(filterHeight)
+  render() {
+    const headerNavHeight = document.getElementById("header-nav")?.clientHeight;
+    const sectionTabHeight =
+      document.getElementById("section-tab")?.clientHeight;
+    const filterHeight =
+      document.getElementById("purchases-filter")?.clientHeight;
+    console.log(filterHeight);
 
-    const divsHeight = headerNavHeight + sectionTabHeight + filterHeight
-    const screenHeight = this.$q.screen.height
-    this.scrollAreaHeight = `${screenHeight - divsHeight - 65}px`
-  }
-}
+    const divsHeight = headerNavHeight + sectionTabHeight + filterHeight;
+    const screenHeight = this.$q.screen.height;
+    this.scrollAreaHeight = `${screenHeight - divsHeight - 65}px`;
+  },
+};
 </script>
