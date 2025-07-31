@@ -1,14 +1,13 @@
 <template>
   <q-dialog
     ref="multi-wallet"
-    seamless
     full-width
-    position="top"
-    transition-show="fade"
-    transition-hide="fade"
+    full-height
+    position="left"
+    maximized
     @before-hide="$emit('dialog-hide')"
   >
-    <q-card class="q-mt-xl q-mx-sm wallet-card" :class="getDarkModeClass(darkMode)">
+    <q-card class="wallet-card" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-h5 q-space q-mt-sm title">
           {{ $t('Wallets') }}

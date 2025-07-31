@@ -11,7 +11,7 @@
               class="row q-px-sm q-pt-sm"
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
-              <MultiWalletDropdown ref="multi-wallet-component" />
+              <MultiWalletDropdown ref="multi-wallet-component"/>
               <NotificationButton
                 @hide-multi-wallet-dialog="hideMultiWalletDialog"
                 @find-and-open-transaction="findAndOpenTransaction"

@@ -1,12 +1,12 @@
 <template>
   <q-dialog
     ref="notifs-dialog"
-    full-width
     full-height
-    seamless
+    position="right"
     class="no-click-outside"
+    maximized
   >
-    <q-card class="q-px-md q-pt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-px-md q-pt-md pt-card text-bow notifs-card" :class="getDarkModeClass(darkMode)">
       <div class="row justify-between items-center">
         <span class="text-bold text-h6" style="color: #ed5f59;">
           {{ $t('Notifications') }}
@@ -74,7 +74,7 @@
           <div v-if="notifsList.length > 0">
             <div
               class="q-pb-sm q-gutter-y-sm col-12"
-              style="height: 70vh; overflow-y: scroll;"
+              style="height: 80vh; overflow-y: scroll;"
             >
               <template v-if="isCheckboxClicked">
                 <div
@@ -417,5 +417,8 @@ export default {
   }
   .q-card.light {
     background-color: $grey-2 !important;
+  }
+  .notifs-card {
+    width: 40vh;
   }
 </style>
