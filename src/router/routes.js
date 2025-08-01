@@ -264,6 +264,16 @@ const routes = [
             component: () => import('src/pages/apps/lift-token/index.vue')
           }
         ]
+      },
+      {
+        path: 'card',
+        children: [
+          {
+            path: '',
+            name: 'app-card',
+            component: () => import('src/pages/apps/card/index.vue')
+          }
+        ]
       }
     ]
   },

@@ -58,7 +58,7 @@ export default {
   data () {
     return {
       apps: [
-      {
+        {
           name: 'P2P Exchange',
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
@@ -172,6 +172,14 @@ export default {
           name: this.$t('Multisig Wallet'),
           iconName: 'mdi-account-group',
           path: '/apps/multisig',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Card'),
+          iconName: 'mdi-card-bulleted',
+          path: '/apps/card',
           active: true,
           iconStyle: 'font-size: 4em',
           smartBCHOnly: false
