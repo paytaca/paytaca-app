@@ -282,7 +282,7 @@ export default {
     parseNextVestingDate(txDetails, lockupDate) {
       let vestingDate = ''
       const txDetail = txDetails.find(d => d.vested_date)
-      if (txDetail) vestingDate = new Date(txDetail.vestingDate)
+      if (txDetail) vestingDate = new Date(txDetail.vested_date)
       else vestingDate = new Date(lockupDate)
 
       const nextDate = vestingDate.setMonth(vestingDate.getMonth() + 3);
