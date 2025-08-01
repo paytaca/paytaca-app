@@ -833,6 +833,7 @@ import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.pn
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { useCheckoutDetails } from 'src/composables/marketplace/checkout'
 import { compileEscrowSmartContract, sendEscrowPayment } from 'src/marketplace/escrow'
+import { useEscrowAmountsCalculator } from 'src/composables/marketplace/escrow'
 
 const forceShowReview = ref(false)
 onMounted(() => {
@@ -1637,35 +1638,12 @@ const fundingRequirements = computed(() => {
 })
 
 const fundingRequirementFiatAmounts = computed(() => {
-  if (!Array.isArray(fundingRequirements.value)) return []
+  if (!payment.value?.bchPrice) return {}
+  if (!Array.isArray(fundingRequirements.value)) return {}
+  const { getFundingRequirementFiatValues } = useEscrowAmountsCalculator(
+    payment.value?.bchPrice, payment.value?.tokenPrices);
 
-  const fiatPrice = parseFloat(payment.value?.bchPrice?.price)
-  const amountsData = fundingRequirements.value?.map(fundingReq => {
-    const category = fundingReq?.token?.category;
-    const tokenPrice = payment.value.getTokenPrice(category);
-    const tokenDecimals = parseInt(tokenPrice?.decimals) || 0;
-    const tokenSymbol = tokenPrice?.currency?.symbol;
-
-    const satoshis = parseInt(fundingReq.amount);
-    const tokenUnits = parseInt(fundingReq?.token?.amount);
-
-    const tokenFiatRate = fiatPrice / tokenPrice?.price;
-    const amountInFiat = fiatPrice
-      ? Math.round(satoshis * fiatPrice * 10 ** 3) / 10 ** 11
-      : 0;
-    const tokenInFiat = tokenFiatRate
-      ? Math.round(tokenUnits * tokenFiatRate) / 10 ** tokenDecimals
-      : 0;
-    return {
-      category,
-      satoshis: satoshis,
-      tokenAmount: tokenUnits / 10 ** tokenDecimals,
-      tokenUnits: tokenUnits,
-      fiatValue: amountInFiat + tokenInFiat,
-      amountInFiat, tokenInFiat,
-      tokenSymbol,
-    }
-  })
+  const amountsData = getFundingRequirementFiatValues(fundingRequirements.value);
 
   const tokens = amountsData.filter(amountData => amountData?.category);
   const tokensWithInfo = tokens.filter(tokens => tokens.tokenUnits && tokens.tokenSymbol)
