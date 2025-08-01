@@ -1,10 +1,13 @@
 import BCHJS from "@psf/bch-js";
 import base58 from 'bs58'
 import {
+  binToHex,
+  hexToBin,
   CashAddressNetworkPrefix,
   CashAddressType,
   decodeCashAddress,
   encodeCashAddress,
+  hash256,
 } from '@bitauth/libauth'
 import { convertCashAddress } from "src/wallet/chipnet";
 import { LibauthHDWallet } from "src/wallet/bch-libauth";
@@ -12,11 +15,6 @@ import { Store } from "src/store";
 import axios from "axios";
 
 const bchjs = new BCHJS()
-
-export function pubtoAddr(pubkey) {
-  const ecPair = bchjs.ECPair.fromPublicKey(Buffer.from(pubkey, 'hex'))
-  return bchjs.ECPair.toCashAddress(ecPair)
-}
 
 export function pkHashToCashAddr(pkHash='', isChipnet=false) {
   const address = bchjs.Address.toCashAddress(
@@ -127,6 +125,23 @@ export function intToHexString(num=20, bytelength=20) {
 
 
 /**
+ * @param {Object} opts
+ * @param {Number} opts.nftId
+ * @param {Number} opts.amount
+ * @param {String} opts.category
+ */
+export function generateCommitment(opts) {
+  if (!opts?.category) {
+    return intToHexString(opts?.nftId, 20) + intToHexString(opts?.amount, 20) 
+  }
+  const tokenNftIdHash = hash256(
+    hexToBin(reverseHex(opts.category) + intToHexString(opts.nftId, 20))
+  );
+  return binToHex(tokenNftIdHash) + intToHexString(opts?.amount, 8);
+}
+
+
+/**
  * @param {String} address 
  * @returns {String}
  */
@@ -223,5 +238,3 @@ export async function resolvePrivateKeyWatchtower(address, wallet) {
 
   return { path, wif: libauthWallet.getPrivateKeyWifAt(path) }
 }
-
-window.t = resolvePrivateKeyWatchtower

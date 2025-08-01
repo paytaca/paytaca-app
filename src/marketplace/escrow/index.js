@@ -25,6 +25,11 @@ export function escrowContractToCashscriptParams(escrowContract=EscrowContract.p
 
     lockNftId: parseInt(escrowContract?.deliveryFeeKeyNft?.nftId || 0),
     timestamp: parseInt(escrowContract?.timestamp * 1),
+
+    amountCategory: escrowContract?.amountCategory,
+    serviceFeeCategory: escrowContract?.serviceFeeCategory,
+    arbitrationFeeCategory: escrowContract?.arbitrationFeeCategory,
+    deliveryFeeCategory: escrowContract?.deliveryFeeKeyNft?.category,
   }
 }
 
