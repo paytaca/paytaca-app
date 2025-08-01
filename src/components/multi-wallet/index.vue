@@ -5,9 +5,9 @@
     full-height
     position="left"
     maximized
-    @before-hide="$emit('dialog-hide')"
+    @before-hide="$emit('dialog-hide')"    
   >
-    <q-card class="wallet-card" :class="getDarkModeClass(darkMode)">
+    <q-card class="wallet-card" :class="getDarkModeClass(darkMode)" :style="{'padding-top': $q.platform.is.ios ? '55px' : '0px'}">
       <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
         <div class="text-h5 q-space q-mt-sm title">
           {{ $t('Wallets') }}
