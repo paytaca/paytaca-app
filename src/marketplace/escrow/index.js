@@ -48,7 +48,7 @@ export async function generateSettlementTransactions(opts) {
       const { escrowContract } = data;
 
       let privKeyData
-      if (wifs[index])  privKeyData = { wif: wifs[index], path: '' };
+      if (wifs?.[index])  privKeyData = { wif: wifs[index], path: '' };
       if (!privKeyData) privKeyData = await resolvePrivateKeyFromAddress(escrowContract.buyerAddress, wallet);
       if (!privKeyData) privKeyData = await resolvePrivateKeyFromAddress(escrowContract.arbiterAddress, wallet);
       if (!privKeyData) fail($t('RetrievePrivateKeyError'))
