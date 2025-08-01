@@ -176,7 +176,7 @@ export default {
       ) {
         return "comp";
       }
-      if (this.purchase.purchase_vesting_details.every(detail => detail?.vested_date))
+      if (this.purchase.purchase_vesting_details.some(detail => detail.vested_date))
         return 'vest'
       return 'lock'
     },
