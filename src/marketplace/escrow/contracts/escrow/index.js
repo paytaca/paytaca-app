@@ -13,26 +13,8 @@ import escrowArtifactV3 from './escrow-v3.artifact.json';
 export class Escrow {
   /**
    * @param {Object} opts
-   * @param {Object} opts.params
-   * @param {String} opts.params.buyerPkHash
-   * @param {String} opts.params.sellerPkHash
-   * @param {String} opts.params.servicerPkHash
-   * @param {String} opts.params.arbiterPkHash
-   * @param {String} opts.params.feePoolAddress
-   * @param {Number} opts.params.amount
-   * @param {Number} opts.params.serviceFee
-   * @param {Number} opts.params.arbitrationFee
-   * @param {Number} opts.params.deliveryFee
-   * @param {String} [opts.params.amountCategory]
-   * @param {String} [opts.params.serviceFeeCategory]
-   * @param {String} [opts.params.arbitrationFeeCategory]
-   * @param {String} [opts.params.deliveryFeeCategory]
-   * @param {Number} opts.params.lockNftId
-   * @param {Number} opts.params.timestamp
-   * @param {Object} opts.options
-   * @param {'v1' | 'v2'} opts.options.version
-   * @param {'mainnet' | 'chipnet'} opts.options.network
-   * @param {'p2sh20' | 'p2sh32'} opts.options.addressType
+   * @param {ReturnType<import("./scripts/params").cleanEscrowManagerParameters>} opts.params
+   * @param {ReturnType<import("./scripts/params").cleanEscrowManagerOptions>} opts.options
    */
   constructor(opts) {
     this.params = cleanEscrowManagerParameters(opts?.params);
