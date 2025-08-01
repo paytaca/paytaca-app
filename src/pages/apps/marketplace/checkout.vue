@@ -832,7 +832,7 @@ import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { useCheckoutDetails } from 'src/composables/marketplace/checkout'
-import { sendEscrowPayment } from 'src/marketplace/escrow'
+import { compileEscrowSmartContract, sendEscrowPayment } from 'src/marketplace/escrow'
 
 const forceShowReview = ref(false)
 onMounted(() => {
@@ -1630,60 +1630,37 @@ const createPayment = debounce(async () => {
 }, 250)
 
 
-const fundingPaymentRequirements = ref({
-  address: '',
-  fundingRequirements: [].map(() => {
-    return {
-      amount: 0,
-      token: { amount: 0, category: 0 },
-    }
-  })
+const fundingRequirements = computed(() => {
+  if (!payment.value?.escrowContract) return []
+  const escrow = compileEscrowSmartContract(payment.value.escrowContract)
+  return escrow.generateFundingOutputs()
 })
-watch(() => [payment.value?.escrowContractAddress], () => fetchFundingRequirements())
-async function fetchFundingRequirements() {
-  const escrowContractAddress = payment.value?.escrowContractAddress
-  if (!escrowContractAddress) {
-    fundingPaymentRequirements.value = { address: '', fundingRequirements: [] }
-    return
-  }
 
-  return backend.get(`connecta/escrow/${escrowContractAddress}/funding_requirements/`)
-    .then(response => {
-      if (response?.data?.address !== payment.value?.escrowContractAddress) {
-        return
-      }
-      fundingPaymentRequirements.value = {
-        address: response.data?.address,
-        fundingRequirements: response.data?.funding_requirements,
-      }
-    })
-    .catch(error => {
-      console.error(error)
-    })
-}
 const fundingRequirementFiatAmounts = computed(() => {
-  if (fundingPaymentRequirements.value?.address != payment.value?.escrowContractAddress) return []
-  if (!Array.isArray(fundingPaymentRequirements.value?.fundingRequirements)) return []
+  if (!Array.isArray(fundingRequirements.value)) return []
 
   const fiatPrice = parseFloat(payment.value?.bchPrice?.price)
-  const amountsData = fundingPaymentRequirements.value?.fundingRequirements.map(fundingReq => {
+  const amountsData = fundingRequirements.value?.map(fundingReq => {
     const category = fundingReq?.token?.category;
     const tokenPrice = payment.value.getTokenPrice(category);
     const tokenDecimals = parseInt(tokenPrice?.decimals) || 0;
     const tokenSymbol = tokenPrice?.currency?.symbol;
 
-    const tokenFiatRate = tokenPrice?.price / fiatPrice
+    const satoshis = parseInt(fundingReq.amount);
+    const tokenUnits = parseInt(fundingReq?.token?.amount);
+
+    const tokenFiatRate = fiatPrice / tokenPrice?.price;
     const amountInFiat = fiatPrice
-      ? Math.round(fundingReq.amount * fiatPrice * 10 ** 3) / 10 ** 11
+      ? Math.round(satoshis * fiatPrice * 10 ** 3) / 10 ** 11
       : 0;
     const tokenInFiat = tokenFiatRate
-      ? Math.round(fundingReq?.token?.amount / tokenFiatRate) / 10 ** tokenDecimals
+      ? Math.round(tokenUnits * tokenFiatRate) / 10 ** tokenDecimals
       : 0;
     return {
       category,
-      satoshis: fundingReq.amount,
-      tokenAmount: fundingReq?.token?.amount / 10 ** tokenDecimals,
-      tokenUnits: fundingReq?.token?.amount,
+      satoshis: satoshis,
+      tokenAmount: tokenUnits / 10 ** tokenDecimals,
+      tokenUnits: tokenUnits,
       fiatValue: amountInFiat + tokenInFiat,
       amountInFiat, tokenInFiat,
       tokenSymbol,
@@ -1713,14 +1690,12 @@ const bchPaymentData = computed(() => {
     fiatAmount: 0,
     currency: payment.value?.bchPrice?.currency?.symbol,
     url: '',
-    fundingRequirements: [],
-  }
-  if (fundingPaymentRequirements.value?.address == payment.value?.escrowContractAddress) {
-    data.fundingRequirements = fundingPaymentRequirements.value?.fundingRequirements
+    fundingRequirements: fundingRequirements.value,
   }
   if (!data.address || !data.bchAmount) return data
-  if (data.escrowContract?.requiresTokens) return data
-  
+  if (fundingRequirements.value.length !== 1) return data
+  if (fundingRequirements.value.length === 1) data.bchAmount = fundingRequirements.value[0].satoshis / 10 ** 8;
+
   const fiatPrice = parseFloat(payment.value?.bchPrice?.price)
   if (fiatPrice) data.fiatAmount = Math.round(data.bchAmount * fiatPrice * 10 ** 3) / 10 ** 3
   data.url = `${data?.address}?amount=${data.bchAmount}`

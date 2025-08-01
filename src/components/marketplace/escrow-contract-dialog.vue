@@ -274,6 +274,7 @@
 </template>
 <script>
 import { BchPrice, EscrowContract } from 'src/marketplace/objects'
+import { compileEscrowSmartContract } from 'src/marketplace/escrow'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useStore } from 'vuex'
@@ -290,7 +291,7 @@ export default defineComponent({
     fundingRequirements: {
       default: () => [].map(() => {
         return {
-          amount: 0, token: { category: '', amount: 0 },
+          amount: 0n, token: { category: '', amount: 0n },
         }
       })
     },
@@ -313,6 +314,13 @@ export default defineComponent({
     const innerVal = ref(props.modelValue)
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+
+    const computedFundingRequirements = computed(() => {
+      if (props.fundingRequirements?.length)  return props.fundingRequirements;
+
+      const escrow = compileEscrowSmartContract(props.escrowContract);
+      return escrow.generateFundingOutputs();
+    })
 
     const tab = ref('details') // details | qrcode
 
@@ -411,10 +419,9 @@ export default defineComponent({
     function getNetworkFeeFromFundingReqs() {
       const escrowContract = props.escrowContract;
       if (!escrowContract.requiresTokens) return escrowContract.sats.networkFee
-      console.log(props.fundingRequirements);
-      if (!Array.isArray(props.fundingRequirements) || !props.fundingRequirements.length) return NaN
+      if (!Array.isArray(computedFundingRequirements.value) || !computedFundingRequirements.value.length) return NaN
 
-      const totalSats = props.fundingRequirements.reduce((subtotal, data) => subtotal + data.amount, 0)
+      const totalSats = computedFundingRequirements.value.reduce((subtotal, data) => subtotal + Number(data.amount), 0)
       let settlementSats = 0;
       if (!escrowContract?.amountCategory) settlementSats += escrowContract.sats.amount;
       if (!escrowContract?.serviceFeeCategory) settlementSats += escrowContract.sats.serviceFee;

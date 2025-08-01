@@ -11,7 +11,9 @@ import { createInputScript, getInputSize, getPreimageSize } from "cashscript/dis
  */
 export function calculateInputSize(transaction) {
   const redeemScript = transaction.redeemScript || transaction.contract?.redeemScript
-  const placeholderArgs = transaction.args.map((arg) => (isSignatureTemplate(arg) ? placeholder(65) : arg));
+
+  const args = transaction.args || transaction.encodedFunctionArgs;
+  const placeholderArgs = args.map((arg) => (isSignatureTemplate(arg) ? placeholder(65) : arg));
   // Create a placeholder preimage of the correct size
   const placeholderPreimage = transaction.abiFunction.covenant
       ? placeholder(getPreimageSize(scriptToBytecode(redeemScript)))
