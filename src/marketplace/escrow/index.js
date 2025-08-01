@@ -3,7 +3,8 @@ import { backend } from "../backend";
 import { EscrowContract } from "../objects";
 import { resolvePrivateKeyFromAddress } from "./utils";
 import { compileEscrowSmartContract, escrowContractToCashscriptParams } from './compiler';
-import { generateEscrowFundingTransaction } from './tx-builder';
+import { generateEscrowFundingTransaction, generateSettlementTransaction } from './tx-builder';
+import { parseUtxo } from 'src/utils/utxo-utils';
 
 export { compileEscrowSmartContract, escrowContractToCashscriptParams }
 
@@ -20,15 +21,13 @@ export async function fetchOrderPaymentsForSettlements(orderId) {
 /**
  * @param {Object} opts
  * @param {EscrowContract[]} opts.escrowContracts
- * @param {import("src/wallet").Wallet} opts.wallet
- * @param {'release' | 'refund' | 'full_refund'} opts.settlementType
+ * @param {'release' | 'refund' } opts.settlementType
+ * @param {import("src/wallet").Wallet} [opts.wallet]
+ * @param {String[]} [opts.wifs]
  * @param {import("quasar").DialogChainObject} [opts.dialog]
  */
 export async function generateSettlementTransactions(opts) {
-  const escrowContracts = opts?.escrowContracts
-  const dialog = opts?.dialog
-  const wallet = opts?.wallet
-  const settlementType = opts?.settlementType
+  const { escrowContracts, wifs, dialog, wallet, settlementType } = opts;
 
   const fail = (message) => {
     const error = new Error(message)
@@ -44,41 +43,57 @@ export async function generateSettlementTransactions(opts) {
       if (contract.address !== escrowContract.address) fail($t('CompilingContractError'))
       return { escrowContract, escrow }
     })
-    .map(async (data) => {
+    .map(async (data, index) => {
       if (dialog) dialog?.update({ message: $t('RetrievePrivateKey') })
-      const { escrowContract } = data
+      const { escrowContract } = data;
 
-      let privKeyData = await resolvePrivateKeyFromAddress(escrowContract.buyerAddress, wallet)
-      if (!privKeyData) privKeyData = await resolvePrivateKeyFromAddress(escrowContract.arbiterAddress, wallet)
+      let privKeyData
+      if (wifs[index])  privKeyData = { wif: wifs[index], path: '' };
+      if (!privKeyData) privKeyData = await resolvePrivateKeyFromAddress(escrowContract.buyerAddress, wallet);
+      if (!privKeyData) privKeyData = await resolvePrivateKeyFromAddress(escrowContract.arbiterAddress, wallet);
       if (!privKeyData) fail($t('RetrievePrivateKeyError'))
 
       return { ...data, wif: privKeyData.wif }
     })
     .map(async (data) => {
-      const { escrow, escrowContract, wif } = await data
+      const _prevData = await data;
+      const { escrowContract } = _prevData;
+      if (dialog) dialog?.update({ message: $t('FetchingUtxos') });
+
+      const utxos = await resolveFundingUtxos(escrowContract);
+      return { ..._prevData, utxos: utxos };
+    })
+    .map(async (data) => {
+      const _prevData = await data;
+      const { escrow, escrowContract, wif, utxos } = _prevData
       if (dialog) dialog?.update({ message: $t('CreatingTransaction') })
 
-      const fundingUtxo = {
-        "txid": escrowContract.fundingTxid,
-        "vout": escrowContract.fundingVout,
-        "satoshis": escrowContract.fundingSats,
-      }
-      let txPromise
-      if(settlementType === 'release') {
-        txPromise = escrow.release(fundingUtxo, wif)
-      } else if (settlementType === 'refund') {
-        txPromise = escrow.version === 'v1'
-          ? escrow.refund(fundingUtxo, wif)
-          : escrow.fullRefund(fundingUtxo, wif)
-      }
+      const txPromise = generateSettlementTransaction({ escrow, wif, utxos, settlementType })
       const transaction = await txPromise.catch(fail)
       transaction.withTime(0)
       const txHex = await transaction.build()
 
-      return { escrowContract, txHex }
+      return { escrowContract, txHex, transaction }
     })
 
   return Promise.all(results)
+}
+
+/**
+ * @param {EscrowContract} escrowContract 
+ */
+async function resolveFundingUtxos(escrowContract) {
+  if (escrowContract.contractVersion !== 'v3') return [{
+    txid: escrowContract.fundingTxid,
+    vout: escrowContract.fundingVout,
+    satoshis: BigInt(escrowContract.fundingSats),
+  }]
+
+  return backend.get(`connecta/escrow/${escrowContract.address}/funding_outputs/`)
+    .then(response => {
+      if (!Array.isArray(response?.data)) return Promise.reject({ response })
+      return response.data.map(parseUtxo);
+    })
 }
 
 /**

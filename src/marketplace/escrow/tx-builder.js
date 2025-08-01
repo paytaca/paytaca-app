@@ -94,3 +94,48 @@ export async function generateEscrowFundingTransaction(bchWallet, escrowContract
     txHex: txBuilder.build(),
   };
 }
+
+
+
+/**
+ * @param {Object} opts
+ * @param {import("./contracts/escrow").Escrow} opts.escrow
+ * @param {import("./contracts/escrow/scripts/settlement").SettlementType} opts.settlementType
+ * @param {import("cashscript0.10.0").Utxo[]} opts.utxos
+ * @param {String} opts.wif
+ */
+export async function generateSettlementTransaction(opts) {
+  const { escrow } = opts;
+  if (escrow.version !== 'v3') return await generateSettlementTransactionV1(opts);
+  return await generateSettlementTransactionV3(opts);
+}
+
+/**
+ * @param {Object} opts
+ * @param {import("./contracts/escrow").Escrow} opts.escrow
+ * @param {import("./contracts/escrow/scripts/settlement").SettlementType} opts.settlementType
+ * @param {import("cashscript0.10.0").Utxo[]} opts.utxos
+ * @param {String} wif
+ */
+async function generateSettlementTransactionV1(opts) {
+  const { escrow, utxos, wif, settlementType } = opts;
+  const utxo = utxos[0];
+
+  if (settlementType == 'release') return escrow.release(utxo, wif);
+  else if (settlementType === 'refund') return escrow.refund(utxo, wif);
+  else if (settlementType === 'full_refund') return escrow.fullRefund(utxo, wif);
+  else throw new Error('Unknown settlement type');
+}
+
+
+/**
+ * @param {Object} opts
+ * @param {import("./contracts/escrow").Escrow} opts.escrow
+ * @param {import("./contracts/escrow/scripts/settlement").SettlementType} opts.settlementType
+ * @param {import("cashscript0.10.0").Utxo[]} opts.utxos
+ * @param {String} wif
+ */
+async function generateSettlementTransactionV3(opts) {
+  const { escrow, utxos, wif, settlementType } = opts;
+  return escrow.settlement({ utxos, wif, settlementType })
+}

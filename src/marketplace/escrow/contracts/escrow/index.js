@@ -260,14 +260,14 @@ export class Escrow {
 
     const contract = this.getContract();
     const signature = new SignatureTemplate(wif);
-    const unlocker = contract.unlock.settlement(
-      signature.getPublicKey(), signature, BigInt(this.params.timestamp), release,
-    );
-    const txBuilder = new TransactionBuilder({ provider: contract.provider });
-    txBuilder.addInputs(utxos, unlocker);
-    txBuilder.addOutputs(outputs);
-    if (Number.isSafeInteger(locktime)) txBuilder.setLocktime(locktime)
 
-    return txBuilder;
+    const transaction = contract.functions.settlement(
+      signature.getPublicKey(), signature, BigInt(this.params.timestamp), release,
+    )
+    transaction.from(utxos);
+    transaction.to(outputs); // must be array
+    if (Number.isSafeInteger(locktime)) transaction.withTime(locktime);
+
+    return transaction;
   }
 }
