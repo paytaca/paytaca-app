@@ -255,7 +255,7 @@ export default {
       } else if (saleGroup === "comp") {
         this.finalPurchasesList = this.purchasesList.filter(
           (a) =>
-            a.purchase_vesting_details.length === 4 ||
+            a.is_done_vesting === 4 ||
             a.purchase_more_details.sale_group === SaleGroup.PUBLIC
         );
       } else {
