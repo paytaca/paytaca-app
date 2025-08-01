@@ -172,23 +172,21 @@ export default {
     parseStatus() {
       if (
         this.purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC ||
-        this.purchase.purchase_vesting_details.length === 4
+        this.purchase.is_done_vesting
       ) {
         return "comp";
       }
-      return this.purchase.purchase_vesting_details.length > 0
-        ? "vest"
-        : "lock";
+      if (this.purchase.purchase_vesting_details.every(detail => detail.vested_date))
+        return 'vest'
+      return 'lock'
     },
   },
 
   mounted() {
     for (let i = 0; i < 4; i++) {
-      try {
+      if (this.purchase.purchase_vesting_details[i].vested_date)
         this.vestingDetailsList.push(this.purchase.purchase_vesting_details[i]);
-      } catch {
-        this.vestingDetailsList.push(null);
-      }
+      else this.vestingDetailsList.push(null);
     }
   },
 };

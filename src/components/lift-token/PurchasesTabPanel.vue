@@ -2,7 +2,6 @@
   <div
     class="row text-body1 justify-evenly"
     id="purchases-filter"
-    v-if="finalPurchasesList?.length > 0"
   >
     <sale-group-chip
       :saleGroup="'all'"
@@ -272,11 +271,13 @@ export default {
     parseLockupStatusChip(purchase) {
       if (
         purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC ||
-        purchase.purchase_vesting_details.length === 4
+        purchase.is_done_vesting
       ) {
         return "comp";
       }
-      return purchase.purchase_vesting_details.length > 0 ? "vest" : "lock";
+      if (purchase.purchase_vesting_details.every(detail => detail.vested_date))
+        return 'vest'
+      return 'lock'
     },
     parseNextVestingDate(txDetails) {
       const vestingDate = new Date(txDetails[0].vested_date);

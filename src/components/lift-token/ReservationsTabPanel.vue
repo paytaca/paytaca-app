@@ -2,7 +2,6 @@
   <div
     class="row text-body1 justify-evenly"
     id="rsvp-filter"
-    v-if="finalRsvpList?.length > 0"
   >
     <sale-group-chip
       :saleGroup="'all'"

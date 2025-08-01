@@ -164,12 +164,7 @@ export default {
         ];
         const changeAddress = getChangeAddress("bch");
         const result = await getWalletByNetwork(this.wallet, "bch").sendBch(
-          0,
-          "",
-          changeAddress,
-          null,
-          undefined,
-          recipient
+          0, "", changeAddress, null, undefined, recipient
         );
 
         if (result.success) {
