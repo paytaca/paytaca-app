@@ -176,7 +176,7 @@ export default {
       ) {
         return "comp";
       }
-      if (this.purchase.purchase_vesting_details.every(detail => detail.vested_date))
+      if (this.purchase.purchase_vesting_details.every(detail => detail?.vested_date))
         return 'vest'
       return 'lock'
     },
@@ -184,7 +184,7 @@ export default {
 
   mounted() {
     for (let i = 0; i < 4; i++) {
-      if (this.purchase.purchase_vesting_details[i].vested_date)
+      if (this.purchase.purchase_vesting_details[i]?.vested_date)
         this.vestingDetailsList.push(this.purchase.purchase_vesting_details[i]);
       else this.vestingDetailsList.push(null);
     }

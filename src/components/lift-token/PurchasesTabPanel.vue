@@ -117,7 +117,7 @@
 
             <template v-else-if="new Date() > new Date(purchase.lockup_date)">
               <span class="col-6 q-pr-xs">
-                <template v-if="purchase.purchase_vesting_details.length === 0">
+                <template v-if="purchase.purchase_vesting_details.every(detail => !detail.vested_date)">
                   {{ $t("LockupPeriodOver") }}
                 </template>
                 <template v-else>
@@ -137,7 +137,7 @@
                 </template>
               </span>
               <span class="col-6 text-right q-pl-xs">
-                <template v-if="purchase.purchase_vesting_details.length === 4">
+                <template v-if="purchase.purchase_vesting_details.every(detail => detail.vested_date)">
                   {{ $t("VestingPeriodOver") }}
                 </template>
                 <template v-else>
@@ -146,11 +146,11 @@
                       "NextVestingDate",
                       {
                         date: parseNextVestingDate(
-                          purchase.purchase_vesting_details
+                          purchase.purchase_vesting_details, purchase.lockup_date
                         ),
                       },
                       `Next vesting period is ${parseNextVestingDate(
-                        purchase.purchase_vesting_details
+                        purchase.purchase_vesting_details, purchase.lockup_date
                       )}`
                     )
                   }}
@@ -279,8 +279,12 @@ export default {
         return 'vest'
       return 'lock'
     },
-    parseNextVestingDate(txDetails) {
-      const vestingDate = new Date(txDetails[0].vested_date);
+    parseNextVestingDate(txDetails, lockupDate) {
+      let vestingDate = ''
+      const txDetail = txDetails.find(d => d.vested_date)
+      if (txDetail) vestingDate = new Date(txDetail.vestingDate)
+      else vestingDate = new Date(lockupDate)
+
       const nextDate = vestingDate.setMonth(vestingDate.getMonth() + 3);
       return parseLocaleDate(nextDate);
     },
