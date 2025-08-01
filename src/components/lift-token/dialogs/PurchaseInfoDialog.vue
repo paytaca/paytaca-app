@@ -88,9 +88,9 @@
             <status-chip :isCompleted="!!details" :index="index + 1" />
 
             <template v-if="details">
-              <div class="q-pl-sm col-10">
-                <span col-12>{{ parseLocaleDate(details.vested_date) }}</span>
-                <span col-12>
+              <div class="row q-pl-sm col-10">
+                <span class="col-12">{{ parseLocaleDate(details.vested_date) }}</span>
+                <span class="col-12">
                   {{
                     $t(
                       "VestedLift",
