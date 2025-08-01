@@ -4,7 +4,7 @@
         	{{ $t('Pending') }}
         </div>        
         <div class="pending-list q-mx-lg " :class="darkMode ? 'text-white': 'text-black'">
-        	<q-card flat v-for="item in pending" class="pending-card q-pa-md q-my-sm br-15" @click="selectTransaction(item.id, 'exchange')">
+        	<q-card v-for="item in pending" class="pending-card q-pa-md q-my-sm br-15" @click="selectTransaction(item.id, 'exchange')">
         		<div class="row">
         			<div class="col-7">
         				<!-- Label -->
@@ -23,7 +23,7 @@
         			</div>
         		</div>         		     	
         	</q-card>
-        	<q-card flat v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
+        	<q-card v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
    				@click="selectTransaction(item.id, 'marketplace')"
         	>
         		<div class="row">

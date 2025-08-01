@@ -48,39 +48,41 @@
 						item-key="id"
 			      	>
 			      	    <template #item="{element: asset, index}"> 
-			      	    	<q-item class="q-pa-sm" style="border-bottom: 1.5px solid #b0bec5;">
-			      	    	  <i v-if="editAssets" class="q-pl-sm fa fa-align-justify handle"></i>			      	    			      	    	
-						      <q-item-section avatar class="q-pl-md">
-						          <q-avatar>
-						            <img :src="asset.logo">
-						          </q-avatar>
-						        </q-item-section>
-						        <q-item-section>
-						        	<div class="text-bold ">{{ asset.name}}</div>
-						        	<div :class="darkmode ? 'text-grey-5' : 'text-grey-8'">
-						      			{{ formatAssetTokenAmount(asset) }}			      			
-						      		</div>
-						        </q-item-section>
-						      	<q-item-section side  v-if="!editAssets">			      		
-						      		<q-rating
-						      			readonly
-								        v-model="asset.favorite"
-								        max="1"
-								        size="2em"
-								        color="amber-6"
-								        icon="star_border"
-								        icon-selected="star"
-								        @click.stop="updateFavorite(asset)"					      
-								      />			      						      				      	
-						      	</q-item-section>
-						      	<q-item-section side v-else>	
-						      		<q-btn round flat padding="3px" @click="removeAsset(asset)">		      		
-						      			<q-icon name="delete" color="gray"></q-icon>			      						      				      	
-						      		</q-btn>
-						      	</q-item-section>
+			      	    	<q-card class="q-py-sm q-my-sm br-15">
+			      	    		<q-item>
+			      	    			<i v-if="editAssets" class="q-pl-sm fa fa-align-justify handle"></i>			      	    			      	    	
+								      <q-item-section avatar class="q-pl-md">
+								          <q-avatar>
+								            <img :src="asset.logo">
+								          </q-avatar>
+								        </q-item-section>
+								        <q-item-section>
+								        	<div class="text-bold ">{{ asset.name}}</div>
+								        	<div :class="darkmode ? 'text-grey-5' : 'text-grey-8'">
+								      			{{ formatAssetTokenAmount(asset) }}			      			
+								      		</div>
+								        </q-item-section>
+								      	<q-item-section side  v-if="!editAssets">			      		
+								      		<q-rating
+								      			readonly
+										        v-model="asset.favorite"
+										        max="1"
+										        size="2em"
+										        color="amber-6"
+										        icon="star_border"
+										        icon-selected="star"
+										        @click.stop="updateFavorite(asset)"					      
+										      />			      						      				      	
+								      	</q-item-section>
+								      	<q-item-section side v-else>	
+								      		<q-btn round flat padding="3px" @click="removeAsset(asset)">		      		
+								      			<q-icon name="delete" color="gray"></q-icon>			      						      				      	
+								      		</q-btn>
+								      	</q-item-section>
 
-						      	<q-separator class="q-mt-md"/>
-						      </q-item>
+								      	<!-- <q-separator class="q-mt-md"/> -->
+			      	    		</q-item>			      	    	
+						      </q-card>
 			      	    </template>			      
 			        </draggable>  
 			    </q-list>
