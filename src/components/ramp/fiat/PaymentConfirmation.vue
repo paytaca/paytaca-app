@@ -192,7 +192,7 @@
         </div>
       </div>
       <!-- Appeal Button -->
-      <div class="row justify-center" v-if="countDown !== null">
+      <div class="row justify-center" v-if="showAppealBtn">
         <q-btn
           v-if="!sendingBch"
           :loading="loadAppealButton"
@@ -296,6 +296,19 @@ export default {
     }
   },
   computed: {
+    showAppealBtn () {
+      let showBtn = false
+      const status = this.order?.status.value      
+      const userType = this.data?.type
+      if (userType === 'seller') {
+        showBtn = status === 'ESCRW'
+      }
+
+      if (userType === 'buyer') {
+        showBtn = status === 'PD_PN'
+      }
+      return showBtn && this.countDown !== null
+    },
     maxFileSize () {
       return 5 * 1024 * 1024
     },

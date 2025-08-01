@@ -132,13 +132,11 @@ const routes = [
       {
         path: 'exchange/',
         name: 'exchange',
-        props: route => route.query,
         component: () => import('src/pages/apps/exchange/index.vue'),
         children: [
           {
             path: 'peer-to-peer/',
             name: 'exchange-p2p',
-            props: route => route.query,
             component: () => import('src/pages/apps/exchange/peer_to_peer/index.vue'),
             children: [
               {
