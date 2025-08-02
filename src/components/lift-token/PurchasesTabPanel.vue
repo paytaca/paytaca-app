@@ -249,13 +249,13 @@ export default {
       } else if (saleGroup === "vest") {
         this.finalPurchasesList = this.purchasesList.filter(
           (a) =>
-            a.purchase_vesting_details.length > 0 &&
+            a.purchase_vesting_details.some(detail => !detail.vested_date) &&
             a.purchase_more_details.sale_group !== SaleGroup.PUBLIC
         );
       } else if (saleGroup === "comp") {
         this.finalPurchasesList = this.purchasesList.filter(
           (a) =>
-            a.is_done_vesting === 4 ||
+            a.is_done_vesting ||
             a.purchase_more_details.sale_group === SaleGroup.PUBLIC
         );
       } else {
