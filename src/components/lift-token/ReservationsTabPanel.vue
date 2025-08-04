@@ -2,7 +2,6 @@
   <div
     class="row text-body1 justify-evenly"
     id="rsvp-filter"
-    v-if="finalRsvpList?.length > 0"
   >
     <sale-group-chip
       :saleGroup="'all'"
@@ -30,8 +29,8 @@
 
   <template v-if="finalRsvpList?.length === 0">
     <div class="row full-width flex-center text-center q-mt-md text-h5">
-      <span class="q-mb-md">{{ $t('EmptyReservations1') }}</span>
-      <span class="q-mb-sm">{{ $t('EmptyReservations2') }}</span>
+      <span class="q-mb-md">{{ $t("EmptyReservations1") }}</span>
+      <span class="q-mb-sm">{{ $t("EmptyReservations2") }}</span>
       <span v-html="$t('EmptyReservations3')" />
     </div>
   </template>
@@ -51,13 +50,13 @@
               </span>
               <div class="row col-12 text-subtitle2 items-center">
                 <span v-if="rsvp.discounted_amount > 0" class="q-pr-xs">
-                  {{ parseFiatCurrency(rsvp.discounted_amount, 'USD') }}
+                  {{ parseFiatCurrency(rsvp.discounted_amount, "USD") }}
                 </span>
                 <span v-else class="q-pr-xs">
-                  {{ parseFiatCurrency(rsvp.reserved_amount_usd, 'USD') }}
+                  {{ parseFiatCurrency(rsvp.reserved_amount_usd, "USD") }}
                 </span>
                 <template v-if="rsvp.discount > 0">
-                  <q-icon name="info" size="1em"/>
+                  <q-icon name="info" size="1em" />
                   <q-menu
                     touch-position
                     class="pt-card text-bow q-py-sm q-px-md br-15"
@@ -65,17 +64,25 @@
                   >
                     <div class="row items-center q-gutter-sm">
                       <div class="q-space">
-                        {{ $t(
-                          'DiscountApplied1',
-                          {
-                            discount: rsvp.discount,
-                            currency: parseFiatCurrency(
-                              rsvp.reserved_amount_usd * (rsvp.discount / 100), 'USD'
-                            )
-                          },
-                          `A ${rsvp.discount}% discount is applied, saving you ` +
-                          `${parseFiatCurrency(rsvp.reserved_amount_usd * (rsvp.discount / 100), 'USD')}.`
-                          ) }}
+                        {{
+                          $t(
+                            "DiscountApplied1",
+                            {
+                              discount: rsvp.discount,
+                              currency: parseFiatCurrency(
+                                rsvp.reserved_amount_usd *
+                                  (rsvp.discount / 100),
+                                "USD"
+                              ),
+                            },
+                            `A ${rsvp.discount}% discount is applied, saving you ` +
+                              `${parseFiatCurrency(
+                                rsvp.reserved_amount_usd *
+                                  (rsvp.discount / 100),
+                                "USD"
+                              )}.`
+                          )
+                        }}
                       </div>
                     </div>
                   </q-menu>
@@ -92,35 +99,53 @@
 
           <div
             class="row col-12 justify-between q-gutter-y-sm text-subtitle2"
-            style="line-height: 1.2em;"
+            style="line-height: 1.2em"
           >
-            <span class="col-6" style="overflow-wrap: anywhere;">
+            <span class="col-6" style="overflow-wrap: anywhere">
               {{ parseBchAddress(rsvp.bch_address) }}
             </span>
             <span class="col-6 text-right">
-              {{ $t(
-                'ApprovedLastDate',
-                { date: parseLocaleDate(rsvp.approved_date) },
-                `Approved last ${parseLocaleDate(rsvp.approved_date)}`
-              ) }}
+              {{
+                $t(
+                  "ApprovedLastDate",
+                  { date: parseLocaleDate(rsvp.approved_date) },
+                  `Approved last ${parseLocaleDate(rsvp.approved_date)}`
+                )
+              }}
             </span>
 
             <template
               v-if="Object.keys(rsvp.reservation_partial_purchase).length > 0"
             >
-              <span class="col-6" style="overflow-wrap: anywhere;">
-                {{ $t(
-                  'PaidForLift',
-                  { lift: parseLiftToken(rsvp.reservation_partial_purchase.tkn_paid) },
-                  `Paid for ${parseLiftToken(rsvp.reservation_partial_purchase.tkn_paid)}`
-                ) }}
+              <span class="col-6" style="overflow-wrap: anywhere">
+                {{
+                  $t(
+                    "PaidForLift",
+                    {
+                      lift: parseLiftToken(
+                        rsvp.reservation_partial_purchase.tkn_paid
+                      ),
+                    },
+                    `Paid for ${parseLiftToken(
+                      rsvp.reservation_partial_purchase.tkn_paid
+                    )}`
+                  )
+                }}
               </span>
               <span class="col-6 text-right">
-                {{ $t(
-                  'LiftLeftUnpaid',
-                  { lift: parseLiftToken(rsvp.reservation_partial_purchase.tkn_unpaid) },
-                  `${parseLiftToken(rsvp.reservation_partial_purchase.tkn_unpaid)} left unpaid`
-                ) }}
+                {{
+                  $t(
+                    "LiftLeftUnpaid",
+                    {
+                      lift: parseLiftToken(
+                        rsvp.reservation_partial_purchase.tkn_unpaid
+                      ),
+                    },
+                    `${parseLiftToken(
+                      rsvp.reservation_partial_purchase.tkn_unpaid
+                    )} left unpaid`
+                  )
+                }}
               </span>
             </template>
           </div>
@@ -139,46 +164,49 @@
 </template>
 
 <script>
-import { markRaw } from '@vue/reactivity'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseFiatCurrency } from 'src/utils/denomination-utils'
-import { parseLocaleDate, parseLiftToken } from 'src/utils/engagementhub-utils/shared'
-import { SaleGroup } from 'src/utils/engagementhub-utils/lift-token'
-import { getMnemonic, Wallet } from 'src/wallet'
+import { markRaw } from "@vue/reactivity";
+import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
+import { parseFiatCurrency } from "src/utils/denomination-utils";
+import {
+  parseLocaleDate,
+  parseLiftToken,
+} from "src/utils/engagementhub-utils/shared";
+import { SaleGroup } from "src/utils/engagementhub-utils/lift-token";
+import { getMnemonic, Wallet } from "src/wallet";
 
-import SaleGroupChip from 'src/components/lift-token/SaleGroupChip.vue'
-import PayReservationDialog from 'src/components/lift-token/dialogs/PayReservationDialog.vue'
+import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
+import PayReservationDialog from "src/components/lift-token/dialogs/PayReservationDialog.vue";
 
 export default {
-  name: 'ReservationsTabPanel',
+  name: "ReservationsTabPanel",
 
   props: {
     reservationsList: { type: Array, default: null },
-    liftSwapContractAddress: { type: String, default: null }
+    liftSwapContractAddress: { type: String, default: null },
   },
 
-  emits: ['on-successful-purchase'],
+  emits: ["on-successful-purchase"],
 
   components: {
-    SaleGroupChip
+    SaleGroupChip,
   },
 
-  data () {
+  data() {
     return {
       SaleGroup,
 
       finalRsvpList: [],
 
       wallet: null,
-      selectedFilter: 'all',
-      scrollAreaHeight: '63vh'
-    }
+      selectedFilter: "all",
+      scrollAreaHeight: "63vh",
+    };
   },
 
   computed: {
-    darkMode () {
-      return this.$store.getters['darkmode/getStatus']
-    }
+    darkMode() {
+      return this.$store.getters["darkmode/getStatus"];
+    },
   },
 
   methods: {
@@ -187,64 +215,69 @@ export default {
     parseLocaleDate,
     parseLiftToken,
 
-    async initWallet () {
-      const walletIndex = this.$store.getters['global/getWalletIndex']
-      const mnemonic = await getMnemonic(walletIndex)
-      const wallet = new Wallet(mnemonic, 'BCH')
-      this.wallet = markRaw(wallet)
+    async initWallet() {
+      const walletIndex = this.$store.getters["global/getWalletIndex"];
+      const mnemonic = await getMnemonic(walletIndex);
+      const wallet = new Wallet(mnemonic, "BCH");
+      this.wallet = markRaw(wallet);
     },
-    filterRsvpList (saleGroup) {
-      this.selectedFilter = saleGroup
-      if (saleGroup === 'all') {
-        this.finalRsvpList = this.reservationsList
+    filterRsvpList(saleGroup) {
+      this.selectedFilter = saleGroup;
+      if (saleGroup === "all") {
+        this.finalRsvpList = this.reservationsList;
       } else {
         this.finalRsvpList = this.reservationsList.filter(
-          a => a.sale_group === saleGroup
-        )
+          (a) => a.sale_group === saleGroup
+        );
       }
     },
-    parseBchAddress (address) {
-      const addLen = address.length
-      return `${address.substring(0, 17)}...${address.substring(addLen - 7, addLen)}`
+    parseBchAddress(address) {
+      const addLen = address.length;
+      return `${address.substring(0, 17)}...${address.substring(
+        addLen - 7,
+        addLen
+      )}`;
     },
-    isChipOutline (saleGroup) {
-      if (this.selectedFilter === 'all') return false
-      return saleGroup !== this.selectedFilter
+    isChipOutline(saleGroup) {
+      if (this.selectedFilter === "all") return false;
+      return saleGroup !== this.selectedFilter;
     },
-    openPayReservationDialog (rsvp) {
-      this.$q.dialog({
-        component: PayReservationDialog,
-        componentProps: {
-          rsvp,
-          wallet: this.wallet,
-          liftSwapContractAddress: this.liftSwapContractAddress
-        }
-      })
+    openPayReservationDialog(rsvp) {
+      this.$q
+        .dialog({
+          component: PayReservationDialog,
+          componentProps: {
+            rsvp,
+            wallet: this.wallet,
+            liftSwapContractAddress: this.liftSwapContractAddress,
+          },
+        })
         .onOk(() => {
           this.$q.notify({
-            type: 'positive',
+            type: "positive",
             timeout: 3000,
-            message: this.$t('SuccessfulPurchaseMessage')
-          })
-          this.$emit('on-successful-purchase')
-        })
-    }
+            message: this.$t("SuccessfulPurchaseMessage"),
+          });
+          this.$emit("on-successful-purchase");
+        });
+    },
   },
 
-  async mounted () {
-    this.finalRsvpList = this.reservationsList
+  async mounted() {
+    this.finalRsvpList = this.reservationsList;
 
-    await this.initWallet()
+    await this.initWallet();
   },
 
-  render () {
-    const headerNavHeight = document.getElementById('header-nav')?.clientHeight
-    const sectionTabHeight = document.getElementById('section-tab')?.clientHeight
-    const filterHeight = document.getElementById('rsvp-filter')?.clientHeight
+  render() {
+    const headerNavHeight = document.getElementById("header-nav")?.clientHeight;
+    const sectionTabHeight =
+      document.getElementById("section-tab")?.clientHeight;
+    const filterHeight = document.getElementById("rsvp-filter")?.clientHeight;
 
-    const divsHeight = headerNavHeight + sectionTabHeight + filterHeight
-    const screenHeight = this.$q.screen.height
-    this.scrollAreaHeight = `${screenHeight - divsHeight - 35}px`
-  }
-}
+    const divsHeight = headerNavHeight + sectionTabHeight + filterHeight;
+    const screenHeight = this.$q.screen.height;
+    this.scrollAreaHeight = `${screenHeight - divsHeight - 35}px`;
+  },
+};
 </script>
