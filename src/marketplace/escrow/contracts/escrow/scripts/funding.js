@@ -40,8 +40,8 @@ export function createEscrowFundingOutputsV3(escrow) {
     const outputSize = BigInt(getOutputSize(settlementOutput))
     if (settlementOutput.token && !settlementOutput.token?.nft) {
       let amount = settlementOutput.amount + outputSize + inputSize
-      if (settlementOutput.token.category == escrow.params.deliveryFeeCategory) {
-        amount += lockNftOutputSize
+      if (settlementOutput.token.category == escrow.params.deliveryFeeCategory && lockNftSettlementOutput) {
+        amount += lockNftOutputSize + lockNftSettlementOutput.amount
       }
 
       outputs.push({
