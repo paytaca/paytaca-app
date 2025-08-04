@@ -45,7 +45,7 @@
               </div>
             </div> -->
 
-			<div v-if="!txSearchActive" class="row q-ma-lg section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
+			<div v-if="!txSearchActive" class="row q-mx-lg q-mt-sm section-title transaction-wallet" :class="darkmode ? 'text-light' : 'text-dark'">
 				<div class="col-9" @click="selectAsset">
 					<q-btn class="full-width" align="left"  flat padding="0px">
 					<!-- <q-item clickable v-ripple class="br-15" > -->
@@ -67,7 +67,7 @@
 		              <div v-if="txSearchActive" class="full-width">
 		                <q-input
 		                  ref="tx-search"
-		                  style="margin: 0px 30px 0px; padding-bottom: 22px;"
+		                  style="margin: 0px 30px 0px; padding-bottom: 3px;"
 		                  maxlength="6"
 		                  label="Search by Reference ID"
 		                  v-model="txSearchReference"
@@ -107,8 +107,8 @@
 		          :wallet="wallet"
 		          :denominationTabSelected="denominationTabSelected"
 		        />
-		        <div v-if="!txSearchActive" class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
-		        	<div class="col-11 br-15 pt-card" :class="getDarkModeClass(darkmode)"
+		        <div class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
+		        	<div class="col br-15 pt-card" :class="getDarkModeClass(darkmode)"
 		            :style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`" >
 		        		<button
 			              v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
@@ -122,49 +122,8 @@
 			            >
 			              {{ transactionFilterOpt?.label }}
 			            </button>
-		        	</div>
-		        	<div class="col text-right">
-		        		<q-icon size="20px" name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
-		        	</div>
+		        	</div>		      
 		        </div>	
-		        <div v-else class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
-		              <div v-if="txSearchActive" class="full-width">
-		                <q-input
-		                  ref="tx-search"
-		                  style="margin: 0px 30px 0px;"
-		                  maxlength="6"
-		                  label="Search by Reference ID"
-		                  v-model="txSearchReference"
-		                  debounce="200"
-		                  @update:model-value="(val) => { txSearchReference = val.toUpperCase().slice(0, 6); executeTxSearch(val) }"
-		                >
-		                  <template v-slot:prepend>
-		                    <q-icon name="search" />
-		                  </template>
-		                  <template v-slot:append>
-		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
-		                  </template>
-		                </q-input>
-		              </div>
-		              <!-- <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
-		                <q-btn
-		                  v-if="darkMode"
-		                  unelevated
-		                  @click="openPriceChart"
-		                  icon="img:assets/img/theme/payhero/price-chart.png"
-		                />
-		                <q-btn
-		                  v-else
-		                  round
-		                  color="blue-9"
-		                  padding="xs"
-		                  icon="mdi-chart-line-variant"
-		                  class="q-ml-md"
-		                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
-		                  @click="openPriceChart"
-		                />
-		              </template> -->
-		            </div>
 
 		        <div class="transaction-container" :class="darkmode ? 'text-light' : 'text-dark'">
 		          <!-- <div
