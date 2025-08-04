@@ -96,7 +96,7 @@
       {{ $t('NoRecords') }}
     </div>
     <div
-      v-for="escrowContract in escrowContracts" :key="escrowContract?.address"
+      v-for="(escrowContract, index) in escrowContracts" :key="escrowContract?.address"
       class="q-mb-md q-pb-xs"
       style="border-bottom: 1px solid grey;position:relative"
       v-ripple
@@ -159,24 +159,24 @@
         </div>
         <div v-else class="text-grey">{{ $t('NoOrder') }}</div>
       </div>
-      <div v-if="escrowContract?.fiatAmount">
+      <div v-if="escrowContractFiatAmounts?.[index]?.total">
         <div class="row items-center">
           <div>{{ $t('TotalAmount') }}</div>
           <q-space/>
           <div>
-            {{ round(escrowContract?.fiatAmount?.total, 3) }}
-            {{ escrowContract?.fiatAmount?.currency }}
+            {{ round(escrowContractFiatAmounts?.[index]?.total, 3) }}
+            {{ escrowContractFiatAmounts?.[index]?.currency }}
           </div>
         </div>
         <div class="row items-center">
           <div>{{ $t('Fee') }}</div>
           <q-space/>
           <div>
-            <template v-if="escrowContract?.fiatAmount?.arbitrationFee > 0 && escrowContract?.fiatAmount?.arbitrationFee < 0.001">
+            <template v-if="escrowContractFiatAmounts?.[index]?.arbitrationFee > 0 && escrowContractFiatAmounts?.[index]?.arbitrationFee < 0.001">
               {{ '< 0.001' }}
             </template>
-            <template v-else>{{ round(escrowContract?.fiatAmount?.arbitrationFee, 3) }}</template>
-            {{ escrowContract?.fiatAmount?.currency }}
+            <template v-else>{{ round(escrowContractFiatAmounts?.[index]?.arbitrationFee, 3) }}</template>
+            {{ escrowContractFiatAmounts?.[index]?.currency }}
           </div>
         </div>
       </div>
@@ -270,6 +270,7 @@ import LimitOffsetPagination from "src/components/LimitOffsetPagination.vue";
 import EscrowContractDialog from "src/components/marketplace/escrow-contract-dialog.vue";
 import OrderDetailDialog from "src/components/marketplace/OrderDetailDialog.vue";
 import SettlementTransactionPreviewDialog from "src/components/marketplace/arbiter/SettlementTransactionPreviewDialog.vue";
+import { useEscrowAmountsCalculator } from "src/composables/marketplace/escrow";
 
 
 const cachedBackend = setupCache(axios.create({...arbiterBackend.defaults}), { ttl: 30 * 1000 })
@@ -398,6 +399,16 @@ function fetchEscrowContracts(opts={ limit: 0, offset: 0 }) {
     })
 }
 
+const escrowContractFiatAmounts = computed(() => {
+  return escrowContracts.value.map(escrowContract => {
+    const bchPrice = escrowContract.payments?.[0]?.bchPrice;
+    const tokenPrices = escrowContract.payments?.[0]?.tokenPrices;
+    const { resolveFiatAmounts } = useEscrowAmountsCalculator(bchPrice, tokenPrices)
+
+    return { ...resolveFiatAmounts(escrowContract), currency: bchPrice?.currency?.symbol };
+  })
+})
+
 function refetchEscrowContracts(opts={addresses: [].map(String), append: false}) {
   let addresses = opts?.addresses
   const append = opts?.append
@@ -432,10 +443,16 @@ function resolveEscrowContractStatusIcon(escrowContract=EscrowContract.parse()) 
 }
 
 function showEscrowContract(escrowContract=EscrowContract.parse()) {
+  const bchPrice = escrowContract.payments?.[0]?.bchPrice;
+  const tokenPrices = escrowContract.payments?.[0]?.tokenPrices;
+  const currency = bchPrice?.currency?.code;
   $q.dialog({
     component: EscrowContractDialog,
     componentProps: {
-      escrowContract: escrowContract
+      escrowContract: escrowContract,
+      bchPrice: bchPrice,
+      tokenPrices: tokenPrices,
+      currency: currency,
     },
   })
 }

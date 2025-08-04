@@ -452,10 +452,16 @@ async function sendSettlementTx(escrowContract, transaction, escrowSettlementApp
 }
 
 function showEscrowContract(escrowContract=EscrowContract.parse()) {
+  const bchPrice = escrowContract.payments?.[0]?.bchPrice;
+  const tokenPrices = escrowContract.payments?.[0]?.tokenPrices;
+  const currency = bchPrice?.currency?.code;
   $q.dialog({
     component: EscrowContractDialog,
     componentProps: {
-      escrowContract: escrowContract
+      escrowContract: escrowContract,
+      bchPrice: bchPrice,
+      tokenPrices: tokenPrices,
+      currency: currency,
     },
   })
 }

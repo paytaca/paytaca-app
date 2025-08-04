@@ -1911,23 +1911,6 @@ export class EscrowContract {
     return Boolean(this.amountCategory || this.serviceFeeCategory || this.arbitrationFeeCategory || this.deliveryFeeKeyNft?.category)
   }
 
-  get fiatAmount() {
-    const bchPrice = parseFloat(this.payments?.[0]?.bchPrice?.price)
-    const currency = this.payments?.[0]?.bchPrice?.currency?.symbol
-    if (!Number.isFinite(bchPrice)) return
-
-    const ROUND_MULTIPLIER = 10 ** 6
-    const round = val => Math.round(val * ROUND_MULTIPLIER) / ROUND_MULTIPLIER
-    return {
-      total: round(this.bchAmounts.total * bchPrice),
-      serviceFee: round(this.bchAmounts.serviceFee),
-      arbitrationFee: round(this.bchAmounts.arbitrationFee),
-      deliveryFee: round(this.bchAmounts.deliveryFee),
-      networkFee: round(this.bchAmounts.networkFee),
-      currency: currency,
-    }
-  }
-
   get fundingTxLink() {
     const txid = this?.fundingTxid
     const index = this?.fundingVout
