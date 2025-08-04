@@ -1,7 +1,7 @@
 // Card service exports
 export {
-  fetchCardInfo,
-  createCardInfo,
+  fetchCard,
+  createCard,
   fetchAuthNFTs,
   createAuthNFTs,
   mutateNFTs,

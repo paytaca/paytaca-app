@@ -36,7 +36,7 @@ const cardApi = axios.create({
  * @param {string} cardId - The card ID to fetch
  * @returns {Promise} API response with card information
  */
-export async function fetchCardInfo(identifier) {
+export async function fetchCard(identifier) {
   try {
     console.log('url:', cardApi.defaults.baseURL)
     const response = await cardApi.get(`/cards/${identifier}/`)
@@ -69,7 +69,7 @@ export async function getCardBalance(address) {
  */
 export async function createCard(cardData) {
   try {
-    const response = await cardApi.post('/cards', cardData)
+    const response = await cardApi.post('/cards/', cardData)
     return response.data
   } catch (error) {
     console.error('Error creating card:', error)

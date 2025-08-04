@@ -272,7 +272,12 @@ const routes = [
             path: '',
             name: 'app-card',
             component: () => import('src/pages/apps/card/index.vue')
-          }
+          },
+          {
+            path: 'auth-nfts',
+            name: 'card-auth-nfts',
+            component: () => import('src/pages/apps/card/auth-nfts.vue')
+          },
         ]
       }
     ]
