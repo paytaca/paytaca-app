@@ -27,20 +27,8 @@ const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const LIFTTOKEN_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}lifttoken/` })
 
-
-function hexToUint8Array(hexString) {
-  if (hexString.length % 2 !== 0) {
-    throw new Error("Hex string must have an even number of characters.");
-  }
-  const uint8Array = new Uint8Array(hexString.length / 2);
-  for (let i = 0; i < hexString.length; i += 2) {
-    uint8Array[i / 2] = parseInt(hexString.substring(i, i + 2), 16);
-  }
-  return uint8Array;
-}
-
 // ================================
-// non-Promise functions
+// Promise functions
 // ================================
 
 export async function generateSignature(txId, wif) {
@@ -84,6 +72,18 @@ export async function generateSignature(txId, wif) {
 
   return Buffer.from(signature).toString('hex')
 }
+
+export async function getAddressPath(address) {
+  return await watchtower.BCH._api
+    .post(`address-info/bch/${address}`)
+    .then(resp => {
+      return resp.data.address_path
+    })
+}
+
+// ================================
+// non-Promise functions
+// ================================
 
 /**
  * @param {Object} params
