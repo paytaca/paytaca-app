@@ -143,12 +143,12 @@ export default {
       // update the public keys of reservations if they are empty
       if (this.reservationsList.length > 0) {
         const rsvp_payload = [];
-        const addressPath = await getAddressPath(this.rsvp.bch_address)
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
 
         for (const rsvp of this.reservationsList) {
           if (rsvp.public_key === "") {
+            const addressPath = await getAddressPath(rsvp.bch_address)
             const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
             const decodedWif = decodePrivateKeyWif(wif);
             const pubkey = secp256k1.derivePublicKeyCompressed(
