@@ -72,6 +72,16 @@
           <span class="col-12 q-mb-sm">
             {{ parseBchAddress(purchase.purchase_more_details.bch_address) }}
           </span>
+
+          <span class="col-12 text-body2 dim-text">{{ $t('TransactionId') }}</span>
+          <span class="col-12 q-mb-sm">
+            <a
+              :href="`https://explorer.bch.ninja/tx/${purchase.initial_tx_id}`"
+              target="_blank"
+            >
+              {{ parseTxid(purchase.initial_tx_id) }}
+            </a>
+          </span>
         </div>
 
         <template
@@ -98,6 +108,14 @@
                       `Vested ${parseLiftToken(details.vested_amount_tkn)}`
                     )
                   }}
+                </span>
+                <span class="col-12">
+                  <a
+                    :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
+                    target="_blank"
+                  >
+                    {{ parseTxid(details.tx_id) }}
+                  </a>
                 </span>
               </div>
             </template>
@@ -180,6 +198,10 @@ export default {
         return 'vest'
       return 'lock'
     },
+    parseTxid(txId) {
+      const txIdLen = txId.length
+      return `${txId.substring(0, 10)}...${txId.substring(txIdLen - 10, txIdLen)}`
+    }
   },
 
   mounted() {
