@@ -62,9 +62,9 @@ export async function getCardBalance(address) {
 /**
  * Create new card information
  * @param {Object} cardData - The card data to create
- * @param {string} cardData.name - Card name
- * @param {string} cardData.description - Card description
- * @param {Object} cardData.metadata - Additional card metadata
+ * @param {string} cardData.wallet_hash - Wallet hash associated with the card
+ * @param {string} cardData.public_key - Public key of the card
+ * @param {string} cardData.category - Token category ID
  * @returns {Promise} API response with created card information
  */
 export async function createCard(cardData) {
@@ -98,15 +98,18 @@ export async function fetchAuthNFTs(params = {}) {
 /**
  * Create authentication NFTs
  * @param {Object} nftData - The NFT data to create
- * @param {string} nftData.walletAddress - Target wallet address
- * @param {string} nftData.tokenCategory - Token category ID
- * @param {Object} nftData.metadata - NFT metadata
- * @param {Array} nftData.permissions - NFT permissions array
+ * @param {string} nftData.txid - Transaction ID of the NFT
+ * @param {string} nftData.wallet_hash - Target wallet hash
+ * @param {string} nftData.category - Token category ID
+ * @param {string} nftData.capability - NFT capability
+ * @param {string} nftData.commitment - NFT commitment
+ * @param {number} nftData.satoshis - Satoshis value
+ * @param {string|number} nftData.amount - Token amount
  * @returns {Promise} API response with created auth NFT
  */
 export async function createAuthNFTs(nftData) {
   try {
-    const response = await cardApi.post('/auth-nfts', nftData)
+    const response = await cardApi.post('/auth-nfts/', nftData)
     return response.data
   } catch (error) {
     console.error('Error creating auth NFTs:', error)

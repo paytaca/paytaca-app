@@ -16,12 +16,12 @@
             <q-card class="col-auto" style="border-radius: 15px;">
               <q-card-section class="text-center">
 
-                <!-- More actions button -->
+                <!-- Action button -->
                 <div class="row justify-end">
                   <q-btn-dropdown flat dense dropdown-icon="more_horiz">
                     <q-list class="q-my-sm">
-                      <q-item dense clickable @click="$router.push({name: 'card-auth-nfts'})">
-                        Manage Auth NFTs
+                      <q-item clickable @click="$router.push({name: 'card-auth-nfts'})">
+                        Manage Auth Tokens
                       </q-item>
                     </q-list>
                   </q-btn-dropdown>
@@ -89,7 +89,7 @@
               padding="sm"
               color="primary"
               :loading="createCardLoading"
-              @click="createCard()"
+              @click="onCreateCard()"
             />
           </div>
         </div>
@@ -99,9 +99,13 @@
 </template>
 <script>
 import HeaderNav from 'components/header-nav'
-import { fetchCard, createCard } from 'src/services/card';
+import { fetchCard, createCard, createAuthNFTs } from 'src/services/card';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { loadWallet } from 'src/wallet';
+import { getMnemonic, Wallet } from 'src/wallet';
+import { getWalletByNetwork } from 'src/wallet/chipnet';
+import AuthTokenManager from 'src/services/card/auth-token';
+import { ca } from 'date-fns/locale';
 
 export default {
   components: {
@@ -132,20 +136,88 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    copyToClipboard (text) {
-      navigator.clipboard.writeText(text).then(() => {
-        this.$q.notify({
-          message: 'Address copied to clipboard',
-          color: 'positive',
-          position: 'top'
-        })
-      }).catch(() => {
-        this.$q.notify({
-          message: 'Failed to copy address',
-          color: 'negative',
-          position: 'top'
-        })
-      })
+    showLoading(message) {
+      this.$q.loading.show({
+        message: message,
+        boxClass: this.darkMode ? 'bg-grey-9 text-grey-2' : 'bg-grey-2 text-grey-9'
+      });
+    },
+    hideLoading() {
+      this.$q.loading.hide();
+    },
+    async onCreateCard() {
+      // Mint genesis token first
+      let category;
+      try {
+        this.showLoading("Minting genesis token...");
+        const result = await this.mintGenesisToken();
+        category = result.tokenId;
+        
+        const nftData = result.utxos[0];
+        const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
+        const nftPayload = {
+            txid: nftData.txid,
+            wallet_hash: walletHash,
+            category: nftData.token?.tokenId,
+            capability: nftData.token?.capability,
+            commitment: nftData.token?.commitment,
+            satoshis: nftData.satoshis,
+            amount: nftData.token?.amount
+        }
+        console.log('Creating Auth NFTs with payload:', nftPayload);
+        await createAuthNFTs(nftPayload).catch(error => {
+          console.error('Error creating auth NFTs:', error);
+          this.hideLoading();
+          this.$q.dialog({
+            title: 'Error',
+            message: `Failed to create Auth NFTs. ${error.message || ''}`,
+          });
+        });
+
+      } catch (error) {
+        console.error('Error minting genesis token:', error);
+        this.hideLoading();
+        this.$q.dialog({
+          title: 'Error',
+          message: `Failed to mint Genesis Token. ${error.message || ''}`,
+        });
+      }
+
+      if (!category) {
+        console.error('No category returned from mintGenesisToken');
+        return;
+      }
+
+      this.showLoading("Creating card...");
+      await this.createCard(category);
+      this.hideLoading();
+    },
+    async mintGenesisToken () {
+      const privateKey = await this.getPrivateKey();
+      const authTokenManager = new AuthTokenManager(privateKey);
+      const result = await authTokenManager.genesis();
+      console.log('genesis result:', result);
+      const utxos = await authTokenManager.getTokenUtxos(result.tokenIds[0]);
+      console.log('NFT Data:', utxos);
+      return { tokenId: result.tokenIds[0], utxos };
+    },
+    async getDynamicWallet (walletType = 'bch') {
+      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+      const wallet = new Wallet(mnemonic, this.network)
+      const dynamicWallet = getWalletByNetwork(wallet, walletType)
+      return dynamicWallet;
+    },
+    async getPrivateKey () {
+      const dynamicWallet = await this.getDynamicWallet();
+      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex']('bch');
+      const privateKey = await dynamicWallet.getPrivateKey('0/' + String(lastAddressIndex));
+      return privateKey;
+    },
+    async getPublicKey() {
+      const dynamicWallet = await this.getDynamicWallet()
+      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+      const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
+      return publicKey;
     },
     async fetchCard () {
       const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
@@ -164,17 +236,19 @@ export default {
           console.error('Error fetching card info:', error);
         });
     },
-    async createCard () {
-      this.createCardLoading = true;
+    async createCard (category) {
       const walletIndex = this.$store.getters['global/getWalletIndex'];
       const wallet = await loadWallet('BCH', walletIndex)
       const walletHash = wallet.BCH.walletHash;
       const addressIndex = 0;
       const pubkey = await wallet.BCH.getPublicKey(`0/${addressIndex}`)
+      
       const data = {
         wallet_hash: walletHash,
-        public_key: pubkey
+        public_key: pubkey,
+        category: category
       };
+      
       console.log('Creating card with data:', data);
       await createCard(data).then(async (response) => {
         console.log('Card created successfully:', response);
@@ -192,13 +266,27 @@ export default {
         }, 500);
 
       }).catch(error => {
-        this.createCardLoading = false;
         console.error('Error creating card:', error?.response || error);
         this.$q.notify({
           message: 'Failed to create card',
           color: 'negative',
           position: 'top'
         });
+      })
+    },
+    copyToClipboard (text) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.$q.notify({
+          message: 'Address copied to clipboard',
+          color: 'positive',
+          position: 'top'
+        })
+      }).catch(() => {
+        this.$q.notify({
+          message: 'Failed to copy address',
+          color: 'negative',
+          position: 'top'
+        })
       })
     }
   }
