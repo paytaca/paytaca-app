@@ -93,7 +93,7 @@
 
           <div
             v-for="(details, index) in vestingDetailsList"
-            class="q-mb-sm row col-12 items-center"
+            class="q-mb-sm row col-12"
           >
             <status-chip :isCompleted="!!details" :index="index + 1" />
 
