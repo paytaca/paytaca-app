@@ -115,7 +115,7 @@
             </span>
 
             <template
-              v-if="Object.keys(rsvp.reservation_partial_purchase).length > 0"
+              v-if="Object.keys(rsvp.reservation_partial_purchase).length > 0 && !rsvp.is_paid"
             >
               <span class="col-6" style="overflow-wrap: anywhere">
                 {{
@@ -148,9 +148,18 @@
                 }}
               </span>
             </template>
+
+            <template v-if="rsvp.is_paid">
+              <span class="col-12 text-center text-weight-bolder q-mt-md q-mb-xs">
+                Reservation is paid in full
+              </span>
+            </template>
           </div>
 
-          <div class="row col-12 justify-center q-mt-md q-mb-xs">
+          <div
+            v-if="!rsvp.is_paid"
+            class="row col-12 justify-center q-mt-md q-mb-xs"
+          >
             <q-btn
               class="button"
               :label="$t('Purchase')"
