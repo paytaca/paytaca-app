@@ -151,7 +151,7 @@
 
             <template v-if="rsvp.is_paid">
               <span class="col-12 text-center text-weight-bolder q-mt-md q-mb-xs">
-                Reservation is paid in full
+                {{ $t('ReservationPaid') }}
               </span>
             </template>
           </div>
