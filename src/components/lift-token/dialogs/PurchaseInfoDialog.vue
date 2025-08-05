@@ -1,10 +1,7 @@
 <template>
   <q-dialog persistent seamless ref="dialogRef" class="no-click-outside">
-    <q-card
-      class="q-pa-md pt-card-2 text-bow full-width"
-      :class="getDarkModeClass(darkMode)"
-    >
-      <div class="row justify-between items-center q-mb-xs">
+    <q-card class="pt-card-2 text-bow full-width" :class="getDarkModeClass(darkMode)">
+      <div class="row justify-between items-center q-px-md q-pt-md q-mb-xs sticky-title">
         <div class="col-10">
           <sale-group-chip
             :saleGroup="purchase.purchase_more_details.sale_group"
@@ -24,7 +21,7 @@
         </div>
       </div>
 
-      <div class="row">
+      <div class="row q-px-md q-pb-md">
         <div class="row col-12 text-body1">
           <span class="col-12 text-body2 dim-text">{{
             $t("AmountPurchased")
@@ -74,7 +71,7 @@
           </span>
 
           <span class="col-12 text-body2 dim-text">{{ $t('TransactionId') }}</span>
-          <span class="col-12 q-mb-sm">
+          <span class="col-12 q-mb-sm text-bold">
             <a
               :href="`https://explorer.bch.ninja/tx/${purchase.initial_tx_id}`"
               target="_blank"
@@ -109,7 +106,7 @@
                     )
                   }}
                 </span>
-                <span class="col-12">
+                <span class="col-12 text-bold">
                   <a
                     :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
                     target="_blank"
@@ -218,5 +215,11 @@ export default {
 .dim-text {
   color: #ed5f59;
   font-weight: 600;
+}
+.sticky-title {
+  position: sticky;
+  top: 0;
+  background-color: inherit;
+  z-index: 100;
 }
 </style>
