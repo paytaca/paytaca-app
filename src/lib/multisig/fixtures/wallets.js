@@ -46,3 +46,25 @@ export const hdPrivateKey2H =
 export const hdPublicKey2H =
   'xpub68MXAZN5xcN1s242GX8nYDHPCEBosnMyeq9ka6SkF3AAjY1jWZ3DEgTyVKFwPNXcKsY1snLZV7rNcVdYUpL3eFWTrr8xnHhRW4XGmcgHdr7';
 
+export const TwoOfThreeTest = {
+    name: '2 of 3 multisig libauth fixture wallets',
+    m: 2,
+    signers: [
+        {
+            name: '0h',
+            xpub: hdPublicKey0H,
+            xprv: hdPrivateKey0H
+        },
+        {
+            name: '1h',
+            xpub: hdPublicKey1H,
+            xprv: hdPrivateKey1H
+        },
+        {
+            name: '2h',
+            xpub: hdPublicKey2H,
+            xprv: hdPrivateKey2H
+        }
+    ]
+}
+
