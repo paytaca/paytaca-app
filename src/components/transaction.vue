@@ -9,7 +9,7 @@
         :class="getDarkModeClass(darkMode)"
       >
         <div class="close-button-container row items-center justify-end">
-          <q-btn icon="close" flat round dense v-close-popup class="close-button" />
+          <q-btn icon="close" flat round dense v-close-popup class="close-button" @click="showMemo = false"/>
         </div>
         <div class="text-h6 text-uppercase text-center">
           <template v-if="stablehedgeTxView">{{ stablehedgeTxData?.transactionTypeText }}</template>
@@ -460,6 +460,43 @@
                 </q-item>
               </div>
             </q-slide-transition>
+
+            <q-slide-transition>
+              <div v-if="!showMemo">
+                <q-item-section class="q-pt-sm">
+                  <q-btn         
+                      class="br-15 full-width"             
+                      padding="xs sm"
+                      label="Add Memo"
+                      color="primary"
+                      @click="showMemo = true"
+                    />
+                </q-item-section>               
+              </div>
+              <div v-else>
+                <q-item-section class="q-pt-sm">
+                   <q-input
+                    v-model="text"
+                    filled
+                    height="25px" 
+                    type="textarea"
+
+                  >
+                    <template v-slot:append>
+                      <q-icon size="sm" padding="0px" name="close" @click="showMemo = false"/>
+                    </template>
+                  </q-input>                    
+                </q-item-section>   
+                <q-item-section class="q-pt-sm">
+                  <q-btn         
+                    class="br-15"             
+                    padding="xs sm"
+                    label="Save"
+                    color="primary"
+                  />
+                </q-item-section>
+              </div>                              
+            </q-slide-transition>
           </q-list>
         </q-card-section>
       </q-card>
@@ -501,7 +538,8 @@ export default {
       transaction: {},
       stablehedgeTxView: false,
       displayRawAttributes: false,
-      denomination: this.$store.getters['global/denomination']
+      denomination: this.$store.getters['global/denomination'],
+      showMemo: false
     }
   },
   computed: {
