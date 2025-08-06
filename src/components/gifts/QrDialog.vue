@@ -21,8 +21,8 @@
         </div>
         <div class="qr-container q-mb-md relative-position">
           <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCode" :size="200" />
-          <div v-if="claimed" class="claimed-overlay">
-            <div class="claimed-text">CLAIMED</div>
+          <div v-if="claimed || recovered" class="claimed-overlay">
+            <div class="claimed-text">{{ recovered ? 'RECOVERED' : 'CLAIMED' }}</div>
           </div>
         </div>
         <div class="text-caption text-grey-7">
@@ -60,6 +60,10 @@ export default {
       required: true
     },
     claimed: {
+      type: Boolean,
+      default: false
+    },
+    recovered: {
       type: Boolean,
       default: false
     }

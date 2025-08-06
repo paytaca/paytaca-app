@@ -1,5 +1,13 @@
-import { deleteMnemonic, deletePin, getMnemonic } from './../../wallet'
+import { deleteMnemonic } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
+
+export function setWalletsRecovered (state, value) {
+  state.walletsRecovered = Boolean(value)
+}
+
+export function setWalletRecoveryMessage(state, value) {
+  state.walletRecoveryMessage = value
+}
 
 export function updateAppControl (state, data) {
   state.appControl = data
@@ -37,9 +45,28 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
-  const len = state.vault.push(details)
-
-  state.vault[len - 1].name = ''
+  // Simple approach: if vault is empty, create first entry, otherwise push new entry
+  if (!state.vault || state.vault.length === 0) {
+    state.vault = [details]
+  } else {
+    // Check for duplicate entries
+    const existingIndex = state.vault.findIndex(v => {
+      return v.wallet?.bch?.walletHash === details.wallet?.bch?.walletHash
+    })
+    if (existingIndex !== -1) {
+      // Update existing entry
+      state.vault[existingIndex] = details
+    } else {
+      // Add new entry
+      state.vault.push(details)
+    }
+  }
+  
+  // Ensure the entry has a name
+  const targetIndex = state.vault.length - 1
+  if (state.vault[targetIndex] && !state.vault[targetIndex].name) {
+    state.vault[targetIndex].name = ''
+  }
 }
 
 export function clearVault (state) {
@@ -63,9 +90,11 @@ export function updateWalletSnapshot (state, details) {
   chipnet = JSON.stringify(chipnet)
   chipnet = JSON.parse(chipnet)
 
+  if (!state.vault[details.index]) state.vault[details.index] = {}
   state.vault[details.index].wallet = wallet
   state.vault[details.index].chipnet = chipnet
   state.vault[details.index].name = details.name
+  state.vault[details.index].deleted = details.deleted
 }
 
 export function updateCurrentWallet (state, index) {
@@ -84,14 +113,9 @@ export function updateCurrentWallet (state, index) {
   state.chipnet__wallets = chipnet
 }
 
-export async function deleteWallet (state, index) {
-
+export function deleteWallet (state, index) {
   // Mark wallet as deleted
   state.vault[index].deleted = true
-  
-  // Delete pin (awaited to avoid race condition with deleteMnemonic)
-  await deletePin(index)
-  
   // Delete the mnemonic seed phrase for this wallet
   deleteMnemonic(index)
 }

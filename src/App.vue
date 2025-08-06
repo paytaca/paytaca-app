@@ -9,7 +9,7 @@
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
-import { useQuasar } from 'quasar'
+import { is, useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
@@ -232,12 +232,19 @@ export default {
   async mounted () {
     const vm = this
 
+    this.$store.dispatch('global/autoGenerateAddress', { walletType: 'bch' })
+      .then((...results) => console.log('Auto gen address bch', ...results))
+    this.$store.dispatch('global/autoGenerateAddress', { walletType: 'slp' })
+      .then((...results) => console.log('Auto gen address slp', ...results))
+
     // Forcibly disable SmartBCH, in preparation for future deprecation
     this.$store.commit('global/disableSmartBCH')
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
+
     if (mnemonic) {
+
       vm.$q.lang.set(vm.$store.getters['global/language'].value)
       await vm.savingInitialChipnet(mnemonic)
       // first check if vaults are empty
@@ -340,12 +347,10 @@ export default {
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 
-      vm.$store.dispatch('market/updateCoinsList', { force: false })
-        .finally(() => {
-          vm.assetPricesUpdateIntervalId = setInterval(() => {
-            vm.$store.dispatch('market/updateAssetPrices', {})
-          }, 60 * 1000)
-        })
+      vm.$store.commit('market/updateCoinsList', [])
+      vm.assetPricesUpdateIntervalId = setInterval(() => {
+        vm.$store.dispatch('market/updateAssetPrices', {})
+      }, 60 * 1000)
     }, 500)
   }
 }

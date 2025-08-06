@@ -58,7 +58,7 @@ export default {
       return this.$store.getters['global/getWalletIndex']
     },
     walletName () {
-      return this.$store.getters['global/getVault'][this.walletIndex].name
+      return this.$store.getters['global/getVault'][this.walletIndex]?.name
     },
     walletNameLabel () {
       if (this.walletName) return this.walletName

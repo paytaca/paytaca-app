@@ -84,12 +84,12 @@
                       </div>
                       <div class="q-mt-md">
                         <q-chip
-                          :color="gift.date_claimed !== 'None' ? 'positive' : 'primary'"
+                          :color="gift.payload?.recovered ? 'warning' : (gift.date_claimed !== 'None' ? 'positive' : 'primary')"
                           text-color="white"
                           size="sm"
                           class="full-width"
                         >
-                          {{ gift.date_claimed !== 'None' ? $t('Claimed') : $t('Unclaimed') }}
+                          {{ gift.payload?.recovered ? $t('Recovered') : (gift.date_claimed !== 'None' ? $t('Claimed') : $t('Unclaimed')) }}
                         </q-chip>
                         <q-btn
                           v-if="gift.status === 'failed'"
@@ -119,6 +119,16 @@
                           @click="showQr(gift.hash)"
                         >
                           <q-tooltip>{{ $t('ShowQRCode') }}</q-tooltip>
+                        </q-btn>
+                        <q-btn
+                          v-if="!gift.recovered && gift.date_claimed === 'None'"
+                          flat
+                          round
+                          color="warning"
+                          icon="mdi-refresh"
+                          @click="confirmRecoverGift(gift)"
+                        >
+                          <q-tooltip>{{ $t('RecoverGift') }}</q-tooltip>
                         </q-btn>
                       </div>
                     </q-card-section>
@@ -181,6 +191,7 @@ export default {
         }
       },
       fetchingGifts: false,
+      fetchedGifts: {},
       pagination: {
         count: 0,
         limit: 0,
@@ -200,7 +211,7 @@ export default {
       return this.$store.state.gifts.gifts || {}
     },
     giftsList () {
-      const gifts = Object.entries(this.gifts).map(([hash, gift]) => ({
+      const gifts = Object.entries(this.fetchedGifts).map(([hash, gift]) => ({
         hash,
         ...gift,
         qr: this.$store.getters['gifts/getQr'](hash),
@@ -252,6 +263,7 @@ export default {
       return `${formatDistance(new Date(val), new Date(), { addSuffix: true })}`
     },
     fetchGifts(done, opts = { recordType: 'all', limit: 10, offset: 0 }) {
+      this.fetchedGifts = {}
       const recordType = opts?.recordType || 'all'
       const url = `https://gifts.paytaca.com/api/gifts/${this.walletHash}/list`
       const query = {
@@ -285,9 +297,12 @@ export default {
 
           // Store each gift individually
           transformedGifts.forEach(gift => {
-            this.$store.commit('gifts/saveGift', {
+            // Get existing gift data to preserve local share
+            const existingGift = this.$store.getters['gifts/getGift'](gift.hash)
+            const existingShare = existingGift?.share || null
+            const savedGift = {
               giftCodeHash: gift.hash,
-              share: gift.share || null,
+              share: existingShare, // Preserve existing local share
               status: gift.status,
               amount: gift.amount,
               address: gift.address,
@@ -300,9 +315,10 @@ export default {
                 date_claimed: gift.date_claimed,
                 recovered: gift.recovered
               }
-            })
+            }
+            this.$store.commit('gifts/saveGift', savedGift)
+            this.fetchedGifts[gift.hash] = savedGift
           })
-
           return Promise.resolve(response)
         })
         .then(response => {
@@ -351,7 +367,7 @@ export default {
         seamless: true,
         class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       })
-        .onOk(() => this.recoverGift(gift?.gift_code_hash))
+        .onOk(() => this.recoverGift(gift?.hash))
     },
     recoverGift (giftCodeHash) {
       const localShare = this.getGiftShare(giftCodeHash)
@@ -374,7 +390,8 @@ export default {
         componentProps: {
           qrCode: qrCode,
           amount: gift.amount,
-          claimed: gift.date_claimed !== 'None'
+          claimed: gift.date_claimed !== 'None',
+          recovered: gift.recovered
         }
       })
     },
@@ -413,7 +430,6 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Gift resubmission error:', error)
         this.$store.dispatch('gifts/updateGiftStatus', {
           giftCodeHash: gift.hash,
           status: 'failed'

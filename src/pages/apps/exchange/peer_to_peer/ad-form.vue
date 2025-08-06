@@ -1,9 +1,10 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
-  <div v-if="step === 1"
-    class="text-bow"
-    :class="getDarkModeClass(darkMode)">
-    <div v-if="step === 1">
+  <div>
+    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+    <div v-if="currentStep === 1"
+      class="text-bow"
+      :class="getDarkModeClass(darkMode)">
+    <div v-if="currentStep === 1">
       <div
         class="text-h5 q-mx-lg q-py-xs text-center text-weight-bold lg-font-size"
         :class="transactionType === 'BUY' ? 'buy-color' : 'sell-color'"
@@ -245,28 +246,28 @@
         </q-scroll-area>
       </div>
     </div>
-    <div v-if="step > 3">
+    <div v-if="currentStep > 3">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
         <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
       </div>
     </div>
   </div>
-  <div v-if="step === 2">
+  <div v-if="currentStep === 2">
     <AddPaymentMethods
       :type="'Ads'"
       :confirm-label="$t('Next')"
       :currency="adData.fiatCurrency.symbol"
       :currentPaymentMethods="adData.paymentMethods"
       @submit="nextStep"
-      @back="step--"
+      @back="currentStep--"
     />
   </div>
-  <div v-if="step === 3">
+  <div v-if="currentStep === 3">
     <DisplayConfirmation
       :post-data="confirmationData"
       :ptl="appealCooldown"
       :transaction-type="transactionType"
-      v-on:back="step--"
+      v-on:back="currentStep--"
       @submit="nextStep"
     />
   </div>
@@ -278,13 +279,14 @@
       v-on:back="openDialog = false"
     />
   </div>
+  </div>
 </template>
 <script>
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
-import { bchToSatoshi, formatCurrency, getAppealCooldown } from 'src/exchange'
+import { bchToSatoshi, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
@@ -313,6 +315,20 @@ export default {
     HeaderNav
   },
   emits: ['back', 'submit', 'updatePageName'],
+  props: {
+    type: {
+      type: String,
+      default: null
+    },
+    step: {
+      type: [String, Number],
+      default: 1
+    },
+    ad_id: {
+      type: String,
+      default: null
+    }
+  },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -323,7 +339,7 @@ export default {
       websocket: null,
       marketPrice: null,
       priceValue: null,
-      step: 1,
+      currentStep: 1,
       priceAmount: 0,
       floatingPrice: 100, // default: 100%
       appealCooldown: {
@@ -442,7 +458,7 @@ export default {
         this.adData.tradeAmount = amount
       }
     },
-    step (value) {
+    currentStep (value) {
       this.$emit('updatePageName', `ad-form-${value}`)
     },
     marketPrice (value) {
@@ -512,8 +528,8 @@ export default {
       return data
     }
   },
-  async mounted () {
-    this.step = Number(this.$route.query?.step) || 1
+    async mounted () {
+    this.currentStep = Number(this.step) || 1
     this.loadFormData()
   },
   beforeUnmount () {
@@ -551,10 +567,17 @@ export default {
     tradeAmountValidation (val) {
       if (!val) return 'This is required'
       if (val <= 0) return 'Cannot be zero'
+      
       let tradeFloor = Number(this.adData.tradeFloor)
-      if (this.setTradeLimitsInFiat) tradeFloor = (tradeFloor / this.marketPrice).toFixed(8)
+      if (this.setTradeLimitsInFiat) {
+        tradeFloor = (tradeFloor / this.marketPrice).toFixed(8)
+      }
+      
       let tradeAmount = Number(val)
-      if (this.setTradeLimitsInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
+      if (this.setTradeLimitsInFiat) {
+        tradeAmount = Number(fiatToBch(tradeAmount, this.marketPrice))
+      }
+      if (tradeAmount < 0.00001) return 'Cannot be less than dust limit'
       if (tradeFloor > tradeAmount) return 'Cannot be less than min trade limit'
     },
     tradeLimitValidation (val) {
@@ -563,9 +586,13 @@ export default {
       if (Number(this.adData.tradeFloor) > Number(this.adData.tradeCeiling)) return 'Invalid range'
 
       let tradeAmount = Number(this.adData.tradeAmount)
-      if (this.setTradeLimitsInFiat) tradeAmount = (tradeAmount / this.marketPrice).toFixed(8)
       let tradeLimit = Number(val)
-      if (this.setTradeLimitsInFiat) tradeLimit = (tradeLimit / this.marketPrice).toFixed(8)
+      if (this.setTradeLimitsInFiat) {
+        tradeAmount = Number(fiatToBch(tradeAmount, this.marketPrice))
+        tradeLimit = Number(fiatToBch(tradeLimit, this.marketPrice))
+      }
+      
+      if (tradeLimit < 0.00001) return 'Cannot be less than dust limit'
       if (tradeLimit > tradeAmount) return 'Cannot exceed trade quantity'
 
       return true
@@ -712,7 +739,7 @@ export default {
       try {
         const response = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: vm.transactionType }, authorize: true })
         vm.fiatCurrencies = response.data
-        const selectedCurrencyUnused = vm.adsState === 'create' && !vm.fiatCurrencies.map(e => e.id)?.includes(vm.selectedCurrency.id)
+        const selectedCurrencyUnused = vm.adsState === 'create' && !vm.fiatCurrencies.map(e => e.symbol)?.includes(vm.selectedCurrency.symbol)
         if (!vm.selectedCurrency || selectedCurrencyUnused) {
           vm.selectedCurrency = vm.fiatCurrencies[0]
           vm.adData.fiatCurrency = vm.selectedCurrency
@@ -751,7 +778,7 @@ export default {
       }
     },
     async nextStep (data) {
-      const currentStep = this.step
+      const currentStep = this.currentStep
       if (currentStep === 2) {
         this.adData.paymentMethods = data
       }
@@ -761,8 +788,8 @@ export default {
         // await this.$router.push({ name: 'p2p-ads' })
       }
       if (currentStep < 3) {
-        this.step++
-        await this.$router.replace({ query: { ...this.$route.query, step: this.step } })
+        this.currentStep++
+        await this.$router.replace({ query: { ...this.$route.query, step: this.currentStep } })
       }
     },
     async onSubmit () {
@@ -834,7 +861,6 @@ export default {
       } else {
         payload.trade_amount_sats = bchToSatoshi(data.tradeAmount)
       }
-      console.log('payload:', payload)
       return payload
     },
     updatePriceValue (priceType) {
@@ -926,12 +952,12 @@ export default {
       let floor = vm.adData?.tradeFloor
       let ceiling = vm.adData?.tradeCeiling
       if (vm.setTradeLimitsInFiat) {
-        floor = (floor / vm.marketPrice).toFixed(8)
-        ceiling = (ceiling / vm.marketPrice).toFixed(8)
+        floor = Number(fiatToBch(floor, vm.marketPrice))
+        ceiling = Number(fiatToBch(ceiling, vm.marketPrice))
       }
-      let quantity = vm.adData?.tradeAmount
-      if (vm.setTradeLimitsInFiat) quantity = (quantity / vm.marketPrice).toFixed(8)
-      return floor > 0 && floor <= ceiling && ceiling <= quantity
+      let tradeAmount = vm.adData?.tradeAmount
+      if (vm.setTradeLimitsInFiat) tradeAmount = Number(fiatToBch(tradeAmount, vm.marketPrice))
+      return floor >= 0.00001 && floor <= ceiling && ceiling <= tradeAmount
     },
     isAmountValid (value) {
       // amount with comma and decimal regex

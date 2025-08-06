@@ -1,7 +1,8 @@
 import { createStore } from 'vuex'
-import VuexPersistence from 'vuex-persist'
-import localforage from 'localforage'
-import { sanitizeForIndexedDB } from 'src/utils/migrate-localstorage-to-indexdb'
+import createPersistedState from 'vuex-persistedstate'
+// import VuexPersistence from 'vuex-persist'
+// import localforage from 'localforage'
+// import { sanitizeForIndexedDB } from 'src/utils/migrate-localstorage-to-indexdb'
 
 import anyhedge from './anyhedge'
 import global from './global'
@@ -17,13 +18,14 @@ import gifts from './gifts'
 import notification from './notification'
 import ramp from './ramp'
 import stablehedge from './stablehedge'
+import multisig from './multisig'
 
-const vuexLocal = new VuexPersistence({
-  key: 'vuex',
-  storage: localforage,
-  asyncStorage: true,
-  reducer: (state) => sanitizeForIndexedDB(state)
-})
+// const vuexLocal = new VuexPersistence({
+//   key: 'vuex',
+//   storage: localforage,
+//   asyncStorage: true,
+//   reducer: (state) => sanitizeForIndexedDB(state)
+// })
 
 /*
  * If not building with SSR mode, you can
@@ -36,44 +38,44 @@ const vuexLocal = new VuexPersistence({
 
 export const Store = createStore({
   plugins: [
-    vuexLocal.plugin
-    // createPersistedState({
-    //   // paths: [
-    //   //   'global.network',
-    //   //   'global.language',
-    //   //   'global.country',
-    //   //   'global.theme',
-    //   //   'global.isChipnet',
-    //   //   'global.showTokens',
-    //   //   'global.enableStablhedge',
-    //   //   'global.enableSmartBCH',
-    //   //   'global.user',
-    //   //   'global.online',
-    //   //   'global.walletIndex',
-    //   //   'global.denomination',
-    //   //   'global.merchantActivity',
-    //   //   'assets.assets',
-    //   //   'assets.ignoredAssets',
-    //   //   'assets.removedAssetIds'
-    //   // ],
-    //   // storage: window.localStorage,
-    //   getState: (key) => {
-    //     try {
-    //       const value = window.localStorage.getItem(key)
-    //       return value ? JSON.parse(value) : null
-    //     } catch (err) {
-    //       console.error('Error getting persisted state:', err)
-    //       return null
-    //     }
-    //   },
-    //   setState: (key, state) => {
-    //     try {
-    //       window.localStorage.setItem(key, JSON.stringify(state))
-    //     } catch (err) {
-    //       console.error('Error setting persisted state:', err)
-    //     }
-    //   }
-    // })
+    // vuexLocal.plugin
+    createPersistedState({
+      // paths: [
+      //   'global.network',
+      //   'global.language',
+      //   'global.country',
+      //   'global.theme',
+      //   'global.isChipnet',
+      //   'global.showTokens',
+      //   'global.enableStablhedge',
+      //   'global.enableSmartBCH',
+      //   'global.user',
+      //   'global.online',
+      //   'global.walletIndex',
+      //   'global.denomination',
+      //   'global.merchantActivity',
+      //   'assets.assets',
+      //   'assets.ignoredAssets',
+      //   'assets.removedAssetIds'
+      // ],
+      // storage: window.localStorage,
+      getState: (key) => {
+        try {
+          const value = window.localStorage.getItem(key)
+          return value ? JSON.parse(value) : null
+        } catch (err) {
+          console.error('Error getting persisted state:', err)
+          return null
+        }
+      },
+      setState: (key, state) => {
+        try {
+          window.localStorage.setItem(key, JSON.stringify(state))
+        } catch (err) {
+          console.error('Error setting persisted state:', err)
+        }
+      }
+    })
   ],
   modules: {
     anyhedge,
@@ -90,6 +92,7 @@ export const Store = createStore({
     notification,
     ramp,
     stablehedge,
+    multisig
   },
 
   // enable strict mode (adds overhead!)

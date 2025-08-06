@@ -2,9 +2,20 @@ import { SlpWallet } from './slp'
 import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import { LibauthHDWallet } from './bch-libauth'
-import { sha256 } from 'js-sha256'
 import aes256 from 'aes256'
-
+import {
+ encodeHdPrivateKey,
+ deriveHdPublicKey,
+ deriveHdPath,
+ deriveHdPrivateNodeFromBip39Mnemonic,
+ decodeHdPrivateKey,
+ decodeHdPublicKey,
+ deriveHdPathRelative,
+ sha256,
+ secp256k1,
+ ut8ToBin,
+ binToHex
+} from 'bitauth-libauth-v3' 
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 
@@ -118,7 +129,6 @@ export async function getMnemonic (index = 0) {
   if (index !== 0) {
     key = key + index
   }
-
   try {
     // For versions up to v0.9.1 that used to have aes256-encrypted mnemonic
     const secretKey = await SecureStoragePlugin.get({ key: 'sk' })
@@ -128,12 +138,11 @@ export async function getMnemonic (index = 0) {
     try {
       mnemonic = await SecureStoragePlugin.get({ key: key })
       mnemonic = mnemonic.value
-    } catch (err) {
-      console.error(err)
-    }
+    } catch (err) {}
   }
   return mnemonic
 }
+
 
 export async function deleteMnemonic (index) {
   let key = 'mn'
@@ -143,10 +152,30 @@ export async function deleteMnemonic (index) {
   await SecureStoragePlugin.remove({ key })
 }
 
-export async function deletePin (index) {
-  const mnemonic = await getMnemonic(index)
-  const pinKey = `pin-${sha256(mnemonic)}`
-  await SecureStoragePlugin.remove({ key: pinKey })
+export async function getHdKeys ({ vaultIndex = 0 }) {
+    const mnemonic = await getMnemonic(vaultIndex)
+    const { wallet } = await loadWallet('BCH', vaultIndex)
+    const node = deriveHdPath(
+      deriveHdPrivateNodeFromBip39Mnemonic(
+        mnemonic
+      ),
+      wallet.bch.derivationPath,
+    );
+    const { hdPrivateKey } = encodeHdPrivateKey({ network: 'mainnet', node })
+    const { hdPublicKey } = deriveHdPublicKey(hdPrivateKey);
+    return { hdPrivateKey, hdPublicKey }
+}
+
+export function signMessageWithHdPrivateKey ({ hdPrivateKey, addressIndex, message, hex = false }) {
+ const decodedHdPrivateKey = decodeHdPrivateKey(hdPrivateKey, addressIndex)
+ const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, addressIndex)
+ const messageHash = sha256.hash(utf8ToBin(message))
+ const schnorr = secp256k1.signMessageHashSchnorr(privateKey, messageHash)
+ const der = secp256k1.signMessageHashDer(privateKey, messageHash)
+ if (hex) {
+   return { schnorr: binToHex(schnorr), der: binToHex(der) }
+ }
+ return { schnorr, der }
 }
 
 export { Address } from 'watchtower-cash-js';

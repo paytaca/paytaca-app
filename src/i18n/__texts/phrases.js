@@ -60,6 +60,11 @@ const phrases = {
       ConfirmSwap: "Confirm Swap",
       CopiedToClipboard: "Copied To Clipboard",
       CopyPrivateKey: "Copy private key",
+      CopyPublicKey: "Copy public key",
+      PrivateKey: "Private Key",
+      PublicKey: "Public Key",
+      ShowPrivateKey: "Show private key",
+      ShowPublicKey: "Show public key",
       CreateNewWallet: "Create New Wallet",
       CreatingYourWallet: "Creating your wallet",
       DarkMode: "Dark Mode",
@@ -981,6 +986,10 @@ const phrases = {
       ArbiterAddress: 'Arbiter Address',
       CopyPrivateKey: 'Copy private key',
       CopyPublicKey: 'Copy public key',
+      PrivateKey: 'Private Key',
+      PublicKey: 'Public Key',
+      ShowPrivateKey: 'Show private key',
+      ShowPublicKey: 'Show public key',
       ChangeAddress: 'Change address',
       PrivateKeyCopiedToClipboard: 'Private key copied to clipboard',
       PublicKeyCopiedToClipboard: 'Public key copied to clipboard',
@@ -1268,6 +1277,19 @@ const phrases = {
       RewardsRedeem4: 'This action will swap your points to BCH. BCH conversion rate may vary depending on the BCH market value.',
       RewardsRedeem5: 'Convert to Tokens',
       RewardsRedeemRP2: 'Note that you can only redeem up to 10,000 RP per month.'
+    },
+    {
+      EmptyReservations1: 'You do not have any approved reservations yet.',
+      EmptyReservations2: 'Do not miss out on the whitelisting opportunity!',
+      EmptyReservations3: 'Visit the <a href="https://www.paytaca.com/token" target="_blank">LIFT token website</a> to learn more.',
+      SuccessfulPurchase: 'Purchase processed successfully.',
+      PurchasePaymentError: 'Something happened while processing your purchase. Please try again later. Please message us to refund this purchase.',
+      PaymentSendingError: 'Something happened while sending your payment. Please try again later. Your balance was not deducted.',
+      AddressNotFound: 'The BCH address you used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.',
+      EmptyPurchases: 'You do not have any purchases yet.',
+      LockupPeriodOver: 'Lockup period is over',
+      VestingPeriodOver: 'Vesting period is over',
+      VestingNotOccured: 'Vesting has not occurred yet'
     }
   ],
   dynamic: [
@@ -1362,6 +1384,25 @@ const phrases = {
       PageLiveTimeframe: '{days} days, {hours} hours, {minutes} minutes, {seconds} seconds',
       RewardsRedeemDyn1: 'When redeeming your {points}, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.',
       RewardsRedeemDyn2: 'This action will convert your points to Paytaca tokens. Conversion rate is 1 {points} = 1 PTC.',
+    },
+    {
+      MarketplaceCashbackMsgOneTime: 'Get {percent}% cashback!',
+      MarketplaceCashbackMsg: 'Get {min} - {max}% cashback!',
+      MarketplaceCashbackDescOneTime: 'Order now and get {percent}% cashback!',
+      MarketplaceCashbackDesc: 'Order now and get {mix} - {max}% cashback!',
+      MarketplaceCashbackDescSub: 'Get up to maximum cashback value of {amount} {currency}.'
+    },
+    {
+      ApprovedLastDate: 'Approved last {date}',
+      DiscountApplied1: 'A {discount}% discount is applied, saving you {currency}',
+      DiscountApplied2: 'A {discount}% discount is applied',
+      PaidForLift: 'Paid for {lift}',
+      LiftLeftUnpaid: '{lift} left unpaid',
+      PurchasedOnDate: 'Purchased on {date}',
+      LastVestingDate: 'Last vesting period was {date}',
+      NextVestingDate: 'Next vesting period is {date}',
+      LockedUntilDate: 'Locked until {date}',
+      VestedLift: 'Vested {lift}'
     }
   ]
 }

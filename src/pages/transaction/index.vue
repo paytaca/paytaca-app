@@ -1213,9 +1213,14 @@ export default {
 
       const storedWalletHash = vm.$store.getters['global/getWallet']('bch').walletHash
       const derivedWalletHash = getWalletByNetwork(vm.wallet, 'bch').walletHash
-
+      
+      // console.log('Stored wallet hash:', storedWalletHash)
+      // console.log('Derived wallet hash:', derivedWalletHash)
+      
       if (storedWalletHash !== derivedWalletHash) {
         console.log('INCONSISTENCY DETECTED!')
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        // console.log('Wallet index:', this.$store.getters['global/getWalletIndex'])
         console.log('Wallet index:', walletIndex)
         this.$store.commit('global/updateCurrentWallet', walletIndex)
         // location.reload()

@@ -23,14 +23,6 @@
         </q-item>
         <q-item>
           <q-item-section>
-            <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
-            <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
-              {{ walletInfo.wallet.bch.walletHash }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item>
-          <q-item-section>
             <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletBalanceCap') }}</q-item-label>
             <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
               {{ parseAssetDenomination(denomination, getAssetData(), false, 10) }}<br/>
@@ -39,8 +31,8 @@
           </q-item-section>
         </q-item>
       </q-list>
-      <!-- <p class="q-ma-sm q-mt-lg section-title">{{ $t('BchAddresses') }}</p> -->
-      <!-- <q-list bordered separator class="br-12 pt-card-2" :class="getDarkModeClass(darkMode)">
+      <p class="q-ma-sm q-mt-lg section-title">{{ $t('BchAddresses') }}</p>
+      <q-list bordered separator class="br-12 pt-card-2" :class="getDarkModeClass(darkMode)">
         <q-item>
           <q-item-section>
             <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
@@ -65,7 +57,7 @@
             </q-item-label>
           </q-item-section>
         </q-item>
-      </q-list> -->
+      </q-list>
     </q-card>
   </q-dialog>
 </template>
@@ -108,11 +100,9 @@ export default {
     parseFiatCurrency,
     getAssetData () {
       const index = this.vaultIndex
-      const vault = this.$store.getters['assets/getVault']
-      if (!vault) return {}
       return this.isChipnet
-        ? vault[index].chipnet_assets[0]
-        : vault[index].asset[0]
+        ? this.$store.getters['assets/getVault'][index].chipnet_assets[0]
+        : this.$store.getters['assets/getVault'][index].asset[0]
     },
     getAssetMarketBalance (asset) {
       if (!asset?.id) return ''

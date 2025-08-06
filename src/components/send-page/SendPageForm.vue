@@ -365,7 +365,7 @@ export default {
       const message = this.inputExtras.cashbackData.message
       const amountBch = this.inputExtras.cashbackData.cashback_amount
       const amountFiat = parseFiatCurrency(
-        convertToFiatAmount(this.inputExtras.cashbackData.cashback_amount),
+        convertToFiatAmount(amountBch, this.selectedAssetMarketPrice),
         this.currentSendPageCurrency()
       )
       const merchantName = this.inputExtras.cashbackData.merchant_name

@@ -1,8 +1,10 @@
 <template>
-  <router-view :key="$route.path"></router-view>
-  <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
-  <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
-  <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false"/>
+  <div>
+    <router-view :key="$route.path"></router-view>
+    <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
+    <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
+    <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false"/>
+  </div>
 </template>
 <script>
 import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'

@@ -1,13 +1,17 @@
+import axios from 'axios'
 import Watchtower from 'watchtower-cash-js'
 import { decodePrivateKeyWif } from '@bitauth/libauth'
 import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
-import { loadLibauthHdWallet } from '../../wallet'
+import { loadLibauthHdWallet, loadWallet } from '../../wallet'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
 import { backend } from 'src/exchange/backend'
 import { backend as posBackend } from 'src/wallet/pos'
+import { toTokenAddress } from 'src/utils/crypto'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
 
@@ -117,7 +121,10 @@ export async function syncWalletName (context, opts) {
   if (!vault) throw new Error('No vault found')
 
   const walletHash = vault?.wallet?.bch?.walletHash
-  if (!walletHash) throw new Error('No wallet hash found')
+  if (!walletHash) {
+    console.error('No wallet hash found in vault:', vault)
+    return // throw new Error('No wallet hash found')
+  }
 
   const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
   const decryptedName = decryptWalletName(walletName, walletHash)
@@ -138,7 +145,6 @@ export async function updateWalletNameInPreferences (context, data) {
 
   try {
     const decryptedName = decryptWalletName(data.walletName, walletHash)
-    console.log('Updating wallet name: ', data.walletIndex, decryptedName)
     context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
   } catch (error) {
     console.error(error)
@@ -175,12 +181,13 @@ export async function saveWalletPreferences (context) {
 }
 
 export async function saveExistingWallet (context) {
+
   const vault = context.getters.getVault
 
   // check if vault keys are valid
   if (vault.length > 0) {
     if (vault[0]) {
-      if (!vault[0].hasOwnProperty('name') || !vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+      if (!vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
         context.commit('clearVault')
       }
     }
@@ -188,6 +195,7 @@ export async function saveExistingWallet (context) {
 
   if (context.getters.isVaultEmpty) {
     const walletHash = context.getters.getWallet('bch')?.walletHash
+    
     if (walletHash) {
       let wallet = context.getters.getAllWalletTypes
       wallet = JSON.stringify(wallet)
@@ -234,6 +242,7 @@ export async function switchWallet (context, index) {
     setTimeout(() => {
       try {
         context.dispatch('syncCurrentWalletToVault', )
+        context.commit('assets/updatedCurrentAssets', index, { root: true })
         context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
         context.commit('paytacapos/clearBranchInfo', {}, { root: true })
         context.commit('ramp/resetUser', {}, { root: true })
@@ -336,4 +345,79 @@ export async function loadWalletConnectedApps (context) {
     : context.state.wallets.bch.walletHash
   const connectedApps = await w.getWalletConnectedApps(walletHash)
   context.commit('setWalletConnectedApps', connectedApps)
+}
+
+/**
+ * @param {Object} context 
+ * @param {Object} opts 
+ * @param {String} [opts.walletType = 'all']
+ * @param {String} [opts.tokenId]
+ */
+export async function autoGenerateAddress(context, opts) {
+  const autoGenerateAddress = context.getters['autoGenerateAddress']
+  if (!autoGenerateAddress) return { enabled: false, message: 'Auto generate disabled' }
+
+  const walletType = opts?.walletType || 'bch'
+
+  const address = context.getters['getAddress'](walletType)
+  const lastAddressIndex = context.getters['getLastAddressIndex'](walletType)
+
+  const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+
+  const promises = []
+  if (walletType === 'slp') {
+    let url = `${baseUrl}/api/balance/slp/${address}/`
+    if (opts?.tokenId) url = url + `/${opts?.tokenId}/`
+    promises.push(
+      axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => false)
+    )
+  } else {
+    promises.push(
+      axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => false)
+    )
+
+    if (opts?.tokenId) {
+      const tokenAddress = toTokenAddress(address)
+      promises.push(
+        axios.get(`${baseUrl}/api/balance/ct/${tokenAddress}/${opts?.tokenId}/`).catch(() => false)
+      )
+    }
+  }
+
+  const promiseResults = await Promise.all(promises)
+  const generateNewAddress = promiseResults.some(response => {
+    return response?.data?.balance > 0
+  })
+
+  if (!generateNewAddress) return { address, message: 'Address has no balance',  }
+
+  const newAddressIndex = parseInt(lastAddressIndex)+1 || 0
+  const wallet = await loadWallet(context.getters['getWalletIndex'])
+  if (walletType === 'slp') {
+    await getWalletByNetwork(wallet, walletType).getNewAddressSet(newAddressIndex).then(function (addresses) {
+      context.commit('generateNewAddressSet', {
+        type: 'slp',
+        lastAddress: addresses.receiving,
+        lastChangeAddress: addresses.change,
+        lastAddressIndex: newAddressIndex
+      })
+    })
+  } else {
+    await getWalletByNetwork(wallet, walletType).getNewAddressSet(newAddressIndex).then(function (result) {
+      const addresses = result.addresses
+      context.commit('generateNewAddressSet', {
+        type: 'bch',
+        lastAddress: addresses.receiving,
+        lastChangeAddress: addresses.change,
+        lastAddressIndex: newAddressIndex
+      })
+    })
+
+    if (walletType === 'Smart BCH') {
+      await wallet.sBCH.getOrInitWallet().then(() => {
+        wallet.sBCH.subscribeWallet()
+      })
+    }
+  }
+  return { success: true }
 }
