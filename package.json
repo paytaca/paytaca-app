@@ -8,7 +8,8 @@
   "scripts": {
     "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
     "postinstall": "quasar prepare",
-    "test": "cypress run"
+    "test": "cypress run",
+    "test:unit": "mocha"
   },
   "dependencies": {
     "@asoltys/bip38": "^4.0.3",
@@ -132,7 +133,10 @@
     "eslint-plugin-vue": "^10.0.0",
     "eslint-webpack-plugin": "^5.0.0",
     "globals": "^16.0.0",
+    "mocha": "^11.7.1",
+    "module-alias": "^2.2.3",
     "node-polyfill-webpack-plugin": "^1.1.4",
+    "sinon": "^21.0.0",
     "ts-loader": "^9.5.2"
   },
   "browserslist": [
