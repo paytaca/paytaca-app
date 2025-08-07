@@ -27,6 +27,7 @@
     "@electron/remote": "^1.2.0",
     "@generalprotocols/anyhedge": "2.0.0-next.6536165483",
     "@generalprotocols/anyhedge-old": "npm:@generalprotocols/anyhedge@^1.0.0-next.3670337504",
+    "@generalprotocols/price-oracle": "^3.0.3",
     "@ionic/pwa-elements": "^3.0.2",
     "@jsonforms/core": "^3.1.0",
     "@jsonforms/vue": "^3.1.0",
