@@ -1,5 +1,6 @@
 import { cashAddressToLockingBytecode, hexToBin } from "@bitauth/libauth"
 import { hash256 } from '@cashscript/utils'
+import { OracleData } from "@generalprotocols/price-oracle"
 import { HashType, SignatureTemplate } from "cashscript"
 import { createSighashPreimage, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils"
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
@@ -26,6 +27,11 @@ export const SaleGroupPrice = {
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const LIFTTOKEN_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}lifttoken/` })
+
+const ORACLE_PUBKEY =
+  process.env.ORACLE_PUBKEY_USD ||
+  "02d09db08af1ff4e8453919cc866a4be427d7bfe18f2c05e5444c196fcf6fd2818";
+const ORACLE_RELAY = process.env.ORACLE_RELAY || "oracles.generalprotocols.com";
 
 // ================================
 // Promise functions
@@ -79,6 +85,23 @@ export async function getAddressPath(address) {
     .then(resp => {
       return resp.data.address_path
     })
+}
+
+export async function getOraclePrice() {
+  return await axios.get(
+    `https://${ORACLE_RELAY}/api/v1/oracleMessages?publicKey=${ORACLE_PUBKEY}&count=1`
+  ).then(async (response) => {
+    const message = await OracleData.parseOracleMessage(
+      hexToBin(response.data.oracleMessages[0].message)
+    );
+    const price =
+      (message.dataContent[0] |
+        (message.dataContent[1] << 8) |
+        (message.dataContent[2] << 16) |
+        (message.dataContent[3] << 24)) >>>
+      0;
+    return price / 10 ** 2;
+  })
 }
 
 // ================================
