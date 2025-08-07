@@ -133,7 +133,7 @@
 <script>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { parseKey } from "src/utils/custom-keyboard-utils";
-import { SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
+import { getOraclePrice, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
   getAssetDenomination,
@@ -168,6 +168,7 @@ export default {
       unpaidLift: 0,
       bchBalance: 0,
       tknBalance: 0,
+      currentUsdPrice: 0
     };
   },
 
@@ -178,16 +179,6 @@ export default {
     selectedMarketCurrency() {
       const currency = this.$store.getters["market/selectedCurrency"];
       return currency?.symbol;
-    },
-    currentUsdPrice() {
-      let usdPrice = this.$store.getters["market/getAssetPrice"]("bch", "USD");
-      if (!usdPrice) {
-        this.$store.dispatch("market/updateAssetPrices", {
-          customCurrency: "USD",
-        });
-        usdPrice = this.$store.getters["market/getAssetPrice"]("bch", "USD");
-      }
-      return usdPrice || 0;
     },
     walletBalance() {
       const asset = this.$store.getters["assets/getAssets"][0];
@@ -283,13 +274,11 @@ export default {
           },
         })
         .onCancel(() => {
-          this.intervalId = setInterval(() => {
-            this.$store.dispatch("market/updateAssetPrices", {
-              customCurrency: "USD",
-            });
+          this.intervalId = setInterval(async () => {
+            this.currentUsdPrice = await getOraclePrice()
             this.computeUsdBch();
             this.computeBalances();
-          }, 20000);
+          }, 60000);
         })
         .onOk(() => {
           this.$refs.purchaseDialogRef.$emit("ok");
@@ -298,18 +287,16 @@ export default {
     },
   },
 
-  mounted() {
-    this.$store.dispatch("market/updateAssetPrices", { customCurrency: "USD" });
+  async mounted() {
+    this.currentUsdPrice = await getOraclePrice()
     this.computeUsdBch();
     this.computeBalances();
 
-    this.intervalId = setInterval(() => {
-      this.$store.dispatch("market/updateAssetPrices", {
-        customCurrency: "USD",
-      });
+    this.intervalId = setInterval(async () => {
+      this.currentUsdPrice = await getOraclePrice()
       this.computeUsdBch();
       this.computeBalances();
-    }, 20000);
+    }, 60000);
   },
 
   unmounted() {
