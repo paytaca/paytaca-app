@@ -84,14 +84,13 @@ export class WatchtowerNetworkProvider {
     //     }
     // }
     async getAddressUtxos(address, addressPath) {
-        console.log('This ', this.hostname)
-        const { data } =  await axios.get(`${this.hostname}/api/multisig/wallets/utxos/${address}`) 
-        data?.forEach(utxo => {
+        const response =  await axios.get(`${this.hostname}/api/multisig/wallets/utxos/${address}`) 
+        response?.data?.forEach(utxo => {
             utxo.addressPath = addressPath
             utxo.address = address
             return utxo
         })
-        return data
+        return response?.data || []
     }
 
     async getWalletHashUtxos(address) {
