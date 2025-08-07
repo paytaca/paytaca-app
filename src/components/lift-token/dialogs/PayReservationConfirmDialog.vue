@@ -69,7 +69,6 @@
 </template>
 
 <script>
-import { decodePrivateKeyWif, secp256k1 } from "@bitauth/libauth";
 import {
   getDarkModeClass,
   isNotDefaultTheme,
@@ -172,12 +171,6 @@ export default {
         const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
 
         // record transaction
-        const decodedWif = decodePrivateKeyWif(wif);
-        const pubkey = secp256k1.derivePublicKeyCompressed(
-          decodedWif.privateKey
-        );
-
-        const pubkeyHex = Buffer.from(pubkey).toString("hex");
         const signature = await generateSignature(result.txid, wif);
         const satsWithFee = Math.floor(bch * 10 ** 8); // compute p2pkh
 
@@ -191,7 +184,6 @@ export default {
           current_date: new Date().toISOString(),
           tx_id: result.txid,
 
-          buyer_pubkey: pubkeyHex,
           buyer_sig: signature,
           buyer_token_address: tokenAddress,
           // bch address used for this transaction, can be or
