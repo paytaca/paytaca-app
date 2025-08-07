@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import 'module-alias'
 import assert from 'assert'
 import sinon from 'sinon'
 import {
@@ -354,10 +355,123 @@ describe('Multisig Wallet', (t) => {
                 }
             ];
 
-            axiosGetStub.resolves(sampleUtxos)
+            axiosGetStub.resolves({ data: sampleUtxos })
 
             const utxos = await wallet.getAddressUtxos('bitcoincash:ppfqy5rrn2s5ylvkpx8dsa3f05p83ym5ss82r7xykd')
+            assert.equal(utxos.length, 3)
+
+        })
+    })
+
+    describe.only('getWalletBalance()', () => {
+        it('returns the correct BCH balance', async () => {
+
+            const onStateChange = (stateChanged) => {
+                console.log(stateChanged)
+            }
+
+            const watchtower = new WatchtowerNetworkProvider({ network: Network.mainnet })
+
+            const wallet = new MultisigWallet({
+                name: 'Wallet 1',
+                m: 2,
+                signers: [
+                    {
+                        name: 'Signer 1',
+                        xpub: hdPublicKey0H
+                    },
+                    {
+                        name: 'Signer 2',
+                        xpub: hdPublicKey1H
+                    },
+                    {
+                        name: 'Signer 3',
+                        xpub: hdPublicKey2H
+                    }
+                ]
+            }, { onStateChange, provider: watchtower })
+
+            const sampleUtxos = [
+                {
+                    txid: 'e3f1a5b7a08c58e7b83f62a2a5b1e408f3b1d4354eec5e7893a1b2c3d4e5f678',
+                    vout: 0,
+                    satoshis: 100000,
+                    addressPath: "0/0"
+                },
+                {
+                    txid: 'f1e2d3c4b5a697887766554433221100ffeeccbbaa99887766554433221100ff',
+                    vout: 1,
+                    satoshis: 546,
+                    addressPath: "0/1",
+                    token: {
+                    category: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+                    amount: '1000000000000' // Fungible token
+                    }
+                },
+                {
+                    txid: 'abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd',
+                    vout: 2,
+                    satoshis: 600,
+                    addressPath: "0/2",
+                    token: {
+                    category: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                    amount: '1',
+                    nft: {
+                        capability: 'mutable',
+                        commitment: '4e46543a426f6f6b4f66536f756c73' // "NFT:BookOfSouls"
+                    }
+                    }
+                }
+            ];
+
+            axiosGetStub.resolves({ data: sampleUtxos })
+
+            const expectedBalance = sampleUtxos.reduce((b, u) => b += u.satoshis, 0)
+            const balance = await wallet.getWalletBalance()
+            // * 40 because each request to getAddressUtxo would each resolve to the above utxos
+            // getWalletBalance will scan atleast 20 addresses if lastIssuedAddressIndex is 0
+            // depositAddress = 20, changeAddress = 20
+            assert.equal(expectedBalance * 40, balance) 
             
+        })
+    })
+
+
+
+    describe('getWalletUtxos() #live', () => {
+
+        it('returns utxos of live wallet', async () => {
+            const { hdPublicKeyLive1, hdPublicKeyLive2, hdPublicKeyLive3 } = await import('../../src/lib/multisig/fixtures/live-wallets.js')
+
+            if (!hdPublicKeyLive1 || !hdPublicKeyLive2 || !hdPublicKeyLive3) assert.fail() 
+
+            const onStateChange = (stateChanged) => {
+                console.log(stateChanged)
+            }
+
+            const wallet = new MultisigWallet({
+                name: 'Wallet 1',
+                m: 2,
+                signers: [
+                    {
+                        name: 'Signer 1',
+                        xpub: hdPublicKeyLive1
+                    },
+                    {
+                        name: 'Signer 2',
+                        xpub: hdPublicKeyLive2
+                    },
+                    {
+                        name: 'Signer 3',
+                        xpub: hdPublicKeyLive3
+                    }
+                ]
+            }, { onStateChange, provider: new WatchtowerNetworkProvider() })
+
+            
+            const utxos = await wallet.getWalletUtxos()
+            // Weak test, just assumes atleast one of the address has utxo
+            assert.equal(utxos.length > 0, true)
 
         })
     })
