@@ -415,18 +415,6 @@ export const getChangeAddress = ({ multisigWallet, addressIndex = 0, prefix = Ca
     return getAddress({ lockingData, compiler, prefix })
 }
 
-export const issueNewChangeAddress = ({ multisigWallet, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
-  // TODO: enable this when we add a bit of privacy and implement auto issuance of change address
-  // let lastIssuedChangeAddress = multisigWallet.lastIssuedChangeAddress || 0
-  // lastIssuedChangeAddress++ 
-  // changeAddress = getChangeAddress({ multisigWallet, addressIndex: lastIssuedChangeAddress, prefix })
-  // MUST: Watch the multisigWallet and save the lastIssuedChangeAddress
-  
-  // For Now: We'll use the deposit address index 0 as change address
-  return getDepositAddress({ multisigWallet, addressIndex: 0 })
-}
-
-
 export const importFromBase64 = (multisigWalletBase64) => {
   const bin = base64ToBin(multisigWalletBase64)
   const multisigWallet = JSON.parse(binToUtf8(bin))
@@ -570,10 +558,6 @@ async getWalletUtxos() {
   const utxoPromises = []
 
   while (dCounter < lastDepositAddress) {
-    console.log('Test')
-    console.log(`Deposit Address ${dCounter} ${this.getDepositAddress(dCounter, this.cashAddressNetworkPrefix).address}`)
-    // const depositAddressUtxos = await this.options?.provider.getAddressUtxos(this.getDepositAddress(i, this.cashAddressNetworkPrefix).address)
-    // console.log('depositAddressUtxos', depositAddressUtxos)
     utxoPromises.push(this.getAddressUtxos(this.getDepositAddress(dCounter, this.cashAddressNetworkPrefix).address, `0/${dCounter}`))
     dCounter++
   }
@@ -587,9 +571,6 @@ async getWalletUtxos() {
   let cCounter = 0
 
   while (cCounter < lastChangeAddress) {
-    console.log(`Change Address ${cCounter} ${this.getChangeAddress(cCounter, this.cashAddressNetworkPrefix).address}`)
-    // const changeAddressUtxos = await this.options?.provider.getAddressUtxos(this.getChangeAddress(i, this.cashAddressNetworkPrefix).address)
-    // console.log('changeAddressUtxos', changeAddressUtxos)
     utxoPromises.push(this.getAddressUtxos(this.getChangeAddress(cCounter, this.cashAddressNetworkPrefix).address, `1/${cCounter}`))
     cCounter++
   }
@@ -608,7 +589,9 @@ async getAddressBalance(address) {
 }
 
 async getWalletBalance() {
-  return await this.options?.provider?.getWalletBalance(this)
+  // return await this.options?.provider?.getWalletBalance(this) 
+  console.log('UTXOS', (await this.getWalletUtxos()))
+  return (await this.getWalletUtxos())?.reduce((b, u) => b += u.satoshis, 0)
 }
 async getWalletHashBalance() {
   return await this.options?.provider?.getWalletHashBalance(this.getWalletHash())
@@ -661,7 +644,7 @@ async getWalletHashBalance() {
    */
   async createBchTransferProposal(proposal) {
     const utxos = await this.getWalletUtxos()
-    console.log('Utxos',utxos)
+    console.log('Utxos', utxos)
   }
   
   /**
