@@ -37,7 +37,7 @@
 				</div>
 			</div>
 
-			<div class="full-width" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 20px ;">
+			<div class="full-width" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 20px ; margin-bottom: 120px;">
 			    <q-list v-if="assetList.length > 0" :key="assetListKey" class="q-ma-md">
 			      	<draggable			      		
 			      		:list="assetList" 

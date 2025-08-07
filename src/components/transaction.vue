@@ -2,6 +2,7 @@
   <div id="transaction">
     <q-dialog ref="dialog" @hide="hide" persistent seamless class="no-click-outside">
       <q-card
+        id="scrollArea"
         ref="card"
         v-if="transaction && transaction.asset"
         style="padding: 20px 10px 5px 0; max-height:85vh;"
@@ -469,14 +470,14 @@
                       padding="xs sm"
                       label="Add Memo"
                       color="primary"
-                      @click="showMemo = true"
+                      @click="openMemo()"
                     />
                 </q-item-section>               
               </div>
               <div v-else>
                 <q-item-section class="q-pt-sm">
                    <q-input
-                    v-model="text"
+                    v-model="memo"
                     filled
                     height="25px" 
                     type="textarea"
@@ -516,6 +517,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
+import { ref } from 'vue'
 
 export default {
   name: 'transaction',
@@ -539,7 +541,8 @@ export default {
       stablehedgeTxView: false,
       displayRawAttributes: false,
       denomination: this.$store.getters['global/denomination'],
-      showMemo: false
+      showMemo: false,
+      memo: ''
     }
   },
   computed: {
@@ -667,6 +670,25 @@ export default {
     hide () {
       this.$refs.dialog.hide()
       this.$parent.toggleHideBalances()
+    },
+    openMemo () {
+      this.showMemo = true
+
+      // console.log('here: ', this.$refs.card)
+      // const test = this.$refs.card.$el.clientHeight
+
+      // this.$refs.card.scrollTop = test
+
+      
+      const content = document.getElementById('scrollArea')
+      console.log('here: ', content)
+      // content.scrollTop = content.scrollHeight
+      // document.getElementById('scrollArea').scrollTopMax = content.scrollHeight
+      document.getElementById('scrollArea').scrollTop =  document.getElementById('scrollArea').scrollTopMax
+      // document.getElementById('scrollArea').scrollTopMax
+
+      console.log('here: ', document.getElementById('scrollArea'))
+      // console.log('test: ', content.scrollTop)
     },
     formatDate (date) {
       const dateObj = new Date(date)
