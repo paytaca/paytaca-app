@@ -1,5 +1,6 @@
 import { cashAddressToLockingBytecode, hexToBin } from "@bitauth/libauth"
 import { hash256 } from '@cashscript/utils'
+import { OracleData } from "@generalprotocols/price-oracle"
 import { HashType, SignatureTemplate } from "cashscript"
 import { createSighashPreimage, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils"
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
@@ -27,20 +28,13 @@ const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const LIFTTOKEN_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}lifttoken/` })
 
-
-function hexToUint8Array(hexString) {
-  if (hexString.length % 2 !== 0) {
-    throw new Error("Hex string must have an even number of characters.");
-  }
-  const uint8Array = new Uint8Array(hexString.length / 2);
-  for (let i = 0; i < hexString.length; i += 2) {
-    uint8Array[i / 2] = parseInt(hexString.substring(i, i + 2), 16);
-  }
-  return uint8Array;
-}
+const ORACLE_PUBKEY =
+  process.env.ORACLE_PUBKEY_USD ||
+  "02d09db08af1ff4e8453919cc866a4be427d7bfe18f2c05e5444c196fcf6fd2818";
+const ORACLE_RELAY = process.env.ORACLE_RELAY || "oracles.generalprotocols.com";
 
 // ================================
-// non-Promise functions
+// Promise functions
 // ================================
 
 export async function generateSignature(txId, wif) {
@@ -84,6 +78,35 @@ export async function generateSignature(txId, wif) {
 
   return Buffer.from(signature).toString('hex')
 }
+
+export async function getAddressPath(address) {
+  return await watchtower.BCH._api
+    .post(`address-info/bch/${address}`)
+    .then(resp => {
+      return resp.data.address_path
+    })
+}
+
+export async function getOraclePrice() {
+  return await axios.get(
+    `https://${ORACLE_RELAY}/api/v1/oracleMessages?publicKey=${ORACLE_PUBKEY}&count=1`
+  ).then(async (response) => {
+    const message = await OracleData.parseOracleMessage(
+      hexToBin(response.data.oracleMessages[0].message)
+    );
+    const price =
+      (message.dataContent[0] |
+        (message.dataContent[1] << 8) |
+        (message.dataContent[2] << 16) |
+        (message.dataContent[3] << 24)) >>>
+      0;
+    return price / 10 ** 2;
+  })
+}
+
+// ================================
+// non-Promise functions
+// ================================
 
 /**
  * @param {Object} params

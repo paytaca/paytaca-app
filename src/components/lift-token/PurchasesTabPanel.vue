@@ -116,31 +116,34 @@
             </template>
 
             <template v-else-if="new Date() > new Date(purchase.lockup_date)">
-              <span class="col-6 q-pr-xs">
-                <template v-if="purchase.purchase_vesting_details.every(detail => !detail.vested_date)">
-                  {{ $t("LockupPeriodOver") }}
-                </template>
-                <template v-else>
-                  {{
-                    $t(
-                      "LastVestingDate",
-                      {
-                        date: parseLocaleDate(
-                          purchase.purchase_vesting_details[0].vested_date
-                        ),
-                      },
-                      `Last vesting period was ${parseLocaleDate(
-                        purchase.purchase_vesting_details[0].vested_date
-                      )}`
-                    )
-                  }}
-                </template>
-              </span>
-              <span class="col-6 text-right q-pl-xs">
-                <template v-if="purchase.purchase_vesting_details.every(detail => detail.vested_date)">
+              <template v-if="purchase.is_done_vesting">
+                <span class="col-12 text-center">
                   {{ $t("VestingPeriodOver") }}
-                </template>
-                <template v-else>
+                </span>
+              </template>
+
+              <template v-else>
+                <span class="col-6 q-pr-xs">
+                  <template v-if="purchase.purchase_vesting_details.every(detail => !detail.vested_date)">
+                    {{ $t("LockupPeriodOver") }}
+                  </template>
+                  <template v-else>
+                    {{
+                      $t(
+                        "LastVestingDate",
+                        {
+                          date: parseLocaleDate(
+                            purchase.purchase_vesting_details[0].vested_date
+                          ),
+                        },
+                        `Last vesting period was ${parseLocaleDate(
+                          purchase.purchase_vesting_details[0].vested_date
+                        )}`
+                      )
+                    }}
+                  </template>
+                </span>
+                <span class="col-6 text-right q-pl-xs">
                   {{
                     $t(
                       "NextVestingDate",
@@ -154,8 +157,8 @@
                       )}`
                     )
                   }}
-                </template>
-              </span>
+                </span>
+              </template>
             </template>
 
             <template v-else>
