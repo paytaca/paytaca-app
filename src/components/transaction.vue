@@ -679,16 +679,21 @@ export default {
 
       // this.$refs.card.scrollTop = test
 
-      
-      const content = document.getElementById('scrollArea')
-      console.log('here: ', content)
-      // content.scrollTop = content.scrollHeight
-      // document.getElementById('scrollArea').scrollTopMax = content.scrollHeight
-      document.getElementById('scrollArea').scrollTop =  document.getElementById('scrollArea').scrollTopMax
-      // document.getElementById('scrollArea').scrollTopMax
+      setTimeout(() => {
+        const content = document.getElementById('scrollArea')
+        console.log('here: ', content)
+        content.scrollTop = content.scrollHeight
+        // document.getElementById('scrollArea').scrollTopMax = content.scrollHeight
+        // document.getElementById('scrollArea').scrollTop =  content.scrollHeight
+        // document.getElementById('scrollArea').scrollTopMax
 
-      console.log('here: ', document.getElementById('scrollArea'))
-      // console.log('test: ', content.scrollTop)
+        console.log('here: ', document.getElementById('scrollArea'))
+        // console.log('test: ', content.scrollTop)
+      }, 100)
+
+      // const scrollingElement = (document.scrollingElement || document.body)
+      // console.log('scrollingElement: ', scrollingElement)
+      
     },
     formatDate (date) {
       const dateObj = new Date(date)
