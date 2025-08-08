@@ -1,7 +1,7 @@
 import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from "cashscript0.10.0";
 import { getOutputSize } from "cashscript0.10.0/dist/utils";
 import { toTokenAddress } from "src/utils/crypto";
-import { watchtowerUtxoToCashscript } from 'src/wallet/stablehedge/transaction-utils';
+import { watchtowerUtxoToCashscript } from "src/utils/utxo-utils";
 
 /**
  * @param {import("src/wallet/bch").BchWallet} bchWallet
