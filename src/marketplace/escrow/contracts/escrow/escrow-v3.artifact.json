@@ -1,0 +1,108 @@
+{
+  "contractName": "EscrowV3",
+  "constructorInputs": [
+    {
+      "name": "buyer",
+      "type": "bytes20"
+    },
+    {
+      "name": "seller",
+      "type": "bytes20"
+    },
+    {
+      "name": "servicer",
+      "type": "bytes20"
+    },
+    {
+      "name": "arbiter",
+      "type": "bytes20"
+    },
+    {
+      "name": "deliveryFeePool",
+      "type": "bytes"
+    },
+    {
+      "name": "amount",
+      "type": "int"
+    },
+    {
+      "name": "serviceFee",
+      "type": "int"
+    },
+    {
+      "name": "arbitrationFee",
+      "type": "int"
+    },
+    {
+      "name": "deliveryFee",
+      "type": "int"
+    },
+    {
+      "name": "keyNftId",
+      "type": "int"
+    },
+    {
+      "name": "timestamp",
+      "type": "int"
+    },
+    {
+      "name": "amountCategory",
+      "type": "bytes"
+    },
+    {
+      "name": "serviceFeeCategory",
+      "type": "bytes"
+    },
+    {
+      "name": "arbitrationFeeCategory",
+      "type": "bytes"
+    },
+    {
+      "name": "deliveryFeeCategory",
+      "type": "bytes"
+    }
+  ],
+  "abi": [
+    {
+      "name": "settlement",
+      "inputs": [
+        {
+          "name": "pk",
+          "type": "pubkey"
+        },
+        {
+          "name": "s",
+          "type": "sig"
+        },
+        {
+          "name": "timestampCheck",
+          "type": "int"
+        },
+        {
+          "name": "release",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "arbiterUnlock",
+      "inputs": [
+        {
+          "name": "pk",
+          "type": "pubkey"
+        },
+        {
+          "name": "s",
+          "type": "sig"
+        }
+      ]
+    }
+  ],
+  "bytecode": "OP_15 OP_PICK OP_0 OP_NUMEQUAL OP_IF 12 OP_ROLL OP_11 OP_ROLL OP_NUMEQUALVERIFY OP_15 OP_PICK OP_HASH160 OP_DUP OP_5 OP_PICK OP_EQUAL OP_SWAP OP_2 OP_PICK OP_EQUAL 13 OP_PICK OP_BOOLAND OP_BOOLOR OP_VERIFY OP_16 OP_ROLL OP_16 OP_ROLL OP_CHECKSIGVERIFY OP_10 OP_PICK OP_SIZE OP_NIP OP_0 OP_GREATERTHAN OP_12 OP_PICK OP_SIZE OP_NIP OP_0 OP_GREATERTHAN OP_14 OP_PICK OP_SIZE OP_NIP OP_0 OP_GREATERTHAN OP_11 OP_PICK OP_0 OP_GREATERTHAN OP_DUP 12 OP_PICK OP_SIZE OP_NIP OP_0 OP_GREATERTHAN OP_BOOLAND OP_4 OP_PICK OP_NOT OP_4 OP_PICK OP_NOT OP_BOOLOR OP_3 OP_PICK OP_NOT OP_BOOLOR OP_OVER OP_NOT OP_BOOLOR OP_BIN2NUM OP_5 OP_PICK OP_BIN2NUM OP_ADD OP_4 OP_PICK OP_BIN2NUM OP_ADD OP_3 OP_PICK OP_BIN2NUM OP_ADD OP_OVER OP_BIN2NUM OP_ADD OP_TXINPUTCOUNT OP_NUMEQUALVERIFY OP_3 OP_2 OP_PICK OP_BIN2NUM OP_ADD OP_OVER 16 OP_PICK OP_BOOLAND OP_BIN2NUM OP_ADD OP_TXOUTPUTCOUNT OP_NUMEQUALVERIFY OP_4 OP_ROLL OP_IF OP_0 OP_OUTPUTTOKENCATEGORY OP_15 OP_PICK OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_10 OP_PICK OP_NUMEQUALVERIFY OP_ELSE OP_0 OP_OUTPUTVALUE OP_10 OP_PICK OP_NUMEQUALVERIFY OP_ENDIF OP_3 OP_ROLL OP_IF OP_1 OP_OUTPUTTOKENCATEGORY OP_15 OP_PICK OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_10 OP_PICK OP_NUMEQUALVERIFY OP_ELSE OP_1 OP_OUTPUTVALUE OP_10 OP_PICK OP_NUMEQUALVERIFY OP_ENDIF OP_ROT OP_IF OP_2 OP_OUTPUTTOKENCATEGORY OP_15 OP_PICK OP_EQUALVERIFY OP_2 OP_OUTPUTTOKENAMOUNT OP_10 OP_PICK OP_NUMEQUALVERIFY OP_ELSE OP_2 OP_OUTPUTVALUE OP_10 OP_PICK OP_NUMEQUALVERIFY OP_ENDIF OP_OVER OP_IF 11 OP_PICK OP_IF OP_11 OP_PICK 14 OP_NUM2BIN OP_11 OP_PICK 14 OP_NUM2BIN OP_CAT OP_OVER OP_IF OP_16 OP_PICK OP_13 OP_PICK 14 OP_NUM2BIN OP_CAT OP_HASH256 OP_12 OP_PICK OP_8 OP_NUM2BIN OP_CAT OP_NIP OP_ENDIF OP_DUP OP_3 OP_OUTPUTTOKENCOMMITMENT OP_EQUALVERIFY OP_DROP OP_ENDIF OP_DUP OP_IF OP_3 12 OP_PICK OP_BIN2NUM OP_ADD OP_DUP OP_OUTPUTTOKENCATEGORY 11 OP_PICK OP_EQUALVERIFY OP_DUP OP_OUTPUTTOKENAMOUNT OP_12 OP_PICK OP_NUMEQUALVERIFY OP_DROP OP_ELSE OP_3 OP_OUTPUTVALUE OP_11 OP_PICK OP_NUMEQUALVERIFY OP_ENDIF OP_ENDIF 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_4 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_6 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_6 OP_ROLL OP_CAT 88ac OP_CAT OP_6 OP_ROLL 11 OP_PICK OP_NOTIF OP_4 OP_PICK OP_4 OP_ROLL OP_DROP OP_SWAP OP_TOALTSTACK OP_SWAP OP_TOALTSTACK OP_SWAP OP_FROMALTSTACK OP_FROMALTSTACK OP_4 OP_PICK OP_3 OP_ROLL OP_DROP OP_SWAP OP_TOALTSTACK OP_SWAP OP_FROMALTSTACK OP_4 OP_PICK OP_ROT OP_DROP OP_SWAP OP_4 OP_PICK OP_NIP OP_ENDIF OP_0 OP_OUTPUTBYTECODE OP_4 OP_ROLL OP_EQUALVERIFY OP_1 OP_OUTPUTBYTECODE OP_ROT OP_EQUALVERIFY OP_2 OP_OUTPUTBYTECODE OP_ROT OP_EQUALVERIFY OP_3 OP_ROLL OP_IF OP_3 OP_OUTPUTBYTECODE OP_OVER OP_EQUALVERIFY OP_13 OP_PICK OP_3 OP_PICK OP_BOOLAND OP_IF OP_4 OP_OUTPUTBYTECODE OP_OVER OP_EQUALVERIFY OP_ENDIF OP_ENDIF OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_1 OP_ELSE OP_15 OP_ROLL OP_1 OP_NUMEQUALVERIFY OP_15 OP_PICK OP_HASH160 OP_4 OP_ROLL OP_EQUALVERIFY OP_15 OP_ROLL OP_15 OP_ROLL OP_CHECKSIGVERIFY OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_2DROP OP_1 OP_ENDIF",
+  "source": "// pragma cashscript ^0.7.5;\npragma cashscript ^0.8.0;\n\n\ncontract EscrowV3(\n    bytes20    buyer,            // 20 B\n    bytes20    seller,           // 20 B\n    bytes20    servicer,         // 20 B\n    bytes20    arbiter,          // 20 B\n    bytes      deliveryFeePool,  // 23 B\n\n    int amount,          // 1-8 B, amount paid\n    int serviceFee,      // 1-8 B, fee for service provider in sats\n    int arbitrationFee,  // 1-8 B, fee for arbiter in sats\n    int deliveryFee,     // 1-8 B, fee for delivery service/rider in sats\n\n    int keyNftId,       // 4 B, lock nft ID in commitment in the minted nft containing the delivery fee\n    int timestamp,      // 4 B, a parameter to ensure uniqueness of contract\n\n    bytes amountCategory,\n    bytes serviceFeeCategory,\n    bytes arbitrationFeeCategory,\n    bytes deliveryFeeCategory,\n) {\n    // Settlement\n    function settlement(pubkey pk, sig s, int timestampCheck, bool release) {\n        require(timestampCheck == timestamp);\n\n        /* 1 - Requires that caller is only either the arbiter or the buyer */\n        bytes20 pkHash = hash160(pk);\n\n        // if release, buyer sig is valid. release/refund can both be done by arbiter\n        require(pkHash == arbiter || (pkHash == buyer && release));\n        require(checkSig(s, pk));\n        /* end 1 */\n\n        bool isAmountToken = amountCategory.length > 0;\n        bool isServiceFeeToken = serviceFeeCategory.length > 0;\n        bool isArbitrationFeeToken = arbitrationFeeCategory.length > 0;\n\n        bool hasDeliveryFee = deliveryFee > 0;\n        bool hasDeliveryFeeToken = hasDeliveryFee && deliveryFeeCategory.length > 0;\n\n        bool notAllToken = !isAmountToken || !isServiceFeeToken || !isArbitrationFeeToken || !hasDeliveryFeeToken;\n\n        /* 2 - Check output and input counts */\n        int expectedInputCount = int(notAllToken) + int(isAmountToken) + int(isServiceFeeToken) + int(isArbitrationFeeToken) + int(hasDeliveryFeeToken);\n        require(tx.inputs.length == expectedInputCount); // input is the funding utxo, must only be 1\n\n        // Limits the number of outputs to 3 or 4 if there is delivery fee\n        // deliveryFee > 0 is casted to in which should be 0 or 1\n        int expectedOutputCount = 3 + int(hasDeliveryFee) + int(hasDeliveryFeeToken && release);\n        require(tx.outputs.length == expectedOutputCount);\n        /* end 2 */\n\n        /* 3 - Check amounts of outputs */\n\n        // int txFee = 1000; // hard coded transaction fee\n        // int inpSize = tx.inputs[0].unlockingBytecode.length;\n        // int totalInputRequired = amount + serviceFee + arbitrationFee + deliveryFee + txFee + inpSize;\n        // require(tx.inputs[0].value == totalInputRequired);\n\n        // Checks if amounts are valid\n        if (isAmountToken) {\n            require(tx.outputs[0].tokenCategory == amountCategory); // Checks amount going to seller is correct\n            require(tx.outputs[0].tokenAmount == amount); // Checks amount going to seller is correct\n        } else {\n            require(tx.outputs[0].value == amount); // Checks amount going to seller is correct\n        }\n\n        if (isServiceFeeToken) {\n            require(tx.outputs[1].tokenCategory == serviceFeeCategory); // Checks if amount going to servicer is correct\n            require(tx.outputs[1].tokenAmount == serviceFee); // Checks if amount going to servicer is correct\n        } else {\n            require(tx.outputs[1].value == serviceFee); // Checks if amount going to servicer is correct\n        }\n\n        if (isArbitrationFeeToken) {\n            require(tx.outputs[2].tokenCategory == arbitrationFeeCategory); // Checks if amount going to arbiter is correct\n            require(tx.outputs[2].tokenAmount == arbitrationFee); // Checks if amount going to arbiter is correct\n        } else {\n            require(tx.outputs[2].value == arbitrationFee); // Checks if amount going to arbiter is correct\n        }\n\n        if (hasDeliveryFee) {\n            // NFT commitment of delivery fee output must be Key NFT ID and delivery fee amount\n            // - Convert keyNftId from unsigned int to bytes20\n            // - Convert delivery from unsigned int to bytes20\n            // - Concatenate the converted bytes20s\n            if (release) {\n                bytes40 commitment = bytes20(keyNftId) + bytes20(deliveryFee);\n                if (hasDeliveryFeeToken) {\n                    // if token delivery, \n                    commitment = hash256(deliveryFeeCategory + bytes20(keyNftId)) + bytes8(deliveryFee);\n                }\n                require(commitment == tx.outputs[3].nftCommitment);\n            }\n\n            if (hasDeliveryFeeToken) {\n                int deliveryFeeTokenIndex = 3 + int(release);\n                require(tx.outputs[deliveryFeeTokenIndex].tokenCategory == deliveryFeeCategory);\n                require(tx.outputs[deliveryFeeTokenIndex].tokenAmount == deliveryFee);\n            } else {\n                require(tx.outputs[3].value == deliveryFee); // Checks if amount going to delivery rider is correct, given that a delivery fee is provided\n            }\n        }\n        /* end 3 */\n\n        /* 4 - Requires that outputs send to seller, servicer, and arbiter */\n        bytes25 buyerLock = new LockingBytecodeP2PKH(buyer);\n        bytes25 sellerLock = new LockingBytecodeP2PKH(seller);\n\n        bytes25 amountRecipient = sellerLock;\n        bytes25 arbitrationFeeRecipient = new LockingBytecodeP2PKH(arbiter);\n        bytes25 serviceFeeRecipient = new LockingBytecodeP2PKH(servicer);\n        bytes deliveryFeeRecipient = deliveryFeePool;\n\n        if (!release) {\n            amountRecipient = buyerLock;\n            arbitrationFeeRecipient = buyerLock;\n            serviceFeeRecipient = buyerLock;\n            deliveryFeeRecipient = buyerLock;\n        }\n\n        require(tx.outputs[0].lockingBytecode == amountRecipient);\n        require(tx.outputs[1].lockingBytecode == serviceFeeRecipient);\n        require(tx.outputs[2].lockingBytecode == arbitrationFeeRecipient);\n        if (hasDeliveryFee) {\n            require(tx.outputs[3].lockingBytecode == deliveryFeeRecipient);\n            if (release && hasDeliveryFeeToken) {\n                require(tx.outputs[4].lockingBytecode == deliveryFeeRecipient);\n            }\n        }\n        /* end 4 */\n    }\n\n    function arbiterUnlock(pubkey pk, sig s) {\n        require(hash160(pk) == arbiter);\n        require(checkSig(s, pk));\n    }\n}\n",
+  "compiler": {
+    "name": "cashc",
+    "version": "0.8.0"
+  },
+  "updatedAt": "2025-07-31T01:33:53.415Z"
+}

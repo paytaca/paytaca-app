@@ -73,7 +73,7 @@
               </div>
               <q-btn
                 flat
-                :disable="escrowContract?.isFunded"
+                :disable="escrowContract?.isFunded || escrowContract?.requiresTokens"
                 icon="qr_code"
                 size="1.5em"
                 padding="md"
@@ -110,43 +110,126 @@
               </div>
             </div>
 
+            <div
+              v-if="escrowContract?.amountCategory"
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.amountCategory)"
+            >
+              <div class="text-caption text-grey top">{{ $t('AmountToken') }}</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.amountCategory }}
+                <q-icon name="content_copy"/>
+              </div>
+            </div>
+            <div
+              v-if="escrowContract?.deliveryFeeKeyNft?.category"
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.deliveryFeeKeyNft?.category)"
+            >
+              <div class="text-caption text-grey top">{{ $t('DeliveryFeeToken') }}</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.deliveryFeeKeyNft?.category }}
+                <q-icon name="content_copy"/>
+              </div>
+            </div>
+            <div
+              v-if="escrowContract?.serviceFeeCategory"
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.serviceFeeCategory)"
+            >
+              <div class="text-caption text-grey top">{{ $t('ServiceFeeToken') }}</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.serviceFeeCategory }}
+                <q-icon name="content_copy"/>
+              </div>
+            </div>
+            <div
+              v-if="escrowContract?.arbitrationFeeCategory"
+              class="q-mb-sm rounded-borders"
+              style="position:relative;" v-ripple
+              @click="copyToClipboard(escrowContract?.arbitrationFeeCategory)"
+            >
+              <div class="text-caption text-grey top">{{ $t('ArbiterFeeToken') }}</div>
+              <div style="word-break: break-all;">
+                {{ escrowContract?.arbitrationFeeCategory }}
+                <q-icon name="content_copy"/>
+              </div>
+            </div>
+
             <q-separator :dark="darkMode" spaced/>
             <div class="q-mb-sm" @click="() => toggleAmountsDisplay()">
               <div class="row items-start">
                 <div class="text-grey q-space">{{ $t('Amount') }}</div>
-                <div v-if="displayBch">{{ escrowContract?.bchAmounts?.amount }} BCH</div>
+                <div v-if="displayBch">
+                  {{ cryptoAmounts?.amount?.value }}
+                  {{ cryptoAmounts?.amount?.symbol }}
+                </div>
                 <div v-else>{{ fiatAmounts?.amount }} {{ currency }}</div>
               </div>
               <div class="q-pl-sm">
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('DeliveryFee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.deliveryFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.deliveryFee?.value }}
+                    {{ cryptoAmounts?.deliveryFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.deliveryFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('ServiceFee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.serviceFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.serviceFee?.value }}
+                    {{ cryptoAmounts?.serviceFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.serviceFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('ArbitrationFee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.arbitrationFee }} BCH</div>
+                  <div v-if="displayBch">
+                    {{ cryptoAmounts?.arbitrationFee?.value }}
+                    {{ cryptoAmounts?.arbitrationFee?.symbol }}
+                  </div>
                   <div v-else>{{ fiatAmounts?.arbitrationFee }} {{ currency }}</div>
                 </div>
 
                 <div class="row items-start">
                   <div class="text-grey q-space">{{ $t('NetworkFee') }}</div>
-                  <div v-if="displayBch">{{ escrowContract?.bchAmounts?.networkFee }} BCH</div>
-                  <div v-else>{{ fiatAmounts?.networkFee }} {{ currency }}</div>
+                  <div v-if="displayBch">
+                    <template v-if="!Number.isNaN(cryptoAmounts?.networkFeeAndDust?.value)">
+                      {{ cryptoAmounts?.networkFeeAndDust?.value }}
+                      {{ cryptoAmounts?.networkFeeAndDust?.symbol }}
+                    </template>
+                    <span v-else class="text-grey">N/A</span>
+                  </div>
+                  <div v-else>
+                    <template v-if="!Number.isNaN(fiatAmounts?.networkFeeAndDust)">
+                      {{ fiatAmounts?.networkFeeAndDust }} {{ currency }}
+                    </template>
+                    <span v-else class="text-grey">N/A</span>
+                  </div>
                 </div>
               </div>
 
               <div class="row items-start">
                 <div class="text-grey q-space">{{ $t('Total') }}</div>
-                <div v-if="displayBch">{{ escrowContract?.bchAmounts?.total }} BCH</div>
-                <div v-else>{{ fiatAmounts?.total }} {{ currency }}</div>
+                <div v-if="displayBch">
+                  <template v-if="cryptoAmounts?.total?.value">
+                    {{ cryptoAmounts?.total?.value }}
+                    {{ cryptoAmounts?.total?.symbol }}
+                  </template>
+                  <span v-else class="text-grey">N/A</span>
+                </div>
+                <div v-else>
+                  <template v-if="!Number.isNaN(fiatAmounts?.total)">
+                    {{ fiatAmounts?.total }} {{ currency }}
+                  </template>
+                  <span v-else class="text-grey">N/A</span>
+                </div>
               </div>
             </div>
           </q-tab-panel>
@@ -191,6 +274,8 @@
 </template>
 <script>
 import { BchPrice, EscrowContract } from 'src/marketplace/objects'
+import { compileEscrowSmartContract } from 'src/marketplace/escrow'
+import { useEscrowAmountsCalculator } from 'src/composables/marketplace/escrow'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useStore } from 'vuex'
@@ -203,6 +288,14 @@ export default defineComponent({
     modelValue: Boolean,
     escrowContract: EscrowContract,
     bchPrice: BchPrice,
+    tokenPrices: { default: () => [].map(BchPrice.parse) },
+    fundingRequirements: {
+      default: () => [].map(() => {
+        return {
+          amount: 0n, token: { category: '', amount: 0n },
+        }
+      })
+    },
     currency: String,
   },
   emits: [
@@ -223,29 +316,24 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
+    const computedFundingRequirements = computed(() => {
+      if (props.fundingRequirements?.length)  return props.fundingRequirements;
+
+      const escrow = compileEscrowSmartContract(props.escrowContract);
+      return escrow.generateFundingOutputs();
+    })
+
     const tab = ref('details') // details | qrcode
 
-    const fiatAmounts = computed(() => {
-      const data = {
-        amount: null,
-        serviceFee: null,
-        arbitrationFee: null,
-        deliveryFee: null,
-        networkFee: null,
-        total: null,
-      }
-      if (!isFinite(props.bchPrice?.price)) return data
-      const rate = props.bchPrice?.price
-      const round = (amount, decimals) => Math.round(amount * 10 ** decimals) / 10 ** decimals
-      data.amount = round(props.escrowContract?.bchAmounts?.amount * rate, 3)
-      data.serviceFee = round(props.escrowContract?.bchAmounts?.serviceFee * rate, 3)
-      data.arbitrationFee = round(props.escrowContract?.bchAmounts?.arbitrationFee * rate, 3)
-      data.deliveryFee = round(props.escrowContract?.bchAmounts?.deliveryFee * rate, 3)
-      data.networkFee = round(props.escrowContract?.bchAmounts?.networkFee * rate, 3)
-      data.total = round(props.escrowContract?.bchAmounts?.total * rate, 3)
+    const bchPriceReactive = computed(() => props.bchPrice);
+    const tokenPricesReactive = computed(() => props.tokenPrices);
+    const {
+      resolveCryptoAmounts,
+      resolveFiatAmounts,
+    } = useEscrowAmountsCalculator(bchPriceReactive, tokenPricesReactive);
 
-      return data
-    })
+    const cryptoAmounts = computed(() => resolveCryptoAmounts(props.escrowContract))
+    const fiatAmounts = computed(() => resolveFiatAmounts(props.escrowContract))
 
     const displayBch = ref(true)
     function toggleAmountsDisplay() {
@@ -279,6 +367,7 @@ export default defineComponent({
       innerVal,
       tab,
 
+      cryptoAmounts,
       fiatAmounts,
       displayBch,
       toggleAmountsDisplay,

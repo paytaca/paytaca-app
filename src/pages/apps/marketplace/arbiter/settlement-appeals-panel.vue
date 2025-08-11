@@ -187,7 +187,7 @@
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { formatDateRelative, formatTimestampToText } from "src/marketplace/utils";
 import { ChatIdentity, EscrowContract, EscrowSettlementAppeal } from "src/marketplace/objects";
-import { compileEscrowSmartContract } from "src/marketplace/escrow";
+import { generateSettlementTransactions } from "src/marketplace/escrow";
 import { arbiterBackend, formatSettlementApealType, parseWif } from "src/marketplace/arbiter";
 import { debounce, useQuasar } from "quasar";
 import { useI18n } from "vue-i18n";
@@ -365,54 +365,28 @@ async function settleEscrowContract(escrowContract=EscrowContract.parse(), opts=
   }
 
   // creating tx is sometimes too fast that the dialog isn't necessary
-  let dialog
-  const dialogTimeout = setTimeout(() => {
-    dialog = $q.dialog({
-      title: settlementType  === 'release'
-        ? $t('CompleteEscrow', undefined, 'Complete escrow')
-        : $t('RefundEscrow', undefined, 'Refund escrow'),
-      progress: true,
-      persistent: true,
-      color: 'brandblue',
-      ok: false,
-      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
-    })
-  }, 10)
+  const dialog = $q.dialog({
+    title: settlementType  === 'release'
+      ? $t('CompleteEscrow', undefined, 'Complete escrow')
+      : $t('RefundEscrow', undefined, 'Refund escrow'),
+    progress: true,
+    persistent: true,
+    color: 'brandblue',
+    ok: false,
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+  })
   try {
-    dialog?.update?.({ message: $t('CompilingContract', undefined, 'Compiling contract') })
-    const escrow = compileEscrowSmartContract(escrowContract)
-    const contract = escrow.getContract()
-    if (contract.address != escrowContract?.address) {
-      console.warn('Address mismatch got', contract.address, 'expected', escrowContract?.address)
-      throw new Error(
-        $t('CompilingContractError', undefined, 'Compiled contract does not match address'),
-        { cause: 'invalid_compilation' }
-      )
-    }
-    const fundingUtxo = {
-      "txid": escrowContract.fundingTxid,
-      "vout": escrowContract.fundingVout,
-      "satoshis": escrowContract.fundingSats,
-    }
-    dialog?.update?.({ message: $t('CreatingTransaction', undefined, 'Creating transaction') })
-    let promise
-    if(settlementType === 'release') {
-      promise = escrow.release(fundingUtxo, props.keys?.wif)
-    } else if (settlementType === 'refund') {
-      promise = escrow.version === 'v1'
-        ? escrow.refund(fundingUtxo, props.keys?.wif)
-        : escrow.fullRefund(fundingUtxo, props.keys?.wif)
-    }
-    const transaction = await promise
+    const txGenResults = await generateSettlementTransactions({
+      escrowContracts: [escrowContract], wifs: [props.keys?.wif],
+      settlementType, dialog,
+    })
+    const transaction = txGenResults?.[0]?.transaction
     dialog?.hide?.()
-    clearTimeout(dialogTimeout)
 
     $q.dialog({
       component: SettlementTransactionPreviewDialog,
       componentProps: { escrowContract: escrowContract, transaction: transaction }
     }).onOk(() => sendSettlementTx(escrowContract, transaction, opts?.escrowSettlementAppealId))
-    // const txHex = await transaction.build()
-    // console.log('txhex', txHex)
   } catch(error) {
     console.error(error)
     let errorMessage
@@ -478,10 +452,16 @@ async function sendSettlementTx(escrowContract, transaction, escrowSettlementApp
 }
 
 function showEscrowContract(escrowContract=EscrowContract.parse()) {
+  const bchPrice = escrowContract.payments?.[0]?.bchPrice;
+  const tokenPrices = escrowContract.payments?.[0]?.tokenPrices;
+  const currency = bchPrice?.currency?.code;
   $q.dialog({
     component: EscrowContractDialog,
     componentProps: {
-      escrowContract: escrowContract
+      escrowContract: escrowContract,
+      bchPrice: bchPrice,
+      tokenPrices: tokenPrices,
+      currency: currency,
     },
   })
 }

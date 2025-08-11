@@ -1086,6 +1086,7 @@ const bchPaymentData = computed(() => {
   const data = {
     escrowContract: payment.value?.escrowContract,
     bchPrice: payment.value?.bchPrice,
+    tokenPrices: payment.value?.tokenPrices,
     address: payment.value?.escrowContract?.address || payment.value?.escrowContractAddress,
     bchAmount: parseFloat(payment.value?.escrowContract?.bchAmounts?.total),
     fiatAmount: 0,

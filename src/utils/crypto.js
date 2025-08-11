@@ -11,7 +11,9 @@ import {
   cashAddressToLockingBytecode,
   lockingBytecodeToBase58Address,
   encodeBase58Address,
-  hashTransaction
+  hashTransaction,
+  decodePrivateKeyWif,
+  secp256k1
 } from "@bitauth/libauth"
 
 export function sha256(data='', encoding='utf8') {
@@ -26,6 +28,16 @@ export function sha256(data='', encoding='utf8') {
 export function getTxid(transaction) {
   return hashTransaction(hexToBin(transaction))
 }
+
+export function wifToPubkey(wif) {
+  const privkey = decodePrivateKeyWif(wif)
+  const compressed = secp256k1.derivePublicKeyCompressed(privkey.privateKey)
+  if (typeof compressed !== 'string') return binToHex(compressed)
+  const uncompressed = secp256k1.derivePublicKeyUncompressed(privkey.privateKey)
+  if (typeof uncompressed !== 'string') return binToHex(uncompressed)
+  return uncompressed
+}
+
 
 export function pubkeyToPkHash(pubkey='') {
   return binToHex(ripemd160.hash(hexToBin(sha256(pubkey, 'hex'))))
@@ -74,6 +86,10 @@ export function pkHashToLegacyAddress(pkhash='') {
 
 export function pubkeyToAddress(pubkey, chipnet=false) {
   const pkhash = pubkeyToPkHash(pubkey)
+  return pkhashToCashAddress(pkhash, chipnet)
+}
+
+export function pkhashToCashAddress(pkhash, chipnet=false) {
   const legacyAddress = pkHashToLegacyAddress(pkhash)
   const decodedLegacyAddress = decodeBase58Address(legacyAddress)
   const prefix = chipnet ? 'bchtest' : 'bitcoincash'

@@ -379,6 +379,7 @@ const words = [
     Decrypting: 'Decrypting'
   },
   {
+    Merchant: 'Merchant',
     Cutlery: 'Cutlery',
     Rewards: 'Rewards',
     Rate: 'Rate',

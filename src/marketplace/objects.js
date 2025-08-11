@@ -71,6 +71,40 @@ export class Location {
   }
 }
 
+export class FungibleCashToken {
+  static parse(data) {
+    return new FungibleCashToken(data)
+  }
+  
+  constructor(data) {
+    this.raw = data
+  }
+
+  get raw() {
+    return this.$raw
+  }
+
+  /**
+   * @param {Object} data 
+   * @param {String} data.category
+   * @param {String} data.name
+   * @param {String} data.description
+   * @param {String} data.symbol
+   * @param {Number} data.decimals
+   * @param {String} data.image_url
+   */
+  set raw(data) {
+    Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
+    this.id = data?.id
+    this.category = data?.category
+    this.name = data?.name
+    this.description = data?.description
+    this.symbol = data?.symbol
+    this.decimals = data?.decimals
+    this.imageUrl = data?.image_url
+  }
+}
+
 
 export class User {
   static parse(data) {
@@ -912,6 +946,7 @@ export class BchPrice {
    * @param {{ code:String, symbol: String }} data.currency
    * @param {Number} data.price
    * @param {String | Number} data.timestamp
+   * @param {Number} [data.decimals]
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -919,6 +954,7 @@ export class BchPrice {
     this.price = data?.price
     if (data?.timestamp) this.timestamp = new Date(data?.timestamp)
     else if (this.timestamp) delete this.timestamp
+    this.decimals = data?.decimals
   }
 }
 
@@ -1011,6 +1047,8 @@ export class Checkout {
       bchPrice: BchPrice.parse(data?.payment?.bch_price),
       deliveryFee: data?.payment?.delivery_fee,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
+      amountToken: data?.payment?.amount_token ? FungibleCashToken.parse(data?.payment?.amount_token) : null,
+      deliveryFeeToken: data?.payment?.delivery_fee_token ? FungibleCashToken.parse(data?.payment?.delivery_fee_token) : null,
     }
     this.totalPaid = data?.total_paid
     this.totalPendingPayment = data?.total_pending_payment
@@ -1589,6 +1627,7 @@ export class Payment {
    * @param {{ code:String, symbol:String }} data.currency
    * @param {String} data.status
    * @param {Object} data.bch_price
+   * @param {Object[]} data.token_prices
    * @param {Number} data.amount
    * @param {Number} data.delivery_fee
    * @param {Number} data.markup_amount
@@ -1606,6 +1645,7 @@ export class Payment {
     this.currency = { code: data?.currency?.code, symbol: data?.currency?.symbol }
     this.status = data?.status
     this.bchPrice = BchPrice.parse(data?.bch_price)
+    if (Array.isArray(data?.token_prices)) this.tokenPrices = data?.token_prices.map(BchPrice.parse)
     this.amount = data?.amount
     this.deliveryFee = data?.delivery_fee
     this.markupAmount = data?.markup_amount
@@ -1637,6 +1677,10 @@ export class Payment {
 
   get canReceive() {
     return ['pending', 'sent'].indexOf(this?.status) >= 0
+  }
+
+  getTokenPrice(category) {
+    return this.tokenPrices.find(tokenPrice => tokenPrice?.currency?.code === `ct/${category}`)
   }
 
   async fetchEscrowContract() {
@@ -1734,9 +1778,13 @@ export class EscrowContract {
    * @param {Number} data.amount_sats
    * @param {Number} data.service_fee_sats
    * @param {Number} data.arbitration_fee_sats
+   * @param {String} [data.amount_category]
+   * @param {String} [data.service_fee_category]
+   * @param {String} [data.arbitration_fee_category]
    * @param {Object} [data.delivery_fee_key_nft]
    * @param {Number} data.delivery_fee_key_nft.amount
    * @param {Number} data.delivery_fee_key_nft.nft_id
+   * @param {String} data.delivery_fee_key_nft.category
    * @param {String} data.delivery_fee_key_nft.current_address
    * @param {String} data.delivery_fee_key_nft.current_txid
    * @param {Number} data.delivery_fee_key_nft.current_index
@@ -1771,9 +1819,14 @@ export class EscrowContract {
     this.amountSats = data?.amount_sats
     this.serviceFeeSats = data?.service_fee_sats
     this.arbitrationFeeSats = data?.arbitration_fee_sats
+
+    this.amountCategory = data?.amount_category
+    this.serviceFeeCategory = data?.service_fee_category
+    this.arbitrationFeeCategory = data?.arbitration_fee_category
     this.deliveryFeeKeyNft = {
       amount: data?.delivery_fee_key_nft?.amount,
       nftId: data?.delivery_fee_key_nft?.nft_id,
+      category: data?.delivery_fee_key_nft?.category,
       currentAddress: data?.delivery_fee_key_nft?.current_address,
       currentTxid: data?.delivery_fee_key_nft?.current_txid,
       currentIndex: data?.delivery_fee_key_nft?.current_index,
@@ -1811,12 +1864,17 @@ export class EscrowContract {
   }
 
   get sats() {
+    const CASHTOKEN_DUST_SATS = 1000;
+    const deliveryFeeAmount = this.deliveryFeeKeyNft?.amount || 0;
+    const deliveryFeeCategory = this.deliveryFeeKeyNft?.category;
     return {
-      amount: this.amountSats,
-      serviceFee: this.serviceFeeSats,
-      arbitrationFee: this.arbitrationFeeSats,
-      deliveryFee: this.deliveryFeeKeyNft?.amount || 0,
-      networkFee: 1000,
+      amount: this.amountCategory ? CASHTOKEN_DUST_SATS : this.amountSats,
+      serviceFee: this.serviceFeeCategory ? CASHTOKEN_DUST_SATS : this.serviceFeeSats,
+      arbitrationFee: this.arbitrationFeeCategory ? CASHTOKEN_DUST_SATS : this.arbitrationFeeSats,
+      deliveryFee: (deliveryFeeAmount && deliveryFeeCategory)
+        ? CASHTOKEN_DUST_SATS * 2
+        : deliveryFeeAmount,
+      networkFee: this.requiresTokens ? NaN : 1000,
     }
   }
 
@@ -1849,21 +1907,8 @@ export class EscrowContract {
     return Boolean(this.settlementTxid)
   }
 
-  get fiatAmount() {
-    const bchPrice = parseFloat(this.payments?.[0]?.bchPrice?.price)
-    const currency = this.payments?.[0]?.bchPrice?.currency?.symbol
-    if (!Number.isFinite(bchPrice)) return
-
-    const ROUND_MULTIPLIER = 10 ** 6
-    const round = val => Math.round(val * ROUND_MULTIPLIER) / ROUND_MULTIPLIER
-    return {
-      total: round(this.bchAmounts.total * bchPrice),
-      serviceFee: round(this.bchAmounts.serviceFee),
-      arbitrationFee: round(this.bchAmounts.arbitrationFee),
-      deliveryFee: round(this.bchAmounts.deliveryFee),
-      networkFee: round(this.bchAmounts.networkFee),
-      currency: currency,
-    }
+  get requiresTokens() {
+    return Boolean(this.amountCategory || this.serviceFeeCategory || this.arbitrationFeeCategory || this.deliveryFeeKeyNft?.category)
   }
 
   get fundingTxLink() {

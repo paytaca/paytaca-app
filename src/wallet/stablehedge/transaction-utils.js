@@ -113,33 +113,6 @@ export function cashscriptTxToLibauth(contractAddress, tx) {
   return { transaction, sourceOutputs }
 }
 
-
-/**
- * @param {import("./wallet").WatchtowerUtxo} utxo 
- * @returns {import("cashscript").Utxo}
- */
-export function watchtowerUtxoToCashscript(utxo) {
-  let tokenAmount
-  if (utxo?.tokenid) {
-    tokenAmount = BigInt(utxo?.amount)
-  }
-
-  return {
-    txid: utxo?.txid,
-    vout: utxo?.vout,
-    satoshis: BigInt(utxo?.value),
-    token: !utxo?.tokenid ? undefined : {
-      category: utxo?.tokenid,
-      amount: tokenAmount,
-      nft: !utxo?.capability ? undefined : {
-        capability: utxo?.capability,
-        commitment: utxo?.commitment,
-      }
-    }
-  }
-}
-
-
 export class TransactionBalancer {
   /**
    * @callback InputSizeCalculator

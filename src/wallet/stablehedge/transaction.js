@@ -1,7 +1,8 @@
 import { SignatureTemplate } from "cashscript";
 import { binToHex, lockingBytecodeToCashAddress } from "@bitauth/libauth";
 import { getTxid, toTokenAddress } from "src/utils/crypto";
-import { calculateInputSize, mockSignatureTemplate, TransactionBalancer, watchtowerUtxoToCashscript } from "./transaction-utils";
+import { watchtowerUtxoToCashscript } from "src/utils/utxo-utils";
+import { calculateInputSize, mockSignatureTemplate, TransactionBalancer } from "./transaction-utils";
 import { StablehedgeRPC } from "./rpc";
 import { getStablehedgeBackend } from "./api";
 import { getTreasuryContractInstance } from "./treasury-contract";
