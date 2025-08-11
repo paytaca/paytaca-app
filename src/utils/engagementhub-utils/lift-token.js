@@ -10,7 +10,7 @@ import Watchtower from "watchtower-cash-js"
 
 
 const watchtower = new Watchtower(false)
-const bchGenesisBlockTime = 1501834939
+const btcGenesisBlock = 1231006505;
 
 export const SaleGroup = {
   SEED: 'seed',
@@ -44,7 +44,7 @@ export async function generateSignature(txId, wif) {
       return resp.data.details
     })
 
-  const locktime = Math.floor((tx.timestamp - bchGenesisBlockTime) / 600)
+  const locktime = Math.floor((tx.timestamp - btcGenesisBlock) / 600);
   const utxoLockingBytecode = cashAddressToLockingBytecode(tx.inputs[0].address)
 
   const transaction = {
