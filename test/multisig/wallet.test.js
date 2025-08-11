@@ -265,33 +265,33 @@ describe('Multisig Wallet', (t) => {
   })
 
     describe('exportToBase64()', () => {
-    it('produces a base64 string', () => {
-        const wallet = new MultisigWallet({
-            name: 'Wallet 1',
-            m: 2,
-            signers: [
-                {
-                    name: 'Signer 1',
-                    xpub: hdPublicKey0H
-                },
-                {
-                    name: 'Signer 2',
-                    xpub: hdPublicKey1H
-                },
-                {
-                    name: 'Signer 3',
-                    xpub: hdPublicKey2H
-                }
-            ]
+        it('produces a base64 string', () => {
+            const wallet = new MultisigWallet({
+                name: 'Wallet 1',
+                m: 2,
+                signers: [
+                    {
+                        name: 'Signer 1',
+                        xpub: hdPublicKey0H
+                    },
+                    {
+                        name: 'Signer 2',
+                        xpub: hdPublicKey1H
+                    },
+                    {
+                        name: 'Signer 3',
+                        xpub: hdPublicKey2H
+                    }
+                ]
+            })
+
+            function isBase64(str) {
+                return /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/.test(str);
+            }
+
+            assert.equal(true, isBase64(wallet.exportToBase64()))
+
         })
-
-        function isBase64(str) {
-            return /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/.test(str);
-        }
-
-        assert.equal(true, isBase64(wallet.exportToBase64()))
-
-    })
     })
 
     describe('getAddressUtxos()', () => {

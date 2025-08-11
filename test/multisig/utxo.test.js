@@ -135,7 +135,7 @@ describe('utxo', (t) => {
         assert.equal(selected.selectedUtxos.length === 2, true, `Expecting 1 utxo candidate but got ${selected.selectedUtxos.length}`)
         assert.equal(selectedTokenUtxo.txid === 'utxo12', true, `Expecting utxo12 but got ${selected.selectedUtxos[0].txid}`)
         
-        // scenario 1
+        // scenario 2
         tokenCategory = 'token-cat-abc' 
         tokenTargetAmount = 85n
         targetTokens = {
@@ -145,7 +145,7 @@ describe('utxo', (t) => {
         const numberOfTokenUtxos = selected.selectedUtxos.filter(u=>Boolean(u.token)).length
         const txidsOfTokenUtxos = selected.selectedUtxos.map(u=>u.txid) 
         assert.equal(selected.totalTokens['token-cat-abc']?.total >= tokenTargetAmount, true, `Expecting >= ${tokenTargetAmount} but got ${selected.totalTokens['token-cat-abc']?.total}`)
-        assert.equal(numberOfTokenUtxos === 2, true, `Expecting 1 utxo candidate but got ${numberOfTokenUtxos}`)
+        assert.equal(numberOfTokenUtxos === 2, true, `Expecting 2 utxo candidate but got ${numberOfTokenUtxos}`)
         assert.equal(txidsOfTokenUtxos.includes('utxo12'), true, `Expecting utxo12 included but got ${false}`)
         assert.equal(txidsOfTokenUtxos.includes('utxo7'), true, `Expecting utxo7 included but got ${false}`)
         
