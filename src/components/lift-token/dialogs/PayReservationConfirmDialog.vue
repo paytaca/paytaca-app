@@ -194,7 +194,7 @@ export default {
           reservation: this.rsvp.id,
           partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1,
           
-          messageTimestamp: this.messageTimestamp
+          message_timestamp: this.messageTimestamp
         };
 
         const isSuccessful = await processPurchaseApi(data);
