@@ -21,6 +21,12 @@ export function useCheckoutDetails(checkoutDataOrRef) {
     return checkout?.value?.payment?.bchPrice?.price || undefined
   })
 
+  const parsedCheckoutBchPrice = computed(() => {
+    const parsedBchPrice = parseFloat(checkoutBchPrice.value);
+    if (!parsedBchPrice) return checkoutBchPrice.value;
+    return parsedBchPrice.toFixed(3);
+  })
+
   const checkoutAmounts = computed(() => {
     const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
     const data = {
@@ -55,6 +61,7 @@ export function useCheckoutDetails(checkoutDataOrRef) {
     isStorePickup,
     checkoutCurrency,
     checkoutBchPrice,
+    parsedCheckoutBchPrice,
     checkoutAmounts,
   }
 }

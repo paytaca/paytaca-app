@@ -407,7 +407,7 @@
           <div class="row items-center">
             <q-space/>
             <div>
-              {{ checkoutBchPrice }} {{ checkoutCurrency }} / BCH
+              {{ parsedCheckoutBchPrice }} {{ checkoutCurrency }} / BCH
               <q-icon name="info" size="1.25em">
                 <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                   <div class="text-body2">{{ checkoutCurrency }} price at</div>
@@ -501,6 +501,7 @@
               </q-menu>
             </div>
             <q-btn
+              v-if="bchPaymentData?.fundingRequirements?.length"
               :disable="loadingState.creatingPayment"
               no-caps label="Pay with wallet"
               icon="mdi-wallet"
@@ -725,7 +726,7 @@
             <div>BCH Price:</div>
             <q-space/>
             <div class="row items-center">
-              <div>{{ checkoutBchPrice }} {{ checkoutCurrency }} / BCH</div>
+              <div>{{ parsedCheckoutBchPrice }} {{ checkoutCurrency }} / BCH</div>
               <q-icon name="info" size="1.25em"/>
               <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                 <div class="text-body2">{{ checkoutCurrency }} price at</div>
@@ -1185,7 +1186,7 @@ const checkout = ref(Checkout.parse())
 const fetchCheckoutError = ref('')
 const {
   isStorePickup,
-  checkoutCurrency, checkoutBchPrice,
+  checkoutCurrency, checkoutBchPrice, parsedCheckoutBchPrice,
   checkoutAmounts,
 } = useCheckoutDetails(checkout)
 const displayBch = ref(true)
@@ -1667,7 +1668,7 @@ const bchPaymentData = computed(() => {
   }
   if (!data.address || !data.bchAmount) return data
   if (fundingRequirements.value.length !== 1) return data
-  if (fundingRequirements.value.length === 1) data.bchAmount = fundingRequirements.value[0].satoshis / 10 ** 8;
+  if (fundingRequirements.value.length === 1) data.bchAmount = fundingRequirements.value[0].amount / 10 ** 8;
 
   const fiatPrice = parseFloat(payment.value?.bchPrice?.price)
   if (fiatPrice) data.fiatAmount = Math.round(data.bchAmount * fiatPrice * 10 ** 3) / 10 ** 3
