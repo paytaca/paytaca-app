@@ -57,7 +57,13 @@
                   style="min-height:50px;"
                   @click="setSelectedToken(token)"
                 >
-                  <img :src="token?.imageUrl" width="50" class="q-mr-sm"/>
+                  <img
+                    height="35"
+                    :src="parseTokenImageUrl(token?.imageUrl)"
+                    :fallback-src="parseTokenImageUrl(token?.imageUrl, true)"
+                    class="q-mr-sm"
+                    @error="onImgErrorIpfsSrc"
+                  />
                   <div class="text-subtitle1">{{ token?.name }}</div>
                   <q-space/>
                   <div>
@@ -87,6 +93,7 @@ import { backend } from 'src/marketplace/backend';
 import { useCheckoutDetails } from 'src/composables/marketplace/checkout';
 import { useStore } from 'vuex'
 import { computed, onMounted, ref, watch } from 'vue';
+import { convertIpfsUrl, IPFS_DOMAINS } from 'src/wallet/cashtokens';
 
 const $emit = defineEmits([
   'newCheckoutData',
@@ -97,11 +104,31 @@ const props = defineProps({
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const { isStorePickup, checkoutAmounts, checkoutBchPrice, checkoutCurrency } = useCheckoutDetails(props.checkout) 
+const checkoutRef = computed(() => props.checkout)
+const { isStorePickup, checkoutAmounts, checkoutCurrency } = useCheckoutDetails(checkoutRef)
 const openDialog = ref(false)
 
 const bchPaymentOpt = FungibleCashToken.parse({ name: 'Bitcoin Cash', symbol: 'BCH', decimals: 8, category: null, image_url: 'bch-logo.png' })
 const paymentOptions = ref([bchPaymentOpt])
+
+function parseTokenImageUrl(url, fallbackUrl=false) {
+  let domain = !fallbackUrl ? undefined : IPFS_DOMAINS[1];
+  return convertIpfsUrl(url, domain)
+}
+
+/**
+ * @param {Event} evt 
+ */
+function onImgErrorIpfsSrc(evt) {
+  if (evt.target?.fallbackHandled) return
+
+  evt.target.fallbackHandled = true;
+  const fallbackSrc = evt.target?.attributes?.['fallback-src']?.value;
+  if (fallbackSrc && evt.target.src != fallbackSrc) {
+    evt.target.src = fallbackSrc;
+  }
+}
+
 
 onMounted(() => fetchTokenOptions())
 watch(() => props.checkout?.cart?.storefrontId, () => fetchTokenOptions())
