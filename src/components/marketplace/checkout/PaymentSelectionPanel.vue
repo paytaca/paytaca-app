@@ -22,6 +22,9 @@
           <q-tab-panels :model-value="dialogTab" animated style="background: none;">
             <q-tab-panel name="main" class="q-pa-none">
               <div style="min-height:30vh;">
+                <div v-if="formErrors.errors?.length" class="q-pa-sm rounded-borders bg-red text-white errors-list">
+                  <div v-for="error in formErrors?.errors" class="errors-list-item">{{ error }}</div>
+                </div>
                 <div class="row items-center q-py-sm" @click="selectAmountToken()">
                   <div>
                     <div class="text-subtitle1">{{ $t('Merchant') }}</div>
@@ -88,12 +91,14 @@
 </template>
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { convertIpfsUrl, IPFS_DOMAINS } from 'src/wallet/cashtokens';
 import { Checkout, FungibleCashToken } from 'src/marketplace/objects';
+import { errorParser } from 'src/marketplace/utils';
 import { backend } from 'src/marketplace/backend';
 import { useCheckoutDetails } from 'src/composables/marketplace/checkout';
+import { useI18n } from 'vue-i18n'
 import { useStore } from 'vuex'
 import { computed, onMounted, ref, watch } from 'vue';
-import { convertIpfsUrl, IPFS_DOMAINS } from 'src/wallet/cashtokens';
 
 const $emit = defineEmits([
   'newCheckoutData',
@@ -101,6 +106,7 @@ const $emit = defineEmits([
 const props = defineProps({
   checkout: Checkout,
 })
+const { t: $t } = useI18n()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -165,6 +171,11 @@ function resetForm() {
   tokenSelectForm.value.deliveryFeeToken = currentDeliveryFeeToken.value;
 }
 
+const formErrors = ref({ errors: [] })
+function resetFormErrors() {
+  formErrors.value = { errors: [] }
+}
+
 const dialogTab = computed(() => tokenSelectForm.value?.selectStateKey ? 'list' : 'main')
 
 function selectAmountToken() {
@@ -194,6 +205,7 @@ function savePaymentOptions() {
   savingPaymentOptions.value = true
   return backend.patch(`connecta/checkouts/${props.checkout?.id}/`, data)
     .finally(() => savingPaymentOptions.value = false)
+    .finally(() => resetFormErrors())
     .then(response => {
       openDialog.value = false
       $emit('newCheckoutData', response?.data, {
@@ -201,6 +213,15 @@ function savePaymentOptions() {
         checkNewPayment: requirePriceUpdates,
       })
       return response
+    })
+    .catch(error => {
+      console.error('Checkout Payment Options', error);
+      const data = error?.response?.data
+      formErrors.value.errors = errorParser.toArray(data?.non_field_errors);
+      const amountError = errorParser.firstElementOrValue(data?.payment?.amount_token_category);
+      const deliveryFeeError = errorParser.firstElementOrValue(data?.payment?.delivery_fee_token_category);
+      if (amountError) formErrors.value.errors.push(`${$t('Merchant')}: ${amountError}`)
+      if (deliveryFeeError) formErrors.value.errors.push(`${$t('DeliveryFee')}: ${deliveryFeeError}`)
     })
 }
 
@@ -216,3 +237,9 @@ function getTokenBalance(category=null) {
   return parsedBalance || 0
 }
 </script>
+<style lang="scss" scoped>
+.errors-list > .errors-list-item:not(:only-of-type) {
+  display: list-item;
+  margin-left: 1em;
+}
+</style>

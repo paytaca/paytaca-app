@@ -363,7 +363,11 @@
           </q-form>
         </q-tab-panel>
         <q-tab-panel name="payment" :dark="darkMode">
-          <q-banner v-if="formErrors?.payment?.deliveryFee || formErrors?.payment?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
+          <q-banner
+            v-if="formErrors?.payment?.deliveryFee || formErrors?.payment?.detail?.length"
+            class="bg-red text-white rounded-borders q-mb-md"
+            style="word-wrap: break-word;"
+          >
             <div v-for="(errorMsg, index) in formErrors?.payment?.detail" :key="index" class="banner-error">
               {{ errorMsg }}
             </div>
@@ -513,7 +517,7 @@
               @click="() => bchPaymentState.tab = 'qrcode'"
             />
           </template>
-          <div v-if="!(checkout.balanceToPay > 0) || forceShowReview" class="q-mt-sm">
+          <div v-if="!(checkout.balanceToPay > 0)" class="q-mt-sm">
             <q-btn
               :disable="loading"
               no-caps
@@ -808,6 +812,7 @@ import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { Wallet, loadWallet } from 'src/wallet'
 import { Device } from '@capacitor/device';
 import { debounce, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted, inject, onDeactivated, onActivated } from 'vue'
@@ -835,15 +840,6 @@ import { useCheckoutDetails } from 'src/composables/marketplace/checkout'
 import { compileEscrowSmartContract, sendEscrowPayment } from 'src/marketplace/escrow'
 import { useEscrowAmountsCalculator } from 'src/composables/marketplace/escrow'
 
-const forceShowReview = ref(false)
-onMounted(() => {
-  window.$c = {
-    toggleForceShowReview: () => forceShowReview.value = !forceShowReview.value,
-  }
-})
-onUnmounted(() => {
-  delete window.$c
-})
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -851,6 +847,7 @@ const props = defineProps({
   deliveryType: String,
 })
 
+const { t: $t } = useI18n()
 const $q = useQuasar()
 const $router = useRouter()
 const $store = useStore()
@@ -1266,13 +1263,11 @@ function saveCart() {
 
 const updateBchPricePromise = ref()
 function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
-  console.log('UPDATE BCH PRICE PROMISE', updateBchPricePromise.value)
   if (!updateBchPricePromise.value) {
     loadingState.value.price = true
     updateBchPricePromise.value = checkout.value.updateBchPrice(opts)
       .finally(() => {
         updateBchPricePromise.value = undefined
-        console.log('RESET UPDATE BCH PRICE PROMISE')
       })
       .then(() => resetFormData())
       .finally(() => loadingState.value.price = false)
@@ -1620,8 +1615,8 @@ const createPayment = debounce(async () => {
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.escrow?.non_field_errors)
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.non_field_errors)
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.detail)
-      if (!errorMsgs.length) errorMsgs = errorParser.toArray(data)
-      if (!errorMsgs.length) errorMsgs = ["Unable to create payment"]
+      if (!errorMsgs.length && typeof data === 'string') errorMsgs = errorParser.toArray(data)
+      if (!errorMsgs.length) errorMsgs = [$t('UnableToCreatePayment')]
       formErrors.value.payment.detail = errorMsgs
     })
     .finally(() => {
