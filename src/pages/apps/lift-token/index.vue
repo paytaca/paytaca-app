@@ -80,6 +80,7 @@ import {
   isNotDefaultTheme,
 } from "src/utils/theme-darkmode-utils";
 import {
+  getAddressPath,
   getContractAddressApi,
   getPurchasesData,
   getReservationsData,
@@ -90,6 +91,7 @@ import HeaderNav from "src/components/header-nav.vue";
 import ProgressLoader from "src/components/ProgressLoader.vue";
 import ReservationsTabPanel from "src/components/lift-token/ReservationsTabPanel.vue";
 import PurchasesTabPanel from "src/components/lift-token/PurchasesTabPanel.vue";
+import { loadLibauthHdWallet } from "src/wallet";
 
 export default {
   name: "LiftTokenPage",
@@ -137,26 +139,18 @@ export default {
       this.purchasesList = results[1].value;
       this.liftSwapContractAddress = results[2].value;
 
-      // check if walletAddresses is empty
-      // if empty, call dispatch to auto-populate values
-      const bchWalletInfo = this.$store.getters["global/getWallet"]("bch");
-      if (bchWalletInfo.walletAddresses.length === 0)
-        this.$store.dispatch("global/loadWalletAddresses");
-
       // work in background
       // update the public keys of reservations if they are empty
       if (this.reservationsList.length > 0) {
         const rsvp_payload = [];
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+
         for (const rsvp of this.reservationsList) {
           if (rsvp.public_key === "") {
-            // get pubkey hex of bch address used for reservation
-            const bchWalletInfo =
-              this.$store.getters["global/getWallet"]("bch");
-            const walletAddress = bchWalletInfo.walletAddresses.filter(
-              (a) => a.address === rsvp.bch_address
-            );
-            const lastAddressWif = walletAddress[0].wif;
-            const decodedWif = decodePrivateKeyWif(lastAddressWif);
+            const addressPath = await getAddressPath(rsvp.bch_address)
+            const wif = libauthWallet.getPrivateKeyWifAt(addressPath);
+            const decodedWif = decodePrivateKeyWif(wif);
             const pubkey = secp256k1.derivePublicKeyCompressed(
               decodedWif.privateKey
             );
