@@ -133,7 +133,7 @@
 <script>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { parseKey } from "src/utils/custom-keyboard-utils";
-import { getOraclePrice, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
+import { getOracleData, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
   getAssetDenomination,
@@ -168,7 +168,8 @@ export default {
       unpaidLift: 0,
       bchBalance: 0,
       tknBalance: 0,
-      currentUsdPrice: 0
+      currentUsdPrice: 0,
+      currentMessageTimestamp: 0
     };
   },
 
@@ -271,11 +272,14 @@ export default {
             rsvp: this.rsvp,
             wallet: this.wallet,
             liftSwapContractAddress: this.liftSwapContractAddress,
+            messageTimestamp: this.currentMessageTimestamp
           },
         })
         .onCancel(() => {
           this.intervalId = setInterval(async () => {
-            this.currentUsdPrice = await getOraclePrice()
+            const oracleData = await getOracleData()
+            this.currentUsdPrice = oracleData.price
+            this.currentMessageTimestamp = oracleData.messageTimestamp
             this.computeUsdBch();
             this.computeBalances();
           }, 60000);
@@ -288,12 +292,16 @@ export default {
   },
 
   async mounted() {
-    this.currentUsdPrice = await getOraclePrice()
+    const oracleData = await getOracleData()
+    this.currentUsdPrice = oracleData.price
+    this.currentMessageTimestamp = oracleData.messageTimestamp
     this.computeUsdBch();
     this.computeBalances();
 
     this.intervalId = setInterval(async () => {
-      this.currentUsdPrice = await getOraclePrice()
+      const oracleData = await getOracleData()
+      this.currentUsdPrice = oracleData.price
+      this.currentMessageTimestamp = oracleData.messageTimestamp
       this.computeUsdBch();
       this.computeBalances();
     }, 60000);

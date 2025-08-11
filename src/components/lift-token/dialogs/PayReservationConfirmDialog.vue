@@ -100,6 +100,7 @@ export default {
     rsvp: { type: Object, default: null },
     wallet: { type: Object, default: null },
     liftSwapContractAddress: { type: String, default: null },
+    messageTimestamp: { type: Number, default: 0 }
   },
 
   components: {
@@ -192,6 +193,8 @@ export default {
 
           reservation: this.rsvp.id,
           partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1,
+          
+          messageTimestamp: this.messageTimestamp
         };
 
         const isSuccessful = await processPurchaseApi(data);
