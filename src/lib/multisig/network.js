@@ -44,19 +44,30 @@ export const Network = {
 };
 
 /**
+ * @typedef {'mainnet' | 'chipnet'} WatchtowerNetworkType
+ */
+
+/**
+ * @type {{ mainnet: WatchtowerNetworkType, chipnet: WatchtowerNetworkType }}
+ */
+export const WatchtowerNetwork = {
+    mainnet: 'mainnet',
+    chipnet: 'chipnet'
+}
+/**
  * @implements { NetworkProvider }
  */
 export class WatchtowerNetworkProvider {
 
     /**
      * @param {Object} config
-     * @param {import('./wallet').Network} config.network
+     * @param {WatchtowerNetworkType} config.network
      */
     constructor(config) {
         this.hostname = 'https://watchtower.cash'
         this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
-        this.network = config?.network || Network.MAINNET
-        if (this.network === Network.chipnet) {
+        this.network = config?.network || WatchtowerNetwork.mainnet
+        if (this.network === WatchtowerNetwork.chipnet) {
             this.hostname = 'https://chipnet.watchtower.cash'
             this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.chipnet
         }

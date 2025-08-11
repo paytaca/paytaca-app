@@ -34,6 +34,11 @@
  * @property {OnStateChangeCallback} onStateChange
  * @property {NetworkProvider} provider
  * @property {Network} [network='mainnet']
+ * @property {Object} [store] - Optional Vuex-style store.
+ * @property {(type: string, payload?: any) => Promise<any>} [store.dispatch]
+ * @property {(type: string, payload?: any) => void} [store.commit]
+ * @property {Object.<string, any>} [store.state]
+ * @property {Object.<string, any>} [store.getters]
  */
  
 /**
@@ -458,6 +463,7 @@ export class MultisigWallet {
     this.lastIssuedChangeAddressIndex = config.lastIssuedChangeAddressIndex
     this.lastUsedDepositAddressIndex = config.lastUsedDepositAddressIndex
     this.lastUsedChangeAddressIndex = config.lastUsedChangeAddressIndex
+    this.enabled = config.enabled
     if (!config.id) {
       this.id = getWalletHash(this)
     }
@@ -588,11 +594,17 @@ async getAddressBalance(address) {
   return await this.options?.provider?.getAddressBalance(address)
 }
 
-async getWalletBalance() {
-  // return await this.options?.provider?.getWalletBalance(this) 
-  console.log('UTXOS', (await this.getWalletUtxos()))
-  return (await this.getWalletUtxos())?.reduce((b, u) => b += u.satoshis, 0)
+/**
+ * 
+ * @param {'satoshis'|'bch'} [unit='bch']
+ */
+async getWalletBalance(unit) {
+  const balance = (await this.getWalletUtxos())?.reduce((b, u) => b += u.satoshis, 0) 
+  if (!unit || unit !== 'satoshis') {
+    return balance / 1e8
+  }
 }
+
 async getWalletHashBalance() {
   return await this.options?.provider?.getWalletHashBalance(this.getWalletHash())
 }
@@ -661,7 +673,22 @@ async getWalletHashBalance() {
     // 6. Return proposal object
   }
 
+  /**
+   * @param {object} saveOptions
+   * @param {boolean} saveOptions.sync - If true, wallet will be synced with watchtower
+   */
+  async save(saveOptions) {
+    if (this.options?.store) {
+      if (this.options?.store?.commit) {
+        this.options.store.commit('multisig/saveWallet', this)
+      }
+      if (this.options?.store?.dispatch && saveOptions?.sync) {
+        return await this.options.store.dispatch('multisig/syncWallet', this)
+      }
+    }
+  }
 
+  
   toJSON() {
     return {
       id: this.id,
@@ -685,7 +712,7 @@ async getWalletHashBalance() {
   }
 
   static importFromObject(objectMultisigWallet, stateChangeHandler) {
-    return new MultisigWallet(objectMultisigWallet, stateChangeHandler)
+    return new MultisigWallet(structuredClone(objectMultisigWallet), stateChangeHandler)
   }
 }
 
