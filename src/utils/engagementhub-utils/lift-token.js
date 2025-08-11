@@ -87,7 +87,7 @@ export async function getAddressPath(address) {
     })
 }
 
-export async function getOraclePrice() {
+export async function getOracleData() {
   return await axios.get(
     `https://${ORACLE_RELAY}/api/v1/oracleMessages?publicKey=${ORACLE_PUBKEY}&count=1`
   ).then(async (response) => {
@@ -100,7 +100,10 @@ export async function getOraclePrice() {
         (message.dataContent[2] << 16) |
         (message.dataContent[3] << 24)) >>>
       0;
-    return price / 10 ** 2;
+    return {
+      price: price / 10 ** 2,
+      messageTimestamp: message.messageTimestamp
+    };
   })
 }
 
