@@ -31,11 +31,18 @@
 */
 
 /**
+ * @typedef {object} TokenRequirement
+ * @property {bigint} amount
+ */
+
+
+/**
 * @typedef  {object} CoinSelectOptions
-* @property {number} targetSatoshis
-* @property {UtxoSelectionStrategy} [strategy]
+* @property {number} targetSatoshis - BCH target in satoshis.
+* @property {{Object.<string, TokenRequirement>}} targetTokens - Map of token category -> required amount
+* @property {UtxoSelectionStrategy} [strategy='smallest']
 * @property {TokenFilter} [tokenFilter]
-* @property {boolean} [changeFirst=true]
+* @property {boolean} [changeFirst=true] - Prefer change addresses first.
 */
 
 /**
@@ -65,203 +72,288 @@
  */
 
 
+
+// /**
+//  * Knapsack-style selector to minimize excess.
+//  * @param {CommonUtxo[]} utxos - Array of UTXOs.
+//  * @param {bigint} targetAmount - Target amount to cover.
+//  * @returns {Object} { selectedUtxos, total, satisfied }
+//  */
+// const knapsack = (utxos, targetAmount) => {
+//   const sorted = [...utxos].sort((a, b) => b.satoshis - a.satoshis)
+
+//   let best = null
+//   let minExcess = null
+
+//   const n = sorted.length
+//   const satoshis = sorted.map(u => BigInt(u.satoshis))
+
+//   // 2^n combinations
+//   for (let i = 0; i < (1 << n); i++) {
+//     let combo = []
+//     let sum = 0n
+
+//     for (let j = 0; j < n; j++) {
+//       if ((i & (1 << j)) !== 0) {
+//         combo.push(sorted[j])
+//         sum += satoshis[j]
+//       }
+//     }
+
+//     if (sum >= targetAmount) {
+//       const excess = sum - targetAmount
+//       if (minExcess === null || excess < minExcess) {
+//         best = combo
+//         minExcess = excess
+//       }
+//     }
+//   }
+
+//   return {
+//     selectedUtxos: best || [],
+//     total: best ? best.reduce((sum, u) => sum + BigInt(u.satoshis), 0n) : 0n,
+//     satisfied: !!best
+//   }
+// }
+
 /**
- * Select UTXOs using a knapsack algorithm, prioritizing change UTXOs first.
- * @param {Array} utxos - Array of UTXOs. Each must have `satoshis` and `addressPath`.
- * @param {bigint} targetAmount - Amount in satoshis to cover.
- * @returns {Object} Selected UTXOs and total amount.
+ * Optimized branch and bound knapsack coin selector
+ * to minimize excess satoshis above targetAmount.
+ *
+ * @param {CommonUtxo[]} utxos
+ * @param {bigint} targetSatoshis
+ * @returns {{ selectedUtxos: CommonUtxo[], total: bigint, satisfied: boolean }}
  */
-export function knapsackSelectChangeFirst(utxos, targetAmount) {
-  const changeUtxos = utxos.filter(u => u.addressPath.startsWith('1/'))
-  const depositUtxos = utxos.filter(u => !u.addressPath.startsWith('1/'))
+function knapsackSatoshis(utxos, targetSatoshis) {
+  // Sort descending by satoshis for early pruning
+  const sorted = 
+    [...utxos]
+      .sort((a, b) => b.satoshis - a.satoshis)
+      .sort((a, b) => {
+    const aIsChange = a.addressPath.startsWith('1/');
+    const bIsChange = b.addressPath.startsWith('1/');
 
-  // Try with change UTXOs only
-  let result = knapsack(changeUtxos, targetAmount)
-  if (result.satisfied) return result
+    // Change addresses ('1/n') come first
+    if (aIsChange && !bIsChange) return -1;
+    if (!aIsChange && bIsChange) return 1;
 
-  // Try with all UTXOs
-  result = knapsack([...changeUtxos, ...depositUtxos], targetAmount)
-  return result
-}
+    // If both are change or both are deposit, sort by n
+    const aIndex = parseInt(a.addressPath.split('/')[1], 10);
+    const bIndex = parseInt(b.addressPath.split('/')[1], 10);
+    return aIndex - bIndex;
+  })
 
-/**
- * Knapsack-style selector to minimize excess.
- * @param {CommonUtxo[]} utxos - Array of UTXOs.
- * @param {bigint} targetAmount - Target amount to cover.
- * @returns {Object} { selectedUtxos, total, satisfied }
- */
-const knapsack = (utxos, targetAmount) => {
-  const sorted = [...utxos].sort((a, b) => b.satoshis - a.satoshis)
-
-  let best = null
-  let minExcess = null
-
+  const sats = sorted.map(u => BigInt(u.satoshis))
   const n = sorted.length
-  const satoshis = sorted.map(u => BigInt(u.satoshis))
 
-  // 2^n combinations
-  for (let i = 0; i < (1 << n); i++) {
-    let combo = []
-    let sum = 0n
+  let bestSolution = null
+  let bestExcess = null
 
-    for (let j = 0; j < n; j++) {
-      if ((i & (1 << j)) !== 0) {
-        combo.push(sorted[j])
-        sum += satoshis[j]
-      }
-    }
-
-    if (sum >= targetAmount) {
-      const excess = sum - targetAmount
-      if (minExcess === null || excess < minExcess) {
-        best = combo
-        minExcess = excess
+  // Early exit: if any utxo >= target, pick smallest such utxo
+  for (const u of sorted) {
+    const val = BigInt(u.satoshis)
+    if (val >= targetSatoshis) {
+      if (bestExcess === null || val - targetSatoshis < bestExcess) {
+        bestSolution = [u]
+        bestExcess = val - targetSatoshis
       }
     }
   }
+  if (bestExcess === 0n) {
+    return { selectedUtxos: bestSolution, total: bestSolution[0].satoshis, satisfied: true }
+  }
+
+  /**
+   * Recursive search
+   * @param {number} idx Current index in sorted utxos
+   * @param {bigint} currentSum Sum of selected utxos so far
+   * @param {CommonUtxo[]} currentSelection
+   * @param {bigint} remainingSum Sum of utxos from idx to end
+   */
+  function search(idx, currentSum, currentSelection, remainingSum) {
+    // If currentSum >= target, check if best
+    if (currentSum >= targetSatoshis) {
+      const excess = currentSum - targetSatoshis
+      if (bestExcess === null || excess < bestExcess) {
+        bestExcess = excess
+        bestSolution = [...currentSelection]
+      }
+      return
+    }
+
+    // No more utxos or even all remaining can't reach target => prune
+    if (idx === n || currentSum + remainingSum < targetSatoshis) return
+
+    const utxo = sorted[idx]
+
+    // Choose utxo
+    currentSelection.push(utxo)
+    search(idx + 1, currentSum + BigInt(utxo.satoshis), currentSelection, remainingSum - BigInt(utxo.satoshis))
+    currentSelection.pop()
+
+    // Skip utxo
+    search(idx + 1, currentSum, currentSelection, remainingSum - BigInt(utxo.satoshis))
+  }
+
+  const totalSum = sats.reduce((a, b) => a + b, 0n)
+  search(0, 0n, [], totalSum)
 
   return {
-    selectedUtxos: best || [],
-    total: best ? best.reduce((sum, u) => sum + BigInt(u.satoshis), 0n) : 0n,
-    satisfied: !!best
+    selectedUtxos: bestSolution || [],
+    total: bestSolution ? bestSolution.reduce((a, u) => a + BigInt(u.satoshis), 0n) : 0n,
+    satisfied: bestSolution !== null
   }
 }
 
 /**
+ * Optimized branch and bound knapsack coin selector
+ * to minimize excess satoshis above targetAmount.
+ *
+ * @param {CommonUtxo[]} utxos
+ * @param {object} TokenRequirement
+ * @returns {{ selectedUtxos: CommonUtxo[], total: bigint, satisfied: boolean }}
+ */
+function knapsackTokens(utxos, targetToken) {
+  // Sort descending by satoshis for early pruning
+  let sorted = 
+    [...utxos]
+      .filter(u => u.token.category === Object.keys(targetToken)[0])
+      .sort((a, b) => b.token.amount - a.token.amount)
+
+  sorted = structuredClone(sorted).map(u => {
+    u.token.amount = BigInt(u.token.amount)
+    return u
+  })
+
+  const tokens = sorted.map(u => BigInt(u.token.amount))
+  const n = sorted.length
+
+  let bestSolution = null
+  let bestExcess = null
+
+  const targetTokenAmount = Object.values(targetToken)[0]
+  // Early exit: if any utxo >= target, pick smallest such utxo
+  for (const u of sorted) {
+    const val = BigInt(u.token.amount)
+    if (val >= targetToken.amount) {
+      if (bestExcess === null || val - targetTokenAmount < bestExcess) {
+        bestSolution = [u]
+        bestExcess = val - targetTokenAmount
+      }
+    }
+  }
+  if (bestExcess === 0n) {
+    return { selectedUtxos: bestSolution, total: bestSolution[0].token.amount, satisfied: true }
+  }
+
+  /**
+   * Recursive search
+   * @param {number} idx Current index in sorted utxos
+   * @param {bigint} currentSum Sum of selected utxos so far
+   * @param {CommonUtxo[]} currentSelection
+   * @param {bigint} remainingSum Sum of utxos from idx to end
+   */
+  function search(idx, currentSum, currentSelection, remainingSum) {
+    // If currentSum >= target, check if best
+    if (currentSum >= targetTokenAmount) {
+      const excess = currentSum - targetTokenAmount
+      if (bestExcess === null || excess < bestExcess) {
+        bestExcess = excess
+        bestSolution = [...currentSelection]
+      }
+      return
+    }
+
+    // No more utxos or even all remaining can't reach target => prune
+    if (idx === n || currentSum + remainingSum < targetTokenAmount) return
+
+    const utxo = sorted[idx]
+
+    // Choose utxo
+    currentSelection.push(utxo)
+    search(idx + 1, currentSum + BigInt(utxo.token.amount), currentSelection, remainingSum - BigInt(utxo.token.amount))
+    currentSelection.pop()
+
+    // Skip utxo
+    search(idx + 1, currentSum, currentSelection, remainingSum - BigInt(utxo.token.amount))
+  }
+
+  const totalSum = tokens.reduce((a, b) => a + b, 0n)
+  search(0, 0n, [], totalSum)
+
+  return {
+    selectedUtxos: bestSolution || [],
+    total: bestSolution ? bestSolution.reduce((a, u) => a + BigInt(u.token.amount), 0n) : 0n,
+    satisfied: bestSolution !== null
+  }
+}
+
+
+
+
+/**
+* Currently only works on sats only and single token category on which is the typical use case.
+* 
 * @param {CommonUtxo[]} utxos
 * @param {CoinSelectOptions} options
 * @returns {CoinSelectResult}
 */
 export function selectUtxos (utxos, options) {
   const {
-    targetAmount,
-    filterStrategy = 'bch-only',
-    sortStrategy = 'smallest',
-    tokenFilter,
-    changeFirst = true,
-    estimatedFee // Required if token-only
+    targetSatoshis,
+    targetTokens,
   } = options
 
-
-  let candidates = utxos.filter(utxo => {
-    if (filterStrategy === 'bch-only' && utxo.token) return false
-    if (filterStrategy === 'token-only' && !utxo.token) return false
-
-    if (tokenFilter && utxo.token) {
-      if (tokenFilter.category && utxo.token.category !== tokenFilter.category) return false
-      if (tokenFilter.capability && utxo.token.capability !== tokenFilter.capability) return false
-      if (tokenFilter.minAmount && BigInt(utxo.token.amount) < BigInt(tokenFilter.minAmount)) return false
-    } else if (tokenFilter) {
-      return false
-    }
-    return true
-  })
-
-
-  // switch (sortStrategy) {
-  //   case 'largest':
-  //     if (filterStrategy === 'bch-only') {
-  //       candidates.sort((a, b) => {
-  //         Number(b.satoshis) - Number(a.satoshis)
-  //       })
-  //     }
-  //     if (filterStrategy === 'token-only') {
-  //       candidates.sort((a, b) => {
-  //         if (BigInt(a.token.amount) > BigInt(b.token.amount)) return -1
-  //         if (BigInt(a.token.amount) < BigInt(b.token.amount)) return 1
-  //         return 0
-  //       })
-  //     }
-  //     break
-  //   case 'smallest':
-  //     if (filterStrategy === 'bch-only') {
-  //       candidates.sort((a, b) => Number(a.satoshis) - Number(b.satoshis))
-  //     }
-  //     if (filterStrategy === 'token-only') {
-  //       candidates.sort((a, b) => {
-  //         if (BigInt(a.token.amount) < BigInt(b.token.amount)) return -1
-  //         if (BigInt(a.token.amount) > BigInt(b.token.amount)) return 1
-  //         return 0
-  //       })
-  //     }
-  //     break
-  //   case 'oldest':
-  //     candidates.sort((a, b) => (a.age || 0) - (b.age || 0))
-  //     break
-  // }
-
-  const changeUtxos = candidates.filter(u => u.addressPath.startsWith('1/'))
-  const depositUtxos = candidates.filter(u => u.addressPath.startsWith('0/'))
-
-  const changeResult = knapsack(changeUtxos, targetAmount)
-  console.log('change result', changeResult)
-  if (changeResult.satisfied) {
-
-      if (filterStrategy === 'bch-only') {
-        changeResult.selectedUtxos.sort((a, b) => Number(a.satoshis) - Number(b.satoshis))
-      }
-      if (filterStrategy === 'token-only') {
-        changeResult.selectedUtxos.sort((a, b) => {
-          if (BigInt(a.token.amount) < BigInt(b.token.amount)) return -1
-          if (BigInt(a.token.amount) > BigInt(b.token.amount)) return 1
-          return 0
-        })
-      }
-      candidates = changeResult.selectedUtxos
-  } else {
-    const remaining = targetAmount - changeResult.total
-    const depositResult = knapsack(depositUtxos, remaining)
-
-    if (filterStrategy === 'bch-only') {
-        depositResult.selectedUtxos.sort((a, b) => Number(a.satoshis) - Number(b.satoshis))
-      }
-      if (filterStrategy === 'token-only') {
-        depositResult.selectedUtxos.sort((a, b) => {
-          if (BigInt(a.token.amount) < BigInt(b.token.amount)) return -1
-          if (BigInt(a.token.amount) > BigInt(b.token.amount)) return 1
-          return 0
-        })
-      }
-    candidates = candidates.concat(depositResult.selectedUtxos)
-
-  }
-  console.log('Candidates', candidates)
-
+  const nonTokenUtxos = utxos.filter(u => !u.token)
+  const tokenUtxos = utxos.filter(u => Boolean(u.token?.category))
   
-  const selected = []
-  let total = 0n
+  const satsUtxosSelected = knapsackSatoshis(nonTokenUtxos, targetSatoshis)
 
-  // if (filterStrategy === 'bch-only') {
-  //    candidates.sort((a, b) => Number(a.satoshis) - Number(b.satoshis))
-  // }
-  // if (filterStrategy === 'token-only') {
-  //   candidates.sort((a, b) => {
-  //     if (BigInt(a.token.amount) < BigInt(b.token.amount)) return -1
-  //     if (BigInt(a.token.amount) > BigInt(b.token.amount)) return 1
-  //     return 0
-  //   })
-  // }
+  const targetTokenAmount = BigInt(targetTokens?.[Object.keys(targetTokens || {})[0]] || 0) 
+  
+  let candidates = [...satsUtxosSelected.selectedUtxos]
 
-  console.log('sorted candidates', candidates)
+  if (targetTokenAmount > 0) {  
+    const tokensSelected = knapsackTokens(tokenUtxos, targetTokens)
+    
+    if (tokensSelected?.selectedUtxos?.length > 0) {
+      candidates = candidates.concat(tokensSelected.selectedUtxos)
+    }
+  }
+
+  let totalSatoshis = 0
+  let totalTokens = {}
 
   for (const utxo of candidates) {
-    selected.push(utxo)
-    if (filterStrategy === 'bch-only') {
-      total += BigInt(utxo.satoshis)
+    if (!utxo.token) {
+      totalSatoshis += utxo.satoshis
     }
-    if (filterStrategy === 'token-only') {
-      total += BigInt(utxo.token.amount)
+    if (utxo.token?.amount) {
+      if (!totalTokens[utxo.token.category]) {
+        totalTokens[utxo.token.category] = {
+          total: utxo.token.amount
+        }
+      }
+      totalTokens[utxo.token.category].total = totalTokens[utxo.token.category].total + utxo.token.amount
     }
-    if (total >= targetAmount) break
   }
 
+  let tokensSatisfied = {}
 
+  for (const category of Object.keys(targetTokens || {})) {
+    if (!totalTokens[category]) continue
+    tokensSatisfied[category] = totalTokens[category].total >= targetTokens[category].amount
+  }
 
   return {
-    total,
-    satisfied: total >= targetAmount,
-    selectedUtxos: selected,
-    remainingUtxos: utxos.filter(u => !selected.includes(u))
+    totalSatoshis,
+    totalTokens,
+    satoshisSatisfied: targetSatoshis >= totalSatoshis,
+    tokensSatisfied,
+    selectedUtxos: candidates,
+    remainingUtxos: utxos.filter(u => {
+      return !candidates.find(cu => cu.txid == u.txid && cu.vout == u.vout)
+    })
   }
 }
 
