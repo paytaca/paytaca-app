@@ -18,7 +18,7 @@
                 <q-item-section>
                   <q-item-label class="text-bold">
                   <div class="flex items-center">
-                  <div>{{ wallet.template.name }}</div>
+                  <div>{{ wallet.name }}</div>
                     <q-icon
                     class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'smartphone'"
                     :color="isMultisigWalletSynced(wallet)? 'green': ''"
@@ -42,11 +42,13 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label>Address - {{ wallet.lockingData?.hdKeys?.addressIndex}}</q-item-label>
+                  <!-- <q-item-label>Address - {{ wallet.lockingData?.hdKeys?.addressIndex}}</q-item-label> -->
+                  <q-item-label>Address - 0 </q-item-label>
+                   
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label >
-                    {{ shortenString(route.params.address, 32) }} <CopyButton :text="route.params.address"/>
+                    {{ shortenString(wallet.getDepositAddress(0).address, 32) }} <CopyButton :text="wallet.getDepositAddress(0).address"/>
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -63,21 +65,23 @@
                   <q-item-label>Required Signatures</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label caption>{{ getRequiredSignatures(wallet.template) }} of {{ Object.keys(wallet.template.entities).length }}</q-item-label>
+                                     <q-item-label caption>{{ wallet.m }} of {{ wallet.signers.length }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
-              <q-item v-for="signerEntityKey in Object.keys(wallet.template.entities)" :key="`app-multisig-view-signer-${signerEntityKey}`">
+              <q-item v-for="signer, i in wallet.signers" :key="`app-multisig-view-signer-${i}`">
                 <q-item-section>
                   <q-item-label
                     class="text-capitalize text-bold"
                     style="font-variant-numeric: proportional-nums">
-                    {{signerEntityKey}}. {{ wallet.template.entities[signerEntityKey].name }} <q-icon v-if="hdPrivateKeys?.[signerEntityKey]" name="key" color="warning"></q-icon>
-                    </q-item-label>
-                  <q-item-label caption >{{ shortenString(wallet.lockingData.hdKeys.hdPublicKeys[signerEntityKey], 20) }}</q-item-label>
+                    <!-- {{signerEntityKey}}. {{ wallet.template.entities[signerEntityKey].name }} <q-icon v-if="hdPrivateKeys?.[signerEntityKey]" name="key" color="warning"></q-icon> -->
+                    {{ signer.name }} <q-icon v-if="hdPrivateKeys?.[signer.xpub]" name="key" color="warning"></q-icon>
+        
+                  </q-item-label>
+                  <q-item-label caption >{{ shortenString(signer.xpub, 20) }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-item-label caption><CopyButton :text="wallet.lockingData.hdKeys.hdPublicKeys[signerEntityKey]"/></q-item-label>
+                  <q-item-label caption><CopyButton :text="signer.xpub"/></q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
@@ -161,14 +165,16 @@ import {
   importPst,
   isMultisigWalletSynced,
   generateFilename,
-  generateTransactionHash
+  generateTransactionHash,
+  MultisigWallet
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, walletTemplateP2pkh } from 'bitauth-libauth-v3'
+import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -187,9 +193,15 @@ const transactionFileModel = ref()
 const transactionInstance = ref()
 
 const wallet = computed(() => {
-  return multisigWallets.value?.find((wallet) => {
-    return wallet.address === route.params.address
-  })
+  const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.hash)
+  if (savedWallet) {
+    return MultisigWallet.importFromObject(savedWallet, {
+      provider: new WatchtowerNetworkProvider({
+        network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+      })
+    })
+  }
+  return null
 })
 
 const transactions = computed(() => {
@@ -324,17 +336,17 @@ const onTxProposalClick = async () => {
   }
 }
 
-const loadHdPrivateKeys = async (hdPublicKeys) => {
+const loadHdPrivateKeys = async (signers) => {
   if (!hdPrivateKeys.value) {
     hdPrivateKeys.value = {}
   }
-  for (const signerEntityId of Object.keys(hdPublicKeys)) {
+  for (const signer of signers) {
     try {
       const xprv = await getSignerXPrv({
-        xpub: hdPublicKeys[signerEntityId]
+        xpub: signer.xpub
       })
       if (xprv) {
-        hdPrivateKeys.value[signerEntityId] = xprv
+        hdPrivateKeys.value[signer.xpub] = xprv
       }
       
     } catch (e) {} // getSignerXPrv throws if xprv not found, we'll just ignore
@@ -343,12 +355,11 @@ const loadHdPrivateKeys = async (hdPublicKeys) => {
 
 onMounted(async () => {
   try {
-    balance.value = await getMultisigWalletBchBalance(
-      decodeURIComponent(route.params.address)
-    )
-    await $store.dispatch('multisig/syncWallet', wallet.value)
-    await $store.dispatch('multisig/fetchTransactions', wallet.value)
-    await loadHdPrivateKeys(wallet.value?.lockingData?.hdKeys?.hdPublicKeys)
+    balance.value = await wallet.value.getWalletBalance()
+    console.log('balance', balance.value)
+     // await $store.dispatch('multisig/syncWallet', wallet.value)
+    // await $store.dispatch('multisig/fetchTransactions', wallet.value)
+    await loadHdPrivateKeys(wallet.value?.signers)
   } catch (error) {}
 })
 </script>
