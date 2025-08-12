@@ -65,7 +65,7 @@
                   <q-item-label>Required Signatures</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                                     <q-item-label caption>{{ wallet.m }} of {{ wallet.signers.length }}</q-item-label>
+                  <q-item-label caption>{{ wallet.m }} of {{ wallet.signers.length }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
@@ -74,9 +74,7 @@
                   <q-item-label
                     class="text-capitalize text-bold"
                     style="font-variant-numeric: proportional-nums">
-                    <!-- {{signerEntityKey}}. {{ wallet.template.entities[signerEntityKey].name }} <q-icon v-if="hdPrivateKeys?.[signerEntityKey]" name="key" color="warning"></q-icon> -->
                     {{ signer.name }} <q-icon v-if="hdPrivateKeys?.[signer.xpub]" name="key" color="warning"></q-icon>
-        
                   </q-item-label>
                   <q-item-label caption >{{ shortenString(signer.xpub, 20) }}</q-item-label>
                 </q-item-section>
@@ -216,7 +214,7 @@ const deleteWallet = async () => {
 }
 
 const exportWallet = () => {
-  const data = exportMultisigWallet(wallet.value)
+  const data = wallet.value.exportToBase64()
   const blob = new Blob([data], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
