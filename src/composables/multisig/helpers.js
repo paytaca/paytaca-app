@@ -1,7 +1,7 @@
 import { useStore } from 'vuex'
 import { computed } from 'vue'
 import { loadWallet } from 'src/wallet'
-import { getMultisigCashAddress, getLockingBytecode, deriveHdKeysFromMnemonic } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, deriveHdKeysFromMnemonic, MultisigWallet } from 'src/lib/multisig'
 import { useRoute, useRouter } from 'vue-router'
 import Watchtower from 'src/lib/watchtower'
 import { CashAddressNetworkPrefix, binToHex } from 'bitauth-libauth-v3'
@@ -36,12 +36,7 @@ export const useMultisigHelpers = () => {
 
   const multisigWallets = computed(() => {
     const wallets = $store.getters['multisig/getWallets']?.map((w) => {
-      const wallet = structuredClone(w)
-      wallet.lockingData.hdKeys.addressIndex = 0
-      const address = getMultisigCashAddress({
-        ...wallet, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
-      })
-      return { ...wallet, address }
+      return MultisigWallet.importFromObject(w)
     })
     return wallets
   })

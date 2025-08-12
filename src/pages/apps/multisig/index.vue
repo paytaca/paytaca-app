@@ -32,21 +32,24 @@
               <q-item
                 v-for="wallet, i in multisigWallets"
                 :key="i"
-                :to="{ name: 'app-multisig-wallet-view', params: { address: wallet.address } }"
+                :to="{ name: 'app-multisig-wallet-view', params: { hash: wallet.getWalletHash() } }"
                 class="q-py-md"
                 clickable
                 >
                 <q-item-section>
                   <q-item-label class="text-weight-bold flex items-center">
-                    <q-icon name="mdi-wallet-outline" color="grad" class="q-mr-sm"></q-icon><span>{{ wallet.template.name }}</span>
+                    <q-icon name="mdi-wallet-outline" color="grad" class="q-mr-sm"></q-icon><span>{{ wallet.name }}</span>
                   </q-item-label>
                   <q-item-label caption class="text-subtitle1">
-                    {{ shortenString(wallet.address, 18) }}
+                    {{ shortenAddressForDisplay(wallet.getDepositAddress(0).address) }}
                   </q-item-label>
                   <q-item-label caption lines="2" class="text-subtitle1">
-                    <span v-for="signerEntityKey in Object.keys(wallet.template.entities)" :key="`signer-${signerEntityKey}`" class="q-mr-sm">
-                      {{ signerEntityKey}}: {{ wallet.template.entities[signerEntityKey].name }},
-                    </span>
+                    <div class="flex items-center">
+                      <q-icon name="group" class="q-mr-sm"></q-icon>
+                      <span v-for="signer,i in wallet.signers" :key="`signer-${signerEntityKey}`" class="q-mr-xs">
+                        {{signer.name}} {{ i < wallet.signers.length - 1? ',' : ''}}
+                      </span>
+                    </div>
                   </q-item-label>
                 </q-item-section>
                 <!--q-item-section side top>
@@ -106,12 +109,13 @@ import { useI18n } from 'vue-i18n'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { shortenString, importMultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
+import { shortenString, importMultisigWallet, getMultisigCashAddress, MultisigWallet } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
 import ImportWalletDialog from 'components/multisig/ImportWalletDialog.vue'
 import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import { shortenAddressForDisplay } from 'src/utils/address-utils'
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
@@ -165,16 +169,18 @@ const onUpdateWalletFileModelValue = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      walletInstance.value = importMultisigWallet(reader.result)
-      const defaultAddress = getMultisigCashAddress({
-        lockingData: walletInstance.value.lockingData,
-        template: walletInstance.value.template,
-        cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
-      })
-      $store.dispatch('multisig/createWallet', walletInstance.value)
+      walletInstance.value = MultisigWallet.importFromBase64(reader.result)
+      // const defaultAddress = getMultisigCashAddress({
+      //   lockingData: walletInstance.value.lockingData,
+      //   template: walletInstance.value.template,
+      //   cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+      // })
+
+      walletInstance.value.save({ sync: true })
+      // $store.dispatch('multisig/createWallet', walletInstance.value)
       router.push({
         name: 'app-multisig-wallet-view',
-        params: { address: defaultAddress }
+        params: { hash: walletInstance.value.getWalletHash() }
       })
     }
     reader.onerror = (err) => {
