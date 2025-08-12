@@ -4,32 +4,77 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
+    <!-- <HeaderNav
       :title="$t('Wallet Details')"
+      backnavpath="/apps/multisig"
+      class="apps-header"
+    /> -->
+    <HeaderNav
       backnavpath="/apps/multisig"
       class="apps-header"
     />
     <div class="row justify-center">
       <div class="col-xs-12 q-px-xs">
         <template v-if="wallet">
-          <div>
+            <div class="row q-gutter-y-lg">
+              <div class="col-xs-12 flex items-center justify-center">
+                <div>{{ wallet.name }}</div>
+                  <q-icon
+                  class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'mdi-cloud'"
+                  :color="isMultisigWalletSynced(wallet)? 'green': 'grey'"
+                  />
+              </div>
+              <div class="col-xs-12 text-center">
+                <div class="flex items-center justify-center q-gutter-x-sm">
+                  <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
+                  <span style="font-size: 2em">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>
+                </div>
+              </div>
+              <div class="col-xs-12 flex justify-between">
+                <q-btn flat dense no-caps @click="showWalletReceiveDialog" class="tile" v-close-popup>
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
+                      <div class="col-12 tile-label">Deposit</div>
+                    </div>
+                  </template>
+                </q-btn>
+                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-transactions', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="assignment" class="col-12" color="primary" style="position:relative">
+                        <q-badge color="red" v-if="transactions?.length > 0" style="margin-right: 20px;" floating>
+                        {{ transactions.length }}
+                        </q-badge>
+                      </q-icon>
+                      <div class="col-12 tile-label">Proposal</div>
+                    </div>
+                  </template>
+                </q-btn>
+                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-transactions', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="mdi-text-box-multiple" class="col-12" color="primary" style="position:relative">
+                        <q-badge color="red" v-if="transactions?.length > 0" style="margin-right: 20px;" floating>
+                        {{ transactions.length }}
+                        </q-badge>
+                      </q-icon>
+                      <div class="col-12 tile-label">Addresses</div>
+                    </div>
+                  </template>
+                </q-btn>
+                <q-btn flat dense no-caps @click="openWalletActionsDialog" class="tile" v-close-popup>
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="more_horiz" class="col-12" color="primary"></q-icon>
+                      <div class="col-12 tile-label">More</div>
+                    </div>
+                  </template>
+                </q-btn>
+              </div>
+            </div>
             <q-list>
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="text-bold">
-                  <div class="flex items-center">
-                  <div>{{ wallet.name }}</div>
-                    <q-icon
-                    class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'smartphone'"
-                    :color="isMultisigWalletSynced(wallet)? 'green': ''"
-                    />
-                  </div>
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section top side>
-                  <q-btn icon="more_vert" @click="openWalletActionsDialog" style="margin-right: -5px" flat dense round></q-btn>
-                </q-item-section>
-              </q-item>
+              <q-separator spaced inset />
               <q-item>
                 <q-item-section>
                   <q-item-label>Id</q-item-label>
@@ -44,20 +89,11 @@
                 <q-item-section>
                   <!-- <q-item-label>Address - {{ wallet.lockingData?.hdKeys?.addressIndex}}</q-item-label> -->
                   <q-item-label>Address - 0 </q-item-label>
-                   
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label >
                     {{ shortenString(wallet.getDepositAddress(0).address, 32) }} <CopyButton :text="wallet.getDepositAddress(0).address"/>
                   </q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item>
-                <q-item-section>
-                 <q-item-label>Balance</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-item-label caption>{{ balance || '?' }} BCH</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -83,7 +119,7 @@
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
-              <q-item
+              <!-- <q-item
                 clickable
                 @click="onTxProposalClick">
                 <q-item-section>
@@ -96,44 +132,51 @@
                     <q-icon v-else name="refresh" class="q-ml-sm" />
                   </div>
                 </q-item-section>
-              </q-item>
-              <q-separator spaced inset />
+              </q-item> -->
+              <!-- <q-separator spaced inset /> -->
+              <q-expansion-item v-model="balancesExpanded">
+                <template v-slot:header>
+                  <q-item-section>
+                    Balances
+                  </q-item-section>
+                </template>
+                <q-item clickable :to="{name: 'app-multisig-wallet-asset-balance', params: {wallethash: wallet.getWalletHash()}, query: {asset: 'bch'}}">
+                  <q-item-section>
+                    <div class="flex">
+                      <div>
+                        <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
+                        <code style="word-break: break-all; filter: brightness(80%)">
+                          BCH
+                        </code>
+                      </div>
+                    </div>
+                  </q-item-section>
+                  <q-item-section side>
+                    {{ balances?.['bch'] ? balances?.['bch'] / 1e8: '...' }}
+                  </q-item-section>
+                </q-item>
+                <template v-for="asset in Object.keys(balances || {})" >
+                  <q-item v-if="asset !== 'bch'" clickable :to="{name: 'app-multisig-wallet-asset-balance', params: {wallethash: wallet.getWalletHash()}, query: { asset }}">
+                    <q-item-section>
+                      <div class="flex">
+                        <div>
+                          <q-icon name="token" size="md"></q-icon>
+                          <code style="word-break: break-all; filter: brightness(80%)">
+                            {{ shortenString(asset, 18) }}
+                          </code>
+                        </div>
+                      </div>
+                    </q-item-section>
+                    <q-item-section side>
+                      {{ balances?.[asset] ? Big(balances[asset]).div(`1e${balances?.[asset]?.decimals || 0}`) : '...' }}
+                    </q-item-section>
+                  </q-item>
+                </template>
+                <div class="row">
+                  <div class="col-xs-12"></div>
+                </div>
+              </q-expansion-item>
             </q-list>
-          </div>
-          <div class="flex flex-wrap justify-around q-mt-lg">
-           <q-btn
-            :to="{ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address }}"
-            class="tile"
-            flat
-            dense
-            no-caps
-            :disable="transactions.length > 0"
-            v-close-popup>
-            <template v-slot:default>
-             <div class="row justify-around">
-              <q-icon name="send" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Send BCH</div>
-             </div>
-            </template>
-           </q-btn>
-           <q-btn flat dense no-caps @click="showWalletReceiveDialog" class="tile" v-close-popup>
-             <template v-slot:default>
-              <div class="row justify-center">
-                <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
-                <div class="col-12 tile-label">Deposit</div>
-              </div>
-             </template>
-           </q-btn>
-<q-btn flat dense no-caps @click="openWalletActionsDialog" class="tile" v-close-popup>
-             <template v-slot:default>
-              <div class="row justify-center">
-                <q-icon name="more_vert" class="col-12" color="primary"></q-icon>
-                <div class="col-12 tile-label">More Options</div>
-              </div>
-             </template>
-           </q-btn>
-          </div>
-
         </template>
       </div>
       <q-file
@@ -154,6 +197,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import Big from 'big.js'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
@@ -171,7 +215,7 @@ import CopyButton from 'components/CopyButton.vue'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import { CashAddressNetworkPrefix, walletTemplateP2pkh } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, sortObjectKeys, walletTemplateP2pkh } from 'bitauth-libauth-v3'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 
 const $store = useStore()
@@ -181,6 +225,8 @@ const route = useRoute()
 const router = useRouter()
 const { getMultisigWalletBchBalance, multisigWallets, getSignerXPrv } = useMultisigHelpers()
 const balance = ref()
+const balances = ref()
+const balancesExpanded = ref(true)
 const hdPrivateKeys = ref()
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -191,7 +237,7 @@ const transactionFileModel = ref()
 const transactionInstance = ref()
 
 const wallet = computed(() => {
-  const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.hash)
+  const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
   if (savedWallet) {
     return MultisigWallet.importFromObject(savedWallet, {
       provider: new WatchtowerNetworkProvider({
@@ -314,8 +360,11 @@ const openWalletActionsDialog = () => {
       onCreateTxProposal: () => {
         router.push({ name: 'app-multisig-wallet-transaction-create', params: { address: route.params.address } })
       },
+      // onCreateSendBchProposal: () => {
+      //   router.push({ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address } })
+      // },
       onCreateSendBchProposal: () => {
-        router.push({ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address } })
+        router.push({ name: 'app-multisig-wallet-transaction-send', params: { hash: wallet.getWalletHash() } })
       },
       onReceive: () => {
         showWalletReceiveDialog()
@@ -353,8 +402,12 @@ const loadHdPrivateKeys = async (signers) => {
 
 onMounted(async () => {
   try {
-    balance.value = await wallet.value.getWalletBalance()
-    console.log('balance', balance.value)
+    balances.value = await wallet.value.getWalletBalances()
+
+    if (balances.value) {
+      balances.value = sortObjectKeys(balances.value)
+    }
+    console.log('CONSOLE.LOG', balances.value)
      // await $store.dispatch('multisig/syncWallet', wallet.value)
     // await $store.dispatch('multisig/fetchTransactions', wallet.value)
     await loadHdPrivateKeys(wallet.value?.signers)
