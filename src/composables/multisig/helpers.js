@@ -120,6 +120,18 @@ export const useMultisigHelpers = () => {
     return $store.getters['multisig/getTransactionsByLockingBytecode']({ lockingBytecodeHex})
   }
 
+  const getMultisigWalletByHash = (walletHash) => {
+    const savedWallet = $store.getters['multisig/getWalletByHash'](walletHash)
+    if (savedWallet) {
+      return MultisigWallet.importFromObject(savedWallet, {
+        provider: new WatchtowerNetworkProvider({
+          network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+        })
+      })
+    }
+    return null
+  }
+
   return {
     localWallets,
     getSignerWalletFromVault,
@@ -134,6 +146,7 @@ export const useMultisigHelpers = () => {
     getTransactionsByWalletAddress,
     getTransactionsByMultisigWallet,
     getMultisigWalletBchBalance,
-    txExplorerUrl
+    txExplorerUrl,
+    getMultisigWalletByHash
   }
 }
