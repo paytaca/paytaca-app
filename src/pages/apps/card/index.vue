@@ -19,8 +19,8 @@
                 <!-- Action button -->
                 <div class="row justify-end">
                   <q-btn-dropdown flat dense dropdown-icon="more_horiz">
-                    <q-list class="q-my-sm">
-                      <q-item clickable @click="$router.push({name: 'card-auth-nfts'})">
+                    <q-list class="q-mt-sm">
+                      <q-item clickable @click="onManageAuthTokens">
                         Manage Auth Tokens
                       </q-item>
                     </q-list>
@@ -99,13 +99,11 @@
 </template>
 <script>
 import HeaderNav from 'components/header-nav'
-import { fetchCard, createCard, createAuthNFTs } from 'src/services/card';
+import { fetchCard, createCard, createAuthNFTs } from 'src/services/card/api.js';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { loadWallet } from 'src/wallet';
-import { getMnemonic, Wallet } from 'src/wallet';
-import { getWalletByNetwork } from 'src/wallet/chipnet';
+import { getPrivateKey, getPublicKey } from 'src/utils/wallet';
 import AuthTokenManager from 'src/services/card/auth-token';
-import { ca } from 'date-fns/locale';
 
 export default {
   components: {
@@ -136,6 +134,21 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    async onManageAuthTokens() {
+      console.log('Manage Auth Tokens clicked');
+      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
+      const privateKey = await this.getPrivateKey();
+      this.$router.push({ 
+        name: 'card-auth-nfts',
+        state: { 
+          cardInfo: JSON.parse(JSON.stringify(this.cardInfo)),
+          walletInfo: { 
+            walletHash: walletHash,
+            wif: privateKey
+          }
+        }
+      });
+    },
     showLoading(message) {
       this.$q.loading.show({
         message: message,
@@ -201,22 +214,14 @@ export default {
       console.log('NFT Data:', utxos);
       return { tokenId: result.tokenIds[0], utxos };
     },
-    async getDynamicWallet (walletType = 'bch') {
-      const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
-      const wallet = new Wallet(mnemonic, this.network)
-      const dynamicWallet = getWalletByNetwork(wallet, walletType)
-      return dynamicWallet;
-    },
     async getPrivateKey () {
-      const dynamicWallet = await this.getDynamicWallet();
-      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex']('bch');
-      const privateKey = await dynamicWallet.getPrivateKey('0/' + String(lastAddressIndex));
+      const isChipnet = this.$store.getters['global/isChipnet'];
+      const privateKey = await getPrivateKey('bch', isChipnet ? 'chipnet' : 'mainnet');
       return privateKey;
     },
     async getPublicKey() {
-      const dynamicWallet = await this.getDynamicWallet()
-      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
-      const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
+      const isChipnet = this.$store.getters['global/isChipnet'];
+      const publicKey = await getPublicKey('bch', isChipnet ? 'chipnet' : 'mainnet');
       return publicKey;
     },
     async fetchCard () {
@@ -226,6 +231,8 @@ export default {
         .then(response => {
           console.log('Card info fetched:', response);
           this.cardInfo = {
+            id: response.id,
+            category: response.category,
             cashaddr: response.cash_address,
             tokenaddr: response.token_address,
             balance: response.balance

@@ -95,15 +95,35 @@
               <q-item-label class="text-subtitle2 text-grey">{{ $t('SetupMerchantDetails') }}</q-item-label>
             </q-item-section>
           </template>
-          <q-btn
-            flat
-            padding="sm"
-            icon="edit"
-            size="1em"
-            class="float-right button button-text-primary edit-merchant-info-button"
-            :class="getDarkModeClass(darkMode)"
-            @click.stop="openMerchantInfoDialog()"
-          />
+          <div class="row edit-merchant-info-button">
+            <q-btn
+              dense
+              flat
+              padding="none"
+              icon="edit"
+              size="1em"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)"
+              @click.stop="openMerchantInfoDialog()"
+            />
+            <q-btn-dropdown
+              dense
+              flat
+              dropdown-icon="more_vert"
+              size="1em"
+              class="button button-text-primary"
+              :class="getDarkModeClass(darkMode)">
+              <q-list class="q-mt-sm">
+                <q-item :disable="isCardPaymentsEnabled" clickable @click="enableCardPayments()">
+                  <div>
+                    <q-icon v-if="isCardPaymentsEnabled" name="check_circle" color="green" size="1.25em" class="q-ml-xs"/>
+                    <q-icon v-else name="credit_card" size="1.25em" class="q-mr-xs"/>
+                    {{ !isCardPaymentsEnabled ? $t('Enable Card Payments') : $t('Card Payments Enabled') }}
+                  </div>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
+          </div>
         </q-item>
         <!-- TODO: Uncomment this when cashout is ready -->
         <!-- <div class="text-center q-pt-xs q-px-md">
@@ -349,22 +369,27 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter } from 'vue-router'
-// import { fetchMerchants } from 'src/store/paytacapos/actions';
+import { createTerminal } from 'src/services/card/api';
+import { getPublicKeyAt } from 'src/utils/wallet';
 
 const bchjs = new BCHJS()
-
-// const props = defineProps({
-//   merchantId: [String, Number],
-// })
 
 const $router = useRouter()
 const $store = useStore()
 const $q = useQuasar()
 const $t = useI18n().t
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
 const confirm = ref(false)
+const wallet = ref(null)
 const walletType = 'bch'
 const merchantId = JSON.parse(history.state.merchantId)
+const merchantData = ref(history.state.merchantData)
+
+const isCardPaymentsEnabled = computed(() => {
+  console.log('merchantData?.nfc_payments_enabled || false:', merchantData.value?.nfc_payments_enabled || false)
+  return merchantData.value?.nfc_payments_enabled || false
+})
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const walletData = computed(() => {
   const _walletData = $store.getters['global/getWallet'](walletType)
   // extract necessary data
@@ -372,14 +397,50 @@ const walletData = computed(() => {
     walletHash: _walletData?.walletHash,
     xPubKey: _walletData?.xPubKey,
   }
-
   // Object.assign to pass all other data that might come in handy
   Object.assign(data, _walletData)
   return data
 })
 
-const wallet = ref(null)
+async function enableCardPayments() {
+  console.log('merchantData', merchantData)
+  if (merchantData.value.nfc_payments_enabled) {
+    return
+  }
 
+  const payload = {
+    nfc_payments_enabled: true,
+  }
+
+  await posBackend.patch(`paytacapos/merchants/${merchantId}/`, payload)
+    .then(response => {
+      console.log('Card payments enabled:', response.data)
+      $q.notify({
+        type: 'positive',
+        message: $t('CardPaymentsEnabled', {}, 'Card payments enabled'),
+      })
+      merchantData.value.nfc_payments_enabled = true
+    })
+    .catch(error => {
+      console.error('Failed to enable card payments:', error)
+      $q.notify({
+        type: 'negative',
+        message: $t('FailedToEnableCardPayments', {}, 'Failed to enable card payments'),
+      })
+    })
+
+  const network = $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet';
+  const addressIndex = 1000;
+  const terminalPayload = {
+    wallet_hash: walletData.value.walletHash,
+    public_key: await getPublicKeyAt('bch', network, addressIndex),
+    address_path: `0/${addressIndex}`,
+    name: merchantData.value.name,
+  }
+  console.log('Creating terminal with payload:', terminalPayload);
+  const response = await createTerminal(terminalPayload)
+  console.log(response)
+}
 async function initWallet() {
   const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   wallet.value = _wallet
@@ -552,7 +613,6 @@ function openLinkDeviceDialog(posDevice) {
 }
 
 async function deviceUnlinkRequest(posDevice) {
-
   const dialog = $q.dialog({
     title: $t('UnlinkDevice', {}, 'Unlink device'),
     message: $t('CreatingUnlinkDeviceRequest', {}, 'Creating unlink device request'),
@@ -962,6 +1022,7 @@ function hidePopups() {
 
 
 onMounted(() => bus.on('paytaca-pos-relogin', reLogin))
+onMounted(() => enableCardPayments())
 onUnmounted(() => bus.off('paytaca-pos-relogin', reLogin))
 const reLogin = debounce(async (opts = {silent: false }) => {
   const loadingKey = 'paytacapos-relogin'

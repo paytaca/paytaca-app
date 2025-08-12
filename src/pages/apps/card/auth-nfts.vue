@@ -28,6 +28,7 @@
                 class="col-auto q-ml-sm"
                 color="primary"
                 label="new"
+                @click="showTerminalList = true"
               />
             </div>
 
@@ -47,54 +48,92 @@
               <q-spinner color="primary" size="40px" class="q-mr-md" />
             </div>
 
-            <div v-if="!loading" class="row justify-center" style="margin-top: 50%;">
-              <div v-if="authTokens.length === 0">
+            <div v-if="!loading" class="q-ma-md">
+              <div v-if="authTokens.length == 0" class="row justify-center" style="margin-top: 50%;">
                 <div class="text-subtitle2 text-bow" style="opacity: 0.5;">No authentication NFTs found.</div>
               </div>
               <div v-else>
-                <q-card v-for="token in authTokens" :key="token.id" class="my-card">
-                  <q-card-section>
-                    <div class="text-h6">{{ token.name }}</div>
-                    <div class="text-subtitle2">{{ token.description }}</div>
-                  </q-card-section>
-                </q-card>
+                <div v-for="token in authTokens" :key="token.id" class="row q-my-sm">
+                  <q-card class="col my-card">
+                    <q-card-section>
+                      <div class="row">
+                        <div class="col q-pr-sm text-h12">{{ token.terminal.merchant_name }}</div>
+                        <q-btn
+                          flat
+                          dense
+                          no-caps
+                          outline
+                          class="col-auto"
+                          v-model="token.enabled"
+                          :label="token.enabled ? 'Enabled' : 'Disabled'"
+                          :icon="token.enabled ? 'check' : 'close'"
+                        />
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <TerminalList 
+      v-if="showTerminalList" 
+      :card-info="cardInfo"
+      :wallet-info="walletInfo"
+      @dialog-hide="showTerminalList = false"
+    />
   </div>
 </template>
 
 <script>
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import TerminalList from 'src/components/card/TerminalList.vue'
+import { fetchAuthNFTs } from 'src/services/card/api'
+import { decodeCommitment } from 'src/services/card/auth-token'
 
 export default {
   components: {
-    HeaderNav
+    HeaderNav,
+    TerminalList
   },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       authTokens: [],
-      loading: false
+      loading: false,
+      showTerminalList: false,
+      cardInfo: null,
+      walletInfo: null
+    }
+  },
+  mounted() {
+    // Get the data from router state
+    this.cardInfo = history.state?.cardInfo || null;
+    this.walletInfo = history.state?.walletInfo || null;
+    
+    if (this.cardInfo) {
+      this.loadAuthTokens();
     }
   },
   methods: {
-    getDarkModeClass
-    // async createCard () {
-    //   this.createCardLoading = true
-    //   try {
-    //     const wallet = await loadWallet()
-    //     this.cardInfo = await createCard({ walletId: wallet.id, isCashToken: this.isCt })
-    //   } catch (error) {
-    //     console.error('Error creating card:', error)
-    //   } finally {
-    //     this.createCardLoading = false
-    //   }
-    // }
+    getDarkModeClass,
+    async loadAuthTokens() {
+      // Add your auth token loading logic here
+      const response = await fetchAuthNFTs(this.walletInfo?.walletHash)
+      this.authTokens = response.results.map(token => {
+        console.log('token:', token)
+        // const decodedCommitment = decodeCommitment(token.commitment)
+        // console.log('decodedCommitment:', decodedCommitment)
+        return {
+          ...token,
+          enabled: token.enabled || false
+        }
+      }) || []
+      console.log('Fetched auth tokens:', response);
+    }
   },
 }
 </script>

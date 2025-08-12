@@ -1,10 +1,18 @@
 import { createHash } from 'crypto';
 import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainnet-js';
+import { defaultExpirationDeltaMinutes, defaultSpendLimitSats } from './constants';
+import { convertTimeToBlock } from './utils';
 
 class AuthTokenManager {
     constructor(wif) {
         this.wif = wif;
         this.wallet = null;
+    }
+
+    async defaultExpirationBlock() {
+        const expirationDate = Math.floor(Date.now()/1000) + (defaultExpirationDeltaMinutes * 60); // 30 days from now
+        const expirationBlock = await convertTimeToBlock(expirationDate)
+        return expirationBlock
     }
 
     async initWallet() {
@@ -60,19 +68,15 @@ class AuthTokenManager {
         for (let i = 0; i < terminals.length; i++) {
             const terminal = terminals[i]
             const commitmentData = {
-                flagBool: terminal.isAuthorized,
-                expirationBlock: terminal.expirationBlock,
-                spendLimitSats: terminal.spendLimitSats,
+                flagBool: terminal.isAuthorized || true,
+                expirationBlock: terminal.expirationBlock || await this.defaultExpirationBlock(),
+                spendLimitSats: terminal.spendLimitSats || defaultSpendLimitSats,
                 terminal: {
                     id: terminal.id,
                     pk: terminal.pubkey
                 }
             }
-            console.log('commitmentData:', commitmentData)
             const commitment = encodeCommitment(commitmentData)
-            const decodedCommitment = decodeCommitment(commitment)
-            console.log('commitment:', commitment)
-            console.log('decodedCommitment:', decodedCommitment)
             tokenMintRequests.push(new TokenMintRequest({
                 cashaddr: this.wallet.cashaddr,
                 capability: NFTCapability.mutable,
@@ -80,7 +84,6 @@ class AuthTokenManager {
                 value: 800
             }));
         }
-        console.log(tokenMintRequests)
         const response = await this.wallet.tokenMint(
             tokenId,
             tokenMintRequests,
@@ -215,7 +218,7 @@ function decodeCommitment(hex) {
     return {
         flag: buf[0] === 1,
         expirationBlock: buf.readUInt32LE(1),
-        spendLimit: buf.readBigUint64LE(5),
+        spendLimit: buf.readBigUInt64LE(5),
         hash: buf.subarray(13, buf.length).toString('hex')
     };
 }

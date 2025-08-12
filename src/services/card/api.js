@@ -85,9 +85,9 @@ export async function createCard(cardData) {
  * @param {number} params.offset - Offset for pagination
  * @returns {Promise} API response with auth NFTs
  */
-export async function fetchAuthNFTs(params = {}) {
+export async function fetchAuthNFTs(wallet_hash) {
   try {
-    const response = await cardApi.get('/auth-nfts', { params })
+    const response = await cardApi.get(`/auth-nfts/${wallet_hash}`)
     return response.data
   } catch (error) {
     console.error('Error fetching auth NFTs:', error)
@@ -132,6 +132,37 @@ export async function mutateNFTs(mutationData) {
     return response.data
   } catch (error) {
     console.error('Error mutating NFTs:', error)
+    throw error
+  }
+}
+
+
+export async function createTerminal(terminalData) {
+  try {
+    const response = await cardApi.post('/terminals/', terminalData)
+    return response.data
+  } catch (error) {
+    console.error('Error creating terminal:', error)
+    throw error
+  }
+}
+
+export async function fetchTerminals(params = {}) {
+  try {
+    const response = await cardApi.get('/terminals/', { params })
+    return response.data
+  } catch (error) {
+    console.error('Error fetching terminals:', error)
+    throw error
+  }
+}
+
+export async function fetchUnissuedTerminals(cardId) {
+  try {
+    const response = await cardApi.get(`/terminals/unissued/${cardId}`)
+    return response.data
+  } catch (error) {
+    console.error('Error fetching unissued terminals:', error)
     throw error
   }
 }
