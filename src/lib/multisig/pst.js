@@ -811,4 +811,38 @@ export class Pst {
   static fromObject(pst) {
     return new Pst(structuredClone(pst))
   }
+
+  /**
+   * @param {object} data
+   * @param {object} data.sessionRequest - The wallet connect session request (Example: bch_signTransaction) object.
+   * @param {number} data.addressIndex - The bip32 relative path index of the external address used on the wallet connect session.
+   * @param {string} [data.creatorXpub] - The xpub of the creator
+   * @param {string} data.wallet - The multisig wallet
+   */
+  static fromWcSessionRequest({ sessionRequest, wallet }) {
+    // const address =
+    //     sessionRequest.session.namespaces.bch.accounts[0].replace('bch:', '')
+    const inputMap = sessionRequest.params?.request?.params?.transaction?.inputs?.map((input) => {
+      const preparedInput = {
+        ...input,
+        outpointTransactionHash: Uint8Array.from(Object.values(input.outpointTransactionHash))
+      }
+      if (input.sourceOutput) {
+        preparedInput.sourceOutput = {
+          ...input.sourceOutput,
+          outpointTransactionHash: Uint8Array.from(Object.values(input.sourceOutput.outpointTransactionHash)),
+          lockingBytecode: input.sourceOutput.lockingBytecode? Uint8Array.from(Object.values(input.sourceOutput.outpointTransactionHash)): Uint8Array.from([])
+        }
+      }
+    })
+
+    const pst = new Pst({
+      origin: sessionRequest.verifyContext?.verified?.origin,
+      purpose: sessionRequest.params?.request?.params?.userPrompt,
+      inputs: inputMap,
+      wallet
+    })
+      
+    return pst
+  }
 }
