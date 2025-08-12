@@ -11,9 +11,19 @@
  */
 
 /**
- * @typedef {Object} MultisigWallet
+ * @typedef {Object} MultisigWalletWcPeer
+ * @property {string} publicKey - The hexadecimal public key of the peer.
+ * @property {Object} metadata - Information describing the WalletConnect peer/client.
+ * @property {string} metadata.name - The display name of the peer.
+ * @property {string} metadata.description - A brief description of the peer.
+ * @property {string} metadata.url - Website or endpoint associated with the peer.
+ * @property {string[]} metadata.icons - Array of icon URLs representing the peer.
+ * @property {number} addressIndex - The address index last associated with the peer.
+ */
+
+/**
+ * @typedef {Object} MultisigWalletConfig
  * @property {number} m - The required number of signatures
- * 
  * @property {MultisigWalletSigner[]} signers - The allowed signers
  * @property {number|string} [id] - The unique identifier of the wallet. If value is string it's the locking bytecode of the first address (address 0). If number it's the synced wallet id
  * @property {number} [n] - The total number of signers
@@ -21,6 +31,7 @@
  * @property {number} [lastIssuedChangeAddressIndex]  - The last generated change address index, derived and stored locally doesn't have to be on chain
  * @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
  * @property {number} [lastUsedChangeAddressIndex]  - The last used change address on-chain.
+ * @property {MultisigWalletWcPeer} [wcPeers] - The wallet connect peers associated with particular address index of the MultisigWallet.
  */
 
 /**
@@ -450,9 +461,8 @@ export class MultisigWallet {
   _pendingUpdates = Promise.resolve()
   /**
    * Creates a new MultisigWallet instance.
-   * @param {MultisigWallet} config - Wallet configuration options.
+   * @param {MultisigWalletConfig} config - Wallet configuration options.
    * @param {MultisigWalletOptions} options - Wallet options.
-   * @param {OnStateChangeCallback} [onStateChange] - Optional async callback invoked when wallet state changes.
    */
   constructor (config, options) {
     this.id = config.id
@@ -474,8 +484,7 @@ export class MultisigWallet {
  * Returns a deposit address from the wallet.
  *
  * If an `addressIndex` is provided, it returns the address derived at that specific index
- * (without altering internal state). If no index is provided, it returns the next unissued
- * address and optionally increments the internal counter to mark it as issued.
+ * If no index is provided, it returns the next unissued address (without altering internal state).
  *
  * @param {import('@bitauth/libauth').CashAddressNetworkPrefix} [prefix=import('@bitauth-libauth').CashAddressNetworkPrefix.mainnet] 
  * @param {number} [addressIndex] - Optional index of the address to derive. If omitted, the next unissued address is returned.
@@ -483,7 +492,7 @@ export class MultisigWallet {
  * @returns {{ addressIndex: number, address: string }} The index and derived address. The derived deposit address at the given index, or the next unissued address if no index is given.
  *
  * @example
- * wallet.getDepositAddress();        // Returns next unissued address (e.g., m/44'/145'/0'/0/5)
+ * wallet.getDepositAddress();       // Returns next unissued address (e.g., m/44'/145'/0'/0/5)
  * wallet.getDepositAddress(0);      // Returns address at index 0 (e.g., m/44'/145'/0'/0/0)
  */
   getDepositAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
