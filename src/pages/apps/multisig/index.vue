@@ -6,11 +6,6 @@
         backnavpath="/apps"
         class="q-px-sm apps-header gift-app-header"
       >
-      <!-- <template v-slot:top-right-menu>
-        <div class="flex items-center justify-end" >
-          <q-btn icon="settings" :to="{ name: 'app-multisig-settings'}" flat style="margin-left: -10px; margin-top: -5px;" size="lg" dense></q-btn>
-        </div>
-      </template> -->
     </HeaderNav>
       <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center">
           <div class="col-xs-12 q-px-xs q-gutter-y-sm">
@@ -32,7 +27,7 @@
               <q-item
                 v-for="wallet, i in multisigWallets"
                 :key="i"
-                :to="{ name: 'app-multisig-wallet-view', params: { hash: wallet.getWalletHash() } }"
+                :to="{ name: 'app-multisig-wallet-view', params: { wallethash: wallet.getWalletHash() } }"
                 class="q-py-md"
                 clickable
                 >
@@ -180,7 +175,7 @@ const onUpdateWalletFileModelValue = (file) => {
       // $store.dispatch('multisig/createWallet', walletInstance.value)
       router.push({
         name: 'app-multisig-wallet-view',
-        params: { hash: walletInstance.value.getWalletHash() }
+        params: { wallethash: walletInstance.value.getWalletHash() }
       })
     }
     reader.onerror = (err) => {
