@@ -5,6 +5,7 @@ import { getMultisigCashAddress, getLockingBytecode, deriveHdKeysFromMnemonic, M
 import { useRoute, useRouter } from 'vue-router'
 import Watchtower from 'src/lib/watchtower'
 import { CashAddressNetworkPrefix, binToHex } from 'bitauth-libauth-v3'
+import { getBcmrBackend } from 'src/wallet/cashtokens'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
@@ -132,6 +133,62 @@ export const useMultisigHelpers = () => {
     return null
   }
 
+  /**
+   * Retrieves token details from existing assets cache or Paytaca's BCMR indexer
+   * @param {string} category - The token category/token id
+   * @returns {{
+   *   name: string
+   *   description?: string,
+   *   uris?: {
+   *     icon: string
+   *   },
+   *   token: {
+   *    category: string,
+   *    symbol: string,
+   *    decimals?: number
+   *  }
+   * }} - A partial BCMR IdentitySnapshot, only the basic token details
+   * 
+   */
+  const getAssetTokenIdentity = async (category) => {
+    
+    const assetTokenDetailsFromAssetsVault = $store.state?.assets?.assets?.find(cachedAssetDetail => {
+      return cachedAssetDetail.id.includes(category)
+    })
+
+    let cashtokenIdentity = null
+
+    if (assetTokenDetailsFromAssetsVault) {
+      cashtokenIdentity = {
+        name: assetTokenDetailsFromAssetsVault.name,
+        description: assetTokenDetailsFromAssetsVault.description,
+        uris: {
+          icon: assetTokenDetailsFromAssetsVault.logo
+        },
+        token: {
+          category,
+          symbol: assetTokenDetailsFromAssetsVault.symbol,
+          decimals: assetTokenDetailsFromAssetsVault.decimals   
+        }
+      }
+    }
+
+    if (!cashtokenIdentity) {
+      cashtokenIdentity = $store.state?.global?.cache?.cashtokenIdentities?.[category]
+    }
+
+    if (!cashtokenIdentity) {
+      const response =  await getBcmrBackend().get(`tokens/${category}`)
+      if (response?.data?.token?.category !== route.query.asset) return // sanity check
+      if (response?.data) {
+        cashtokenIdentity = JSON.parse(JSON.stringify(response.data))
+        $store.commit('global/cacheCashtokenIdentity', { category, cashtokenIdentity })
+      }
+    }
+
+    return cashtokenIdentity
+  }
+
   return {
     localWallets,
     getSignerWalletFromVault,
@@ -147,6 +204,7 @@ export const useMultisigHelpers = () => {
     getTransactionsByMultisigWallet,
     getMultisigWalletBchBalance,
     txExplorerUrl,
-    getMultisigWalletByHash
+    getMultisigWalletByHash,
+    getAssetTokenIdentity
   }
 }

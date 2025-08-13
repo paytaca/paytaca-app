@@ -4,11 +4,6 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <!-- <HeaderNav
-      :title="$t('Wallet Details')"
-      backnavpath="/apps/multisig"
-      class="apps-header"
-    /> -->
     <HeaderNav
       :backnavpath="`/apps/multisig/wallet/${route?.params?.wallethash}`"
       class="apps-header"
@@ -31,7 +26,6 @@
               <div class="col-xs-12 text-center">
                 <div class="text-grey-6">Balance</div>
                 <div class="flex items-center justify-center q-gutter-x-sm">
-                  
                   <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
                 </div>
               </div>
@@ -49,7 +43,7 @@
                     <div class="row justify-center">
                       <q-icon name="send" class="col-12" color="primary" style="position:relative">
                         <q-badge color="red" v-if="transactions?.length > 0" style="margin-right: 20px;" floating>
-                        {{ transactions.length }}
+                        {{ transactions?.length }}
                         </q-badge>
                       </q-icon>
                       <div class="col-12 tile-label">Send</div>
@@ -118,7 +112,7 @@ import {
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import { CashAddressNetworkPrefix, walletTemplateP2pkh } from 'bitauth-libauth-v3'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
-import { getBcmrBackend } from 'src/wallet/cashtokens'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -128,11 +122,15 @@ const router = useRouter()
 const balance = ref()
 const historyExpanded = ref(true)
 
+const {
+  getAssetTokenIdentity 
+} = useMultisigHelpers()
+
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const assetTokenDetails = ref()
+const assetTokenIdentity = ref()
 
 const wallet = computed(() => {
   const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
@@ -148,13 +146,13 @@ const wallet = computed(() => {
 
 const assetHeaderName = computed(() => {
   if (route.query.asset === 'bch') return 'BCH'
-  if (assetTokenDetails.value?.symbol) return assetTokenDetails.value?.symbol
+  if (assetTokenIdentity.value?.token?.symbol) return assetTokenIdentity.value?.token?.symbol
   return shortenString(route.query.asset, 10)
 })
 
 const assetHeaderIcon = computed(() => {
   if (route.query.asset === 'bch') return 'img:bitcoin-cash-circle.svg'
-  return assetTokenDetails.value?.icon || 'token'
+  return assetTokenIdentity.value?.uris?.icon || 'token'
 })
 
 
@@ -173,38 +171,16 @@ const showWalletReceiveDialog = () => {
 }
 
 onMounted(async () => {
+  console.log('test')
   try {
     balance.value = await wallet.value.getWalletBalance(route.query.asset)
-    
+    console.log('balance.value', balance.value)
     if (route.query.asset === 'bch') return
+    console.log('hello', getAssetTokenIdentity)
 
-    const assetTokenDetailsFromCache = $store.state?.assets?.assets?.find(cachedAssetDetail => {
-      return cachedAssetDetail.id.includes(route.query.asset)
-    })
+    assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
 
-    console.log('assetTokenDetailsFromCache', assetTokenDetailsFromCache)
-    if (assetTokenDetailsFromCache) {
-      assetTokenDetails.value = {
-        icon: assetTokenDetailsFromCache.logo,
-        name: assetTokenDetailsFromCache.name,
-        symbol: assetTokenDetailsFromCache.symbol,
-        decimals: assetTokenDetailsFromCache.decimals 
-      }
-
-      console.log('assetTokenDetailsFromCache', assetTokenDetailsFromCache)
-    } else {
-      const response =  await getBcmrBackend().get(`tokens/${route.query.asset}`)
-      console.log('details', response)
-      if (response?.data?.token?.category !== route.query.asset) return // sanity check
-      if (response?.data) {
-        assetTokenDetails.value = {
-          icon: response?.data?.uris?.icon,
-          name: response?.data?.name,
-          symbol: response?.data?.token?.symbol,
-          decimals: response?.data?.token?.decimals
-        }
-      }
-    }
+    console.log('assetTokenIdentity', assetTokenIdentity.value)
 
   } catch (error) {}
 })
