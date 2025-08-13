@@ -17,17 +17,17 @@
       <div class="col-xs-12 q-px-xs">
         <template v-if="wallet">
             <div class="row q-gutter-y-lg">
-              <div class="col-xs-12 flex items-center justify-center">
-                <div>{{ wallet.name }}</div>
-                  <q-icon
-                  class="q-ml-xs" size="xs" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'mdi-cloud'"
+              <div class="col-xs-12 flex items-center justify-center q-gutter-x-md">
+                <div class="text-h6">{{ wallet.name }}</div>
+                <q-icon
+                  size="sm" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'mdi-cloud'"
                   :color="isMultisigWalletSynced(wallet)? 'green': 'grey'"
-                  />
+                />
               </div>
               <div class="col-xs-12 text-center">
                 <div class="flex items-center justify-center q-gutter-x-sm">
                   <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                  <span style="font-size: 2em">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>
+                  <span style="font-size: 2em" class="text-bold">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>
                 </div>
               </div>
               <div class="col-xs-12 flex justify-between">
@@ -140,14 +140,13 @@
                     Balances
                   </q-item-section>
                 </template>
-                <q-item clickable :to="{name: 'app-multisig-wallet-asset-balance', params: {wallethash: wallet.getWalletHash()}, query: {asset: 'bch'}}">
+                <q-item clickable :to="{name: 'app-multisig-wallet-asset', params: {wallethash: wallet.getWalletHash()}, query: { asset: 'bch' } }">
                   <q-item-section>
-                    <div class="flex">
+                    <div class="flex items-center q-gutter-x-sm">
+                      <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
                       <div>
-                        <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                        <code style="word-break: break-all; filter: brightness(80%)">
-                          BCH
-                        </code>
+                        <div class="text-bold">BCH</div>
+                        <sub style="filter: brightness(80%)">Bitcoin Cash</sub>
                       </div>
                     </div>
                   </q-item-section>
@@ -155,23 +154,31 @@
                     {{ balances?.['bch'] ? balances?.['bch'] / 1e8: '...' }}
                   </q-item-section>
                 </q-item>
-                <template v-for="asset in Object.keys(balances || {})" >
-                  <q-item v-if="asset !== 'bch'" clickable :to="{name: 'app-multisig-wallet-asset-balance', params: {wallethash: wallet.getWalletHash()}, query: { asset }}">
+                <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch')" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.getWalletHash()}, query: { asset }}">
                     <q-item-section>
-                      <div class="flex">
+                      <div class="flex items-center q-gutter-x-sm">
+                        <q-avatar size="md">
+                          <q-img v-if="balancesTokenIdentities[asset]?.uris?.icon" :src="balancesTokenIdentities[asset]?.uris?.icon"></q-img>
+                          <q-icon v-else name="token" size="md"></q-icon>
+                        </q-avatar>
                         <div>
-                          <q-icon name="token" size="md"></q-icon>
-                          <code style="word-break: break-all; filter: brightness(80%)">
-                            {{ shortenString(asset, 18) }}
-                          </code>
+                          <div v-if="balancesTokenIdentities[asset]?.token?.symbol">
+                            <div class="text-bold">{{balancesTokenIdentities[asset].token.symbol}}</div>
+                            <sub  style="filter: brightness(80%)">{{balancesTokenIdentities[asset].name}}</sub>
+                          </div>
+                          <div v-else-if="balancesTokenIdentities[asset]?.name">
+                            <div class="text-bold">{{balancesTokenIdentities[asset].name}}</div>
+                          </div>
+                          <span v-else>
+                            {{shortenString(asset, 18)}}
+                          </span>
                         </div>
                       </div>
-                    </q-item-section>
-                    <q-item-section side>
-                      {{ balances?.[asset] ? Big(balances[asset]).div(`1e${balances?.[asset]?.decimals || 0}`) : '...' }}
-                    </q-item-section>
-                  </q-item>
-                </template>
+                  </q-item-section>
+                  <q-item-section side>
+                    {{ balances?.[asset] ? Big(balances[asset]).div(`1e${balances?.[asset]?.decimals || 0}`) : '...' }}
+                  </q-item-section>
+                </q-item>
                 <div class="row">
                   <div class="col-xs-12"></div>
                 </div>
@@ -223,9 +230,10 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getMultisigWalletBchBalance, multisigWallets, getSignerXPrv } = useMultisigHelpers()
+const { getMultisigWalletBchBalance, multisigWallets, getSignerXPrv, getAssetTokenIdentity } = useMultisigHelpers()
 const balance = ref()
 const balances = ref()
+const balancesTokenIdentities = ref({})
 const balancesExpanded = ref(true)
 const hdPrivateKeys = ref()
 const darkMode = computed(() => {
@@ -400,6 +408,25 @@ const loadHdPrivateKeys = async (signers) => {
   }
 }
 
+const loadCashtokenIdentitiesToBalances = async() => {
+  const promises = []
+  console.log('BALANCES', balances.value)
+  for(const asset of Object.keys(balances.value || {})) {
+    if (asset === 'bch') continue
+    console.log('ASSET', asset)
+    const tokenIdentityPromise = async () => {
+      const tk = await getAssetTokenIdentity(asset)
+      console.log('tk', tk)
+      console.log('tk asset', asset)
+      balancesTokenIdentities.value[asset] = await getAssetTokenIdentity(asset)
+      console.log('tk after', balancesTokenIdentities.value[asset])
+    }
+    promises.push(tokenIdentityPromise())
+  }
+  console.log(promises)
+  await Promise.all(promises)
+}
+
 onMounted(async () => {
   try {
     balances.value = await wallet.value.getWalletBalances()
@@ -407,10 +434,10 @@ onMounted(async () => {
     if (balances.value) {
       balances.value = sortObjectKeys(balances.value)
     }
-    console.log('CONSOLE.LOG', balances.value)
      // await $store.dispatch('multisig/syncWallet', wallet.value)
     // await $store.dispatch('multisig/fetchTransactions', wallet.value)
     await loadHdPrivateKeys(wallet.value?.signers)
+    await loadCashtokenIdentitiesToBalances()
   } catch (error) {}
 })
 </script>
