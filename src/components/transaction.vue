@@ -494,6 +494,7 @@
                     padding="xs sm"
                     label="Save"
                     color="primary"
+                    @click="saveMemo()"
                   />
                 </q-item-section>
               </div>                              
@@ -517,7 +518,9 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
+import { fetchMemo, createMemo } from 'src/utils/transaction-memos.js'
 import { ref } from 'vue'
+
 
 export default {
   name: 'transaction',
@@ -664,6 +667,8 @@ export default {
     show (transaction) {
       try {
         this.transaction = transaction
+        fetchMemo(this.transaction.txid)
+
         this.$refs.dialog.show()
       } catch (err) {}
     },
@@ -682,18 +687,19 @@ export default {
       setTimeout(() => {
         const content = document.getElementById('scrollArea')
         console.log('here: ', content)
-        content.scrollTop = content.scrollHeight
-        // document.getElementById('scrollArea').scrollTopMax = content.scrollHeight
-        // document.getElementById('scrollArea').scrollTop =  content.scrollHeight
-        // document.getElementById('scrollArea').scrollTopMax
-
-        console.log('here: ', document.getElementById('scrollArea'))
-        // console.log('test: ', content.scrollTop)
-      }, 100)
-
-      // const scrollingElement = (document.scrollingElement || document.body)
-      // console.log('scrollingElement: ', scrollingElement)
+        content.scrollTop = content.scrollHeight + 100        
+      }, 200)
       
+    },
+    saveMemo() {
+      const data = {
+        txid: this.transaction.txid,
+        note: this.memo
+      }
+
+      createMemo(data)
+
+      this.showMemo = false
     },
     formatDate (date) {
       const dateObj = new Date(date)
@@ -820,7 +826,7 @@ export default {
   mounted () {
     document.addEventListener('backbutton', () => {
       this.$refs.dialog.hide()
-    })
+    })    
   }
 }
 </script>
