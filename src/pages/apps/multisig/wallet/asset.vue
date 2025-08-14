@@ -25,8 +25,10 @@
               </div>
               <div class="col-xs-12 text-center">
                 <div class="text-grey-6">Balance</div>
-                <div class="flex items-center justify-center q-gutter-x-sm">
+                <div class="items-center justify-center q-gutter-x-sm">
                   <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
+                  
+                  <div class="text-grey-6">{{ assetPrice? `=${assetPrice}` : '' }}</div>
                 </div>
               </div>
               <div class="col-xs-12 flex justify-evenly">
@@ -38,7 +40,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-transactions', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
+                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-transaction-send', params: { wallethash: wallet.getWalletHash() }, query: route.query }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="send" class="col-12" color="primary" style="position:relative">
@@ -120,7 +122,9 @@ const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const balance = ref()
+const balanceConvertionRates = ref()
 const historyExpanded = ref(true)
+const assetTokenIdentity = ref()
 
 const {
   getAssetTokenIdentity 
@@ -130,7 +134,6 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const assetTokenIdentity = ref()
 
 const wallet = computed(() => {
   const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
@@ -155,6 +158,14 @@ const assetHeaderIcon = computed(() => {
   return assetTokenIdentity.value?.uris?.icon || 'token'
 })
 
+const assetPrice = computed(() => {
+  if (balanceConvertionRates.value?.length > 0) {
+    const b = balanceConvertionRates.value?.find(priceData => (
+       priceData.relative_currency?.toLowerCase() === route.query.asset
+    ))
+    return b?.[`assetPriceIn${b?.currency}Text`] || ''
+  }
+})
 
 const showWalletReceiveDialog = () => {
   const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
@@ -175,13 +186,19 @@ onMounted(async () => {
   try {
     balance.value = await wallet.value.getWalletBalance(route.query.asset)
     console.log('balance.value', balance.value)
-    if (route.query.asset === 'bch') return
-    console.log('hello', getAssetTokenIdentity)
 
-    assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
+    if (route.query.asset !== 'bch') {
+      assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
+    }
+    
+    balanceConvertionRates.value = 
+      await wallet.value.convertBalanceToCurrencies(
+        route.query.asset,
+        balance.value,
+        [$store.getters['market/selectedCurrency'].symbol]
+      )
 
-    console.log('assetTokenIdentity', assetTokenIdentity.value)
-
+    console.log(balanceConvertionRates.value)
   } catch (error) {}
 })
 </script>

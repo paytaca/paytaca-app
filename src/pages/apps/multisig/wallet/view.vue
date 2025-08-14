@@ -16,18 +16,21 @@
     <div class="row justify-center">
       <div class="col-xs-12 q-px-xs">
         <template v-if="wallet">
-            <div class="row q-gutter-y-lg">
-              <div class="col-xs-12 flex items-center justify-center q-gutter-x-md">
-                <div class="text-h6">{{ wallet.name }}</div>
+            <div class="row q-mb-lg">
+              <div class="col-xs-12 flex items-center justify-center q-mb-lg">
+                <div class="text-h6 q-mr-md">{{wallet.name}}</div>
                 <q-icon
                   size="sm" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'mdi-cloud'"
                   :color="isMultisigWalletSynced(wallet)? 'green': 'grey'"
                 />
               </div>
-              <div class="col-xs-12 text-center">
-                <div class="flex items-center justify-center q-gutter-x-sm">
-                  <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                  <span style="font-size: 2em" class="text-bold">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>
+              <div class="col-xs-12 q-mb-lg">
+                <div class="items-center justify-center q-gutter-y-md">
+                  <div class="text-grey-6 text-center">BCH Balance</div>
+                  <div class="flex justify-center q-gutter-x-sm">
+                    <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
+                    <span style="font-size: 1.5em" class="text-bold">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>  
+                  </div>
                 </div>
               </div>
               <div class="col-xs-12 flex justify-between">

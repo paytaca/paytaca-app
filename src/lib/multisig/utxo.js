@@ -8,6 +8,8 @@
 * @property {{capability:'none'|'mutable'|'minting',commitment:string}} [nft]
 */
 
+import { hexToBin } from "bitauth-libauth-v3";
+
 /**
 * @typedef {object} CommonUtxo
 * @property {string} txid
@@ -288,9 +290,6 @@ function knapsackTokens(utxos, targetToken) {
   }
 }
 
-
-
-
 /**
 * Currently only works on sats only and single token category on which is the typical use case.
 * 
@@ -307,7 +306,7 @@ export function selectUtxos (utxos, options) {
   const nonTokenUtxos = utxos.filter(u => !u.token)
   const tokenUtxos = utxos.filter(u => Boolean(u.token?.category))
   
-  const satsUtxosSelected = knapsackSatoshis(nonTokenUtxos, targetSatoshis)
+  const satsUtxosSelected = knapsackSatoshis(nonTokenUtxos, BigInt(targetSatoshis))
 
   const targetTokenAmount = BigInt(targetTokens?.[Object.keys(targetTokens || {})[0]] || 0) 
   
