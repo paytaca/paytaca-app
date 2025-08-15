@@ -464,20 +464,43 @@
 
             <q-slide-transition>
               <div v-if="!showMemo">
-                <q-item-section class="q-pt-sm">
-                  <q-btn         
-                      class="br-15 full-width"             
+                <div v-if="hasMemo">
+                  <q-item-section class="q-pt-sm">
+                    <q-input
+                      v-model="memo.note"
+                      filled
+                      height="25px" 
+                      type="textarea"
+                      readonly
+                    />                  
+                  </q-item-section>   
+                  <q-item-section class="q-pt-sm">
+                    <q-btn 
+                      outline
+                      class="br-15"             
                       padding="xs sm"
-                      label="Add Memo"
+                      label="Update"
                       color="primary"
-                      @click="openMemo()"
+                      @click="showMemo = true"
                     />
-                </q-item-section>               
+                  </q-item-section>
+                </div>
+                <div v-else>
+                  <q-item-section class="q-pt-sm">
+                    <q-btn         
+                        class="br-15 full-width"             
+                        padding="xs sm"
+                        label="Add Memo"
+                        color="primary"
+                        @click="openMemo()"
+                      />
+                  </q-item-section> 
+                </div>                                          
               </div>
               <div v-else>
                 <q-item-section class="q-pt-sm">
                    <q-input
-                    v-model="memo"
+                    v-model="memo.note"
                     filled
                     height="25px" 
                     type="textarea"
@@ -489,11 +512,12 @@
                   </q-input>                    
                 </q-item-section>   
                 <q-item-section class="q-pt-sm">
-                  <q-btn         
+                  <q-btn 
                     class="br-15"             
                     padding="xs sm"
                     label="Save"
                     color="primary"
+                    :disable="!memo.note"
                     @click="saveMemo()"
                   />
                 </q-item-section>
@@ -518,7 +542,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
-import { fetchMemo, createMemo } from 'src/utils/transaction-memos.js'
+import { fetchMemo, createMemo, updateMemo } from 'src/utils/transaction-memos.js'
 import { ref } from 'vue'
 
 
@@ -545,7 +569,10 @@ export default {
       displayRawAttributes: false,
       denomination: this.$store.getters['global/denomination'],
       showMemo: false,
-      memo: ''
+      memo: {
+        note: ''
+      },
+      hasMemo: false
     }
   },
   computed: {
@@ -664,10 +691,21 @@ export default {
         return addresses.join(', ')
       }
     },
-    show (transaction) {
+    async show (transaction) {
       try {
         this.transaction = transaction
-        fetchMemo(this.transaction.txid)
+        const currentMemo = await fetchMemo(this.transaction.txid)
+
+        if (currentMemo) {
+          if ('error' in currentMemo) {
+            console.log('no memo for this txid')
+            this.hasMemo = false
+          } else {
+            console.log('current memo: ', currentMemo)
+            this.memo = currentMemo
+            this.hasMemo = true
+          }
+        }
 
         this.$refs.dialog.show()
       } catch (err) {}
@@ -691,13 +729,27 @@ export default {
       }, 200)
       
     },
-    saveMemo() {
+    async saveMemo() {
       const data = {
         txid: this.transaction.txid,
-        note: this.memo
+        note: this.memo.note
       }
 
-      createMemo(data)
+      let response = null
+      if (this.hasMemo) {
+        response = await updateMemo(data)
+      } else {
+        response = await createMemo(data)
+      } 
+
+      if (response) {
+          if ('error' in response) { 
+            this.hasMemo = false
+          } else {            
+            this.memo = response
+            this.hasMemo = true
+          }
+        }
 
       this.showMemo = false
     },
