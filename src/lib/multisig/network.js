@@ -69,7 +69,7 @@ export class WatchtowerNetworkProvider {
         this.network = config?.network || WatchtowerNetwork.mainnet
         if (this.network === WatchtowerNetwork.chipnet) {
             this.hostname = 'https://chipnet.watchtower.cash'
-            this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.chipnet
+            this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.testnet
         }
     }
 
