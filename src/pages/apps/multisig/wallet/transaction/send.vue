@@ -228,12 +228,15 @@ const assetPrice = computed(() => {
 })
 
 const sendable = computed(() => {
+  console.log('error', amountRef.value?.hasError)
   return (
+    recipients.value?.every(r => Boolean(r.address)) && 
+    recipients.value?.every(r => Boolean(r.amount)) &&
     recipients.value?.length > 0 &&
     totalAmount.value !== '!' &&
     totalAmount.value > 0 &&  
     balance.value > totalAmount.value &&
-    amountRef.value?.hasErrors === false
+    (amountRef.value?.hasError !== true || amountRef.value?.hasError === undefined)
   )
 })
 
