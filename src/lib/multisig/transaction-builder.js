@@ -121,7 +121,6 @@ export function getMofNDustThreshold (m, n, output, dustRelayFeeSatPerKb = 1000)
     + redeemScriptLen                   // redeemScript: OP_m + n×<push+pubkey> + OP_n + OP_CHECKMULTISIG
     + 4                                 // sequence
 
-  console.log('input size', inputSize)
   const encodedOutput = encodeTransactionOutput(output)
   const dustThreshold = 3 * dustRelayFeeSatPerKb *  (encodedOutput.length + inputSize) / 1000
   return BigInt(dustThreshold)
@@ -134,15 +133,6 @@ export function getMofNDustThreshold (m, n, output, dustRelayFeeSatPerKb = 1000)
  * @param {import('./wallet.js').MultisigWalletSigner[]} signers
  */
 export function estimateFee (inputs, outputs, template) {
-    // // // Estimate fee
-    // const outpointTransactionHashSize = 32
-    // const outpointIndexSize = 4
-    // const unlockingBytecodeLengthSize = 1
-    // const scriptSigLengthSize = m * 1
-    // const scriptSigDummyByteSize = 1
-    // const pushSignatureSize = 73 // 72 Assumes ESCDA, SCHNORR is covered by this value + 1 (push)
-
-
     const compiler = getCompiler({ template })
     const sampleEntityId = Object.keys(template.entities)[0]
     const sampleScriptId = template.entities[sampleEntityId].scripts.find((scriptId) => scriptId !== 'lock')
@@ -152,10 +142,7 @@ export function estimateFee (inputs, outputs, template) {
 
     const unlockingBytecode = scenario.program.transaction.inputs[0].unlockingBytecode
 
-    console.log('UNLOCKING', binToHex(unlockingBytecode))
-    console.log('inputs', scenario.program.transaction.inputs[0])
-    console.log('scenario outputs', scenario.program.transaction.outputs)
-
+    
     const satoshiChange = {
       lockingBytecode: inputs[0].sourceOutput.lockingBytecode,
       valueSatoshis: 1000n
@@ -171,7 +158,6 @@ export function estimateFee (inputs, outputs, template) {
       }
     }
 
-    console.log('Inputs', inputs)
     inputs.forEach(u => {
       u.unlockingBytecode = unlockingBytecode
       return u
@@ -181,43 +167,12 @@ export function estimateFee (inputs, outputs, template) {
 
     scenario.program.transaction.outputs = [...outputs, satoshiChange]
 
-    // if (!isDustOutput(changeOutput)) {
-    //   scenario.program.transaction.outputs.push(changeOutput)
-    // }
-
     const dustRelayFeeSatPerKb = 1100n // We'll just increase the default
     const transactionForFeeEstimation = generateTransaction(scenario.program.transaction)
     const estimatedTransactionSize = encodeTransactionCommon(transactionForFeeEstimation.transaction).length
     console.log('Transaction Size', estimatedTransactionSize)
     const minimumFee = getMinimumFee(BigInt(estimatedTransactionSize), dustRelayFeeSatPerKb)
-    console.log('Minimum Fee', minimumFee)
-    // // selectWithFee
-    // selectUtxosOptions.targetAmount = sendAmount + minimumFee
-    // const finalSelected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
-    // const finalInputs = finalSelected.selectedUtxos.map(u => commonUtxoToLibauthInput(u, [])) // without unlocking bytecode
-    // const finalChangeOutput = {
-    //   lockingBytecode: getLockingBytecode(multisigWallet.value).bytecode,
-    //   valueSatoshis: finalSelected.total - sendAmount - minimumFee
-    // }
-
-    // if (!isDustOutput(finalChangeOutput)) {
-    //   outputs.push(finalChangeOutput)
-    // }
-
-    // const finalTransaction = {
-    //   locktime: 0,
-    //   version: 2,
-    //   inputs: finalInputs,
-    //   outputs: outputs
-    // }
-
-    // console.log('Final utxo selections', finalSelected)
-    // if (finalSelected.total < sendAmount + minimumFee) {
-    //   $q.dialog({ message: 'Insufficient Balance' })
-    // }
-
-
-
+    return minimumFee
 }
 
 
