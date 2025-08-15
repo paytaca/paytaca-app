@@ -57,16 +57,17 @@
                   <q-card class="col my-card">
                     <q-card-section>
                       <div class="row">
-                        <div class="col q-pr-sm text-h12">{{ token.terminal.merchant_name }}</div>
+                        <div class="col q-pr-sm q-py-sm text-h12">{{ token?.terminal?.merchant_name }}</div>
                         <q-btn
                           flat
                           dense
                           no-caps
                           outline
-                          class="col-auto"
-                          v-model="token.enabled"
-                          :label="token.enabled ? 'Enabled' : 'Disabled'"
-                          :icon="token.enabled ? 'check' : 'close'"
+                          class="col-auto q-ma-none"
+                          v-model="token.authorized"
+                          :label="token.authorized ? 'Authorized' : 'Unauthorized'"
+                          :icon="token.authorized ? 'verified_user' : 'gpp_bad'"
+                          @click="onToggleAuthorization(token)"
                         />
                       </div>
                     </q-card-section>
@@ -92,7 +93,14 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import TerminalList from 'src/components/card/TerminalList.vue'
 import { fetchAuthNFTs } from 'src/services/card/api'
-import { decodeCommitment } from 'src/services/card/auth-token'
+import AuthTokenManager, { decodeCommitment } from 'src/services/card/auth-token'
+import { Wallet } from 'mainnet-js'
+import { Contract } from '@mainnet-cash/contract';
+import { SignatureTemplate } from 'cashscript'
+import { binToHex } from '@bitauth/libauth'
+import { loadWallet } from 'src/wallet'
+import { pubkeyToPkHash } from 'src/services/card/utils'
+import { TapToPay } from 'src/services/card/tap-to-pay'
 
 export default {
   components: {
@@ -121,18 +129,46 @@ export default {
   methods: {
     getDarkModeClass,
     async loadAuthTokens() {
+      console.log('cardInfo:', this.cardInfo);
+      
       // Add your auth token loading logic here
       const response = await fetchAuthNFTs(this.walletInfo?.walletHash)
-      this.authTokens = response.results.map(token => {
-        console.log('token:', token)
-        // const decodedCommitment = decodeCommitment(token.commitment)
-        // console.log('decodedCommitment:', decodedCommitment)
+      const authTokens = response.results.filter(token => token.terminal)
+      this.authTokens = authTokens.map(token => {
+        const { authorized } = decodeCommitment(token.commitment)
         return {
           ...token,
-          enabled: token.enabled || false
+          authorized: authorized || false
         }
       }) || []
-      console.log('Fetched auth tokens:', response);
+    },
+    async onToggleAuthorization(token) {      
+      console.log('onToggleAuthorization:', token)
+
+      try {
+        const contractId = this.cardInfo.contract_id
+        const tapToPay = new TapToPay(contractId)
+        const decodedCommitment = decodeCommitment(token.commitment)
+
+        const params = {
+          senderWif: this.walletInfo.wif,
+          mutations: [{
+            id: token.terminal.id,
+            pubkey: token.terminal.public_key,
+            authorized: !decodedCommitment?.authorized,
+            expirationBlock: decodedCommitment?.expirationBlock,
+            spendLimitSats: decodedCommitment?.spendLimitSats
+          }]
+        }
+
+        const response = await tapToPay.mutate(params)
+        console.log('Mutation response:', response)
+      } catch (error) {
+        this.$q.dialog({
+          title: 'Error',
+          message: error.message
+        })
+      }
     }
   },
 }

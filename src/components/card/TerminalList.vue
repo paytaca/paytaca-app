@@ -61,6 +61,7 @@
 import { createAuthNFTs, fetchTerminals, fetchUnissuedTerminals } from 'src/services/card/api';
 import AuthTokenManager, { decodeCommitment, encodeTerminalHash } from 'src/services/card/auth-token';
 import { Wallet } from 'mainnet-js';
+import { Contract } from '@mainnet-cash/contract'
 
 export default {
   props: {
@@ -145,6 +146,9 @@ export default {
         const createSaveNftPayload = await this.buildSaveNftPayload(authNfts)
         await createAuthNFTs(createSaveNftPayload)
 
+        const wallet = await Wallet.fromWIF(this.walletInfo.wif)  
+        const _utxos = await wallet.getTokenUtxos()
+        console.log('_utxos:', _utxos)
         this.showLoading('Issuing authorization NFTs')
         await this.issueAuthNfts(authNfts)
 
@@ -200,15 +204,23 @@ export default {
     async issueAuthNfts(authNfts) {
       const tokenManager = new AuthTokenManager(this.walletInfo.wif)
       const recipients = []
+      console.log('___authNfts:', authNfts)
       for (const nft of authNfts) {
         recipients.push({
           address: this.cardInfo?.tokenaddr,
           tokenId: nft.token.tokenId,
           capability: nft.token.capability,
-          commitment: nft.token.commitment
+          commitment: nft.token.commitment,
+          amount: nft.token.amount,
+          value: nft.satoshis
         })
       }
+      console.log('recipients:', recipients)
       const response = await tokenManager.issue({ recipients })
+      const contract = Contract.fromId(this.cardInfo.contract_id)
+      console.log('___contract:', contract)
+      const utxosContract = await contract.getUtxos()
+      console.log('++++++utxosContract:', utxosContract)
       return response
     }
   }

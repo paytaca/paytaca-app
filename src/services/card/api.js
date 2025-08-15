@@ -68,6 +68,7 @@ export async function getCardBalance(address) {
  * @returns {Promise} API response with created card information
  */
 export async function createCard(cardData) {
+  console.log('cardData:', cardData)
   try {
     const response = await cardApi.post('/cards/', cardData)
     return response.data

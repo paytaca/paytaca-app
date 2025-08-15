@@ -1,0 +1,66 @@
+pragma cashscript ^0.11.0;
+
+contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
+    function spend(
+        bytes terminalId,
+        sig terminalSig, 
+        pubkey terminalPk, 
+        sig backendSig, 
+        pubkey backendPk) {
+        
+        require(hash160(backendPk) == backendPkh, 'Invalid backend public key hash');
+        require(checkSig(backendSig, backendPk), 'Invalid backend signature');
+        require(checkSig(terminalSig, terminalPk), 'Invalid terminal signature');
+
+        require(tx.outputs.length >= 2 && tx.outputs.length <= 3, 'Unexpected number of outputs, must be 2 or 3');
+
+        // auth NFT presented must have correct category and commitment
+        bytes tokenCategory = (tx.inputs[0].tokenCategory).split(32)[0];
+        require(tokenCategory == category, 'Invalid token category');
+
+        // require that terminal is valid and authorized
+        bytes fullHash = sha256(terminalId + terminalPk);
+        bytes terminalHash = fullHash.split(27)[0];
+
+        bytes commitment = tx.inputs[0].nftCommitment;
+        bytes flag, bytes rest = commitment.split(1);
+        bytes expirationBlock, bytes rest2 = rest.split(4);
+        bytes spendLimit, bytes expectedTerminalHash = rest2.split(8);
+        
+        require(flag == 0x01, 'Access denied: Terminal is not authorized');
+        require(terminalHash == expectedTerminalHash, 'Access denied: Invalid terminal id');
+        require(tx.locktime <= int(expirationBlock), 'Authentication has expired');
+
+        // require that auth NFT commitment is not tampered with after spending
+        require(commitment == tx.outputs[0].nftCommitment, 'Auth NFT output commitment should not change');
+
+        // auth NFT must be sent back to this contract
+        bytes contractLock = tx.inputs[this.activeInputIndex].lockingBytecode;
+        bool nftSendsToContract = tx.outputs[0].lockingBytecode == contractLock;
+        require(nftSendsToContract, 'Auth NFT must send back to this contract');
+
+        // check if output[1] sends to the recipient (terminal)
+        bytes25 recipientLock = new LockingBytecodeP2PKH(hash160(terminalPk));
+        bool sendsToRecipient = tx.outputs[1].lockingBytecode == recipientLock;
+        require(sendsToRecipient, 'Send amount must send to the recipient');
+
+        // check that send amount is correct
+        int actualSendAmount = tx.outputs[1].value;
+        require(actualSendAmount <= int(spendLimit), 'Send amount exceeds spend limit');
+
+        // require that any change (enforced to be at output[2]) is sent back to this contract
+        if (tx.outputs.length == 3) {
+            require(tx.outputs[2].lockingBytecode == contractLock, 'Change must be sent back to contract');
+        }
+    }
+
+    function sweep(pubkey ownerPk, sig ownerSig) {
+        require(hash160(ownerPk) == ownerPkh, 'Invalid owner public key hash');
+        require(checkSig(ownerSig, ownerPk), 'Invalid owner signature');
+    }
+
+    function mutate (pubkey ownerPk, sig ownerSig) {
+        require(hash160(ownerPk) == ownerPkh, 'Invalid owner public key hash');
+        require(checkSig(ownerSig, ownerPk), 'Invalid owner signature');
+    }
+}

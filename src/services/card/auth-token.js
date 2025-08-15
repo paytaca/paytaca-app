@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainnet-js';
-import { defaultExpirationDeltaMinutes, defaultSpendLimitSats } from './constants';
+import { defaultExpirationDeltaMinutes, defaultSpendLimitSats, minTokenValue } from './constants';
 import { convertTimeToBlock } from './utils';
 
 class AuthTokenManager {
@@ -17,7 +17,6 @@ class AuthTokenManager {
 
     async initWallet() {
         this.wallet = await Wallet.fromWIF(this.wif);
-        // this.wallet = await Wallet.fromWIF('KyLrnNLqjQt29rZk2wtuwDEUszuECJWNz4pkDxuybxWRNGdpWTNN')
     }
 
     async getTokenUtxos(tokenId) {
@@ -52,7 +51,7 @@ class AuthTokenManager {
             amount: 0n,
             commitment: '',
             capability: NFTCapability.minting,
-            value: 800,
+            value: minTokenValue,
         });
         console.log(response);
         return response;
@@ -68,7 +67,7 @@ class AuthTokenManager {
         for (let i = 0; i < terminals.length; i++) {
             const terminal = terminals[i]
             const commitmentData = {
-                flagBool: terminal.isAuthorized || true,
+                authorized: terminal.authorized || true,
                 expirationBlock: terminal.expirationBlock || await this.defaultExpirationBlock(),
                 spendLimitSats: terminal.spendLimitSats || defaultSpendLimitSats,
                 terminal: {
@@ -81,7 +80,7 @@ class AuthTokenManager {
                 cashaddr: this.wallet.cashaddr,
                 capability: NFTCapability.mutable,
                 commitment: commitment,
-                value: 800
+                value: minTokenValue
             }));
         }
         const response = await this.wallet.tokenMint(
@@ -101,12 +100,17 @@ class AuthTokenManager {
         const sendRequests = [];
         for (let i = 0; i < recipients.length; i++) {
             const recipient = recipients[i];
-            sendRequests.push(new TokenSendRequest({
+            console.log('>>>recipient:', recipient)
+            const data = {
                 cashaddr: recipient.address,
                 tokenId: recipient.tokenId,
                 capability: recipient.capability,
-                commitment: recipient.commitment
-            }));
+                commitment: recipient.commitment,
+                amount: recipient.amount
+            };
+
+            console.log('>>>data:', data)
+            sendRequests.push(new TokenSendRequest(data));
         }
         const result = await this.wallet.send(sendRequests);
         console.log(result);
@@ -120,7 +124,7 @@ class AuthTokenManager {
 
         const recipients = mutations.map(m => {
             const newCommitment = encodeCommitment({
-                flagBool: m.isAuthorized,
+                authorized: m.authorized,
                 expirationBlock: m.expirationBlock,
                 spendLimitSats: m.spendLimitSats,
                 terminal: {
@@ -185,13 +189,13 @@ function encodeTerminalHash({ terminalId, terminalPk }) {
     return truncatedHashHex
 }
 
-function encodeCommitment({ flagBool, terminal, expirationBlock, spendLimitSats }) {
+function encodeCommitment({ authorized, terminal, expirationBlock, spendLimitSats }) {
     if (!terminal) throw new Error('missing required terminal')
     if (!expirationBlock) throw new Error('missing required expiration block')
     if (!spendLimitSats) throw new Error ('missing required spend limit')
-    
-    // flag
-    const flag = Buffer.from([flagBool ? 0x01 : 0x00]);
+
+    // authorized
+    const authorizedBuf = Buffer.from([authorized ? 0x01 : 0x00]);
 
     // expiration
     const expirationBuf = Buffer.alloc(4);
@@ -207,18 +211,18 @@ function encodeCommitment({ flagBool, terminal, expirationBlock, spendLimitSats 
     const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
     const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
     const truncatedHash = fullHash.subarray(0, 27)
-    
-    // structure: flag + expirationBlock + spendLimit + hash
-    const commitment = Buffer.concat([flag, expirationBuf, spendLimitBuf, truncatedHash]);
+
+    // structure: authorized + expirationBlock + spendLimit + hash
+    const commitment = Buffer.concat([authorizedBuf, expirationBuf, spendLimitBuf, truncatedHash]);
     return commitment.toString('hex'); 
 }
 
 function decodeCommitment(hex) {
     const buf = Buffer.from(hex, 'hex');
     return {
-        flag: buf[0] === 1,
+        authorized: buf[0] === 1,
         expirationBlock: buf.readUInt32LE(1),
-        spendLimit: buf.readBigUInt64LE(5),
+        spendLimitSats: buf.readBigUInt64LE(5),
         hash: buf.subarray(13, buf.length).toString('hex')
     };
 }

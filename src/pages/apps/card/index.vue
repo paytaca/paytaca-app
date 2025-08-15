@@ -99,11 +99,11 @@
 </template>
 <script>
 import HeaderNav from 'components/header-nav'
-import { fetchCard, createCard, createAuthNFTs } from 'src/services/card/api.js';
+import Card from 'src/services/card/card.js';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { loadWallet } from 'src/wallet';
-import { getPrivateKey, getPublicKey } from 'src/utils/wallet';
-import AuthTokenManager from 'src/services/card/auth-token';
+import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'src/utils/wallet';
+import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
 
 export default {
   components: {
@@ -159,127 +159,74 @@ export default {
       this.$q.loading.hide();
     },
     async onCreateCard() {
-      // Mint genesis token first
-      let category;
       try {
-        this.showLoading("Minting genesis token...");
-        const result = await this.mintGenesisToken();
-        category = result.tokenId;
-        
-        const nftData = result.utxos[0];
+        // Initialize Card instance
+        const privateKey = await this.getPrivateKey();
+        const walletIndex = this.$store.getters['global/getWalletIndex'];
         const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
-        const nftPayload = {
-            txid: nftData.txid,
-            wallet_hash: walletHash,
-            category: nftData.token?.tokenId,
-            capability: nftData.token?.capability,
-            commitment: nftData.token?.commitment,
-            satoshis: nftData.satoshis,
-            amount: nftData.token?.amount
-        }
-        console.log('Creating Auth NFTs with payload:', nftPayload);
-        await createAuthNFTs(nftPayload).catch(error => {
-          console.error('Error creating auth NFTs:', error);
-          this.hideLoading();
-          this.$q.dialog({
-            title: 'Error',
-            message: `Failed to create Auth NFTs. ${error.message || ''}`,
-          });
-        });
-
-      } catch (error) {
-        console.error('Error minting genesis token:', error);
-        this.hideLoading();
-        this.$q.dialog({
-          title: 'Error',
-          message: `Failed to mint Genesis Token. ${error.message || ''}`,
-        });
-      }
-
-      if (!category) {
-        console.error('No category returned from mintGenesisToken');
-        return;
-      }
-
-      this.showLoading("Creating card...");
-      await this.createCard(category);
-      this.hideLoading();
-    },
-    async mintGenesisToken () {
-      const privateKey = await this.getPrivateKey();
-      const authTokenManager = new AuthTokenManager(privateKey);
-      const result = await authTokenManager.genesis();
-      console.log('genesis result:', result);
-      const utxos = await authTokenManager.getTokenUtxos(result.tokenIds[0]);
-      console.log('NFT Data:', utxos);
-      return { tokenId: result.tokenIds[0], utxos };
-    },
-    async getPrivateKey () {
-      const isChipnet = this.$store.getters['global/isChipnet'];
-      const privateKey = await getPrivateKey('bch', isChipnet ? 'chipnet' : 'mainnet');
-      return privateKey;
-    },
-    async getPublicKey() {
-      const isChipnet = this.$store.getters['global/isChipnet'];
-      const publicKey = await getPublicKey('bch', isChipnet ? 'chipnet' : 'mainnet');
-      return publicKey;
-    },
-    async fetchCard () {
-      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
-      console.log('Fetching card info for walletHash:', walletHash);
-      await fetchCard(walletHash)
-        .then(response => {
-          console.log('Card info fetched:', response);
-          this.cardInfo = {
-            id: response.id,
-            category: response.category,
-            cashaddr: response.cash_address,
-            tokenaddr: response.token_address,
-            balance: response.balance
-          };
-          console.log('Card info:', this.cardInfo);
-        })
-        .catch(error => {
-          console.error('Error fetching card info:', error);
-        });
-    },
-    async createCard (category) {
-      const walletIndex = this.$store.getters['global/getWalletIndex'];
-      const wallet = await loadWallet('BCH', walletIndex)
-      const walletHash = wallet.BCH.walletHash;
-      const addressIndex = 0;
-      const pubkey = await wallet.BCH.getPublicKey(`0/${addressIndex}`)
-      
-      const data = {
-        wallet_hash: walletHash,
-        public_key: pubkey,
-        category: category
-      };
-      
-      console.log('Creating card with data:', data);
-      await createCard(data).then(async (response) => {
-        console.log('Card created successfully:', response);
+        const publicKey = await this.getPublicKey();
+        
+        const card = new Card(privateKey, walletIndex, walletHash);
+        
+        // Complete card creation workflow
+        this.showLoading("Creating card...");
+        const result = await card.createCard(publicKey);
+        
+        console.log('✅ Card created successfully:', result);
         this.$q.notify({
           message: 'Card created successfully',
           color: 'positive',
           position: 'top'
         });
 
+        // Refresh the card info
         setTimeout(async () => {
-          this.createCardLoading = false;
           this.loading = true;
           await this.fetchCard();
           this.loading = false;
         }, 500);
-
-      }).catch(error => {
-        console.error('Error creating card:', error?.response || error);
-        this.$q.notify({
-          message: 'Failed to create card',
-          color: 'negative',
-          position: 'top'
+        
+      } catch (error) {
+        console.error('❌ Error in card creation process:', error);
+        this.$q.dialog({
+          title: 'Error',
+          message: `Failed to create card. ${error.message || ''}`,
         });
-      })
+      } finally {
+        this.hideLoading();
+      }
+    },
+    async getPrivateKey () {
+      const addressIndex = 0;
+      const isChipnet = this.$store.getters['global/isChipnet'];
+      const privateKey = await getPrivateKeyAt('bch', isChipnet ? 'chipnet' : 'mainnet', addressIndex);
+      return privateKey;
+    },
+    async getPublicKey() {
+      const addressndex = 0;
+      const isChipnet = this.$store.getters['global/isChipnet'];
+      const publicKey = await getPublicKeyAt('bch', isChipnet ? 'chipnet' : 'mainnet', addressndex);
+      return publicKey;
+    },
+    async fetchCard () {
+      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
+      const card = new Card(null, null, walletHash); // Only need walletHash for fetching
+      
+      try {
+        const response = await card.fetchCardInfo();
+        console.log('Card info fetched:', response);
+        this.cardInfo = {
+          id: response.id,
+          category: response.category,
+          cashaddr: response.cash_address,
+          tokenaddr: response.token_address,
+          balance: response.balance,
+          contract_id: response.contract_id
+        };
+        console.log('Card info:', this.cardInfo);
+      } catch (error) {
+        console.error('Error fetching card info:', error);
+      }
     },
     copyToClipboard (text) {
       navigator.clipboard.writeText(text).then(() => {

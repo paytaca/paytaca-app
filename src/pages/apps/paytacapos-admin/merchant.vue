@@ -403,7 +403,7 @@ const walletData = computed(() => {
 })
 
 async function enableCardPayments() {
-  console.log('merchantData', merchantData)
+  console.log('enableCardPayments', merchantData.value)
   if (merchantData.value.nfc_payments_enabled) {
     return
   }
