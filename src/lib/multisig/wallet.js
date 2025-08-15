@@ -931,6 +931,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
 
     if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
       outputs.push(satoshisChangeOutput)
+      await this.issueChangeAddress(changeAddressIndex)
     }
 
     const transaction = new MultisigTransactionBuilder()
