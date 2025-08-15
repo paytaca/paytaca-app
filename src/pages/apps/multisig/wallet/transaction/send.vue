@@ -195,7 +195,7 @@ const amountRules = computed(() => {
     v => ( v?.length === 0 || /^(\d+)?\.?(\d+)?$/.test(v)) || 'Invalid value.',
     v => Number(v) < balance.value || 'Value exceeds balance.'
   ]
-  if (route.params.asset !== 'bch') {
+  if (route.query.asset !== 'bch') {
     if (assetTokenIdentity.value?.token?.decimals === undefined || assetTokenIdentity.value?.token?.decimals === 0) {
       rules = rules.concat([
         v => (v==='' || Number(v) >= 1)  || 'Token has no decimals. Value should be greater or equal to 1.',
@@ -259,7 +259,6 @@ const createProposal = async () => {
     recipients: recipients.value
   })
 
-  console.log('pst',pst)
 }
 
 onMounted(async () => {
