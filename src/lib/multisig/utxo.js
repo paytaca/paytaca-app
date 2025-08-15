@@ -198,6 +198,7 @@ function knapsackSatoshis(utxos, targetSatoshis) {
   }
 
   const totalSum = sats.reduce((a, b) => a + b, 0n)
+
   search(0, 0n, [], totalSum)
 
   return {
@@ -325,7 +326,7 @@ export function selectUtxos (utxos, options) {
 
   for (const utxo of candidates) {
     if (!utxo.token) {
-      totalSatoshis += utxo.satoshis
+      totalSatoshis = totalSatoshis + utxo.satoshis
     }
     if (utxo.token?.amount) {
       if (!totalTokens[utxo.token.category]) {
@@ -336,7 +337,6 @@ export function selectUtxos (utxos, options) {
       totalTokens[utxo.token.category].total = totalTokens[utxo.token.category].total + utxo.token.amount
     }
   }
-
   let tokensSatisfied = {}
 
   for (const category of Object.keys(targetTokens || {})) {
@@ -347,7 +347,7 @@ export function selectUtxos (utxos, options) {
   return {
     totalSatoshis,
     totalTokens,
-    satoshisSatisfied: targetSatoshis >= totalSatoshis,
+    satoshisSatisfied: BigInt(totalSatoshis) >= BigInt(targetSatoshis ?? 0),
     tokensSatisfied,
     selectedUtxos: candidates,
     remainingUtxos: utxos.filter(u => {
