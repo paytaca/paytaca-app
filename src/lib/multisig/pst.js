@@ -98,7 +98,7 @@ import {
   encodeTransactionOutput
 } from 'bitauth-libauth-v3'
 
-import { derivePublicKeys, getLockingBytecode, createTemplate, getCompiler } from './wallet.js'
+import { derivePublicKeys, getLockingBytecode, createTemplate, getCompiler, getLockingData } from './wallet.js'
 
 
 export const SIGNING_PROGRESS = {
@@ -401,17 +401,18 @@ export const getSigningProgress = (pst) => {
 
     const addressDerivationPath = correspondingInput.sourceOutput.addressPath || '0/0'
     const sortedSignersWithPublicKeys = derivePublicKeys({ signers: pst.wallet.signers, addressDerivationPath })
-    const lockingData = {
-      bytecode: {}
-    }
+    const lockingData = getLockingData({ signers: pst.wallet.signers, addressDerivationPath })
+    // const lockingData = {
+    //   bytecode: {}
+    // }
     
-    for (const index in sortedSignersWithPublicKeys) {
-      let publicKey = sortedSignersWithPublicKeys[index].publicKey 
-      if (typeof(publicKey) === 'string') {
-        publicKey = hexToBin(publicKey)
-      }
-      lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
-    }
+    // for (const index in sortedSignersWithPublicKeys) {
+    //   let publicKey = sortedSignersWithPublicKeys[index].publicKey 
+    //   if (typeof(publicKey) === 'string') {
+    //     publicKey = hexToBin(publicKey)
+    //   }
+    //   lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
+    // }
 
     const template = createTemplate({ m: pst.wallet.m, signers: sortedSignersWithPublicKeys })
     const lockingBytecode = getLockingBytecode({ lockingData, template }) // lockingBytecode === lockingScript

@@ -14,7 +14,7 @@
       class="apps-header"
     />
     <div class="row justify-center">
-      <div class="col-xs-12 q-px-xs">
+      <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="wallet">
             <div class="row q-mb-lg">
               <div class="col-xs-12 flex items-center justify-center q-mb-lg">

@@ -104,7 +104,7 @@
                   </q-btn>
                 </q-item-section>
               </q-item>
-              <q-expansion-item>
+              <q-expansion-item v-model="balancesExpanded">
                 <template v-slot:header>
                   <q-item-section>
                     Raw Tx Details
@@ -381,6 +381,7 @@ const multisigWallet = computed(() => {
   })
 })
 
+const balancesExpanded = ref(true)
 const isBroadcasting = ref(false)
 const updatingBroadcastStatus = ref(false)
 const checkingSigningProgress = ref(false)
