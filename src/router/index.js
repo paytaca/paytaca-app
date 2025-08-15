@@ -76,9 +76,6 @@ export default function () {
     const url = new URL(event.url)
     console.log('App URL open', { url })
 
-    let baseURL = store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
-    baseURL = baseURL.replace('https://', '').replace('http://', '').replace('/api', '')
-
     if (/\/payment-request\/?$/.test(url.pathname) || /\/apps\/connecta\/?$/.test(url.pathname)) {
       const query = {}
       if (url.searchParams.has('d')) query.paymentRequestData = url.searchParams.get('d')
@@ -98,7 +95,13 @@ export default function () {
         name: 'app-sweep',
         query: { w: extractWifFromUrl(String(url)) }
       })
-    } else if (['ethereum:', 'bitcoincash:', 'paytaca:'].indexOf(url.protocol) >= 0) {
+    } else if (url.protocol === 'bitcoincash:') {
+      // will need to refactor to have similar behavior as in qr scanner page
+      Router.push({
+        name: 'qr-reader',
+        query: { decode: url.toString() },
+      })
+    } else if (['ethereum:', 'paytaca:'].indexOf(url.protocol) >= 0) {
       const query = { assetId: 'bch', paymentUrl: String(url) }
       try {
         const parsedPaymentUri = parsePaymentUri(

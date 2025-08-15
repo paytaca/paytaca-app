@@ -10,7 +10,7 @@
     </div>
     <template v-else>
       <qrcode-stream
-        v-if="!isMobile"
+        v-if="!isMobile && !decode"
         :camera="frontCamera ? 'front': 'auto'"
         :paused="paused"
         @detect="onQRDecode"
@@ -91,6 +91,10 @@ export default {
     // eslint-disable-next-line vue/no-unused-components
     LoadingWalletDialog,
     QRUploader
+  },
+
+  props: {
+    decode: String,
   },
 
   data () {
@@ -430,10 +434,11 @@ export default {
   mounted () {
     const vm = this
 
-    if (vm.isMobile) {
+    if (vm.decode) {
+      vm.onQRDecode([{ rawValue: vm.decode }])
+    } else if (vm.isMobile) {
       vm.prepareScanner()
     }
-    window.scan = val => vm.onQRDecode([{ rawValue: val }])
 
     vm.clWidth = `${document.body.clientWidth}px`
   },
