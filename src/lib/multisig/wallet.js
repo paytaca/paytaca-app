@@ -131,6 +131,9 @@ import {
 import Big from 'big.js'
 import { createTemplate } from './template.js'
 import { base58AddressToLockingBytecode } from '@bitauth/libauth'
+import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from './utxo.js'
+import { attachSourceOutputsToInputs, estimateFee, MultisigTransactionBuilder, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
+import { Pst } from './pst.js'
 
 
 const getHdKeys = ({ signers, addressIndex = 0 /* { [signerIndex: number]: { xpub: string, name: string ...} } */ }) => {
@@ -499,6 +502,10 @@ export class MultisigWallet {
     return this._utxos
   }
 
+  get n() {
+    return this.signers?.length
+  }
+
 /**
  * Returns a deposit address from the wallet.
  *
@@ -649,8 +656,6 @@ async convertBalanceToCurrencies(asset, balance, currencySymbols) {
     const priceData = await response.json()
     return priceData?.map((price) => {
       const p = Big(balance).mul(price.price_value).toString()
-      price[`assetPriceIn${price.currency}`] = p
-      price[`assetPriceIn${price.currency}Text`] = `${price.currency?.toUpperCase()} ${p}`
       return price
     })
   }
@@ -738,155 +743,114 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
 
   /**
    * Create a transaction proposal to send BCH or CashTokens
-   * @param {TransactionProposal} proposal
-   * @returns {Promise<Pst>}
-   */
-  async createBchTransferProposal(proposal) {
-    const utxos = await this.getWalletUtxos()
-    console.log('Utxos', utxos)
-  }
-  
-  /**
-   * Create a transaction proposal to send BCH or CashTokens
    * @param {import('./transaction-builder.js').TransactionProposal} proposal
    * @returns {Promise<import('./pst.js').Pst>}
    */
-  async createTransactionProposal(proposal) {
+  async createPstFromTransactionProposal(proposal) {
 
     if (!this.utxos) {
       await this.getWalletUtxos()
     }
 
+    let targetBch = 
+      proposal.recipients
+        ?.filter(r => r.asset === 'bch')
+        .reduce((total, nextR) => {
+          total = Big(total).add(nextR.amount || 0)
+          return total}, '0'
+        )
     
-    console.log('UTXOS', wallet.value.utxos)
-    const utxos = selectUtxos(wallet.value.utxos, { targetSatoshis: '7500' })
-    console.log('UTXO', utxos)
+    let targetSatoshis = Big(targetBch).mul(1e8)
 
-    const inputs = utxos?.selectedUtxos?.map((u) => {
-      return commonUtxoToLibauthInput(u, [])
+    /**
+     * @type {{Object.<string, bigint>}} - Key is the asset which is the token category
+     */
+    let targetTokens = {}
+
+    // Get target token amount of each asset(token category), convert decimal amount to vm number
+
+    for (const r of proposal.recipients) {
+      if (r.asset === 'bch') continue
+      console.log('`1e${r.decimals || 0}`', `1e${r.decimals || 0}`)
+      console.log('Big(r.amount).mul(`1e${r.decimals || 0}`)', Big(r.amount).mul(`1e${r.decimals || 0}`))
+      let tokenAmountInVmNumber = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
+      if (!targetTokens[r.asset]) {
+        targetTokens[r.asset] = tokenAmountInVmNumber
+        continue
+      }
+      targetTokens[r.asset] = BigInt(Big(targetTokens[r.asset]).add(tokenAmountInVmNumber))
+    }
+
+    let satoshiUtxos = null
+    if (Number(targetSatoshis) > 0) {
+      // trying to send bch
+      satoshiUtxos = selectUtxos(this.utxos?.filter(u => !u.token), { targetSatoshis })
+      if (!satoshiUtxos.satoshisSatisfied) {
+        throw new Error('Insufficient BCH balance!')
+      }
+    }
+
+
+    let tokenUtxos = null
+    if (Object.keys(targetTokens).length > 0) {
+      // trying to send tokens
+      tokenUtxos = selectUtxos(this.utxos?.filter(u => Boolean(u.token)), { targetTokens })
+      if (!tokenUtxos.tokensSatisfied) {
+        throw new Error('Insufficient token balance!')
+      }
+    }
+
+    let selectedUtxos = []
+
+    if (satoshiUtxos) {
+      selectedUtxos = selectedUtxos.concat(satoshiUtxos.selectedUtxos)
+    }
+
+    if (tokenUtxos) {
+      selectedUtxos = selectedUtxos.concat(tokenUtxos.selectedUtxos)
+    }
+
+    const inputs = selectedUtxos?.map((u) => {
+      return {
+        ...commonUtxoToLibauthInput(u, []),
+        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode) 
+      }
+    })
+    const outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
+    const estimatedFee = estimateFee(inputs, outputs, createTemplate(this))
+
+    //TODO: 
+    // If sats only
+    //    check if change 
+    //      if dust, ignore, 
+    //      if negative get more utxos from remaining utxos
+    //        recompute
+    //      if more than dust, issue new change address and return sats
+    
+    // if tokens
+    //.    check if there's an excess sats for fee from the tokens
+    //     if dust, ignore, 
+    //      if negative get more utxos from remaining utxos
+    //        recompute
+    //      if more than dust, issue new change address and return sats
+    
+
+    const transaction = new MultisigTransactionBuilder()
+    transaction
+      .addInputs(inputs)
+      .addOutputs(outputs)
+    const unsignedTransactionHex = transaction.build()
+    
+    const pst = new Pst({
+      origin: proposal.origin,
+      creator: proposal.creator,
+      purpose: proposal.purpose,
+      unsignedTransactionHex,
+      inputs,
+      wallet: wallet.value
     })
 
-
-    console.log('INPUTS', inputs)
-
-    // loading.value = true
-    // await $store.dispatch('multisig/fetchWalletUtxos', route.params.address)
-    // const sendAmount = recipients.value.reduce((amtAccumulator, nextRecipient) => {
-    //   const amountNoDecimals = Big(nextRecipient.amount).mul(`1e${assetDecimals.value}`).toNumber()
-    //   amtAccumulator += BigInt(amountNoDecimals)
-    //   return amtAccumulator
-    // }, 0n)
-
-    // const selectUtxosOptions = {
-    //   targetAmount: sendAmount,
-    //   filterStrategy: 'bch-only',
-    //   sortStrategy: 'smallest'
-    // }
-    // const selected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
-    // // Construct inputs
-    // const inputs = selected.selectedUtxos
-    // // Construct outputs
-    // const outputs = recipients.value.map((recipient) => {
-    //   const valueSatoshis = BigInt(Big(recipient.amount).mul(`1e${assetDecimals.value}`))
-    //   const output = {
-    //     lockingBytecode: cashAddressToLockingBytecode(recipient.address).bytecode,
-    //     valueSatoshis
-    //   }
-    //   return output
-    // })
-
-    // // Estimate fee
-    // const template = multisigWallet.value.template
-    // const compiler = getCompiler({ template })
-    // const sampleEntityId = Object.keys(template.entities)[0]
-    // const sampleScriptId = template.entities[sampleEntityId].scripts.find((scriptId) => scriptId !== 'lock')
-    // const scenario = compiler.generateScenario({
-    //   unlockingScriptId: sampleScriptId
-    // })
-
-    // const unlockingBytecode = scenario.program.transaction.inputs[0].unlockingBytecode
-
-    // const changeOutput = {
-    //   lockingBytecode: getLockingBytecode(multisigWallet.value).bytecode,
-    //   valueSatoshis: selected.total - sendAmount // Temp value, tx fee not yet accounted for, will just be used for scenario
-    // }
-
-    // scenario.program.transaction.inputs = inputs.map(u => commonUtxoToLibauthInput(u, unlockingBytecode))
-    // scenario.program.transaction.outputs = [...outputs, changeOutput]
-
-    // if (!isDustOutput(changeOutput)) {
-    //   scenario.program.transaction.outputs.push(changeOutput)
-    // }
-
-    // const dustRelayFeeSatPerKb = 1100n // 1.1 per byte
-    // const transactionForFeeEstimation = generateTransaction(scenario.program.transaction)
-    // const estimatedTransactionSize = encodeTransactionCommon(transactionForFeeEstimation.transaction).length
-    // console.log('Transaction Size', estimatedTransactionSize)
-    // const minimumFee = getMinimumFee(BigInt(estimatedTransactionSize), dustRelayFeeSatPerKb)
-
-    // // selectWithFee
-    // selectUtxosOptions.targetAmount = sendAmount + minimumFee
-    // const finalSelected = selectUtxos(utxos.value.utxos, selectUtxosOptions)
-    // const finalInputs = finalSelected.selectedUtxos.map(u => commonUtxoToLibauthInput(u, [])) // without unlocking bytecode
-    // const finalChangeOutput = {
-    //   lockingBytecode: getLockingBytecode(multisigWallet.value).bytecode,
-    //   valueSatoshis: finalSelected.total - sendAmount - minimumFee
-    // }
-
-    // if (!isDustOutput(finalChangeOutput)) {
-    //   outputs.push(finalChangeOutput)
-    // }
-
-    // const finalTransaction = {
-    //   locktime: 0,
-    //   version: 2,
-    //   inputs: finalInputs,
-    //   outputs: outputs
-    // }
-
-    // console.log('Final utxo selections', finalSelected)
-    // if (finalSelected.total < sendAmount + minimumFee) {
-    //   $q.dialog({ message: 'Insufficient Balance' })
-    // }
-
-    // const sourceOutputs =
-    //   finalSelected.selectedUtxos
-    //     .map(u => {
-    //       const utxo = commonUtxoToLibauthOutput(u)
-    //       return {
-    //         ...utxo,
-    //         lockingBytecode: finalChangeOutput.lockingBytecode,
-    //         outpointTransactionHash: hexToBin(u.txid),
-    //         outpointIndex: Number(u.vout)
-    //       }
-    //     })
-
-    // const multisigTransaction = {
-    //   origin: 'paytaca-wallet',
-    //   purpose: purpose.value,
-    //   transaction: finalTransaction,
-    //   sourceOutputs,
-    //   addressIndex: multisigWallet.value.lockingData.hdKeys.addressIndex,
-    //   address: route.params.address
-    // }
-
-    // attachSourceOutputsToInputs(multisigTransaction)
-    // await $store.dispatch('multisig/createTransaction', { multisigWallet: multisigWallet.value, multisigTransaction })
-    // loading.value = false
-    // router.push({
-    //   name: 'app-multisig-wallet-transaction-view',
-    //   params: {
-    //     address: route.params.address,
-    //     hash: generateTransactionHash(multisigTransaction)
-    //   }
-    // })
-
-    // 1. Validate all recipient addresses
-    // 2. Separate total BCH, total tokens, NFTs to send
-    // 3. Select UTXOs accordingly
-    // 4. Build inputs and outputs
-    // 5. Handle change for BCH and tokens
-    // 6. Return proposal object
+    return pst
   }
 
   /**
