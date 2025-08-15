@@ -306,7 +306,7 @@ export function selectUtxos (utxos, options) {
   const nonTokenUtxos = utxos.filter(u => !u.token)
   const tokenUtxos = utxos.filter(u => Boolean(u.token?.category))
   
-  const satsUtxosSelected = knapsackSatoshis(nonTokenUtxos, BigInt(targetSatoshis))
+  const satsUtxosSelected = knapsackSatoshis(nonTokenUtxos, BigInt(targetSatoshis ?? 0))
 
   const targetTokenAmount = BigInt(targetTokens?.[Object.keys(targetTokens || {})[0]] || 0) 
   
