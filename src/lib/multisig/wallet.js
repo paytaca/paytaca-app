@@ -132,7 +132,7 @@ import Big from 'big.js'
 import { createTemplate } from './template.js'
 import { base58AddressToLockingBytecode } from '@bitauth/libauth'
 import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from './utxo.js'
-import { attachSourceOutputsToInputs, estimateFee, MultisigTransactionBuilder, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
+import { attachSourceOutputsToInputs, estimateFee, getMofNDustThreshold, MultisigTransactionBuilder, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
 
 
@@ -506,6 +506,13 @@ export class MultisigWallet {
     return this.signers?.length
   }
 
+  get cashAddressNetworkPrefix() {
+    if (this.options?.network === 'chipnet' || this.options?.network === 'testnet') {
+      return CashAddressNetworkPrefix.testnet 
+    }
+    return CashAddressNetworkPrefix.mainnet
+  }
+
 /**
  * Returns a deposit address from the wallet.
  *
@@ -599,7 +606,11 @@ async getWalletUtxos() {
   const utxoPromises = []
 
   while (dCounter < lastDepositAddress) {
-    utxoPromises.push(this.getAddressUtxos(this.getDepositAddress(dCounter, this.cashAddressNetworkPrefix).address, `0/${dCounter}`))
+    utxoPromises.push(
+      this.getAddressUtxos(
+        this.getDepositAddress(dCounter, this.cashAddressNetworkPrefix).address, `0/${dCounter}`
+      )
+    )
     dCounter++
   }
 
@@ -612,7 +623,11 @@ async getWalletUtxos() {
   let cCounter = 0
 
   while (cCounter < lastChangeAddress) {
-    utxoPromises.push(this.getAddressUtxos(this.getChangeAddress(cCounter, this.cashAddressNetworkPrefix).address, `1/${cCounter}`))
+    utxoPromises.push(
+      this.getAddressUtxos(
+        this.getChangeAddress(cCounter, this.cashAddressNetworkPrefix).address, `1/${cCounter}`
+      )
+    )
     cCounter++
   }
 
@@ -666,7 +681,6 @@ async convertBalanceToCurrencies(asset, balance, currencySymbols) {
 async getWalletBalances() {
   const assetsBalances = {}
   const utxos = await this.getWalletUtxos() 
-  console.log('utxos', utxos)
   utxos.forEach((u) => {
     if (!u.token) {
       if (!assetsBalances['bch']) {
@@ -748,6 +762,10 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
    */
   async createPstFromTransactionProposal(proposal) {
 
+    if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
+      throw new Error('Sending mixed assets is not yet supported!')
+    }
+
     if (!this.utxos) {
       await this.getWalletUtxos()
     }
@@ -771,8 +789,6 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
 
     for (const r of proposal.recipients) {
       if (r.asset === 'bch') continue
-      console.log('`1e${r.decimals || 0}`', `1e${r.decimals || 0}`)
-      console.log('Big(r.amount).mul(`1e${r.decimals || 0}`)', Big(r.amount).mul(`1e${r.decimals || 0}`))
       let tokenAmountInVmNumber = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
       if (!targetTokens[r.asset]) {
         targetTokens[r.asset] = tokenAmountInVmNumber
@@ -789,7 +805,6 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
         throw new Error('Insufficient BCH balance!')
       }
     }
-
 
     let tokenUtxos = null
     if (Object.keys(targetTokens).length > 0) {
@@ -810,30 +825,113 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       selectedUtxos = selectedUtxos.concat(tokenUtxos.selectedUtxos)
     }
 
-    const inputs = selectedUtxos?.map((u) => {
+    let inputs = selectedUtxos?.map((u) => {
       return {
         ...commonUtxoToLibauthInput(u, []),
         sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode) 
       }
     })
-    const outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
+
+    let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
+
+    let funderUtxos = null
+    const changeAddressIndex = this.lastIssuedChangeAddressIndex === undefined ? 0 : this.lastIssuedChangeAddressIndex + 1
+    const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
+    const satoshisChangeOutput = {
+      lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+      valueSatoshis: 0n
+    }
+
+    const satoshisChangeOutputDustThreshold = 
+      getMofNDustThreshold(
+        this.m, this.n, 
+        satoshisChangeOutput
+      )
+
+    if (tokenUtxos) {
+
+      const tokenInputsTotalTokensValue = 
+        inputs
+          .filter(i=> Boolean(i.sourceOutput.token))
+          .reduce((target, nextInput) => target += nextInput.sourceOutput.token.amount, 0n)
+
+      const tokenOutputsTotalTokensValue = 
+        outputs
+          .filter(o=> Boolean(o.token))
+          .reduce((target, nextInput) => target += nextInput.token.amount, 0n)
+      
+      let tokensChangeAmount = tokenInputsTotalTokensValue - tokenOutputsTotalTokensValue
+
+      if (tokensChangeAmount > 0) {  
+        let tokenChangeOutput =  {
+          lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+          valueSatoshis: 0n, //temporary
+          token: {
+            ...outputs[0].token,
+            amount: tokensChangeAmount,
+          }
+        }
+
+        let requiredSatoshisForTokenChange = getMofNDustThreshold(this.m, this.n, tokenChangeOutput)
+        tokenChangeOutput.valueSatoshis = requiredSatoshisForTokenChange
+        outputs.push(tokenChangeOutput)
+      } 
+    }
+
     const estimatedFee = estimateFee(inputs, outputs, createTemplate(this))
 
-    //TODO: 
-    // If sats only
-    //    check if change 
-    //      if dust, ignore, 
-    //      if negative get more utxos from remaining utxos
-    //        recompute
-    //      if more than dust, issue new change address and return sats
-    
-    // if tokens
-    //.    check if there's an excess sats for fee from the tokens
-    //     if dust, ignore, 
-    //      if negative get more utxos from remaining utxos
-    //        recompute
-    //      if more than dust, issue new change address and return sats
-    
+    let totalSatoshisInputsAmount = 
+      inputs
+        .reduce((target, nextInput) => target += nextInput.sourceOutput.valueSatoshis, 0n)
+
+    const totalSatoshiOutputsAmount = 
+      outputs
+        .reduce((target, nextOutput) => target += nextOutput?.valueSatoshis, 0n)
+
+    let totalSatoshisChangeAmount = totalSatoshisInputsAmount - totalSatoshiOutputsAmount
+
+    let additionalFunds = 0
+
+    if (totalSatoshisChangeAmount < estimatedFee) {
+      
+      if (funderUtxos) { 
+        funderUtxos = selectUtxos(funderUtxos.remainingUtxos?.filter(u => !u.token), { targetSatoshis: estimatedFee +  satoshisChangeOutputDustThreshold })
+      } else {
+        funderUtxos = selectUtxos(this.utxos?.filter(u => !u.token), { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
+      }
+
+      if (!funderUtxos.satoshisSatisfied) {
+        throw new Error('Insufficient BCH balance for fee!')
+      }
+
+      additionalFunds = 
+        funderUtxos.selectedUtxos.filter(u => !u.token).reduce((sats, nextU)=> sats += nextU.satoshis, 0)
+
+      inputs = 
+        inputs.concat(
+              funderUtxos.selectedUtxos?.map((u) => {
+                return {
+                  ...commonUtxoToLibauthInput(u, []),
+                  sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode) 
+                }
+            })
+        )
+    }
+
+    if (additionalFunds > 0) {
+      // recompute total input sats if new funds are added to the inputs for fee
+      totalSatoshisInputsAmount = 
+        inputs
+          .reduce((target, nextInput) => target += nextInput.sourceOutput.valueSatoshis, 0n)
+    }
+
+    totalSatoshisChangeAmount = totalSatoshisInputsAmount - (totalSatoshiOutputsAmount + estimatedFee)
+
+    satoshisChangeOutput.valueSatoshis = totalSatoshisChangeAmount
+
+    if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
+      outputs.push(satoshisChangeOutput)
+    }
 
     const transaction = new MultisigTransactionBuilder()
     transaction
@@ -847,7 +945,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       purpose: proposal.purpose,
       unsignedTransactionHex,
       inputs,
-      wallet: wallet.value
+      wallet: this
     })
 
     return pst
