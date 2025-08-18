@@ -1,10 +1,7 @@
 <template>
   <q-dialog persistent seamless ref="dialogRef" class="no-click-outside">
-    <q-card
-      class="q-pa-md pt-card-2 text-bow full-width"
-      :class="getDarkModeClass(darkMode)"
-    >
-      <div class="row justify-between items-center q-mb-xs">
+    <q-card class="pt-card-2 text-bow full-width" :class="getDarkModeClass(darkMode)">
+      <div class="row justify-between items-center q-px-md q-pt-md q-mb-xs sticky-title">
         <div class="col-10">
           <sale-group-chip
             :saleGroup="purchase.purchase_more_details.sale_group"
@@ -24,7 +21,7 @@
         </div>
       </div>
 
-      <div class="row">
+      <div class="row q-px-md q-pb-md">
         <div class="row col-12 text-body1">
           <span class="col-12 text-body2 dim-text">{{
             $t("AmountPurchased")
@@ -72,6 +69,16 @@
           <span class="col-12 q-mb-sm">
             {{ parseBchAddress(purchase.purchase_more_details.bch_address) }}
           </span>
+
+          <span class="col-12 text-body2 dim-text">{{ $t('TransactionId') }}</span>
+          <span class="col-12 q-mb-sm text-bold">
+            <a
+              :href="`https://explorer.bch.ninja/tx/${purchase.initial_tx_id}`"
+              target="_blank"
+            >
+              {{ parseTxid(purchase.initial_tx_id) }}
+            </a>
+          </span>
         </div>
 
         <template
@@ -83,7 +90,7 @@
 
           <div
             v-for="(details, index) in vestingDetailsList"
-            class="q-mb-sm row col-12 items-center"
+            class="q-mb-sm row col-12"
           >
             <status-chip :isCompleted="!!details" :index="index + 1" />
 
@@ -98,6 +105,14 @@
                       `Vested ${parseLiftToken(details.vested_amount_tkn)}`
                     )
                   }}
+                </span>
+                <span class="col-12 text-bold">
+                  <a
+                    :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
+                    target="_blank"
+                  >
+                    {{ parseTxid(details.tx_id) }}
+                  </a>
                 </span>
               </div>
             </template>
@@ -180,6 +195,10 @@ export default {
         return 'vest'
       return 'lock'
     },
+    parseTxid(txId) {
+      const txIdLen = txId.length
+      return `${txId.substring(0, 10)}...${txId.substring(txIdLen - 10, txIdLen)}`
+    }
   },
 
   mounted() {
@@ -196,5 +215,11 @@ export default {
 .dim-text {
   color: #ed5f59;
   font-weight: 600;
+}
+.sticky-title {
+  position: sticky;
+  top: 0;
+  background-color: inherit;
+  z-index: 100;
 }
 </style>

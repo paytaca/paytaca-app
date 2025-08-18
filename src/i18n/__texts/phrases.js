@@ -1285,11 +1285,11 @@ const phrases = {
       SuccessfulPurchase: 'Purchase processed successfully.',
       PurchasePaymentError: 'Something happened while processing your purchase. Please try again later. Please message us to refund this purchase.',
       PaymentSendingError: 'Something happened while sending your payment. Please try again later. Your balance was not deducted.',
-      AddressNotFound: 'The BCH address you used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.',
       EmptyPurchases: 'You do not have any purchases yet.',
       LockupPeriodOver: 'Lockup period is over',
       VestingPeriodOver: 'Vesting period is over',
-      VestingNotOccured: 'Vesting has not occurred yet'
+      VestingNotOccured: 'Vesting has not occurred yet',
+      ReservationPaid: 'Reservation is paid in full'
     }
   ],
   dynamic: [
