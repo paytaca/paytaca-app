@@ -1,12 +1,7 @@
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
-import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../wallet'
 import routes from './routes'
 import useStore from '../store'
-
-import { parseWalletConnectUri } from '../wallet/walletconnect'
-import { parsePaymentUri } from 'src/wallet/payment-uri'
-import { isValidWif, extractWifFromUrl } from 'src/wallet/sweep'
 
 /*
  * If not building with SSR mode, you can
@@ -69,52 +64,6 @@ export default function () {
       }
     } else {
       next()
-    }
-  })
-
-  Plugins.App.addListener('appUrlOpen', function (event) {
-    const url = new URL(event.url)
-    console.log('App URL open', { url })
-
-    if (/\/payment-request\/?$/.test(url.pathname) || /\/apps\/connecta\/?$/.test(url.pathname)) {
-      const query = {}
-      if (url.searchParams.has('d')) query.paymentRequestData = url.searchParams.get('d')
-      else if (url.searchParams.has('orderId')) query.orderId = url.searchParams.get('orderId')
-
-      Router.push({ name: 'connecta', query: query })
-    } else if (parseWalletConnectUri(url)) {
-      Router.push({
-        name: 'app-wallet-connect',
-        query: {
-          uri: String(url),
-          openCallRequest: true
-        }
-      })
-    } else if(extractWifFromUrl(String(url))) {
-      Router.push({
-        name: 'app-sweep',
-        query: { w: extractWifFromUrl(String(url)) }
-      })
-    } else if (url.protocol === 'bitcoincash:') {
-      // will need to refactor to have similar behavior as in qr scanner page
-      Router.push({
-        name: 'qr-reader',
-        query: { decode: url.toString() },
-      })
-    } else if (['ethereum:', 'paytaca:'].indexOf(url.protocol) >= 0) {
-      const query = { assetId: 'bch', paymentUrl: String(url) }
-      try {
-        const parsedPaymentUri = parsePaymentUri(
-          String(url),
-          { chain: url.protocol === 'ethereum:' ? 'smart' : 'main' },
-        )
-        query.network = parsedPaymentUri.asset.chain === 'smart' ? 'sBCH' : 'BCH'
-      } catch(error) { console.error(error) }
-      Router.push({ name: 'transaction-send', query: query })
-    } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
-      Router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
-    } else if (url.host === 'p2p.paytaca.com' && url.pathname.match('/ad/share/?')) {
-      Router.push({ name: 'exchange', query: { ad_id: url.searchParams.get('id') } })
     }
   })
 
