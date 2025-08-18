@@ -49,6 +49,7 @@ module.exports = defineConfig((ctx) => {
       'walletconnect',
       'confetti',
       'keyboard',
+      'deep-link',
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
