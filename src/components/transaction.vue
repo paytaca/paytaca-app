@@ -481,7 +481,7 @@
                       padding="xs sm"
                       label="Update"
                       color="primary"
-                      @click="showMemo = true"
+                      @click="openMemo()"
                     />
                   </q-item-section>
                 </div>
@@ -492,14 +492,24 @@
                         padding="xs sm"
                         label="Add Memo"
                         color="primary"
+                        :disable="networkError"
                         @click="openMemo()"
                       />
+                      <div v-if="networkError" class="row justify-between q-pt-xs q-px-sm">
+                        <div class="text-grey-5 text-italic" style="font-size: 12px;">
+                          Network Error
+                        </div>
+                        <div>
+                          <q-icon color="grey-7" size="sm" name="refresh"/>
+                        </div>
+                      </div>                      
                   </q-item-section> 
                 </div>                                          
               </div>
               <div v-else>
                 <q-item-section class="q-pt-sm">
                    <q-input
+                    ref="memoInput"
                     v-model="memo.note"
                     filled
                     height="25px" 
@@ -542,7 +552,9 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
-import { fetchMemo, createMemo, updateMemo } from 'src/utils/transaction-memos.js'
+import { fetchMemo, createMemo, updateMemo, encryptMemo, decryptMemo } from 'src/utils/transaction-memos.js'
+import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
+import { getKeypair } from 'src/exchange/chat/keys'
 import { ref } from 'vue'
 
 
@@ -572,7 +584,9 @@ export default {
       memo: {
         note: ''
       },
-      hasMemo: false
+      hasMemo: false,
+      networkError: false,
+      keypair: {}
     }
   },
   computed: {
@@ -692,19 +706,37 @@ export default {
       }
     },
     async show (transaction) {
+      this.memo = {
+        note: ''
+      }
       try {
         this.transaction = transaction
-        const currentMemo = await fetchMemo(this.transaction.txid)
+        let currentMemo = null
+
+        this.keypair = await getKeypair().catch(console.error)
+        console.log('keypair: ', this.keypair)
+
+        try {
+          currentMemo = await fetchMemo(this.transaction.txid) 
+        } catch {
+          console.log('failed request')
+          this.networkError = true
+        }
 
         if (currentMemo) {
           if ('error' in currentMemo) {
             console.log('no memo for this txid')
             this.hasMemo = false
           } else {
+            // decryptMemo
+            currentMemo.note = await decryptMemo(this.keypair.privkey, currentMemo.note)
+
             console.log('current memo: ', currentMemo)
             this.memo = currentMemo
             this.hasMemo = true
           }
+        } else {
+
         }
 
         this.$refs.dialog.show()
@@ -722,31 +754,51 @@ export default {
 
       // this.$refs.card.scrollTop = test
 
-      setTimeout(() => {
-        const content = document.getElementById('scrollArea')
-        console.log('here: ', content)
-        content.scrollTop = content.scrollHeight + 100        
-      }, 200)
-      
+        setTimeout(() => {
+          const content = document.getElementById('scrollArea')    
+          content.scrollTop = content.scrollHeight + 100  
+
+          this.$refs.memoInput.focus()      
+        }, 200)     
     },
     async saveMemo() {
+      //encrypt memo
+      const encryptedMemo = await encryptMemo(this.keypair.privkey, this.keypair.pubkey, this.memo.note)
+
+      console.log('ecrypted memo: ', encryptedMemo)
+
+
+      // const test = await decryptMemo(this.keypair.privkey, encryptedMemo)
+      // console.log('decryptedMemo: ', test)
       const data = {
         txid: this.transaction.txid,
-        note: this.memo.note
+        note: encryptedMemo
       }
 
       let response = null
       if (this.hasMemo) {
-        response = await updateMemo(data)
+        try {
+          response = await updateMemo(data)
+        } catch {
+          console.log('failed request')
+          this.networkError = true
+        }
       } else {
-        response = await createMemo(data)
+        try {
+          response = await createMemo(data)
+        } catch {
+          console.log('failed request')
+          this.networkError = true
+        }
       } 
 
       if (response) {
           if ('error' in response) { 
             this.hasMemo = false
-          } else {            
+          } else {     
+
             this.memo = response
+            this.memo.note = await decryptMemo(this.keypair.privkey, this.memo.note)
             this.hasMemo = true
           }
         }
