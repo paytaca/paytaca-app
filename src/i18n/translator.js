@@ -174,16 +174,35 @@ class Translator {
    */
   async translateGroup(group, codes) {
     if (Object.keys(group).length === 0) return {}
+    if (codes.from === codes.to) return { ...group }
 
     // store all the interpolated substring in an object with its corresponding key
     const interpolatedWords = {}
     for (const [key, value] of Object.entries(group)) {
       const interpolatedMatches = value.match(this.regex.interpolatedStrRegex)
-      if (interpolatedMatches !== null) interpolatedWords[key] = interpolatedMatches
+      if (interpolatedMatches !== null) {
+        console.log('Interpolated', `[${key}] => '${value}'`, interpolatedMatches)
+        interpolatedWords[key] = interpolatedMatches
+      }
     }
 
     // translate in bulks
     let translatedObj = await translate(group, codes)
+    if (codes.to == 'en') {
+      let hasInconsistency = false
+      for (const [key, value] of Object.entries(translatedObj)) {
+        if (group[key] !== value) {
+          hasInconsistency = true
+          console.log('Found inconsistency!', key, `translated to '${value}' instead of '${group[key]}'`)
+        }
+      }
+      if (hasInconsistency) {
+        console.log('Codes', codes)
+        console.log('TranslatedObj', translatedObj)
+        console.log('Group', group)
+        throw new Error('Has inconsistency')
+      }
+    }
 
     // replace the translated interpolation placeholder with the untranslated one
     if (Object.keys(interpolatedWords).length !== 0) {

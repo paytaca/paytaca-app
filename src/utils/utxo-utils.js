@@ -167,6 +167,32 @@ export function watchtowerUtxoToCommonUtxo (utxo) {
 }
 
 /**
+ * @param {WatchtowerUtxo} utxo 
+ * @returns {import("cashscript").Utxo}
+ */
+export function watchtowerUtxoToCashscript(utxo) {
+  let tokenAmount
+  if (utxo?.tokenid) {
+    tokenAmount = BigInt(utxo?.amount)
+  }
+
+  return {
+    txid: utxo?.txid,
+    vout: utxo?.vout,
+    satoshis: BigInt(utxo?.value),
+    token: !utxo?.tokenid ? undefined : {
+      category: utxo?.tokenid,
+      amount: tokenAmount,
+      nft: !utxo?.capability ? undefined : {
+        capability: utxo?.capability,
+        commitment: utxo?.commitment,
+      }
+    }
+  }
+}
+
+
+/**
  * @param { CommonUTXO } utxo
  * @returns { import("@bitauth/libauth").Input }
  */
@@ -203,4 +229,34 @@ export function commonUtxoToLibauthOutput (utxo, lockingBytecode) {
     }
   }
   return output
+}
+
+
+/**
+ * @param {Object} utxo
+ * @param {String} utxo.txid
+ * @param {Number} utxo.vout
+ * @param {Number | String} utxo.satoshis
+ * @param {Object} [utxo.token]
+ * @param {Number | String} utxo.token.amount
+ * @param {String} utxo.token.category
+ * @param {Object} [utxo.token.nft]
+ * @param {'none' | 'mutable' | 'minting'} utxo.token.nft.capability
+ * @param {String} utxo.token.nft.commitment
+ * @returns {import('cashscript').Utxo}
+ */
+export function parseUtxo(utxo) {
+  return {
+    txid: utxo?.txid,
+    vout: utxo?.vout,
+    satoshis: BigInt(utxo?.satoshis),
+    token: !utxo?.token ? undefined : {
+      category: utxo?.token?.category,
+      amount: BigInt(utxo?.token?.amount),
+      nft: !utxo?.token?.nft ? undefined : {
+        capability: utxo?.token?.nft?.capability,
+        commitment: utxo?.token?.nft?.commitment,
+      }
+    }
+  }
 }

@@ -1,55 +1,36 @@
-import { Contract, ElectrumNetworkProvider, SignatureTemplate } from 'cashscript';
-import { binToHex, cashAddressToLockingBytecode } from '@bitauth/libauth';
-import { intToHexString, pkHashToCashAddr, toTokenAddress } from '../../utils.js';
-import { ESCROW_TX_FEE, P2PKH_DUST, CASHTOKEN_DUST, defaultNetwork, defaultAddressType } from '../../constants.js';
+import { Contract, ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from 'cashscript0.10.0';
+import { binToHex, cashAddressToLockingBytecode, hexToBin } from '@bitauth/libauth';
+import { pubkeyToPkHash, wifToPubkey } from 'src/utils/crypto.js';
+import { ESCROW_TX_FEE, P2PKH_DUST, CASHTOKEN_DUST } from '../../constants.js';
+import { cleanEscrowManagerOptions, cleanEscrowManagerParameters } from './scripts/params.js';
+import { createEscrowSettlementOutputs } from './scripts/settlement.js';
+import { createEscrowFundingOutputs } from './scripts/funding.js';
 
-import escrowV1Artifact from './escrow.artifact.json'
-import escrowV2Artifact from './escrow-v2.artifact.json'
-import { pubkeyToPkHash } from 'src/utils/crypto.js';
-
+import escrowArtifact from './escrow.artifact.json';
+import escrowArtifactV2 from './escrow-v2.artifact.json';
+import escrowArtifactV3 from './escrow-v3.artifact.json';
 
 export class Escrow {
   /**
    * @param {Object} opts
-   * @param {Object} opts.params
-   * @param {String} opts.params.buyerPkHash
-   * @param {String} opts.params.sellerPkHash
-   * @param {String} opts.params.servicerPkHash
-   * @param {String} opts.params.arbiterPkHash
-   * @param {String} opts.params.feePoolAddress
-   * @param {Number} opts.params.amount
-   * @param {Number} opts.params.serviceFee
-   * @param {Number} opts.params.arbitrationFee
-   * @param {Number} opts.params.deliveryFee
-   * @param {Number} opts.params.lockNftId
-   * @param {Number} opts.params.timestamp
-   * @param {Object} opts.options
-   * @param {'v1' | 'v2'} opts.options.version
-   * @param {'mainnet' | 'chipnet'} opts.options.network
-   * @param {'p2sh20' | 'p2sh32'} opts.options.addressType
+   * @param {ReturnType<import("./scripts/params").cleanEscrowManagerParameters>} opts.params
+   * @param {ReturnType<import("./scripts/params").cleanEscrowManagerOptions>} opts.options
    */
   constructor(opts) {
-    const params = opts?.params
-    this.params = {
-      buyerPkHash: params?.buyerPkHash,
-      sellerPkHash: params?.sellerPkHash,
-      servicerPkHash: params?.servicerPkHash,
-      arbiterPkHash: params?.arbiterPkHash,
-      feePoolAddress: params?.feePoolAddress,
-      amount: parseInt(params?.amount),
-      serviceFee: parseInt(params?.serviceFee),
-      arbitrationFee: parseInt(params?.arbitrationFee),
-      deliveryFee: parseInt(params?.deliveryFee),
-      lockNftId: parseInt(params?.lockNftId),
-      timestamp: parseInt(params?.timestamp),
-    }
-    this.version = opts?.options?.version
-    this.network = opts?.options?.network || defaultNetwork
-    this.addressType = opts?.options?.addressType || defaultAddressType
+    this.params = cleanEscrowManagerParameters(opts?.params);
+    this.options = cleanEscrowManagerOptions(opts?.options);
   }
 
-  get isChipnet() {
-    return this.network == 'chipnet'
+  get version() {
+    return this.options?.version;
+  }
+
+  get network() {
+    return this.options?.network;
+  }
+
+  get addressType() {
+    return this.options?.addressType;
   }
 
   get fundingAmounts() {
@@ -61,7 +42,13 @@ export class Escrow {
       txFee: ESCROW_TX_FEE,
     }
 
-    if (data.deliveryFee > 0 && data.deliveryFee < CASHTOKEN_DUST) data.deliveryFee = 0
+    if (this.params.amountCategory) data.amount = this.params.amount;
+    if (this.params.serviceFeeCategory) data.serviceFee = this.params.serviceFee;
+    if (this.params.arbitrationFeeCategory) data.arbitrationFee = this.params.arbitrationFee;
+
+    if (data.deliveryFee > 0 && data.deliveryFee < CASHTOKEN_DUST && !this.params.deliveryFeeCategory) {
+      data.deliveryFee = 0
+    }
     return data
   }
 
@@ -77,10 +64,44 @@ export class Escrow {
       serviceFee: this.fundingAmounts.serviceFee,
       arbitrationFee: this.fundingAmounts.arbitrationFee,
       deliveryFee: this.fundingAmounts.deliveryFee,
-      lockNftId: this.params.lockNftId,
 
+      amountCategory: this.params.amountCategory,
+      serviceFeeCategory: this.params.serviceFeeCategory,
+      arbitrationFeeCategory: this.params.arbitrationFeeCategory,
+      deliveryFeeCategory: this.params.deliveryFeeCategory,
+
+      lockNftId: this.params.lockNftId,
       timestamp: this.params.timestamp,
     }
+  }
+
+  get contractParams() {
+    const result = [
+      this.contractCreationParams.buyerPkHash,
+      this.contractCreationParams.sellerPkHash,
+      this.contractCreationParams.servicerPkHash,
+      this.contractCreationParams.arbiterPkHash,
+      this.contractCreationParams.feePoolScriptHash,
+
+      BigInt(this.contractCreationParams.amount),
+      BigInt(this.contractCreationParams.serviceFee),
+      BigInt(this.contractCreationParams.arbitrationFee),
+      BigInt(this.contractCreationParams.deliveryFee),
+
+      BigInt(this.contractCreationParams.lockNftId),
+      BigInt(this.contractCreationParams.timestamp),
+    ]
+
+    if (this.version === 'v3') {
+      result.push(
+        hexToBin(this.contractCreationParams.amountCategory || '').reverse(),
+        hexToBin(this.contractCreationParams.serviceFeeCategory || '').reverse(),
+        hexToBin(this.contractCreationParams.arbitrationFeeCategory || '').reverse(),
+        hexToBin(this.contractCreationParams.deliveryFeeCategory || '').reverse(),
+      )
+    }
+
+    return result
   }
 
   get fundingSats() {
@@ -98,29 +119,34 @@ export class Escrow {
     const addressType = this.addressType;
     const opts = { provider, addressType }
 
-    let artifact
-    if (this.version == 'v1') artifact = escrowV1Artifact
-    else if(this.version == 'v2') artifact = escrowV2Artifact
-    const contractParams = [
-      this.contractCreationParams.buyerPkHash,
-      this.contractCreationParams.sellerPkHash,
-      this.contractCreationParams.servicerPkHash,
-      this.contractCreationParams.arbiterPkHash,
-      this.contractCreationParams.feePoolScriptHash,
+    let artifact;
+    if (this.version == 'v1') artifact = escrowArtifact;
+    else if(this.version == 'v2') artifact = escrowArtifactV2;
+    else if(this.version == 'v3') artifact = escrowArtifactV3;
 
-      BigInt(this.contractCreationParams.amount),
-      BigInt(this.contractCreationParams.serviceFee),
-      BigInt(this.contractCreationParams.arbitrationFee),
-      BigInt(this.contractCreationParams.deliveryFee),
-
-      BigInt(this.contractCreationParams.lockNftId),
-      BigInt(this.contractCreationParams.timestamp),
-    ]
-    const contract = new Contract(artifact, contractParams, opts);
+    const contract = new Contract(artifact, this.contractParams, opts);
 
     // if (contract.opcount > 201) throw new Error(`Opcount must be at most 201. Got ${contract.opcount}`)
-    if (contract.bytesize > 520) throw new Error(`Bytesize must be at most 520. Got ${contract.bytesize}`)
+    // if (contract.bytesize > 520) throw new Error(`Bytesize must be at most 520. Got ${contract.bytesize}`)
     return contract
+  }
+
+  generateFundingOutputs() {
+    return createEscrowFundingOutputs(this);
+  }
+
+  /**
+   * @param {Object} opts 
+   * @param {String} opts.settlementType
+   * @param {String} opts.deliveryFeeCategory
+   * @returns {import('cashscript').Output[]}
+   */
+  generateOutputsForSettlement(opts) {
+    return createEscrowSettlementOutputs({
+      escrow: this, 
+      settlementType: opts?.settlementType,
+      lockNftCategory: opts?.deliveryFeeCategory,
+    })
   }
 
   async release(utxo, wif='') {
@@ -138,37 +164,14 @@ export class Escrow {
     }
 
     const sig = new SignatureTemplate(wif)
-    const pubkeyBytes = sig.getPublicKey()
-    const pubkey = binToHex(pubkeyBytes)
-    const pkHash = pubkeyToPkHash(pubkey)
+    const pubkey = wifToPubkey(wif);
+    const pkHash = pubkeyToPkHash(pubkey);
 
     if (pkHash != this.params.arbiterPkHash && pkHash != this.params.buyerPkHash) {
       throw new Error('Private key must be from arbiter or buyer')
     }
 
-    const outputs = [
-      {to: pkHashToCashAddr(this.params.sellerPkHash, this.isChipnet), amount: BigInt(this.fundingAmounts.amount) },
-      {to: pkHashToCashAddr(this.params.servicerPkHash, this.isChipnet), amount: BigInt(this.fundingAmounts.serviceFee) },
-      {to: pkHashToCashAddr(this.params.arbiterPkHash, this.isChipnet), amount: BigInt(this.fundingAmounts.arbitrationFee) },
-    ]
-
-    if (this.fundingAmounts.deliveryFee) {
-      const nftCommitment = intToHexString(this.params.lockNftId, 20) + intToHexString(this.fundingAmounts.deliveryFee, 20)
-      const deliveryFeePoolTokenAddr = toTokenAddress(this.params.feePoolAddress, this.network == 'chipnet', 'p2sh')
-      outputs.push({
-        to: deliveryFeePoolTokenAddr,
-        amount: BigInt(this.fundingAmounts.deliveryFee),
-        token: {
-          category: parsedUtxo.txid,
-          amount: 0n,
-          nft: {
-            capability: 'none',
-            commitment: nftCommitment,
-          }
-        },
-      })
-    }
-
+    const outputs = this.generateOutputsForSettlement({ settlementType: 'release', deliveryFeeCategory: parsedUtxo?.txid })
     // const tx = contract.functions.feePoolCheckOnly()
     const tx = contract.functions.release(pubkey, sig, BigInt(this.params.timestamp))
       .from(parsedUtxo)
@@ -190,18 +193,13 @@ export class Escrow {
       satoshis: BigInt(utxo?.satoshis),
     }
 
-    const sig = new SignatureTemplate(wif)
-    const pubkeyBytes = sig.getPublicKey()
-    const pubkey = binToHex(pubkeyBytes)
-    const pkHash = pubkeyToPkHash(pubkey)
+    const sig = new SignatureTemplate(wif);
+    const pubkey = wifToPubkey(wif);
+    const pkHash = pubkeyToPkHash(pubkey);
 
     if (pkHash != this.params.arbiterPkHash) throw new Error('Pubkey hash mismatch')
- 
-    const outputs = [
-      {to: pkHashToCashAddr(this.params.buyerPkHash, this.isChipnet), amount: BigInt(this.fundingAmounts.amount + this.fundingAmounts.deliveryFee) },
-      {to: pkHashToCashAddr(this.params.servicerPkHash, this.isChipnet), amount: BigInt(this.fundingAmounts.serviceFee) },
-      {to: pkHashToCashAddr(this.params.arbiterPkHash, this.isChipnet), amount: BigInt(this.fundingAmounts.arbitrationFee) },
-    ]
+
+    const outputs = this.generateOutputsForSettlement({ settlementType: 'refund' })
     const refundTx = contract.functions.refund(pubkey, sig, BigInt(this.params.timestamp))
       .from(parsedUtxo)
       .to(outputs)
@@ -220,44 +218,56 @@ export class Escrow {
       vout: utxo?.vout,
       satoshis: BigInt(utxo?.satoshis),
     }
-    
-    const sig = new SignatureTemplate(wif)
-    const pubkeyBytes = sig.getPublicKey()
-    const pubkey = binToHex(pubkeyBytes)
-    const pkHash = pubkeyToPkHash(pubkey)
+
+    const sig = new SignatureTemplate(wif);
+    const pubkey = wifToPubkey(wif);
+    const pkHash = pubkeyToPkHash(pubkey);
 
     if (pkHash != this.params.arbiterPkHash) throw new Error('Pubkey hash mismatch')
 
-    const refundAmount = BigInt(
-      this.fundingAmounts.amount +
-      this.fundingAmounts.deliveryFee + 
-      this.fundingAmounts.serviceFee +
-      this.fundingAmounts.arbitrationFee
-    )
+    const outputs = this.generateOutputsForSettlement({ settlementType: 'full_refund' })
     const refundTx = contract.functions.fullRefund(pubkey, sig, BigInt(this.params.timestamp))
       .from(parsedUtxo)
-      .to(pkHashToCashAddr(this.params.buyerPkHash, this.isChipnet), refundAmount)
+      .to(outputs)
       .withHardcodedFee(BigInt(ESCROW_TX_FEE))
     return refundTx
   }
 
-  async returnFunds(recipient='') {
-    const contract = this.getContract()
-    const utxos = await contract.getUtxos()
 
-    const total = utxos.reduce((subtotal, utxo) => subtotal + utxo.satoshis, 0n)
+  /**
+   * @param {Object} opts
+   * @param {import('cashscript').Utxo[]} opts.utxos
+   * @param {String} opts.wif
+   * @param {import('./scripts/settlement.js').SettlementType} opts.settlementType
+   * @param {Number} [opts.locktime]
+   */
+  async settlement(opts) {
+    const { utxos, settlementType, wif, locktime } = opts;
+    const indexZeroUtxo = utxos.find(utxo => utxo.vout === 0)
 
-    const _transaction = contract.functions.doNothing()
-      .from(utxos)
-      .to(recipient, 546n)
+    let release;
+    if (opts?.settlementType === 'release') {
+      release = true;
+    } else if (opts?.settlementType === 'refund') {
+      release = false;
+    } else {
+      throw new Error('Unknown settlement type');
+    }
 
-    const hex = await _transaction.build()
-    const fee = BigInt(Math.ceil(1.1 * hex.length / 2))
+    const outputs = this.generateOutputsForSettlement({
+      settlementType, deliveryFeeCategory: indexZeroUtxo?.txid
+    })
 
-    const transaction = contract.functions.doNothing()
-      .from(utxos)
-      .to(recipient, total-fee)
+    const contract = this.getContract();
+    const signature = new SignatureTemplate(wif);
 
-    return transaction
+    const transaction = contract.functions.settlement(
+      signature.getPublicKey(), signature, BigInt(this.params.timestamp), release,
+    )
+    transaction.from(utxos);
+    transaction.to(outputs); // must be array
+    if (Number.isSafeInteger(locktime)) transaction.withTime(locktime);
+
+    return transaction;
   }
 }

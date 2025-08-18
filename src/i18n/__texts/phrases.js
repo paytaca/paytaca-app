@@ -749,7 +749,8 @@ const phrases = {
       UseCurrentLocation: 'Use current location',
       SelectPinLocation: 'Select pin location',
       SelectLocation: 'Select Location',
-      EncryptedChatMsg: 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.'
+      EncryptedChatMsg: 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.',
+      UnableToCreatePayment: 'Unable to create payment',
     },
     {
       PAYMENTMETHODS: 'PAYMENT METHODS',
@@ -933,6 +934,7 @@ const phrases = {
       TwentyFourHours: '24 hours',
     },
     {
+      SelectPayment: 'Select Payment',
       PaymentMethod: 'Payment Method',
       InvalidEmailAddress: 'Invalid Email Address',
       InvalidPhoneNumber: 'Invalid Phone Number',
