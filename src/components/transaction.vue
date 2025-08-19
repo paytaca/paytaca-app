@@ -504,7 +504,7 @@
                       />
                       <div v-if="networkError" class="row justify-between q-pt-xs q-px-sm">
                         <div class="text-grey-5 text-italic" style="font-size: 12px;">
-                          Network Error
+                          Network Error. Try again later
                         </div>
                         <div>
                           <q-btn flat padding="none" color="grey-7" size="sm" icon="refresh" @click="show(transaction)"/>

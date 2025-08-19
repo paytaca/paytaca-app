@@ -1,5 +1,5 @@
 <template>
-	<div class="pending-order" :class="getDarkModeClass(darkMode)">		 
+	<div class="pending-order" :class="getDarkModeClass(darkMode)" v-if="!emptyList">		 
 		<div class="q-ml-lg q-gutter-x-sm button button-text-primary" style="font-size: 20px;">                
         	{{ $t('Pending') }}
         </div>        
@@ -87,6 +87,9 @@ export default {
 	    userInfo () {
 	      return this.$store.getters['ramp/getUser']
 	    },
+	    emptyList () {
+	    	return this.pending.length === 0 && this.marketplaceOrders.length === 0
+	    }
 	},
 	components: {
 
@@ -166,6 +169,7 @@ export default {
 			    limit: vm.marketplacePagination?.limit || 10,
 			    offset: vm.marketplacePagination?.offset || undefined,
 			    storefront_id: undefined,
+			    exclude_statuses: ['completed', 'cancelled'].join(',')
 			  }
 
 		  	vm.fetchingOrders = true
