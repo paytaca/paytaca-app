@@ -475,14 +475,21 @@
                     />                  
                   </q-item-section>   
                   <q-item-section class="q-pt-sm">
-                    <q-btn 
-                      outline
-                      class="br-15"             
-                      padding="xs sm"
-                      label="Update"
-                      color="primary"
-                      @click="openMemo()"
-                    />
+                    <div class="row">
+                      <div class="col-11">
+                         <q-btn 
+                          outline
+                          class="br-15 full-width"             
+                          padding="xs sm"
+                          label="Update"
+                          color="primary"
+                          @click="openMemo()"
+                        />
+                      </div>
+                      <div class="col-1 text-right">
+                        <q-btn class="q-pt-xs" round flat color="red-7" size="md" icon="delete" padding="none" @click="confirmDelete()"/>
+                      </div>
+                    </div>                   
                   </q-item-section>
                 </div>
                 <div v-else>
@@ -552,7 +559,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
-import { fetchMemo, createMemo, updateMemo, encryptMemo, decryptMemo } from 'src/utils/transaction-memos.js'
+import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo } from 'src/utils/transaction-memos.js'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { ref } from 'vue'
@@ -735,8 +742,6 @@ export default {
             this.memo = currentMemo
             this.hasMemo = true
           }
-        } else {
-
         }
 
         this.$refs.dialog.show()
@@ -804,6 +809,34 @@ export default {
         }
 
       this.showMemo = false
+    },
+    confirmDelete () {
+      this.$q.dialog({
+        title: 'Deleting this Memo',  
+        message: '',      
+        dark: this.darkMode,
+        ok: {
+          push: true,
+          color: 'primary',
+          flat: true
+        },
+        cancel: {
+          push: true,
+          color: 'primary',
+          flat: true
+        },
+
+        persistent: true,
+        class: this.darkMode ? 'text-white' : 'text-black'
+      }).onOk(async () => {        
+        await deleteMemo(this.transaction.txid)
+        this.showMemo = false
+        this.hasMemo = false
+        this.memo = {
+          note: ''
+        }
+      }).onCancel(() => {        
+      })
     },
     formatDate (date) {
       const dateObj = new Date(date)

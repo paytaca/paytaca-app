@@ -67,6 +67,21 @@ export async function updateMemo (data) {
 		return memoData
 }
 
+export async function deleteMemo (txid) {
+	let memoData = null
+	await backend.delete(baseURL + '/memos/', { params: { 'txid': txid }, headers: { 'wallet-hash': walletHash } })
+		.then(response => {
+			console.log('response: ', response)
+			memoData = response.data
+		})
+		.catch(error => {
+			console.error(error.response)
+			memoData = error.response.data
+		})
+
+		return memoData
+}
+
 export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
     // if (!this.encrypted) return
     const parsedEncryptedMessage = decompressEncryptedMessage(encryptedMemo)
