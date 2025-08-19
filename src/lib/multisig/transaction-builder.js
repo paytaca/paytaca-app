@@ -170,7 +170,6 @@ export function estimateFee (inputs, outputs, template) {
     const dustRelayFeeSatPerKb = 1100n // We'll just increase the default
     const transactionForFeeEstimation = generateTransaction(scenario.program.transaction)
     const estimatedTransactionSize = encodeTransactionCommon(transactionForFeeEstimation.transaction).length
-    console.log('Transaction Size', estimatedTransactionSize)
     const minimumFee = getMinimumFee(BigInt(estimatedTransactionSize), dustRelayFeeSatPerKb)
     return minimumFee
 }

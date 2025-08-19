@@ -140,6 +140,7 @@ import {
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import darkmode from 'src/store/darkmode'
+import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
 
 const $store = useStore()
 const route = useRoute()
@@ -252,13 +253,24 @@ const addRecipient = () => {
 }
 
 const createProposal = async () => {
-  const pst = await wallet.value?.createPstFromTransactionProposal({
-    creator: '',
+    
+  const walletVault = $store.getters['global/getVault']
+  let creator = ''
+  for (const signer of wallet.value.signers) {
+    const signerWallet = getSignerWalletFromVault({ walletVault, xpub: signer.xpub })
+    if (signerWallet) {
+      creator = signer.xpub
+    }
+  }
+
+  const pst = await wallet.value.createPstFromTransactionProposal({
+    creator: creator,
     origin: 'paytaca-wallet',
     purpose: purpose.value,
     recipients: recipients.value
   })
 
+  // TODO: save, sync pst
 }
 
 onMounted(async () => {

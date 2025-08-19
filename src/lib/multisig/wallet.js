@@ -132,7 +132,7 @@ import Big from 'big.js'
 import { createTemplate } from './template.js'
 import { base58AddressToLockingBytecode } from '@bitauth/libauth'
 import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from './utxo.js'
-import { attachSourceOutputsToInputs, estimateFee, getMofNDustThreshold, MultisigTransactionBuilder, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
+import { estimateFee, getMofNDustThreshold, MultisigTransactionBuilder, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
 
 
@@ -837,6 +837,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     let funderUtxos = null
     const changeAddressIndex = this.lastIssuedChangeAddressIndex === undefined ? 0 : this.lastIssuedChangeAddressIndex + 1
     const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
+
     const satoshisChangeOutput = {
       lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
       valueSatoshis: 0n
@@ -875,6 +876,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
         let requiredSatoshisForTokenChange = getMofNDustThreshold(this.m, this.n, tokenChangeOutput)
         tokenChangeOutput.valueSatoshis = requiredSatoshisForTokenChange
         outputs.push(tokenChangeOutput)
+        await this.issueChangeAddress(changeAddressIndex)
       } 
     }
 
