@@ -507,7 +507,7 @@
                           Network Error
                         </div>
                         <div>
-                          <q-icon color="grey-7" size="sm" name="refresh"/>
+                          <q-btn flat padding="none" color="grey-7" size="sm" icon="refresh" @click="show(transaction)"/>
                         </div>
                       </div>                      
                   </q-item-section> 
