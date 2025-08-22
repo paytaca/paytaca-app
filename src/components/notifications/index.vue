@@ -278,12 +278,14 @@ export default {
       setTimeout(async () => {
         const deletedItem = vm.notifsList.splice(index, 1)
         // call to engagement-hub to hide idth notif
-        await hideItemUpdate(deletedItem[0].id).then(async () => {
-          if (vm.notifsList.length === 0) {
-            vm.notifsPage = vm.notifsPage > 1 ? vm.notifsPage - 1 : 1
-            await this.refreshNotifsList(null)
-          }
-        })
+        await hideItemUpdate(deletedItem[0].id)
+        
+        if (vm.notifsList.length === 0) {
+          vm.notifsPage = vm.notifsPage === vm.maxPages 
+            ? vm.notifsPage - 1 
+            : vm.notifsPage
+          await this.refreshNotifsList(null)
+        }
       }, 250)
     },
     async openFilterDialog () {
