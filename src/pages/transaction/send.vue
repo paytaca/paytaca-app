@@ -1050,7 +1050,7 @@ export default {
       const toSendSlpRecipients = []
 
       toSendData.forEach(sendData => {
-        const address = sendData.recipientAddress
+        const address = sendData.recipientAddress.trim()
         const addressObj = new Address(address)
         const addressIsValid = this.validateAddress(address).valid
         const amountIsValid = sendData.amount > 0
@@ -1076,7 +1076,7 @@ export default {
       let token = null
 
       toSendData.forEach(sendData => {
-        const address = sendData.recipientAddress
+        const address = sendData.recipientAddress.trim()
         const addressObj = new Address(address)
         const addressIsValid = this.validateAddress(address).valid
         const amountIsValid = sendData.amount > 0
