@@ -835,6 +835,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
 
     let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
 
+    const outputsMap = outputs.map(o => ({}))
+
     let funderUtxos = null
     const changeAddressIndex = this.lastIssuedChangeAddressIndex === undefined ? 0 : this.lastIssuedChangeAddressIndex + 1
     const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
@@ -849,6 +851,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
         this.m, this.n, 
         satoshisChangeOutput
       )
+
+    let tokenChangeOutput = null
 
     if (tokenUtxos) {
 
@@ -865,7 +869,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       let tokensChangeAmount = tokenInputsTotalTokensValue - tokenOutputsTotalTokensValue
 
       if (tokensChangeAmount > 0) {  
-        let tokenChangeOutput =  {
+        tokenChangeOutput =  {
           lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
           valueSatoshis: 0n, //temporary
           token: {
@@ -877,6 +881,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
         let requiredSatoshisForTokenChange = getMofNDustThreshold(this.m, this.n, tokenChangeOutput)
         tokenChangeOutput.valueSatoshis = requiredSatoshisForTokenChange
         outputs.push(tokenChangeOutput)
+        outputsMap.push({ addressPath: `1/${changeAddressIndex}`, desc: 'Token Change' })
         await this.issueChangeAddress(changeAddressIndex)
       } 
     }
@@ -934,6 +939,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
 
     if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
       outputs.push(satoshisChangeOutput)
+      outputsMap.push({addressPath: `1/${changeAddressIndex}`, desc: 'Satoshis Change'})
       await this.issueChangeAddress(changeAddressIndex)
     }
 
@@ -949,6 +955,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       purpose: proposal.purpose,
       unsignedTransactionHex,
       inputs,
+      outputs: outputsMap,
       wallet: this
     }, options)
 
@@ -988,13 +995,17 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     return exportToBase64(this)
   }
   
-  static importFromBase64(base64MultisigWallet, stateChangeHandler) {
+  static importFromBase64(base64MultisigWallet, options) {
     const object = importFromBase64(base64MultisigWallet)
-    return MultisigWallet.importFromObject(object, stateChangeHandler)
+    return MultisigWallet.importFromObject(object, options)
   }
 
-  static importFromObject(objectMultisigWallet, stateChangeHandler) {
-    return new MultisigWallet(structuredClone(objectMultisigWallet), stateChangeHandler)
+  static importFromObject(multisigWalletObject, options) {
+    return new MultisigWallet(structuredClone(multisigWalletObject), options)
+  }
+
+  static fromObject(multisigWalletObject, options) {
+    return MultisigWallet.importFromObject(multisigWalletObject, options) 
   }
 }
 
