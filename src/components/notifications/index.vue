@@ -280,7 +280,7 @@ export default {
         // call to engagement-hub to hide idth notif
         await hideItemUpdate(deletedItem[0].id).then(async () => {
           if (vm.notifsList.length === 0) {
-            vm.notifsPage -= 1
+            vm.notifsPage = vm.notifsPage > 1 ? vm.notifsPage - 1 : 1
             await this.refreshNotifsList(null)
           }
         })
