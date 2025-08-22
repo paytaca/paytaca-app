@@ -40,6 +40,7 @@
    * @property {Uint8Array|string} outpointTransactionHash - Output index.
    * @property {SourceOutput} sourceOutput - Details about the output being spent.
    * @property {PartialSignature[]} [partialSignatures] - Signatures (if partially signed).
+   * @property {string} [scriptSig] - The final script
    */
 
   /**
@@ -55,9 +56,21 @@
    * @property {string} origin - The origin of the proposal.
    * @property {string} purpose - Purpose or description of the proposal.
    * @property {string} unsignedTransactionHex - Unsigned raw transaction in hex.
-   * @property {Input[]} [inputs] - Array of inputs to the transaction.
-   * @property {Output[]} [outputs] - Array of outputs in the transaction.
+   * @property {Input[]} [inputs] - Input map
+   * @property {Output[]} [outputs] - Output map
    * @property {MultisigWallet} wallet - Associated wallet object.
+   */
+
+  /**
+   * @typedef {Object} PartiallySignedTransactionOptions
+   * @property {OnStateChangeCallback} onStateChange
+   * @property {NetworkProvider} provider
+   * @property {Network} [network='mainnet']
+   * @property {Object} [store] - Optional Vuex-style store.
+   * @property {(type: string, payload?: any) => Promise<any>} [store.dispatch]
+   * @property {(type: string, payload?: any) => void} [store.commit]
+   * @property {Object.<string, any>} [store.state]
+   * @property {Object.<string, any>} [store.getters]
    */
 
 
@@ -514,7 +527,7 @@ export class Pst {
   /**
    * @param {PartiallySignedTransaction} instance
    */
-  constructor(instance) {
+  constructor(instance, options) {
     this.creator = instance.creator
     this.origin = instance.origin
     this.purpose = instance.purpose
@@ -522,27 +535,19 @@ export class Pst {
     this.inputs = instance.inputs || []
     this.outputs = instance.outputs || []
     this.wallet = instance.wallet
+    this.options = options
+  }
+
+  get unsignedTransactionHash () {
+    if (!this.unsignedTransactionHex) {
+      throw new Error('No unsigned transaction hex available')
+    }
+    return hashTransaction(hexToBin(this.unsignedTransactionHex))
   }
 
   _creatorIsCosigner(creator) {
     return // TODO VALIDATE THAT THE CREATOR IS ONE OF THE SIGNERS OF THE WALLET å
   }
-
-  // {
-  //             "outpointIndex": 0,
-  //             "outpointTransactionHash": "193,228,90,72,36,111,132,59,133,139,105,87,32,216,216,236,143,241,147,214,125,102,253,228,174,49,161,51,126,158,107,54",
-  //             "sequenceNumber": 0,
-  //             "unlockingBytecode": "",
-  //             "sourceOutput": {
-  //               "outpointIndex": 0,
-  //               "outpointTransactionHash": "193,228,90,72,36,111,132,59,133,139,105,87,32,216,216,236,143,241,147,214,125,102,253,228,174,49,161,51,126,158,107,54",
-  //               "sequenceNumber": 0,
-  //               "unlockingBytecode": "",
-  //               "lockingBytecode": "169,20,120,53,14,73,22,236,124,31,216,22,146,132,163,112,107,155,223,183,146,221,135",
-  //               "valueSatoshis": "500000",
-  //               "address": "bitcoincash:ppur2rjfzmk8c87cz6fgfgmsdwdaldujm5ddwjq4a5"
-  //             }
-  //           }
 
   addInput(input) {
     this.inputs.push(input)
@@ -793,24 +798,45 @@ export class Pst {
     return getSigningProgress(this)
   }
 
-
   toJSON() {
-    return JSON.parse(stringify({
+   
+    const data = {
       creator: this.creator,
       origin: this.origin,
       purpose: this.purpose,
       unsignedTransactionHex: this.unsignedTransactionHex,
-      signedTransactionHex: this.signedTransactionHex || '',
-      signedTransactionHash: this.signedTransactionHash || '',
-      vmVerificationSuccess: this.vmVerificationSuccess,
       inputs: this.inputs,
-      outputs: this.outputs,
       wallet: this.wallet
-    }))
+    }
+
+    if (this.signedTransactionHash) {
+      data.signedTransactionHash = this.signedTransactionHash
+    }
+
+    if (this.signedTransactionHex) {
+      data.signedTransactionHex = this.signedTransactionHex
+    }
+
+    if (this.outputs?.length > 0) {
+      data.outputs = this.outputs
+    }
+
+    return JSON.parse(stringify(data))
   }
 
-  static fromObject(pst) {
-    return new Pst(structuredClone(pst))
+
+
+  /**
+   * @param {boolean} [sync=false] - If true, syncs the pst to the relay server.
+   */
+  async save(sync) {
+    if (!this.options?.store) return
+    return await this.options.store.dispatch('multisig/savePst', { pst: this, sync })
+  }
+
+  static fromObject(pst, options) {
+    if (pst instanceof Pst) return pst
+    return new Pst(pst, options)
   }
 
   /**
@@ -846,4 +872,5 @@ export class Pst {
       
     return pst
   }
+
 }
