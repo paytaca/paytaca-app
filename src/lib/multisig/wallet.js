@@ -758,9 +758,10 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
   /**
    * Create a transaction proposal to send BCH or CashTokens
    * @param {import('./transaction-builder.js').TransactionProposal} proposal
+   * @param {import('./pst.js').PartiallySignedTransactionOptions} options 
    * @returns {Promise<import('./pst.js').Pst>}
    */
-  async createPstFromTransactionProposal(proposal) {
+  async createPstFromTransactionProposal(proposal, options) {
 
     if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
       throw new Error('Sending mixed assets is not yet supported!')
@@ -880,7 +881,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       } 
     }
 
-    const estimatedFee = estimateFee(inputs, outputs, createTemplate(this))
+    const estimatedFee = estimateFee(structuredClone(inputs), structuredClone(outputs), createTemplate(this))
 
     let totalSatoshisInputsAmount = 
       inputs
@@ -941,7 +942,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       .addInputs(inputs)
       .addOutputs(outputs)
     const unsignedTransactionHex = transaction.build()
-    
+
     const pst = new Pst({
       origin: proposal.origin,
       creator: proposal.creator,
@@ -949,7 +950,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       unsignedTransactionHex,
       inputs,
       wallet: this
-    })
+    }, options)
 
     return pst
   }
