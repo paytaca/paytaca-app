@@ -135,7 +135,8 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
-  MultisigWallet
+  MultisigWallet,
+  getUnsignedTransactionHash
 } from 'src/lib/multisig'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -144,6 +145,7 @@ import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
 
 const $store = useStore()
 const route = useRoute()
+const router = useRouter()
 const balance = ref()
 const balanceConvertionRates = ref()
 const recipients = ref([])
@@ -263,14 +265,20 @@ const createProposal = async () => {
     }
   }
 
+  const options = {
+    store: $store
+  }
+
   const pst = await wallet.value.createPstFromTransactionProposal({
     creator: creator,
     origin: 'paytaca-wallet',
     purpose: purpose.value,
     recipients: recipients.value
-  })
+  }, options)
 
-  // TODO: save, sync pst
+  await pst.save()
+
+  router.push({ name: 'app-multisig-wallet-pst-view', params: { unsignedtransactionhash: pst.unsignedTransactionHash }})
 }
 
 onMounted(async () => {
