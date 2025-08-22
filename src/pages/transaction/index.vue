@@ -276,7 +276,7 @@
               class="col-3 q-mt-sm"
               style="margin-top: -5px !important;"
             >
-              <AssetFilter v-if="!stablehedgeView" @filterTokens="isCT => isCashToken = isCT" />
+              <AssetFilter v-if="hasAssetFilter" @filterTokens="isCT => isCashToken = isCT" />
               <KeepAlive>
                 <div v-if="stablehedgeView" class="row items-center q-px-lg">
                   <q-space/>
@@ -561,7 +561,7 @@ export default {
       isPriceChartDialogShown: false,
       websocketManager: null,
       assetClickTimer: null,
-      assetClickCounter: 0
+      assetClickCounter: 0      
     }
   },
 
@@ -639,6 +639,12 @@ export default {
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
     },
+    enableSLP () {
+      return this.$store.getters['global/enableSLP']
+    },
+    hasAssetFilter () {
+      return !this.stablehedgeView && this.enableSLP
+    },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
@@ -647,6 +653,7 @@ export default {
         (this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
         this.selectedNetwork !== 'sBCH')
     },
+
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
