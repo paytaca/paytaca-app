@@ -266,7 +266,9 @@ import {
   getAssetDenomination,
   parseFiatCurrency,
   convertToBCH,
-  customNumberFormatting
+  customNumberFormatting,
+  formatWithLocale,
+  parseLocaleNumber
 } from 'src/utils/denomination-utils'
 import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
@@ -824,7 +826,7 @@ export default {
         currentRecipient.amount = this.asset.spendable
         currentInputExtras.amountFormatted = spendableAsset
         const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
-        currentInputExtras.sendAmountInFiat = convertedFiat
+        currentInputExtras.sendAmountInFiat = formatWithLocale(convertedFiat, { min: 2, max: 4 })
       } else {
         if (this.asset.id.startsWith('ct/')) {
           currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
@@ -866,7 +868,9 @@ export default {
         currentSendAmount = currentInputExtras.amountFormatted ?? ''
       } else currentSendAmount = 0
 
+      console.log('key', key)
       const currentAmount = parseKey(key, currentSendAmount, caret, this.asset)
+      console.log('currentAmount', formatWithLocale(currentAmount, { min: 2, max: 4 }))
 
       // Set the new amount
       if (this.focusedInputField === 'fiat') {
@@ -875,7 +879,7 @@ export default {
       } else if (this.focusedInputField === 'bch') {
         currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
         currentInputExtras.amountFormatted = currentAmount
-        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount) || 0
+        currentInputExtras.sendAmountInFiat = formatWithLocale(this.convertToFiatAmount(currentRecipient.amount), { min: 2, max: 4 }) || 0
       }
 
       this.adjustWalletBalance()
@@ -910,6 +914,8 @@ export default {
         currentRecipient.amount = ''
         currentInputExtras.amountFormatted = ''
       } else {
+        currentInputExtras.sendAmountInFiat = formatWithLocale(currentInputExtras.sendAmountInFiat, { min: 2, max: 4 })
+
         // Enabled submit slider
         this.sliderStatus = !currentInputExtras.balanceExceeded
         this.customKeyboardState = 'dismiss'
@@ -1152,6 +1158,19 @@ export default {
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
 
+      const inputExtras = this.inputExtras[this.currentRecipientIndex]
+      if (value.field === 'fiat') {
+        if (inputExtras.sendAmountInFiat) {
+          inputExtras.sendAmountInFiat = parseLocaleNumber(inputExtras.sendAmountInFiat)
+        }
+      }
+
+      if (value.field === 'bch') {
+        if (inputExtras.amountFormatted) {
+          inputExtras.amountFormatted = parseLocaleNumber(inputExtras.amountFormatted)
+        }
+      }
+
       sendPageUtils.addRemoveInputFocus(value.index, false, value.field)
       sendPageUtils.addRemoveInputFocus(value.index, true, value.field)
 
@@ -1231,9 +1250,10 @@ export default {
     recomputeAmount (currentRecipient, currentInputExtras, amount) {
       const converted = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice)
       currentRecipient.amount = converted
-      currentInputExtras.amountFormatted = this.customNumberFormatting(
+      const result = this.customNumberFormatting(
         getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
       )
+      currentInputExtras.amountFormatted = result
     },
     adjustWalletBalance () {
       this.currentWalletBalance = sendPageUtils.adjustWalletBalance(

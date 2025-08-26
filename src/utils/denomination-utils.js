@@ -1,4 +1,5 @@
 import { convertTokenAmount, convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
+import { i18n } from 'src/boot/i18n'
 
 const denomDecimalPlaces = {
   BCH: { convert: 1, decimal: 8 },
@@ -7,10 +8,66 @@ const denomDecimalPlaces = {
   DEEM: { convert: 10 ** 5, decimal: 0 }
 }
 
+export function formatWithLocale (value, { min, max } = {}) {
+  let currentLocale = 'en-us'
+  const localeCandidate = i18n?.global?.locale
+  if (typeof localeCandidate === 'string') {
+    currentLocale = localeCandidate
+  } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
+    currentLocale = localeCandidate.value || 'en-us'
+  }
+  const options = {}
+  if (typeof min === 'number') options.minimumFractionDigits = min
+  if (typeof max === 'number') options.maximumFractionDigits = max
+  return Number(value).toLocaleString(currentLocale, options)
+}
+
+function getLocaleSeparators () {
+  let currentLocale = 'en-us'
+  const localeCandidate = i18n?.global?.locale
+  if (typeof localeCandidate === 'string') {
+    currentLocale = localeCandidate
+  } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
+    currentLocale = localeCandidate.value || 'en-us'
+  }
+
+  try {
+    const parts = new Intl.NumberFormat(currentLocale).formatToParts(1000.1)
+    const group = parts.find(p => p.type === 'group')?.value || ','
+    const decimal = parts.find(p => p.type === 'decimal')?.value || '.'
+    return { group, decimal }
+  } catch (e) {
+    return { group: ',', decimal: '.' }
+  }
+}
+
+function escapeRegExp (s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+export function parseLocaleNumber (value) {
+  if (typeof value === 'number') return value
+  const str = String(value)
+  const { group, decimal } = getLocaleSeparators()
+
+  let normalized = str
+    .replace(new RegExp(escapeRegExp(group), 'g'), '')
+    .replace(/[^0-9eE+\-.,]/g, '')
+
+  if (decimal !== '.') {
+    normalized = normalized.replace(new RegExp(escapeRegExp(decimal), 'g'), '.')
+  }
+
+  const match = normalized.match(/-?\d+(?:\.\d+)?(?:e[+\-]?\d+)?/i)
+  const numericString = match ? match[0] : normalized
+  const parsed = parseFloat(numericString)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0) {
   const balanceCheck = asset.balance ?? 0
   const isBCH = asset.symbol === 'BCH' || asset.symbol === 'sBCH'
-  const setSubStringMaxLength = subStringMax > 0 ? subStringMax : balanceCheck.length
+  const shouldLimitOutput = subStringMax > 0
   let completeAsset = ''
   let newBalance
 
@@ -24,23 +81,15 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     } else {
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
-    newBalance = String(customNumberFormatting(calculatedBalance)).substring(0, setSubStringMaxLength)
-    if (asset.thousandSeparator) {
-      newBalance = parseFloat(newBalance).toLocaleString('en-US', {
-        maximumFractionDigits: decimal
-      })
-    }
+    const localized = formatWithLocale(calculatedBalance, { max: decimal })
+    newBalance = String(localized)
+    if (shouldLimitOutput) newBalance = newBalance.substring(0, subStringMax)
     completeAsset = `${newBalance} ${denomination}`
   } else {
     const isSLP = asset.id?.startsWith('slp/')
-    let newBalance = String(
-      parseFloat(convertToTokenAmountWithDecimals(asset.balance, asset.decimals, isBCH, isSLP))
-    )
-    if (asset.thousandSeparator) {
-      newBalance = parseFloat(newBalance).toLocaleString('en-US', {
-        maximumFractionDigits: asset.decimals,
-      })
-    }
+    const rawConverted = parseFloat(convertToTokenAmountWithDecimals(asset.balance, asset.decimals, isBCH, isSLP))
+    let newBalance = formatWithLocale(rawConverted, { max: asset.decimals })
+    if (shouldLimitOutput) newBalance = String(newBalance).substring(0, subStringMax)
     completeAsset = `${newBalance} ${asset.symbol}`
   }
   return completeAsset
@@ -59,10 +108,7 @@ export function getAssetDenomination (denomination, assetBalance, isInput = fals
 }
 
 export function parseFiatCurrency (amount, currency) {
-  const newAmount = Number(amount).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
+  const newAmount = formatWithLocale(amount, { min: 2, max: 2 })
   return `${newAmount} ${currency.toUpperCase()}`
 }
 
@@ -76,19 +122,20 @@ export function convertToBCH (denomination, amount) {
  * @param {String} number
  */
 export function customNumberFormatting (number) {
-  // remove dangling denomination then convert back to string
-  const num = parseFloat(number).toString()
+  // parse value from possibly localized string with denomination
+  const numericValue = parseLocaleNumber(number)
+  const num = numericValue.toString()
 
   // check if number is already on exponential notation
   if (num.includes('e')) {
     const fixedDecimals = parseInt(num.split('').pop()) + 1
-    return parseFloat(num).toFixed(fixedDecimals)
+    return formatWithLocale(num, { min: fixedDecimals, max: fixedDecimals })
   }
 
   // fallback for non-exponential notation
   const decimals = num.toString().split('.')[1]
-  if (!decimals) return parseFloat(num).toString()
+  if (!decimals) return formatWithLocale(num)
   return decimals.length > 6
-    ? parseFloat(num).toFixed(decimals.length)
-    : parseFloat(num).toString()
+    ? formatWithLocale(num, { min: decimals.length, max: decimals.length })
+    : formatWithLocale(num, { max: decimals.length })
 }
