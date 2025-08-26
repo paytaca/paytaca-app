@@ -111,9 +111,20 @@
               )
             }}
           </strong>
-          <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mt-sm q-mb-sm text-subtitle1">
-            <div class="q-space">{{$t('Total')}}:</div>
-            <div>{{ jpp.total / 10 ** 8 }} {{$t('BCH')}}</div>
+          <div v-if="jpp?.parsed?.outputs?.length > 1" class="q-mb-sm">
+            <div class="row items-center text-subtitle1">
+              <div class="q-space">{{ $t('Total') }}:</div>
+              <div>{{ jpp.total / 10 ** 8 }} BCH</div>
+            </div>
+            <template v-if="jpp?.tokenAmounts?.length">
+              <div v-for="(tokenData, index) in jpp?.tokenAmounts" :key="index" class="text-right text-subtitle2">
+                {{ formatTokenAmount(tokenData) }}
+              </div>
+            </template>
+            <div v-if="jpp?.nfts?.length" class="text-right text-subtitle2">
+              {{ jpp?.nfts?.length }}
+              {{ jpp?.nfts?.length === 1 ? 'NFT' : 'NFTs' }}
+            </div>
           </div>
         </div>
         <div v-if="jpp.txids.length">

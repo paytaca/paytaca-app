@@ -393,6 +393,27 @@ export class JSONPaymentProtocol {
     return this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
   }
 
+  get tokenAmounts() {
+    const tokenAmountsMap = new Map();
+    for (const output of this.parsed.outputs) {
+      const category = output?.token?.category;
+      if (!category || output?.token?.nft?.capability) continue
+      const amount = output?.token?.amount;
+      const subtotal = tokenAmountsMap.get(category) || 0;
+      tokenAmountsMap.set(category, subtotal + amount);
+    }
+    const result = [];
+    tokenAmountsMap.forEach((amount, category) => {
+      result.push({ category, amount })
+    })
+    return result
+  }
+
+  get nfts () {
+    return this.parsed.outputs.filter(output => output.token?.nft?.capability)
+      .map(output => output?.token)
+  }
+
   get paymentData() {
     if (!this._data?.payment) return
 
@@ -488,7 +509,6 @@ export class JSONPaymentProtocol {
           utxo.commitment == nftOutput.token.nft.commitment && 
           !utxosMap.has(`${utxo.txid}:${utxo.vout}`)
       })
-      console.log(nftOutput, utxo);
       if (!utxo) throw JsonPaymentProtocolError('Not enough token NFT balance')
       utxosMap.set(`${utxo.txid}:${utxo.vout}`, 1)
 
@@ -511,7 +531,6 @@ export class JSONPaymentProtocol {
       const excessTokens = txBuilder.tokenChange(category);
       if (excessTokens < 0n) {
         console.error('Not enough balance for token', category, '. Need', excessTokens)
-        console.log(txBuilder);
         throw JsonPaymentProtocolError('Not enough token balance')
       }
       if (excessTokens > 0n) {
@@ -523,7 +542,6 @@ export class JSONPaymentProtocol {
       }
     }))
 
-    console.log(txBuilder);
     const bchUtxos = await this.getUtxosFromWallet(wallet);
     for (const bchUtxo of bchUtxos) {
       if (txBuilder.excessSats >= 0n) break
