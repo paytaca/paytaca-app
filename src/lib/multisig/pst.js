@@ -111,7 +111,7 @@ import {
   encodeTransactionOutput
 } from 'bitauth-libauth-v3'
 
-import { derivePublicKeys, getLockingBytecode, createTemplate, getCompiler, getLockingData } from './wallet.js'
+import { derivePublicKeys, getLockingBytecode, createTemplate, getCompiler, getLockingData, getWalletHash } from './wallet.js'
 
 
 export const SIGNING_PROGRESS = {
@@ -806,7 +806,8 @@ export class Pst {
       purpose: this.purpose,
       unsignedTransactionHex: this.unsignedTransactionHex,
       inputs: this.inputs,
-      wallet: this.wallet
+      wallet: this.wallet,
+      walletHash: getWalletHash(this.wallet)
     }
 
     if (this.signedTransactionHash) {
