@@ -42,12 +42,12 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-transactions', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
+                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-pst-view', params: { wallethash: wallet.getWalletHash(), unsignedtransactionhash: psts?.[0]?.unsignedTransactionHash } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="assignment" class="col-12" color="primary" style="position:relative">
-                        <q-badge color="red" v-if="transactions?.length > 0" style="margin-right: 20px;" floating>
-                        {{ transactions.length }}
+                      <q-icon name="mdi-text-box" class="col-12" color="primary" style="position:relative">
+                        <q-badge color="red" v-if="psts?.length > 0" style="margin-right: 20px;" floating>
+                        {{ psts.length }}
                         </q-badge>
                       </q-icon>
                       <div class="col-12 tile-label">Proposal</div>
@@ -58,9 +58,6 @@
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box-multiple" class="col-12" color="primary" style="position:relative">
-                        <q-badge color="red" v-if="transactions?.length > 0" style="margin-right: 20px;" floating>
-                        {{ transactions.length }}
-                        </q-badge>
                       </q-icon>
                       <div class="col-12 tile-label">Addresses</div>
                     </div>
@@ -218,14 +215,15 @@ import {
   isMultisigWalletSynced,
   generateFilename,
   generateTransactionHash,
-  MultisigWallet
+  MultisigWallet,
+  Pst
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import { CashAddressNetworkPrefix, sortObjectKeys, walletTemplateP2pkh } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, sortObjectKeys } from 'bitauth-libauth-v3'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 
 const $store = useStore()
@@ -264,6 +262,11 @@ const transactions = computed(() => {
     address: route.params.address
   })?.filter(mt => mt.broadcastStatus !== 'done')
 })
+
+const psts = computed(() => {
+  return $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.map(p => Pst.fromObject(p))
+})
+
 
 const deleteWallet = async () => {
   await $store.dispatch('multisig/deleteWallet', { multisigWallet: wallet.value })
