@@ -45,22 +45,62 @@
           <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
             {{$t('Recipient')}}{{ jpp?.parsed?.outputs?.length > 1 ? 's' : '' }}:
           </div>
+
           <div
-            v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)" :key="index"
-            class="row no-wrap items-start q-mb-sm q-gutter-x-xs"
+            v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)"
+            :key="index" class="q-mb-sm row items-start no-wrap"
           >
+            <div class="text-grey" style="width:2em;">#{{ index+1 }}</div>
             <div class="q-space">
-              {{ ellipsisText(output.address, {start: 16, end: 5 }) }}
-              <q-popup-proxy :breakpoint="0">
-                <div
-                  class="text-body2 pt-card pt-label address-popup q-px-md q-py-sm"
-                  :class="getDarkModeClass(darkMode)"
-                >
-                  {{ output.address }}
+              <div class="row no-wrap items-start q-gutter-x-xs">
+                <div class="q-space">
+                  {{ ellipsisText(output.address, {start: 16, end: 5 }) }}
                 </div>
-              </q-popup-proxy>
+                <div class="text-right">{{ output.amount / 10 ** 8 }} {{$t('BCH')}}</div>
+              </div>
+              <div v-if="output?.token?.category" class="row no-wrap items-start q-gutter-x-xs">
+                <div class="ellipsis" style="max-width:45vw;">
+                  Token: {{ ellipsisText(output?.token?.category, { start: 6, end: 6 }) }}
+                </div>
+                <q-space/>
+                <div v-if="output?.token?.nft" class="text-brandblue text-underline">
+                  NFT
+                </div>
+                <div v-else>
+                  {{ formatTokenAmount(output?.token) }}
+                </div>
+              </div>
             </div>
-            <div class="text-right">{{ output.amount / 10 ** 8 }} {{$t('BCH')}}</div>
+            <q-popup-proxy :breakpoint="0">
+              <div
+                class="text-body2 pt-card pt-label address-popup q-pa-sm"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <div class="text-caption text-grey">Recipient:</div>
+                <div>{{ output.address }}</div>
+
+                <div v-if="output?.token?.category" class="q-mt-sm">
+                  <div class="text-caption text-grey">Token:</div>
+                  <div v-ripple style="position: relative;" @click="copyToClipboard(output?.token?.category)">
+                    {{ output?.token?.category }}
+                    <q-icon name="content_copy"/>
+                  </div>
+                  
+                  <div v-if="output?.token?.amount" class="q-mt-sm">
+                    <div class="text-caption text-grey">Token amount:</div>
+                    <div>{{ formatTokenAmount(output?.token) }}</div>
+                  </div>
+
+                  <div v-if="output?.token?.nft" class="q-mt-sm">
+                    <div class="text-caption text-grey">
+                      NFT:
+                      <q-badge>{{ output?.token?.nft?.capability }}</q-badge>
+                    </div>
+                    <div>{{ output?.token?.nft?.commitment }}</div>
+                  </div>
+                </div>
+              </div>
+            </q-popup-proxy>
           </div>
           <strong v-if="jpp?.parsed?.outputs?.length > 10">
             {{
@@ -235,6 +275,18 @@ function completePayment() {
       loading.value = false
       loadingMsg.value = ''
     })
+}
+
+function formatTokenAmount(tokenData) {
+  const category = tokenData?.category
+  const asset = $store.getters['assets/getAssets']?.find(asset => asset?.id === `ct/${category}`)
+  if (!asset) return tokenData?.amount
+
+  const decimals = parseInt(asset?.decimals) || 0
+  const parsedAmount = tokenData?.amount / 10 ** decimals
+  if (!parsedAmount) return tokenData?.amount
+  const symbol = asset?.symbol
+  return `${parsedAmount} ${symbol}`
 }
 </script>
 
