@@ -1291,7 +1291,9 @@ const phrases = {
       LockupPeriodOver: 'Lockup period is over',
       VestingPeriodOver: 'Vesting period is over',
       VestingNotOccured: 'Vesting has not occurred yet',
-      ReservationPaid: 'Reservation is paid in full'
+      ReservationPaid: 'Reservation is paid in full',
+      UnidentifiedAddress: 'Unable to identify address.',
+      AddressAlreadyAdded: 'You already added this address.'
     }
   ],
   dynamic: [
@@ -1308,7 +1310,7 @@ const phrases = {
       UpdatedDeviceIDNo: "Updated device #{ID}",
       UpdatingDeviceIDNo: "Updating device #{ID}",
       DetectedUnknownCurrency: "Detected unknown currency: #{currency}",
-      InvalidRecipient: "Recipient should be a valid #{walletType} address",
+      InvalidRecipient: "Recipient should be a valid {walletType} address",
       ThemeName: "{theme} Theme",
       ExceededBalanceError: "Exceeding balance {spendableBchValue}",
       LiquidityLeastError: "Liquidity requires at least {convertedMinimumAmount}",

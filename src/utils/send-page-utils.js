@@ -139,6 +139,8 @@ export function validateAddress (address, walletType, isCashToken) {
         ) {
           formattedAddress = addressObj.toCashAddress(address)
         }
+
+        new Address(address).toCashAddress()
       } else {
         addressIsValid = isTokenAddress(address.split('?c=')[0])
         formattedAddress = address

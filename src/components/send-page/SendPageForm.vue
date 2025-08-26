@@ -12,8 +12,18 @@
         @focus="onInputFocus(index, '')"
         @blur="onEmptyRecipient"
         class="recipient-input"
-        :error="emptyRecipient"
-        :error-message="emptyRecipient ? $t('EmptyRecipient') : ''"
+        :error="emptyRecipient || inputExtras.incorrectAddress"
+        :error-message="
+          emptyRecipient
+            ? $t('EmptyRecipient')
+            : inputExtras.incorrectAddress
+              ? $t(
+                  'InvalidRecipient',
+                  { walletType: walletType.toUpperCase() },
+                  `Recipient should be a valid ${walletType.toUpperCase()} address`
+                )
+              : ''
+        "
         :dark="darkMode"
         :key="[
           recipient.recipientAddress,
@@ -220,7 +230,8 @@ export default {
 
     currentSendPageCurrency: { type: Function },
     setMaximumSendAmount: { type: Function },
-    defaultSelectedFtChangeAddress: { type: String }
+    defaultSelectedFtChangeAddress: { type: String },
+    walletType: { type: String }
   },
 
   emits: [
