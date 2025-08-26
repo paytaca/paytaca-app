@@ -107,9 +107,9 @@
               <q-item-section side top>
                 <q-btn
                   label="Sign"
-                  :disable="!signersXPrv[signer.xpub] || signingProgress?.signingProgress === 'fully-signed'"
-                  :icon="signersXPrv[signer.xpub]? 'draw': 'edit_off'"
-                  :color="signersXPrv[signer.xpub]? 'primary': ''"
+                  :disable="!signersXPrv[signer.xpub] || pst.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
+                  :icon="signButtonIcon(signer)"
+                  :color="signersXPrv[signer.xpub]? 'secondary': ''"
                   dense
                   no-caps
                   flat
@@ -119,9 +119,36 @@
                 </q-btn>
               </q-item-section>
             </q-item>
-            <q-item>
+            <q-separator></q-separator>
+            <q-item class="q-mt-lg">
               <q-item-section>
-                <q-btn @click="() => pst?.delete()">Delete</q-btn>
+                <!-- <q-btn @click="() => pst?.delete()">Delete</q-btn> -->
+                <div class="row justify-between q-gutter-x-md">
+                  <q-btn v-if="signingProgress != 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="loadCosignerPst" v-close-popup>
+                    <template v-slot:default>
+                      <div class="row justify-center">
+                        <q-icon name="mdi-file-upload" class="col-12" color="primary" size="lg"></q-icon>
+                        <div class="col-12 tile-label">Load Cosigner PST</div>
+                      </div>
+                    </template>
+                  </q-btn>
+                  <q-btn v-if="signingProgress != 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="loadCosignerPst" v-close-popup>
+                    <template v-slot:default>
+                      <div class="row justify-center items-stretch">
+                        <q-icon name="cell_tower" class="col-12" color="primary" size="lg"></q-icon>
+                        <div class="tile-label col-12">Broadcast</div>
+                      </div>
+                    </template>
+                  </q-btn>
+                  <q-btn v-if="signingProgress != 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="openBottomsMenu" v-close-popup>
+                    <template v-slot:default>
+                      <div class="row justify-center">
+                        <q-icon name="more_horiz" class="col-12" color="primary" size="lg"></q-icon>
+                        <div class="col-12 tile-label">More</div>
+                      </div>
+                    </template>
+                  </q-btn>
+                </div>
               </q-item-section>
             </q-item>
           </q-list>
@@ -192,6 +219,56 @@ const wallet = computed(() => {
   return walletObject
 })  
 
+const signButtonIcon = computed(() => {
+  return (signer) => {
+    if (!signersXPrv.value[signer.xpub]) return 'edit_off'
+    if (pst.value.signerSigned(signer.xpub)) return 'done_all'
+    return 'draw'
+  }
+})
+
+const openBottomsMenu = () => {
+  $q.bottomSheet({
+    title: 'More Actions',
+    grid: true,
+    actions: [
+      {
+        icon: 'delete_forever',
+        label: 'Delete',
+        value: 'delete',
+        color: 'red'
+      },
+      {
+        icon: 'cloud_upload',
+        label: 'Sync',
+        value: 'share-pst',
+        color: 'primary'
+      },
+      {
+        icon: 'mdi-file-export',
+        label: 'Export PST',
+        value: 'copy-unsigned-tx-hash',
+        color: 'primary'
+      }
+    ],
+    class: `${getDarkModeClass(darkMode.value)} pt-card text-bow`
+
+  }).onOk(async (value) => {
+    if (value === 'delete') {
+      await pst.value.delete()
+      $router.push(`/apps/multisig/wallet/${wallet.value.getHash()}`)
+    } else if (value === 'share-pst') {
+      await pst.value.sharePst()
+    } else if (value === 'copy-unsigned-tx-hash') {
+      await $q.copy(pst.value.getUnsignedTransactionHash())
+      $q.notify({ type: 'positive', message: 'Copied to clipboard' })
+    } else if (value === 'view-in-explorer') {
+      const url = txExplorerUrl.value.replace('{txid}', pst.value.getUnsignedTransactionHash())
+      openURL(url)
+    }
+  })
+}
+
 const initiateSignTransaction = async (signer) => {
   showActionConfirmationSlider.value = true
   signTransactionInitiatedByXPrv.value = signersXPrv.value[signer.xpub]
@@ -199,12 +276,10 @@ const initiateSignTransaction = async (signer) => {
 
 const executeSignTransaction = async () => {
   if (!signTransactionInitiatedByXPrv.value) return
-  const signerSignatures = pst.value.sign(signTransactionInitiatedByXPrv.value)
+  pst.value.sign(signTransactionInitiatedByXPrv.value)
   signTransactionInitiatedByXPrv.value = ''
   signingProgress.value = pst.value.getSigningProgress()
-
 }
-
 
 const onConfirmSliderSwiped = async (reset) => {
   showActionConfirmationSlider.value = false
