@@ -405,28 +405,15 @@ export const getSigningProgress = (pst) => {
 
   for (const inputIndex in transaction.inputs) {
     let correspondingInput = pst.inputs.find((i) => {
-      // const parsed = JSON.parse(stringify(i), libauthStringifyReviver)
       return (
         Number(pst.inputs[inputIndex].outpointIndex) === Number(i.outpointIndex) &&
         binsAreEqual(pst.inputs[inputIndex].outpointTransactionHash, i.outpointTransactionHash) 
       )
     })
 
-    const addressDerivationPath = correspondingInput.sourceOutput.addressPath || '0/0'
+    const addressDerivationPath = correspondingInput.addressPath || '0/0'
     const sortedSignersWithPublicKeys = derivePublicKeys({ signers: pst.wallet.signers, addressDerivationPath })
     const lockingData = getLockingData({ signers: pst.wallet.signers, addressDerivationPath })
-    // const lockingData = {
-    //   bytecode: {}
-    // }
-    
-    // for (const index in sortedSignersWithPublicKeys) {
-    //   let publicKey = sortedSignersWithPublicKeys[index].publicKey 
-    //   if (typeof(publicKey) === 'string') {
-    //     publicKey = hexToBin(publicKey)
-    //   }
-    //   lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
-    // }
-
     const template = createTemplate({ m: pst.wallet.m, signers: sortedSignersWithPublicKeys })
     const lockingBytecode = getLockingBytecode({ lockingData, template }) // lockingBytecode === lockingScript
     const compiler = getCompiler({ template })
@@ -434,15 +421,6 @@ export const getSigningProgress = (pst) => {
     if (!binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, lockingBytecode.bytecode)) {
       continue
     }
-
-    // const unlockingScriptIds = Object.keys(template.scripts).filter(scriptId => scriptId !== 'lock')
-
-    // unlockingScriptIds.forEach((unlockingScriptId) => {
-    //   const inputUnlockingData = {
-    //     bytecode: {
-    //       ...lockingData.bytecode
-    //     }
-    //   }
     const inputUnlockingData = {
       bytecode: {
         ...lockingData.bytecode
@@ -456,17 +434,6 @@ export const getSigningProgress = (pst) => {
         `key${partialSignature.publicKeyRedeemScriptSlot}.${partialSignature.sigAlgo}_signature.${signingSerializationTypeAlgorithmIdentifier}`
       inputUnlockingData.bytecode[sigVariable] = partialSignature.sig //hexToBin(partialSignature.sig)
     }
-
-    //   console.log('UNLOCKING DATA', inputUnlockingData)
-    //   transaction.inputs[inputIndex].unlockingBytecode = {
-    //     compiler,
-    //     data: inputUnlockingData,
-    //     valueSatoshis: sourceOutput.valueSatoshis,
-    //     script: unlockingScriptId,
-    //     token: correspondingInput.sourceOutput.token
-    //   }
-    // })
-
 
     inputCompilationContext.push({
       inputIndex,
@@ -483,7 +450,7 @@ export const getSigningProgress = (pst) => {
       inputSignatures[inputIndex].signingProgress = SIGNING_PROGRESS.UNSIGNED
     }
     
-    if (inputSignatures[inputIndex].signatureCount < pst.wallet.m) {
+    if (inputSignatures[inputIndex].signatureCount > 0 && inputSignatures[inputIndex].signatureCount < pst.wallet.m) {
       inputSignatures[inputIndex].signingProgress = SIGNING_PROGRESS.PARTIALLY_SIGNED
     }
 
@@ -508,7 +475,6 @@ export const getSigningProgress = (pst) => {
 
   const everyInputHasSameSignatureCount = Object.entries(inputSignatures).every(entry => {
     const [inputIndex, progress] = entry
-    console.log('INPUT', inputIndex, progress)
     return firstInputProgress.signatureCount === progress.signatureCount
   })
 
@@ -583,7 +549,7 @@ export class Pst {
         )
       })
 
-      const addressDerivationPath = correspondingInput.sourceOutput?.addressPath || '0/0'
+      const addressDerivationPath = correspondingInput.addressPath || '0/0'
       const sortedSignersWithPublicKeys = derivePublicKeys({ signers: this.wallet.signers, addressDerivationPath })
       const lockingData = {
         bytecode: {}
@@ -600,6 +566,7 @@ export class Pst {
       const lockingBytecode = getLockingBytecode({ lockingData, template }) // lockingBytecode === lockingScript
 
       // Not our input continue
+
       if (!binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, lockingBytecode.bytecode)) {
         continue
       }
@@ -621,6 +588,7 @@ export class Pst {
           }
         }
       }
+
       // Select the unlocking script based on this output specific wallet template
       const unlockingScriptId = template.entities[`signer_${signerIndex + 1}`].scripts.filter((scriptId) => scriptId !== 'lock')[0]
       input.unlockingBytecode = {
