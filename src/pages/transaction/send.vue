@@ -62,7 +62,7 @@
                       name="arrow_forward_ios"
                       class="button button-icon"
                       :class="getDarkModeClass(darkMode)"
-                      @click="onScannerDecode(manualAddress)"
+                      @click="onScannerDecode(manualAddress, false)"
                     />
                   </template>
                 </q-input>
@@ -88,7 +88,7 @@
                     no-caps
                     class="button q-mb-lg q-mt-sm"
                     size="lg"
-                    @click="() => onScannerDecode(manualAddress)"
+                    @click="() => onScannerDecode(manualAddress, false)"
                   >
                     <div class="ellipsis" style="max-width:min(230px, 75vw); font-size: 17px;">
                       {{ $t('SendTo', {}, 'Send to') }}
@@ -137,9 +137,16 @@
                     dense-toggle
                     class="q-expansion-item-recipient"
                     v-model="expandedItems[`R${index + 1}`]"
-                    :label="`${$t('Recipient')} #${index + 1}`"
                     :class="getDarkModeClass(darkMode)"
                   >
+                    <template v-slot:header>
+                      <span
+                        :class="inputExtras[index].incorrectAddress ? 'expansion-item-error' : ''"
+                      >
+                        {{ `${$t('Recipient')} #${index + 1}` }}
+                      </span>
+                    </template>
+
                     <SendPageForm
                       :recipient="sendDataMultiple[index]"
                       :inputExtras="inputExtras[index]"
@@ -153,6 +160,7 @@
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
+                      :walletType="walletType"
                       @on-qr-scanner-click="onQRScannerClick"
                       @on-input-focus="onInputFocus"
                       @on-balance-exceeded="onBalanceExceeded"
@@ -186,6 +194,7 @@
                     :currentWalletBalance="currentWalletBalance"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
+                    :walletType="walletType"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
                     @on-balance-exceeded="onBalanceExceeded"
@@ -396,7 +405,8 @@ export default {
         isBip21: false,
         isLegacyAddress: false,
         isWalletAddress: false,
-        cashbackData: null
+        cashbackData: null,
+        incorrectAddress: false
       }],
       expandedItems: {},
 
@@ -551,7 +561,7 @@ export default {
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
-      if (isDuplicate) sendPageUtils.raiseNotifyError('You already added this address.')
+      if (isDuplicate) sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     }
   },
@@ -578,7 +588,7 @@ export default {
     },
 
     // handling recipient address input
-    async onScannerDecode (content) {
+    async onScannerDecode (content, isQr=true) {
       const vm = this
 
       vm.disableSending = false
@@ -604,7 +614,7 @@ export default {
       )
 
       if (isDuplicate) {
-        sendPageUtils.raiseNotifyError('You already added this address.')
+        sendPageUtils.raiseNotifyError(vm.$t('AddressAlreadyAdded'))
         return
       }
 
@@ -620,7 +630,7 @@ export default {
         return
       }
 
-      const paymentUriData = await vm.handlePaymentUri(content, currentRecipient)
+      const paymentUriData = await vm.handlePaymentUri(content, isQr)
       if (paymentUriData) {
         [address, amountValue, currency, fungibleTokenAmount] = paymentUriData
       } else return
@@ -683,7 +693,7 @@ export default {
     },
 
     // payment uri
-    async handlePaymentUri (content) {
+    async handlePaymentUri (content, isQr) {
       const vm = this
 
       let address = content
@@ -713,7 +723,7 @@ export default {
         console.error(error)
         sendPageUtils.paymentUriPromiseResponseHandler(
           error,
-          { defaultError: this.$t('UnidentifiedQRCode') },
+          { defaultError: this.$t(isQr ? 'UnidentifiedQRCode' : 'UnidentifiedAddress') },
         )
         return
       }
@@ -940,7 +950,8 @@ export default {
           selectedDenomination: this.denomination,
           isBip21: false,
           isLegacyAddress: false,
-          cashbackData: null
+          cashbackData: null,
+          incorrectAddress: false
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
@@ -1003,54 +1014,63 @@ export default {
       let token = null // bch token
       let toSendBchRecipients = []
       let toSendSlpRecipients = []
+      let hasError = false
       switch (vm.walletType) {
         case 'slp': {
-          const slpData = vm.processSlpData(toSendData)
+          const [slpData, error] = vm.processSlpData(toSendData)
           toSendSlpRecipients = slpData
+          hasError = error
           break
         } case 'bch': {
-          const [bchToken, bchData] = vm.processBchData(toSendData)
+          const [bchToken, bchData, error] = vm.processBchData(toSendData)
           token = bchToken
           toSendBchRecipients = bchData
+          hasError = error
           break
         } default:
           await vm.processTestWallet(toSendData)
           break
       }
 
-      if (toSendBchRecipients.length > 0) {
-        let changeAddress = sendPageUtils.getChangeAddress('bch')
-
-        if (token?.tokenId && this.userSelectedChangeAddress) {
-          changeAddress = this.userSelectedChangeAddress
+      if (!hasError) {
+        if (toSendBchRecipients.length > 0) {
+          let changeAddress = sendPageUtils.getChangeAddress('bch')
+  
+          if (token?.tokenId && this.userSelectedChangeAddress) {
+            changeAddress = this.userSelectedChangeAddress
+          }
+          getWalletByNetwork(vm.wallet, 'bch')
+            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients)
+            .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+        } else if (toSendSlpRecipients.length > 0) {
+          const tokenId = vm.assetId.split('slp/')[1]
+          const bchWallet = sendPageUtils.getWallet('bch')
+          const feeFunder = {
+            walletHash: bchWallet.walletHash,
+            mnemonic: vm.wallet.mnemonic,
+            derivationPath: bchWallet.derivationPath
+          }
+          const changeAddresses = {
+            bch: sendPageUtils.getChangeAddress('bch'),
+            slp: sendPageUtils.getChangeAddress('slp')
+          }
+  
+          getWalletByNetwork(vm.wallet, 'slp')
+            .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
+            .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
         }
-        getWalletByNetwork(vm.wallet, 'bch')
-          .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients)
-          .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
-      } else if (toSendSlpRecipients.length > 0) {
-        const tokenId = vm.assetId.split('slp/')[1]
-        const bchWallet = sendPageUtils.getWallet('bch')
-        const feeFunder = {
-          walletHash: bchWallet.walletHash,
-          mnemonic: vm.wallet.mnemonic,
-          derivationPath: bchWallet.derivationPath
-        }
-        const changeAddresses = {
-          bch: sendPageUtils.getChangeAddress('bch'),
-          slp: sendPageUtils.getChangeAddress('slp')
-        }
-
-        getWalletByNetwork(vm.wallet, 'slp')
-          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
-          .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+      } else {
+        vm.sending = false
+        vm.sliderStatus = true
       }
     },
     processSlpData (toSendData) {
       const vm = this
       const toSendSlpRecipients = []
+      let errorCount = 0
 
-      toSendData.forEach(sendData => {
-        const address = sendData.recipientAddress
+      toSendData.forEach((sendData, index) => {
+        const address = sendData.recipientAddress.trim()
         const addressObj = new Address(address)
         const addressIsValid = this.validateAddress(address).valid
         const amountIsValid = sendData.amount > 0
@@ -1064,19 +1084,25 @@ export default {
             address: recipientAddress,
             amount: sendData.amount
           })
-        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+        } else {
+          vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+          errorCount += 1
+          vm.inputExtras[index].incorrectAddress = true
+        }
       })
 
-      return toSendSlpRecipients
+      if (errorCount > 0) return [[], true]
+      return [toSendSlpRecipients, false]
     },
     processBchData (toSendData) {
       const vm = this
       const toSendBchRecipients = []
       const tokenId = vm.assetId.split('ct/')[1]
       let token = null
+      let errorCount = 0
 
-      toSendData.forEach(sendData => {
-        const address = sendData.recipientAddress
+      toSendData.forEach((sendData, index) => {
+        const address = sendData.recipientAddress.trim()
         const addressObj = new Address(address)
         const addressIsValid = this.validateAddress(address).valid
         const amountIsValid = sendData.amount > 0
@@ -1107,10 +1133,15 @@ export default {
               tokenAmount: undefined
             })
           }
-        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+        } else {
+          vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+          errorCount += 1
+          vm.inputExtras[index].incorrectAddress = true
+        }
       })
 
-      return [token, toSendBchRecipients]
+      if (errorCount > 0) return [token, [], true]
+      return [token, toSendBchRecipients, false]
     },
     async processTestWallet (toSendData) {
       const vm = this
@@ -1176,13 +1207,14 @@ export default {
       )
 
       if (isDuplicate) {
-        sendPageUtils.raiseNotifyError('You already added this address.')
+        sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
         this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = ''
         return
       }
 
       this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
+      this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     },
     onEmptyRecipient (value) {
@@ -1280,13 +1312,10 @@ export default {
           { walletType: vm.walletType.toUpperCase() },
           `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
         ))
-        throw new Error('Invalid recipient')
       }
       if (!amountIsValid) {
         sendPageUtils.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
-        throw new Error('Send amount greater than zero')
       }
-      throw new Error('Error in sending to recipient(s)')
     },
     async submitPromiseResponseHandler (result, walletType) {
       const vm = this
@@ -1507,5 +1536,8 @@ export default {
   .highlighted-word {
     font-weight: bold;
     color: orange;
+  }
+  .expansion-item-error {
+    color: #e57373
   }
 </style>
