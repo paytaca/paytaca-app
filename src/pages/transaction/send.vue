@@ -551,7 +551,7 @@ export default {
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
-      if (isDuplicate) sendPageUtils.raiseNotifyError('You already added this address.')
+      if (isDuplicate) sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     }
   },
@@ -1176,7 +1176,7 @@ export default {
       )
 
       if (isDuplicate) {
-        sendPageUtils.raiseNotifyError('You already added this address.')
+        sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
         this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = ''
         return
       }
