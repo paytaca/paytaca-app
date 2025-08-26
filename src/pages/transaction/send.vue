@@ -62,7 +62,7 @@
                       name="arrow_forward_ios"
                       class="button button-icon"
                       :class="getDarkModeClass(darkMode)"
-                      @click="onScannerDecode(manualAddress)"
+                      @click="onScannerDecode(manualAddress, false)"
                     />
                   </template>
                 </q-input>
@@ -88,7 +88,7 @@
                     no-caps
                     class="button q-mb-lg q-mt-sm"
                     size="lg"
-                    @click="() => onScannerDecode(manualAddress)"
+                    @click="() => onScannerDecode(manualAddress, false)"
                   >
                     <div class="ellipsis" style="max-width:min(230px, 75vw); font-size: 17px;">
                       {{ $t('SendTo', {}, 'Send to') }}
@@ -578,7 +578,7 @@ export default {
     },
 
     // handling recipient address input
-    async onScannerDecode (content) {
+    async onScannerDecode (content, isQr=true) {
       const vm = this
 
       vm.disableSending = false
@@ -604,7 +604,7 @@ export default {
       )
 
       if (isDuplicate) {
-        sendPageUtils.raiseNotifyError('You already added this address.')
+        sendPageUtils.raiseNotifyError(vm.$t('AddressAlreadyAdded'))
         return
       }
 
@@ -620,7 +620,7 @@ export default {
         return
       }
 
-      const paymentUriData = await vm.handlePaymentUri(content, currentRecipient)
+      const paymentUriData = await vm.handlePaymentUri(content, isQr)
       if (paymentUriData) {
         [address, amountValue, currency, fungibleTokenAmount] = paymentUriData
       } else return
@@ -683,7 +683,7 @@ export default {
     },
 
     // payment uri
-    async handlePaymentUri (content) {
+    async handlePaymentUri (content, isQr) {
       const vm = this
 
       let address = content
@@ -713,7 +713,7 @@ export default {
         console.error(error)
         sendPageUtils.paymentUriPromiseResponseHandler(
           error,
-          { defaultError: this.$t('UnidentifiedQRCode') },
+          { defaultError: this.$t(isQr ? 'UnidentifiedQRCode' : 'UnidentifiedAddress') },
         )
         return
       }
