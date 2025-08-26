@@ -111,8 +111,8 @@ import {
   encodeTransactionOutput
 } from 'bitauth-libauth-v3'
 
-import { derivePublicKeys, getLockingBytecode, createTemplate, getCompiler, getLockingData, getWalletHash } from './wallet.js'
-
+import { derivePublicKeys, getLockingBytecode, getCompiler, getLockingData, getWalletHash, MultisigWallet } from './wallet.js'
+import { createTemplate } from './template.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -496,6 +496,14 @@ export const getSigningProgress = (pst) => {
     }
   } 
 
+  if (Object.keys(inputSignatures).length === 0) {
+    return {
+      signingProgress: SIGNING_PROGRESS.UNSIGNED,
+      signatureCount: 0,
+      perInputSigningProgress: {}
+    }
+  }
+
   const [firstInputIndex, firstInputProgress] = Object.entries(inputSignatures)[0]
 
   const everyInputHasSameSignatureCount = Object.entries(inputSignatures).every(entry => {
@@ -575,8 +583,7 @@ export class Pst {
         )
       })
 
-      // console.log('CORRESPONDING INPUT', correspondingInput)
-      const addressDerivationPath = correspondingInput.sourceOutput.addressPath || '0/0'
+      const addressDerivationPath = correspondingInput.sourceOutput?.addressPath || '0/0'
       const sortedSignersWithPublicKeys = derivePublicKeys({ signers: this.wallet.signers, addressDerivationPath })
       const lockingData = {
         bytecode: {}
@@ -825,7 +832,10 @@ export class Pst {
     return JSON.parse(stringify(data))
   }
 
-
+  async delete() {
+    if (!this.options?.store) return
+    return await this.options.store.dispatch('multisig/deletePst', { pst: this, sync: false })
+  }
 
   /**
    * @param {boolean} [sync=false] - If true, syncs the pst to the relay server.
@@ -837,7 +847,11 @@ export class Pst {
 
   static fromObject(pst, options) {
     if (pst instanceof Pst) return pst
-    return new Pst(pst, options)
+    const p = new Pst(JSON.parse(stringify(pst), libauthStringifyReviver), options)
+    if (p.wallet) {
+      p.wallet = MultisigWallet.fromObject(p.wallet)
+    }
+    return p
   }
 
   /**
