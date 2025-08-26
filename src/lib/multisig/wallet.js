@@ -129,6 +129,7 @@ import {
   cashAddressToLockingBytecode
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
+
 import { createTemplate } from './template.js'
 import { base58AddressToLockingBytecode } from '@bitauth/libauth'
 import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from './utxo.js'
@@ -829,7 +830,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     let inputs = selectedUtxos?.map((u) => {
       return {
         ...commonUtxoToLibauthInput(u, []),
-        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode) 
+        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
+        addressPath: u.addressPath
       }
     })
 
