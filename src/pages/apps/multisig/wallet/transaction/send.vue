@@ -37,7 +37,7 @@
                     <q-item-section>
                       <q-item-label class="q-gutter-y-md">
                         <div class="text-bold">From</div>
-                        <q-input :model-value="wallet.name" dense :hint="shortenString(`${wallet.getWalletHash()}`, 20)">
+                        <q-input :model-value="wallet.name" dense :hint="shortenString(`${wallet.getWalletHash()}`, 20)" disable>
                           <template v-slot:prepend>
                             <q-btn icon="wallet" flat dense></q-btn>
                           </template>
