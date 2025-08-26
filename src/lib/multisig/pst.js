@@ -805,8 +805,41 @@ export class Pst {
     return getSigningProgress(this)
   }
 
+  getTotalInputSatoshis() {
+    return this.inputs.reduce((total, input) => {
+      return total + Number(input.sourceOutput.valueSatoshis)
+    }, 0)
+  }
+
+  getTotalOutputSatoshis() {
+    let total = 0
+    const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
+    for (const output of transaction.outputs) {
+      total += Number(output.valueSatoshis)
+    }
+    return total        
+  }
+
+  getFeeSatoshis() {
+    return this.getTotalInputSatoshis() - this.getTotalOutputSatoshis()
+  }
+
+  getTotalDebitSatoshis() {
+    return this.getTotalInputSatoshis() - this.getTotalChangeSatoshis() - this.getFeeSatoshis()
+  }
+
+  getTotalChangeSatoshis() {
+    let total = 0
+    const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
+    for (const index in this.outputs) {
+      if (this.outputs[index].addressPath) {
+        total += Number(transaction.outputs[index].valueSatoshis)
+      }
+    }
+    return total
+  }
+
   toJSON() {
-   
     const data = {
       creator: this.creator,
       origin: this.origin,
