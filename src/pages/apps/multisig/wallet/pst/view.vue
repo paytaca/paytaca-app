@@ -107,7 +107,7 @@
               <q-item-section side top>
                 <q-btn
                   label="Sign"
-                  :disable="!signersXPrv[signer.xpub] || pst.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
+                  :disable="!signersXPrv[signer.xpub] || pst?.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
                   :icon="signButtonIcon(signer)"
                   :color="signersXPrv[signer.xpub]? 'secondary': ''"
                   dense
@@ -228,10 +228,11 @@ const pst = computed(() => {
     const storedPst = $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
     if (!storedPst) return null
     const network = isChipnet ? 'chipnet' : 'mainnet'
-    return Pst.fromObject(
-      $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash),
+    const p = Pst.fromObject(
+      storedPst,
       { store: $store, provider: new WatchtowerNetworkProvider({ network }) }
     )
+    return p
 })
 
 const wallet = computed(() => {
@@ -310,6 +311,7 @@ const broadcastTransaction = async () => {
     const result = await pst.value.broadcast()
     console.log('Result', result)
   } catch (error) {
+    console.log(error)
     $q.dialog({
       title: 'Error',
       message: error.message || 'An error occurred while broadcasting the transaction.',
@@ -351,7 +353,6 @@ onMounted(async () => {
 
   if (pst.value) {
     signingProgress.value = pst.value.getSigningProgress()
-    console.log('INITIAL SIGNING PROGRESS', signingProgress.value)
   }
   
 })

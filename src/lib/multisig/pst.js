@@ -77,16 +77,9 @@
 import {
   encodeTransactionCommon,
   hashTransaction,
-  lockingBytecodeToCashAddress,
-  walletTemplateToCompilerBch,
-  CashAddressNetworkPrefix,
   generateTransaction,
   binToHex,
   extractResolvedVariables,
-  utf8ToBin,
-  binToBase64,
-  base64ToBin,
-  binToUtf8,
   hexToBin,
   stringify,
   decodeTransactionCommon,
@@ -96,15 +89,6 @@ import {
   deriveHdPathRelative,
   decodeHdPrivateKey,
   compileScript,
-  generateSigningSerializationComponentsBch,
-  extractMissingVariables,
-  extractResolvedVariableBytecodeMap,
-  extractBytecodeResolutions,
-  compilerOperationSigningSerializationFullBch,
-  createIdentifierResolver,
-  compileCashAssembly,
-  decodeAuthenticationInstructions,
-  compileScriptRaw,
   SigningSerializationAlgorithmIdentifier,
   SigningSerializationType,
   encodeTransactionInput,
@@ -606,7 +590,9 @@ export class Pst {
 
     
     const signAttempt = generateTransaction({ ...transaction })
+    
     if (signAttempt.success) return
+
     for (const [inputIndex, error] of Object.entries(signAttempt?.errors || {})) {
       const signerResolvedVariables = extractResolvedVariables({ ...signAttempt, errors: [error] })
       const value = Object.values(signerResolvedVariables)[0]
@@ -617,8 +603,8 @@ export class Pst {
       const lockingScript = script.bytecode
       const redeemScript = script.reduce.bytecode
       const keyVariable = `${Object.keys(inputUnlockingBytecode.data.keys.privateKeys)[0]}.public_key`
-      const signatureExists = this.inputs[inputIndex]?.partialSignatures.find((partialSignature) => {
-        return Boolean(partialSignature[sigVariable])
+      const signatureExists = this.inputs[inputIndex]?.partialSignatures.find((p) => {
+        return Boolean(p[sigVariable])
       })
 
       if (signatureExists) continue
@@ -630,17 +616,25 @@ export class Pst {
       
       this.inputs[inputIndex].redeemScript = redeemScript
       this.inputs[inputIndex].scriptPubKey = lockingScript
-      this.inputs[inputIndex].partialSignatures.push({
-        // publicKeyVariable: keyVariable,
+
+      const partialSignature = {
+        index: inputIndex,
         publicKey: inputUnlockingBytecode.data.bytecode[keyVariable],
-        publicKeyBip32DerivationPath: this.inputs[inputIndex].sourceOutput.addressPath || '0/0',
+        publicKeyBip32DerivationPath: this.inputs[inputIndex].addressPath || '0/0',
         publicKeyRedeemScriptSlot: Number(keyVariable.split('.')[0].replace('key','')),
         signer: signer.name,
         sigHash: value.slice(-1),
         sigAlgo: sigVariable.split('.')[1].split('_')[0],
         sigSlot: Number(sigSlot),
         sig: value
-      })
+      }
+
+      this.inputs[inputIndex].partialSignatures.push(partialSignature)
+
+      if (this.options?.store) {
+        this.options.store.dispatch('multisig/addPstPartialSignature', { pst: this, inputIndex, partialSignature })
+      }
+
     }
     return 
   }
@@ -650,7 +644,6 @@ export class Pst {
     const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
 
     const allInputsAreSigned = []
-
     
     for (const input of transaction.inputs) {
       let correspondingInput = this.inputs.find((i) => {
@@ -778,14 +771,8 @@ export class Pst {
       throw new Error('No signed transaction hex available')  
     }
 
-    this.isBroadcasting = true
-    try {
-      return await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
-    } catch (error) {
-      throw error
-    } finally {
-      this.isBroadcasting = false
-    }
+    await new Promise(resolve => setTimeout(resolve, 4000)) // allow state to propagate
+    // return await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
 
   }
 
@@ -861,9 +848,9 @@ export class Pst {
     return JSON.parse(stringify(data))
   }
 
-  async delete() {
+  async delete({ sync = false } = {}) {
     if (!this.options?.store) return
-    return await this.options.store.dispatch('multisig/deletePst', { pst: this, sync: false })
+    return await this.options.store.dispatch('multisig/deletePst', { pst: this, sync })
   }
 
   /**
@@ -875,10 +862,10 @@ export class Pst {
   }
 
   static fromObject(pst, options) {
-    if (pst instanceof Pst) return pst
+    // if (pst instanceof Pst) return pst
     const p = new Pst(JSON.parse(stringify(pst), libauthStringifyReviver), options)
     if (p.wallet) {
-      p.wallet = MultisigWallet.fromObject(p.wallet)
+      p.wallet = MultisigWallet.fromObject(p.wallet, options)
     }
     return p
   }
