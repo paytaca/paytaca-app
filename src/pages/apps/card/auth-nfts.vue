@@ -53,7 +53,7 @@
                 <div class="text-subtitle2 text-bow" style="opacity: 0.5;">No authentication NFTs found.</div>
               </div>
               <div v-else>
-                <div v-for="token in authTokens" :key="token.id" class="row q-my-sm">
+                <div v-for="(token, index) in authTokens" :key="token.id" class="row q-my-sm">
                   <q-card class="col my-card">
                     <q-card-section>
                       <div class="row">
@@ -67,7 +67,7 @@
                           v-model="token.authorized"
                           :label="token.authorized ? 'Authorized' : 'Unauthorized'"
                           :icon="token.authorized ? 'verified_user' : 'gpp_bad'"
-                          @click="onToggleAuthorization(token)"
+                          @click="onToggleAuthorization(index, token)"
                         />
                       </div>
                     </q-card-section>
@@ -94,13 +94,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import TerminalList from 'src/components/card/TerminalList.vue'
 import { fetchAuthNFTs } from 'src/services/card/api'
 import AuthTokenManager, { decodeCommitment } from 'src/services/card/auth-token'
-import { Wallet } from 'mainnet-js'
-import { Contract } from '@mainnet-cash/contract';
-import { SignatureTemplate } from 'cashscript'
-import { binToHex } from '@bitauth/libauth'
-import { loadWallet } from 'src/wallet'
-import { pubkeyToPkHash } from 'src/services/card/utils'
 import { TapToPay } from 'src/services/card/tap-to-pay'
+import Card from 'src/services/card/card'
 
 export default {
   components: {
@@ -121,13 +116,23 @@ export default {
     // Get the data from router state
     this.cardInfo = history.state?.cardInfo || null;
     this.walletInfo = history.state?.walletInfo || null;
-    
+    console.log('walletInfo:', this.walletInfo)
+
     if (this.cardInfo) {
       this.loadAuthTokens();
     }
   },
   methods: {
     getDarkModeClass,
+    showLoading(message) {
+      this.$q.loading.show({
+        message: message,
+        boxClass: this.darkMode ? 'bg-grey-9 text-grey-2' : 'bg-grey-2 text-grey-9'
+      });
+    },
+    hideLoading() {
+      this.$q.loading.hide();
+    },
     async loadAuthTokens() {
       console.log('cardInfo:', this.cardInfo);
       
@@ -142,28 +147,51 @@ export default {
         }
       }) || []
     },
-    async onToggleAuthorization(token) {      
-      console.log('onToggleAuthorization:', token)
-
+    async onToggleAuthorization(index, token) {
+      this.$q.dialog({
+        title: 'Confirm Authorization Change',
+        message: `Are you sure you want to ${token.authorized ? 'revoke' : 'grant'} authorization for ${token.terminal.merchant_name}?`,
+        ok: {
+          label: 'Yes',
+          color: 'primary'
+        },
+        cancel: {
+          label: 'No',
+          color: 'secondary'
+        }
+      }).onOk(async () => {
+        await this.toggleAuth(index, token)
+      })
+    },
+    async toggleAuth (index, token) {
+      this.showLoading('Processing...')
       try {
         const contractId = this.cardInfo.contract_id
-        const tapToPay = new TapToPay(contractId)
         const decodedCommitment = decodeCommitment(token.commitment)
 
-        const params = {
-          senderWif: this.walletInfo.wif,
-          mutations: [{
-            id: token.terminal.id,
-            pubkey: token.terminal.public_key,
-            authorized: !decodedCommitment?.authorized,
-            expirationBlock: decodedCommitment?.expirationBlock,
-            spendLimitSats: decodedCommitment?.spendLimitSats
-          }]
-        }
+        const mutations = [{
+          id: token.terminal.id,
+          pubkey: token.terminal.public_key,
+          authorized: !decodedCommitment?.authorized,
+          expirationBlock: decodedCommitment?.expirationBlock,
+          spendLimitSats: decodedCommitment?.spendLimitSats
+        }]
 
-        const response = await tapToPay.mutate(params)
-        console.log('Mutation response:', response)
+        const card = new Card(
+          this.walletInfo.wif,
+          this.walletInfo.walletIndex,
+          this.walletInfo.walletHash
+        )
+
+        const { serverResponse } = await card.mutateAuthTokens(contractId, mutations)
+        const updatedToken = serverResponse
+        const { authorized } = decodeCommitment(serverResponse.commitment)
+        updatedToken.authorized = authorized || false
+        this.authTokens[index] = updatedToken
+        this.hideLoading();
+
       } catch (error) {
+        this.hideLoading();
         this.$q.dialog({
           title: 'Error',
           message: error.message

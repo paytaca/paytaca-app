@@ -1,7 +1,8 @@
 import { loadWallet } from 'src/wallet';
 import AuthTokenManager from './auth-token';
 import { TapToPay } from './tap-to-pay';
-import { createAuthNFTs, fetchCard, createCard } from './api';
+import { createNFTs, fetchCard, createCard, mutateNFTs } from './api';
+import { binToHex } from 'bitauth-libauth-v3';
 
 /**
  * Main Card class that handles all card-related operations
@@ -110,9 +111,9 @@ export class Card {
       satoshis: nftData.satoshis,
       amount: nftData.token?.amount
     };
-    
-    console.log('Creating Auth NFT with payload:', payload);
-    await createAuthNFTs(payload);
+
+    console.log('Creating NFT with payload:', payload);
+    await createNFTs(payload);
     console.log('Server record created');
   }
 
@@ -203,28 +204,38 @@ export class Card {
   /**
    * Initializes TapToPay contract with card parameters
    */
-  initializeTapToPay(contractParams) {
-    this.tapToPay = new TapToPay({
-      params: contractParams,
-      options: { network: 'mainnet' }
-    });
+  initializeTapToPay(contractId) {
+    this.tapToPay = new TapToPay(contractId);
     return this.tapToPay;
   }
 
   /**
    * Mutates auth token permissions
    */
-  async mutateAuthTokens(mutations, tokenCategory, broadcast = true) {
+  async mutateAuthTokens(contractId, mutations, broadcast = true) {
     if (!this.tapToPay) {
-      throw new Error('TapToPay contract not initialized. Call initializeTapToPay() first.');
+      this.initializeTapToPay(contractId)
     }
-    
-    return await this.tapToPay.mutate({
+
+    const mutateResponse = await this.tapToPay.mutate({
       senderWif: this.privateKey,
-      tokenCategory,
       mutations,
       broadcast
     });
+
+    const mutationData = mutations.map(mutation => {
+      const outputs = mutateResponse.outputs || []
+      const mutatedOutput = outputs.find(output => !!output.token.nft)
+      const commitment = binToHex(mutatedOutput?.token?.nft?.commitment)
+      return {
+        terminal_id: mutation.id,
+        commitment: commitment
+      };
+    });
+
+    const serverResponse = await mutateNFTs({ mutations: mutationData })
+
+    return { mutateResponse, serverResponse };
   }
 
   /**
@@ -282,6 +293,16 @@ export class Card {
     if (this.tapToPay) {
       console.log('TapToPay contract needs to be reinitialized after key update');
     }
+  }
+
+  // ==================== SERVER METHODS ====================
+
+  async fetchNFTs(walletHash) {
+    return await fetchAuthNFTs(walletHash);
+  }
+
+  async createNFTs(nftData) {
+    return await createAuthNFTs(nftData);
   }
 }
 

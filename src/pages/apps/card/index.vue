@@ -144,7 +144,8 @@ export default {
           cardInfo: JSON.parse(JSON.stringify(this.cardInfo)),
           walletInfo: { 
             walletHash: walletHash,
-            wif: privateKey
+            wif: privateKey,
+            walletIndex: this.$store.getters['global/getWalletIndex']
           }
         }
       });

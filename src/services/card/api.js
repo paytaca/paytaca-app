@@ -88,7 +88,8 @@ export async function createCard(cardData) {
  */
 export async function fetchAuthNFTs(wallet_hash) {
   try {
-    const response = await cardApi.get(`/auth-nfts/${wallet_hash}`)
+    const response = await cardApi.get(`/auth-nfts/wallet/${wallet_hash}`)
+    console.log('response:', response)
     return response.data
   } catch (error) {
     console.error('Error fetching auth NFTs:', error)
@@ -118,21 +119,12 @@ export async function createAuthNFTs(nftData) {
   }
 }
 
-/**
- * Mutate existing NFTs
- * @param {Object} mutationData - The mutation data
- * @param {string} mutationData.nftId - NFT ID to mutate
- * @param {string} mutationData.operation - Mutation operation type
- * @param {Object} mutationData.updates - Updates to apply
- * @param {string} mutationData.signature - Transaction signature
- * @returns {Promise} API response with mutation result
- */
 export async function mutateNFTs(mutationData) {
   try {
-    const response = await cardApi.post('/nfts/mutate', mutationData)
+    const response = await cardApi.patch(`/auth-nfts/batch-update/`, mutationData)
     return response.data
   } catch (error) {
-    console.error('Error mutating NFTs:', error)
+    console.error('Error mutating NFTs in server:', error)
     throw error
   }
 }
