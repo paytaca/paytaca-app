@@ -249,6 +249,7 @@ const wallet = computed(() => {
   const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
   if (savedWallet) {
     return MultisigWallet.importFromObject(savedWallet, {
+      store: $store,
       provider: new WatchtowerNetworkProvider({
         network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
       })
@@ -416,16 +417,11 @@ const loadHdPrivateKeys = async (signers) => {
 
 const loadCashtokenIdentitiesToBalances = async() => {
   const promises = []
-  console.log('BALANCES', balances.value)
   for(const asset of Object.keys(balances.value || {})) {
     if (asset === 'bch') continue
-    console.log('ASSET', asset)
     const tokenIdentityPromise = async () => {
       const tk = await getAssetTokenIdentity(asset)
-      console.log('tk', tk)
-      console.log('tk asset', asset)
       balancesTokenIdentities.value[asset] = await getAssetTokenIdentity(asset)
-      console.log('tk after', balancesTokenIdentities.value[asset])
     }
     promises.push(tokenIdentityPromise())
   }
