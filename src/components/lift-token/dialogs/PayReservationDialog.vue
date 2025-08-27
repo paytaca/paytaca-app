@@ -22,8 +22,10 @@
       </div>
 
       <div class="row justify-between q-mb-md">
-        <span>{{ SaleGroupPrice[rsvp.sale_group] }} USD/LIFT</span>
-        <span>{{ currentUsdPrice }} USD/BCH</span>
+        <span>
+          {{ formatWithLocale(SaleGroupPrice[rsvp.sale_group]) }} USD/LIFT
+        </span>
+        <span>{{ formatWithLocale(currentUsdPrice) }} USD/BCH</span>
       </div>
 
       <div class="row full-width q-gutter-y-xs q-mb-xs">
@@ -138,6 +140,7 @@ import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
   getAssetDenomination,
   parseFiatCurrency,
+  formatWithLocale
 } from "src/utils/denomination-utils";
 
 import CustomKeyboard from "src/pages/transaction/dialog/CustomKeyboard.vue";
@@ -192,6 +195,7 @@ export default {
     parseLiftToken,
     getAssetDenomination,
     parseFiatCurrency,
+    formatWithLocale,
 
     parseToken() {
       let tkn = this.rsvp.reserved_amount_tkn;

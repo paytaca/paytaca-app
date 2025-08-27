@@ -271,7 +271,6 @@ import {
   convertTokenAmount
 } from 'src/wallet/chipnet'
 import {
-  parseAssetDenomination,
   getAssetDenomination,
   parseFiatCurrency,
   convertToBCH,
@@ -571,7 +570,6 @@ export default {
   methods: {
     // ========== imported methods ==========
     convertTokenAmount,
-    parseAssetDenomination,
     getAssetDenomination,
     parseFiatCurrency,
     convertToBCH,
@@ -878,9 +876,7 @@ export default {
         currentSendAmount = currentInputExtras.amountFormatted ?? ''
       } else currentSendAmount = 0
 
-      console.log('key', key)
       const currentAmount = parseKey(key, currentSendAmount, caret, this.asset)
-      console.log('currentAmount', formatWithLocale(currentAmount, { min: 2, max: 4 }))
 
       // Set the new amount
       if (this.focusedInputField === 'fiat') {
@@ -924,8 +920,6 @@ export default {
         currentRecipient.amount = ''
         currentInputExtras.amountFormatted = ''
       } else {
-        currentInputExtras.sendAmountInFiat = formatWithLocale(currentInputExtras.sendAmountInFiat, { min: 2, max: 4 })
-
         // Enabled submit slider
         this.sliderStatus = !currentInputExtras.balanceExceeded
         this.customKeyboardState = 'dismiss'

@@ -25,10 +25,10 @@
         <span class="col-12 q-mb-sm">{{ $t("Pay") }}</span>
 
         <span class="col-12 text-h5 text-bold">
-          {{ getAssetDenomination("BCH", purchase.bch) }}
+          {{ getAssetDenomination(denomination, purchase.bch) }}
         </span>
         <div class="col-12 text-subtitle2">
-          <span> + ~0.00001 BCH </span>
+          <span> + ~{{ getAssetDenomination(denomination, 0.00001) }} </span>
           <q-icon name="info" size="1em" />
           <q-menu
             touch-position
@@ -122,6 +122,9 @@ export default {
     theme() {
       return this.$store.getters["global/theme"];
     },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    }
   },
 
   methods: {

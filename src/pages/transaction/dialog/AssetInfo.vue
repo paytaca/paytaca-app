@@ -19,7 +19,7 @@
           <img :src="getImageUrl(asset)" height="50" class="q-mr-xs">
         </div>
         <div style="text-align: center; font-size: 18px; margin-top: 6px;">
-          {{ formatBalance(asset) }}
+          {{ parseAssetDenomination(denomination, asset) }}
         </div>
         <div style="text-align: center; margin-top: 10px;" v-if="asset.id !== 'bch'">
           <a
@@ -157,16 +157,6 @@ export default {
           assetId: this.asset.id
         }
       })
-    },
-    formatBalance (asset) {
-      if (asset.id.includes('ct') || asset.id.includes('sep20')) {
-        const convertedBalance = asset.balance / 10 ** asset.decimals
-        return `${(convertedBalance || 0).toLocaleString('en-us', {maximumFractionDigits: asset.decimals})} ${asset.symbol}`
-      } else if (asset.id.includes('bch')) {
-        return this.parseAssetDenomination(this.denomination, asset)
-      }
-
-      return `${asset.balance || 0} ${asset.symbol}`
     }
   }
 }

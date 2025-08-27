@@ -1,4 +1,5 @@
 import { Store } from 'src/store'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 
 const LIFT_DECIMALS = 2
 
@@ -35,7 +36,7 @@ export function parseLocaleDate (date, isDayIncluded = true) {
 
 export function parseLiftToken (amount) {
   const newAmount = amount / (10 ** LIFT_DECIMALS)
-  const finalAmount = Number(newAmount).toLocaleString()
+  const finalAmount = formatWithLocale(newAmount, { max: LIFT_DECIMALS })
 
   return `${finalAmount} LIFT`
 }

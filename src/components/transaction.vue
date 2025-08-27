@@ -35,37 +35,11 @@
             </q-item-section>
             <q-item-section>
               <q-item-label>
-                <template v-if="stablehedgeTxView">
-                  {{ `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...transaction.asset,
-                    balance: stablehedgeTxData?.bch
-                  })}` }}
-                </template>
-                <template v-else-if="transaction.record_type === 'outgoing'">
-                  <template v-if="transaction.asset.id.startsWith('ct/')">
-                    {{ formatTokenAmount(transaction) }}
-                  </template>
-                  <template v-else>
-                    {{ `${parseAssetDenomination(
-                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                      ...transaction.asset,
-                      balance: transaction.amount
-                    })}` }}
-                  </template>
-                </template>
-                <template v-else>
-                  <template v-if="transaction.asset.id.startsWith('ct/')">
-                    {{ formatTokenAmount(transaction) }}
-                  </template>
-                  <template v-else>
-                    {{ `${parseAssetDenomination(
-                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                      ...transaction.asset,
-                      balance: transaction.amount
-                    })}` }}
-                  </template>
-                </template>
+                {{ `${parseAssetDenomination(
+                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                  ...transaction.asset,
+                  balance: stablehedgeTxView ? stablehedgeTxData?.bch : transaction.amount
+                })}` }}
               </q-item-label>
               <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
                 <template v-if="stablehedgeTxView">

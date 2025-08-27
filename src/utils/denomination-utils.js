@@ -100,12 +100,15 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
 /**
  * Used for when values does not come from a single object **(`asset`)**
  */
-export function getAssetDenomination (denomination, assetBalance, isInput = false) {
+export function getAssetDenomination (
+  denomination, assetBalance, isInput = false, excludeSymbol = false
+) {
   return parseAssetDenomination(denomination, {
     id: 'BCH',
     balance: assetBalance,
     symbol: 'BCH',
-    decimals: 0
+    decimals: 0,
+    excludeSymbol
   }, isInput)
 }
 

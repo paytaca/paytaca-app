@@ -39,7 +39,7 @@
             |
             {{
               getAssetDenomination(
-                "BCH",
+                denomination,
                 purchase.purchased_amount_sats / 10 ** 8
               )
             }}
@@ -168,6 +168,9 @@ export default {
     darkMode() {
       return this.$store.getters["darkmode/getStatus"];
     },
+    denomination () {
+      return this.$store.getters['global/denomination']
+    }
   },
 
   methods: {
