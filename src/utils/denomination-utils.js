@@ -1,4 +1,4 @@
-import { convertTokenAmount, convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
+import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import { i18n } from 'src/boot/i18n'
 
 const denomDecimalPlaces = {
@@ -58,7 +58,7 @@ export function parseLocaleNumber (value) {
     normalized = normalized.replace(new RegExp(escapeRegExp(decimal), 'g'), '.')
   }
 
-  const match = normalized.match(/-?\d+(?:\.\d+)?(?:e[+\-]?\d+)?/i)
+  const match = RegExp(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/i).exec(normalized)
   const numericString = match ? match[0] : normalized
   const parsed = parseFloat(numericString)
   return Number.isFinite(parsed) ? parsed : 0
@@ -67,9 +67,8 @@ export function parseLocaleNumber (value) {
 export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0) {
   const balanceCheck = asset.balance ?? 0
   const isBCH = asset.symbol === 'BCH' || asset.symbol === 'sBCH'
-  const shouldLimitOutput = subStringMax > 0
-  let completeAsset = ''
-  let newBalance
+  let newBalance = ''
+  let symbol = ''
 
   if (isBCH) {
     // fallback condition for translated 'DEEM'
@@ -81,18 +80,21 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     } else {
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
-    const localized = formatWithLocale(calculatedBalance, { max: decimal })
-    newBalance = String(localized)
-    if (shouldLimitOutput) newBalance = newBalance.substring(0, subStringMax)
-    completeAsset = `${newBalance} ${denomination}`
+    newBalance = formatWithLocale(calculatedBalance, { max: decimal })
+    if (subStringMax > 0) newBalance = newBalance.substring(0, subStringMax)
+    symbol = denomination
   } else {
     const isSLP = asset.id?.startsWith('slp/')
-    const rawConverted = parseFloat(convertToTokenAmountWithDecimals(asset.balance, asset.decimals, isBCH, isSLP))
-    let newBalance = formatWithLocale(rawConverted, { max: asset.decimals })
-    if (shouldLimitOutput) newBalance = String(newBalance).substring(0, subStringMax)
-    completeAsset = `${newBalance} ${asset.symbol}`
+    const rawConverted = parseFloat(
+      convertToTokenAmountWithDecimals(asset.balance, asset.decimals, isBCH, isSLP)
+    )
+    newBalance = formatWithLocale(rawConverted, { max: asset.decimals })
+    if (subStringMax > 0) newBalance = String(newBalance).substring(0, subStringMax)
+    symbol = asset.symbol
   }
-  return completeAsset
+
+  if (asset.excludeSymbol) return `${newBalance}`
+  else return `${newBalance} ${symbol}`
 }
 
 /**
