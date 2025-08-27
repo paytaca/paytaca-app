@@ -35,14 +35,7 @@
  */
 
 /**
- * @callback OnStateChangeCallback
- * @param {{key: string, value: any}} change - The state change details.
- * @returns {Promise<void>}
- */
-
-/**
  * @typedef {Object} MultisigWalletOptions
- * @property {OnStateChangeCallback} onStateChange
  * @property {NetworkProvider} provider
  * @property {Network} [network='mainnet']
  * @property {Object} [store] - Optional Vuex-style store.
@@ -473,7 +466,6 @@ export class PriceOracle {
 
 export class MultisigWallet {
 
-  _pendingUpdates = Promise.resolve()
   /**
    * Creates a new MultisigWallet instance.
    * @param {MultisigWalletConfig} config - Wallet configuration options.
@@ -634,6 +626,59 @@ async getWalletUtxos() {
 
   // TODO: Use Promise.allSettled instead to recover from any failure
   const utxos = await Promise.all(utxoPromises)
+
+  const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
+    if (u.addressPath?.startsWith('0/')) {
+      const index = Number(u.addressPath.split('/')[1])
+      if (index > highest) return index
+    }
+    return highest
+  }, -1)
+
+  const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
+    if (u.addressPath?.startsWith('1/')) {
+      const index = Number(u.addressPath.split('/')[1])
+      if (index > highest) return index
+    }
+    return highest
+  }, -1)
+
+  if (highestUsedDepositAddressIndex > (this.lastUsedDepositAddressIndex || -1)) {
+    this.lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
+    if (this.options?.store?.dispatch) {
+      this.options.store.dispatch(
+        'multisig/updateWalletLastUsedDepositAddressIndex', 
+        { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex })
+    }
+  }
+
+  if (highestUsedChangeAddressIndex > (this.lastUsedChangeAddressIndex || -1)) {
+    this.lastUsedChangeAddressIndex = highestUsedChangeAddressIndex       
+    if (this.options?.store?.dispatch) {
+      this.options?.store?.dispatch(
+        'multisig/updateWalletLastUsedChangeAddressIndex',         
+        { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex })
+    }
+  }
+
+  if (highestUsedDepositAddressIndex > (this.lastIssuedDepositAddressIndex || -1)) {
+    this.lastIssuedChangeAddressIndex = highestUsedDepositAddressIndex
+    if (this.options?.store?.dispatch) {
+      this.options.store.dispatch(
+        'multisig/updateWalletLastIssuedDepositAddressIndex', 
+        { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex })
+    }
+  }
+
+  if (highestUsedChangeAddressIndex > (this.lastIssuedChangeAddressIndex || -1)) {
+    this.lastIssuedChangeAddressIndex = highestUsedChangeAddressIndex       
+    if (this.options?.store?.dispatch) {
+      this.options?.store?.dispatch(
+        'multisig/updateWalletLastIssuedChangeAddressIndex',         
+        { wallet: this, lastIssuedChangeAddressIndex: highestUsedChangeAddressIndex })
+    }
+  }
+
   this._utxos = utxos?.flat()
   return this._utxos
 }
@@ -723,18 +768,15 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
  * @param {number} addressIndex - Index of the address to mark as issued.
  */
  async issueDepositAddress(addressIndex) {
-    // Persist state, increment nextUnissuedIndex if addressIndex >= current
-    this._pendingUpdates = this._pendingUpdates.then(async () => {
-      this.lastIssuedDepositAddressIndex = addressIndex;
-      // Notify external listener if present
-      if (this.options?.onStateChange) {
-        await this.options?.onStateChange({
-          key: 'lastIssuedDepositAddressIndex',
-          value: addressIndex,
-        });
-      }
-    })
-    await this._pendingUpdates
+    this.lastIssuedDepositAddressIndex = addressIndex
+    if (!this.options?.store?.dispatch) return
+    this.options?.store?.dispatch(
+      'multisig/updateLastIssuedDepositAddressIndex', 
+      { wallet: this, lastIssuedDepositAddressIndex: addressIndex })
+    this.options?.store?.dispatch(
+      'multisig/subscribeWalletAddress',
+      this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address
+    )
   }
 
 /**
@@ -744,16 +786,17 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
  */
  async issueChangeAddress(addressIndex) {
 
-    this._pendingUpdates = this._pendingUpdates.then(async () => {
-      this.lastIssuedChangeAddressIndex = addressIndex;
-      if (this.options?.onStateChange) {
-        await this.options?.onStateChange({
-          key: 'lastIssuedChangeAddressIndex',
-          value: addressIndex,
-        });
-      }
-    })
-    await this._pendingUpdates
+    this.lastIssuedChangeAddressIndex = addressIndex
+    if (!this.options?.store?.dispatch) return
+    this.options?.store?.dispatch(
+      'multisig/updateLastIssuedChangeAddress', 
+      { wallet: this, lastIssuedChangeAddressIndex: addressIndex })
+
+    this.options?.store?.dispatch(
+      'multisig/subscribeWalletAddress',
+      this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address
+    )
+    
   }
 
   /**
@@ -883,13 +926,14 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
         let requiredSatoshisForTokenChange = getMofNDustThreshold(this.m, this.n, tokenChangeOutput)
         tokenChangeOutput.valueSatoshis = requiredSatoshisForTokenChange
         outputs.push(tokenChangeOutput)
-        outputsMap.push({ addressPath: `1/${changeAddressIndex}`, desc: 'Token Change' })
+        outputsMap.push({ addressPath: `1/${changeAddressIndex}`, desc: 'token change' })
         await this.issueChangeAddress(changeAddressIndex)
       } 
     }
 
     const estimatedFee = estimateFee(structuredClone(inputs), structuredClone(outputs), createTemplate(this))
 
+    
     let totalSatoshisInputsAmount = 
       inputs
         .reduce((target, nextInput) => target += nextInput.sourceOutput.valueSatoshis, 0n)
@@ -941,7 +985,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
 
     if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
       outputs.push(satoshisChangeOutput)
-      outputsMap.push({addressPath: `1/${changeAddressIndex}`, desc: 'Satoshis Change'})
+      outputsMap.push({ addressPath: `1/${changeAddressIndex}`, desc: 'sats change' })
       await this.issueChangeAddress(changeAddressIndex)
     }
 
@@ -986,9 +1030,9 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       name: this.name,
       m: this.m,
       signers: this.signers,
-      lastUsedDepositAddressIndex: this.lastIssuedDepositAddressIndex,
+      lastIssuedDepositAddressIndex: this.lastIssuedDepositAddressIndex,
       lastIssuedChangeAddressIndex: this.lastIssuedChangeAddressIndex,
-      lastIssuedChangeAddressIndex: this.lastUsedDepositAddressIndex,
+      lastUsedDepositAddressIndex: this.lastUsedDepositAddressIndex,
       lastUsedChangeAddressIndex: this.lastUsedChangeAddressIndex
     }
   }
