@@ -132,11 +132,29 @@
                       </div>
                     </template>
                   </q-btn>
-                  <q-btn v-if="signingProgress != 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="loadCosignerPst" v-close-popup>
+                  <!-- <q-btn v-if="signingProgress != 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="broadcastTransaction" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center items-stretch">
                         <q-icon name="cell_tower" class="col-12" color="primary" size="lg"></q-icon>
                         <div class="tile-label col-12">Broadcast</div>
+                      </div>
+                    </template>
+                  </q-btn> -->
+                  <q-btn 
+                    :loading="pst.isBroadcasting"
+                    @click="broadcastTransaction"
+                    :disable="signingProgress.signingProgress !== 'fully-signed'"
+                    class="tile col-xs-3" flat dense no-caps>
+                    <template v-slot:default>
+                      <div class="row justify-center items-stretch">
+                        <q-icon name="cell_tower" class="col-12" color="primary" size="lg"></q-icon>
+                        <div class="col-12 tile-label">Broadcast</div>
+                      </div>
+                    </template>
+                    <template v-slot:loading>
+                      <div class="row justify-center items-stretch">
+                        <q-spinner-radio color="primary"/>
+                        <div class="col-12 tile-label">Broadcasting Tx...</div>
                       </div>
                     </template>
                   </q-btn>
@@ -180,12 +198,15 @@ import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
 import Big from 'big.js'
 import { sign } from '@psf/bch-js/src/ecpair'
+import { WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 
 const {
   getSignerXPrv,
   multisigWallets,
   txExplorerUrl,
-  cashAddressNetworkPrefix
+  cashAddressNetworkPrefix,
+  isChipnet
+
 } = useMultisigHelpers()
 
 
@@ -194,7 +215,7 @@ const route = useRoute()
 const $store = useStore()
 const signersXPrv = ref({})
 const showActionConfirmationSlider = ref(false)
-const signTransactionInitiatedByXPrv = ref('')
+const signingInitiatedBy = ref()
 const signingProgress = ref({})
 
 const darkMode = computed(() => {
@@ -204,9 +225,10 @@ const darkMode = computed(() => {
 const pst = computed(() => {
     const storedPst = $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
     if (!storedPst) return null
+    const network = isChipnet ? 'chipnet' : 'mainnet'
     const p = Pst.fromObject(
       $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash),
-      { store: $store }
+      { store: $store, provider: new WatchtowerNetworkProvider({ network }) }
     )
     return p
 })
@@ -254,6 +276,7 @@ const openBottomsMenu = () => {
     class: `${getDarkModeClass(darkMode.value)} pt-card text-bow`
 
   }).onOk(async (value) => {
+    
     if (value === 'delete') {
       await pst.value.delete()
       $router.push(`/apps/multisig/wallet/${wallet.value.getHash()}`)
@@ -271,14 +294,36 @@ const openBottomsMenu = () => {
 
 const initiateSignTransaction = async (signer) => {
   showActionConfirmationSlider.value = true
-  signTransactionInitiatedByXPrv.value = signersXPrv.value[signer.xpub]
+  signingInitiatedBy.value = {
+    ...signer,
+    xprv: signersXPrv.value[signer.xpub]
+  }
 }
 
 const executeSignTransaction = async () => {
-  if (!signTransactionInitiatedByXPrv.value) return
-  pst.value.sign(signTransactionInitiatedByXPrv.value)
-  signTransactionInitiatedByXPrv.value = ''
-  signingProgress.value = pst.value.getSigningProgress()
+  if (!signingInitiatedBy.value) return
+
+  pst.value.sign(signingInitiatedBy.value.xprv)
+  
+  signingProgress.value = pst.value.getSigningProgress(signingInitiatedBy.value.xpub)
+  console.log('UPDATED SIGNING PROGRESS', pst.value)
+  console.log('Signer signed', pst.value.signerSigned(signingInitiatedBy.value.xpub))
+  signingInitiatedBy.value = null
+}
+
+const broadcastTransaction = async () => {
+  try {
+
+    const result = await pst.value.broadcast()
+    console.log('BROADCAST RESULT', result)
+  } catch (error) {
+    $q.dialog({
+      title: 'Error',
+      message: error.message || 'An error occurred while broadcasting the transaction.',
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }
+  
 }
 
 const onConfirmSliderSwiped = async (reset) => {
@@ -291,7 +336,7 @@ const onConfirmSliderSwiped = async (reset) => {
       resolve(true)
     })
     .onDismiss(() => {
-      signTransactionInitiatedByXPrv.value = ''
+      signingInitiatedBy.value = null
       reset?.()
       resolve(false)
     })
@@ -314,6 +359,7 @@ onMounted(async () => {
     signingProgress.value = pst.value.getSigningProgress()
     console.log('INITIAL SIGNING PROGRESS', signingProgress.value)
   }
+  
 })
 
 </script>

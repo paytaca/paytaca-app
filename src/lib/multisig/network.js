@@ -125,6 +125,13 @@ export class WatchtowerNetworkProvider {
     async getWalletBalance(multisigWallet) {
         throw new Error('Not yet implemented')
     }
+
+    /**
+     * @returns {Promise<{ success: boolean, txid: string }>}
+     */
+    async broadcastTransaction(rawTxHex) { 
+        return  await axios.post(`${this.hostname}/api/broadcast/`, { transaction: rawTxHex })
+    }
 }
 
 
