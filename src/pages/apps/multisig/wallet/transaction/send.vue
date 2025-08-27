@@ -75,6 +75,8 @@
                         </div>
                         <q-input
                           v-model="recipient.address" :label="`Paste address of recipient ${i + 1}`"
+                          :rules="recipientRules"
+                          clearable
                           outlined dense>
                           <template v-slot:append>
                             <q-btn icon="upload_file" flat dense disable></q-btn>
@@ -86,6 +88,7 @@
                           outlined dense
                           :hint="assetDecimalsHint"
                           :rules="amountRules"
+                          clearable
                           ref="amountRef"
                           >
                           <template v-slot:append>
@@ -142,6 +145,7 @@ import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/n
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import darkmode from 'src/store/darkmode'
 import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
+import { decodeCashAddress } from 'bitauth-libauth-v3'
 
 const $store = useStore()
 const route = useRoute()
@@ -191,6 +195,28 @@ const assetDecimalsHint = computed(() => {
     return 'Caution: Unable to get decimals spec of the token'
   }
   return `Decimal places: ${assetTokenIdentity.value.token.decimals}`
+})
+
+const recipientRules = computed(() => {
+
+  const correctAddressFormat = (v) => {
+    const decoded = decodeCashAddress(v)
+    if (typeof decoded === 'string') {
+      return decoded
+    }
+    if (route.query.asset === 'bch') {
+      if (decoded.type?.toLowerCase().includes('withtokens')) {
+        return 'BCH address required.'
+      }
+    } else {
+      if (!decoded.type?.toLowerCase().includes('withtokens')) {
+        return 'Token address required.'
+      }
+    }
+    return true
+  }
+
+  return [correctAddressFormat]
 })
 
 const amountRules = computed(() => {
