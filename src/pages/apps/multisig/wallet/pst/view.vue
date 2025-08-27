@@ -141,7 +141,7 @@
                     </template>
                   </q-btn> -->
                   <q-btn 
-                    :loading="pst.isBroadcasting"
+                    :loading="isBroadcasting"
                     @click="broadcastTransaction"
                     :disable="signingProgress.signingProgress !== 'fully-signed'"
                     class="tile col-xs-3" flat dense no-caps>
@@ -153,8 +153,8 @@
                     </template>
                     <template v-slot:loading>
                       <div class="row justify-center items-stretch">
-                        <q-spinner-radio color="primary"/>
-                        <div class="col-12 tile-label">Broadcasting Tx...</div>
+                        <q-spinner-radio color="primary" size="lg"/>
+                        <div class="col-12 tile-label">Broadcasting...</div>
                       </div>
                     </template>
                   </q-btn>
@@ -186,7 +186,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { useQuasar, openURL } from 'quasar'
+import { useQuasar, openURL, is } from 'quasar'
 import { computed, ref, onMounted, watch, toValue, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stringify, hashTransaction, decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
@@ -211,12 +211,14 @@ const {
 
 
 const $q = useQuasar()
-const route = useRoute()
 const $store = useStore()
+const route = useRoute()
+const router = useRouter()
 const signersXPrv = ref({})
 const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const signingProgress = ref({})
+const isBroadcasting = ref(false)
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -226,11 +228,10 @@ const pst = computed(() => {
     const storedPst = $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
     if (!storedPst) return null
     const network = isChipnet ? 'chipnet' : 'mainnet'
-    const p = Pst.fromObject(
+    return Pst.fromObject(
       $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash),
       { store: $store, provider: new WatchtowerNetworkProvider({ network }) }
     )
-    return p
 })
 
 const wallet = computed(() => {
@@ -248,6 +249,8 @@ const signButtonIcon = computed(() => {
     return 'draw'
   }
 })
+
+
 
 const openBottomsMenu = () => {
   $q.bottomSheet({
@@ -275,20 +278,12 @@ const openBottomsMenu = () => {
     ],
     class: `${getDarkModeClass(darkMode.value)} pt-card text-bow`
 
-  }).onOk(async (value) => {
-    
-    if (value === 'delete') {
-      await pst.value.delete()
-      $router.push(`/apps/multisig/wallet/${wallet.value.getHash()}`)
-    } else if (value === 'share-pst') {
-      await pst.value.sharePst()
-    } else if (value === 'copy-unsigned-tx-hash') {
-      await $q.copy(pst.value.getUnsignedTransactionHash())
-      $q.notify({ type: 'positive', message: 'Copied to clipboard' })
-    } else if (value === 'view-in-explorer') {
-      const url = txExplorerUrl.value.replace('{txid}', pst.value.getUnsignedTransactionHash())
-      openURL(url)
+  }).onOk(async (action) => {
+    if (action.value === 'delete') {
+      await pst.value.delete({ sync: false })
+      router.push(`/apps/multisig/wallet/${route.params.wallethash}`)
     }
+
   })
 }
 
@@ -306,22 +301,22 @@ const executeSignTransaction = async () => {
   pst.value.sign(signingInitiatedBy.value.xprv)
   
   signingProgress.value = pst.value.getSigningProgress(signingInitiatedBy.value.xpub)
-  console.log('UPDATED SIGNING PROGRESS', pst.value)
-  console.log('Signer signed', pst.value.signerSigned(signingInitiatedBy.value.xpub))
   signingInitiatedBy.value = null
 }
 
 const broadcastTransaction = async () => {
   try {
-
+    isBroadcasting.value = true
     const result = await pst.value.broadcast()
-    console.log('BROADCAST RESULT', result)
+    console.log('Result', result)
   } catch (error) {
     $q.dialog({
       title: 'Error',
       message: error.message || 'An error occurred while broadcasting the transaction.',
       class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
     })
+  } finally {
+    isBroadcasting.value = false
   }
   
 }
@@ -343,7 +338,6 @@ const onConfirmSliderSwiped = async (reset) => {
 
   })
 }
-
 
 onMounted(async () => {
   if (wallet.value) {
