@@ -651,6 +651,7 @@ export class Pst {
 
     const allInputsAreSigned = []
 
+    
     for (const input of transaction.inputs) {
       let correspondingInput = this.inputs.find((i) => {
         // const parsed = JSON.parse(stringify(i), libauthStringifyReviver)
@@ -660,8 +661,12 @@ export class Pst {
         )
       })
 
+      if (!correspondingInput) {
+        continue
+      }
+
       correspondingInput.sourceOutput = JSON.parse(stringify(correspondingInput.sourceOutput), libauthStringifyReviver)
-      const addressDerivationPath = correspondingInput.sourceOutput.addressPath || '0/0'
+      const addressDerivationPath = correspondingInput.addressPath || '0/0'
       const sortedSignersWithPublicKeys = derivePublicKeys({ signers: this.wallet.signers, addressDerivationPath })
       const lockingData = {
         bytecode: {}
@@ -683,7 +688,7 @@ export class Pst {
       }
 
       const targetSigner = sortedSignersWithPublicKeys.find(s => s.xpub === xpub)
-      const partialSigOfTargetSignerFound = correspondingInput.partialSignatures.find(p => {
+      const partialSigOfTargetSignerFound = correspondingInput.partialSignatures?.find(p => {
         let targetSignerPublicKey = targetSigner.publicKey
         if (typeof (targetSignerPublicKey === 'string')) {
           targetSignerPublicKey = hexToBin(targetSignerPublicKey)
@@ -696,6 +701,8 @@ export class Pst {
       )
 
     }
+
+    if (!allInputsAreSigned.length) return false
 
     return allInputsAreSigned.every(isSigned => isSigned)
   }
@@ -731,7 +738,7 @@ export class Pst {
           publicKeyRedeemScriptSlots.push(publicKeyRedeemScriptSlot)
         }
         
-        const unlockingScriptId = publicKeyRedeemScriptSlots.join('_and_')
+        const unlockingScriptId = publicKeyRedeemScriptSlots.sort().join('_and_')
         const m = extractMValue(this.inputs[inputIndex].redeemScript)
         const template = createTemplate({ m, signers: publicKeys.map(p => ({ publicKey: p })) })
         const compiler = getCompiler({ template })
@@ -741,7 +748,7 @@ export class Pst {
           data: inputUnlockingData,
           valueSatoshis: BigInt(correspondingInput.sourceOutput.valueSatoshis),
           script: unlockingScriptId,
-          token: correspondingInput.sourceOutput.token
+          token: correspondingInput.sourceOutput?.token
         }
         const script = compileScript(unlockingScriptId, inputUnlockingData, compiler.configuration)
         this.inputs[inputIndex].scriptSig = script.bytecode //binToHex(script.bytecode)
@@ -759,6 +766,27 @@ export class Pst {
       })
       this.vmVerificationSuccess = verificationResult
     }
+  }
+
+  async broadcast() {
+
+    if (!this.signedTransactionHex) {
+      this.finalize()
+    }
+
+    if (!this.signedTransactionHex) {
+      throw new Error('No signed transaction hex available')  
+    }
+
+    this.isBroadcasting = true
+    try {
+      return await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
+    } catch (error) {
+      throw error
+    } finally {
+      this.isBroadcasting = false
+    }
+
   }
 
   combine(psts) {
