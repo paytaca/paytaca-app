@@ -460,15 +460,10 @@ export default {
         }),
       ])
 
-      await this.sweeper.getBchBalance().then((data) => {
-        // add timeout to allow subscription to finish
-        setTimeout(() => {
-          this.bchBalance = data.spendable || 0
-          this.fetching = false
-          this.sweeping = false
-        }, 1000);
-      })
-
+      const resp = await this.sweeper.getBchBalance()
+      this.bchBalance = resp.spendable || 0
+      this.fetching = false
+      this.sweeping = false
     },
     sweepToken (token) {
       const vm = this
