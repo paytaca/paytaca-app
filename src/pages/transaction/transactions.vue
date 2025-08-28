@@ -177,6 +177,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { registerMemoUser } from 'src/utils/transaction-memos'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
@@ -312,7 +313,10 @@ export default {
 	},
 	async mounted () {				
 		const asset = this.$store.getters['assets/getAsset'](this.$route.query.assetID)		
+		const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
 
+		// register user
+		registerMemoUser()
 
 		if (asset.length > 0) {
 			this.selectedAsset = asset[0]			

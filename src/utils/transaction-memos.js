@@ -1,8 +1,12 @@
 import axios from 'axios'
+import crypto from 'crypto'
 import { Store } from 'src/store'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from 'src/marketplace/chat/encryption'
+
+const TOKEN_STORAGE_KEY = 'memo-auth-key'
 
 export const backend = axios.create()
 const baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
@@ -82,6 +86,23 @@ export async function deleteMemo (txid) {
 		return memoData
 }
 
+export async function registerMemoUser () {
+	console.log('walletHash: ', walletHash)
+	const memoHash = await generateMemoHash(walletHash)
+
+	console.log('memohash: ', memoHash)
+
+	await backend.post('/memos/register/', { headers: { 'wallet-hash': walletHash, 'memo-user-hash': memoHash}})
+		.then(response => {
+			console.log('response: ', response)
+			// memoData = response.data
+		})
+		.catch(error => {
+			console.error(error.response)
+			// memoData = error.response.data
+		})
+}
+
 export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
     // if (!this.encrypted) return
     const parsedEncryptedMessage = decompressEncryptedMessage(encryptedMemo)
@@ -105,3 +126,42 @@ export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
 
     return message
  }
+
+ export async function generateMemoHash (wallethash) {
+ 	const hashVal = 'MEMO_' + walletHash
+
+ 	return hashVal
+ }
+
+ /**
+ * @param {String} data
+ * @returns {String}
+ */
+export function sha256 (data) {
+  const _sha256 = crypto.createHash('sha256')
+  _sha256.update(Buffer.from(data, 'utf8'))
+  return _sha256.digest().toString('hex')
+}
+
+
+export function saveAuthToken (value) {
+	SecureStoragePlugin.set({TOKEN_STORAGE_KEY, value}).then(success => { return success.value })
+}
+
+export function getAuthToken () {
+	return new Promise((resolve, reject) => {
+		SecureStoragePlugin.get({ TOKEN_STORAGE_KEY })
+			.then(token => {
+				resolve(token.value)
+			})
+			.catch(error => {
+				console.error('Item with specified key does not exist:', error)
+        		resolve(null)	
+			})
+	})
+}
+
+export function deleteAuthToken () {
+	SecureStoragePlugin.remove({ TOKEN_STORAGE_KEY })
+	console.log('Memo auth token deleted')
+}
