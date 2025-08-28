@@ -606,11 +606,7 @@ async getWalletUtxos() {
 
   if (!this.options?.provider) throw new Error('Missing provider')
 
-  let lastDepositAddress = (this.lastIssuedDepositAddressIndex || 0)
-
-  if (lastDepositAddress < 20) {
-    lastDepositAddress = 20
-  } 
+  let lastDepositAddress = (this.lastIssuedDepositAddressIndex || 0) + 20
 
   let dCounter = 0
 
@@ -625,12 +621,8 @@ async getWalletUtxos() {
     dCounter++
   }
 
-  let lastChangeAddress = (this.lastIssuedChangeAddressIndex || 0)
+  let lastChangeAddress = (this.lastIssuedChangeAddressIndex || 0) + 20
 
-  if (lastChangeAddress < 20) {
-    lastChangeAddress = 20
-  } 
-  
   let cCounter = 0
 
   while (cCounter < lastChangeAddress) {
@@ -642,7 +634,6 @@ async getWalletUtxos() {
     cCounter++
   }
 
-  // TODO: Use Promise.allSettled instead to recover from any failure
   const utxos = await Promise.all(utxoPromises)
 
   const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
