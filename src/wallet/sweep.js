@@ -46,7 +46,7 @@ export class SweepPrivateKey {
         const resp = await axios.get(url)
         const _tokens = resp.data.results
 
-        if (tokens.length > 0) {
+        if (_tokens.length > 0) {
           for (let i = 0; i < _tokens.length; i++) {
             const item = _tokens[i]
             const tokenId = item.id.split('/')[1]
