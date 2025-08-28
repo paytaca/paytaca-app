@@ -36,16 +36,16 @@
                 </template>
                 <template v-slot:default>
                   <q-list>
-                    <q-item v-for="i in (wallet.lastUsedDepositAddressIndex + 20)" :key="'deposit-'+i">
+                    <q-item v-for="i, index in ((wallet.lastUsedDepositAddressIndex ?? 0) + 20)" :key="'deposit-'+index">
                       <q-item-section>
                         <q-item-label class="flex justify-between items-center">
                             <span>
-                                {{ i - 1 }} - {{ shortenString(wallet.getDepositAddress(i - 1, cashAddressNetworkPrefix).address?.replace('bitcoincash:', ''), 30) }}
-                                <q-badge v-if="wallet.lastUsedDepositAddressIndex !== undefined && i === wallet.lastUsedDepositAddressIndex">
+                                {{ index }} - {{ shortenString(wallet.getDepositAddress(index, cashAddressNetworkPrefix).address?.replace('bitcoincash:', ''), 30) }}
+                                <q-badge v-if="wallet.lastUsedDepositAddressIndex !== undefined && index === wallet.lastUsedDepositAddressIndex">
                                     Last Used
                                 </q-badge>
                             </span>
-                            <CopyButton :text="wallet.getDepositAddress(i - 1).address"/>
+                            <CopyButton :text="wallet.getDepositAddress(index).address"/>
                             
                         </q-item-label>
                       </q-item-section>
@@ -57,17 +57,16 @@
               <q-expansion-item v-model="changeAddressesExpanded"  label="Change Addresses">
                 <template v-slot:default>
                   <q-list>
-                    <q-item v-for="i in (wallet.lastIssuedChangeAddressIndex < 20 ? 20: wallet.lastIssuedChangeAddressIndex) + 1" :key="'change-'+i">
+                    <q-item v-for="i, index in ((wallet.lastUsedChangeAddressIndex ?? 0) + 20)" :key="'change-' + index">
                       <q-item-section>
                         <q-item-label class="flex justify-between items-center">
                             <span>
-                            {{ i - 1 }} - {{ shortenString(wallet.getChangeAddress(i - 1, cashAddressNetworkPrefix).address?.replace('bitcoincash:', ''), 30) }}
-                                <q-badge v-if="wallet.lastUsedDepositAddressIndex !== undefined && i === wallet.lastUsedDepositAddressIndex">
+                            {{ index }} - {{ shortenString(wallet.getChangeAddress(index, cashAddressNetworkPrefix).address?.replace('bitcoincash:', ''), 30) }}
+                                <q-badge v-if="wallet.lastUsedChangeAddressIndex !== undefined && index === wallet.lastUsedChangeAddressIndex">
                                     Last Used
                                 </q-badge>
                             </span>
-                            
-                            <CopyButton :text="wallet.getChangeAddress(i - 1).address"/>
+                            <CopyButton :text="wallet.getChangeAddress(index).address"/>
                         </q-item-label>
                       </q-item-section>
                     </q-item>
