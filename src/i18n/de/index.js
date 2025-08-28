@@ -407,7 +407,7 @@ export default {
   Disabled: "deaktiviert",
   Disconnected: "Getrennt",
   Disconnecting: "Trennen",
-  DiscountApplied1: "Es wird ein {discount}% Rabatt angewendet, der Sie spart {Währung}",
+  DiscountApplied1: "Es wird ein {discount}% Rabatt angewendet, der Sie spart {currency}",
   DiscountApplied2: "Ein {discount}% Rabatt wird angewendet",
   Dismiss: "Zurückweisen",
   Dispute: "Disput",

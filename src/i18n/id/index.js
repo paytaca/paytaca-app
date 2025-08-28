@@ -407,7 +407,7 @@ export default {
   Disabled: "dengan disabilitas",
   Disconnected: "Terputus",
   Disconnecting: "Memutuskan hubungan",
-  DiscountApplied1: "Diskon {discount}% diterapkan, menyimpan Anda {mata uang}",
+  DiscountApplied1: "Diskon {discount}% diterapkan, menyimpan Anda {currency}",
   DiscountApplied2: "Diskon {discount}% diterapkan",
   Dismiss: "Membubarkan",
   Dispute: "Sengketa",
