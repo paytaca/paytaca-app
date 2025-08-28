@@ -634,7 +634,6 @@ export class Pst {
       if (this.options?.store) {
         this.options.store.dispatch('multisig/addPstPartialSignature', { pst: this, inputIndex, partialSignature })
       }
-
     }
     return 
   }
@@ -704,13 +703,11 @@ export class Pst {
     const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
     for (const inputIndex in transaction.inputs) {
         let correspondingInput = this.inputs.find((i) => {
-          // const parsed = JSON.parse(stringify(i), libauthStringifyReviver)
           return (
             Number(transaction.inputs[inputIndex].outpointIndex) === Number(i.outpointIndex) &&
             binsAreEqual(transaction.inputs[inputIndex].outpointTransactionHash, i.outpointTransactionHash) 
           )
         })
-        // correspondingInput.sourceOutput = JSON.parse(stringify(correspondingInput.sourceOutput), libauthStringifyReviver)
         const inputUnlockingData = {
           bytecode: {}
         }
@@ -721,12 +718,10 @@ export class Pst {
         let publicKeyRedeemScriptSlots = []
         for (const partialSignature of this.inputs[inputIndex].partialSignatures) {
           const signingSerializationType = SigningSerializationType[parseInt(partialSignature.sigHash)]
-          // const signingSerializationType = SigningSerializationType[(partialSignature.sigHash, 16)]
           const signingSerializationTypeAlgorithmIdentifier = SigningSerializationAlgorithmIdentifier[signingSerializationType]
           let sigVariable = 
             `key${partialSignature.publicKeyRedeemScriptSlot}.${partialSignature.sigAlgo}_signature.${signingSerializationTypeAlgorithmIdentifier}`
           inputUnlockingData.bytecode[sigVariable] = partialSignature.sig //hexToBin(partialSignature.sig)
-          // let publicKeyRedeemScriptSlot = publicKeys.findIndex(p => binToHex(p) === partialSignature.publicKey) + 1
           let publicKeyRedeemScriptSlot = publicKeys.findIndex(p =>binsAreEqual(p, partialSignature.publicKey)) + 1
           publicKeyRedeemScriptSlots.push(publicKeyRedeemScriptSlot)
         }
@@ -771,8 +766,8 @@ export class Pst {
       throw new Error('No signed transaction hex available')  
     }
 
-    await new Promise(resolve => setTimeout(resolve, 4000)) // allow state to propagate
-    // return await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
+    // await new Promise(resolve => setTimeout(resolve, 4000)) // allow state to propagate
+    return await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
 
   }
 
