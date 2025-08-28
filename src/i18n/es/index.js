@@ -917,7 +917,7 @@ export default {
   PageLiveYes: "¡La página ahora está en vivo!",
   Paid: "Pagado",
   PaidAt: "Pagado a",
-  PaidForLift: "Pagado por {elevación}",
+  PaidForLift: "Pagado por {lift}",
   PaidPending: "Pagado pendiente",
   PartiallyRedeemed: "Parcialmente redimido",
   PasteAddressHere: "Pegar la dirección aquí",
