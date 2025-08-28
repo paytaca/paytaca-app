@@ -1,4 +1,10 @@
 import { hexToBin } from 'bitauth-libauth-v3'
+import { SignatureTemplate } from 'cashscript0.10.0'
+import { Wallet } from 'src/wallet'
+import { LibauthHDWallet } from 'src/wallet/bch-libauth'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import SingleWallet from 'src/wallet/single-wallet'
+
 /**
 * @typedef { Object } CashToken
 * @property { string } category
@@ -191,6 +197,34 @@ export function watchtowerUtxoToCashscript(utxo) {
   }
 }
 
+/**
+ * @param {WatchtowerUtxo} utxo 
+ * @param {Wallet | SingleWallet | LibauthHDWallet} wallet
+ */
+export function watchtowerUtxoToCashscriptP2pkh(utxo, wallet, templateOpts) {
+  if (wallet instanceof Wallet) {
+    const bchWallet = getWalletByNetwork(wallet, 'bch')
+    // using libauth wallet since fetching private key is not async
+    wallet = new LibauthHDWallet(bchWallet.mnemonic, bchWallet.derivationPath)
+  }
+
+  let utxoPkWif
+  if (wallet instanceof SingleWallet) {
+    utxoPkWif = wallet.wif
+  } else {
+    const addressPath = utxo?.address_path || utxo.wallet_index
+    utxoPkWif = wallet.getPrivateKeyWifAt(addressPath)
+  }
+
+  // this is 0.10.x cashscript, but would probably be compatible with 0.8.x
+  const template = new SignatureTemplate(
+    utxoPkWif, templateOpts?.hashtype, templateOpts?.signatureAlgorithm
+  );
+
+  const ctUtxo = watchtowerUtxoToCashscript(utxo)
+  ctUtxo.template = template
+  return ctUtxo
+}
 
 /**
  * @param { CommonUTXO } utxo
