@@ -199,6 +199,7 @@ import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
 import Big from 'big.js'
 import { sign } from '@psf/bch-js/src/ecpair'
 import { WatchtowerNetworkProvider } from 'src/lib/multisig/network'
+import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDialog.vue'
 
 const {
   getSignerXPrv,
@@ -305,13 +306,42 @@ const executeSignTransaction = async () => {
   signingInitiatedBy.value = null
 }
 
+const showBroadcastSuccessDialog = async (txid) => {
+  const message = pst.value.purpose ? `${pst.value.purpose} success` : 'Successfully Sent'
+  $q.dialog({
+    component: BroadcastSuccessDialog,
+    componentProps: {
+      amountSent: pst.value.getTotalDebitSatoshis() / 1e8,
+      txid: txid,
+      successMessage: message,
+      darkMode: darkMode.value
+    }
+  }).onOk(() => {
+    pst.value.delete({ sync: false })
+    router.push({ name: 'app-multisig-wallet-view', params: { wallethash: route.params.wallethash } })
+  })
+}
+
 const broadcastTransaction = async () => {
   try {
     isBroadcasting.value = true
+    const { finalCompilationResult, vmVerificationSuccess } = pst.value.finalize()
+    if (!finalCompilationResult.success || !vmVerificationSuccess) {
+      const message = finalCompilationResult.error || finalCompilationResult.vmVerificationError
+      return $q.dialog({
+        title: 'Error Finalizing Transaction!',
+        message,
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+      })
+    }
     const result = await pst.value.broadcast()
-    console.log('Result', result)
+
+    if (result.data?.success ||
+        result.data?.error?.includes('txn-already-known') ||
+        result.data?.error?.includes('txn-already-in-mempool')) {
+      await showBroadcastSuccessDialog(result.data.txid)
+    }
   } catch (error) {
-    console.log(error)
     $q.dialog({
       title: 'Error',
       message: error.message || 'An error occurred while broadcasting the transaction.',
