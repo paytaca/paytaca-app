@@ -13,23 +13,35 @@ function getCountryCode () {
   return Store.getters['global/country'].code
 }
 
-// function getLocale () {
+function getLocale () {
+  const countryCode = getCountryCode().toLowerCase()
+  let currentLocale
 
-// }
+  // conditional check because some countries (like Argentina,
+  // maybe others yet to be identified) does not follow the proper
+  // locale separator when using country code
+  // check if country code is equal to Argentina
+  if (countryCode === 'ar') {
+    // use locale from language/i18n
+    const localeCandidate = i18n?.global?.locale
+    if (typeof localeCandidate === 'string') {
+      currentLocale = localeCandidate
+    } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
+      currentLocale = localeCandidate.value || 'en-us'
+    }
+  } else {
+    // use locale from country code
+    currentLocale = new Intl.Locale(countryCode)
+  }
+
+  return currentLocale
+}
 
 function getLocaleSeparators () {
-  // let currentLocale = 'en-us'
-  // const localeCandidate = i18n?.global?.locale
-  // if (typeof localeCandidate === 'string') {
-  //   currentLocale = localeCandidate
-  // } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
-  //   currentLocale = localeCandidate.value || 'en-us'
-  // }
-  const countryCode = getCountryCode().toLowerCase()
-  const countryLocale = new Intl.Locale(countryCode)
+  const currentLocale = getLocale()
 
   try {
-    const parts = new Intl.NumberFormat(countryLocale).formatToParts(1000.1)
+    const parts = new Intl.NumberFormat(currentLocale).formatToParts(1000.1)
     const group = parts.find(p => p.type === 'group')?.value || ','
     const decimal = parts.find(p => p.type === 'decimal')?.value || '.'
     return { group, decimal }
@@ -43,21 +55,13 @@ function escapeRegExp (s) {
 }
 
 export function formatWithLocale (value, { min, max } = {}) {
-  const countryCode = getCountryCode().toLowerCase()
-  const countryLocale = new Intl.Locale(countryCode)
-  // console.log(localeCandidate?.value)
-  // console.log(countryCode)
-  // let currentLocale = 'en-us'
-  // const localeCandidate = i18n?.global?.locale
-  // if (typeof localeCandidate === 'string') {
-  //   currentLocale = localeCandidate
-  // } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
-  //   currentLocale = localeCandidate.value || 'en-us'
-  // }
+  const currentLocale = getLocale()
+
   const options = {}
   if (typeof min === 'number') options.minimumFractionDigits = min
   if (typeof max === 'number') options.maximumFractionDigits = max
-  return Number(value).toLocaleString(countryLocale, options)
+  
+  return Number(value).toLocaleString(currentLocale, options)
 }
 
 export function parseLocaleNumber (value) {
