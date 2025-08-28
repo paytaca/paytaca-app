@@ -119,7 +119,8 @@ import {
   binToHex,
   hexToBin,
   sha256,
-  cashAddressToLockingBytecode
+  cashAddressToLockingBytecode,
+  compileScript
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 
@@ -281,15 +282,8 @@ export const generateTempId = ({ template, lockingData }) => {
 export const importMultisigWallet = (multisigWalletBase64) => {
   const bin = base64ToBin(multisigWalletBase64)
   const multisigWallet = JSON.parse(binToUtf8(bin))
-  // if (!multisigWallet.id) {
-  //   multisigWallet.id = generateTempId({
-  //     template: multisigWallet.template, lockingData: multisigWallet.lockingData
-  //   })
-  // }
   return multisigWallet
 }
-
-
 
 
 export const getSignerInfos = (multisigWallet) => {
@@ -386,7 +380,6 @@ export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkP
 
 export const createWallet = ({ name, m, signers }) => {
   return {
-    // id,
     name, 
     m, 
     signers
@@ -451,6 +444,27 @@ export const isValidAddress = (address) => {
     return [true]
   }
   return [false, lockingBytecodeOrError]
+}
+
+export const getRedeemScript = ({ multisigWallet, addressDerivationPath }) => {
+  const sortedSignersWithPublicKeys = derivePublicKeys({ signers: multisigWallet.signers, addressDerivationPath })
+  const lockingData = {
+    bytecode: {}
+  }
+  for (const index in sortedSignersWithPublicKeys) {
+    let publicKey = sortedSignersWithPublicKeys[index].publicKey 
+    if (typeof(publicKey) === 'string') {
+      publicKey = hexToBin(publicKey)
+    }
+    lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
+  }
+
+  const template = createTemplate({ m: multisigWallet.m, signers: sortedSignersWithPublicKeys })
+  const compiler = getCompiler({ template })
+  const script = compileScript('lock', lockingData, compiler.configuration)
+  // const lockingScript = script.bytecode
+  const redeemScript = script.reduce.bytecode
+  return redeemScript
 }
 
 export class PriceOracle {
@@ -524,7 +538,7 @@ export class MultisigWallet {
   getDepositAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
     let _addressIndex = addressIndex
 
-    if (!_addressIndex) {
+    if (_addressIndex === undefined || _addressIndex < 0) {
       if (this.lastIssuedDepositAddressIndex === undefined) {
         _addressIndex = 0
       } else {
@@ -556,7 +570,7 @@ getChangeAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
 
     let _addressIndex = addressIndex
 
-    if (!_addressIndex) {
+    if (_addressIndex === undefined || _addressIndex < 0) {
       if (this.lastIssuedChangeAddressIndex === undefined) {
         _addressIndex = 0
       } else {
@@ -573,6 +587,10 @@ getChangeAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
 
 getWalletHash() {
   return getWalletHash(this)
+}
+
+getRedeemScript(addressDerivationPath) {
+  return getRedeemScript({ multisigWallet: this, addressDerivationPath })
 }
 
 /**
@@ -966,7 +984,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
               funderUtxos.selectedUtxos?.map((u) => {
                 return {
                   ...commonUtxoToLibauthInput(u, []),
-                  sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode) 
+                  sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
+                  addressPath: u.addressPath
                 }
             })
         )
@@ -982,7 +1001,6 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     totalSatoshisChangeAmount = totalSatoshisInputsAmount - (totalSatoshiOutputsAmount + estimatedFee)
 
     satoshisChangeOutput.valueSatoshis = totalSatoshisChangeAmount
-
     if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
       outputs.push(satoshisChangeOutput)
       outputsMap.push({ addressPath: `1/${changeAddressIndex}`, desc: 'sats change' })
@@ -994,7 +1012,11 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       .addInputs(inputs)
       .addOutputs(outputs)
     const unsignedTransactionHex = transaction.build()
-
+    inputs.forEach((input) => {
+      if (input.addressPath) {
+        input.redeemScript = this.getRedeemScript(input.addressPath)
+      }
+    })
     const pst = new Pst({
       origin: proposal.origin,
       creator: proposal.creator,
