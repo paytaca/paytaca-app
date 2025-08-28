@@ -1,15 +1,13 @@
 import {
   cashAddressToLockingBytecode,
   encodeTransactionCommon,
-  getDustThreshold,
   hexToBin,
   binToHex, 
   getMinimumFee,
   generateTransaction,
   encodeTransactionOutput} from 'bitauth-libauth-v3'
 import Big from 'big.js'
-import { getCompiler, getLockingData } from './wallet.js'
-import { hdPublicKey0H } from './fixtures/wallets.js'
+import { getCompiler } from './wallet.js'
 
 /**
  * @typedef {object} Recipient
@@ -130,9 +128,9 @@ export function getMofNDustThreshold (m, n, output, dustRelayFeeSatPerKb = 1000)
  * @param {import('bitauth-libauth-v3').WalletTemplate} template
  * @param {import('bitauth-libauth-v3').Input[]} inputs - With attached sourceOutput
  * @param {import('bitauth-libauth-v3').Output[]} outputs
- * @param {import('./wallet.js').MultisigWalletSigner[]} signers
+ * @param {bigint} dustRelayFeeSatPerKb - default 1500 sat/kb
  */
-export function estimateFee (inputs, outputs, template) {
+export function estimateFee (inputs, outputs, template, dustRelayFeeSatPerKb = 1500n) {
     const compiler = getCompiler({ template })
     const sampleEntityId = Object.keys(template.entities)[0]
     const sampleScriptId = template.entities[sampleEntityId].scripts.find((scriptId) => scriptId !== 'lock')
@@ -150,11 +148,13 @@ export function estimateFee (inputs, outputs, template) {
 
     let tokenChange = null
 
-    if (inputs?.filter(i => i?.sourceOutput?.token)?.length >0) {
+    const sampleTokenInput = inputs?.find(i => i?.sourceOutput?.token)
+
+    if (sampleTokenInput) { // assume token change if there's any token input
       tokenChange = {
         lockingBytecode: inputs[0].sourceOutput.lockingBytecode,
         valueSatoshis: 1000n,
-        token: inputs?.filter(i => i?.sourceOutput?.token)[0]
+        token: sampleTokenInput.sourceOutput.token
       }
     }
 
@@ -166,8 +166,10 @@ export function estimateFee (inputs, outputs, template) {
     scenario.program.transaction.inputs = inputs
 
     scenario.program.transaction.outputs = [...outputs, satoshiChange]
+    if (tokenChange) {
+      scenario.program.transaction.outputs.push(tokenChange)
+    }
 
-    const dustRelayFeeSatPerKb = 1100n // We'll just increase the default
     const transactionForFeeEstimation = generateTransaction(scenario.program.transaction)
     const estimatedTransactionSize = encodeTransactionCommon(transactionForFeeEstimation.transaction).length
     const minimumFee = getMinimumFee(BigInt(estimatedTransactionSize), dustRelayFeeSatPerKb)
