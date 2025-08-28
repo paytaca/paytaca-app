@@ -1,6 +1,5 @@
-import { getMultisigCashAddress, getLockingBytecode, findMultisigWalletByLockingData } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, findMultisigWalletByLockingData, Pst, getWalletHash } from 'src/lib/multisig'
 import { hashTransaction, binToHex } from 'bitauth-libauth-v3'
-import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 import { getWallet } from '../global/getters'
 
 export function createWallet (state, multisigWallet) {
@@ -179,4 +178,65 @@ export function updateWalletUtxos (state, { walletAddress, utxos }) {
     utxos,
     lastUpdate: Math.floor(Date.now() / 1000)
   }
+}
+
+
+export function savePst(state, pst) {
+  const storedPst = state.psts.find(p => {
+    const instance = Pst.fromObject(p)
+    return instance.unsignedTransactionHash === pst.unsignedTransactionHash
+  })
+  if (storedPst) return 
+  state.psts.push(pst)
+}
+
+
+export function deletePst(state, pst) {
+  const index = state.psts.findIndex(p => {
+    const instance = Pst.fromObject(p)
+    return instance.unsignedTransactionHash === pst.unsignedTransactionHash
+  })
+  if (index === -1) return
+  
+  state.psts.splice(index, 1)
+}
+
+export function addPstPartialSignature(state, { pst, inputIndex, partialSignature }) {
+  const index = state.psts.findIndex(p => {
+    const instance = Pst.fromObject(p)
+    return instance.unsignedTransactionHash === pst.unsignedTransactionHash
+  })
+
+  if (index === -1) return
+
+  if (!state.psts[index].inputs[inputIndex].partialSignatures) {
+    state.psts[index].inputs[inputIndex].partialSignatures = []
+  }
+
+  state.psts[index].inputs[inputIndex].partialSignatures.push(partialSignature)
+}
+
+
+export function updateWalletLastIssuedDepositAddressIndex(state, { wallet, lastIssuedDepositAddressIndex }) {
+  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
+  if (!storedWallet) return
+  storedWallet.lastIssuedDepositAddressIndex = lastIssuedDepositAddressIndex
+}
+
+export function updateWalletLastIssuedChangeAddressIndex(state, { wallet, lastIssuedChangeAddressIndex }) {
+  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
+  if (!storedWallet) return
+  storedWallet.lastIssuedChangeAddressIndex = lastIssuedChangeAddressIndex
+}
+
+export function updateWalletLastUsedDepositAddressIndex(state, { wallet, lastUsedDepositAddressIndex }) {
+  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
+  if (!storedWallet) return
+  storedWallet.lastUsedDepositAddressIndex = lastUsedDepositAddressIndex
+}
+
+export function updateWalletLastUsedChangeAddressIndex(state, { wallet, lastUsedChangeAddressIndex }) {
+  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
+  if (!storedWallet) return
+  storedWallet.lastUsedChangeAddressIndex = lastUsedChangeAddressIndex
 }
