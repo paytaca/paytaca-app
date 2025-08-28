@@ -780,7 +780,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     this.lastIssuedDepositAddressIndex = addressIndex
     if (!this.options?.store?.dispatch) return
     this.options?.store?.dispatch(
-      'multisig/updateLastIssuedDepositAddressIndex', 
+      'multisig/updateWalletLastIssuedDepositAddressIndex', 
       { wallet: this, lastIssuedDepositAddressIndex: addressIndex })
     this.options?.store?.dispatch(
       'multisig/subscribeWalletAddress',
@@ -798,7 +798,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     this.lastIssuedChangeAddressIndex = addressIndex
     if (!this.options?.store?.dispatch) return
     this.options?.store?.dispatch(
-      'multisig/updateLastIssuedChangeAddress', 
+      'multisig/updateWalletLastIssuedChangeAddressIndex', 
       { wallet: this, lastIssuedChangeAddressIndex: addressIndex })
 
     this.options?.store?.dispatch(
