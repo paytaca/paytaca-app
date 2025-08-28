@@ -19,7 +19,15 @@ export class SweepPrivateKey {
       address: this.bchAddress
     })
     if (respBch.data.success) {
-      const resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
+      let retries = 0
+      let resp
+
+      while (retries < 3) {
+        resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
+        if (resp.data.balance > 0) break
+        else retries++
+        setTimeout(() => {}, 250)
+      }
       return resp.data
     }
   }
@@ -30,19 +38,28 @@ export class SweepPrivateKey {
     })
 
     if (respSlp.data.success) {
-      const url = `https://watchtower.cash/api/tokens/?address=${this.slpAddress}&has_balance=true&token_type=1&limit=20`
-      const resp = await axios.get(url)
-      const _tokens = resp.data.results
       const tokens = []
-      for (let i = 0; i < _tokens.length; i++) {
-        const item = _tokens[i]
-        const tokenId = item.id.split('/')[1]
-        const resp = await axios.get(`https://watchtower.cash/api/balance/slp/${this.slpAddress}/${tokenId}/`)
-        const data = resp.data
-        resp.data.token_id = tokenId
-        resp.data.symbol = item.symbol
-        resp.data.image_url = item.image_url
-        tokens.push(data)
+      let retries = 0
+
+      while (retries < 3) {
+        const url = `https://watchtower.cash/api/tokens/?address=${this.slpAddress}&has_balance=true&token_type=1&limit=20`
+        const resp = await axios.get(url)
+        const _tokens = resp.data.results
+
+        if (tokens.length > 0) {
+          for (let i = 0; i < _tokens.length; i++) {
+            const item = _tokens[i]
+            const tokenId = item.id.split('/')[1]
+            const resp = await axios.get(`https://watchtower.cash/api/balance/slp/${this.slpAddress}/${tokenId}/`)
+            const data = resp.data
+            resp.data.token_id = tokenId
+            resp.data.symbol = item.symbol
+            resp.data.image_url = item.image_url
+            tokens.push(data)
+          }
+          break
+        } else retries++
+        setTimeout(() => {}, 250)
       }
       return tokens
     }
@@ -58,7 +75,16 @@ export class SweepPrivateKey {
 
     const url = `https://watchtower.cash/api/cts/balances/${encodeURIComponent(this.tokenAddress)}/fts`
     const params = { limit: 100 }
-    const resp = await axios.get(url, { params })
+    let retries = 0
+    let resp
+
+    while (retries < 3) {
+      resp = await axios.get(url, { params })
+      if (resp.data.results.length > 0) break
+      else retries++
+      setTimeout(() => {}, 250)
+    }
+
     const tokenDataPromises = await Promise.allSettled(
       resp.data.results
         .map(token => token?.tokenId)
@@ -105,7 +131,16 @@ export class SweepPrivateKey {
       has_balance: true,
       limit: 100,
     }
-    const resp = await axios.get(url, { params })
+    let retries = 0
+    let resp
+
+    while (retries < 3) {
+      resp = await axios.get(url, { params })
+      if (resp?.data?.results?.length > 0) break
+      else retries++
+      setTimeout(() => {}, 250)
+    }
+
     const results = resp?.data?.results.map(CashNonFungibleToken.parse)
     await Promise.allSettled(results.map(nft => nft?.fetchMetadata()))
     return results
