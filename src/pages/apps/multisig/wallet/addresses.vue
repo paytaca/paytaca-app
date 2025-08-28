@@ -10,7 +10,7 @@
       class="apps-header"
     /> -->
     <HeaderNav
-      backnavpath="/apps/multisig"
+      :backnavpath="`/apps/multisig/wallet/${route?.params?.wallethash}`"
       class="apps-header"
     />
     <div class="row justify-center">

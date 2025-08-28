@@ -54,7 +54,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-transactions', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
+                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box-multiple" class="col-12" color="primary" style="position:relative">
@@ -265,7 +265,7 @@ const transactions = computed(() => {
 })
 
 const psts = computed(() => {
-  return $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.map(p => Pst.fromObject(p))
+  return $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult).map(p => Pst.fromObject(p))
 })
 
 
