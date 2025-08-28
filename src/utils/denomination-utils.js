@@ -1,5 +1,6 @@
-import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import { i18n } from 'src/boot/i18n'
+import { Store } from 'src/store'
+import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 
 const denomDecimalPlaces = {
   BCH: { convert: 1, decimal: 8 },
@@ -8,31 +9,27 @@ const denomDecimalPlaces = {
   DEEM: { convert: 10 ** 5, decimal: 0 }
 }
 
-export function formatWithLocale (value, { min, max } = {}) {
-  let currentLocale = 'en-us'
-  const localeCandidate = i18n?.global?.locale
-  if (typeof localeCandidate === 'string') {
-    currentLocale = localeCandidate
-  } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
-    currentLocale = localeCandidate.value || 'en-us'
-  }
-  const options = {}
-  if (typeof min === 'number') options.minimumFractionDigits = min
-  if (typeof max === 'number') options.maximumFractionDigits = max
-  return Number(value).toLocaleString(currentLocale, options)
+function getCountryCode () {
+  return Store.getters['global/country'].code
 }
 
+// function getLocale () {
+
+// }
+
 function getLocaleSeparators () {
-  let currentLocale = 'en-us'
-  const localeCandidate = i18n?.global?.locale
-  if (typeof localeCandidate === 'string') {
-    currentLocale = localeCandidate
-  } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
-    currentLocale = localeCandidate.value || 'en-us'
-  }
+  // let currentLocale = 'en-us'
+  // const localeCandidate = i18n?.global?.locale
+  // if (typeof localeCandidate === 'string') {
+  //   currentLocale = localeCandidate
+  // } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
+  //   currentLocale = localeCandidate.value || 'en-us'
+  // }
+  const countryCode = getCountryCode().toLowerCase()
+  const countryLocale = new Intl.Locale(countryCode)
 
   try {
-    const parts = new Intl.NumberFormat(currentLocale).formatToParts(1000.1)
+    const parts = new Intl.NumberFormat(countryLocale).formatToParts(1000.1)
     const group = parts.find(p => p.type === 'group')?.value || ','
     const decimal = parts.find(p => p.type === 'decimal')?.value || '.'
     return { group, decimal }
@@ -43,6 +40,24 @@ function getLocaleSeparators () {
 
 function escapeRegExp (s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+export function formatWithLocale (value, { min, max } = {}) {
+  const countryCode = getCountryCode().toLowerCase()
+  const countryLocale = new Intl.Locale(countryCode)
+  // console.log(localeCandidate?.value)
+  // console.log(countryCode)
+  // let currentLocale = 'en-us'
+  // const localeCandidate = i18n?.global?.locale
+  // if (typeof localeCandidate === 'string') {
+  //   currentLocale = localeCandidate
+  // } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
+  //   currentLocale = localeCandidate.value || 'en-us'
+  // }
+  const options = {}
+  if (typeof min === 'number') options.minimumFractionDigits = min
+  if (typeof max === 'number') options.maximumFractionDigits = max
+  return Number(value).toLocaleString(countryLocale, options)
 }
 
 export function parseLocaleNumber (value) {
