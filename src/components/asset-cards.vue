@@ -27,7 +27,7 @@
         </div>
         <template v-else>
           <p v-if="!manageAssets" class="float-right text-no-wrap asset-balance">
-            {{ formatAssetTokenAmount(asset) }}
+            {{ parseAssetDenomination(denomination, { ...asset, excludeSymbol: true }) }}
           </p>
         </template>
 
@@ -44,9 +44,9 @@
 </template>
 
 <script>
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
-import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',
@@ -89,14 +89,13 @@ export default {
     },
     isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
     }
   },
   methods: {
-    formatAssetTokenAmount(asset) {
-      return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
-        'en-US', { maximumFractionDigits: parseInt(asset?.decimals) || 0 },
-      )
-    },
+    parseAssetDenomination,
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 

@@ -151,20 +151,23 @@
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
-      <span v-if="asset.id === 'bch'">
+      <template v-if="asset.id === 'bch'">
+        <span>
         {{ parseAssetDenomination(selectedDenomination, {
           ...asset,
           balance: currentWalletBalance
         }) }}
       </span>
-      <span v-else>
-        {{ currentWalletBalance }} {{ asset.symbol }}
-      </span>
-      <template v-if="asset.id === 'bch'">
         {{ ` = ${parseFiatCurrency(
           convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
         }` }}
       </template>
+      <span v-else>
+        {{ parseAssetDenomination(selectedDenomination, {
+          ...asset,
+          balance: currentWalletBalance * (10 ** asset.decimals)
+        }) }}
+      </span>
       <a
         href="#"
         v-if="!computingMax || !recipient.sending"

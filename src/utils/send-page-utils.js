@@ -7,7 +7,7 @@ import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { isValidTokenAddress } from 'src/wallet/chipnet'
 import { isTokenAddress } from 'src/utils/address-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { CashAddressType, decodeCashAddress, decodeCashAddressFormatWithoutPrefix, encodeCashAddress } from '@bitauth/libauth'
+import { decodeCashAddress, decodeCashAddressFormatWithoutPrefix } from '@bitauth/libauth'
 
 const { t: $t } = i18n.global
 
