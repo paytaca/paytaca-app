@@ -8,18 +8,15 @@ import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, d
 
 const TOKEN_STORAGE_KEY = 'memo-auth-key'
 
+
 export const backend = axios.create()
 const baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
 export async function fetchMemo (txid) {
-	// const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-	console.log('txid: ', txid)
-
 	let memoData = null
 	await backend.get(baseURL + '/memos/', { params: { 'txid': txid }, headers: { 'wallet-hash': walletHash } })
-		.then(response => {
-			console.log('response: ', response)
+		.then(response => {			
 			memoData = response.data
 		})
 		.catch(error => {
@@ -33,16 +30,11 @@ export async function fetchMemo (txid) {
 
 export async function createMemo (data) {
 	// const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-	console.log('data: ', data)
-	console.log('walletHash: ', walletHash)
-
-	console.log('baseURL: ', baseURL)
-
+	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 
 	let memoData = null	
-	await backend.post(baseURL + '/memos/', data, { headers: { 'wallet-hash': walletHash }})
-		.then(response => {
-			console.log('response: ', response)
+	await backend.post(baseURL + '/memos/', data, { headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER }})
+		.then(response => {			
 			memoData = response.data
 		})
 		.catch(error => {
@@ -55,12 +47,11 @@ export async function createMemo (data) {
 
 
 export async function updateMemo (data) {
-	console.log('data: ', data)
+	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 
 	let memoData = null
-	await backend.patch(baseURL + '/memos/', data, { headers: { 'wallet-hash': walletHash }})
-		.then(response => {
-			console.log('response: ', response)
+	await backend.patch(baseURL + '/memos/', data, { headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER }})
+		.then(response => {			
 			memoData = response.data
 		})
 		.catch(error => {
@@ -72,33 +63,50 @@ export async function updateMemo (data) {
 }
 
 export async function deleteMemo (txid) {
+	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 	let memoData = null
-	await backend.delete(baseURL + '/memos/', { params: { 'txid': txid }, headers: { 'wallet-hash': walletHash } })
-		.then(response => {
-			console.log('response: ', response)
+	await backend.delete(baseURL + '/memos/', { params: { 'txid': txid }, headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER } })
+		.then(response => {			
 			memoData = response.data
 		})
-		.catch(error => {
-			console.error(error.response)
+		.catch(error => {			
 			memoData = error.response.data
 		})
 
 		return memoData
 }
 
-export async function registerMemoUser () {
-	console.log('walletHash: ', walletHash)
+export async function registerMemoUser () {	
+	const user = 'MEMO_' + walletHash
 	const memoHash = await generateMemoHash(walletHash)
 
-	console.log('memohash: ', memoHash)
-
-	await backend.post('/memos/register/', { headers: { 'wallet-hash': walletHash, 'memo-user-hash': memoHash}})
-		.then(response => {
-			console.log('response: ', response)
+	await backend.post(baseURL + '/memos/register/', {}, { headers: { 'x-authmemo-wallethash': user, 'x-authmemo-pass': memoHash}})
+		.then(async (response) => {
+			// console.log('response: ', response)
 			// memoData = response.data
+			await authMemo()
+		})
+		.catch(async (error) => {
+			console.error(error.response)
+			// memoData = error.response.data
+			if (error.response.status === 400) {
+				await authMemo()
+			}
+		})	
+}
+
+export async function authMemo () {
+	const user = 'MEMO_' + walletHash
+	const memoHash = await generateMemoHash(walletHash)
+
+	await backend.post(baseURL + '/memos/auth/', { 'username': user, 'password': memoHash })
+		.then(async (response) => {			
+			// memoData = response.data
+			await saveAuthToken(response.data.access)
 		})
 		.catch(error => {
-			console.error(error.response)
+			console.error(error.response.data)
+
 			// memoData = error.response.data
 		})
 }
@@ -106,7 +114,7 @@ export async function registerMemoUser () {
 export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
     // if (!this.encrypted) return
     const parsedEncryptedMessage = decompressEncryptedMessage(encryptedMemo)
-    console.log('parsedEncryptedMessage: ', parsedEncryptedMessage)
+ 
     const opts = { privkey, tryAllKeys, ...parsedEncryptedMessage }
     const decryptedMessage = await decryptMessage(opts)
 
@@ -130,7 +138,9 @@ export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
  export async function generateMemoHash (wallethash) {
  	const hashVal = 'MEMO_' + walletHash
 
- 	return hashVal
+ 	sha256(hashVal)
+
+ 	return sha256(hashVal)
  }
 
  /**

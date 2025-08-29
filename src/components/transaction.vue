@@ -720,8 +720,7 @@ export default {
         this.transaction = transaction
         let currentMemo = null
 
-        this.keypair = await getKeypair().catch(console.error)
-        console.log('keypair: ', this.keypair)
+        this.keypair = await getKeypair().catch(console.error)      
 
         try {
           currentMemo = await fetchMemo(this.transaction.txid) 
@@ -737,8 +736,7 @@ export default {
           } else {
             // decryptMemo
             currentMemo.note = await decryptMemo(this.keypair.privkey, currentMemo.note)
-
-            console.log('current memo: ', currentMemo)
+            
             this.memo = currentMemo
             this.hasMemo = true
           }
@@ -754,10 +752,6 @@ export default {
     openMemo () {
       this.showMemo = true
 
-      // console.log('here: ', this.$refs.card)
-      // const test = this.$refs.card.$el.clientHeight
-
-      // this.$refs.card.scrollTop = test
 
         setTimeout(() => {
           const content = document.getElementById('scrollArea')    
@@ -770,11 +764,6 @@ export default {
       //encrypt memo
       const encryptedMemo = await encryptMemo(this.keypair.privkey, this.keypair.pubkey, this.memo.note)
 
-      console.log('ecrypted memo: ', encryptedMemo)
-
-
-      // const test = await decryptMemo(this.keypair.privkey, encryptedMemo)
-      // console.log('decryptedMemo: ', test)
       const data = {
         txid: this.transaction.txid,
         note: encryptedMemo
