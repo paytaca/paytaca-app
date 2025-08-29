@@ -317,6 +317,15 @@ onMounted(async () => {
         balance.value,
         [$store.getters['market/selectedCurrency'].symbol]
       )
+
+  const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.lastIssuedChangeAddressIndex + 1).address
+  const promises = [
+    (async () => $store.dispatch(
+      'multisig/subscribeWalletAddress',
+      nextChangeCashAddress
+    ))()
+  ]
+  await Promise.allSettled(promises)
 })
 </script>
 
