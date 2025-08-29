@@ -652,40 +652,32 @@ async getWalletUtxos() {
     return highest
   }, -1)
 
-  if (highestUsedDepositAddressIndex > (this.lastUsedDepositAddressIndex || -1)) {
+  if (highestUsedDepositAddressIndex >= (this.lastUsedDepositAddressIndex || -1)) {
     this.lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
-    if (this.options?.store?.dispatch) {
-      this.options.store.dispatch(
+      this.options?.store?.dispatch(
         'multisig/updateWalletLastUsedDepositAddressIndex', 
         { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex })
-    }
   }
 
-  if (highestUsedChangeAddressIndex > (this.lastUsedChangeAddressIndex || -1)) {
+  if (highestUsedChangeAddressIndex >= (this.lastUsedChangeAddressIndex || -1)) {
     this.lastUsedChangeAddressIndex = highestUsedChangeAddressIndex       
-    if (this.options?.store?.dispatch) {
       this.options?.store?.dispatch(
         'multisig/updateWalletLastUsedChangeAddressIndex',         
         { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex })
-    }
   }
 
-  if (highestUsedDepositAddressIndex > (this.lastIssuedDepositAddressIndex || -1)) {
+  if (highestUsedDepositAddressIndex >= (this.lastIssuedDepositAddressIndex || -1)) {
     this.lastIssuedChangeAddressIndex = highestUsedDepositAddressIndex
-    if (this.options?.store?.dispatch) {
-      this.options.store.dispatch(
+      this.options?.store?.dispatch(
         'multisig/updateWalletLastIssuedDepositAddressIndex', 
         { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex })
-    }
   }
 
-  if (highestUsedChangeAddressIndex > (this.lastIssuedChangeAddressIndex || -1)) {
+  if (highestUsedChangeAddressIndex >= (this.lastIssuedChangeAddressIndex || -1)) {
     this.lastIssuedChangeAddressIndex = highestUsedChangeAddressIndex       
-    if (this.options?.store?.dispatch) {
       this.options?.store?.dispatch(
         'multisig/updateWalletLastIssuedChangeAddressIndex',         
         { wallet: this, lastIssuedChangeAddressIndex: highestUsedChangeAddressIndex })
-    }
   }
 
   this._utxos = utxos?.flat()
@@ -715,6 +707,44 @@ async getWalletBalance(asset, decimals) {
   return balance / `1e${decimals || 0}`
 }
 
+async scanAddresses() {
+
+  let lastDepositAddress = (this.lastIssuedDepositAddressIndex || 0) + 20
+
+  let dIndex = 0
+
+  const promises = []
+
+  while (dIndex < lastDepositAddress) {
+    promises.push(
+      (async () => {
+        await this.options?.store?.dispatch(
+          'multisig/subscribeWalletAddress',
+          this.getDepositAddress(cIndex, this.cashAddressNetworkPrefix).address
+        )
+      })()
+    )
+    dIndex++
+  }
+
+  let lastChangeAddress = (this.lastIssuedChangeAddressIndex || 0) + 20
+
+  let cIndex = 0
+
+  while (cIndex < lastChangeAddress) {
+    promises.push(
+      (async () => {
+          await this.options?.store?.dispatch(
+            'multisig/subscribeWalletAddress',
+            this.getDepositAddress(cIndex, this.cashAddressNetworkPrefix).address
+          )
+        })()
+    )
+    cIndex++
+  }
+  return await Promise.all(promises)
+}
+
 /**
  * @param {'bch'|string} [asset='bch']
  * @param {number} balance - Should be a decimal value. Example: 1.2 (BCH)
@@ -726,12 +756,13 @@ async convertBalanceToCurrencies(asset, balance, currencySymbols) {
     const priceData = await response.json()
     return priceData?.map((price) => {
       const p = Big(balance).mul(price.price_value).toString()
+      price[`assetPriceIn${price.currency}Text`] = `${p} ${price.currency}`
+      price['assetPrice'] = p
       return price
     })
   }
   return []
 }
-
 
 async getWalletBalances() {
   const assetsBalances = {}
@@ -752,7 +783,6 @@ async getWalletBalances() {
     assetsBalances[u.token.category] += BigInt(u.token.amount)
     
   })
-
   return assetsBalances
 }
 
@@ -806,7 +836,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address
     )
     
-  }
+ }
 
   /**
    * Create a transaction proposal to send BCH or CashTokens
