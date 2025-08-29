@@ -27,9 +27,18 @@
               <div class="col-xs-12 q-mb-lg">
                 <div class="items-center justify-center q-gutter-y-md">
                   <div class="text-grey-6 text-center">BCH Balance</div>
-                  <div class="flex justify-center q-gutter-x-sm">
+                  <div class="flex justify-center items-center q-gutter-x-sm">
                     <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                    <span style="font-size: 1.5em" class="text-bold">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>  
+                    <span style="font-size: 1.5em" class="text-bold">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>
+                    <q-btn 
+                      @click="refreshBalance"
+                      :icon="!balancesRefreshing? 'refresh': ''"
+                      :loading="balancesRefreshing"
+                      flat dense>
+                      <template v-slot:loading>
+                        <q-spinner-facebook></q-spinner-facebook>
+                      </template>
+                    </q-btn>
                   </div>
                 </div>
               </div>
@@ -223,7 +232,7 @@ import CopyButton from 'components/CopyButton.vue'
 import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import { CashAddressNetworkPrefix, sortObjectKeys } from 'bitauth-libauth-v3'
+import { binToHex, CashAddressNetworkPrefix, sha256, sortObjectKeys } from 'bitauth-libauth-v3'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 
 const $store = useStore()
@@ -231,11 +240,11 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getMultisigWalletBchBalance, multisigWallets, getSignerXPrv, getAssetTokenIdentity } = useMultisigHelpers()
-const balance = ref()
+const { getSignerXPrv, getAssetTokenIdentity } = useMultisigHelpers()
 const balances = ref()
 const balancesTokenIdentities = ref({})
 const balancesExpanded = ref(true)
+const balancesRefreshing = ref(false)
 const hdPrivateKeys = ref()
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -425,22 +434,38 @@ const loadCashtokenIdentitiesToBalances = async() => {
     }
     promises.push(tokenIdentityPromise())
   }
-  console.log(promises)
   await Promise.all(promises)
+}
+
+const refreshBalance = async () => {
+  try {
+    balancesRefreshing.value = true
+  } catch (error) {} finally {
+    balancesRefreshing.value = false
+    balances.value = await wallet.value.getWalletBalances()
+    if (balances.value) {
+      balances.value = sortObjectKeys(balances.value)
+    }
+  }
+  
 }
 
 onMounted(async () => {
   try {
+    balancesRefreshing.value = true
     balances.value = await wallet.value.getWalletBalances()
 
     if (balances.value) {
       balances.value = sortObjectKeys(balances.value)
     }
-     // await $store.dispatch('multisig/syncWallet', wallet.value)
-    // await $store.dispatch('multisig/fetchTransactions', wallet.value)
     await loadHdPrivateKeys(wallet.value?.signers)
     await loadCashtokenIdentitiesToBalances()
-  } catch (error) {}
+  } 
+  catch (error) {}
+  finally {
+    balancesRefreshing.value = false
+  }
+
 })
 </script>
 
