@@ -754,6 +754,7 @@ export class Pst {
       })
       this.vmVerificationSuccess = verificationResult
     }
+    return { finalCompilationResult: finalCompilation, vmVerificationSuccess: this.vmVerificationSuccess }
   }
 
   async broadcast() {
@@ -766,9 +767,13 @@ export class Pst {
       throw new Error('No signed transaction hex available')  
     }
 
-    // await new Promise(resolve => setTimeout(resolve, 4000)) // allow state to propagate
-    return await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
+    const result = await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
 
+    this.broadcastResult = result?.data
+
+    await this.options?.store?.dispatch('multisig/updateBroadcastResult', { pst: this, broadcastResult: this.broadcastResult })
+
+    return result
   }
 
   combine(psts) {
