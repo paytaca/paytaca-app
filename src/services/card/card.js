@@ -35,11 +35,11 @@ export class Card {
       // Step 1: Mint genesis token (includes vout=0 management)
       const genesisResult = await this.mintGenesisToken();
       
-      // Step 2: Create server record for genesis NFT
-      await this.createGenesisServerRecord(genesisResult);
-      
-      // Step 3: Create the card entry
+      // Step 2: Create the card entry
       const cardData = await this.createCardEntry(genesisResult.tokenId, publicKey);
+
+      // Step 3: Create server record for genesis NFT
+      await this.createGenesisServerRecord(genesisResult);
       
       console.log('Card creation completed successfully');
       return {
@@ -168,7 +168,7 @@ export class Card {
     
     console.log('Sending BCH to address (will create vout=0):', receivingAddress);
     
-    const sendResult = await wallet.BCH.sendBch(0.00005, receivingAddress);
+    const sendResult = await wallet.BCH.sendBch(0.0001, receivingAddress);
     console.log('Transaction sent:', sendResult);
     
     return sendResult;
@@ -302,7 +302,7 @@ export class Card {
   }
 
   async createNFTs(nftData) {
-    return await createAuthNFTs(nftData);
+    return await createNFTs(nftData);
   }
 }
 

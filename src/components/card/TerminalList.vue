@@ -58,7 +58,7 @@
 </template>
 
 <script>
-import { createAuthNFTs, fetchTerminals, fetchUnissuedTerminals } from 'src/services/card/api';
+import { createNFTs, fetchTerminals, fetchUnissuedTerminals } from 'src/services/card/api';
 import AuthTokenManager, { decodeCommitment, encodeTerminalHash } from 'src/services/card/auth-token';
 import { Wallet } from 'mainnet-js';
 import { Contract } from '@mainnet-cash/contract'
@@ -144,7 +144,7 @@ export default {
         this.showLoading('Saving authorization NFTs')
         const authNfts = await this.fetchAuthNftUtxos(txid)
         const createSaveNftPayload = await this.buildSaveNftPayload(authNfts)
-        await createAuthNFTs(createSaveNftPayload)
+        await createNFTs(createSaveNftPayload)
 
         const wallet = await Wallet.fromWIF(this.walletInfo.wif)  
         const _utxos = await wallet.getTokenUtxos()

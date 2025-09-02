@@ -109,12 +109,12 @@ export async function fetchAuthNFTs(wallet_hash) {
  * @param {string|number} nftData.amount - Token amount
  * @returns {Promise} API response with created auth NFT
  */
-export async function createAuthNFTs(nftData) {
+export async function createNFTs(nftData) {
   try {
     const response = await cardApi.post('/auth-nfts/', nftData)
     return response.data
   } catch (error) {
-    console.error('Error creating auth NFTs:', error)
+    console.error('Error creating auth NFTs:', error.response || error)
     throw error
   }
 }
