@@ -21,9 +21,14 @@ export async function fetchMemo (txid) {
 		})
 		.catch(error => {
 			console.error(error.response)
-			memoData = error.response.data
+			if (error.response) {
+				if (error.response.status === 400) {
+					memoData = error.response.data
+				}					
+			}			
 		})
 
+		// console.log('memoData: ', memoData)
 		return memoData
 
 }
@@ -39,7 +44,11 @@ export async function createMemo (data) {
 		})
 		.catch(error => {
 			console.error(error)
-			memoData = error.response.data
+			if (error.response) {
+				if (error.response.status === 400) {
+					memoData = error.response.data
+				}
+			}			
 		})
 
 		return memoData
@@ -56,7 +65,11 @@ export async function updateMemo (data) {
 		})
 		.catch(error => {
 			console.error(error)
-			memoData = error.response.data
+			if (error.response) {
+				if (error.response.status === 400) {
+					memoData = error.response.data
+				}
+			}			
 		})
 
 		return memoData
@@ -70,7 +83,11 @@ export async function deleteMemo (txid) {
 			memoData = response.data
 		})
 		.catch(error => {			
-			memoData = error.response.data
+			if (error.response) {
+				if (error.response.status === 400) {
+					memoData = error.response.data
+				}
+			}			
 		})
 
 		return memoData
@@ -89,8 +106,10 @@ export async function registerMemoUser () {
 		.catch(async (error) => {
 			console.error(error.response)
 			// memoData = error.response.data
-			if (error.response.status === 400) {
-				await authMemo()
+			if (error.response) {				
+				if (error.response.status === 400) {
+					await authMemo()
+				}				
 			}
 		})	
 }
@@ -175,3 +194,4 @@ export function deleteAuthToken () {
 	SecureStoragePlugin.remove({ TOKEN_STORAGE_KEY })
 	console.log('Memo auth token deleted')
 }
+

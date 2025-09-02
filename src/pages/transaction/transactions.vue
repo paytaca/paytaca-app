@@ -172,12 +172,14 @@
 </template>
 <script>
 import { markRaw } from '@vue/reactivity'
+import { loadWallet } from 'src/wallet'
 import { cachedLoadWallet } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { registerMemoUser } from 'src/utils/transaction-memos'
+import { updateOrCreateKeypair } from 'src/exchange/chat/index'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
@@ -316,7 +318,8 @@ export default {
 		const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
 
 		// register user
-		registerMemoUser()
+		await updateOrCreateKeypair(false)
+		await registerMemoUser()
 
 		if (asset.length > 0) {
 			this.selectedAsset = asset[0]			

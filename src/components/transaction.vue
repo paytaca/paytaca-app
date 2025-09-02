@@ -723,13 +723,15 @@ export default {
         this.keypair = await getKeypair().catch(console.error)      
 
         try {
-          currentMemo = await fetchMemo(this.transaction.txid) 
+          currentMemo = await fetchMemo(this.transaction.txid)
         } catch {
           console.log('failed request')
           this.networkError = true
         }
 
         if (currentMemo) {
+
+          console.log('currentMemo: ', currentMemo)
           if ('error' in currentMemo) {
             console.log('no memo for this txid')
             this.hasMemo = false
@@ -740,6 +742,9 @@ export default {
             this.memo = currentMemo
             this.hasMemo = true
           }
+        } else {
+          console.log('failed request')
+          this.networkError = true
         }
 
         this.$refs.dialog.show()
