@@ -176,16 +176,12 @@ const showWalletReceiveDialog = () => {
       multisigWallet: wallet.value,
       cashAddressNetworkPrefix: addressPrefix
     }
-  }).onOk(() => {
-    openWalletActionsDialog()
   })
 }
 
 onMounted(async () => {
-  console.log('test')
   try {
     balance.value = await wallet.value.getWalletBalance(route.query.asset)
-    console.log('balance.value', balance.value)
 
     if (route.query.asset !== 'bch') {
       assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
@@ -198,7 +194,6 @@ onMounted(async () => {
         [$store.getters['market/selectedCurrency'].symbol]
       )
 
-    console.log(balanceConvertionRates.value)
   } catch (error) {}
 })
 </script>
