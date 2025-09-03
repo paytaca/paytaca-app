@@ -729,9 +729,7 @@ export default {
           this.networkError = true
         }
 
-        if (currentMemo) {
-
-          console.log('currentMemo: ', currentMemo)
+        if (currentMemo) {          
           if ('error' in currentMemo) {
             console.log('no memo for this txid')
             this.hasMemo = false

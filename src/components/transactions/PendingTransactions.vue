@@ -94,8 +94,7 @@ export default {
 	components: {
 
 	},
-	async mounted () {
-		console.log('pending')
+	async mounted () {		
 		this.fetchOrders()
 		this.fetchMarketOrders()
 
@@ -115,9 +114,7 @@ export default {
 			}
 
 			await backend.get(apiURL, { params: params})
-				.then(response => {					
-					console.log('here whazzup')
-
+				.then(response => {										
 					this.pending = response.data.results
 					console.log('pending: ', this.pending)
 

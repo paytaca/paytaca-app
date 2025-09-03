@@ -22,7 +22,7 @@ export async function fetchMemo (txid) {
 		.catch(error => {
 			console.error(error.response)
 			if (error.response) {
-				if (error.response.status === 400) {
+				if (error.response.status === 404) {
 					memoData = error.response.data
 				}					
 			}			
@@ -45,9 +45,9 @@ export async function createMemo (data) {
 		.catch(error => {
 			console.error(error)
 			if (error.response) {
-				if (error.response.status === 400) {
+				// if (error.response.status === 404) {
 					memoData = error.response.data
-				}
+				// }
 			}			
 		})
 
@@ -66,7 +66,7 @@ export async function updateMemo (data) {
 		.catch(error => {
 			console.error(error)
 			if (error.response) {
-				if (error.response.status === 400) {
+				if (error.response.status === 404) {
 					memoData = error.response.data
 				}
 			}			
@@ -84,7 +84,7 @@ export async function deleteMemo (txid) {
 		})
 		.catch(error => {			
 			if (error.response) {
-				if (error.response.status === 400) {
+				if (error.response.status === 404) {
 					memoData = error.response.data
 				}
 			}			
@@ -130,13 +130,13 @@ export async function authMemo () {
 		})
 }
 
-export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
+export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {		
     // if (!this.encrypted) return
-    const parsedEncryptedMessage = decompressEncryptedMessage(encryptedMemo)
+    const parsedEncryptedMessage = decompressEncryptedMessage(encryptedMemo)    
  
-    const opts = { privkey, tryAllKeys, ...parsedEncryptedMessage }
+    const opts = { privkey, tryAllKeys, ...parsedEncryptedMessage }    
     const decryptedMessage = await decryptMessage(opts)
-
+    
     return decryptedMessage
     // return this
   }
