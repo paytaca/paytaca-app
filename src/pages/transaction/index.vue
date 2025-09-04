@@ -334,7 +334,11 @@
             >
             </asset-cards>
           </template>
-          <div v-if="showTokens && assets.length == 0" style="height: 10px;"></div>
+          <div v-if="showTokens && assets.length == 0" style="height: 10px; margin-bottom: 10px;">
+            <div class="text-center text-black">
+                <q-btn no-caps rounded color="primary" label="Add New Asset" @click="addNewAsset()"/>
+            </div>
+          </div>
 
           <PendingTransactions/>
         </div>
@@ -473,6 +477,7 @@ import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
+import AddNewAsset from 'src/pages/transaction/dialog/AddNewAsset'
 import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
@@ -512,7 +517,8 @@ export default {
     StablehedgeMarketsDialog,
     NotificationButton,
     AssetOptions,
-    PendingTransactions
+    PendingTransactions,
+    AddNewAsset
   },
   directives: {
     dragscroll
@@ -1617,6 +1623,25 @@ export default {
     hideMultiWalletDialog () {
       this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
     },
+    addNewAsset () {
+      const vm = this
+      vm.$q.dialog({
+        // need both in passing props for now for backwards compatibility
+        componentProps: {
+          network: vm.selectedNetwork,
+          darkMode: vm.darkMode,
+          isCashToken: vm.isCashToken,
+          wallet: vm.wallet,
+          currentCountry: vm.currentCountry
+        },
+        component: AddNewAsset
+      }).onOk((asset) => {
+        console.log('asset: ', )
+        // vm.assetList = this.assets
+        this.$router.push({ name: 'asset-list' })
+        // if (asset.data?.id) vm.selectAsset(null, asset.data)
+      })
+      },
   },
 
   beforeRouteEnter (to, from, next) {
