@@ -334,9 +334,9 @@
             >
             </asset-cards>
           </template>
-          <div v-if="showTokens && assets.length == 0" style="height: 10px; margin-bottom: 10px;">
+          <div v-if="showTokens && assets.length == 0" style="margin-bottom: 10px;">
             <div class="text-center text-black">
-                <q-btn no-caps rounded color="primary" label="Add New Asset" @click="addNewAsset()"/>
+                <q-btn class="br-15" outline color="primary" label="Add New Asset" @click="addNewAsset()"/>
             </div>
           </div>
 
