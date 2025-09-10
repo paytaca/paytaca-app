@@ -279,7 +279,7 @@ const psts = computed(() => {
 
 
 const deleteWallet = async () => {
-  await $store.dispatch('multisig/deleteWallet', { multisigWallet: wallet.value })
+  await wallet.value.delete({ sync: false })
   router.push({ name: 'app-multisig' })
 }
 

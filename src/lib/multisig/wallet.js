@@ -1066,6 +1066,19 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     }
   }
 
+  /**
+   * @param {object} deleteOptions
+   * @param {boolean} deleteOptions.sync - If true, wallet will be synced with watchtower
+   */
+  async delete(deleteOptions) {
+    console.log('options', this.options)
+    if (this.options?.store) {
+      if (this.options?.store?.dispatch) {
+        this.options.store.dispatch('multisig/deleteWallet', { multisigWallet: this, ...deleteOptions})
+      }
+    }
+  }
+
   
   toJSON() {
     return {
