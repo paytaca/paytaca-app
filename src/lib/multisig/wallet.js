@@ -1083,7 +1083,14 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
   exportToBase64() {
     return exportToBase64(this)
   }
-  
+
+  static cashAddressToTokenAddress(cashAddress) {
+    return lockingBytecodeToCashAddress({ 
+      bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
+      tokenSupport: true 
+    })
+  }
+
   static importFromBase64(base64MultisigWallet, options) {
     const object = importFromBase64(base64MultisigWallet)
     return MultisigWallet.importFromObject(object, options)
