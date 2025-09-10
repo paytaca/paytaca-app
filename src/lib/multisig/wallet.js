@@ -1097,7 +1097,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
   }
 
   static importFromObject(multisigWalletObject, options) {
-    return new MultisigWallet(structuredClone(multisigWalletObject), options)
+    return new MultisigWallet(JSON.parse(JSON.stringify(multisigWalletObject)), options)
   }
 
   static fromObject(multisigWalletObject, options) {
