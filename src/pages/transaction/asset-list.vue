@@ -33,6 +33,7 @@
 			</div>
 			<div v-else>
 				<div class="q-px-lg text-right">
+					<q-btn class="q-mr-md" flat round size="18px" padding="3px" icon="save_as" color="primary"/>
 					<q-btn flat round padding="3px" icon="close" color="red" @click="editAssets = false"/>
 				</div>
 			</div>
