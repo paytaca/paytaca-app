@@ -274,11 +274,11 @@ const openBottomsMenu = () => {
       {
         icon: 'mdi-file-export',
         label: 'Export PST',
-        value: 'copy-unsigned-tx-hash',
+        value: 'export-pst',
         color: 'primary'
       }
     ],
-    class: `${getDarkModeClass(darkMode.value)} pt-card text-bow`
+    class: `${getDarkModeClass(darkMode.value)} pt-card text-bow justify-between`
 
   }).onOk(async (action) => {
     if (action.value === 'delete') {
@@ -286,6 +286,27 @@ const openBottomsMenu = () => {
       router.push(`/apps/multisig/wallet/${route.params.wallethash}`)
     }
 
+    if (action.value === 'export-pst') {
+      const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
+      $q.dialog({
+        title: 'Enter Filename',
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+        prompt: {
+          type: 'text',
+          model: defaultFilename
+        }
+      }).onOk((filename) => {
+        if (!filename) return
+        const data = pst.value.export()
+        const blob = new Blob([data], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${filename}.ppst`
+        document.body.appendChild(a)
+        a.click()
+      }).onCancel(() => {})
+    }
   })
 }
 

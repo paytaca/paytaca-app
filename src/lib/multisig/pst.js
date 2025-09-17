@@ -92,7 +92,12 @@ import {
   SigningSerializationAlgorithmIdentifier,
   SigningSerializationType,
   encodeTransactionInput,
-  encodeTransactionOutput
+  encodeTransactionOutput,
+  stringifyTestVector,
+  utf8ToBin,
+  binToBase64,
+  base64ToBin,
+  binToUtf8
 } from 'bitauth-libauth-v3'
 
 import { derivePublicKeys, getLockingBytecode, getCompiler, getLockingData, getWalletHash, MultisigWallet } from './wallet.js'
@@ -829,6 +834,7 @@ export class Pst {
       purpose: this.purpose,
       unsignedTransactionHex: this.unsignedTransactionHex,
       inputs: this.inputs,
+      network: this.options?.provider?.network,
       wallet: this.wallet,
       walletHash: getWalletHash(this.wallet)
     }
@@ -846,6 +852,23 @@ export class Pst {
     }
 
     return JSON.parse(stringify(data))
+  }
+
+  export (format = 'base64') {
+    if (format !== 'base64') {
+      throw new Error(`${format} not yet supported`)
+    }
+    return binToBase64(utf8ToBin(stringify(this.toJSON())))
+  }
+
+  static import (format = 'base64') {
+    if (format !== 'base64') {
+      throw new Error(`${format} not yet supported`)
+    }
+
+    const pstImportData = binToUtf8(base64ToBin(pstDataBase64))
+    console.log('Imported Data', JSON.parse(pstImportData, libauthStringifyReviver))
+    
   }
 
   async delete({ sync = false } = {}) {
