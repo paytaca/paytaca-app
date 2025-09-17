@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { Store } from 'src/store'
 
 export const backend = axios.create()
 const baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
@@ -67,24 +68,25 @@ export async function fetchFavortites () {
 }
 
 export async function saveFavorites (list) {
-	let favorites = null
-	const data = {
-		favorites: list
-	}
-	await backend.post(baseURL + '/app-setting/favorites/', data, { headers: { 'wallet-hash': walletHash }})
-		.then(response => {			
-			favorites = response.data
-		})
-		.catch(error => {
-			console.error(error)
-			if (error.response) {
-				// if (error.response.status === 404) {
-					favorites = error.response.data
-				// }
-			}			
-		})
+	console.log('list: ', list)
+	// let favorites = null
+	// const data = {
+	// 	favorites: list
+	// }
+	// await backend.post(baseURL + '/app-setting/favorites/', data, { headers: { 'wallet-hash': walletHash }})
+	// 	.then(response => {			
+	// 		favorites = response.data
+	// 	})
+	// 	.catch(error => {
+	// 		console.error(error)
+	// 		if (error.response) {
+	// 			// if (error.response.status === 404) {
+	// 				favorites = error.response.data
+	// 			// }
+	// 		}			
+	// 	})
 
-		return favorites
+	// 	return favorites
 }
 
 export async function fetchUnlistedTokens () {
@@ -112,7 +114,7 @@ export async function saveUnlistedTokens () {
 	const data = {
 		unlisted_list: list
 	}
-	await backend.post(baseURL + '/app-setting/favorites/', data, { headers: { 'wallet-hash': walletHash }})
+	await backend.post(baseURL + '/app-setting/unlisted-list/', data, { headers: { 'wallet-hash': walletHash }})
 		.then(response => {			
 			unlisted_token = response.data
 		})

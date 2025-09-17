@@ -121,6 +121,7 @@
 </template>
 <script>
 import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { saveFavorites } from 'src/utils/asset-settings'
 import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from '../../wallet'
 import { markRaw } from '@vue/reactivity'
@@ -248,6 +249,7 @@ export default {
 	    		favorite: asset.favorite === 0 ? 1 : 0
 	    	}	    	
 	    	vm.$store.commit('assets/updateAssetFavorite',  temp)
+	    	saveFavorites(vm.asset)
 	    	// vm.refreshList()
 	    },
 	    getWallet (type) {
