@@ -96,12 +96,6 @@
                   <div>
                     {{ signer.name || `Signer ${i}` }}
                   </div>
-                  <!-- <q-icon
-                    :color="isSignerSignatureOk({ signerEntityKey })? 'green': 'grey-8'"
-                    :name="isSignerSignatureOk({ signerEntityKey })? 'done_all': ''"
-                    size="sm"
-                    >
-                  </q-icon> -->
                 </div>
               </q-item-section>
               <q-item-section side top>
@@ -109,7 +103,7 @@
                   label="Sign"
                   :disable="!signersXPrv[signer.xpub] || pst?.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
                   :icon="signButtonIcon(signer)"
-                  :color="signersXPrv[signer.xpub]? 'secondary': ''"
+                  :color="signersXPrv[signer.xpub] || pst?.signerSigned(signer.xpub)? 'secondary': ''"
                   dense
                   no-caps
                   flat
@@ -132,14 +126,6 @@
                       </div>
                     </template>
                   </q-btn>
-                  <!-- <q-btn v-if="signingProgress != 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="broadcastTransaction" v-close-popup>
-                    <template v-slot:default>
-                      <div class="row justify-center items-stretch">
-                        <q-icon name="cell_tower" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="tile-label col-12">Broadcast</div>
-                      </div>
-                    </template>
-                  </q-btn> -->
                   <q-btn 
                     :loading="isBroadcasting"
                     @click="broadcastTransaction"
@@ -185,11 +171,10 @@
 <script setup>
 
 import { useStore } from 'vuex'
-import { useI18n } from 'vue-i18n'
-import { useQuasar, openURL, is } from 'quasar'
-import { computed, ref, onMounted, watch, toValue, onBeforeUnmount } from 'vue'
+import { useQuasar } from 'quasar'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { stringify, hashTransaction, decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
+import { decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet, Pst, shortenString } from 'src/lib/multisig'
@@ -197,15 +182,11 @@ import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
 import Big from 'big.js'
-import { sign } from '@psf/bch-js/src/ecpair'
 import { WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDialog.vue'
 
 const {
   getSignerXPrv,
-  multisigWallets,
-  txExplorerUrl,
-  cashAddressNetworkPrefix,
   isChipnet
 
 } = useMultisigHelpers()
@@ -246,8 +227,8 @@ const wallet = computed(() => {
 
 const signButtonIcon = computed(() => {
   return (signer) => {
-    if (!signersXPrv.value[signer.xpub]) return 'edit_off'
     if (pst.value.signerSigned(signer.xpub)) return 'done_all'
+    if (!signersXPrv.value[signer.xpub]) return 'edit_off'
     return 'draw'
   }
 })
