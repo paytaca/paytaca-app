@@ -55,6 +55,7 @@
    * @property {string} creator - Identifier for the creator.
    * @property {string} origin - The origin of the proposal.
    * @property {string} purpose - Purpose or description of the proposal.
+   * @property {Network} [network='mainnet']
    * @property {string} unsignedTransactionHex - Unsigned raw transaction in hex.
    * @property {Input[]} [inputs] - Input map
    * @property {Output[]} [outputs] - Output map
@@ -861,13 +862,13 @@ export class Pst {
     return binToBase64(utf8ToBin(stringify(this.toJSON())))
   }
 
-  static import (format = 'base64') {
+  static import (pstExportFormat, options, format = 'base64') {
     if (format !== 'base64') {
       throw new Error(`${format} not yet supported`)
     }
 
-    const pstImportData = binToUtf8(base64ToBin(pstDataBase64))
-    console.log('Imported Data', JSON.parse(pstImportData, libauthStringifyReviver))
+    const pstImportData = JSON.parse(binToUtf8(base64ToBin(pstExportFormat)), libauthStringifyReviver)
+    return new Pst(pstImportData, options)
     
   }
 
