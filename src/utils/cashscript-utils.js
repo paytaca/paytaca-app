@@ -1,6 +1,5 @@
 import { placeholder, scriptToBytecode } from "@cashscript/utils";
 import { SignatureTemplate } from "cashscript";
-import { SignatureTemplate as SignatureTemplateV7 } from "cashscript0.7.5";
 import { SignatureTemplate as SignatureTemplateV10 } from "cashscript0.10.0";
 import { createInputScript, getInputSize, getPreimageSize } from "cashscript/dist/utils";
 
@@ -28,7 +27,6 @@ export function calculateInputSize(transaction) {
 }
 
 function isSignatureTemplate(obj) {
-  if (obj instanceof SignatureTemplateV10) return True
-  if (obj instanceof SignatureTemplateV7) return True
+  if (obj instanceof SignatureTemplateV10) return true
   return obj instanceof SignatureTemplate
 }
