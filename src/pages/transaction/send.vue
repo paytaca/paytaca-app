@@ -275,10 +275,9 @@ import {
   parseFiatCurrency,
   convertToBCH,
   customNumberFormatting,
-  formatWithLocale,
-  parseLocaleNumber
+  formatWithLocale
 } from 'src/utils/denomination-utils'
-import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
+import { parseKey, adjustSplicedAmount, parseFormattedAmount } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
 import { processCashinPoints, processOnetimePoints } from 'src/utils/engagementhub-utils/rewards'
 
@@ -441,7 +440,8 @@ export default {
       isLegacyAddress: false,
       isWalletAddress: false,
       userSelectedChangeAddress: '',
-      focusedInputField: ''
+      focusedInputField: '',
+      isDecimalClickedPreviously: false
     }
   },
 
@@ -875,17 +875,24 @@ export default {
       } else if (this.focusedInputField === 'bch') {
         currentSendAmount = currentInputExtras.amountFormatted ?? ''
       } else currentSendAmount = 0
-
+      
+      currentSendAmount = parseFormattedAmount(currentSendAmount, this.isDecimalClickedPreviously)
+      this.isDecimalClickedPreviously = key === '.'
       const currentAmount = parseKey(key, currentSendAmount, caret, this.asset)
 
       // Set the new amount
       if (this.focusedInputField === 'fiat') {
-        currentInputExtras.sendAmountInFiat = currentAmount
+        currentInputExtras.sendAmountInFiat = formatWithLocale(currentAmount, { min: 2, max: 4 }) || 0
         this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
       } else if (this.focusedInputField === 'bch') {
         currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
-        currentInputExtras.amountFormatted = currentAmount
-        currentInputExtras.sendAmountInFiat = formatWithLocale(this.convertToFiatAmount(currentRecipient.amount), { min: 2, max: 4 }) || 0
+        currentInputExtras.amountFormatted = formatWithLocale(
+          currentAmount,
+          currentInputExtras.selectedDenomination === 'Satoshis' ? {} : { min: 1, max: 8 }
+        )
+        currentInputExtras.sendAmountInFiat = formatWithLocale(
+          this.convertToFiatAmount(currentRecipient.amount), { min: 2, max: 4 }
+        ) || 0
       }
 
       this.adjustWalletBalance()
@@ -904,12 +911,15 @@ export default {
           const currentAmount = adjustSplicedAmount(
             String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
           )
-          currentInputExtras.sendAmountInFiat = currentAmount
+          const parsedAmount = parseFormattedAmount(currentAmount, false)
+          currentInputExtras.sendAmountInFiat = formatWithLocale(parsedAmount) || 0
           this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
         } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
-          currentInputExtras.amountFormatted = adjustSplicedAmount(
+          const currentAmount = adjustSplicedAmount(
             String(currentInputExtras.amountFormatted), amountCaretPosition
           )
+          const parsedAmount = parseFormattedAmount(currentAmount, false)
+          currentInputExtras.amountFormatted = formatWithLocale(parsedAmount) || 0
           currentRecipient.amount = convertToBCH(
             currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted
           )
@@ -1182,19 +1192,6 @@ export default {
     onInputFocus (value) {
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
-
-      const inputExtras = this.inputExtras[this.currentRecipientIndex]
-      if (value.field === 'fiat') {
-        if (inputExtras.sendAmountInFiat) {
-          inputExtras.sendAmountInFiat = parseLocaleNumber(inputExtras.sendAmountInFiat)
-        }
-      }
-
-      if (value.field === 'bch') {
-        if (inputExtras.amountFormatted) {
-          inputExtras.amountFormatted = parseLocaleNumber(inputExtras.amountFormatted)
-        }
-      }
 
       sendPageUtils.addRemoveInputFocus(value.index, false, value.field)
       sendPageUtils.addRemoveInputFocus(value.index, true, value.field)
