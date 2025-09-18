@@ -87,39 +87,26 @@ import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import Big from 'big.js'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
-  getRequiredSignatures,
-  exportMultisigWallet,
-  importPst,
-  isMultisigWalletSynced,
-  generateFilename,
-  generateTransactionHash,
-  MultisigWallet,
-  Pst
+  MultisigWallet
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
-import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
-import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import { CashAddressNetworkPrefix, sortObjectKeys } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
-import { shortenAddressForDisplay } from 'src/utils/address-utils'
 
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getMultisigWalletBchBalance, multisigWallets, getSignerXPrv, getAssetTokenIdentity, cashAddressNetworkPrefix } = useMultisigHelpers()
-const balances = ref()
+const { cashAddressNetworkPrefix } = useMultisigHelpers()
 const depositAddressesExpanded = ref(true)
 const changeAddressesExpanded = ref(true)
-const hdPrivateKeys = ref()
 const depositAddresses = ref([])
 const changeAddresses = ref([])
 

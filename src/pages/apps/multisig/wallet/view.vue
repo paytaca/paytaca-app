@@ -4,11 +4,6 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <!-- <HeaderNav
-      :title="$t('Wallet Details')"
-      backnavpath="/apps/multisig"
-      class="apps-header"
-    /> -->
     <HeaderNav
       backnavpath="/apps/multisig"
       class="apps-header"
@@ -51,7 +46,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-pst-view', params: { wallethash: wallet.getWalletHash(), unsignedtransactionhash: psts?.[0]?.unsignedTransactionHash } }" class="tile" v-close-popup>
+                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-proposals-view', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box" class="col-12" color="primary" style="position:relative">
@@ -59,7 +54,7 @@
                         {{ psts.length }}
                         </q-badge>
                       </q-icon>
-                      <div class="col-12 tile-label">Proposal</div>
+                      <div class="col-12 tile-label">Proposals</div>
                     </div>
                   </template>
                 </q-btn>
@@ -128,21 +123,6 @@
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
-              <!-- <q-item
-                clickable
-                @click="onTxProposalClick">
-                <q-item-section>
-                  <q-item-label style="position:relative">Tx Proposal</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <div class="flex items-center">
-                    <q-badge :color="transactions?.length > 0? 'red': 'grey-8'" >{{ transactions?.length || 0 }}</q-badge>
-                    <q-icon v-if="transactions?.length > 0" name="arrow_forward_ios" class="q-ml-sm" />
-                    <q-icon v-else name="refresh" class="q-ml-sm" />
-                  </div>
-                </q-item-section>
-              </q-item> -->
-              <!-- <q-separator spaced inset /> -->
               <q-expansion-item v-model="balancesExpanded">
                 <template v-slot:header>
                   <q-item-section>
@@ -196,8 +176,8 @@
         </template>
       </div>
       <q-file
-        ref="transactionFileElementRef"
-        v-model="transactionFileModel"
+        ref="pstFileElementRef"
+        v-model="pstFileModel"
         :multiple="false"
         style="visibility: hidden"
         @update:model-value="onUpdateTransactionFile">
@@ -210,7 +190,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -218,21 +198,16 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
-  getRequiredSignatures,
-  exportMultisigWallet,
-  importPst,
   isMultisigWalletSynced,
   generateFilename,
-  generateTransactionHash,
   MultisigWallet,
   Pst
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
-import WalletActionsDialog from 'components/multisig/WalletActionsDialog.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import { binToHex, CashAddressNetworkPrefix, sha256, sortObjectKeys } from 'bitauth-libauth-v3'
+import { CashAddressNetworkPrefix, sortObjectKeys } from 'bitauth-libauth-v3'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 
 const $store = useStore()
@@ -250,12 +225,9 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const transactionFileElementRef = ref()
-const transactionFileModel = ref()
-const transactionInstance = ref()
-
 const wallet = computed(() => {
   const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+  console.log('SAVED WALLET', savedWallet)
   if (savedWallet) {
     return MultisigWallet.importFromObject(savedWallet, {
       store: $store,
@@ -294,30 +266,6 @@ const exportWallet = () => {
   a.click()
 }
 
-const loadTransactionProposal = () => {
-  transactionFileElementRef.value.pickFiles()
-}
-
-const onUpdateTransactionFile = (file) => {
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = () => {
-      transactionInstance.value = importPst({ pst: reader.result })
-      $store.dispatch('multisig/saveTransaction', transactionInstance.value)
-      $store.dispatch('multisig/uploadTransaction', { multisigWallet: wallet.value, multisigTransaction: transactionInstance.value })
-      const hash = generateTransactionHash(transactionInstance.value)
-      router.push({
-        name: 'app-multisig-wallet-transaction-view',
-        params: { address: transactionInstance.value.address, hash }
-      })
-    }
-    reader.onerror = (err) => {
-      console.err(err)
-    }
-    reader.readAsText(file)
-  }
-}
-
 const uploadWallet = () => {
   $q.dialog({
     component: UploadWalletDialog,
@@ -350,51 +298,83 @@ const openWalletActionsDialog = () => {
     disableActions.push('send-bch')
     disableActions.push('import-tx')
   }
-  $q.dialog({
-    component: WalletActionsDialog,
-    componentProps: {
-      darkMode: darkMode.value,
-      txProposals: transactions?.value,
-      isMultisigWalletSynced: isMultisigWalletSynced(wallet.value),
-      disable: disableActions,
-      onUploadWallet: () => {
-        uploadWallet()
+
+  $q.bottomSheet({
+    title: 'Wallet Options',
+    grid: true,
+    actions: [
+      {
+        icon: 'delete_forever',
+        label: 'Delete Wallet',
+        value: 'delete-wallet',
+        color: 'red'
       },
-      onExportWallet: () => {
-        exportWallet()
+      {
+        icon: 'cloud_upload',
+        label: 'Sync Wallet',
+        value: 'sync-wallet',
+        color: 'primary'
       },
-      onDeleteWallet: () => {
-        $q.dialog({
+      {
+        icon: 'mdi-file-export',
+        label: 'Export Wallet',
+        value: 'export-wallet',
+        color: 'primary'
+      }
+    ],
+    class: `${getDarkModeClass(darkMode.value)} pt-card text-bow justify-between`
+
+  }).onOk(async (action) => {
+    if (action === 'delete-wallet') {
+       $q.dialog({
           message: 'Are you sure you want to delete wallet?',
           ok: { label: 'Yes' },
           cancel: { label: 'No' },
           class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onOk(() => {
-          deleteWallet(route.params.address)
+          wallet.value.delete({ sync: false })
         }).onCancel(() => {
           openWalletActionsDialog()
         })
-      },
-      onImportTx: () => {
-        loadTransactionProposal()
-      },
-      onViewTxProposals: () => {
-        router.push({ name: 'app-multisig-wallet-transactions', params: { address: route.params.address } })
-      },
-      onCreateTxProposal: () => {
-        router.push({ name: 'app-multisig-wallet-transaction-create', params: { address: route.params.address } })
-      },
-      // onCreateSendBchProposal: () => {
-      //   router.push({ name: 'app-multisig-wallet-transaction-send-bch', params: { address: route.params.address } })
-      // },
-      onCreateSendBchProposal: () => {
-        router.push({ name: 'app-multisig-wallet-transaction-send', params: { hash: wallet.getWalletHash() } })
-      },
-      onReceive: () => {
-        showWalletReceiveDialog()
-      }
+    }
+    if (action === 'sync-wallet') {
+      uploadWallet()
+    }
+    if (action === 'export-wallet') {
+      exportWallet()
     }
   })
+
+  // // $q.dialog({
+  // //   component: WalletActionsDialog,
+  // //   componentProps: {
+  // //     darkMode: darkMode.value,
+  // //     txProposals: transactions?.value,
+  // //     isMultisigWalletSynced: isMultisigWalletSynced(wallet.value),
+  // //     disable: disableActions,
+  // //     onUploadWallet: () => {
+  // //       uploadWallet()
+  // //     },
+  // //     onExportWallet: () => {
+  // //       exportWallet()
+  // //     },
+  // //     onDeleteWallet: () => {
+  // //       $q.dialog({
+  // //         message: 'Are you sure you want to delete wallet?',
+  // //         ok: { label: 'Yes' },
+  // //         cancel: { label: 'No' },
+  // //         class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+  // //       }).onOk(() => {
+  // //         deleteWallet(route.params.address)
+  // //       }).onCancel(() => {
+  // //         openWalletActionsDialog()
+  // //       })
+  // //     },
+  // //     onViewTxProposals: () => {
+  // //       router.push({ name: 'app-multisig-wallet-transactions', params: { address: route.params.address } })
+  // //     }
+  // //   }
+  // })
 }
 
 const onTxProposalClick = async () => {
@@ -447,8 +427,13 @@ const refreshBalance = async () => {
       balances.value = sortObjectKeys(balances.value)
     }
   }
-  
 }
+
+watch(wallet.value, async (newWallet) => {
+  if (!wallet.value) {
+    router.push({ name: 'app-multisig' })
+  }
+})
 
 onMounted(async () => {
   try {
