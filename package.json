@@ -55,7 +55,6 @@
     "buffer": "^6.0.3",
     "capacitor-native-biometric": "^4.2.2",
     "capacitor-secure-storage-plugin": "^0.5.1",
-    "cashc0.10.0": "npm:cashc@^0.10.0",
     "cashscript": "^0.11.5",
     "cashscript0.10.0": "npm:cashscript@^0.10.0",
     "chart.js": "^4.2.1",
