@@ -33,6 +33,7 @@ export async function saveCustomList (list) {
 	await backend.post(baseURL + '/app-setting/custom-list/', data, { headers: { 'wallet-hash': walletHash }})
 		.then(response => {			
 			customList = response.data
+			console.log(customList)
 		})
 		.catch(error => {
 			console.error(error)
@@ -47,7 +48,7 @@ export async function saveCustomList (list) {
 
 }
 
-export async function fetchFavortites () {
+export async function fetchFavorites () {
 	let favorites = null
 
 	await backend.get(baseURL + '/app-setting/favorites/', { headers: { 'wallet-hash': walletHash } })
@@ -69,24 +70,25 @@ export async function fetchFavortites () {
 
 export async function saveFavorites (list) {
 	console.log('list: ', list)
-	// let favorites = null
-	// const data = {
-	// 	favorites: list
-	// }
-	// await backend.post(baseURL + '/app-setting/favorites/', data, { headers: { 'wallet-hash': walletHash }})
-	// 	.then(response => {			
-	// 		favorites = response.data
-	// 	})
-	// 	.catch(error => {
-	// 		console.error(error)
-	// 		if (error.response) {
-	// 			// if (error.response.status === 404) {
-	// 				favorites = error.response.data
-	// 			// }
-	// 		}			
-	// 	})
 
-	// 	return favorites
+	let favorites = null
+	const data = {
+		favorites: list
+	}
+	await backend.post(baseURL + '/app-setting/favorites/', data, { headers: { 'wallet-hash': walletHash }})
+		.then(response => {			
+			favorites = response.data
+		})
+		.catch(error => {
+			console.error(error)
+			if (error.response) {
+				// if (error.response.status === 404) {
+					favorites = error.response.data
+				// }
+			}			
+		})
+
+		return favorites
 }
 
 export async function fetchUnlistedTokens () {
@@ -128,4 +130,15 @@ export async function saveUnlistedTokens () {
 		})
 
 		return unlisted_token
+}
+
+export async function initializeCustomList (bch = [], sbch = []) {
+	console.log('initialize custom list')
+	const data = {
+		BCH: bch,
+		sBCH: sbch 
+	}
+
+	saveCustomList(data)
+
 }

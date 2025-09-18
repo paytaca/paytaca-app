@@ -121,7 +121,7 @@
 </template>
 <script>
 import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { saveFavorites } from 'src/utils/asset-settings'
+import * as assetSettings from 'src/utils/asset-settings'
 import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from '../../wallet'
 import { markRaw } from '@vue/reactivity'
@@ -137,6 +137,7 @@ export default {
 	data () {
 		return {
 			isCashToken: true,
+			customList: [],
 			assetList: [],
 			favorites: [],
 			assetListKey: 0,
@@ -209,14 +210,35 @@ export default {
 	},
 	async mounted () {
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
-      	this.wallet = markRaw(wallet)
+    this.wallet = markRaw(wallet)
+
+    // Initialize Asset Order
+    console.log(this.assets)
+    const temp = await assetSettings.fetchCustomList()
+
+    console.log('temp: ', temp)
+
+    if ('error' in temp || Object.keys(temp).length === 0) { 
+    	// console.log('Empty Asset Setting')
+    	if (this.selectedNetwork === 'BCH') {
+    		assetSettings.initializeCustomList(this.assets, [])    		
+    	} else {    		
+    		assetSettings.initializeCustomList([], this.assets)
+    	}
+
+    }
+    // if (Array.isArray(temp)) {
+    // 	console.log('is Array')
+    // } else {
+    // 	console.log('not Array')    	
+    // }
 
 		this.checkEmptyFavorites()
 		this.$store.dispatch('assets/initializeFavorites', this.assets)
 
 		this.assetList = this.assets
 
-		this.favorites = this.assets.map(asset => asset.favorite)
+		// this.favorites = this.assets.map(asset => asset.favorite)
 	},
 	methods: {
 		getDarkModeClass,
@@ -249,7 +271,9 @@ export default {
 	    		favorite: asset.favorite === 0 ? 1 : 0
 	    	}	    	
 	    	vm.$store.commit('assets/updateAssetFavorite',  temp)
-	    	saveFavorites(vm.asset)
+	    	const tempFavorites = this.assets.map(({id, favorite}) =>({ id, favorite }))
+
+	    	saveFavorites(tempFavorites)
 	    	// vm.refreshList()
 	    },
 	    getWallet (type) {
