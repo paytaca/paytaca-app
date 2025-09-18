@@ -22,9 +22,19 @@ export default boot(async (obj) => {
 
     // Hydrate Vuex store from localStorage if available
     // This is a manual hydration step to ensure the store is populated
-    const persistedState = localStorage.getItem('vuex')
+    let persistedState = localStorage.getItem('vuex')
+    
     if (persistedState) {
-      store.replaceState(JSON.parse(persistedState))
+
+      persistedState = JSON.parse(persistedState)
+      
+      if (persistedState.global && !persistedState.global.cache) {
+        persistedState.global.cache = {
+          cashtokenIdentities: {}
+        }
+      }
+
+      store.replaceState(persistedState)
       console.log('[Hydration] Vuex state manually hydrated.')
     }
 
