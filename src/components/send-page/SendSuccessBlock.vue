@@ -72,9 +72,8 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
 import {
-  customNumberFormatting,
   parseFiatCurrency,
-  getAssetDenomination
+  parseAssetDenomination
 } from 'src/utils/denomination-utils'
 
 import SendSuccessDetailsDialog from 'src/components/send-page/SendSuccessDetailsDialog.vue'
@@ -116,7 +115,7 @@ export default {
     transactionBreakdownData () {
       if (this.jpp?.parsed?.outputs !== undefined) {
         return this.jpp.parsed.outputs.map(value => {
-          const amount = this.parseAmount(value.amount)
+          const amount = parseAssetDenomination(this.denomination, { ...this.asset, balance: value.amount })
           const fiatAmount = this.parseFiatAmount(0, value.amount)
 
           return {
@@ -126,7 +125,7 @@ export default {
         })
       } else {
         return this.sendDataMultiple.map(value => {
-          const amount = this.parseAmount(value.amount)
+          const amount = parseAssetDenomination(this.denomination, { ...this.asset, balance: value.amount })
           const fiatAmount = this.parseFiatAmount(0, value.amount)
           const tokenAmount = this.isCashToken ? '' : ` (${fiatAmount})`
 
@@ -150,15 +149,12 @@ export default {
   },
 
   mounted () {
-    this.amountSent = this.parseAmount(this.totalAmountSent)
+    this.amountSent = parseAssetDenomination(this.denomination, { ...this.asset, balance: this.totalAmountSent })
     this.fiatAmountSent = this.parseFiatAmount(this.totalFiatAmountSent, this.totalAmountSent)
   },
 
   methods: {
     getDarkModeClass,
-    customNumberFormatting,
-    parseFiatCurrency,
-    getAssetDenomination,
 
     getExplorerLink (txid) {
       return getExplorerLink(txid, this.isCashToken)
@@ -177,21 +173,6 @@ export default {
           breakdownList: this.transactionBreakdownData
         }
       })
-    },
-    parseAmount (origAmount) {
-      let amount, symbol
-      if (this.isCashToken) {
-        amount = origAmount.toLocaleString(
-          'en-us', { maximumFractionDigits: this.asset.decimals }
-        )
-        symbol = this.asset.symbol
-      } else {
-        amount = customNumberFormatting(
-          getAssetDenomination(this.denomination, origAmount)
-        )
-        symbol = this.denomination
-      }
-      return `${amount} ${symbol}`
     },
     parseFiatAmount (origFiatAmount, origAmount) {
       let fiatAmount
