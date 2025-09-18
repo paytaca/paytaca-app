@@ -21,6 +21,15 @@
  * @property {number} addressIndex - The address index last associated with the peer.
  */
 
+
+/**
+* @typedef {Object} MultisigWalletNetworkState
+* @property {number} [lastIssuedDepositAddressIndex=0] - The last generated external address index, shown to the user to receive coins, or derived and stored locally
+* @property {number} [lastIssuedChangeAddressIndex]  - The last generated change address index, derived and stored locally doesn't have to be on chain
+* @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
+* @property {number} [lastUsedChangeAddressIndex]  - The last used change address on-chain.
+*/
+
 /**
  * @typedef {Object} MultisigWalletConfig
  * @property {number} m - The required number of signatures
@@ -31,6 +40,7 @@
  * @property {number} [lastIssuedChangeAddressIndex]  - The last generated change address index, derived and stored locally doesn't have to be on chain
  * @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
  * @property {number} [lastUsedChangeAddressIndex]  - The last used change address on-chain.
+ * @property {{[Network]: MultisigWalletNetworkState }} networkState - Network specific state
  * @property {MultisigWalletWcPeer} [wcPeers] - The wallet connect peers associated with particular address index of the MultisigWallet.
  */
 
@@ -43,6 +53,7 @@
  * @property {(type: string, payload?: any) => void} [store.commit]
  * @property {Object.<string, any>} [store.state]
  * @property {Object.<string, any>} [store.getters]
+ * @property {(param: { xpub: string }) => Promise<string>} [resolveXprvOfXpub] - Function that resolves to xprv given an xpub
  */
  
 /**
@@ -1071,7 +1082,6 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
    * @param {boolean} deleteOptions.sync - If true, wallet will be synced with watchtower
    */
   async delete(deleteOptions) {
-    console.log('options', this.options)
     if (this.options?.store) {
       if (this.options?.store?.dispatch) {
         this.options.store.dispatch('multisig/deleteWallet', { multisigWallet: this, ...deleteOptions})
@@ -1079,6 +1089,25 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     }
   }
 
+  /**
+   * Resolve the xprv of signers that do not have xprv if resolveXPrvOfXpub function is provided in options
+   */
+  async resolveXprvsOfXpubs() {
+    if (this.options?.resolveXprvOfXpub) {
+      for (const signer of this.signers) {
+        const xprv = await this.options?.resolveXprvOfXpub({ xpub: signer.xpub})
+        if (xprv) {
+          if (!signer.xprv) {
+            signer.xprv = xprv
+          }
+        } 
+      }
+    }
+  }
+
+  signerCanSign(signerXpub) {
+    return this.signers.some(s => s.xpub === signerXpub && Boolean(s.xprv))
+  }
   
   toJSON() {
     return {
@@ -1089,7 +1118,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       lastIssuedDepositAddressIndex: this.lastIssuedDepositAddressIndex,
       lastIssuedChangeAddressIndex: this.lastIssuedChangeAddressIndex,
       lastUsedDepositAddressIndex: this.lastUsedDepositAddressIndex,
-      lastUsedChangeAddressIndex: this.lastUsedChangeAddressIndex
+      lastUsedChangeAddressIndex: this.lastUsedChangeAddressIndex,
+      networkState: this.networkState
     }
   }
 
