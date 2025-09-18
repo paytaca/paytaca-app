@@ -12,10 +12,8 @@ import Watchtower from 'watchtower-cash-js';
 import { getWalletByNetwork } from './chipnet'
 import SingleWallet from './single-wallet'
 import { TransactionBalancer } from './stablehedge/transaction-utils'
-import { SignatureTemplate } from 'cashscript'
 import { toTokenAddress } from 'src/utils/crypto'
 import { watchtowerUtxoToCashscriptP2pkh } from 'src/utils/utxo-utils'
-import { getOutputSize } from 'cashscript0.10.0/dist/utils'
 
 const bchjs = new BCHJS()
 /**

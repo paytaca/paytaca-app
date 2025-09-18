@@ -1,6 +1,5 @@
 import { ElectrumNetworkProvider, Network } from "cashscript"
-import { Contract, SignatureTemplate } from 'cashscript0.10.0'
-import { compileString } from "cashc0.10.0"
+import { Contract, SignatureTemplate } from 'cashscript'
 import { getChangeAddress } from "src/utils/send-page-utils"
 import { getMnemonic, Wallet } from "src/wallet"
 import { markRaw } from "vue"
