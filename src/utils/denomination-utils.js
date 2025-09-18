@@ -37,13 +37,13 @@ function getLocale () {
   return currentLocale
 }
 
-function getLocaleSeparators () {
+export function getLocaleSeparators () {
   const currentLocale = getLocale()
 
   try {
     const parts = new Intl.NumberFormat(currentLocale).formatToParts(1000.1)
-    const group = parts.find(p => p.type === 'group')?.value || ','
-    const decimal = parts.find(p => p.type === 'decimal')?.value || '.'
+    const decimal = parts.find(p => p.type === 'decimal')?.value ?? '.'
+    const group = parts.find(p => p.type === 'group')?.value ?? (decimal === '.' ? ',' : '.')
     return { group, decimal }
   } catch (e) {
     return { group: ',', decimal: '.' }
