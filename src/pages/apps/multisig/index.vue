@@ -41,7 +41,7 @@
                   <q-item-label caption lines="2" class="text-subtitle1">
                     <div class="flex items-center">
                       <q-icon name="group" class="q-mr-sm"></q-icon>
-                      <span v-for="signer,i in wallet.signers" :key="`signer-${signerEntityKey}`" class="q-mr-xs">
+                      <span v-for="signer,i in wallet?.signers" :key="`signer-${signerEntityKey}`" class="q-mr-xs">
                         {{signer.name}} {{ i < wallet.signers.length - 1? ',' : ''}}
                       </span>
                     </div>
@@ -133,6 +133,7 @@ const darkMode = computed(() => {
 // })
 
 const importWallet = () => {
+  console.log('Importing wallet')
   $q.dialog({
     component: ImportWalletDialog,
     componentProps: {
@@ -164,14 +165,16 @@ const onUpdateWalletFileModelValue = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      walletInstance.value = MultisigWallet.importFromBase64(reader.result)
+      walletInstance.value = MultisigWallet.importFromBase64(reader.result, {
+        store: $store
+      })
       // const defaultAddress = getMultisigCashAddress({
       //   lockingData: walletInstance.value.lockingData,
       //   template: walletInstance.value.template,
       //   cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
       // })
 
-      walletInstance.value.save({ sync: true })
+      walletInstance.value.save({ sync: false })
       // $store.dispatch('multisig/createWallet', walletInstance.value)
       router.push({
         name: 'app-multisig-wallet-view',
