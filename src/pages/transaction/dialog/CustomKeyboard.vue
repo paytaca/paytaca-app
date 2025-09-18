@@ -18,7 +18,8 @@
             text-color="dark"
             style="width: 95%; height: 95%; font-weight: 400; line-height: 200%"
             :class="{'pt-bg-dark': darkMode}"
-            v-else-if="key !== 13" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key"
+            v-else-if="key !== 13"
+            :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? getLocaleSeparators().decimal : (key-2) : (key-1) : key"
             @click="enterKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key)" />
         </div>
       </div>
@@ -26,6 +27,8 @@
   </div>
 </template>
 <script>
+import { getLocaleSeparators } from 'src/utils/denomination-utils'
+
 export default {
   props: {
     customKeyboardState: {},
@@ -47,6 +50,8 @@ export default {
     }
   },
   methods: {
+    getLocaleSeparators,
+
     enterKey (num) {
       this.$emit('addKey', num)
       this.updateValueOnKeyEnter(num)
