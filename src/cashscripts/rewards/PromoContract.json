@@ -1,0 +1,50 @@
+{
+    "contractName": "PromoContract",
+    "constructorInputs": [
+        {
+            "name": "userPubKey",
+            "type": "pubkey"
+        },
+        {
+            "name": "promo",
+            "type": "string"
+        }
+    ],
+    "abi": [
+        {
+            "name": "transfer",
+            "inputs": [
+                {
+                    "name": "userSig",
+                    "type": "sig"
+                },
+                {
+                    "name": "promoCheck",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "bytecode": "OP_ROT OP_SWAP OP_CHECKSIGVERIFY OP_EQUAL",
+    "source": "pragma cashscript ^0.10.0;\n\ncontract PromoContract(pubkey userPubKey, string promo) {\n    function transfer(sig userSig, string promoCheck) {\n        require(checkSig(userSig, userPubKey));\n        require(promoCheck == promo);\n    }\n}\n",
+    "debug": {
+        "bytecode": "527a517aac69517a517a87",
+        "sourceMap": "5:25:5:32;;:34::44;;:16::45:1;:8::47;6:16:6:26:0;;:30::35;;:16:::1",
+        "logs": [],
+        "requires": [
+            {
+                "ip": 7,
+                "line": 5
+            },
+            {
+                "ip": 13,
+                "line": 6
+            }
+        ]
+    },
+    "compiler": {
+        "name": "cashc",
+        "version": "0.10.5"
+    },
+    "updatedAt": "2025-09-18T05:00:27.284Z"
+}
