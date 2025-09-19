@@ -33,7 +33,7 @@
 			</div>
 			<div v-else>
 				<div class="q-px-lg text-right">
-					<q-btn class="q-mr-md" flat round size="18px" padding="3px" icon="save_as" color="primary"/>
+					<q-btn class="q-mr-md" flat round size="18px" padding="3px" icon="save_as" color="primary" @click="saveCustomList()"/>
 					<q-btn flat round padding="3px" icon="close" color="red" @click="editAssets = false"/>
 				</div>
 			</div>
@@ -211,32 +211,32 @@ export default {
 	async mounted () {
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
     this.wallet = markRaw(wallet)
+    
+		this.customList = await assetSettings.fetchCustomList()
 
-    // Initialize Asset Order
-    console.log(this.assets)
-    const temp = await assetSettings.fetchCustomList()
-
-    console.log('temp: ', temp)
-
-    if ('error' in temp || Object.keys(temp).length === 0) { 
-    	// console.log('Empty Asset Setting')
+    // Initialize Asset Custom List // Saving initial asset list (BCH/sBCH) to server
+    if ('error' in this.customList || Object.keys(this.customList).length === 0) {     	
+    	const assetIDs = this.assets.map((asset) => asset.id)
     	if (this.selectedNetwork === 'BCH') {
-    		assetSettings.initializeCustomList(this.assets, [])    		
+    		assetSettings.initializeCustomList(assetIDs, [])    		
     	} else {    		
-    		assetSettings.initializeCustomList([], this.assets)
+    		assetSettings.initializeCustomList([], assetIDs)
     	}
 
+    } else {
+    	// Update Here to checking Favorites from server. Currently using Local storage    	
+    	this.checkEmptyFavorites()
+			this.$store.dispatch('assets/initializeFavorites', this.assets)
+
+			this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
     }
-    // if (Array.isArray(temp)) {
-    // 	console.log('is Array')
-    // } else {
-    // 	console.log('not Array')    	
-    // }
 
-		this.checkEmptyFavorites()
-		this.$store.dispatch('assets/initializeFavorites', this.assets)
+    // this.fetchAssetInfo()
 
-		this.assetList = this.assets
+    // this.checkEmptyFavorites()
+		// this.$store.dispatch('assets/initializeFavorites', this.assets)
+		
+		// this.assetList = this.assets
 
 		// this.favorites = this.assets.map(asset => asset.favorite)
 	},
@@ -296,9 +296,8 @@ export default {
 	          currentCountry: vm.currentCountry
 	        },
 	        component: AddNewAsset
-	      }).onOk((asset) => {
-	      	console.log('asset: ', )
-	      	vm.assetList = this.assets
+	      }).onOk((asset) => {	       	
+	      	vm.assetList = this.assets // update later // add new asset to end
 	        // if (asset.data?.id) vm.selectAsset(null, asset.data)
 	      })
 	    },
@@ -328,6 +327,26 @@ export default {
 	      	// this.editAssets = false	      	
 	      })
 	    },
+	    saveCustomList () {
+	    	this.customList[this.selectedNetwork] = this.assets.map((asset) => asset.id)
+
+
+
+	    	assetSettings.saveCustomList(this.customList)
+	    	this.editAssets = false
+	    },
+	    async fetchAssetInfo (list) {
+	    	let temp = []
+
+	    	for (const id of list) {	    		
+	    		const asset = await this.$store.getters['assets/getAsset'](id)
+
+	    		if (asset) {	    			
+	    			temp.push(asset[0])
+	    		}	    		
+	    	}	    	
+	    	return temp
+	    }
 	}	
 }
 </script>

@@ -11,6 +11,7 @@ export async function fetchCustomList ()  {
 	await backend.get(baseURL + '/app-setting/custom-list/', { headers: { 'wallet-hash': walletHash } })
 		.then(response => {			
 			customList = response.data
+			// console.log('response: ', customList)
 		})
 		.catch(error => {
 			console.error(error.response)
@@ -33,7 +34,7 @@ export async function saveCustomList (list) {
 	await backend.post(baseURL + '/app-setting/custom-list/', data, { headers: { 'wallet-hash': walletHash }})
 		.then(response => {			
 			customList = response.data
-			console.log(customList)
+			// console.log(customList)
 		})
 		.catch(error => {
 			console.error(error)
@@ -69,7 +70,7 @@ export async function fetchFavorites () {
 }
 
 export async function saveFavorites (list) {
-	console.log('list: ', list)
+	// console.log('list: ', list)
 
 	let favorites = null
 	const data = {
@@ -133,7 +134,7 @@ export async function saveUnlistedTokens () {
 }
 
 export async function initializeCustomList (bch = [], sbch = []) {
-	console.log('initialize custom list')
+	// console.log('initialize custom list')
 	const data = {
 		BCH: bch,
 		sBCH: sbch 
