@@ -158,6 +158,10 @@ const marketValueData = computed(() => {
 
   if (data.marketAssetPrice) {
     data.marketValue = (Number(props.transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
+    if (asset?.value?.id !== 'bch') {
+      const decimals = parseInt(asset?.value?.decimals) || 0; 
+      data.marketValue /= 10 ** decimals; 
+    }
   }
   return data
 })
