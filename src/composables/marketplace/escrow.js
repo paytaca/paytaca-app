@@ -16,7 +16,7 @@ import { toValue } from "vue"
 export function useEscrowAmountsCalculator(fiatPriceRefOrValue, tokenPricesRefOrValue) {
   const round = (amount, decimals) => Math.round(amount * 10 ** decimals) / 10 ** decimals
   /**
-   * @param {import("cashscript0.10.0").Output[]} fundingRequirements 
+   * @param {import("cashscript").Output[]} fundingRequirements 
    */
   function getFundingRequirementFiatValues(fundingRequirements) {
     if (!Array.isArray(fundingRequirements)) return []
@@ -55,7 +55,7 @@ export function useEscrowAmountsCalculator(fiatPriceRefOrValue, tokenPricesRefOr
 
   /**
    * @param {EscrowContract} escrowContract 
-   * @param {import("cashscript0.10.0").Output[]} fundingRequirements
+   * @param {import("cashscript").Output[]} fundingRequirements
    */
   function resolveCryptoAmounts(escrowContract, fundingRequirements) {
     const deliveryFeeKeyNft = escrowContract?.deliveryFeeKeyNft
@@ -125,7 +125,7 @@ export function useEscrowAmountsCalculator(fiatPriceRefOrValue, tokenPricesRefOr
 
   /**
    * @param {EscrowContract} escrowContract 
-   * @param {import("cashscript0.10.0").Output[]} [fundingRequirements] 
+   * @param {import("cashscript").Output[]} [fundingRequirements] 
    */
   function resolveNetworkFeeAndDust(escrowContract, fundingRequirements=[]) {
     if (escrowContract.contractVersion !== 'v3') return escrowContract.sats.networkFee;
