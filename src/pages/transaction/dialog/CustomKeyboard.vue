@@ -28,6 +28,7 @@
 </template>
 <script>
 import { getLocaleSeparators } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   props: {
@@ -51,6 +52,7 @@ export default {
   },
   methods: {
     getLocaleSeparators,
+    getDarkModeClass,
 
     enterKey (num) {
       this.$emit('addKey', num)
@@ -81,9 +83,6 @@ export default {
         // Delete
         this.val = ''
       }
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   watch: {
