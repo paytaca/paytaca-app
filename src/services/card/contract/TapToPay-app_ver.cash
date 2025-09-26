@@ -1,0 +1,22 @@
+pragma cashscript ^0.11.0;
+
+contract TapToPay(
+  bytes20 ownerPkh, 
+  bytes20 backendPkh, 
+  bytes category
+  ) {
+
+    /*
+      MAIN spend function.
+      In the app version, the Paytaca app:
+      - Reads the NFC card
+      - Writes data to it
+      - Provides its own public key + signature acting as the "terminal"
+
+      instead of an external terminal, the phone app itself plays that role.
+    */
+  
+  
+
+    
+}

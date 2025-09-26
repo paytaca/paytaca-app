@@ -1,8 +1,20 @@
 pragma cashscript ^0.11.0;
 
-contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
+// TapToPay Contract (App-based NFC Version)
+// ------------------------------------------
+// This contract allows the Paytaca app to approve NFC card payments
+// without requiring a separate external terminal. The phone itself
+// reads/writes the NFC card, and the app enforces the spending rules.
+
+
+contract TapToPay(
+    bytes20 ownerPkh, 
+    bytes20 backendPkh, 
+    bytes category
+    ) {
+    // terminalId and terminalPk now refer to the Paytaca app instance (phone wallet) instead of a separate terminal device
     function spend(
-        bytes terminalId,
+        bytes terminalId, 
         sig terminalSig, 
         pubkey terminalPk, 
         sig backendSig, 
@@ -18,11 +30,13 @@ contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
         bytes tokenCategory = (tx.inputs[0].tokenCategory).split(32)[0];
         require(tokenCategory == category, 'Invalid token category');
 
-        // require that terminal is valid and authorized
+        // terminalHash now binds the Paytaca app's phone ID + wallet key as the authorized 'terminal'
         bytes fullHash = sha256(terminalId + terminalPk);
         bytes terminalHash = fullHash.split(27)[0];
 
         bytes commitment = tx.inputs[0].nftCommitment;
+
+        // expectedTerminalHash in the NFT must now match the Paytaca app (phone) instead of a hardware terminal
         bytes flag, bytes rest = commitment.split(1);
         bytes expirationBlock, bytes rest2 = rest.split(4);
         bytes spendLimit, bytes expectedTerminalHash = rest2.split(8);
@@ -39,7 +53,7 @@ contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
         bool nftSendsToContract = tx.outputs[0].lockingBytecode == contractLock;
         require(nftSendsToContract, 'Auth NFT must send back to this contract');
 
-        // check if output[1] sends to the recipient (terminal)
+        // Output[1] must send payment to the Paytaca app wallet (phone) instead of an external terminal
         bytes25 recipientLock = new LockingBytecodeP2PKH(hash160(terminalPk));
         bool sendsToRecipient = tx.outputs[1].lockingBytecode == recipientLock;
         require(sendsToRecipient, 'Send amount must send to the recipient');
