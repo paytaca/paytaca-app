@@ -493,7 +493,7 @@ export default {
         url = 'https://explorer.bitcoinunlimited.info/tx/'
 
       if (this.isChipnet) {
-        url = 'https://chipnet.imaginary.cash/tx/'
+        url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
       }
 
       return `${url}${txid}`
