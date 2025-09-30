@@ -1,0 +1,110 @@
+pragma cashscript ^0.11.0;
+
+contract TapToPay(
+  bytes20 ownerPkh, 
+  bytes20 backendPkh, 
+  bytes category
+  ) {
+
+    /*
+      MAIN spend function.
+      In the app version, the Paytaca app:
+      - Reads the NFC card
+      - Writes data to it
+      - Provides its own public key + signature acting as the "terminal"
+
+      instead of an external terminal, the phone app itself plays that role.
+    */
+    function spend(
+      bytes TerminalId, // app generated terminal ID
+      sig terminalSig, // signature from the Paytaca app
+      pubkey terminalPk, // public key from paytaca app
+      sig backendSig, // backend service signature
+      pubkey backendPk // backend public key
+    ){
+      // verify backend
+      require(hash160(backendPk) == backendPkh, 'Invalid backend public key hash');
+      require(checkSig(backendSig, backendPk), 'Invalid backend signature');
+
+      // verify app acting as terminal
+      require(checkSig(terminalSig, terminalPk), 'Invalid app (terminal) signature');
+
+      // must have 2 or 3 outputs only
+       require(tx.outputs.length >= 2 && tx.outputs.length <= 3, 'Unexpected number of outputs');
+      
+      /*
+          check that the auth NFT input has the right category
+          - ensures it's working with the correct TapToPay NFT.
+      */
+      bytes tokenCategory = (tx.inputs[0].tokenCategory).split(32)[0];
+      require(tokenCategory == category, 'Invalid token category');
+
+      /*
+        Verify that the app instance is authorized:
+        - Generate a hash from terminalId + terminalPk
+        - Compare with the expected value stored in the NFT commitment
+      */
+      bytes fullHash = sha256(terminalId + terminalPk);
+      bytes terminalHash = fullHash.split(27)[0];
+
+      // Break down the NFT commitment into fields
+      bytes commitment = tx.inputs[0].nftCommitment;
+      bytes flag, bytes rest = commitment.split(1);       // flag = auth enabled?
+      bytes expirationBlock, bytes rest2 = rest.split(4); // when does this expire?
+      bytes spendLimit, bytes expectedTerminalHash = rest2.split(8); // limit + authorized terminal
+
+      require(flag == 0x01, 'Access denied: App is not authorized');
+      require(terminalHash == expectedTerminalHash, 'Access denied: Invalid app/terminal id');
+      require(tx.locktime <= int(expirationBlock), 'Authentication expired');
+
+      /*
+        Ensure NFT commitment cannot be tampered with.
+        It must stay exactly the same after the transaction.
+      */
+      require(commitment == tx.outputs[0].nftCommitment, 'NFT commitment must not change');
+
+      // Auth NFT must always return back to this contract (self-locking)
+      bytes contractLock = tx.inputs[this.activeInputIndex].lockingBytecode;
+      bool nftSendsToContract = tx.outputs[0].lockingBytecode == contractLock;
+      require(nftSendsToContract, 'Auth NFT must return to contract');
+
+      /*
+        Output[1] must send funds to the Paytaca app’s public key.
+        - ensures the "recipient" is really the app acting as terminal.
+      */
+      bytes25 recipientLock = new LockingBytecodeP2PKH(hash160(terminalPk));
+      bool sendsToRecipient = tx.outputs[1].lockingBytecode == recipientLock;
+      require(sendsToRecipient, 'Send must go to app (recipient)');
+
+      // Enforce spend limit
+      int actualSendAmount = tx.outputs[1].value;
+      require(actualSendAmount <= int(spendLimit), 'Send amount exceeds spend limit');
+
+      // If a third output exists, it must return change back to this contract
+      if (tx.outputs.length == 3) {
+          require(tx.outputs[2].lockingBytecode == contractLock, 'Change must return to contract');
+      }
+    }
+
+    /*
+      Owner can "sweep" — withdraw everything locked in this contract.
+    */
+    function sweep(pubkey ownerPk, sig ownerSig) {
+        require(hash160(ownerPk) == ownerPkh, 'Invalid owner public key hash');
+        require(checkSig(ownerSig, ownerPk), 'Invalid owner signature');
+    }
+
+    /*
+      Owner can "mutate" — update contract rules or migrate state.  
+    */
+    function mutate(pubkey ownerPk, sig ownerSig) {
+        require(hash160(ownerPk) == ownerPkh, 'Invalid owner public key hash');
+        require(checkSig(ownerSig, ownerPk), 'Invalid owner signature');
+    }
+}
+
+  
+  
+
+    
+
