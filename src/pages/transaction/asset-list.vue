@@ -212,33 +212,33 @@ export default {
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
     this.wallet = markRaw(wallet)
     
-		// this.customList = await assetSettings.fetchCustomList()
+		this.customList = await assetSettings.fetchCustomList()
 
-    // // Initialize Asset Custom List // Saving initial asset list (BCH/sBCH) to server
-    // if ('error' in this.customList || Object.keys(this.customList).length === 0) {     	
-    // 	const assetIDs = this.assets.map((asset) => asset.id)
-    // 	if (this.selectedNetwork === 'BCH') {
-    // 		assetSettings.initializeCustomList(assetIDs, [])    		
-    // 	} else {    		
-    // 		assetSettings.initializeCustomList([], assetIDs)
-    // 	}
+    // Initialize Asset Custom List // Saving initial asset list (BCH/sBCH) to server
+    if ('error' in this.customList || Object.keys(this.customList).length === 0) {     	
+    	const assetIDs = this.assets.map((asset) => asset.id)
+    	if (this.selectedNetwork === 'BCH') {
+    		assetSettings.initializeCustomList(assetIDs, [])    		
+    	} else {    		
+    		assetSettings.initializeCustomList([], assetIDs)
+    	}
 
-    // } else {
-    // 	// Update Here to checking Favorites from server. Currently using Local storage    	
-    // 	this.checkEmptyFavorites()
-		// 	this.$store.dispatch('assets/initializeFavorites', this.assets)
+    } else {
+    	// Update Here to checking Favorites from server. Currently using Local storage    	
+    	this.checkEmptyFavorites()
+			this.$store.dispatch('assets/initializeFavorites', this.assets)
 
-		// 	this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
-    // }
+			this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
+    }
 
     // this.fetchAssetInfo()
 
-    this.checkEmptyFavorites()
-		this.$store.dispatch('assets/initializeFavorites', this.assets)
+    // this.checkEmptyFavorites()
+		// this.$store.dispatch('assets/initializeFavorites', this.assets)
 		
-		this.assetList = this.assets
+		// this.assetList = this.assets
 
-		this.favorites = this.assets.map(asset => asset.favorite)
+		// this.favorites = this.assets.map(asset => asset.favorite)
 	},
 	methods: {
 		getDarkModeClass,
@@ -273,8 +273,10 @@ export default {
 	    	vm.$store.commit('assets/updateAssetFavorite',  temp)
 	    	const tempFavorites = this.assets.map(({id, favorite}) =>({ id, favorite }))
 
-	    	saveFavorites(tempFavorites)
-	    	// vm.refreshList()
+	    	console.log('tempFavorites: ', tempFavorites)
+
+	    	assetSettings.saveFavorites(tempFavorites)
+	    	vm.refreshList()
 	    },
 	    getWallet (type) {
 	      return this.$store.getters['global/getWallet'](type)

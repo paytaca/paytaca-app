@@ -70,7 +70,7 @@ export async function fetchFavorites () {
 }
 
 export async function saveFavorites (list) {
-	// console.log('list: ', list)
+	console.log('list: ', list)
 
 	let favorites = null
 	const data = {
