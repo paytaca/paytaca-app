@@ -19,7 +19,9 @@
 
       <div class="text-center q-mt-lg">
         <div class="text-grey">{{ $t('ReferenceId')}}</div>
-        <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
+        <div class="text-h4" style="letter-spacing: 6px;">
+          {{ txid.substring(0, 6).toUpperCase() }}
+        </div>
         <q-separator color="grey"/>
       </div>
       <div class="q-px-xs q-mt-sm text-subtitle1">
@@ -29,7 +31,9 @@
           @click="openSendSuccessDetailsDialog"
         /><br /><br />
         <div class="text-grey">{{ $t('TransactionId')}}</div>
-        <p style="font-family: monospace;" :class="getDarkModeClass(darkMode)">{{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}</p>
+        <p style="font-family: monospace;" :class="getDarkModeClass(darkMode)">
+          {{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}
+        </p>
         <a
           class="button button-text-primary view-explorer-button"
           style="text-decoration: none;"
@@ -44,12 +48,17 @@
         {{ formattedTxTimestamp }}
       </div>
 
-      <div v-if="jpp && sendDataMultiple[0]?.paymentAckMemo !== undefined" class="row justify-center">
+      <div
+        v-if="jpp && sendDataMultiple[0]?.paymentAckMemo !== undefined"
+        class="row justify-center"
+      >
         <div
           class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
           :class="getDarkModeClass(darkMode, 'text-white', '')"
         >
-          <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">{{ $t('Memo') }}:</span>
+          <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">
+            {{ $t('Memo') }}:
+          </span>
           {{ sendDataMultiple[0].paymentAckMemo }}
         </div>
       </div>
@@ -115,7 +124,9 @@ export default {
     transactionBreakdownData () {
       if (this.jpp?.parsed?.outputs !== undefined) {
         return this.jpp.parsed.outputs.map(value => {
-          const amount = parseAssetDenomination(this.denomination, { ...this.asset, balance: value.amount })
+          const amount = parseAssetDenomination(
+            this.denomination, { ...this.asset, balance: value.amount }
+          )
           const fiatAmount = this.parseFiatAmount(0, value.amount)
 
           return {
@@ -125,7 +136,9 @@ export default {
         })
       } else {
         return this.sendDataMultiple.map(value => {
-          const amount = parseAssetDenomination(this.denomination, { ...this.asset, balance: value.amount })
+          const amount = parseAssetDenomination(
+            this.denomination, { ...this.asset, balance: value.amount }
+          )
           const fiatAmount = this.parseFiatAmount(0, value.amount)
           const tokenAmount = this.isCashToken ? '' : ` (${fiatAmount})`
 
@@ -149,8 +162,12 @@ export default {
   },
 
   mounted () {
-    this.amountSent = parseAssetDenomination(this.denomination, { ...this.asset, balance: this.totalAmountSent })
-    this.fiatAmountSent = this.parseFiatAmount(this.totalFiatAmountSent, this.totalAmountSent)
+    this.amountSent = parseAssetDenomination(
+      this.denomination, { ...this.asset, balance: this.totalAmountSent }
+    )
+    this.fiatAmountSent = this.parseFiatAmount(
+      this.totalFiatAmountSent, this.totalAmountSent
+    )
   },
 
   methods: {
