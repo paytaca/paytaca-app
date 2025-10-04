@@ -1,6 +1,6 @@
 import { get } from '@vueuse/core'
 import { CashAddressNetworkPrefix, hashTransaction, binToHex, cashAddressToLockingBytecode, encodeTransactionCommon } from 'bitauth-libauth-v3'
-import { getLockingBytecode, getWalletHash, transactionBinObjectsToUint8Array } from 'src/lib/multisig'
+import { getLockingBytecode, getWalletHash, Pst, transactionBinObjectsToUint8Array } from 'src/lib/multisig'
 
 export function getSettings (state) {
   return state.settings
@@ -109,6 +109,30 @@ export function getWalletByHash (state) {
   return (hash) => {
     return state.wallets.find(savedWallet => {
       return getWalletHash(savedWallet) === hash
+    })
+  }
+}
+
+export function getPstByUnsignedTransactionHash (state) {
+  return (hash) => {
+    return state.psts.find(p => {
+      const instance = Pst.fromObject(p)
+      return instance.unsignedTransactionHash === hash
+    })
+  }
+}
+
+export function getPstsByWalletHash (state) {
+  return (walletHash) => {
+    return state.psts.filter(p => {
+      const instance = Pst.fromObject(p)
+      if (instance.walletHash) {
+        return instance.walletHash === walletHash
+      }
+      if (instance.wallet) { 
+        return getWalletHash(instance.wallet) === walletHash
+      }
+      return false
     })
   }
 }
