@@ -141,6 +141,7 @@ export default {
 			assetList: [],
 			favorites: [],
 			assetListKey: 0,
+			unlistedToken: [],
 			showTokenSuggestionsDialog: false,
 			editAssets: false,
 			wallet: null,	
@@ -212,6 +213,9 @@ export default {
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
     this.wallet = markRaw(wallet)
 
+    await this.getUnlistedTokens()
+    console.log('ignored: ', this.unlistedToken)
+
     await assetSettings.registerUser()
     
 		this.customList = await assetSettings.fetchCustomList()
@@ -233,6 +237,16 @@ export default {
 			this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
     }
 
+    // remove from asset list
+    const temp = this.unlistedToken.map(token => token.id)
+
+    console.log('assetList: ', this.assetList)
+    
+    this.assetList = this.assetList.filter(asset => {
+    	if (asset) { 
+    			return !temp.includes(asset.id) 
+    	}
+    })
     // this.fetchAssetInfo()
 
     // this.checkEmptyFavorites()
@@ -350,7 +364,26 @@ export default {
 	    		}	    		
 	    	}	    	
 	    	return temp
-	    }
+	    },
+	    async getUnlistedTokens (opts = { includeIgnored: false }) {
+	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
+	      this.unlistedToken = []
+
+	      for (const tokenWalletHash of tokenWalletHashes) {
+	        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
+
+	        const tokens = await this.$store.dispatch(
+	          'assets/getMissingAssets',
+	          {
+	            isCashToken,
+	            walletHash: tokenWalletHash,
+	            includeIgnoredTokens: opts.includeIgnored,
+	          }
+	        )
+
+	        this.unlistedToken.push(...tokens)
+	      }
+	    },
 	}	
 }
 </script>

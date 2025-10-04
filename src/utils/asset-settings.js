@@ -159,7 +159,7 @@ export async function registerUser () {
 
 	await backend.post(baseURL + '/app-setting/register/', {}, { headers: { 'x-auth-asset-wallethash': user, 'x-auth-asset-pass': assetHash}})
 		.then(async (response) => {
-			console.log('response: ', response)
+			// console.log('response: ', response)
 			// memoData = response.data
 			await authToken()
 		})
@@ -216,7 +216,7 @@ export function getAuthToken () {
 	return new Promise((resolve, reject) => {
 		SecureStoragePlugin.get({ TOKEN_STORAGE_KEY })
 			.then(token => {
-				console.log('token: ', token)
+				// console.log('token: ', token)
 				resolve(token.value)
 			})
 			.catch(error => {
