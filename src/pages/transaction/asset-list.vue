@@ -211,6 +211,8 @@ export default {
 	async mounted () {
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
     this.wallet = markRaw(wallet)
+
+    await assetSettings.registerUser()
     
 		this.customList = await assetSettings.fetchCustomList()
 
