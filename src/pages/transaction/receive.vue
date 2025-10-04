@@ -391,7 +391,10 @@ export default {
       if (action === 'backspace') {
         inputAmountRef.focus({ focusVisible: true });
         // Backspace
-        const caretPosition = inputAmountRef.selectionStart - 1
+        let caretPosition = inputAmountRef.selectionStart - 1
+        if (caretPosition >= this.amount.length)
+          caretPosition = this.amount.length - 1
+
         if (caretPosition > -1) {
           this.amount = adjustSplicedAmount(this.amount, caretPosition)
           this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
