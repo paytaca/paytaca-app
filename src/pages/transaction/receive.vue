@@ -119,7 +119,7 @@
                   {{ $t('YouWillReceive') }}
                 </div>
                 <div class="text-weight-light receive-amount-label">
-                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
+                  {{ tempAmount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
                 </div>
               </div>
             </div>
@@ -207,7 +207,7 @@ import {
 } from 'src/wallet/chipnet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
-import { adjustSplicedAmount, parseFormattedAmount, parseKey } from 'src/utils/custom-keyboard-utils.js'
+import { adjustSplicedAmount, formatWithLocaleSelective, parseFormattedAmount, parseKey } from 'src/utils/custom-keyboard-utils.js'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -304,6 +304,9 @@ export default {
       }
 
       return tempAddress
+    },
+    decimalObj () {
+      return this.setAmountInFiat ? { min: 0, max: 4 } : { min: 0, max: 8 }
     }
   },
   methods: {
@@ -349,9 +352,9 @@ export default {
       return computedBalance.toFixed(8)
     },
     setReceiveAmount (state) {
-      if (state !== 'close') {
-        this.amount = this.tempAmount
-      }
+      // if (state !== 'close') {
+      //   this.amount = this.tempAmount
+      // }
       this.amountDialog = false
       this.customKeyboardState = 'dismiss'
     },
@@ -371,17 +374,19 @@ export default {
       inputAmountRef.focus({ focusVisible: true });
 
       const caretPosition = inputAmountRef.selectionStart
-      const receiveAmount = this.tempAmount ?? ''
+      const receiveAmount = this.amount ?? 0
 
-      const formattedAmount = parseFormattedAmount(receiveAmount, this.isDecimalClickedPreviously)
-      this.isDecimalClickedPreviously = key === '.'
-      const parsedAmount = parseKey(key, formattedAmount, caretPosition, this.asset)
+      // const formattedAmount = parseFormattedAmount(receiveAmount, this.isDecimalClickedPreviously)
+      // this.isDecimalClickedPreviously = key === '.'
+      // const parsedAmount = parseKey(key, formattedAmount, caretPosition, this.asset)
+      const parsedAmount = parseKey(key, receiveAmount, caretPosition, this.asset)
+      this.amount = parsedAmount
 
-      let decimalObj = {}
-      if (this.setAmountInFiat) decimalObj = { min: 2, max: 4 }
-      else decimalObj = { min: 1, max: 8 }
-
-      this.tempAmount = formatWithLocale(parsedAmount, decimalObj)
+      if (String(key) === '.' || String(key) === '0') {
+        this.tempAmount = formatWithLocaleSelective(
+          parsedAmount, this.tempAmount, String(key), this.decimalObj
+        )
+      } else this.tempAmount = formatWithLocale(parsedAmount, this.decimalObj)
     },
     makeKeyAction (action) {
       const inputAmountRef = this.$refs['input-amount'].nativeEl
@@ -390,14 +395,16 @@ export default {
         // Backspace
         const caretPosition = inputAmountRef.selectionStart - 1
         if (caretPosition > -1) {
-          const currentAmount = adjustSplicedAmount(this.tempAmount, caretPosition)
-          const parsedAmount = parseFormattedAmount(currentAmount, false)
-          this.tempAmount = formatWithLocale(parsedAmount)
+          // const currentAmount = adjustSplicedAmount(this.amount, caretPosition)
+          // const parsedAmount = parseFormattedAmount(currentAmount, false)
+          this.amount = adjustSplicedAmount(this.amount, caretPosition)
+          this.tempAmount = formatWithLocale(this.amount/*parsedAmount*/, this.decimalObj)
         }
       } else if (action === 'delete') {
         inputAmountRef.focus({ focusVisible: true });
         // Delete
-        this.tempAmount = ''
+        this.amount = ''
+        this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
       } else {
         // Enabled submit slider
         if (this.tempAmount) {
@@ -736,10 +743,10 @@ export default {
       this.updateLnsName()
     },
     amountDialog () {
-      this.tempAmount = this.amount
+      this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
     },
     setAmountInFiat(newVal, oldVal) {
-      const amount = parseFloat(this.amountDialog ? this.tempAmount : this.amount)
+      const amount = parseFloat(/*this.amountDialog ? this.tempAmount : */this.amount)
       if (!amount) return
 
       let newAmount
@@ -754,7 +761,7 @@ export default {
       const decimals = newVal ? 3 : parseInt(this.asset?.decimals) || 8
       const newParsedAmount = String(parseFloat(newAmount.toFixed(decimals)))
       this.amount = newParsedAmount
-      this.tempAmount = newParsedAmount
+      this.tempAmount = formatWithLocale(newParsedAmount, this.decimalObj) // newParsedAmount
     }
   },
 
