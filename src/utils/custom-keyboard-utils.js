@@ -1,4 +1,4 @@
-import { getLocaleSeparators } from "./denomination-utils"
+import { formatWithLocale, getLocaleSeparators } from "./denomination-utils"
 
 /**
  * Parses the key clicked in the custom keyboard and inserts
@@ -105,6 +105,43 @@ export function parseFormattedAmount (amount, isDecimalClicked) {
     if (isDecimalClicked) parsedAmount = `${parsedAmount}.`
   }
 
+
+  return parsedAmount
+}
+
+/**
+ * Selective locale formatting when either the decimal or zero key is clicked.
+ * Since **Number.toLocaleString** does not handle numbers/number strings with
+ * multiple zeros (for BCH amounts) properly, a custom logic is applied.
+ * @param {String} amount the unformatted amount (no locale formatting applied)
+ * @param {String} formattedAmount the formatted amount (locale formatting is applied)
+ * @param {String} key the key pressed in the custom keyboard
+ * @param {Object} decimalObj contains the min and max options for locale formatting
+ * @returns the formatted amount as a **string**
+ */
+export function formatWithLocaleSelective (amount, formattedAmount, key, decimalObj) {
+  const decimalSeparator = getLocaleSeparators().decimal
+  let parsedAmount = amount
+
+  // if clicked decimal
+  if (key === '.') {
+    // check if decimal is already present in formattedAmount
+    if (!formattedAmount.includes(decimalSeparator)) {
+      // if not present, format amount and append decimal
+      parsedAmount = formatWithLocale(amount, decimalObj) + decimalSeparator
+    }
+  }
+  //  else if clicked zero
+  else if (key === '0') {
+    // check if decimal is already present in amount
+    if (amount.includes('.')) {
+      // if present, format amount and append zero (already appended from parseKey)
+      // split decimal numbers for possible zeros
+      const amountSplit = String(amount).split('.')
+      const combinedDecimal = `${decimalSeparator}${amountSplit[1]}`
+      parsedAmount = `${formatWithLocale(amountSplit[0], decimalObj)}${combinedDecimal}`
+    } else parsedAmount = formatWithLocale(amount, decimalObj)
+  }
 
   return parsedAmount
 }
