@@ -148,7 +148,7 @@
           size="lg"
           icon="close"
           class="close-button"
-          @click="setReceiveAmount('close')"
+          @click="setReceiveAmount()"
         />
       </div>
       <div :style="`margin-top: ${$q.screen.height * .15}px`">
@@ -207,7 +207,11 @@ import {
 } from 'src/wallet/chipnet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
-import { adjustSplicedAmount, formatWithLocaleSelective, parseFormattedAmount, parseKey } from 'src/utils/custom-keyboard-utils.js'
+import {
+  adjustSplicedAmount,
+  formatWithLocaleSelective,
+  parseKey
+} from 'src/utils/custom-keyboard-utils.js'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -351,10 +355,7 @@ export default {
       const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
       return computedBalance.toFixed(8)
     },
-    setReceiveAmount (state) {
-      // if (state !== 'close') {
-      //   this.amount = this.tempAmount
-      // }
+    setReceiveAmount () {
       this.amountDialog = false
       this.customKeyboardState = 'dismiss'
     },
@@ -376,9 +377,6 @@ export default {
       const caretPosition = inputAmountRef.selectionStart
       const receiveAmount = this.amount ?? 0
 
-      // const formattedAmount = parseFormattedAmount(receiveAmount, this.isDecimalClickedPreviously)
-      // this.isDecimalClickedPreviously = key === '.'
-      // const parsedAmount = parseKey(key, formattedAmount, caretPosition, this.asset)
       const parsedAmount = parseKey(key, receiveAmount, caretPosition, this.asset)
       this.amount = parsedAmount
 
@@ -395,10 +393,8 @@ export default {
         // Backspace
         const caretPosition = inputAmountRef.selectionStart - 1
         if (caretPosition > -1) {
-          // const currentAmount = adjustSplicedAmount(this.amount, caretPosition)
-          // const parsedAmount = parseFormattedAmount(currentAmount, false)
           this.amount = adjustSplicedAmount(this.amount, caretPosition)
-          this.tempAmount = formatWithLocale(this.amount/*parsedAmount*/, this.decimalObj)
+          this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
         }
       } else if (action === 'delete') {
         inputAmountRef.focus({ focusVisible: true });
@@ -407,9 +403,7 @@ export default {
         this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
       } else {
         // Enabled submit slider
-        if (this.tempAmount) {
-          this.setReceiveAmount('gen')
-        }
+        if (this.tempAmount) this.setReceiveAmount()
         this.customKeyboardState = 'dismiss'
       }
     },
@@ -491,7 +485,6 @@ export default {
       })
     },
     async showPrivateKey () {
-      const vm = this
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
