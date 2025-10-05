@@ -656,9 +656,14 @@ export default {
           if (newSelectedCurrency?.symbol) {
             amount = (amountValue / vm.selectedAssetMarketPrice).toFixed(8)
 
-            currentInputExtras.amountFormatted = vm.customNumberFormatting(amount)
-            currentInputExtras.fiatFormatted = vm.convertToFiatAmount(amount)
-            currentRecipient.amount = vm.customNumberFormatting(amount)
+            currentRecipient.amount = amount
+            currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
+            currentInputExtras.amountFormatted = formatWithLocale(
+              currentRecipient.amount, this.decimalObj(false)
+            )
+            currentInputExtras.fiatFormatted = formatWithLocale(
+              currentRecipient.fiatAmount, this.decimalObj(true)
+            )
             currentRecipient.fixedAmount = true
           } else if (!newSelectedCurrency?.symbol && amount) {
             sendPageUtils.raiseNotifyError(
@@ -792,17 +797,20 @@ export default {
     onBIP21Amount (value) {
       const amount = sendPageUtils.getBIP21Amount(value)
       if (!Number.isNaN(amount)) {
-        const currentSendData = this.recipients[this.currentRecipientIndex]
+        const currentRecipient = this.recipients[this.currentRecipientIndex]
         const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
 
-        currentSendData.amount = amount
-        currentSendData.fixedAmount = true
-        currentSendData.recipientAddress = value.split('?')[0]
+        currentRecipient.amount = amount
+        currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
+        currentInputExtras.amountFormatted = formatWithLocale(
+          currentRecipient.amount, this.decimalObj(false)
+        )
+        currentInputExtras.fiatFormatted = formatWithLocale(
+          currentRecipient.fiatAmount, this.decimalObj(true)
+        )
 
-        currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
-          this.denomination, amount
-        ))
-        currentInputExtras.fiatFormatted = this.convertToFiatAmount(amount)
+        currentRecipient.fixedAmount = true
+        currentRecipient.recipientAddress = value.split('?')[0]
         currentInputExtras.isBip21 = true
         currentInputExtras.emptyRecipient = false
         this.sliderStatus = true
