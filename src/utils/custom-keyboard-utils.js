@@ -76,40 +76,6 @@ export function adjustSplicedAmount (text, caretPosition, addedItem = null) {
 }
 
 /**
- * Parse the locale-formatted `amount` by removing the group/thousand separators
- * and setting the decimal separator to a dot (**.**). This is done in order to
- * properly format the amount when using the custom keyboard.
- * @param {number | string} amount the formatted amount to be parsed
- * @param {boolean} isDecimalClicked determined whether the key clicked previously
- * is a decimal; if it is, then it will add a decimal point to the parsed amount
- * @returns the parsed amount
- */
-export function parseFormattedAmount (amount, isDecimalClicked) {
-  const separators = getLocaleSeparators()
-
-  let parsedAmount = String(amount)
-  if (parsedAmount !== '') {
-    // split decimal from amount
-    const splittedAmount = parsedAmount.split(separators.decimal)
-
-    // remove thousand separators
-    parsedAmount = splittedAmount[0].replaceAll(separators.group, '')
-  
-    // if decimal separator is not '.', replace it with '.'
-    if (parseInt(splittedAmount[1]) > 0) {
-      // remove dangling zero in decimal
-      const nonZeroDec = splittedAmount[1].replaceAll('0', '')
-      parsedAmount = `${parsedAmount}.${nonZeroDec}`
-    }
-
-    if (isDecimalClicked) parsedAmount = `${parsedAmount}.`
-  }
-
-
-  return parsedAmount
-}
-
-/**
  * Selective locale formatting when either the decimal or zero key is clicked.
  * Since **Number.toLocaleString** does not handle numbers/number strings with
  * multiple zeros (for BCH amounts) properly, a custom logic is applied.
