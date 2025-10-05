@@ -240,8 +240,7 @@ export default {
       amountDialog: false,
       customKeyboardState: 'dismiss',
       setAmountInFiat: true,
-      tokens: [],
-      isDecimalClickedPreviously: false
+      tokens: []
     }
   },
   props: {
