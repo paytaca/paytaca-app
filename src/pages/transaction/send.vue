@@ -275,9 +275,10 @@ import {
   parseFiatCurrency,
   convertToBCH,
   customNumberFormatting,
-  formatWithLocale
+  formatWithLocale,
+  getDenomDecimals
 } from 'src/utils/denomination-utils'
-import { parseKey, adjustSplicedAmount, parseFormattedAmount } from 'src/utils/custom-keyboard-utils'
+import { parseKey, adjustSplicedAmount, parseFormattedAmount, formatWithLocaleSelective } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
 import { processCashinPoints, processOnetimePoints } from 'src/utils/engagementhub-utils/rewards'
 
@@ -390,14 +391,15 @@ export default {
         decodedContent: ''
       },
       sendDataMultiple: [{
-        amount: null,
+        amount: '',
+        fiatAmount: '',
         fixedAmount: false,
         recipientAddress: '',
         paymentAckMemo: ''
       }],
       inputExtras: [{
         amountFormatted: '',
-        sendAmountInFiat: '',
+        fiatFormatted: '',
         balanceExceeded: false,
         setMax: false,
         emptyRecipient: false,
@@ -530,28 +532,38 @@ export default {
   },
 
   watch: {
-    sendAmountInFiat: function (amount) {
-      if (!this.inputExtras[this.currentRecipientIndex].setMax) {
-        const fiatToAsset = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice) || 0
-        this.sendDataMultiple[this.currentRecipientIndex].amount = fiatToAsset
+    // fiatFormatted: function (amount) {
+    //   if (!this.inputExtras[this.currentRecipientIndex].setMax) {
+    //     const fiatToAsset = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice) || 0
+    //     this.sendDataMultiple[this.currentRecipientIndex].amount = fiatToAsset
 
-        const fiatAsset = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
-        this.inputExtras[this.currentRecipientIndex].amountFormatted = fiatAsset
-      }
-    },
+    //     const fiatAsset = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
+    //     this.inputExtras[this.currentRecipientIndex].amountFormatted = fiatAsset
+    //   }
+    // },
     selectedAssetMarketPrice () {
       if (!this.bip21Expires) {
         if (!this.selectedAssetMarketPrice) {
           this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
         }
 
-        for (let index = 0; index < this.sendDataMultiple.length; index++) {
-          const amount = this.sendDataMultiple[index]?.amount
+        for (let i = 0; i < this.sendDataMultiple.length; i++) {
+          const amount = this.sendDataMultiple[i]?.amount
 
           if (!amount || amount <= 0) return
 
-          const amountInFiat = this.convertToFiatAmount(amount)
-          this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
+          // const amountInFiat = this.convertToFiatAmount(amount)
+          // this.inputExtras[i].fiatFormatted = parseFloat(amountInFiat)
+          this.sendDataMultiple[i].fiatAmount = this.convertToFiatAmount(amount)
+          this.sendDataMultiple[i].amount = sendPageUtils.convertFiatToSelectedAsset(
+            this.sendDataMultiple[i].fiatAmount, this.selectedAssetMarketPrice
+          )
+          this.inputExtras[i].fiatFormatted = formatWithLocale(
+            this.sendDataMultiple[i].fiatAmount, this.decimalObj(true)
+          )
+          this.inputExtras[i].amountFormatted = formatWithLocale(
+            this.sendDataMultiple[i].amount, this.decimalObj(false)
+          )
         }
       }
     },
@@ -651,7 +663,7 @@ export default {
             amount = (amountValue / vm.selectedAssetMarketPrice).toFixed(8)
 
             currentInputExtras.amountFormatted = vm.customNumberFormatting(amount)
-            currentInputExtras.sendAmountInFiat = vm.convertToFiatAmount(amount)
+            currentInputExtras.fiatFormatted = vm.convertToFiatAmount(amount)
             currentRecipient.amount = vm.customNumberFormatting(amount)
             currentRecipient.fixedAmount = true
           } else if (!newSelectedCurrency?.symbol && amount) {
@@ -796,7 +808,7 @@ export default {
         currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
           this.denomination, amount
         ))
-        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
+        currentInputExtras.fiatFormatted = this.convertToFiatAmount(amount)
         currentInputExtras.isBip21 = true
         currentInputExtras.emptyRecipient = false
         this.sliderStatus = true
@@ -824,17 +836,27 @@ export default {
 
     // max button
     async setMaximumSendAmount () {
-      const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       currentInputExtras.setMax = true
-      let spendableAsset = 0
-
+      
       if (this.asset.id === 'bch') {
-        spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+        // let spendableAsset = 0
+        // spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
+        // currentRecipient.amount = this.asset.spendable
+        // currentInputExtras.amountFormatted = spendableAsset
+        // const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
+        // currentInputExtras.fiatFormatted = formatWithLocale(convertedFiat, { min: 2, max: 4 })
         currentRecipient.amount = this.asset.spendable
-        currentInputExtras.amountFormatted = spendableAsset
-        const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
-        currentInputExtras.sendAmountInFiat = formatWithLocale(convertedFiat, { min: 2, max: 4 })
+        currentRecipient.fiatAmount = this.convertToFiatAmount(this.asset.spendable)
+        console.log(currentRecipient)
+        
+        currentInputExtras.amountFormatted = formatWithLocale(
+          currentRecipient.amount, this.decimalObj(false)
+        )
+        currentInputExtras.fiatFormatted = formatWithLocale(
+          currentRecipient.fiatAmount, this.decimalObj(true)
+        )
       } else {
         if (this.asset.id.startsWith('ct/')) {
           currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
@@ -860,39 +882,64 @@ export default {
     setAmount (key) {
       const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
-      const amountCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
-        .$refs.amountInput.nativeEl.selectionStart
-      const fiatCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
-        .$refs.fiatInput?.nativeEl.selectionStart
+      const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      let caret = null
+      if (this.focusedInputField === 'fiat')
+        caret = currentRefs.fiatInput?.nativeEl.selectionStart
+      else if (this.focusedInputField === 'bch')
+        caret = currentRefs.amountInput.nativeEl.selectionStart
 
       let currentSendAmount
-      let caret = null
-      if (this.focusedInputField === 'fiat') caret = fiatCaretPosition
-      else if (this.focusedInputField === 'bch') caret = amountCaretPosition
-
-      if (this.focusedInputField === 'fiat') {
-        currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
-      } else if (this.focusedInputField === 'bch') {
-        currentSendAmount = currentInputExtras.amountFormatted ?? ''
-      } else currentSendAmount = 0
+      if (this.focusedInputField === 'fiat')
+        // currentSendAmount = currentInputExtras.fiatFormatted ?? ''
+        currentSendAmount = currentRecipient.fiatAmount
+      else if (this.focusedInputField === 'bch')
+        // currentSendAmount = currentInputExtras.amountFormatted ?? ''
+        currentSendAmount = currentRecipient.amount
+      else currentSendAmount = ''
       
-      currentSendAmount = parseFormattedAmount(currentSendAmount, this.isDecimalClickedPreviously)
-      this.isDecimalClickedPreviously = key === '.'
+      // currentSendAmount = parseFormattedAmount(currentSendAmount, this.isDecimalClickedPreviously)
+      // this.isDecimalClickedPreviously = key === '.'
       const currentAmount = parseKey(key, currentSendAmount, caret, this.asset)
 
       // Set the new amount
       if (this.focusedInputField === 'fiat') {
-        currentInputExtras.sendAmountInFiat = formatWithLocale(currentAmount, { min: 2, max: 4 }) || 0
-        this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
-      } else if (this.focusedInputField === 'bch') {
-        currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
-        currentInputExtras.amountFormatted = formatWithLocale(
-          currentAmount,
-          currentInputExtras.selectedDenomination === 'Satoshis' ? {} : { min: 1, max: 8 }
+        currentRecipient.fiatAmount = currentAmount
+        currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
+          currentAmount, this.selectedAssetMarketPrice
         )
-        currentInputExtras.sendAmountInFiat = formatWithLocale(
-          this.convertToFiatAmount(currentRecipient.amount), { min: 2, max: 4 }
-        ) || 0
+        // currentInputExtras.fiatFormatted = formatWithLocale(currentAmount, { min: 2, max: 4 }) || 0
+        // this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
+      } else if (this.focusedInputField === 'bch') {
+        currentRecipient.amount = currentAmount
+        currentRecipient.fiatAmount = this.convertToFiatAmount(currentAmount)
+        // currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
+        // currentInputExtras.amountFormatted = formatWithLocale(
+        //   currentAmount,
+        //   currentInputExtras.selectedDenomination === 'Satoshis' ? {} : { min: 1, max: 8 }
+        // )
+        // currentInputExtras.fiatFormatted = formatWithLocale(
+        //   this.convertToFiatAmount(currentRecipient.amount), { min: 2, max: 4 }
+        // ) || 0
+      }
+
+      if (String(key) === '.' || String(key) === '0') {
+        currentInputExtras.fiatFormatted = formatWithLocaleSelective(
+          currentRecipient.fiatAmount, currentInputExtras.fiatFormatted,
+          String(key), this.decimalObj(true)
+        )
+        currentInputExtras.amountFormatted = formatWithLocaleSelective(
+          currentRecipient.amount, currentInputExtras.amountFormatted,
+          String(key), this.decimalObj(false)
+        )
+      } else {
+        currentInputExtras.fiatFormatted = formatWithLocale(
+          currentRecipient.fiatAmount, this.decimalObj(true)
+        )
+        currentInputExtras.amountFormatted = formatWithLocale(
+          currentRecipient.amount, this.decimalObj(false)
+        )
       }
 
       this.adjustWalletBalance()
@@ -901,33 +948,56 @@ export default {
     makeKeyAction (action) {
       const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
-      const amountCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
-        .$refs.amountInput.nativeEl.selectionStart - 1
-      const fiatCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
-        .$refs.fiatInput?.nativeEl.selectionStart - 1
+      const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      let amountCaretPosition = currentRefs.amountInput.nativeEl.selectionStart - 1
+      if (amountCaretPosition >= currentRecipient.amount.length)
+        amountCaretPosition = currentRecipient.amount.length - 1
+
+      let fiatCaretPosition = currentRefs.fiatInput?.nativeEl.selectionStart - 1
+      if (fiatCaretPosition >= currentRecipient.fiatAmount.length)
+        fiatCaretPosition = currentRecipient.fiatAmount.length - 1
 
       if (action === 'backspace') {
         if (this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
-          const currentAmount = adjustSplicedAmount(
-            String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
+          currentRecipient.fiatAmount = adjustSplicedAmount(
+            currentRecipient.fiatAmount, fiatCaretPosition
           )
-          const parsedAmount = parseFormattedAmount(currentAmount, false)
-          currentInputExtras.sendAmountInFiat = formatWithLocale(parsedAmount) || 0
-          this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
+          currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
+            currentRecipient.fiatAmount, this.selectedAssetMarketPrice
+          )
+          // const currentAmount = adjustSplicedAmount(
+          //   String(currentInputExtras.fiatFormatted), fiatCaretPosition
+          // )
+          // const parsedAmount = parseFormattedAmount(currentAmount, false)
+          // currentInputExtras.fiatFormatted = formatWithLocale(parsedAmount) || 0
+          // this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
         } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
-          const currentAmount = adjustSplicedAmount(
-            String(currentInputExtras.amountFormatted), amountCaretPosition
+          currentRecipient.amount = adjustSplicedAmount(
+            currentRecipient.amount, amountCaretPosition
           )
-          const parsedAmount = parseFormattedAmount(currentAmount, false)
-          currentInputExtras.amountFormatted = formatWithLocale(parsedAmount) || 0
-          currentRecipient.amount = convertToBCH(
-            currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted
-          )
-          currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount)
+          currentRecipient.fiatAmount = this.convertToFiatAmount(currentRecipient.amount)
+          // const currentAmount = adjustSplicedAmount(
+          //   String(currentInputExtras.amountFormatted), amountCaretPosition
+          // )
+          // const parsedAmount = parseFormattedAmount(currentAmount, false)
+          // currentInputExtras.amountFormatted = formatWithLocale(parsedAmount) || 0
+          // currentRecipient.amount = convertToBCH(
+          //   currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted
+          // )
+          // currentInputExtras.fiatFormatted = this.convertToFiatAmount(currentRecipient.amount)
         }
+
+        currentInputExtras.fiatFormatted = formatWithLocale(
+          currentRecipient.fiatAmount, this.decimalObj(true)
+        )
+        currentInputExtras.amountFormatted = formatWithLocale(
+          currentRecipient.amount, this.decimalObj(false)
+        )
       } else if (action === 'delete') {
-        currentInputExtras.sendAmountInFiat = ''
+        currentRecipient.fiatAmount = ''
         currentRecipient.amount = ''
+        currentInputExtras.fiatFormatted = ''
         currentInputExtras.amountFormatted = ''
       } else {
         // Enabled submit slider
@@ -946,14 +1016,15 @@ export default {
 
       if (recipientsLength < 10) {
         this.sendDataMultiple.push({
-          amount: 0,
+          amount: '',
+          fiatAmount: '',
           fixedAmount: false,
           recipientAddress: '',
           paymentAckMemo: ''
         })
         this.inputExtras.push({
           amountFormatted: '',
-          sendAmountInFiat: '',
+          fiatFormatted: '',
           balanceExceeded: false,
           setMax: false,
           emptyRecipient: true,
@@ -1015,10 +1086,14 @@ export default {
 
       vm.totalAmountSent = parseFloat(totalAmount)
       if (vm.asset.id === 'bch') {
-        vm.totalFiatAmountSent = vm.inputExtras
-          .map(a => Number(a.sendAmountInFiat))
+        vm.totalFiatAmountSent = toSendData
+          .map(a => Number(a.fiatAmount))
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(2)
+        // vm.totalFiatAmountSent = vm.inputExtras
+        //   .map(a => Number(a.fiatFormatted))
+        //   .reduce((acc, curr) => acc + curr, 0)
+        //   .toFixed(2)
       } else vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
 
       let token = null // bch token
@@ -1270,14 +1345,14 @@ export default {
     convertToFiatAmount (amount) {
       return sendPageUtils.convertToFiatAmount(amount, this.selectedAssetMarketPrice)
     },
-    recomputeAmount (currentRecipient, currentInputExtras, amount) {
-      const converted = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice)
-      currentRecipient.amount = converted
-      const result = this.customNumberFormatting(
-        getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
-      )
-      currentInputExtras.amountFormatted = result
-    },
+    // recomputeAmount (currentRecipient, currentInputExtras, amount) {
+    //   const converted = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice)
+    //   currentRecipient.amount = converted
+    //   const result = this.customNumberFormatting(
+    //     getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
+    //   )
+    //   currentInputExtras.amountFormatted = result
+    // },
     adjustWalletBalance () {
       this.currentWalletBalance = sendPageUtils.adjustWalletBalance(
         this.asset, this.sendDataMultiple.map(a => Number(a.amount))
@@ -1371,6 +1446,10 @@ export default {
     },
     playSound (success) {
       if (success) NativeAudio.play({ assetId: 'send-success' })
+    },
+    decimalObj (isFiat) {
+      // console.log(this.selectedDenomination)
+      return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
     }
   },
 
