@@ -350,7 +350,7 @@ export default {
       let url = ''
 
       if (this.isChipnet) {
-        url = 'https://chipnet.imaginary.cash/address/'
+        url = `${process.env.TESTNET_EXPLORER_URL}/address/`
       } else {
         url = 'https://blockchair.com/bitcoin-cash/address/'
       }
