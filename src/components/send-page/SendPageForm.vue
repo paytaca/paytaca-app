@@ -130,7 +130,7 @@
         type="text"
         inputmode="none"
         filled
-        v-model="sendAmountInFiat"
+        v-model="fiatFormatted"
         ref="fiatInput"
         class="fiat-input-field"
         @focus="onInputFocus(index, 'fiat')"
@@ -140,7 +140,7 @@
         :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
         :label="$t('Amount')"
         :dark="darkMode"
-        :key="inputExtras.sendAmountInFiat"
+        :key="inputExtras.fiatFormatted"
       >
         <template v-slot:append>
           {{ String(currentSendPageCurrency()).toUpperCase() }}
@@ -250,9 +250,10 @@ export default {
 
   data () {
     return {
-      amount: 0,
-      amountFormatted: 0,
-      sendAmountInFiat: 0,
+      amount: '',
+      fiatAmount: '',
+      amountFormatted: '',
+      fiatFormatted: '',
       balanceExceeded: false,
       emptyRecipient: false,
       selectedDenomination: 'BCH',
@@ -264,7 +265,7 @@ export default {
   mounted () {
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
-    this.sendAmountInFiat = this.inputExtras.sendAmountInFiat
+    this.fiatFormatted = this.inputExtras.fiatFormatted
     if (this.inputExtras.isBip21) {
       this.selectedDenomination = 'BCH'
     } else {
