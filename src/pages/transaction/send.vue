@@ -48,7 +48,7 @@
             <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
               <q-icon name="error" left/> {{ scanner.error }}
             </div>
-            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">
+            <div class="row justify-center q-mt-xl" v-if="!scanner.show && recipients[0]?.recipientAddress === ''">
               <div id="paste-address-container" class="col-12">
                 <q-input
                   bottom-slots
@@ -124,12 +124,12 @@
             </div>
           </div>
           <div
-            v-if="!sent && sendDataMultiple[0].recipientAddress !== ''"
+            v-if="!sent && recipients[0].recipientAddress !== ''"
             class="q-px-lg"
             :style="isNFT ? 'margin-top: 25px' : ''"
           >
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
-              <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
+              <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
                 <template v-if="!isNFT">
                   <q-expansion-item
                     default-opened
@@ -148,7 +148,7 @@
                     </template>
 
                     <SendPageForm
-                      :recipient="sendDataMultiple[index]"
+                      :recipient="recipients[index]"
                       :inputExtras="inputExtras[index]"
                       :asset="asset"
                       :index="index"
@@ -173,7 +173,7 @@
                       ref="sendPageRef"
                     />
 
-                    <div class="row" v-if="sendDataMultiple.length > 1">
+                    <div class="row" v-if="recipients.length > 1">
                       <p class="remove-recipient-button" @click="removeLastRecipient(index)">
                         {{ $t('RemoveRecipient') }} #{{ index + 1 }}
                       </p>
@@ -183,7 +183,7 @@
 
                 <template v-else>
                   <SendPageForm
-                    :recipient="sendDataMultiple[index]"
+                    :recipient="recipients[index]"
                     :inputExtras="inputExtras[index]"
                     :asset="asset"
                     :index="index"
@@ -248,7 +248,7 @@
               :txid="txid"
               :txTimestamp="txTimestamp"
               :jpp="jpp"
-              :sendDataMultiple="sendDataMultiple"
+              :recipients="recipients"
             />
           </template>
         </div>
@@ -397,7 +397,7 @@ export default {
         error: '',
         decodedContent: ''
       },
-      sendDataMultiple: [{
+      recipients: [{
         amount: '',
         fiatAmount: '',
         fixedAmount: false,
@@ -505,13 +505,13 @@ export default {
       return (
         !this.sending && !this.sent && this.sliderStatus &&
         // check if amount is greater than zero
-        this.sendDataMultiple.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
+        this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
         // check if there are any amount that exceeded current balance
         this.inputExtras.map(a => a.balanceExceeded).findIndex(i => i) < 0 &&
         // check if there are any empty recipients
         (
           this.inputExtras.map(a => a.emptyRecipient).findIndex(i => i) < 0 &&
-          this.sendDataMultiple.map(a => !!a.recipientAddress).findIndex(i => !i) < 0
+          this.recipients.map(a => !!a.recipientAddress).findIndex(i => !i) < 0
         )
       )
     },
@@ -519,7 +519,7 @@ export default {
       return (
         this.showSlider &&
         !this.isNFT &&
-        this.sendDataMultiple.length < 10 &&
+        this.recipients.length < 10 &&
         // check if user clicked MAX on any recipient (disable button if yes)
         this.inputExtras
           .map(data => data.setMax)
@@ -544,19 +544,19 @@ export default {
           this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
         }
 
-        for (let i = 0; i < this.sendDataMultiple.length; i++) {
-          const amount = this.sendDataMultiple[i]?.amount
+        for (let i = 0; i < this.recipients.length; i++) {
+          const amount = this.recipients[i]?.amount
           if (!amount || amount <= 0) return
 
-          this.sendDataMultiple[i].fiatAmount = this.convertToFiatAmount(amount)
-          this.sendDataMultiple[i].amount = sendPageUtils.convertFiatToSelectedAsset(
-            this.sendDataMultiple[i].fiatAmount, this.selectedAssetMarketPrice
+          this.recipients[i].fiatAmount = this.convertToFiatAmount(amount)
+          this.recipients[i].amount = sendPageUtils.convertFiatToSelectedAsset(
+            this.recipients[i].fiatAmount, this.selectedAssetMarketPrice
           )
           this.inputExtras[i].fiatFormatted = formatWithLocale(
-            this.sendDataMultiple[i].fiatAmount, this.decimalObj(true)
+            this.recipients[i].fiatAmount, this.decimalObj(true)
           )
           this.inputExtras[i].amountFormatted = formatWithLocale(
-            this.sendDataMultiple[i].amount, this.decimalObj(false)
+            this.recipients[i].amount, this.decimalObj(false)
           )
         }
       }
@@ -564,7 +564,7 @@ export default {
     manualAddress (address) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         address,
-        this.sendDataMultiple.map(a => a.recipientAddress),
+        this.recipients.map(a => a.recipientAddress),
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
@@ -608,14 +608,14 @@ export default {
       let amountValue = null
       let currency = null
       let fungibleTokenAmount = null
-      const currentRecipient = vm.sendDataMultiple[vm.currentRecipientIndex]
+      const currentRecipient = vm.recipients[vm.currentRecipientIndex]
       const currentInputExtras = vm.inputExtras[vm.currentRecipientIndex]
 
       // check if address is a legacy address, it is a duplicate,
       // or if it is the same as the current wallet's address
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         content,
-        vm.sendDataMultiple.map(a => a.recipientAddress),
+        vm.recipients.map(a => a.recipientAddress),
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
@@ -778,10 +778,10 @@ export default {
       const jppAmount = this.jpp.total / 10 ** 8
       this.totalAmountSent = jppAmount
       this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
-      this.sendDataMultiple[0].amount = jppAmount
-      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs
+      this.recipients[0].amount = jppAmount
+      this.recipients[0].recipientAddress = this.jpp.parsed.outputs
         .slice(0, 10).map(output => output.address).join(', ')
-      this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
+      this.recipients[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)
       this.txTimestamp = Date.now()
       this.sending = false
@@ -792,7 +792,7 @@ export default {
     onBIP21Amount (value) {
       const amount = sendPageUtils.getBIP21Amount(value)
       if (!Number.isNaN(amount)) {
-        const currentSendData = this.sendDataMultiple[this.currentRecipientIndex]
+        const currentSendData = this.recipients[this.currentRecipientIndex]
         const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
 
         currentSendData.amount = amount
@@ -830,7 +830,7 @@ export default {
 
     // max button
     async setMaximumSendAmount () {
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       currentInputExtras.setMax = true
       
@@ -854,10 +854,10 @@ export default {
       }
 
       // remove recipients except for the one where MAX was clicked
-      const remainingRecipient = this.sendDataMultiple.filter((_a, i) => i === this.currentRecipientIndex)
+      const remainingRecipient = this.recipients.filter((_a, i) => i === this.currentRecipientIndex)
       const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentRecipientIndex)
 
-      this.sendDataMultiple = remainingRecipient
+      this.recipients = remainingRecipient
       this.inputExtras = remainingInputExtras
       this.currentRecipientIndex = 0
       this.expandedItems = { R1: true }
@@ -867,7 +867,7 @@ export default {
 
     // keyboard
     setAmount (key) {
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
 
@@ -919,7 +919,7 @@ export default {
     },
 
     makeKeyAction (action) {
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
 
@@ -970,10 +970,10 @@ export default {
 
     // add/remove recipient
     addAnotherRecipient () {
-      const recipientsLength = this.sendDataMultiple.length
+      const recipientsLength = this.recipients.length
 
       if (recipientsLength < 10) {
-        this.sendDataMultiple.push({
+        this.recipients.push({
           amount: '',
           fiatAmount: '',
           fixedAmount: false,
@@ -1001,7 +1001,7 @@ export default {
     removeLastRecipient (index) {
       delete this.expandedItems[`R${index}`]
       this.expandedItems[`R${index + 1}`] = true
-      this.sendDataMultiple.splice(index, 1)
+      this.recipients.splice(index, 1)
       this.inputExtras.splice(index, 1)
       this.sliderStatus = true
     },
@@ -1029,7 +1029,7 @@ export default {
     },
     async handleSubmit () {
       const vm = this
-      const toSendData = vm.sendDataMultiple
+      const toSendData = vm.recipients
 
       // check if total amount being sent is greater than current wallet amount
       const totalAmount = toSendData
@@ -1241,17 +1241,17 @@ export default {
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
-        this.sendDataMultiple.map(a => a.recipientAddress),
+        this.recipients.map(a => a.recipientAddress),
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
       if (isDuplicate) {
         sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
-        this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = ''
+        this.recipients[this.currentRecipientIndex].recipientAddress = ''
         return
       }
 
-      this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = value
+      this.recipients[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
       this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
@@ -1277,7 +1277,7 @@ export default {
     },
     generateKeys (index) {
       const keys = []
-      keys.push(...Object.entries(this.sendDataMultiple[index]))
+      keys.push(...Object.entries(this.recipients[index]))
       keys.push(...Object.entries(this.inputExtras[index]))
       return keys
     },
@@ -1301,13 +1301,13 @@ export default {
     },
     adjustWalletBalance () {
       this.currentWalletBalance = sendPageUtils.adjustWalletBalance(
-        this.asset, this.sendDataMultiple.map(a => Number(a.amount))
+        this.asset, this.recipients.map(a => Number(a.amount))
       )
     },
 
     // address checking/validation
     checkAddressValidity (address) {
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
 
       if (address.indexOf('?') > -1) {
         const amount = sendPageUtils.getBIP21Amount(address)
@@ -1469,14 +1469,14 @@ export default {
     const vm = this
 
     if (vm.assetId && vm.amount && vm.recipient) {
-      vm.sendDataMultiple[0].amount = vm.amount
-      vm.sendDataMultiple[0].fixedAmount = vm.fixed
-      vm.sendDataMultiple[0].recipientAddress = vm.recipient
+      vm.recipients[0].amount = vm.amount
+      vm.recipients[0].fixedAmount = vm.fixed
+      vm.recipients[0].recipientAddress = vm.recipient
       vm.scanner.show = false
       vm.sliderStatus = true
     }
 
-    if (vm.isNFT) vm.sendDataMultiple[0].amount = 0.00001
+    if (vm.isNFT) vm.recipients[0].amount = 0.00001
   }
 }
 </script>

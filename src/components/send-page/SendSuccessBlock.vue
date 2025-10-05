@@ -49,7 +49,7 @@
       </div>
 
       <div
-        v-if="jpp && sendDataMultiple[0]?.paymentAckMemo !== undefined"
+        v-if="jpp && recipients[0]?.paymentAckMemo !== undefined"
         class="row justify-center"
       >
         <div
@@ -59,7 +59,7 @@
           <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">
             {{ $t('Memo') }}:
           </span>
-          {{ sendDataMultiple[0].paymentAckMemo }}
+          {{ recipients[0].paymentAckMemo }}
         </div>
       </div>
       <q-item
@@ -104,7 +104,7 @@ export default {
 
     asset: { type: Object, default: Object },
     jpp: { type: Object, default: Object },
-    sendDataMultiple: { type: Object, default: Object },
+    recipients: { type: Object, default: Object },
 
     currentSendPageCurrency: { type: Function },
     convertToFiatAmount: { type: Function }
@@ -135,7 +135,7 @@ export default {
           }
         })
       } else {
-        return this.sendDataMultiple.map(value => {
+        return this.recipients.map(value => {
           const amount = parseAssetDenomination(
             this.denomination, { ...this.asset, balance: value.amount }
           )
