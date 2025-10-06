@@ -227,7 +227,8 @@ function formatTokenAmount(tokenData) {
   const parsedAmount = tokenData?.amount / 10 ** decimals
   if (!parsedAmount) return tokenData?.amount
   const symbol = asset?.symbol
-  return `${parsedAmount} ${symbol}`
+  const parsedAmountText = parsedAmount.toLocaleString('en-us', { maximumFractionDigits: decimals })
+  return `${parsedAmountText} ${symbol}`
 }
 </script>
 <style lang="scss" scoped>

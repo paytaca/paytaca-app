@@ -1,5 +1,5 @@
-import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from "cashscript0.10.0";
-import { getOutputSize } from "cashscript0.10.0/dist/utils";
+import { ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from "cashscript";
+import { getOutputSize } from "cashscript/dist/utils";
 import { toTokenAddress } from "src/utils/crypto";
 import { watchtowerUtxoToCashscript } from "src/utils/utxo-utils";
 
@@ -101,7 +101,7 @@ export async function generateEscrowFundingTransaction(bchWallet, escrowContract
  * @param {Object} opts
  * @param {import("./contracts/escrow").Escrow} opts.escrow
  * @param {import("./contracts/escrow/scripts/settlement").SettlementType} opts.settlementType
- * @param {import("cashscript0.10.0").Utxo[]} opts.utxos
+ * @param {import("cashscript").Utxo[]} opts.utxos
  * @param {String} opts.wif
  */
 export async function generateSettlementTransaction(opts) {
@@ -114,7 +114,7 @@ export async function generateSettlementTransaction(opts) {
  * @param {Object} opts
  * @param {import("./contracts/escrow").Escrow} opts.escrow
  * @param {import("./contracts/escrow/scripts/settlement").SettlementType} opts.settlementType
- * @param {import("cashscript0.10.0").Utxo[]} opts.utxos
+ * @param {import("cashscript").Utxo[]} opts.utxos
  * @param {String} wif
  */
 async function generateSettlementTransactionV1(opts) {
@@ -132,7 +132,7 @@ async function generateSettlementTransactionV1(opts) {
  * @param {Object} opts
  * @param {import("./contracts/escrow").Escrow} opts.escrow
  * @param {import("./contracts/escrow/scripts/settlement").SettlementType} opts.settlementType
- * @param {import("cashscript0.10.0").Utxo[]} opts.utxos
+ * @param {import("cashscript").Utxo[]} opts.utxos
  * @param {String} wif
  */
 async function generateSettlementTransactionV3(opts) {

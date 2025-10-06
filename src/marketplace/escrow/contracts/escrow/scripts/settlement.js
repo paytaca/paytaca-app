@@ -15,7 +15,7 @@ import { generateCommitment } from "../../../utils.js";
 export function createEscrowSettlementOutputs(opts) {
   const { escrow, settlementType } = opts;
   if (['v1', 'v2'].includes(escrow?.version)) {
-    return createEscrowSettlementOutputsV1(escrow, settlementType)
+    return createEscrowSettlementOutputsV1(escrow, settlementType, opts?.lockNftCategory)
   }
 
   if (settlementType === 'release') {
@@ -31,9 +31,10 @@ export function createEscrowSettlementOutputs(opts) {
  * For escrow V1 and V2, constructs output for all settlement types
  * @param {Escrow} escrow 
  * @param {SettlementType} settlementType 
+ * @param {String} lockNftCategory
  * @returns {import("cashscript").Output[]}
  */
-function createEscrowSettlementOutputsV1(escrow, settlementType) {
+function createEscrowSettlementOutputsV1(escrow, settlementType, lockNftCategory) {
   if (settlementType === 'full_refund') {
     const refundAmount = BigInt(
       escrow.fundingAmounts.amount +
@@ -71,7 +72,7 @@ function createEscrowSettlementOutputsV1(escrow, settlementType) {
         to: deliveryFeePoolTokenAddr,
         amount: BigInt(escrow.fundingAmounts.deliveryFee),
         token: {
-          category: deliveryFeeCategory,
+          category: lockNftCategory,
           amount: 0n,
           nft: {
             capability: 'none',

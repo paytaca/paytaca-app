@@ -1,6 +1,5 @@
 import { ElectrumNetworkProvider, Network } from "cashscript"
-import { Contract, SignatureTemplate } from 'cashscript0.10.0'
-import { compileString } from "cashc0.10.0"
+import { Contract, SignatureTemplate } from 'cashscript'
 import { getChangeAddress } from "src/utils/send-page-utils"
 import { getMnemonic, Wallet } from "src/wallet"
 import { markRaw } from "vue"
@@ -11,7 +10,7 @@ import { getWalletTokenAddress } from "src/utils/engagementhub-utils/rewards"
 import axios from "axios"
 import Watchtower from "watchtower-cash-js"
 
-import PromoContractCash from 'src/cashscripts/rewards/PromoContract.cash'
+import PromoContractArtifact from 'src/cashscripts/rewards/PromoContract.json'
 
 const watchtower = new Watchtower(false)
 const promoTokensDecimals = 2
@@ -37,11 +36,9 @@ export default class PromoContract {
    * @param {Uint8Array<ArrayBufferLike>} pubKey the public key derived from the user's wallet mnemonic
    */
   initializeContract (pubKey) {
-    const artifact = compileString(PromoContractCash)
     const provider = new ElectrumNetworkProvider(Network.MAINNET)
     const contractParams = [pubKey, this.promo]
-
-    this.contract = new Contract(artifact, contractParams, { provider })
+    this.contract = new Contract(PromoContractArtifact, contractParams, { provider })
   }
 
   /**

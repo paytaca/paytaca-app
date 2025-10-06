@@ -1,5 +1,5 @@
 import { hexToBin } from 'bitauth-libauth-v3'
-import { SignatureTemplate } from 'cashscript0.10.0'
+import { SignatureTemplate } from 'cashscript'
 import { Wallet } from 'src/wallet'
 import { LibauthHDWallet } from 'src/wallet/bch-libauth'
 import { getWalletByNetwork } from 'src/wallet/chipnet'

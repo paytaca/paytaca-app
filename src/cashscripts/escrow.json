@@ -1,0 +1,76 @@
+{
+    "contractName": "Escrow",
+    "constructorInputs": [
+        {
+            "name": "arbiter",
+            "type": "bytes20"
+        },
+        {
+            "name": "buyer",
+            "type": "bytes20"
+        },
+        {
+            "name": "seller",
+            "type": "bytes20"
+        },
+        {
+            "name": "servicer",
+            "type": "bytes20"
+        },
+        {
+            "name": "tradingFee",
+            "type": "int"
+        },
+        {
+            "name": "arbitrationFee",
+            "type": "int"
+        },
+        {
+            "name": "paramHash",
+            "type": "bytes32"
+        }
+    ],
+    "abi": [
+        {
+            "name": "release",
+            "inputs": [
+                {
+                    "name": "pk",
+                    "type": "pubkey"
+                },
+                {
+                    "name": "s",
+                    "type": "sig"
+                },
+                {
+                    "name": "hash",
+                    "type": "bytes32"
+                }
+            ]
+        },
+        {
+            "name": "refund",
+            "inputs": [
+                {
+                    "name": "pk",
+                    "type": "pubkey"
+                },
+                {
+                    "name": "s",
+                    "type": "sig"
+                },
+                {
+                    "name": "hash",
+                    "type": "bytes32"
+                }
+            ]
+        }
+    ],
+    "bytecode": "OP_7 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_10 OP_ROLL OP_7 OP_ROLL OP_EQUALVERIFY OP_7 OP_PICK OP_HASH160 OP_OVER OP_EQUAL OP_8 OP_PICK OP_HASH160 OP_4 OP_ROLL OP_EQUAL OP_BOOLOR OP_VERIFY OP_7 OP_ROLL OP_7 OP_ROLL OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY e803 OP_4 OP_PICK OP_ADD OP_5 OP_PICK OP_ADD OP_INPUTINDEX OP_UTXOVALUE OP_SWAP OP_SUB OP_0 OP_OUTPUTVALUE OP_NUMEQUAL OP_1 OP_OUTPUTVALUE OP_5 OP_ROLL OP_NUMEQUAL OP_2 OP_OUTPUTVALUE OP_6 OP_ROLL OP_NUMEQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY 76a914 OP_ROT OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_2 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_NIP OP_ELSE OP_7 OP_ROLL OP_1 OP_NUMEQUALVERIFY OP_9 OP_ROLL OP_7 OP_ROLL OP_EQUALVERIFY OP_6 OP_PICK OP_HASH160 OP_OVER OP_EQUALVERIFY OP_7 OP_ROLL OP_7 OP_ROLL OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY e803 OP_5 OP_PICK OP_ADD OP_6 OP_PICK OP_ADD OP_INPUTINDEX OP_UTXOVALUE OP_SWAP OP_SUB OP_0 OP_OUTPUTVALUE OP_NUMEQUAL OP_1 OP_OUTPUTVALUE OP_6 OP_ROLL OP_NUMEQUAL OP_2 OP_OUTPUTVALUE OP_7 OP_ROLL OP_NUMEQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_4 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_2 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_NIP OP_ENDIF",
+    "source": "pragma cashscript ^0.8.0;\n\ncontract Escrow(bytes20 arbiter, bytes20 buyer, bytes20 seller, bytes20 servicer, int tradingFee, int arbitrationFee, bytes32 paramHash) {\n\n    function release(pubkey pk, sig s, bytes32 hash) {\n        require(hash == paramHash);\n        require(hash160(pk) == arbiter || hash160(pk) == seller);\n        require(checkSig(s, pk));\n\n        require(tx.inputs.length == 1);\n        require(tx.outputs.length == 3);\n\n        int minerFee = 1000;\n        int fees = minerFee + tradingFee + arbitrationFee;\n        int amount = tx.inputs[this.activeInputIndex].value - fees;        \n        \n        bool correctAmount = tx.outputs[0].value == amount;\n        bool correctTradingFee = tx.outputs[1].value == tradingFee;\n        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;\n        \n        require(correctAmount && correctTradingFee && correctArbitrationFee);\n\n        bytes25 buyerLock = new LockingBytecodeP2PKH(buyer);\n        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);\n        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);\n        \n        bool sendsToBuyer = tx.outputs[0].lockingBytecode == buyerLock;\n        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;\n        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;\n        \n        require(sendsToBuyer && sendsToServicer && sendsToArbiter);\n    }\n\n    function refund(pubkey pk, sig s, bytes32 hash) {\n        require(hash == paramHash);\n        require(hash160(pk) == arbiter);\n        require(checkSig(s, pk));\n\n        require(tx.inputs.length == 1);\n        require(tx.outputs.length == 3);\n\n        int minerFee = 1000;\n        int fees = minerFee + tradingFee + arbitrationFee;\n        int amount = tx.inputs[this.activeInputIndex].value - fees;        \n        \n        bool correctAmount = tx.outputs[0].value == amount;\n        bool correctTradingFee = tx.outputs[1].value == tradingFee;\n        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;\n\n        require(correctAmount && correctTradingFee && correctArbitrationFee);\n\n        bytes25 sellerLock = new LockingBytecodeP2PKH(seller);\n        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);\n        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);\n        \n        bool sendsToSeller = tx.outputs[0].lockingBytecode == sellerLock;\n        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;\n        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;\n        \n        require(sendsToSeller && sendsToServicer && sendsToArbiter);\n    }\n}",
+    "compiler": {
+        "name": "cashc",
+        "version": "0.8.2"
+    },
+    "updatedAt": "2025-09-18T04:21:08.077Z"
+}
