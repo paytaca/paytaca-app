@@ -9,6 +9,10 @@ const denomDecimalPlaces = {
   DEEM: { convert: 10 ** 5, decimal: 0 }
 }
 
+export function getDenomDecimals(denomination) {
+  return denomDecimalPlaces[denomination] ?? denomDecimalPlaces.DEEM
+}
+
 function getCountryCode () {
   return Store.getters['global/country'].code
 }
@@ -45,7 +49,7 @@ export function getLocaleSeparators () {
     const decimal = parts.find(p => p.type === 'decimal')?.value ?? '.'
     const group = parts.find(p => p.type === 'group')?.value ?? (decimal === '.' ? ',' : '.')
     return { group, decimal }
-  } catch (e) {
+  } catch {
     return { group: ',', decimal: '.' }
   }
 }
@@ -91,7 +95,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
 
   if (isBCH) {
     // fallback condition for translated 'DEEM'
-    const { convert, decimal } = denomDecimalPlaces[denomination] ?? denomDecimalPlaces.DEEM
+    const { convert, decimal } = getDenomDecimals(denomination)
     let calculatedBalance = ''
 
     if (isInput) {
@@ -137,7 +141,7 @@ export function parseFiatCurrency (amount, currency) {
 }
 
 export function convertToBCH (denomination, amount) {
-  const { convert } = denomDecimalPlaces[denomination] ?? denomDecimalPlaces.DEEM
+  const { convert } = getDenomDecimals(denomination)
   return denomination === 'BCH' ? amount : (amount / convert).toFixed(8)
 }
 
