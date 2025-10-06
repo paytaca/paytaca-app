@@ -35,7 +35,7 @@
           inputmode="none"
           class="col-12"
           ref="input-tkn"
-          v-model="amountTkn"
+          v-model="amountFormatted"
           @focus="customKeyboardState = 'show'"
           :label="$t('Amount')"
           :dark="darkMode"
@@ -134,7 +134,7 @@
 
 <script>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-import { parseKey } from "src/utils/custom-keyboard-utils";
+import { formatWithLocaleSelective, parseKey } from "src/utils/custom-keyboard-utils";
 import { getOracleData, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
@@ -165,6 +165,7 @@ export default {
 
       intervalId: null,
       customKeyboardState: "dismiss",
+      amountFormatted: '0',
       amountUsd: 0,
       amountBch: 0,
       amountTkn: 0,
@@ -232,6 +233,13 @@ export default {
       const currentCaret = this.$refs["input-tkn"].nativeEl.selectionStart;
       const parsedAmount = parseKey(key, currentAmount, currentCaret, null);
 
+      if (String(key) === '.' || String(key) === '0') {
+        this.amountFormatted = formatWithLocaleSelective(
+          parsedAmount, this.amountFormatted, String(key), { min: 0, max: 2 }
+        )
+      } else
+        this.amountFormatted = formatWithLocale(parsedAmount, { min: 0, max: 2 })
+
       this.amountTkn = parsedAmount;
       this.computeUsdBch();
       this.computeBalances();
@@ -241,13 +249,16 @@ export default {
         this.$refs["input-tkn"].nativeEl.focus({ focusVisible: true });
         try {
           this.amountTkn = this.amountTkn.slice(0, -1);
+          this.amountFormatted = formatWithLocale(this.amountTkn, { min: 0, max: 2 })
         } catch {
+          this.amountFormatted = '0'
           this.amountBch = 0;
           this.amountUsd = 0;
           this.amountTkn = 0;
         }
       } else if (action === "delete") {
         this.$refs["input-tkn"].nativeEl.focus({ focusVisible: true });
+        this.amountFormatted = '0'
         this.amountBch = 0;
         this.amountUsd = 0;
         this.amountTkn = 0;
