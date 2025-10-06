@@ -405,8 +405,8 @@ export default {
         paymentAckMemo: ''
       }],
       inputExtras: [{
-        amountFormatted: '',
-        fiatFormatted: '',
+        amountFormatted: '0',
+        fiatFormatted: '0',
         balanceExceeded: false,
         setMax: false,
         emptyRecipient: false,
@@ -894,7 +894,6 @@ export default {
 
       const currentAmount = parseKey(key, currentSendAmount, caret, this.asset)
 
-      // Set the new amount
       if (this.focusedInputField === 'fiat') {
         currentRecipient.fiatAmount = currentAmount
         currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
@@ -924,6 +923,9 @@ export default {
       }
 
       this.adjustWalletBalance()
+      sendPageUtils.addRemoveInputFocus(
+        this.currentRecipientIndex, this.focusedInputField
+      )
     },
 
     makeKeyAction (action) {
@@ -940,37 +942,50 @@ export default {
         fiatCaretPosition = currentRecipient.fiatAmount.length - 1
 
       if (action === 'backspace') {
-        if (this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
-          currentRecipient.fiatAmount = adjustSplicedAmount(
-            currentRecipient.fiatAmount, fiatCaretPosition
+        try {
+          if (this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
+            currentRecipient.fiatAmount = adjustSplicedAmount(
+              currentRecipient.fiatAmount, fiatCaretPosition
+            )
+            currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
+              currentRecipient.fiatAmount, this.selectedAssetMarketPrice
+            )
+          } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
+            currentRecipient.amount = adjustSplicedAmount(
+              currentRecipient.amount, amountCaretPosition
+            )
+            currentRecipient.fiatAmount = this.convertToFiatAmount(currentRecipient.amount)
+          }
+  
+          currentInputExtras.fiatFormatted = formatWithLocale(
+            currentRecipient.fiatAmount, this.decimalObj(true)
           )
-          currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
-            currentRecipient.fiatAmount, this.selectedAssetMarketPrice
+          currentInputExtras.amountFormatted = formatWithLocale(
+            currentRecipient.amount, this.decimalObj(false)
           )
-        } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
-          currentRecipient.amount = adjustSplicedAmount(
-            currentRecipient.amount, amountCaretPosition
-          )
-          currentRecipient.fiatAmount = this.convertToFiatAmount(currentRecipient.amount)
+        } catch {
+          currentRecipient.fiatAmount = ''
+          currentRecipient.amount = ''
+          currentInputExtras.fiatFormatted = '0'
+          currentInputExtras.amountFormatted = '0'
         }
-
-        currentInputExtras.fiatFormatted = formatWithLocale(
-          currentRecipient.fiatAmount, this.decimalObj(true)
-        )
-        currentInputExtras.amountFormatted = formatWithLocale(
-          currentRecipient.amount, this.decimalObj(false)
+        sendPageUtils.addRemoveInputFocus(
+          this.currentRecipientIndex, this.focusedInputField
         )
       } else if (action === 'delete') {
         currentRecipient.fiatAmount = ''
         currentRecipient.amount = ''
-        currentInputExtras.fiatFormatted = ''
-        currentInputExtras.amountFormatted = ''
+        currentInputExtras.fiatFormatted = '0'
+        currentInputExtras.amountFormatted = '0'
+        sendPageUtils.addRemoveInputFocus(
+          this.currentRecipientIndex, this.focusedInputField
+        )
       } else {
         // Enabled submit slider
         this.sliderStatus = !currentInputExtras.balanceExceeded
         this.customKeyboardState = 'dismiss'
         this.focusedInputField = ''
-        sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, false, '')
+        sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, '')
       }
 
       this.adjustWalletBalance()
@@ -989,8 +1004,8 @@ export default {
           paymentAckMemo: ''
         })
         this.inputExtras.push({
-          amountFormatted: '',
-          fiatFormatted: '',
+          amountFormatted: '0',
+          fiatFormatted: '0',
           balanceExceeded: false,
           setMax: false,
           emptyRecipient: true,
@@ -1229,12 +1244,8 @@ export default {
     onInputFocus (value) {
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
-
-      sendPageUtils.addRemoveInputFocus(value.index, false, value.field)
-      sendPageUtils.addRemoveInputFocus(value.index, true, value.field)
-
-      if (value.field !== '') this.customKeyboardState = 'show'
-      else this.customKeyboardState = 'dismiss'
+      this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
+      sendPageUtils.addRemoveInputFocus(value.index, value.field)
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
@@ -1243,8 +1254,6 @@ export default {
       try {
         this.inputExtras[this.currentRecipientIndex].balanceExceeded = value
       } catch { }
-
-      sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, true, this.focusedInputField)
     },
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(

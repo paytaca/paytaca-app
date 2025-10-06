@@ -261,7 +261,6 @@ export function addRemoveInputFocus (index, inputFocus) {
 }
 
 function addRemoveClass (element, isFocus) {
-  console.log(element)
   if (isFocus)
     element?.classList.add('q-field--focused', 'q-field--highlighted')
   else
