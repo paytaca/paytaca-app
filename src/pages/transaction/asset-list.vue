@@ -215,6 +215,9 @@ export default {
 			} 
 		}	
 	},
+	unmount() {
+		this.$q.loading.hide()
+	},	
 	async mounted () {
 		this.$q.loading.show()
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
@@ -222,7 +225,6 @@ export default {
 
     await assetSettings.fetchUnlistedTokens()
     await this.getUnlistedTokens()
-    console.log('ignored: ', this.unlistedToken)
 
     await assetSettings.registerUser()
     
@@ -247,8 +249,6 @@ export default {
 
     // remove from asset list
     const temp = this.unlistedToken.map(token => token.id)
-
-    console.log('assetList: ', this.assetList)
     
     this.assetList = this.assetList.filter(asset => {
     	if (asset) { 
@@ -297,9 +297,7 @@ export default {
 	    		favorite: asset.favorite === 0 ? 1 : 0
 	    	}	    	
 	    	vm.$store.commit('assets/updateAssetFavorite',  temp)
-	    	const tempFavorites = this.assets.map(({id, favorite}) =>({ id, favorite }))
-
-	    	console.log('tempFavorites: ', tempFavorites)
+	    	const tempFavorites = this.assets.map(({id, favorite}) =>({ id, favorite }))	    
 
 	    	assetSettings.saveFavorites(tempFavorites)
 	    	vm.refreshList()
@@ -356,7 +354,7 @@ export default {
 	      })
 	    },
 	    saveCustomList () {
-	    	this.customList[this.selectedNetwork] = this.assets.map((asset) => asset.id)
+	    	this.customList[this.selectedNetwork] = this.assetList.map((asset) => asset.id)
 
 
 
@@ -395,8 +393,7 @@ export default {
 
 	        let temp = []
 
-	        temp = this.unlistedToken.map(asset => asset.id)
-	        console.log('unlisted Token: ', temp)
+	        temp = this.unlistedToken.map(asset => asset.id)	        
 
 	        await assetSettings.saveUnlistedTokens(temp)	        
 	      }

@@ -1,6 +1,7 @@
 <template>
-  <onboarding v-if="isOnboarding" @register="isOnboarding=false"/>   
-  <div v-else :class="theme" id="registration-container">
+  <!-- <onboarding v-if="isOnboarding" @register="isOnboarding=false"/>  
+  <div v-else :class="theme" id="registration-container"> --> 
+  <div :class="theme" id="registration-container">
     <div class="row q-pb-sm">
       <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
         <img src="~/assets/paytaca_logo.png" height="60" alt="">
@@ -399,7 +400,7 @@ export default {
       useTextArea: false,
       authenticationPhase: 'options',
       skipToBackupPhrase: false,
-      isOnboarding: this.isVaultEmpty//,
+      isOnboarding: false//this.isVaultEmpty//,
       // moveToReferral: false,
     }
   },

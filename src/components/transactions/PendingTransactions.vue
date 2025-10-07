@@ -23,12 +23,15 @@
         			</div>
         		</div>         		     	
         	</q-card>
-        	<q-card v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
+        	<div class="text-center" v-if="orderTotal > pending.length">
+        		<q-btn flat color="primary" @click="seeMoreOrders()">See More</q-btn>
+        	</div>
+        	<!-- <q-card v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
    				@click="selectTransaction(item.id, 'marketplace')"
         	>
         		<div class="row">
         			<div class="col-7">
-        				<!-- Label -->		        		
+        				<-- Label --		        		
 		        		<q-badge outline color="primary">Marketplace</q-badge>
 
 		        		<div class="q-pt-sm text-bold">Order# {{ item.id }}</div>     
@@ -42,7 +45,7 @@
         				</div>
         			</div>
         		</div>         		
-        	</q-card>
+        	</q-card> -->
         </div>
         <div style="height: 120px"></div>
 	</div>
@@ -77,7 +80,9 @@ export default {
 				limit: 10,
 				offset: 0				
 			},
-			fetchingOrders: false
+			fetchingOrders: false,
+			orderPage: 1,
+			orderTotal: 0,
 		}
 	},
 	computed: {
@@ -101,7 +106,7 @@ export default {
 	},
 	methods: {
 		getDarkModeClass,
-		async fetchOrders () {
+		async fetchOrders (overwrite = false) {
 			const vm = this 
 
 			vm.isSorted = false
@@ -109,19 +114,29 @@ export default {
 
 			let params = {
 				wallet_hash: this.$store.getters['global/getWallet']('bch').walletHash,
-				page_size: 10,
-				page: 1 
+				page_size: 3,
+				page: this.orderPage 
 			}
 
 			await backend.get(apiURL, { params: params})
-				.then(response => {										
-					this.pending = response.data.results
-					console.log('pending: ', this.pending)
+				.then(response => {
+					this.orderTotal = response.data.count
+					if (overwrite) {
+						this.pending.push(...response.data.results)
+					} else {
+						this.pending = response.data.results
+					}															
+					// console.log('pending: ', this.pending)
 
 				})
 				.catch(error => {
 					console.error(error)
 				})
+		},
+		seeMoreOrders () {
+			this.orderPage++
+
+			this.fetchOrders(true)
 		},
 		getStatus (type = 'buy') {
 			let temp = this.ongoingStatuses
