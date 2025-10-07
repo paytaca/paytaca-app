@@ -113,7 +113,7 @@ export default {
 		}
 	},
 	mounted() {
-		console.log('here: ', this.selectedDenomination)
+		// console.log('here: ', this.selectedDenomination)
 	},
 	methods: {
 		handleButton(name) {

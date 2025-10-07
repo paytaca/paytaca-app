@@ -162,8 +162,6 @@ export default {
 	      return order?.owner?.name
 	    },
 	    selectTransaction(orderID, type) {
-	    	console.log('order: ', orderID)
-
 	    	if (type === 'exchange') {
 	    		const params = {
 		    		order: orderID,

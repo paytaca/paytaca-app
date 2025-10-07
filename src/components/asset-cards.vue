@@ -44,6 +44,7 @@
 </template>
 
 <script>
+import * as assetSettings from 'src/utils/asset-settings'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
@@ -76,7 +77,10 @@ export default {
       assetClickTimer: null,
       darkMode: this.$store.getters['darkmode/getStatus'],
       scrollContainer: null,
-      scrollContainerClientX: null
+      scrollContainerClientX: null,
+      isloaded: false,
+      customListIDs: null,
+      customList: null
     }
   },
   computed: {
@@ -91,10 +95,36 @@ export default {
       return this.$store.getters['global/theme'] !== 'default'
     },
     filteredFavAssets () {
-      return this.assets.filter(asset => asset.favorite === 1)
+      if (this.customList) {        
+        return this.customList.filter(asset => asset.favorite === 1)            
+      }
+       
+      return this.assets.filter(asset => asset.favorite === 1)            
     }
   },
+  watch: {
+    customListIDs(val) {
+      if (val) {
+        this.getCustomAssetList()
+      }
+    }
+  },
+  async mounted() {
+    this.customListIDs = await assetSettings.fetchCustomList()    
+  },
   methods: {
+    async getCustomAssetList () {
+      let temp = []
+      for (const id of this.customListIDs[this.network]) {          
+          const asset = await this.$store.getters['assets/getAsset'](id)
+
+          if (asset) {            
+            temp.push(asset[0])
+          }         
+        }
+
+      this.customList = temp
+    },
     formatAssetTokenAmount(asset) {
       return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
         'en-US', { maximumFractionDigits: parseInt(asset?.decimals) || 0 },

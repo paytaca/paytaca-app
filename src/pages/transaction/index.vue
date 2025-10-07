@@ -1636,7 +1636,7 @@ export default {
         },
         component: AddNewAsset
       }).onOk((asset) => {
-        console.log('asset: ', )
+        // console.log('asset: ', )
         // vm.assetList = this.assets
         this.$router.push({ name: 'asset-list' })
         // if (asset.data?.id) vm.selectAsset(null, asset.data)
