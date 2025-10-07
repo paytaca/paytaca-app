@@ -402,7 +402,7 @@ export default {
       let url = ''
 
       if (this.isChipnet) {
-        url = ${process.env.TESTNET_EXPLORER_URL}
+        url = `${process.env.TESTNET_EXPLORER_URL}`
       } else {
         url = 'https://blockchair.com/bitcoin-cash'
       }
