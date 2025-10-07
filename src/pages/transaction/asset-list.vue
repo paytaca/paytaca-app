@@ -4,7 +4,7 @@
 	      :title="$t(isHongKong(currentCountry) ? 'Points' : 'Tokens')"
 	      backnavpath=""
 	    ></header-nav>
-		<div :class="darkmode ? 'text-white' : 'text-black'">
+		<div :class="darkmode ? 'text-white' : 'text-black'" v-if="isloaded">
 
 			<div class="row" v-if="!editAssets"> 
 				<div class="col">
@@ -145,7 +145,8 @@ export default {
 			showTokenSuggestionsDialog: false,
 			editAssets: false,
 			wallet: null,	
-			drag: false,				
+			drag: false,	
+			isloaded: false			
 		}
 	},
 	computed: {
@@ -207,9 +208,15 @@ export default {
 	watch: {
 		isCashToken () {
 			this.assetList = this.assets
-		}		
+		},
+		isloaded (val) {
+			if (val) {
+				this.$q.loading.hide()
+			} 
+		}	
 	},
 	async mounted () {
+		this.$q.loading.show()
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
     this.wallet = markRaw(wallet)
 
@@ -247,6 +254,8 @@ export default {
     			return !temp.includes(asset.id) 
     	}
     })
+
+    this.isloaded = true
     // this.fetchAssetInfo()
 
     // this.checkEmptyFavorites()
