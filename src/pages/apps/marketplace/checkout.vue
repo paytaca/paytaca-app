@@ -363,7 +363,11 @@
           </q-form>
         </q-tab-panel>
         <q-tab-panel name="payment" :dark="darkMode">
-          <q-banner v-if="formErrors?.payment?.deliveryFee || formErrors?.payment?.detail?.length" class="bg-red text-white rounded-borders q-mb-md">
+          <q-banner
+            v-if="formErrors?.payment?.deliveryFee || formErrors?.payment?.detail?.length"
+            class="bg-red text-white rounded-borders q-mb-md"
+            style="word-wrap: break-word;"
+          >
             <div v-for="(errorMsg, index) in formErrors?.payment?.detail" :key="index" class="banner-error">
               {{ errorMsg }}
             </div>
@@ -403,7 +407,7 @@
           <div class="row items-center">
             <q-space/>
             <div>
-              {{ checkoutBchPrice }} {{ checkoutCurrency }} / BCH
+              {{ parsedCheckoutBchPrice }} {{ checkoutCurrency }} / BCH
               <q-icon name="info" size="1.25em">
                 <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                   <div class="text-body2">{{ checkoutCurrency }} price at</div>
@@ -474,12 +478,17 @@
             </template>
           </div>
 
+          <PaymentSelectionPanel
+            v-if="checkout.balanceToPay > 0"
+            :checkout="checkout"
+            @newCheckoutData="setCheckoutData"
+          />
           <div v-if="loadingState.creatingPayment" class="text-center q-my-sm">
             <q-spinner size="3em"/>
             <div>Creating payment</div>
           </div>
-          <template v-if="checkout.balanceToPay > 0 && bchPaymentData.url">
-            <div v-if="payment.escrowContractAddress" class="q-mt-sm">
+          <template v-if="checkout.balanceToPay > 0">
+            <div v-if="payment?.escrowContractAddress" class="q-mt-sm">
               <q-card
                 class="q-pa-sm pt-card-2 text-bow"
                 :class="getDarkModeClass(darkMode)"
@@ -492,6 +501,7 @@
               </q-menu>
             </div>
             <q-btn
+              v-if="bchPaymentData?.fundingRequirements?.length"
               :disable="loadingState.creatingPayment"
               no-caps label="Pay with wallet"
               icon="mdi-wallet"
@@ -499,6 +509,7 @@
               @click="() => bchPaymentState.tab = 'wallet'"
             />
             <q-btn
+              v-if="bchPaymentData.url"
               :disable="loadingState.creatingPayment"
               no-caps
               :label="$t('ScanToPay')"
@@ -507,7 +518,7 @@
               @click="() => bchPaymentState.tab = 'qrcode'"
             />
           </template>
-          <div v-if="!(checkout.balanceToPay > 0) || forceShowReview" class="q-mt-sm">
+          <div v-if="!(checkout.balanceToPay > 0)" class="q-mt-sm">
             <q-btn
               :disable="loading"
               no-caps
@@ -530,9 +541,18 @@
                 </div>
                 <div class="text-center q-my-md" @click="() => showBchPaymentEscrowContract()">
                   <q-icon name="open_in_new" class="float-right button button-text-primary" :class="getDarkModeClass(darkMode)" />
-                  <div class="text-h5">{{ bchPaymentData?.bchAmount }} BCH</div>
-                  <div v-if="bchPaymentData?.fiatAmount" class="text-subtitle1 q-mb-md" style="line-height:0.75em;">
-                    {{ bchPaymentData?.fiatAmount }} {{ bchPaymentData?.currency }}
+                  <div class="text-h5">{{ fundingRequirementFiatAmounts?.totalSats / 10 ** 8 }} BCH</div>
+                  <div v-if="fundingRequirementFiatAmounts?.hasTokens" class="q-mb-sm">
+                    <div v-for="(tokenAmountData, index) in fundingRequirementFiatAmounts?.tokensWithAmount" :key="index" class="text-h6 text-weight-regular" style="margin-top:-0.4em;">
+                      {{ tokenAmountData?.tokenAmount }} {{ tokenAmountData?.tokenSymbol }}
+                    </div>
+                    <div v-if="fundingRequirementFiatAmounts?.tokensWithoutAmount?.length" class="text-subtitle2 text-weight-regular" style="margin-top:-0.4em;">
+                      + {{ fundingRequirementFiatAmounts?.tokensWithoutAmount?.length }}
+                      {{ fundingRequirementFiatAmounts?.tokensWithoutAmount?.length == 1 ? $t('Token') : $t('Tokens') }}
+                    </div>
+                  </div>
+                  <div v-if="fundingRequirementFiatAmounts?.totalFiatValue" class="text-subtitle1 q-mb-md" style="line-height:0.75em;">
+                    {{ fundingRequirementFiatAmounts?.totalFiatValue }} {{ bchPaymentData?.currency }}
                   </div>
                   <div class="text-body1" style="word-break: break-all;">{{ bchPaymentData?.address }}</div>
                 </div>
@@ -706,7 +726,7 @@
             <div>BCH Price:</div>
             <q-space/>
             <div class="row items-center">
-              <div>{{ checkoutBchPrice }} {{ checkoutCurrency }} / BCH</div>
+              <div>{{ parsedCheckoutBchPrice }} {{ checkoutCurrency }} / BCH</div>
               <q-icon name="info" size="1.25em"/>
               <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                 <div class="text-body2">{{ checkoutCurrency }} price at</div>
@@ -793,6 +813,7 @@ import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { Wallet, loadWallet } from 'src/wallet'
 import { Device } from '@capacitor/device';
 import { debounce, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onUnmounted, inject, onDeactivated, onActivated } from 'vue'
@@ -811,20 +832,15 @@ import RefundPaymentsDialog from 'src/components/marketplace/RefundPaymentsDialo
 import ImageViewerDialog from 'src/components/marketplace/ImageViewerDialog.vue'
 import CartItemsList from 'src/components/marketplace/product/CartItemsList.vue'
 import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDialog.vue'
+import PaymentSelectionPanel from 'src/components/marketplace/checkout/PaymentSelectionPanel.vue'
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import merchantLocationPin from 'src/assets/marketplace/merchant_map_marker_2.png'
 import { parseCashbackMessage } from 'src/utils/engagementhub-utils/engagementhub-utils'
+import { useCheckoutDetails } from 'src/composables/marketplace/checkout'
+import { compileEscrowSmartContract, sendEscrowPayment } from 'src/marketplace/escrow'
+import { useEscrowAmountsCalculator } from 'src/composables/marketplace/escrow'
 
-const forceShowReview = ref(false)
-onMounted(() => {
-  window.$c = {
-    toggleForceShowReview: () => forceShowReview.value = !forceShowReview.value,
-  }
-})
-onUnmounted(() => {
-  delete window.$c
-})
 
 const props = defineProps({
   checkoutId: [String, Number],
@@ -832,6 +848,7 @@ const props = defineProps({
   deliveryType: String,
 })
 
+const { t: $t } = useI18n()
 const $q = useQuasar()
 const $router = useRouter()
 const $store = useStore()
@@ -1166,47 +1183,30 @@ onUnmounted(() => unsubscribeCacheCartMutation?.())
 
 const fetchingCheckout = ref(false)
 const checkout = ref(Checkout.parse())
-const isStorePickup = computed(() => {
-  return checkout.value?.deliveryType === Checkout.DeliveryTypes.STORE_PICKUP &&
-    checkout.value.payment?.deliveryFee == 0
-})
 const fetchCheckoutError = ref('')
-const checkoutCurrency = computed(() => checkout.value?.currency?.symbol)
-const checkoutBchPrice = computed(() => checkout?.value?.payment?.bchPrice?.price || undefined)
+const {
+  isStorePickup,
+  checkoutCurrency, checkoutBchPrice, parsedCheckoutBchPrice,
+  checkoutAmounts,
+} = useCheckoutDetails(checkout)
 const displayBch = ref(true)
 watch(checkoutBchPrice, () => displayBch.value = displayBch.value && !isNaN(checkoutBchPrice))
-const checkoutAmounts = computed(() => {
-  const parseBch = num => Math.floor(num * 10 ** 8) / 10 ** 8
-  const data = {
-    subtotal: { currency: checkout.value?.cart?.markupSubtotal || 0, bch: 0 },
-    deliveryFee: { currency: checkout.value?.payment?.deliveryFee || 0, bch: 0 },
-    total: { currency: checkout.value?.total, bch: 0 },
-    totalPaymentsSent: { currency: parseFloat(checkout.value.totalPaymentsSent), bch: 0 },
-    balanceToPay: { currency: parseFloat(checkout.value?.balanceToPay), bch: 0 },
-    change: { currency: checkout.value?.change, bch: 0 },
-  }
 
-  if (!isNaN(checkoutBchPrice.value)) {
-    data.subtotal.bch = parseBch(data.subtotal.currency / checkoutBchPrice.value)
-    data.deliveryFee.bch = parseBch(data.deliveryFee.currency / checkoutBchPrice.value)
-    data.total.bch = parseBch(data.total.currency / checkoutBchPrice.value)
-    data.totalPaymentsSent.bch = parseBch(data.totalPaymentsSent.currency / checkoutBchPrice.value)
-    data.balanceToPay.bch = parseBch(data.balanceToPay.currency / checkoutBchPrice.value)
-    data.change.bch = parseBch(data.change.currency / checkoutBchPrice.value)
-  } else {
-    data.subtotal.bch = null
-    data.deliveryFee.bch = null
-    data.total.bch = null
-    data.totalPaymentsSent.bch = null
-    data.balanceToPay.bch = null
-    data.change.bch = null
-  }
-  return data
-})
 function toggleAmountsDisplay() {
   displayBch.value = !displayBch.value && !isNaN(checkoutBchPrice.value)
 }
 
+/**
+ * @param {Object} data
+ * @param {Object} opts
+ * @param {Object} opts.updateBchPrice
+ * @param {Object} opts.checkNewPayment
+ */
+function setCheckoutData(data, opts) {
+  checkout.value = Checkout.parse(data)
+  if (opts?.updateBchPrice) updateBchPrice({ age: 0 })
+  if (opts?.checkNewPayment && !payment.value && checkout.value?.balanceToPay > 0) attemptCreatePayment()
+}
 function fetchCheckout() {
   let request
 
@@ -1241,7 +1241,7 @@ function fetchCheckout() {
   return request.finally(() => {
     fetchCheckoutError.value = ''
   }).then(response => {
-    checkout.value = Checkout.parse(response?.data)
+    setCheckoutData(response?.data)
     if (!initialized.value) resetTabs()
     else enableTabs()
     return response
@@ -1267,9 +1267,11 @@ function updateBchPrice(opts={age: 60 * 1000, abortIfCompleted: true }) {
   if (!updateBchPricePromise.value) {
     loadingState.value.price = true
     updateBchPricePromise.value = checkout.value.updateBchPrice(opts)
+      .finally(() => {
+        updateBchPricePromise.value = undefined
+      })
       .then(() => resetFormData())
       .finally(() => loadingState.value.price = false)
-      .finally(() => updateBchPricePromise.value = undefined)
   }
   return updateBchPricePromise.value
 }
@@ -1534,7 +1536,19 @@ function savePayment() {
 const payments = ref([].map(Payment.parse))
 const payment = computed(() => {
   return payments.value.find(payment => {
-    return payment.status == 'pending' && payment.totalAmount == checkout.value.balanceToPay
+    const isPending = payment.status == 'pending';
+    const isEqualAmount = payment.totalAmount == checkout.value.balanceToPay;
+
+    if (!payment.escrowContract) return isPending && isEqualAmount;
+
+    const checkoutAmountCategory = checkout.value?.payment?.amountToken?.category || null;
+    const checkoutDeliveryFeeCategory = checkout.value?.payment?.deliveryFeeToken?.category || null;
+    const paymentAmountCategory = payment.escrowContract?.amountCategory || null;
+    const paymentDeliveryFeeCategory = payment.escrowContract?.deliveryFeeKeyNft?.category || null;
+    const isMatchingAssets = checkoutAmountCategory === paymentAmountCategory &&
+                            checkoutDeliveryFeeCategory === paymentDeliveryFeeCategory;
+
+    return isPending && isEqualAmount && isMatchingAssets;
   })
 })
 const showPaymentsListDialog = ref(false)
@@ -1602,8 +1616,8 @@ const createPayment = debounce(async () => {
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.escrow?.non_field_errors)
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.non_field_errors)
       if (!errorMsgs.length) errorMsgs = errorParser.toArray(data?.detail)
-      if (!errorMsgs.length) errorMsgs = errorParser.toArray(data)
-      if (!errorMsgs.length) errorMsgs = ["Unable to create payment"]
+      if (!errorMsgs.length && typeof data === 'string') errorMsgs = errorParser.toArray(data)
+      if (!errorMsgs.length) errorMsgs = [$t('UnableToCreatePayment')]
       formErrors.value.payment.detail = errorMsgs
     })
     .finally(() => {
@@ -1613,19 +1627,49 @@ const createPayment = debounce(async () => {
 }, 250)
 
 
+const fundingRequirements = computed(() => {
+  if (!payment.value?.escrowContract) return []
+  const escrow = compileEscrowSmartContract(payment.value.escrowContract)
+  return escrow.generateFundingOutputs()
+})
+
+const fundingRequirementFiatAmounts = computed(() => {
+  if (!payment.value?.bchPrice) return {}
+  if (!Array.isArray(fundingRequirements.value)) return {}
+  const { getFundingRequirementFiatValues } = useEscrowAmountsCalculator(
+    payment.value?.bchPrice, payment.value?.tokenPrices);
+
+  const amountsData = getFundingRequirementFiatValues(fundingRequirements.value);
+
+  const tokens = amountsData.filter(amountData => amountData?.category);
+  const tokensWithInfo = tokens.filter(tokens => tokens.tokenUnits && tokens.tokenSymbol)
+  const tokensWithoutInfo = tokens.filter(tokens => !tokens.tokenUnits || !tokens.tokenSymbol)
+  return {
+    totalSats: amountsData.reduce((subtotal, amountData) => subtotal + amountData.satoshis, 0),
+    totalFiatValue: amountsData.reduce((subtotal, amountData) => subtotal + amountData.fiatValue, 0),
+    tokensWithAmount: tokensWithInfo,
+    tokensWithoutAmount: tokensWithoutInfo,
+    hasTokens: tokensWithInfo.length > 0 || tokensWithoutInfo.length > 0,
+  }
+})
+
 const bchPaymentState = ref({ tab: '' })
 const bchPaymentData = computed(() => {
   const data = {
     escrowContract: payment.value?.escrowContract,
     bchPrice: payment.value?.bchPrice,
+    tokenPrices: payment.value?.tokenPrices,
     address: payment.value?.escrowContract?.address || payment.value?.escrowContractAddress,
     bchAmount: parseFloat(payment.value?.escrowContract?.bchAmounts?.total),
     fiatAmount: 0,
     currency: payment.value?.bchPrice?.currency?.symbol,
     url: '',
+    fundingRequirements: fundingRequirements.value,
   }
   if (!data.address || !data.bchAmount) return data
-  
+  if (fundingRequirements.value.length !== 1) return data
+  if (fundingRequirements.value.length === 1) data.bchAmount = fundingRequirements.value[0].amount / 10 ** 8;
+
   const fiatPrice = parseFloat(payment.value?.bchPrice?.price)
   if (fiatPrice) data.fiatAmount = Math.round(data.bchAmount * fiatPrice * 10 ** 3) / 10 ** 3
   data.url = `${data?.address}?amount=${data.bchAmount}`
@@ -1648,6 +1692,7 @@ watch(() => [payment.value?.escrowContractAddress], debounce(() => {
   payment.value?.fetchEscrowContract?.().then(() => checkPaymentFundingTx())
 }, 250))
 watch(() => [bchPaymentData.value?.address], () => {
+  if (!bchPaymentData.value?.address) return txListener.value?.disconnect?.()
   txListener.value.address = bchPaymentData.value?.address
   txListener.value.addListener(txListenerCallback)
   if (txListener.value.readyState != WebSocket.OPEN) txListener.value.connect()
@@ -1777,19 +1822,20 @@ async function sendBchPayment() {
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
-  const bchWallet = chipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
-  bchWallet.sendBch(amount, address, changeAddress)
+  sendEscrowPayment(bchPaymentData.value?.escrowContract, wallet.value, dialog)
     .then(async result => {
+      console.log('Escrow payment', result)
       if (!result.success) return Promise.reject(result)
 
       await asyncSleep(1000)
-      savePaymentFundingTx({ txid: result.txid, address: address }, { awaitCheckout: true }).then(() => {
+      fetchCheckout().then(() => {
         if (tabs.value.active == 'payment') nextTab()
         if (checkout.value.change <= 0) completeCheckout()
       })
       dialog.hide()
     })
     .catch(error => {
+      console.error('Escrow payment error', error)
       let errorMessage = error?.error || ''
       if (errorMessage.indexOf('not enough balance in sender') > -1) {
         errorMessage = 'Not enough balance to cover the send amount and transaction fee'
@@ -1820,6 +1866,10 @@ function checkPaymentFundingTx() {
           if (!checkout.value.balanceToPay && tabs.value.active == 'payment') nextTab()
         })
       return response
+    })
+    .catch(error => {
+      if (error?.response) return error?.response
+      return Promise.reject(error)
     })
     .finally(() => {
       loadingState.value.payment = false
@@ -1904,6 +1954,9 @@ watch(() => [
   payment.value?.escrowContract?.sellerAddress,
 ], () => updateCashbackAmount())
 async function updateCashbackAmount() {
+  if (!payment.value?.escrowContract) return
+  if (payment.value?.escrowContract?.amountCategory) return
+
   const deviceId = await Device.getId()
   const data = {
     merchant_address: payment.value?.escrowContract?.sellerAddress,
@@ -1925,12 +1978,16 @@ async function updateCashbackAmount() {
         merchantName: response?.data?.merchant_name,
         message: response?.data?.message,
       }
-      cashback.value.parsedMessage = parseCashbackMessage(
-        response?.data.message,
-        bch,
-        parseFiatCurrency(fiatAmount, checkoutCurrency.value),
-        response?.data?.merchant_name,
-      )
+      try {
+        cashback.value.parsedMessage = parseCashbackMessage(
+          response?.data.message,
+          bch,
+          parseFiatCurrency(fiatAmount, checkoutCurrency.value),
+          response?.data?.merchant_name,
+        )
+      } catch(error) {
+        console.error(error)
+      }
       return response
     })
 }

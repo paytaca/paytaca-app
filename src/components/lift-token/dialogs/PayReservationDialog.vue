@@ -22,8 +22,10 @@
       </div>
 
       <div class="row justify-between q-mb-md">
-        <span>{{ SaleGroupPrice[rsvp.sale_group] }} USD/LIFT</span>
-        <span>{{ currentUsdPrice }} USD/BCH</span>
+        <span>
+          {{ formatWithLocale(SaleGroupPrice[rsvp.sale_group]) }} USD/LIFT
+        </span>
+        <span>{{ formatWithLocale(currentUsdPrice) }} USD/BCH</span>
       </div>
 
       <div class="row full-width q-gutter-y-xs q-mb-xs">
@@ -33,7 +35,7 @@
           inputmode="none"
           class="col-12"
           ref="input-tkn"
-          v-model="amountTkn"
+          v-model="amountFormatted"
           @focus="customKeyboardState = 'show'"
           :label="$t('Amount')"
           :dark="darkMode"
@@ -132,12 +134,13 @@
 
 <script>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-import { parseKey } from "src/utils/custom-keyboard-utils";
-import { SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
+import { formatWithLocaleSelective, parseKey } from "src/utils/custom-keyboard-utils";
+import { getOracleData, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
   getAssetDenomination,
   parseFiatCurrency,
+  formatWithLocale
 } from "src/utils/denomination-utils";
 
 import CustomKeyboard from "src/pages/transaction/dialog/CustomKeyboard.vue";
@@ -162,12 +165,15 @@ export default {
 
       intervalId: null,
       customKeyboardState: "dismiss",
+      amountFormatted: '0',
       amountUsd: 0,
       amountBch: 0,
       amountTkn: 0,
       unpaidLift: 0,
       bchBalance: 0,
       tknBalance: 0,
+      currentUsdPrice: 0,
+      currentMessageTimestamp: 0
     };
   },
 
@@ -178,16 +184,6 @@ export default {
     selectedMarketCurrency() {
       const currency = this.$store.getters["market/selectedCurrency"];
       return currency?.symbol;
-    },
-    currentUsdPrice() {
-      let usdPrice = this.$store.getters["market/getAssetPrice"]("bch", "USD");
-      if (!usdPrice) {
-        this.$store.dispatch("market/updateAssetPrices", {
-          customCurrency: "USD",
-        });
-        usdPrice = this.$store.getters["market/getAssetPrice"]("bch", "USD");
-      }
-      return usdPrice || 0;
     },
     walletBalance() {
       const asset = this.$store.getters["assets/getAssets"][0];
@@ -200,6 +196,7 @@ export default {
     parseLiftToken,
     getAssetDenomination,
     parseFiatCurrency,
+    formatWithLocale,
 
     parseToken() {
       let tkn = this.rsvp.reserved_amount_tkn;
@@ -236,6 +233,13 @@ export default {
       const currentCaret = this.$refs["input-tkn"].nativeEl.selectionStart;
       const parsedAmount = parseKey(key, currentAmount, currentCaret, null);
 
+      if (String(key) === '.' || String(key) === '0') {
+        this.amountFormatted = formatWithLocaleSelective(
+          parsedAmount, this.amountFormatted, String(key), { min: 0, max: 2 }
+        )
+      } else
+        this.amountFormatted = formatWithLocale(parsedAmount, { min: 0, max: 2 })
+
       this.amountTkn = parsedAmount;
       this.computeUsdBch();
       this.computeBalances();
@@ -245,13 +249,16 @@ export default {
         this.$refs["input-tkn"].nativeEl.focus({ focusVisible: true });
         try {
           this.amountTkn = this.amountTkn.slice(0, -1);
+          this.amountFormatted = formatWithLocale(this.amountTkn, { min: 0, max: 2 })
         } catch {
+          this.amountFormatted = '0'
           this.amountBch = 0;
           this.amountUsd = 0;
           this.amountTkn = 0;
         }
       } else if (action === "delete") {
         this.$refs["input-tkn"].nativeEl.focus({ focusVisible: true });
+        this.amountFormatted = '0'
         this.amountBch = 0;
         this.amountUsd = 0;
         this.amountTkn = 0;
@@ -280,16 +287,17 @@ export default {
             rsvp: this.rsvp,
             wallet: this.wallet,
             liftSwapContractAddress: this.liftSwapContractAddress,
+            messageTimestamp: this.currentMessageTimestamp
           },
         })
         .onCancel(() => {
-          this.intervalId = setInterval(() => {
-            this.$store.dispatch("market/updateAssetPrices", {
-              customCurrency: "USD",
-            });
+          this.intervalId = setInterval(async () => {
+            const oracleData = await getOracleData()
+            this.currentUsdPrice = oracleData.price
+            this.currentMessageTimestamp = oracleData.messageTimestamp
             this.computeUsdBch();
             this.computeBalances();
-          }, 20000);
+          }, 60000);
         })
         .onOk(() => {
           this.$refs.purchaseDialogRef.$emit("ok");
@@ -298,18 +306,20 @@ export default {
     },
   },
 
-  mounted() {
-    this.$store.dispatch("market/updateAssetPrices", { customCurrency: "USD" });
+  async mounted() {
+    const oracleData = await getOracleData()
+    this.currentUsdPrice = oracleData.price
+    this.currentMessageTimestamp = oracleData.messageTimestamp
     this.computeUsdBch();
     this.computeBalances();
 
-    this.intervalId = setInterval(() => {
-      this.$store.dispatch("market/updateAssetPrices", {
-        customCurrency: "USD",
-      });
+    this.intervalId = setInterval(async () => {
+      const oracleData = await getOracleData()
+      this.currentUsdPrice = oracleData.price
+      this.currentMessageTimestamp = oracleData.messageTimestamp
       this.computeUsdBch();
       this.computeBalances();
-    }, 20000);
+    }, 60000);
   },
 
   unmounted() {

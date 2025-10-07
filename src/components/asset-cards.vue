@@ -27,7 +27,7 @@
         </div>
         <template v-else>
           <p v-if="!manageAssets" class="float-right text-no-wrap asset-balance">
-            {{ formatAssetTokenAmount(asset) }}
+            {{ parseAssetDenomination(denomination, { ...asset, excludeSymbol: true }) }}
           </p>
         </template>
 
@@ -45,9 +45,9 @@
 
 <script>
 import * as assetSettings from 'src/utils/asset-settings'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
-import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',
@@ -100,6 +100,9 @@ export default {
       }
        
       return this.assets.filter(asset => asset.favorite === 1)            
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
     }
   },
   watch: {
@@ -113,6 +116,7 @@ export default {
     this.customListIDs = await assetSettings.fetchCustomList()    
   },
   methods: {
+    parseAssetDenomination,
     async getCustomAssetList () {
       let temp = []
       for (const id of this.customListIDs[this.network]) {          

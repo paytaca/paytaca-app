@@ -7,7 +7,7 @@ import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { isValidTokenAddress } from 'src/wallet/chipnet'
 import { isTokenAddress } from 'src/utils/address-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { CashAddressType, decodeCashAddress, decodeCashAddressFormatWithoutPrefix, encodeCashAddress } from '@bitauth/libauth'
+import { decodeCashAddress, decodeCashAddressFormatWithoutPrefix } from '@bitauth/libauth'
 
 const { t: $t } = i18n.global
 
@@ -139,6 +139,8 @@ export function validateAddress (address, walletType, isCashToken) {
         ) {
           formattedAddress = addressObj.toCashAddress(address)
         }
+
+        new Address(address).toCashAddress()
       } else {
         addressIsValid = isTokenAddress(address.split('?c=')[0])
         formattedAddress = address
@@ -242,37 +244,25 @@ function checkIfWalletAddress (address, walletAddress, isLegacy) {
   return address === walletAddress
 }
 
-export function addRemoveInputFocus (index, isFocus, inputFocus) {
-  let element = null
-
-  if (isFocus) {
-    if (inputFocus === 'bch') {
-      const bchInput = document.getElementsByClassName('bch-input-field')
-      element = bchInput[index]
-    } else if (inputFocus === 'fiat') {
-      const fiatInput = document.getElementsByClassName('fiat-input-field')
-      element = fiatInput[index]
-    }
-
-    addRemoveClass(element, isFocus)
+export function addRemoveInputFocus (index, inputFocus) {
+  const bchInput = document.getElementsByClassName('bch-input-field')
+  const fiatInput = document.getElementsByClassName('fiat-input-field')
+  
+  if (inputFocus === 'bch') {
+    addRemoveClass(bchInput[index], true)
+    addRemoveClass(fiatInput[index], false)
+  } else if (inputFocus === 'fiat') {
+    addRemoveClass(bchInput[index], false)
+    addRemoveClass(fiatInput[index], true)
   } else {
-    const bchInput = document.getElementsByClassName('bch-input-field')
-    element = bchInput[index]
-    addRemoveClass(element, isFocus)
-
-    const fiatInput = document.getElementsByClassName('fiat-input-field')
-    element = fiatInput[index]
-    addRemoveClass(element, isFocus)
+    addRemoveClass(bchInput[index], false)
+    addRemoveClass(fiatInput[index], false)
   }
 }
 
 function addRemoveClass (element, isFocus) {
-  if (isFocus) {
-    element?.classList.add('q-field--focused')
-    element?.classList.add('q-field--highlighted')
-    element?.classList.add('q-field--float')
-  } else {
-    element?.classList.remove('q-field--focused')
-    element?.classList.remove('q-field--highlighted')
-  }
+  if (isFocus)
+    element?.classList.add('q-field--focused', 'q-field--highlighted')
+  else
+    element?.classList.remove('q-field--focused', 'q-field--highlighted')
 }

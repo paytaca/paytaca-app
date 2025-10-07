@@ -48,7 +48,7 @@
             <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
               <q-icon name="error" left/> {{ scanner.error }}
             </div>
-            <div class="row justify-center q-mt-xl" v-if="!scanner.show && sendDataMultiple[0]?.recipientAddress === ''">
+            <div class="row justify-center q-mt-xl" v-if="!scanner.show && recipients[0]?.recipientAddress === ''">
               <div id="paste-address-container" class="col-12">
                 <q-input
                   bottom-slots
@@ -62,7 +62,7 @@
                       name="arrow_forward_ios"
                       class="button button-icon"
                       :class="getDarkModeClass(darkMode)"
-                      @click="onScannerDecode(manualAddress)"
+                      @click="onScannerDecode(manualAddress, false)"
                     />
                   </template>
                 </q-input>
@@ -88,7 +88,7 @@
                     no-caps
                     class="button q-mb-lg q-mt-sm"
                     size="lg"
-                    @click="() => onScannerDecode(manualAddress)"
+                    @click="() => onScannerDecode(manualAddress, false)"
                   >
                     <div class="ellipsis" style="max-width:min(230px, 75vw); font-size: 17px;">
                       {{ $t('SendTo', {}, 'Send to') }}
@@ -124,12 +124,12 @@
             </div>
           </div>
           <div
-            v-if="!sent && sendDataMultiple[0].recipientAddress !== ''"
+            v-if="!sent && recipients[0].recipientAddress !== ''"
             class="q-px-lg"
             :style="isNFT ? 'margin-top: 25px' : ''"
           >
             <form class="q-pa-sm send-form" @submit.prevent="handleSubmit">
-              <q-list v-for="(recipient, index) in sendDataMultiple" v-bind:key="index">
+              <q-list v-for="(recipient, index) in recipients" v-bind:key="index">
                 <template v-if="!isNFT">
                   <q-expansion-item
                     default-opened
@@ -137,11 +137,18 @@
                     dense-toggle
                     class="q-expansion-item-recipient"
                     v-model="expandedItems[`R${index + 1}`]"
-                    :label="`${$t('Recipient')} #${index + 1}`"
                     :class="getDarkModeClass(darkMode)"
                   >
+                    <template v-slot:header>
+                      <span
+                        :class="inputExtras[index].incorrectAddress ? 'expansion-item-error' : ''"
+                      >
+                        {{ `${$t('Recipient')} #${index + 1}` }}
+                      </span>
+                    </template>
+
                     <SendPageForm
-                      :recipient="sendDataMultiple[index]"
+                      :recipient="recipients[index]"
                       :inputExtras="inputExtras[index]"
                       :asset="asset"
                       :index="index"
@@ -153,6 +160,7 @@
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
+                      :walletType="walletType"
                       @on-qr-scanner-click="onQRScannerClick"
                       @on-input-focus="onInputFocus"
                       @on-balance-exceeded="onBalanceExceeded"
@@ -165,7 +173,7 @@
                       ref="sendPageRef"
                     />
 
-                    <div class="row" v-if="sendDataMultiple.length > 1">
+                    <div class="row" v-if="recipients.length > 1">
                       <p class="remove-recipient-button" @click="removeLastRecipient(index)">
                         {{ $t('RemoveRecipient') }} #{{ index + 1 }}
                       </p>
@@ -175,7 +183,7 @@
 
                 <template v-else>
                   <SendPageForm
-                    :recipient="sendDataMultiple[index]"
+                    :recipient="recipients[index]"
                     :inputExtras="inputExtras[index]"
                     :asset="asset"
                     :index="index"
@@ -186,6 +194,7 @@
                     :currentWalletBalance="currentWalletBalance"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
+                    :walletType="walletType"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
                     @on-balance-exceeded="onBalanceExceeded"
@@ -239,7 +248,7 @@
               :txid="txid"
               :txTimestamp="txTimestamp"
               :jpp="jpp"
-              :sendDataMultiple="sendDataMultiple"
+              :recipients="recipients"
             />
           </template>
         </div>
@@ -262,15 +271,23 @@ import {
   convertTokenAmount
 } from 'src/wallet/chipnet'
 import {
-  parseAssetDenomination,
   getAssetDenomination,
   parseFiatCurrency,
   convertToBCH,
-  customNumberFormatting
+  customNumberFormatting,
+  formatWithLocale,
+  getDenomDecimals
 } from 'src/utils/denomination-utils'
-import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
+import {
+  parseKey,
+  adjustSplicedAmount,
+  formatWithLocaleSelective
+} from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
-import { processCashinPoints, processOnetimePoints } from 'src/utils/engagementhub-utils/rewards'
+import {
+  processCashinPoints,
+  processOnetimePoints
+} from 'src/utils/engagementhub-utils/rewards'
 
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
@@ -380,15 +397,16 @@ export default {
         error: '',
         decodedContent: ''
       },
-      sendDataMultiple: [{
-        amount: null,
+      recipients: [{
+        amount: '',
+        fiatAmount: '',
         fixedAmount: false,
         recipientAddress: '',
         paymentAckMemo: ''
       }],
       inputExtras: [{
-        amountFormatted: '',
-        sendAmountInFiat: '',
+        amountFormatted: '0',
+        fiatFormatted: '0',
         balanceExceeded: false,
         setMax: false,
         emptyRecipient: false,
@@ -396,7 +414,8 @@ export default {
         isBip21: false,
         isLegacyAddress: false,
         isWalletAddress: false,
-        cashbackData: null
+        cashbackData: null,
+        incorrectAddress: false
       }],
       expandedItems: {},
 
@@ -486,13 +505,13 @@ export default {
       return (
         !this.sending && !this.sent && this.sliderStatus &&
         // check if amount is greater than zero
-        this.sendDataMultiple.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
+        this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
         // check if there are any amount that exceeded current balance
         this.inputExtras.map(a => a.balanceExceeded).findIndex(i => i) < 0 &&
         // check if there are any empty recipients
         (
           this.inputExtras.map(a => a.emptyRecipient).findIndex(i => i) < 0 &&
-          this.sendDataMultiple.map(a => !!a.recipientAddress).findIndex(i => !i) < 0
+          this.recipients.map(a => !!a.recipientAddress).findIndex(i => !i) < 0
         )
       )
     },
@@ -500,7 +519,7 @@ export default {
       return (
         this.showSlider &&
         !this.isNFT &&
-        this.sendDataMultiple.length < 10 &&
+        this.recipients.length < 10 &&
         // check if user clicked MAX on any recipient (disable button if yes)
         this.inputExtras
           .map(data => data.setMax)
@@ -519,39 +538,37 @@ export default {
   },
 
   watch: {
-    sendAmountInFiat: function (amount) {
-      if (!this.inputExtras[this.currentRecipientIndex].setMax) {
-        const fiatToAsset = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice) || 0
-        this.sendDataMultiple[this.currentRecipientIndex].amount = fiatToAsset
-
-        const fiatAsset = parseFloat(getAssetDenomination(this.selectedDenomination, fiatToAsset, true))
-        this.inputExtras[this.currentRecipientIndex].amountFormatted = fiatAsset
-      }
-    },
     selectedAssetMarketPrice () {
       if (!this.bip21Expires) {
         if (!this.selectedAssetMarketPrice) {
           this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
         }
 
-        for (let index = 0; index < this.sendDataMultiple.length; index++) {
-          const amount = this.sendDataMultiple[index]?.amount
-
+        for (let i = 0; i < this.recipients.length; i++) {
+          const amount = this.recipients[i]?.amount
           if (!amount || amount <= 0) return
 
-          const amountInFiat = this.convertToFiatAmount(amount)
-          this.inputExtras[index].sendAmountInFiat = parseFloat(amountInFiat)
+          this.recipients[i].fiatAmount = this.convertToFiatAmount(amount)
+          this.recipients[i].amount = sendPageUtils.convertFiatToSelectedAsset(
+            this.recipients[i].fiatAmount, this.selectedAssetMarketPrice
+          )
+          this.inputExtras[i].fiatFormatted = formatWithLocale(
+            this.recipients[i].fiatAmount, this.decimalObj(true)
+          )
+          this.inputExtras[i].amountFormatted = formatWithLocale(
+            this.recipients[i].amount, this.decimalObj(false)
+          )
         }
       }
     },
     manualAddress (address) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         address,
-        this.sendDataMultiple.map(a => a.recipientAddress),
+        this.recipients.map(a => a.recipientAddress),
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
-      if (isDuplicate) sendPageUtils.raiseNotifyError('You already added this address.')
+      if (isDuplicate) sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     }
   },
@@ -559,7 +576,6 @@ export default {
   methods: {
     // ========== imported methods ==========
     convertTokenAmount,
-    parseAssetDenomination,
     getAssetDenomination,
     parseFiatCurrency,
     convertToBCH,
@@ -578,7 +594,7 @@ export default {
     },
 
     // handling recipient address input
-    async onScannerDecode (content) {
+    async onScannerDecode (content, isQr=true) {
       const vm = this
 
       vm.disableSending = false
@@ -592,19 +608,19 @@ export default {
       let amountValue = null
       let currency = null
       let fungibleTokenAmount = null
-      const currentRecipient = vm.sendDataMultiple[vm.currentRecipientIndex]
+      const currentRecipient = vm.recipients[vm.currentRecipientIndex]
       const currentInputExtras = vm.inputExtras[vm.currentRecipientIndex]
 
       // check if address is a legacy address, it is a duplicate,
       // or if it is the same as the current wallet's address
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         content,
-        vm.sendDataMultiple.map(a => a.recipientAddress),
+        vm.recipients.map(a => a.recipientAddress),
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
       if (isDuplicate) {
-        sendPageUtils.raiseNotifyError('You already added this address.')
+        sendPageUtils.raiseNotifyError(vm.$t('AddressAlreadyAdded'))
         return
       }
 
@@ -620,7 +636,7 @@ export default {
         return
       }
 
-      const paymentUriData = await vm.handlePaymentUri(content, currentRecipient)
+      const paymentUriData = await vm.handlePaymentUri(content, isQr)
       if (paymentUriData) {
         [address, amountValue, currency, fungibleTokenAmount] = paymentUriData
       } else return
@@ -640,9 +656,14 @@ export default {
           if (newSelectedCurrency?.symbol) {
             amount = (amountValue / vm.selectedAssetMarketPrice).toFixed(8)
 
-            currentInputExtras.amountFormatted = vm.customNumberFormatting(amount)
-            currentInputExtras.sendAmountInFiat = vm.convertToFiatAmount(amount)
-            currentRecipient.amount = vm.customNumberFormatting(amount)
+            currentRecipient.amount = amount
+            currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
+            currentInputExtras.amountFormatted = formatWithLocale(
+              currentRecipient.amount, this.decimalObj(false)
+            )
+            currentInputExtras.fiatFormatted = formatWithLocale(
+              currentRecipient.fiatAmount, this.decimalObj(true)
+            )
             currentRecipient.fixedAmount = true
           } else if (!newSelectedCurrency?.symbol && amount) {
             sendPageUtils.raiseNotifyError(
@@ -683,7 +704,7 @@ export default {
     },
 
     // payment uri
-    async handlePaymentUri (content) {
+    async handlePaymentUri (content, isQr) {
       const vm = this
 
       let address = content
@@ -713,7 +734,7 @@ export default {
         console.error(error)
         sendPageUtils.paymentUriPromiseResponseHandler(
           error,
-          { defaultError: this.$t('UnidentifiedQRCode') },
+          { defaultError: this.$t(isQr ? 'UnidentifiedQRCode' : 'UnidentifiedAddress') },
         )
         return
       }
@@ -762,10 +783,10 @@ export default {
       const jppAmount = this.jpp.total / 10 ** 8
       this.totalAmountSent = jppAmount
       this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
-      this.sendDataMultiple[0].amount = jppAmount
-      this.sendDataMultiple[0].recipientAddress = this.jpp.parsed.outputs
+      this.recipients[0].amount = jppAmount
+      this.recipients[0].recipientAddress = this.jpp.parsed.outputs
         .slice(0, 10).map(output => output.address).join(', ')
-      this.sendDataMultiple[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
+      this.recipients[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
       this.playSound(true)
       this.txTimestamp = Date.now()
       this.sending = false
@@ -776,17 +797,20 @@ export default {
     onBIP21Amount (value) {
       const amount = sendPageUtils.getBIP21Amount(value)
       if (!Number.isNaN(amount)) {
-        const currentSendData = this.sendDataMultiple[this.currentRecipientIndex]
+        const currentRecipient = this.recipients[this.currentRecipientIndex]
         const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
 
-        currentSendData.amount = amount
-        currentSendData.fixedAmount = true
-        currentSendData.recipientAddress = value.split('?')[0]
+        currentRecipient.amount = amount
+        currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
+        currentInputExtras.amountFormatted = formatWithLocale(
+          currentRecipient.amount, this.decimalObj(false)
+        )
+        currentInputExtras.fiatFormatted = formatWithLocale(
+          currentRecipient.fiatAmount, this.decimalObj(true)
+        )
 
-        currentInputExtras.amountFormatted = this.customNumberFormatting(this.getAssetDenomination(
-          this.denomination, amount
-        ))
-        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(amount)
+        currentRecipient.fixedAmount = true
+        currentRecipient.recipientAddress = value.split('?')[0]
         currentInputExtras.isBip21 = true
         currentInputExtras.emptyRecipient = false
         this.sliderStatus = true
@@ -814,17 +838,20 @@ export default {
 
     // max button
     async setMaximumSendAmount () {
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
       currentInputExtras.setMax = true
-      let spendableAsset = 0
-
+      
       if (this.asset.id === 'bch') {
-        spendableAsset = parseFloat(getAssetDenomination(this.selectedDenomination, this.asset.spendable, true))
         currentRecipient.amount = this.asset.spendable
-        currentInputExtras.amountFormatted = spendableAsset
-        const convertedFiat = this.convertToFiatAmount(this.asset.spendable)
-        currentInputExtras.sendAmountInFiat = convertedFiat
+        currentRecipient.fiatAmount = this.convertToFiatAmount(this.asset.spendable)
+        
+        currentInputExtras.amountFormatted = formatWithLocale(
+          currentRecipient.amount, this.decimalObj(false)
+        )
+        currentInputExtras.fiatFormatted = formatWithLocale(
+          currentRecipient.fiatAmount, this.decimalObj(true)
+        )
       } else {
         if (this.asset.id.startsWith('ct/')) {
           currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
@@ -835,10 +862,10 @@ export default {
       }
 
       // remove recipients except for the one where MAX was clicked
-      const remainingRecipient = this.sendDataMultiple.filter((_a, i) => i === this.currentRecipientIndex)
+      const remainingRecipient = this.recipients.filter((_a, i) => i === this.currentRecipientIndex)
       const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentRecipientIndex)
 
-      this.sendDataMultiple = remainingRecipient
+      this.recipients = remainingRecipient
       this.inputExtras = remainingInputExtras
       this.currentRecipientIndex = 0
       this.expandedItems = { R1: true }
@@ -848,73 +875,117 @@ export default {
 
     // keyboard
     setAmount (key) {
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
-      const amountCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
-        .$refs.amountInput.nativeEl.selectionStart
-      const fiatCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
-        .$refs.fiatInput?.nativeEl.selectionStart
+      const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      let caret = null
+      if (this.focusedInputField === 'fiat')
+        caret = currentRefs.fiatInput?.nativeEl.selectionStart
+      else if (this.focusedInputField === 'bch')
+        caret = currentRefs.amountInput.nativeEl.selectionStart
 
       let currentSendAmount
-      let caret = null
-      if (this.focusedInputField === 'fiat') caret = fiatCaretPosition
-      else if (this.focusedInputField === 'bch') caret = amountCaretPosition
-
-      if (this.focusedInputField === 'fiat') {
-        currentSendAmount = currentInputExtras.sendAmountInFiat ?? ''
-      } else if (this.focusedInputField === 'bch') {
-        currentSendAmount = currentInputExtras.amountFormatted ?? ''
-      } else currentSendAmount = 0
+      if (this.focusedInputField === 'fiat')
+        currentSendAmount = currentRecipient.fiatAmount
+      else if (this.focusedInputField === 'bch')
+        currentSendAmount = currentRecipient.amount
+      else currentSendAmount = ''
 
       const currentAmount = parseKey(key, currentSendAmount, caret, this.asset)
 
-      // Set the new amount
       if (this.focusedInputField === 'fiat') {
-        currentInputExtras.sendAmountInFiat = currentAmount
-        this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
+        currentRecipient.fiatAmount = currentAmount
+        currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
+          currentAmount, this.selectedAssetMarketPrice
+        )
       } else if (this.focusedInputField === 'bch') {
-        currentRecipient.amount = convertToBCH(currentInputExtras.selectedDenomination, currentAmount)
-        currentInputExtras.amountFormatted = currentAmount
-        currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount) || 0
+        currentRecipient.amount = currentAmount
+        currentRecipient.fiatAmount = this.convertToFiatAmount(currentAmount)
+      }
+
+      if (String(key) === '.' || String(key) === '0') {
+        currentInputExtras.fiatFormatted = formatWithLocaleSelective(
+          currentRecipient.fiatAmount, currentInputExtras.fiatFormatted,
+          String(key), this.decimalObj(true)
+        )
+        currentInputExtras.amountFormatted = formatWithLocaleSelective(
+          currentRecipient.amount, currentInputExtras.amountFormatted,
+          String(key), this.decimalObj(false)
+        )
+      } else {
+        currentInputExtras.fiatFormatted = formatWithLocale(
+          currentRecipient.fiatAmount, this.decimalObj(true)
+        )
+        currentInputExtras.amountFormatted = formatWithLocale(
+          currentRecipient.amount, this.decimalObj(false)
+        )
       }
 
       this.adjustWalletBalance()
+      sendPageUtils.addRemoveInputFocus(
+        this.currentRecipientIndex, this.focusedInputField
+      )
     },
 
     makeKeyAction (action) {
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
-      const amountCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
-        .$refs.amountInput.nativeEl.selectionStart - 1
-      const fiatCaretPosition = this.$refs.sendPageRef[this.currentRecipientIndex]
-        .$refs.fiatInput?.nativeEl.selectionStart - 1
+      const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      let amountCaretPosition = currentRefs.amountInput.nativeEl.selectionStart - 1
+      if (amountCaretPosition >= currentRecipient.amount.length)
+        amountCaretPosition = currentRecipient.amount.length - 1
+
+      let fiatCaretPosition = currentRefs.fiatInput?.nativeEl.selectionStart - 1
+      if (fiatCaretPosition >= currentRecipient.fiatAmount.length)
+        fiatCaretPosition = currentRecipient.fiatAmount.length - 1
 
       if (action === 'backspace') {
-        if (this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
-          const currentAmount = adjustSplicedAmount(
-            String(currentInputExtras.sendAmountInFiat), fiatCaretPosition
+        try {
+          if (this.focusedInputField === 'fiat' && fiatCaretPosition > -1) {
+            currentRecipient.fiatAmount = adjustSplicedAmount(
+              currentRecipient.fiatAmount, fiatCaretPosition
+            )
+            currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
+              currentRecipient.fiatAmount, this.selectedAssetMarketPrice
+            )
+          } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
+            currentRecipient.amount = adjustSplicedAmount(
+              currentRecipient.amount, amountCaretPosition
+            )
+            currentRecipient.fiatAmount = this.convertToFiatAmount(currentRecipient.amount)
+          }
+  
+          currentInputExtras.fiatFormatted = formatWithLocale(
+            currentRecipient.fiatAmount, this.decimalObj(true)
           )
-          currentInputExtras.sendAmountInFiat = currentAmount
-          this.recomputeAmount(currentRecipient, currentInputExtras, currentAmount)
-        } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
-          currentInputExtras.amountFormatted = adjustSplicedAmount(
-            String(currentInputExtras.amountFormatted), amountCaretPosition
+          currentInputExtras.amountFormatted = formatWithLocale(
+            currentRecipient.amount, this.decimalObj(false)
           )
-          currentRecipient.amount = convertToBCH(
-            currentInputExtras.selectedDenomination, currentInputExtras.amountFormatted
-          )
-          currentInputExtras.sendAmountInFiat = this.convertToFiatAmount(currentRecipient.amount)
+        } catch {
+          currentRecipient.fiatAmount = ''
+          currentRecipient.amount = ''
+          currentInputExtras.fiatFormatted = '0'
+          currentInputExtras.amountFormatted = '0'
         }
+        sendPageUtils.addRemoveInputFocus(
+          this.currentRecipientIndex, this.focusedInputField
+        )
       } else if (action === 'delete') {
-        currentInputExtras.sendAmountInFiat = ''
+        currentRecipient.fiatAmount = ''
         currentRecipient.amount = ''
-        currentInputExtras.amountFormatted = ''
+        currentInputExtras.fiatFormatted = '0'
+        currentInputExtras.amountFormatted = '0'
+        sendPageUtils.addRemoveInputFocus(
+          this.currentRecipientIndex, this.focusedInputField
+        )
       } else {
         // Enabled submit slider
         this.sliderStatus = !currentInputExtras.balanceExceeded
         this.customKeyboardState = 'dismiss'
         this.focusedInputField = ''
-        sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, false, '')
+        sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, '')
       }
 
       this.adjustWalletBalance()
@@ -922,25 +993,27 @@ export default {
 
     // add/remove recipient
     addAnotherRecipient () {
-      const recipientsLength = this.sendDataMultiple.length
+      const recipientsLength = this.recipients.length
 
       if (recipientsLength < 10) {
-        this.sendDataMultiple.push({
-          amount: 0,
+        this.recipients.push({
+          amount: '',
+          fiatAmount: '',
           fixedAmount: false,
           recipientAddress: '',
           paymentAckMemo: ''
         })
         this.inputExtras.push({
-          amountFormatted: '',
-          sendAmountInFiat: '',
+          amountFormatted: '0',
+          fiatFormatted: '0',
           balanceExceeded: false,
           setMax: false,
           emptyRecipient: true,
           selectedDenomination: this.denomination,
           isBip21: false,
           isLegacyAddress: false,
-          cashbackData: null
+          cashbackData: null,
+          incorrectAddress: false
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
@@ -951,7 +1024,7 @@ export default {
     removeLastRecipient (index) {
       delete this.expandedItems[`R${index}`]
       this.expandedItems[`R${index + 1}`] = true
-      this.sendDataMultiple.splice(index, 1)
+      this.recipients.splice(index, 1)
       this.inputExtras.splice(index, 1)
       this.sliderStatus = true
     },
@@ -979,7 +1052,7 @@ export default {
     },
     async handleSubmit () {
       const vm = this
-      const toSendData = vm.sendDataMultiple
+      const toSendData = vm.recipients
 
       // check if total amount being sent is greater than current wallet amount
       const totalAmount = toSendData
@@ -994,8 +1067,8 @@ export default {
 
       vm.totalAmountSent = parseFloat(totalAmount)
       if (vm.asset.id === 'bch') {
-        vm.totalFiatAmountSent = vm.inputExtras
-          .map(a => Number(a.sendAmountInFiat))
+        vm.totalFiatAmountSent = toSendData
+          .map(a => Number(a.fiatAmount))
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(2)
       } else vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
@@ -1003,54 +1076,63 @@ export default {
       let token = null // bch token
       let toSendBchRecipients = []
       let toSendSlpRecipients = []
+      let hasError = false
       switch (vm.walletType) {
         case 'slp': {
-          const slpData = vm.processSlpData(toSendData)
+          const [slpData, error] = vm.processSlpData(toSendData)
           toSendSlpRecipients = slpData
+          hasError = error
           break
         } case 'bch': {
-          const [bchToken, bchData] = vm.processBchData(toSendData)
+          const [bchToken, bchData, error] = vm.processBchData(toSendData)
           token = bchToken
           toSendBchRecipients = bchData
+          hasError = error
           break
         } default:
           await vm.processTestWallet(toSendData)
           break
       }
 
-      if (toSendBchRecipients.length > 0) {
-        let changeAddress = sendPageUtils.getChangeAddress('bch')
-
-        if (token?.tokenId && this.userSelectedChangeAddress) {
-          changeAddress = this.userSelectedChangeAddress
+      if (!hasError) {
+        if (toSendBchRecipients.length > 0) {
+          let changeAddress = sendPageUtils.getChangeAddress('bch')
+  
+          if (token?.tokenId && this.userSelectedChangeAddress) {
+            changeAddress = this.userSelectedChangeAddress
+          }
+          getWalletByNetwork(vm.wallet, 'bch')
+            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients)
+            .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+        } else if (toSendSlpRecipients.length > 0) {
+          const tokenId = vm.assetId.split('slp/')[1]
+          const bchWallet = sendPageUtils.getWallet('bch')
+          const feeFunder = {
+            walletHash: bchWallet.walletHash,
+            mnemonic: vm.wallet.mnemonic,
+            derivationPath: bchWallet.derivationPath
+          }
+          const changeAddresses = {
+            bch: sendPageUtils.getChangeAddress('bch'),
+            slp: sendPageUtils.getChangeAddress('slp')
+          }
+  
+          getWalletByNetwork(vm.wallet, 'slp')
+            .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
+            .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
         }
-        getWalletByNetwork(vm.wallet, 'bch')
-          .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients)
-          .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
-      } else if (toSendSlpRecipients.length > 0) {
-        const tokenId = vm.assetId.split('slp/')[1]
-        const bchWallet = sendPageUtils.getWallet('bch')
-        const feeFunder = {
-          walletHash: bchWallet.walletHash,
-          mnemonic: vm.wallet.mnemonic,
-          derivationPath: bchWallet.derivationPath
-        }
-        const changeAddresses = {
-          bch: sendPageUtils.getChangeAddress('bch'),
-          slp: sendPageUtils.getChangeAddress('slp')
-        }
-
-        getWalletByNetwork(vm.wallet, 'slp')
-          .sendSlp(tokenId, vm.tokenType, feeFunder, changeAddresses, toSendSlpRecipients)
-          .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
+      } else {
+        vm.sending = false
+        vm.sliderStatus = true
       }
     },
     processSlpData (toSendData) {
       const vm = this
       const toSendSlpRecipients = []
+      let errorCount = 0
 
-      toSendData.forEach(sendData => {
-        const address = sendData.recipientAddress
+      toSendData.forEach((sendData, index) => {
+        const address = sendData.recipientAddress.trim()
         const addressObj = new Address(address)
         const addressIsValid = this.validateAddress(address).valid
         const amountIsValid = sendData.amount > 0
@@ -1064,19 +1146,25 @@ export default {
             address: recipientAddress,
             amount: sendData.amount
           })
-        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+        } else {
+          vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+          errorCount += 1
+          vm.inputExtras[index].incorrectAddress = true
+        }
       })
 
-      return toSendSlpRecipients
+      if (errorCount > 0) return [[], true]
+      return [toSendSlpRecipients, false]
     },
     processBchData (toSendData) {
       const vm = this
       const toSendBchRecipients = []
       const tokenId = vm.assetId.split('ct/')[1]
       let token = null
+      let errorCount = 0
 
-      toSendData.forEach(sendData => {
-        const address = sendData.recipientAddress
+      toSendData.forEach((sendData, index) => {
+        const address = sendData.recipientAddress.trim()
         const addressObj = new Address(address)
         const addressIsValid = this.validateAddress(address).valid
         const amountIsValid = sendData.amount > 0
@@ -1107,10 +1195,15 @@ export default {
               tokenAmount: undefined
             })
           }
-        } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+        } else {
+          vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
+          errorCount += 1
+          vm.inputExtras[index].incorrectAddress = true
+        }
       })
 
-      return [token, toSendBchRecipients]
+      if (errorCount > 0) return [token, [], true]
+      return [token, toSendBchRecipients, false]
     },
     async processTestWallet (toSendData) {
       const vm = this
@@ -1151,12 +1244,8 @@ export default {
     onInputFocus (value) {
       this.currentRecipientIndex = value.index
       this.focusedInputField = value.field
-
-      sendPageUtils.addRemoveInputFocus(value.index, false, value.field)
-      sendPageUtils.addRemoveInputFocus(value.index, true, value.field)
-
-      if (value.field !== '') this.customKeyboardState = 'show'
-      else this.customKeyboardState = 'dismiss'
+      this.customKeyboardState = value.field !== '' ? 'show' : 'dismiss'
+      sendPageUtils.addRemoveInputFocus(value.index, value.field)
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
@@ -1165,24 +1254,23 @@ export default {
       try {
         this.inputExtras[this.currentRecipientIndex].balanceExceeded = value
       } catch { }
-
-      sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, true, this.focusedInputField)
     },
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
-        this.sendDataMultiple.map(a => a.recipientAddress),
+        this.recipients.map(a => a.recipientAddress),
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
       if (isDuplicate) {
-        sendPageUtils.raiseNotifyError('You already added this address.')
-        this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = ''
+        sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
+        this.recipients[this.currentRecipientIndex].recipientAddress = ''
         return
       }
 
-      this.sendDataMultiple[this.currentRecipientIndex].recipientAddress = value
+      this.recipients[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
+      this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     },
     onEmptyRecipient (value) {
@@ -1206,7 +1294,7 @@ export default {
     },
     generateKeys (index) {
       const keys = []
-      keys.push(...Object.entries(this.sendDataMultiple[index]))
+      keys.push(...Object.entries(this.recipients[index]))
       keys.push(...Object.entries(this.inputExtras[index]))
       return keys
     },
@@ -1228,22 +1316,15 @@ export default {
     convertToFiatAmount (amount) {
       return sendPageUtils.convertToFiatAmount(amount, this.selectedAssetMarketPrice)
     },
-    recomputeAmount (currentRecipient, currentInputExtras, amount) {
-      const converted = sendPageUtils.convertFiatToSelectedAsset(amount, this.selectedAssetMarketPrice)
-      currentRecipient.amount = converted
-      currentInputExtras.amountFormatted = this.customNumberFormatting(
-        getAssetDenomination(currentInputExtras.selectedDenomination, converted || 0, true)
-      )
-    },
     adjustWalletBalance () {
       this.currentWalletBalance = sendPageUtils.adjustWalletBalance(
-        this.asset, this.sendDataMultiple.map(a => Number(a.amount))
+        this.asset, this.recipients.map(a => Number(a.amount))
       )
     },
 
     // address checking/validation
     checkAddressValidity (address) {
-      const currentRecipient = this.sendDataMultiple[this.currentRecipientIndex]
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
 
       if (address.indexOf('?') > -1) {
         const amount = sendPageUtils.getBIP21Amount(address)
@@ -1280,13 +1361,10 @@ export default {
           { walletType: vm.walletType.toUpperCase() },
           `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
         ))
-        throw new Error('Invalid recipient')
       }
       if (!amountIsValid) {
         sendPageUtils.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
-        throw new Error('Send amount greater than zero')
       }
-      throw new Error('Error in sending to recipient(s)')
     },
     async submitPromiseResponseHandler (result, walletType) {
       const vm = this
@@ -1331,6 +1409,9 @@ export default {
     },
     playSound (success) {
       if (success) NativeAudio.play({ assetId: 'send-success' })
+    },
+    decimalObj (isFiat) {
+      return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
     }
   },
 
@@ -1405,14 +1486,14 @@ export default {
     const vm = this
 
     if (vm.assetId && vm.amount && vm.recipient) {
-      vm.sendDataMultiple[0].amount = vm.amount
-      vm.sendDataMultiple[0].fixedAmount = vm.fixed
-      vm.sendDataMultiple[0].recipientAddress = vm.recipient
+      vm.recipients[0].amount = vm.amount
+      vm.recipients[0].fixedAmount = vm.fixed
+      vm.recipients[0].recipientAddress = vm.recipient
       vm.scanner.show = false
       vm.sliderStatus = true
     }
 
-    if (vm.isNFT) vm.sendDataMultiple[0].amount = 0.00001
+    if (vm.isNFT) vm.recipients[0].amount = 0.00001
   }
 }
 </script>
@@ -1507,5 +1588,8 @@ export default {
   .highlighted-word {
     font-weight: bold;
     color: orange;
+  }
+  .expansion-item-error {
+    color: #e57373
   }
 </style>

@@ -19,7 +19,9 @@
 
       <div class="text-center q-mt-lg">
         <div class="text-grey">{{ $t('ReferenceId')}}</div>
-        <div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
+        <div class="text-h4" style="letter-spacing: 6px;">
+          {{ txid.substring(0, 6).toUpperCase() }}
+        </div>
         <q-separator color="grey"/>
       </div>
       <div class="q-px-xs q-mt-sm text-subtitle1">
@@ -29,7 +31,9 @@
           @click="openSendSuccessDetailsDialog"
         /><br /><br />
         <div class="text-grey">{{ $t('TransactionId')}}</div>
-        <p style="font-family: monospace;" :class="getDarkModeClass(darkMode)">{{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}</p>
+        <p style="font-family: monospace;" :class="getDarkModeClass(darkMode)">
+          {{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}
+        </p>
         <a
           class="button button-text-primary view-explorer-button"
           style="text-decoration: none;"
@@ -44,13 +48,18 @@
         {{ formattedTxTimestamp }}
       </div>
 
-      <div v-if="jpp && sendDataMultiple[0]?.paymentAckMemo !== undefined" class="row justify-center">
+      <div
+        v-if="jpp && recipients[0]?.paymentAckMemo !== undefined"
+        class="row justify-center"
+      >
         <div
           class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
           :class="getDarkModeClass(darkMode, 'text-white', '')"
         >
-          <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">{{ $t('Memo') }}:</span>
-          {{ sendDataMultiple[0].paymentAckMemo }}
+          <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">
+            {{ $t('Memo') }}:
+          </span>
+          {{ recipients[0].paymentAckMemo }}
         </div>
       </div>
       <q-item
@@ -72,9 +81,8 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
 import {
-  customNumberFormatting,
   parseFiatCurrency,
-  getAssetDenomination
+  parseAssetDenomination
 } from 'src/utils/denomination-utils'
 
 import SendSuccessDetailsDialog from 'src/components/send-page/SendSuccessDetailsDialog.vue'
@@ -96,7 +104,7 @@ export default {
 
     asset: { type: Object, default: Object },
     jpp: { type: Object, default: Object },
-    sendDataMultiple: { type: Object, default: Object },
+    recipients: { type: Object, default: Object },
 
     currentSendPageCurrency: { type: Function },
     convertToFiatAmount: { type: Function }
@@ -116,7 +124,9 @@ export default {
     transactionBreakdownData () {
       if (this.jpp?.parsed?.outputs !== undefined) {
         return this.jpp.parsed.outputs.map(value => {
-          const amount = this.parseAmount(value.amount)
+          const amount = parseAssetDenomination(
+            this.denomination, { ...this.asset, balance: value.amount }
+          )
           const fiatAmount = this.parseFiatAmount(0, value.amount)
 
           return {
@@ -125,8 +135,10 @@ export default {
           }
         })
       } else {
-        return this.sendDataMultiple.map(value => {
-          const amount = this.parseAmount(value.amount)
+        return this.recipients.map(value => {
+          const amount = parseAssetDenomination(
+            this.denomination, { ...this.asset, balance: value.amount }
+          )
           const fiatAmount = this.parseFiatAmount(0, value.amount)
           const tokenAmount = this.isCashToken ? '' : ` (${fiatAmount})`
 
@@ -150,15 +162,16 @@ export default {
   },
 
   mounted () {
-    this.amountSent = this.parseAmount(this.totalAmountSent)
-    this.fiatAmountSent = this.parseFiatAmount(this.totalFiatAmountSent, this.totalAmountSent)
+    this.amountSent = parseAssetDenomination(
+      this.denomination, { ...this.asset, balance: this.totalAmountSent }
+    )
+    this.fiatAmountSent = this.parseFiatAmount(
+      this.totalFiatAmountSent, this.totalAmountSent
+    )
   },
 
   methods: {
     getDarkModeClass,
-    customNumberFormatting,
-    parseFiatCurrency,
-    getAssetDenomination,
 
     getExplorerLink (txid) {
       return getExplorerLink(txid, this.isCashToken)
@@ -177,21 +190,6 @@ export default {
           breakdownList: this.transactionBreakdownData
         }
       })
-    },
-    parseAmount (origAmount) {
-      let amount, symbol
-      if (this.isCashToken) {
-        amount = origAmount.toLocaleString(
-          'en-us', { maximumFractionDigits: this.asset.decimals }
-        )
-        symbol = this.asset.symbol
-      } else {
-        amount = customNumberFormatting(
-          getAssetDenomination(this.denomination, origAmount)
-        )
-        symbol = this.denomination
-      }
-      return `${amount} ${symbol}`
     },
     parseFiatAmount (origFiatAmount, origAmount) {
       let fiatAmount

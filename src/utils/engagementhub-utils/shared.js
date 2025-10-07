@@ -1,4 +1,5 @@
 import { Store } from 'src/store'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 
 const LIFT_DECIMALS = 2
 
@@ -25,14 +26,17 @@ export function parseLocaleDate (date, isDayIncluded = true) {
     month: 'long'
   }
 
-  if (isDayIncluded) options.day = 'numeric'
-
-  return d.toLocaleDateString(undefined, options)
+  if (isDayIncluded) 
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(d);
+  else return d.toLocaleDateString(undefined, options);
 }
 
 export function parseLiftToken (amount) {
   const newAmount = amount / (10 ** LIFT_DECIMALS)
-  const finalAmount = Number(newAmount).toLocaleString()
+  const finalAmount = formatWithLocale(newAmount, { max: LIFT_DECIMALS })
 
   return `${finalAmount} LIFT`
 }
