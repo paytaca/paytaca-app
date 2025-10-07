@@ -105,6 +105,7 @@ export async function fetchUnlistedTokens () {
 	await backend.get(baseURL + '/app-setting/unlisted-list/', { headers: { 'wallet-hash': walletHash } })
 		.then(response => {			
 			unlisted_token = response.data
+			console.log('HERE: ', unlisted_token)
 		})
 		.catch(error => {
 			console.error(error.response)
@@ -119,7 +120,7 @@ export async function fetchUnlistedTokens () {
 		return unlisted_token
 }
 
-export async function saveUnlistedTokens () {
+export async function saveUnlistedTokens (list) {
 	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 
 	let unlisted_token = null

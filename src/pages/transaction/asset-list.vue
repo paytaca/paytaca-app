@@ -220,6 +220,7 @@ export default {
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
     this.wallet = markRaw(wallet)
 
+    await assetSettings.fetchUnlistedTokens()
     await this.getUnlistedTokens()
     console.log('ignored: ', this.unlistedToken)
 
@@ -391,6 +392,13 @@ export default {
 	        )
 
 	        this.unlistedToken.push(...tokens)
+
+	        let temp = []
+
+	        temp = this.unlistedToken.map(asset => asset.id)
+	        console.log('unlisted Token: ', temp)
+
+	        await assetSettings.saveUnlistedTokens(temp)	        
 	      }
 	    },
 	}	
