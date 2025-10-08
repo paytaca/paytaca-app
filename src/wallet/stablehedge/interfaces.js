@@ -44,8 +44,12 @@
  * @property {String} pubkey3
  * @property {String} pubkey4
  * @property {String} pubkey5
- * @property {String} anyhedge_base_bytecode
+ * @property {String} anyhedge_bytecode_fingerprint
  * @property {String} anyhedge_contract_version
+ * @property {FiatTokenApiData} fiat_token
+ * @property {String} price_oracle_pubkey
+ * @property {String} redemption_contract_bytecode_fingerprint
+ * @property {String} redemption_contract_version
  * @property {String} redemption_contract_address
  * @property {String} funding_wif_pubkey
  *
