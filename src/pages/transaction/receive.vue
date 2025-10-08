@@ -196,7 +196,7 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
+import customKeyboard from 'src/components/CustomKeyboard.vue'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 import { NativeAudio } from '@capacitor-community/native-audio'

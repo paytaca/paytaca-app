@@ -143,7 +143,7 @@ import {
   formatWithLocale
 } from "src/utils/denomination-utils";
 
-import CustomKeyboard from "src/pages/transaction/dialog/CustomKeyboard.vue";
+import CustomKeyboard from "src/components/CustomKeyboard.vue";
 import PayReservationConfirmDialog from "src/components/lift-token/dialogs/PayReservationConfirmDialog.vue";
 
 export default {

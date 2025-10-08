@@ -172,7 +172,7 @@ import { Address } from 'src/wallet'
 import { useWakeLock } from '@vueuse/core'
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader'
-import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
+import customKeyboard from 'src/components/CustomKeyboard.vue'
 
 export default {
   name: 'GenerateQR',
