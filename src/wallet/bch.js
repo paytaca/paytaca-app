@@ -124,6 +124,26 @@ export class BchWallet {
   }
 
   /**
+   * @param {Object} opts
+   * @param {String} [opts.category]
+   * @param {Boolean} [opts.nft]
+   */
+  async getUtxos(opts) {
+    const params = {}
+    let url = `utxo/wallet/${this.walletHash}/`
+    if (opts?.category) {
+      url += opts?.category + '/'
+      params.is_cashtoken = true
+      params.is_cashtoken_nft = Boolean(opts?.nft)
+    }
+
+    const response = await this.watchtower.BCH._api.get(url, { params })
+    if (!Array.isArray(response.data?.utxos)) return Promise.reject({ response })
+
+    return response.data?.utxos
+  }
+
+  /**
    *
    * @param {Object} opts
    * @param {Number} opts.startIndex

@@ -89,7 +89,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { customNumberFormatting, getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { useValueFormatters } from 'src/composables/stablehedge/formatters';

@@ -162,7 +162,7 @@ export default defineComponent({
       const txid = props.record?.txid
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
-      if (isChipnet.value) url = 'https://chipnet.imaginary.cash/tx/'
+      if (isChipnet.value) url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
 
       return `${url}${txid}`
     })

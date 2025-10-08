@@ -119,7 +119,7 @@
                   {{ $t('YouWillReceive') }}
                 </div>
                 <div class="text-weight-light receive-amount-label">
-                  {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
+                  {{ tempAmount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
                 </div>
               </div>
             </div>
@@ -148,20 +148,20 @@
           size="lg"
           icon="close"
           class="close-button"
-          @click="setReceiveAmount('close')"
+          @click="setReceiveAmount()"
         />
       </div>
       <div :style="`margin-top: ${$q.screen.height * .15}px`">
         <div class="text-center text-bow text-h6" :class="getDarkModeClass(darkMode)">{{ $t('SetReceiveAmount') }}</div>
         <div class="col q-mt-md q-px-lg text-center">
           <q-input
+            ref="input-amount"
             type="text"
             inputmode="none"
             @focus="openCustomKeyboard(true)"
             filled
             v-model="tempAmount"
             :label="$t('Amount')"
-            :readonly="readonlyState"
             :dark="darkMode"
             :rules="[
               val => Boolean(val) || $t('InvalidAmount'),
@@ -176,7 +176,7 @@
         </div>
         <div
           v-if="assetId === 'bch'"
-          class="q-pt-md text-subtitle1 button button-text-primary set-amount-button"
+          class="q-pt-md text-subtitle1 button button-text-primary set-amount-button cursor-pointer"
           :class="getDarkModeClass(darkMode)"
           @click="setAmountInFiat = !setAmountInFiat"
         >
@@ -207,7 +207,12 @@ import {
 } from 'src/wallet/chipnet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
-import { toTokenAddress } from 'src/utils/crypto'
+import {
+  adjustSplicedAmount,
+  formatWithLocaleSelective,
+  parseKey
+} from 'src/utils/custom-keyboard-utils.js'
+import { formatWithLocale } from 'src/utils/denomination-utils.js'
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
 
@@ -232,7 +237,6 @@ export default {
       generating: false,
       amount: '',
       tempAmount: '',
-      readonlyState: false,
       amountDialog: false,
       customKeyboardState: 'dismiss',
       setAmountInFiat: true,
@@ -270,7 +274,6 @@ export default {
       } else if (this.legacy) {
         return this.convertToLegacyAddress(address)
       } else {
-        let _address
         if (this.isCt) {
           return convertCashAddress(address, this.$store.getters['global/isChipnet'], true)
         } else {
@@ -304,6 +307,9 @@ export default {
       }
 
       return tempAddress
+    },
+    decimalObj () {
+      return this.setAmountInFiat ? { min: 0, max: 4 } : { min: 0, max: 8 }
     }
   },
   methods: {
@@ -348,11 +354,7 @@ export default {
       const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
       return computedBalance.toFixed(8)
     },
-    setReceiveAmount (state) {
-      if (state !== 'close') {
-        this.amount = this.tempAmount
-      }
-      this.readonlyState = false
+    setReceiveAmount () {
       this.amountDialog = false
       this.customKeyboardState = 'dismiss'
     },
@@ -361,8 +363,6 @@ export default {
       return currency && currency.symbol
     },
     openCustomKeyboard (state) {
-      this.readonlyState = state
-
       if (state) {
         this.customKeyboardState = 'show'
       } else {
@@ -370,63 +370,43 @@ export default {
       }
     },
     setAmount (key) {
-      let receiveAmount, finalAmount, tempAmountFormatted = ''
+      const inputAmountRef = this.$refs['input-amount'].nativeEl
+      inputAmountRef.focus({ focusVisible: true });
 
-      receiveAmount = this.tempAmount
+      const caretPosition = inputAmountRef.selectionStart
+      const receiveAmount = this.amount ?? 0
 
-      receiveAmount = receiveAmount === null ? '' : receiveAmount
-      if (key === '.' && receiveAmount === '') {
-        finalAmount = '0.'
-      } else {
-        finalAmount = receiveAmount.toString()
-        const hasPeriod = finalAmount.indexOf('.')
-        if (hasPeriod < 1) {
-          if (Number(finalAmount) === 0 && Number(key) > 0) {
-            finalAmount = key
-          } else {
-            // Check amount if still zero
-            if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
-              finalAmount = 0
-            } else {
-              finalAmount += key.toString()
-            }
-          }
-        } else {
-          finalAmount += key !== '.' ? key.toString() : ''
-        }
-      }
+      const parsedAmount = parseKey(key, receiveAmount, caretPosition, this.asset)
+      this.amount = parsedAmount
 
-      if (this.asset.id.startsWith('ct/')) {
-        if (this.asset.decimals === 0) {
-          finalAmount = finalAmount.toString().replace('.', '');
-        } else {
-          const parts = finalAmount.toString().split('.');
-          
-          if (parts.length > 1) { // Ensure there's a decimal part
-            // Truncate the decimal part to the desired length
-            parts[1] = parts[1].slice(0, this.asset.decimals);
-            finalAmount = parts.join('.'); // Recombine the integer and decimal parts
-          }
-        }
-      }
-
-      // // Set the new amount
-      this.tempAmount = finalAmount
+      if (String(key) === '.' || String(key) === '0') {
+        this.tempAmount = formatWithLocaleSelective(
+          parsedAmount, this.tempAmount, String(key), this.decimalObj
+        )
+      } else this.tempAmount = formatWithLocale(parsedAmount, this.decimalObj)
     },
     makeKeyAction (action) {
+      const inputAmountRef = this.$refs['input-amount'].nativeEl
       if (action === 'backspace') {
+        inputAmountRef.focus({ focusVisible: true });
         // Backspace
-        this.tempAmount = String(this.tempAmount).slice(0, -1)
+        let caretPosition = inputAmountRef.selectionStart - 1
+        if (caretPosition >= this.amount.length)
+          caretPosition = this.amount.length - 1
+
+        if (caretPosition > -1) {
+          this.amount = adjustSplicedAmount(this.amount, caretPosition)
+          this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
+        }
       } else if (action === 'delete') {
+        inputAmountRef.focus({ focusVisible: true });
         // Delete
-        this.tempAmount = ''
+        this.amount = ''
+        this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
       } else {
         // Enabled submit slider
-        if (this.tempAmount) {
-          this.setReceiveAmount('gen')
-        }
+        if (this.tempAmount) this.setReceiveAmount()
         this.customKeyboardState = 'dismiss'
-        this.readonlyState = false
       }
     },
     getDarkModeClass,
@@ -507,7 +487,6 @@ export default {
       })
     },
     async showPrivateKey () {
-      const vm = this
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
@@ -658,7 +637,6 @@ export default {
       vm.$connect(url)
       vm.$options.sockets.onmessage = async function (message) {
         const data = JSON.parse(message.data)
-        console.log('DATA', data)
         const tokenType = vm.assetId.split('/')[0]
         const tokenId = vm.assetId.split('/')[1]
         const isListedToken = tokenType === 'ct' && !tokenId.includes('unlisted')
@@ -760,10 +738,10 @@ export default {
       this.updateLnsName()
     },
     amountDialog () {
-      this.tempAmount = this.amount
+      this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
     },
     setAmountInFiat(newVal, oldVal) {
-      const amount = parseFloat(this.amountDialog ? this.tempAmount : this.amount)
+      const amount = parseFloat(/*this.amountDialog ? this.tempAmount : */this.amount)
       if (!amount) return
 
       let newAmount
@@ -778,7 +756,7 @@ export default {
       const decimals = newVal ? 3 : parseInt(this.asset?.decimals) || 8
       const newParsedAmount = String(parseFloat(newAmount.toFixed(decimals)))
       this.amount = newParsedAmount
-      this.tempAmount = newParsedAmount
+      this.tempAmount = formatWithLocale(newParsedAmount, this.decimalObj) // newParsedAmount
     }
   },
 
