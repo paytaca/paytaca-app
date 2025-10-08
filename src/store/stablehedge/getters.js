@@ -15,7 +15,9 @@ export function tokenBalances(state, getters, rootState, rootGetters) {
   if(!balance) return []
   if(balance.walletHash !== walletData?.walletHash) return []
 
-  return chipnet ? balance.chipnet : balance.mainnet
+  const results = chipnet ? balance.chipnet : balance.mainnet
+  if (!Array.isArray(results)) return []
+  return results
 }
 
 export function tokenBalancesAsAssets(state, getters, rootState, rootGetters) {
