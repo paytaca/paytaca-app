@@ -87,11 +87,29 @@
 			      	    </template>			      
 			        </draggable>  
 			    </q-list>
+			    <!-- <div v-else-if="networkError" class="text-center" style="margin-top: 50px;">
+			    			<q-btn round flat padding="none" icon="refresh" color="primary" size="40px" @click="loadData()"/>		            
+		            <p :class="{ 'text-black': !darkMode }">{{ $t('Network Error. Try Again Later') }}</p>
+		            
+		          </div>	 -->		  	
 			    <div v-else class="text-center" style="margin-top: 50px;">
 		            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
 		            <p :class="{ 'text-black': !darkMode }">{{ $t('No Assets To Display') }}</p>
 		          </div>
+		      <div class="banner" v-if="networkError">
+		      	<q-banner class="bg-primary text-white">
+		      		<div class="row justify-between q-pt-xs q-px-sm">
+                <div class="text-italic" style="font-size: 15px;">
+                  Network Error. Try again later
+                </div>
+	              <div>
+	              	<q-btn flat padding="none" color="white" size="md" icon="refresh" @click="loadData()"/>
+	              </div>
+              </div>                      
+		      	</q-banner>
+		      </div>
 			  </div>	
+			  
 		</div>
 
 		<!-- <div class="text-black">
@@ -117,6 +135,7 @@
 	      	assetList = assets	      	
 	      }"
 	    />
+
 	</div>
 </template>
 <script>
@@ -140,13 +159,14 @@ export default {
 			customList: [],
 			assetList: [],
 			favorites: [],
-			assetListKey: 0,
+			assetListKey: 0,			
 			unlistedToken: [],
 			showTokenSuggestionsDialog: false,
 			editAssets: false,
 			wallet: null,	
 			drag: false,	
-			isloaded: false			
+			isloaded: false,
+			networkError: false			
 		}
 	},
 	computed: {
@@ -218,45 +238,11 @@ export default {
 	unmount() {
 		this.$q.loading.hide()
 	},	
-	async mounted () {
-		this.$q.loading.show()
+	async mounted () {		
 		const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
     this.wallet = markRaw(wallet)
 
-    await assetSettings.fetchUnlistedTokens()
-    await this.getUnlistedTokens()
-
-    await assetSettings.registerUser()
-    
-		this.customList = await assetSettings.fetchCustomList()
-
-    // Initialize Asset Custom List // Saving initial asset list (BCH/sBCH) to server
-    if ('error' in this.customList || Object.keys(this.customList).length === 0) {     	
-    	const assetIDs = this.assets.map((asset) => asset.id)
-    	if (this.selectedNetwork === 'BCH') {
-    		assetSettings.initializeCustomList(assetIDs, [])    		
-    	} else {    		
-    		assetSettings.initializeCustomList([], assetIDs)
-    	}
-
-    } else {
-    	// Update Here to checking Favorites from server. Currently using Local storage    	
-    	this.checkEmptyFavorites()
-			this.$store.dispatch('assets/initializeFavorites', this.assets)
-
-			this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
-    }
-
-    // remove from asset list
-    const temp = this.unlistedToken.map(token => token.id)
-    
-    this.assetList = this.assetList.filter(asset => {
-    	if (asset) { 
-    			return !temp.includes(asset.id) 
-    	}
-    })
-
-    this.isloaded = true
+		this.loadData()    
     // this.fetchAssetInfo()
 
     // this.checkEmptyFavorites()
@@ -268,11 +254,67 @@ export default {
 	},
 	methods: {
 		getDarkModeClass,
-		isHongKong,
+		isHongKong,		
 		formatAssetTokenAmount(asset) {
 	      return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
 	        'en-US', { maximumFractionDigits: parseInt(asset?.decimals) || 0 },
 	      )
+	    },
+	    async loadData() {
+	    	this.$q.loading.show()
+	    	this.isloaded = false
+	    	this.networkError = false
+	    	// register / get auth 
+		    await assetSettings.registerUser()
+
+		    // fetching unlisted tokens
+		    await assetSettings.fetchUnlistedTokens()
+		    await this.getUnlistedTokens()
+		    	
+		    // fetching custom order list
+				this.customList = await assetSettings.fetchCustomList()
+				
+				if (!this.customList) {
+					// this.isloaded = true
+					this.networkError = true
+
+					this.checkEmptyFavorites()
+					this.$store.dispatch('assets/initializeFavorites', this.assets)
+					
+					this.assetList = this.assets
+
+					this.favorites = this.assets.map(asset => asset.favorite)
+					this.$q.loading.hide()
+				} else {
+					// Initialize Asset Custom List // Saving initial asset list (BCH/sBCH) to server
+			    if ('error' in this.customList || Object.keys(this.customList).length === 0) {     	
+			    	const assetIDs = this.assets.map((asset) => asset.id)
+			    	if (this.selectedNetwork === 'BCH') {
+			    		assetSettings.initializeCustomList(assetIDs, [])    		
+			    	} else {    		
+			    		assetSettings.initializeCustomList([], assetIDs)
+			    	}
+
+			    } else {
+			    	// Update Here to checking Favorites from server. Currently using Local storage    	
+			    	this.checkEmptyFavorites()
+						this.$store.dispatch('assets/initializeFavorites', this.assets)
+
+						this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
+			    }
+
+			    // remove from asset list
+			    const temp = this.unlistedToken.map(token => token.id)
+			    
+			    this.assetList = this.assetList.filter(asset => {
+			    	if (asset) { 
+			    			return !temp.includes(asset.id) 
+			    	}
+			    })
+				}
+		    
+
+		    this.isloaded = true
 	    },
 	    refreshList() {
 	    	this.assetListKey++
@@ -410,5 +452,12 @@ export default {
 }
 .asset-item {	
 	background-color: #dce9e9 !important; 
+}
+.banner {
+	z-index: 6;
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+	padding: 0px 10px 12vh 10px;
 }
 </style>
