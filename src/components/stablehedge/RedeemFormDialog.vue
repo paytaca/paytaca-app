@@ -54,9 +54,10 @@
                 outlined
                 v-model="amounts[index]"
                 :suffix="denomination"
+                reactive-rules
                 :rules="[
-                  val => parseFloat(val) > 0 || $t('InvalidAmount'),
-                  val => parseFloat(val) <= maxDenominatedRedeemableBchPerPair[index] ||
+                  () => amount > 0 || $t('InvalidAmount'),
+                  val => parseFloat(val || 0) <= maxDenominatedRedeemableBchPerPair[index] ||
                     $t('MustBeLessThan', { amount: maxDenominatedRedeemableBchPerPair[index] + ' ' + denomination }),
                 ]"
               >
