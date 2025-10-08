@@ -28,17 +28,15 @@
           <div class="text-h5 text-uppercase">{{ $t('Freeze') }}</div>
           <div class="text-h5">{{ denominatedBchAmountText }}</div>
           <div>
-            + {{ formatBch(2000 / 10 ** 8) }}
+            + {{ bchFees.totalBchText }}
             <q-icon name="info" size="1em"/>
-            <q-menu class="pt-card-2 text-bow q-py-sm q-px-md br-15" :class="getDarkModeClass(darkMode)">
-              <div class="row items-center q-gutter-sm">
-                <div>{{ formatBch(1000 / 10 ** 8) }}</div>
-                <div class="q-space">{{ $t('TokenDustAmount') }}</div>
-              </div>
-              <div class="row items-center q-gutter-sm">
-                <div>{{ formatBch(1000 / 10 ** 8) }}</div>
-                <div class="q-space">{{ $t('NetworkFee') }}</div>
-              </div>
+            <q-menu class="pt-card-2 text-bow q-py-sm q-px-md br-15 fees-list" :class="getDarkModeClass(darkMode)">
+              <template
+                v-for="(fee, index) in bchFees.fees" :key="index"
+              >
+                <div>{{ fee.label }}</div>
+                <div class="text-right">{{ fee.bchText }}</div>
+              </template>
             </q-menu>
           </div>
           <div class="q-my-md text-h6 text-grey">{{ $t('To') }}</div>
@@ -119,7 +117,6 @@ export default defineComponent({
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
-
     const denomination = computed(() => {
       return props.selectedDenomination || $store.getters['global/denomination']
     })
@@ -135,6 +132,14 @@ export default defineComponent({
       return parseInt(tokenToSatoshis(props.tokenUnits, priceUnitPerBch.value, true))
     })
 
+    const feeSats = computed(() => {
+      if (props.redemptionContract?.version !== 'v3') return 0;
+      const feeAmount = Number(props.redemptionContract?.options?.deposit_fee_amount);
+      if (!feeAmount) return 0;
+      if (feeAmount > 1) return feeAmount;
+      return (satoshis.value * feeAmount)
+    })
+
     /**
      * - We recalculate token units since, deposit cashscript uses satoshisToToken formula
      * - Recalculating e.g. tokenUnits -> tokenToSatoshis -> satoshisToToken
@@ -146,14 +151,37 @@ export default defineComponent({
     })
     const tokenAmount = computed(() => adjustedTokenUnits.value / 10 ** decimals.value)
     const bchAmount = computed(() => satoshis.value / 10 ** 8)
-    const denominatedBchAmountText = computed(() => {
-      if (!bchAmount.value) return ''
-      return formatBch(bchAmount.value)
-    })
     function formatBch(value) {
       const currentDenomination = denomination.value || 'BCH'
       return getAssetDenomination(currentDenomination, value)
     }
+    function formatSatoshis(value) {
+      return formatBch(value / 10 ** 8);
+    }
+
+    const denominatedBchAmountText = computed(() => {
+      if (!bchAmount.value) return ''
+      return formatBch(bchAmount.value)
+    })
+    const bchFees = computed(() => {
+      const fees = [
+        { satoshis: 1000, label: $t('TokenDustAmount') },
+        { satoshis: 1000, label: $t('NetworkFee') },
+      ];
+      if (feeSats.value > 0) {
+        fees.unshift({ satoshis: feeSats.value, label: $t('ServiceFee') })
+      }
+
+      const totalSats = fees.reduce((subtotal, fee) => subtotal+fee.satoshis, 0);
+
+      const formattedFees = fees.map(fee => {
+        return { ...fee, bchText: formatSatoshis(fee.satoshis) }
+      })
+      return {
+        fees: formattedFees,
+        totalBchText: formatSatoshis(totalSats)
+      }
+    })
 
     const postDepositRedeemableSats = computed(() => {
       const currentRedeemable = props.redemptionContract.redeemable
@@ -179,9 +207,10 @@ export default defineComponent({
         const wallet = await getStablehedgeWallet()
 
         loadingMsg.value = $t('PreparingFunds')
+        const totalUtxoSats = satoshis.value + feeSats.value + 2000;
         const utxoPrep = await prepareUtxos({
           wallet: wallet,
-          amounts: [{ satoshis: satoshis.value + 2000 }],
+          amounts: [{ satoshis: totalUtxoSats }],
           locktime: 0,
         })
         console.log({ utxoPrep })
@@ -229,6 +258,7 @@ export default defineComponent({
           // transaction_type: 'inject', // change to 'deposit' later
           transaction_type: 'deposit',
           utxo: signedUtxo,
+          fee_sats: feeSats.value,
         }
 
         loadingMsg.value = $t('CreatingTransaction')
@@ -308,6 +338,7 @@ export default defineComponent({
       tokenAmount,
       bchAmount,
       denominatedBchAmountText,
+      bchFees,
       formatBch,
 
       postDepositRedeemableSats,
@@ -322,3 +353,10 @@ export default defineComponent({
   }
 })
 </script>
+<style>
+.fees-list {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 8px;
+}
+</style>

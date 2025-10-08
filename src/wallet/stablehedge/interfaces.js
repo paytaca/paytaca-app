@@ -6,15 +6,20 @@
  * @property {Number} currency
  * @property {Number} decimals
  * 
+ * @typedef {Object} RedemptionContractOptionApiData
+ * @property {Number} deposit_fee_amount
+ * @property {Number} redeem_fee_amount
  * 
  * @typedef {Object} RedemptionContractApiData
+ * @property {String} version
  * @property {String} address
  * @property {FiatTokenApiData} fiat_token
  * @property {String} auth_token_id
  * @property {String} price_oracle_pubkey
- * @property {String} [treasury_contract_address]
  * @property {Number | null} redeemable
  * @property {Number | null} reserve_supply
+ * @property {String} [treasury_contract_address]
+ * @property {RedemptionContractOptionApiData} options
  * @property {{ inject: Number, deposit: Number, redeem: Number }} volume_24_hr
  * 
  * 
@@ -31,6 +36,7 @@
  * @property {VolumeApiData[]} volume_lifetime
  * 
  * @typedef {Object} TreasuryContractApiData
+ * @property {String} version
  * @property {String} address
  * @property {String} auth_token_id
  * @property {String} pubkey1
@@ -38,6 +44,8 @@
  * @property {String} pubkey3
  * @property {String} pubkey4
  * @property {String} pubkey5
+ * @property {String} anyhedge_base_bytecode
+ * @property {String} anyhedge_contract_version
  * @property {String} redemption_contract_address
  * @property {String} funding_wif_pubkey
  *
