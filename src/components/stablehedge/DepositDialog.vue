@@ -136,8 +136,8 @@ export default defineComponent({
       if (props.redemptionContract?.version !== 'v3') return 0;
       const feeAmount = Number(props.redemptionContract?.options?.deposit_fee_amount);
       if (!feeAmount) return 0;
-      if (feeAmount > 1) return feeAmount;
-      return (satoshis.value * feeAmount)
+      if (feeAmount >= 1) return feeAmount;
+      return Math.floor(satoshis.value * feeAmount);
     })
 
     /**
