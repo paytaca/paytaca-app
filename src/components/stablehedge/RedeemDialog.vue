@@ -30,18 +30,23 @@
           <div
             v-for="(opts, index) in parsedRedeemOpts" :key="index"
             class="row items-center justify-center no-wrap"
+            :class="parsedRedeemOpts?.length === 1 ? 'text-h5' : 'text-h6'"
           >
-            <div class="text-h5 col-5">
-              {{ opts?.tokenAmount }} {{  opts?.currency }}
-            </div>
+            <div class="col-5">{{ opts?.tokenAmount }} {{  opts?.currency }}</div>
             <template v-if="parsedRedeemOpts?.length > 1">
               <q-icon name="arrow_forward" color="grey" class="col-1"/>
-              <div class="text-h5 col-5">{{ opts?.bch }} {{ denomination }}</div>
+              <div class="col-5">{{ opts?.denominatedBch }} {{ denomination }}</div>
             </template>
           </div>
 
           <div class="text-h6 text-grey q-my-md">{{ $t('To') }}</div>
-          <div class="text-h5">{{ totalDenominatedAmount }} {{ denomination }}</div>
+          <div class="text-h5">{{ denominatedReceivedAmount }} {{ denomination }}</div>
+          <div v-if="totalDenominatedFeeAmount" class="q-mt-md received-amounts-panel text-body1">
+            <div>{{ $t('Fee') }}</div>
+            <div>{{ totalDenominatedFeeAmount }} {{ denomination }}</div>
+            <div>{{ $t('Subtotal') }}</div>
+            <div>{{ totalDenominatedAmount }} {{ denomination }}</div>
+          </div>
         </div>
         <div class="text-center">
           <div v-if="loading" class="q-my-md">
@@ -90,6 +95,7 @@ export default defineComponent({
         return [].map(() => {
           return {
             tokenUnits: Number(),
+            /** @type {import("src/wallet/stablehedge/interfaces").RedemptionContractApiData} */
             redemptionContract: {},
             priceMessage: {},
           }
@@ -125,6 +131,11 @@ export default defineComponent({
       const currentDenomination = denomination.value || 'BCH'
       return parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
     })
+    function denominateSats (valueSatoshis) {
+      const valueBch = parseInt(valueSatoshis) / 10 ** 8;
+      return valueBch * denominationPerBchRate.value;
+    }
+
     const redeemOpts = computed(() => {
       return [
         ...props.redeemOpts,
@@ -145,10 +156,17 @@ export default defineComponent({
         const decimals = parseInt(fiatToken?.decimals) || 0
         const priceValue = priceMessage?.priceValue
 
-        const tokenAmount = tokenUnits / 10 ** decimals
-        const satoshis = Number(tokenToSatoshis(tokenUnits, priceValue))
-        const bch = satoshis / 10 ** 8
-        const denominatedBch = bch * denominationPerBchRate.value
+        const tokenAmount = tokenUnits / 10 ** decimals;
+        const satoshis = Number(tokenToSatoshis(tokenUnits, priceValue));
+        const denominatedBch = denominateSats(satoshis);
+
+        const feeAmount = redemptionContract?.version === 'v3'
+          ? redemptionContract?.options?.redeem_fee_amount
+          : 0;
+        const feeSats = feeAmount >= 1 ? feeAmount : Math.floor(feeAmount * satoshis);
+        const feeBch = feeSats / 10 ** 8;
+        const denominatedFeeBch = feeBch * denominationPerBchRate.value;
+
         return {
           redemptionContract,
           priceMessage,
@@ -159,18 +177,25 @@ export default defineComponent({
           tokenUnits,
           tokenAmount,
           satoshis,
-          bch,
           denominatedBch,
+
+          feeSats,
+          feeBch,
+          denominatedFeeBch,
         }
       })
     })
   
-    const totalDenominatedAmount = computed(() => {
-      const totalSatoshis = parsedRedeemOpts.value.reduce((subtotal, opts) => {
-        return subtotal + opts?.satoshis
-      }, 0)
-      const totalBch = totalSatoshis / 10 ** 8
-      return totalBch * denominationPerBchRate.value
+    const totalSatoshis = computed(() => {
+      return parsedRedeemOpts.value.reduce((subtotal, opts) => subtotal + opts?.satoshis, 0);
+    })
+    const totalDenominatedAmount = computed(() => denominateSats(totalSatoshis.value))
+    const totalFeeSats = computed(() => {
+      return parsedRedeemOpts.value.reduce((subtotal, opts) => subtotal + opts?.feeSats, 0);
+    })
+    const totalDenominatedFeeAmount = computed(() => denominateSats(totalFeeSats.value));
+    const denominatedReceivedAmount = computed(() => {
+      return denominateSats(totalSatoshis.value - totalFeeSats.value);
     })
 
     function securityCheck(resetSwipe=() => {}) {
@@ -216,7 +241,7 @@ export default defineComponent({
         const signResults = await signRedeemUtxos({
           wallet, locktime,
           utxos: prepareResult.utxos,
-          satoshis: redeemOpts.map(opts => opts.satoshis),
+          satoshis: redeemOpts.map(opts => opts.satoshis - opts.feeSats),
         })
         console.log({ signResults })
 
@@ -235,6 +260,7 @@ export default defineComponent({
             wallet,
             redemptionContract: opts?.redemptionContract,
             priceMessage: opts?.priceMessage,
+            feeSats: opts?.feeSats,
             utxo: {    
               txid: utxo?.txid,
               vout: utxo?.vout,
@@ -311,6 +337,7 @@ export default defineComponent({
      * @param {StablehedgeWallet} opts.wallet
      * @param {Object} opts.redemptionContract
      * @param {Object} opts.priceMessage
+     * @param {Number} [opts.feeSats]
      * @param {Number} [opts.locktime]
      * @param {Object} opts.utxo
      * @param {String} opts.utxo.txid
@@ -334,6 +361,7 @@ export default defineComponent({
         wallet_hash: wallet.walletHash,
         transaction_type: 'redeem',
         utxo: opts.utxo,
+        fee_sats: opts?.feeSats,
       }
 
       const url = `stablehedge/redemption-contract-transactions/`
@@ -400,6 +428,8 @@ export default defineComponent({
       denomination,
       parsedRedeemOpts,
       totalDenominatedAmount,
+      totalDenominatedFeeAmount,
+      denominatedReceivedAmount,
 
       securityCheck,
       loadingMsg,
@@ -408,3 +438,10 @@ export default defineComponent({
   }
 })
 </script>
+<style>
+.received-amounts-panel {
+  display:grid;
+  grid-template-columns: auto auto;
+  column-gap: 8px;
+}
+</style>
