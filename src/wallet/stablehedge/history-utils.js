@@ -86,6 +86,7 @@ export function parseTransactionTypeText(transactionType='') {
  * @param {Number} data.price_value
  * @param {Number} data.satoshis
  * @param {Number} data.amount
+ * @param {Number} data.fee_sats
  * @param {String} data.txid
  * @param {String} data.result_message
  * @param {String} data.resolved_at
@@ -95,6 +96,7 @@ export function parseStablehedgeHistory(data) {
   const timestamp = new Date(data?.resolved_at || data?.created_at) * 1
   const txType = data?.transaction_type
   const bch = data?.satoshis / 10 ** 8
+  const fee = data?.fee_sats / 10 ** 8
 
   return {
     id: data?.id,
@@ -106,6 +108,7 @@ export function parseStablehedgeHistory(data) {
     priceValue: data?.price_value,
     bch: bch,
     amount: data?.amount,
+    fee: fee,
     txid: data?.txid,
     resultMessage: data?.result_message,
     timestamp: timestamp,
