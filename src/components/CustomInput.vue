@@ -100,13 +100,13 @@ export default {
 
       const parsedAmount = parseKey(key, amount, caretPosition, this.asset)
       this.val = parsedAmount
-
+      
       if (String(key) === '.' || String(key) === '0') {
         this.valFormatted = formatWithLocaleSelective(
           parsedAmount, this.valFormatted, String(key), this.decimalObj
         )
       } else this.valFormatted = formatWithLocale(parsedAmount, this.decimalObj)
-
+      
       this.$emit('on-amount-click')
     },
     makeKeyAction (key) {
@@ -131,7 +131,7 @@ export default {
         this.valFormatted = '0'
         this.$emit('on-delete-click')
       } else {
-        this.customKeyboardState = 'dismiss'
+        this.keyboardState = 'dismiss'
         this.$emit('on-check-click')
       }
     }
