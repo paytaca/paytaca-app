@@ -276,7 +276,8 @@ import {
   convertToBCH,
   customNumberFormatting,
   formatWithLocale,
-  getDenomDecimals
+  getDenomDecimals,
+  getLocaleSeparators
 } from 'src/utils/denomination-utils'
 import {
   parseKey,
@@ -963,6 +964,12 @@ export default {
           currentInputExtras.amountFormatted = formatWithLocale(
             currentRecipient.amount, this.decimalObj(false)
           )
+
+          if (
+            this.focusedInputField === 'fiat' &&
+            String(currentRecipient.fiatAmount).split('.').length === 2 &&
+            String(currentRecipient.fiatAmount).split('.')[1] === ''
+          ) currentInputExtras.fiatFormatted += getLocaleSeparators().decimal
         } catch {
           currentRecipient.fiatAmount = ''
           currentRecipient.amount = ''
