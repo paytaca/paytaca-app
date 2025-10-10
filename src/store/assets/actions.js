@@ -284,7 +284,7 @@ export function filterFavoriteAssets (context, assets) {
 
 
 export async function initializeFavorites (context, assets) {  
-  let iterate = assets.length > 7 ? 7 : assets.length
+  let iterate = assets.length > 10 ? 10 : assets.length
 
   const isInitialized = context.getters.initializedFavorites  
 

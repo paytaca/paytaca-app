@@ -80,7 +80,8 @@ export default {
       scrollContainerClientX: null,
       isloaded: false,
       customListIDs: null,
-      customList: null
+      customList: null,
+      networkError: false
     }
   },
   computed: {
@@ -95,25 +96,66 @@ export default {
       return this.$store.getters['global/theme'] !== 'default'
     },
     filteredFavAssets () {
+      if (this.networkError) {
+        return this.assets.slice(0,10)
+      }
+
       if (this.customList) {        
         return this.customList.filter(asset => asset.favorite === 1)            
+      } else {   
+
+        return this.assets.filter(asset => asset.favorite === 1)   
       }
-       
-      return this.assets.filter(asset => asset.favorite === 1)            
     },
     denomination () {
       return this.$store.getters['global/denomination']
     }
   },
-  watch: {
-    customListIDs(val) {
-      if (val) {
+  // watch: {
+  //   customListIDs(val) {
+  //     if (val) {
+        
+  //     }
+  //   }
+  // },
+  async mounted() {    
+    // this.checkEmptyFavorites()
+    // const isInitFav = this.$store.getters['assets/initializedFavorites']
+    // await this.$store.dispatch('assets/initializeFavorites', this.assets) 
+
+    // if (!isInitFav) {
+    //   await assetSettings.registerUser()
+    //   const favsList = this.assets.map(asset => asset.id)
+    //   await assetSettings.saveFavorites(favsList)
+    // }
+
+    this.customListIDs = await assetSettings.fetchCustomList()  
+
+    if (this.customListIDs) {
+      // if not in server, initialize
+      if ('error' in this.customListIDs || Object.keys(this.customListIDs).length === 0) {  
+        await assetSettings.registerUser()
+
+        // initilize custom list
+        const assetIDs = this.assets.map(asset => asset.id)
+
+        if (this.network === 'BCH') {
+          await assetSettings.initializeCustomList(assetIDs, [])        
+        } else {        
+          await assetSettings.initializeCustomList([], assetIDs)
+        }
+
+        // initialize favorites
+        await assetSettings.initializeFavorites(this.assets)   
+
+      } else {
         this.getCustomAssetList()
-      }
-    }
-  },
-  async mounted() {
-    this.customListIDs = await assetSettings.fetchCustomList()    
+      }      
+    } else {
+      console.log('empty IDS: ', this.assets)
+      this.networkError = true
+    } 
+    console.log('customIDs: ', this.customListIDs)  
   },
   methods: {
     parseAssetDenomination,
@@ -228,7 +270,20 @@ export default {
         }
         this.scrollContainerClientX = evt.evt.clientX
       }
-    }
+    },
+    checkEmptyFavorites () {
+        const vm = this
+
+        vm.assets.forEach((asset) => {                
+          if (!('favorite' in asset)) {
+            let temp = {
+              id: asset.id,
+              favorite: 0
+            }           
+            vm.$store.commit('assets/updateAssetFavorite',  temp)
+          }
+        })      
+      },
   }
 }
 </script>
