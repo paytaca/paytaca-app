@@ -1,0 +1,140 @@
+<template>
+  <q-input
+    filled
+    type="text"
+    inputmode="none"
+    ref="inputRef"
+    v-model="valFormatted"
+    @focus="keyboardState = 'show'"
+    :label="$t('Amount')"
+    :dark="darkMode"
+    :rules="inputRules"
+  >
+    <template v-slot:append>
+      <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
+        {{ inputSymbol }}
+      </div>
+    </template>
+  </q-input>
+
+  <custom-keyboard
+    :custom-keyboard-state="keyboardState"
+    v-on:addKey="setAmount"
+    v-on:makeKeyAction="makeKeyAction"
+  />
+</template>
+
+<script>
+import {
+  adjustSplicedAmount,
+  formatWithLocaleSelective,
+  parseKey
+} from 'src/utils/custom-keyboard-utils';
+import { formatWithLocale } from 'src/utils/denomination-utils';
+
+import CustomKeyboard from './CustomKeyboard.vue';
+
+export default {
+  name: 'CustomInput',
+
+  props: {
+    modelValue: { type: [String, Number], default: '' },
+    inputSymbol: { type: String, default: '' },
+
+    inputRules: { type: Array, default: new Array(() => {}) },
+    asset: { type: Object, default: {} },
+    decimalObj: {
+      type: { min: Number, max: Number },
+      default: { min: 0, max: 2 }
+    }
+  },
+
+  // can be set optionally if further processing is necessary
+  // after triggering either setAmount or makeKeyAction
+  emits: [
+    'on-amount-click', // after triggering setAmount
+    'on-backspace-click', // after triggering makeKeyAction backspace
+    'on-delete-click', // after triggering makeKeyAction delete
+    'on-check-click', // after triggering makeKeyAction check/ok
+    'update:model-value'
+  ],
+
+  components: {
+    CustomKeyboard
+  },
+
+  data () {
+    return {
+      val: this.modelValue,
+      valFormatted: '',
+      keyboardState: ''
+    }
+  },
+
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    }
+  },
+
+  mounted () {
+    this.valFormatted = formatWithLocale(this.modelValue, this.decimalObj)
+  },
+
+  watch: {
+    val () {
+      this.$emit('update:model-value', this.val)
+    },
+    modelValue () {
+      this.val = this.modelValue
+    }
+  },
+
+  methods: {
+    setAmount (key) {
+      const inputNativeEl = this.$refs.inputRef.nativeEl
+      inputNativeEl.focus({ focusVisible: true })
+
+      const caretPosition = inputNativeEl.selectionStart
+      const amount = this.val ?? '0'
+
+      const parsedAmount = parseKey(key, amount, caretPosition, this.asset)
+      this.val = parsedAmount
+
+      if (String(key) === '.' || String(key) === '0') {
+        this.valFormatted = formatWithLocaleSelective(
+          parsedAmount, this.valFormatted, String(key), this.decimalObj
+        )
+      } else this.valFormatted = formatWithLocale(parsedAmount, this.decimalObj)
+
+      this.$emit('on-amount-click')
+    },
+    makeKeyAction (key) {
+      const inputNativeEl = this.$refs.inputRef.nativeEl
+      if (key === 'backspace') {
+        inputNativeEl.focus({ focusVisible: true });
+        let caretPosition = inputNativeEl.selectionStart - 1
+        if (caretPosition >= this.val.length)
+          caretPosition = this.val.length - 1
+
+        try {
+          this.val = adjustSplicedAmount(this.val, caretPosition)
+          this.valFormatted = formatWithLocale(this.val, this.decimalObj)
+        } catch {
+          this.val = ''
+          this.valFormatted = '0'
+        }
+        this.$emit('on-backspace-click')
+      } else if (key === 'delete') {
+        inputNativeEl.focus({ focusVisible: true });
+        this.val = ''
+        this.valFormatted = '0'
+        this.$emit('on-delete-click')
+      } else {
+        this.customKeyboardState = 'dismiss'
+        this.$emit('on-check-click')
+      }
+    }
+  }
+}
+</script>

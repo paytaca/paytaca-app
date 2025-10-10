@@ -93,11 +93,7 @@ export default {
       this.val = this.modelValue
     },
     customKeyboardState () {
-      if (this.customKeyboardState === 'show') {
-        this.keyboard = true
-      } else {
-        this.keyboard = false
-      }
+      this.keyboard = this.customKeyboardState === 'show'
     }
   }
 }
