@@ -30,7 +30,7 @@ import {
   formatWithLocaleSelective,
   parseKey
 } from 'src/utils/custom-keyboard-utils';
-import { formatWithLocale } from 'src/utils/denomination-utils';
+import { formatWithLocale, getLocaleSeparators } from 'src/utils/denomination-utils';
 
 import CustomKeyboard from './CustomKeyboard.vue';
 
@@ -75,6 +75,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    localeDecimal () {
+      return getLocaleSeparators().decimal
     }
   },
 
@@ -86,13 +89,17 @@ export default {
     val () {
       this.$emit('update:model-value', this.val)
     },
-    modelValue () {
+    modelValue (value) {
       this.val = this.modelValue
+
       if (this.keyPressed === '.' || this.keyPressed === '0') {
         this.valFormatted = formatWithLocaleSelective(
           this.val, this.valFormatted, this.keyPressed, this.decimalObj
         )
       } else this.valFormatted = formatWithLocale(this.val, this.decimalObj)
+      
+      if (String(value).split('.').length === 2 && String(value).split('.')[1] === '')
+        this.valFormatted += this.localeDecimal
     }
   },
 
@@ -116,6 +123,7 @@ export default {
       if (key === 'backspace') {
         inputNativeEl.focus({ focusVisible: true });
         let caretPosition = inputNativeEl.selectionStart - 1
+
         if (caretPosition >= this.val.length)
           caretPosition = this.val.length - 1
 
