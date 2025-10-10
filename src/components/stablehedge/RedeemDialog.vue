@@ -32,20 +32,20 @@
             class="row items-center justify-center no-wrap"
             :class="parsedRedeemOpts?.length === 1 ? 'text-h5' : 'text-h6'"
           >
-            <div class="col-5">{{ opts?.tokenAmount }} {{  opts?.currency }}</div>
+            <div class="col-5">{{ opts?.formattedTokenAmount }} {{  opts?.currency }}</div>
             <template v-if="parsedRedeemOpts?.length > 1">
               <q-icon name="arrow_forward" color="grey" class="col-1"/>
-              <div class="col-5">{{ opts?.denominatedBch }} {{ denomination }}</div>
+              <div class="col-5">{{ opts?.formattedBchAmount }} {{ denomination }}</div>
             </template>
           </div>
 
           <div class="text-h6 text-grey q-my-md">{{ $t('To') }}</div>
-          <div class="text-h5">{{ denominatedReceivedAmount }} {{ denomination }}</div>
-          <div v-if="totalDenominatedFeeAmount" class="q-mt-md received-amounts-panel text-body1">
+          <div class="text-h5">{{ formattedReceivedAmount }} {{ denomination }}</div>
+          <div v-if="formattedTotalFeeAmount" class="q-mt-md received-amounts-panel text-body1">
             <div>{{ $t('Fee') }}</div>
-            <div>{{ totalDenominatedFeeAmount }} {{ denomination }}</div>
+            <div>{{ formattedTotalFeeAmount }} {{ denomination }}</div>
             <div>{{ $t('Subtotal') }}</div>
-            <div>{{ totalDenominatedAmount }} {{ denomination }}</div>
+            <div>{{ formattedAmount }} {{ denomination }}</div>
           </div>
         </div>
         <div class="text-center">
@@ -61,7 +61,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { getAssetDenomination } from 'src/utils/denomination-utils';
+import { formatWithLocale, getDenomDecimals } from 'src/utils/denomination-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
 import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { prepareUtxos, waitRedemptionContractTx } from 'src/wallet/stablehedge/transaction'
@@ -129,11 +129,16 @@ export default defineComponent({
     })
     const denominationPerBchRate = computed(() => {
       const currentDenomination = denomination.value || 'BCH'
-      return parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+      const { convert } = getDenomDecimals(currentDenomination);
+      return convert
     })
     function denominateSats (valueSatoshis) {
       const valueBch = parseInt(valueSatoshis) / 10 ** 8;
       return valueBch * denominationPerBchRate.value;
+    }
+    function formatSats(valueSatoshis) {
+      const denominated = denominateSats(valueSatoshis);
+      return formatWithLocale(denominated, { max: 8 })
     }
 
     const redeemOpts = computed(() => {
@@ -157,8 +162,10 @@ export default defineComponent({
         const priceValue = priceMessage?.priceValue
 
         const tokenAmount = tokenUnits / 10 ** decimals;
+        const formattedTokenAmount = formatWithLocale(tokenAmount, { max: decimals });
         const satoshis = Number(tokenToSatoshis(tokenUnits, priceValue));
         const denominatedBch = denominateSats(satoshis);
+        const formattedBchAmount = formatWithLocale(denominatedBch, { max: 8 })
 
         const feeAmount = redemptionContract?.version === 'v3'
           ? redemptionContract?.options?.redeem_fee_amount
@@ -176,8 +183,9 @@ export default defineComponent({
 
           tokenUnits,
           tokenAmount,
+          formattedTokenAmount,
           satoshis,
-          denominatedBch,
+          formattedBchAmount,
 
           feeSats,
           feeBch,
@@ -189,13 +197,15 @@ export default defineComponent({
     const totalSatoshis = computed(() => {
       return parsedRedeemOpts.value.reduce((subtotal, opts) => subtotal + opts?.satoshis, 0);
     })
-    const totalDenominatedAmount = computed(() => denominateSats(totalSatoshis.value))
+    const formattedAmount = computed(() => formatSats(totalSatoshis.value))
     const totalFeeSats = computed(() => {
       return parsedRedeemOpts.value.reduce((subtotal, opts) => subtotal + opts?.feeSats, 0);
     })
-    const totalDenominatedFeeAmount = computed(() => denominateSats(totalFeeSats.value));
-    const denominatedReceivedAmount = computed(() => {
-      return denominateSats(totalSatoshis.value - totalFeeSats.value);
+    const formattedTotalFeeAmount = computed(() => {
+      return totalFeeSats.value && formatSats(totalFeeSats.value)
+    });
+    const formattedReceivedAmount = computed(() => {
+      return formatSats(totalSatoshis.value - totalFeeSats.value);
     })
 
     function securityCheck(resetSwipe=() => {}) {
@@ -427,13 +437,15 @@ export default defineComponent({
 
       denomination,
       parsedRedeemOpts,
-      totalDenominatedAmount,
-      totalDenominatedFeeAmount,
-      denominatedReceivedAmount,
+      formattedAmount,
+      formattedTotalFeeAmount,
+      formattedReceivedAmount,
 
       securityCheck,
       loadingMsg,
       loading,
+
+      formatWithLocale,
     }
   }
 })

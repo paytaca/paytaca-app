@@ -40,7 +40,7 @@
             </q-menu>
           </div>
           <div class="q-my-md text-h6 text-grey">{{ $t('To') }}</div>
-          <div class="text-h5">{{ tokenAmount }} {{ tokenCurrency }}</div>
+          <div class="text-h5">{{ formatWithLocale(tokenAmount) }} {{ tokenCurrency }}</div>
         </div>
         <q-banner
           v-if="!hasLiquidityForRedemption"
@@ -75,7 +75,7 @@
   </q-dialog>
 </template>
 <script>
-import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
+import { formatWithLocale, getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { StablehedgeWallet } from 'src/wallet/stablehedge/wallet';
@@ -349,6 +349,7 @@ export default defineComponent({
       loadingMsg,
 
       parseFiatCurrency,
+      formatWithLocale,
     }
   }
 })
