@@ -28,30 +28,25 @@
         <span>{{ formatWithLocale(currentUsdPrice) }} USD/BCH</span>
       </div>
 
-      <div class="row full-width q-gutter-y-xs q-mb-xs">
-        <q-input
-          filled
-          type="text"
-          inputmode="none"
-          class="col-12"
-          ref="input-tkn"
-          v-model="amountFormatted"
-          @focus="customKeyboardState = 'show'"
-          :label="$t('Amount')"
-          :dark="darkMode"
-          :error="
-            Number(amountBch) > walletBalance ||
-            Number(amountTkn) * 10 ** 2 > tknBalance
-          "
-          :error-message="$t('BalanceExceeded')"
-        >
-          <template v-slot:append>
-            <div class="q-pr-sm text-weight-bold" style="font-size: 15px">
-              LIFT
-            </div>
-          </template>
-        </q-input>
+      <div class="col">
+        <custom-input
+          v-model="amountTkn"
+          :inputSymbol="'LIFT'"
+          :inputRules="[
+            val => (
+              Number(this.amountBch) < this.walletBalance &&
+              Number(val) * 10 ** 2 <= this.tknBalance
+            ) || this.$t('BalanceExceeded')
+          ]"
+          :asset="null"
+          :decimalObj="{ min: 0, max: 2 }"
+          @on-amount-click="onKeyAction"
+          @on-backspace-click="onKeyAction"
+          @on-delete-click="onKeyAction"
+        />
+      </div>
 
+      <div class="row full-width q-gutter-y-xs q-mb-xs">
         <div class="row col-12 justify-end q-px-md">
           <span
             class="text-weight-bolder max-button text-grad"
@@ -123,18 +118,11 @@
         />
       </div>
     </q-card>
-
-    <custom-keyboard
-      :custom-keyboard-state="customKeyboardState"
-      v-on:addKey="setAmount"
-      v-on:makeKeyAction="makeKeyAction"
-    />
   </q-dialog>
 </template>
 
 <script>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-import { formatWithLocaleSelective, parseKey } from "src/utils/custom-keyboard-utils";
 import { getOracleData, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
@@ -143,7 +131,7 @@ import {
   formatWithLocale
 } from "src/utils/denomination-utils";
 
-import CustomKeyboard from "src/components/CustomKeyboard.vue";
+import CustomInput from "src/components/CustomInput.vue";
 import PayReservationConfirmDialog from "src/components/lift-token/dialogs/PayReservationConfirmDialog.vue";
 
 export default {
@@ -156,7 +144,7 @@ export default {
   },
 
   components: {
-    CustomKeyboard,
+    CustomInput
   },
 
   data() {
@@ -226,44 +214,13 @@ export default {
       this.unpaidLift = this.parseToken() - Number(this.amountTkn * 10 ** 2);
     },
 
-    setAmount(key) {
-      this.$refs["input-tkn"].nativeEl.focus({ focusVisible: true });
-
-      const currentAmount = this.amountTkn;
-      const currentCaret = this.$refs["input-tkn"].nativeEl.selectionStart;
-      const parsedAmount = parseKey(key, currentAmount, currentCaret, null);
-
-      if (String(key) === '.' || String(key) === '0') {
-        this.amountFormatted = formatWithLocaleSelective(
-          parsedAmount, this.amountFormatted, String(key), { min: 0, max: 2 }
-        )
-      } else
-        this.amountFormatted = formatWithLocale(parsedAmount, { min: 0, max: 2 })
-
-      this.amountTkn = parsedAmount;
-      this.computeUsdBch();
-      this.computeBalances();
-    },
-    makeKeyAction(action) {
-      if (action === "backspace") {
-        this.$refs["input-tkn"].nativeEl.focus({ focusVisible: true });
-        try {
-          this.amountTkn = this.amountTkn.slice(0, -1);
-          this.amountFormatted = formatWithLocale(this.amountTkn, { min: 0, max: 2 })
-        } catch {
-          this.amountFormatted = '0'
-          this.amountBch = 0;
-          this.amountUsd = 0;
-          this.amountTkn = 0;
-        }
-      } else if (action === "delete") {
-        this.$refs["input-tkn"].nativeEl.focus({ focusVisible: true });
-        this.amountFormatted = '0'
+    onKeyAction (val) {
+      this.amountTkn = val
+      if (Number(this.amountTkn) === 0) {
         this.amountBch = 0;
         this.amountUsd = 0;
         this.amountTkn = 0;
-      } else this.customKeyboardState = "dismiss";
-
+      }
       this.computeUsdBch();
       this.computeBalances();
     },
