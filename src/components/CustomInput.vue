@@ -67,7 +67,8 @@ export default {
     return {
       val: this.modelValue,
       valFormatted: '',
-      keyboardState: ''
+      keyboardState: '',
+      keyPressed: ''
     }
   },
 
@@ -87,6 +88,11 @@ export default {
     },
     modelValue () {
       this.val = this.modelValue
+      if (this.keyPressed === '.' || this.keyPressed === '0') {
+        this.valFormatted = formatWithLocaleSelective(
+          this.val, this.valFormatted, this.keyPressed, this.decimalObj
+        )
+      } else this.valFormatted = formatWithLocale(this.val, this.decimalObj)
     }
   },
 
@@ -99,18 +105,14 @@ export default {
       const amount = this.val ?? '0'
 
       const parsedAmount = parseKey(key, amount, caretPosition, this.asset)
+      this.keyPressed = String(key)
       this.val = parsedAmount
-      
-      if (String(key) === '.' || String(key) === '0') {
-        this.valFormatted = formatWithLocaleSelective(
-          parsedAmount, this.valFormatted, String(key), this.decimalObj
-        )
-      } else this.valFormatted = formatWithLocale(parsedAmount, this.decimalObj)
-      
       this.$emit('on-amount-click', this.val)
     },
     makeKeyAction (key) {
       const inputNativeEl = this.$refs.inputRef.nativeEl
+      this.keyPressed = String(key)
+
       if (key === 'backspace') {
         inputNativeEl.focus({ focusVisible: true });
         let caretPosition = inputNativeEl.selectionStart - 1
@@ -119,16 +121,13 @@ export default {
 
         try {
           this.val = adjustSplicedAmount(this.val, caretPosition)
-          this.valFormatted = formatWithLocale(this.val, this.decimalObj)
         } catch {
           this.val = ''
-          this.valFormatted = '0'
         }
         this.$emit('on-backspace-click', this.val)
       } else if (key === 'delete') {
         inputNativeEl.focus({ focusVisible: true });
         this.val = ''
-        this.valFormatted = '0'
         this.$emit('on-delete-click', this.val)
       } else {
         this.keyboardState = 'dismiss'
