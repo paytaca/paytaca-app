@@ -105,7 +105,8 @@ export default {
   display: flex;
   justify-content: center;
   width: 100%;
-  bottom: 0pt !important;
+  left: 0 !important;
+  bottom: 0 !important;
   z-index: 1;
 }
 .pt-keyboard-container {
