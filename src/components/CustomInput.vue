@@ -75,9 +75,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    localeDecimal () {
-      return getLocaleSeparators().decimal
     }
   },
 
@@ -99,7 +96,7 @@ export default {
       } else this.valFormatted = formatWithLocale(this.val, this.decimalObj)
       
       if (String(value).split('.').length === 2 && String(value).split('.')[1] === '')
-        this.valFormatted += this.localeDecimal
+        this.valFormatted += getLocaleSeparators().decimal
     }
   },
 
