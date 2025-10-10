@@ -107,7 +107,7 @@ export default {
         )
       } else this.valFormatted = formatWithLocale(parsedAmount, this.decimalObj)
       
-      this.$emit('on-amount-click')
+      this.$emit('on-amount-click', this.val)
     },
     makeKeyAction (key) {
       const inputNativeEl = this.$refs.inputRef.nativeEl
@@ -124,15 +124,15 @@ export default {
           this.val = ''
           this.valFormatted = '0'
         }
-        this.$emit('on-backspace-click')
+        this.$emit('on-backspace-click', this.val)
       } else if (key === 'delete') {
         inputNativeEl.focus({ focusVisible: true });
         this.val = ''
         this.valFormatted = '0'
-        this.$emit('on-delete-click')
+        this.$emit('on-delete-click', this.val)
       } else {
         this.keyboardState = 'dismiss'
-        this.$emit('on-check-click')
+        this.$emit('on-check-click', this.val)
       }
     }
   }
