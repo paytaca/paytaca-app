@@ -31,6 +31,7 @@ export default function () {
     showTokens: true,
     enableStablhedge: false,
     enableSmartBCH: false,
+    enableSLP: false,
     wallets: {
       bch: {
         walletHash: '',

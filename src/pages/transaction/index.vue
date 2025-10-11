@@ -11,7 +11,7 @@
               class="row q-px-sm q-pt-sm"
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
-              <MultiWalletDropdown ref="multi-wallet-component" />
+              <MultiWalletDropdown ref="multi-wallet-component"/>
               <NotificationButton
                 @hide-multi-wallet-dialog="hideMultiWalletDialog"
                 @find-and-open-transaction="findAndOpenTransaction"
@@ -147,20 +147,20 @@
                             {{ `${walletYield} ${selectedMarketCurrency}` }}
                           </span>
                         </q-badge>
-                        <StablehedgeButtons
+                        <!-- <StablehedgeButtons
                           v-if="stablehedgeView"
                           class="q-mt-xs"
                           :selectedDenomination="selectedDenomination"
                           @deposit="onStablehedgeTransaction"
                           @redeem="onStablehedgeTransaction"
-                        />
-                        <div v-else-if="hasCashin">
+                        /> -->
+                        <!-- <div v-else-if="hasCashin">
                           <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
                             <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
                             <div style="padding-right: 10px;">Cash In</div>
                             <q-badge v-if="hasCashinAlert" align-left floating rounded color="red"/>
                           </q-btn>
-                        </div>
+                        </div> -->
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
@@ -183,6 +183,19 @@
               </div>
             </div>
           </div>
+
+          <asset-options 
+            :stablehedgeView="stablehedgeView"
+            :loaded="balanceLoaded"
+            :selectedDenomination="selectedDenomination"
+            :hasCashin="hasCashin"
+            @cashin="openCashIn()"
+            @price-chart="openPriceChart()"
+            @deposit="onStablehedgeTransaction"
+            @redeem="onStablehedgeTransaction"
+            @stats="openStablehedgeMarketsDialog = true"
+
+          />
           <div
             v-if="!showTokens"
             class="text-center button button-text-primary show-tokens-label"
@@ -212,6 +225,16 @@
                   @click="toggleManageAssets"
                 />
                 <q-btn
+                  flat
+                  padding="none"
+                  v-if="!stablehedgeView"
+                  size="sm"
+                  icon="settings"
+                  class="settings-button"           
+                  :class="getDarkModeClass(darkMode)"
+                  @click="$router.push({ name: 'asset-list' })"
+                />
+                <!-- <q-btn
                   v-if="!stablehedgeView"
                   flat
                   padding="none"
@@ -244,7 +267,7 @@
                       </q-item>
                     </q-list>
                   </q-menu>
-                </q-btn>
+                </q-btn> -->
               </p>
             </div>
 
@@ -253,11 +276,11 @@
               class="col-3 q-mt-sm"
               style="margin-top: -5px !important;"
             >
-              <AssetFilter v-if="!stablehedgeView" @filterTokens="isCT => isCashToken = isCT" />
+              <AssetFilter v-if="hasAssetFilter" @filterTokens="isCT => isCashToken = isCT" />
               <KeepAlive>
                 <div v-if="stablehedgeView" class="row items-center q-px-lg">
                   <q-space/>
-                  <q-btn
+                  <!-- <q-btn
                     flat
                     no-caps
                     icon="query_stats"
@@ -265,7 +288,7 @@
                     class="button button-text-primary"
                     :class="getDarkModeClass(darkMode)"
                     @click="() => openStablehedgeMarketsDialog = true"
-                  />
+                  /> -->
                   <StablehedgeMarketsDialog v-model="openStablehedgeMarketsDialog"/>
                 </div>
               </KeepAlive>
@@ -311,10 +334,16 @@
             >
             </asset-cards>
           </template>
-          <div v-if="showTokens && assets.length == 0" style="height: 10px;"></div>
+          <div v-if="showTokens && assets.length == 0" style="margin-bottom: 10px;">
+            <div class="text-center text-black">
+                <q-btn class="br-15" outline color="primary" label="Add New Asset" @click="addNewAsset()"/>
+            </div>
+          </div>
+
+          <PendingTransactions/>
         </div>
       </q-pull-to-refresh>
-      <div ref="transactionSection" class="row transaction-row">
+      <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
           ref="transaction"
           :wallet="wallet"
@@ -406,7 +435,7 @@
             />
           </KeepAlive>
         </div>
-      </div>
+      </div> -->
       <footer-menu ref="footerMenu" />
     </div>
 
@@ -448,6 +477,7 @@ import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
+import AddNewAsset from 'src/pages/transaction/dialog/AddNewAsset'
 import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
@@ -462,6 +492,8 @@ import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/Stabl
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
+import AssetOptions from 'src/components/asset-options.vue'
+import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
 
@@ -483,7 +515,10 @@ export default {
     StablehedgeButtons,
     StablehedgeHistory,
     StablehedgeMarketsDialog,
-    NotificationButton
+    NotificationButton,
+    AssetOptions,
+    PendingTransactions,
+    AddNewAsset
   },
   directives: {
     dragscroll
@@ -530,7 +565,9 @@ export default {
       hasCashinAlert: false,
       availableCashinFiat: null,
       isPriceChartDialogShown: false,
-      websocketManager: null
+      websocketManager: null,
+      assetClickTimer: null,
+      assetClickCounter: 0      
     }
   },
 
@@ -597,8 +634,8 @@ export default {
       set(value) {
         this.stablehedgeView = value === 'stablehedge'
         this.$nextTick(() => {
-          this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
-          this.$refs['transaction-list-component'].getTransactions()
+          // this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
+          // this.$refs['transaction-list-component'].getTransactions()
         })
       }
     },
@@ -608,6 +645,12 @@ export default {
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
     },
+    enableSLP () {
+      return this.$store.getters['global/enableSLP']
+    },
+    hasAssetFilter () {
+      return !this.stablehedgeView && this.enableSLP
+    },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
@@ -616,6 +659,7 @@ export default {
         (this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
         this.selectedNetwork !== 'sBCH')
     },
+
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -899,40 +943,45 @@ export default {
         if (setAsset?.id && vm.assets.find(asset => asset?.id == setAsset?.id)) {
           vm.selectedAsset = setAsset
         }
-        vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
+        // vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
         vm.assets.map(function (asset) {
           return vm.getBalance(asset.id)
         })
-        vm.$refs['transaction-list-component'].getTransactions()
+        // vm.$refs['transaction-list-component'].getTransactions()
       }
     },
-    selectBch () {
-      const vm = this
-      vm.selectedAsset = this.bchAsset
-      vm.getBalance(this.bchAsset.id)
-      vm.txSearchActive = false
-      vm.txSearchReference = ''
+    selectBch () {     
+      const vm = this       
+      // vm.selectedAsset = this.bchAsset
+      // vm.getBalance(this.bchAsset.id)
+      // vm.txSearchActive = false
+      // vm.txSearchReference = ''
       
-      vm.$nextTick(() => {
-        vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
-        vm.$refs['transaction-list-component'].getTransactions()
-      })
+      // vm.$nextTick(() => {
+        // vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
+        // vm.$refs['transaction-list-component'].getTransactions()
+      // })
       vm.assetClickCounter += 1
-      if (vm.assetClickCounter >= 2) {
+      if (vm.assetClickCounter >= 2) {        
         vm.showAssetInfo(this.bchAsset)
         vm.assetClickTimer = setTimeout(() => {
           clearTimeout(vm.assetClickTimer)
           vm.assetClickTimer = null
           vm.assetClickCounter = 0
         }, 600)
-      } else {
-        vm.hideAssetInfo()
-        vm.assetClickTimer = setTimeout(() => {
+      } else {        
+        // vm.hideAssetInfo()
+        vm.assetClickTimer = setTimeout(() => {          
+          if (vm.assetClickCounter === 1) {
+            this.$router.push({ name: 'transaction-list'}) 
+          }            
           clearTimeout(vm.assetClickTimer)
           vm.assetClickTimer = null
           vm.assetClickCounter = 0
-        }, 600)
+        }, 600)       
       }
+
+      // this.$router.push({ name: 'transaction-list'})
     },
     toggleManageAssets () {
       const vm = this
@@ -978,14 +1027,14 @@ export default {
       const vm = this
       vm.hideMultiWalletDialog()
       vm.hideAssetInfo()
-      const txCheck = setInterval(function () {
-        if (transaction) {
-          if (!transaction?.asset) transaction.asset = vm.selectedAsset
-          vm.$refs.transaction.show(transaction)
-          vm.hideBalances = true
-          clearInterval(txCheck)
-        }
-      }, 100)
+      // const txCheck = setInterval(function () {
+      //   if (transaction) {
+      //     if (!transaction?.asset) transaction.asset = vm.selectedAsset
+      //     vm.$refs.transaction.show(transaction)
+      //     vm.hideBalances = true
+      //     clearInterval(txCheck)
+      //   }
+      // }, 100)
     },
     setSelectedAsset(asset) {
       const assetExists = this.assets.find(a => a?.id == asset?.id)
@@ -993,11 +1042,13 @@ export default {
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
       this.getBalance(asset.id)
-      this.$nextTick(() => {
-        this.$refs['transaction-list-component'].resetValues(null, null, asset)
-        this.$refs['transaction-list-component'].getTransactions()
-      })
+      // this.$nextTick(() => {
+      //   this.$refs['transaction-list-component'].resetValues(null, null, asset)
+      //   this.$refs['transaction-list-component'].getTransactions()
+      // })
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
+
+      this.$router.push({name: 'transaction-list', query: { assetID: asset.id }})
     },
     getBalance (id) {
       const vm = this
@@ -1055,7 +1106,7 @@ export default {
           return this.getBalance(asset.id)
         })
         this.transactions = []
-        this.$refs['transaction-list-component'].getTransactions()
+        // this.$refs['transaction-list-component'].getTransactions()
       } finally {
         done()
       }
@@ -1257,7 +1308,7 @@ export default {
         }
 
         const balancePromise = vm.getBalance(vm.selectedAsset.id)
-        const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
+        // const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
 
         let tokenIconUpdatePromise
         if (this.selectedNetwork === 'sBCH') {
@@ -1268,7 +1319,7 @@ export default {
 
         return Promise.allSettled([
           balancePromise,
-          txFetchPromise,
+          // txFetchPromise,
           tokenIconUpdatePromise,
         ])
       } else {
@@ -1571,7 +1622,26 @@ export default {
     },
     hideMultiWalletDialog () {
       this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
-    }
+    },
+    addNewAsset () {
+      const vm = this
+      vm.$q.dialog({
+        // need both in passing props for now for backwards compatibility
+        componentProps: {
+          network: vm.selectedNetwork,
+          darkMode: vm.darkMode,
+          isCashToken: vm.isCashToken,
+          wallet: vm.wallet,
+          currentCountry: vm.currentCountry
+        },
+        component: AddNewAsset
+      }).onOk((asset) => {
+        // console.log('asset: ', )
+        // vm.assetList = this.assets
+        this.$router.push({ name: 'asset-list' })
+        // if (asset.data?.id) vm.selectAsset(null, asset.data)
+      })
+      },
   },
 
   beforeRouteEnter (to, from, next) {
@@ -1680,7 +1750,7 @@ export default {
     }
   }
   .fixed-container {
-    position: fixed;
+    
     top: 0 !important;
     right: 0;
     left: 0;

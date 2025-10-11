@@ -129,6 +129,7 @@ const fetchingOrders = ref(false)
 const orders = ref([].map(Order.parse))
 const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
 async function fetchOrders(opts={limit: 0, offset: 0 }) {
+  console.log('storefront id: ', props.storefrontId)
   const params = {
     ref: await $store.dispatch('marketplace/getCartRef'),
     limit: opts?.limit || 10,

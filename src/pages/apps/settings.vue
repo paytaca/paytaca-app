@@ -122,6 +122,20 @@
                     />
                   </q-item-section>
               </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                    Enable SLP
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section avatar>
+                    <q-toggle
+                      v-model="enableSLP"
+                      color="blue-9"
+                      keep-color
+                    />
+                  </q-item-section>
+              </q-item>
               <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -266,6 +280,7 @@ export default {
       showTokens: this.$store.getters['global/showTokens'],
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+      enableSLP: this.$store.getters['global/enableSLP'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
       showStablehedgeInfoDialog: false,
@@ -309,6 +324,9 @@ export default {
     },
     enableSmartBCH (n, o) {
       this.$store.commit('global/enableSmartBCH')
+    },
+    enableSLP (n, o) {
+      this.$store.commit('global/enableSLP')
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)

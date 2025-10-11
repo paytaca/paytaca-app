@@ -2,6 +2,7 @@
   <div id="transaction">
     <q-dialog ref="dialog" @hide="hide" persistent seamless class="no-click-outside">
       <q-card
+        id="scrollArea"
         ref="card"
         v-if="transaction && transaction.asset"
         style="padding: 20px 10px 5px 0; max-height:85vh;"
@@ -9,7 +10,7 @@
         :class="getDarkModeClass(darkMode)"
       >
         <div class="close-button-container row items-center justify-end">
-          <q-btn icon="close" flat round dense v-close-popup class="close-button" />
+          <q-btn icon="close" flat round dense v-close-popup class="close-button" @click="showMemo = false"/>
         </div>
         <div class="text-h6 text-uppercase text-center">
           <template v-if="stablehedgeTxView">{{ stablehedgeTxData?.transactionTypeText }}</template>
@@ -434,6 +435,85 @@
                 </q-item>
               </div>
             </q-slide-transition>
+
+            <q-slide-transition>
+              <div v-if="!showMemo">
+                <div v-if="hasMemo">
+                  <q-item-section class="q-pt-sm">
+                    <q-input
+                      v-model="memo.note"
+                      filled
+                      height="25px" 
+                      type="textarea"
+                      readonly
+                    />                  
+                  </q-item-section>   
+                  <q-item-section class="q-pt-sm">
+                    <div class="row">
+                      <div class="col-11">
+                         <q-btn 
+                          outline
+                          class="br-15 full-width"             
+                          padding="xs sm"
+                          label="Update"
+                          color="primary"
+                          @click="openMemo()"
+                        />
+                      </div>
+                      <div class="col-1 text-right">
+                        <q-btn class="q-pt-xs" round flat color="red-7" size="md" icon="delete" padding="none" @click="confirmDelete()"/>
+                      </div>
+                    </div>                   
+                  </q-item-section>
+                </div>
+                <div v-else>
+                  <q-item-section class="q-pt-sm">
+                    <q-btn         
+                        class="br-15 full-width"             
+                        padding="xs sm"
+                        label="Add Memo"
+                        color="primary"
+                        :disable="networkError"
+                        @click="openMemo()"
+                      />
+                      <div v-if="networkError" class="row justify-between q-pt-xs q-px-sm">
+                        <div class="text-grey-5 text-italic" style="font-size: 12px;">
+                          Network Error. Try again later
+                        </div>
+                        <div>
+                          <q-btn flat padding="none" color="grey-7" size="sm" icon="refresh" @click="show(transaction)"/>
+                        </div>
+                      </div>                      
+                  </q-item-section> 
+                </div>                                          
+              </div>
+              <div v-else>
+                <q-item-section class="q-pt-sm">
+                   <q-input
+                    ref="memoInput"
+                    v-model="memo.note"
+                    filled
+                    height="25px" 
+                    type="textarea"
+
+                  >
+                    <template v-slot:append>
+                      <q-icon size="sm" padding="0px" name="close" @click="showMemo = false"/>
+                    </template>
+                  </q-input>                    
+                </q-item-section>   
+                <q-item-section class="q-pt-sm">
+                  <q-btn 
+                    class="br-15"             
+                    padding="xs sm"
+                    label="Save"
+                    color="primary"
+                    :disable="!memo.note"
+                    @click="saveMemo()"
+                  />
+                </q-item-section>
+              </div>                              
+            </q-slide-transition>
           </q-list>
         </q-card-section>
       </q-card>
@@ -453,6 +533,11 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
+import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo } from 'src/utils/transaction-memos.js'
+import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
+import { getKeypair } from 'src/exchange/chat/keys'
+import { ref } from 'vue'
+
 
 export default {
   name: 'transaction',
@@ -475,7 +560,14 @@ export default {
       transaction: {},
       stablehedgeTxView: false,
       displayRawAttributes: false,
-      denomination: this.$store.getters['global/denomination']
+      denomination: this.$store.getters['global/denomination'],
+      showMemo: false,
+      memo: {
+        note: ''
+      },
+      hasMemo: false,
+      networkError: false,
+      keypair: {}
     }
   },
   computed: {
@@ -594,15 +686,123 @@ export default {
         return addresses.join(', ')
       }
     },
-    show (transaction) {
+    async show (transaction) {
+      this.memo = {
+        note: ''
+      }
       try {
         this.transaction = transaction
+        let currentMemo = null
+
+        this.keypair = await getKeypair().catch(console.error)      
+
+        try {
+          currentMemo = await fetchMemo(this.transaction.txid)
+        } catch {
+          console.log('failed request')
+          this.networkError = true
+        }
+
+        if (currentMemo) {          
+          if ('error' in currentMemo) {
+            console.log('no memo for this txid')
+            this.hasMemo = false
+          } else {
+            // decryptMemo
+            currentMemo.note = await decryptMemo(this.keypair.privkey, currentMemo.note)
+            
+            this.memo = currentMemo
+            this.hasMemo = true
+          }
+        } else {
+          console.log('failed request')
+          this.networkError = true
+        }
+
         this.$refs.dialog.show()
       } catch (err) {}
     },
     hide () {
       this.$refs.dialog.hide()
       this.$parent.toggleHideBalances()
+    },
+    openMemo () {
+      this.showMemo = true
+
+
+        setTimeout(() => {
+          const content = document.getElementById('scrollArea')    
+          content.scrollTop = content.scrollHeight + 100  
+
+          this.$refs.memoInput.focus()      
+        }, 200)     
+    },
+    async saveMemo() {
+      //encrypt memo
+      const encryptedMemo = await encryptMemo(this.keypair.privkey, this.keypair.pubkey, this.memo.note)
+
+      const data = {
+        txid: this.transaction.txid,
+        note: encryptedMemo
+      }
+
+      let response = null
+      if (this.hasMemo) {
+        try {
+          response = await updateMemo(data)
+        } catch {
+          console.log('failed request')
+          this.networkError = true
+        }
+      } else {
+        try {
+          response = await createMemo(data)
+        } catch {
+          console.log('failed request')
+          this.networkError = true
+        }
+      } 
+
+      if (response) {
+          if ('error' in response) { 
+            this.hasMemo = false
+          } else {     
+
+            this.memo = response
+            this.memo.note = await decryptMemo(this.keypair.privkey, this.memo.note)
+            this.hasMemo = true
+          }
+        }
+
+      this.showMemo = false
+    },
+    confirmDelete () {
+      this.$q.dialog({
+        title: 'Deleting this Memo',  
+        message: '',      
+        dark: this.darkMode,
+        ok: {
+          push: true,
+          color: 'primary',
+          flat: true
+        },
+        cancel: {
+          push: true,
+          color: 'primary',
+          flat: true
+        },
+
+        persistent: true,
+        class: this.darkMode ? 'text-white' : 'text-black'
+      }).onOk(async () => {        
+        await deleteMemo(this.transaction.txid)
+        this.showMemo = false
+        this.hasMemo = false
+        this.memo = {
+          note: ''
+        }
+      }).onCancel(() => {        
+      })
     },
     formatDate (date) {
       const dateObj = new Date(date)
@@ -729,7 +929,7 @@ export default {
   mounted () {
     document.addEventListener('backbutton', () => {
       this.$refs.dialog.hide()
-    })
+    })    
   }
 }
 </script>

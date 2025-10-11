@@ -1,4 +1,6 @@
 <template>
+  <!-- <onboarding v-if="isOnboarding" @register="isOnboarding=false"/>  
+  <div v-else :class="theme" id="registration-container"> --> 
   <div :class="theme" id="registration-container">
     <div class="row q-pb-sm">
       <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
@@ -13,7 +15,8 @@
     >
       <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
         <div class="q-py-lg">
-          <div v-if="serverOnline" v-cloak>
+          <div v-if="serverOnline" v-cloak>            
+            <!-- <login/>             -->
             <div class="col-12 q-mt-md q-px-lg q-py-none">
               <div class="row">
                 <div class="col-12 q-py-sm">
@@ -53,7 +56,7 @@
                 :class="getDarkModeClass(darkMode)"
                 @click="!$router.push('/')"
                 v-if="!isVaultEmpty"
-              />
+              />              
             </div>
           </div>
           <div class="row" v-else style="margin-top: 60px;">
@@ -82,7 +85,7 @@
       v-if="importSeedPhrase && mnemonic.length === 0"
     >
       <template v-if="authenticationPhase === 'options'">
-        <div>
+        <div>          
           <AuthenticationChooser
             :importSeedPhrase="importSeedPhrase"
             @change-authentication-phase="onChangeAuthenticationPhase"
@@ -320,6 +323,8 @@ import AuthenticationChooser from 'src/components/registration/AuthenticationCho
 import ShardsImport from 'src/components/registration/ShardsImport'
 import MnemonicProcessContainer from 'src/components/registration/MnemonicProcessContainer'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
+import Onboarding from 'src/components/registration/Onboarding.vue'
+import Login from 'src/components/registration/Login.vue'
 // import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 function countWords(str) {
@@ -350,7 +355,9 @@ export default {
     AuthenticationChooser,
     ShardsImport,
     MnemonicProcessContainer,
-    SeedPhraseContainer//,
+    SeedPhraseContainer,
+    Onboarding,
+    Login
     // RewardsStep
   },
   data () {
@@ -392,7 +399,8 @@ export default {
       openThemeSelector: false,
       useTextArea: false,
       authenticationPhase: 'options',
-      skipToBackupPhrase: false//,
+      skipToBackupPhrase: false,
+      isOnboarding: false//this.isVaultEmpty//,
       // moveToReferral: false,
     }
   },
@@ -424,7 +432,10 @@ export default {
     },
     isFinalStep () {
       return this.steps === this.totalSteps
-    }
+    },
+    // isOnboarding () {
+    //   return this.isVaultEmpty
+    // }
   },
   methods: {
     isNotDefaultTheme,
@@ -803,6 +814,8 @@ export default {
     }
   },
   async mounted () {
+    this.isOnboarding = this.isVaultEmpty
+
     if (this.recreate) {
       this.mnemonic = await getMnemonic(0) || ''
       if (this.mnemonic.split(" ").length === 12) {

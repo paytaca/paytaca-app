@@ -97,6 +97,7 @@
     "vue-qrcode-reader": "^5.5.4",
     "vue-router": "^4.1.3",
     "vue3-gravatar": "^3.0.0",
+    "vuedraggable": "^4.1.0",
     "vuex": "^4.0.2",
     "vuex-persist": "^3.1.3",
     "vuex-persistedstate": "^4.0.0-beta.2",
