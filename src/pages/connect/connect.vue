@@ -149,11 +149,11 @@ export default {
     font-size: 20px;
   }
   .btn {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
     color: white;
   }
   .btn-dark {
-    background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
+    background-image: linear-gradient(to right bottom, #204589, #1d5479, #1a6369, #177159, #147f49);
     color: white;
   }
 </style>

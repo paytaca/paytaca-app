@@ -55,11 +55,15 @@ a {
 }
 
 .bg-grad {
-  background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  background-image: linear-gradient(to right bottom, rgba(59, 123, 246, 0.85), rgba(54, 129, 232, 0.85), rgba(49, 139, 218, 0.85), rgba(44, 149, 204, 0.85), rgba(39, 159, 190, 0.85));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.12);
 }
 
 .text-grad {
-  background: -webkit-linear-gradient(-70deg, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  background: -webkit-linear-gradient(-70deg, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -68,7 +72,7 @@ a {
 
 #registration-container {
   min-height: 100vh;
-  background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
   position: relative !important;
 }
 

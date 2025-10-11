@@ -118,12 +118,16 @@ export default {
     #p-bch-card {
       background-image: linear-gradient(
         to right bottom,
-        #3b7bf6,
-        #5f94f8,
-        #df68bb,
-        #ef4f84,
-        #ed5f59
+        rgba(59, 123, 246, 0.9),
+        rgba(54, 129, 232, 0.9),
+        rgba(49, 139, 218, 0.9),
+        rgba(44, 149, 204, 0.9),
+        rgba(39, 159, 190, 0.9)
       );
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
     }
     .p-transaction-container {
       &.dark {

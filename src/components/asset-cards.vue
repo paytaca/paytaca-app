@@ -119,6 +119,10 @@ export default {
     parseAssetDenomination,
     async getCustomAssetList () {
       let temp = []
+      if (!this.customListIDs || !this.customListIDs[this.network]) {
+        return
+      }
+      
       for (const id of this.customListIDs[this.network]) {          
           const asset = await this.$store.getters['assets/getAsset'](id)
 
@@ -241,15 +245,33 @@ export default {
     margin-left: 20px;
     margin-right: 20px;
     padding-left: 0px;
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
   .add-asset-button {
-    border: 0px solid $grey-1;
+    border: 1px solid rgba(255, 255, 255, 0.18);
     padding: 20px 20px 34px 20px;
     border-radius: 16px;
     font-size: 25px;
     height: 78px;
     margin-left: 2px;
     margin-right: 12px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 24px 0 rgba(31, 38, 135, 0.15);
+    }
   }
 
   .method-cards {
@@ -257,6 +279,8 @@ export default {
     min-width: 150px;
     border-radius: 16px;
     margin-bottom: 5px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
     .asset-symbol {
       overflow: hidden;
       text-overflow: ellipsis;
