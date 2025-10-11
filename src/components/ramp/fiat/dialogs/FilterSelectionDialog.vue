@@ -84,7 +84,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import customKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+import customKeyboard from 'src/components/CustomKeyboard.vue';
 
 export default {
   data () {

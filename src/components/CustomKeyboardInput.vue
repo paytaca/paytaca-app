@@ -21,7 +21,7 @@
   </div>
 </template>
 <script>
-import CustomKeyboard from 'pages/transaction/dialog/CustomKeyboard.vue'
+import CustomKeyboard from './CustomKeyboard.vue';
 
 export default {
   name: 'CustomKeyboardInput',

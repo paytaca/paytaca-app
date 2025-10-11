@@ -119,7 +119,8 @@
                   {{ $t('YouWillReceive') }}
                 </div>
                 <div class="text-weight-light receive-amount-label">
-                  {{ tempAmount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
+                  {{ formatWithLocale(amount, decimalObj) }}
+                  {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
                 </div>
               </div>
             </div>
@@ -129,7 +130,7 @@
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
             >
-              <span class="cursor-pointer" @click="amountDialog = true; customKeyboardState = 'show';">
+              <span class="cursor-pointer" @click="amountDialog = true;">
                 {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
               </span>
               <span class="q-ml-md text-negative cursor-pointer" @click="amount = ''">
@@ -148,31 +149,20 @@
           size="lg"
           icon="close"
           class="close-button"
-          @click="setReceiveAmount()"
+          @click="amountDialog = false"
         />
       </div>
       <div :style="`margin-top: ${$q.screen.height * .15}px`">
         <div class="text-center text-bow text-h6" :class="getDarkModeClass(darkMode)">{{ $t('SetReceiveAmount') }}</div>
         <div class="col q-mt-md q-px-lg text-center">
-          <q-input
-            ref="input-amount"
-            type="text"
-            inputmode="none"
-            @focus="openCustomKeyboard(true)"
-            filled
-            v-model="tempAmount"
-            :label="$t('Amount')"
-            :dark="darkMode"
-            :rules="[
-              val => Boolean(val) || $t('InvalidAmount'),
-            ]"
-          >
-            <template v-slot:append>
-              <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-                {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol}}
-              </div>
-            </template>
-          </q-input>
+          <custom-input
+            v-model="amount"
+            :inputSymbol="setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol"
+            :inputRules="[val => Boolean(val) || $t('InvalidAmount')]"
+            :asset="asset"
+            :decimalObj="decimalObj"
+            @on-check-click="amountDialog = false"
+          />
         </div>
         <div
           v-if="assetId === 'bch'"
@@ -185,18 +175,9 @@
       </div>
     </div>
   </div>
-
-  <customKeyboard
-    :custom-keyboard-state="customKeyboardState"
-    v-on:addKey="setAmount"
-    v-on:makeKeyAction="makeKeyAction"
-  />
 </template>
 
 <script>
-import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
-import HeaderNav from '../../components/header-nav'
-import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
 import { NativeAudio } from '@capacitor-community/native-audio'
@@ -207,12 +188,13 @@ import {
 } from 'src/wallet/chipnet'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
-import {
-  adjustSplicedAmount,
-  formatWithLocaleSelective,
-  parseKey
-} from 'src/utils/custom-keyboard-utils.js'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
+
+import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
+
+import HeaderNav from '../../components/header-nav'
+import CustomInput from 'src/components/CustomInput.vue'
+
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
 
@@ -221,7 +203,10 @@ export default {
   mixins: [
     walletAssetsMixin
   ],
-  components: { HeaderNav, customKeyboard },
+  components: {
+    HeaderNav,
+    CustomInput
+  },
   data () {
     return {
       sBCHListener: null,
@@ -236,9 +221,7 @@ export default {
       generateAddressOnLeave: false,
       generating: false,
       amount: '',
-      tempAmount: '',
       amountDialog: false,
-      customKeyboardState: 'dismiss',
       setAmountInFiat: true,
       tokens: []
     }
@@ -313,6 +296,10 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
+    isNotDefaultTheme,
+    formatWithLocale,
+
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
@@ -354,63 +341,10 @@ export default {
       const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
       return computedBalance.toFixed(8)
     },
-    setReceiveAmount () {
-      this.amountDialog = false
-      this.customKeyboardState = 'dismiss'
-    },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    openCustomKeyboard (state) {
-      if (state) {
-        this.customKeyboardState = 'show'
-      } else {
-        this.customKeyboardState = 'dismiss'
-      }
-    },
-    setAmount (key) {
-      const inputAmountRef = this.$refs['input-amount'].nativeEl
-      inputAmountRef.focus({ focusVisible: true });
-
-      const caretPosition = inputAmountRef.selectionStart
-      const receiveAmount = this.amount ?? 0
-
-      const parsedAmount = parseKey(key, receiveAmount, caretPosition, this.asset)
-      this.amount = parsedAmount
-
-      if (String(key) === '.' || String(key) === '0') {
-        this.tempAmount = formatWithLocaleSelective(
-          parsedAmount, this.tempAmount, String(key), this.decimalObj
-        )
-      } else this.tempAmount = formatWithLocale(parsedAmount, this.decimalObj)
-    },
-    makeKeyAction (action) {
-      const inputAmountRef = this.$refs['input-amount'].nativeEl
-      if (action === 'backspace') {
-        inputAmountRef.focus({ focusVisible: true });
-        // Backspace
-        let caretPosition = inputAmountRef.selectionStart - 1
-        if (caretPosition >= this.amount.length)
-          caretPosition = this.amount.length - 1
-
-        if (caretPosition > -1) {
-          this.amount = adjustSplicedAmount(this.amount, caretPosition)
-          this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
-        }
-      } else if (action === 'delete') {
-        inputAmountRef.focus({ focusVisible: true });
-        // Delete
-        this.amount = ''
-        this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
-      } else {
-        // Enabled submit slider
-        if (this.tempAmount) this.setReceiveAmount()
-        this.customKeyboardState = 'dismiss'
-      }
-    },
-    getDarkModeClass,
-    isNotDefaultTheme,
     updateLnsName () {
       if (!this.isSep20) return
       if (!this.address) return
@@ -737,11 +671,8 @@ export default {
       this.lnsName = ''
       this.updateLnsName()
     },
-    amountDialog () {
-      this.tempAmount = formatWithLocale(this.amount, this.decimalObj)
-    },
     setAmountInFiat(newVal, oldVal) {
-      const amount = parseFloat(/*this.amountDialog ? this.tempAmount : */this.amount)
+      const amount = parseFloat(this.amount)
       if (!amount) return
 
       let newAmount
@@ -756,7 +687,6 @@ export default {
       const decimals = newVal ? 3 : parseInt(this.asset?.decimals) || 8
       const newParsedAmount = String(parseFloat(newAmount.toFixed(decimals)))
       this.amount = newParsedAmount
-      this.tempAmount = formatWithLocale(newParsedAmount, this.decimalObj) // newParsedAmount
     }
   },
 
