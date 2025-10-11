@@ -40,7 +40,10 @@
             >
               <div v-if="pricePerPairText[index]" class="row items-center text-grey q-mb-md">
                 <div class="q-space">{{ $t('CurrentPrice') }}:</div>
-                <div>{{ pricePerPairText[index] }} {{ tokenDataPerPair[index]?.currency }} / {{ denomination }}</div>
+                <div>
+                  {{ formatWithLocale(pricePerPairText[index], { max: 8 }) }}
+                  {{ tokenDataPerPair[index]?.currency }} / {{ denomination }}
+                </div>
                 <q-menu
                   v-if="priceTimestampPerPair[index]"
                   anchor="bottom right" self="top end"
@@ -50,54 +53,62 @@
                   <div class="text-caption text-grey">{{ formatDateRelative(priceTimestampPerPair[index]) }}</div>
                 </q-menu>
               </div>
-              <q-input
-                outlined
+              <CustomKeyboardInput
                 v-model="amounts[index]"
-                :suffix="denomination"
-                :rules="[
-                  val => parseFloat(val) > 0 || $t('InvalidAmount'),
-                  val => parseFloat(val) <= maxDenominatedRedeemableBchPerPair[index] ||
-                    $t('MustBeLessThan', { amount: maxDenominatedRedeemableBchPerPair[index] + ' ' + denomination }),
-                ]"
-              >
-                <template v-slot:hint>
-                  <div v-if="tokenAmounts[index]" class="text-grey">
-                    {{ tokenAmounts[index] }}
-                    {{ tokenDataPerPair[index]?.currency }}
-                  </div>
-                </template>
-              </q-input>
-  
+                :fieldProps="{
+                  outlined: true,
+                  suffix: denomination,
+                  reactiveRules: true,
+                  rules: [
+                    () => amount > 0 || $t('InvalidAmount'),
+                    val => parseFloat(val || 0) <= maxDenominatedRedeemableBchPerPair[index] ||
+                      $t('MustBeLessThan', { amount: maxDenominatedRedeemableBchPerPair[index] + ' ' + denomination }),
+                  ],
+                }"
+              />
+              <div v-if="tokenAmounts[index]" class="q-px-xs text-grey">
+                {{ formatWithLocale(tokenAmounts[index], { max: tokenDataPerPair[index]?.decimals }) }}
+                {{ tokenDataPerPair[index]?.currency }}
+              </div>
+
               <div
                 v-if="Number.isFinite(maxDenominatedRedeemableBchPerPair[index])"
                 class="q-pl-xs row items-center text-grey"
               >
-                <div class="text-body2 q-space">{{ maxDenominatedRedeemableBchPerPair[index] }} {{ denomination }}</div>
+                <div class="text-body2 q-space">
+                  {{ formatWithLocale(maxDenominatedRedeemableBchPerPair[index], { max: 8 }) }}
+                  {{ denomination }}
+                </div>
                 <q-btn
                   flat
                   :label="$t('MAX')"
                   class="q-r-mr-md text-body2"
-                  @click="() => amounts[index] = maxDenominatedRedeemableBchPerPair[index]"
+                  @click="() => amounts[index] = String(maxDenominatedRedeemableBchPerPair[index])"
                 />
               </div> 
             </div>
           </div>
           <div v-else>
-            <q-input
-              outlined
+            <CustomKeyboardInput
               v-model="denominatedAmount"
-              :suffix="denomination"
-              :rules="[
-                val => parseFloat(val) > 0 || $t('InvalidAmount'),
-                val => parseFloat(val) <= totalDenominatedRedeemableBch ||
-                  $t('MustBeLessThan', { amount: totalDenominatedRedeemableBch + ' ' + denomination }),
-              ]"
+              :fieldProps="{
+                outlined: true,
+                suffix: denomination,
+                rules: [
+                  val => parseFloat(val) > 0 || $t('InvalidAmount'),
+                  val => parseFloat(val) <= totalDenominatedRedeemableBch ||
+                    $t('MustBeLessThan', { amount: totalDenominatedRedeemableBch + ' ' + denomination }),
+                ]
+              }"
             />
             <div
               v-if="Number.isFinite(totalDenominatedRedeemableBch)"
               class="q-mb-md q-pl-xs row items-center text-grey"
             >
-              <div class="text-body2 q-space">{{ totalDenominatedRedeemableBch }} {{ denomination }}</div>
+              <div class="text-body2 q-space">
+                {{ formatWithLocale(totalDenominatedRedeemableBch, { max: 8 }) }}
+                {{ denomination }}
+              </div>
               <q-btn
                 flat
                 :label="$t('MAX')"
@@ -131,16 +142,20 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { getAssetDenomination } from 'src/utils/denomination-utils';
+import { formatWithLocale, getDenomDecimals } from 'src/utils/denomination-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import CustomKeyboardInput from '../CustomKeyboardInput.vue';
 
 export default defineComponent({
   name: 'RedeemDialog',
+  components: {
+    CustomKeyboardInput,
+  },
   emits: [
     'update:modelValue',
     ...useDialogPluginComponent.emits,
@@ -183,7 +198,8 @@ export default defineComponent({
     })
     const denominationPerBchRate = computed(() => {
       const currentDenomination = denomination.value || 'BCH'
-      return parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+      const { convert } = getDenomDecimals(currentDenomination)
+      return convert;
     })
 
     const redemptionContracts = computed(() => props.redemptionContracts)
@@ -362,6 +378,7 @@ export default defineComponent({
 
       formatDateRelative,
       formatTimestampToText,
+      formatWithLocale,
     }
   }
 })
