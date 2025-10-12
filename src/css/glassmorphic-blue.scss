@@ -505,33 +505,45 @@ body.theme-glassmorphic-blue {
   }
 
   .asset-option {
-    .default-text-color {
-      color: white !important;
-      filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7448%) hue-rotate(59deg) brightness(109%) contrast(101%);
-    }
-
-    .button-default {
-      background-image: linear-gradient(
-        to right bottom,
-        rgba(59, 123, 246, 0.85),
-        rgba(54, 129, 232, 0.85),
-        rgba(49, 139, 218, 0.85),
-        rgba(44, 149, 204, 0.85),
-        rgba(39, 159, 190, 0.85)
-      ) !important;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.12);
+    .button-default.dark {
+      background: rgba(28, 40, 51, 0.7) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       
       &:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px 0 rgba(31, 38, 135, 0.18);
+        background: rgba(28, 40, 51, 0.8) !important;
       }
 
       &:active:not(:disabled) {
         transform: translateY(0);
+      }
+
+      .default-text-color {
+        filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7448%) hue-rotate(59deg) brightness(109%) contrast(101%);
+      }
+    }
+
+    .button-default.light {
+      background-color: rgba(255, 255, 255, 0.7) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        background-color: rgba(255, 255, 255, 0.85) !important;
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .default-text-color {
+        filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(190deg) brightness(96%) contrast(89%);
       }
     }
   }

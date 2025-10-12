@@ -1,9 +1,9 @@
 <template>
-	<div class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-primary'">
+	<div class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-dark'">
 		<div v-if="stablehedgeView">
 			<div class="row">
 				<div class="col" v-for="opt in stablehedgeOpt">
-		            <q-btn color="primary" class="button-default" round size="18px" :disable="!loaded" @click="handleButton(opt.name)">
+		            <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="18px" :disable="!loaded" @click="handleButton(opt.name)">
 		            	<q-icon class="default-text-color" size="30px" :name="opt.icon"/>
 		            </q-btn>
 		            <div class="q-pt-sm text-center text-capitalize title-smaller">{{ opt.name }}</div>
@@ -13,7 +13,7 @@
 		<div v-else>
 			<div class="row">	             
 	              <div class="col" v-for="opt in bchOpt">	              	
-	                <q-btn color="primary" class="button-default" round size="18px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
+	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="18px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
 	                  <q-icon class="default-text-color"  size="30px" :name="opt.icon"/>
 	                </q-btn>
 	                <div class="q-pt-sm text-center text-capitalize title-small">{{ opt.name }}</div>
