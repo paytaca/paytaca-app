@@ -3,8 +3,8 @@
       <header-nav :title="$t('Settings')" backnavpath="/apps" class="apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Security') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Security') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -29,8 +29,8 @@
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Wallet') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Wallet') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
                   <q-item-section>
                     <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -50,7 +50,7 @@
                 <q-item-section avatar>
                     <q-toggle
                       v-model="showTokens"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -83,7 +83,7 @@
                   <q-item-section avatar>
                     <q-toggle
                       v-model="isChipnet"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -100,7 +100,7 @@
                   <q-item-section avatar>
                     <q-toggle
                       v-model="autoGenerateAddress"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -117,7 +117,7 @@
                   <q-item-section avatar>
                     <q-toggle
                       v-model="enableStablhedge"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -131,7 +131,7 @@
                 <q-item-section avatar>
                     <q-toggle
                       v-model="enableSLP"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -164,8 +164,8 @@
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
-          <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Personalize') }}</p>
-          <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+          <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Personalize') }}</p>
+          <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
             <q-item>
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
@@ -200,7 +200,7 @@
                 <q-item-section avatar>
                   <q-toggle
                     v-model="darkMode"
-                    color="blue-9"
+                    :color="toggleColor"
                     keep-color
                   />
                 </q-item-section>
@@ -213,8 +213,8 @@
         </template>
 
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
-          <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('AppInfo') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+          <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('AppInfo') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
@@ -301,6 +301,11 @@ export default {
   computed: {
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    toggleColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return 'pink-6'
+      return 'blue-6'
     }
   },
   watch: {
@@ -420,23 +425,76 @@ export default {
 }
 </script>
 
-<style lang="scss">
-  .dim-text {
-    color: #ed5f59;
+<style lang="scss" scoped>
+  .section-title {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+    
+    &.dark {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    &.light {
+      color: rgba(0, 0, 0, 0.6);
+    }
   }
+
   .pt-setting-menu {
     font-weight: 400;
     &.dark {
       color: #e0e2e5;
     }
     &.light {
-      color: #3B7BF6;
+      color: rgba(0, 0, 0, 0.87);
     }
   }
+  
   .pt-setting-avatar-dark {
     color: #A6ACAF;
   }
+  
   .pt-card {
-    border-radius: 14px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .settings-list {
+    .q-item {
+      padding: 16px 20px;
+      min-height: 64px;
+      
+      &:not(:last-child) {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      &.dark:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    :deep(.q-item__label--caption) {
+      opacity: 0.7;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+  }
+
+  #app-container {
+    &.dark {
+      .settings-list .q-item {
+        &:not(:last-child) {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+    }
+    
+    &.light {
+      .settings-list .q-item {
+        &:not(:last-child) {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+      }
+    }
   }
 </style>
