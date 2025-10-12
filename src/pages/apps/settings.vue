@@ -428,6 +428,7 @@ export default {
 <style lang="scss" scoped>
   .section-title {
     font-weight: 600;
+    font-size: 16px;
     letter-spacing: 0.5px;
     opacity: 0.85;
     
@@ -441,6 +442,7 @@ export default {
 
   .pt-setting-menu {
     font-weight: 400;
+    font-size: 15px;
     &.dark {
       color: #e0e2e5;
     }
@@ -451,6 +453,16 @@ export default {
   
   .pt-setting-avatar-dark {
     color: #A6ACAF;
+  }
+
+  .pt-label {
+    font-size: 14px;
+    &.dark {
+      color: #e0e2e5;
+    }
+    &.light {
+      color: rgba(0, 0, 0, 0.87);
+    }
   }
   
   .pt-card {
@@ -477,6 +489,7 @@ export default {
       opacity: 0.7;
       margin-top: 4px;
       line-height: 1.3;
+      font-size: 13px;
     }
   }
 
