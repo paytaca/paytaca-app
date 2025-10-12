@@ -30,6 +30,11 @@ export default {
     const darkMode = computed(() => store?.state?.darkmode?.darkmode)
     window.toggleDark = () => store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
 
+    // Migrate old 'default' theme to 'glassmorphic-blue'
+    if (theme.value === 'default') {
+      store.commit('global/setTheme', 'glassmorphic-blue')
+    }
+
     watchEffect(() => {
       // Set the theme
       const classes = document.body.classList

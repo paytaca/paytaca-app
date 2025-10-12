@@ -33,7 +33,7 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
   } = dashboardComposables
 
 
-  const isNotDefaultTheme = computed(() => $store.getters['global/theme'] !== 'default')
+  const isNotDefaultTheme = computed(() => $store.getters['global/theme'] === 'payhero')
   const chartColors = computed(() => {
     // From https://coolors.co/image-picker - screnshot of main page
     if (isNotDefaultTheme.value) {

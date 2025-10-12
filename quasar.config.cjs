@@ -55,7 +55,8 @@ module.exports = defineConfig((ctx) => {
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
     css: [
       'app.sass',
-      'default.scss',
+      'glassmorphic-blue.scss',
+      'glassmorphic-red.scss',
       'payhero.scss',
       'shared.scss'
     ],

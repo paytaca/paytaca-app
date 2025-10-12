@@ -120,6 +120,8 @@ const words = [
     Description: "Description",
     Unlink: "Unlink",
     Gifts: "Gifts",
+    GlassmorphicBlue: "Glassmorphic Blue",
+    GlassmorphicRed: "Glassmorphic Red",
     Commitment: "Commitment",
     Capability: "Capability",
     Submit: "Submit",

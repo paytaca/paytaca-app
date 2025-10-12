@@ -36,7 +36,7 @@ export default {
   },
   computed: {
     isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
+      return this.$store.getters['global/theme'] === 'payhero'
     }
   },
   methods: {

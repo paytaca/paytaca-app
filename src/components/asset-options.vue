@@ -3,7 +3,7 @@
 		<div v-if="stablehedgeView">
 			<div class="row">
 				<div class="col" v-for="opt in stablehedgeOpt">
-		            <q-btn color="primary" round size="18px" :disable="!loaded" @click="handleButton(opt.name)">
+		            <q-btn color="primary" class="button-default" round size="18px" :disable="!loaded" @click="handleButton(opt.name)">
 		            	<q-icon class="default-text-color" size="30px" :name="opt.icon"/>
 		            </q-btn>
 		            <div class="q-pt-sm text-center text-capitalize title-smaller">{{ opt.name }}</div>
@@ -56,12 +56,12 @@ export default {
 				show: false,
 				redemptionContracts: null
 			},
-			bchOpt: [				
-		        { name: 'send', icon: 'img:app-send.svg' },
-		        { name: 'receive', icon: 'img:app-receive.svg' },
-		        { name: 'cashin', icon: 'img:cashin.svg' },
-		        { name: 'price chart', icon: 'query_stats' }
-			],
+		bchOpt: [				
+	        { name: 'send', icon: 'img:app-send.svg' },
+	        { name: 'receive', icon: 'img:app-receive.svg' },
+	        { name: 'cash in', icon: 'img:cashin.svg' },
+	        { name: 'price chart', icon: 'query_stats' }
+		],
 			stablehedgeOpt: [		
 		        { name: 'freeze', icon: 'ac_unit' },
 		        { name: 'unfreeze', icon: 'img:unfreeze.svg' },		        
@@ -116,39 +116,39 @@ export default {
 		// console.log('here: ', this.selectedDenomination)
 	},
 	methods: {
-		handleButton(name) {
-			switch (name) {
-		        case 'freeze': 
-		          this.openFreezeDialog()
-		          break
-		        case 'unfreeze':
-		          this.openUnfreezeDialog()
-		          break
-		        case 'send':
-		          this.$router.push({ name: 'transaction-send-select-asset' })
-		          break 
-		        case 'receive':
-		          this.$router.push({ name: 'transaction-receive-select-asset' })
-		          break
-		        case 'cashin':
-		          this.$emit('cashin')
-		          break
-		        case 'price chart':
-		          this.$emit('price-chart')
-		          break
-		        case 'stats':
-		        	this.$emit('stats')
-		        	break
-		      } 
-		},
-		disableButton (name) {
-			if (name === 'cashin') {
-				return !this.loaded || !this.hasCashin
-			} else {
-				return !this.loaded
-			}
+	handleButton(name) {
+		switch (name) {
+	        case 'freeze': 
+	          this.openFreezeDialog()
+	          break
+	        case 'unfreeze':
+	          this.openUnfreezeDialog()
+	          break
+	        case 'send':
+	          this.$router.push({ name: 'transaction-send-select-asset' })
+	          break 
+	        case 'receive':
+	          this.$router.push({ name: 'transaction-receive-select-asset' })
+	          break
+	        case 'cash in':
+	          this.$emit('cashin')
+	          break
+	        case 'price chart':
+	          this.$emit('price-chart')
+	          break
+	        case 'stats':
+	        	this.$emit('stats')
+	        	break
+	      } 
+	},
+	disableButton (name) {
+		if (name === 'cash in') {
+			return !this.loaded || !this.hasCashin
+		} else {
+			return !this.loaded
+		}
 
-		},
+	},
  		async openFreezeDialog() { 			
 			const { contract } = (await this.findContractForFreeze())
 		    this.depositFormDialog.show = true
@@ -372,8 +372,5 @@ export default {
 <style lang="scss" scoped>
 .asset-option {
 	margin: 15px 0px 25px;
-}
-.default-text-color {
-	filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7448%) hue-rotate(59deg) brightness(109%) contrast(101%);
 }
 </style>

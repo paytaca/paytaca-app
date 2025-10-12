@@ -575,6 +575,8 @@ export default {
   GiftAlreadyClaimed: "This gift has been claimed! Try another one.",
   Gifts: "Gifts",
   GiftsYouCreated: "Gifts you created",
+  GlassmorphicBlue: "Glassmorphic Blue",
+  GlassmorphicRed: "Glassmorphic Red",
   GoBack: "Go back",
   GoToHome: "Go to Home",
   GoToMarketplaceApp: "Go to marketplace app",

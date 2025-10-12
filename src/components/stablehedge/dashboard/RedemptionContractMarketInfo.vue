@@ -109,7 +109,7 @@ export default defineComponent({
 
     const { t: $t } = useI18n()
     const $store = useStore()
-    const isNotDefaultTheme = computed(() => $store.getters['global/theme'] !== 'default')
+    const isNotDefaultTheme = computed(() => $store.getters['global/theme'] === 'payhero')
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
     const {

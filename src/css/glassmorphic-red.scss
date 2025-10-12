@@ -1,19 +1,19 @@
 @use 'shared.scss';
 
-body.theme-default {
+body.theme-glassmorphic-red {
   /* ----- VARIABLES ----- */
   $color_4: #fff;
-  $color_6: #42a5f5;
+  $color_6: #f54270;
 
-  $text_blue_9: #1565c0;
-  $bg_card_dark: #1c2833;
+  $text_red_9: #c01543;
+  $bg_card_dark: #332828;
   $bg_gradient: linear-gradient(
     to right bottom,
-    #3b7bf6,
-    #3681e8,
-    #318bda,
-    #2c95cc,
-    #279fbe
+    #f63b7b,
+    #e83660,
+    #da3148,
+    #cc2c3d,
+    #be2732
   );
   
   /* ----- GLOBAL ----- */
@@ -33,7 +33,7 @@ body.theme-default {
 
     .q-field--dark {
       .q-field__control {
-        color: shared.$brand_blue !important;
+        color: #f54270 !important;
       }
 
       .q-field__native {
@@ -45,32 +45,32 @@ body.theme-default {
   #bch-card {
     background-image: linear-gradient(
       to right bottom,
-      rgba(59, 123, 246, 0.9),
-      rgba(54, 129, 232, 0.9),
-      rgba(49, 139, 218, 0.9),
-      rgba(44, 149, 204, 0.9),
-      rgba(39, 159, 190, 0.9)
+      rgba(246, 59, 123, 0.9),
+      rgba(232, 54, 96, 0.9),
+      rgba(218, 49, 72, 0.9),
+      rgba(204, 44, 61, 0.9),
+      rgba(190, 39, 50, 0.9)
     );
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
+    box-shadow: 0 8px 32px 0 rgba(135, 31, 48, 0.15) !important;
   }
   
   #apps {
     padding: 20px 20px 80px 20px;
-    color: #3b7bf6;
+    color: #f63b7b;
   }
   
 
   #app-container,
   #apps-page-container {
     &.dark {
-      background: #273746 !important;
+      background: #462733 !important;
     }
 
     &.light {
-      background-color: #ecf3f3 !important;
+      background-color: #f3ecec !important;
     }
     &.grad {
       background-image: $bg_gradient;
@@ -82,31 +82,31 @@ body.theme-default {
   .bg-grad.button {
     background-image: linear-gradient(
       to right bottom,
-      rgba(59, 123, 246, 0.85),
-      rgba(54, 129, 232, 0.85),
-      rgba(49, 139, 218, 0.85),
-      rgba(44, 149, 204, 0.85),
-      rgba(39, 159, 190, 0.85)
+      rgba(246, 59, 123, 0.85),
+      rgba(232, 54, 96, 0.85),
+      rgba(218, 49, 72, 0.85),
+      rgba(204, 44, 61, 0.85),
+      rgba(190, 39, 50, 0.85)
     ) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.12);
+    box-shadow: 0 4px 20px 0 rgba(135, 31, 48, 0.12);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     &:hover, &:active {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px 0 rgba(31, 38, 135, 0.18);
+      box-shadow: 0 8px 24px 0 rgba(135, 31, 48, 0.18);
     }
   }
   .text-grad {
     background: -webkit-linear-gradient(
       -70deg,
-      #3b7bf6,
-      #3681e8,
-      #318bda,
-      #2c95cc,
-      #279fbe
+      #f63b7b,
+      #e83660,
+      #da3148,
+      #cc2c3d,
+      #be2732
     );
     background-clip: text;
     -webkit-background-clip: text;
@@ -117,7 +117,7 @@ body.theme-default {
 
   .pt-card {
     &.dark {
-      background: rgba(28, 40, 51, 0.7) !important;
+      background: rgba(51, 28, 40, 0.7) !important;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -130,14 +130,14 @@ body.theme-default {
       border: 1px solid rgba(255, 255, 255, 0.5);
 
       &.btn-transaction-bg {
-        background-color: rgba(242, 243, 252, 0.7) !important;
+        background-color: rgba(252, 242, 243, 0.7) !important;
       }
     }
   }
 
   .pt-card-2 {
     &.dark {
-      background: rgba(39, 55, 70, 0.7);
+      background: rgba(70, 39, 55, 0.7);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -152,7 +152,7 @@ body.theme-default {
   }
 
   .pt-card-3 {
-    background: #273746 !important;
+    background: #462733 !important;
   }
 
   .pt-label {
@@ -167,13 +167,13 @@ body.theme-default {
 
   .price-chart-card {
     &.dark {
-      background: rgba(39, 55, 70, 0.7);
+      background: rgba(70, 39, 55, 0.7);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
     &.light {
-      background: rgba(236, 243, 243, 0.7);
+      background: rgba(243, 236, 236, 0.7);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
@@ -182,7 +182,7 @@ body.theme-default {
 
   .wallet-card {
     &.dark {
-      background: rgba(28, 40, 51, 0.7);
+      background: rgba(51, 28, 40, 0.7);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -196,7 +196,7 @@ body.theme-default {
     }
 
     .title {
-      color: $text_blue_9;
+      color: $text_red_9;
     }
 
     .bottom-border {
@@ -205,7 +205,7 @@ body.theme-default {
       }
 
       &.light {
-        border-bottom-color: rgba(218, 224, 231, 0.5);
+        border-bottom-color: rgba(231, 218, 224, 0.5);
       }
     }
 
@@ -221,25 +221,25 @@ body.theme-default {
     border-radius: 16px;
     background-image: linear-gradient(
       to right bottom,
-      rgba(59, 123, 246, 0.85),
-      rgba(54, 129, 232, 0.85),
-      rgba(49, 139, 218, 0.85),
-      rgba(44, 149, 204, 0.85),
-      rgba(39, 159, 190, 0.85)
+      rgba(246, 59, 123, 0.85),
+      rgba(232, 54, 96, 0.85),
+      rgba(218, 49, 72, 0.85),
+      rgba(204, 44, 61, 0.85),
+      rgba(190, 39, 50, 0.85)
     );
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.1);
+    box-shadow: 0 4px 20px 0 rgba(135, 31, 48, 0.1);
   }
   .method-cards-dark {
     background-image: linear-gradient(
       to right bottom,
-      rgba(32, 69, 137, 0.85),
-      rgba(29, 84, 121, 0.85),
-      rgba(26, 99, 105, 0.85),
-      rgba(23, 113, 89, 0.85),
-      rgba(20, 127, 73, 0.85)
+      rgba(137, 32, 69, 0.85),
+      rgba(121, 29, 84, 0.85),
+      rgba(105, 26, 73, 0.85),
+      rgba(89, 23, 62, 0.85),
+      rgba(73, 20, 51, 0.85)
     );
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -249,7 +249,7 @@ body.theme-default {
 
   .selected {
     border: 2px solid rgba(255, 255, 255, 0.4) !important;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2) !important;
+    box-shadow: 0 8px 32px 0 rgba(135, 31, 48, 0.2) !important;
     transform: scale(1.02);
   }
 
@@ -262,7 +262,7 @@ body.theme-default {
     border-top-left-radius: 20px;
 
     &.dark {
-      background-color: rgba(28, 40, 51, 0.85);
+      background-color: rgba(51, 28, 40, 0.85);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -289,21 +289,21 @@ body.theme-default {
   .btn-scan {
     background-image: linear-gradient(
       to right bottom,
-      rgba(59, 123, 246, 0.85),
-      rgba(54, 129, 232, 0.85),
-      rgba(49, 139, 218, 0.85),
-      rgba(44, 149, 204, 0.85),
-      rgba(39, 159, 190, 0.85)
+      rgba(246, 59, 123, 0.85),
+      rgba(232, 54, 96, 0.85),
+      rgba(218, 49, 72, 0.85),
+      rgba(204, 44, 61, 0.85),
+      rgba(190, 39, 50, 0.85)
     );
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.12);
+    box-shadow: 0 4px 20px 0 rgba(135, 31, 48, 0.12);
   }
 
   .group-currency {
     &.dark {
-      background: rgba(28, 40, 51, 0.7);
+      background: rgba(51, 28, 40, 0.7);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -341,11 +341,11 @@ body.theme-default {
 
     &.q-tab--active {
       &.dark {
-        color: rgba(66, 165, 245, 1) !important;
+        color: rgba(245, 66, 112, 1) !important;
       }
 
       &.light {
-        color: shared.$brand_blue !important;
+        color: #c01543 !important;
       }
     }
 
@@ -361,32 +361,32 @@ body.theme-default {
   }
 
   .button {
-    background: shared.$brand_blue !important;
+    background: #f54270 !important;
     color: white !important;
 
     &.button-text-primary {
       background: transparent !important;
-      color: shared.$brand_blue !important;
+      color: #f54270 !important;
     }
 
     &.button-text-secondary {
       background: transparent !important;
-      color: shared.$brand_blue !important;
+      color: #f54270 !important;
     }
 
     &.button-icon {
       background: transparent !important;
-      color: shared.$brand_blue !important;
+      color: #f54270 !important;
     }
   }
 
   .settings-button {
-    color: #3b7bf6;
+    color: #f63b7b;
   }
 
   .ignored-tokens-button {
     &.dark {
-      background: shared.$brand_blue !important;
+      background: #f54270 !important;
     }
 
     &.light {
@@ -396,13 +396,13 @@ body.theme-default {
 
   .transaction-container, .points-earned-div {
     &.dark {
-      background-color: rgba(33, 47, 61, 0.6);
+      background-color: rgba(61, 33, 47, 0.6);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
 
     &.light {
-      background-color: rgba(249, 248, 255, 0.6);
+      background-color: rgba(255, 248, 249, 0.6);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
@@ -419,7 +419,7 @@ body.theme-default {
     }
 
     &.active-transaction-btn {
-      background-color: rgb(60, 100, 246) !important;
+      background-color: rgb(246, 60, 100) !important;
       color: #fff !important;
     }
   }
@@ -451,18 +451,89 @@ body.theme-default {
   }
 
   .bg-button-toggle {
-    background: shared.$brand_blue !important;
+    background: #f54270 !important;
   }
 
   .q-btn.q-btn--rounded.bg-amber {
-    background-color: shared.$brand_blue !important;
+    background-color: #f54270 !important;
   }
 
   .pin-icon {
-    color: shared.$brand_blue;
+    color: #f54270;
   }
 
   .primary-filter {
-    filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(190deg) brightness(96%) contrast(89%);
+    filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(320deg) brightness(96%) contrast(89%);
+  }
+
+  .fixed-footer {
+    .default-text-color {
+      color: #f63b7b !important;
+    }
+    .default-text-color-2 {
+      filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(320deg) brightness(96%) contrast(89%);
+    }
+  }
+
+  #qr-button {
+    button {
+      background-color: #f63b7b !important;
+      border-color: rgba(246, 59, 123, 0.3) !important;
+      
+      &.light {
+        background-color: #fff !important;
+        border-color: #f63b7b !important;
+
+        .default-text-color {
+          color: #f63b7b !important;
+        }
+      }
+
+      &.dark {
+        background-color: #f63b7b !important;
+        border-color: rgba(246, 59, 123, 0.5) !important;
+
+        .default-text-color {
+          color: white !important;
+        }
+      }
+
+      .default-text-color {
+        color: white !important;
+      }
+    }
+  }
+
+  .asset-option {
+    .default-text-color {
+      color: white !important;
+      filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7448%) hue-rotate(59deg) brightness(109%) contrast(101%);
+    }
+
+    .button-default {
+      background-image: linear-gradient(
+        to right bottom,
+        rgba(246, 59, 123, 0.85),
+        rgba(232, 54, 96, 0.85),
+        rgba(218, 49, 72, 0.85),
+        rgba(204, 44, 61, 0.85),
+        rgba(190, 39, 50, 0.85)
+      ) !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px 0 rgba(135, 31, 48, 0.12);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px 0 rgba(135, 31, 48, 0.18);
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(0);
+      }
+    }
   }
 }
+

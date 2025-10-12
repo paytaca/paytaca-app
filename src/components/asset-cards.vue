@@ -92,7 +92,7 @@ export default {
       return currency && currency.symbol
     },
     isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
+      return this.$store.getters['global/theme'] === 'payhero'
     },
     filteredFavAssets () {
       if (this.customList) {        

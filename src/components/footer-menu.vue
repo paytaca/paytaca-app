@@ -93,7 +93,7 @@ export default {
   },
   computed: {
     isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
+      return this.$store.getters['global/theme'] === 'payhero'
     }
   },
   methods: {
@@ -138,12 +138,6 @@ export default {
       overflow-y: hidden;
       flex-wrap: nowrap;
     }
-    .default-text-color {
-      color: rgb(60, 100, 246) !important;
-    }
-    .default-text-color-2 {
-      filter: brightness(0) saturate(100%) invert(36%) sepia(34%) saturate(6454%) hue-rotate(219deg) brightness(98%) contrast(97%);
-    }
   }
   #qr-button {
     z-index: 100 !important;
@@ -157,10 +151,6 @@ export default {
       border: 2px solid lightgray;
       width: 60px;
       height: 60px;
-      background-color: #012121;
-    }
-    button.light {
-      background-color: #fff;
     }
     span {
       font-size: 12px;

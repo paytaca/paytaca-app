@@ -7,7 +7,7 @@ export function getDarkModeClass (darkMode, darkModeClass = '', lightModeClass =
 }
 
 export function isNotDefaultTheme (theme) {
-  return theme !== 'default'
+  return theme === 'payhero'
 }
 
 export function isHongKong (currentCountry) {

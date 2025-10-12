@@ -32,7 +32,8 @@ export default {
   data () {
     return {
       themeOptions: [
-        { value: 'default', label: this.$t('Default') },
+        { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') },
+        { value: 'glassmorphic-red', label: this.$t('GlassmorphicRed') },
         { value: 'payhero', label: 'PayHero' }
       ],
       filteredThemeOptions: []
@@ -88,7 +89,7 @@ export default {
   },
   watch: {
     language () {
-      this.themeOptions[0].label = this.$t('Default')
+      this.themeOptions[0].label = this.$t('GlassmorphicBlue')
     }
   }
 }

@@ -264,7 +264,7 @@ function copyToClipboard(value, message) {
 }
 
 function isNotDefaultTheme () {
-  return $store.getters['global/theme'] !== 'default'
+  return $store.getters['global/theme'] === 'payhero'
 }
 
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {

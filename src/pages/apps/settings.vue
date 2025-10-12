@@ -184,7 +184,6 @@
               </q-item-section>
             </q-item>
 
-            <!-- <# Temporarily disable the theme switcher #>
             <q-item>
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Theme') }}</q-item-label>
@@ -192,7 +191,7 @@
               <q-item-section side>
                 <ThemeSelector :darkMode="darkMode" />
               </q-item-section>
-            </q-item> -->
+            </q-item>
 
             <q-item clickable v-ripple @click="darkMode = !darkMode">
                 <q-item-section>

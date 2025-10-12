@@ -68,10 +68,11 @@ export default {
   },
   data () {
     return {
-      selectedTheme: 'default',
-      selectedMode: 'default dark',
+      selectedTheme: 'glassmorphic-blue',
+      selectedMode: 'glassmorphic-blue dark',
       themesList: [
-        { value: 'default', label: this.$t('Default') }
+        { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') },
+        { value: 'glassmorphic-red', label: this.$t('GlassmorphicRed') }
       ]
     }
   },
@@ -87,7 +88,7 @@ export default {
     getDarkModeClass
   },
   mounted () {
-    this.selectedTheme = this.theme || 'default'
+    this.selectedTheme = this.theme || 'glassmorphic-blue'
   },
   watch: {
     selectedTheme () {
