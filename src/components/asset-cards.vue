@@ -280,6 +280,11 @@ export default {
     border-radius: 16px;
     margin-bottom: 5px !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
     
     .asset-symbol {
       overflow: hidden;
