@@ -577,6 +577,8 @@ export default {
   GiftsYouCreated: "Gifts you created",
   GlassmorphicBlue: "Glassmorphic Blue",
   GlassmorphicRed: "Glassmorphic Red",
+  GlassmorphicGreen: "Glassmorphic Green",
+  GlassmorphicGold: "Glassmorphic Gold",
   GoBack: "Go back",
   GoToHome: "Go to Home",
   GoToMarketplaceApp: "Go to marketplace app",

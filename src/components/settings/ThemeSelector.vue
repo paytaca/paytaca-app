@@ -34,6 +34,8 @@ export default {
       themeOptions: [
         { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') },
         { value: 'glassmorphic-red', label: this.$t('GlassmorphicRed') },
+        { value: 'glassmorphic-green', label: this.$t('GlassmorphicGreen') },
+        { value: 'glassmorphic-gold', label: this.$t('GlassmorphicGold') },
         { value: 'payhero', label: 'PayHero' }
       ],
       filteredThemeOptions: []
@@ -90,6 +92,9 @@ export default {
   watch: {
     language () {
       this.themeOptions[0].label = this.$t('GlassmorphicBlue')
+      this.themeOptions[1].label = this.$t('GlassmorphicRed')
+      this.themeOptions[2].label = this.$t('GlassmorphicGreen')
+      this.themeOptions[3].label = this.$t('GlassmorphicGold')
     }
   }
 }

@@ -57,6 +57,8 @@ module.exports = defineConfig((ctx) => {
       'app.sass',
       'glassmorphic-blue.scss',
       'glassmorphic-red.scss',
+      'glassmorphic-green.scss',
+      'glassmorphic-gold.scss',
       'payhero.scss',
       'shared.scss'
     ],

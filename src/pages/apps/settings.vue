@@ -305,6 +305,8 @@ export default {
     toggleColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return 'pink-6'
+      if (theme === 'glassmorphic-green') return 'green-6'
+      if (theme === 'glassmorphic-gold') return 'amber-7'
       return 'blue-6'
     }
   },

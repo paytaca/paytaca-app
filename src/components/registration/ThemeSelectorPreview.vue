@@ -72,7 +72,9 @@ export default {
       selectedMode: 'glassmorphic-blue dark',
       themesList: [
         { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') },
-        { value: 'glassmorphic-red', label: this.$t('GlassmorphicRed') }
+        { value: 'glassmorphic-red', label: this.$t('GlassmorphicRed') },
+        { value: 'glassmorphic-green', label: this.$t('GlassmorphicGreen') },
+        { value: 'glassmorphic-gold', label: this.$t('GlassmorphicGold') }
       ]
     }
   },
