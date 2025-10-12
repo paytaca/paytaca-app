@@ -1,7 +1,12 @@
 <template>
-  <div class="transaction-list" :style="{height: transactionsListHeight}">
+  <div 
+    ref="transactionList"
+    class="transaction-list" 
+    :style="{height: transactionsListHeight}"
+    @scroll="onScroll"
+  >
     <template v-if="transactionsLoaded">
-      <template v-if="!transactionsAppending">
+      <div class="transactions-content">
         <TransactionListItem
           v-for="(transaction, index) in transactions"
           :key="'tx-' + index"
@@ -10,30 +15,30 @@
           :denominationTabSelected="denominationTabSelected"
           @click="() => $emit('on-show-transaction-details', transaction)"
         />
-      </template>
-      <template v-else>
-        <div ref="bottom-transactions-list"></div>
-        <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
-      </template>
-      <div v-if="transactions.length > 0 && transactionsMaxPage > 1" class="q-mt-md">
-        <q-pagination
-          class="justify-center"
-          padding="xs"
-          :modelValue="transactionsPage"
-          :max="transactionsMaxPage"
-          :max-pages="6"
-          :dark="darkMode"
-          :class="getDarkModeClass(darkMode)"
-          :hide-below-pages="2"
-          @update:modelValue="(val) => getTransactions(val)"
-        />
       </div>
-      <div v-else-if="transactions.length === 0" class="relative text-center q-pt-md">
-        <q-img class="vertical-top q-my-md no-transaction-img" src="empty-wallet.svg" />
-        <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
+      
+      <!-- Loading indicator for infinite scroll -->
+      <div v-if="transactionsAppending && transactions.length > 0" class="loading-more">
+        <q-spinner color="primary" size="32px" />
+        <p class="loading-text" :class="getDarkModeClass(darkMode)">{{ $t('LoadingMore', {}, 'Loading more...') }}</p>
       </div>
+      
+      <!-- End of list indicator -->
+      <div v-else-if="transactions.length > 0 && !hasMoreTransactions" class="end-of-list">
+        <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
+        <p class="end-text" :class="getDarkModeClass(darkMode)">{{ $t('AllTransactionsLoaded', {}, 'All transactions loaded') }}</p>
+      </div>
+      
+      <!-- Empty state -->
+      <div v-else-if="transactions.length === 0" class="empty-state">
+        <q-img class="no-transaction-img" src="empty-wallet.svg" />
+        <p class="empty-state-text text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
+      </div>
+      
+      <!-- Scroll sentinel for intersection observer -->
+      <div ref="scrollSentinel" class="scroll-sentinel"></div>
     </template>
-    <div v-else>
+    <div v-else class="loading-state">
       <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
     </div>
   </div>
@@ -89,7 +94,9 @@ export default {
         logo: 'bch-logo.png',
         balance: 0
       },
-      transactionsListHeight: '100px'
+      transactionsListHeight: '100px',
+      isLoadingMore: false,
+      intersectionObserver: null
     }
   },
 
@@ -97,6 +104,13 @@ export default {
     this.selectedNetwork = this.selectedNetworkProps
     this.selectedAsset = this.selectedAssetProps
     this.computeTransactionsListHeight()
+    this.setupIntersectionObserver()
+  },
+
+  beforeUnmount () {
+    if (this.intersectionObserver) {
+      this.intersectionObserver.disconnect()
+    }
   },
 
   computed: {
@@ -114,12 +128,22 @@ export default {
     },
     showTokens () {
       return this.$store.getters['global/showTokens']
+    },
+    hasMoreTransactions () {
+      return this.transactionsPage < this.transactionsMaxPage
     }
   },
 
   watch: {
     showTokens () {
       this.computeTransactionsListHeight()
+      // Reconnect observer after height change
+      this.$nextTick(() => {
+        if (this.intersectionObserver && this.$refs.scrollSentinel) {
+          this.intersectionObserver.disconnect()
+          this.setupIntersectionObserver()
+        }
+      })
     }
   },
 
@@ -136,7 +160,47 @@ export default {
     scrollToBottomTransactionList () {
       this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
     },
-    getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null }) {
+    setupIntersectionObserver () {
+      const options = {
+        root: this.$refs.transactionList,
+        rootMargin: '200px',
+        threshold: 0.1
+      }
+
+      this.intersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && this.hasMoreTransactions && !this.isLoadingMore) {
+            this.loadMoreTransactions()
+          }
+        })
+      }, options)
+
+      this.$nextTick(() => {
+        if (this.$refs.scrollSentinel) {
+          this.intersectionObserver.observe(this.$refs.scrollSentinel)
+        }
+      })
+    },
+    onScroll (event) {
+      const element = event.target
+      const scrollBottom = element.scrollHeight - element.scrollTop - element.clientHeight
+      
+      // Load more when user is within 300px of the bottom
+      if (scrollBottom < 300 && this.hasMoreTransactions && !this.isLoadingMore) {
+        this.loadMoreTransactions()
+      }
+    },
+    loadMoreTransactions () {
+      if (this.isLoadingMore || !this.hasMoreTransactions) return
+      
+      const nextPage = this.transactionsPage + 1
+      this.isLoadingMore = true
+      this.getTransactions(nextPage, { append: true })
+        .finally(() => {
+          this.isLoadingMore = false
+        })
+    },
+    getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, append: false }) {
       if (this.selectedNetwork === 'sBCH') {
         const address = this.$store.getters['global/getAddress']('sbch')
         return this.getSbchTransactions(address, opts)
@@ -199,12 +263,13 @@ export default {
           vm.transactionsLoaded = true
         })
     },
-    getBchTransactions (page, opts = { scrollToBottom: false }) {
+    getBchTransactions (page, opts = { scrollToBottom: false, append: false }) {
       const vm = this
       const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
       const recordType = recordTypeMap[vm.transactionsFilter]
       const txSearchReference = opts.txSearchReference
+      const shouldAppend = opts.append
 
       let requestPromise
       if (id.indexOf('slp/') > -1) {
@@ -217,9 +282,9 @@ export default {
         requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions({page, recordType, txSearchReference})
       }
 
-      if (!requestPromise) return
+      if (!requestPromise) return Promise.reject()
       vm.transactionsAppending = true
-      requestPromise
+      return requestPromise
         .then(function (response) {
           const transactions = response.history || response
           const page = Number(response?.page)
@@ -227,11 +292,20 @@ export default {
 
           if (!Array.isArray(transactions)) return
 
-          vm.transactions = []
-          transactions.map(function (item) {
-            item.asset = asset
-            return vm.transactions.push(item)
-          })
+          if (shouldAppend) {
+            // Append new transactions to existing list
+            transactions.forEach(function (item) {
+              item.asset = asset
+              vm.transactions.push(item)
+            })
+          } else {
+            // Replace transactions list
+            vm.transactions = []
+            transactions.forEach(function (item) {
+              item.asset = asset
+              vm.transactions.push(item)
+            })
+          }
 
           vm.transactionsPage = page
           vm.transactionsMaxPage = response?.num_pages
@@ -267,21 +341,112 @@ export default {
 
 <style lang="scss" scoped>
   .transaction-list {
-    overflow: auto;
-    padding-bottom: 20vh;
-  }
-  @media (min-height: 600px) and (max-height: 700px) {
-    .transaction-list {
-      padding-bottom: 23vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    
+    // Custom scrollbar styling
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 10px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      
+      &:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
     }
   }
-  @media (min-height: 900px) and (max-height: 1100px) {
-    .transaction-list {
-      padding-bottom: 17vh;
+
+  .transactions-content {
+    flex: 1;
+  }
+
+  .loading-more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 12px;
+  }
+
+  .loading-text {
+    font-size: 14px;
+    opacity: 0.7;
+    margin: 0;
+    
+    &.dark {
+      color: #e0e2e5;
+    }
+    
+    &.light {
+      color: rgba(0, 0, 0, 0.7);
     }
   }
+
+  .end-of-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 8px;
+    opacity: 0.6;
+  }
+
+  .end-text {
+    font-size: 13px;
+    margin: 0;
+    
+    &.dark {
+      color: #a6acaf;
+    }
+    
+    &.light {
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+  }
+
   .no-transaction-img {
-    width: 75px;
-    fill: gray;
+    width: 80px;
+    height: 80px;
+    margin-bottom: 24px;
+    opacity: 0.6;
+  }
+
+  .empty-state-text {
+    font-size: 16px;
+    opacity: 0.7;
+    margin: 0;
+  }
+
+  .loading-state {
+    padding: 16px 0;
+  }
+
+  .scroll-sentinel {
+    height: 1px;
+    width: 100%;
+    visibility: hidden;
   }
 </style>

@@ -1,83 +1,79 @@
 <template>
-  <div class="col q-mt-md q-mr-lg q-ml-lg q-pt-none q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
-    <div class="row">
-      <div class="col col-transaction">
-        <div>
-          <p
-            class="q-mb-none transactions-wallet type ib-text text-uppercase"
-            style="font-size: 15px;"
-            :class="getDarkModeClass(darkMode)"
-          >
+  <div 
+    class="transaction-item" 
+    :class="[
+      'q-mx-lg q-py-md q-px-sm',
+      getDarkModeClass(darkMode)
+    ]"
+  >
+    <div class="transaction-content">
+      <div class="transaction-header">
+        <div class="transaction-type">
+          <span class="type-text text-uppercase" :class="getDarkModeClass(darkMode)">
             {{ recordTypeText }}
-          </p>
-          <p
-            class="q-mb-none transactions-wallet amount float-right ib-text text-right"
-            :class="[getDarkModeClass(darkMode), {'q-mt-sm': !marketValueData?.marketValue }]"
-          >
-            <template v-if="isStablehedgeTx">
-              <div>
-                {{ 
-                  parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...asset,
-                    balance: stablehedgeTxData?.bch,
-                    thousandSeparator: true
-                  })
-                }}
-              </div>
-              <div
-                v-if="isStablehedgeTx && stablehedgeTxData?.amount"
-                class="transactions-wallet market-value"
-                :class="getDarkModeClass(darkMode, 'text-weight-light', '')"
-                style="margin-top:-0.25em;"
-              >
-                {{ parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency) }}
-              </div>
-            </template>
-            <template v-else>
-              <div>
-                {{
-                  `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...asset,
-                    balance: transaction?.amount,
-                    thousandSeparator: true
-                  })}`
-                }}
-              </div>
-              <div
-                v-if="marketValueData?.marketValue"
-                class="transactions-wallet market-value"
-                :class="getDarkModeClass(darkMode, 'text-weight-light', '')"
-                style="margin-top:-0.25em;"
-              >
-                {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
-              </div>
-            </template>
-          </p>
+          </span>
         </div>
-        <div class="col">
-            <span class="float-left transactions-wallet date" :class="getDarkModeClass(darkMode)">
-              <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
-              <template v-else>{{ formatDate(transaction.date_created) }}</template>
-            </span>
-            <!-- <span class="float-right subtext"><b>12 January 2021</b></span> -->
+        <div class="transaction-amount" :class="getDarkModeClass(darkMode)">
+          <template v-if="isStablehedgeTx">
+            <div class="amount-primary">
+              {{ 
+                parseAssetDenomination(
+                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                  ...asset,
+                  balance: stablehedgeTxData?.bch,
+                  thousandSeparator: true
+                })
+              }}
+            </div>
+            <div
+              v-if="isStablehedgeTx && stablehedgeTxData?.amount"
+              class="amount-secondary"
+              :class="getDarkModeClass(darkMode)"
+            >
+              {{ parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency) }}
+            </div>
+          </template>
+          <template v-else>
+            <div class="amount-primary">
+              {{
+                `${parseAssetDenomination(
+                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                  ...asset,
+                  balance: transaction?.amount,
+                  thousandSeparator: true
+                })}`
+              }}
+            </div>
+            <div
+              v-if="marketValueData?.marketValue"
+              class="amount-secondary"
+              :class="getDarkModeClass(darkMode)"
+            >
+              {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
+            </div>
+          </template>
         </div>
       </div>
+      <div class="transaction-footer">
+        <span class="transaction-date" :class="getDarkModeClass(darkMode)">
+          <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
+          <template v-else>{{ formatDate(transaction.date_created) }}</template>
+        </span>
+      </div>
     </div>
-    <div class="row items-center q-gutter-xs">
+    <div v-if="badges.length > 0" class="transaction-badges q-mt-sm">
       <q-badge
         v-for="(badge, index) in badges" :key="index"
-        class="q-py-xs q-px-sm"
+        class="badge-item"
         rounded
         @click.stop
       >
-        <q-icon v-if="badge?.icon" :name="badge?.icon" class="q-mr-xs"/>
-        <span style="max-width:8em;height:auto;" class="ellipsis">
+        <q-icon v-if="badge?.icon" :name="badge?.icon" class="q-mr-xs" size="14px"/>
+        <span class="badge-text">
           {{ badge?.text }}
         </span>
         <q-popup-proxy :breakpoint="0">
-          <div class="q-px-sm q-py-xs pt-card pt-label" style="word-break:break-all;" :class="getDarkModeClass(darkMode)">
+          <div class="badge-popup pt-card pt-label" :class="getDarkModeClass(darkMode)">
             <div v-if="badge?.text?.length >= 14">
               {{ badge?.text }}
             </div>
@@ -180,12 +176,142 @@ function formatDate (date) {
   return ago(new Date(date))
 }
 </script>
-<style scoped>
-.col-transaction {
-  padding-top: 2px;
-  font-weight: 500;
+<style lang="scss" scoped>
+.transaction-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+  
+  &:active {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  &.dark {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+    
+    &:active {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
 }
-.ib-text {
-  display: inline-block;
+
+.transaction-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.transaction-type {
+  flex: 1;
+}
+
+.type-text {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  
+  &.dark {
+    color: #e0e2e5;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+.transaction-amount {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.amount-primary {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.amount-secondary {
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.7;
+  line-height: 1.3;
+}
+
+.transaction-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.transaction-date {
+  font-size: 13px;
+  opacity: 0.6;
+  
+  &.dark {
+    color: #a6acaf;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.transaction-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.badge-item {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+  }
+}
+
+.badge-text {
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-popup {
+  padding: 8px 12px;
+  word-break: break-all;
+  max-width: 280px;
 }
 </style>

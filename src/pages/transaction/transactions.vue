@@ -478,10 +478,18 @@ export default {
     overflow: hidden;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
+    background: transparent;
 }
 .transaction-wallet {
    font-size: 20px;
+   font-weight: 500;
 }	
+.section-title {
+  &.transaction-wallet {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+}
 .btn-transaction {
     font-size: 16px;
     background-color: rgb(242, 243, 252);
@@ -491,14 +499,59 @@ export default {
     padding-right: 2px;
 }
 .btn-custom {
-    height: 40px;
+    height: 42px;
     width: 32%;
     border-radius: 20px;
     border: none;
     background-color: transparent;
-    outline:0;
+    outline: 0;
     cursor: pointer;
-    transition: .2s;
+    transition: all 0.2s ease;
     font-weight: 500;
+    font-size: 14px;
+    position: relative;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+      
+      .dark & {
+        background-color: rgba(255, 255, 255, 0.06);
+      }
+    }
+    
+    &.active-transaction-btn {
+      background-color: white;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      
+      .dark & {
+        background-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      }
+      
+      &:hover {
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+      }
+    }
+}
+
+.pt-card {
+  transition: all 0.2s ease;
+  
+  &.dark {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  &.light {
+    background-color: #dce9e9;
+  }
+}
+
+.fixed-container {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: inherit;
+  padding-bottom: 8px;
 }
 </style>
