@@ -26,7 +26,7 @@
             @update:modelValue="fetchReviews"
           />
         </div>
-        <q-linear-progress v-if="fetchingReviews" query reverse rounded color="brandblue"/>
+        <q-linear-progress v-if="fetchingReviews" query reverse rounded color="pt-primary"/>
         <div v-else class="q-mb-xs"></div>
         <ReviewsListPanel
           :reviews="reviews"

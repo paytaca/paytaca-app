@@ -82,7 +82,7 @@
               unelevated
               spread
               no-caps
-              toggle-color="brandblue"
+              toggle-color="pt-primary1"
               :options="deliveryOptions"
               @update:modelValue="() => findRider({ displayDialog: true })"
             >
@@ -559,7 +559,7 @@
                 <div class="text-right q-mt-xs">Balance: {{ bchWalletBalance }} BCH</div>
                 <!-- <q-btn
                   no-caps label="Send"
-                  color="brandblue"
+                  color="pt-primary1"
                   class="full-width"
                   @click.stop="() => sendBchPayment()"
                 /> -->
@@ -1744,7 +1744,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
   const dialog = $q.dialog({
     title: 'Verifying payment',
     message: 'Payment received',
-    progress: { color: 'brandblue' },
+    progress: { color: 'pt-primary1' },
     persistent: true,
     ok: false,
     cancel: false,
@@ -1770,7 +1770,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
       return Promise.reject(error)
     })
     .finally(() => {
-      dialog.update({ persistent: false, progress: false, ok: { color: 'brandblue' } })
+      dialog.update({ persistent: false, progress: false, ok: { color: 'pt-primary1' } })
       loadingState.value.payment = false
       loadingMsg.value = resolveLoadingMsg()
     })
@@ -1920,7 +1920,7 @@ async function refundPendingPaymentsPromptBeforeRouteLeave() {
     title: 'Refund payments',
     message: 'You have refundable payments. Proceed to refund?',
     persistent: true,
-    ok: { color: 'brandblue', label: 'Refund', noCaps: true, class: 'q-space button' },
+    ok: { color: 'pt-primary1', label: 'Refund', noCaps: true, class: 'q-space button' },
     cancel: { color: 'grey', label: 'Leave page', noCaps: true, class: 'q-space' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).then(() => true).catch(() => false)

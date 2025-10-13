@@ -19,7 +19,7 @@
             padding: 'sm md',
             boundaryNumbers: true,
             disable: fetchingOrders,
-            color: 'brandblue',
+            color: 'pt-primary1',
           }"
           class="q-my-sm"
           :hide-below-pages="2"
@@ -32,10 +32,10 @@
       </div>
 
       <div v-if="!initialized && fetchingOrders" class="text-center">
-        <q-spinner size="3rem" color="brandblue"/>
+        <q-spinner size="3rem" color="pt-primary1"/>
       </div>
       <div v-if="initialized" class="q-mb-md">
-        <q-linear-progress v-if="fetchingOrders" query reverse rounded color="brandblue"/>
+        <q-linear-progress v-if="fetchingOrders" query reverse rounded color="pt-primary1"/>
         <div v-else class="q-mb-xs"></div>
         <div v-if="!orders?.length" class="text-grey text-center">No orders</div>
         <q-card v-else class="q-py-sm pt-card text-bow" :class="getDarkModeClass(darkMode)">
