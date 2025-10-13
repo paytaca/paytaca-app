@@ -2,15 +2,7 @@
   <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)">
     <div id="apps" ref="apps" class="text-center">
       <div>
-        <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
-          <p id="Applications"
-            class="section-title text-grad text-h5 text-weight-medium"
-            :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
-          >
-            {{ $t('Applications') }}
-          </p>
-        </div>
-        <div class="row q-pt-lg" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
+        <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '20px'}">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-pt-md q-pb-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
               <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
@@ -83,6 +75,14 @@ export default {
           path: '/apps/gifts/',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Learn'),
+          iconName: 'school',
+          path: '/apps/learn',
+          iconStyle: 'font-size: 4em',
+          active: true,
           smartBCHOnly: false
         },
         // {

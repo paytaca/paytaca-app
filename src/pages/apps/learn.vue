@@ -1,7 +1,7 @@
 <template>
-  <div class="map-app" :class="getDarkModeClass(darkMode)">
+  <div class="learn-app" :class="getDarkModeClass(darkMode)">
     <!-- Header -->
-    <div class="map-header bg-grad" :class="{'q-pt-lg': $q.platform.is.ios}">
+    <div class="learn-header bg-grad" :class="{'q-pt-lg': $q.platform.is.ios}">
       <div class="row items-center q-px-md q-py-sm">
         <q-btn
           flat
@@ -13,7 +13,7 @@
         />
         <div class="col text-center">
           <div class="text-subtitle1 text-weight-medium text-white">
-            {{ $t('Map') }}
+            {{ $t('Learn') }}
           </div>
         </div>
         <q-btn
@@ -28,13 +28,13 @@
     </div>
 
     <!-- WebView iframe -->
-    <div class="map-content-container">
+    <div class="learn-content-container">
       <iframe
-        ref="mapIframe"
-        :src="mapUrl"
-        class="map-iframe"
+        ref="learnIframe"
+        :src="learnUrl"
+        class="learn-iframe"
         frameborder="0"
-        allow="geolocation"
+        allow="clipboard-write"
         @load="onIframeLoad"
       ></iframe>
       
@@ -55,14 +55,14 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
-const MAP_WEB_URL = process.env.MAP_WEB_URL || 'https://www.paytaca.com/map/'
+const LEARN_WEB_URL = process.env.LEARN_WEB_URL || 'https://learn.paytaca.com'
 
 export default {
-  name: 'MapApp',
+  name: 'LearnApp',
   data() {
     return {
       loading: true,
-      mapUrl: MAP_WEB_URL
+      learnUrl: LEARN_WEB_URL
     }
   },
   computed: {
@@ -72,8 +72,8 @@ export default {
     currentTheme() {
       return this.darkMode ? 'dark' : 'light'
     },
-    mapUrlWithTheme() {
-      const url = new URL(MAP_WEB_URL)
+    learnUrlWithTheme() {
+      const url = new URL(LEARN_WEB_URL)
       url.searchParams.set('theme', this.currentTheme)
       return url.toString()
     }
@@ -92,29 +92,29 @@ export default {
     refreshPage() {
       this.loading = true
       // Force reload the iframe
-      if (this.$refs.mapIframe) {
-        this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
+      if (this.$refs.learnIframe) {
+        this.$refs.learnIframe.src = this.learnUrlWithTheme + '&t=' + Date.now()
       }
     },
     updateTheme() {
       // Reload iframe with new theme
       // Note: Cross-origin console warnings are expected and harmless
       // We only set iframe.src (allowed), not accessing iframe content
-      if (this.$refs.mapIframe) {
+      if (this.$refs.learnIframe) {
         this.loading = true
-        this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
+        this.$refs.learnIframe.src = this.learnUrlWithTheme + '&t=' + Date.now()
       }
     }
   },
   mounted() {
     // Set initial URL with theme
-    this.mapUrl = this.mapUrlWithTheme
+    this.learnUrl = this.learnUrlWithTheme
   }
 }
 </script>
 
 <style scoped lang="scss">
-.map-app {
+.learn-app {
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -125,7 +125,7 @@ export default {
   }
 }
 
-.map-header {
+.learn-header {
   flex-shrink: 0;
   z-index: 100;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -139,13 +139,13 @@ export default {
   }
 }
 
-.map-content-container {
+.learn-content-container {
   flex: 1;
   position: relative;
   overflow: hidden;
 }
 
-.map-iframe {
+.learn-iframe {
   width: 100%;
   height: 100%;
   border: none;
