@@ -170,6 +170,19 @@ body.theme-glassmorphic-gold {
     }
   }
 
+  .pt-header {
+    color: $color_6;
+    background: unset;
+  }
+
+  .pt-arrow-left-link {
+    color: $color_6;
+  }
+
+  .pt-settings-icon {
+    color: $color_6;
+  }
+
   .price-chart-card {
     &.dark {
       background: rgba(61, 50, 36, 0.7);
