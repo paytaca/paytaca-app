@@ -84,6 +84,7 @@
   </q-card>
 </template>
 <script>
+import { formatWithLocale } from 'src/utils/denomination-utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
 import { useStore } from 'vuex';
