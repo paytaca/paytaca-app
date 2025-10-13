@@ -1,9 +1,10 @@
 <template>
   <div class="lds-ellipsis transparent" :class="isTight ? 'tight' : ''">
-    <div :class="`bg-${color}`"></div>
-    <div :class="`bg-${color}`"></div>
-    <div :class="`bg-${color}`"></div>
-    <div :class="`bg-${color}`"></div>
+    <!-- For backwards compatibility if color is not defined will resolve to pink -->
+    <div :class="`bg-${color} bg-pink`"></div>
+    <div :class="`bg-${color} bg-pink`"></div>
+    <div :class="`bg-${color} bg-pink`"></div>
+    <div :class="`bg-${color} bg-pink`"></div>
   </div>
 </template>
 
@@ -13,7 +14,7 @@ export default {
   props: {
     color: {
       type: String,
-      default: 'pink'
+      default: 'pt-primary1'
     },
     isTight: { type: Boolean, default: false }
   }
