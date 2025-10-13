@@ -6,9 +6,13 @@
     class="no-click-outside"
     maximized
   >
-    <q-card class="q-px-md q-pt-md pt-card text-bow notifs-card" :class="getDarkModeClass(darkMode)" :style="{'padding-top': $q.platform.is.ios ? '55px' : '30px'}">
+    <q-card
+      class="q-px-md q-pt-md pt-card text-bow notifs-card wallet-card"
+      :class="getDarkModeClass(darkMode)"
+      :style="{'padding-top': $q.platform.is.ios ? '50px' : '20px'}"
+    >
       <div class="row justify-between items-center">
-        <span class="text-bold text-h6" style="color: #ed5f59;">
+        <span class="text-bold text-h6 title">
           {{ $t('Notifications') }}
         </span>
         <q-space/>
@@ -75,7 +79,7 @@
             <div
               class="q-pb-sm q-gutter-y-sm col-12"
               style="overflow-y: scroll;"
-              :style="{ 'height': $q.platform.is.ios ? '67vh' : '80vh'}"
+              :style="{ 'height': $q.platform.is.ios ? '67vh' : '75vh'}"
             >
               <template v-if="isCheckboxClicked">
                 <div
@@ -264,7 +268,7 @@ export default {
         vm.maxPages = respData.max
         this.resetCheckboxList()
         vm.isLoading = false
-      } catch (error) {
+      } catch {
         // fallback when an error occurs after deleting last remaining notif
         vm.notifsList = []
         vm.maxPages = 0

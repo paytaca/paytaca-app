@@ -8,9 +8,9 @@
       v-model="inputVal"
       autocomplete="off"
       placeholder="Search product / shop"
-      color="brandblue"
+      color="pt-primary1"
       debounce="500"
-      :bg-color="$q.dark.isActive ? 'branddark' : 'brandlight'"
+      :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
       @update:model-value="() => search()"
     >
       <template v-slot:append>

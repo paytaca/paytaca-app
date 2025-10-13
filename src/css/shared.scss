@@ -71,6 +71,11 @@ In html/template:
 @include gen-color-classes($brand_dark, 'branddark');
 @include gen-color-classes($brand_light, 'brandlight');
 
+@include gen-color-classes($brand_blue, 'pt-primary1');
+@include gen-color-classes($brand_blue, 'pt-primary2');
+@include gen-color-classes($brand_dark, 'pt-dark');
+@include gen-color-classes($brand_light, 'pt-light');
+
 .pp-fcolor {
   color: #000 !important;
 }

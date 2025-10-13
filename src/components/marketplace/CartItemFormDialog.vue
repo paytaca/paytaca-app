@@ -97,7 +97,7 @@
           :disable="addonsFormError?.length > 0"
           no-caps
           :label="$t('OK')"
-          color="brandblue"
+          color="pt-primary1"
           class="full-width"
           @click="() => submit()"
         />

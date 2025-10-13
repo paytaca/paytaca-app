@@ -3,12 +3,12 @@
     <header-nav :title="$t('WalletBackup')" backnavpath="/apps" class="apps-header" />
 
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
-      <div class="col-12 q-px-lg q-mt-lg">
+      <div class="col-12 q-px-lg q-mt-xl">
         <p class="section-title">{{ $t('MnemonicBackupPhrase') }}</p>
         <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
           <q-item clickable @click="toggleBackupTypeDialog('seedphrase')">
             <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-              <q-item-label class="text-center">{{ $t('ClickToReveal') }}</q-item-label>
+              <q-item-label class="list-text text-center">{{ $t('ClickToReveal') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -18,7 +18,7 @@
         <q-list bordered separator class="list pt-card" :class="getDarkModeClass(darkMode)" style="padding: 5px 0;">
           <q-item clickable @click="toggleBackupTypeDialog('shard')">
             <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-              <q-item-label class="text-center">{{ $t('ClickToReveal') }}</q-item-label>
+              <q-item-label class="list-text text-center">{{ $t('ClickToReveal') }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
@@ -89,16 +89,47 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
   .section-title {
     font-size: 18px;
     margin-left: 10px;
     color: #ed5f59;
     font-weight: 400;
   }
+  .pt-card {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
   .list {
-    background-color: #fff;
-    border-radius: 12px;
-    z-index: 1 !important;
+    .q-item {
+      padding: 16px 20px;
+      min-height: 64px;
+      
+      &:not(:last-child) {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      &.dark:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    :deep(.q-item__label--caption) {
+      opacity: 0.7;
+      margin-top: 4px;
+      line-height: 1.3;
+      font-size: 13px;
+    }
+  }
+  .list-text {
+    font-weight: 400;
+    font-size: 15px;
+    &.dark {
+      color: #e0e2e5;
+    }
+    &.light {
+      color: rgba(0, 0, 0, 0.87);
+    }
   }
 </style>

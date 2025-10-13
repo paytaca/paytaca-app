@@ -22,7 +22,7 @@
       </div>
 
       <div class="q-pt-sm">
-        <q-linear-progress v-if="fetchingMerchants" query reverse rounded color="brandblue"/>
+        <q-linear-progress v-if="fetchingMerchants" query reverse rounded color="pt-primary1"/>
         <div v-else class="q-pb-xs"></div>
       </div>
 
@@ -73,10 +73,10 @@
         </div>
         <div class="text-body2">{{ merchantData?.formattedLocation }}</div>
         <div class="text-grey text-caption">
-          <q-badge v-if="Number.isSafeInteger(merchantData?.branchCount)" rounded color="brandblue" class="q-mr-sm">
+          <q-badge v-if="Number.isSafeInteger(merchantData?.branchCount)" rounded color="pt-primary1" class="q-mr-sm">
             {{ $t('BranchesCapped', {}, 'Branches') }}: {{ merchantData?.branchCount }}
           </q-badge>
-          <q-badge v-if="Number.isSafeInteger(merchantData?.posDeviceCount)" rounded color="brandblue" class="q-mr-sm">
+          <q-badge v-if="Number.isSafeInteger(merchantData?.posDeviceCount)" rounded color="pt-primary1" class="q-mr-sm">
             {{ $t('Devices') }}: {{ merchantData?.posDeviceCount }}
           </q-badge>
         </div>
@@ -89,7 +89,7 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat :label="$t('OK')" color="brandblue" v-close-popup />
+          <q-btn flat :label="$t('OK')" color="pt-primary1" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -236,7 +236,7 @@ function deleteMerchant(merchantData) {
     progress: true,
     persistent: true,
     ok: false,
-    color: 'brandblue',
+    color: 'pt-primary1',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   return posBackend.delete(`paytacapos/merchants/${merchantData?.id}/`, { authorize: true })

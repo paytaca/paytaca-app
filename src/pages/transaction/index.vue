@@ -340,7 +340,7 @@
             </div>
           </div>
 
-          <PendingTransactions/>
+          <PendingTransactions :key="pendingTransactionsKey"/>
         </div>
       </q-pull-to-refresh>
       <!-- <div ref="transactionSection" class="row transaction-row">
@@ -567,7 +567,8 @@ export default {
       isPriceChartDialogShown: false,
       websocketManager: null,
       assetClickTimer: null,
-      assetClickCounter: 0      
+      assetClickCounter: 0 ,
+      pendingTransactionsKey: 0
     }
   },
 
@@ -841,6 +842,12 @@ export default {
         componentProps: {
           fiatCurrencies: this.availableCashinFiat
         }
+      }).onOk((asset) => {
+        // console.log('asset: ', )
+        // vm.assetList = this.assets
+        // console.log('closing cashin')
+        this.resetAndRefetchData()
+        // if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
     },
     async checkCashinAvailable () {
@@ -1101,15 +1108,19 @@ export default {
     },
     refresh (done) {
       try {
-        this.checkCashinAlert()
-        this.assets.map((asset) => {
-          return this.getBalance(asset.id)
-        })
-        this.transactions = []
-        // this.$refs['transaction-list-component'].getTransactions()
+        this.resetAndRefetchData()
       } finally {
         done()
       }
+    },
+    resetAndRefetchData () {
+      this.checkCashinAlert()
+      this.assets.map((asset) => {
+        return this.getBalance(asset.id)
+      })
+      this.transactions = []
+      this.pendingTransactionsKey++
+        // this.$refs['transaction-list-component'].getTransactions()
     },
     setTransactionsFilter(value) {
       const transactionsFilters = this.transactionsFilterOpts.map(opt => opt?.value)

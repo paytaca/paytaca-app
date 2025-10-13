@@ -3,10 +3,10 @@
     <q-card class="q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div>
         <div id="screenshot-qr" class="col q-py-md">
-          <p style="color: black; margin-bottom: 0;">
+          <p style="margin-bottom: 0;">
             {{ shardth === 1 ? $t('FirstShard') : shardth === 2 ? $t('SecondShard') : $t('ExtraShard') }}
           </p>
-          <p style="color: black">
+          <p>
             {{
               shardth === 1
                 ? $t('PersonalQRDescription2')

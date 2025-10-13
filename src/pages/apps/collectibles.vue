@@ -5,7 +5,7 @@
     @refresh="getCollectibles"
   >
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
-    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}" class="text-pt-primary1">
       <q-menu>
         <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -391,7 +391,6 @@ export default {
     top: 16px;
     right: 10px;
     z-index: 150 !important;
-    color: #3b7bf6;
   }
   .receiving-address-container {
     padding: 20px 40px;

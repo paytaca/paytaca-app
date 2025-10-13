@@ -16,6 +16,10 @@ body.theme-glassmorphic-green {
     #2fb053
   );
   
+  $theme_primary1: $color_6;
+  $theme_primary2: $text_green_9;
+  $bg_card_light: $color_4;
+
   /* ----- GLOBAL ----- */
   body {
     @include shared.body-prop;
@@ -83,6 +87,13 @@ body.theme-glassmorphic-green {
   }
 
   /* ----- CLASSES ----- */
+
+  // Creates quasar compliant color classes `bg-<name>` and `text-<name>`
+  @include shared.gen-color-classes($theme_primary1, 'pt-primary1');
+  @include shared.gen-color-classes($theme_primary2, 'pt-primary2');
+  @include shared.gen-color-classes($bg_card_dark, 'pt-dark');
+  @include shared.gen-color-classes($bg_card_light, 'pt-light');
+
   .bg-grad,
   .bg-grad.button {
     background-image: linear-gradient(
