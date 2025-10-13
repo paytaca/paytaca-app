@@ -4,7 +4,7 @@
       <div>
         <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
           <p id="Applications"
-            class="section-title text-grad"
+            class="section-title text-grad text-h5 text-weight-medium"
             :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
           >
             {{ $t('Applications') }}
