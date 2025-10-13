@@ -20,13 +20,13 @@ export async function fetchMemo (txid) {
 			memoData = response.data
 		})
 		.catch(error => {
-			cosole.log('error')
 			if (error.response) {
 				if (error.response.status === 404) {
 					memoData = error.response.data
 				}					
 			}			
 		})
+		
 		return memoData
 
 }
@@ -121,7 +121,7 @@ export async function authMemo () {
 			await saveAuthToken(response.data.access)
 		})
 		.catch(error => {
-			this.registerMemoUser()
+			registerMemoUser()
 			// console.error(error.response.data)
 
 			// memoData = error.response.data
