@@ -219,7 +219,7 @@
             </form>
           </div>
 
-          <customKeyboard 
+          <CustomKeyboard 
             :custom-keyboard-state="customKeyboardState"
             v-on:addKey="setAmount"
             v-on:makeKeyAction="makeKeyAction"
@@ -276,7 +276,8 @@ import {
   convertToBCH,
   customNumberFormatting,
   formatWithLocale,
-  getDenomDecimals
+  getDenomDecimals,
+  getLocaleSeparators
 } from 'src/utils/denomination-utils'
 import {
   parseKey,
@@ -294,7 +295,7 @@ import DragSlide from 'src/components/drag-slide.vue'
 import JppPaymentPanel from 'src/components/JppPaymentPanel.vue'
 import ProgressLoader from 'src/components/ProgressLoader'
 import HeaderNav from 'src/components/header-nav'
-import customKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
@@ -312,7 +313,7 @@ export default {
     JppPaymentPanel,
     ProgressLoader,
     HeaderNav,
-    customKeyboard,
+    CustomKeyboard,
     QrScanner,
     SendPageForm,
     QRUploader,
@@ -963,6 +964,12 @@ export default {
           currentInputExtras.amountFormatted = formatWithLocale(
             currentRecipient.amount, this.decimalObj(false)
           )
+
+          if (
+            this.focusedInputField === 'fiat' &&
+            String(currentRecipient.fiatAmount).split('.').length === 2 &&
+            String(currentRecipient.fiatAmount).split('.')[1] === ''
+          ) currentInputExtras.fiatFormatted += getLocaleSeparators().decimal
         } catch {
           currentRecipient.fiatAmount = ''
           currentRecipient.amount = ''

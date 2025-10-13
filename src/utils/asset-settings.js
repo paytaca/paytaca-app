@@ -150,7 +150,20 @@ export async function initializeCustomList (bch = [], sbch = []) {
 		sBCH: sbch 
 	}
 
-	saveCustomList(data)
+	saveCustomList(data) 
+
+}
+
+export async function initializeFavorites (list) {
+	const len = list.length > 10 ? 10 : list.length
+
+	let data = list.map(asset => ({ id: asset.id, favorite: 0 }))
+
+	for (let i = 0; i < len; i++) {
+		data[i].favorite = 1
+	}
+	saveFavorites(data)
+
 
 }
 

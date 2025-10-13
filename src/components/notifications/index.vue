@@ -422,6 +422,6 @@ export default {
     background-color: $grey-2 !important;
   }
   .notifs-card {
-    width: 45vh;
+    width: 40vh;
   }
 </style>

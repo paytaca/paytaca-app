@@ -84,6 +84,15 @@
           </q-item-section>
         </q-item>
         <q-item
+          v-if="record?.fee"
+          style="overflow-wrap: anywhere;"
+        >
+          <q-item-section>
+            <q-item-label class="text-gray" caption>{{ $t('Fee') }}</q-item-label>
+            <q-item-label>{{ formatBCH(record?.fee) }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item
           v-if="record?.priceValue"
           style="overflow-wrap: anywhere;"
           clickable v-ripple

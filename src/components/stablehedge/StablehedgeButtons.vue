@@ -69,14 +69,6 @@ export default defineComponent({
     watch(isChipnet, () => backend = getStablehedgeBackend(isChipnet.value))
     let backend = getStablehedgeBackend(isChipnet.value)
 
-    window.test = () => $q.notify({
-      message: 'Test',
-      timeout: 20 * 1000,
-      actions: [
-        { icon: 'close', color: 'white', round: true, handler: () => {} }
-      ]
-    })
-
     const selectedMarketCurrency = computed(() => {
       const currency = $store.getters['market/selectedCurrency']
       return currency?.symbol
@@ -178,6 +170,7 @@ export default defineComponent({
 
         const params = {
           categories: categories.join(','),
+          verified: true,
         }
 
         updateLoading({ message: $t('FetchingContracts') })

@@ -4,7 +4,7 @@
     <div class="text-h5">{{ redemptionContract?.fiat_token?.currency || 'UNIT' }}</div>
     <q-space/>
     <div v-if="pricePerDenomination" class="text-h6 text-weight-light">
-      {{ pricePerDenomination }} {{ currency }}/{{ denomination }}
+      {{ formatWithLocale(pricePerDenomination, { max: 8}) }} {{ currency }}/{{ denomination }}
     </div>
   </div>
   <q-card 
@@ -331,6 +331,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { toTokenAddress } from 'src/utils/crypto';
+import { formatWithLocale } from 'src/utils/denomination-utils';
 import { consolidateToReserveUtxo, createTreasuryContractTransaction, sweepContractWithAuthToken } from 'src/wallet/stablehedge/transaction';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
 import { useValueFormatters } from 'src/composables/stablehedge/formatters';
@@ -910,6 +911,7 @@ export default defineComponent({
       sendTreasuryContractBCH,
       sweepTreasuryContract,
 
+      formatWithLocale,
       denominateSats,
       denominateBch,
       formatTokenUnits,

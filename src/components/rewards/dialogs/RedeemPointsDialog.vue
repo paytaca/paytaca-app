@@ -264,7 +264,7 @@ import {
 import { parseKey } from 'src/utils/custom-keyboard-utils'
 import { raiseNotifyError, getWallet } from 'src/utils/send-page-utils'
 
-import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 import PinDialog from 'src/components/pin/index.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'

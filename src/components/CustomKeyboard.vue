@@ -93,11 +93,7 @@ export default {
       this.val = this.modelValue
     },
     customKeyboardState () {
-      if (this.customKeyboardState === 'show') {
-        this.keyboard = true
-      } else {
-        this.keyboard = false
-      }
+      this.keyboard = this.customKeyboardState === 'show'
     }
   }
 }
@@ -109,7 +105,8 @@ export default {
   display: flex;
   justify-content: center;
   width: 100%;
-  bottom: 0pt !important;
+  left: 0 !important;
+  bottom: 0 !important;
   z-index: 1;
 }
 .pt-keyboard-container {

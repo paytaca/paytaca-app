@@ -5,7 +5,7 @@
         <div class="text-h5">{{ redemptionContract?.fiat_token?.currency || 'UNIT' }}</div>
         <q-space/>
         <div v-if="pricePerDenomination">
-          {{ pricePerDenomination }} {{ currency }}/{{ denomination }}
+          {{ formatWithLocale(pricePerDenomination, { max: 8 }) }} {{ currency }}/{{ denomination }}
         </div>
       </div>
       <div class="row items-center">
@@ -203,6 +203,7 @@ export default defineComponent({
       denominateSats,
       denominateBch,
       formatTokenUnits,
+      formatWithLocale,
     }
   }
 })
