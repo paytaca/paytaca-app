@@ -6,6 +6,7 @@
 </template>
 
 <script>
+import { updateCssThemeColors } from './utils/theme-utils'
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
@@ -349,6 +350,9 @@ export default {
   },
   created () {
     const vm = this
+    setTimeout(() => {
+      updateCssThemeColors(this.$store.getters['global/theme']);
+    }, 100)
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 

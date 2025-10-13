@@ -101,7 +101,7 @@ body.theme-payhero {
 
   @include shared.gen-color-classes($brand_yellow, 'pt-primary1');
   @include shared.gen-color-classes($button_yellow, 'pt-primary2');
-  @include shared.gen-color-classes($wallet_card, 'pt-dark');
+  @include shared.gen-color-classes($bg_card_dark, 'pt-dark');
   @include shared.gen-color-classes($label-white, 'pt-light');
 
   .bg-grad {
