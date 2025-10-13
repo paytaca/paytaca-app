@@ -178,7 +178,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
-import { registerMemoUser } from 'src/utils/transaction-memos'
+import { registerMemoUser, authMemo } from 'src/utils/transaction-memos'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
 
 import Transaction from '../../components/transaction'
@@ -319,7 +319,8 @@ export default {
 
 		// register user
 		await updateOrCreateKeypair(false)
-		await registerMemoUser()
+		// await registerMemoUser()
+		await authMemo()
 
 		if (asset.length > 0) {
 			this.selectedAsset = asset[0]			

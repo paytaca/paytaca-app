@@ -698,14 +698,13 @@ export default {
 
         try {
           currentMemo = await fetchMemo(this.transaction.txid)
-        } catch {
-          console.log('failed request')
+        } catch {          
           this.networkError = true
         }
 
         if (currentMemo) {          
           if ('error' in currentMemo) {
-            console.log('no memo for this txid')
+            // console.log('no memo for this txid')
             this.hasMemo = false
           } else {
             // decryptMemo
@@ -714,8 +713,7 @@ export default {
             this.memo = currentMemo
             this.hasMemo = true
           }
-        } else {
-          console.log('failed request')
+        } else {          
           this.networkError = true
         }
 

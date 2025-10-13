@@ -264,6 +264,7 @@ export default {
 	    	this.$q.loading.show()
 	    	this.isloaded = false
 	    	this.networkError = false
+	    	
 	    	// register / get auth 
 		    await assetSettings.registerUser()
 

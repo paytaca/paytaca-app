@@ -103,10 +103,7 @@ export default {
 
       if (this.customList) {        
         return this.customList.filter(asset => this.favorites.includes(asset.id))            
-      } else {   
-        return this.assets.slice(0,10)
-        // return this.assets.filter(asset => asset.favorite === 1)   
-      }
+      } 
     },
     denomination () {
       return this.$store.getters['global/denomination']
@@ -153,11 +150,9 @@ export default {
         await this.getFavorites()
         await this.getCustomAssetList()        
       }      
-    } else {
-      console.log('empty IDS: ', this.assets)
+    } else {      
       this.networkError = true
-    } 
-    console.log('customIDs: ', this.customListIDs)  
+    }     
   },
   methods: {
     parseAssetDenomination,
@@ -173,16 +168,13 @@ export default {
           if (asset) {            
             temp.push(asset[0])
           }         
-        }
-
-      console.log('customList: ', temp)
+        }      
       this.customList = temp
     },
     async getFavorites() {
       let temp = await assetSettings.fetchFavorites()
       
-      this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
-      console.log('fav: ', this.favorites)
+      this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)      
     },
     formatAssetTokenAmount(asset) {
       return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
