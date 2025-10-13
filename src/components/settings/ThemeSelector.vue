@@ -32,13 +32,6 @@ export default {
   },
   data () {
     return {
-      themeOptions: [
-        { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') },
-        { value: 'glassmorphic-red', label: this.$t('GlassmorphicRed') },
-        { value: 'glassmorphic-green', label: this.$t('GlassmorphicGreen') },
-        { value: 'glassmorphic-gold', label: this.$t('GlassmorphicGold') },
-        { value: 'payhero', label: 'PayHero' }
-      ],
       filteredThemeOptions: []
     }
   },
