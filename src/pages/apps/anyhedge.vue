@@ -10,8 +10,6 @@
       class="apps-header"
     />
     <q-tabs
-      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
-      :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : 'brandblue'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"

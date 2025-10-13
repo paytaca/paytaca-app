@@ -44,7 +44,7 @@
             padding: '0.3rem 0.8rem',
             boundaryNumbers: true,
             disable: fetchingStorefronts,
-            color: 'brandblue',
+            color: 'pt-primary1',
           }"
           class="q-mb-xs"
           :hide-below-pages="2"
@@ -56,7 +56,7 @@
         <q-btn
           rounded
           :outline="shopDeliveryTypeFilter != Checkout.DeliveryTypes.STORE_PICKUP"
-          :color="shopDeliveryTypeFilter == Checkout.DeliveryTypes.STORE_PICKUP ? 'brandblue' : ''"
+          :color="shopDeliveryTypeFilter == Checkout.DeliveryTypes.STORE_PICKUP ? 'pt-primary1' : ''"
           :disable="fetchingStorefronts"
           padding="xs md"
           no-caps label="Pickup"
@@ -67,7 +67,7 @@
         <q-btn
           rounded
           :outline="shopDeliveryTypeFilter != Checkout.DeliveryTypes.LOCAL_DELIVERY"
-          :color="shopDeliveryTypeFilter == Checkout.DeliveryTypes.LOCAL_DELIVERY ? 'brandblue' : ''"
+          :color="shopDeliveryTypeFilter == Checkout.DeliveryTypes.LOCAL_DELIVERY ? 'pt-primary1' : ''"
           :disable="fetchingStorefronts"
           padding="xs md"
           no-caps label="Delivery"
@@ -77,7 +77,7 @@
         />
       </div>
       <div v-if="(!initialized || !storefronts.length) && fetchingStorefronts" class="row items-center justify-center">
-        <q-spinner size="4em" color="brandblue"/>
+        <q-spinner size="4em" color="pt-primary1"/>
       </div>
       <div class="row items-start justify-start q-mb-md">
         <div v-for="storefront in storefronts" :key="storefront?.id" class="col-6 col-sm-4 q-pa-xs">
@@ -97,7 +97,7 @@
                 class="float-right row items-center no-wrap"
                 @click.stop
               >
-                <q-rating :model-value="1" readonly max="1" size="1em" color="brandblue"/>
+                <q-rating :model-value="1" readonly max="1" size="1em" color="pt-primary1"/>
                 {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
                 <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
                   <div class="row items-center no-wrap">
@@ -106,7 +106,7 @@
                       max="5"
                       :model-value="roundRating(storefront?.ordersReviewSummary?.averageRating, { forceDecimals: false})"
                       size="1em"
-                      color="brandblue"
+                      color="pt-primary1"
                       class="no-wrap"
                       icon-half="star_half"
                     />
@@ -139,7 +139,7 @@
                   </span>
                 </div>
               </div>
-              <q-badge v-if="storefront?.inPrelaunch" color="brandblue">
+              <q-badge v-if="storefront?.inPrelaunch" color="pt-primary1">
                 <div>Will be live soon!</div>
                 <template v-if="storefront?.launchDate">
                   <!-- <div>{{ formatDateRelative(storefront?.launchDate) }}</div> -->
@@ -171,8 +171,8 @@
           
         </div>
         <div v-if="fetchingOrders" class="text-center q-px-md">
-          <q-spinner v-if="!orders?.length" size="1.5rem" color="brandblue" class="q-mb-sm"/>
-          <q-linear-progress v-else query reverse color="brandblue"/>
+          <q-spinner v-if="!orders?.length" size="1.5rem" color="pt-primary1" class="q-mb-sm"/>
+          <q-linear-progress v-else query reverse color="pt-primary1"/>
         </div>
         <div v-else class="q-mb-xs"></div>
 
@@ -331,7 +331,7 @@ function openStorefrontListOptsForm() {
       suffix: 'km',
       isValid: val => val > 0,
     },
-    color: 'brandblue',
+    color: 'pt-primary1',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   .onOk(data => $store.commit('marketplace/setShopListOpts', { radius: parseFloat(data) }))

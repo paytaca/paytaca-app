@@ -6,7 +6,7 @@
           v-if="parsedNftGroups?.length > 1 || viewType !== 'grid'"
           flat
           v-model="viewType"
-          toggle-color="brandblue"
+          toggle-color="pt-primary1"
           padding="sm"
           :options="[
             {icon: 'view_stream', value: 'list'},
