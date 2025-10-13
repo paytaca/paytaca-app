@@ -84,12 +84,8 @@
   </q-card>
 </template>
 <script>
-import { getAssetDenomination } from 'src/utils/denomination-utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
-import { tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
-import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
-import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { computed, defineComponent, watch, onMounted, onUnmounted, ref, getCurrentInstance } from 'vue';
 import { useStablehedgeDashboard } from 'src/composables/stablehedge/dashboard';
@@ -107,21 +103,19 @@ export default defineComponent({
   setup(props) {
     const instance = getCurrentInstance()
 
-    const { t: $t } = useI18n()
     const $store = useStore()
-    const isNotDefaultTheme = computed(() => $store.getters['global/theme'] === 'payhero')
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
     const {
-      isChipnet,
+      // isChipnet,
       denomination,
       tokenCategory,
-      token,
-      priceMessage,
+      // token,
+      // priceMessage,
       currency,
-      decimals,
+      // decimals,
 
-      pricePerBch,
+      // pricePerBch,
       priceUnitPerBch,
       pricePerDenomination,
 
@@ -129,7 +123,7 @@ export default defineComponent({
       fetchRedemptionContractMarketInfo,
 
       fetchingTreasuryContractBalance,
-      treasuryContractBalance,
+      // treasuryContractBalance,
       fetchTreasuryContractBalance,
       parsedTreasuryContractBalance,
 
