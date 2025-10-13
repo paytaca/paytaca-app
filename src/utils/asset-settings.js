@@ -77,7 +77,6 @@ export async function fetchFavorites () {
 
 export async function saveFavorites (list) {
 	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
-	console.log('list: ', list)
 
 	let favorites = null
 	const data = {
@@ -105,7 +104,7 @@ export async function fetchUnlistedTokens () {
 	await backend.get(baseURL + '/app-setting/unlisted-list/', { headers: { 'wallet-hash': walletHash } })
 		.then(response => {			
 			unlisted_token = response.data
-			console.log('HERE: ', unlisted_token)
+			// console.log('HERE: ', unlisted_token)
 		})
 		.catch(error => {
 			console.error(error.response)
@@ -199,7 +198,7 @@ export async function authToken () {
 		})
 		.catch(error => {
 			console.error(error.response.data)
-
+			registerUser()
 			// memoData = error.response.data
 		})
 }

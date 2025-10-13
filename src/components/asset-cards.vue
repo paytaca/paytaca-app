@@ -130,6 +130,7 @@ export default {
     this.customListIDs = await assetSettings.fetchCustomList()  
 
     if (this.customListIDs) {
+      
       // if not in server, initialize
       if ('error' in this.customListIDs || Object.keys(this.customListIDs).length === 0) {  
         await assetSettings.registerUser()
@@ -174,7 +175,7 @@ export default {
     async getFavorites() {
       let temp = await assetSettings.fetchFavorites()
       
-      this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)      
+      this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
     },
     formatAssetTokenAmount(asset) {
       return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(

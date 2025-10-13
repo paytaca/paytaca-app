@@ -749,14 +749,14 @@ export default {
         try {
           response = await updateMemo(data)
         } catch {
-          console.log('failed request')
+          // console.log('failed request')
           this.networkError = true
         }
       } else {
         try {
           response = await createMemo(data)
         } catch {
-          console.log('failed request')
+          // console.log('failed request')
           this.networkError = true
         }
       } 

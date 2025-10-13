@@ -264,9 +264,9 @@ export default {
 	    	this.$q.loading.show()
 	    	this.isloaded = false
 	    	this.networkError = false
-	    	
+
 	    	// register / get auth 
-		    await assetSettings.registerUser()
+		    await assetSettings.authToken()
 
 		    // fetching unlisted tokens
 		    await assetSettings.fetchUnlistedTokens()
@@ -296,12 +296,18 @@ export default {
 			    		assetSettings.initializeCustomList([], assetIDs)
 			    	}
 
+
+			    	await assetSettings.initializeFavorites(this.assets)  
 			    } else {
 			    	// Update Here to checking Favorites from server. Currently using Local storage    	
-			    	this.checkEmptyFavorites()
-						this.$store.dispatch('assets/initializeFavorites', this.assets)
+			    	// this.checkEmptyFavorites()
+						// this.$store.dispatch('assets/initializeFavorites', this.assets)
+
+						let fav = await assetSettings.fetchFavorites()
+						fav =  fav.filter(asset => asset.favorite === 1).map(asset => asset.id)
 
 						this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
+						this.assetList = this.assetList.map(asset => ({...asset, favorite: fav.includes(asset.id) ? 1 : 0}))
 			    }
 
 			    // remove from asset list
@@ -333,17 +339,20 @@ export default {
 	    		}
 	    	})	    
 	    },
-	    updateFavorite (asset) {
+	    updateFavorite (favAsset) {
 	    	const vm = this	    	
-	    	const temp = {
-	    		id: asset.id,
-	    		favorite: asset.favorite === 0 ? 1 : 0
-	    	}	    	
-	    	vm.$store.commit('assets/updateAssetFavorite',  temp)
-	    	const tempFavorites = this.assets.map(({id, favorite}) =>({ id, favorite }))	    
+	    	// const temp = {
+	    	// 	id: asset.id,
+	    	// 	favorite: asset.favorite === 0 ? 1 : 0
+	    	// }	    	
+
+	    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: favAsset.favorite === 0 ? 1 : 0} : asset)
+	    	// vm.$store.commit('assets/updateAssetFavorite',  temp)
+	    	const tempFavorites = this.assetList.map(({id, favorite}) =>({ id, favorite }))	    
 
 	    	assetSettings.saveFavorites(tempFavorites)
-	    	vm.refreshList()
+	    	// vm.refreshList()
+	    	// vm.loadData()
 	    },
 	    getWallet (type) {
 	      return this.$store.getters['global/getWallet'](type)
