@@ -7,14 +7,31 @@
     maximized
     @before-hide="$emit('dialog-hide')"    
   >
-    <q-card class="wallet-card" :class="getDarkModeClass(darkMode)" :style="{'padding-top': $q.platform.is.ios ? '55px' : '0px'}">
-      <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
-        <div class="text-h5 q-space q-mt-sm title">
+    <q-card
+      class="wallet-card"
+      :class="getDarkModeClass(darkMode)"
+      :style="{'padding-top': $q.platform.is.ios ? '55px' : '0px'}"
+    >
+      <div class="row justify-end q-px-lg q-pt-md asset-option">
+        <q-btn
+          round
+          ripple
+          color="primary"
+          class="button-default"
+          :class="getDarkModeClass(darkMode)"
+          @click="hide"
+        >
+          <q-icon name="keyboard_double_arrow_left" class="default-text-color" />
+        </q-btn>
+      </div>
+
+      <div class="row no-wrap items-center justify-center q-px-lg">
+        <div class="q-space q-mt-sm text-weight-medium text-h6 title">
           {{ $t('Wallets') }}
         </div>
         <div
           clickable
-          class="text-blue-9 create-import-button"
+          class="text-blue-9 create-import-button button button-text-primary"
           :class="{'text-grad': isNotDefaultTheme(theme)}"
           @click="() => {
             $router.push('/accounts')
@@ -33,6 +50,7 @@
             <template v-if="wallet.deleted !== true">
               <q-item
                 clickable
+                v-ripple
                 class="q-pb-sm bottom-border"
                 :class="getDarkModeClass(darkMode)"
                 @click="selectedIndex = index"
@@ -56,7 +74,7 @@
                   </div>
                   <q-menu anchor="bottom right" self="top end" >
                     <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
-                      <q-item clickable v-close-popup>
+                      <q-item clickable v-ripple v-close-popup>
                         <q-item-section
                           class="pt-label"
                           :class="getDarkModeClass(darkMode)"
@@ -303,9 +321,6 @@ export default {
 <style lang="scss" scoped>
 .wallet-card {
   height: 525px;
-  .title {
-    font-size: 18px;
-  }
   .bottom-border {
     border-bottom-width: 1px;
     border-bottom-style: solid;
