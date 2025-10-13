@@ -5,8 +5,8 @@
     @hide="onDialogHide"
   >
     <q-card
-      class="br-15 pt-card-2 text-bow"
-      :class="getDarkModeClass(darkMode)"
+      class="br-15 text-bow"
+      :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark' : 'bg-pt-light']"
       style="width: 350px; max-width: 90vw;"
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
@@ -129,7 +129,7 @@
             />
             <q-btn
               no-caps :label="$t('OK')"
-              color="brandblue"
+              color="pt-primary1"
               rounded
               class="col-5 col-sm-3"
               type="submit"
