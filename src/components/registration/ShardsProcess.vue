@@ -1,8 +1,8 @@
 <template>
   <template v-if="isLoading">
     <div
-      class="col pt-wallet q-mt-sm pt-card-2 text-center"
-      :class="[getDarkModeClass(darkMode), fromWalletInfo ? 'pt-card' : 'pt-card-2']"
+      class="col q-mt-sm text-center"
+      :class="getDarkModeClass(darkMode)"
     >
       <p
         class="q-pt-sm text-bow"
@@ -15,7 +15,7 @@
     </div>
   </template>
 
-  <template v-else>
+  <div v-else>
     <h5
       v-if="!fromWalletInfo"
       class="q-ma-none text-bow"
@@ -36,7 +36,7 @@
 
       <div class="q-mt-lg text-bow" :class="getDarkModeClass(darkMode)">
         <div
-          class="q-pa-sm br-15 pt-card"
+          class="q-pa-sm br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -52,7 +52,7 @@
           </div>
         </div>
         <div
-          class="q-pa-sm q-mt-md br-15 pt-card"
+          class="q-pa-sm q-mt-md br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -70,7 +70,7 @@
 
         <!-- (temporary) show 3rd qr and let user handle storing -->
         <div
-          class="q-pa-sm q-mt-md br-15 pt-card"
+          class="q-pa-sm q-mt-md br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -116,7 +116,7 @@
 
       <div class="q-mt-lg text-bow" :class="getDarkModeClass(darkMode)">
         <div
-          class="q-pa-sm br-15 pt-card"
+          class="q-pa-sm br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -133,7 +133,7 @@
           </div>
         </div>
         <div
-          class="q-pa-sm q-mt-md br-15 pt-card"
+          class="q-pa-sm q-mt-md br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -152,7 +152,7 @@
 
         <!-- (temporary) show 3rd qr and let user handle storing -->
         <div
-          class="q-pa-sm q-mt-md br-15 pt-card"
+          class="q-pa-sm q-mt-md br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -187,7 +187,7 @@
       class="q-mt-lg full-width button"
       @click="$emit('proceed-to-next-step')"
     />
-  </template>
+  </div>
 </template>
 
 <script>

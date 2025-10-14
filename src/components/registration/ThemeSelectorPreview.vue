@@ -3,7 +3,7 @@
     <div class="row justify-center text-center">
       <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('ThemePreferenceTitle') }}</h5><br/>
     </div>
-    <div class="row justify-center q-mt-sm dim-text text-center">
+    <div class="row justify-center q-mt-sm text-center">
       <p>{{ $t('ThemePreferenceSubtitle') }}</p>
     </div>
     <div class="row justify-center themes-preview-container">

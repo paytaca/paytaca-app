@@ -74,7 +74,7 @@
       :class="getDarkModeClass(darkMode)"
       v-if="steps > -1 && steps < totalSteps"
     >
-      <p class="text-black q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
+      <p class="q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
         {{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...
       </p>
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
