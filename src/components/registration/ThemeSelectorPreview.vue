@@ -22,7 +22,6 @@
                 <div class="row items-center q-pb-xs text-capitalize text-weight-bold">
                   <q-radio
                     size="xs"
-                    class="prev-radio"
                     :val="`${themeElem.value} light`"
                     v-model="selectedMode"
                   />
@@ -35,7 +34,6 @@
                 <div class="row items-center q-pb-xs text-capitalize text-weight-bold">
                   <q-radio
                     size="xs"
-                    class="prev-radio"
                     :val="`${themeElem.value} dark`"
                     v-model="selectedMode"
                   />
@@ -111,11 +109,5 @@ export default {
   .themes-preview-container {
     max-height: 47vh;
     overflow-y: scroll;
-  }
-</style>
-
-<style lang="scss">
-  .prev-radio.q-radio > .q-radio__inner--truthy {
-    color: #4FC3F7 !important;
   }
 </style>
