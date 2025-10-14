@@ -17,7 +17,7 @@
               class="pt-label"
               :class="getDarkModeClass(darkMode)"
             />
-            <q-card class="row justify-evenly bg-grey-7">
+            <q-card class="row justify-evenly">
               <q-card-section class="q-pa-sm">
                 <div class="row items-center q-pb-xs text-capitalize text-weight-bold">
                   <q-radio
