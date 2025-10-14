@@ -95,7 +95,7 @@
           <q-btn :loading="loadSubmitButton" :disable="disableSubmit" rounded no-caps :label="confirmLabel" class="q-space text-white button" :class="getDarkModeClass(darkMode)" color="blue-6" @click="submitPaymentMethod()" />
         </div>
         <div class="row q-mx-md q-py-md" v-if="type === 'Profile'">
-          <q-btn v-if="paymentMethods.length - paymentTypeOpts.length !== 0" outline rounded no-caps label='Add Method' class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod"/>
+          <q-btn v-if="paymentMethods.length - paymentTypeOpts.length !== 0" outline rounded no-caps :label="$t('AddMethod')" class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod"/>
         </div>
       </div>
     </div>

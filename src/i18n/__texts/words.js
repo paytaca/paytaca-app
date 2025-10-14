@@ -411,6 +411,10 @@ const words = [
     GlassmorphicRed: "Glassmorphic Red",
     GlassmorphicGreen: "Glassmorphic Green",
     GlassmorphicGold: "Glassmorphic Gold",
+    AddMethod: 'Add Method',
+    CashIn: 'Cash In',
+    PriceChart: 'Price Chart',
+    Stats: 'Stats'
   }
 ]
 
