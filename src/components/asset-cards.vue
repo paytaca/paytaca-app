@@ -83,7 +83,8 @@ export default {
       customListIDs: null,
       customList: null,
       networkError: false,
-      favorites: []
+      favorites: [],
+      favResult: []
     }
   },
   computed: {
@@ -128,7 +129,8 @@ export default {
     //   await assetSettings.saveFavorites(favsList)
     // }
 
-    this.customListIDs = await assetSettings.fetchCustomList()  
+    this.customListIDs = await assetSettings.fetchCustomList()      
+
 
     if (this.customListIDs) {
       
@@ -150,7 +152,30 @@ export default {
 
       } else {
         await this.getFavorites()
-        await this.getCustomAssetList()        
+        await this.getCustomAssetList()                 
+
+        if (this.customList) {          
+          // check for unsaved assets
+          let assetIDs = this.assets.map(asset => asset.id)
+          let unsavedAsset = assetIDs.filter(asset => !this.customListIDs[this.network].includes(asset))                  
+        
+          // save unsaved Assets           
+          if (unsavedAsset.length > 0) {            
+            await assetSettings.authToken()
+            
+            let tempList = this.customListIDs            
+            let tempFav = this.favResult
+
+            let unsavedAssetFavFormat = unsavedAsset.map(asset => ({ id: asset, favorite: 0}))
+            
+            await tempList[this.network].push(...unsavedAsset)
+            await tempFav.push(...unsavedAssetFavFormat)
+
+
+            assetSettings.saveCustomList(tempList)
+            assetSettings.saveFavorites(tempFav)
+          }
+        }   
       }      
     } else {      
       this.networkError = true
@@ -175,6 +200,7 @@ export default {
     },
     async getFavorites() {
       let temp = await assetSettings.fetchFavorites()
+      this.favResult = temp
       
       this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
     },
