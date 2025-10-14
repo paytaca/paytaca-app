@@ -132,17 +132,16 @@ body.theme-glassmorphic-green {
   }
 
   .pt-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(28, 51, 42, 0.7) !important;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     &.light {
       background-color: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
 
       &.btn-transaction-bg {
@@ -152,17 +151,16 @@ body.theme-glassmorphic-green {
   }
 
   .pt-card-2 {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(38, 61, 50, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     &.light {
       background-color: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
     }
   }
@@ -195,32 +193,30 @@ body.theme-glassmorphic-green {
   }
 
   .price-chart-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(38, 61, 50, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
     &.light {
       background: rgba(232, 245, 233, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
     }
   }
 
   .wallet-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(28, 51, 42, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     &.light {
       background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
     }
 
@@ -309,6 +305,13 @@ body.theme-glassmorphic-green {
         color: white;
       }
     }
+
+    .default-text-color {
+      color: #43a047 !important;
+    }
+    .default-text-color-2 {
+      filter: brightness(0) saturate(100%) invert(55%) sepia(52%) saturate(466%) hue-rotate(77deg) brightness(95%) contrast(89%);
+    }
   }
 
   .bg-pink {
@@ -331,17 +334,16 @@ body.theme-glassmorphic-green {
   }
 
   .group-currency {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(28, 51, 42, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     &.light {
       background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
     }
 
@@ -493,15 +495,6 @@ body.theme-glassmorphic-green {
 
   .primary-filter {
     filter: brightness(0) saturate(100%) invert(55%) sepia(52%) saturate(466%) hue-rotate(77deg) brightness(95%) contrast(89%);
-  }
-
-  .fixed-footer {
-    .default-text-color {
-      color: #43a047 !important;
-    }
-    .default-text-color-2 {
-      filter: brightness(0) saturate(100%) invert(55%) sepia(52%) saturate(466%) hue-rotate(77deg) brightness(95%) contrast(89%);
-    }
   }
 
   #qr-button {
