@@ -35,7 +35,7 @@
             </span>
             <span class="q-pl-xs">
               <q-badge :outline="defaultPaymentTypes" class="button button-text-primary" :class="getDarkModeClass(darkMode)" rounded @click="openFilterSelection('paymentTypes')">
-                Payment Types <q-icon size="xs" name='mdi-menu-down'/>
+                {{ $t('PaymentTypes') }} <q-icon size="xs" name='mdi-menu-down'/>
               </q-badge>
             </span>
           </div>

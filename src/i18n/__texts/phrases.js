@@ -1293,7 +1293,21 @@ const phrases = {
       VestingNotOccured: 'Vesting has not occurred yet',
       ReservationPaid: 'Reservation is paid in full',
       UnidentifiedAddress: 'Unable to identify address.',
-      AddressAlreadyAdded: 'You already added this address.'
+      AddressAlreadyAdded: 'You already added this address.',
+      PriceOrder: 'Price Order',
+      FilterAdOrderAmount: 'Filter Ad by Order Amount',
+      SelectPaymentType: 'Select Payment Type',
+      UnselectAll: 'Unselect All',
+      NoPaymentMethodAvailable: 'No payment method available',
+      SelectPaymentMethod: 'Select Payment Method',
+      ManagePaymentMethods: 'Manage Payment Methods',
+      SelectMethods: 'Select methods',
+      InstructionGeneral: 'This ad accepts the following payment types',
+      InstructionAds: 'Your ad will accept the following payment types',
+      NoPaymentMethodAdded: 'No Payment Method Added',
+      SetTradeLimitsFiat: 'Set trade limits in fiat',
+      YourPaymentMethods: 'Your Payment Methods',
+      EnableSlp: 'Enable SLP'
     }
   ],
   dynamic: [

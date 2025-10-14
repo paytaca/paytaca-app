@@ -31,7 +31,7 @@
         <br>
         <span 
           id="send-button"
-          @click="$router.push({ name: 'transaction-list' })">{{ $t('TX') }}</span>
+          @click="$router.push({ name: 'transaction-list' })">TX</span>
       </button>
       <div style="width: 50px;"></div>
       <button class="footer-icon-btn" :class="getDarkModeClass()">

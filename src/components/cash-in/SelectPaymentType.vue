@@ -1,7 +1,7 @@
 <template>
   <div class="q-mx-md">
     <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
-      Select Payment Type
+      {{ $t('SelectPaymentType') }}
     </div>
     <div class="q-px-lg q-pt-lg" style="font-size: medium;" @click="showCurrencySelect">
       {{ selectedCurrency.symbol }} <q-icon name="mdi-menu-down"/>

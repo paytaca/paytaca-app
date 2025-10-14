@@ -6,7 +6,7 @@
 
 
       <div class="q-mx-sm text-h5 text-center text-weight-bold lg-font-size">
-        {{ type === 'Profile' ? 'Your' : 'Select' }} Payment Methods
+        {{ type === 'Profile' ? $t('YourPaymentMethods') : $t('SelectPaymentMethods') }}
       </div>
 
       <div v-if="type === 'Profile'" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
@@ -19,7 +19,7 @@
       <q-card-section class="q-mt-sm" :style="`height: ${minHeight}px;`" style="overflow-y:auto;">
         <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
           <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
-          <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">No Payment Method Added</p>
+          <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">{{ $t('NoPaymentMethodAdded') }}</p>
         </div>
         <q-item class="q-my-none q-py-none" v-for="(method, index) in paymentMethods" :key="index">
           <q-item-section>
@@ -89,7 +89,7 @@
       </q-card-section>
       <div class="q-mt-md">
         <div class="row q-mx-md" v-if="type === 'Ads'">
-          <q-btn outline rounded no-caps label="Select Methods" class="q-space button button-text-primary" :class="getDarkModeClass(darkMode)" @click="addMethod"></q-btn>
+          <q-btn outline rounded no-caps :label="$t('SelectMethods')" class="q-space button button-text-primary" :class="getDarkModeClass(darkMode)" @click="addMethod"></q-btn>
         </div>
         <div class="row q-pt-xs q-mx-md" v-if="type !== 'Profile'">
           <q-btn :loading="loadSubmitButton" :disable="disableSubmit" rounded no-caps :label="confirmLabel" class="q-space text-white button" :class="getDarkModeClass(darkMode)" color="blue-6" @click="submitPaymentMethod()" />
@@ -265,9 +265,9 @@ export default {
     instructionMessage () {
       switch (this.type) {
         case 'General':
-          return 'This ad accepts the following payment types'
+          return this.$t('InstructionGeneral')
         case 'Ads':
-          return 'Your ad will accept the following payment types'
+          return this.$t('InstructionAds')
       }
       return ''
     }

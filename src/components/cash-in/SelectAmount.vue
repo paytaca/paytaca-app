@@ -1,7 +1,7 @@
 <template>
   <div class="q-mx-md">
     <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
-      Enter Amount
+      {{ $t('EnterAmount') }}
     </div>
 
     <!-- Amount Input -->

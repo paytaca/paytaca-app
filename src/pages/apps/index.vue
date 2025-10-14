@@ -159,7 +159,7 @@ export default {
         //   smartBCHOnly: false
         // },
         {
-          name: this.$t('Multisig Wallet'),
+          name: 'Multisig Wallet',
           iconName: 'mdi-account-group',
           path: '/apps/multisig',
           active: true,
