@@ -204,7 +204,18 @@ function fetchMerchants() {
 
 async function openMerchantPage(merchantData) {
   // $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
-  await $store.dispatch('global/fetchMerchant', merchantData?.id)
+  try {
+    $q.loading.show({ group: 'open-merchant', message: $t('FetchingData') })
+    await $store.dispatch('global/fetchMerchant', merchantData?.id)
+  } catch(error) {
+    $q.notify({
+      type: 'negative',
+      message: String(error?.response?.data?.detail || error?.message || error),
+    })
+    throw error
+  } finally {
+    $q.loading.hide('open-merchant')
+  }
   $router.push({ name: 'app-pos-merchant', state: { merchantId: JSON.stringify(merchantData?.id) } })
 }
 
