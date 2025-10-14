@@ -1,7 +1,7 @@
 <template>
   <!-- <onboarding v-if="isOnboarding" @register="isOnboarding=false"/>  
   <div v-else :class="theme" id="registration-container"> --> 
-  <div :class="theme" id="registration-container">
+  <div class="text-bow" :class="[theme, getDarkModeClass(darkMode)]" id="registration-container">
     <div class="row q-pb-sm">
       <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
         <img src="~/assets/paytaca_logo.png" height="60" alt="">
@@ -74,7 +74,7 @@
       :class="getDarkModeClass(darkMode)"
       v-if="steps > -1 && steps < totalSteps"
     >
-      <p class="dim-text q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
+      <p class="text-black q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
         {{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...
       </p>
       <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
@@ -170,7 +170,7 @@
                   <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5><br />
                 </div>
                 <div class="row justify-center text-center">
-                  <p class="dim-text" style="margin-top: 10px;">
+                  <p style="margin-top: 10px;">
                     {{ $t('OnBoardSettingDescription') }}
                   </p>
                 </div>
@@ -236,7 +236,7 @@
                 <template v-if="authenticationPhase === 'shards'">
                   <template v-if="seedPhraseBackup">
                     <div class="text-bow" :class="getDarkModeClass(darkMode)">
-                      <p class="dim-text" style="margin-top: 10px;">
+                      <p style="margin-top: 10px;">
                         {{ $t('WalletRestoredDescription') }}
                       </p>
                     </div>
@@ -258,7 +258,7 @@
 
                 <template v-else-if="importSeedPhrase && authenticationPhase === 'backup-phrase'">
                   <div class="text-bow" :class="getDarkModeClass(darkMode)">
-                    <p class="dim-text" style="margin-top: 10px;">
+                    <p style="margin-top: 10px;">
                       {{ $t('WalletRestoredDescription') }}
                     </p>
                   </div>
@@ -906,9 +906,6 @@ export default {
 }
 .font-lg {
   font-size: 20px;
-}
-.dim-text {
-  color: #8F8CB8;
 }
 .pt-internet-required {
   text-align: center;

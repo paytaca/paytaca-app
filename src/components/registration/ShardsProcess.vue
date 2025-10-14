@@ -5,8 +5,8 @@
       :class="[getDarkModeClass(darkMode), fromWalletInfo ? 'pt-card' : 'pt-card-2']"
     >
       <p
-        class="q-pt-sm"
-        :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
+        class="q-pt-sm text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="text-align: center;"
       >
         {{ fromWalletInfo ? $t('LoadingShards') : $t('CreatingShards') }}...
@@ -26,7 +26,8 @@
 
     <template v-if="isDesktop">
       <p
-        :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
+        class="text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="margin-top: 10px;"
       >
         {{ fromWalletInfo ? $t('ShardsBackupPhaseDescription1') : $t('ShardsBackupPhaseDescription2') }}
@@ -98,7 +99,8 @@
 
     <template v-else>
       <div
-        :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
+        class="text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="margin-top: 10px;"
       >
         <p>
