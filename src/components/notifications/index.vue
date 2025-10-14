@@ -28,7 +28,7 @@
       </div>
 
       <div>
-        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
+        <div class="row justify-end items-center q-mb-sm q-gutter-x-sm">
           <q-btn
             v-if="isCheckboxClicked"
             flat
@@ -426,6 +426,6 @@ export default {
     background-color: $grey-2 !important;
   }
   .notifs-card {
-    width: 40vh;
+    width: 45vh;
   }
 </style>

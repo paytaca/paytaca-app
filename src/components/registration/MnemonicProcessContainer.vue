@@ -1,10 +1,10 @@
 <template>
   <template v-if="!showAdvanceMethods">
     <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
-    <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+    <p v-if="importSeedPhrase" style="margin-top: 10px;">
       {{ $t('MnemonicBackupPhraseDescription1') }}
     </p>
-    <p v-else class="dim-text" style="margin-top: 10px;">
+    <p v-else style="margin-top: 10px;">
       {{ $t('MnemonicBackupPhraseDescription2') }}
     </p>
 
