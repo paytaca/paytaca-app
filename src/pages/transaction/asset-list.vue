@@ -370,12 +370,13 @@ export default {
 	          network: vm.selectedNetwork,
 	          darkMode: vm.darkmode,
 	          isCashToken: vm.isCashToken,
-	          wallet: vm.$parent.$parent.wallet,
+	          wallet: vm.wallet,
 	          currentCountry: vm.currentCountry
 	        },
 	        component: AddNewAsset
-	      }).onOk((asset) => {	       	
-	      	vm.assetList = this.assets // update later // add new asset to end
+	      }).onOk((asset) => {	  
+	      	 this.loadData()
+	      	// vm.assetList = this.assets // update later // add new asset to end
 	        // if (asset.data?.id) vm.selectAsset(null, asset.data)
 	      })
 	    },
