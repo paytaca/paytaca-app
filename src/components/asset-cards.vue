@@ -63,6 +63,7 @@ export default {
       default: 'BCH'
     },
     wallet: { type: Object },
+    forcePropsAssets: { type: Boolean },
     assets: { type: Array },
     manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
@@ -97,7 +98,7 @@ export default {
       return this.$store.getters['global/theme'] === 'payhero'
     },
     filteredFavAssets () {
-      if (this.networkError) {
+      if (this.networkError || this.forcePropsAssets) {
         return this.assets.slice(0,10)
       }
 
