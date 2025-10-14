@@ -298,6 +298,7 @@
           <!-- Cards without drag scroll on mobile -->
           <template v-if="showTokens && $q.platform.is.mobile">
             <asset-cards
+              :forcePropsAssets="stablehedgeView"
               :assets="assets"
               :manage-assets="manageAssets"
               :selected-asset="selectedAsset"
@@ -317,6 +318,7 @@
           <!-- Cards with drag scroll on other platforms -->
           <template v-if="showTokens && !$q.platform.is.mobile">
             <asset-cards
+              :forcePropsAssets="stablehedgeView"
               :assets="assets"
               :manage-assets="manageAssets"
               :selected-asset="selectedAsset"
@@ -737,7 +739,9 @@ export default {
       const vm = this
       if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
       
+      console.log('Assets is stablehedge', vm.stablehedgeView)
       if (vm.stablehedgeView) {
+        console.log('Returning stablehedge assets');
         return vm.$store.getters['stablehedge/tokenBalancesAsAssets']
       }
 
