@@ -89,10 +89,10 @@
       </q-card-section>
       <div class="q-mt-md">
         <div class="row q-mx-md" v-if="type === 'Ads'">
-          <q-btn outline rounded no-caps label="Select Methods" class="q-space text-white" color="blue-6" @click="addMethod"></q-btn>
+          <q-btn outline rounded no-caps label="Select Methods" class="q-space button button-text-primary" :class="getDarkModeClass(darkMode)" @click="addMethod"></q-btn>
         </div>
         <div class="row q-pt-xs q-mx-md" v-if="type !== 'Profile'">
-          <q-btn :loading="loadSubmitButton" :disable="disableSubmit" rounded no-caps :label="confirmLabel" class="q-space text-white" color="blue-6" @click="submitPaymentMethod()" />
+          <q-btn :loading="loadSubmitButton" :disable="disableSubmit" rounded no-caps :label="confirmLabel" class="q-space text-white button" :class="getDarkModeClass(darkMode)" color="blue-6" @click="submitPaymentMethod()" />
         </div>
         <div class="row q-mx-md q-py-md" v-if="type === 'Profile'">
           <q-btn v-if="paymentMethods.length - paymentTypeOpts.length !== 0" outline rounded no-caps label='Add Method' class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod"/>
