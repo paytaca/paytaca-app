@@ -202,7 +202,9 @@ export default {
       let temp = await assetSettings.fetchFavorites()
       this.favResult = temp
       
-      this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
+      try {
+        this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
+      } catch { }
     },
     formatAssetTokenAmount(asset) {
       return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
