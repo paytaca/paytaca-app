@@ -8,7 +8,7 @@
     <template v-slot:default>
       <div class="row">
         <q-icon
-          :name="arrowIcon"
+          name="keyboard_double_arrow_right"
           class="col-1 text-bow"
           :class="getDarkModeClass(darkMode)"
         />
@@ -42,7 +42,6 @@ export default {
 
   data () {
     return {
-      arrowIcon: 'arrow_drop_down',
       isShow: false
     }
   },
@@ -76,27 +75,16 @@ export default {
     showMultiWalletDialog () {
       if (!this.isShow) {
         this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
-        this.arrowIcon = 'arrow_drop_up'
         this.isShow = true
       } else {
         this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
         this.isShow = false
-        this.arrowIcon = 'arrow_drop_down'
       }
     },
     onDialogHide () {
       this.isShow = false
-      this.arrowIcon = 'arrow_drop_down'
     }
-  },
-
-  // Commented out due to redundant api call done inside child component `MultiWallet`
-  // mounted () {
-  //   this.$store.dispatch(
-  //     'global/syncWalletName',
-  //     { walletIndex: this.walletIndex }
-  //   )
-  // }
+  }
 }
 </script>
 

@@ -1,12 +1,12 @@
 <template>
   <template v-if="isLoading">
     <div
-      class="col pt-wallet q-mt-sm pt-card-2 text-center"
-      :class="[getDarkModeClass(darkMode), fromWalletInfo ? 'pt-card' : 'pt-card-2']"
+      class="col q-mt-sm text-center"
+      :class="getDarkModeClass(darkMode)"
     >
       <p
-        class="q-pt-sm"
-        :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
+        class="q-pt-sm text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="text-align: center;"
       >
         {{ fromWalletInfo ? $t('LoadingShards') : $t('CreatingShards') }}...
@@ -15,7 +15,7 @@
     </div>
   </template>
 
-  <template v-else>
+  <div v-else>
     <h5
       v-if="!fromWalletInfo"
       class="q-ma-none text-bow"
@@ -26,7 +26,8 @@
 
     <template v-if="isDesktop">
       <p
-        :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
+        class="text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="margin-top: 10px;"
       >
         {{ fromWalletInfo ? $t('ShardsBackupPhaseDescription1') : $t('ShardsBackupPhaseDescription2') }}
@@ -35,7 +36,7 @@
 
       <div class="q-mt-lg text-bow" :class="getDarkModeClass(darkMode)">
         <div
-          class="q-pa-sm br-15 pt-card"
+          class="q-pa-sm br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -51,7 +52,7 @@
           </div>
         </div>
         <div
-          class="q-pa-sm q-mt-md br-15 pt-card"
+          class="q-pa-sm q-mt-md br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -69,7 +70,7 @@
 
         <!-- (temporary) show 3rd qr and let user handle storing -->
         <div
-          class="q-pa-sm q-mt-md br-15 pt-card"
+          class="q-pa-sm q-mt-md br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -98,7 +99,8 @@
 
     <template v-else>
       <div
-        :class="[fromWalletInfo ? 'text-bow' : 'dim-text', getDarkModeClass(darkMode)]"
+        class="text-bow"
+        :class="getDarkModeClass(darkMode)"
         style="margin-top: 10px;"
       >
         <p>
@@ -114,7 +116,7 @@
 
       <div class="q-mt-lg text-bow" :class="getDarkModeClass(darkMode)">
         <div
-          class="q-pa-sm br-15 pt-card"
+          class="q-pa-sm br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -131,7 +133,7 @@
           </div>
         </div>
         <div
-          class="q-pa-sm q-mt-md br-15 pt-card"
+          class="q-pa-sm q-mt-md br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -150,7 +152,7 @@
 
         <!-- (temporary) show 3rd qr and let user handle storing -->
         <div
-          class="q-pa-sm q-mt-md br-15 pt-card"
+          class="q-pa-sm q-mt-md br-15 pt-card-2"
           :class="getDarkModeClass(darkMode)"
           style="border: 2px solid gray;"
         >
@@ -185,7 +187,7 @@
       class="q-mt-lg full-width button"
       @click="$emit('proceed-to-next-step')"
     />
-  </template>
+  </div>
 </template>
 
 <script>

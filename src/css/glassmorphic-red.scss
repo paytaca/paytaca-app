@@ -15,6 +15,10 @@ body.theme-glassmorphic-red {
     #cc2c3d,
     #be2732
   );
+
+  $theme_primary1: $color_6;
+  $theme_primary2: $text_red_9;
+  $bg_card_light: $color_4;
   
   /* ----- GLOBAL ----- */
   body {
@@ -83,6 +87,13 @@ body.theme-glassmorphic-red {
   }
 
   /* ----- CLASSES ----- */
+
+  // Creates quasar compliant color classes `bg-<name>` and `text-<name>`
+  @include shared.gen-color-classes($theme_primary1, 'pt-primary1');
+  @include shared.gen-color-classes($theme_primary2, 'pt-primary2');
+  @include shared.gen-color-classes($bg_card_dark, 'pt-dark');
+  @include shared.gen-color-classes($bg_card_light, 'pt-light');
+
   .bg-grad,
   .bg-grad.button {
     background-image: linear-gradient(
@@ -121,17 +132,16 @@ body.theme-glassmorphic-red {
   }
 
   .pt-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(51, 28, 40, 0.7) !important;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     &.light {
       background-color: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
 
       &.btn-transaction-bg {
@@ -141,17 +151,16 @@ body.theme-glassmorphic-red {
   }
 
   .pt-card-2 {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(70, 39, 55, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     &.light {
       background-color: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
     }
   }
@@ -184,32 +193,30 @@ body.theme-glassmorphic-red {
   }
 
   .price-chart-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(70, 39, 55, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
     &.light {
       background: rgba(243, 236, 236, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
     }
   }
 
   .wallet-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(51, 28, 40, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     &.light {
       background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
     }
 
@@ -298,6 +305,13 @@ body.theme-glassmorphic-red {
         color: white;
       }
     }
+
+    .default-text-color {
+      color: #f63b7b !important;
+    }
+    .default-text-color-2 {
+      filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(320deg) brightness(96%) contrast(89%);
+    }
   }
 
   .bg-pink {
@@ -320,17 +334,16 @@ body.theme-glassmorphic-red {
   }
 
   .group-currency {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
     &.dark {
       background: rgba(51, 28, 40, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     &.light {
       background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.5);
     }
 
@@ -482,15 +495,6 @@ body.theme-glassmorphic-red {
 
   .primary-filter {
     filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(320deg) brightness(96%) contrast(89%);
-  }
-
-  .fixed-footer {
-    .default-text-color {
-      color: #f63b7b !important;
-    }
-    .default-text-color-2 {
-      filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(320deg) brightness(96%) contrast(89%);
-    }
   }
 
   #qr-button {

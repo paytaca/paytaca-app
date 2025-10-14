@@ -1,10 +1,10 @@
 <template>
   <template v-if="!showAdvanceMethods">
     <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('MnemonicBackupPhrase') }}</h5>
-    <p v-if="importSeedPhrase" class="dim-text" style="margin-top: 10px;">
+    <p v-if="importSeedPhrase" style="margin-top: 10px;">
       {{ $t('MnemonicBackupPhraseDescription1') }}
     </p>
-    <p v-else class="dim-text" style="margin-top: 10px;">
+    <p v-else style="margin-top: 10px;">
       {{ $t('MnemonicBackupPhraseDescription2') }}
     </p>
 
@@ -53,7 +53,8 @@
             v-if="showMnemonicTest"
             no-caps
             rounded
-            class="full-width bg-blue-9 q-mt-md"
+            class="full-width q-mt-md button"
+            :class="getDarkModeClass(darkMode)"
             @click="$emit('confirm-skip-verification')"
           >
             {{ $t('SkipVerification') }}
@@ -63,7 +64,8 @@
             id="mnem-continue-btn2"
             v-else
             rounded
-            class="full-width bg-blue-9 text-white"
+            class="full-width button"
+            :class="getDarkModeClass(darkMode)"
             :label="$t('Continue')"
             @click="showMnemonicTest = true"
           />

@@ -135,13 +135,15 @@
               <q-btn
                 rounded
                 :label="$t('Cancel')"
-                class="col"
+                class="col button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
                 @click="status = 'payment-method-select'" />
               <q-btn
                 rounded
                 flat
                 :label="$t('Submit')"
-                class="col button"
+                class="col button q-mt-xs"
+                :class="getDarkModeClass(darkMode)"
                 :disable="disableSubmitBtn"
                 @click="onSubmit()"
                 />
@@ -152,7 +154,7 @@
       </div>
 
       <div v-if="status === 'delete-confirmation'" class="text-center">
-        <div class="text-bold md-font-size q-pb-sm">Delete this Payment Method?</div>
+        <div class="text-bold md-font-size">Delete this Payment Method?</div>
         <div class="text-bold md-font-size">
           {{ editingPaymentMethod.payment_type.full_name }}
         </div>
@@ -161,8 +163,8 @@
         </div>
 
         <div class="row text-center q-px-lg q-pt-sm">
-          <q-btn class="col q-mx-xs" rounded outline label="Cancel" color="primary" @click="() => { status = 'payment-method-select'; editingPaymentMethod = null;}"/>
-          <q-btn class="col q-mx-xs" rounded label="Confirm" color="primary" @click="deletePaymentMethod()"/>
+          <q-btn class="col q-mx-xs button button-text-primary" rounded outline :label="$t('Cancel')" :class="getDarkModeClass(darkMode)" @click="() => { status = 'payment-method-select'; editingPaymentMethod = null;}"/>
+          <q-btn class="col q-mx-xs button" rounded :label="$t('Confirm')" :class="getDarkModeClass(darkMode)" @click="deletePaymentMethod()"/>
         </div>
       </div>
     </q-card>

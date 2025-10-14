@@ -2,32 +2,11 @@
   <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)">
     <div id="apps" ref="apps" class="text-center">
       <div>
-        <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
-          <p id="Applications"
-            class="section-title"
-            :class="{'text-blue-5': darkMode, 'text-grad': isNotDefaultTheme(theme)}"
-            :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
-          >
-            {{ $t('Applications') }}
-          </p>
-        </div>
-        <div class="row q-pt-lg" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
+        <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '20px'}">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-pt-md q-pb-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
             <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
               <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
             </q-btn>
-            <!-- <div
-              class="pt-app bg-grad" 
-              :class="[
-                buttonClassByState(app.active),
-                {'apps-border' : isNotDefaultTheme(theme)}
-              ]"
-              :data-test="app.path.replace(/\//g, '-').slice(1)"
-              @click="openApp(app)"
-              v-on-long-press="[e => onLongPressApp(e, app), { delay: 1000, modifiers: { stop: true, prevent: true } }]"
-            >
-              <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
-            </div> -->
             <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
           </div>
         </div>
@@ -96,6 +75,14 @@ export default {
           path: '/apps/gifts/',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Learn'),
+          iconName: 'school',
+          path: '/apps/learn',
+          iconStyle: 'font-size: 4em',
+          active: true,
           smartBCHOnly: false
         },
         // {
@@ -336,19 +323,6 @@ export default {
     }
   },
   mounted () {
-    // const htmlTag1 = document.querySelector('.pt-app')
-    // const htmlTag = document.getElementsByClassName('pt-app')
-    // this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    // for (let i = 0; i < htmlTag.length; i++) {
-    //   htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
-    // }
-
-    // window.addEventListener('resize', function () {
-    //   this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    //   for (let i = 0; i < htmlTag.length; i++) {
-    //     htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
-    //   }
-    // })
     this.fetchAppControl()
     this.closeExchangeWebsocket()
   }
@@ -360,12 +334,6 @@ export default {
     background-color: #ECF3F3;
     min-height: 100vh;
     padding-bottom: 30px;
-  }
-
-  .section-title {
-    font-size: 22px;
-    margin-left: 14px;
-    font-weight: 400;
   }
   .bex-app {
     width: 107px;

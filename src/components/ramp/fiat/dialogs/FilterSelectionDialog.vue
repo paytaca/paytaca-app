@@ -66,12 +66,20 @@
         <div class="text-center q-pt-md q-gutter-sm">
           <q-btn
             outline rounded
-            class="text-center q-mt-sm"
-            color="blue"
+            class="text-center q-mt-sm button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             :disable="disableUnselectBtn"
-            :label="type === 'amount' ? 'clear' : 'unselect all'"
+            :label="type === 'amount' ? $t('Clear') : 'unselect all'"
             @click="onClearClick"/>
-          <q-btn :loading="loadFilterButton" :disable="loadFilterButton" rounded class="text-center q-mt-sm" color="blue" label="filter" @click="onOKClick"/>
+          <q-btn
+            rounded
+            :loading="loadFilterButton"
+            :disable="loadFilterButton"
+            class="text-center q-mt-sm button"
+            :class="getDarkModeClass(darkMode)"
+            label="filter"
+            @click="onOKClick"
+          />
         </div>
       </div>
     </q-card>

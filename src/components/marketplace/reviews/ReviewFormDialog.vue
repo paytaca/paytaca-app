@@ -43,7 +43,7 @@
               :disable="loading"
               v-model="formData.rating"
               size="2rem"
-              color="brandblue"
+              color="pt-primary1"
             />
           </div>
           <PhotoSelector
@@ -110,7 +110,7 @@
             :loading="loading"
             no-caps
             :label="$t('Submit')"
-            color="brandblue"
+            color="pt-primary1"
             class="full-width q-mt-sm"
             type="submit"
           />
@@ -293,7 +293,7 @@ export default defineComponent({
       $q.dialog({
         title: $t('DeleteReview'),
         message: $t('AreYouSure'),
-        color: 'brandblue',
+        color: 'pt-primary1',
         cancel: { noCaps: true, label: $t('Cancel'), flat: true, color: 'grey' },
         ok: { noCaps: true, label: $t('Delete'), flat: true, color: 'red' },
         class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
@@ -304,7 +304,7 @@ export default defineComponent({
             message: $t('DeletingReview'),
             persistent: true, progress: true,
             ok: false,
-            color:'brandblue',
+            color:'pt-primary1',
             class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
           })
           const reviewId = props.review?.id
