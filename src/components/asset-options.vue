@@ -233,6 +233,7 @@ export default {
 	        if (!categories.length) throw vm.$t('NoRedeemableTokens')
 
 	        const params = {
+			      verified: true,
 	          categories: categories.join(','),
 	        }
 
@@ -300,7 +301,7 @@ export default {
 	        if (result?.status === 'success') {
 	          notifyOpts.type = 'positive'
 	          notifyOpts.icon = 'check_circle'
-	          notifyOpts.message = notifyOpts.message || $t('Success')
+	          notifyOpts.message = notifyOpts.message || this.$t('Success')
 	          this.$emit('deposit', [result])
 	        } else if (result?.status === 'failed') {
 	          notifyOpts.type = 'negative'
