@@ -95,7 +95,11 @@ export default {
         )
       } else this.valFormatted = formatWithLocale(this.val, this.decimalObj)
       
-      if (String(value).split('.').length === 2 && String(value).split('.')[1] === '')
+      if (
+        this.keyPressed === 'backspace' && 
+        String(value).split('.').length === 2 && 
+        String(value).split('.')[1] === ''
+      )
         this.valFormatted += getLocaleSeparators().decimal
     }
   },
