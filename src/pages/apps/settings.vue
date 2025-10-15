@@ -105,23 +105,6 @@
                     />
                   </q-item-section>
               </q-item>
-              <q-item clickable v-ripple @click="enableStablhedge = !enableStablhedge">
-                  <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableStablhedge') }} <q-badge color="red" align="top">ALPHA</q-badge>
-                      </q-item-label>
-                      <q-item-label caption style="line-height:1;margin-top:3px;" >
-                        {{ $t('StablehedgeIntroText', {}, 'Safeguard your funds from market volatlity and access them whenever you need.') }}
-                      </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle
-                      v-model="enableStablhedge"
-                      :color="toggleColor"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item>
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -242,8 +225,6 @@
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
       <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogCallback" :disableClose="disablePinDialogClose"/>
-
-      <StablehedgePlatformInfoDialog v-model="showStablehedgeInfoDialog"/>
   </div>
 </template>
 
@@ -260,7 +241,6 @@ import CurrencySelector from '../../components/settings/CurrencySelector'
 import DenominatorSelector from 'src/components/settings/DenominatorSelector'
 import PushNotifsSettings from 'src/components/settings/PushNotifsSettings.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
-import StablehedgePlatformInfoDialog from 'src/components/stablehedge/StablehedgePlatformInfoDialog.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -282,7 +262,6 @@ export default {
       enableSLP: this.$store.getters['global/enableSLP'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
-      showStablehedgeInfoDialog: false,
       enablePushNotifs: false
     }
   },
@@ -295,7 +274,6 @@ export default {
     CurrencySelector,
     DenominatorSelector,
     ThemeSelector,
-    StablehedgePlatformInfoDialog,
     PushNotifsSettings
   },
   computed: {
@@ -319,14 +297,6 @@ export default {
     },
     showTokens (n, o) {
       this.$store.commit('global/showTokens')
-    },
-    enableStablhedge(newVal, oldVal) {
-      this.$store.commit('global/enableStablhedge', newVal)
-
-      // uncomment when stablehedge's info dialog is completed
-      if (newVal) {
-        this.showStablehedgeInfoDialog = true
-      }
     },
     enableSmartBCH (n, o) {
       this.$store.commit('global/enableSmartBCH')
