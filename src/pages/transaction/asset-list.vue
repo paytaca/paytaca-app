@@ -139,7 +139,7 @@
 	</div>
 </template>
 <script>
-import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import * as assetSettings from 'src/utils/asset-settings'
 import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from '../../wallet'

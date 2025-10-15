@@ -10,8 +10,8 @@
         <div class="col-6 q-pa-xs">
           <div
             class="pt-app bg-grad"
-            :class="[{'apps-border' : isNotDefaultTheme(theme)}]"
-            :style="{borderRadius: `${isNotDefaultTheme(theme) ? '' : '20px'}`}"
+            
+            :style="{borderRadius: '20px'}"
             @click="selectApp('crypto')"
           >
             <q-icon class="app-icon" color="white" size="50px" name="currency_bitcoin" />
@@ -22,8 +22,8 @@
         <div class="col-6 q-pa-xs">
           <div
             class="pt-app bg-grad"
-            :class="[{'apps-border' : isNotDefaultTheme(theme)}]"
-            :style="{borderRadius: `${isNotDefaultTheme(theme) ? '' : '20px'}`}"
+            
+            :style="{borderRadius: '20px'}"
             @click="selectApp('fiat')"
           >
             <q-icon class="app-icon" color="white" size="50px" name="attach_money" />
@@ -40,7 +40,7 @@
   </q-dialog>
 </template>
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   data () {
@@ -57,7 +57,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     selectApp (app) {
       this.openDialog = false
       this.$emit('submit', app)

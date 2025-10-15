@@ -68,7 +68,7 @@
 import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
 import { loadAuthenticatedUser } from 'src/exchange/auth'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -127,7 +127,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     onLoggingIn (value) {
       this.loggingIn = value
     },

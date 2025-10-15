@@ -207,7 +207,7 @@
     </div>
   </div>
   <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50px">
-    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+    <ProgressLoader />
   </div>
   <RampDragSlide
   v-touch-swipe.mouse="checkDragslideStatus"
@@ -234,7 +234,7 @@ import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { openURL } from 'quasar'
 import { wallet } from 'src/exchange/wallet'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { bchToFiat, formatCurrency, satoshiToBch } from 'src/exchange'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
@@ -369,7 +369,6 @@ export default {
   },
   methods: {
     formatCurrency,
-    isNotDefaultTheme,
     getDarkModeClass,
     openURL,
     async loadData () {

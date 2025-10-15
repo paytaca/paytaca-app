@@ -28,7 +28,7 @@
             </span><br/>
             <template v-if="isLoading">
               <progress-loader
-                :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+                
                 :isTight="true"
               />
             </template>
@@ -69,7 +69,7 @@
 </template>
 
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   createUserPromoData,
   getUserPromoData,
@@ -181,7 +181,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     redirectToPromoPage (promo) {
       this.$router.push({
         name: promo.path,

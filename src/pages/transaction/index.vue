@@ -69,7 +69,7 @@
                   :model-value="denominationTabSelected"
                   @update:model-value="onDenominationTabSelected"
                   style="margin-top: -15px;"
-                  :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+                  indicator-color=""
                 >
                   <q-tab
                     name="BCH"
@@ -469,7 +469,7 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { sha256 } from 'js-sha256'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
@@ -783,7 +783,6 @@ export default {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
     executeTxSearch (value) {
       if (String(value).length == 0 || String(value).length >= 6) {

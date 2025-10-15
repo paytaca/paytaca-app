@@ -77,7 +77,7 @@
       <p class="q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
         {{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...
       </p>
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+      <ProgressLoader />
     </div>
     <div
       class="pt-wallet q-mt-sm pt-card-2"
@@ -308,7 +308,7 @@ import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 import ProgressLoader from '../../components/ProgressLoader'
@@ -438,7 +438,6 @@ export default {
     // }
   },
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     isHongKong,
     validateSeedPhrase () {

@@ -98,7 +98,7 @@
                 >
                   <p v-if="!loadingNextPage" @click="loadingNextPage = true; getTransactions();">{{ $t('ShowMore') }}</p>
                   <div class="row justify-center q-pt-sm" v-if="loadingNextPage">
-                    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+                    <ProgressLoader />
                   </div>
                 </div>
               </div>
@@ -108,7 +108,7 @@
         </q-card-section>
       </div>
       <div class="row justify-center q-py-lg" style="margin-top: 50px" v-if="!isloaded">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader />
       </div>
     </q-card>
   </q-dialog>
@@ -117,7 +117,7 @@
 import { getMnemonic, Wallet } from 'src/wallet'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -149,7 +149,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     onOKClick () {
       this.$emit('ok', this.selectedData)
       this.$refs.dialog.hide()

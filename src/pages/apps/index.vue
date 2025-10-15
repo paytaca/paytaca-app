@@ -23,7 +23,7 @@
 
 <script>
 import { vOnLongPress } from '@vueuse/components'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
@@ -220,7 +220,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     fetchAppControl () {
       this.$store.dispatch('global/fetchAppControl')
     },

@@ -6,7 +6,7 @@
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
-      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+      
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg"
       :modelValue="selectedNetwork"
@@ -99,7 +99,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { cachedLoadWallet } from 'src/wallet'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
@@ -216,7 +216,6 @@ export default {
     convertTokenAmount,
     parseAssetDenomination,
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']

@@ -33,19 +33,8 @@ export function useStablehedgeDashboardWithCharts(redemptionContractDataOrRef) {
   } = dashboardComposables
 
 
-  const isNotDefaultTheme = computed(() => $store.getters['global/theme'] === 'payhero')
   const chartColors = computed(() => {
     // From https://coolors.co/image-picker - screnshot of main page
-    if (isNotDefaultTheme.value) {
-      return [
-        { name: 'Bone', hex: '#DCD8CC' },
-        { name: 'Marian blue', hex: '#2B4570' },
-        { name: 'Gold (metallic)', hex: '#CFB362' },
-        { name: 'Glaucous', hex: '#768BB4' },
-        { name: 'Prussian blue', hex: '#1A2838' },
-      ]
-    }
-
     return [
       { name: 'Sapphire', hex: '#2C5AB6' },
       { name: 'Chinese Violet', hex: '#675672' },

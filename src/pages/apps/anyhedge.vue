@@ -354,7 +354,7 @@ import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
 import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useI18n } from 'vue-i18n'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll

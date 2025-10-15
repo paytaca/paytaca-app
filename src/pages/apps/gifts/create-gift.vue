@@ -9,7 +9,7 @@
       <div class="q-pa-lg" style="width: 100%; color: black;">
         <div class="text-center" v-if="processing">
           <p :class="{'text-white': darkMode}" >{{ $t('CreatingGift') }}</p>
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader />
         </div>
         <div class="q-mt-md" :class="{'text-white': darkMode}" v-if="!processing && !completed">
           <div class="text-h5 q-mb-md">{{ $t('CreateGift') }}</div>
@@ -173,7 +173,7 @@ import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
 import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -277,7 +277,6 @@ export default {
     parseFiatCurrency,
     convertToBCH,
     getDarkModeClass,
-    isNotDefaultTheme,
     encryptShard(shard) {
       const password = short.generate()
       const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')

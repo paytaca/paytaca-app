@@ -50,7 +50,7 @@
         </template>
 
         <div class="row justify-center q-py-lg" v-if="!isloaded">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
         <div v-if="convo.messages.length !== 0 && isloaded">
           <div v-for="(message, index) in convo.messages" :key="index" class="">
@@ -294,7 +294,7 @@ import { formatDate } from 'src/exchange'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
@@ -476,7 +476,6 @@ export default {
     }
   },
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     userNameView (name) {
       const limitedView = name?.length > 13 ? name?.substring(0, 10) + '...' : name;

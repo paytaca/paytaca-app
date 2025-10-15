@@ -10,7 +10,7 @@
         </q-item-section>
         <q-item-section avatar>
           <template v-if="isEnablePushNotifsLoading">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+            <ProgressLoader />
           </template>
           <template v-else>
             <q-toggle
@@ -33,7 +33,7 @@
 
           <q-item-section avatar>
             <template v-if="isEnableEventsAndPromosIsLoading">
-              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+              <ProgressLoader />
             </template>
             <template v-else>
               <q-toggle
@@ -81,7 +81,7 @@
 
             <q-item-section avatar>
               <template v-if="item.isLoading">
-                <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+                <ProgressLoader />
               </template>
               <template v-else>
                 <q-toggle
@@ -107,7 +107,7 @@
 <script>
 import Watchtower from 'watchtower-cash-js'
 
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadWallet } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import {
@@ -241,7 +241,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     async handleNotifsSubscription () {
       const vm = this
       vm.isEnablePushNotifsLoading = true

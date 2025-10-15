@@ -178,7 +178,7 @@
     </div>
     <!-- Progress Loader -->
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50px">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      <ProgressLoader />
     </div>
   </div>
   <!-- Dialogs -->
@@ -220,7 +220,7 @@ import FeedbackForm from './dialogs/FeedbackForm.vue'
 import { openURL } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
@@ -396,7 +396,6 @@ export default {
   methods: {
     formatCurrency,
     getDarkModeClass,
-    isNotDefaultTheme,
     openURL,
     explorerLink (linkType = 'txid') {
       let url = ''

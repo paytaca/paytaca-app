@@ -12,7 +12,7 @@
         </div>
 
         <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
 
         <div v-else class="q-px-md">
@@ -84,7 +84,7 @@
         </div>
 
         <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
         <div v-else class="q-px-md">
 
@@ -172,7 +172,7 @@
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue';
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
 import { bus } from 'src/wallet/event-bus'
 
@@ -223,7 +223,6 @@ export default {
     this.refetchData()
   },
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     async refetchData () {
       this.isloading = true

@@ -66,7 +66,7 @@ import AssetFilter from '../../components/AssetFilter'
 import { cachedLoadWallet } from 'src/wallet'
 import { convertTokenAmount } from 'src/wallet/chipnet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 export default {
@@ -152,7 +152,6 @@ export default {
   methods: {
     convertTokenAmount,
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
     parseAssetDenomination,
     getFallbackAssetLogo (asset) {

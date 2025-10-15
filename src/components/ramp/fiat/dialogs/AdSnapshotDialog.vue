@@ -3,7 +3,7 @@
     <q-card flat class="br-15 q-pt-sm q-mx-none pt-card text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <div v-if="loading">
         <div class="row justify-center q-mb-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
       </div>
       <div v-else>
@@ -103,7 +103,7 @@
 </template>
 <script>
 import { formatCurrency, getAppealCooldown } from 'src/exchange'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -133,7 +133,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     formatCurrency,
     minTradeAmount (ad) {
       let tradeAmount = parseFloat(ad.trade_amount)

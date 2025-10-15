@@ -12,7 +12,7 @@
           <p>{{$t('SelectAddresses')}}</p>
           <ProgressLoader
             v-if="!addresses?.length && loadingAddresses"
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            
           />
           <div v-for="(address, index) in addresses" :key="index">
             <input type="radio" v-model="connectedAddressIndex" :id="address" name="connectedAddressIndex" :value="index">
@@ -33,7 +33,7 @@
 </template>
 
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
@@ -77,7 +77,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
 
     async cancel () {
       this.$q.bex.send('background.paytaca.connectResponse', {origin: this.origin, connected: false, eventResponseKey: this.eventResponseKey})

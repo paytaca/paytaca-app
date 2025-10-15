@@ -7,7 +7,7 @@
         :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
         <div v-if="!isloaded">
             <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
             </div>
         </div>
         <div v-else>
@@ -158,7 +158,7 @@
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 
 export default {
@@ -227,7 +227,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     formatCurrency,
     userNameView (name) {
       const limitedView = name.length > 15 ? name.substring(0, 15) + '...' : name

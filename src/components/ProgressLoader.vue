@@ -1,10 +1,9 @@
 <template>
   <div class="lds-ellipsis transparent" :class="isTight ? 'tight' : ''">
-    <!-- For backwards compatibility if color is not defined will resolve to pink -->
-    <div :class="`bg-${color} bg-pink`"></div>
-    <div :class="`bg-${color} bg-pink`"></div>
-    <div :class="`bg-${color} bg-pink`"></div>
-    <div :class="`bg-${color} bg-pink`"></div>
+    <div :class="color ? `bg-${color}` : 'theme-primary'"></div>
+    <div :class="color ? `bg-${color}` : 'theme-primary'"></div>
+    <div :class="color ? `bg-${color}` : 'theme-primary'"></div>
+    <div :class="color ? `bg-${color}` : 'theme-primary'"></div>
   </div>
 </template>
 
@@ -14,7 +13,7 @@ export default {
   props: {
     color: {
       type: String,
-      default: 'pt-primary1'
+      default: null
     },
     isTight: { type: Boolean, default: false }
   }
@@ -22,6 +21,10 @@ export default {
 </script>
 
 <style scoped>
+.theme-primary {
+  background-color: var(--q-primary) !important;
+}
+
 .lds-ellipsis {
   display: inline-block;
   position: relative;

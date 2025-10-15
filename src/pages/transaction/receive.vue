@@ -187,7 +187,7 @@ import {
   getWatchtowerWebsocketUrl,
   convertCashAddress
 } from 'src/wallet/chipnet'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
 
@@ -298,7 +298,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     formatWithLocale,
 
     getWallet (type) {

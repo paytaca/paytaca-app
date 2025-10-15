@@ -17,7 +17,7 @@
         </span>
         <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
           <progress-loader
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            
             :isTight="true"
           />
         </div>
@@ -69,7 +69,7 @@
 
         <div v-if="isLoading" class="row col-12 justify-center">
           <progress-loader
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            
             :isTight="true"
           />
         </div>
@@ -122,7 +122,7 @@
 </template>
 
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   convertPoints,
   getRfPromoData,
@@ -247,7 +247,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     parseLocaleDate,
     formatWalletHashDisplay (walletHash) {
       const length = walletHash.length
