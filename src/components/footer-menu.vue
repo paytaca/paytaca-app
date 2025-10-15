@@ -109,17 +109,24 @@ export default {
     handleScroll () {
       const currentScrollY = window.scrollY
 
+      // If at the top of the page, always hide the footer
+      if (currentScrollY <= 10) {
+        this.isFooterHidden = true
+        this.lastScrollY = currentScrollY
+        return
+      }
+
       // Only hide/show if scrolled past threshold
       if (Math.abs(currentScrollY - this.lastScrollY) < this.scrollThreshold) {
         return
       }
 
-      if (currentScrollY > this.lastScrollY && currentScrollY > 100) {
-        // Scrolling down - hide footer
-        this.isFooterHidden = true
-      } else if (currentScrollY < this.lastScrollY) {
-        // Scrolling up - show footer
+      if (currentScrollY > this.lastScrollY) {
+        // Scrolling down - show footer
         this.isFooterHidden = false
+      } else if (currentScrollY < this.lastScrollY) {
+        // Scrolling up - hide footer (unless at top, handled above)
+        this.isFooterHidden = true
       }
 
       this.lastScrollY = currentScrollY
@@ -127,6 +134,10 @@ export default {
   },
   mounted() {
     window.addEventListener('scroll', this.handleScroll, { passive: true })
+    // Hide footer if page loads at the top
+    if (window.scrollY <= 10) {
+      this.isFooterHidden = true
+    }
   },
   beforeUnmount() {
     window.removeEventListener('scroll', this.handleScroll)

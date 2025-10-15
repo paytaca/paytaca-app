@@ -49,9 +49,6 @@ export default {
         { value: 'glassmorphic-green', label: this.$t('GlassmorphicGreen') },
         { value: 'glassmorphic-gold', label: this.$t('GlassmorphicGold') },
       ]
-      if (this.currentCountry === 'HK') {
-        themes.push({ value: 'payhero', label: 'PayHero' })
-      }
       return themes
     },
     theme: {
@@ -61,7 +58,7 @@ export default {
         try {
           filteredTheme = this.themeOptions.filter(a => a.value === currentTheme)[0].label
         } catch {
-          filteredTheme = 'PayHero'
+          filteredTheme = this.$t('GlassmorphicBlue')
         }
         return filteredTheme
       },
