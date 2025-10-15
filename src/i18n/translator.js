@@ -128,9 +128,11 @@ class Translator {
         if (Object.keys(filteredGroup).length !== 0) {
           const batchedGroups = this.batchGroup(filteredGroup);
           console.log('Batched into', batchedGroups.length, 'group(s)')
-          for(const batch of batchedGroups) {
+          for(let i = 0; i < batchedGroups.length; i++) {
+            const batch = batchedGroups[i];
             // Sleep for 1 second
-            await sleep(1000)
+            await sleep(100)
+            console.log('Translating batch', (i + 1), 'of', batchedGroups.length, 'for', label)
             Object.assign(translatedObj, await this.translateGroup(batch, codes))
           }
         }
