@@ -10,7 +10,7 @@
     <q-card
       class="wallet-card"
       :class="getDarkModeClass(darkMode)"
-      :style="{'padding-top': $q.platform.is.ios ? '55px' : '0px'}"
+      :style="{'padding-top': $q.platform.is.ios ? '20px' : '0px'}"
     >
       <div class="row justify-end q-px-lg q-pt-md asset-option">
         <q-btn
@@ -32,7 +32,6 @@
         <div
           clickable
           class="text-blue-9 create-import-button button button-text-primary"
-          :class="{'text-grad': isNotDefaultTheme(theme)}"
           @click="() => {
             $router.push('/accounts')
             hide()
@@ -42,7 +41,7 @@
         </div>
       </div>
       <q-card-section class="q-pt-sm flex flex-center" v-if="isloading">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader />
       </q-card-section>
       <q-card-section class="q-pt-sm" v-else>
         <q-virtual-scroll :items="vault">
@@ -57,7 +56,7 @@
               >
                 <q-item-section style="overflow-wrap: break-word;">
                   <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
-                    <span class="text-h5" :class="{'text-grad text-weight-bold' : isNotDefaultTheme(theme)}" style="font-size: 15px;">
+                    <span class="text-h5" style="font-size: 15px;">
                       {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
                     </span>
                     <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
@@ -120,7 +119,7 @@
 </template>
 <script>
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import renameDialog from './renameDialog.vue'
 import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
@@ -156,7 +155,6 @@ export default {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isNotDefaultTheme,
     async processVaultName () {
       const vm = this
       vm.isloading = true
