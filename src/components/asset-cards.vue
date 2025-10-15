@@ -202,7 +202,7 @@ export default {
       let temp = await assetSettings.fetchFavorites()
       this.favResult = temp
       
-      try {
+      try { // temporary error handling to resolve temp being null
         this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
       } catch { }
     },
