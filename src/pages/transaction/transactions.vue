@@ -253,8 +253,13 @@ export default {
 	        : this.denomination
 	    },
 	    isDenominationTabEnabled () {
+	      const currentCountry = this.$store.getters['global/country'].code
+	      const currency = this.$store.getters['market/selectedCurrency']
+	      const selectedMarketCurrency = currency && currency.symbol
 	      return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
-	        this.selectedNetwork !== 'sBCH')
+	        this.selectedNetwork !== 'sBCH' &&
+	        currentCountry === 'HK' &&
+	        selectedMarketCurrency === 'HKD')
 	    },
 	    mainchainAssets() {
 	      return this.$store.getters['assets/getAssets'].filter(function (item) {

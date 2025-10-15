@@ -660,7 +660,9 @@ export default {
     },
     isDenominationTabEnabled () {
       return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
-        this.selectedNetwork !== 'sBCH')
+        this.selectedNetwork !== 'sBCH' &&
+        this.currentCountry === 'HK' &&
+        this.selectedMarketCurrency === 'HKD')
     },
 
     selectedNetwork: {
