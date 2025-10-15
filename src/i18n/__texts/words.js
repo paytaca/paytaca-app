@@ -415,6 +415,24 @@ const words = [
     CashIn: 'Cash In',
     PriceChart: 'Price Chart',
     Stats: 'Stats'
+  },
+  {
+    Authenticating: 'Authenticating',
+    Processing: 'Processing',
+    PendingOrder: 'Pending Order',
+    AppealOrder: 'Appeal Order',
+    CreateOrder: 'Create Order',
+    EscrowingFunds: 'Escrowing Funds',
+    ReleasingFunds: 'Releasing Funds',
+    FundsReleased: 'Funds Released!',
+    OrderCancelled: 'Order Cancelled',
+    BchEscrowed: 'BCH Escrowed',
+    EnterUsername: 'Enter Username',
+    YouGet: 'You get',
+    YouPay: 'You pay',
+    PendingPayment: 'Pending Payment',
+    PendingRelease: 'Pending Release',
+    Order: 'Order'
   }
 ]
 

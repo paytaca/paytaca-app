@@ -1,10 +1,10 @@
 <template>
   <q-scroll-area class="q-mx-md" style="height: 320px;">
     <div class="q-mt-xs" style="font-size: 20px;">
-      <div class="text-center">BCH Escrowed</div>
+      <div class="text-center">{{ $t('BchEscrowed') }}</div>
     </div>
     <div class="text-center q-mt-md q-px-lg">
-      <div style="font-size: 15px;">Please pay</div>
+      <div style="font-size: 15px;">{{ $t('PleasePay') }}</div>
       <q-input
         dense
         type="text"
@@ -22,7 +22,7 @@
       </q-input>
     </div>
 
-    <div class="text-center q-my-sm">to this payment method</div>
+    <div class="text-center q-my-sm">{{ $t('ToThisPaymentMethod') }}</div>
 
     <div class="q-mx-lg">
       <q-card flat bordered :dark="darkMode" v-for="(paymentMethod, index) in order?.payment_methods_selected" :key="index">
@@ -62,19 +62,19 @@
             @click="showImageDialog=true">
             <template v-slot:error>
               <div class="absolute-full flex flex-center text-white">
-                Cannot load image
+                {{ $t('CannotLoadImage') }}
               </div>
             </template>
             <div class="absolute-bottom text-center" style="font-style: italic">
-              Proof of payment
+              {{ $t('ProofOfPayment') }}
             </div>
           </q-img>
         </div>
         <div class="row justify-center">
-          <q-btn @click="onDeleteAttachment" flat dense color="red" icon="delete" label="delete" size="md"/>
+          <q-btn @click="onDeleteAttachment" flat dense color="red" icon="delete" :label="$t('Delete')" size="md"/>
         </div>
       </div>
-      <div v-else class="text-center q-mt-md" style="font-style: italic; color: red">Please upload your proof of payment</div>
+      <div v-else class="text-center q-mt-md" style="font-style: italic; color: red">{{ $t('UploadProofOfPayment') }}</div>
 
       <q-file v-if="!url"
         :max-file-size="maxFileSize"
@@ -86,7 +86,7 @@
         dense
         outlined
         color="blue-12"
-        label="Select Image"
+        :label="$t('SelectImage')"
         @update:model-value="onUploadAttachment"
         @rejected="onRejectedFilePick">
         <template v-slot:prepend>
@@ -95,10 +95,10 @@
       </q-file>
     </div>
     <div class="row justify-center q-mt-md q-mx-lg q-px-md q-mb-sm">
-      <q-btn :loading="loadSubmitButton" :disable="!url || disableButtons" class="col" rounded color="blue-6" label="Confirm payment" @click="onPaid"/>
+      <q-btn :loading="loadSubmitButton" :disable="!url || disableButtons" class="col button" :class="getDarkModeClass(darkMode)" rounded :label="$t('ConfirmPayment')" @click="onPaid"/>
     </div>
     <div class="row justify-center q-mx-lg q-px-md">
-      <q-btn :loading="loadCancelButton" :disable="disableButtons" rounded outline dense label="Cancel" color="primary" class="col q-px-lg"
+      <q-btn :loading="loadCancelButton" :disable="disableButtons" rounded outline dense :label="$t('Cancel')" class="col q-px-lg button button-text-primary" :class="getDarkModeClass(darkMode)"
         @click="onClickCancel"/>
     </div>
   </q-scroll-area>
@@ -153,9 +153,9 @@ export default {
     },
     onRejectedFilePick (rejectedEntries) {
       console.log('onRejectedFilePick:', rejectedEntries)
-      let message = 'File did not pass validation constraints'
+      let message = this.$t('FileValidationError')
       if (rejectedEntries.length > 0 && rejectedEntries[0]?.failedPropValidation === 'max-file-size') {
-        message = 'File size should not exceed 5MB'
+        message = this.$t('FileSizeError')
       }
       this.$q.notify({
         type: 'negative',

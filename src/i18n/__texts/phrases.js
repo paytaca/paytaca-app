@@ -360,7 +360,6 @@ const phrases = {
       UpdatingChatIdentityName: 'Updating chat identity name',
       UpdatingSignerData: 'Updating signer data',
       UpdatingChatKeypair: 'Updating chat keypair',
-      UpdatingChatKeypair: 'Updating chat keypair',
       UpdatingPubkeyAndAddress: 'Updating pubkey and address',
       LoadingChatIdentity: 'Loading chat identity',
       CreatingChatIdentity: 'Creating chat identity',
@@ -659,7 +658,6 @@ const phrases = {
       NoGifts: "No gifts",
       DateCreated: "Date Created",
       RecoverGift: "Recover Gift",
-      ClaimGift: "Claim Gift",
       RecoveringGift: "Recovering gift...",
       ClaimingGift: "Claiming gift...",
       PasteGiftCodeHere: "Paste gift code here",
@@ -929,10 +927,6 @@ const phrases = {
       YearsAgo: ' years ago',
       YearAgo: ' year ago',
       FiveMinutes: '5 minutes',
-      FifteenMinutes: '15 minutes',
-      ThirtyMinutes: '30 minutes',
-      FortyFiveMinutes: '45 minutes',
-      OneHour: '1 hour',
       FiveHours: '5 hours',
       TwelveHours: '12 hours',
       TwentyFourHours: '24 hours',
@@ -1312,6 +1306,33 @@ const phrases = {
       SetTradeLimitsFiat: 'Set trade limits in fiat',
       YourPaymentMethods: 'Your Payment Methods',
       EnableSlp: 'Enable SLP'
+    },
+    {
+      CashinDisabled1: 'This feature is temporarily disabled. We appreciate your patience as we make improvements.',
+      CashinDisabled2: 'Your ongoing cash in orders are accessible in',
+      CashinOutdated: 'To continue using this feature, please update your app to the latest version. Thank you!',
+      PleaseWaitMoment: 'Please wait a moment',
+      PendingOrderMessage: 'Please wait for pending cash-in orders to be escrowed before creating a new order',
+      SelectReasonForAppeal: 'Select Reason for Appeal',
+      ProcessingReleaseAppealMessage: 'This may take a few moments',
+      OrderCancelledAplMessage: 'The escrowed BCH will be refunded to the seller',
+      OrderCancelledRfnMessage: 'Escrowed BCH was refunded to the seller',
+      PleasePay: 'Please pay',
+      ToThisPaymentMethod: 'to this payment method',
+      ProcessingReleaseAppeal: 'Processing Release Appeal',
+      CannotLoadImage: 'Cannot load image',
+      ProofOfPayment: 'Proof of payment',
+      UploadProofOfPayment: 'Please upload your proof of payment',
+      FileValidationError: 'File did not pass validation constraints',
+      FileSizeError: 'File size should not exceed 5MB',
+      CashinNetworkError1: 'Server Cannot be Reached',
+      CashinNetworkError2: 'Please Try Again Later',
+      CashInOrders: 'Cash In Orders',
+      SignUpTo: 'Sign up to',
+      DenomsNotAvailable: 'Some denominations are currently not available',
+      NoAdsAvailable: 'No ads available',
+      SellerRecentlyActive: 'seller recently active',
+      SellersRecentlyActive: 'sellers recently active'
     }
   ],
   dynamic: [
@@ -1424,8 +1445,9 @@ const phrases = {
       LastVestingDate: 'Last vesting period was {date}',
       NextVestingDate: 'Next vesting period is {date}',
       LockedUntilDate: 'Locked until {date}',
-      VestedLift: 'Vested {lift}'
-    }
+      VestedLift: 'Vested {lift}',
+      FundsReleasedMessage: '{amount} BCH has been sent to you',
+    },
   ]
 }
 

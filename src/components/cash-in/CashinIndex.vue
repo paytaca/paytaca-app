@@ -3,25 +3,25 @@
     <q-card class="bottom-card-small br-15 pt-card-2 text-bow q-pb-lg" :class="getDarkModeClass(darkMode)">
       <div v-if="loading || loggingIn">
         <div class="q-mt-lg q-pt-md row text-center justify-center q-mx-md text-blue" style="font-size: 21px;">
-          Cash In
+          {{ $t('CashIn') }}
         </div>
         <StandBy style="margin-top: 20px;" :title="title" :subtitle="subtitle" spinner/>
       </div>
       <div v-else>
         <div v-if="cashinEnabled === false || isOutdated">
           <div class="q-mt-lg q-pt-sm row text-center justify-center q-mx-md text-blue" style="font-size: 21px;">
-            Cash In
+            {{ $t('CashIn') }}
           </div>
           <div v-if="cashinEnabled === false" class="row text-center q-mx-lg q-px-lg" style="opacity: .7; font-size: medium; margin-top: 15%;">
-            <p>This feature is temporarily disabled. We appreciate your patience as we make improvements.</p>
-            <p>Your ongoing cash in orders are accessible in Apps > P2P Exchange > Orders.</p>
+            <p>{{ $t('CashinDisabled1') }}</p>
+            <p>{{ $t('CashinDisabled2') }}: {{ $t('Apps') }} > P2P Exchange > {{ $t('Orders') }}.</p>
           </div>
           <div v-else-if="isOutdated" class="row text-center q-mx-lg q-px-lg" style="opacity: .7; font-size: medium; margin-top: 25%;">
-            <p>To continue using this feature, please update your app to the latest version. Thank you!</p>
+            <p>{{ $t('CashinOutdated') }}</p>
           </div>
           <div class="text-center row q-mx-lg" style="position: fixed; bottom: 40px; left: 0; right: 0; margin: auto;">
             <div class="col" style="opacity: .55;">
-              <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
+              <div class="row justify-center text-bow" style="font-size: 15px;">{{ $t('PoweredBy') }}</div>
               <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
             </div>
           </div>
@@ -174,13 +174,13 @@ export default {
       return this.$store.getters['ramp/featureToggles']?.CashIn
     },
     title () {
-      let text = this.loggingIn ? 'Authenticating' : 'Processing'
-      if (this.state === 'pending-order') text = 'Pending Order'
+      let text = this.loggingIn ? this.$t('Authenticating') : this.$t('Processing')
+      if (this.state === 'pending-order') text = this.$t('PendingOrder')
       return text
     },
     subtitle () {
-      let text = 'Please wait a moment'
-      if (this.state === 'pending-order') text = 'Please wait for pending cash-in orders to be escrowed before creating a new order'
+      let text = this.$t('PleaseWaitMoment')
+      if (this.state === 'pending-order') text = this.$t('PendingOrderMessage')
       return text
     },
     showOrderListButton () {

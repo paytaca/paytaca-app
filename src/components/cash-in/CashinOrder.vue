@@ -45,21 +45,21 @@
   </div>
   <div v-if="state === 'cancel_order'">
       <div class="row justify-center q-mx-md q-mt-sm" style="font-size: 25px;">
-        Cancel this Order?
+        {{ $t('CancelThisOrder') }}
       </div>
       <div class="row q-pt-sm q-mx-lg q-px-lg">
-        <q-btn v-if="confirmCancel || confirmAppeal" :disable="loadConfirmCancel || loadConfirmAppeal" outline rounded class="col q-mr-xs" label="Cancel" color="red" @click="onDismissCancel"/>
-        <q-btn :loading="loadConfirmCancel" :disable="loadConfirmCancel" v-if="confirmCancel" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="cancelOrder"/>
-        <q-btn :loading="loadConfirmAppeal" :disable="loadConfirmAppeal" v-if="confirmAppeal" outline rounded class="col q-ml-xs" label="Confirm" color="blue" @click="appealOrder()"/>
+        <q-btn v-if="confirmCancel || confirmAppeal" :disable="loadConfirmCancel || loadConfirmAppeal" outline rounded class="col q-mr-xs" :label="$t('Cancel')" color="red" @click="onDismissCancel"/>
+        <q-btn :loading="loadConfirmCancel" :disable="loadConfirmCancel" v-if="confirmCancel" outline rounded class="col q-ml-xs" :label="$t('Confirm')" color="blue" @click="cancelOrder"/>
+        <q-btn :loading="loadConfirmAppeal" :disable="loadConfirmAppeal" v-if="confirmAppeal" outline rounded class="col q-ml-xs" :label="$t('Confirm')" color="blue" @click="appealOrder()"/>
       </div>
     <!-- </div> -->
   </div>
   <div v-if="state === 'appeal_order'">
     <div class="row justify-center q-mx-md q-mt-xs" style="font-size: 20px;">
-      Appeal Order
+      {{ $t('AppealOrder') }}
     </div>
     <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'" class="row justify-center q-mx-md q-mt-xs" style="font-size: 16px;">
-      Select Reason for Appeal
+      {{ $t('SelectReasonForAppeal') }}
     </div>
     <div class="row justify-center q-gutter-sm q-pt-sm q-px-lg">
       <q-badge
@@ -76,7 +76,7 @@
       <q-btn
         :disable="loadAppeal"
         flat
-        label="Cancel"
+        :label="$t('Cancel')"
         :color="darkMode ? 'grey-5' : 'grey-6'"
         size="md"
         @click="state = 'await_status'"
@@ -84,7 +84,7 @@
       <q-btn
         :loading="loadAppeal"
         flat
-        label="Continue"
+        :label="$t('Continue')"
         color="red-6"
         size="md"
         :disable="selectedReasons.length === 0 || loadAppeal"
@@ -93,14 +93,14 @@
     </div>
   </div>
   <div @click="$emit('new-order')" class="text-center q-pt-sm text-weight-medium text-underline" :class=" darkMode ? 'text-blue-6' : 'text-blue-8'" v-if="newOrder" style="font-size: medium;">
-    Create Order
+    {{ $t('CreateOrder') }}
   </div>
   <div class="row justify-center q-mx-lg q-mt-xs" v-if="state === 'await_status'">
     <q-spinner-hourglass  class="col q-pt-sm" color="blue-6" size="3em"/>
   </div>
   <div v-if="state !== 'confirm_payment'" class="text-center row q-mx-lg" style="position: fixed; bottom: 40px; left: 0; right: 0; margin: auto;">
     <div class="col" style="opacity: .55;">
-      <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
+      <div class="row justify-center text-bow" style="font-size: 15px;">{{ $t('PoweredBy') }}</div>
       <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
     </div>
   </div>
@@ -122,8 +122,8 @@ export default {
     return {
       websocketManager: null,
       state: 'await_status',
-      statusTitle: 'Processing',
-      statusMessage: 'Please wait a moment',
+      statusTitle: this.$t('Processing'),
+      statusMessage: this.$t('PleaseWaitMoment'),
       websocket: null,
       status: null,
       confirmPaymentKey: 0,
@@ -288,22 +288,22 @@ export default {
         case 'CNF':
         case 'ESCRW_PN':
           this.state = 'await_status'
-          this.statusTitle = 'Escrowing Funds'
+          this.statusTitle = this.$t('EscrowingFunds')
           break
         case 'PD_PN':
         case 'PD':
         case 'RLS_PN':
           this.state = 'await_status'
-          this.statusTitle = 'Releasing Funds'
+          this.statusTitle = this.$t('ReleasingFunds')
           break
         case 'ESCRW':
           this.state = 'confirm_payment'
           break
         case 'RLS': {
           this.state = 'completed'
-          this.statusTitle = 'Funds Released!'
+          this.statusTitle = this.$t('FundsReleased')
           const amount = satoshiToBch(this.order?.trade_amount)
-          this.statusMessage = `${amount} BCH has been sent to you`
+          this.statusMessage = this.$t('FundsReleasedMessage', { amount }, `${amount} BCH has been sent to you`)
           this.order?.transactions?.forEach((tx) => {
             if (tx.action === 'RELEASE') {
               this.txid = tx.txid
@@ -315,7 +315,7 @@ export default {
           try {
             const bchAddress = this.order?.members?.buyer?.address
             await processCashinPoints({ bch_address: bchAddress })
-          } catch (_error) {
+          } catch {
             console.log('Unable to process user points')
           }
           break
@@ -324,29 +324,29 @@ export default {
           await this.fetchAppeal()
           if (this.appeal?.type?.value === 'RLS') {
             this.state = 'await_status'
-            this.statusTitle = 'Processing Release Appeal'
-            this.statusMessage = 'This may take a few moments'
+            this.statusTitle = this.$t('ProcessingReleaseAppeal')
+            this.statusMessage = this.$t('ProcessingReleaseAppealMessage')
           } else if (this.appeal?.type?.value === 'RFN') {
             this.state = 'completed'
-            this.statusTitle = 'Order Canceled'
-            this.statusMessage = 'The escrowed BCH will be refunded to the seller'
+            this.statusTitle = this.$t('OrderCancelled')
+            this.statusMessage = this.$t('OrderCancelledAplMessage')
           }
           break
         case 'CNCL':
           this.state = 'completed'
-          this.statusTitle = 'Order Canceled'
+          this.statusTitle = this.$t('OrderCancelled')
           this.statusMessage = ''
           this.newOrder = true
           break
         case 'RFN':
           this.state = 'completed'
-          this.statusTitle = 'Order Canceled'
-          this.statusMessage = 'Escrowed BCH was refunded to the seller'
+          this.statusTitle = this.$t('OrderCancelled')
+          this.statusMessage = this.$t('OrderCancelledRfnMessage')
           break
         case 'RFN_PN':
           this.state = 'completed'
-          this.statusTitle = 'Order Canceled'
-          this.statusMessage = 'The escrowed BCH will be refunded to the seller'
+          this.statusTitle = this.$t('OrderCancelled')
+          this.statusMessage = this.$t('OrderCancelledAplMessage')
           this.newOrder = true
       }
     },
