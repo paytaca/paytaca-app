@@ -154,6 +154,7 @@ export default {
 <style lang="scss" scoped>
 .learn-carousel-container {
   margin-top: 20px;
+  margin-bottom: 100px; // Add space for footer menu (67px height + 16px bottom + extra padding)
 }
 
 .lessons-container {
