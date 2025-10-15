@@ -10,6 +10,7 @@
         id="context-menu"
         size="35px"
         name="more_vert"
+        color="primary"
         :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}"
       >
         <q-menu anchor="bottom right" self="top end">
