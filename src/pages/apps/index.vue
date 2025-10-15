@@ -106,6 +106,14 @@ export default {
           smartBCHOnly: false
         },
         {
+          name: 'Stablehedge',
+          iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
+          path: '/apps/stablehedge/wallet',
+          iconStyle: 'width:55%; height: 55%;',
+          active: true,
+          smartBCHOnly: false
+        },
+        {
           name: 'AnyHedge',
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
