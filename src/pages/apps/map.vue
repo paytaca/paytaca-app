@@ -20,9 +20,9 @@
           flat
           round
           dense
-          icon="refresh"
+          icon="close"
           color="white"
-          @click="refreshPage"
+          @click="$router.back()"
         />
       </div>
     </div>
@@ -88,13 +88,6 @@ export default {
     getDarkModeClass,
     onIframeLoad() {
       this.loading = false
-    },
-    refreshPage() {
-      this.loading = true
-      // Force reload the iframe
-      if (this.$refs.mapIframe) {
-        this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
-      }
     },
     updateTheme() {
       // Reload iframe with new theme

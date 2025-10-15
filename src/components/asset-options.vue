@@ -3,20 +3,20 @@
 		<div v-if="stablehedgeView">
 			<div class="row">
 				<div class="col" v-for="opt in stablehedgeOpt">
-		            <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="18px" :disable="!loaded" @click="handleButton(opt.name)">
-		            	<q-icon class="default-text-color" size="30px" :name="opt.icon"/>
+		            <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="!loaded" @click="handleButton(opt.name)">
+		            	<q-icon class="default-text-color" size="24px" :name="opt.icon"/>
 		            </q-btn>
-		            <div class="q-pt-sm text-center text-capitalize title-smaller">{{ opt.label }}</div>
+		            <div class="q-pt-xs text-center text-capitalize" style="font-size: 11px;">{{ opt.label }}</div>
 		        </div>	         
 			</div>			
 		</div>
 		<div v-else>
 			<div class="row">	             
 	              <div class="col" v-for="opt in bchOpt">	              	
-	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="18px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
-	                  <q-icon class="default-text-color"  size="30px" :name="opt.icon"/>
+	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
+	                  <q-icon class="default-text-color"  size="24px" :name="opt.icon"/>
 	                </q-btn>
-	                <div class="q-pt-sm text-center text-capitalize title-small">{{ opt.label }}</div>
+	                <div class="q-pt-xs text-center text-capitalize" style="font-size: 11px;">{{ opt.label }}</div>
 	              </div>
 	            </div>
 		</div>
@@ -372,6 +372,6 @@ export default {
 </script>
 <style lang="scss" scoped>
 .asset-option {
-	margin: 15px 0px 25px;
+	margin: 10px 0px 15px;
 }
 </style>

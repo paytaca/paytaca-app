@@ -47,7 +47,6 @@
         		</div>         		
         	</q-card> -->
         </div>
-        <div style="height: 120px"></div>
 	</div>
 </template>
 <script>

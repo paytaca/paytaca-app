@@ -274,7 +274,7 @@ body.theme-glassmorphic-red {
 
   .selected {
     border: 2px solid rgba(255, 255, 255, 0.4) !important;
-    box-shadow: 0 8px 32px 0 rgba(135, 31, 48, 0.2) !important;
+    box-shadow: none !important;
     transform: scale(1.02);
   }
 
