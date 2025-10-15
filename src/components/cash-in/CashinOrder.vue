@@ -92,16 +92,16 @@
       />
     </div>
   </div>
-  <div @click="$emit('new-order')" class="text-center q-pt-sm text-weight-medium text-underline" :class=" darkMode ? 'text-blue-6' : 'text-blue-8'" v-if="newOrder" style="font-size: medium;">
+  <div @click="$emit('new-order')" class="text-center q-pt-sm text-weight-medium text-underline button button-text-primary" v-if="newOrder" style="font-size: medium;">
     {{ $t('CreateOrder') }}
   </div>
   <div class="row justify-center q-mx-lg q-mt-xs" v-if="state === 'await_status'">
-    <q-spinner-hourglass  class="col q-pt-sm" color="blue-6" size="3em"/>
+    <q-spinner-hourglass  class="col q-pt-sm" color="primary" size="3em"/>
   </div>
   <div v-if="state !== 'confirm_payment'" class="text-center row q-mx-lg" style="position: fixed; bottom: 40px; left: 0; right: 0; margin: auto;">
     <div class="col" style="opacity: .55;">
       <div class="row justify-center text-bow" style="font-size: 15px;">{{ $t('PoweredBy') }}</div>
-      <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
+      <div class="row justify-center text-weight-bold text-h6 text-grad">P2P Exchange</div>
     </div>
   </div>
 </template>

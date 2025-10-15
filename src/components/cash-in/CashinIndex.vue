@@ -2,14 +2,14 @@
   <q-dialog ref="dialog" full-width position="bottom" transition-show="slide-up" @hide="$emit('ok')">
     <q-card class="bottom-card-small br-15 pt-card-2 text-bow q-pb-lg" :class="getDarkModeClass(darkMode)">
       <div v-if="loading || loggingIn">
-        <div class="q-mt-lg q-pt-md row text-center justify-center q-mx-md text-blue" style="font-size: 21px;">
+        <div class="q-mt-lg q-pt-md row text-center justify-center q-mx-md text-grad" style="font-size: 21px;">
           {{ $t('CashIn') }}
         </div>
         <StandBy style="margin-top: 20px;" :title="title" :subtitle="subtitle" spinner/>
       </div>
       <div v-else>
         <div v-if="cashinEnabled === false || isOutdated">
-          <div class="q-mt-lg q-pt-sm row text-center justify-center q-mx-md text-blue" style="font-size: 21px;">
+          <div class="q-mt-lg q-pt-sm row text-center justify-center q-mx-md text-grad" style="font-size: 21px;">
             {{ $t('CashIn') }}
           </div>
           <div v-if="cashinEnabled === false" class="row text-center q-mx-lg q-px-lg" style="opacity: .7; font-size: medium; margin-top: 15%;">
@@ -22,7 +22,7 @@
           <div class="text-center row q-mx-lg" style="position: fixed; bottom: 40px; left: 0; right: 0; margin: auto;">
             <div class="col" style="opacity: .55;">
               <div class="row justify-center text-bow" style="font-size: 15px;">{{ $t('PoweredBy') }}</div>
-              <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
+              <div class="row justify-center text-weight-bold text-h6 text-grad">P2P Exchange</div>
             </div>
           </div>
         </div>
@@ -30,10 +30,10 @@
           <!-- Title -->
           <div class="q-pt-sm">
             <q-card-section class="row items-center q-pb-none">
-              <q-btn flat icon="arrow_back" color="blue-6" round dense @click="previousView()" />
+              <q-btn flat icon="arrow_back" class="button button-text-primary" round dense @click="previousView()" />
               <q-space />
               <!-- Order List Icon -->
-              <q-btn size="18px" padding="none none" icon="sym_o_receipt_long" color="blue-6" flat dense v-if="showOrderListButton" @click="state = 'order-list'">
+              <q-btn size="18px" padding="none none" icon="sym_o_receipt_long" class="button button-text-primary" flat dense v-if="showOrderListButton" @click="state = 'order-list'">
                 <q-badge v-if="hasCashinAlert" align-left floating rounded color="red"/>
               </q-btn>
             </q-card-section>

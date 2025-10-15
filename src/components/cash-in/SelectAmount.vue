@@ -1,6 +1,6 @@
 <template>
   <div class="q-mx-md">
-    <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
+    <div class="text-center text-h6 text-grad">
       {{ $t('EnterAmount') }}
     </div>
 
@@ -23,10 +23,9 @@
       <div class="row justify-between text-right q-pr-sm q-pt-xs" style="font-size: 14px">
         <div v-if="fiatPresets.length > 0" class="col-auto">
           <q-btn
-            class="sm-font-size"
+            class="sm-font-size button button-text-primary"
             padding="none"
             flat no-caps
-            :class="darkMode ? 'text-blue-6' : 'text-blue-8'"
             @click="byFiat = !byFiat">
             {{
               $t(
@@ -181,7 +180,7 @@ export default {
     },
     getButtonColor (index) {
       if (index === this.selectedOptionIndex || this.denomAvailable(index)) {
-        return 'blue-6'
+        return 'primary'
       } else {
         return this.darkMode ? 'blue-grey-2' : 'blue-grey-8'
       }

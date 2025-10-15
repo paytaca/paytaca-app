@@ -1,6 +1,6 @@
 <template>
   <div class="q-mx-md">
-    <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
+    <div class="text-center text-h6 text-grad">
       {{ $t('CashInOrders') }}
     </div>
     <div v-if="!loading">
@@ -57,7 +57,7 @@
       <div class="text-center row q-mx-lg" style="position: fixed; bottom: 20px; left: 0; right: 0; margin: auto;">
         <div class="col" style="opacity: .55;">
           <div class="row justify-center text-bow" style="font-size: 15px;">{{ $t('PoweredBy') }}</div>
-          <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
+          <div class="row justify-center text-weight-bold text-h6 text-grad">P2P Exchange</div>
         </div>
       </div>
     </div>

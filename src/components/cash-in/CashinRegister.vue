@@ -1,7 +1,7 @@
 <template>
   <div class="text-center" style="margin-top: 40px;">
     <div class="text-bow" style="font-size: large;">{{ $t('SignUpTo') }}</div>
-    <div :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 25px;">P2P Exchange</div>
+    <div class="text-grad" style="font-size: 25px;">P2P Exchange</div>
   </div>
   <div>
     <q-input

@@ -85,7 +85,7 @@
         filled
         dense
         outlined
-        color="blue-12"
+        color="primary"
         :label="$t('SelectImage')"
         @update:model-value="onUploadAttachment"
         @rejected="onRejectedFilePick">
