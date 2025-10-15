@@ -1,31 +1,57 @@
 <template>
-	<div class="pending-order" :class="getDarkModeClass(darkMode)" v-if="!emptyList">		 
-		<div class="q-ml-lg q-gutter-x-sm button button-text-primary" style="font-size: 20px;">                
-        	{{ $t('Pending') }}
-        </div>        
-        <div class="pending-list q-mx-lg " :class="darkMode ? 'text-white': 'text-black'">
-        	<q-card v-for="item in pending" class="pending-card q-pa-md q-my-sm br-15" @click="selectTransaction(item.id, 'exchange')">
-        		<div class="row">
-        			<div class="col-7">
-        				<!-- Label -->
-		        		<q-badge v-if="item.is_cash_in" outline color="primary">Cash In</q-badge>
-		        		<q-badge v-else outline color="primary">P2P Exchange</q-badge>
+	<div class="pending-order" :class="getDarkModeClass(darkMode)" v-if="!emptyList">
+		<div class="row items-center justify-between q-mb-sm">
+			<div class="q-ml-lg button button-text-primary" style="font-size: 20px;">                
+				{{ $t('Pending') }}
+			</div>
+			<q-btn
+				v-if="orderTotal > 3"
+				flat
+				dense
+				no-caps
+				:label="$t('See All')"
+				:color="darkMode ? 'blue-4' : 'blue-6'"
+				@click="seeAllOrders"
+				size="sm"
+				padding="4px 8px"
+				class="q-mr-md"
+			/>
+		</div>
+		
+		<div class="row no-wrap q-pl-lg q-mb-lg no-scrollbar pending-container">
+			<div
+				v-for="(item, index) in pending"
+				:key="item.id"
+				class="pending-card pt-card"
+				:class="darkMode ? 'dark' : 'light'"
+				:style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
+				@click="selectTransaction(item.id, 'exchange')"
+			>
+				<q-badge 
+					v-if="item.is_cash_in" 
+					:color="darkMode ? 'blue-4' : 'blue-6'" 
+					class="q-mb-sm"
+					style="font-size: 9px; padding: 3px 8px;"
+				>
+					Cash In
+				</q-badge>
+				<q-badge 
+					v-else 
+					:color="darkMode ? 'blue-4' : 'blue-6'"
+					class="q-mb-sm"
+					style="font-size: 9px; padding: 3px 8px;"
+				>
+					P2P Exchange
+				</q-badge>
 
-		        		<div class="q-pt-sm text-bold">Order# {{ item.id }}</div>     
-		        		<div style="font-size: 12px;">
-		        			by {{ counterparty(item) }}
-		        		</div>   			
-        			</div>
-        			<div class="col-5 text-right q-py-lg">
-        				<div class="text-bold" :class="darkMode ? 'text-blue-grey-3' : 'text-blue-grey-6'">
-        					{{ item.status.label }}
-        				</div>
-        			</div>
-        		</div>         		     	
-        	</q-card>
-        	<div class="text-center" v-if="orderTotal > pending.length">
-        		<q-btn flat color="primary" @click="seeMoreOrders()">See More</q-btn>
-        	</div>
+				<div class="order-number">Order #{{ item.id }}</div>
+				<div class="order-counterparty" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+					by {{ counterparty(item) }}
+				</div>
+				<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+					{{ item.status.label }}
+				</div>
+			</div>
         	<!-- <q-card v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
    				@click="selectTransaction(item.id, 'marketplace')"
         	>
@@ -134,8 +160,11 @@ export default {
 		},
 		seeMoreOrders () {
 			this.orderPage++
-
 			this.fetchOrders(true)
+		},
+		seeAllOrders () {
+			// Navigate to P2P Exchange orders page
+			this.$router.push({ name: 'exchange', query: { tab: 'orders' } })
 		},
 		getStatus (type = 'buy') {
 			let temp = this.ongoingStatuses
@@ -214,10 +243,53 @@ export default {
 }	
 </script>
 <style lang="scss" scoped>
-.pending-list {
-
+.pending-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-right: 20px;
+  
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+
 .pending-card {
-	
+  min-width: 180px;
+  max-width: 180px;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.order-number {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  margin-top: 8px;
+}
+
+.order-counterparty {
+  font-size: 12px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-status {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 </style>
