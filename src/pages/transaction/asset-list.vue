@@ -269,7 +269,7 @@ export default {
 		    await assetSettings.authToken()
 
 		    // fetching unlisted tokens
-		    await assetSettings.fetchUnlistedTokens()
+		    this.unlistedToken = await assetSettings.fetchUnlistedTokens()
 		    await this.getUnlistedTokens()
 		    	
 		    // fetching custom order list
@@ -399,8 +399,9 @@ export default {
 	          id: asset.id
 	        })
 
-	        vm.assetList = this.assets
+	       // vm.assetList = this.assets
 	        vm.editAssets = false
+	        vm.loadData()
 	        vm.$emit('removed-asset', asset)
 	      }).onCancel(() => {
 	      	// this.editAssets = false	      	
@@ -416,11 +417,11 @@ export default {
 	    },
 	    async fetchAssetInfo (list) {
 	    	let temp = []
-
+	    	
 	    	for (const id of list) {	    		
 	    		const asset = await this.$store.getters['assets/getAsset'](id)
-
-	    		if (asset) {	    			
+	    		
+	    		if (asset.length > 0) {	    			
 	    			temp.push(asset[0])
 	    		}	    		
 	    	}	    	
@@ -428,8 +429,9 @@ export default {
 	    },
 	    async getUnlistedTokens (opts = { includeIgnored: false }) {
 	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
-	      this.unlistedToken = []
-
+	      // this.unlistedToken = []
+	      console.log('unlisted: ', this.unlistedToken)
+	      let tokenIDs = []
 	      for (const tokenWalletHash of tokenWalletHashes) {
 	        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
 
@@ -442,14 +444,19 @@ export default {
 	          }
 	        )
 
-	        this.unlistedToken.push(...tokens)
+	        tokenIDs.push(...tokens.map(asset => asset.id))
 
-	        let temp = []
 
-	        temp = this.unlistedToken.map(asset => asset.id)	        
-
-	        await assetSettings.saveUnlistedTokens(temp)	        
+	        // this.unlistedToken.push(...tokens)	        
 	      }
+
+	      let temp = tokenIDs.filter(asset => !this.unlistedToken.includes(asset))
+
+	      // temp = this.unlistedToken.map(asset => asset.id)	        
+	      console.log('temp: ', temp)
+	      if (temp.length > 0) {
+	      	await assetSettings.saveUnlistedTokens(temp)	        
+	      }	      
 	    },
 	}	
 }

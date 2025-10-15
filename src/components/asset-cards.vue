@@ -104,7 +104,7 @@ export default {
       }
 
       if (this.customList) {        
-        return this.customList.filter(asset => this.favorites.includes(asset.id))            
+        return this.customList.filter(asset => asset && this.favorites.includes(asset.id))           
       } 
     },
     denomination () {
