@@ -148,7 +148,7 @@ export default {
     left: 50%;
     transform: translateX(-50%);
     border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 6;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
     backdrop-filter: blur(10px);
@@ -171,6 +171,12 @@ export default {
       overflow-y: hidden;
       flex-wrap: nowrap;
     }
+  }
+  .fixed-footer.dark {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 
+                0 2px 8px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
   #qr-button {
     z-index: 100 !important;
