@@ -303,14 +303,14 @@ export default {
 			    	// this.checkEmptyFavorites()
 						// this.$store.dispatch('assets/initializeFavorites', this.assets)
 
+						let fav = await assetSettings.fetchFavorites()
 						try { // temporary error handling to resolve fav being null
-							let fav = await assetSettings.fetchFavorites()
 							fav =  fav.filter(asset => asset.favorite === 1).map(asset => asset.id)
-	
+						} catch {
+							fav = []
+						} finally {
 							this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
 							this.assetList = this.assetList.map(asset => ({...asset, favorite: fav.includes(asset.id) ? 1 : 0}))
-						} catch {
-							this.assetList = []
 						}
 			    }
 
