@@ -44,11 +44,11 @@
   </q-dialog>
 </template>
 <script>
-import { load } from 'dotenv'
 import Chart from 'chart.js/auto'
 import ProgressLoader from '../../../components/ProgressLoader'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 
 export default {
   data () {
@@ -237,7 +237,7 @@ export default {
                   intersect: false,
                   callbacks: {
                     label: function (tooltipItems) {
-                      return tooltipItems.formattedValue + ' ' + currency
+                      return formatWithLocale(tooltipItems.formattedValue.replaceAll(',', '')) + ' ' + currency
                     }
                   },
                   titleFont: {
