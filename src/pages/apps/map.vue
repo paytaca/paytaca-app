@@ -35,6 +35,9 @@
         class="map-iframe"
         frameborder="0"
         allow="geolocation"
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+        allowtransparency="true"
+        scrolling="auto"
         @load="onIframeLoad"
       ></iframe>
       
