@@ -3,7 +3,7 @@
     <div>
       <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <q-resize-observer @resize="onFixedSectionResize" />
-          <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
+          <div >
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
 
             <div
@@ -23,7 +23,7 @@
                   class="col-12 q-px-sm q-pb-md"
                   v-model="stablehedgeTab"
                   style="margin-top: -25px;"
-                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
+                  indicator-color=""
                 >
                   <q-tab
                     name="bch"
@@ -45,7 +45,7 @@
                   :modelValue="selectedNetwork"
                   @update:modelValue="changeNetwork"
                   style="margin-top: -25px;"
-                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
+                  indicator-color=""
                 >
                   <q-tab
                     name="BCH"
@@ -114,7 +114,7 @@
                       <div v-else>
                         <p class="q-mb-none">
                           <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
-                          <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
+                          <span ellipsis class="text-h5" >
                             {{ bchBalanceText }}
                           </span>
                         </p>
@@ -382,7 +382,6 @@
               </div>
               <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
                 <q-btn
-                  v-if="isNotDefaultTheme(theme) && darkMode"
                   unelevated
                   @click="openPriceChart"
                   icon="img:assets/img/theme/payhero/price-chart.png"

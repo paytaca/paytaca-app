@@ -57,7 +57,7 @@
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
-                  :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
+                  :class="darkMode ? 'dark' : 'light'"
                 >
                   {{ asset.name }}
                 </p>

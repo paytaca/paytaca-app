@@ -22,7 +22,7 @@
           <div class="col-8">
             <span
               class="text-token"
-              :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
+              :class="darkMode ? 'dark' : 'light'"
             >
               {{ promo.name }}
             </span><br/>

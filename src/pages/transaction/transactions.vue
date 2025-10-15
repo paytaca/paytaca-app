@@ -17,7 +17,7 @@
                       <div v-else>
                         <p class="q-mb-none">
                           <-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> --
-                          <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
+                          <span ellipsis class="text-h5" >
                             {{ bchBalanceText }}
                           </span>
                         </p>                     

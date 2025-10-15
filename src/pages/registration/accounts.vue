@@ -13,7 +13,7 @@
       :class="getDarkModeClass(darkMode, 'registration')"
       v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
     >
-      <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+      <div >
         <div class="q-py-lg">
           <div v-if="serverOnline" v-cloak>            
             <!-- <login/>             -->
@@ -98,7 +98,7 @@
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
         <div class="col-12 q-px-lg">
-          <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+          <div >
             <div class="q-py-lg">
               <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
                 {{ $t('RestoreWalletDescription') }}
@@ -152,7 +152,7 @@
         :class="getDarkModeClass(darkMode, 'registration')"
         v-if="isFinalStep"
       >
-        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+        <div >
           <div class="q-pa-lg" style="padding-top: 28px;">
             <!-- <div
               v-if="moveToReferral && !openSettings"

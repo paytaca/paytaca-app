@@ -12,13 +12,13 @@
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Exchange' }}
           </p>
         </div>
         <div class="col-1">
-          <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>
+          <slot name="top-right-menu"><slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>nbsp;</slot>
         </div>
       </div>
       <div
