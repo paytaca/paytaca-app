@@ -142,7 +142,8 @@ body.theme-glassmorphic-blue {
 
     &.light {
       background-color: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
       &.btn-transaction-bg {
         background-color: rgba(242, 243, 252, 0.7) !important;

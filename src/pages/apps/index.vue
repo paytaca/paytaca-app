@@ -1,21 +1,23 @@
 <template>
-  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)">
-    <div id="apps" ref="apps" class="text-center">
-      <div>
-        <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'" :style="{ 'padding-top': $q.platform.is.ios ? '50px' : '20px'}">
-          <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-pt-md q-pb-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
-            <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
-              <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
-            </q-btn>
-            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
-          </div>
+  <div id="apps-page-container" :class="getDarkModeClass(darkMode)">
+    <HeaderNav
+      :title="$t('Apps')"
+      backnavpath="/"
+      class="q-px-sm apps-header"
+    />
+    <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
+      <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
+        <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
+          <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
+            <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
+          </q-btn>
+          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
         </div>
       </div>
     </div>
 
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
     <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
-    <footer-menu />
   </div>
 </template>
 
@@ -23,6 +25,7 @@
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
+import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttempts from '../../components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -31,6 +34,7 @@ import { webSocketManager } from 'src/exchange/websocket/manager'
 export default {
   name: 'apps',
   components: {
+    HeaderNav,
     pinDialog,
     biometricWarningAttempts
   },

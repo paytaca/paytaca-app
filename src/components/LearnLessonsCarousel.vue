@@ -143,7 +143,10 @@ export default {
     }
   },
   mounted() {
-    this.fetchLessons()
+    // Fetch lessons with a slight delay to not block critical page loading
+    setTimeout(() => {
+      this.fetchLessons()
+    }, 500)
   }
 }
 </script>
