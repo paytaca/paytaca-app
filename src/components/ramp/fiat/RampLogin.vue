@@ -18,7 +18,7 @@
           </p>
         </div>
         <div class="col-1">
-          <slot name="top-right-menu"><slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>nbsp;</slot>
+          <slot name="top-right-menu">&nbsp;</slot>
         </div>
       </div>
       <div

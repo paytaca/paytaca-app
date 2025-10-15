@@ -659,8 +659,7 @@ export default {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
     isDenominationTabEnabled () {
-      return (isNotDefaultTheme(this.theme) &&
-        (this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
+      return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
         this.selectedNetwork !== 'sBCH')
     },
 
@@ -1671,13 +1670,9 @@ export default {
     const vm = this
     stablehedgePriceTracker.subscribe('main-page')
 
-    if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
-      vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
-      vm.assetsCloseButtonColor = 'color: #ffbf00;'
-    } else {
-      vm.settingsButtonIcon = 'settings'
-      vm.assetsCloseButtonColor = 'color: #3B7BF6;'
-    }
+    // Removed PayHero theme icon customization
+    vm.settingsButtonIcon = 'settings'
+    vm.assetsCloseButtonColor = 'color: #3B7BF6;'
 
   },
   async mounted () {

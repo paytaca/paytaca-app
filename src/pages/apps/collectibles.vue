@@ -32,7 +32,7 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      active-color="brandblue"
       
       class="col-12 q-px-lg"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"

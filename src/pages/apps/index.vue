@@ -296,7 +296,7 @@ export default {
   created () {
     this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
-    const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
+    const themedIconPath = ''
 
     try {
       if (this.$router.resolve({name: 'apps-sandbox'})) {
@@ -309,13 +309,7 @@ export default {
       }
     } catch { }
 
-    this.filteredApps.forEach(app => {
-      if (isNotDefaultTheme(this.theme)) {
-        const iconFileName = app.path.split('/')[2]
-        const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
-        app.iconName = themedIconLoc
-      }
-    })
+    // Removed PayHero theme icon customization
 
     if (!this.enableSmartBCH) {
       this.filteredApps = this.apps.filter((app) => {

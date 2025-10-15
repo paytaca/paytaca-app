@@ -7,7 +7,7 @@
     />
 
     <q-tabs
-      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
+      active-color="brandblue"
       
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedNetwork"

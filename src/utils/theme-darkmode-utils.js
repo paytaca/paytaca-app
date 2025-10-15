@@ -6,11 +6,6 @@ export function getDarkModeClass (darkMode, darkModeClass = '', lightModeClass =
   return darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }
 
-export function isNotDefaultTheme (theme) {
-  // All themes are now glassmorphic variants, no special theme handling needed
-  return false
-}
-
 export function isHongKong (currentCountry) {
   return currentCountry === 'HK'
 }
