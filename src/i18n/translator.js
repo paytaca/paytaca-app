@@ -20,6 +20,7 @@ class Translator {
 
   constructor () {
     this.indexFile = 'index.js'
+    this.batchSize = 50 // how many keys to translate in one bulk
     this.texts = [
       ...words,
       ...phrases.static,
@@ -125,9 +126,13 @@ class Translator {
         console.log(translateCountData)
 
         if (Object.keys(filteredGroup).length !== 0) {
-          // Sleep for 2 seconds
-          await sleep(2000)
-          translatedObj = await this.translateGroup(filteredGroup, codes)
+          const batchedGroups = this.batchGroup(filteredGroup);
+          console.log('Batched into', batchedGroups.length, 'group(s)')
+          for(const batch of batchedGroups) {
+            // Sleep for 1 second
+            await sleep(1000)
+            Object.assign(translatedObj, await this.translateGroup(batch, codes))
+          }
         }
 
         // override hardcoded translations
@@ -232,6 +237,19 @@ class Translator {
     })
 
     return { filteredGroup, manualTranslations: manual, existingTranslations: existing }
+  }
+
+  batchGroup(group) {
+    const keys = Object.keys(group)
+    const batchedKeys = [];
+    for (let i = 0; i < keys.length; i += this.batchSize) {
+      batchedKeys.push(keys.slice(i, i + this.batchSize));
+    }
+    return batchedKeys.map(keys => {
+      const obj = {};
+      keys.forEach(key => obj[key] = group[key]);
+      return obj
+    })
   }
 
   /**
