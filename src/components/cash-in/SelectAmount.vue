@@ -37,7 +37,7 @@
             }}
           </q-btn>
         </div>
-        <div class="col">You {{ byFiat? 'get' : 'pay'}}{{ byFiat && equivalentAmount > 0 ? ' &asymp;' : ' '}}{{ equivalentAmount ? equivalentAmount?.toLocaleString() : 0 }} {{  !byFiat ? currency?.symbol : 'BCH'}}</div>
+        <div class="col">{{ byFiat? $t('YouGet') : $t('YouPay')}}{{ byFiat && equivalentAmount > 0 ? ' &asymp;' : ' '}}{{ equivalentAmount ? equivalentAmount?.toLocaleString() : 0 }} {{  !byFiat ? currency?.symbol : 'BCH'}}</div>
       </div>
     </div>
 
@@ -57,15 +57,16 @@
     </div>
 
     <div v-if="unavailableDenoms" class="row justify-center q-pt-md" style="font-size: small; opacity: .5">
-      <div class="col-shrink text-center" style="font-style: italic">Some denominations are currently not available</div>
+      <div class="col-shrink text-center" style="font-style: italic">{{ $t('DenomsNotAvailable') }}</div>
     </div>
     <!-- Proceed -->
     <div class="row justify-center q-mt-md">
-      <q-btn :loading="loadProceedButton" class="col q-mx-lg" :disable="disableProceedBtn" rounded color="blue-6" label="proceed" @click="submitOrder"/>
+      <q-btn :loading="loadProceedButton" class="col q-mx-lg button" :disable="disableProceedBtn" rounded :class="getDarkModeClass(darkMode)" :label="$t('Proceed')" @click="submitOrder"/>
     </div>
   </div>
 </template>
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { bchToFiat, bchToSatoshi, fiatToBch } from 'src/exchange'
 
 export default {
@@ -147,6 +148,7 @@ export default {
     this.byFiat = this.fiatPresets.length > 0 || false
   },
   methods: {
+    getDarkModeClass,
     denomAvailable (index) {
       const adCount = this.adOptions[this.presetOptions[index]]?.length || 0
       return adCount > 0

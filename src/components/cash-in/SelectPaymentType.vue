@@ -9,7 +9,7 @@
 
     <div class="text-center q-pt-md" v-if="options.length === 0">
       <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-      <p style="font-size: medium;">No ads available ☹ <br>Please try again later</p>
+      <p style="font-size: medium;">{{ $t('NoAdsAvailable') }} ☹ <br>{{ $t('CashinNetworkError2') }}</p>
     </div>
     <q-card flat bordered class="q-mt-sm q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" v-else>
       <q-virtual-scroll :items="options" style="max-height: 40vh;">
@@ -19,7 +19,10 @@
               <div style="font-size: medium;">{{ method?.payment_type?.short_name }}</div>
               <div style="font-size: small;">
                 <div style="opacity: .5;">{{ method?.payment_type?.short_name !== method?.payment_type?.full_name ? method?.payment_type?.full_name : ''}}</div>
-                <div v-if="method?.online_sellers > 0" :class="darkMode ? 'text-green-6' : 'text-green-8'">{{ method.online_sellers }} {{ method.online_sellers == 1 ? 'seller' : 'sellers'}} recently active</div>
+                <div v-if="method?.online_sellers > 0" :class="darkMode ? 'text-green-6' : 'text-green-8'">
+                  {{ method.online_sellers }}
+                  {{ method.online_sellers == 1 ? $t('SellerRecentlyActive') : $t('SellersRecentlyActive')}}
+                </div>
               </div>
             </q-item-section>
           </q-item>
