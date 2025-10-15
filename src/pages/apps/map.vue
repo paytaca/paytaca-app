@@ -22,7 +22,7 @@
           dense
           icon="close"
           color="white"
-          @click="$router.back()"
+          @click="closeApp"
         />
       </div>
     </div>
@@ -96,6 +96,18 @@ export default {
       if (this.$refs.mapIframe) {
         this.loading = true
         this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
+      }
+    },
+    closeApp() {
+      // Check if we came from apps page by looking at router history
+      const fromRoute = this.$router.options.history.state.back
+      
+      if (fromRoute && fromRoute.includes('/apps')) {
+        // If launched from apps page, go back to apps
+        this.$router.push({ name: 'apps-dashboard' })
+      } else {
+        // Otherwise, go to home page
+        this.$router.push({ path: '/' })
       }
     }
   },
