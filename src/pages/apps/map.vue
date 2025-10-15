@@ -1,7 +1,7 @@
 <template>
   <div class="map-app" :class="getDarkModeClass(darkMode)">
     <!-- Header -->
-    <div class="map-header bg-grad" :class="{'q-pt-lg': $q.platform.is.ios}">
+    <div class="map-header bg-grad" :class="{'ios-safe-area': $q.platform.is.ios}">
       <div class="row items-center q-px-md q-py-sm">
         <q-btn
           flat
@@ -142,6 +142,10 @@ export default {
   .text-subtitle1 {
     color: white !important;
   }
+}
+
+.ios-safe-area {
+  padding-top: max(env(safe-area-inset-top), 44px) !important;
 }
 
 .map-content-container {
