@@ -7,7 +7,8 @@ export function getDarkModeClass (darkMode, darkModeClass = '', lightModeClass =
 }
 
 export function isNotDefaultTheme (theme) {
-  return theme === 'payhero'
+  // All themes are now glassmorphic variants, no special theme handling needed
+  return false
 }
 
 export function isHongKong (currentCountry) {
