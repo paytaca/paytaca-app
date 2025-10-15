@@ -343,6 +343,8 @@
           </div>
 
           <PendingTransactions :key="pendingTransactionsKey"/>
+          
+          <LearnLessonsCarousel />
         </div>
       </q-pull-to-refresh>
       <!-- <div ref="transactionSection" class="row transaction-row">
@@ -496,6 +498,7 @@ import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
 import AssetOptions from 'src/components/asset-options.vue'
 import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
+import LearnLessonsCarousel from 'src/components/LearnLessonsCarousel.vue'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
 
@@ -520,6 +523,7 @@ export default {
     NotificationButton,
     AssetOptions,
     PendingTransactions,
+    LearnLessonsCarousel,
     AddNewAsset
   },
   directives: {

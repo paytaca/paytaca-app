@@ -82,6 +82,17 @@ export default {
     darkMode() {
       // Reload iframe when dark mode changes
       this.updateTheme()
+    },
+    '$route.query.url'(newUrl) {
+      // Reload iframe when lesson URL changes
+      if (newUrl) {
+        this.loading = true
+        const baseUrl = new URL(LEARN_WEB_URL)
+        const finalUrl = baseUrl.origin + newUrl
+        const urlWithTheme = new URL(finalUrl)
+        urlWithTheme.searchParams.set('theme', this.currentTheme)
+        this.learnUrl = urlWithTheme.toString()
+      }
     }
   },
   methods: {
@@ -101,7 +112,23 @@ export default {
   },
   mounted() {
     // Set initial URL with theme
-    this.learnUrl = this.learnUrlWithTheme
+    let finalUrl = LEARN_WEB_URL
+    
+    // If url query parameter is present (lesson URL from carousel), use it
+    if (this.$route.query.url) {
+      // lesson.url from API is like "/learn/what-is-bch"
+      // Construct full URL: https://learn.paytaca.com + /learn/what-is-bch
+      const baseUrl = new URL(LEARN_WEB_URL)
+      finalUrl = baseUrl.origin + this.$route.query.url
+    }
+    
+    // Add theme parameter
+    const urlWithTheme = new URL(finalUrl)
+    urlWithTheme.searchParams.set('theme', this.currentTheme)
+    
+    this.learnUrl = urlWithTheme.toString()
+    
+    console.log('Learn URL:', this.learnUrl) // Debug log
   }
 }
 </script>

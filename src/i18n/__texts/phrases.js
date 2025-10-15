@@ -234,6 +234,10 @@ const phrases = {
       TransactionDeadline: "Transaction Deadline",
       TransactionSent: "Transaction Sent",
       UnlinkDevice: "Unlink device",
+      
+      // Learn App
+      'See All': 'See All',
+      'Loading content...': 'Loading content...',
     },
     {
       TotalHedgeValue: "Total hedge value",
