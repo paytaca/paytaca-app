@@ -125,7 +125,7 @@
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                    Enable SLP
+                    {{ $t('EnableSlp') }}
                   </q-item-label>
                 </q-item-section>
                 <q-item-section avatar>

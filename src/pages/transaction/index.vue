@@ -1,8 +1,7 @@
 <template>
   <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
     <div>
-      <q-pull-to-refresh @refresh="refresh">
-        <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+      <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <q-resize-observer @resize="onFixedSectionResize" />
           <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
@@ -343,8 +342,9 @@
           </div>
 
           <PendingTransactions :key="pendingTransactionsKey"/>
+          
+          <LearnLessonsCarousel />
         </div>
-      </q-pull-to-refresh>
       <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
           ref="transaction"
@@ -496,6 +496,7 @@ import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
 import AssetOptions from 'src/components/asset-options.vue'
 import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
+import LearnLessonsCarousel from 'src/components/LearnLessonsCarousel.vue'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
 
@@ -520,6 +521,7 @@ export default {
     NotificationButton,
     AssetOptions,
     PendingTransactions,
+    LearnLessonsCarousel,
     AddNewAsset
   },
   directives: {
@@ -1109,13 +1111,6 @@ export default {
           .catch(console.error)
       }
       vm.balanceLoaded = true
-    },
-    refresh (done) {
-      try {
-        this.resetAndRefetchData()
-      } finally {
-        done()
-      }
     },
     resetAndRefetchData () {
       this.checkCashinAlert()

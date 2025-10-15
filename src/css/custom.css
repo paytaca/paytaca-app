@@ -123,8 +123,29 @@ a {
   color: #fff !important;
 }
 
-.pt-dark-box-shadow {
-  box-shadow: 2px 2px 2px 2px #212F3D !important;
+/* Hide scrollbar on main pages */
+body::-webkit-scrollbar,
+html::-webkit-scrollbar,
+.scroll-y::-webkit-scrollbar,
+#app-container::-webkit-scrollbar,
+#apps-page-container::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+body,
+html,
+.scroll-y,
+#app-container,
+#apps-page-container {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.scroll-y {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 .bex.q-body--prevent-scroll {

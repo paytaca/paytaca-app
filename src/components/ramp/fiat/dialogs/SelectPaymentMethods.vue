@@ -43,7 +43,7 @@
         <q-card-section v-if="!loading" class="row q-gutter-sm justify-center">
           <!-- <q-btn v-if="paymentMethodOpts.length === 0" outline rounded label='Ok' class="button button-icon q-mt-none" :class="getDarkModeClass(darkMode)" @click="$emit('back')"/> -->
           <!-- <div v-else> -->
-          <q-btn v-if="paymentTypeOpts.length > 0" outline rounded label='Add new' class="button button-icon q-mr-sm" :class="getDarkModeClass(darkMode)" @click="addNewPaymentMethod()"/>
+          <q-btn v-if="paymentTypeOpts.length > 0" outline rounded :label="$t('AddNew')" class="button button-icon q-mr-sm" :class="getDarkModeClass(darkMode)" @click="addNewPaymentMethod()"/>
           <q-btn rounded class="button q-ml-sm" @click="submitUpdatedPaymentMethods()" :disable="hasAlienPaymentsSelected" v-close-popup>
             <template v-slot:default>
               {{

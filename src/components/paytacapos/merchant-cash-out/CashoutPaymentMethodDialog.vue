@@ -8,7 +8,7 @@
       <!-- Select Payment Method -->
       <div v-if="status === 'payment-method-select'">
         <div class="text-center text-primary q-pb-sm text-bold md-font-size">
-          Select Payment Methods
+          {{ $t('SelectPaymentMethods') }}
         </div>
 
         <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -17,7 +17,7 @@
 
         <div v-else class="q-px-md">
           <div class="text-center text-grey-8" v-if="paymentMethodList.length === 0">
-            No payment method available...
+            {{ $t('NoPaymentMethodAvailable') }}...
           </div>
           <q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;" v-else>
             <div v-for="(method, index) in paymentMethodList" :key="index">
@@ -73,14 +73,14 @@
 
         <!-- Buttons -->
         <div class="text-center q-pt-xs q-px-lg">
-          <q-btn v-if="paymentTypeOpts?.length !== 0" outline dense class="full-width q-my-xs" rounded unelevated label="Add Payment Method" color="primary" @click="status = 'payment-method-form'"/>
-          <q-btn dense class="full-width" rounded unelevated :disable="!selectedPaymentMethod" label="Select Payment Method" color="primary" @click="onOKClick()"/>
+          <q-btn v-if="paymentTypeOpts?.length !== 0" outline dense class="full-width q-my-xs" rounded unelevated :label="$t('AddPaymentMethod')" color="primary" @click="status = 'payment-method-form'"/>
+          <q-btn dense class="full-width" rounded unelevated :disable="!selectedPaymentMethod" :label="$t('SelectPaymentMethod')" color="primary" @click="onOKClick()"/>
         </div>
       </div>
 
       <div v-if="status === 'payment-method-form'">
         <div class="text-center text-primary q-pb-sm text-bold md-font-size">
-          Manage Payment Methods
+          {{ $t('ManagePaymentMethods') }}
         </div>
 
         <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -154,7 +154,7 @@
       </div>
 
       <div v-if="status === 'delete-confirmation'" class="text-center">
-        <div class="text-bold md-font-size">Delete this Payment Method?</div>
+        <div class="text-bold md-font-size">{{ $t('DeleteThisPaymentMethod') }}</div>
         <div class="text-bold md-font-size">
           {{ editingPaymentMethod.payment_type.full_name }}
         </div>

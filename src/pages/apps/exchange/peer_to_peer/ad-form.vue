@@ -189,7 +189,9 @@
                 </div>
               </div>
             </div>
-            <q-checkbox size="sm" v-model="setTradeLimitsInFiat" class="q-mx-md sm-font-size" color="blue-8"> Set trade limits in fiat </q-checkbox>
+            <q-checkbox size="sm" v-model="setTradeLimitsInFiat" class="q-mx-md sm-font-size" color="blue-8">
+              {{ $t('SetTradeLimitsFiat') }}
+            </q-checkbox>
           </div>
 
           <!-- Appeal Cooldown -->

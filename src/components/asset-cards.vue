@@ -5,7 +5,7 @@
       v-for="(asset, index) in filteredFavAssets"
       :key="index"
       class="method-cards asset-card-border q-pa-md q-mr-none"
-      :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
+      :class="[{ selected: asset?.id === selectedAsset?.id }]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
@@ -202,7 +202,9 @@ export default {
       let temp = await assetSettings.fetchFavorites()
       this.favResult = temp
       
-      this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
+      try { // temporary error handling to resolve temp being null
+        this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
+      } catch { }
     },
     formatAssetTokenAmount(asset) {
       return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
@@ -349,12 +351,11 @@ export default {
     margin-right: 12px;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.1);
+    box-shadow: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     &:hover {
       transform: scale(1.05);
-      box-shadow: 0 6px 24px 0 rgba(31, 38, 135, 0.15);
     }
   }
 
@@ -388,8 +389,5 @@ export default {
       background: red;
       color: white;
     }
-  }
-  .pt-dark-box-shadow {
-    box-shadow: 2px 2px 2px 2px #212f3d !important;
   }
 </style>
