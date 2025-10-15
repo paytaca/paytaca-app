@@ -158,7 +158,7 @@ class Translator {
         strData += JSON.stringify(jsonData, null, 2)
 
         // to remove the quotes on keys after stringify
-        strData = strData.replace(/"([^"]+)":/g, '$1:')
+        strData = strData.replace(/"([a-zA-Z_$][a-zA-Z0-9_$]*)":/g, '$1:')
 
         // write to our i18n/{lang_code}/index.js
         this.write(strData, lang)
