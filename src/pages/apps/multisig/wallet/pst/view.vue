@@ -13,6 +13,20 @@
         <template v-if="pst">
           <q-list>
             <q-item>
+              <q-item-section></q-item-section>
+              <q-item-section side>
+                <q-btn @click="syncPst" flat dense :loading="isSyncing">
+                  <template v-slot="icon">
+                    <q-icon v-if="!pst.syncing && pst.id" name="mdi-cloud-check"></q-icon>
+                    <q-icon v-if="!pst.syncing && !pst.id" name="mdi-cloud-upload"></q-icon>
+                  </template>
+                  <template v-slot:loading>
+                    <q-spinner ></q-spinner>
+                  </template>
+                </q-btn>
+              </q-item-section>
+            </q-item>
+            <q-item>
               <q-item-section>
                 <q-item-label class="text-h5 text-bold">
                   Purpose
@@ -172,7 +186,7 @@
 
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, nextTick, reactive, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
@@ -201,6 +215,7 @@ const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const signingProgress = ref({})
 const isBroadcasting = ref(false)
+const isSyncing = ref(false)
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -299,7 +314,7 @@ const initiateSignTransaction = async (signer) => {
   }
 }
 
-const executeSignTransaction = async () => {
+const commitSignTransaction = async () => {
   if (!signingInitiatedBy.value) return
 
   pst.value.sign(signingInitiatedBy.value.xprv)
@@ -321,6 +336,14 @@ const showBroadcastSuccessDialog = async (txid) => {
   }).onOk(() => {
     pst.value.delete({ sync: false })
     router.push({ name: 'app-multisig-wallet-view', params: { wallethash: route.params.wallethash } })
+  })
+}
+
+const syncPst = async () => {
+  if (!pst.value) return
+  isSyncing.value = true
+  await pst.value.sync(() => {
+    isSyncing.value = false
   })
 }
 
@@ -361,7 +384,7 @@ const onConfirmSliderSwiped = async (reset) => {
     $q.dialog({ component: SecurityCheckDialog })
     .onOk(() => {
       showActionConfirmationSlider.value = false
-      executeSignTransaction()
+      commitSignTransaction()
       resolve(true)
     })
     .onDismiss(() => {
