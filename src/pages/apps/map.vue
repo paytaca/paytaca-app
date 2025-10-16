@@ -1,7 +1,7 @@
 <template>
   <div class="map-app" :class="getDarkModeClass(darkMode)">
     <!-- Header -->
-    <div class="map-header bg-grad" :class="{'q-pt-lg': $q.platform.is.ios}">
+    <div class="map-header bg-grad" :class="{'ios-safe-area': $q.platform.is.ios}">
       <div class="row items-center q-px-md q-py-sm">
         <q-btn
           flat
@@ -22,7 +22,7 @@
           dense
           icon="close"
           color="white"
-          @click="$router.back()"
+          @click="closeApp"
         />
       </div>
     </div>
@@ -35,6 +35,9 @@
         class="map-iframe"
         frameborder="0"
         allow="geolocation"
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+        allowtransparency="true"
+        scrolling="auto"
         @load="onIframeLoad"
       ></iframe>
       
@@ -97,6 +100,18 @@ export default {
         this.loading = true
         this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
       }
+    },
+    closeApp() {
+      // Check if we came from apps page by looking at router history
+      const fromRoute = this.$router.options.history.state.back
+      
+      if (fromRoute && fromRoute.includes('/apps')) {
+        // If launched from apps page, go back to apps
+        this.$router.push({ name: 'apps-dashboard' })
+      } else {
+        // Otherwise, go to home page
+        this.$router.push({ path: '/' })
+      }
     }
   },
   mounted() {
@@ -130,6 +145,10 @@ export default {
   .text-subtitle1 {
     color: white !important;
   }
+}
+
+.ios-safe-area {
+  padding-top: max(env(safe-area-inset-top), 44px) !important;
 }
 
 .map-content-container {

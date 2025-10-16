@@ -22,7 +22,7 @@
         no-caps
         v-model="redeemTab"
         class="col-12"
-        :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+        indicator-color=""
         @click="pointsToRedeem = '0'; computeBalance()"
       >
         <q-tab
@@ -110,7 +110,7 @@
           <div class="row full-width justify-evenly">
             <template v-if="isSending">
               <progress-loader
-                :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+                
                 :isTight="true"
                 class="q-mb-md"
               />
@@ -205,7 +205,7 @@
           <div class="row full-width justify-evenly">
             <template v-if="isSending">
               <progress-loader
-                :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+                
                 :isTight="true"
                 class="q-mb-md"
               />
@@ -254,7 +254,7 @@
 
 <script>
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   convertPoints,
   getKeyPairFromWalletMnemonic,
@@ -328,7 +328,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     computeBalance () {
       this.pointsBalance = this.points - Number(this.pointsToRedeem)
       if (this.redeemablePoints) {

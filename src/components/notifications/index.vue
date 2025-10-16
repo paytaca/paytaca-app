@@ -70,7 +70,7 @@
 
         <template v-if="isLoading">
           <q-card-section class="q-pt-sm flex flex-center">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
           </q-card-section>
         </template>
 
@@ -187,7 +187,7 @@
 <script>
 import ago from 's-ago'
 
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   getWalletNotifications,
   parseNotifType,
@@ -251,7 +251,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     parseNotifType,
 
     async refreshNotifsList (done) {

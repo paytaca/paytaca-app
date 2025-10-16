@@ -15,7 +15,7 @@
       <q-intersection>
         <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
           <img :src="getImageUrl(asset)" height="30" class="q-mr-xs" alt="">
-          <p class="col q-pl-sm text-right asset-symbol" :class="{'text-grad' : isNotDefaultTheme}">
+          <p class="col q-pl-sm text-right asset-symbol">
             {{ asset.symbol }}
           </p>
         </div>
@@ -95,9 +95,6 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] === 'payhero'
     },
     filteredFavAssets () {
       if (this.networkError || this.forcePropsAssets) {

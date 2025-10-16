@@ -13,7 +13,7 @@
       :class="getDarkModeClass(darkMode, 'registration')"
       v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
     >
-      <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+      <div >
         <div class="q-py-lg">
           <div v-if="serverOnline" v-cloak>            
             <!-- <login/>             -->
@@ -77,7 +77,7 @@
       <p class="q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
         {{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...
       </p>
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+      <ProgressLoader />
     </div>
     <div
       class="pt-wallet q-mt-sm pt-card-2"
@@ -98,7 +98,7 @@
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
         <div class="col-12 q-px-lg">
-          <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+          <div >
             <div class="q-py-lg">
               <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
                 {{ $t('RestoreWalletDescription') }}
@@ -152,7 +152,7 @@
         :class="getDarkModeClass(darkMode, 'registration')"
         v-if="isFinalStep"
       >
-        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+        <div >
           <div class="q-pa-lg" style="padding-top: 28px;">
             <!-- <div
               v-if="moveToReferral && !openSettings"
@@ -308,7 +308,7 @@ import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 import ProgressLoader from '../../components/ProgressLoader'
@@ -438,7 +438,6 @@ export default {
     // }
   },
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     isHongKong,
     validateSeedPhrase () {

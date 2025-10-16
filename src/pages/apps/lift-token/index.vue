@@ -17,7 +17,7 @@
         >
           {{ $t("RetrievingDetails") }} ...
         </span>
-        <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        <progress-loader />
       </div>
     </template>
 
@@ -29,7 +29,7 @@
         <q-tabs
           v-model="sectionTab"
           class="col-12"
-          :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+          indicator-color=""
           id="section-tab"
         >
           <q-tab
@@ -77,7 +77,6 @@
 import { decodePrivateKeyWif, secp256k1 } from "@bitauth/libauth";
 import {
   getDarkModeClass,
-  isNotDefaultTheme,
 } from "src/utils/theme-darkmode-utils";
 import {
   getAddressPath,
@@ -125,7 +124,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
 
     async retrieveData() {
       this.isLoading = true;

@@ -143,7 +143,7 @@
             {{ paymentRequest.paymentDetails.getTotalAmountBCHString() }}
           </div>
           <div v-if="paymentRequestStatus.executing" class="q-mt-md row justify-center">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
           </div>
           <div v-else class="q-mt-md row justify-end">
             <q-btn
@@ -230,7 +230,6 @@ import ProgressLoader from 'components/ProgressLoader'
 import { NativeBiometric } from 'capacitor-native-biometric'
 
 import { PaymentRequest } from './payment-request'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'connecta',
@@ -309,7 +308,6 @@ export default {
     }
   },
   methods: {
-    isNotDefaultTheme,
     playSound (success) {
       let path = 'send-success.mp3'
       if (this.$q.platform.is.ios) {

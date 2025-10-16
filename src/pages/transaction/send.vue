@@ -213,7 +213,7 @@
               </div>
               <div class="row" v-if="sending">
                 <div class="col-12 text-center">
-                  <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+                  <ProgressLoader />
                 </div>
               </div>
             </form>
@@ -264,7 +264,7 @@ import { pushNotificationsManager } from 'src/boot/push-notifications'
 import { getMnemonic, Wallet, Address } from 'src/wallet'
 import { getNetworkTimeDiff } from 'src/utils/time'
 import { getCashbackAmount } from 'src/utils/engagementhub-utils/engagementhub-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import {
   getWalletByNetwork,
@@ -582,7 +582,6 @@ export default {
     convertToBCH,
     customNumberFormatting,
     getDarkModeClass,
-    isNotDefaultTheme,
 
     // ========== main methods ==========
     // on component mount

@@ -2,13 +2,13 @@
   <q-dialog persistent>
     <q-card class="q-pa-md pt-card text-center text-bow" :class="getDarkModeClass(darkMode)">
       <p class="q-pt-lg q-px-xl text-h6">{{ $t(loadingText) }} ...</p>
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+      <ProgressLoader />
     </q-card>
   </q-dialog>
 </template>
 
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from 'src/components/ProgressLoader'
 
 export default {
@@ -36,7 +36,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme
   }
 }
 </script>

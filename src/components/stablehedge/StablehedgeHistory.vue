@@ -213,9 +213,10 @@ export default defineComponent({
         transactionsListHeight.value = undefined
       }
       const screenHeight = $q.screen.height
+      const fixedSectionTop = (fixedSection?.offsetTop || 0);
       const fixedSectionHeight = fixedSection?.clientHeight || 0
       const footerMenuHeight = footerMenu?.clientHeight || 0
-      transactionsListHeight.value = `${screenHeight - (fixedSectionHeight + footerMenuHeight)}px`
+      transactionsListHeight.value = `${screenHeight - (fixedSectionTop + fixedSectionHeight + footerMenuHeight)}px`
     }
     /** stuff relating to parent component(main page) -- end */
 

@@ -6,7 +6,7 @@
       dense
       v-if="enableSmartBCH"
       active-color="brandblue"
-      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+      
       :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
       class="col-12 q-px-lg"
       :modelValue="selectedNetwork"
@@ -57,7 +57,7 @@
               <div class="col q-pl-sm q-pr-sm">
                 <p
                   class="q-ma-none text-token text-weight-regular"
-                  :class="darkMode ? isNotDefaultTheme(theme) ? 'text-grad' : 'dark' : 'light'"
+                  :class="darkMode ? 'dark' : 'light'"
                 >
                   {{ asset.name }}
                 </p>
@@ -99,7 +99,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { cachedLoadWallet } from 'src/wallet'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
@@ -160,7 +160,7 @@ export default {
     },
     assets () {
       let _assets
-      const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${this.$store.getters['global/theme']}/` : ''
+      const themedIconPath = ''
       const themedNewTokenIcon = `${themedIconPath}new-token.png`
 
       if (this.selectedNetwork === 'sBCH') {
@@ -216,7 +216,6 @@ export default {
     convertTokenAmount,
     parseAssetDenomination,
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']

@@ -17,7 +17,7 @@
                       <div v-else>
                         <p class="q-mb-none">
                           <-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> --
-                          <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
+                          <span ellipsis class="text-h5" >
                             {{ bchBalanceText }}
                           </span>
                         </p>                     
@@ -176,7 +176,7 @@ import { loadWallet } from 'src/wallet'
 import { cachedLoadWallet } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
-import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { registerMemoUser, authMemo } from 'src/utils/transaction-memos'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
@@ -253,9 +253,13 @@ export default {
 	        : this.denomination
 	    },
 	    isDenominationTabEnabled () {
-	    	// isNotDefaultTheme(this.theme) &&	      
+	      const currentCountry = this.$store.getters['global/country'].code
+	      const currency = this.$store.getters['market/selectedCurrency']
+	      const selectedMarketCurrency = currency && currency.symbol
 	      return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
-	        this.selectedNetwork !== 'sBCH')
+	        this.selectedNetwork !== 'sBCH' &&
+	        currentCountry === 'HK' &&
+	        selectedMarketCurrency === 'HKD')
 	    },
 	    mainchainAssets() {
 	      return this.$store.getters['assets/getAssets'].filter(function (item) {

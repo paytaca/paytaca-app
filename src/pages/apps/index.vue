@@ -6,7 +6,7 @@
       class="q-px-sm apps-header"
     />
     <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
-      <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
+      <div class="row q-px-xs">
         <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
           <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
             <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
@@ -23,7 +23,7 @@
 
 <script>
 import { vOnLongPress } from '@vueuse/components'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
@@ -102,6 +102,14 @@ export default {
           iconName: 'burst_mode',
           path: '/apps/collectibles',
           iconStyle: 'font-size: 4.5em',
+          active: true,
+          smartBCHOnly: false
+        },
+        {
+          name: 'Stablehedge',
+          iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
+          path: '/apps/stablehedge/wallet',
+          iconStyle: 'width:55%; height: 55%;',
           active: true,
           smartBCHOnly: false
         },
@@ -220,7 +228,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     fetchAppControl () {
       this.$store.dispatch('global/fetchAppControl')
     },
@@ -297,7 +304,7 @@ export default {
   created () {
     this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
-    const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
+    const themedIconPath = ''
 
     try {
       if (this.$router.resolve({name: 'apps-sandbox'})) {
@@ -310,13 +317,7 @@ export default {
       }
     } catch { }
 
-    this.filteredApps.forEach(app => {
-      if (isNotDefaultTheme(this.theme)) {
-        const iconFileName = app.path.split('/')[2]
-        const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
-        app.iconName = themedIconLoc
-      }
-    })
+    // Removed PayHero theme icon customization
 
     if (!this.enableSmartBCH) {
       this.filteredApps = this.apps.filter((app) => {

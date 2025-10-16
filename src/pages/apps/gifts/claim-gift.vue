@@ -12,7 +12,7 @@
           <div id="app" ref="app" :class="{'text-black': !darkMode}">
             <div v-if="processing" style="text-align: center; padding-top: 25px;">
               <p>{{ $t(`${action}ingGift`) }}</p>
-              <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+              <progress-loader />
             </div>
             <q-form v-if="!processing && !completed" class="text-center" style="margin-top: 25px;">
               <textarea
@@ -82,7 +82,7 @@ import SweepPrivateKey from '../../../wallet/sweep'
 import QrScanner from '../../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import QRUploader from 'src/components/QRUploader'
 
 const aesjs = require('aes-js')
@@ -136,7 +136,6 @@ export default {
   methods: {
     getAssetDenomination,
     getDarkModeClass,
-    isNotDefaultTheme,
     decryptShard(encryptedHex, password) {
       const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
       const encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex)

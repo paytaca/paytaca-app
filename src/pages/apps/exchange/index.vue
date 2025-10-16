@@ -8,7 +8,7 @@
 import OngoingMaintenanceDialog from 'src/components/ramp/fiat/dialogs/OngoingMaintenanceDialog.vue'
 import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
 import packageInfo from '../../../../package.json'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
@@ -71,7 +71,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     async getUser () {
       await backend.get('auth')
         .then(async (response) => {

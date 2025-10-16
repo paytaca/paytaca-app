@@ -2,13 +2,12 @@
   <div
     class="row justify-center fixed-footer"
     :class="[getDarkModeClass(), { 'footer-hidden': isFooterHidden }]"
-    :style="{'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
+    :style="{'padding-bottom': $q.platform.is.ios ? '35px' : '0'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ path: '/' }">
-          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-home.png" size="30px" />
-          <q-icon v-else class="default-text-color mb-2" size="30px">
+          <q-icon class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-home.svg#icon"></use>
             </svg>
@@ -21,8 +20,7 @@
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'transaction-list' }">
-          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-send.png" size="30px" />
-          <q-icon v-else name="receipt_long" class="default-text-color mb-2" size="30px">
+          <q-icon name="receipt_long" class="default-text-color mb-2" size="30px">
             <!-- <svg>
               <use xlink:href="app-send.svg#icon"></use>
             </svg> -->
@@ -36,8 +34,7 @@
       <div style="width: 50px;"></div>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'app-marketplace' }">
-          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-receive.png" size="30px" />
-          <q-icon v-else name="img:marketplace.svg" class="default-text-color-2 mb-2" size="30px">
+          <q-icon name="img:marketplace.svg" class="default-text-color-2 mb-2" size="30px">
             <!-- <svg>
               <use xlink:href="marketplace.svg#icon"></use>
             </svg> -->
@@ -50,8 +47,7 @@
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'apps-dashboard' }">
-          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-apps.png" size="30px" />
-          <q-icon v-else class="default-text-color mb-2" size="30px">
+          <q-icon class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="apps.svg#icon"></use>
             </svg>
@@ -67,8 +63,7 @@
     <div id="qr-button" @click="$router.push({ name: 'qr-reader' })">
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'qr-reader' }">
-          <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-qr.png" size="30px" />
-          <q-icon v-else class="default-text-color mb-2" size="30px">
+          <q-icon class="default-text-color mb-2" size="30px">
             <svg>
               <use xlink:href="app-qr.svg#icon"></use>
             </svg>
@@ -94,11 +89,6 @@ export default {
       scrollThreshold: 50
     }
   },
-  computed: {
-    isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] === 'payhero'
-    }
-  },
   methods: {
     expandBex () {
       this.$q.bex.send('ui.expand')
@@ -108,6 +98,22 @@ export default {
     },
     handleScroll () {
       const currentScrollY = window.scrollY
+      const windowHeight = window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+
+      // If at the top of the page, always show the footer
+      if (currentScrollY <= 10) {
+        this.isFooterHidden = false
+        this.lastScrollY = currentScrollY
+        return
+      }
+
+      // If at the bottom of the page, always hide the footer
+      if (currentScrollY + windowHeight >= documentHeight - 10) {
+        this.isFooterHidden = true
+        this.lastScrollY = currentScrollY
+        return
+      }
 
       // Only hide/show if scrolled past threshold
       if (Math.abs(currentScrollY - this.lastScrollY) < this.scrollThreshold) {
@@ -148,7 +154,7 @@ export default {
     left: 50%;
     transform: translateX(-50%);
     border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 6;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
     backdrop-filter: blur(10px);
@@ -171,6 +177,12 @@ export default {
       overflow-y: hidden;
       flex-wrap: nowrap;
     }
+  }
+  .fixed-footer.dark {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 
+                0 2px 8px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
   #qr-button {
     z-index: 100 !important;

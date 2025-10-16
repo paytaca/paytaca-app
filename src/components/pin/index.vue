@@ -15,7 +15,7 @@
                 <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
               </div>
               <div class="col-12 text-center">
-                <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+                <ProgressLoader />
               </div>
             </div>
           </q-card-section>
@@ -96,7 +96,7 @@ import ProgressLoader from '../../components/ProgressLoader'
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../../wallet'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { sha256 } from 'js-sha256'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
@@ -172,7 +172,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     nonNumKeysClass (key) {
       let classes = ''
       if (this.$store.getters['darkmode/getStatus']) {
