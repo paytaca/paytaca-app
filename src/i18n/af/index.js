@@ -721,6 +721,7 @@ export default {
   LoadingChat: "Laai klets",
   LoadingChatIdentity: "Laai kletsidentiteit",
   LoadingMetadata: "Laai metadata",
+  LoadingMore: "Laai tans meer",
   LoadingRequests: "Laai versoeke",
   LoadingSevices: "Laai toestelle",
   LoadingShards: "Laai skerwe",

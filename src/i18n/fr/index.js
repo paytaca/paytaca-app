@@ -721,6 +721,7 @@ export default {
   LoadingChat: "Chargage de chat",
   LoadingChatIdentity: "Chargement de l'identité de chat",
   LoadingMetadata: "Chargement des métadonnées",
+  LoadingMore: "Charger plus",
   LoadingRequests: "Demandes de chargement",
   LoadingSevices: "Dispositifs de chargement",
   LoadingShards: "Chargement des éclats",

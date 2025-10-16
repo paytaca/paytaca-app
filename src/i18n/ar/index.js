@@ -721,6 +721,7 @@ export default {
   LoadingChat: "تحميل الدردشة",
   LoadingChatIdentity: "تحميل هوية الدردشة",
   LoadingMetadata: "تحميل البيانات الوصفية",
+  LoadingMore: "جارٍ تحميل المزيد",
   LoadingRequests: "طلبات التحميل",
   LoadingSevices: "أجهزة التحميل",
   LoadingShards: "التحميل شظايا",

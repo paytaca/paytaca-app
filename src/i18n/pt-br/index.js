@@ -721,6 +721,7 @@ export default {
   LoadingChat: "Carregando bate -papo",
   LoadingChatIdentity: "Carregando identidade de bate -papo",
   LoadingMetadata: "Metadados de carregamento",
+  LoadingMore: "Carregando mais",
   LoadingRequests: "Carregando solicitações",
   LoadingSevices: "Dispositivos de carregamento",
   LoadingShards: "Carregando fragmentos",

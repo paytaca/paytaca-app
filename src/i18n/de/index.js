@@ -721,6 +721,7 @@ export default {
   LoadingChat: "Chat beladen",
   LoadingChatIdentity: "Laden der Chat -Identität",
   LoadingMetadata: "Lademetadaten",
+  LoadingMore: "Lade mehr",
   LoadingRequests: "Anfragen laden",
   LoadingSevices: "Ladegeräte",
   LoadingShards: "Scherben laden",

@@ -721,6 +721,7 @@ export default {
   LoadingChat: "Memuat obrolan",
   LoadingChatIdentity: "Memuat identitas obrolan",
   LoadingMetadata: "Memuat metadata",
+  LoadingMore: "Memuat lebih banyak",
   LoadingRequests: "Memuat permintaan",
   LoadingSevices: "Perangkat Memuat",
   LoadingShards: "Memuat pecahan",

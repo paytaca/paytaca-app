@@ -721,6 +721,7 @@ export default {
   LoadingChat: "Chat laden",
   LoadingChatIdentity: "Chat -identiteit laden",
   LoadingMetadata: "Metadata laden",
+  LoadingMore: "Meer laden",
   LoadingRequests: "Verzoeken laden",
   LoadingSevices: "Laadapparaten",
   LoadingShards: "Scherven laden",

@@ -719,6 +719,7 @@ export default {
   LoadingChat: "Naglo -load ng chat",
   LoadingChatIdentity: "Naglo -load ng pagkakakilanlan ng chat",
   LoadingMetadata: "Naglo -load ng metadata",
+  LoadingMore: "Naglo -load pa",
   LoadingRequests: "Naglo -load ng mga kahilingan",
   LoadingSevices: "Naglo -load ng mga aparato",
   LoadingShards: "Naglo -load ng mga shards",
