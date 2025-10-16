@@ -84,7 +84,8 @@ export default {
       customList: null,
       networkError: false,
       favorites: [],
-      favResult: []
+      favResult: [],
+      unlisted: []
     }
   },
   computed: {
@@ -119,15 +120,8 @@ export default {
   //   }
   // },
   async mounted() {    
-    // this.checkEmptyFavorites()
-    // const isInitFav = this.$store.getters['assets/initializedFavorites']
-    // await this.$store.dispatch('assets/initializeFavorites', this.assets) 
-
-    // if (!isInitFav) {
-    //   await assetSettings.registerUser()
-    //   const favsList = this.assets.map(asset => asset.id)
-    //   await assetSettings.saveFavorites(favsList)
-    // }
+    this.unlisted = await assetSettings.fetchUnlistedTokens()
+    await this.checkUnlisted()
 
     this.customListIDs = await assetSettings.fetchCustomList()      
 
@@ -319,6 +313,22 @@ export default {
           }
         })      
       },
+      async checkUnlisted() {
+        console.log('unlisted: ', this.unlisted)
+
+        // if (this.unlisted.length > 0) {
+        //   if (this.isSep20) {
+        //     vm.$store.commit('sep20/addRemovedAssetIds', asset.id)
+        //     const commitName = 'sep20/removeAsset'
+        //     return vm.$store.commit(commitName, asset.id)
+        //   }
+        //   vm.$store.commit('assets/removeAsset', asset.id)
+        //   vm.$store.commit('assets/addRemovedAssetIds', {
+        //     vaultIndex: walletIndex,
+        //     id: asset.id
+        //   })
+        // }
+      }
   }
 }
 </script>

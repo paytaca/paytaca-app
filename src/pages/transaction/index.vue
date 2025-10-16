@@ -497,6 +497,7 @@ import NotificationButton from 'src/components/notifications/NotificationButton.
 import AssetOptions from 'src/components/asset-options.vue'
 import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
 import LearnLessonsCarousel from 'src/components/LearnLessonsCarousel.vue'
+import * as assetSettings from 'src/utils/asset-settings'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
 
