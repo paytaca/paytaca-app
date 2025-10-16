@@ -103,19 +103,20 @@ export default defineComponent({
   },
   setup(props) {
     const instance = getCurrentInstance()
+
     const $store = useStore()
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
     const {
-      isChipnet,
+      // isChipnet,
       denomination,
       tokenCategory,
-      token,
-      priceMessage,
+      // token,
+      // priceMessage,
       currency,
-      decimals,
+      // decimals,
 
-      pricePerBch,
+      // pricePerBch,
       priceUnitPerBch,
       pricePerDenomination,
 
@@ -123,7 +124,7 @@ export default defineComponent({
       fetchRedemptionContractMarketInfo,
 
       fetchingTreasuryContractBalance,
-      treasuryContractBalance,
+      // treasuryContractBalance,
       fetchTreasuryContractBalance,
       parsedTreasuryContractBalance,
 

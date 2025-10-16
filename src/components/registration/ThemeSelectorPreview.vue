@@ -3,7 +3,7 @@
     <div class="row justify-center text-center">
       <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('ThemePreferenceTitle') }}</h5><br/>
     </div>
-    <div class="row justify-center q-mt-sm dim-text text-center">
+    <div class="row justify-center q-mt-sm text-center">
       <p>{{ $t('ThemePreferenceSubtitle') }}</p>
     </div>
     <div class="row justify-center themes-preview-container">
@@ -17,12 +17,11 @@
               class="pt-label"
               :class="getDarkModeClass(darkMode)"
             />
-            <q-card class="row justify-evenly bg-grey-7">
+            <q-card class="row justify-evenly">
               <q-card-section class="q-pa-sm">
                 <div class="row items-center q-pb-xs text-capitalize text-weight-bold">
                   <q-radio
                     size="xs"
-                    class="prev-radio"
                     :val="`${themeElem.value} light`"
                     v-model="selectedMode"
                   />
@@ -35,7 +34,6 @@
                 <div class="row items-center q-pb-xs text-capitalize text-weight-bold">
                   <q-radio
                     size="xs"
-                    class="prev-radio"
                     :val="`${themeElem.value} dark`"
                     v-model="selectedMode"
                   />
@@ -68,10 +66,13 @@ export default {
   },
   data () {
     return {
-      selectedTheme: 'default',
-      selectedMode: 'default dark',
+      selectedTheme: 'glassmorphic-blue',
+      selectedMode: 'glassmorphic-blue dark',
       themesList: [
-        { value: 'default', label: this.$t('Default') }
+        { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') },
+        { value: 'glassmorphic-red', label: this.$t('GlassmorphicRed') },
+        { value: 'glassmorphic-green', label: this.$t('GlassmorphicGreen') },
+        { value: 'glassmorphic-gold', label: this.$t('GlassmorphicGold') }
       ]
     }
   },
@@ -87,7 +88,7 @@ export default {
     getDarkModeClass
   },
   mounted () {
-    this.selectedTheme = this.theme || 'default'
+    this.selectedTheme = this.theme || 'glassmorphic-blue'
   },
   watch: {
     selectedTheme () {
@@ -108,11 +109,5 @@ export default {
   .themes-preview-container {
     max-height: 47vh;
     overflow-y: scroll;
-  }
-</style>
-
-<style lang="scss">
-  .prev-radio.q-radio > .q-radio__inner--truthy {
-    color: #4FC3F7 !important;
   }
 </style>

@@ -90,7 +90,7 @@
           </q-card-section>
           <q-card-section class="q-pt-none tokens-card-section">
             <div v-if="customToken.fetchingInfo" class="row items-center justify-center">
-              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+              <ProgressLoader />
             </div>
 
             <q-item
@@ -142,7 +142,7 @@ import { debounce } from 'quasar'
 import { inject } from 'vue'
 import { getSep20ContractDetails } from '../../wallet/sbch/utils'
 import ProgressLoader from '../ProgressLoader.vue'
-import { isNotDefaultTheme, isHongKong, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { isHongKong, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const _customTokenInfoCache = {}
 
@@ -223,7 +223,6 @@ export default {
     }
   },
   methods: {
-    isNotDefaultTheme,
     isHongKong,
     getDarkModeClass,
     formatNumber (value = 0, decimals = 6) {

@@ -1,7 +1,7 @@
 <template>
   <div class="col-12 q-px-lg q-mt-md">
     <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('PushNotifications') }}</p>
-    <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+    <q-list bordered separator class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
       <q-item>
         <q-item-section>
           <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -10,12 +10,12 @@
         </q-item-section>
         <q-item-section avatar>
           <template v-if="isEnablePushNotifsLoading">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+            <ProgressLoader />
           </template>
           <template v-else>
             <q-toggle
               v-model="enablePushNotifs"
-              color="blue-9"
+              :color="toggleColor"
               keep-color
               @click="handleNotifsSubscription"
             />
@@ -33,12 +33,12 @@
 
           <q-item-section avatar>
             <template v-if="isEnableEventsAndPromosIsLoading">
-              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+              <ProgressLoader />
             </template>
             <template v-else>
               <q-toggle
                 v-model="isEnableEventsAndPromos"
-                color="blue-9"
+                :color="toggleColor"
                 keep-color
                 @click="handleNotifTypesSubscription({
                   db_col: 'is_events_promotions_enabled',
@@ -81,12 +81,12 @@
 
             <q-item-section avatar>
               <template v-if="item.isLoading">
-                <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+                <ProgressLoader />
               </template>
               <template v-else>
                 <q-toggle
                   v-model="item.isEnabled"
-                  color="blue-9"
+                  :color="toggleColor"
                   keep-color
                   @click="() => {
                     handleNotifTypesSubscription({
@@ -107,7 +107,7 @@
 <script>
 import Watchtower from 'watchtower-cash-js'
 
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { loadWallet } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import {
@@ -167,6 +167,13 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    toggleColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return 'pink-6'
+      if (theme === 'glassmorphic-green') return 'green-6'
+      if (theme === 'glassmorphic-gold') return 'amber-7'
+      return 'blue-6'
     }
   },
 
@@ -234,7 +241,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     async handleNotifsSubscription () {
       const vm = this
       vm.isEnablePushNotifsLoading = true
@@ -362,6 +368,93 @@ export default {
 
   & div {
     top: 10px !important;
+  }
+}
+</style>
+
+<style lang="scss" scoped>
+.section-title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+  
+  &.dark {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.pt-setting-menu {
+  font-weight: 400;
+  font-size: 15px;
+  &.dark {
+    color: #e0e2e5;
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+.pt-setting-avatar-dark {
+  color: #A6ACAF;
+}
+
+.pt-label {
+  font-size: 14px;
+  &.dark {
+    color: #e0e2e5;
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+.pt-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.settings-list {
+  .q-item {
+    padding: 16px 20px;
+    min-height: 64px;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    &.dark:not(:last-child) {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  :deep(.q-item__label--caption) {
+    opacity: 0.7;
+    margin-top: 4px;
+    line-height: 1.3;
+    font-size: 13px;
+  }
+}
+
+#app-container {
+  &.dark {
+    .settings-list .q-item {
+      &:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    }
+  }
+  
+  &.light {
+    .settings-list .q-item {
+      &:not(:last-child) {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+    }
   }
 }
 </style>

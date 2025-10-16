@@ -239,7 +239,7 @@
             </div>
             <div class="row justify-center q-mt-sm" style="color: gray;">{{ $t('PoweredBy') }} hop.cash</div>
             <div class="row items-start justify-center q-mt-sm" style="margin-top: 15px;">
-              <ProgressLoader v-if="loading" :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+              <ProgressLoader v-if="loading" />
               <q-btn
                 v-else
                 no-caps
@@ -296,7 +296,7 @@ import Pin from 'components/pin'
 import BiometricWarningAttempt from 'components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const hopCashFee = {
   pctg: 0.001,
@@ -428,7 +428,6 @@ export default {
   methods: {
     getAssetDenomination,
     getDarkModeClass,
-    isNotDefaultTheme,
     formatAmount (value) {
       const parsedNum = Number(value)
       if (isNaN(parsedNum)) return ''

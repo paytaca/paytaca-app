@@ -1,5 +1,5 @@
 <template>
-  <q-list v-if="!swiped" :class="{ 'absolute-bottom': !disableAbsoluteBottom, 'br-15': true }">
+  <q-list v-if="!swiped" :class="{ 'absolute-bottom': !disableAbsoluteBottom, 'br-15': true, 'drag-slide-container': true }">
     <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
       <q-slide-item left-color="blue" @left="slide" style="background-color: transparent; border-radius: 40px;">
         <template v-slot:left>
@@ -60,3 +60,42 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+/* Fix for iOS positioning issues */
+.drag-slide-container {
+  &.absolute-bottom {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 2000;
+    
+    /* Ensure proper positioning on iOS */
+    body.platform-ios & {
+      position: fixed !important;
+      bottom: 0;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    
+    /* Add a subtle background to ensure visibility */
+    &::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.03));
+      pointer-events: none;
+      z-index: -1;
+    }
+  }
+}
+
+/* Dark mode background */
+body.body--dark .drag-slide-container.absolute-bottom::before {
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.2));
+}
+</style>

@@ -32,7 +32,10 @@
     <div
       ref="scrollTargetRef"
       :style="`height: ${attachmentUrl ? maxHeight - 280 : maxHeight - 120}px`"
-      style="overflow: auto;">
+      style="overflow: auto; position: relative;">
+      <div v-if="isloaded" class="text-center q-py-sm q-px-sm" :class="darkMode ? 'text-grey-4 bg-grey-9' : 'text-grey bg-grey-2'" style="font-size: 12px; position: sticky; top: 0; z-index: 10; border-radius: 8px; margin: 8px;">
+        <q-icon name="lock"/>&nbsp; {{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}
+      </div>
       <q-infinite-scroll
         :scroll-target="scrollTargetRef"
         ref="infiniteScroll"
@@ -47,10 +50,7 @@
         </template>
 
         <div class="row justify-center q-py-lg" v-if="!isloaded">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-        </div>
-        <div  v-if="isloaded" class="text-center q-py-lg q-mb-lg q-mxlg q-px-sm" :class="darkMode ? 'text-grey-4' : 'text-grey'" style="font-size: 12px; margin-left: 30px; margin-right: 30px; overflow: auto;">
-          <q-icon name="lock"/>&nbsp; {{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}
+          <ProgressLoader />
         </div>
         <div v-if="convo.messages.length !== 0 && isloaded">
           <div v-for="(message, index) in convo.messages" :key="index" class="">
@@ -294,7 +294,7 @@ import { formatDate } from 'src/exchange'
 import { ref } from 'vue'
 import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { bus } from 'src/wallet/event-bus'
@@ -476,7 +476,6 @@ export default {
     }
   },
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     userNameView (name) {
       const limitedView = name?.length > 13 ? name?.substring(0, 10) + '...' : name;

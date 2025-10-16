@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="header-nav-wrapper">
     <template v-if="rewardsPage === ''">
       <div
         ref="header-nav"
@@ -11,7 +11,7 @@
           <router-link
             :to="{ path: backnavpath }"
             class="pt-arrow-left-link"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :class="{'text-grad': darkMode}"
             :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             <span class="material-icons" @click="onClick">
                 arrow_back
@@ -22,14 +22,14 @@
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
           >
             {{ title }}
           </p>
         </div>
         <div class="col-1">
-          <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>
+          <slot name="top-right-menu">&nbsp;</slot>
         </div>
       </div>
     </template>
@@ -49,7 +49,7 @@
           <router-link
             :to="{ path: backnavpath }"
             class="pt-arrow-left-link"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :class="{'text-grad': darkMode}"
             :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             <span class="material-icons" @click="onClick">
                 arrow_back
@@ -60,7 +60,7 @@
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
           >
             {{ title }}
@@ -111,9 +111,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
     }
   },
   mounted () {

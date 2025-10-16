@@ -40,7 +40,7 @@
       </div>
       <template v-if="handshakeOnProgress">
         <div class="row items-center justify-center">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
         <div v-if="pendingConnector" class="row items-center justify-center">
           <q-btn
@@ -194,7 +194,7 @@ import { computed, inject, markRaw, onMounted, onUnmounted, reactive, ref, watch
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 // import QrScanner from "src/components/qr-scanner.vue"
 import WalletConnectCallRequestDialog from 'src/components/walletconnect/WalletConnectCallRequestDialog.vue'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $emit = defineEmits([
   'request-scanner'

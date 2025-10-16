@@ -1,22 +1,22 @@
 <template>
-	<div class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-primary'">
+	<div class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-dark'">
 		<div v-if="stablehedgeView">
 			<div class="row">
 				<div class="col" v-for="opt in stablehedgeOpt">
-		            <q-btn color="primary" round size="18px" :disable="!loaded" @click="handleButton(opt.name)">
-		            	<q-icon class="default-text-color" size="30px" :name="opt.icon"/>
+		            <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="!loaded" @click="handleButton(opt.name)">
+		            	<q-icon class="default-text-color" size="24px" :name="opt.icon"/>
 		            </q-btn>
-		            <div class="q-pt-sm text-center text-capitalize title-smaller">{{ opt.name }}</div>
+		            <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ opt.label }}</div>
 		        </div>	         
 			</div>			
 		</div>
 		<div v-else>
 			<div class="row">	             
 	              <div class="col" v-for="opt in bchOpt">	              	
-	                <q-btn color="primary" class="button-default" round size="18px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
-	                  <q-icon class="default-text-color"  size="30px" :name="opt.icon"/>
+	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
+	                  <q-icon class="default-text-color"  size="24px" :name="opt.icon"/>
 	                </q-btn>
-	                <div class="q-pt-sm text-center text-capitalize title-small">{{ opt.name }}</div>
+	                <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ opt.label }}</div>
 	              </div>
 	            </div>
 		</div>
@@ -56,16 +56,16 @@ export default {
 				show: false,
 				redemptionContracts: null
 			},
-			bchOpt: [				
-		        { name: 'send', icon: 'img:app-send.svg' },
-		        { name: 'receive', icon: 'img:app-receive.svg' },
-		        { name: 'cashin', icon: 'img:cashin.svg' },
-		        { name: 'price chart', icon: 'query_stats' }
-			],
+		bchOpt: [				
+	        { name: 'send', label: this.$t('Send'), icon: 'img:app-send.svg' },
+	        { name: 'receive', label: this.$t('Receive'), icon: 'img:app-receive.svg' },
+	        { name: 'cash in', label: this.$t('CashIn'), icon: 'img:cashin.svg' },
+	        { name: 'price chart', label: this.$t('PriceChart'), icon: 'query_stats' }
+		],
 			stablehedgeOpt: [		
-		        { name: 'freeze', icon: 'ac_unit' },
-		        { name: 'unfreeze', icon: 'img:unfreeze.svg' },		        
-		        { name: 'stats', icon: 'query_stats' }
+		        { name: 'freeze', label: this.$t('Freeze'), icon: 'ac_unit' },
+		        { name: 'unfreeze', label: this.$t('Unfreeze'), icon: 'img:unfreeze.svg' },		        
+		        { name: 'stats', label: this.$t('Stats'), icon: 'query_stats' }
 			],
 		}
 	},
@@ -116,39 +116,39 @@ export default {
 		// console.log('here: ', this.selectedDenomination)
 	},
 	methods: {
-		handleButton(name) {
-			switch (name) {
-		        case 'freeze': 
-		          this.openFreezeDialog()
-		          break
-		        case 'unfreeze':
-		          this.openUnfreezeDialog()
-		          break
-		        case 'send':
-		          this.$router.push({ name: 'transaction-send-select-asset' })
-		          break 
-		        case 'receive':
-		          this.$router.push({ name: 'transaction-receive-select-asset' })
-		          break
-		        case 'cashin':
-		          this.$emit('cashin')
-		          break
-		        case 'price chart':
-		          this.$emit('price-chart')
-		          break
-		        case 'stats':
-		        	this.$emit('stats')
-		        	break
-		      } 
-		},
-		disableButton (name) {
-			if (name === 'cashin') {
-				return !this.loaded || !this.hasCashin
-			} else {
-				return !this.loaded
-			}
+	handleButton(name) {
+		switch (name) {
+	        case 'freeze': 
+	          this.openFreezeDialog()
+	          break
+	        case 'unfreeze':
+	          this.openUnfreezeDialog()
+	          break
+	        case 'send':
+	          this.$router.push({ name: 'transaction-send-select-asset' })
+	          break 
+	        case 'receive':
+	          this.$router.push({ name: 'transaction-receive-select-asset' })
+	          break
+	        case 'cash in':
+	          this.$emit('cashin')
+	          break
+	        case 'price chart':
+	          this.$emit('price-chart')
+	          break
+	        case 'stats':
+	        	this.$emit('stats')
+	        	break
+	      } 
+	},
+	disableButton (name) {
+		if (name === 'cash in') {
+			return !this.loaded || !this.hasCashin
+		} else {
+			return !this.loaded
+		}
 
-		},
+	},
  		async openFreezeDialog() { 			
 			const { contract } = (await this.findContractForFreeze())
 		    this.depositFormDialog.show = true
@@ -233,6 +233,7 @@ export default {
 	        if (!categories.length) throw vm.$t('NoRedeemableTokens')
 
 	        const params = {
+			      verified: true,
 	          categories: categories.join(','),
 	        }
 
@@ -300,7 +301,7 @@ export default {
 	        if (result?.status === 'success') {
 	          notifyOpts.type = 'positive'
 	          notifyOpts.icon = 'check_circle'
-	          notifyOpts.message = notifyOpts.message || $t('Success')
+	          notifyOpts.message = notifyOpts.message || this.$t('Success')
 	          this.$emit('deposit', [result])
 	        } else if (result?.status === 'failed') {
 	          notifyOpts.type = 'negative'
@@ -371,9 +372,6 @@ export default {
 </script>
 <style lang="scss" scoped>
 .asset-option {
-	margin: 15px 0px 25px;
-}
-.default-text-color {
-	filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7448%) hue-rotate(59deg) brightness(109%) contrast(101%);
+	margin: 10px 0px 15px;
 }
 </style>

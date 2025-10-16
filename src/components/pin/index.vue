@@ -15,7 +15,7 @@
                 <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
               </div>
               <div class="col-12 text-center">
-                <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+                <ProgressLoader />
               </div>
             </div>
           </q-card-section>
@@ -38,7 +38,7 @@
                   <div class="row justify-center">
                       <div class="col-2 pt-pin-key" v-for="(keys, index) in pinKeys" :key="index">
                         <p class="q-py-md text-h5 text-center q-my-none pt-text-key">
-                            <span v-if="keys.key !== ''" class="material-icons pin-icon" :class="{'text-blue-5': darkMode}">
+                            <span v-if="keys.key !== ''" class="material-icons pin-icon">
                               radio_button_checked
                             </span>
                             <span v-else class="material-icons">
@@ -96,7 +96,7 @@ import ProgressLoader from '../../components/ProgressLoader'
 import 'capacitor-secure-storage-plugin'
 import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../../wallet'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { sha256 } from 'js-sha256'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
@@ -172,7 +172,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     nonNumKeysClass (key) {
       let classes = ''
       if (this.$store.getters['darkmode/getStatus']) {

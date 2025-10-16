@@ -38,7 +38,7 @@
             </button>
           </div>
           <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
           </div>
           <!-- Cashout Order List -->
           <div v-else class="q-mx-lg q-pt-sm">
@@ -82,7 +82,7 @@
 <script>
 import { backend } from 'src/wallet/pos'
 import { formatCurrency, formatDate } from 'src/exchange'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import CashoutOrderDetails from './CashoutOrderDetails.vue'
 
@@ -138,7 +138,6 @@ export default {
   methods: {
     formatDate,
     getDarkModeClass,
-    isNotDefaultTheme,
     formatCurrency,
     selectCashoutOrder (order){
       this.selectedCashoutOrder = order

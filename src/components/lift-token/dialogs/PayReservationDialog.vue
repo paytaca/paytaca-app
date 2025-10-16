@@ -6,8 +6,8 @@
     class="no-click-outside"
   >
     <q-card
-      class="full-width q-pa-md pt-card-2 text-body1 text-bow"
-      :class="getDarkModeClass(darkMode)"
+      class="full-width q-pa-md text-body1 text-bow"
+      :class="getDarkModeClass(darkMode, 'bg-pt-dark', 'bg-pt-light')"
     >
       <div class="row justify-between items-center q-mb-md">
         <span class="text-h6">{{ $t("PurchaseLift") }}</span>

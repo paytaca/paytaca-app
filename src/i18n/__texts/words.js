@@ -222,7 +222,6 @@ const words = [
       Addresses: 'Addresses',
       Delete: 'Delete',
       Escrow: 'Escrow',
-      Recipient: 'Recipient',
       None: 'None',
       Payments: 'Payments',
       Call: 'Call',
@@ -328,7 +327,6 @@ const words = [
     BCH: 'BCH',
     Map: 'Map',
     Confirmed: "Confirmed",
-    Cancelled: "Cancelled",
   },
   {
     Marketplace: 'Marketplace',
@@ -351,7 +349,6 @@ const words = [
     SelectChangeAddress: 'Select change address',
     UseSystemGeneratedChangeAddress: 'Use a system generated change address',
     UseSystemGeneratedChangeAddressHelp: "For improved privacy, Paytaca will select your change address for you.",
-    SelectChangeAddress: 'Select Change Address',
     SelectChangeAddressHelp: 'Some of your accounts were used on one or more(D)apps. Click below if you want to send the change to one of this account.',
     WillSendChangeTo: 'Will send change to',
     AddressDisplayFormat: 'Address format',
@@ -407,7 +404,36 @@ const words = [
     AmountPurchased: 'Amount Purchased',
     DatePurchased: 'Date Purchased',
     LockupPeriod: 'Lockup Period',
-    VestingProgress: 'Vesting Progress'
+    VestingProgress: 'Vesting Progress',
+    Learn: 'Learn',
+    Market: 'Market',
+    GlassmorphicBlue: "Glassmorphic Blue",
+    GlassmorphicRed: "Glassmorphic Red",
+    GlassmorphicGreen: "Glassmorphic Green",
+    GlassmorphicGold: "Glassmorphic Gold",
+    AddMethod: 'Add Method',
+    CashIn: 'Cash In',
+    PriceChart: 'Price Chart',
+    Stats: 'Stats'
+  },
+  {
+    Authenticating: 'Authenticating',
+    Processing: 'Processing',
+    PendingOrder: 'Pending Order',
+    AppealOrder: 'Appeal Order',
+    CreateOrder: 'Create Order',
+    EscrowingFunds: 'Escrowing Funds',
+    ReleasingFunds: 'Releasing Funds',
+    FundsReleased: 'Funds Released!',
+    OrderCancelled: 'Order Cancelled',
+    BchEscrowed: 'BCH Escrowed',
+    EnterUsername: 'Enter Username',
+    YouGet: 'You get',
+    YouPay: 'You pay',
+    PendingPayment: 'Pending Payment',
+    PendingRelease: 'Pending Release',
+    Order: 'Order',
+    LoadingMore: 'Loading more'
   }
 ]
 

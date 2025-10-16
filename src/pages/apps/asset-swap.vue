@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('AssetSwap')"
       backnavpath="/apps"
@@ -7,8 +7,8 @@
     />
 
     <q-tabs
-      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+      active-color="brandblue"
+      
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedNetwork"
       style="padding-bottom: 16px;"
@@ -56,7 +56,7 @@
 <script>
 import SmartSwapForm from '../../components/asset-swap/SmartSwapForm.vue'
 import HeaderNav from '../../components/header-nav'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'AssetSwap',
@@ -85,7 +85,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong
   }
 }

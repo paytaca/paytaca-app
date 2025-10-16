@@ -1,6 +1,6 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="'Merchant Cash Out'" class="header" />
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+      <HeaderNav :title="'Merchant Cash Out'" class="header-nav header" />
     <CashoutIndex v-if="state === 'list'" @cashout-form="openCashoutForm"/>
 </div>
 </template>

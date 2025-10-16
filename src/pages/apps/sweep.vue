@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav :title="$t('Sweep')" backnavpath="/apps" />
       <div
         id="app"
@@ -15,12 +15,12 @@
       >
         <div class="text-center text-h6" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
           <p>{{ $t('Scanning') }}...</p>
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader />
         </div>
 
         <div class="text-center text-h6" v-if="isDecrypting" style="margin-top: 25px;">
           <p>{{ $t('Decrypting') }}...</p>
-          <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+          <progress-loader />
         </div>
 
         <template v-if="!submitted">
@@ -117,7 +117,7 @@
                   <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
                 </span>
                 <div v-if="sweeping && selectedToken === 'bch'">
-                  <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+                  <progress-loader />
                 </div>
               </template>
               <span v-else class="text-red">
@@ -185,7 +185,7 @@
                     />
                   </div>
                   <div v-if="sweeping && selectedToken === fungibleToken.category">
-                    <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+                    <progress-loader />
                   </div>
                 </div>
                 <div v-for="(nft, index) in nonFungibleCashTokens" :key="index" class="token-details">
@@ -261,7 +261,7 @@
                     <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" :label="$t('Skip')" />
                   </template>
                   <div v-if="sweeping && selectedToken === token.token_id">
-                    <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+                    <progress-loader />
                   </div>
                 </div>
               </div>
@@ -280,7 +280,7 @@ import ProgressLoader from '../../components/ProgressLoader'
 import SweepPrivateKey, { extractWifFromUrl } from '../../wallet/sweep'
 import QrScanner from '../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../wallet'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { CashNonFungibleToken } from 'src/wallet/cashtokens'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import bip38 from '@asoltys/bip38'
@@ -391,7 +391,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
     round(value, decimals=0) {
       decimals = parseInt(decimals)

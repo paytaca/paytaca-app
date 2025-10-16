@@ -212,7 +212,7 @@ export default {
     color: #000 !important;
   }
   .btn-scan {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
     color: white;
   }
 </style>

@@ -6,6 +6,7 @@
 </template>
 
 <script>
+import { updateCssThemeColors } from './utils/theme-utils'
 import { getMnemonic, Wallet, loadWallet } from './wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { useStore } from "vuex"
@@ -29,6 +30,11 @@ export default {
     const theme = computed(() => store?.state?.global?.theme)
     const darkMode = computed(() => store?.state?.darkmode?.darkmode)
     window.toggleDark = () => store.commit('darkmode/setDarkmodeSatus', !darkMode.value)
+
+    // Migrate old 'default' theme to 'glassmorphic-blue'
+    if (theme.value === 'default') {
+      store.commit('global/setTheme', 'glassmorphic-blue')
+    }
 
     watchEffect(() => {
       // Set the theme
@@ -344,6 +350,9 @@ export default {
   },
   created () {
     const vm = this
+    setTimeout(() => {
+      updateCssThemeColors(this.$store.getters['global/theme']);
+    }, 100)
     setTimeout(function () {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'block'
 
@@ -359,6 +368,17 @@ export default {
 <style lang="scss">
 #q-app {
   overflow: auto;
+  
+  /* Hide scrollbar completely on all platforms */
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none !important;
+  }
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 #app-container {
@@ -367,15 +387,43 @@ export default {
   min-height: 100vh;
   flex-direction: column;
   display: flex;
+  
+  /* Hide scrollbar completely on all platforms */
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none !important;
+  }
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 body {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none !important;  /* Internet Explorer 10+ */
+  scrollbar-width: none !important;  /* Firefox */
   overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 body::-webkit-scrollbar { 
-  display: none;  /* Safari and Chrome */
+  display: none !important;  /* Safari and Chrome */
+  width: 0 !important;
+  height: 0 !important;
+  -webkit-appearance: none !important;
+}
+
+html {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none !important;
+  }
 }
 </style>

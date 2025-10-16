@@ -1,10 +1,10 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         :title="$t('Gifts')"
         backnavpath="/apps"
-        class="q-px-sm apps-header gift-app-header"
+        class="header-nav q-px-sm apps-header gift-app-header"
       />
       <q-pull-to-refresh @refresh="fetchGifts">
         <div :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">

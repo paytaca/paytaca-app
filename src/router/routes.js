@@ -103,6 +103,7 @@ const routes = [
     children: [
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
       { path: 'stablehedge', component: () => import('src/pages/apps/stablehedge/StablehedgePage.vue'), name: 'app-stablehedge', props: route => route.query },
+      { path: 'stablehedge/wallet', component: () => import('src/pages/apps/stablehedge/StablehedgeWalletPage.vue'), name: 'app-stablehedge-wallet', props: route => route.query },
       { path: 'map', component: () => import('src/pages/apps/map.vue'), name: 'app-map', props: route => route.query },
       { path: 'anyhedge', component: () => import('src/pages/apps/anyhedge.vue'), name: 'app-any-hedge', props: route => route.query },
       { path: 'pos-admin', component: () => import('src/pages/apps/paytacapos-admin/index.vue'), name: 'app-pos-admin', props: route => route.query },
@@ -121,6 +122,7 @@ const routes = [
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
+      { path: 'learn', component: () => import('src/pages/apps/learn.vue'), name: 'app-learn' },
       { path: 'wallet-backup', component: () => import('src/pages/apps/wallet-backup.vue'), name: 'app-wallet-backup' },
       {
         path: 'marketplace',

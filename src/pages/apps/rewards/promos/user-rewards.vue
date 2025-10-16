@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       class="apps-header"
       :title="$t('UserRewards')"
@@ -17,7 +17,7 @@
         </span>
         <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
           <progress-loader
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            
             :isTight="true"
           />
         </div>
@@ -48,7 +48,7 @@
 
         <div v-if="isLoading" class="row col-12 justify-center">
           <progress-loader
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            
             :isTight="true"
           />
         </div>
@@ -58,7 +58,7 @@
             no-caps
             v-model="currentTab"
             class="col-12"
-            :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+            indicator-color=""
             @click="adjustScrollAreaHeight"
           >
             <q-tab
@@ -241,7 +241,7 @@
 </template>
 
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   convertPoints,
   createUserRewardsData,
@@ -404,7 +404,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     parseLocaleDate,
     adjustScrollAreaHeight () {
       const vm = this

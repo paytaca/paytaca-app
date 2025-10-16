@@ -6,7 +6,10 @@
 	"webDir": "www",
 	"plugins": {
 		"SplashScreen": {
-			"launchShowDuration": 0
+			"launchShowDuration": 2000,
+			"launchAutoHide": true,
+			"androidScaleType": "CENTER_CROP",
+			"showSpinner": false
 		},
 		"Keyboard": {
 			"resize": "body",

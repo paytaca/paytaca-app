@@ -56,7 +56,7 @@
           flat
           padding="none xs"
           no-caps label="Info"
-          color="brandblue"
+          color="pt-primary1"
         >
           <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
             <div style="min-width: min(250px, 75vw);">
@@ -85,7 +85,7 @@
         v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
         class="row items-center no-wrap q-mx-sm"
       >
-        <q-rating :model-value="1" readonly max="1" size="1.5em" color="brandblue" class="q-mr-xs"/>
+        <q-rating :model-value="1" readonly max="1" size="1.5em" color="pt-primary1" class="q-mr-xs"/>
         <div>
           {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
           ({{ storefront?.ordersReviewSummary?.count }}
@@ -95,7 +95,7 @@
         <q-btn
           flat
           no-caps label="See reviews"
-          color="brandblue"
+          color="pt-primary1"
           padding="xs md"
           class="q-r-mr-lg"
           @click="() => showReviewsListDialog = true"
@@ -115,7 +115,7 @@
           clearable
           v-model="searchBar.text"
           placeholder="Search product/collection name"
-          color="brandblue"
+          color="pt-primary1"
           debounce="500"
         >
           <template v-slot:append>
@@ -234,7 +234,7 @@
         </template>
       </q-banner>
       <div class="row items-center justify-center">
-        <q-spinner v-if="!initialized && fetchingStorefront" size="4em" color="brandblue"/>
+        <q-spinner v-if="!initialized && fetchingStorefront" size="4em" color="pt-primary1"/>
       </div>
       <div v-if="collections?.length" class="q-mb-lg">
         <div class="q-px-sm row items-center" @click="expandCollections = !expandCollections">
@@ -250,7 +250,7 @@
               >
               </div>
               <div v-if="fetchingCollections === 'prepending'" class="row items-center self-center q-pa-sm">
-                <q-spinner size="3rem" color="brandblue"/>
+                <q-spinner size="3rem" color="pt-primary1"/>
               </div>
               <div
                 v-for="collection in collections" :key="collection?.id"
@@ -290,7 +290,7 @@
               >
               </div>
               <div v-if="fetchingCollections === 'appending'" class="row items-center self-center q-pa-sm">
-                <q-spinner size="3rem" color="brandblue"/>
+                <q-spinner size="3rem" color="pt-primary1"/>
               </div>
             </div>
           </div>
@@ -302,7 +302,7 @@
             <q-chip
               v-for="category in productCategories" :key="category"
               :outline="category !== selectedCategory"
-              :color="darkMode ? 'white' : 'brandblue'"
+              :color="darkMode ? 'white' : 'pt-primary1'"
               :text-color="darkMode ? 'black' : 'white'"
               clickable
               @click="selectedCategory = category === selectedCategory ? '' : category"
@@ -312,7 +312,7 @@
           </div>
         </div>
         <div class="col-12 q-px-sm q-mt-sm">
-          <q-linear-progress v-if="fetchingProducts" indeterminate color="brandblue" size="4px"/>
+          <q-linear-progress v-if="fetchingProducts" indeterminate color="pt-primary1" size="4px"/>
           <div v-else style="height:4px;"></div>
         </div>
         <template v-if="products?.length">
@@ -345,7 +345,7 @@
                   class="float-right row items-center no-wrap"
                   @click.stop
                 >
-                  <q-rating :model-value="1" readonly max="1" size="1em" color="brandblue"/>
+                  <q-rating :model-value="1" readonly max="1" size="1em" color="pt-primary1"/>
                   {{ roundRating(product?.reviewSummary?.averageRating) }}
                   <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
                     <div class="row items-center no-wrap">
@@ -354,7 +354,7 @@
                         max="5"
                         :model-value="roundRating(product?.reviewSummary?.averageRating, { forceDecimals: false})"
                         size="1em"
-                        color="brandblue"
+                        color="pt-primary1"
                         class="no-wrap"
                         icon-half="star_half"
                       />

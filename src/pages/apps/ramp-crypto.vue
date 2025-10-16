@@ -2,7 +2,7 @@
 <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
     <!-- back button -->
     <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="state != 'form'" @click="clickBack"></div>
-    <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps"/>
+    <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps" class="header-nav" />
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
       <ProgressLoader/>
     </div>
