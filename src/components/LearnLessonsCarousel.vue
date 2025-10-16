@@ -11,9 +11,8 @@
         :label="$t('See All')"
         :color="darkMode ? 'blue-4' : 'blue-6'"
         @click="openLearnApp"
-        size="sm"
         padding="4px 8px"
-        class="q-mr-md"
+        class="q-mr-md see-all-btn"
       />
     </div>
     
@@ -155,6 +154,10 @@ export default {
 .learn-carousel-container {
   margin-top: 20px;
   margin-bottom: 100px; // Add space for footer menu (67px height + 16px bottom + extra padding)
+}
+
+.see-all-btn {
+  font-size: 14px !important;
 }
 
 .lessons-container {

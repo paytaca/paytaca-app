@@ -1605,6 +1605,19 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  /* Hide scrollbar completely on all platforms */
+  #app-container {
+    &::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      -webkit-appearance: none !important;
+    }
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;

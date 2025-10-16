@@ -6,7 +6,7 @@
 		            <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="!loaded" @click="handleButton(opt.name)">
 		            	<q-icon class="default-text-color" size="24px" :name="opt.icon"/>
 		            </q-btn>
-		            <div class="q-pt-xs text-center text-capitalize" style="font-size: 11px;">{{ opt.label }}</div>
+		            <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ opt.label }}</div>
 		        </div>	         
 			</div>			
 		</div>
@@ -16,7 +16,7 @@
 	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
 	                  <q-icon class="default-text-color"  size="24px" :name="opt.icon"/>
 	                </q-btn>
-	                <div class="q-pt-xs text-center text-capitalize" style="font-size: 11px;">{{ opt.label }}</div>
+	                <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ opt.label }}</div>
 	              </div>
 	            </div>
 		</div>

@@ -1599,4 +1599,19 @@ export default {
   .expansion-item-error {
     color: #e57373
   }
+
+  /* Ensure DragSlide is visible on iOS */
+  .send-form-container {
+    position: relative;
+    
+    /* Add padding at bottom to prevent content from being hidden under the slider */
+    padding-bottom: 120px !important;
+  }
+
+  /* iOS-specific fixes for DragSlide positioning */
+  body.platform-ios {
+    #app-container.sticky-header-container {
+      position: relative;
+    }
+  }
 </style>

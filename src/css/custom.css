@@ -132,6 +132,7 @@ html::-webkit-scrollbar,
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+  -webkit-appearance: none !important;
 }
 
 body,
@@ -141,11 +142,30 @@ html,
 #apps-page-container {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 .scroll-y {
   overflow-y: auto !important;
   overflow-x: hidden !important;
+}
+
+/* Additional iOS and macOS scrollbar hiding */
+*::-webkit-scrollbar {
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent !important;
+  -webkit-appearance: none !important;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent !important;
+  -webkit-appearance: none !important;
 }
 
 .bex.q-body--prevent-scroll {

@@ -335,10 +335,21 @@ export default {
 </script>
 
 <style scoped lang="scss">
+  /* Hide scrollbar completely on all platforms */
   #apps-page-container {
     background-color: #ECF3F3;
     min-height: 100vh;
     padding-bottom: 30px;
+    
+    &::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      -webkit-appearance: none !important;
+    }
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
   }
   .bex-app {
     width: 107px;

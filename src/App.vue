@@ -368,6 +368,17 @@ export default {
 <style lang="scss">
 #q-app {
   overflow: auto;
+  
+  /* Hide scrollbar completely on all platforms */
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none !important;
+  }
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 #app-container {
@@ -376,15 +387,43 @@ export default {
   min-height: 100vh;
   flex-direction: column;
   display: flex;
+  
+  /* Hide scrollbar completely on all platforms */
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none !important;
+  }
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 body {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none !important;  /* Internet Explorer 10+ */
+  scrollbar-width: none !important;  /* Firefox */
   overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 body::-webkit-scrollbar { 
-  display: none;  /* Safari and Chrome */
+  display: none !important;  /* Safari and Chrome */
+  width: 0 !important;
+  height: 0 !important;
+  -webkit-appearance: none !important;
+}
+
+html {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none !important;
+  }
 }
 </style>
