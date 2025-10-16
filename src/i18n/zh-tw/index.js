@@ -719,6 +719,7 @@ export default {
   LoadingChat: "正在加載聊天內容",
   LoadingChatIdentity: "正在加載聊天身份",
   LoadingMetadata: "加載元數據",
+  LoadingMore: "加載更多",
   LoadingRequests: "加載請求",
   LoadingSevices: "裝載裝置",
   LoadingShards: "加載分片",

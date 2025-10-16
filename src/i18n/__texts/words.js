@@ -432,7 +432,8 @@ const words = [
     YouPay: 'You pay',
     PendingPayment: 'Pending Payment',
     PendingRelease: 'Pending Release',
-    Order: 'Order'
+    Order: 'Order',
+    LoadingMore: 'Loading more'
   }
 ]
 

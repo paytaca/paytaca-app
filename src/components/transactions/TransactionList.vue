@@ -20,7 +20,7 @@
       <!-- Loading indicator for infinite scroll -->
       <div v-if="transactionsAppending && transactions.length > 0" class="loading-more">
         <q-spinner color="primary" size="32px" />
-        <p class="loading-text" :class="getDarkModeClass(darkMode)">{{ $t('LoadingMore', {}, 'Loading more...') }}</p>
+        <p class="loading-text" :class="getDarkModeClass(darkMode)">{{ $t('LoadingMore', {}, 'Loading more') }}...</p>
       </div>
       
       <!-- End of list indicator -->

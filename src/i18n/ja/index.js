@@ -721,6 +721,7 @@ export default {
   LoadingChat: "チャットの読み込み",
   LoadingChatIdentity: "チャットIDの読み込み",
   LoadingMetadata: "メタデータの読み込み",
+  LoadingMore: "さらに読み込み中",
   LoadingRequests: "リクエストの読み込み",
   LoadingSevices: "ロードデバイス",
   LoadingShards: "破片の積み込み",

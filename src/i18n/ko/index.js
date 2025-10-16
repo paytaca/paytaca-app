@@ -721,6 +721,7 @@ export default {
   LoadingChat: "채팅로드",
   LoadingChatIdentity: "채팅 아이덴티티로드",
   LoadingMetadata: "메타 데이터로드",
+  LoadingMore: "더 로드 중",
   LoadingRequests: "로드 요청",
   LoadingSevices: "로딩 장치",
   LoadingShards: "파편을 로딩합니다",

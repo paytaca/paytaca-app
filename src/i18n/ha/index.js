@@ -721,6 +721,7 @@ export default {
   LoadingChat: "Sauke hira",
   LoadingChatIdentity: "Loading asalin hira",
   LoadingMetadata: "Loading metadata",
+  LoadingMore: "Loading More",
   LoadingRequests: "Abubuwan da ake buƙata na Loading",
   LoadingSevices: "Kayan aiki",
   LoadingShards: "Loading Shards",
