@@ -2,7 +2,7 @@
   <div
     class="row justify-center fixed-footer"
     :class="[getDarkModeClass(), { 'footer-hidden': isFooterHidden }]"
-    :style="{'padding-bottom': $q.platform.is.ios ? '55px' : '0'}"
+    :style="{bottom: $q.platform.is.ios ? '36px' : '16px'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <button class="footer-icon-btn" :class="getDarkModeClass()">

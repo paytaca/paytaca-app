@@ -4,7 +4,7 @@
       v-model="showQrScanner"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav :title="$t('Sweep')" backnavpath="/apps" />
       <div
         id="app"

@@ -1,10 +1,10 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="getDarkModeClass(darkMode)" class="text-bow">
+      <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         :title="$t('Multisig Wallets')"
         backnavpath="/apps"
-        class="q-px-sm apps-header gift-app-header"
+        class="header-nav q-px-sm apps-header gift-app-header"
       >
       <!-- <template v-slot:top-right-menu>
         <div class="flex items-center justify-end" >

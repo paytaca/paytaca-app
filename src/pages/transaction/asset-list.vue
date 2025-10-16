@@ -1,5 +1,5 @@
 <template>
-	<div id="app-container" :class="getDarkModeClass(darkmode)">
+	<div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkmode)">
 		<header-nav
 	      :title="$t(isHongKong(currentCountry) ? 'Points' : 'Tokens')"
 	      backnavpath=""

@@ -4,7 +4,7 @@
       v-model="scanner.show"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         :title="$t('WalletConnect')"
         backnavpath="/apps"

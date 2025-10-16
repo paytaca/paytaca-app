@@ -1,7 +1,7 @@
 <template>
   <!-- <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div> -->
   <div v-if="!$route.query?.edit">
-    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute" class="header-nav" />
     <div class="q-mx-md q-mb-lg q-pb-lg text-bow"
       :class="getDarkModeClass(darkMode)"
       :style="`height: ${minHeight}px;`">

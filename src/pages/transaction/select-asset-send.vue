@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav id="SEND"
       :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
     <template v-if="assets">

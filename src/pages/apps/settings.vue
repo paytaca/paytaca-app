@@ -1,6 +1,6 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
-      <header-nav :title="$t('Settings')" backnavpath="/apps" class="apps-header" />
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+      <header-nav :title="$t('Settings')" backnavpath="/apps" class="header-nav header-nav apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Security') }}</p>

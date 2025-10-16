@@ -1,8 +1,9 @@
 <template>
   <div
     id="app-container"
+    class="sticky-header-container"
     :class="[getDarkModeClass(darkMode), darkMode ? 'text-grey-2' : 'text-grey-10']">
-    <HeaderNav :title="'Merchant Cash Out'" class="header"/>
+      <HeaderNav :title="'Merchant Cash Out'" class="header-nav header" />
     <div>
       <div v-if="status === 'confirm-transaction'"
         class="q-mx-sm"

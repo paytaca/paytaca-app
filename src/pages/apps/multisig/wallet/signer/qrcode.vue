@@ -3,7 +3,7 @@
     <q-page-container>
       <q-page>
         <div class="static-container">
-          <div id="app-container" :class="getDarkModeClass(darkMode)">
+          <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
               :title="$t('XPubKey QR Code')"
               backnavpath="/apps/multisig/create"

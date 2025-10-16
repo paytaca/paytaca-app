@@ -1,6 +1,6 @@
 <template>
-	<div id="app-container" :class="darkmode ? 'dark' : 'light'">
-		<header-nav :title="$t('Transactions')" class="apps-header" backnavpath="/"/>
+	<div id="app-container" class="sticky-header-container" :class="darkmode ? 'dark' : 'light'">
+		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/"/>
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->

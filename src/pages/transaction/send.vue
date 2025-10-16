@@ -5,10 +5,11 @@
       @decode="onScannerDecode"
     />
     <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || name || '')"
         :backnavpath="!backPath ? '/' : backPath"
+        class="header-nav"
       />
       <q-banner
         v-if="isSLP"

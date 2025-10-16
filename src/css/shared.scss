@@ -130,17 +130,20 @@ In html/template:
   }
 }
 
-div#q-app:has(.marketplace-container) {
+div#q-app:has(.marketplace-container),
+div#q-app:has(.sticky-header-container) {
   height: 100vh;
   overflow: unset;
 }
 
-.marketplace-container {
+.marketplace-container,
+.sticky-header-container {
   min-height: 100vh;
   // padding-top: 70px;
   padding-bottom: 50px;
 
-  .header-nav {
+  .header-nav,
+  .header-nav-wrapper {
     position: sticky;
     top: -1px;
     width: 100%;

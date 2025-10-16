@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="header-nav-wrapper">
     <template v-if="rewardsPage === ''">
       <div
         ref="header-nav"

@@ -5,7 +5,7 @@
       @decode="onScannerDecode"
     />
     <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <div>
         <header-nav :title="$t(`${action}Gift`)" backnavpath="/apps/gifts" />
         <div :style="{ 'padding-top': $q.platform.is.ios ? '85px' : '60px'}">

@@ -1,6 +1,6 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('WalletInfo')" backnavpath="/apps" class="apps-header" />
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+    <header-nav :title="$t('WalletInfo')" backnavpath="/apps" class="header-nav header-nav apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <div class="col-12 q-px-lg q-mt-lg">
         <p class="section-title">{{ $t('BchAddresses') }}</p>

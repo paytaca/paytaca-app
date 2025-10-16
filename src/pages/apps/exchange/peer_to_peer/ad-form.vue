@@ -1,6 +1,6 @@
 <template>
   <div>
-    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute" class="header-nav" />
     <div v-if="currentStep === 1"
       class="text-bow"
       :class="getDarkModeClass(darkMode)">
