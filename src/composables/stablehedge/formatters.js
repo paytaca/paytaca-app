@@ -1,5 +1,5 @@
 import ago from 's-ago';
-import { getAssetDenomination } from "src/utils/denomination-utils";
+import { formatWithLocale, getAssetDenomination } from "src/utils/denomination-utils";
 import { Store } from "src/store";
 import { useI18n } from "vue-i18n";
 import { computed, toValue } from "vue";
@@ -39,7 +39,8 @@ export function useValueFormatters(tokenCategory) {
     const currency = token?.currency || 'UNIT'
 
     const tokens = amount / 10 ** decimals
-    return `${tokens} ${currency}`
+    const formattedTokens = formatWithLocale(tokens, { max: decimals });
+    return `${formattedTokens} ${currency}`
   }
 
   function formatTransactionsCount(count) {

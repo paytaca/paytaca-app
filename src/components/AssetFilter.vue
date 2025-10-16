@@ -2,8 +2,9 @@
   <q-btn-dropdown id="token-popup"
     :content-style="contentStyle"
     :text-color="darkMode ? 'white' : ''"
-    unelevated class="float-right q-mr-md"
+    unelevated class="q-mr-md"
     :style="{color: darkMode ? 'white' : 'black'}"
+    :class="float ? 'float-right' : ''"
   >
     <template v-slot:label>
       <TokenTypeBadge :assetId="assetId" />
@@ -35,6 +36,12 @@ export default {
     return {
       assetId: 'ct',
       darkMode: this.$store.getters['darkmode/getStatus']
+    }
+  },
+  props: {
+    float: {
+      type: Boolean,
+      default: true
     }
   },
   methods: {

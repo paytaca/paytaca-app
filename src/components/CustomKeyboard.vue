@@ -18,7 +18,8 @@
             text-color="dark"
             style="width: 95%; height: 95%; font-weight: 400; line-height: 200%"
             :class="{'pt-bg-dark': darkMode}"
-            v-else-if="key !== 13" :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key"
+            v-else-if="key !== 13"
+            :label="key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? getLocaleSeparators().decimal : (key-2) : (key-1) : key"
             @click="enterKey(key > 3 ? key > 8 ? key === 13 ? '' : key === 14 ? 0 : key === 15 ? '.' : (key-2) : (key-1) : key)" />
         </div>
       </div>
@@ -26,6 +27,9 @@
   </div>
 </template>
 <script>
+import { getLocaleSeparators } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
 export default {
   props: {
     customKeyboardState: {},
@@ -47,6 +51,9 @@ export default {
     }
   },
   methods: {
+    getLocaleSeparators,
+    getDarkModeClass,
+
     enterKey (num) {
       this.$emit('addKey', num)
       this.updateValueOnKeyEnter(num)
@@ -76,9 +83,6 @@ export default {
         // Delete
         this.val = ''
       }
-    },
-    getDarkModeClass (darkModeClass = '', lightModeClass = '') {
-      return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     }
   },
   watch: {
@@ -89,11 +93,7 @@ export default {
       this.val = this.modelValue
     },
     customKeyboardState () {
-      if (this.customKeyboardState === 'show') {
-        this.keyboard = true
-      } else {
-        this.keyboard = false
-      }
+      this.keyboard = this.customKeyboardState === 'show'
     }
   }
 }
@@ -105,7 +105,8 @@ export default {
   display: flex;
   justify-content: center;
   width: 100%;
-  bottom: 0pt !important;
+  left: 0 !important;
+  bottom: 0 !important;
   z-index: 1;
 }
 .pt-keyboard-container {

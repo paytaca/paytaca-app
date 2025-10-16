@@ -1,6 +1,5 @@
-import escrowSrcCode from 'src/cashscripts/escrow.cash'
+import EscrowArtifact from 'src/cashscripts/escrow.json'
 import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
-import { compileString } from 'cashc'
 import { Store } from 'src/store'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
@@ -36,7 +35,6 @@ export class RampContract {
    * generating the contract parameters, and creating a new Contract instance.
    */
   initialize () {
-    const artifact = compileString(escrowSrcCode)
     let provider = new ElectrumNetworkProvider()
     if (this.network === 'chipnet') provider = new ElectrumNetworkProvider(this.network)
 
@@ -62,7 +60,7 @@ export class RampContract {
       BigInt(parseInt(this.fees.arbitrationFee)),
       this.hash
     ]
-    this.contract = new Contract(artifact, contractParams, { provider })
+    this.contract = new Contract(EscrowArtifact, contractParams, { provider })
   }
 
   /**

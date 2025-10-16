@@ -11,7 +11,7 @@
         </div>
         <div
           class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
-          <AssetFilter @filterTokens="isCT => isCashToken = isCT" />
+          <AssetFilter v-if="enableSLP" @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
       <div style="overflow-y: scroll;">
@@ -40,11 +40,8 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p v-if="asset.id.startsWith('ct/')" class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
-                  {{ convertTokenAmount(asset.balance, asset.decimals, decimalPlaces=asset.decimals) }} {{ asset.symbol }}
-                </p>
-                <p v-else class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
-                  {{ parseAssetDenomination(denomination, asset) }}
+                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
+                  {{ parseAssetDenomination(denomination, asset, false, 16) }}
                 </p>
               </div>
             </div>
@@ -104,6 +101,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    enableSLP () {
+      return this.$store.getters['global/enableSLP']
     },
     currentCountry () {
       return this.$store.getters['global/country'].code

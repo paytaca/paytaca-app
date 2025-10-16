@@ -68,6 +68,9 @@ body.theme-default {
     &.light {
       background-color: #ecf3f3 !important;
     }
+    &.grad {
+      background-image: $bg_gradient;
+    }
   }
 
   /* ----- CLASSES ----- */
@@ -372,5 +375,9 @@ body.theme-default {
 
   .pin-icon {
     color: shared.$brand_blue;
+  }
+
+  .primary-filter {
+    filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(190deg) brightness(96%) contrast(89%);
   }
 }

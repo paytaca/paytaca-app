@@ -25,7 +25,7 @@
         <q-form @submit="() => onSubmit()">
           <div v-if="pricePerDenomination" class="row items-center text-grey q-mb-lg">
             <div class="q-space">{{ $t('CurrentPrice') }}:</div>
-            <div>{{ pricePerDenomination }} {{ tokenCurrency}} / {{ denomination }}</div>
+            <div>{{ formatWithLocale(pricePerDenomination, { max: 8 }) }} {{ tokenCurrency}} / {{ denomination }}</div>
             <q-menu
               v-if="priceTimestamp"
               anchor="bottom right" self="top end"
@@ -36,32 +36,31 @@
             </q-menu>
           </div>
           <div class="text-body1 q-my-sm">{{ $t('InputAmountToFreeze') }}</div>
-          <q-input
-            outlined
+          <CustomKeyboardInput
             v-model="tokenAmount"
-            :suffix="tokenCurrency"
-            bottom-slots
-            :rules="[
-              val => parseFloat(val) > minAmount || $t('MustBeGreaterThan', { amount: minAmount + ' ' + tokenCurrency }),
-              val => parseFloat(val) <= maxAmount || $t('MustBeLessThan', { amount: maxAmount + ' ' + tokenCurrency}),
-            ]"
-          >
-            <template v-slot:hint>
-              <div v-if="denominatedBchAmountText" class="text-grey">
-                {{ denominatedBchAmountText }}
-              </div>
-            </template>
-          </q-input>
+            :fieldProps="{
+              outlined: true,
+              suffix: tokenCurrency,
+              bottomSlots: true,
+              rules: [
+                val => parseFloat(val) > minAmount || $t('MustBeGreaterThan', { amount: formattedMinAmount + ' ' + tokenCurrency }),
+                val => parseFloat(val) <= maxAmount || $t('MustBeLessThan', { amount: formattedMaxAmount + ' ' + tokenCurrency}),
+              ]
+            }"
+          />
+          <div v-if="denominatedBchAmountText" class="text-grey q-px-xs">
+            {{ denominatedBchAmountText }}
+          </div>
           <div
             v-if="Number.isFinite(maxAmount)"
             class="q-mb-md q-pl-xs row items-center text-grey"
           >
-            <div class="text-body2 q-space">{{ maxAmount }} {{ tokenCurrency }}</div>
+            <div class="text-body2 q-space">{{ formattedMaxAmount }} {{ tokenCurrency }}</div>
             <q-btn
               flat
               :label="$t('MAX')"
               class="q-r-mr-md text-body2"
-              @click="() => tokenAmount = maxAmount"
+              @click="() => tokenAmount = String(maxAmount)"
             />
           </div>
 
@@ -89,16 +88,22 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { customNumberFormatting, getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils';
+import { formatWithLocale, getDenomDecimals, parseFiatCurrency } from 'src/utils/denomination-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import CustomKeyboardInput from '../CustomKeyboardInput.vue';
+import { get } from '@vueuse/core';
+
 
 export default defineComponent({
   name: 'DepositDialog',
+  components: {
+    CustomKeyboardInput,
+  },
   emits: [
     'update:modelValue',
     ...useDialogPluginComponent.emits,
@@ -151,7 +156,7 @@ export default defineComponent({
     const pricePerBch = computed(() =>  priceUnitPerBch.value / 10 ** decimals.value)
     const pricePerDenomination = computed(() => {
       const currentDenomination = denomination.value || 'BCH'
-      const conversionRate = parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+      const { convert: conversionRate } = getDenomDecimals(currentDenomination)
       return pricePerBch.value / conversionRate
     })
 
@@ -175,6 +180,14 @@ export default defineComponent({
     })
     const minAmount = computed(() => {
       return 1 / 10 ** decimals.value
+    })
+    const formattedMaxAmount = computed(() => {
+      if (!Number.isFinite(maxAmount.value)) return ''
+      return formatWithLocale(maxAmount.value);
+    })
+    const formattedMinAmount = computed(() => {
+      if (!Number.isFinite(minAmount.value)) return ''
+      return formatWithLocale(minAmount.value);
     })
 
     const tokenAmount = ref(0)
@@ -216,6 +229,8 @@ export default defineComponent({
       pricePerDenomination,
       maxAmount,
       minAmount,
+      formattedMaxAmount,
+      formattedMinAmount,
       tokenAmount,
       bchAmount,
       denominatedBchAmountText,
@@ -225,6 +240,7 @@ export default defineComponent({
       formatDateRelative,
       formatTimestampToText,
       parseFiatCurrency,
+      formatWithLocale,
     }
   }
 })

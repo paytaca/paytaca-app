@@ -146,6 +146,10 @@ export function disableSmartBCH (state) {
   state.enableSmartBCH = false
 }
 
+export function enableSLP (state) {  
+  state.enableSLP = !state.enableSLP
+}
+
 export function updateWallet (state, details) {
   const wallet = getWalletData(state, details)
 

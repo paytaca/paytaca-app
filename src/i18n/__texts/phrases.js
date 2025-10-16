@@ -749,7 +749,8 @@ const phrases = {
       UseCurrentLocation: 'Use current location',
       SelectPinLocation: 'Select pin location',
       SelectLocation: 'Select Location',
-      EncryptedChatMsg: 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.'
+      EncryptedChatMsg: 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.',
+      UnableToCreatePayment: 'Unable to create payment',
     },
     {
       PAYMENTMETHODS: 'PAYMENT METHODS',
@@ -933,6 +934,7 @@ const phrases = {
       TwentyFourHours: '24 hours',
     },
     {
+      SelectPayment: 'Select Payment',
       PaymentMethod: 'Payment Method',
       InvalidEmailAddress: 'Invalid Email Address',
       InvalidPhoneNumber: 'Invalid Phone Number',
@@ -1285,11 +1287,13 @@ const phrases = {
       SuccessfulPurchase: 'Purchase processed successfully.',
       PurchasePaymentError: 'Something happened while processing your purchase. Please try again later. Please message us to refund this purchase.',
       PaymentSendingError: 'Something happened while sending your payment. Please try again later. Your balance was not deducted.',
-      AddressNotFound: 'The BCH address you used for the reservation was not found in this wallet. Please change to a wallet containing the correct address.',
       EmptyPurchases: 'You do not have any purchases yet.',
       LockupPeriodOver: 'Lockup period is over',
       VestingPeriodOver: 'Vesting period is over',
-      VestingNotOccured: 'Vesting has not occurred yet'
+      VestingNotOccured: 'Vesting has not occurred yet',
+      ReservationPaid: 'Reservation is paid in full',
+      UnidentifiedAddress: 'Unable to identify address.',
+      AddressAlreadyAdded: 'You already added this address.'
     }
   ],
   dynamic: [
@@ -1306,7 +1310,7 @@ const phrases = {
       UpdatedDeviceIDNo: "Updated device #{ID}",
       UpdatingDeviceIDNo: "Updating device #{ID}",
       DetectedUnknownCurrency: "Detected unknown currency: #{currency}",
-      InvalidRecipient: "Recipient should be a valid #{walletType} address",
+      InvalidRecipient: "Recipient should be a valid {walletType} address",
       ThemeName: "{theme} Theme",
       ExceededBalanceError: "Exceeding balance {spendableBchValue}",
       LiquidityLeastError: "Liquidity requires at least {convertedMinimumAmount}",

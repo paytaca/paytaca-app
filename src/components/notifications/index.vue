@@ -1,12 +1,12 @@
 <template>
   <q-dialog
     ref="notifs-dialog"
-    full-width
     full-height
-    seamless
+    position="right"
     class="no-click-outside"
+    maximized
   >
-    <q-card class="q-px-md q-pt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-px-md q-pt-md pt-card text-bow notifs-card" :class="getDarkModeClass(darkMode)" :style="{'padding-top': $q.platform.is.ios ? '55px' : '30px'}">
       <div class="row justify-between items-center">
         <span class="text-bold text-h6" style="color: #ed5f59;">
           {{ $t('Notifications') }}
@@ -38,7 +38,7 @@
             round
             :disable="isLoading || notifsList.length === 0"
             :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
-            :color="isCheckboxClicked ? 'red' : 'white'"
+            :color="isCheckboxClicked ? 'red' : ''"
             @click="massDeleteNotifs"
           />
           <q-btn
@@ -74,7 +74,8 @@
           <div v-if="notifsList.length > 0">
             <div
               class="q-pb-sm q-gutter-y-sm col-12"
-              style="height: 70vh; overflow-y: scroll;"
+              style="overflow-y: scroll;"
+              :style="{ 'height': $q.platform.is.ios ? '67vh' : '80vh'}"
             >
               <template v-if="isCheckboxClicked">
                 <div
@@ -278,12 +279,14 @@ export default {
       setTimeout(async () => {
         const deletedItem = vm.notifsList.splice(index, 1)
         // call to engagement-hub to hide idth notif
-        await hideItemUpdate(deletedItem[0].id).then(async () => {
-          if (vm.notifsList.length === 0) {
-            vm.notifsPage -= 1
-            await this.refreshNotifsList(null)
-          }
-        })
+        await hideItemUpdate(deletedItem[0].id)
+        
+        if (vm.notifsList.length === 0) {
+          vm.notifsPage = vm.notifsPage === vm.maxPages 
+            ? vm.notifsPage - 1 
+            : vm.notifsPage
+          await this.refreshNotifsList(null)
+        }
       }, 250)
     },
     async openFilterDialog () {
@@ -417,5 +420,8 @@ export default {
   }
   .q-card.light {
     background-color: $grey-2 !important;
+  }
+  .notifs-card {
+    width: 40vh;
   }
 </style>

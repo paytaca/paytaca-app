@@ -2,7 +2,7 @@
   <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
     <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
     <div
-      v-for="(asset, index) in assets"
+      v-for="(asset, index) in filteredFavAssets"
       :key="index"
       class="method-cards asset-card-border q-pa-md q-mr-none"
       :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
@@ -27,7 +27,7 @@
         </div>
         <template v-else>
           <p v-if="!manageAssets" class="float-right text-no-wrap asset-balance">
-            {{ formatAssetTokenAmount(asset) }}
+            {{ parseAssetDenomination(denomination, { ...asset, excludeSymbol: true }) }}
           </p>
         </template>
 
@@ -44,9 +44,10 @@
 </template>
 
 <script>
+import * as assetSettings from 'src/utils/asset-settings'
+import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
-import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 
 export default {
   name: 'asset-cards',
@@ -76,7 +77,11 @@ export default {
       assetClickTimer: null,
       darkMode: this.$store.getters['darkmode/getStatus'],
       scrollContainer: null,
-      scrollContainerClientX: null
+      scrollContainerClientX: null,
+      isloaded: false,
+      customListIDs: null,
+      customList: null,
+      networkError: false
     }
   },
   computed: {
@@ -89,9 +94,83 @@ export default {
     },
     isNotDefaultTheme () {
       return this.$store.getters['global/theme'] !== 'default'
+    },
+    filteredFavAssets () {
+      if (this.networkError) {
+        return this.assets.slice(0,10)
+      }
+
+      if (this.customList) {        
+        return this.customList.filter(asset => asset.favorite === 1)            
+      } else {   
+
+        return this.assets.filter(asset => asset.favorite === 1)   
+      }
+    },
+    denomination () {
+      return this.$store.getters['global/denomination']
     }
   },
+  // watch: {
+  //   customListIDs(val) {
+  //     if (val) {
+        
+  //     }
+  //   }
+  // },
+  async mounted() {    
+    // this.checkEmptyFavorites()
+    // const isInitFav = this.$store.getters['assets/initializedFavorites']
+    // await this.$store.dispatch('assets/initializeFavorites', this.assets) 
+
+    // if (!isInitFav) {
+    //   await assetSettings.registerUser()
+    //   const favsList = this.assets.map(asset => asset.id)
+    //   await assetSettings.saveFavorites(favsList)
+    // }
+
+    this.customListIDs = await assetSettings.fetchCustomList()  
+
+    if (this.customListIDs) {
+      // if not in server, initialize
+      if ('error' in this.customListIDs || Object.keys(this.customListIDs).length === 0) {  
+        await assetSettings.registerUser()
+
+        // initilize custom list
+        const assetIDs = this.assets.map(asset => asset.id)
+
+        if (this.network === 'BCH') {
+          await assetSettings.initializeCustomList(assetIDs, [])        
+        } else {        
+          await assetSettings.initializeCustomList([], assetIDs)
+        }
+
+        // initialize favorites
+        await assetSettings.initializeFavorites(this.assets)   
+
+      } else {
+        this.getCustomAssetList()
+      }      
+    } else {
+      console.log('empty IDS: ', this.assets)
+      this.networkError = true
+    } 
+    console.log('customIDs: ', this.customListIDs)  
+  },
   methods: {
+    parseAssetDenomination,
+    async getCustomAssetList () {
+      let temp = []
+      for (const id of this.customListIDs[this.network]) {          
+          const asset = await this.$store.getters['assets/getAsset'](id)
+
+          if (asset) {            
+            temp.push(asset[0])
+          }         
+        }
+
+      this.customList = temp
+    },
     formatAssetTokenAmount(asset) {
       return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
         'en-US', { maximumFractionDigits: parseInt(asset?.decimals) || 0 },
@@ -191,7 +270,20 @@ export default {
         }
         this.scrollContainerClientX = evt.evt.clientX
       }
-    }
+    },
+    checkEmptyFavorites () {
+        const vm = this
+
+        vm.assets.forEach((asset) => {                
+          if (!('favorite' in asset)) {
+            let temp = {
+              id: asset.id,
+              favorite: 0
+            }           
+            vm.$store.commit('assets/updateAssetFavorite',  temp)
+          }
+        })      
+      },
   }
 }
 </script>

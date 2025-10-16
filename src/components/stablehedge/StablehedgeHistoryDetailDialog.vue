@@ -84,6 +84,15 @@
           </q-item-section>
         </q-item>
         <q-item
+          v-if="record?.fee"
+          style="overflow-wrap: anywhere;"
+        >
+          <q-item-section>
+            <q-item-label class="text-gray" caption>{{ $t('Fee') }}</q-item-label>
+            <q-item-label>{{ formatBCH(record?.fee) }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item
           v-if="record?.priceValue"
           style="overflow-wrap: anywhere;"
           clickable v-ripple
@@ -162,7 +171,7 @@ export default defineComponent({
       const txid = props.record?.txid
       let url = 'https://blockchair.com/bitcoin-cash/transaction/'
 
-      if (isChipnet.value) url = 'https://chipnet.imaginary.cash/tx/'
+      if (isChipnet.value) url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
 
       return `${url}${txid}`
     })

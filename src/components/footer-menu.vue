@@ -20,33 +20,33 @@
           @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'transaction-send-select-asset' }">
+        <router-link :to="{ name: 'transaction-list' }">
           <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-send.png" size="30px" />
-          <q-icon v-else class="default-text-color mb-2" size="30px">
-            <svg>
+          <q-icon v-else name="receipt_long" class="default-text-color mb-2" size="30px">
+            <!-- <svg>
               <use xlink:href="app-send.svg#icon"></use>
-            </svg>
+            </svg> -->
           </q-icon>
         </router-link>
         <br>
         <span 
           id="send-button"
-          @click="$router.push({ name: 'transaction-send-select-asset' })">{{ $t('Send') }}</span>
+          @click="$router.push({ name: 'transaction-list' })">{{ $t('TX') }}</span>
       </button>
       <div style="width: 50px;"></div>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'transaction-receive-select-asset' }">
+        <router-link :to="{ name: 'app-marketplace' }">
           <q-icon v-if="isNotDefaultTheme" name="img:assets/img/theme/payhero/app-receive.png" size="30px" />
-          <q-icon v-else class="default-text-color mb-2" size="30px">
-            <svg>
-              <use xlink:href="app-receive.svg#icon"></use>
-            </svg>
+          <q-icon v-else name="img:marketplace.svg" class="default-text-color-2 mb-2" size="30px">
+            <!-- <svg>
+              <use xlink:href="marketplace.svg#icon"></use>
+            </svg> -->
           </q-icon>
         </router-link>
         <br>
         <span
           id="receive-button" 
-          @click="$router.push({ name: 'transaction-receive-select-asset' })">{{ $t('Receive') }}</span>
+          @click="$router.push({ name: 'app-marketplace' })">{{ $t('Market') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'apps-dashboard' }">
@@ -140,6 +140,9 @@ export default {
     }
     .default-text-color {
       color: rgb(60, 100, 246) !important;
+    }
+    .default-text-color-2 {
+      filter: brightness(0) saturate(100%) invert(36%) sepia(34%) saturate(6454%) hue-rotate(219deg) brightness(98%) contrast(97%);
     }
   }
   #qr-button {

@@ -11,9 +11,12 @@
             {{ $t('Applications') }}
           </p>
         </div>
-        <div class="row" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
+        <div class="row q-pt-lg" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
           <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
-            <div
+            <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
+              <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
+            </q-btn>
+            <!-- <div
               class="pt-app bg-grad" 
               :class="[
                 buttonClassByState(app.active),
@@ -24,7 +27,7 @@
               v-on-long-press="[e => onLongPressApp(e, app), { delay: 1000, modifiers: { stop: true, prevent: true } }]"
             >
               <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
-            </div>
+            </div> -->
             <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
           </div>
         </div>
@@ -333,19 +336,19 @@ export default {
     }
   },
   mounted () {
-    const htmlTag1 = document.querySelector('.pt-app')
-    const htmlTag = document.getElementsByClassName('pt-app')
-    this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    for (let i = 0; i < htmlTag.length; i++) {
-      htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
-    }
+    // const htmlTag1 = document.querySelector('.pt-app')
+    // const htmlTag = document.getElementsByClassName('pt-app')
+    // this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
+    // for (let i = 0; i < htmlTag.length; i++) {
+    //   htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
+    // }
 
-    window.addEventListener('resize', function () {
-      this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-      for (let i = 0; i < htmlTag.length; i++) {
-        htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
-      }
-    })
+    // window.addEventListener('resize', function () {
+    //   this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
+    //   for (let i = 0; i < htmlTag.length; i++) {
+    //     htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
+    //   }
+    // })
     this.fetchAppControl()
     this.closeExchangeWebsocket()
   }
