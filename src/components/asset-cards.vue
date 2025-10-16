@@ -1,6 +1,6 @@
 <template>
   <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
-    <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
+    
     <div
       v-for="(asset, index) in filteredFavAssets"
       :key="index"
@@ -40,6 +40,12 @@
       </div>
       <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
+    <!-- <button v-if="hasSeeMoreBtn" class="method-cards asset-card-border q-pa-md q-mr-none" @click="seeAllTokens = !seeAllTokens">
+      <q-icon :name="seeAllTokens ? 'visibility_off' : 'visibility'"/> </button>-->
+    <q-btn flat v-if="hasSeeMoreBtn" class="add-asset-button asset-card-border shadow-5 bg-grad text-white" @click="seeAllTokens = !seeAllTokens">
+      <q-icon :name="seeAllTokens ? 'visibility_off' : 'visibility'"/>
+    </q-btn>
+    
   </div>
 </template>
 
@@ -85,7 +91,7 @@ export default {
       networkError: false,
       favorites: [],
       favResult: [],
-      unlisted: []
+      seeAllTokens: false
     }
   },
   computed: {
@@ -101,12 +107,31 @@ export default {
         return this.assets.slice(0,10)
       }
 
-      if (this.customList) {        
-        return this.customList.filter(asset => asset && this.favorites.includes(asset.id))           
+
+      if (this.customList) { 
+        if (this.seeAllTokens) {
+          return this.customList.filter(asset => asset)
+        } else {
+          return this.customList.filter(asset => asset && this.favorites.includes(asset.id))           
+        }        
       } 
     },
     denomination () {
       return this.$store.getters['global/denomination']
+    },
+    hasSeeMoreBtn() {      
+      if (this.customList) {
+        const unFavoriteList = this.customList.filter(asset => asset && !this.favorites.includes(asset.id))
+        
+        
+        return unFavoriteList.length > 0 
+        // const activeAsset = this.customList.filter(asset => asset)
+
+        // return activeAsset.length > this.filteredFavAssets.length
+
+      } else {
+        return false
+      }     
     }
   },
   // watch: {
@@ -116,10 +141,7 @@ export default {
   //     }
   //   }
   // },
-  async mounted() {    
-    this.unlisted = await assetSettings.fetchUnlistedTokens()
-    await this.checkUnlisted()
-
+  async mounted() {        
     this.customListIDs = await assetSettings.fetchCustomList()      
 
 
@@ -309,22 +331,6 @@ export default {
             vm.$store.commit('assets/updateAssetFavorite',  temp)
           }
         })      
-      },
-      async checkUnlisted() {
-        console.log('unlisted: ', this.unlisted)
-
-        // if (this.unlisted.length > 0) {
-        //   if (this.isSep20) {
-        //     vm.$store.commit('sep20/addRemovedAssetIds', asset.id)
-        //     const commitName = 'sep20/removeAsset'
-        //     return vm.$store.commit(commitName, asset.id)
-        //   }
-        //   vm.$store.commit('assets/removeAsset', asset.id)
-        //   vm.$store.commit('assets/addRemovedAssetIds', {
-        //     vaultIndex: walletIndex,
-        //     id: asset.id
-        //   })
-        // }
       }
   }
 }
@@ -352,9 +358,9 @@ export default {
     border: 1px solid rgba(255, 255, 255, 0.18);
     padding: 20px 20px 34px 20px;
     border-radius: 16px;
-    font-size: 25px;
+    font-size: 15px;
     height: 78px;
-    margin-left: 2px;
+    margin-left: 15px;
     margin-right: 12px;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
