@@ -35,7 +35,7 @@
         class="learn-iframe"
         frameborder="0"
         allow="clipboard-write"
-        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation-by-user-activation allow-downloads"
         allowtransparency="true"
         scrolling="auto"
         @load="onIframeLoad"
