@@ -131,8 +131,9 @@
 	      :bch-wallet-hash="getWallet('bch').walletHash"
 	      :slp-wallet-hash="getWallet('slp').walletHash"
 	      :sbch-address="getWallet('sbch').lastAddress"
-	      @update:modelValue="() => { 
-	      	assetList = assets	      	
+	      @added="addUnlistedToken = true"
+	      @update:modelValue="() => { 	      	
+	      	     	   
 	      }"
 	    />
 
@@ -166,7 +167,8 @@ export default {
 			wallet: null,	
 			drag: false,	
 			isloaded: false,
-			networkError: false			
+			networkError: false,
+			addUnlistedToken: false	
 		}
 	},
 	computed: {
@@ -233,7 +235,12 @@ export default {
 			if (val) {
 				this.$q.loading.hide()
 			} 
-		}	
+		},
+		addUnlistedToken (val) {
+			if (val) {				
+				this.checkUpdatedAssets()
+			}
+		}
 	},
 	unmount() {
 		this.$q.loading.hide()
@@ -268,10 +275,13 @@ export default {
 	    	// register / get auth 
 		    await assetSettings.authToken()
 
-		    // fetching unlisted tokens
-		    this.unlistedToken = await assetSettings.fetchUnlistedTokens()
-		    await this.getUnlistedTokens()
-		    	
+		    // fetching unlisted tokens // skip if reloading from readding unlisted token
+		    if (!this.addUnlistedToken) {
+		    	this.unlistedToken = await assetSettings.fetchUnlistedTokens()
+		    	await this.getUnlistedTokens()
+		    }		    		    
+		    this.addUnlistedToken = false
+
 		    // fetching custom order list
 				this.customList = await assetSettings.fetchCustomList()
 				
@@ -379,9 +389,7 @@ export default {
 	        },
 	        component: AddNewAsset
 	      }).onOk((asset) => {	  
-	      	 this.loadData()
-	      	// vm.assetList = this.assets // update later // add new asset to end
-	        // if (asset.data?.id) vm.selectAsset(null, asset.data)
+	      	 this.loadData()	      	
 	      })
 	    },
 	    removeAsset (asset) {
@@ -432,9 +440,8 @@ export default {
 	    	return temp
 	    },
 	    async getUnlistedTokens (opts = { includeIgnored: false }) {
-	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
-	      // this.unlistedToken = []
-	      console.log('unlisted: ', this.unlistedToken)
+	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]	      
+
 	      let tokenIDs = []
 	      for (const tokenWalletHash of tokenWalletHashes) {
 	        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
@@ -449,19 +456,28 @@ export default {
 	        )
 
 	        tokenIDs.push(...tokens.map(asset => asset.id))
-
-
-	        // this.unlistedToken.push(...tokens)	        
 	      }
 
-	      let temp = tokenIDs.filter(asset => !this.unlistedToken.includes(asset))
+	      const diff = tokenIDs.filter(asset => !this.unlistedToken.includes(asset))	      
 
-	      // temp = this.unlistedToken.map(asset => asset.id)	        
-	      console.log('temp: ', temp)
-	      if (temp.length > 0) {
-	      	await assetSettings.saveUnlistedTokens(temp)	        
-	      }	      
+	      this.unlistedToken.push(...diff)
+
+	     	this.unlistedToken = await assetSettings.saveUnlistedTokens(this.unlistedToken)		      
 	    },
+	    async checkUpdatedAssets () {
+	    	this.$q.loading.show()	
+
+	    	const assetIDs = this.assets.map(asset => asset.id)
+	    	const diff = this.unlistedToken.filter(asset => assetIDs.includes(asset))	
+
+	    	// removing readded tokens from unlisted token list    	
+	    	const temp = this.unlistedToken.filter(asset => !diff.includes(asset))
+	    	
+	    	this.unlistedToken = await assetSettings.saveUnlistedTokens(temp)
+				this.showTokenSuggestionsDialog = false
+
+				await this.loadData()
+	    }
 	}	
 }
 </script>

@@ -159,6 +159,7 @@ export default {
       type: String
     }
   },
+  emits: ['added', 'update:modelValue'],
   data () {
     return {
       val: this.modelValue,
@@ -288,8 +289,9 @@ export default {
       if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
       else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
     },
-    addAllTokens () {
-      this.parsedTokens.forEach(this.addToken)
+    async addAllTokens () {
+      await this.parsedTokens.forEach(this.addToken)
+      this.$emit('added')      
     },
     async updateMainchainList (opts = { includeIgnored: false }) {
       const tokenWalletHashes = [this.bchWalletHash, this.slpWalletHash]
