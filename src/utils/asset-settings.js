@@ -213,7 +213,7 @@ export async function authToken () {
 			await saveAuthToken(response.data.access)
 		})
 		.catch(error => {
-			console.error(error.response.data)
+			console.error(error)
 			registerUser()
 			// memoData = error.response.data
 		})

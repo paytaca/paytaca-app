@@ -440,6 +440,8 @@ export default {
 	    	return temp
 	    },
 	    async getUnlistedTokens (opts = { includeIgnored: false }) {
+	    	if (!this.unlistedToken) { return }
+	    		
 	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]	      
 
 	      let tokenIDs = []

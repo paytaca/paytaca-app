@@ -1477,13 +1477,38 @@ export default {
           currentCountry: vm.currentCountry
         },
         component: AddNewAsset
-      }).onOk((asset) => {
-        // console.log('asset: ', )
+      }).onOk((asset) => {        
         // vm.assetList = this.assets
         this.$router.push({ name: 'asset-list' })
         // if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
-      },
+    },
+    async checkUnappliedUnlistedTokens () {
+      const vm = this      
+      const unlisted_tokens = await assetSettings.fetchUnlistedTokens()
+      const assetIDs = vm.assets.map(asset => asset.id)
+
+      if(unlisted_tokens) {
+        let diff = assetIDs.filter(asset => unlisted_tokens.includes(asset))
+
+        if (diff.length > 0) {
+          const walletIndex = vm.$store.getters['global/getWalletIndex']
+          
+          diff.forEach(asset => {
+            if (vm.selectedNetwork === 'sBCH') {
+              vm.$store.commit('sep20/addRemovedAssetIds', asset)
+              const commitName = 'sep20/removeAsset'
+              return vm.$store.commit(commitName, asset)
+            }
+            vm.$store.commit('assets/removeAsset', asset)
+            vm.$store.commit('assets/addRemovedAssetIds', {
+              vaultIndex: walletIndex,
+              id: asset
+            })
+          })        
+        }
+      }      
+    }
   },
 
   beforeRouteEnter (to, from, next) {
@@ -1572,6 +1597,9 @@ export default {
 
     vm.$store.dispatch('market/updateAssetPrices', {})
     vm.computeWalletYield()
+
+    // add unapplied unlisted token
+    vm.checkUnappliedUnlistedTokens()
   }
 }
 </script>
