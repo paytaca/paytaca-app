@@ -53,18 +53,15 @@
                   <div class="text-caption text-grey">{{ formatDateRelative(priceTimestampPerPair[index]) }}</div>
                 </q-menu>
               </div>
-              <CustomKeyboardInput
+              <CustomInput
                 v-model="amounts[index]"
-                :fieldProps="{
-                  outlined: true,
-                  suffix: denomination,
-                  reactiveRules: true,
-                  rules: [
-                    () => amount > 0 || $t('InvalidAmount'),
-                    val => parseFloat(val || 0) <= maxDenominatedRedeemableBchPerPair[index] ||
-                      $t('MustBeLessThan', { amount: maxDenominatedRedeemableBchPerPair[index] + ' ' + denomination }),
-                  ],
-                }"
+                :inputSymbol="denomination"
+                :decimalObj="{ min: 0, max: denominationDecimals }"
+                :inputRules="[
+                  () => amount > 0 || $t('InvalidAmount'),
+                  val => parseFloat(val || 0) <= maxDenominatedRedeemableBchPerPair[index] ||
+                    $t('MustBeLessThan', { amount: maxDenominatedRedeemableBchPerPair[index] + ' ' + denomination }),
+                ]"
               />
               <div v-if="tokenAmounts[index]" class="q-px-xs text-grey">
                 {{ formatWithLocale(tokenAmounts[index], { max: tokenDataPerPair[index]?.decimals }) }}
@@ -89,17 +86,15 @@
             </div>
           </div>
           <div v-else>
-            <CustomKeyboardInput
+            <CustomInput
               v-model="denominatedAmount"
-              :fieldProps="{
-                outlined: true,
-                suffix: denomination,
-                rules: [
-                  val => parseFloat(val) > 0 || $t('InvalidAmount'),
-                  val => parseFloat(val) <= totalDenominatedRedeemableBch ||
-                    $t('MustBeLessThan', { amount: totalDenominatedRedeemableBch + ' ' + denomination }),
-                ]
-              }"
+              :inputSymbol="denomination"
+              :decimalObj="{ min: 0, max: denominationDecimals }"
+              :inputRules="[
+                val => parseFloat(val) > 0 || $t('InvalidAmount'),
+                val => parseFloat(val) <= totalDenominatedRedeemableBch ||
+                  $t('MustBeLessThan', { amount: totalDenominatedRedeemableBch + ' ' + denomination }),
+              ]"
             />
             <div
               v-if="Number.isFinite(totalDenominatedRedeemableBch)"
@@ -149,12 +144,12 @@ import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
-import CustomKeyboardInput from '../CustomKeyboardInput.vue';
+import CustomInput from '../CustomInput.vue';
 
 export default defineComponent({
   name: 'RedeemDialog',
   components: {
-    CustomKeyboardInput,
+    CustomInput,
   },
   emits: [
     'update:modelValue',
@@ -195,6 +190,11 @@ export default defineComponent({
 
     const denomination = computed(() => {
       return props.selectedDenomination || $store.getters['global/denomination'] || 'BCH'
+    })
+    const denominationDecimals = computed(() => {
+      const currentDenomination = denomination.value || 'BCH'
+      const { decimal } = getDenomDecimals(currentDenomination)
+      return decimal
     })
     const denominationPerBchRate = computed(() => {
       const currentDenomination = denomination.value || 'BCH'
@@ -326,11 +326,19 @@ export default defineComponent({
         amounts.value = newDenominatedAmounts
       }
     })
+
+    const denominatedAmountInner = ref('');
     const denominatedAmount = computed({
       get() {
-        return amount.value * denominationPerBchRate.value
+        const computedValue = amount.value * denominationPerBchRate.value;
+        const parsedInner = parseFloat(denominatedAmountInner.value);
+        if (parsedInner !== computedValue) {
+          denominatedAmountInner.value = computedValue;
+        }
+        return denominatedAmountInner.value;
       },
       set(value) {
+        denominatedAmountInner.value = value;
         amount.value = value / denominationPerBchRate.value
       }
     })
@@ -361,6 +369,7 @@ export default defineComponent({
       innerVal,
 
       denomination,
+      denominationDecimals,
       tokenBalanceContractPairs,
       tokenDataPerPair,
       priceTimestampPerPair,

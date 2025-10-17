@@ -36,17 +36,11 @@
             </q-menu>
           </div>
           <div class="text-body1 q-my-sm">{{ $t('InputAmountToFreeze') }}</div>
-          <CustomKeyboardInput
+          <CustomInput
             v-model="tokenAmount"
-            :fieldProps="{
-              outlined: true,
-              suffix: tokenCurrency,
-              bottomSlots: true,
-              rules: [
-                val => parseFloat(val) > minAmount || $t('MustBeGreaterThan', { amount: formattedMinAmount + ' ' + tokenCurrency }),
-                val => parseFloat(val) <= maxAmount || $t('MustBeLessThan', { amount: formattedMaxAmount + ' ' + tokenCurrency}),
-              ]
-            }"
+            :inputSymbol="tokenCurrency"
+            :decimalObj="{ min: 0, max: decimals }"
+            :inputRules="[ validateAmount ]"
           />
           <div v-if="denominatedBchAmountText" class="text-grey q-px-xs">
             {{ denominatedBchAmountText }}
@@ -95,14 +89,14 @@ import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
-import CustomKeyboardInput from '../CustomKeyboardInput.vue';
-import { get } from '@vueuse/core';
+import CustomInput from '../CustomInput.vue';
+import { useI18n } from 'vue-i18n';
 
 
 export default defineComponent({
   name: 'DepositDialog',
   components: {
-    CustomKeyboardInput,
+    CustomInput,
   },
   emits: [
     'update:modelValue',
@@ -114,6 +108,7 @@ export default defineComponent({
     selectedDenomination: String,
   },
   setup(props, { emit: $emit }) {
+    const { t: $t } = useI18n();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const { dialogRef, onDialogCancel, onDialogHide, onDialogOK } = useDialogPluginComponent()
@@ -203,6 +198,13 @@ export default defineComponent({
       return bchAmount.value ? denominateBch(bchAmount.value) : ''
     })
 
+    function validateAmount(value) {
+      const parsed = parseFloat(value);
+      if (parsed < minAmount.value) return $t('MustBeGreaterThan', { amount: formattedMinAmount.value + ' ' + tokenCurrency.value });
+      if (parsed > maxAmount.value) return $t('MustBeLessThan', { amount: formattedMaxAmount.value + ' ' + tokenCurrency.value});
+      return true
+    }
+
     function onSubmit() {
       onDialogOK({
         tokenUnits: tokenUnits.value,
@@ -225,6 +227,7 @@ export default defineComponent({
 
       denomination,
       tokenCurrency,
+      decimals,
       priceTimestamp,
       pricePerDenomination,
       maxAmount,
@@ -234,6 +237,7 @@ export default defineComponent({
       tokenAmount,
       bchAmount,
       denominatedBchAmountText,
+      validateAmount,
 
       onSubmit,
 
