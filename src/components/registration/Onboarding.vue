@@ -170,7 +170,7 @@ export default {
 	</div>	
 </template>
 <script>
-import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
 	data () {

@@ -1,10 +1,10 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
-      <header-nav :title="$t('Settings')" backnavpath="/apps" class="apps-header" />
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+      <header-nav :title="$t('Settings')" backnavpath="/apps" class="header-nav header-nav apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Security') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Security') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -29,8 +29,8 @@
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Wallet') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Wallet') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
                   <q-item-section>
                     <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -50,7 +50,7 @@
                 <q-item-section avatar>
                     <q-toggle
                       v-model="showTokens"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -83,7 +83,7 @@
                   <q-item-section avatar>
                     <q-toggle
                       v-model="isChipnet"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -100,24 +100,7 @@
                   <q-item-section avatar>
                     <q-toggle
                       v-model="autoGenerateAddress"
-                      color="blue-9"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="enableStablhedge = !enableStablhedge">
-                  <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableStablhedge') }} <q-badge color="red" align="top">ALPHA</q-badge>
-                      </q-item-label>
-                      <q-item-label caption style="line-height:1;margin-top:3px;" >
-                        {{ $t('StablehedgeIntroText', {}, 'Safeguard your funds from market volatlity and access them whenever you need.') }}
-                      </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle
-                      v-model="enableStablhedge"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -125,13 +108,13 @@
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                    Enable SLP
+                    {{ $t('EnableSlp') }}
                   </q-item-label>
                 </q-item-section>
                 <q-item-section avatar>
                     <q-toggle
                       v-model="enableSLP"
-                      color="blue-9"
+                      :color="toggleColor"
                       keep-color
                     />
                   </q-item-section>
@@ -164,8 +147,8 @@
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
-          <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('Personalize') }}</p>
-          <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+          <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Personalize') }}</p>
+          <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
             <q-item>
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
@@ -184,7 +167,6 @@
               </q-item-section>
             </q-item>
 
-            <!-- <# Temporarily disable the theme switcher #>
             <q-item>
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Theme') }}</q-item-label>
@@ -192,7 +174,7 @@
               <q-item-section side>
                 <ThemeSelector :darkMode="darkMode" />
               </q-item-section>
-            </q-item> -->
+            </q-item>
 
             <q-item clickable v-ripple @click="darkMode = !darkMode">
                 <q-item-section>
@@ -201,7 +183,7 @@
                 <q-item-section avatar>
                   <q-toggle
                     v-model="darkMode"
-                    color="blue-9"
+                    :color="toggleColor"
                     keep-color
                   />
                 </q-item-section>
@@ -214,8 +196,8 @@
         </template>
 
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
-          <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('AppInfo') }}</p>
-            <q-list bordered separator class="pt-card" :class="getDarkModeClass(darkMode)">
+          <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('AppInfo') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
@@ -243,8 +225,6 @@
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
       <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogCallback" :disableClose="disablePinDialogClose"/>
-
-      <StablehedgePlatformInfoDialog v-model="showStablehedgeInfoDialog"/>
   </div>
 </template>
 
@@ -261,7 +241,6 @@ import CurrencySelector from '../../components/settings/CurrencySelector'
 import DenominatorSelector from 'src/components/settings/DenominatorSelector'
 import PushNotifsSettings from 'src/components/settings/PushNotifsSettings.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
-import StablehedgePlatformInfoDialog from 'src/components/stablehedge/StablehedgePlatformInfoDialog.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -283,7 +262,6 @@ export default {
       enableSLP: this.$store.getters['global/enableSLP'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
-      showStablehedgeInfoDialog: false,
       enablePushNotifs: false
     }
   },
@@ -296,12 +274,18 @@ export default {
     CurrencySelector,
     DenominatorSelector,
     ThemeSelector,
-    StablehedgePlatformInfoDialog,
     PushNotifsSettings
   },
   computed: {
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    toggleColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return 'pink-6'
+      if (theme === 'glassmorphic-green') return 'green-6'
+      if (theme === 'glassmorphic-gold') return 'amber-7'
+      return 'blue-6'
     }
   },
   watch: {
@@ -313,14 +297,6 @@ export default {
     },
     showTokens (n, o) {
       this.$store.commit('global/showTokens')
-    },
-    enableStablhedge(newVal, oldVal) {
-      this.$store.commit('global/enableStablhedge', newVal)
-
-      // uncomment when stablehedge's info dialog is completed
-      if (newVal) {
-        this.showStablehedgeInfoDialog = true
-      }
     },
     enableSmartBCH (n, o) {
       this.$store.commit('global/enableSmartBCH')
@@ -421,23 +397,89 @@ export default {
 }
 </script>
 
-<style lang="scss">
-  .dim-text {
-    color: #ed5f59;
+<style lang="scss" scoped>
+  .section-title {
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+    
+    &.dark {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    &.light {
+      color: rgba(0, 0, 0, 0.6);
+    }
   }
+
   .pt-setting-menu {
     font-weight: 400;
+    font-size: 15px;
     &.dark {
       color: #e0e2e5;
     }
     &.light {
-      color: #3B7BF6;
+      color: rgba(0, 0, 0, 0.87);
     }
   }
+  
   .pt-setting-avatar-dark {
     color: #A6ACAF;
   }
+
+  .pt-label {
+    font-size: 14px;
+    &.dark {
+      color: #e0e2e5;
+    }
+    &.light {
+      color: rgba(0, 0, 0, 0.87);
+    }
+  }
+  
   .pt-card {
-    border-radius: 14px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .settings-list {
+    .q-item {
+      padding: 16px 20px;
+      min-height: 64px;
+      
+      &:not(:last-child) {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      &.dark:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    :deep(.q-item__label--caption) {
+      opacity: 0.7;
+      margin-top: 4px;
+      line-height: 1.3;
+      font-size: 13px;
+    }
+  }
+
+  #app-container {
+    &.dark {
+      .settings-list .q-item {
+        &:not(:last-child) {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+    }
+    
+    &.light {
+      .settings-list .q-item {
+        &:not(:last-child) {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+      }
+    }
   }
 </style>

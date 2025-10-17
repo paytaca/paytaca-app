@@ -163,7 +163,7 @@ export default defineComponent({
           $q.dialog({
             title: option?.label || 'Prompt',
             message: 'Input addon details',
-            color: 'brandblue',
+            color: 'pt-primary1',
             position: 'bottom',
             prompt: {
               type: 'text',

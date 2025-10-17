@@ -8,7 +8,7 @@
             >
             <template v-slot:error>
               <div class="absolute-full flex flex-center text-white">
-                Cannot load image
+                {{ $t('CannotLoadImage') }}
               </div>
             </template>
           </q-img>

@@ -8,13 +8,13 @@
     <template v-slot:default>
       <div class="row">
         <q-icon
-          :name="arrowIcon"
+          name="keyboard_double_arrow_right"
           class="col-1 text-bow"
           :class="getDarkModeClass(darkMode)"
         />
         <span
           class="text-bold text-h6 wallet-name-label col-11"
-          :class="!darkMode && isNotDefaultTheme(theme) ? 'text-black' : 'text-grad'"
+          :class="'text-grad'"
         >
           {{ walletNameLabel }}
         </span>
@@ -31,7 +31,7 @@
 
 <script>
 import MultiWallet from 'src/components/multi-wallet/index'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'MultiWalletDropdown',
@@ -42,7 +42,6 @@ export default {
 
   data () {
     return {
-      arrowIcon: 'arrow_drop_down',
       isShow: false
     }
   },
@@ -72,31 +71,19 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     showMultiWalletDialog () {
       if (!this.isShow) {
         this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
-        this.arrowIcon = 'arrow_drop_up'
         this.isShow = true
       } else {
         this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
         this.isShow = false
-        this.arrowIcon = 'arrow_drop_down'
       }
     },
     onDialogHide () {
       this.isShow = false
-      this.arrowIcon = 'arrow_drop_down'
     }
-  },
-
-  // Commented out due to redundant api call done inside child component `MultiWallet`
-  // mounted () {
-  //   this.$store.dispatch(
-  //     'global/syncWalletName',
-  //     { walletIndex: this.walletIndex }
-  //   )
-  // }
+  }
 }
 </script>
 

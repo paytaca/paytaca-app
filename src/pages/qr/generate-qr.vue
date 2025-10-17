@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('GenerateQR')" backnavpath="/" />
 
     <div
@@ -7,7 +7,7 @@
       class="text-center"
       style="padding-top: 80px;"
     >
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      <ProgressLoader />
     </div>
 
     <div v-else>
@@ -153,7 +153,7 @@
 </template>
 
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getWatchtowerWebsocketUrl, convertCashAddress } from 'src/wallet/chipnet'
 import { Address } from 'src/wallet'
 import { useWakeLock } from '@vueuse/core'
@@ -227,7 +227,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     formatWithLocale,
 
     selectedMarketCurrency () {

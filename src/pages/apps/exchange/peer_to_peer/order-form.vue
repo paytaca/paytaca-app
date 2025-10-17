@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="'/apps/exchange/peer-to-peer/store'"/>
+  <HeaderNav :title="`P2P Exchange`" :backnavpath="'/apps/exchange/peer-to-peer/store'" class="header-nav" />
   <q-pull-to-refresh @refresh="loadData">
     <div v-if="state !== 'order-process'">
       <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
@@ -176,7 +176,7 @@
         <!-- Progress Loader -->
         <div v-else>
           <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
           </div>
         </div>
         <!-- Dialogs -->
@@ -227,7 +227,7 @@ import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { fetchUser } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat'
@@ -392,7 +392,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     formatCurrency,
     satoshiToBch,
     closeWebSocketConnection () {

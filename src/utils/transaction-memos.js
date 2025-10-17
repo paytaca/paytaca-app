@@ -20,21 +20,18 @@ export async function fetchMemo (txid) {
 			memoData = response.data
 		})
 		.catch(error => {
-			console.error(error.response)
 			if (error.response) {
 				if (error.response.status === 404) {
 					memoData = error.response.data
 				}					
 			}			
 		})
-
-		// console.log('memoData: ', memoData)
+		
 		return memoData
 
 }
 
-export async function createMemo (data) {
-	// const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+export async function createMemo (data) {	
 	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 
 	let memoData = null	
@@ -43,7 +40,7 @@ export async function createMemo (data) {
 			memoData = response.data
 		})
 		.catch(error => {
-			console.error(error)
+			// console.error(error)
 			if (error.response) {
 				// if (error.response.status === 404) {
 					memoData = error.response.data
@@ -64,7 +61,7 @@ export async function updateMemo (data) {
 			memoData = response.data
 		})
 		.catch(error => {
-			console.error(error)
+			// console.error(error)
 			if (error.response) {
 				if (error.response.status === 404) {
 					memoData = error.response.data
@@ -104,10 +101,10 @@ export async function registerMemoUser () {
 			await authMemo()
 		})
 		.catch(async (error) => {
-			console.error(error.response)
+			// console.error(error.response)
 			// memoData = error.response.data
 			if (error.response) {				
-				if (error.response.status === 400) {
+				if (error.response.status === 400) {					
 					await authMemo()
 				}				
 			}
@@ -124,7 +121,8 @@ export async function authMemo () {
 			await saveAuthToken(response.data.access)
 		})
 		.catch(error => {
-			console.error(error.response.data)
+			registerMemoUser()
+			// console.error(error.response.data)
 
 			// memoData = error.response.data
 		})

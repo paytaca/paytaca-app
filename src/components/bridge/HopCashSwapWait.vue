@@ -77,7 +77,7 @@
             <div v-if="transferType === 'c2s'">Waiting for SmartBCH Transaction</div>
             <div v-else-if="transferType === 's2c'">{{ `Waiting for ${denomination} Transaction` }}</div>
           </template>
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
         <div v-else-if="parsedOutgoingTx.hash">
           <div>
@@ -115,7 +115,7 @@
 import { findC2SOutgoingTx, findS2COutgoingTx, waitC2SOutgoing, waitS2COutgoing } from '../../wallet/hopcash'
 import ProgressLoader from 'components/ProgressLoader.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
-import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 export default {
   name: 'HopCashSwapWait',
   components: { ProgressLoader },
@@ -182,7 +182,6 @@ export default {
   },
   methods: {
     getAssetDenomination,
-    isNotDefaultTheme,
     getDarkModeClass,
     copyToClipboard (value) {
       this.$copyText(value)

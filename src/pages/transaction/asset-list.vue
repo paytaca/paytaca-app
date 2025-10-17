@@ -1,5 +1,5 @@
 <template>
-	<div id="app-container" :class="getDarkModeClass(darkmode)">
+	<div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkmode)">
 		<header-nav
 	      :title="$t(isHongKong(currentCountry) ? 'Points' : 'Tokens')"
 	      backnavpath=""
@@ -131,15 +131,16 @@
 	      :bch-wallet-hash="getWallet('bch').walletHash"
 	      :slp-wallet-hash="getWallet('slp').walletHash"
 	      :sbch-address="getWallet('sbch').lastAddress"
-	      @update:modelValue="() => { 
-	      	assetList = assets	      	
+	      @added="addUnlistedToken = true"
+	      @update:modelValue="() => { 	      	
+	      	     	   
 	      }"
 	    />
 
 	</div>
 </template>
 <script>
-import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import * as assetSettings from 'src/utils/asset-settings'
 import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from '../../wallet'
@@ -166,7 +167,8 @@ export default {
 			wallet: null,	
 			drag: false,	
 			isloaded: false,
-			networkError: false			
+			networkError: false,
+			addUnlistedToken: false	
 		}
 	},
 	computed: {
@@ -233,7 +235,12 @@ export default {
 			if (val) {
 				this.$q.loading.hide()
 			} 
-		}	
+		},
+		addUnlistedToken (val) {
+			if (val) {				
+				this.checkUpdatedAssets()
+			}
+		}
 	},
 	unmount() {
 		this.$q.loading.hide()
@@ -264,13 +271,17 @@ export default {
 	    	this.$q.loading.show()
 	    	this.isloaded = false
 	    	this.networkError = false
-	    	// register / get auth 
-		    await assetSettings.registerUser()
 
-		    // fetching unlisted tokens
-		    await assetSettings.fetchUnlistedTokens()
-		    await this.getUnlistedTokens()
-		    	
+	    	// register / get auth 
+		    await assetSettings.authToken()
+
+		    // fetching unlisted tokens // skip if reloading from readding unlisted token
+		    if (!this.addUnlistedToken) {
+		    	this.unlistedToken = await assetSettings.fetchUnlistedTokens()
+		    	await this.getUnlistedTokens()
+		    }		    		    
+		    this.addUnlistedToken = false
+
 		    // fetching custom order list
 				this.customList = await assetSettings.fetchCustomList()
 				
@@ -295,12 +306,22 @@ export default {
 			    		assetSettings.initializeCustomList([], assetIDs)
 			    	}
 
+
+			    	await assetSettings.initializeFavorites(this.assets)  
 			    } else {
 			    	// Update Here to checking Favorites from server. Currently using Local storage    	
-			    	this.checkEmptyFavorites()
-						this.$store.dispatch('assets/initializeFavorites', this.assets)
+			    	// this.checkEmptyFavorites()
+						// this.$store.dispatch('assets/initializeFavorites', this.assets)
 
-						this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
+						let fav = await assetSettings.fetchFavorites()
+						try { // temporary error handling to resolve fav being null
+							fav =  fav.filter(asset => asset.favorite === 1).map(asset => asset.id)
+						} catch {
+							fav = []
+						} finally {
+							this.assetList = await this.fetchAssetInfo(this.customList[this.selectedNetwork])
+							this.assetList = this.assetList.map(asset => ({...asset, favorite: fav.includes(asset.id) ? 1 : 0}))
+						}
 			    }
 
 			    // remove from asset list
@@ -332,17 +353,20 @@ export default {
 	    		}
 	    	})	    
 	    },
-	    updateFavorite (asset) {
+	    updateFavorite (favAsset) {
 	    	const vm = this	    	
-	    	const temp = {
-	    		id: asset.id,
-	    		favorite: asset.favorite === 0 ? 1 : 0
-	    	}	    	
-	    	vm.$store.commit('assets/updateAssetFavorite',  temp)
-	    	const tempFavorites = this.assets.map(({id, favorite}) =>({ id, favorite }))	    
+	    	// const temp = {
+	    	// 	id: asset.id,
+	    	// 	favorite: asset.favorite === 0 ? 1 : 0
+	    	// }	    	
+
+	    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: favAsset.favorite === 0 ? 1 : 0} : asset)
+	    	// vm.$store.commit('assets/updateAssetFavorite',  temp)
+	    	const tempFavorites = this.assetList.map(({id, favorite}) =>({ id, favorite }))	    
 
 	    	assetSettings.saveFavorites(tempFavorites)
-	    	vm.refreshList()
+	    	// vm.refreshList()
+	    	// vm.loadData()
 	    },
 	    getWallet (type) {
 	      return this.$store.getters['global/getWallet'](type)
@@ -360,13 +384,12 @@ export default {
 	          network: vm.selectedNetwork,
 	          darkMode: vm.darkmode,
 	          isCashToken: vm.isCashToken,
-	          wallet: vm.$parent.$parent.wallet,
+	          wallet: vm.wallet,
 	          currentCountry: vm.currentCountry
 	        },
 	        component: AddNewAsset
-	      }).onOk((asset) => {	       	
-	      	vm.assetList = this.assets // update later // add new asset to end
-	        // if (asset.data?.id) vm.selectAsset(null, asset.data)
+	      }).onOk((asset) => {	  
+	      	 this.loadData()	      	
 	      })
 	    },
 	    removeAsset (asset) {
@@ -388,8 +411,9 @@ export default {
 	          id: asset.id
 	        })
 
-	        vm.assetList = this.assets
+	       // vm.assetList = this.assets
 	        vm.editAssets = false
+	        vm.loadData()
 	        vm.$emit('removed-asset', asset)
 	      }).onCancel(() => {
 	      	// this.editAssets = false	      	
@@ -405,20 +429,22 @@ export default {
 	    },
 	    async fetchAssetInfo (list) {
 	    	let temp = []
-
+	    	
 	    	for (const id of list) {	    		
 	    		const asset = await this.$store.getters['assets/getAsset'](id)
-
-	    		if (asset) {	    			
+	    		
+	    		if (asset.length > 0) {	    			
 	    			temp.push(asset[0])
 	    		}	    		
 	    	}	    	
 	    	return temp
 	    },
 	    async getUnlistedTokens (opts = { includeIgnored: false }) {
-	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
-	      this.unlistedToken = []
+	    	if (!this.unlistedToken) { return }
+	    		
+	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]	      
 
+	      let tokenIDs = []
 	      for (const tokenWalletHash of tokenWalletHashes) {
 	        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
 
@@ -431,15 +457,29 @@ export default {
 	          }
 	        )
 
-	        this.unlistedToken.push(...tokens)
-
-	        let temp = []
-
-	        temp = this.unlistedToken.map(asset => asset.id)	        
-
-	        await assetSettings.saveUnlistedTokens(temp)	        
+	        tokenIDs.push(...tokens.map(asset => asset.id))
 	      }
+
+	      const diff = tokenIDs.filter(asset => !this.unlistedToken.includes(asset))	      
+
+	      this.unlistedToken.push(...diff)
+
+	     	this.unlistedToken = await assetSettings.saveUnlistedTokens(this.unlistedToken)		      
 	    },
+	    async checkUpdatedAssets () {
+	    	this.$q.loading.show()	
+
+	    	const assetIDs = this.assets.map(asset => asset.id)
+	    	const diff = this.unlistedToken.filter(asset => assetIDs.includes(asset))	
+
+	    	// removing readded tokens from unlisted token list    	
+	    	const temp = this.unlistedToken.filter(asset => !diff.includes(asset))
+	    	
+	    	this.unlistedToken = await assetSettings.saveUnlistedTokens(temp)
+				this.showTokenSuggestionsDialog = false
+
+				await this.loadData()
+	    }
 	}	
 }
 </script>

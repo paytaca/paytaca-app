@@ -63,13 +63,12 @@
     <span class="row col-12 justify-center text-center q-mb-md">
       {{ $t('ProcessingReferralCode') }} ...
     </span>
-    <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+    <progress-loader />
   </div>
 </template>
 
 <script>
 import { processReferralCode } from 'src/utils/engagementhub-utils/rewards'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 
 import QrScanner from 'src/components/qr-scanner'
 import QRUploader from 'src/components/QRUploader'
@@ -106,7 +105,6 @@ export default {
   },
 
   methods: {
-    isNotDefaultTheme,
     async processReferralCode (content) {
       this.isLoading = true
       let referralCode = null

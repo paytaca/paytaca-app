@@ -71,6 +71,11 @@ In html/template:
 @include gen-color-classes($brand_dark, 'branddark');
 @include gen-color-classes($brand_light, 'brandlight');
 
+@include gen-color-classes($brand_blue, 'pt-primary1');
+@include gen-color-classes($brand_blue, 'pt-primary2');
+@include gen-color-classes($brand_dark, 'pt-dark');
+@include gen-color-classes($brand_light, 'pt-light');
+
 .pp-fcolor {
   color: #000 !important;
 }
@@ -125,17 +130,20 @@ In html/template:
   }
 }
 
-div#q-app:has(.marketplace-container) {
+div#q-app:has(.marketplace-container),
+div#q-app:has(.sticky-header-container) {
   height: 100vh;
   overflow: unset;
 }
 
-.marketplace-container {
+.marketplace-container,
+.sticky-header-container {
   min-height: 100vh;
   // padding-top: 70px;
   padding-bottom: 50px;
 
-  .header-nav {
+  .header-nav,
+  .header-nav-wrapper {
     position: sticky;
     top: -1px;
     width: 100%;

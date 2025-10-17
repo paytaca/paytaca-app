@@ -1,49 +1,31 @@
 <template>
-  <div id="apps-page-container" class="row" :class="getDarkModeClass(darkMode)">
-    <div id="apps" ref="apps" class="text-center">
-      <div>
-        <div :class="{'pt-header apps-header': isNotDefaultTheme(theme)}" :style="{ 'padding-top': $q.platform.is.ios ? '40px' : '0px'}">
-          <p id="Applications"
-            class="section-title"
-            :class="{'text-blue-5': darkMode, 'text-grad': isNotDefaultTheme(theme)}"
-            :style="{ 'padding-top': $q.platform.is.ios ? '10px' : '20px'}"
-          >
-            {{ $t('Applications') }}
-          </p>
-        </div>
-        <div class="row q-pt-lg" :class="isNotDefaultTheme(theme) ? 'q-px-md' : 'q-px-xs'">
-          <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-pa-xs text-center" :class="{'bex-app': $q.platform.is.bex}">
-            <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
-              <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
-            </q-btn>
-            <!-- <div
-              class="pt-app bg-grad" 
-              :class="[
-                buttonClassByState(app.active),
-                {'apps-border' : isNotDefaultTheme(theme)}
-              ]"
-              :data-test="app.path.replace(/\//g, '-').slice(1)"
-              @click="openApp(app)"
-              v-on-long-press="[e => onLongPressApp(e, app), { delay: 1000, modifiers: { stop: true, prevent: true } }]"
-            >
-              <q-icon class="app-icon" color="white" size="xl" :name="app.iconName" :style="app.iconStyle"/>
-            </div> -->
-            <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
-          </div>
+  <div id="apps-page-container" :class="getDarkModeClass(darkMode)">
+    <HeaderNav
+      :title="$t('Apps')"
+      backnavpath="/"
+      class="q-px-sm apps-header"
+    />
+    <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
+      <div class="row q-px-xs">
+        <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
+          <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
+            <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
+          </q-btn>
+          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
         </div>
       </div>
     </div>
 
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="toggleMnemonicDisplay" />
     <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
-    <footer-menu />
   </div>
 </template>
 
 <script>
 import { vOnLongPress } from '@vueuse/components'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
+import HeaderNav from '../../components/header-nav'
 import pinDialog from '../../components/pin'
 import biometricWarningAttempts from '../../components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -52,6 +34,7 @@ import { webSocketManager } from 'src/exchange/websocket/manager'
 export default {
   name: 'apps',
   components: {
+    HeaderNav,
     pinDialog,
     biometricWarningAttempts
   },
@@ -98,6 +81,14 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
+        {
+          name: this.$t('Learn'),
+          iconName: 'school',
+          path: '/apps/learn',
+          iconStyle: 'font-size: 4em',
+          active: true,
+          smartBCHOnly: false
+        },
         // {
         //   name: 'Rewards',
         //   iconName: 'workspace_premium',
@@ -111,6 +102,14 @@ export default {
           iconName: 'burst_mode',
           path: '/apps/collectibles',
           iconStyle: 'font-size: 4.5em',
+          active: true,
+          smartBCHOnly: false
+        },
+        {
+          name: 'Stablehedge',
+          iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
+          path: '/apps/stablehedge/wallet',
+          iconStyle: 'width:55%; height: 55%;',
           active: true,
           smartBCHOnly: false
         },
@@ -172,7 +171,7 @@ export default {
         //   smartBCHOnly: false
         // },
         {
-          name: this.$t('Multisig Wallet'),
+          name: 'Multisig Wallet',
           iconName: 'mdi-account-group',
           path: '/apps/multisig',
           active: true,
@@ -229,7 +228,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     fetchAppControl () {
       this.$store.dispatch('global/fetchAppControl')
     },
@@ -306,7 +304,7 @@ export default {
   created () {
     this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
-    const themedIconPath = isNotDefaultTheme(this.theme) ? `assets/img/theme/${currentTheme}/` : ''
+    const themedIconPath = ''
 
     try {
       if (this.$router.resolve({name: 'apps-sandbox'})) {
@@ -319,13 +317,7 @@ export default {
       }
     } catch { }
 
-    this.filteredApps.forEach(app => {
-      if (isNotDefaultTheme(this.theme)) {
-        const iconFileName = app.path.split('/')[2]
-        const themedIconLoc = `img:${themedIconPath}${iconFileName}.png`
-        app.iconName = themedIconLoc
-      }
-    })
+    // Removed PayHero theme icon customization
 
     if (!this.enableSmartBCH) {
       this.filteredApps = this.apps.filter((app) => {
@@ -336,19 +328,6 @@ export default {
     }
   },
   mounted () {
-    // const htmlTag1 = document.querySelector('.pt-app')
-    // const htmlTag = document.getElementsByClassName('pt-app')
-    // this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    // for (let i = 0; i < htmlTag.length; i++) {
-    //   htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
-    // }
-
-    // window.addEventListener('resize', function () {
-    //   this.appHeight = parseInt(document.defaultView.getComputedStyle(htmlTag1).width, 10)
-    //   for (let i = 0; i < htmlTag.length; i++) {
-    //     htmlTag[i].setAttribute('style', `height: ${this.appHeight}px !important`)
-    //   }
-    // })
     this.fetchAppControl()
     this.closeExchangeWebsocket()
   }
@@ -356,16 +335,21 @@ export default {
 </script>
 
 <style scoped lang="scss">
+  /* Hide scrollbar completely on all platforms */
   #apps-page-container {
     background-color: #ECF3F3;
     min-height: 100vh;
     padding-bottom: 30px;
-  }
-
-  .section-title {
-    font-size: 22px;
-    margin-left: 14px;
-    font-weight: 400;
+    
+    &::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      -webkit-appearance: none !important;
+    }
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
   }
   .bex-app {
     width: 107px;

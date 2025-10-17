@@ -13,7 +13,7 @@
             rounded
             outlined
             v-model="amount"
-            placeholder="Enter Amount"
+            :placeholder="$t('EnterAmount')"
             @focus="openCustomKeyboard(true)"
             :readonly="readonlyState"
             >
@@ -66,12 +66,20 @@
         <div class="text-center q-pt-md q-gutter-sm">
           <q-btn
             outline rounded
-            class="text-center q-mt-sm"
-            color="blue"
+            class="text-center q-mt-sm button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             :disable="disableUnselectBtn"
-            :label="type === 'amount' ? 'clear' : 'unselect all'"
+            :label="type === 'amount' ? $t('Clear') : $t('UnselectAll')"
             @click="onClearClick"/>
-          <q-btn :loading="loadFilterButton" :disable="loadFilterButton" rounded class="text-center q-mt-sm" color="blue" label="filter" @click="onOKClick"/>
+          <q-btn
+            rounded
+            :loading="loadFilterButton"
+            :disable="loadFilterButton"
+            class="text-center q-mt-sm button"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('Filter')"
+            @click="onOKClick"
+          />
         </div>
       </div>
     </q-card>
@@ -107,7 +115,7 @@ export default {
       return this.loadFilterButton || (this.type === 'type' && !this.amount) || (this.type === 'paymentTypes' && this.filter.payment_types.length === 0)
     },
     filterTypeText () {
-      return this.type === 'amount' ? 'Filter Ad by Order Amount' : 'Select Payment Type'
+      return this.type === 'amount' ? this.$t('FilterAdOrderAmount') : this.$t('SelectPaymentType')
     },
     paymentTypeAllSelected () {
       return this.paymentTypes.length === this.filter.payment_types.length

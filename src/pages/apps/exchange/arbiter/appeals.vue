@@ -1,6 +1,6 @@
 <template>
   <div v-if="$route.name === 'arbiter-appeals'">
-    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
+    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps" class="header-nav" />
     <AppealListing :key="appealListingKey" />
   </div>
   <div v-else>

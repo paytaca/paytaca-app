@@ -29,8 +29,8 @@
       <q-tabs
         v-model="tab"
         style="padding: 0 3px;"
-        :active-color="isNotDefaultTheme() ? 'rgba(0, 0, 0, 0.5)' : undefined"
-        :indicator-color="isNotDefaultTheme() ? undefined : 'transparent'"
+        
+        indicator-color="transparent"
       >
         <q-tab
           name="details"
@@ -262,11 +262,6 @@ function copyToClipboard(value, message) {
     icon: 'mdi-clipboard-check'
   })
 }
-
-function isNotDefaultTheme () {
-  return $store.getters['global/theme'] !== 'default'
-}
-
 function getDarkModeClass (darkModeClass = '', lightModeClass = '') {
   return darkMode.value ? `dark ${darkModeClass}` : `light ${lightModeClass}`
 }

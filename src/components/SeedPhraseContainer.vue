@@ -4,11 +4,13 @@
     <template v-if="!isImport">
       <template v-for="(word, index) in mnemonic.split(' ')" :key="`${word}-${index}`">
         <div class="row col-6 items-center" style="font-size: 17px;">
-          <div class="col-2 number">
+          <div class="col-2 number" :class="getDarkModeClass(darkMode)">
             <pre>{{ index + 1 }}</pre>
           </div>
           <div class="col-10">
-            <span class="word">{{ word }}</span>
+            <span class="word" :class="getDarkModeClass(darkMode)">
+              {{ word }}
+            </span>
           </div>
         </div>
       </template>
@@ -37,6 +39,8 @@
 </template>
 
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+
 export default {
   name: 'SeedPhraseContainer',
 
@@ -68,6 +72,7 @@ export default {
   },
 
   methods: {
+    getDarkModeClass,
     onInputEnter (index) {
       this.inputArray[index - 1] = this.cleanUpSeedPhrase(this.inputArray[index - 1])
       this.$emit('on-input-enter', this.inputArray)
@@ -85,15 +90,30 @@ export default {
 
 <style lang="scss" scoped>
   .number {
-    color: #D36EE1;
+    &.dark {
+      color: #D36EE1;
+    }
+
+    &.light {
+      color: #940aa6;
+    }
+
     pre {
       margin: 10px 0;
     }
   }
   .word {
-    background:#AAB2E9;
     padding: 5px 10px;
     border-radius: 20px;
-    color: #fff;
+    
+    &.dark {
+      background: #AAB2E9;
+      color: #000000;
+    }
+
+    &.light {
+      background: #6c75ad;
+      color: #fff;
+    }
   }
 </style>

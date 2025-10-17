@@ -26,7 +26,7 @@
         />
       </div>
     </div>
-    <div class="text-grey text-center q-mb-md">
+    <div class="text-center q-mb-md">
       {{ $t('VerifyMnemonicBackupPhrase') }}
     </div>
     <div class="q-mx-sm q-mt-sm">

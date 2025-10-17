@@ -289,8 +289,8 @@
                 rounded
                 no-caps
                 :label="$t('Reset')"
-                class="col-grow text-white"
-                color="blue-6"
+                class="col-grow button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
                 outline
                 @click="resetFilters('store')"
               />
@@ -300,8 +300,8 @@
                 rounded
                 no-caps
                 :label="$t('Filter')"
-                class="col-grow text-white"
-                color="blue-6"
+                class="col-grow button"
+                :class="getDarkModeClass(darkMode)"
                 @click="submitData()"
                 v-close-popup
               />

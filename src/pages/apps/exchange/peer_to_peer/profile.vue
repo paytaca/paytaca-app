@@ -1,13 +1,13 @@
 <template>
   <!-- <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div> -->
   <div v-if="!$route.query?.edit">
-    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute" class="header-nav" />
     <div class="q-mx-md q-mb-lg q-pb-lg text-bow"
       :class="getDarkModeClass(darkMode)"
       :style="`height: ${minHeight}px;`">
       <div v-if="!isloaded">
         <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
       </div>
       <div v-else>
@@ -252,7 +252,7 @@ import FeedbackDialog from 'src/components/ramp/fiat/dialogs/FeedbackDialog.vue'
 import { updateChatIdentity } from 'src/exchange/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { loadLibauthHdWallet } from 'src/wallet'
 
@@ -337,7 +337,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     async loadWallet () {
       const isChipnet = this.$store.getters['global/isChipnet']
       const walletIndex = this.$store.getters['global/getWalletIndex']

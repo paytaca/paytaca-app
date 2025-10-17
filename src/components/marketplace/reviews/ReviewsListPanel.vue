@@ -18,7 +18,7 @@
         readonly
         max="5"
         :model-value="review?.rating * (5 / 100)"
-        color="brandblue"
+        color="pt-primary1"
       />
       <div v-if="review?.text">{{ review?.text }}</div>
       <div v-else class="text-grey"><i>{{ $t('NoMessage') }}</i></div>
