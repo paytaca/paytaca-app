@@ -4,7 +4,7 @@
       <div
         ref="header-nav"
         class="pt-header row no-wrap"
-        :style="{'padding-top': $q.platform.is.ios ? '63px' : '18px', 'height': $q.platform.is.ios ? '85px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
+        :style="{'padding-top': $q.platform.is.ios ? '73px' : '18px', 'height': $q.platform.is.ios ? '95px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
         :class="{'pt-card-3': darkMode}"
       >
         <div class="col-1">
@@ -39,8 +39,8 @@
         ref="header-nav"
         class="row no-wrap pt-header justify-between"
         :style="{
-          'padding-top': $q.platform.is.ios ? '63px' : '18px',
-          'height': $q.platform.is.ios ? '85px' : '70px',
+          'padding-top': $q.platform.is.ios ? '73px' : '18px',
+          'height': $q.platform.is.ios ? '95px' : '70px',
           'padding-bottom': $q.platform.is.ios ? '45px' : '0px'
         }"
         :class="{'pt-card-3': darkMode}"

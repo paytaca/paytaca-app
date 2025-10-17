@@ -1,6 +1,7 @@
 <template>
-  <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
-    <div>
+  <q-pull-to-refresh @refresh="onRefresh">
+    <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
+      <div>
       <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <q-resize-observer @resize="onFixedSectionResize" />
           <div >
@@ -17,28 +18,7 @@
               />
             </div>
 
-            <div class="row" :class="enableSmartBCH || enableStablhedge ? 'q-pt-lg': 'q-pt-sm'">
-              <template v-if="enableStablhedge">
-                <q-tabs
-                  class="col-12 q-px-sm q-pb-md"
-                  v-model="stablehedgeTab"
-                  style="margin-top: -25px;"
-                  indicator-color=""
-                >
-                  <q-tab
-                    name="bch"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    label="BCH"
-                  />
-                  <q-tab
-                    name="stablehedge"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    :label="$t('Stablehedge')"
-                  />
-                </q-tabs>
-              </template>
+            <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
@@ -113,7 +93,6 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
-                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
                           <span ellipsis class="text-h5" >
                             {{ bchBalanceText }}
                           </span>
@@ -186,15 +165,6 @@
                   :style="assetsCloseButtonColor"
                   :class="getDarkModeClass(darkMode)"
                   @click="toggleManageAssets"
-                />
-                <q-btn
-                  flat
-                  padding="none"
-                  size="sm"
-                  icon="settings"
-                  class="settings-button"           
-                  :class="getDarkModeClass(darkMode)"
-                  @click="$router.push({ name: 'asset-list' })"
                 />
                 <!-- <q-btn
                   flat
@@ -288,7 +258,7 @@
 
           <PendingTransactions :key="pendingTransactionsKey"/>
           
-          <LearnLessonsCarousel />
+          <LearnLessonsCarousel :key="learnCarouselKey" />
         </div>
       <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
@@ -384,7 +354,8 @@
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
     />
-  </div>
+    </div>
+  </q-pull-to-refresh>
 </template>
 
 <script>
@@ -497,7 +468,8 @@ export default {
       websocketManager: null,
       assetClickTimer: null,
       assetClickCounter: 0 ,
-      pendingTransactionsKey: 0
+      pendingTransactionsKey: 0,
+      learnCarouselKey: 0
     }
   },
 
@@ -657,6 +629,27 @@ export default {
     parseFiatCurrency,
     getDarkModeClass,
     isHongKong,
+    async onRefresh (done) {
+      try {
+        // Refresh wallet balances and token icons
+        await this.onConnectivityChange(true)
+        
+        // Refresh transaction list
+        if (this.$refs['transaction-list-component']) {
+          await this.$refs['transaction-list-component'].getTransactions(1)
+        }
+        
+        // Refresh pending transactions
+        this.pendingTransactionsKey++
+        
+        // Refresh Learn carousel
+        this.learnCarouselKey++
+      } catch (error) {
+        console.error('Error refreshing:', error)
+      } finally {
+        done()
+      }
+    },
     executeTxSearch (value) {
       if (String(value).length == 0 || String(value).length >= 6) {
         const opts = {txSearchReference: value}
