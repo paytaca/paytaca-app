@@ -29,6 +29,7 @@
             class="method-cards asset-card-border q-px-md q-py-sm row items-start justify-between"
             :class="[{ 'pt-dark-box-shadow': darkMode }]"
             @click="setSelectedAsset(asset)"
+            v-dblclick="() => displayAssetInfo(asset)"
           >
             <template v-if="fetchingBalances">
               <q-skeleton type="circle"/>
@@ -55,6 +56,7 @@
         @redeem="onStablehedgeTransaction"
         @stats="openStablehedgeMarketsDialog = true"
       />
+      <AssetInfo ref="assetInfoDialog"/>
       <StablehedgeMarketsDialog v-model="openStablehedgeMarketsDialog"/>
 
       <div class="text-subtitle1 q-mx-lg q-mb-sm">
@@ -97,6 +99,7 @@ import { useStore } from 'vuex';
 import { defineComponent, computed, ref, onMounted, onUnmounted, nextTick } from "vue";
 import HeaderNav from 'src/components/header-nav.vue';
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue';
+import AssetInfo from 'src/pages/transaction/dialog/AssetInfo.vue'
 import AssetOptions from 'src/components/asset-options.vue'
 import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
@@ -106,6 +109,7 @@ export default defineComponent({
   components: {
     HeaderNav,
     AssetOptions,
+    AssetInfo,
     StablehedgeMarketsDialog,
     StablehedgeHistory,
   },
@@ -157,6 +161,11 @@ export default defineComponent({
       refetchTransactionHistory();
     }
 
+    const assetInfoDialog = ref();
+    function displayAssetInfo(asset) {
+      if (!assetInfoDialog.value) return
+      assetInfoDialog.value?.show?.(asset);
+    }
 
     /** @type {import("vue").Ref<'all' | 'freeze' | 'unfreeze' >} */
     const transactionsFilter = ref('all');
@@ -242,6 +251,8 @@ export default defineComponent({
       bchAsset,
       selectedAsset,
       setSelectedAsset,
+      assetInfoDialog,
+      displayAssetInfo,
 
       txHistoryRef,
       transactionsFilter,
