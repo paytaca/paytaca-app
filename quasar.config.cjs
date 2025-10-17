@@ -50,6 +50,7 @@ module.exports = defineConfig((ctx) => {
       'confetti',
       'keyboard',
       'deep-link',
+      'directives',
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
