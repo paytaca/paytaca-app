@@ -50,6 +50,14 @@
                   <div class="row">Payment types</div>
                   <q-badge outline :color="ad.trade_type === 'SELL' ? 'blue' : 'red'" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
                 </div>
+                <!-- Display Description on Order Form -->
+                <div v-if="ad?.description" class="q-mx-lg q-mt-md q-mb-sm">
+                  <q-separator class="q-my-sm"/>
+                  <div class="row">{{ $t('Description') }}</div>
+                  <div class="description sm-font-size" :class="darkMode ? 'text-white' : 'text-grey-8'">
+                    {{ ad?.description }}
+                  </div>
+                </div>
               </div>
 
               <!-- Input -->
@@ -946,5 +954,11 @@ export default {
     background-color: #333; /* Dark mode background color */
     color: #fff; /* Text color for dark mode */
     border: 1px solid #2dd5fb; /* Border color */
+  }
+  .description {
+    text-align: justify;
+    text-align-last: left;
+    white-space:pre-wrap;
+    font-size: 15px;
   }
 </style>
