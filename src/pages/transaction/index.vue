@@ -1,6 +1,7 @@
 <template>
-  <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
-    <div>
+  <q-pull-to-refresh @refresh="onRefresh">
+    <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
+      <div>
       <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <q-resize-observer @resize="onFixedSectionResize" />
           <div >
@@ -165,15 +166,6 @@
                   :class="getDarkModeClass(darkMode)"
                   @click="toggleManageAssets"
                 />
-                <q-btn
-                  flat
-                  padding="none"
-                  size="sm"
-                  icon="settings"
-                  class="settings-button"           
-                  :class="getDarkModeClass(darkMode)"
-                  @click="$router.push({ name: 'asset-list' })"
-                />
                 <!-- <q-btn
                   flat
                   padding="none"
@@ -266,7 +258,7 @@
 
           <PendingTransactions :key="pendingTransactionsKey"/>
           
-          <LearnLessonsCarousel />
+          <LearnLessonsCarousel :key="learnCarouselKey" />
         </div>
       <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
@@ -362,7 +354,8 @@
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
     />
-  </div>
+    </div>
+  </q-pull-to-refresh>
 </template>
 
 <script>
@@ -475,7 +468,8 @@ export default {
       websocketManager: null,
       assetClickTimer: null,
       assetClickCounter: 0 ,
-      pendingTransactionsKey: 0
+      pendingTransactionsKey: 0,
+      learnCarouselKey: 0
     }
   },
 
@@ -635,6 +629,27 @@ export default {
     parseFiatCurrency,
     getDarkModeClass,
     isHongKong,
+    async onRefresh (done) {
+      try {
+        // Refresh wallet balances and token icons
+        await this.onConnectivityChange(true)
+        
+        // Refresh transaction list
+        if (this.$refs['transaction-list-component']) {
+          await this.$refs['transaction-list-component'].getTransactions(1)
+        }
+        
+        // Refresh pending transactions
+        this.pendingTransactionsKey++
+        
+        // Refresh Learn carousel
+        this.learnCarouselKey++
+      } catch (error) {
+        console.error('Error refreshing:', error)
+      } finally {
+        done()
+      }
+    },
     executeTxSearch (value) {
       if (String(value).length == 0 || String(value).length >= 6) {
         const opts = {txSearchReference: value}

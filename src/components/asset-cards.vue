@@ -40,10 +40,11 @@
       </div>
       <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
-    <!-- <button v-if="hasSeeMoreBtn" class="method-cards asset-card-border q-pa-md q-mr-none" @click="seeAllTokens = !seeAllTokens">
-      <q-icon :name="seeAllTokens ? 'visibility_off' : 'visibility'"/> </button>-->
-    <q-btn flat v-if="hasSeeMoreBtn" class="add-asset-button asset-card-border shadow-5 bg-grad text-white" @click="seeAllTokens = !seeAllTokens">
-      <q-icon :name="seeAllTokens ? 'visibility_off' : 'visibility'"/>
+    <q-btn flat v-if="hasMoreTokens" class="add-asset-button asset-card-border shadow-5 bg-grad text-white" @click="goToAssetList">
+      <div class="column items-center">
+        <q-icon name="apps" size="28px" />
+        <div class="text-caption q-mt-xs">View All</div>
+      </div>
     </q-btn>
     
   </div>
@@ -90,8 +91,7 @@ export default {
       customList: null,
       networkError: false,
       favorites: [],
-      favResult: [],
-      seeAllTokens: false
+      favResult: []
     }
   },
   computed: {
@@ -107,31 +107,20 @@ export default {
         return this.assets.slice(0,10)
       }
 
-
       if (this.customList) { 
-        if (this.seeAllTokens) {
-          return this.customList.filter(asset => asset)
-        } else {
-          return this.customList.filter(asset => asset && this.favorites.includes(asset.id))           
-        }        
+        return this.customList.filter(asset => asset && this.favorites.includes(asset.id))
       } 
     },
     denomination () {
       return this.$store.getters['global/denomination']
     },
-    hasSeeMoreBtn() {      
+    hasMoreTokens() {
       if (this.customList) {
-        const unFavoriteList = this.customList.filter(asset => asset && !this.favorites.includes(asset.id))
-        
-        
-        return unFavoriteList.length > 0 
-        // const activeAsset = this.customList.filter(asset => asset)
-
-        // return activeAsset.length > this.filteredFavAssets.length
-
-      } else {
-        return false
-      }     
+        // Check if there are tokens that are not favorites
+        const nonFavoriteTokens = this.customList.filter(asset => asset && !this.favorites.includes(asset.id))
+        return nonFavoriteTokens.length > 0
+      }
+      return false
     }
   },
   // watch: {
@@ -196,6 +185,9 @@ export default {
   },
   methods: {
     parseAssetDenomination,
+    goToAssetList() {
+      this.$router.push({ name: 'asset-list' })
+    },
     async getCustomAssetList () {
       let temp = []
       if (!this.customListIDs || !this.customListIDs[this.network]) {
@@ -356,10 +348,11 @@ export default {
   }
   .add-asset-button {
     border: 1px solid rgba(255, 255, 255, 0.18);
-    padding: 20px 20px 34px 20px;
+    padding: 10px 20px;
     border-radius: 16px;
-    font-size: 15px;
+    font-size: 13px;
     height: 78px;
+    min-width: 100px;
     margin-left: 15px;
     margin-right: 12px;
     backdrop-filter: blur(16px);
@@ -369,6 +362,10 @@ export default {
     
     &:hover {
       transform: scale(1.05);
+    }
+    
+    .q-icon {
+      margin-bottom: 4px;
     }
   }
 
