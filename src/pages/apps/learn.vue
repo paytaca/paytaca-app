@@ -30,6 +30,7 @@
     <!-- WebView iframe -->
     <div class="learn-content-container">
       <iframe
+        v-if="!isIOS"
         ref="learnIframe"
         :src="learnUrl"
         class="learn-iframe"
@@ -41,8 +42,28 @@
         @load="onIframeLoad"
       ></iframe>
       
+      <!-- iOS: Open in in-app browser -->
+      <div v-if="isIOS" class="ios-browser-prompt">
+        <div class="text-center q-pa-lg">
+          <q-icon name="open_in_browser" size="64px" :color="darkMode ? 'blue-4' : 'blue-6'" />
+          <div class="text-h6 q-mt-md q-mb-sm" :class="darkMode ? 'text-white' : 'text-grey-9'">
+            {{ $t('Open in Browser') }}
+          </div>
+          <div class="text-body2 q-mb-lg" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+            {{ $t('Learn content will open in your browser') }}
+          </div>
+          <q-btn
+            unelevated
+            color="primary"
+            :label="$t('Open Learn')"
+            @click="openInBrowser"
+            class="q-px-xl"
+          />
+        </div>
+      </div>
+      
       <!-- Loading overlay -->
-      <div v-if="loading" class="loading-overlay">
+      <div v-if="loading && !isIOS" class="loading-overlay">
         <q-spinner-dots
           color="primary"
           size="50px"
@@ -71,6 +92,9 @@ export default {
   computed: {
     darkMode() {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isIOS() {
+      return this.$q.platform.is.ios
     },
     currentTheme() {
       return this.darkMode ? 'dark' : 'light'
@@ -102,6 +126,26 @@ export default {
     getDarkModeClass,
     onIframeLoad() {
       this.loading = false
+    },
+    openInBrowser() {
+      // Open Learn content in system browser or in-app browser on iOS
+      const url = this.learnUrl
+      
+      if (this.$q.platform.is.capacitor) {
+        // Use Capacitor Browser plugin for in-app browser experience
+        import('@capacitor/browser').then(({ Browser }) => {
+          Browser.open({ 
+            url: url,
+            presentationStyle: 'fullscreen'
+          })
+        }).catch(() => {
+          // Fallback to window.open if Browser plugin not available
+          window.open(url, '_blank')
+        })
+      } else {
+        // Web fallback
+        window.open(url, '_blank')
+      }
     },
     updateTheme() {
       // Reload iframe with new theme
@@ -189,6 +233,14 @@ export default {
   height: 100%;
   border: none;
   display: block;
+}
+
+.ios-browser-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
 }
 
 .loading-overlay {
