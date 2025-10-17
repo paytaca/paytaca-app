@@ -44,8 +44,8 @@ export default {
     inputRules: { type: Array, default: new Array(() => {}) },
     asset: { type: Object, default: {} },
     decimalObj: {
-      type: { min: Number, max: Number },
-      default: { min: 0, max: 2 }
+      // type: { min: Number, max: Number },
+      default: () => ({ min: 0, max: 2 }),
     }
   },
 
@@ -78,7 +78,7 @@ export default {
     }
   },
 
-  mounted () {
+  created () {
     this.valFormatted = formatWithLocale(this.modelValue, this.decimalObj)
   },
 
