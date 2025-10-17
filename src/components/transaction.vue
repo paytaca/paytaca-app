@@ -438,34 +438,21 @@
 
             <q-slide-transition>
               <div v-if="!showMemo">
-                <div v-if="hasMemo">
-                  <q-item-section class="q-pt-sm">
-                    <q-input
-                      v-model="memo.note"
-                      filled
-                      height="25px" 
-                      type="textarea"
-                      readonly
-                    />                  
-                  </q-item-section>   
-                  <q-item-section class="q-pt-sm">
-                    <div class="row">
-                      <div class="col-11">
-                         <q-btn 
-                          outline
-                          class="br-15 full-width"             
-                          padding="xs sm"
-                          label="Update"
-                          color="primary"
-                          @click="openMemo()"
-                        />
+                <q-item v-if="hasMemo" style="overflow-wrap: anywhere;">
+                  <q-item-section>
+                    <q-item-label class="text-gray" caption>{{ $t('Memo') }}</q-item-label>
+                    <q-item-label style="white-space: pre-wrap; word-break: break-word;">
+                      <div class="row items-start">
+                        <div class="col q-pr-sm">{{ memo.note }}</div>
+                        <div class="row items-center no-wrap">
+                          <q-btn flat icon="edit" size="sm" padding="xs sm" @click="openMemo()"/>
+                          <q-separator vertical :dark="darkMode"/>
+                          <q-btn flat icon="delete" size="sm" padding="xs sm" color="red-7" @click="confirmDelete()"/>
+                        </div>
                       </div>
-                      <div class="col-1 text-right">
-                        <q-btn class="q-pt-xs" round flat color="red-7" size="md" icon="delete" padding="none" @click="confirmDelete()"/>
-                      </div>
-                    </div>                   
+                    </q-item-label>
                   </q-item-section>
-                </div>
+                </q-item>
                 <div v-else>
                   <q-item-section class="q-pt-sm">
                     <q-btn         
@@ -487,32 +474,33 @@
                   </q-item-section> 
                 </div>                                          
               </div>
-              <div v-else>
-                <q-item-section class="q-pt-sm">
-                   <q-input
-                    ref="memoInput"
-                    v-model="memo.note"
-                    filled
-                    height="25px" 
-                    type="textarea"
-
-                  >
-                    <template v-slot:append>
-                      <q-icon size="sm" padding="0px" name="close" @click="showMemo = false"/>
-                    </template>
-                  </q-input>                    
-                </q-item-section>   
-                <q-item-section class="q-pt-sm">
-                  <q-btn 
-                    class="br-15"             
-                    padding="xs sm"
-                    label="Save"
-                    color="primary"
-                    :disable="!memo.note"
-                    @click="saveMemo()"
-                  />
+              <q-item v-else style="overflow-wrap: anywhere;">
+                <q-item-section>
+                  <q-item-label class="text-gray" caption>{{ $t('Memo') }}</q-item-label>
+                  <q-item-label>
+                    <div class="row items-start">
+                      <div class="col q-pr-sm">
+                        <input
+                          ref="memoInput"
+                          v-model="memo.note"
+                          type="text"
+                          class="memo-input"
+                          :class="darkMode ? 'memo-input-dark' : 'memo-input-light'"
+                          placeholder="Enter memo..."
+                          style="width: 100%; border: none; outline: none; font-size: 14px; padding: 8px 12px; font-family: inherit; border-radius: 4px;"
+                          @keyup.enter="saveMemo()"
+                          @keyup.esc="showMemo = false"
+                        />
+                      </div>
+                      <div class="row items-center no-wrap">
+                        <q-btn flat icon="check" size="sm" padding="xs sm" color="primary" :disable="!memo.note" @click="saveMemo()"/>
+                        <q-separator vertical :dark="darkMode"/>
+                        <q-btn flat icon="close" size="sm" padding="xs sm" @click="showMemo = false"/>
+                      </div>
+                    </div>
+                  </q-item-label>
                 </q-item-section>
-              </div>                              
+              </q-item>
             </q-slide-transition>
           </q-list>
         </q-card-section>
@@ -964,5 +952,43 @@ export default {
   }
   .text-gray {
     color: gray;
+  }
+  
+  .memo-input {
+    transition: all 0.2s ease;
+    
+    &:focus {
+      box-shadow: 0 0 0 2px rgba(var(--q-primary-rgb), 0.2);
+    }
+  }
+  
+  .memo-input-light {
+    color: rgba(0, 0, 0, 0.87);
+    background-color: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    
+    &:focus {
+      background-color: rgba(0, 0, 0, 0.06);
+      border-color: var(--q-primary);
+    }
+    
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.4);
+    }
+  }
+  
+  .memo-input-dark {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    
+    &:focus {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: var(--q-primary);
+    }
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
   }
 </style>
