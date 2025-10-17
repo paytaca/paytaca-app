@@ -17,28 +17,7 @@
               />
             </div>
 
-            <div class="row" :class="enableSmartBCH || enableStablhedge ? 'q-pt-lg': 'q-pt-sm'">
-              <template v-if="enableStablhedge">
-                <q-tabs
-                  class="col-12 q-px-sm q-pb-md"
-                  v-model="stablehedgeTab"
-                  style="margin-top: -25px;"
-                  indicator-color=""
-                >
-                  <q-tab
-                    name="bch"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    label="BCH"
-                  />
-                  <q-tab
-                    name="stablehedge"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    :label="$t('Stablehedge')"
-                  />
-                </q-tabs>
-              </template>
+            <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
@@ -113,7 +92,6 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
-                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
                           <span ellipsis class="text-h5" >
                             {{ bchBalanceText }}
                           </span>
