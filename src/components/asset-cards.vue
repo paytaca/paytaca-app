@@ -341,9 +341,9 @@ export default {
   #asset-container {
     overflow-x: auto;
     overflow-y: hidden;
-    margin-left: 20px;
-    margin-right: 20px;
-    padding-left: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+    padding-right: 20px;
     
     /* Hide scrollbar for Chrome, Safari and Opera */
     &::-webkit-scrollbar {
