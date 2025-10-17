@@ -28,7 +28,7 @@
             v-for="asset in tokenAssets" :key="asset?.id"
             class="method-cards asset-card-border q-px-md q-py-sm row items-start justify-between"
             :class="[{ 'pt-dark-box-shadow': darkMode }]"
-            @click="setSelectedAsset(asset)"
+            @click="setSelectedAssetDebounced(asset)"
             v-dblclick="() => displayAssetInfo(asset)"
           >
             <template v-if="fetchingBalances">
@@ -103,6 +103,7 @@ import AssetInfo from 'src/pages/transaction/dialog/AssetInfo.vue'
 import AssetOptions from 'src/components/asset-options.vue'
 import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker';
+import { debounce } from 'quasar';
 
 export default defineComponent({
   name: 'StablehedgeWalletPage',
@@ -160,6 +161,7 @@ export default defineComponent({
       selectedAsset.value = asset || bchAsset.value
       refetchTransactionHistory();
     }
+    const setSelectedAssetDebounced = debounce(setSelectedAsset, 500, true);
 
     const assetInfoDialog = ref();
     function displayAssetInfo(asset) {
@@ -251,6 +253,7 @@ export default defineComponent({
       bchAsset,
       selectedAsset,
       setSelectedAsset,
+      setSelectedAssetDebounced,
       assetInfoDialog,
       displayAssetInfo,
 
@@ -281,6 +284,8 @@ export default defineComponent({
 }
 
 .method-cards {
+  user-select: none;
+
   .asset-symbol {
     overflow: hidden;
     text-overflow: ellipsis;
