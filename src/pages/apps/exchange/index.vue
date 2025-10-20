@@ -1,6 +1,46 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
-    <router-view :key="$route.path"></router-view>
+    <!-- Skeleton Loading State for Initial Auth -->
+    <div v-if="!isloaded" class="full-width q-px-md q-pt-lg">
+      <!-- Header Skeleton -->
+      <div class="q-mb-lg">
+        <q-skeleton type="text" width="30%" height="24px" class="q-mb-sm" />
+        <div class="row q-gutter-sm">
+          <q-skeleton type="rect" width="80px" height="40px" style="border-radius: 20px;" />
+          <q-skeleton type="rect" width="80px" height="40px" style="border-radius: 20px;" />
+        </div>
+      </div>
+      
+      <!-- Tab Buttons Skeleton -->
+      <div class="row justify-center q-mb-md">
+        <q-skeleton type="rect" width="70%" height="48px" style="border-radius: 24px;" />
+      </div>
+      
+      <!-- Listing Skeletons -->
+      <q-list>
+        <q-item v-for="n in 5" :key="n" class="q-mb-sm">
+          <q-item-section>
+            <div class="q-pb-sm">
+              <q-skeleton type="text" width="40%" height="18px" class="q-mb-xs" />
+              <div class="row q-mb-xs">
+                <q-skeleton type="rect" width="100px" height="16px" />
+                <q-skeleton type="text" width="40px" height="16px" class="q-ml-xs" />
+              </div>
+              <q-skeleton type="text" width="60%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="50%" height="22px" class="q-mb-xs" />
+              <q-skeleton type="text" width="70%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="65%" height="14px" class="q-mb-sm" />
+              <div class="row q-gutter-sm">
+                <q-skeleton type="rect" width="80px" height="24px" style="border-radius: 12px;" />
+                <q-skeleton type="rect" width="90px" height="24px" style="border-radius: 12px;" />
+              </div>
+            </div>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </div>
+    
+    <router-view v-else :key="$route.path"></router-view>
   </div>
   <OngoingMaintenanceDialog v-if="appDisabled"/>
 </template>
@@ -47,16 +87,9 @@ export default {
       if (val) {
         this.goToMainPage()
       }
-    },
-    isloaded (val) {
-      if (val) {
-        this.$q.loading.hide()
-      }
     }
   },
-  async mounted () {    
-    this.$q.loading.show()
-
+  async mounted () {
     const appEnabled = this.$store.getters['global/appControl']
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!swiped" class="absolute-bottom br-15">
+  <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom br-15">
     <div style="margin-bottom: 25px; margin-left: 10%; margin-right: 10%;">
       <q-slide-item left-color="blue" @left="slide" style="background-color: transparent; border-radius: 40px;">
         <template v-if="!locked" v-slot:left>
@@ -74,3 +74,44 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+/* iOS-specific fixes for drag slide positioning */
+.ramp-drag-slide-container {
+  &.absolute-bottom {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1500;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    
+    /* Ensure the element stays attached to viewport on iOS */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    
+    /* Prevent iOS from hiding fixed elements during scroll */
+    will-change: transform;
+    
+    /* Add subtle background for visibility */
+    &::before {
+      content: '';
+      position: absolute;
+      top: -30px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.05));
+      pointer-events: none;
+      z-index: -1;
+    }
+  }
+}
+
+/* Dark mode background */
+body.body--dark .ramp-drag-slide-container.absolute-bottom::before {
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.3));
+}
+</style>

@@ -12,13 +12,15 @@
             :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
             <button
               class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-              :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
+              :class="buyAdsButtonClass"
+              :style="transactionType === 'BUY' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
               @click="transactionType='BUY'">
               {{ $t('BuyAds') }}
             </button>
             <button
               class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-              :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
+              :class="sellAdsButtonClass"
+              :style="transactionType === 'SELL' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
               @click="transactionType='SELL'">
               {{ $t('SellAds') }}
             </button>
@@ -30,7 +32,8 @@
               padding="sm"
               icon="add"
               :disable="disableCreateBtn"
-              :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
+              class="add-btn"
+              :style="`background-color: ${getThemeColor()}; color: #fff;`"
               @click="onCreateAd()"
             />
           </div>
@@ -239,6 +242,23 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    buyAdsButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.transactionType === 'BUY',
+        [`theme-${this.theme}`]: true
+      }
+    },
+    sellAdsButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.transactionType === 'SELL',
+        [`theme-${this.theme}`]: true
+      }
+    },
     buyListings () {
       return this.$store.getters['ramp/getAdsBuyListings']
     },
@@ -259,6 +279,15 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
+    getThemeColor () {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
     async getFiatCurrencies () {
       try {
         const { data: currencies } = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: this.transactionType }, authorize: true })
@@ -504,32 +533,62 @@ export default {
   transition: .2s;
   font-weight: 500;
   }
-  .btn-custom:hover {
+  .btn-custom:not(.active-theme-btn):hover {
   background-color: rgb(242, 243, 252);
   color: #4C4F4F;
   }
-  .btn-custom.active-buy-btn {
-  background-color: rgb(60, 100, 246) !important;
-  color: #fff;
-  }
-  .btn-custom.active-sell-btn {
-  background-color: #ed5f59 !important;
-  color: #fff;
+  .btn-custom.dark:not(.active-theme-btn):hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
   .btn-custom.dark {
-    background-color: #1c2833;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Theme-based active button styles */
+  button.btn-custom.fiat-tab.active-theme-btn {
+    color: #fff !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+  
+  /* Dark mode active button */
+  button.btn-custom.fiat-tab.active-theme-btn.dark {
+    color: #fff !important;
+  }
+  
+  /* Active button hover effects - slightly darken */
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
   .col-transaction {
     padding-top: 2px;
     font-weight: 500;
   }
-  .buy-add-btn {
-    background-color: rgb(60, 100, 246);
-    color: white;
+  .add-btn {
+    transition: opacity 0.2s;
   }
-  .sell-add-btn {
-    background-color: #ed5f59;
-    color: white;
+  .add-btn:hover:not(:disabled) {
+    opacity: 0.85;
   }
   .back-btn {
     background-color: transparent;

@@ -55,13 +55,15 @@
         :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
         <button
           class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
+          :class="ongoingButtonClass"
+          :style="statusType === 'ONGOING' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
           @click="statusType='ONGOING'">
           {{ $t('Ongoing') }}
         </button>
         <button
           class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
+          :class="completedButtonClass"
+          :style="statusType === 'COMPLETED' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
           @click="statusType='COMPLETED'">
           {{ $t('Completed') }}
         </button>
@@ -285,6 +287,23 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    ongoingButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.statusType === 'ONGOING',
+        [`theme-${this.theme}`]: true
+      }
+    },
+    completedButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.statusType === 'COMPLETED',
+        [`theme-${this.theme}`]: true
+      }
+    },
     minHeight () {
       return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
     },
@@ -348,6 +367,15 @@ export default {
     getDarkModeClass,
     formatDate,
     formatCurrency,
+    getThemeColor () {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
     tradeTypeLabel (order) {
       switch (order.trade_type) {
         case 'BUY':
@@ -679,20 +707,52 @@ export default {
     transition: .2s;
     font-weight: 500;
   }
-  .btn-custom:hover {
+  .btn-custom:not(.active-theme-btn):hover {
     background-color: rgb(242, 243, 252);
     color: #4C4F4F;
   }
-  .btn-custom.active-transaction-btn {
-    background-color: rgb(13,71,161) !important;
-    color: #fff;
-  }
-  .btn-custom.active-sell-btn {
-    background-color: #ed5f59 !important;
+  .btn-custom.dark:not(.active-theme-btn):hover {
+    background-color: rgba(255, 255, 255, 0.1);
     color: #fff;
   }
   .btn-custom.dark {
-    background-color: #1c2833;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Theme-based active button styles */
+  button.btn-custom.fiat-tab.active-theme-btn {
+    color: #fff !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+  
+  /* Dark mode active button */
+  button.btn-custom.fiat-tab.active-theme-btn.dark {
+    color: #fff !important;
+  }
+  
+  /* Active button hover effects - slightly darken */
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
   .col-transaction {
     padding-top: 2px;

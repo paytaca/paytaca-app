@@ -38,11 +38,6 @@
                   Offline for a long time
                 </div>
             </div>
-            <div v-if="type === 'order'" class="col-auto q-mx-sm">
-                <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat">
-                  <q-badge v-show="unread" floating color="red" rounded>{{ unread }}</q-badge>
-                </q-btn>
-            </div>
         </div>
       </div>
       <div v-else>
@@ -211,20 +206,16 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bchToFiat, formatCurrency, formatDate, satoshiToBch } from 'src/exchange'
-import { generateChatRef, fetchChatMembers } from 'src/exchange/chat'
-import { bus } from 'src/wallet/event-bus'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       websocket: null,
-      byFiat: false,
-      chatRef: '',
-      unread: 0
+      byFiat: false
     }
   },
-  emits: ['view-ad', 'view-peer', 'view-reviews', 'view-chat'],
+  emits: ['view-ad', 'view-peer', 'view-reviews'],
   props: {
     order: Object,
     ad: Object,
@@ -233,11 +224,7 @@ export default {
       default: 'ad'
     }
   },
-  created () {
-    bus.on('last-read-update', this.onLastReadUpdate)
-  },
   async mounted () {
-    this.loadChatInfo()
   },
   computed: {
     orderOwner () {
@@ -287,9 +274,6 @@ export default {
       const diffInHours = diffInMilliseconds / (1000 * 60 * 60)
       return diffInHours
     },
-    onLastReadUpdate () {
-      this.fetchChatUnread(this.chatRef)
-    },
     tradeTypeLabel () {
       const order = this.order
       if (!order) return this.$t('TradingWith')
@@ -308,25 +292,6 @@ export default {
           }
       }
     },
-    async loadChatInfo () {
-      const vm = this
-      if (vm.order) {
-        const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-        vm.chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
-        vm.fetchChatUnread(vm.chatRef)
-      }
-    },
-    async fetchChatUnread (chatRef) {
-      const user = this.$store.getters['ramp/getUser']
-      await fetchChatMembers(chatRef).then(response => {
-        const userMember = response?.filter(member => {
-          return user?.chat_identity_id === member?.chat_identity?.id
-        })[0]
-        this.unread = userMember?.unread_count || 0
-      }).catch(error => {
-        console.error(error?.response || error)
-      })
-    },
     onViewAd () {
       this.$emit('view-ad')
     },
@@ -335,9 +300,6 @@ export default {
     },
     onViewReviews () {
       this.$emit('view-reviews')
-    },
-    onViewChat () {
-      this.$emit('view-chat')
     }
   }
 }
