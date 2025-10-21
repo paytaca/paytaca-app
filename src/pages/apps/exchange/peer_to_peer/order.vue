@@ -169,8 +169,8 @@
         </q-tab-panel>
 
         <!-- CHAT Tab -->
-        <q-tab-panel v-if="showChatTab" name="chat" class="q-pa-none chat-tab-panel">
-          <div class="tab-content-wrapper">
+        <q-tab-panel v-if="showChatTab" name="chat" class="q-pa-none chat-tab-panel" :class="{ 'input-hidden': isChatInputHidden }">
+          <div class="tab-content-wrapper chat-tab-content">
           <!-- Chat Disabled Notice (Before Escrow) -->
           <div v-if="!isChatEnabled" class="chat-disabled-notice">
             <q-banner class="chat-disabled-banner" :class="getDarkModeClass(darkMode)">
@@ -195,6 +195,8 @@
           <div v-else class="chat-container">
             <!-- Messages area (flex-grows to push input down) -->
             <div class="chat-messages-area">
+              <!-- Chat messages -->
+              <div class="chat-messages-wrapper" ref="chatScrollTarget" :class="{ 'new-message-glow': newMessageGlow }">
               <!-- Encrypted message notice -->
               <q-banner class="encrypted-banner" :class="getDarkModeClass(darkMode)">
                 <template v-slot:avatar>
@@ -202,9 +204,8 @@
                 </template>
                 <span class="encrypted-banner-text">{{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}</span>
               </q-banner>
-
-              <!-- Chat messages -->
-              <div class="chat-messages-wrapper" ref="chatScrollTarget">
+              
+              <!-- Messages list -->
               <q-infinite-scroll
                 :scroll-target="chatScrollTarget"
                 ref="infiniteScroll"
@@ -241,6 +242,27 @@
                         {{ message._decryptedMessage || message.message }}
                       </div>
                     </q-chat-message>
+                    
+                    <!-- Image attachment -->
+                    <div v-if="message.hasAttachment || message.attachment || message.encryptedAttachmentUrl || message.attachmentUrl" class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity?.is_user ? 'justify-end' : ''">
+                      <img
+                        v-if="message?.decryptedAttachmentFile?.url"
+                        class="q-px-sm cursor-pointer chat-message-image"
+                        :src="message?.decryptedAttachmentFile?.url"
+                        @click="openImageDialog(message?.decryptedAttachmentFile?.url)"
+                        alt="attachment"
+                      />
+                      <div 
+                        v-else 
+                        class="row items-center q-pa-sm encrypted-attachment"
+                      >
+                        <div class="text-grey-6">
+                          <q-icon name="image" size="sm" class="q-mr-xs"/>
+                          {{ $t('DecryptingAttachment', {}, 'Decrypting attachment...') }}
+                          <q-spinner v-if="message?.$state?.decryptingAttachment" size="sm" class="q-ml-xs"/>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </q-infinite-scroll>
@@ -248,8 +270,23 @@
             </div>
 
             <!-- Chat input -->
-            <div class="chat-input-wrapper" :class="getDarkModeClass(darkMode)">
+            <div 
+              class="chat-input-wrapper" 
+              :class="[getDarkModeClass(darkMode), { 'chat-input-hidden': isChatInputHidden }]"
+            >
               <div class="chat-input-container">
+                <q-btn
+                  v-if="!chatAttachmentUrl"
+                  flat
+                  round
+                  dense
+                  icon="attach_file"
+                  size="sm"
+                  @click="openFileAttachmentField"
+                  class="attach-button"
+                  :class="darkMode ? 'text-grey-3' : 'text-grey-7'"
+                />
+                
                 <q-input
                   v-model="chatMessageInput"
                   outlined
@@ -270,12 +307,42 @@
                       :icon="sendingMessage ? 'sync' : 'send'" 
                       size="sm"
                       @click="sendChatMessage" 
-                      :disable="!chatMessageInput.trim() || sendingMessage"
+                      :disable="(!chatMessageInput.trim() && !chatAttachmentUrl) || sendingMessage"
                       :loading="sendingMessage"
                       class="send-button"
                     />
                   </template>
                 </q-input>
+              </div>
+              
+              <!-- Hidden file picker -->
+              <q-file
+                v-show="false"
+                ref="fileAttachmentField"
+                :dark="darkMode"
+                borderless
+                v-model="chatAttachment"
+                :filter="files => files.filter(file => file.type?.match(/image\/.*/))"
+                @update:modelValue="resizeChatAttachment"
+              />
+              
+              <!-- Image preview -->
+              <div v-if="chatAttachmentUrl" class="row items-start no-wrap q-my-sm q-mx-md attachment-preview">
+                <img
+                  :src="chatAttachmentUrl"
+                  class="cursor-pointer image-attachment"
+                  @click="openFileAttachmentField"
+                  alt="attachment"
+                >
+                <q-btn
+                  flat 
+                  round
+                  dense
+                  icon="cancel"
+                  size="sm"
+                  @click.prevent="chatAttachment = null; chatAttachmentUrl = null"
+                  class="remove-attachment-btn"
+                />
               </div>
             </div>
           </div>
@@ -283,6 +350,21 @@
         </q-tab-panel>
       </q-tab-panels>
     </div>
+    
+    <!-- Image Dialog -->
+    <q-dialog v-model="showImageDialog" maximized>
+      <q-card class="bg-black">
+        <q-card-section class="row items-center q-pb-none">
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup color="white" />
+        </q-card-section>
+        <q-card-section class="flex flex-center" style="height: 90vh;">
+          <img :src="selectedImageUrl" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    
+    
     <!-- Dialogs -->
     <div v-if="openDialog" >
       <MiscDialogs
@@ -305,7 +387,8 @@ import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef, fetchChatMessages, fetchChatMembers, fetchChatPubkeys, sendChatMessage as sendChatMessageAPI, updateLastRead, generateChatIdentityRef, loadChatIdentity } from 'src/exchange/chat'
 import { ChatMessage } from 'src/exchange/chat/objects'
-import { compressEncryptedMessage, encryptMessage } from 'src/marketplace/chat/encryption'
+import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
+import { resizeImage } from 'src/marketplace/chat/attachment'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
@@ -394,6 +477,7 @@ export default {
       chatLoaded: false,
       chatMessages: [],
       chatMessageInput: '',
+      chatAttachment: null,
       chatAttachmentUrl: null,
       chatScrollTarget: null,
       chatIdentity: null,
@@ -404,7 +488,19 @@ export default {
       addingNewMessage: false,
       arbiterIdentity: null,
       chatMessagesKey: 0,
-      unreadChatCount: 0
+      
+      // Chat input scroll behavior
+      lastChatScrollY: 0,
+      isChatInputHidden: false,
+      chatScrollThreshold: 10,
+      unreadChatCount: 0,
+      
+      // New message alert
+      newMessageGlow: false,
+      
+      // Image dialog
+      showImageDialog: false,
+      selectedImageUrl: null
     }
   },
   components: {
@@ -427,12 +523,8 @@ export default {
       default: ''
     }
   },
-  created () {
-    bus.on('new-message', this.onNewMessage)
-  },
-  beforeUnmount () {
-    bus.off('new-message', this.onNewMessage)
-  },
+  // REMOVED: Duplicate created() hook - merged into the one below
+  // The new-message listener is now registered in the main created() hook
   computed: {
     userTraderType () {
       const user = this.$store.getters['ramp/getUser']
@@ -460,6 +552,12 @@ export default {
       } else if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
         height = height - 90
       }
+      
+      // When on chat tab and input is hidden, extend height to bottom of screen
+      if (this.activeTab === 'chat' && this.isChatInputHidden) {
+        height = height + 100 // Add back the space normally reserved for input
+      }
+      
       return height
     },
     showChatTab () {
@@ -612,11 +710,28 @@ export default {
               console.error('Error updating last read:', error)
             })
         }
+        
+        // Attach scroll listener for chat input hide/show
+        this.$nextTick(() => {
+          const scrollTarget = this.$refs.chatScrollTarget
+          if (scrollTarget) {
+            scrollTarget.addEventListener('scroll', this.handleChatScroll, { passive: true })
+          }
+        })
       } else if (oldTab === 'chat') {
         // When leaving chat tab, refresh unread count (only if chat was enabled)
         if (this.isChatEnabled) {
           this.fetchChatUnread(this.chatRef)
         }
+        
+        // Remove scroll listener when leaving chat
+        const scrollTarget = this.$refs.chatScrollTarget
+        if (scrollTarget) {
+          scrollTarget.removeEventListener('scroll', this.handleChatScroll)
+        }
+        
+        // Reset input visibility
+        this.isChatInputHidden = false
       }
     }
   },
@@ -624,6 +739,9 @@ export default {
     bus.emit('hide-menu')
     bus.on('relogged', this.refreshPage)
     bus.on('update-status', this.handleNewStatus)
+    
+    // Register chat message listener
+    bus.on('new-message', this.onNewMessage)
   },
   async mounted () {
     await this.loadData()
@@ -631,6 +749,15 @@ export default {
   },
   beforeUnmount () {
     this.closeWSConnection()
+    
+    // Remove bus listeners
+    bus.off('new-message', this.onNewMessage)
+    
+    // Remove chat scroll listener if it exists
+    const scrollTarget = this.$refs.chatScrollTarget
+    if (scrollTarget) {
+      scrollTarget.removeEventListener('scroll', this.handleChatScroll)
+    }
   },
   methods: {
     formatDate,
@@ -742,8 +869,21 @@ export default {
         // Fetch and decrypt messages
         const response = await fetchChatMessages(this.chatRef)
         if (response?.results) {
-          this.chatMessages = response.results.reverse()
+          // Convert to ChatMessage instances
+          this.chatMessages = response.results.reverse().map(msgData => {
+            // Normalize attachment field names before parsing
+            // Only copy if attachment is a string (URL), not a boolean
+            if (msgData.attachment && typeof msgData.attachment === 'string' && 
+                !msgData.encrypted_attachment_url && !msgData.attachment_url) {
+              msgData.encrypted_attachment_url = msgData.attachment
+            }
+            return ChatMessage.parse(msgData)
+          })
+          
           await this.decryptChatMessages(this.chatMessages)
+          
+          // Decrypt attachments
+          await this.decryptChatAttachments()
         }
         
         this.chatLoaded = true
@@ -757,6 +897,12 @@ export default {
           setTimeout(() => {
             this.scrollChatToBottom()
           }, 500)
+          
+          // Attach scroll listener for chat input hide/show
+          const scrollTarget = this.$refs.chatScrollTarget
+          if (scrollTarget) {
+            scrollTarget.addEventListener('scroll', this.handleChatScroll, { passive: true })
+          }
         })
       } catch (error) {
         console.error('Error loading chat:', error)
@@ -771,17 +917,20 @@ export default {
 
     async sendChatMessage () {
       const vm = this
-      if (!vm.chatMessageInput.trim() || vm.sendingMessage) return
+      if ((!vm.chatMessageInput.trim() && !vm.chatAttachment) || vm.sendingMessage) return
       
       try {
         vm.sendingMessage = true
         const originalMessage = vm.chatMessageInput.trim()
-        console.log('Sending message:', originalMessage)
+        let attachment = vm.chatAttachment
+        let useFormData = false
+        
+        console.log('Sending message:', originalMessage, 'with attachment:', !!attachment)
         
         let message = originalMessage
 
-        // Encrypt message
-        if (vm.keypair.privkey && vm.chatPubkeys.length) {
+        // Encrypt message if present
+        if (message && vm.keypair.privkey && vm.chatPubkeys.length) {
           const encryptedMessage = encryptMessage({
             data: message,
             privkey: vm.keypair.privkey,
@@ -790,54 +939,108 @@ export default {
           message = compressEncryptedMessage(encryptedMessage)
         }
 
-        const data = {
-          chat_session_ref: vm.chatRef,
-          message: message,
-          encrypted: true
+        // Encrypt attachment if present
+        if (attachment && vm.keypair.privkey && vm.chatPubkeys.length) {
+          const encryptedAttachment = await encryptImage({
+            file: attachment,
+            privkey: vm.keypair.privkey,
+            pubkeys: vm.chatPubkeys
+          })
+          attachment = await compressEncryptedImage(encryptedAttachment)
+          useFormData = true
         }
 
-        console.log('Calling sendChatMessageAPI...')
+        let data = null
+        if (useFormData) {
+          const formData = new FormData()
+          formData.append('chat_session_ref', vm.chatRef)
+          if (message) formData.append('message', message)
+          if (attachment) formData.append('attachment', attachment, 'image.png')
+          formData.append('encrypted', 'true')
+          data = formData
+        } else {
+          data = {
+            chat_session_ref: vm.chatRef,
+            message: message,
+            encrypted: true
+          }
+        }
+
         const response = await sendChatMessageAPI(data, originalMessage)
-        console.log('Message sent, response:', response)
-        console.log('Response has id?', response?.id)
-        console.log('Response structure:', JSON.stringify(response))
         
-        // Clear input immediately
+        // Extract the actual data from axios response
+        const responseData = response?.data || response
+        
+        // Store attachment URL before clearing
+        const tempAttachmentUrl = vm.chatAttachmentUrl
+        const hasAttachment = !!vm.chatAttachment
+        
+        // Clear inputs immediately
         vm.chatMessageInput = ''
+        vm.chatAttachment = null
+        vm.chatAttachmentUrl = null
         
         // Optimistically add message to UI immediately
-        if (response) {
-          console.log('Adding sent message to UI optimistically')
-          console.log('Current chatIdentity:', vm.chatIdentity)
-          console.log('Current chatMessages length before:', vm.chatMessages.length)
+        if (responseData) {
+          const messageId = responseData.id || Date.now()
           
-          const messageId = response.id || response.data?.id || Date.now()
-          
-          const optimisticMessage = {
+          const optimisticMessageData = {
             id: messageId,
             message: originalMessage,
-            _decryptedMessage: originalMessage,
-            createdAt: response.created_at || response.data?.created_at || new Date().toISOString(),
-            chatIdentity: {
+            encrypted: false,
+            created_at: responseData.created_at || new Date().toISOString(),
+            chat_identity: {
               id: vm.chatIdentity?.chat_identity_id || vm.chatIdentity?.id,
               name: vm.chatIdentity?.name || 'You',
               ref: vm.chatIdentity?.ref,
               is_user: true
             }
           }
-          console.log('Created optimistic message:', optimisticMessage)
+          
+          // Add attachment URL if present
+          if (hasAttachment) {
+            // Try all possible field names
+            let attachmentUrl = responseData.encrypted_attachment_url || 
+                               responseData.encryptedAttachmentUrl ||
+                               responseData.attachment_url ||
+                               responseData.attachmentUrl
+            
+            // Only use 'attachment' if it's a string (URL), not a boolean
+            if (!attachmentUrl && responseData.attachment && typeof responseData.attachment === 'string') {
+              attachmentUrl = responseData.attachment
+            }
+            
+            // Set the field that ChatMessage expects
+            if (attachmentUrl) {
+              optimisticMessageData.encrypted_attachment_url = attachmentUrl
+            }
+          }
+          
+          // Convert to ChatMessage instance
+          const optimisticMessage = ChatMessage.parse(optimisticMessageData)
+          optimisticMessage._decryptedMessage = originalMessage
+          
+          // Ensure chatIdentity exists and set is_user
+          if (!optimisticMessage.chatIdentity) {
+            optimisticMessage.chatIdentity = {}
+          }
+          optimisticMessage.chatIdentity.is_user = true
+          
+          // Add decrypted attachment if present
+          if (hasAttachment && tempAttachmentUrl) {
+            // Set _decryptedAttachmentFile directly to bypass the setter
+            // The setter expects a File/Blob and tries to create an object URL,
+            // but we already have a preview URL
+            optimisticMessage._decryptedAttachmentFile = {
+              url: tempAttachmentUrl
+            }
+          }
           
           // Check if message already exists
           const exists = vm.chatMessages.some(msg => msg.id === messageId)
-          console.log('Message already exists?', exists)
           
           if (!exists) {
-            console.log('Adding message via addMessageToChat...')
-            const added = vm.addMessageToChat(optimisticMessage)
-            console.log('Message added?', added)
-            console.log('All messages:', vm.chatMessages.map(m => ({ id: m.id, text: m._decryptedMessage })))
-          } else {
-            console.log('Message already exists in chatMessages, skipping')
+            vm.addMessageToChat(optimisticMessage)
           }
         } else {
           console.error('No response from API!')
@@ -867,6 +1070,13 @@ export default {
     
       try {
         vm.addingNewMessage = true
+        
+        // Normalize attachment field names - only if attachment is a URL string
+        if (messageData.attachment && typeof messageData.attachment === 'string' &&
+            !messageData.encrypted_attachment_url && !messageData.attachment_url) {
+          messageData.encrypted_attachment_url = messageData.attachment
+        }
+        
         const chatMessage = new ChatMessage(messageData)
         const decryptedMessage = await vm.decryptMessage(chatMessage)
         
@@ -877,6 +1087,16 @@ export default {
           const added = vm.addMessageToChat(decryptedMessage)
 
           if (added) {
+            // Decrypt attachment if present
+            if (decryptedMessage.hasAttachment || decryptedMessage.attachment || decryptedMessage.encryptedAttachmentUrl) {
+              await vm.decryptMessageAttachment(decryptedMessage)
+            }
+            
+            // Trigger glow animation for messages from other party
+            if (!decryptedMessage.chatIdentity.is_user) {
+              vm.triggerNewMessageGlow()
+            }
+            
             // Only update last read if user is on chat tab
             if (vm.activeTab === 'chat') {
               await updateLastRead(vm.chatRef, vm.chatMessages)
@@ -899,8 +1119,10 @@ export default {
       if (!this.keypair.privkey) return null
       
       try {
+        // decryptMessage returns `this` if encrypted, or undefined if not encrypted
         const decryptedMessage = await message.decryptMessage(this.keypair.privkey, false)
-        return decryptedMessage
+        // If undefined (not encrypted), return the original message
+        return decryptedMessage || message
       } catch (error) {
         console.error('Error decrypting message:', error)
         return message
@@ -913,12 +1135,18 @@ export default {
 
       try {
         const decryptedMessages = await Promise.all(
-          messages.map(msg => this.decryptMessage(new ChatMessage(msg)))
+          messages.map(msg => this.decryptMessage(msg))
         )
         
         const ref = this.chatIdentity?.ref
+        
         decryptedMessages.forEach((item, index) => {
           if (item) {
+            // Ensure chatIdentity exists
+            if (!item.chatIdentity) {
+              item.chatIdentity = {}
+            }
+            
             item.chatIdentity.is_user = item.chatIdentity.ref === ref
             messages[index] = item
           }
@@ -936,6 +1164,9 @@ export default {
       // Add message using Vue's reactivity
       this.chatMessages = [...this.chatMessages, message]
       this.chatMessagesKey++
+      
+      // Force update
+      this.$forceUpdate()
       
       // Scroll to bottom with multiple attempts to ensure it works
       this.$nextTick(() => {
@@ -989,6 +1220,145 @@ export default {
       setTimeout(scrollWindowToBottom, 100)
       setTimeout(scrollWindowToBottom, 300)
       setTimeout(scrollWindowToBottom, 500)
+    },
+
+    triggerNewMessageGlow () {
+      // Trigger glow animation
+      this.newMessageGlow = true
+      
+      // Remove glow after animation completes (3 pulses × 0.6s = 1.8s)
+      setTimeout(() => {
+        this.newMessageGlow = false
+      }, 2000)
+    },
+
+    handleChatScroll () {
+      const scrollTarget = this.$refs.chatScrollTarget
+      if (!scrollTarget) return
+      
+      const currentScrollY = scrollTarget.scrollTop
+      const scrollHeight = scrollTarget.scrollHeight
+      const clientHeight = scrollTarget.clientHeight
+      
+      // If at the bottom of chat, always show input
+      if (currentScrollY + clientHeight >= scrollHeight - 10) {
+        this.isChatInputHidden = false
+        this.lastChatScrollY = currentScrollY
+        return
+      }
+      
+      // If at the top of chat, hide input (reading old messages)
+      if (currentScrollY <= 10) {
+        this.isChatInputHidden = true
+        this.lastChatScrollY = currentScrollY
+        return
+      }
+      
+      // Only hide/show if scrolled past threshold
+      if (Math.abs(currentScrollY - this.lastChatScrollY) < this.chatScrollThreshold) {
+        return
+      }
+      
+      if (currentScrollY < this.lastChatScrollY) {
+        // Scrolling up (to older messages) - hide input
+        this.isChatInputHidden = true
+      } else if (currentScrollY > this.lastChatScrollY) {
+        // Scrolling down (to newer messages) - show input
+        this.isChatInputHidden = false
+      }
+      
+      this.lastChatScrollY = currentScrollY
+    },
+
+    openFileAttachmentField () {
+      this.$refs.fileAttachmentField.$el.click()
+    },
+
+    async resizeChatAttachment () {
+      if (!this.chatAttachment) {
+        this.chatAttachmentUrl = null
+        return
+      }
+      
+      try {
+        // Resize the image with proper options
+        const resizedImage = await resizeImage({
+          file: this.chatAttachment,
+          maxWidthHeight: 1024 // Max dimension in pixels
+        })
+        
+        // Create preview URL
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.chatAttachmentUrl = e.target.result
+        }
+        reader.readAsDataURL(resizedImage)
+        
+        // Replace the original file with the resized one
+        this.chatAttachment = resizedImage
+      } catch (error) {
+        console.error('Error resizing image:', error)
+        this.$q.notify({
+          message: 'Failed to process image',
+          color: 'negative',
+          icon: 'error'
+        })
+        this.chatAttachment = null
+        this.chatAttachmentUrl = null
+      }
+    },
+
+    openImageDialog (imageUrl) {
+      this.selectedImageUrl = imageUrl
+      this.showImageDialog = true
+    },
+
+    async decryptMessageAttachment (message) {
+      if (!this.keypair.privkey) await this.loadKeyPair()
+      if (!this.keypair.privkey) return
+      if (message.decryptedAttachmentFile?.url) return
+      
+      try {
+        if (!message.$state) {
+          message.$state = {}
+        }
+        message.$state.decryptingAttachment = true
+        
+        // Set encryptedAttachmentUrl if it's missing but attachmentUrl exists
+        // The API returns the encrypted file URL as 'attachment_url', but decryption expects 'encryptedAttachmentUrl'
+        if (!message.encryptedAttachmentUrl) {
+          if (message.encrypted_attachment_url) {
+            message.encryptedAttachmentUrl = message.encrypted_attachment_url
+          } else if (message.attachmentUrl) {
+            message.encryptedAttachmentUrl = message.attachmentUrl
+          }
+        }
+        
+        if (typeof message.decryptAttachment === 'function') {
+          await message.decryptAttachment(this.keypair.privkey, false)
+        }
+        
+        message.$state.decryptingAttachment = false
+        this.$forceUpdate()
+      } catch (error) {
+        console.error('Error decrypting attachment:', error)
+        message.$state.decryptingAttachment = false
+      }
+    },
+
+    async decryptChatAttachments () {
+      // Decrypt all message attachments
+      const messagesWithAttachments = this.chatMessages.filter(msg => 
+        (msg.attachment || msg.encryptedAttachmentUrl || msg.encrypted_attachment_url || msg.hasAttachment) && 
+        !msg.decryptedAttachmentFile?.url
+      )
+      
+      for (const message of messagesWithAttachments) {
+        await this.decryptMessageAttachment(message)
+      }
+      
+      // Force a complete re-render
+      this.$forceUpdate()
     },
 
     chatMemberType (chatIdentityId) {
@@ -1481,6 +1851,7 @@ export default {
       // Subscribe to chat
       this.websockets.chat = new WebSocketManager()
       this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+      
       this.websockets.chat.subscribeToMessages(message => {
         if (message?.type === 'new_message') {
           const messageData = message.data
@@ -1652,12 +2023,20 @@ export default {
     // Badge positioning as superscript
     :deep(.q-badge--floating) {
       top: 4px;
-      right: -16px;
+      right: -20px;
       font-size: 10px;
       min-width: 18px;
       min-height: 18px;
       padding: 2px 5px;
       margin-left: 8px;
+    }
+    
+    // History tab badge - dot only (no text), same positioning as Chat
+    :deep(.q-tab[name="history"] .q-badge--floating) {
+      min-width: 10px;
+      min-height: 10px;
+      padding: 0;
+      // Uses same top and right positioning as other badges
     }
   }
 
@@ -1766,6 +2145,19 @@ export default {
       overflow: hidden;
       min-height: 0;
     }
+    
+    // When input is hidden, make everything transparent
+    &.input-hidden {
+      background: transparent !important;
+      
+      :deep(.tab-content-wrapper) {
+        background: transparent !important;
+      }
+      
+      :deep(.q-tab-panel__content) {
+        background: transparent !important;
+      }
+    }
   }
 
   .chat-disabled-notice {
@@ -1829,8 +2221,7 @@ export default {
   }
 
   .encrypted-banner {
-    flex-shrink: 0;
-    margin: 12px;
+    margin: 12px 12px 8px 12px;
     border-radius: 12px;
     background: rgba(76, 175, 80, 0.1);
     backdrop-filter: blur(10px);
@@ -1868,7 +2259,7 @@ export default {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0 8px 80px 8px;
+    padding: 0 0 100px 0;
     margin: 0;
     -webkit-overflow-scrolling: touch;
     
@@ -1880,8 +2271,43 @@ export default {
     }
   }
 
+  // New message glow animation
+  .new-message-glow {
+    animation: messageGlow 0.6s ease-in-out 3;
+  }
+
+  @keyframes messageGlow {
+    0%, 100% {
+      box-shadow: none;
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(33, 186, 69, 0.5),
+                  0 0 40px rgba(33, 186, 69, 0.3),
+                  0 0 60px rgba(33, 186, 69, 0.2),
+                  inset 0 0 20px rgba(33, 186, 69, 0.1);
+    }
+  }
+
+  // Dark mode glow
+  .dark .new-message-glow {
+    animation: messageGlowDark 0.6s ease-in-out 3;
+  }
+
+  @keyframes messageGlowDark {
+    0%, 100% {
+      box-shadow: none;
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(76, 217, 100, 0.6),
+                  0 0 40px rgba(76, 217, 100, 0.4),
+                  0 0 60px rgba(76, 217, 100, 0.3),
+                  inset 0 0 20px rgba(76, 217, 100, 0.15);
+    }
+  }
+
   .chat-messages-scroll {
     min-height: auto;
+    padding: 0 8px;
   }
 
   .chat-messages-list {
@@ -2007,29 +2433,41 @@ export default {
 
   .chat-input-wrapper {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 600px;
+    border-radius: 20px;
     z-index: 100;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    
-    &.dark {
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(0, 0, 0, 0.3);
-      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
-    }
+    background: transparent;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  }
+  
+  .chat-input-hidden {
+    transform: translateX(-50%) translateY(120px);
+    opacity: 0;
+    pointer-events: none;
   }
 
   .chat-input-container {
     padding: 12px 16px;
     display: flex;
     align-items: flex-end;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  
+  .chat-input-wrapper.dark .chat-input-container {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 
+                0 2px 8px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
   }
 
   .chat-input {
@@ -2080,12 +2518,62 @@ export default {
     }
   }
 
+  .attach-button {
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+
   .send-button {
     margin-left: 8px;
     width: 36px;
     height: 36px;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+  }
+  
+  .attachment-preview {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 8px;
+    
+    .image-attachment {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    
+    .remove-attachment-btn {
+      margin-left: 8px;
+    }
+  }
+  
+  .dark .attachment-preview {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  
+  .chat-message-image {
+    border-radius: 12px;
+    max-width: 250px;
+    max-height: 250px;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    
+    &:hover {
+      opacity: 0.9;
+      transform: scale(1.02);
+      transition: all 0.2s ease;
+    }
+  }
+  
+  .encrypted-attachment {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    padding: 8px 12px;
+    
+    .dark & {
+      background: rgba(255, 255, 255, 0.05);
+    }
   }
 
   // Mobile Responsive Adjustments
@@ -2134,6 +2622,19 @@ export default {
         flex-direction: column;
         overflow: hidden;
         min-height: 0;
+      }
+      
+      // When input is hidden, make everything transparent
+      &.input-hidden {
+        background: transparent !important;
+        
+        :deep(.tab-content-wrapper) {
+          background: transparent !important;
+        }
+        
+        :deep(.q-tab-panel__content) {
+          background: transparent !important;
+        }
       }
     }
   }
@@ -2185,6 +2686,19 @@ export default {
         flex-direction: column;
         overflow: hidden;
         min-height: 0;
+      }
+      
+      // When input is hidden, make everything transparent
+      &.input-hidden {
+        background: transparent !important;
+        
+        :deep(.tab-content-wrapper) {
+          background: transparent !important;
+        }
+        
+        :deep(.q-tab-panel__content) {
+          background: transparent !important;
+        }
       }
     }
   }
