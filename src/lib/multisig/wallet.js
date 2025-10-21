@@ -509,6 +509,7 @@ export class MultisigWallet {
     if (!config.id) {
       this.id = getWalletHash(this)
     }
+    console.log('options', options)
     this.options = options
   }
 
@@ -525,7 +526,8 @@ export class MultisigWallet {
   }
 
   get cashAddressNetworkPrefix() {
-    if (this.options?.network === 'chipnet' || this.options?.network === 'testnet') {
+    console.log('this.options', this.options)
+    if (this.options?.provider?.network === 'chipnet' || this.options?.provider?.network === 'testnet') {
       return CashAddressNetworkPrefix.testnet 
     }
     return CashAddressNetworkPrefix.mainnet
@@ -546,7 +548,7 @@ export class MultisigWallet {
  * wallet.getDepositAddress();       // Returns next unissued address (e.g., m/44'/145'/0'/0/5)
  * wallet.getDepositAddress(0);      // Returns address at index 0 (e.g., m/44'/145'/0'/0/0)
  */
-getDepositAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
+getDepositAddress(addressIndex, prefix) {
   let _addressIndex = addressIndex
 
   if (_addressIndex === undefined || _addressIndex < 0) {
@@ -557,7 +559,7 @@ getDepositAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
     }
   }
 
-  const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix })
+  const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix })
   return {
     addressIndex: _addressIndex,
     address
@@ -577,7 +579,7 @@ getDepositAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
  * wallet.getChangeAddress();        // Returns next unissued change address (e.g., m/44'/145'/0'/1/5)
  * wallet.getChangeAddress(0);      // Returns change address at index 0 (e.g., m/44'/145'/0'/1/0)
  */
-getChangeAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
+getChangeAddress(addressIndex) {
 
     let _addressIndex = addressIndex
 
@@ -589,7 +591,7 @@ getChangeAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
       }
     }
 
-  const address = getChangeAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix })
+  const address = getChangeAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet })
   return {
       addressIndex: _addressIndex,
       address
