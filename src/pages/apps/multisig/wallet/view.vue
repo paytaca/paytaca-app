@@ -1,23 +1,29 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
+    class="text-bow"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
     <HeaderNav
       backnavpath="/apps/multisig"
-      class="apps-header"
+      class="header-nav"
     />
     <div class="row justify-center">
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="wallet">
-            <div class="row q-mb-lg">
+            <div class="row q-mb-lg justify-center">
               <div class="col-xs-12 flex items-center justify-center q-mb-lg">
                 <div class="text-h6 q-mr-md">{{wallet.name}}</div>
-                <q-icon
-                  size="sm" :name="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'mdi-cloud'"
+                <q-btn 
+                  size="md"
+                  :icon="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'mdi-cloud-upload'" 
                   :color="isMultisigWalletSynced(wallet)? 'green': 'grey'"
-                />
+                  flat 
+                  dense
+                  @click="syncWallet"
+                >
+                </q-btn>
               </div>
               <div class="col-xs-12 q-mb-lg">
                 <div class="items-center justify-center q-gutter-y-md">
@@ -168,21 +174,18 @@
                     {{ balances?.[asset] ? Big(balances[asset]).div(`1e${balances?.[asset]?.decimals || 0}`) : '...' }}
                   </q-item-section>
                 </q-item>
-                <div class="row">
-                  <div class="col-xs-12"></div>
-                </div>
               </q-expansion-item>
             </q-list>
         </template>
       </div>
-      <q-file
+    </div>
+    <q-file
         ref="pstFileElementRef"
         v-model="pstFileModel"
         :multiple="false"
         style="visibility: hidden"
         @update:model-value="onUpdateTransactionFile">
       </q-file>
-    </div>
   </q-pull-to-refresh>
 </template>
 
@@ -192,9 +195,10 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { useQuasar, QSpinnerDots } from 'quasar'
 import Big from 'big.js'
 import HeaderNav from 'components/header-nav'
+import { withTimeout } from 'src/utils/async-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
@@ -278,6 +282,33 @@ const uploadWallet = () => {
   })
 }
 
+const syncWallet = async () => {
+
+  try {
+
+    $q.loading.show({
+      spinner: QSpinnerDots,
+      spinnerColor: 'primary',
+      messageColor: 'primary',
+      message: 'Syncing...'
+    })
+
+    await withTimeout(wallet.value.sync(), 8000, 'Request timed-out!')
+    
+  } catch (error) {
+
+    $q.notify({
+        type: 'Warning',
+        message: error,
+        position: 'bottom',
+        timeout: 3000,
+        color: 'dark'
+    })
+
+  } finally {
+    $q.loading.hide()
+  }
+}
 const showWalletReceiveDialog = () => {
   const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
   $q.dialog({
