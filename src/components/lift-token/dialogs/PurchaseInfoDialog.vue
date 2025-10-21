@@ -1,19 +1,25 @@
 <template>
   <q-dialog persistent seamless ref="dialogRef" class="no-click-outside">
-    <q-card class="pt-card-2 text-bow full-width" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-between items-center q-px-md q-pt-md q-mb-xs sticky-title">
-        <div class="col-10">
-          <sale-group-chip
-            :saleGroup="purchase.purchase_more_details.sale_group"
+    <q-card class="purchase-info-dialog-card text-bow full-width" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+      <div class="row justify-between items-center q-px-lg q-pt-lg q-pb-md sticky-title" :class="getDarkModeClass(darkMode)">
+        <div class="col-10 q-gutter-sm">
+          <q-badge
+            :color="getStatusBadgeColor(parseStatus())"
+            :label="getStatusLabel(parseStatus())"
+            class="status-badge"
           />
-          <sale-group-chip :saleGroup="parseStatus()" />
+          <q-badge
+            :color="getRoundBadgeColor(purchase.purchase_more_details.sale_group)"
+            :label="parseSaleGroup(purchase.purchase_more_details.sale_group)"
+            class="round-badge"
+          />
         </div>
 
         <div class="row col-2 justify-end">
           <q-btn
             flat
             round
-            padding="xs"
+            padding="sm"
             icon="close"
             class="close-button"
             v-close-popup
@@ -21,107 +27,183 @@
         </div>
       </div>
 
-      <div class="row q-px-md q-pb-md">
-        <div class="row col-12 text-body1">
-          <span class="col-12 text-body2 dim-text">{{
-            $t("AmountPurchased")
-          }}</span>
-          <span class="col-12">
+      <div class="dialog-content q-px-lg q-pb-lg">
+        <!-- Amount Section -->
+        <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
+          <div class="row items-center q-mb-sm">
+            <q-icon name="mdi-cash-multiple" size="20px" :color="getThemeColor()" class="q-mr-sm" />
+            <span class="section-title">{{ $t("AmountPurchased") }}</span>
+          </div>
+          <div class="amount-display q-mb-xs">
             {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
-          </span>
-          <span class="col-12 q-mb-sm">
-            {{
-              parseFiatCurrency(
-                purchase.purchase_partial_details.usd_paid,
-                "USD"
-              )
-            }}
-            |
-            {{
-              getAssetDenomination(
-                denomination,
-                purchase.purchased_amount_sats / 10 ** 8
-              )
-            }}
-          </span>
+          </div>
+          <div class="row q-gutter-sm text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+            <span>
+              {{
+                parseFiatCurrency(
+                  purchase.purchase_partial_details.usd_paid,
+                  "USD"
+                )
+              }}
+            </span>
+            <span>•</span>
+            <span>
+              {{
+                getAssetDenomination(
+                  denomination,
+                  purchase.purchased_amount_sats / 10 ** 8
+                )
+              }}
+            </span>
+          </div>
+        </div>
 
-          <span class="col-12 text-body2 dim-text">{{
-            $t("DatePurchased")
-          }}</span>
-          <span class="col-12 q-mb-sm">
-            {{ parseLocaleDate(purchase.purchased_date) }}
-          </span>
+        <!-- Details Section -->
+        <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
+          <div class="row items-center q-mb-md">
+            <q-icon name="mdi-information-outline" size="20px" :color="getThemeColor()" class="q-mr-sm" />
+            <span class="section-title">{{ $t("PurchaseDetails") }}</span>
+          </div>
+
+          <div class="detail-row q-mb-sm">
+            <div class="detail-label">
+              <q-icon name="mdi-calendar" size="16px" class="q-mr-xs" />
+              {{ $t("DatePurchased") }}
+            </div>
+            <div class="detail-value">
+              {{ parseLocaleDate(purchase.purchased_date) }}
+            </div>
+          </div>
 
           <template
             v-if="
               purchase.purchase_more_details.sale_group !== SaleGroup.PUBLIC
             "
           >
-            <span class="col-12 text-body2 dim-text">{{
-              $t("LockupPeriod")
-            }}</span>
-            <span class="col-12 q-mb-sm">
-              {{ parseLocaleDate(purchase.lockup_date) }}
-            </span>
+            <div class="detail-row q-mb-sm">
+              <div class="detail-label">
+                <q-icon name="mdi-lock-clock" size="16px" class="q-mr-xs" />
+                {{ $t("LockupPeriod") }}
+              </div>
+              <div class="detail-value">
+                {{ parseLocaleDate(purchase.lockup_date) }}
+              </div>
+            </div>
           </template>
 
-          <span class="col-12 text-body2 dim-text">{{ $t("BchAddress") }}</span>
-          <span class="col-12 q-mb-sm">
-            {{ parseBchAddress(purchase.purchase_more_details.bch_address) }}
-          </span>
+          <div class="detail-row q-mb-sm">
+            <div class="detail-label">
+              <q-icon name="mdi-wallet" size="16px" class="q-mr-xs" />
+              {{ $t("BchAddress") }}
+            </div>
+            <div class="detail-value text-caption">
+              {{ parseBchAddress(purchase.purchase_more_details.bch_address) }}
+            </div>
+          </div>
 
-          <span class="col-12 text-body2 dim-text">{{ $t('TransactionId') }}</span>
-          <span class="col-12 q-mb-sm text-bold">
-            <a
-              :href="`https://explorer.bch.ninja/tx/${purchase.initial_tx_id}`"
-              target="_blank"
-            >
-              {{ parseTxid(purchase.initial_tx_id) }}
-            </a>
-          </span>
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="mdi-receipt-text" size="16px" class="q-mr-xs" />
+              {{ $t('TransactionId') }}
+            </div>
+            <div class="detail-value">
+              <a
+                :href="`https://explorer.bch.ninja/tx/${purchase.initial_tx_id}`"
+                target="_blank"
+                class="tx-link"
+              >
+                {{ parseTxid(purchase.initial_tx_id) }}
+                <q-icon name="mdi-open-in-new" size="14px" class="q-ml-xs" />
+              </a>
+            </div>
+          </div>
         </div>
 
+        <!-- Vesting Progress Section -->
         <template
           v-if="purchase.purchase_more_details.sale_group !== SaleGroup.PUBLIC"
         >
-          <span class="q-mb-sm col-12 text-center text-body1 dim-text">
-            {{ $t("VestingProgress") }}
-          </span>
+          <div class="info-card q-pa-md" :class="getDarkModeClass(darkMode)">
+            <div class="row items-center q-mb-md">
+              <q-icon name="mdi-chart-timeline-variant" size="20px" :color="getThemeColor()" class="q-mr-sm" />
+              <span class="section-title">{{ $t("VestingProgress") }}</span>
+            </div>
 
-          <div
-            v-for="(details, index) in vestingDetailsList"
-            class="q-mb-sm row col-12"
-          >
-            <status-chip :isCompleted="!!details" :index="index + 1" />
+            <div class="vesting-timeline">
+              <div
+                v-for="(details, index) in vestingDetailsList"
+                :key="index"
+                class="vesting-item q-mb-md"
+              >
+                <div class="row items-start">
+                  <div class="vesting-indicator">
+                    <div 
+                      class="indicator-dot" 
+                      :class="details ? 'completed' : 'pending'"
+                    >
+                      <q-icon 
+                        v-if="details" 
+                        name="mdi-check" 
+                        size="14px" 
+                        color="white"
+                      />
+                    </div>
+                    <div 
+                      v-if="index < vestingDetailsList.length - 1" 
+                      class="indicator-line"
+                      :class="details ? 'completed' : 'pending'"
+                    />
+                  </div>
 
-            <template v-if="details">
-              <div class="row q-pl-sm col-10">
-                <span class="col-12">{{ parseLocaleDate(details.vested_date) }}</span>
-                <span class="col-12">
-                  {{
-                    $t(
-                      "VestedLift",
-                      { lift: parseLiftToken(details.vested_amount_tkn) },
-                      `Vested ${parseLiftToken(details.vested_amount_tkn)}`
-                    )
-                  }}
-                </span>
-                <span class="col-12 text-bold">
-                  <a
-                    :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
-                    target="_blank"
-                  >
-                    {{ parseTxid(details.tx_id) }}
-                  </a>
-                </span>
+                  <div class="vesting-content">
+                    <div class="vesting-header q-mb-xs">
+                      <span class="vesting-period">{{ $t('Period') }} {{ index + 1 }}</span>
+                      <q-badge 
+                        v-if="details" 
+                        :label="$t('Completed')" 
+                        color="teal-6" 
+                        class="q-ml-sm"
+                        style="font-size: 10px; padding: 2px 8px;"
+                      />
+                    </div>
+
+                    <template v-if="details">
+                      <div class="vesting-date q-mb-xs">
+                        <q-icon name="mdi-calendar-check" size="14px" class="q-mr-xs" />
+                        {{ parseLocaleDate(details.vested_date) }}
+                      </div>
+                      <div class="vesting-amount q-mb-xs">
+                        <q-icon name="mdi-cash" size="14px" class="q-mr-xs" />
+                        {{
+                          $t(
+                            "VestedLift",
+                            { lift: parseLiftToken(details.vested_amount_tkn) },
+                            `Vested ${parseLiftToken(details.vested_amount_tkn)}`
+                          )
+                        }}
+                      </div>
+                      <div class="vesting-tx">
+                        <q-icon name="mdi-receipt-text" size="14px" class="q-mr-xs" />
+                        <a
+                          :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
+                          target="_blank"
+                          class="tx-link"
+                        >
+                          {{ parseTxid(details.tx_id) }}
+                          <q-icon name="mdi-open-in-new" size="12px" class="q-ml-xs" />
+                        </a>
+                      </div>
+                    </template>
+
+                    <template v-else>
+                      <div class="vesting-pending">
+                        {{ $t("VestingNotOccured") }}
+                      </div>
+                    </template>
+                  </div>
+                </div>
               </div>
-            </template>
-
-            <template v-else>
-              <span class="q-pl-sm text-grey">{{
-                $t("VestingNotOccured")
-              }}</span>
-            </template>
+            </div>
           </div>
         </template>
       </div>
@@ -142,7 +224,6 @@ import {
 import { SaleGroup } from "src/utils/engagementhub-utils/lift-token";
 
 import StatusChip from "src/components/rewards/StatusChip.vue";
-import SaleGroupChip from "../SaleGroupChip.vue";
 
 export default {
   name: "PurchaseInfoDialog",
@@ -153,7 +234,6 @@ export default {
 
   components: {
     StatusChip,
-    SaleGroupChip,
   },
 
   data() {
@@ -168,6 +248,9 @@ export default {
     darkMode() {
       return this.$store.getters["darkmode/getStatus"];
     },
+    theme() {
+      return this.$store.getters["global/theme"];
+    },
     denomination () {
       return this.$store.getters['global/denomination']
     }
@@ -179,6 +262,16 @@ export default {
     parseLocaleDate,
     parseFiatCurrency,
     getAssetDenomination,
+
+    getThemeColor() {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || '#42a5f5'
+    },
 
     parseBchAddress(address) {
       const addLen = address.length;
@@ -198,6 +291,38 @@ export default {
         return 'vest'
       return 'lock'
     },
+    parseSaleGroup(saleGroup) {
+      const labels = {
+        'seed': this.$t('SeedRound'),
+        'priv': this.$t('PrivateRound'),
+        'pblc': this.$t('PublicRound'),
+      }
+      return labels[saleGroup] || saleGroup
+    },
+    getRoundBadgeColor(saleGroup) {
+      const colors = {
+        'seed': 'amber-8',
+        'priv': 'blue-6',
+        'pblc': 'green-6',
+      }
+      return colors[saleGroup] || 'grey-6'
+    },
+    getStatusLabel(status) {
+      const labels = {
+        'lock': this.$t('Lockup'),
+        'vest': this.$t('Vesting'),
+        'comp': this.$t('Complete'),
+      }
+      return labels[status] || status
+    },
+    getStatusBadgeColor(status) {
+      const colors = {
+        'lock': 'orange-7',
+        'vest': 'light-blue-6',
+        'comp': 'teal-6',
+      }
+      return colors[status] || 'grey-6'
+    },
     parseTxid(txId) {
       const txIdLen = txId.length
       return `${txId.substring(0, 10)}...${txId.substring(txIdLen - 10, txIdLen)}`
@@ -215,14 +340,243 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.dim-text {
-  color: #ed5f59;
-  font-weight: 600;
+.purchase-info-dialog-card {
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  
+  &.dark {
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
 }
+
 .sticky-title {
   position: sticky;
   top: 0;
-  background-color: inherit;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 100;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  
+  &.dark {
+    background: rgba(30, 30, 30, 0.98);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+.dialog-content {
+  padding-top: 16px;
+}
+
+.round-badge, .status-badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.info-card {
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #1a1a1a;
+  
+  .dark & {
+    color: #ffffff;
+  }
+}
+
+.amount-display {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1a1a1a;
+  
+  .dark & {
+    color: #ffffff;
+  }
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  
+  .detail-label {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    min-width: 140px;
+    
+    .dark & {
+      color: #aaa;
+    }
+  }
+  
+  .detail-value {
+    flex: 1;
+    text-align: right;
+    font-size: 13px;
+    color: #1a1a1a;
+    word-break: break-all;
+    
+    .dark & {
+      color: #e0e0e0;
+    }
+  }
+}
+
+.tx-link {
+  color: #42a5f5;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  
+  &:hover {
+    color: #1e88e5;
+    text-decoration: underline;
+  }
+  
+  .dark & {
+    color: #64b5f6;
+    
+    &:hover {
+      color: #90caf9;
+    }
+  }
+}
+
+.vesting-timeline {
+  position: relative;
+}
+
+.vesting-item {
+  position: relative;
+  
+  &:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+.vesting-indicator {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 16px;
+  
+  .indicator-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+    
+    &.completed {
+      background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+      box-shadow: 0 2px 8px rgba(38, 166, 154, 0.3);
+    }
+    
+    &.pending {
+      background: rgba(0, 0, 0, 0.08);
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      
+      .dark & {
+        background: rgba(255, 255, 255, 0.08);
+        border: 2px solid rgba(255, 255, 255, 0.15);
+      }
+    }
+  }
+  
+  .indicator-line {
+    width: 2px;
+    flex: 1;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    min-height: 40px;
+    
+    &.completed {
+      background: linear-gradient(180deg, #26a69a 0%, #00897b 100%);
+    }
+    
+    &.pending {
+      background: rgba(0, 0, 0, 0.1);
+      
+      .dark & {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+}
+
+.vesting-content {
+  flex: 1;
+  padding-top: 4px;
+}
+
+.vesting-header {
+  display: flex;
+  align-items: center;
+  
+  .vesting-period {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a1a;
+    
+    .dark & {
+      color: #ffffff;
+    }
+  }
+}
+
+.vesting-date, .vesting-amount, .vesting-tx {
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  
+  .dark & {
+    color: #aaa;
+  }
+}
+
+.vesting-pending {
+  font-size: 13px;
+  color: #999;
+  font-style: italic;
+  
+  .dark & {
+    color: #666;
+  }
 }
 </style>
