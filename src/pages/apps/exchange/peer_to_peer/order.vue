@@ -2664,6 +2664,13 @@ export default {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
   }
   
+  // iOS specific - raise input higher from bottom
+  @supports (-webkit-touch-callout: none) {
+    .chat-input-wrapper {
+      bottom: 32px;
+    }
+  }
+  
   .chat-input-hidden {
     transform: translateX(-50%) translateY(120px);
     opacity: 0;

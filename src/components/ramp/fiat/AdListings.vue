@@ -46,15 +46,40 @@
             <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
           </div>
           <div v-else>
-            <div class="row justify-center" v-if="loading">
-              <q-spinner-dots color="primary" size="40px" />
+            <!-- Skeleton loader for empty list -->
+            <div v-if="loading" class="q-px-md">
+              <div v-for="n in 3" :key="n" class="skeleton-ad-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="q-pa-md">
+                  <div class="row">
+                    <div class="col">
+                      <q-skeleton type="text" width="25%" height="14px" class="q-mb-xs" />
+                      <div class="row q-gutter-md q-mb-xs">
+                        <q-skeleton type="text" width="80px" height="12px" />
+                        <q-skeleton type="text" width="100px" height="12px" />
+                      </div>
+                      <q-skeleton type="text" width="40%" height="20px" class="q-mb-xs" />
+                      <q-skeleton type="text" width="35%" height="14px" class="q-mb-xs" />
+                      <q-skeleton type="text" width="45%" height="14px" class="q-mb-xs" />
+                      <q-skeleton type="text" width="50%" height="12px" class="q-mb-sm" />
+                      <div class="row q-gutter-sm">
+                        <q-skeleton type="rect" width="80px" height="24px" style="border-radius: 12px;" />
+                        <q-skeleton type="rect" width="70px" height="24px" style="border-radius: 12px;" />
+                      </div>
+                    </div>
+                    <div class="col-auto text-right">
+                      <div class="row q-gutter-xs q-mb-sm">
+                        <q-skeleton type="rect" width="40px" height="40px" style="border-radius: 20px;" />
+                        <q-skeleton type="rect" width="40px" height="40px" style="border-radius: 20px;" />
+                      </div>
+                      <q-skeleton type="rect" width="85px" height="32px" style="border-radius: 16px;" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div v-else>
-          <div class="row justify-center" v-if="loading">
-            <q-spinner-dots color="primary" size="40px" />
-          </div>
           <q-pull-to-refresh @refresh="refreshData">
             <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
               <div v-for="(listing, index) in listings" :key="index">
@@ -404,10 +429,30 @@ export default {
     },
     async resetAndRefetchListings () {
       const vm = this
+      
+      // Reset displayEmptyList to show skeleton
       vm.displayEmptyList = false
+      
+      // Clear current listings immediately to show skeleton
+      vm.listings = []
+      
       vm.$store.commit('ramp/resetAdsPagination')
       vm.loading = true
+      
+      // Ensure minimum loading time for skeleton visibility
+      const startTime = Date.now()
+      const minLoadingTime = 500 // 500ms minimum
+      
       await vm.fetchAds(true)
+      
+      // Calculate remaining time to reach minimum loading time
+      const elapsedTime = Date.now() - startTime
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime)
+      
+      // Wait for remaining time if needed
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime))
+      }
 
       setTimeout(() => {
         vm.displayEmptyList = true
@@ -596,5 +641,20 @@ export default {
     width: 70px;
     z-index: 1;
     left: 10px;
+  }
+  
+  /* Skeleton loader styles */
+  .skeleton-ad-card {
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
   }
   </style>

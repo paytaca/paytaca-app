@@ -70,28 +70,40 @@
       </div>
     </q-pull-to-refresh>
     <div class="q-mt-sm">
-      <div v-if="listings.length == 0 && cashinOrders.length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="localListings.length == 0 && localCashinOrders.length == 0" class="relative text-center" style="margin-top: 50px;">
         <div v-if="displayEmptyList">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
         </div>
         <div v-else>
-          <div class="row justify-center" v-if="loading">
-            <q-spinner-dots color="primary" size="40px" />
+          <!-- Skeleton loader for empty list -->
+          <div v-if="loading" class="q-px-md">
+            <div v-for="n in 3" :key="n" class="skeleton-order-card q-mb-md" :class="getDarkModeClass(darkMode)">
+              <div class="row q-pa-md">
+                <div class="col">
+                  <q-skeleton type="text" width="40%" height="16px" class="q-mb-sm" />
+                  <q-skeleton type="text" width="30%" height="12px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="50%" height="18px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="35%" height="20px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="25%" height="14px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="30%" height="12px" />
+                </div>
+                <div class="col-auto text-right">
+                  <q-skeleton type="text" width="60px" height="14px" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div v-else class="q-mb-none">
-        <div class="row justify-center" v-if="loading">
-          <q-spinner-dots color="primary" size="40px" />
-        </div>
         <q-pull-to-refresh @refresh="refreshData">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
             <q-card bordered flat v-if="showCashInList" class="q-mx-xs q-my-xs text-bow" :class="getDarkModeClass(darkMode)">
-              <div v-for="(listing, index) in cashinOrders" :key="index">
+              <div v-for="(listing, index) in localCashinOrders" :key="index">
                 <q-item clickable @click="selectOrder(listing)">
                   <q-item-section>
-                    <div class="q-pt-sm q-pb-sm" :style="index < cashinOrders.length-1 ? darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7' : ''">
+                    <div class="q-pt-sm q-pb-sm" :style="index < localCashinOrders.length-1 ? darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7' : ''">
                       <div class="row q-mx-md">
                         <div class="col ib-text">
                           <div
@@ -151,7 +163,7 @@
                 </q-item>
               </div>
             </q-card>
-            <div v-for="(listing, index) in listings" :key="index">
+            <div v-for="(listing, index) in localListings" :key="index">
               <q-item clickable @click="selectOrder(listing)">
                 <q-item-section>
                   <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -266,7 +278,9 @@ export default {
       notifType: null,
       loadingMoreData: false,
       displayEmptyList: false,
-      ongoingSearch: false
+      ongoingSearch: false,
+      localListings: [],
+      localCashinOrders: []
     }
   },
   watch: {
@@ -335,7 +349,7 @@ export default {
       return this.$store.getters['ramp/getUser']
     },
     showCashInList () {
-      return this.statusType === 'ONGOING' && this.cashinOrders?.length > 0 && !this.ongoingSearch
+      return this.statusType === 'ONGOING' && this.localCashinOrders?.length > 0 && !this.ongoingSearch
     }
   },
   async mounted () {
@@ -574,11 +588,37 @@ export default {
     async resetAndRefetchListings () {
       this.$store.commit('ramp/resetOrdersPagination')
       this.$store.commit('ramp/resetCashinOrdersPagination')
+      
+      // Reset displayEmptyList to show skeleton
+      this.displayEmptyList = false
+      
+      // Clear local listings immediately to show skeleton
+      this.localListings = []
+      this.localCashinOrders = []
+      
       this.loading = true
+      
+      // Ensure minimum loading time for skeleton visibility
+      const startTime = Date.now()
+      const minLoadingTime = 500 // 500ms minimum
+      
       await this.fetchCashinOrders(true)
       await this.fetchOrders(true)
+      
+      // Update local listings from store
+      this.localListings = [...this.listings]
+      this.localCashinOrders = [...this.cashinOrders]
+      
+      // Calculate remaining time to reach minimum loading time
+      const elapsedTime = Date.now() - startTime
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime)
+      
+      // Wait for remaining time if needed
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime))
+      }
 
-      setTimeout(() =>{
+      setTimeout(() => {
         this.displayEmptyList = true
       }, 150)
 
@@ -768,5 +808,20 @@ export default {
     width: 70px;
     z-index: 1;
     left: 10px;
+  }
+  
+  /* Skeleton loader styles */
+  .skeleton-order-card {
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
   }
 </style>
