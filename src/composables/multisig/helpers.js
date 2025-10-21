@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Watchtower from 'src/lib/watchtower'
 import { CashAddressNetworkPrefix, binToHex } from 'bitauth-libauth-v3'
 import { getBcmrBackend } from 'src/wallet/cashtokens'
+import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
@@ -37,7 +38,12 @@ export const useMultisigHelpers = () => {
 
   const multisigWallets = computed(() => {
     const wallets = $store.getters['multisig/getWallets']?.map((w) => {
-      return MultisigWallet.importFromObject(w)
+      return MultisigWallet.importFromObject(w, {
+        store: $store,
+        provider: new WatchtowerNetworkProvider({
+          network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+        })
+      })
     })
     return wallets
   })
