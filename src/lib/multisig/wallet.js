@@ -131,12 +131,12 @@ import {
   hexToBin,
   sha256,
   cashAddressToLockingBytecode,
-  compileScript
+  compileScript,
+  base58AddressToLockingBytecode
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 
 import { createTemplate } from './template.js'
-import { base58AddressToLockingBytecode } from '@bitauth/libauth'
 import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from './utxo.js'
 import { estimateFee, getMofNDustThreshold, MultisigTransactionBuilder, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
@@ -546,23 +546,23 @@ export class MultisigWallet {
  * wallet.getDepositAddress();       // Returns next unissued address (e.g., m/44'/145'/0'/0/5)
  * wallet.getDepositAddress(0);      // Returns address at index 0 (e.g., m/44'/145'/0'/0/0)
  */
-  getDepositAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
-    let _addressIndex = addressIndex
+getDepositAddress(addressIndex, prefix = CashAddressNetworkPrefix.mainnet) {
+  let _addressIndex = addressIndex
 
-    if (_addressIndex === undefined || _addressIndex < 0) {
-      if (this.lastIssuedDepositAddressIndex === undefined) {
-        _addressIndex = 0
-      } else {
-        _addressIndex = this.lastIssuedDepositAddressIndex + 1
-      }
-    }
-
-    const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix })
-    return {
-      addressIndex: _addressIndex,
-      address
+  if (_addressIndex === undefined || _addressIndex < 0) {
+    if (this.lastIssuedDepositAddressIndex === undefined) {
+      _addressIndex = 0
+    } else {
+      _addressIndex = this.lastIssuedDepositAddressIndex + 1
     }
   }
+
+  const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix })
+  return {
+    addressIndex: _addressIndex,
+    address
+  }
+}
 
   /**
  * Gets a change address from the wallet.
@@ -1074,6 +1074,17 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       if (this.options?.store?.dispatch && saveOptions?.sync) {
         return await this.options.store.dispatch('multisig/syncWallet', this)
       }
+    }
+  }
+
+  /**
+   * @param {object} saveOptions
+   * @param {boolean} saveOptions.sync - If true, wallet will be synced with watchtower
+   */
+  async sync() {
+
+    if (this.options?.store?.dispatch) {
+      return await this.options.store.dispatch('multisig/syncWallet', this)
     }
   }
 

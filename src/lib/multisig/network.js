@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { CashAddressNetworkPrefix, decodeCashAddress } from "@bitauth/libauth";
+import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3";
 
 /**
  * @typedef {'mainnet' | 'testnet3' | 'testnet4' | 'chipnet' | 'mocknet' | 'regtest'} Network
