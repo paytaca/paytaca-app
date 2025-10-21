@@ -23,7 +23,7 @@
 
 
 /**
-* @typedef {Object} MultisigWalletNetworkState
+* @typedef {Object} MultisigWalletNetworkData
 * @property {number} [lastIssuedDepositAddressIndex=0] - The last generated external address index, shown to the user to receive coins, or derived and stored locally
 * @property {number} [lastIssuedChangeAddressIndex]  - The last generated change address index, derived and stored locally doesn't have to be on chain
 * @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
@@ -40,9 +40,9 @@
  * @property {number} [lastIssuedChangeAddressIndex]  - The last generated change address index, derived and stored locally doesn't have to be on chain
  * @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
  * @property {number} [lastUsedChangeAddressIndex]  - The last used change address on-chain.
- * @property {{[Network]: MultisigWalletNetworkState }} networkState - Network specific state
+ * @property {{[Network]: MultisigWalletNetworkData }} [networks] - Network specific state
  * @property {MultisigWalletWcPeer} [wcPeers] - The wallet connect peers associated with particular address index of the MultisigWallet.
- */
+ * /
 
 /**
  * @typedef {Object} MultisigWalletOptions
@@ -501,15 +501,14 @@ export class MultisigWallet {
     this.name = config.name
     this.m = config.m
     this.signers = config.signers
-    this.lastIssuedDepositAddressIndex = config.lastIssuedDepositAddressIndex
-    this.lastIssuedChangeAddressIndex = config.lastIssuedChangeAddressIndex
-    this.lastUsedDepositAddressIndex = config.lastUsedDepositAddressIndex
-    this.lastUsedChangeAddressIndex = config.lastUsedChangeAddressIndex
+    this.networks = config.networks || {
+      mainnet: {},
+      chipnet: {}
+    }
     this.enabled = config.enabled
     if (!config.id) {
       this.id = getWalletHash(this)
     }
-    console.log('options', options)
     this.options = options
   }
 
@@ -526,7 +525,6 @@ export class MultisigWallet {
   }
 
   get cashAddressNetworkPrefix() {
-    console.log('this.options', this.options)
     if (this.options?.provider?.network === 'chipnet' || this.options?.provider?.network === 'testnet') {
       return CashAddressNetworkPrefix.testnet 
     }
@@ -552,21 +550,21 @@ getDepositAddress(addressIndex, prefix) {
   let _addressIndex = addressIndex
 
   if (_addressIndex === undefined || _addressIndex < 0) {
-    if (this.lastIssuedDepositAddressIndex === undefined) {
+    if (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex === undefined) {
       _addressIndex = 0
     } else {
-      _addressIndex = this.lastIssuedDepositAddressIndex + 1
+      _addressIndex = this.networks[this.options.provider.network].lastIssuedDepositAddressIndex + 1
     }
   }
 
-  const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix })
+  const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet })
   return {
     addressIndex: _addressIndex,
     address
   }
 }
 
-  /**
+/**
  * Gets a change address from the wallet.
  *
  * If an `addressIndex` is provided, returns the change address at that index (without altering internal state).
@@ -579,19 +577,19 @@ getDepositAddress(addressIndex, prefix) {
  * wallet.getChangeAddress();        // Returns next unissued change address (e.g., m/44'/145'/0'/1/5)
  * wallet.getChangeAddress(0);      // Returns change address at index 0 (e.g., m/44'/145'/0'/1/0)
  */
-getChangeAddress(addressIndex) {
+getChangeAddress(addressIndex, prefix) {
 
     let _addressIndex = addressIndex
 
     if (_addressIndex === undefined || _addressIndex < 0) {
-      if (this.lastIssuedChangeAddressIndex === undefined) {
+      if (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex === undefined) {
         _addressIndex = 0
       } else {
-        _addressIndex = this.lastIssuedChangeAddressIndex + 1
+        _addressIndex = this.networks[this.options.provider.network].lastIssuedDepositAddressIndex + 1
       }
     }
 
-  const address = getChangeAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet })
+  const address = getChangeAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.testnet })
   return {
       addressIndex: _addressIndex,
       address
@@ -619,7 +617,7 @@ async getWalletUtxos() {
 
   if (!this.options?.provider) throw new Error('Missing provider')
 
-  let lastDepositAddress = (this.lastIssuedDepositAddressIndex || 0) + 20
+  let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
 
   let dCounter = 0
 
@@ -634,7 +632,7 @@ async getWalletUtxos() {
     dCounter++
   }
 
-  let lastChangeAddress = (this.lastIssuedChangeAddressIndex || 0) + 20
+  let lastChangeAddress = (this.networks[this.options.provider.network].lastIssuedChangeAddressIndex || 0) + 20
 
   let cCounter = 0
 
@@ -665,29 +663,29 @@ async getWalletUtxos() {
     return highest
   }, -1)
 
-  if (highestUsedDepositAddressIndex >= (this.lastUsedDepositAddressIndex || -1)) {
-    this.lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
+  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
       this.options?.store?.dispatch(
         'multisig/updateWalletLastUsedDepositAddressIndex', 
         { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex })
   }
 
   if (highestUsedChangeAddressIndex >= (this.lastUsedChangeAddressIndex || -1)) {
-    this.lastUsedChangeAddressIndex = highestUsedChangeAddressIndex       
+    this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex       
       this.options?.store?.dispatch(
         'multisig/updateWalletLastUsedChangeAddressIndex',         
         { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex })
   }
 
   if (highestUsedDepositAddressIndex >= (this.lastIssuedDepositAddressIndex || -1)) {
-    this.lastIssuedChangeAddressIndex = highestUsedDepositAddressIndex
+    this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
       this.options?.store?.dispatch(
         'multisig/updateWalletLastIssuedDepositAddressIndex', 
         { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex })
   }
 
   if (highestUsedChangeAddressIndex >= (this.lastIssuedChangeAddressIndex || -1)) {
-    this.lastIssuedChangeAddressIndex = highestUsedChangeAddressIndex       
+    this.networks[this.options.provider.network].lastIssuedChangeAddressIndex = highestUsedChangeAddressIndex       
       this.options?.store?.dispatch(
         'multisig/updateWalletLastIssuedChangeAddressIndex',         
         { wallet: this, lastIssuedChangeAddressIndex: highestUsedChangeAddressIndex })
@@ -1132,7 +1130,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       lastIssuedChangeAddressIndex: this.lastIssuedChangeAddressIndex,
       lastUsedDepositAddressIndex: this.lastUsedDepositAddressIndex,
       lastUsedChangeAddressIndex: this.lastUsedChangeAddressIndex,
-      networkState: this.networkState
+      networks: this.networks
     }
   }
 
