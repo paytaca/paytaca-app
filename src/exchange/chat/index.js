@@ -305,9 +305,10 @@ export function sendChatMessage (data, signData) {
 export function fetchChatMessages (chatRef, offset = null, limit = 10) {
   return new Promise((resolve, reject) => {
     let url = `chat/messages/?chat_ref=${chatRef}&limit=${limit}`
-    if (offset) {
+    if (offset !== null && offset !== undefined) {
       url += `&offset=${offset}`
     }
+    // console.log(`[fetchChatMessages] Requesting: ${url}`)
     chatBackend.get(url, { forceSign: true })
       .then(response => {
         // console.log('Messages: ', response)

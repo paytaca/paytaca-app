@@ -210,7 +210,8 @@
                 :scroll-target="chatScrollTarget"
                 ref="infiniteScroll"
                 @load="loadMoreChatData"
-                :offset="0"
+                :offset="50"
+                :disable="!hasMoreChatMessages || !chatLoaded || !userHasScrolled || justLoadedMessages"
                 reverse
                 class="chat-messages-scroll"
               >
@@ -227,6 +228,14 @@
                 </div>
 
                 <div v-else class="chat-messages-list" :key="chatMessagesKey">
+                  <!-- Beginning of conversation indicator -->
+                  <div v-if="!hasMoreChatMessages && chatMessages.length > 0" class="row justify-center q-py-md">
+                    <div class="text-caption text-grey-6">
+                      <q-icon name="chat" size="xs" class="q-mr-xs"/>
+                      {{ $t('BeginningOfConversation', {}, 'Beginning of conversation') }}
+                    </div>
+                  </div>
+                  
                   <div v-for="message in chatMessages" :key="message.id" class="chat-message-wrapper">
                     <q-chat-message
                       :name="userName(message.chatIdentity?.name)"
@@ -279,9 +288,8 @@
                   v-if="!chatAttachmentUrl"
                   flat
                   round
-                  dense
                   icon="attach_file"
-                  size="sm"
+                  size="md"
                   @click="openFileAttachmentField"
                   class="attach-button"
                   :class="darkMode ? 'text-grey-3' : 'text-grey-7'"
@@ -479,7 +487,6 @@ export default {
       chatMessageInput: '',
       chatAttachment: null,
       chatAttachmentUrl: null,
-      chatScrollTarget: null,
       chatIdentity: null,
       keypair: {},
       chatMembers: [],
@@ -488,6 +495,15 @@ export default {
       addingNewMessage: false,
       arbiterIdentity: null,
       chatMessagesKey: 0,
+      chatMessagesOffset: 0,
+      hasMoreChatMessages: true,
+      loadingMoreMessages: false,
+      lastLoadTime: 0,
+      userHasScrolled: false,
+      justLoadedMessages: false,
+      hasScrolledAwayFromTop: false,
+      scrollHeightBeforeLoad: 0,
+      scrollTopBeforeLoad: 0,
       
       // Chat input scroll behavior
       lastChatScrollY: 0,
@@ -526,6 +542,9 @@ export default {
   // REMOVED: Duplicate created() hook - merged into the one below
   // The new-message listener is now registered in the main created() hook
   computed: {
+    chatScrollTarget () {
+      return this.$refs.chatScrollTarget
+    },
     userTraderType () {
       const user = this.$store.getters['ramp/getUser']
       if (this.order?.owner?.id === user.id) {
@@ -867,7 +886,13 @@ export default {
         }
 
         // Fetch and decrypt messages
-        const response = await fetchChatMessages(this.chatRef)
+        const response = await fetchChatMessages(this.chatRef, 0, 10)
+        // console.log('[Chat Pagination] API response:', { 
+        //   count: response?.count, 
+        //   next: response?.next, 
+        //   previous: response?.previous,
+        //   resultsLength: response?.results?.length 
+        // })
         if (response?.results) {
           // Convert to ChatMessage instances
           this.chatMessages = response.results.reverse().map(msgData => {
@@ -884,13 +909,31 @@ export default {
           
           // Decrypt attachments
           await this.decryptChatAttachments()
+          
+          // Set pagination state
+          this.chatMessagesOffset = this.chatMessages.length
+          // Check if there are more messages: either next exists OR count > current loaded
+          this.hasMoreChatMessages = !!response.next || (response.count && response.count > this.chatMessages.length)
+          
+          // console.log(`[Chat Pagination] Initial load: ${this.chatMessages.length} messages, offset set to ${this.chatMessagesOffset}, hasMore: ${this.hasMoreChatMessages}, total count: ${response.count}`)
         }
         
         this.chatLoaded = true
+        
+        // Initialize flags for scroll-based loading
+        this.hasScrolledAwayFromTop = false
+        this.userHasScrolled = false
+        this.justLoadedMessages = false
 
-        // Scroll to bottom with multiple attempts
+        // Scroll to bottom with multiple attempts and stop infinite scroll if no more messages
         this.$nextTick(() => {
           this.scrollChatToBottom()
+          
+          // If no more messages, stop the infinite scroll
+          if (!this.hasMoreChatMessages && this.$refs.infiniteScroll) {
+            // console.log('[Chat Pagination] Stopping infinite scroll - no more messages')
+            this.$refs.infiniteScroll.stop()
+          }
           setTimeout(() => {
             this.scrollChatToBottom()
           }, 200)
@@ -911,8 +954,137 @@ export default {
     },
 
     async loadMoreChatData (index, done) {
-      // Simplified - would need proper pagination
-      done()
+      // Don't load if chat isn't loaded yet, already loading, or no more messages
+      if (!this.chatLoaded || this.loadingMoreMessages || !this.hasMoreChatMessages) {
+        // console.log(`[Chat Pagination] Skipping load - chatLoaded: ${this.chatLoaded}, loading: ${this.loadingMoreMessages}, hasMore: ${this.hasMoreChatMessages}`)
+        done()
+        return
+      }
+
+      // Cooldown: Prevent loading too quickly (minimum 2 seconds between loads)
+      const now = Date.now()
+      if (now - this.lastLoadTime < 2000) {
+        console.log('[Chat Pagination] Cooldown active, waiting...')
+        done()
+        return
+      }
+
+      try {
+        this.loadingMoreMessages = true
+        this.lastLoadTime = now
+        
+        // Save scroll position before loading
+        const scrollTarget = this.$refs.chatScrollTarget
+        if (scrollTarget) {
+          this.scrollHeightBeforeLoad = scrollTarget.scrollHeight
+          this.scrollTopBeforeLoad = scrollTarget.scrollTop
+        }
+        
+        // console.log(`[Chat Pagination] Loading more messages with offset: ${this.chatMessagesOffset}, current message count: ${this.chatMessages.length}`)
+        
+        // Fetch older messages
+        const response = await fetchChatMessages(this.chatRef, this.chatMessagesOffset, 10)
+        
+        // console.log('[Chat Pagination] Load more API response:', { 
+        //   count: response?.count, 
+        //   next: response?.next, 
+        //   previous: response?.previous,
+        //   resultsLength: response?.results?.length 
+        // })
+        
+        if (response?.results && response.results.length > 0) {
+          // Convert to ChatMessage instances
+          const newMessages = response.results.reverse().map(msgData => {
+            // Normalize attachment field names before parsing
+            if (msgData.attachment && typeof msgData.attachment === 'string' && 
+                !msgData.encrypted_attachment_url && !msgData.attachment_url) {
+              msgData.encrypted_attachment_url = msgData.attachment
+            }
+            return ChatMessage.parse(msgData)
+          })
+          
+          // Filter out any duplicates (in case of race conditions with websocket)
+          const existingIds = new Set(this.chatMessages.map(msg => msg.id))
+          const uniqueNewMessages = newMessages.filter(msg => !existingIds.has(msg.id))
+          
+          // console.log(`[Chat Pagination] Loaded ${response.results.length} messages, ${uniqueNewMessages.length} are unique, ${newMessages.length - uniqueNewMessages.length} duplicates filtered`)
+          
+          if (uniqueNewMessages.length === 0) {
+            // All messages were duplicates, no more unique messages to load
+            // console.log('[Chat Pagination] All loaded messages were duplicates, stopping pagination')
+            this.hasMoreChatMessages = false
+            // Stop the infinite scroll component from further attempts
+            if (this.$refs.infiniteScroll) {
+              this.$refs.infiniteScroll.stop()
+            }
+            done()
+            return
+          }
+          
+          // Decrypt messages
+          await this.decryptChatMessages(uniqueNewMessages)
+          
+          // Decrypt attachments in the new messages
+          for (const message of uniqueNewMessages) {
+            if (message.hasAttachment || message.attachment || message.encryptedAttachmentUrl) {
+              await this.decryptMessageAttachment(message)
+            }
+          }
+          
+          // Prepend new messages to the beginning (older messages)
+          this.chatMessages = [...uniqueNewMessages, ...this.chatMessages]
+          
+          // Update pagination state - use the API response count, not uniqueNewMessages count
+          // This ensures offset stays in sync with the API's pagination
+          this.chatMessagesOffset += response.results.length
+          // Check if there are more messages: either next exists OR count > current loaded
+          this.hasMoreChatMessages = !!response.next || (response.count && response.count > this.chatMessages.length)
+          
+          // console.log(`[Chat Pagination] New offset: ${this.chatMessagesOffset}, hasMore: ${this.hasMoreChatMessages}, total messages in UI: ${this.chatMessages.length}, API count: ${response.count}`)
+          
+          // Force re-render
+          this.chatMessagesKey++
+          
+          // Set flag to prevent immediate re-trigger
+          // User must scroll away from top and back to trigger next load
+          this.justLoadedMessages = true
+          this.userHasScrolled = false
+          
+          // Restore scroll position to keep user at the same visual position
+          this.$nextTick(() => {
+            const scrollTarget = this.$refs.chatScrollTarget
+            if (scrollTarget) {
+              // Calculate how much the content grew
+              const scrollHeightAfterLoad = scrollTarget.scrollHeight
+              const heightDifference = scrollHeightAfterLoad - this.scrollHeightBeforeLoad
+              
+              // Adjust scroll position to maintain the same view
+              // Add the height difference to keep looking at the same message
+              scrollTarget.scrollTop = this.scrollTopBeforeLoad + heightDifference
+              
+              // console.log(`[Chat Scroll] Adjusted scroll position by ${heightDifference}px`)
+            }
+          })
+        } else {
+          // No more messages
+          // console.log('[Chat Pagination] No more messages returned from API')
+          this.hasMoreChatMessages = false
+          // Stop the infinite scroll component
+          if (this.$refs.infiniteScroll) {
+            this.$refs.infiniteScroll.stop()
+          }
+        }
+      } catch (error) {
+        console.error('Error loading more chat messages:', error)
+        this.$q.notify({
+          message: this.$t('FailedToLoadMessages', {}, 'Failed to load older messages'),
+          color: 'negative',
+          icon: 'error'
+        })
+      } finally {
+        this.loadingMoreMessages = false
+        done()
+      }
     },
 
     async sendChatMessage () {
@@ -1165,6 +1337,13 @@ export default {
       this.chatMessages = [...this.chatMessages, message]
       this.chatMessagesKey++
       
+      // Don't increment chatMessagesOffset here!
+      // New messages are more recent, not older. The offset only tracks
+      // how many older messages we've loaded via pagination.
+      // The API handles new messages separately.
+      
+      // console.log(`[Chat Pagination] New message added. Total messages: ${this.chatMessages.length}, offset remains: ${this.chatMessagesOffset}`)
+      
       // Force update
       this.$forceUpdate()
       
@@ -1239,6 +1418,30 @@ export default {
       const currentScrollY = scrollTarget.scrollTop
       const scrollHeight = scrollTarget.scrollHeight
       const clientHeight = scrollTarget.clientHeight
+      
+      // Check if user is near the top (within 100px)
+      const isNearTop = currentScrollY <= 100
+      
+      // Handle scroll position for infinite scroll logic
+      if (this.justLoadedMessages) {
+        // After loading messages, user must scroll away from top first
+        if (!isNearTop) {
+          // User scrolled away from top - allow next load on return to top
+          this.justLoadedMessages = false
+          this.hasScrolledAwayFromTop = true
+          this.userHasScrolled = false // Reset to require another scroll to top
+        }
+      } else {
+        // Normal scroll handling
+        if (isNearTop && this.hasScrolledAwayFromTop) {
+          // User scrolled back to top - enable loading
+          this.userHasScrolled = true
+        } else if (!isNearTop) {
+          // User is away from top
+          this.hasScrolledAwayFromTop = true
+          this.userHasScrolled = false
+        }
+      }
       
       // If at the bottom of chat, always show input
       if (currentScrollY + clientHeight >= scrollHeight - 10) {
@@ -1339,10 +1542,23 @@ export default {
         }
         
         message.$state.decryptingAttachment = false
+        
+        // Force Vue reactivity update - critical for iOS
+        // Increment key to force re-render of the entire chat messages list
+        this.chatMessagesKey++
+        
+        // Recreate the array to trigger reactivity
+        this.chatMessages = [...this.chatMessages]
+        
+        // Force update as additional safeguard
         this.$forceUpdate()
       } catch (error) {
         console.error('Error decrypting attachment:', error)
         message.$state.decryptingAttachment = false
+        // Force update even on error to clear the loading state
+        this.chatMessagesKey++
+        this.chatMessages = [...this.chatMessages]
+        this.$forceUpdate()
       }
     },
 
@@ -1358,6 +1574,10 @@ export default {
       }
       
       // Force a complete re-render
+      // Note: decryptMessageAttachment already updates chatMessagesKey and recreates the array
+      // but we add an extra update here as a safeguard
+      this.chatMessagesKey++
+      this.chatMessages = [...this.chatMessages]
       this.$forceUpdate()
     },
 
@@ -2519,8 +2739,13 @@ export default {
   }
 
   .attach-button {
-    margin-right: 4px;
+    margin-right: 8px;
     flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .send-button {
