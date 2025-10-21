@@ -3,12 +3,6 @@
     
     <!-- Skeleton Loader -->
     <div v-if="!isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
-      <!-- Header Skeleton -->
-      <div class="order-header" :class="getDarkModeClass(darkMode)">
-        <q-skeleton type="text" width="60%" class="q-mx-auto" style="height: 20px;" />
-        <q-skeleton type="text" width="40%" class="q-mx-auto q-mt-xs" style="height: 16px;" />
-      </div>
-
       <!-- Tabs Skeleton -->
       <div class="skeleton-tabs" :class="getDarkModeClass(darkMode)">
         <q-skeleton type="rect" width="80px" height="40px" class="skeleton-tab" />

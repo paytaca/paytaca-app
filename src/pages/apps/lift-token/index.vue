@@ -7,17 +7,164 @@
       id="header-nav"
     />
 
+    <!-- Loading state with skeletons -->
     <template v-if="isLoading">
+      <!-- Skeleton Tabs -->
+      <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
       <div
-        class="q-mt-xl q-pt-xl row flex-center text-center text-h5 full-width"
-      >
-        <span
-          class="q-mb-md col-12 text-bow"
+          class="lift-token-tabs q-px-sm q-py-xs"
           :class="getDarkModeClass(darkMode)"
         >
-          {{ $t("RetrievingDetails") }} ...
-        </span>
-        <progress-loader />
+          <q-skeleton
+            type="rect"
+            width="120px"
+            height="40px"
+            class="skeleton-tab"
+            :class="getDarkModeClass(darkMode)"
+          />
+          <q-skeleton
+            type="rect"
+            width="120px"
+            height="40px"
+            class="skeleton-tab"
+            :class="getDarkModeClass(darkMode)"
+          />
+        </div>
+      </div>
+
+      <!-- Skeleton Content -->
+      <div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+        <!-- Skeleton Filter Header -->
+        <div class="q-px-sm q-mb-sm" style="flex-shrink: 0;">
+          <div class="row justify-end items-center" style="min-height: 32px;">
+            <q-skeleton type="circle" size="40px" :class="getDarkModeClass(darkMode)" />
+          </div>
+        </div>
+        
+        <!-- Skeleton Cards Container -->
+        <div style="flex: 1; overflow-y: auto; padding: 8px 12px 16px 12px;">
+          <div class="row q-gutter-y-md">
+            <!-- Skeleton Card 1 -->
+            <q-card
+              class="skeleton-card q-pa-md full-width"
+              :class="getDarkModeClass(darkMode)"
+            >
+              <div class="row col-12 q-mb-sm justify-between items-start">
+                <div class="col-7">
+                  <div class="q-mb-xs">
+                    <q-skeleton type="text" width="140px" height="28px" :class="getDarkModeClass(darkMode)" />
+                  </div>
+                  <div class="row items-center q-gutter-xs">
+                    <q-skeleton type="text" width="85px" height="22px" :class="getDarkModeClass(darkMode)" />
+                    <q-skeleton type="circle" size="18px" :class="getDarkModeClass(darkMode)" />
+                  </div>
+                </div>
+                <div class="col-5 row justify-end">
+                  <q-skeleton type="rect" width="90px" height="22px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
+                </div>
+              </div>
+
+              <q-separator class="q-my-sm" :class="getDarkModeClass(darkMode)" />
+
+              <div class="row col-12 justify-between q-gutter-y-sm info-section">
+                <div class="col-12 row justify-between">
+                  <q-skeleton type="text" width="50px" height="14px" :class="getDarkModeClass(darkMode)" />
+                  <q-skeleton type="text" width="85px" height="14px" :class="getDarkModeClass(darkMode)" />
+                </div>
+                <div class="col-12 row justify-between">
+                  <q-skeleton type="text" width="160px" height="16px" :class="getDarkModeClass(darkMode)" />
+                  <q-skeleton type="text" width="75px" height="16px" :class="getDarkModeClass(darkMode)" />
+                </div>
+              </div>
+
+              <div class="row col-12 justify-center q-mt-md">
+                <q-skeleton type="rect" width="140px" height="40px" class="skeleton-btn" :class="getDarkModeClass(darkMode)" />
+              </div>
+            </q-card>
+
+            <!-- Skeleton Card 2 (with Paid badge variant) -->
+            <q-card
+              class="skeleton-card q-pa-md full-width"
+              :class="getDarkModeClass(darkMode)"
+            >
+              <div class="row col-12 q-mb-sm justify-between items-start">
+                <div class="col-7">
+                  <div class="q-mb-xs">
+                    <q-skeleton type="text" width="155px" height="28px" :class="getDarkModeClass(darkMode)" />
+                  </div>
+                  <div class="row items-center q-gutter-xs">
+                    <q-skeleton type="text" width="95px" height="22px" :class="getDarkModeClass(darkMode)" />
+                  </div>
+                </div>
+                <div class="col-5 row justify-end">
+                  <q-skeleton type="rect" width="85px" height="22px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
+                </div>
+              </div>
+
+              <q-separator class="q-my-sm" :class="getDarkModeClass(darkMode)" />
+
+              <div class="row col-12 justify-between q-gutter-y-sm info-section">
+                <div class="col-12 row justify-between">
+                  <q-skeleton type="text" width="50px" height="14px" :class="getDarkModeClass(darkMode)" />
+                  <q-skeleton type="text" width="85px" height="14px" :class="getDarkModeClass(darkMode)" />
+                </div>
+                <div class="col-12 row justify-between">
+                  <q-skeleton type="text" width="150px" height="16px" :class="getDarkModeClass(darkMode)" />
+                  <q-skeleton type="text" width="80px" height="16px" :class="getDarkModeClass(darkMode)" />
+                </div>
+                <div class="col-12 row justify-between q-mt-sm">
+                  <q-skeleton type="text" width="55px" height="14px" :class="getDarkModeClass(darkMode)" />
+                  <q-skeleton type="text" width="45px" height="14px" :class="getDarkModeClass(darkMode)" />
+                </div>
+                <div class="col-12 row justify-between">
+                  <q-skeleton type="text" width="110px" height="16px" :class="getDarkModeClass(darkMode)" />
+                  <q-skeleton type="text" width="105px" height="16px" :class="getDarkModeClass(darkMode)" />
+                </div>
+              </div>
+
+              <div class="col-12 row justify-center q-mt-md">
+                <q-skeleton type="rect" width="180px" height="36px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
+              </div>
+            </q-card>
+
+            <!-- Skeleton Card 3 -->
+            <q-card
+              class="skeleton-card q-pa-md full-width"
+              :class="getDarkModeClass(darkMode)"
+            >
+              <div class="row col-12 q-mb-sm justify-between items-start">
+                <div class="col-7">
+                  <div class="q-mb-xs">
+                    <q-skeleton type="text" width="165px" height="28px" :class="getDarkModeClass(darkMode)" />
+                  </div>
+                  <div class="row items-center q-gutter-xs">
+                    <q-skeleton type="text" width="90px" height="22px" :class="getDarkModeClass(darkMode)" />
+                  </div>
+                </div>
+                <div class="col-5 row justify-end">
+                  <q-skeleton type="rect" width="95px" height="22px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
+                </div>
+              </div>
+
+              <q-separator class="q-my-sm" :class="getDarkModeClass(darkMode)" />
+
+              <div class="row col-12 justify-between q-gutter-y-sm info-section">
+                <div class="col-12 row justify-between">
+                  <q-skeleton type="text" width="50px" height="14px" :class="getDarkModeClass(darkMode)" />
+                  <q-skeleton type="text" width="85px" height="14px" :class="getDarkModeClass(darkMode)" />
+                </div>
+                <div class="col-12 row justify-between">
+                  <q-skeleton type="text" width="145px" height="16px" :class="getDarkModeClass(darkMode)" />
+                  <q-skeleton type="text" width="70px" height="16px" :class="getDarkModeClass(darkMode)" />
+                </div>
+              </div>
+
+              <div class="row col-12 justify-center q-mt-md">
+                <q-skeleton type="rect" width="140px" height="40px" class="skeleton-btn" :class="getDarkModeClass(darkMode)" />
+              </div>
+            </q-card>
+          </div>
+        </div>
       </div>
     </template>
 
@@ -56,27 +203,27 @@
       </div>
 
       <!-- Content Panels -->
-      <q-tab-panels
-        animated
-        v-model="sectionTab"
+        <q-tab-panels
+          animated
+          v-model="sectionTab"
         class="text-bow tab-panels-wrapper"
-        :class="getDarkModeClass(darkMode)"
-      >
+          :class="getDarkModeClass(darkMode)"
+        >
         <q-tab-panel name="reserves" class="q-pa-none tab-panel-content">
-          <reservations-tab-panel
-            :reservationsList="reservationsList"
-            :liftSwapContractAddress="liftSwapContractAddress"
-            @on-successful-purchase="retrieveData"
-          />
-        </q-tab-panel>
+            <reservations-tab-panel
+              :reservationsList="reservationsList"
+              :liftSwapContractAddress="liftSwapContractAddress"
+              @on-successful-purchase="retrieveData"
+            />
+          </q-tab-panel>
 
         <q-tab-panel name="purchase" class="q-pa-none tab-panel-content">
-          <purchases-tab-panel
-            :purchasesList="purchasesList"
-            :liftSwapContractAddress="liftSwapContractAddress"
-          />
-        </q-tab-panel>
-      </q-tab-panels>
+            <purchases-tab-panel
+              :purchasesList="purchasesList"
+              :liftSwapContractAddress="liftSwapContractAddress"
+            />
+          </q-tab-panel>
+        </q-tab-panels>
     </template>
   </div>
 </template>
@@ -95,7 +242,6 @@ import {
 } from "src/utils/engagementhub-utils/lift-token";
 
 import HeaderNav from "src/components/header-nav.vue";
-import ProgressLoader from "src/components/ProgressLoader.vue";
 import ReservationsTabPanel from "src/components/lift-token/ReservationsTabPanel.vue";
 import PurchasesTabPanel from "src/components/lift-token/PurchasesTabPanel.vue";
 import { loadLibauthHdWallet } from "src/wallet";
@@ -105,14 +251,13 @@ export default {
 
   components: {
     HeaderNav,
-    ProgressLoader,
     ReservationsTabPanel,
     PurchasesTabPanel,
   },
 
   data() {
     return {
-      isLoading: false,
+      isLoading: true,
       sectionTab: "reserves",
       liftSwapContractAddress: "",
 
@@ -313,5 +458,38 @@ export default {
 
 .lift-token-tab.active-theme-btn.theme-glassmorphic-red:hover {
   background-color: #e91e63 !important;
+}
+
+// Skeleton loaders
+.skeleton-tab {
+  border-radius: 20px;
+}
+
+.skeleton-card {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.rounded-badge {
+  border-radius: 12px;
+}
+
+.skeleton-btn {
+  border-radius: 20px;
+}
+
+.info-section {
+  font-size: 0.875rem;
+  line-height: 1.3;
 }
 </style>

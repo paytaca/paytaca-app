@@ -1,23 +1,21 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
+    <router-view v-if="isloaded" :key="$route.path"></router-view>
+    
     <!-- Skeleton Loading State for Initial Auth -->
-    <div v-if="!isloaded" class="full-width q-px-md q-pt-lg">
-      <!-- Header Skeleton -->
-      <div class="q-mb-lg">
-        <q-skeleton type="text" width="30%" height="24px" class="q-mb-sm" />
-        <div class="row q-gutter-sm">
-          <q-skeleton type="rect" width="80px" height="40px" style="border-radius: 20px;" />
-          <q-skeleton type="rect" width="80px" height="40px" style="border-radius: 20px;" />
+    <div v-else class="full-width">
+      <!-- Header (visible during loading) -->
+      <HeaderNav title="P2P Exchange" backnavpath="/apps" class="header-nav p2p-exchange-header" />
+      
+      <!-- Content Skeletons -->
+      <div class="q-px-md">
+        <!-- Tab Buttons Skeleton -->
+        <div class="row justify-center q-mb-md">
+          <q-skeleton type="rect" width="70%" height="48px" style="border-radius: 24px;" />
         </div>
-      </div>
-      
-      <!-- Tab Buttons Skeleton -->
-      <div class="row justify-center q-mb-md">
-        <q-skeleton type="rect" width="70%" height="48px" style="border-radius: 24px;" />
-      </div>
-      
-      <!-- Listing Skeletons -->
-      <q-list>
+        
+        <!-- Listing Skeletons -->
+        <q-list>
         <q-item v-for="n in 5" :key="n" class="q-mb-sm">
           <q-item-section>
             <div class="q-pb-sm">
@@ -38,13 +36,13 @@
           </q-item-section>
         </q-item>
       </q-list>
+      </div>
     </div>
-    
-    <router-view v-else :key="$route.path"></router-view>
   </div>
   <OngoingMaintenanceDialog v-if="appDisabled"/>
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import OngoingMaintenanceDialog from 'src/components/ramp/fiat/dialogs/OngoingMaintenanceDialog.vue'
 import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
 import packageInfo from '../../../../package.json'
@@ -55,6 +53,7 @@ import { loadRampWallet } from 'src/exchange/wallet'
 
 export default {
   components: {
+    HeaderNav,
     OngoingMaintenanceDialog
   },
   data () {
@@ -207,3 +206,18 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+.p2p-exchange-header {
+  ::v-deep .text-h5 {
+    -webkit-text-fill-color: #fff !important;
+    background: none !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+  }
+  
+  ::v-deep .pt-arrow-left-link .material-icons {
+    color: #fff !important;
+  }
+}
+</style>
