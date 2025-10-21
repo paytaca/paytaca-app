@@ -24,7 +24,7 @@
           </q-card-section>
 
           <div v-if="loading" class="flex justify-center">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
           </div>
           <div class="col-12 q-mx-md q-mb-md overflow-hidden" v-if="asset !== null">
             <div class="row" v-for="val, key in asset" :key="key">
@@ -75,9 +75,10 @@
 </template>
 
 <script>
+import * as assetSettings from 'src/utils/asset-settings'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import ProgressLoader from '../../../components/ProgressLoader.vue'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -150,7 +151,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
     show () {
       this.$refs.dialog.show()
@@ -161,7 +161,7 @@ export default {
     setAssetDetailsSep20() {
       const vm = this
       vm.loading = true
-      console.log('fetching sep20')
+      // console.log('fetching sep20')
       return getWalletByNetwork(vm.wallet, 'sbch').getSep20ContractDetails(vm.tokenId).then(response => {
         if (response.success && response.token) {
           vm.asset = {
@@ -180,8 +180,8 @@ export default {
     },
     setAssetDetailsCashtoken() {
       const vm = this
-      vm.loading = true
-      console.log('fetching ct')
+      vm.loading = true      
+      // console.log('fetching ct')
       return vm.$refs.questForm.validate().then(success => {
         getWalletByNetwork(vm.wallet, 'bch').getTokenDetails(vm.tokenId).then(details => {
           if (details !== null) {
@@ -196,7 +196,7 @@ export default {
     setAssetDetailsSLP() {
       const vm = this
       vm.loading = true
-      console.log('fetching slp')
+      // console.log('fetching slp')
       return getWalletByNetwork(vm.wallet, 'slp').getSlpTokenDetails(vm.tokenId).then(details => {
         const token = {
           logo: details.image_url,
@@ -222,9 +222,13 @@ export default {
       return this.setAssetDetailsSLP()
     },
     addAsset () {
+      // console.log('adding new asset: ', this.asset)
+      assetSettings.addNewAsset(this.asset, this.network)
       if (!this.asset?.id) return console.error('No asset id found. Skipping adding new asset')
       // if (this.asset?.is_nft) return console.error('Asset is nft. Skipping adding new asset')
 
+      assetSettings.addNewAsset(this.asset, this.network)
+    
       if (this.isSep20) {
         this.$store.commit('sep20/addNewAsset', this.asset)
         this.$store.commit(`sep20/moveAssetToBeginning`)

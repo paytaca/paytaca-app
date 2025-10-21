@@ -25,7 +25,7 @@ export default function () {
       name: 'United States',
       code: 'US'
     },
-    theme: 'default', // [default, payhero]
+    theme: 'glassmorphic-blue', // [glassmorphic-blue, payhero]
     isChipnet: false,
     autoGenerateAddress: false,
     showTokens: true,

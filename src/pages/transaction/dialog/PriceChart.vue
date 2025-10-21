@@ -18,7 +18,7 @@
         </div>
       </div>
       <div class="row justify-center q-pb-lg q-pt-lg" v-if="!isloaded">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader />
       </div>
       <div
         class="text-h5 text-center col text-bow pt-internet-required"
@@ -44,11 +44,11 @@
   </q-dialog>
 </template>
 <script>
-import { load } from 'dotenv'
 import Chart from 'chart.js/auto'
 import ProgressLoader from '../../../components/ProgressLoader'
 import { parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 
 export default {
   data () {
@@ -70,7 +70,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     parseFiatCurrency,
     async loadData () {
       const vm = this
@@ -237,7 +236,7 @@ export default {
                   intersect: false,
                   callbacks: {
                     label: function (tooltipItems) {
-                      return tooltipItems.formattedValue + ' ' + currency
+                      return formatWithLocale(tooltipItems.formattedValue.replaceAll(',', '')) + ' ' + currency
                     }
                   },
                   titleFont: {

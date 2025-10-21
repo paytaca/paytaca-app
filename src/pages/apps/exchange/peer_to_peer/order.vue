@@ -1,7 +1,7 @@
 <template>
-    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps/exchange/peer-to-peer/orders"/>
+    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps/exchange/peer-to-peer/orders" class="header-nav" />
     <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      <ProgressLoader />
     </div>
     <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-center text-weight-bold">
@@ -105,7 +105,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/exchange/chat'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
@@ -368,7 +368,6 @@ export default {
   methods: {
     formatDate,
     getDarkModeClass,
-    isNotDefaultTheme,
 
     async loadData () {
       try {

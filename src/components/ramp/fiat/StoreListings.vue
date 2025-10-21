@@ -28,14 +28,14 @@
           </div>
           <div class="q-ml-md">
             <span>
-              <q-badge :outline="!filters.order_amount" color="blue" rounded @click="openFilterSelection('amount')">
-                Amount{{ filters.order_amount ? `: ${filters.order_amount} ${amountFilterCurrency}` : ''}}
+              <q-badge :outline="!filters.order_amount" class="button button-text-primary" :class="getDarkModeClass(darkMode)" rounded @click="openFilterSelection('amount')">
+                {{ $t('Amount') }}{{ filters.order_amount ? `: ${filters.order_amount} ${amountFilterCurrency}` : ''}}
                 <q-icon size="xs" name='mdi-menu-down'/>
               </q-badge>
             </span>
             <span class="q-pl-xs">
-              <q-badge :outline="defaultPaymentTypes" color="blue" rounded @click="openFilterSelection('paymentTypes')">
-                Payment Types <q-icon size="xs" name='mdi-menu-down'/>
+              <q-badge :outline="defaultPaymentTypes" class="button button-text-primary" :class="getDarkModeClass(darkMode)" rounded @click="openFilterSelection('paymentTypes')">
+                {{ $t('PaymentTypes') }} <q-icon size="xs" name='mdi-menu-down'/>
               </q-badge>
             </span>
           </div>

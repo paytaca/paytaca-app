@@ -8,16 +8,16 @@
       <!-- Select Payment Method -->
       <div v-if="status === 'payment-method-select'">
         <div class="text-center text-primary q-pb-sm text-bold md-font-size">
-          Select Payment Methods
+          {{ $t('SelectPaymentMethods') }}
         </div>
 
         <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
 
         <div v-else class="q-px-md">
           <div class="text-center text-grey-8" v-if="paymentMethodList.length === 0">
-            No payment method available...
+            {{ $t('NoPaymentMethodAvailable') }}...
           </div>
           <q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;" v-else>
             <div v-for="(method, index) in paymentMethodList" :key="index">
@@ -73,18 +73,18 @@
 
         <!-- Buttons -->
         <div class="text-center q-pt-xs q-px-lg">
-          <q-btn v-if="paymentTypeOpts?.length !== 0" outline dense class="full-width q-my-xs" rounded unelevated label="Add Payment Method" color="primary" @click="status = 'payment-method-form'"/>
-          <q-btn dense class="full-width" rounded unelevated :disable="!selectedPaymentMethod" label="Select Payment Method" color="primary" @click="onOKClick()"/>
+          <q-btn v-if="paymentTypeOpts?.length !== 0" outline dense class="full-width q-my-xs" rounded unelevated :label="$t('AddPaymentMethod')" color="primary" @click="status = 'payment-method-form'"/>
+          <q-btn dense class="full-width" rounded unelevated :disable="!selectedPaymentMethod" :label="$t('SelectPaymentMethod')" color="primary" @click="onOKClick()"/>
         </div>
       </div>
 
       <div v-if="status === 'payment-method-form'">
         <div class="text-center text-primary q-pb-sm text-bold md-font-size">
-          Manage Payment Methods
+          {{ $t('ManagePaymentMethods') }}
         </div>
 
         <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
         </div>
         <div v-else class="q-px-md">
 
@@ -135,13 +135,15 @@
               <q-btn
                 rounded
                 :label="$t('Cancel')"
-                class="col"
+                class="col button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
                 @click="status = 'payment-method-select'" />
               <q-btn
                 rounded
                 flat
                 :label="$t('Submit')"
-                class="col button"
+                class="col button q-mt-xs"
+                :class="getDarkModeClass(darkMode)"
                 :disable="disableSubmitBtn"
                 @click="onSubmit()"
                 />
@@ -152,7 +154,7 @@
       </div>
 
       <div v-if="status === 'delete-confirmation'" class="text-center">
-        <div class="text-bold md-font-size q-pb-sm">Delete this Payment Method?</div>
+        <div class="text-bold md-font-size">{{ $t('DeleteThisPaymentMethod') }}</div>
         <div class="text-bold md-font-size">
           {{ editingPaymentMethod.payment_type.full_name }}
         </div>
@@ -161,8 +163,8 @@
         </div>
 
         <div class="row text-center q-px-lg q-pt-sm">
-          <q-btn class="col q-mx-xs" rounded outline label="Cancel" color="primary" @click="() => { status = 'payment-method-select'; editingPaymentMethod = null;}"/>
-          <q-btn class="col q-mx-xs" rounded label="Confirm" color="primary" @click="deletePaymentMethod()"/>
+          <q-btn class="col q-mx-xs button button-text-primary" rounded outline :label="$t('Cancel')" :class="getDarkModeClass(darkMode)" @click="() => { status = 'payment-method-select'; editingPaymentMethod = null;}"/>
+          <q-btn class="col q-mx-xs button" rounded :label="$t('Confirm')" :class="getDarkModeClass(darkMode)" @click="deletePaymentMethod()"/>
         </div>
       </div>
     </q-card>
@@ -170,7 +172,7 @@
 </template>
 <script>
 import ProgressLoader from '../../ProgressLoader.vue';
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/wallet/pos'
 import { bus } from 'src/wallet/event-bus'
 
@@ -221,7 +223,6 @@ export default {
     this.refetchData()
   },
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     async refetchData () {
       this.isloading = true

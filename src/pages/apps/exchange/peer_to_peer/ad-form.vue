@@ -1,6 +1,6 @@
 <template>
   <div>
-    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute" class="header-nav" />
     <div v-if="currentStep === 1"
       class="text-bow"
       :class="getDarkModeClass(darkMode)">
@@ -189,7 +189,9 @@
                 </div>
               </div>
             </div>
-            <q-checkbox size="sm" v-model="setTradeLimitsInFiat" class="q-mx-md sm-font-size" color="blue-8"> Set trade limits in fiat </q-checkbox>
+            <q-checkbox size="sm" v-model="setTradeLimitsInFiat" class="q-mx-md sm-font-size" color="blue-8">
+              {{ $t('SetTradeLimitsFiat') }}
+            </q-checkbox>
           </div>
 
           <!-- Appeal Cooldown -->
@@ -248,7 +250,7 @@
     </div>
     <div v-if="currentStep > 3">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader />
       </div>
     </div>
   </div>
@@ -287,7 +289,7 @@ import { debounce } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { bchToSatoshi, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import DisplayConfirmation from 'src/components/ramp/fiat/DisplayConfirmation.vue'
@@ -542,7 +544,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     async loadFormData () {
       this.loading = true
       this.getInitialMarketPrice()

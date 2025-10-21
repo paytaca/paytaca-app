@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <div class="column items-center text-center" style="margin:auto;">
       <img src="~/assets/paytaca_logo.png" alt="" style="width:min(50vw, 250px)">
       <div v-if="loading">

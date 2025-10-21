@@ -1,12 +1,12 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)" class="pt-settings">
-    <header-nav :title="$t(isHongKong(currentCountry) ? 'IgnoredPoints' : 'IgnoredTokens')" :backnavpath="backNavPath" />
+  <div id="app-container" class="sticky-header-container pt-settings" :class="getDarkModeClass(darkMode)">
+    <header-nav :title="$t(isHongKong(currentCountry) ? 'IgnoredPoints' : 'IgnoredTokens')" :backnavpath="backNavPath" class="header-nav" />
     <div class="q-px-md text-bow tabs-container" :class="getDarkModeClass(darkMode)">
       <q-tabs
         v-if="enableSmartBCH"
         class="col-12 q-px-sm q-pb-md q-tabs-component"
         v-model="selectedNetwork"
-        :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+        
       >
         <q-tab
           name="BCH"
@@ -74,7 +74,7 @@
 </template>
 <script>
 import HeaderNav from '../../components/header-nav'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'IgnoredTokensList',
@@ -132,7 +132,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
     isMainchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['assets/getAssets'])) {

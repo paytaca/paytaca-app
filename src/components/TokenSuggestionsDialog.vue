@@ -41,7 +41,7 @@
             class="col-12 q-px-sm q-pb-md"
             v-model="selectedNetwork"
             style="padding-bottom: 16px;"
-            :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+            
           >
             <q-tab
               name="BCH"
@@ -104,7 +104,7 @@
           </q-list>
         </template>
         <div v-else-if="loading" class="column items-center justify-center">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+          <ProgressLoader />
           <div :class="darkMode ? 'text-white' : 'text-grey'">
             {{ $t('SearchingForOtherAssets') }}
           </div>
@@ -136,7 +136,7 @@
 <script>
 import ProgressLoader from './ProgressLoader.vue'
 import TokenTypeBadge from './TokenTypeBadge.vue'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'TokenSuggestionsDialog',
@@ -159,6 +159,7 @@ export default {
       type: String
     }
   },
+  emits: ['added', 'update:modelValue'],
   data () {
     return {
       val: this.modelValue,
@@ -234,7 +235,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
     isMainchainAsset (assetId) {
       if (Array.isArray(this.$store.getters['assets/getAssets'])) {
@@ -289,8 +289,9 @@ export default {
       if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
       else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
     },
-    addAllTokens () {
-      this.parsedTokens.forEach(this.addToken)
+    async addAllTokens () {
+      await this.parsedTokens.forEach(this.addToken)
+      this.$emit('added')      
     },
     async updateMainchainList (opts = { includeIgnored: false }) {
       const tokenWalletHashes = [this.bchWalletHash, this.slpWalletHash]

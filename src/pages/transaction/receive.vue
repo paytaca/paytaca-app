@@ -1,8 +1,9 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="$t('Receive') + ' ' + asset.symbol"
       backnavpath="/receive/select-asset"
+      class="header-nav"
     ></header-nav>
     <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
@@ -10,6 +11,7 @@
         id="context-menu"
         size="35px"
         name="more_vert"
+        color="primary"
         :style="{'margin-left': (getScreenWidth() - 45) + 'px', 'margin-top': $q.platform.is.ios ? '42px' : '0px'}"
       >
         <q-menu anchor="bottom right" self="top end">
@@ -186,7 +188,7 @@ import {
   getWatchtowerWebsocketUrl,
   convertCashAddress
 } from 'src/wallet/chipnet'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
 
@@ -297,7 +299,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     formatWithLocale,
 
     getWallet (type) {

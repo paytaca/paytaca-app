@@ -5,7 +5,7 @@
     @refresh="getCollectibles"
   >
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
-    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}">
+    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}" class="text-pt-primary1">
       <q-menu>
         <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px">
           <q-item clickable v-close-popup>
@@ -32,8 +32,8 @@
     <q-tabs
       dense
       v-if="enableSmartBCH"
-      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : brandblue"
-      :indicator-color="isNotDefaultTheme(theme) && 'transparent'"
+      active-color="brandblue"
+      
       class="col-12 q-px-lg"
       :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
       :modelValue="selectedNetwork"
@@ -219,7 +219,7 @@ import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
 import { convertCashAddress } from 'src/wallet/chipnet'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'app-wallet-info',
@@ -291,7 +291,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     filterTokens (isCashToken) {
       this.bchNftType = isCashToken ? 'ct' : 'slp'
     },
@@ -391,7 +390,6 @@ export default {
     top: 16px;
     right: 10px;
     z-index: 150 !important;
-    color: #3b7bf6;
   }
   .receiving-address-container {
     padding: 20px 40px;

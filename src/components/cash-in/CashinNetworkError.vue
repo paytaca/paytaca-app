@@ -1,8 +1,8 @@
 <template>
   <div class="text-center q-px-lg" :style="`margin-top: 50px;`">
     <q-icon name="wifi_off" size="100px" color="primary"/>
-    <div :class="darkMode ? '' : 'text-grey-8'" style="font-size: large;">Server Cannot be Reached... ☹</div>
-    <div class="q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-6'" style="font-size: medium;">Please Try Again Later</div>
+    <div :class="darkMode ? '' : 'text-grey-8'" style="font-size: large;">{{ $t('CashinNetworkError1') }}... ☹</div>
+    <div class="q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-6'" style="font-size: medium;">{{ $t('CashinNetworkError2') }}</div>
     <div class="q-mt-lg" v-if="loading">
       <q-spinner
         color="primary"

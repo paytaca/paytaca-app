@@ -1,11 +1,11 @@
 <template>
   <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
-    <button v-show="manageAssets" class="add-asset-button q-ml-lg shadow-5 bg-grad text-white" @click="addNewAsset">+</button>
+    
     <div
       v-for="(asset, index) in filteredFavAssets"
       :key="index"
       class="method-cards asset-card-border q-pa-md q-mr-none"
-      :class="[{ selected: asset?.id === selectedAsset?.id }, {'pt-dark-box-shadow': darkMode}]"
+      :class="[{ selected: asset?.id === selectedAsset?.id }]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
@@ -15,7 +15,7 @@
       <q-intersection>
         <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
           <img :src="getImageUrl(asset)" height="30" class="q-mr-xs" alt="">
-          <p class="col q-pl-sm text-right asset-symbol" :class="{'text-grad' : isNotDefaultTheme}">
+          <p class="col q-pl-sm text-right asset-symbol">
             {{ asset.symbol }}
           </p>
         </div>
@@ -40,6 +40,12 @@
       </div>
       <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
+    <!-- <button v-if="hasSeeMoreBtn" class="method-cards asset-card-border q-pa-md q-mr-none" @click="seeAllTokens = !seeAllTokens">
+      <q-icon :name="seeAllTokens ? 'visibility_off' : 'visibility'"/> </button>-->
+    <q-btn flat v-if="hasSeeMoreBtn" class="add-asset-button asset-card-border shadow-5 bg-grad text-white" @click="seeAllTokens = !seeAllTokens">
+      <q-icon :name="seeAllTokens ? 'visibility_off' : 'visibility'"/>
+    </q-btn>
+    
   </div>
 </template>
 
@@ -63,6 +69,7 @@ export default {
       default: 'BCH'
     },
     wallet: { type: Object },
+    forcePropsAssets: { type: Boolean },
     assets: { type: Array },
     manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
@@ -81,7 +88,10 @@ export default {
       isloaded: false,
       customListIDs: null,
       customList: null,
-      networkError: false
+      networkError: false,
+      favorites: [],
+      favResult: [],
+      seeAllTokens: false
     }
   },
   computed: {
@@ -92,23 +102,36 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    },
     filteredFavAssets () {
-      if (this.networkError) {
+      if (this.networkError || this.forcePropsAssets) {
         return this.assets.slice(0,10)
       }
 
-      if (this.customList) {        
-        return this.customList.filter(asset => asset.favorite === 1)            
-      } else {   
 
-        return this.assets.filter(asset => asset.favorite === 1)   
-      }
+      if (this.customList) { 
+        if (this.seeAllTokens) {
+          return this.customList.filter(asset => asset)
+        } else {
+          return this.customList.filter(asset => asset && this.favorites.includes(asset.id))           
+        }        
+      } 
     },
     denomination () {
       return this.$store.getters['global/denomination']
+    },
+    hasSeeMoreBtn() {      
+      if (this.customList) {
+        const unFavoriteList = this.customList.filter(asset => asset && !this.favorites.includes(asset.id))
+        
+        
+        return unFavoriteList.length > 0 
+        // const activeAsset = this.customList.filter(asset => asset)
+
+        // return activeAsset.length > this.filteredFavAssets.length
+
+      } else {
+        return false
+      }     
     }
   },
   // watch: {
@@ -118,20 +141,12 @@ export default {
   //     }
   //   }
   // },
-  async mounted() {    
-    // this.checkEmptyFavorites()
-    // const isInitFav = this.$store.getters['assets/initializedFavorites']
-    // await this.$store.dispatch('assets/initializeFavorites', this.assets) 
+  async mounted() {        
+    this.customListIDs = await assetSettings.fetchCustomList()      
 
-    // if (!isInitFav) {
-    //   await assetSettings.registerUser()
-    //   const favsList = this.assets.map(asset => asset.id)
-    //   await assetSettings.saveFavorites(favsList)
-    // }
-
-    this.customListIDs = await assetSettings.fetchCustomList()  
 
     if (this.customListIDs) {
+      
       // if not in server, initialize
       if ('error' in this.customListIDs || Object.keys(this.customListIDs).length === 0) {  
         await assetSettings.registerUser()
@@ -149,27 +164,60 @@ export default {
         await assetSettings.initializeFavorites(this.assets)   
 
       } else {
-        this.getCustomAssetList()
+        await this.getFavorites()
+        await this.getCustomAssetList()                 
+
+        if (this.customList) {          
+          // check for unsaved assets
+          let assetIDs = this.assets.map(asset => asset.id)
+          let unsavedAsset = assetIDs.filter(asset => !this.customListIDs[this.network].includes(asset))                  
+        
+          // save unsaved Assets           
+          if (unsavedAsset.length > 0) {            
+            await assetSettings.authToken()
+            
+            let tempList = this.customListIDs            
+            let tempFav = this.favResult
+
+            let unsavedAssetFavFormat = unsavedAsset.map(asset => ({ id: asset, favorite: 0}))
+            
+            await tempList[this.network].push(...unsavedAsset)
+            await tempFav.push(...unsavedAssetFavFormat)
+
+
+            assetSettings.saveCustomList(tempList)
+            assetSettings.saveFavorites(tempFav)
+          }
+        }   
       }      
-    } else {
-      console.log('empty IDS: ', this.assets)
+    } else {      
       this.networkError = true
-    } 
-    console.log('customIDs: ', this.customListIDs)  
+    }     
   },
   methods: {
     parseAssetDenomination,
     async getCustomAssetList () {
       let temp = []
+      if (!this.customListIDs || !this.customListIDs[this.network]) {
+        return
+      }
+      
       for (const id of this.customListIDs[this.network]) {          
           const asset = await this.$store.getters['assets/getAsset'](id)
 
           if (asset) {            
             temp.push(asset[0])
           }         
-        }
-
+        }      
       this.customList = temp
+    },
+    async getFavorites() {
+      let temp = await assetSettings.fetchFavorites()
+      this.favResult = temp
+      
+      try { // temporary error handling to resolve temp being null
+        this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
+      } catch { }
     },
     formatAssetTokenAmount(asset) {
       return convertToTokenAmountWithDecimals(asset?.balance, asset?.decimals).toLocaleString(
@@ -283,7 +331,7 @@ export default {
             vm.$store.commit('assets/updateAssetFavorite',  temp)
           }
         })      
-      },
+      }
   }
 }
 </script>
@@ -296,15 +344,32 @@ export default {
     margin-left: 20px;
     margin-right: 20px;
     padding-left: 0px;
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
   .add-asset-button {
-    border: 0px solid $grey-1;
+    border: 1px solid rgba(255, 255, 255, 0.18);
     padding: 20px 20px 34px 20px;
     border-radius: 16px;
-    font-size: 25px;
+    font-size: 15px;
     height: 78px;
-    margin-left: 2px;
+    margin-left: 15px;
     margin-right: 12px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: scale(1.05);
+    }
   }
 
   .method-cards {
@@ -312,6 +377,13 @@ export default {
     min-width: 150px;
     border-radius: 16px;
     margin-bottom: 5px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    
     .asset-symbol {
       overflow: hidden;
       text-overflow: ellipsis;
@@ -330,8 +402,5 @@ export default {
       background: red;
       color: white;
     }
-  }
-  .pt-dark-box-shadow {
-    box-shadow: 2px 2px 2px 2px #212f3d !important;
   }
 </style>

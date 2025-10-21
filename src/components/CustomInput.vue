@@ -44,8 +44,8 @@ export default {
     inputRules: { type: Array, default: new Array(() => {}) },
     asset: { type: Object, default: {} },
     decimalObj: {
-      type: { min: Number, max: Number },
-      default: { min: 0, max: 2 }
+      // type: { min: Number, max: Number },
+      default: () => ({ min: 0, max: 2 }),
     }
   },
 
@@ -78,7 +78,7 @@ export default {
     }
   },
 
-  mounted () {
+  created () {
     this.valFormatted = formatWithLocale(this.modelValue, this.decimalObj)
   },
 
@@ -95,7 +95,11 @@ export default {
         )
       } else this.valFormatted = formatWithLocale(this.val, this.decimalObj)
       
-      if (String(value).split('.').length === 2 && String(value).split('.')[1] === '')
+      if (
+        this.keyPressed === 'backspace' && 
+        String(value).split('.').length === 2 && 
+        String(value).split('.')[1] === ''
+      )
         this.valFormatted += getLocaleSeparators().decimal
     }
   },

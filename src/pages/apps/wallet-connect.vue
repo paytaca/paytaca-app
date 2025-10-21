@@ -4,7 +4,7 @@
       v-model="scanner.show"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         :title="$t('WalletConnect')"
         backnavpath="/apps"
@@ -47,7 +47,7 @@
           </div>
           <template v-if="handshakeOnProgress">
             <div class="row items-center justify-center">
-              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+              <ProgressLoader />
             </div>
             <div v-if="pendingConnector" class="row items-center justify-center">
               <q-btn
@@ -198,7 +198,7 @@ import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader.vue'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
 import WalletConnectCallRequestDialog from '../../components/walletconnect/WalletConnectCallRequestDialog.vue'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const ago = require('s-ago')
 
 export default {
@@ -274,7 +274,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value

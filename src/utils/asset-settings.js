@@ -55,6 +55,22 @@ export async function saveCustomList (list) {
 
 }
 
+export async function addNewAsset (asset, network) {
+	// fetch custom list
+	let custom_list = await fetchCustomList() 
+	let favorites = await fetchFavorites()
+
+	// set asset
+	custom_list[network].unshift(asset.id)
+	favorites.unshift({id: asset.id, favorite: 0})
+	
+	// save to server
+	saveCustomList(custom_list)
+	saveFavorites(favorites)	
+
+
+}
+
 export async function fetchFavorites () {
 	let favorites = null
 
@@ -77,7 +93,6 @@ export async function fetchFavorites () {
 
 export async function saveFavorites (list) {
 	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
-	console.log('list: ', list)
 
 	let favorites = null
 	const data = {
@@ -105,7 +120,7 @@ export async function fetchUnlistedTokens () {
 	await backend.get(baseURL + '/app-setting/unlisted-list/', { headers: { 'wallet-hash': walletHash } })
 		.then(response => {			
 			unlisted_token = response.data
-			console.log('HERE: ', unlisted_token)
+			// console.log('HERE: ', unlisted_token)
 		})
 		.catch(error => {
 			console.error(error.response)
@@ -198,8 +213,8 @@ export async function authToken () {
 			await saveAuthToken(response.data.access)
 		})
 		.catch(error => {
-			console.error(error.response.data)
-
+			console.error(error)
+			registerUser()
 			// memoData = error.response.data
 		})
 }

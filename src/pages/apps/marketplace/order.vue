@@ -89,7 +89,7 @@
                 padding="xs sm"
                 no-caps
                 target="_blank"
-                color="brandblue"
+                color="pt-primary1"
                 class="float-right q-mt-sm q-mx-sm"
                 :href="storefront?.location?.gmapsDirectionUrl"
               >
@@ -102,7 +102,7 @@
               <q-btn
                 padding="xs sm"
                 no-caps
-                color="brandblue"
+                color="pt-primary1"
                 class="q-mt-sm q-mx-sm"
                 @click="() => showMap = true"
               >
@@ -233,7 +233,7 @@
           readonly
           max="5"
           :model-value="orderReview?.rating * (5 / 100)"
-          color="brandblue"
+          color="pt-primary1"
           icon-half="star_half"
         />
         <div v-if="orderReview?.imagesUrls?.length" class="text-caption text-grey top bottom">
@@ -246,7 +246,7 @@
       <div v-else-if="canReviewOrder" class="q-mx-xs q-my-sm">
         <q-btn
           no-caps label="Leave a review"
-          color="brandblue"
+          color="pt-primary1"
           class="full-width"
           @click="() => rateOrder()"
         />
@@ -702,7 +702,7 @@
           <div v-if="canReviewOrder">
             <q-btn
               no-caps label="Leave a review"
-              color="brandblue"
+              color="pt-primary1"
               padding="2px md"
               class="q-mt-md"
               v-close-popup
@@ -712,7 +712,7 @@
           <q-btn
             :flat="canReviewOrder"
             no-caps label="Go to marketplace"
-            color="brandblue"
+            color="py-primary1"
             padding="2px md"
             class="q-mt-md"
             v-close-popup
@@ -1172,7 +1172,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
   const dialog = $q.dialog({
     title: 'Verifying payment',
     message: 'Payment received',
-    progress: { color: 'brandblue' },
+    progress: { color: 'pt-primary1' },
     persistent: true,
     ok: false,
     cancel: false,
@@ -1196,7 +1196,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
       return Promise.reject(error)
     })
     .finally(() => {
-      dialog.update({ persistent: false, ok: { color: 'brandblue' } })
+      dialog.update({ persistent: false, ok: { color: 'pt-primary1' } })
       creatingPayment.value = false
     })
 }
@@ -1342,7 +1342,7 @@ function confirmCancelOrder() {
   $q.dialog({
     title: 'Cancel order',
     message: 'Are you sure?',
-    color: 'brandblue',
+    color: 'pt-primary1',
     ok: { noCaps: true, label: 'Cancel Order', color: 'red' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(() => cancelOrder())
@@ -1354,7 +1354,7 @@ function cancelOrder() {
     title: 'Cancelling order',
     progress: true,
     persistent: true,
-    color: 'brandblue',
+    color: 'pt-primary1',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
@@ -1620,7 +1620,7 @@ async function rateOrder() {
       $q.dialog({
         title: 'Review Submitted',
         message: 'Thank you for your response!',
-        color: 'brandblue',
+        color: 'pt-primary1',
         class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
     }

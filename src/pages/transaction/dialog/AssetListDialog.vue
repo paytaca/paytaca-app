@@ -47,7 +47,7 @@
 	</q-dialog>	
 </template>
 <script>
-import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
 	data () {

@@ -56,7 +56,7 @@
         @swiped="securityCheck"
       />
       <div v-if="isSliderLoading" class="row flex-center">
-        <progress-loader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+        <progress-loader />
         <span
           v-if="processingMessage !== ''"
           class="col-12 text-center text-h6 q-mb-sm"
@@ -71,7 +71,6 @@
 <script>
 import {
   getDarkModeClass,
-  isNotDefaultTheme,
 } from "src/utils/theme-darkmode-utils";
 import {
   parseFiatCurrency,
@@ -129,7 +128,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     parseFiatCurrency,
     parseLiftToken,
     getAssetDenomination,

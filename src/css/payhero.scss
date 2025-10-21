@@ -46,10 +46,10 @@ body.theme-payhero {
     background-image: linear-gradient(
       to right bottom,
       #3b7bf6,
-      #a866db,
-      #da53b2,
-      #ef4f84,
-      #ed5f59
+      #3681e8,
+      #318bda,
+      #2c95cc,
+      #279fbe
     );
     position: relative !important;
 
@@ -98,6 +98,11 @@ body.theme-payhero {
   }
 
   /* ----- CLASSES ----- */
+
+  @include shared.gen-color-classes($brand_yellow, 'pt-primary1');
+  @include shared.gen-color-classes($button_yellow, 'pt-primary2');
+  @include shared.gen-color-classes($bg_card_dark, 'pt-dark');
+  @include shared.gen-color-classes($label-white, 'pt-light');
 
   .bg-grad {
     background: $black_opaque_50;

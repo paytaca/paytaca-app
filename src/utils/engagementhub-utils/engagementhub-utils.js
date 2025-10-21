@@ -2,6 +2,7 @@ import axios from 'axios'
 import { i18n } from 'src/boot/i18n'
 import { Capacitor } from '@capacitor/core'
 import { BigNumber } from 'ethers'
+import { formatWithLocale } from '../denomination-utils'
 
 const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
@@ -49,9 +50,10 @@ export async function getCashbackAmount (payload) {
   return data
 }
 
-export function parseCashbackMessage (message, amountBch, amountFiat, merchantName) {
+export function parseCashbackMessage (message, amountBchUnformatted, amountFiat, merchantName) {
   let message1 = ''
   let message2 = ''
+  const amountBch = formatWithLocale(amountBchUnformatted, { min: 0, max: 8 })
 
   if (message === 'ALL_LIMITS_REACHED') {
     return $t(

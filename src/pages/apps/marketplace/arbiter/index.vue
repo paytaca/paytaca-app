@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav title="Marketplace" class="header-nav"/>
+    <HeaderNav title="Marketplace" class="header-nav" />
 
     <div v-if="!initialized" class="text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-center">

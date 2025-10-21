@@ -18,23 +18,24 @@
         </slot>
         <div class="row column no-wrap" style="height:calc(75vh - 4rem);">
           <slot name="before-messages"></slot>
-          <div
-            v-if="showEncryptedChatNotice"
-            :class="[
-              'encrypted-chat-notice-panel rounded-borders',
-              'bg-grey text-white',
-            ]"
-          >
-            <div class="row items-start no-wrap q-gutter-sm">
-              <div class="" style="text-align:justify;">
-                <q-icon name="lock" size="1.2em"/>
-                {{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}
+          <div ref="messagesPanel" class="q-pa-sm messages-panel" style="overflow:auto;flex:1;">
+            <div
+              v-if="showEncryptedChatNotice"
+              :class="[
+                'encrypted-chat-notice-panel rounded-borders',
+                'bg-grey text-white',
+                'q-mb-sm'
+              ]"
+              style="position: sticky; top: 0; z-index: 1;"
+            >
+              <div class="row items-start no-wrap q-gutter-sm">
+                <div class="" style="text-align:justify;">
+                  <q-icon name="lock" size="1.2em"/>
+                  {{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}
+                </div>
+                <q-btn flat icon="close" padding="sm" class="float-right q-r-mr-sm q-r-mt-xs" @click="() => showEncryptedChatNotice = false"/>
               </div>
-              <q-btn flat icon="close" padding="sm" class="float-right q-r-mr-sm q-r-mt-xs" @click="() => showEncryptedChatNotice = false"/>
             </div>
-          </div>
-          <q-space/>
-          <div ref="messagesPanel" class="q-pa-sm messages-panel" style="overflow:auto;">
             <div class="row justify-center">
               <q-btn
                 v-if="hasMoreMessages"

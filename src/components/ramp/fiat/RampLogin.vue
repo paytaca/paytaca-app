@@ -12,13 +12,13 @@
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Exchange' }}
           </p>
         </div>
         <div class="col-1">
-          <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>
+          <slot name="top-right-menu">&nbsp;</slot>
         </div>
       </div>
       <div
@@ -68,7 +68,7 @@
 import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
 import { loadAuthenticatedUser } from 'src/exchange/auth'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -127,7 +127,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     onLoggingIn (value) {
       this.loggingIn = value
     },

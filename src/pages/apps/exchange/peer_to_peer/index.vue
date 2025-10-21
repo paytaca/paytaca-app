@@ -11,7 +11,6 @@ import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialo
 import FooterMenu from 'src/components/ramp/fiat/footerMenu.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import { isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { webSocketManager } from 'src/exchange/websocket/manager'
@@ -94,7 +93,6 @@ export default {
     this.$q.loading.hide()    
   },
   methods: {
-    isNotDefaultTheme,
     async loadWallet () {
       const isChipnet = this.$store.getters['global/isChipnet']
       const walletIndex = this.$store.getters['global/getWalletIndex']

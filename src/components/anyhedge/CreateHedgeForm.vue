@@ -113,7 +113,7 @@
           <q-btn
             flat padding="xs"
             class="text-section"
-            :text-color="darkMode ? 'blue' : 'brandblue'"
+            text-color="pt-primary1"
             :label="getAssetDenomination(denomination, spendableBch)"
             :disable="loading"
             @click="onBalanceClick"
@@ -1091,7 +1091,7 @@ async function createHedgePosition() {
           ok: $t('OK'),
           seamless: true,
           cancel: $t('Cancel'),
-          color: 'brandblue',
+          color: 'pt-primary1',
           class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         })
         misc.isPositionOffer = true

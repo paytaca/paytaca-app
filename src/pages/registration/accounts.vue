@@ -1,7 +1,7 @@
 <template>
   <!-- <onboarding v-if="isOnboarding" @register="isOnboarding=false"/>  
   <div v-else :class="theme" id="registration-container"> --> 
-  <div :class="theme" id="registration-container">
+  <div class="text-bow" :class="[theme, getDarkModeClass(darkMode)]" id="registration-container">
     <div class="row q-pb-sm">
       <div class="col pt-brand" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}">
         <img src="~/assets/paytaca_logo.png" height="60" alt="">
@@ -13,7 +13,7 @@
       :class="getDarkModeClass(darkMode, 'registration')"
       v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
     >
-      <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+      <div >
         <div class="q-py-lg">
           <div v-if="serverOnline" v-cloak>            
             <!-- <login/>             -->
@@ -74,10 +74,10 @@
       :class="getDarkModeClass(darkMode)"
       v-if="steps > -1 && steps < totalSteps"
     >
-      <p class="dim-text q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
+      <p class="q-pt-xl" style="text-align: center;" v-if="steps !== totalSteps">
         {{ importSeedPhrase ? $t('RestoringYourWallet') : $t('CreatingYourWallet') }}...
       </p>
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'" />
+      <ProgressLoader />
     </div>
     <div
       class="pt-wallet q-mt-sm pt-card-2"
@@ -98,7 +98,7 @@
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
         <div class="col-12 q-px-lg">
-          <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+          <div >
             <div class="q-py-lg">
               <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
                 {{ $t('RestoreWalletDescription') }}
@@ -152,7 +152,7 @@
         :class="getDarkModeClass(darkMode, 'registration')"
         v-if="isFinalStep"
       >
-        <div :class="{'logo-splash-bg' : isNotDefaultTheme(theme)}">
+        <div >
           <div class="q-pa-lg" style="padding-top: 28px;">
             <!-- <div
               v-if="moveToReferral && !openSettings"
@@ -170,7 +170,7 @@
                   <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5><br />
                 </div>
                 <div class="row justify-center text-center">
-                  <p class="dim-text" style="margin-top: 10px;">
+                  <p style="margin-top: 10px;">
                     {{ $t('OnBoardSettingDescription') }}
                   </p>
                 </div>
@@ -236,7 +236,7 @@
                 <template v-if="authenticationPhase === 'shards'">
                   <template v-if="seedPhraseBackup">
                     <div class="text-bow" :class="getDarkModeClass(darkMode)">
-                      <p class="dim-text" style="margin-top: 10px;">
+                      <p style="margin-top: 10px;">
                         {{ $t('WalletRestoredDescription') }}
                       </p>
                     </div>
@@ -258,7 +258,7 @@
 
                 <template v-else-if="importSeedPhrase && authenticationPhase === 'backup-phrase'">
                   <div class="text-bow" :class="getDarkModeClass(darkMode)">
-                    <p class="dim-text" style="margin-top: 10px;">
+                    <p style="margin-top: 10px;">
                       {{ $t('WalletRestoredDescription') }}
                     </p>
                   </div>
@@ -308,7 +308,7 @@ import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { isNotDefaultTheme, getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 
 import ProgressLoader from '../../components/ProgressLoader'
@@ -438,7 +438,6 @@ export default {
     // }
   },
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     isHongKong,
     validateSeedPhrase () {
@@ -906,9 +905,6 @@ export default {
 }
 .font-lg {
   font-size: 20px;
-}
-.dim-text {
-  color: #8F8CB8;
 }
 .pt-internet-required {
   text-align: center;

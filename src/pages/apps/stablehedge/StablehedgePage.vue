@@ -1,6 +1,6 @@
 <template>
-  <q-pull-to-refresh id="app-container" :class="getDarkModeClass(darkMode)" @refresh="refreshPage">
-    <header-nav :title="$t('Stablehedge')" class="apps-header" />
+  <q-pull-to-refresh id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)" @refresh="refreshPage">
+    <header-nav :title="$t('Stablehedge')" class="header-nav apps-header" />
     <div class="q-pa-sm">
       <div v-if="fetchingRedemptionContracts" class="text-center">
         <q-spinner size="3rem" color="brandblue"/>

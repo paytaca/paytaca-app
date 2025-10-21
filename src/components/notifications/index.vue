@@ -6,9 +6,13 @@
     class="no-click-outside"
     maximized
   >
-    <q-card class="q-px-md q-pt-md pt-card text-bow notifs-card" :class="getDarkModeClass(darkMode)" :style="{'padding-top': $q.platform.is.ios ? '55px' : '30px'}">
+    <q-card
+      class="q-px-md q-pt-md pt-card text-bow notifs-card wallet-card"
+      :class="getDarkModeClass(darkMode)"
+      :style="{'padding-top': $q.platform.is.ios ? '50px' : '20px'}"
+    >
       <div class="row justify-between items-center">
-        <span class="text-bold text-h6" style="color: #ed5f59;">
+        <span class="text-bold text-h6 title">
           {{ $t('Notifications') }}
         </span>
         <q-space/>
@@ -24,7 +28,7 @@
       </div>
 
       <div>
-        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
+        <div class="row justify-end items-center q-mb-sm q-gutter-x-sm">
           <q-btn
             v-if="isCheckboxClicked"
             flat
@@ -66,7 +70,7 @@
 
         <template v-if="isLoading">
           <q-card-section class="q-pt-sm flex flex-center">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
           </q-card-section>
         </template>
 
@@ -75,7 +79,7 @@
             <div
               class="q-pb-sm q-gutter-y-sm col-12"
               style="overflow-y: scroll;"
-              :style="{ 'height': $q.platform.is.ios ? '67vh' : '80vh'}"
+              :style="{ 'height': $q.platform.is.ios ? '67vh' : '75vh'}"
             >
               <template v-if="isCheckboxClicked">
                 <div
@@ -183,7 +187,7 @@
 <script>
 import ago from 's-ago'
 
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   getWalletNotifications,
   parseNotifType,
@@ -247,7 +251,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     parseNotifType,
 
     async refreshNotifsList (done) {
@@ -264,7 +267,7 @@ export default {
         vm.maxPages = respData.max
         this.resetCheckboxList()
         vm.isLoading = false
-      } catch (error) {
+      } catch {
         // fallback when an error occurs after deleting last remaining notif
         vm.notifsList = []
         vm.maxPages = 0
@@ -422,6 +425,6 @@ export default {
     background-color: $grey-2 !important;
   }
   .notifs-card {
-    width: 40vh;
+    width: 45vh;
   }
 </style>

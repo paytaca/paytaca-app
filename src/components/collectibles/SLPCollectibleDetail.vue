@@ -15,7 +15,7 @@
       <q-img v-else :src="defaultImageUrl" fit="fill" width="75"></q-img>
 
       <q-card-section style="text-align: center; margin-bottom: 10px;">
-        <q-btn-group push style="color: rgb(60, 100, 246) !important;">
+        <q-btn-group push class="bg-pt-primary1 text-pt-light">
           <q-btn @click="verify" push :label="$t('Verify')" icon="visibility" />
           <q-btn @click="send" push :label="$t('Send')" icon="send" />
         </q-btn-group>

@@ -1,7 +1,7 @@
 <template>
   <div class="pt-label" :class="getDarkModeClass(darkMode, '', 'text-grey-8')">
     <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      <ProgressLoader />
     </div>
     <template v-if="collectibles.length > 0">
       <div class="q-mx-md q-px-sm row items-center">
@@ -10,7 +10,7 @@
           <q-btn-toggle
             flat
             v-model="viewType"
-            toggle-color="brandblue"
+            toggle-color="pt-primary1"
             padding="sm"
             :options="[
               {icon: 'view_stream', value: 'list'},
@@ -74,7 +74,7 @@
 import ProgressLoader from 'components/ProgressLoader'
 import Collectible from 'components/collectibles/SLPCollectibleDetail'
 import SLPCollectiblesItem from 'components/collectibles/SLPCollectiblesItem.vue'
-import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SLPCollectibles',
@@ -132,7 +132,6 @@ export default {
   },
 
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     toggleExpandGroup(groupId) {
       const index = this.expandedGroupIds.indexOf(groupId)

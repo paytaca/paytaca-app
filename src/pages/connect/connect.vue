@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       backnavpath="/"
       :title="$t('Connect to Paytaca')"
@@ -12,7 +12,7 @@
           <p>{{$t('SelectAddresses')}}</p>
           <ProgressLoader
             v-if="!addresses?.length && loadingAddresses"
-            :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+            
           />
           <div v-for="(address, index) in addresses" :key="index">
             <input type="radio" v-model="connectedAddressIndex" :id="address" name="connectedAddressIndex" :value="index">
@@ -33,7 +33,7 @@
 </template>
 
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { markRaw } from '@vue/reactivity'
 import { getMnemonic, Wallet } from '../../wallet'
 import HeaderNav from '../../components/header-nav'
@@ -77,7 +77,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
 
     async cancel () {
       this.$q.bex.send('background.paytaca.connectResponse', {origin: this.origin, connected: false, eventResponseKey: this.eventResponseKey})
@@ -149,11 +148,11 @@ export default {
     font-size: 20px;
   }
   .btn {
-    background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+    background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
     color: white;
   }
   .btn-dark {
-    background-image: linear-gradient(to right bottom, #204589, #35538b, #813c6d, #9c3356, #a5403d);
+    background-image: linear-gradient(to right bottom, #204589, #1d5479, #1a6369, #177159, #147f49);
     color: white;
   }
 </style>

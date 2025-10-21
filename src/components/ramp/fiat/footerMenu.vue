@@ -45,9 +45,6 @@ export default {
     data: Object
   },
   computed: {
-    isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    }
   },
   mounted () {
     if (this.tab) this.activeButton = this.tab

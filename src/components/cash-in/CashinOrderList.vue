@@ -1,7 +1,7 @@
 <template>
   <div class="q-mx-md">
-    <div class="text-center" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">
-      Cash In Orders
+    <div class="text-center text-h6 text-grad">
+      {{ $t('CashInOrders') }}
     </div>
     <div v-if="!loading">
       <div v-if="!loading && orders.length > 0" class="row justify-end q-mx-md q-mb-none">
@@ -26,7 +26,7 @@
                     <div class="row">
                       <div class="col-grow" style="font-size: small;">
                         <div style="font-size: 13px;">
-                          ORDER #{{ order?.id }}
+                          {{ $t('Order') }} #{{ order?.id }}
                         </div>
                         <div class="text-grey-6">{{ Number(Number(satoshiToBch(order?.trade_amount)).toFixed(8)) }} BCH</div>
                       </div>
@@ -56,8 +56,8 @@
       </div>
       <div class="text-center row q-mx-lg" style="position: fixed; bottom: 20px; left: 0; right: 0; margin: auto;">
         <div class="col" style="opacity: .55;">
-          <div class="row justify-center text-bow" style="font-size: 15px;">Powered by</div>
-          <div class="row justify-center text-weight-bold" :class="darkMode ? 'text-blue-6' : 'text-blue-8'" style="font-size: 20px;">P2P Exchange</div>
+          <div class="row justify-center text-bow" style="font-size: 15px;">{{ $t('PoweredBy') }}</div>
+          <div class="row justify-center text-weight-bold text-h6 text-grad">P2P Exchange</div>
         </div>
       </div>
     </div>
@@ -88,9 +88,9 @@ export default {
       loading: false,
       selectedOrders: [],
       selectionTypeOpts: [
-        'All', 'Unread'
+        this.$t('All'), this.$t('Unread')
       ],
-      selectionType: 'All',
+      selectionType: this.$t('All'),
       loadingNewPage: false,
       markAsReadLoading: false
     }
@@ -138,10 +138,10 @@ export default {
     onSelectMultipleOrders () {
       if (this.selectedOrders.length === 0) {
         switch (this.selectionType) {
-          case 'All':
+          case this.$t('All'):
             this.selectedOrders = this.orders?.map(el => el.id)
             break
-          case 'Unread': {
+          case this.$t('Unread'): {
             const unreadOrders = this.orders.filter(el => el.has_unread_status)
             this.selectedOrders = unreadOrders.map(el => el.id)
             break
@@ -150,7 +150,7 @@ export default {
       } else {
         this.selectedOrders = []
       }
-      this.selectionType = 'All'
+      this.selectionType = this.$t('All')
     },
     onSelectOrder (orderId) {
       if (this.selectedOrders.includes(orderId)) {
@@ -201,23 +201,23 @@ export default {
     statusVal (status) {
       switch (status) {
         case 'SBM':
-          return 'Submitted'
+          return this.$t('Submitted')
         case 'CNF':
-          return 'Confirmed'
+          return this.$t('Confirmed')
         case 'ESCRW':
         case 'PD_PN':
-          return 'Pending Payment'
+          return this.$t('PendingPayment')
         case 'PD':
-          return 'Pending Release'
+          return this.$t('PendingRelease')
         case 'RLS':
-          return 'Released'
+          return this.$t('Released')
         case 'APL':
-          return 'Appealed'
+          return this.$t('Appealed')
         case 'CNCL':
         case 'RFN':
-          return 'Canceled'
+          return this.$t('Cancelled')
         default:
-          return 'Pending'
+          return this.$t('Pending')
       }
     },
     preventPull (e) {
