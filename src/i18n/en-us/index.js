@@ -921,7 +921,7 @@ export default {
   Options: "Options",
   OraclePubkey: "Oracle pubkey",
   Order: "Order",
-  OrderCancelled: "Order cancelled",
+  OrderCancelled: "Order Cancelled",
   OrderCancelledAplMessage: "The escrowed BCH will be refunded to the seller",
   OrderCancelledRfnMessage: "Escrowed BCH was refunded to the seller",
   OrderCompleted: "Order completed",
