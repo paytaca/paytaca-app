@@ -54,6 +54,7 @@
  * @property {Object.<string, any>} [store.state]
  * @property {Object.<string, any>} [store.getters]
  * @property {(param: { xpub: string }) => Promise<string>} [resolveXprvOfXpub] - Function that resolves to xprv given an xpub
+ * 
  */
  
 /**
@@ -115,6 +116,7 @@ import {
   walletTemplateToCompilerBch,
   assertSuccess,
   decodeHdPublicKey,
+  decodeHdPrivateKey,
   publicKeyToP2pkhCashAddress,
   deriveHdPathRelative,
   deriveHdPrivateNodeFromBip39Mnemonic,
@@ -132,7 +134,8 @@ import {
   sha256,
   cashAddressToLockingBytecode,
   compileScript,
-  base58AddressToLockingBytecode
+  base58AddressToLockingBytecode,
+  secp256k1
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 
@@ -529,6 +532,10 @@ export class MultisigWallet {
       return CashAddressNetworkPrefix.testnet 
     }
     return CashAddressNetworkPrefix.mainnet
+  }
+
+  get walletHash() {
+    return this.getWalletHash(this)
   }
 
 /**
@@ -1062,6 +1069,11 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     return pst
   }
 
+  isSynced() {
+    if(this.id && /^[0-9]+$/.test(this.id)) return true 
+    return false
+  }
+
   /**
    * @param {object} saveOptions
    * @param {boolean} saveOptions.sync - If true, wallet will be synced with watchtower
@@ -1072,20 +1084,47 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
         this.options.store.commit('multisig/saveWallet', this)
       }
       if (this.options?.store?.dispatch && saveOptions?.sync) {
-        return await this.options.store.dispatch('multisig/syncWallet', this)
+        return await this.sync()
+      }
+    }
+  }
+
+  async create(saveOptions) {
+    if (this.options?.store) {
+      if (this.options?.store?.commit) {
+        this.options.store.commit('multisig/saveWallet', this)
+      }
+      if (this.options?.store?.dispatch && saveOptions?.sync) {
+        const syncedWallet = await this.options?.coordinationServer?.syncWallet(this)
+        if (syncedWallet?.id && /^[0-9]+$/.test(syncedWallet.id)) {
+          Object.assign(this, syncedWallet)
+          this.save()
+        }
       }
     }
   }
 
   /**
    * @param {object} saveOptions
-   * @param {boolean} saveOptions.sync - If true, wallet will be synced with watchtower
    */
   async sync() {
 
-    if (this.options?.store?.dispatch) {
-      return await this.options.store.dispatch('multisig/syncWallet', this)
+    const syncedWallet = await this.options?.coordinationServer?.syncWallet(this)
+    if (!syncedWallet?.id || !(/^[0-9]+$/.test(syncedWallet.id))) return
+
+    console.log('synced wallet', syncedWallet)
+    if (!this.isSynced() || !this.updatedAt) {
+      Object.assign(this, syncedWallet)
+      this.save()
+      return this
     }
+
+    if (new Date(syncedWallet.updatedAt) > new Date(this.updatedAt)) {
+      Object.assign(this, syncedWallet)
+      this.save()
+    }
+
+    return this
   }
 
   /**
@@ -1138,6 +1177,33 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     return exportToBase64(this)
   }
 
+/**
+ * Asynchronously generates authentication credentials for a signer.
+ *
+ * If no `xpub` is provided, the function will automatically select
+ * the first available xpub that has a corresponding private key on the device.
+ *
+ * @async
+ * @function generateAuthCredentials
+ * @param {string} [xpub] - Optional extended public key (xpub) to identify which signer to use.
+ * @returns {Promise<import('./network.js').WatchtowerMultisigCoordinationServerAuthCredentials|null>} 
+ * Resolves with authentication credentials including the signed message and xpub used.
+ */
+async generateAuthCredentials(xpub) {
+    if (!this.options.resolveXprvOfXpub) return null
+    if (xpub) {
+      const xprv = await this.options?.resolveXprvOfXpub({ xpub })
+      return MultisigWallet.generateAuthCredentials({ xprv, xpub })
+    }
+    for (const s of this.signers) {
+      const xprv = await this.options?.resolveXprvOfXpub({ xpub: s.xpub })
+      if (xprv) {
+        return MultisigWallet.generateAuthCredentials({ xprv, xpub: s.xpub })
+      }
+    } 
+  }
+
+  
   static cashAddressToTokenAddress(cashAddress) {
     return lockingBytecodeToCashAddress({ 
       bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
@@ -1157,6 +1223,25 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
   static fromObject(multisigWalletObject, options) {
     return MultisigWallet.importFromObject(multisigWalletObject, options) 
   }
+
+  static generateAuthCredentials({ xprv, xpub }) {
+    if (!xprv || !xpub) return null
+    const decodedPrivateKey = decodeHdPrivateKey(xprv)
+    const decodedPublicKey = decodeHdPublicKey(xpub)
+    const privateKey = deriveHdPathRelative(decodedPrivateKey.node, '0')
+    const publicKey = deriveHdPathRelative(decodedPublicKey.node, '0')
+    const rawMessage = `multisig:${Date.now()}`
+    const message = utf8ToBin(rawMessage);
+    const hash = sha256.hash(message)
+    const schnorr = secp256k1.signMessageHashSchnorr(privateKey.privateKey, hash)
+    const der = secp256k1.signMessageHashDER(privateKey.privateKey, hash)
+    return {
+        'X-Auth-PubKey': binToHex(publicKey.publicKey),
+        'X-Auth-Signature': `schnorr=${binToHex(schnorr)};der=${binToHex(der)}`,
+        'X-Auth-Message': rawMessage
+    }
+  }
+
 }
 
 

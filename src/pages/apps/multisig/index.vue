@@ -117,7 +117,6 @@ const router = useRouter()
 const { t: $t } = useI18n()
 const {
   multisigWallets,
-  cashAddressNetworkPrefix
 } = useMultisigHelpers()
 
 const walletFileElementRef = ref()
