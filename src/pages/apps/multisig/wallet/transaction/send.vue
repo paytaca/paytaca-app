@@ -157,7 +157,11 @@ const purpose = ref('')
 const amountRef = ref()
 
 const {
-  getAssetTokenIdentity 
+  multisigNetworkProvider,
+  multisigCoordinationServer,
+  network,
+  getAssetTokenIdentity,
+  resolveXprvOfXpub
 } = useMultisigHelpers()
 
 const darkMode = computed(() => {
@@ -170,9 +174,10 @@ const wallet = computed(() => {
   const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
   if (savedWallet) {
     return MultisigWallet.importFromObject(savedWallet, {
-      provider: new WatchtowerNetworkProvider({
-        network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-      })
+      store: $store,
+      provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer,
+      resolveXprvOfXpub
     })
   }
   return null
@@ -318,7 +323,7 @@ onMounted(async () => {
         [$store.getters['market/selectedCurrency'].symbol]
       )
 
-  const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.lastIssuedChangeAddressIndex + 1).address
+  const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.getLastIssuedChangeAddressIndex(network) + 1).address
   const promises = [
     (async () => $store.dispatch(
       'multisig/subscribeWalletAddress',
