@@ -253,7 +253,7 @@ const onCreateClicked = async () => {
 
   const mOfn = new MultisigWallet(spec, options)
 
-  await mOfn.create({ sync: true })
+  await mOfn.create()
   
   router.push({
     name: 'app-multisig-wallet-view',
