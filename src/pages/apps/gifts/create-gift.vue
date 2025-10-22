@@ -1,106 +1,358 @@
 <template>
   <div class="static-container">
-    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container create-gift-page" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         :title="$t('CreateGift')"
         backnavpath="/apps/gifts"
         class="q-px-sm apps-header gift-app-header"
       />
-      <div class="q-pa-lg" style="width: 100%; color: black;">
-        <div class="text-center" v-if="processing">
-          <p :class="{'text-white': darkMode}" >{{ $t('CreatingGift') }}</p>
+      
+      <div class="create-gift-content" :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
+        <!-- Processing State -->
+        <div v-if="processing" class="processing-state q-px-md">
+          <div class="pt-card processing-card" :class="getDarkModeClass(darkMode)">
+            <div class="processing-icon-wrapper">
+              <q-icon name="mdi-gift" size="64px" class="text-grad pulsing-icon"/>
+            </div>
+            <div class="text-h6 q-mb-sm" :class="getDarkModeClass(darkMode)">
+              {{ $t('CreatingGift') }}
+            </div>
+            <p class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+              {{ $t('PleaseWait', {}, 'Please wait while we create your gift...') }}
+            </p>
           <progress-loader />
         </div>
-        <div class="q-mt-md" :class="{'text-white': darkMode}" v-if="!processing && !completed">
-          <div class="text-h5 q-mb-md">{{ $t('CreateGift') }}</div>
-          <div class="q-mb-lg">
-            {{ $t('Balance') }}: {{ getAssetDenomination(denomination, spendableBch) }}
           </div>
-          <label>
-            {{ $t('EnterAmount') }}:
+
+        <!-- Success State -->
+        <div v-else-if="completed && qrCodeContents" class="success-state q-px-md">
+          <div class="pt-card success-card" :class="getDarkModeClass(darkMode)">
+            <!-- Success Header -->
+            <div class="success-header">
+              <div class="success-icon-wrapper">
+                <q-icon name="mdi-check-circle" size="72px" class="text-positive celebration-icon"/>
+              </div>
+              <div class="text-h5 text-weight-bold q-mb-xs text-grad">
+                {{ $t('GiftCreated', {}, 'Gift Created!') }}
+              </div>
+              <p class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                {{ $t('GiftReadyToShare', {}, 'Your gift is ready to share') }}
+              </p>
+            </div>
+
+            <!-- Amount Display -->
+            <div class="amount-display q-mt-lg">
+              <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                {{ $t('Amount') }}
+              </div>
+              <div class="text-h4 text-weight-bold text-grad q-my-xs">
+                {{ getAssetDenomination(denomination, amountBCH) }}
+              </div>
+              <div v-if="sendAmountMarketValue" class="text-body2" :class="getDarkModeClass(darkMode)" style="opacity: 0.6">
+                ≈ {{ parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency) }}
+              </div>
+            </div>
+
+            <!-- QR Code -->
+            <div class="qr-section q-mt-lg">
+              <div class="qr-wrapper" @click="copyToClipboard('https://gifts.paytaca.com/claim/?code=' + qrCodeContents)">
+                <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="220" />
+                <div class="qr-overlay">
+                  <q-icon name="mdi-content-copy" size="32px" color="white"/>
+                  <div class="text-caption text-white q-mt-xs">{{ $t('TapToCopy', {}, 'Tap to copy') }}</div>
+                </div>
+              </div>
+              <p class="text-body2 q-mt-md" :class="getDarkModeClass(darkMode)">
+                {{ $t('ScanClaimGift') }}
+              </p>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="status-section q-mt-lg">
+              <q-badge
+                :class="getStatusBadgeClass()"
+                class="status-badge-large"
+              >
+                <q-icon 
+                  :name="giftStatus === 'completed' ? 'mdi-check-circle' : giftStatus === 'processing' ? 'mdi-clock-outline' : 'mdi-alert-circle'"
+                  size="16px"
+                  class="q-mr-xs"
+                />
+                {{ giftStatus === 'completed' ? $t('Completed') : giftStatus === 'processing' ? $t('Processing') : $t('Failed') }}
+              </q-badge>
+              
+              <q-btn
+                v-if="giftStatus === 'failed'"
+                unelevated
+                no-caps
+                :loading="processing"
+                class="full-width q-mt-md bg-grad"
+                @click="resubmitGift(failedGiftDetails)"
+              >
+                <q-icon name="mdi-reload" class="q-mr-sm" />
+                {{ $t('Resubmit') }}
+              </q-btn>
+            </div>
+
+            <!-- Share Section -->
+            <div class="share-section q-mt-lg">
+              <div class="section-title text-subtitle1 text-weight-medium q-mb-md" :class="getDarkModeClass(darkMode)">
+                {{ $t('ShareGiftLink') }}
+              </div>
+              <ShareGiftPanel :qr-share="qrCodeContents" :amount="amountBCH"/>
+            </div>
+
+            <!-- Actions -->
+            <div class="success-actions q-mt-lg q-gutter-sm">
+              <q-btn
+                unelevated
+                no-caps
+                class="full-width bg-grad"
+                @click="createAnother()"
+              >
+                <q-icon name="mdi-plus-circle" class="q-mr-sm" />
+                {{ $t('CreateAnother', {}, 'Create Another Gift') }}
+              </q-btn>
+              <q-btn
+                outline
+                no-caps
+                class="full-width"
+                :style="`border-color: ${getThemeColor()}; color: ${getThemeColor()};`"
+                @click="$router.push('/apps/gifts')"
+              >
+                {{ $t('ViewAllGifts', {}, 'View All Gifts') }}
+              </q-btn>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form State -->
+        <div v-else class="form-state q-px-md q-pb-xl">
+          <div class="pt-card form-card" :class="getDarkModeClass(darkMode)">
+            <!-- Balance Card -->
+            <div class="balance-section q-mb-lg">
+              <div class="balance-card" :class="getDarkModeClass(darkMode)">
+                <div class="row items-center justify-between">
+                  <div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('AvailableBalance', {}, 'Available Balance') }}
+                    </div>
+                    <div class="text-h6 text-weight-bold text-grad q-mt-xs">
+                      {{ getAssetDenomination(denomination, spendableBch) }}
+                    </div>
+                  </div>
+                  <div class="balance-icon-wrapper">
+                    <q-icon name="mdi-wallet" size="32px" class="text-grad"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Amount Selection Section -->
+            <div class="form-section q-mb-lg">
+              <label class="form-label text-weight-medium" :class="getDarkModeClass(darkMode)">
+                {{ $t('SelectAmount', {}, 'Select Amount') }}
           </label>
+
+              <!-- Custom Amount Input (shown when custom mode is active) -->
+              <div v-if="isCustomAmount" class="custom-amount-section">
           <q-input
             ref="amountInput"
             required
-            :placeholder="$t('Amount')"
+                  :placeholder="$t('EnterCustomAmount', {}, 'Enter custom amount')"
             filled
-            clearable
-            class="q-mt-sm"
-            :rules="[val => !!val || $t('FieldIsRequired'), val => (amountBCH <= spendableBch) || $t('AmountGreaterThanBalance'), val => (amountBCH >= 0.00001) || $t('BelowMinimumGiftAmount')]"
-            type="number"
-            v-model="giftAmount"
-            @input="giftAmount"
+                  inputmode="none"
+                  class="q-mt-sm amount-input"
+                  :rules="[
+                    val => !!val || $t('FieldIsRequired'), 
+                    val => (amountBCH <= spendableBch) || $t('AmountGreaterThanBalance'), 
+                    val => (amountBCH >= 0.00001) || $t('BelowMinimumGiftAmount')
+                  ]"
+                  type="text"
+                  v-model="giftAmountFormatted"
+                  @focus="onAmountInputFocus"
             :dark="darkMode"
             hide-bottom-space
           >
-            <template v-slot:append>{{ denomination }}</template>
-          </q-input>
-          <p class="q-mt-sm">
-            <template v-if="sendAmountMarketValue">
-              {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
+                  <template v-slot:prepend>
+                    <q-icon name="mdi-currency-bch" />
             </template>
-          </p>
+                  <template v-slot:append>
+                    <span class="text-weight-medium">{{ denomination }}</span>
+                  </template>
+                </q-input>
+                
+                <div class="row items-center justify-between q-mt-sm">
+                  <div v-if="sendAmountMarketValue" class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                    ≈ {{ parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency) }}
+                  </div>
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    size="sm"
+                    :color="themeColor"
+                    icon="mdi-arrow-left"
+                    :label="$t('BackToQuickAmounts', {}, 'Back to quick amounts')"
+                    @click="exitCustomAmount"
+                  />
+                </div>
+              </div>
 
+              <!-- Quick Amount Buttons (shown when custom mode is not active) -->
+              <div v-else class="quick-amounts q-mt-sm">
+                <div class="row q-gutter-xs">
+                  <q-btn
+                    v-for="quickAmount in quickAmounts"
+                    :key="quickAmount"
+                    unelevated
+                    no-caps
+                    :outline="Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) > 0.000001"
+                    class="quick-amount-btn"
+                    :class="{ 'bg-grad': Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) <= 0.000001 }"
+                    :style="Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) > 0.000001 ? `border-color: ${getThemeColor()}; color: ${getThemeColor()};` : ''"
+                    @click="selectQuickAmount(quickAmount)"
+                  >
+                    {{ getAssetDenomination(denomination, quickAmount) }}
+                  </q-btn>
+                  
+                  <!-- Custom Amount Button -->
+                  <q-btn
+                    unelevated
+                    no-caps
+                    outline
+                    class="quick-amount-btn custom-amount-trigger"
+                    :style="`border-color: ${getThemeColor()}; color: ${getThemeColor()};`"
+                    @click="enterCustomAmount"
+                  >
+                    <q-icon name="mdi-pencil" size="16px" class="q-mr-xs" />
+                    {{ $t('Custom', {}, 'Custom') }}
+                  </q-btn>
+                </div>
+                
+                <!-- Selected Amount Display -->
+                <div v-if="giftAmount && parseFloat(giftAmount) > 0" class="selected-amount-display q-mt-md">
+                  <div class="row items-center justify-between q-pa-md">
+                    <div>
+                      <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                        {{ $t('SelectedAmount', {}, 'Selected Amount') }}
+                      </div>
+                      <div class="text-h6 text-weight-bold text-grad q-mt-xs">
+                        {{ getAssetDenomination(denomination, parseFloat(giftAmount)) }}
+                      </div>
+                      <div v-if="sendAmountMarketValue" class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.6">
+                        ≈ {{ parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency) }}
+                      </div>
+                    </div>
+                    <q-icon name="mdi-check-circle" size="32px" class="text-positive" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Campaign Section -->
+            <div class="form-section q-mb-lg">
           <template v-if="createNewCampaign">
-            <div v-if="campaignOptions.length > 1" class="row items-center justify-end">
+                <!-- Back button -->
+                <div v-if="campaignOptions.length > 1" class="row items-center justify-between q-mb-md">
+                  <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                    {{ $t('NewCampaign', {}, 'New Campaign') }}
+                  </div>
               <q-btn
                 flat
+                    dense
                 no-caps
-                padding="1px xs"
+                    :color="themeColor"
                 @click="() => {
                   createNewCampaign = false
                   selectedCampaign = null
                 }"
               >
-                <q-icon size="1.25em" name="arrow_back" class="q-mr-xs"/>
-                {{ $t('SelectExistingCampaign')}}
+                    <q-icon size="1.25em" name="mdi-arrow-left" class="q-mr-xs"/>
+                    {{ $t('Back', {}, 'Back')}}
               </q-btn>
             </div>
-            <label>
-              {{ $t('CampaignName') }} <sup>*</sup>
+
+                <!-- Campaign Name Input -->
+                <div class="q-mb-md">
+                  <label class="form-label text-weight-medium" :class="getDarkModeClass(darkMode)">
+                    {{ $t('CampaignName') }} <sup class="text-negative">*</sup>
             </label>
             <q-input
               ref="campaignNameInput"
-              :placeholder="$t('CampaignName')"
+                    :placeholder="$t('EnterCampaignName', {}, 'Enter campaign name')"
               filled
               type="string"
               :rules="[val => !!val || $t('FieldIsRequired')]"
               v-model="campaignName"
               clearable
               :dark="darkMode"
-            >
-            </q-input>{{ $t('Name') }}: {{ campaignName }}
-
-            <div class="q-pa-sm q-pb-xs">
+                    class="q-mt-sm"
+                  >
+                    <template v-slot:prepend>
+                      <q-icon name="mdi-tag" />
+                    </template>
+                  </q-input>
             </div>
 
-            <label>
-              {{ $t('MaxAmountPerWallet') }} <sup>*</sup>
+                <!-- Max Amount Input -->
+                <div>
+                  <label class="form-label text-weight-medium" :class="getDarkModeClass(darkMode)">
+                    {{ $t('MaxAmountPerWallet') }} <sup class="text-negative">*</sup>
             </label>
             <q-input
               ref="maxAmountInput"
-              :placeholder="$t('Amount')"
+                    :placeholder="$t('EnterMaxAmount', {}, 'Enter max amount')"
               filled
               type="text"
               clearable
               v-model="maxPerCampaign"
               :dark="darkMode"
+                    class="q-mt-sm"
               :error="maxPerCampaign > 0 && maxPerCampaign < amountBCH"
               :error-message="maxPerCampaign > 0 && maxPerCampaign < amountBCH ? $t('CannotBeLowerThanGiftAmount') : null"
             >
-              <template v-slot:append>{{ denomination }}</template>
+                    <template v-slot:prepend>
+                      <q-icon name="mdi-account-cash" />
+                    </template>
+                    <template v-slot:append>
+                      <span class="text-weight-medium">{{ denomination }}</span>
+                    </template>
             </q-input>
+                </div>
           </template>
+              
           <template v-else>
-            <label>
-              {{ $t('CampaignOptional') }}: <q-icon name="info" @click=" showCampaignInfo = !showCampaignInfo " />
+                <!-- Campaign Select -->
+                <div class="row items-center justify-between q-mb-sm">
+                  <label class="form-label text-weight-medium" :class="getDarkModeClass(darkMode)">
+                    {{ $t('CampaignOptional') }}
             </label>
-            <p v-if="showCampaignInfo" class="q-mt-md">{{ $t('CampaignDescription') }}</p>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="sm"
+                    :color="themeColor"
+                    icon="mdi-information"
+                    @click="showCampaignInfo = !showCampaignInfo"
+                  >
+                    <q-tooltip>{{ $t('WhatIsACampaign', {}, 'What is a campaign?') }}</q-tooltip>
+                  </q-btn>
+                </div>
+                
+                <q-slide-transition>
+                  <div v-if="showCampaignInfo" class="campaign-info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
+                    <p class="text-caption q-ma-none" :class="getDarkModeClass(darkMode)">
+                      {{ $t('CampaignDescription') }}
+                    </p>
+                  </div>
+                </q-slide-transition>
+
             <q-select
               filled
               ref="campaignInput"
               clearable
-              class="q-mt-sm"
               v-model="selectedCampaign"
               :dark="darkMode"
               :options="campaignOptions"
@@ -108,56 +360,38 @@
               popup-content-style="color: black;"
               :error="campaignSelectionError !== null"
               :error-message="campaignSelectionError"
-            />
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="mdi-tag-multiple" />
           </template>
+                </q-select>
+          </template>
+            </div>
 
-          <div class="q-pa-sm q-pt-lg flex flex-center">
+            <!-- Generate Button -->
+            <div class="form-actions q-mt-xl">
             <q-btn
+                unelevated
               no-caps
-              rounded
-              color="blue-9"
-              type="submit"
-              :label="$t('Generate')"
-              class="flex flex-center button"
+                size="lg"
+                class="full-width bg-grad generate-btn"
               :disable="(createNewCampaign && !campaignName) || disableGenerateButton() || amountBCH > spendableBch"
               @click="processRequest()"
             >
+                <q-icon name="mdi-gift" size="24px" class="q-mr-sm"/>
+                {{ $t('GenerateGift', {}, 'Generate Gift') }}
             </q-btn>
           </div>
         </div>
-        <div v-if="qrCodeContents && completed" class="text-center" :class="{'text-white': darkMode}">
-          <p style="font-size: 22px;">{{ $t('Amount') }}:<br>{{ getAssetDenomination(denomination, amountBCH) }}</p>
-          <div v-if="amountBCH" style="margin-top: -10px;">
-            {{ `~ ${parseFiatCurrency(sendAmountMarketValue, selectedMarketCurrency)}` }}
           </div>
-          <div class="flex flex-center" style="margin-top: 30px;">
-            <div class="flex flex-center" @click="copyToClipboard(qrCodeContents)">
-              <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="200" />
-            </div>
-          </div>
-          <p style="font-size: 18px;">{{ $t('ScanClaimGift') }}</p>
-          <div class="">
-            <div class="text-subtitle1 text-left">{{ $t('ShareGiftLink') }}:</div>
-            <ShareGiftPanel :qr-share="qrCodeContents" :amount="amountBCH"/>
-          </div>
-          <div class="q-mt-md">
-            <q-chip
-              :color="giftStatus === 'completed' ? 'positive' : giftStatus === 'processing' ? 'warning' : 'negative'"
-              text-color="white"
-            >
-              {{ giftStatus === 'completed' ? $t('Completed') : giftStatus === 'processing' ? $t('Processing') : $t('Failed') }}
-            </q-chip>
-            <q-btn
-              v-if="giftStatus === 'failed'"
-              color="primary"
-              :loading="processing"
-              class="q-mt-sm"
-              @click="resubmitGift(failedGiftDetails)"
-            >
-              {{ $t('Resubmit') }}
-            </q-btn>
-          </div>
-        </div>
+
+        <!-- Custom Keyboard (only shown in custom amount mode) -->
+        <CustomKeyboard 
+          v-if="isCustomAmount"
+          :custom-keyboard-state="customKeyboardState"
+          v-on:addKey="setAmount"
+          v-on:makeKeyAction="makeKeyAction"
+        />
       </div>
     </div>
   </div>
@@ -167,13 +401,26 @@
 import HeaderNav from '../../../components/header-nav'
 import ProgressLoader from '../../../components/ProgressLoader'
 import ShareGiftPanel from '../../../components/gifts/ShareGiftPanel.vue'
+import CustomKeyboard from '../../../components/CustomKeyboard.vue'
 import { getMnemonic, Wallet } from '../../../wallet'
 import axios from 'axios'
 import { ECPair } from '@psf/bitcoincashjs-lib'
 import { toHex } from 'hex-my-bytes'
 import sha256 from 'js-sha256'
-import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
+import { 
+  getAssetDenomination, 
+  parseFiatCurrency, 
+  convertToBCH, 
+  formatWithLocale,
+  getDenomDecimals,
+  getLocaleSeparators
+} from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  parseKey,
+  adjustSplicedAmount,
+  formatWithLocaleSelective
+} from 'src/utils/custom-keyboard-utils'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -186,6 +433,7 @@ export default {
     HeaderNav,
     ProgressLoader,
     ShareGiftPanel,
+    CustomKeyboard,
   },
   props: {
     uri: {
@@ -195,7 +443,9 @@ export default {
   },
   data () {
     return {
-      giftAmount: 0,
+      giftAmount: '',
+      giftAmountFormatted: '0',
+      isCustomAmount: false,
       campaignOptions: [],
       createNewCampaign: false,
       selectedCampaign: null,
@@ -208,7 +458,8 @@ export default {
       wallet: null,
       showCampaignInfo: false,
       giftStatus: null,
-      failedGiftDetails: null
+      failedGiftDetails: null,
+      customKeyboardState: 'dismiss'
     }
   },
   watch: {
@@ -241,8 +492,18 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'orange-6',
+        'glassmorphic-red': 'pink-6'
+      }
+      return themeMap[this.theme] || 'blue-6'
+    },
     amountBCH () {
-      return Number(this.convertToBCH(this.denomination, this.giftAmount))
+      const amount = parseFloat(this.giftAmount) || 0
+      return Number(this.convertToBCH(this.denomination, amount))
     },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
@@ -270,6 +531,10 @@ export default {
     },
     giftStatus() {
       return this.$store.getters['gifts/getGiftStatus'](this.giftCodeHash)
+    },
+    quickAmounts() {
+      // Return quick amount presets in BCH
+      return [0.001, 0.01, 0.05, 0.1, 0.5, 1]
     }
   },
   methods: {
@@ -290,22 +555,32 @@ export default {
       }
     },
     disableGenerateButton () {
-      if (this.amountBCH >= 0.00001) {
-        if (this.$refs.amountInput && !this.$refs.amountInput.hasError) {
-          if (this.$refs.campaignInput) {
-            if (this.$refs.campaignInput.hasError) {
-              return true
-            } else {
-              return false
-            }
-          }
-          if (this.$refs.maxAmountInput && !this.$refs.maxAmountInput.hasError) {
-            return false
-          }
-        }
+      // Check if amount is valid
+      if (this.amountBCH < 0.00001) {
         return true
       }
-      return true
+
+      // If in custom amount mode, check input validation
+      if (this.isCustomAmount) {
+        if (this.$refs.amountInput && this.$refs.amountInput.hasError) {
+          return true
+        }
+      }
+
+      // Check campaign input if it exists
+      if (this.$refs.campaignInput) {
+        if (this.$refs.campaignInput.hasError) {
+          return true
+        }
+      }
+
+      // Check max amount input if it exists
+      if (this.$refs.maxAmountInput && this.$refs.maxAmountInput.hasError) {
+        return true
+      }
+
+      // All checks passed
+      return false
     },
     generateGift () {
       const vm = this
@@ -480,6 +755,147 @@ export default {
       const amountStr = this.getAssetDenomination(this.denomination, amount)
       return parseFloat(amountStr.split(' ')[0])
     },
+    selectQuickAmount(amount) {
+      // Simply set the amount, no need to open keyboard or custom mode
+      const amountInDenomination = this.getAmountOnDenomination(amount)
+      this.giftAmount = String(amountInDenomination)
+      this.giftAmountFormatted = formatWithLocale(
+        amountInDenomination,
+        this.decimalObj()
+      )
+      // Ensure we're not in custom mode
+      this.isCustomAmount = false
+      this.customKeyboardState = 'dismiss'
+    },
+    enterCustomAmount() {
+      // Switch to custom amount mode
+      this.isCustomAmount = true
+      // Reset to zero
+      this.giftAmount = ''
+      this.giftAmountFormatted = '0'
+      // Focus the input and show keyboard
+      this.$nextTick(() => {
+        const inputEl = this.$refs.amountInput
+        if (inputEl) {
+          inputEl.focus()
+        }
+      })
+    },
+    exitCustomAmount() {
+      // Exit custom amount mode
+      this.isCustomAmount = false
+      this.customKeyboardState = 'dismiss'
+      // Keep the amount if user entered one, otherwise reset
+      if (!this.giftAmount || parseFloat(this.giftAmount) === 0) {
+        this.giftAmount = ''
+        this.giftAmountFormatted = '0'
+      }
+    },
+    createAnother() {
+      // Reset form to create another gift
+      this.giftAmount = ''
+      this.giftAmountFormatted = '0'
+      this.isCustomAmount = false
+      this.selectedCampaign = null
+      this.createNewCampaign = false
+      this.campaignName = null
+      this.maxPerCampaign = null
+      this.qrCodeContents = null
+      this.processing = false
+      this.completed = false
+      this.giftCodeHash = null
+      this.giftStatus = null
+      this.failedGiftDetails = null
+      this.customKeyboardState = 'dismiss'
+    },
+    getThemeColor() {
+      const themeMap = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeMap[this.theme] || '#42a5f5'
+    },
+    getStatusBadgeClass() {
+      if (this.giftStatus === 'completed') return 'status-completed'
+      if (this.giftStatus === 'processing') return 'status-processing'
+      return 'status-failed'
+    },
+    onAmountInputFocus() {
+      this.customKeyboardState = 'show'
+    },
+    setAmount(key) {
+      // Get current caret position, default to end of string
+      const caret = this.$refs.amountInput?.nativeEl?.selectionStart ?? String(this.giftAmount).length
+
+      // Parse the key and update amount
+      const currentAmount = parseKey(key, String(this.giftAmount || ''), caret)
+      this.giftAmount = currentAmount
+
+      // Format the display value
+      if (String(key) === '.' || String(key) === '0') {
+        this.giftAmountFormatted = formatWithLocaleSelective(
+          this.giftAmount, 
+          this.giftAmountFormatted,
+          String(key), 
+          this.decimalObj()
+        )
+      } else {
+        this.giftAmountFormatted = formatWithLocale(
+          this.giftAmount, 
+          this.decimalObj()
+        )
+      }
+    },
+    makeKeyAction(action) {
+      if (action === 'backspace') {
+        try {
+          const amountStr = String(this.giftAmount || '')
+          let caretPosition = this.$refs.amountInput?.nativeEl?.selectionStart - 1
+          
+          if (caretPosition >= amountStr.length) {
+            caretPosition = amountStr.length - 1
+          }
+
+          if (caretPosition > -1) {
+            this.giftAmount = adjustSplicedAmount(amountStr, caretPosition)
+          } else {
+            this.giftAmount = ''
+          }
+
+          this.giftAmountFormatted = formatWithLocale(
+            this.giftAmount || 0, 
+            this.decimalObj()
+          )
+
+          // Preserve decimal point if present
+          if (
+            String(this.giftAmount).split('.').length === 2 &&
+            String(this.giftAmount).split('.')[1] === ''
+          ) {
+            this.giftAmountFormatted += getLocaleSeparators().decimal
+          }
+        } catch (error) {
+          console.error('Backspace error:', error)
+          this.giftAmount = ''
+          this.giftAmountFormatted = '0'
+        }
+      } else if (action === 'delete') {
+        this.giftAmount = ''
+        this.giftAmountFormatted = '0'
+      } else {
+        // Done action - dismiss keyboard
+        this.customKeyboardState = 'dismiss'
+        this.$refs.amountInput?.blur?.()
+      }
+    },
+    decimalObj() {
+      return {
+        max: getDenomDecimals(this.denomination),
+        min: 0
+      }
+    },
     async fetchCampaigns() {
       const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       this.wallet = new Wallet(mnemonic)
@@ -511,10 +927,455 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  .fontStyle {
-    font-size:medium;
+// Page Layout
+.create-gift-page {
+  min-height: 100vh;
+  
+  &.dark {
+    background-color: #1a1a1a;
   }
-  display {
-    display: none;
+  
+  &.light {
+    background-color: #f5f5f7;
+  }
+}
+
+.create-gift-content {
+  padding-bottom: 40px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+// Processing State
+.processing-state {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.processing-card {
+  padding: 48px 32px;
+  border-radius: 24px;
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+  animation: slideUp 0.4s ease-out;
+}
+
+.processing-icon-wrapper {
+  margin-bottom: 24px;
+}
+
+.pulsing-icon {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+// Success State
+.success-state {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.success-card {
+  padding: 32px;
+  border-radius: 24px;
+  max-width: 500px;
+  margin: 0 auto;
+  animation: slideUp 0.4s ease-out;
+}
+
+.success-header {
+  text-align: center;
+}
+
+.success-icon-wrapper {
+  margin-bottom: 16px;
+}
+
+.celebration-icon {
+  animation: celebrate 0.6s ease-out;
+}
+
+.amount-display {
+  text-align: center;
+  padding: 24px;
+  border-radius: 16px;
+  background: rgba(128, 128, 128, 0.05);
+  
+  .dark & {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+.qr-section {
+  text-align: center;
+}
+
+.qr-wrapper {
+  position: relative;
+  display: inline-block;
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    
+    .qr-overlay {
+      opacity: 1;
+    }
+  }
+  
+  &:active {
+    transform: translateY(-2px);
+  }
+}
+
+.qr-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.status-section {
+  text-align: center;
+}
+
+.status-badge-large {
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  &.status-completed {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+  }
+  
+  &.status-processing {
+    background: rgba(255, 152, 0, 0.15);
+    color: #ff9800;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+  }
+  
+  &.status-failed {
+    background: rgba(244, 67, 54, 0.15);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+  }
+}
+
+.share-section {
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  padding-top: 24px;
+}
+
+.success-actions {
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  padding-top: 24px;
+}
+
+// Form State
+.form-state {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.form-card {
+  padding: 28px;
+  border-radius: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+  animation: slideUp 0.4s ease-out;
+}
+
+.balance-section {
+  animation: slideDown 0.4s ease-out 0.1s backwards;
+}
+
+.balance-card {
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(128, 128, 128, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  .dark & {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.balance-icon-wrapper {
+  opacity: 0.7;
+}
+
+.form-section {
+  animation: slideDown 0.4s ease-out 0.2s backwards;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  
+  &.dark {
+    color: rgba(255, 255, 255, 0.87);
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+.amount-input {
+  :deep(.q-field__control) {
+    height: 56px;
+    border-radius: 12px;
+  }
+  
+  :deep(input) {
+    font-size: 18px;
+    font-weight: 600;
+  }
+}
+
+// Quick Amounts
+.quick-amounts {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .quick-amount-btn {
+    flex: 1 1 auto;
+    min-width: 80px;
+    height: 48px;
+    border-radius: 24px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+    
+    &.bg-grad {
+      color: white !important;
+    }
+  }
+
+  .custom-amount-trigger {
+    font-weight: 600;
+    border-width: 2px;
+    
+    &:hover {
+      background-color: rgba(128, 128, 128, 0.05);
+    }
+  }
+}
+
+// Selected Amount Display
+.selected-amount-display {
+  border-radius: 16px;
+  background: rgba(128, 128, 128, 0.05);
+  animation: slideDown 0.3s ease-out;
+  
+  .dark & {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+// Custom Amount Section
+.custom-amount-section {
+  animation: slideDown 0.3s ease-out;
+}
+
+// Campaign Section
+.campaign-info-card {
+  border-radius: 12px;
+  background: rgba(33, 150, 243, 0.08);
+  border-left: 3px solid #2196f3;
+  
+  .dark & {
+    background: rgba(33, 150, 243, 0.12);
+  }
+}
+
+// Generate Button
+.form-actions {
+  animation: slideUp 0.4s ease-out 0.3s backwards;
+}
+
+.generate-btn {
+  height: 56px;
+  border-radius: 28px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+// Text Utilities
+.text-bow {
+  &.dark {
+    color: rgba(255, 255, 255, 0.87);
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+.section-title {
+  &.dark {
+    color: rgba(255, 255, 255, 0.87);
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes celebrate {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// Custom Keyboard Integration
+.create-gift-content {
+  :deep(.custom-keyboard) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+  }
+}
+
+// Add padding bottom when keyboard is visible to prevent content overlap
+.create-gift-page {
+  &.keyboard-visible {
+    .form-card {
+      padding-bottom: 320px;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 600px) {
+  .form-card,
+  .success-card,
+  .processing-card {
+    padding: 24px 20px;
+  }
+  
+  .qr-wrapper {
+    padding: 12px;
+  }
+  
+  .quick-amounts {
+    .quick-amount-btn {
+      min-width: calc(50% - 6px);
+      margin-bottom: 8px;
+      height: 44px;
+      font-size: 13px;
+    }
+    
+    .custom-amount-trigger {
+      min-width: 100%;
+    }
+  }
   }
 </style>

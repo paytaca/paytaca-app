@@ -49,74 +49,168 @@
             <div v-if="scanner.error" class="text-center bg-red-1 text-red q-pa-lg">
               <q-icon name="error" left/> {{ scanner.error }}
             </div>
-            <div class="row justify-center q-mt-xl" v-if="!scanner.show && recipients[0]?.recipientAddress === ''">
-              <div id="paste-address-container" class="col-12">
+            <div class="send-options-container" v-if="!scanner.show && recipients[0]?.recipientAddress === ''">
+              <!-- Title Section -->
+              <div class="send-options-header q-mb-lg">
+                <div class="text-h6 text-weight-bold text-center" :class="getDarkModeClass(darkMode)">
+                  {{ $t('HowToSend', {}, 'How would you like to send?') }}
+                </div>
+                <div class="text-caption text-center q-mt-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                  {{ $t('ChooseMethod', {}, 'Choose a method to send your') }} {{ asset.symbol || 'BCH' }}
+                </div>
+              </div>
+
+              <!-- Paste Address Option -->
+              <div class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="send-option-header">
+                  <q-icon name="mdi-wallet" size="28px" class="text-grad"/>
+                  <div class="send-option-title">
+                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                      {{ $t('SendToAddress', {}, 'Send to Address') }}
+                    </div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('EnterOrPasteRecipient', {}, 'Enter or paste recipient address') }}
+                    </div>
+                  </div>
+                </div>
+                
                 <q-input
                   bottom-slots
                   filled
                   :dark="darkMode"
                   v-model="manualAddress"
-                  :label="$t('PasteAddressHere')"
+                  :placeholder="$t('PasteAddressHere')"
+                  class="q-mt-md"
                 >
+                  <template v-slot:prepend>
+                    <q-icon name="mdi-content-paste" />
+                  </template>
                   <template v-slot:append>
                     <q-icon
-                      name="arrow_forward_ios"
-                      class="button button-icon"
-                      :class="getDarkModeClass(darkMode)"
+                      name="mdi-arrow-right"
+                      class="cursor-pointer"
                       @click="onScannerDecode(manualAddress, false)"
                     />
                   </template>
                 </q-input>
-              </div>
-              <div
-                v-if="isLegacyAddress"
-                style="border: 2px solid orange;"
-                class="q-mx-md q-mb-md q-pa-sm text-center text-subtitle2 text-bow"
-                :class="getDarkModeClass(darkMode)"
-                v-html="$t('LegacyAddressWarning')"
-              />
-              <div
-                v-if="isWalletAddress"
-                style="border: 2px solid orange;"
-                class="q-mx-md q-mb-md q-pa-sm text-center text-subtitle2 text-bow"
-                :class="getDarkModeClass(darkMode)"
-              >
-                {{ $t('SameWalletAddressWarning') }}
-              </div>
-              <q-slide-transition :duration="750">
-                <div v-if="manualAddress && validateAddress(manualAddress)?.valid" class="text-center">
-                  <q-btn id="send-to"
-                    no-caps
-                    class="button q-mb-lg q-mt-sm"
-                    size="lg"
-                    @click="() => onScannerDecode(manualAddress, false)"
-                  >
-                    <div class="ellipsis" style="max-width:min(230px, 75vw); font-size: 17px;">
-                      {{ $t('SendTo', {}, 'Send to') }}
-                      {{ manualAddress }}
-                    </div>
-                  </q-btn>
+
+                <div
+                  v-if="isLegacyAddress"
+                  class="warning-banner legacy-warning q-mt-sm"
+                  :class="getDarkModeClass(darkMode)"
+                  v-html="$t('LegacyAddressWarning')"
+                />
+                <div
+                  v-if="isWalletAddress"
+                  class="warning-banner wallet-warning q-mt-sm"
+                  :class="getDarkModeClass(darkMode)"
+                >
+                  {{ $t('SameWalletAddressWarning') }}
                 </div>
-              </q-slide-transition>
-              <div class="col-12 text-uppercase text-center or-label">
-                {{ $t('or') }}
+
+                <q-slide-transition :duration="750">
+                  <div v-if="manualAddress && validateAddress(manualAddress)?.valid" class="q-mt-md">
+                    <q-btn
+                      id="send-to"
+                      unelevated
+                      no-caps
+                      class="full-width bg-grad send-to-btn"
+                      size="lg"
+                      @click="() => onScannerDecode(manualAddress, false)"
+                    >
+                      <q-icon name="mdi-send" size="20px" class="q-mr-xs"/>
+                      <div class="ellipsis" style="max-width: 80%;">
+                        {{ $t('SendTo', {}, 'Send to') }} {{ shortenAddress(manualAddress) }}
+                      </div>
+                    </q-btn>
+                  </div>
+                </q-slide-transition>
               </div>
-              <div class="col-12 q-mt-lg">
-                <div class="row items-center justify-around">
-                  <q-btn
-                    round
-                    size="lg"
-                    class="btn-scan button text-white bg-grad"
-                    icon="mdi-qrcode"
-                    @click="showQrScanner = true"
-                  />
-                  <q-btn
-                    round
-                    size="lg"
-                    class="btn-scan button text-white bg-grad"
-                    icon="upload"
-                    @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
-                  />
+
+              <!-- Scan QR Options -->
+              <div class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="send-option-header">
+                  <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
+                  <div class="send-option-title">
+                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                      {{ $t('ScanQRCode', {}, 'Scan QR Code') }}
+                    </div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('ScanOrUploadQR', {}, 'Scan with camera or upload QR image') }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row q-gutter-sm q-mt-md">
+                  <div class="col">
+                    <q-btn
+                      unelevated
+                      no-caps
+                      class="full-width scan-option-btn"
+                      :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                      @click="showQrScanner = true"
+                    >
+                      <div class="column items-center q-py-sm">
+                        <q-icon name="mdi-camera" size="32px"/>
+                        <div class="text-caption q-mt-xs">{{ $t('Camera', {}, 'Camera') }}</div>
+                      </div>
+                    </q-btn>
+                  </div>
+                  <div class="col">
+                    <q-btn
+                      unelevated
+                      no-caps
+                      class="full-width scan-option-btn"
+                      :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                      @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
+                    >
+                      <div class="column items-center q-py-sm">
+                        <q-icon name="mdi-upload" size="32px"/>
+                        <div class="text-caption q-mt-xs">{{ $t('Upload', {}, 'Upload') }}</div>
+                      </div>
+                    </q-btn>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gift Link Option (only for BCH) -->
+              <div v-if="asset.id === 'bch'" class="send-option-card pt-card gift-option-card" :class="getDarkModeClass(darkMode)">
+                <div class="send-option-header">
+                  <q-icon name="mdi-gift" size="28px" class="text-grad"/>
+                  <div class="send-option-title">
+                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                      {{ $t('ShareableGiftLink', {}, 'Shareable Gift Link') }}
+                    </div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('CreateLinkAnyone', {}, 'Create a link that anyone can claim') }}
+                    </div>
+                  </div>
+                </div>
+
+                <q-btn
+                  unelevated
+                  no-caps
+                  class="full-width bg-grad gift-link-btn q-mt-md"
+                  size="lg"
+                  @click="navigateToCreateGift"
+                >
+                  <q-icon name="mdi-gift-open" size="20px" class="q-mr-xs"/>
+                  {{ $t('CreateGiftLink', {}, 'Create Gift Link') }}
+                </q-btn>
+
+                <div class="gift-benefits q-mt-md">
+                  <div class="benefit-item" :class="getDarkModeClass(darkMode)">
+                    <q-icon name="mdi-share-variant" size="16px" class="q-mr-xs"/>
+                    <span class="text-caption">{{ $t('ShareViaLink', {}, 'Share via link') }}</span>
+                  </div>
+                  <div class="benefit-item" :class="getDarkModeClass(darkMode)">
+                    <q-icon name="mdi-account-multiple" size="16px" class="q-mr-xs"/>
+                    <span class="text-caption">{{ $t('AnyoneCanClaim', {}, 'Anyone can claim') }}</span>
+                  </div>
+                  <div class="benefit-item" :class="getDarkModeClass(darkMode)">
+                    <q-icon name="mdi-recycle" size="16px" class="q-mr-xs"/>
+                    <span class="text-caption">{{ $t('RecoverIfUnclaimed', {}, 'Recover if unclaimed') }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -231,9 +325,9 @@
             @swiped="slideToSubmit"
             class="absolute-bottom"
           />
-          <template v-if="showFooter">
-            <footer-menu />
-          </template>
+          <footer-menu 
+            :class="{ 'send-page-footer-hidden': hideFooter }"
+          />
 
           <template v-if="sent">
             <SendSuccessBlock
@@ -451,7 +545,8 @@ export default {
       isLegacyAddress: false,
       isWalletAddress: false,
       userSelectedChangeAddress: '',
-      focusedInputField: ''
+      focusedInputField: '',
+      isScrolledToBottom: false
     }
   },
 
@@ -469,14 +564,13 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    showFooter () {
-      if (this.customKeyboardState === 'show') return false
-      else {
-        if (this.showSlider) return false
-        if (this.sending || this.sent) return false
-      }
+    hideFooter () {
+      if (this.customKeyboardState === 'show') return true
+      if (this.showSlider) return true
+      if (this.sending || this.sent) return true
+      if (this.isScrolledToBottom) return true
 
-      return true
+      return false
     },
     isNFT () {
       if (erc721IdRegexp.test(this.assetId)) return true
@@ -583,6 +677,40 @@ export default {
     convertToBCH,
     customNumberFormatting,
     getDarkModeClass,
+
+    // ========== navigation methods ==========
+    navigateToCreateGift() {
+      this.$router.push({ name: 'create-gift' })
+    },
+
+    // ========== utility methods ==========
+    shortenAddress(address) {
+      if (!address || address.length < 20) return address
+      return `${address.substring(0, 10)}...${address.substring(address.length - 8)}`
+    },
+    getThemeColor() {
+      const theme = this.$store.getters['global/theme']
+      const themeMap = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeMap[theme] || '#42a5f5'
+    },
+
+    handleScroll() {
+      const container = document.querySelector('.send-form-container')
+      if (!container) return
+
+      const scrollTop = container.scrollTop
+      const scrollHeight = container.scrollHeight
+      const clientHeight = container.clientHeight
+      
+      // Check if scrolled to bottom (with small threshold)
+      const threshold = 10
+      this.isScrolledToBottom = (scrollTop + clientHeight >= scrollHeight - threshold)
+    },
 
     // ========== main methods ==========
     // on component mount
@@ -1483,10 +1611,24 @@ export default {
     if (this.inputExtras.length === 1) {
       this.inputExtras[0].selectedDenomination = this.denomination
     }
+
+    // Add scroll listener for hiding footer at bottom
+    this.$nextTick(() => {
+      const container = document.querySelector('.send-form-container')
+      if (container) {
+        container.addEventListener('scroll', this.handleScroll)
+      }
+    })
   },
 
   unmounted () {
     NativeAudio.unload({ assetId: 'send-success' })
+    
+    // Remove scroll listener
+    const container = document.querySelector('.send-form-container')
+    if (container) {
+      container.removeEventListener('scroll', this.handleScroll)
+    }
   },
 
   created () {
@@ -1529,19 +1671,179 @@ export default {
     }
   }
   .send-form-container {
-    max-height: 70vh;
-    overflow-y: scroll;
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
     &.sent {
-      max-height: 80vh;
+      max-height: calc(100vh - 60px);
     }
     .enter-address-container {
       .nft-container {
         width: 150px;
         margin: 0 auto;
       }
-      .or-label {
-        font-size: 15px;
-        color: grey;
+    }
+
+    // Send Options Container
+    .send-options-container {
+      padding: 0 16px 40px 16px;
+      max-width: 600px;
+      margin: 0 auto;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .send-options-header {
+      animation: slideDown 0.4s ease-out;
+    }
+
+    // Send Option Cards
+    .send-option-card {
+      padding: 20px;
+      border-radius: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: slideUp 0.4s ease-out backwards;
+      
+      &:nth-child(2) { animation-delay: 0.1s; }
+      &:nth-child(3) { animation-delay: 0.2s; }
+      &:nth-child(4) { animation-delay: 0.3s; }
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+      }
+    }
+
+    .send-option-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .send-option-title {
+      flex: 1;
+    }
+
+    // Warning Banners
+    .warning-banner {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      border-left: 3px solid;
+      
+      &.legacy-warning {
+        border-color: #ff9800;
+        background: rgba(255, 152, 0, 0.1);
+      }
+      
+      &.wallet-warning {
+        border-color: #ff9800;
+        background: rgba(255, 152, 0, 0.1);
+      }
+    }
+
+    // Send To Button
+    .send-to-btn {
+      border-radius: 28px;
+      height: 50px;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+      }
+    }
+
+    // Scan Option Buttons
+    .scan-option-btn {
+      border-radius: 12px;
+      min-height: 100px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    // Gift Option Card
+    .gift-option-card {
+      background: linear-gradient(135deg, rgba(66, 165, 245, 0.05) 0%, rgba(66, 165, 245, 0.02) 100%);
+      
+      .dark & {
+        background: linear-gradient(135deg, rgba(66, 165, 245, 0.08) 0%, rgba(66, 165, 245, 0.03) 100%);
+      }
+    }
+
+    .gift-link-btn {
+      border-radius: 28px;
+      height: 50px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+
+    .gift-benefits {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .benefit-item {
+      display: flex;
+      align-items: center;
+      opacity: 0.8;
+      
+      &.dark {
+        color: rgba(255, 255, 255, 0.87);
+      }
+      
+      &.light {
+        color: rgba(0, 0, 0, 0.7);
+      }
+    }
+
+    // Animations
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
     .send-form {
@@ -1613,5 +1915,13 @@ export default {
     #app-container.sticky-header-container {
       position: relative;
     }
+  }
+
+  /* Footer menu animation */
+  .send-page-footer-hidden {
+    transform: translateX(-50%) translateY(120px) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease !important;
   }
 </style>
