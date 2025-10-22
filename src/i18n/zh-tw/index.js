@@ -170,7 +170,7 @@ export default {
   BuildingTransaction: "Construyendo transacción",
   BusinessDetails: "Detalles del negocio/empresa",
   BusinessName: "Nombre del negocio/empresa",
-  ButtonDeem: "DEEM",
+  ButtonDeem: "點心幣",
   BuyAds: "Buy Ads",
   BuyBCH: "Buy BCH",
   By: "by",
@@ -239,7 +239,7 @@ export default {
   CheckingForConnectionRequests: "Checking for connection requests",
   Checkout: "Pagar",
   ChineseSimplified: "Chinese Simplified",
-  ChineseTraditional: "Chinese Traditional",
+  ChineseTraditional: "中文繁體字",
   ChooseBackupPhase: "Elija el método de respaldo",
   ChooseBackupPhaseDescription: "Choose the wallet backup method you want to use to proceed to the next phase.",
   ChoosePreferredSecAuth: "Please choose your preferred security authentication",
@@ -349,7 +349,7 @@ export default {
   CreatingUnlinkDeviceRequest: "Creating unlink device request",
   CreatingYourWallet: "Creating your wallet",
   Crypto: "Crypto",
-  CryptoSwap: "Crypto Swap",
+  CryptoSwap: "Ramp",
   Currency: "Currency",
   CurrentMarketPrice: "Current Market Price",
   CurrentPrice: "Current price",
@@ -751,7 +751,7 @@ export default {
   MaintainingLiquidity: "Maintaining liquidity",
   Manage: "Manage",
   ManageIgnoredPoints: "Manage Ignored Points",
-  ManageIgnoredTokens: "Manage Ignored Tokens",
+  ManageIgnoredTokens: "管理被忽略幣種",
   ManagePaymentMethods: "Manage Payment Methods",
   ManagePoints: "Manage Points",
   ManageTokens: "Manage Tokens",
@@ -1413,7 +1413,7 @@ export default {
   ShowReceivingAddress: "Show Receiving Address",
   ShowReferralQR: "Show Referral QR Code",
   ShowSecondShard: "Show Second Shard",
-  ShowTokens: "Show Tokens",
+  ShowTokens: "顯示幣種",
   SignMessage: "Sign Message",
   SignMessageError: "Unable to sign message",
   SignMutualRedemption: "Sign mutual redemption",
@@ -1765,6 +1765,4 @@ export default {
   or: "or",
   toRedeemAllTokensInCirculation: "to redeem all tokens in circulation",
   viewmore: "view more"
-}
-}"
 }

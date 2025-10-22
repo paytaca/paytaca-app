@@ -80,7 +80,7 @@ class Translator {
 
       if (lang.includes(":")) {
         const [ branchLang, mainLang ] = lang.split(":")
-        this.copy(mainLang, branchLang)
+        await this.copy(mainLang, branchLang)
         continue
       }
 
@@ -168,7 +168,7 @@ class Translator {
         strData = strData.replace(/"([a-zA-Z_$][a-zA-Z0-9_$]*)":/g, '$1:')
 
         // write to our i18n/{lang_code}/index.js
-        this.write(strData, lang)
+        await this.write(strData, lang)
 
         index++
       }
@@ -275,13 +275,16 @@ class Translator {
   write (data, to) {
     const toPath = `./${to}/${this.indexFile}`
   
-    fs.writeFile(
-      toPath,
-      data,
-      (err) => {
-        if (err) throw err
-      }
-    )
+    return new Promise((resolve, reject) => {
+      fs.writeFile(
+        toPath,
+        data,
+        (err) => {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
   }
 
   // used to copy branch languages from their main languages
@@ -289,13 +292,16 @@ class Translator {
     const fromPath = `./${from}/${this.indexFile}`
     const toPath = `./${to}/${this.indexFile}`
   
-    fs.copyFile(
-      fromPath,
-      toPath,
-      (err) => {
-        if (err) throw err
-      }
-    )
+    return new Promise((resolve, reject) => {
+      fs.copyFile(
+        fromPath,
+        toPath,
+        (err) => {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
   }
 
   async getExistingTranslations(lang) {
