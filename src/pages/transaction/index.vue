@@ -1481,7 +1481,7 @@ export default {
       const unlisted_tokens = await assetSettings.fetchUnlistedTokens()
       const assetIDs = vm.assets.map(asset => asset.id)
 
-      if(unlisted_tokens) {
+      if(Array.isArray(unlisted_tokens) && unlisted_tokens.length > 0) {
         let diff = assetIDs.filter(asset => unlisted_tokens.includes(asset))
 
         if (diff.length > 0) {

@@ -32,16 +32,6 @@
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Wallet') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
-                  <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                      {{ $t('Currency') }}
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <CurrencySelector :darkMode="darkMode" />
-                  </q-item-section>
-              </q-item>
-              <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                     {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
@@ -55,25 +45,6 @@
                     />
                   </q-item-section>
               </q-item>
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                    {{ $t(isHongKong(currentCountry) ? 'ManageIgnoredPoints' : 'ManageIgnoredTokens') }}
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn
-                    flat
-                    :label="$t('Manage')"
-                    no-caps
-                    :to="{
-                      path: '/apps/settings/ignored-tokens',
-                      query: { backNavPath: '/apps/settings' }
-                    }"
-                  />
-                </q-item-section>
-              </q-item>
-
               <q-item clickable v-ripple @click="isChipnet = !isChipnet">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -164,6 +135,15 @@
               </q-item-section>
               <q-item-section side>
                 <LanguageSelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Currency') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CurrencySelector :darkMode="darkMode" />
               </q-item-section>
             </q-item>
 
@@ -480,6 +460,16 @@ export default {
           border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
       }
+    }
+  }
+
+  .glass-input {
+    :deep(.q-field__control) {
+      transition: all 0.3s ease;
+    }
+    
+    :deep(.q-field__native) {
+      font-weight: 500;
     }
   }
 </style>
