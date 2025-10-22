@@ -21,12 +21,12 @@
              </q-item-section>
             </q-item>
             <q-separator spaced/>
-	    <q-item v-if="multisigWallets?.filter(w => !w.enabled).length === 0">
+	    <q-item v-if="multisigWalletsFromServer?.filter(w => !w.enabled).length === 0">
 		<q-item-section>
 		 <q-item-label>No Data</q-item-label>
 		</q-item-section>
 	    </q-item>	
-            <q-item v-for="wallet in multisigWallets?.filter(w => !w.enabled)">
+            <q-item v-for="wallet in multisigWalletsFromServer?.filter(w => !w.enabled)">
                <q-item-section>
                  <q-item-label>{{ wallet.name }}</q-item-label>
                  <q-item-label caption lines="2">
@@ -39,7 +39,7 @@
                  </q-item-label>
                </q-item-section>
                <q-item-section side top> 
-                   <q-btn color="primary" icon="cloud_download" @click="enableWallet(wallet)"  flat no-caps dense></q-btn>
+                   <q-btn color="primary" icon="cloud_download" @click="downloadWallet(wallet)"  flat no-caps dense></q-btn>
                </q-item-section>               
             </q-item>
             
@@ -62,6 +62,7 @@ import { shortenString, getSignerInfos, MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
+import multisig from 'src/store/multisig'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -75,6 +76,8 @@ const {
   resolveXprvOfXpub
 } = useMultisigHelpers()
 
+const multisigWalletsFromServer = ref([])
+
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
@@ -87,19 +90,39 @@ const enableWallet = (multisigWallet) => {
     timeout: 500
   })
   nextTick(() => {
-   if (multisigWallets.value?.filter((wallet) => wallet.id && !wallet.enabled)?.length === 0) {
+   if (multisigWalletsFromServer.value?.filter((wallet) => wallet.id && !wallet.enabled)?.length === 0) {
      router.back() 
    }
   })
 }
 
+const downloadWallet = (multisigWallet) => {
+  multisigWallet.save()
+  const index = multisigWalletsFromServer.value.findIndex((w) => w.id === multisigWallet.id)
+  if (index !== -1) {
+    multisigWalletsFromServer.value.splice(index, 1)
+  }
+  $q.notify({
+    color: 'primary',
+    message: `${multisigWallet.template?.name || 'Wallet'} imported`,
+    timeout: 2000
+  })
+  if (multisigWalletsFromServer.value?.length === 0) {
+    router.push({ name: 'app-multisig' })
+  }
+}
+
 const fetchWallets = async () => {
+
+ const xpubSet = new Set()
 
  localWallets.value?.forEach(async (localWallet) => {
    
     if (localWallet?.deleted) return 
     
     if (!localWallet?.wallet?.bch?.xPubKey) return
+
+    if (xpubSet.has(localWallet.wallet.bch.xPubKey)) return
 
     try {
       
@@ -108,7 +131,6 @@ const fetchWallets = async () => {
         xprv: await resolveXprvOfXpub({ xpub: localWallet.wallet.bch.xPubKey }) 
       })
 
-      console.log(`Wallets for ${localWallet.wallet.bch.xPubKey}`, wallets)
       wallets.forEach( async (wallet) => { 
         const fetchedWallet = MultisigWallet.importFromObject(wallet, {
           store: $store,
@@ -116,8 +138,19 @@ const fetchWallets = async () => {
           coordinationServer: multisigCoordinationServer,
           resolveXprvOfXpub
         })
-        fetchedWallet?.save()
+
+        if (multisigWalletsFromServer.value.find((w) => w.walletHash === fetchedWallet.walletHash)) {
+          return
+        }
+        if (multisigWallets.value.find((w) => w.walletHash === fetchedWallet.walletHash)) {
+          return
+        }
+
+        multisigWalletsFromServer.value.push(fetchedWallet)        
+        
+        xpubSet.add(localWallet.wallet.bch.xPubKey)
       })
+
     } catch (e) {
       console.error('Error resolving xprv for xpub', e)
     }
