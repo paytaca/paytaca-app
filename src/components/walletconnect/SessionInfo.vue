@@ -76,7 +76,7 @@ import { useQuasar } from 'quasar'
 import { useRouter } from "vue-router";
 import PeerInfo from './PeerInfo.vue'
 import { shortenAddressForDisplay } from '../../utils/address-utils'
-import { toTokenAddress } from 'src/marketplace/escrow/utils'
+import { toTokenAddress } from 'src/utils/crypto';
 
 const props = defineProps({
     sessionType: { type: String, required: true }, /* proposal | request | active */
