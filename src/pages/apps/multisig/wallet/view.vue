@@ -212,7 +212,8 @@ import CopyButton from 'components/CopyButton.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
 import { CashAddressNetworkPrefix, sortObjectKeys } from 'bitauth-libauth-v3'
-import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
+import { WatchtowerNetwork, WatchtowerNetworkProvider, WatchtowerCoordinationServer } from 'src/lib/multisig/network'
+import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -237,6 +238,12 @@ const wallet = computed(() => {
       store: $store,
       provider: new WatchtowerNetworkProvider({
         network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+      }),
+      coordinationServer: new WatchtowerCoordinationServer({
+        network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+      }),
+      resolveXprvOfXpub: createXprvFromXpubResolver({
+        walletVault: $store.getters['global/getVault']
       })
     })
   }
@@ -254,10 +261,10 @@ const psts = computed(() => {
 })
 
 
-const deleteWallet = async () => {
-  await wallet.value.delete({ sync: false })
-  router.push({ name: 'app-multisig' })
-}
+// const deleteWallet = async () => {
+//   await wallet.value.delete({ sync: false })
+//   router.push({ name: 'app-multisig' })
+// }
 
 const exportWallet = () => {
   const data = wallet.value.exportToBase64()
@@ -353,10 +360,11 @@ const openWalletActionsDialog = () => {
         color: 'primary'
       }
     ],
-    class: `${getDarkModeClass(darkMode.value)} pt-card text-bow justify-between`
+    class: `${getDarkModeClass(darkMode.value)} custom-bottom-sheet pt-card text-bow justify-between`
 
   }).onOk(async (action) => {
-    if (action === 'delete-wallet') {
+    if (action.value === 'delete-wallet') {
+      console.log('delete wallet')
        $q.dialog({
           message: 'Are you sure you want to delete wallet?',
           ok: { label: 'Yes' },
@@ -364,14 +372,15 @@ const openWalletActionsDialog = () => {
           class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onOk(() => {
           wallet.value.delete({ sync: false })
+          router.push({ name: 'app-multisig' })
         }).onCancel(() => {
           openWalletActionsDialog()
         })
     }
-    if (action === 'sync-wallet') {
+    if (action.value === 'sync-wallet') {
       uploadWallet()
     }
-    if (action === 'export-wallet') {
+    if (action.value === 'export-wallet') {
       exportWallet()
     }
   })
@@ -485,8 +494,14 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
+<style lang="scss">
+
 .light {
   color: #141414;
+} 
+
+.custom-bottom-sheet .q-bottom-sheet__item .q-icon {
+  font-size: xx-large;
 }
+
 </style>i

@@ -152,6 +152,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { shortenString, MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
+import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
+import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -161,7 +163,7 @@ const { cashAddressNetworkPrefix } = useMultisigHelpers()
 const mOptions = ref()
 const nOptions = ref()
 const wallet = ref()
-const step = ref(1)
+const step = ref(3)
 
 const name = ref('')
 const m = ref(0)
@@ -237,12 +239,21 @@ const onCreateClicked = async () => {
   }
   
   const options = {
-    store: $store
+    store: $store,
+    provider: new WatchtowerNetworkProvider({
+      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+    }),
+    coordinationServer: new WatchtowerCoordinationServer({
+      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet
+    }),
+    resolveXprvOfXpub: createXprvFromXpubResolver({
+      walletVault: $store.getters['global/getVault']
+    })
   }
 
   const mOfn = new MultisigWallet(spec, options)
 
-  mOfn.save({ sync: false })
+  await mOfn.create({ sync: true })
   
   router.push({
     name: 'app-multisig-wallet-view',

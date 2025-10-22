@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3";
+import { MultisigWallet } from './wallet';
 
 /**
  * @typedef {'mainnet' | 'testnet3' | 'testnet4' | 'chipnet' | 'mocknet' | 'regtest'} Network
@@ -29,6 +30,13 @@ import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3"
  * @property {string} hostname
  */
 
+/**
+ * @typedef {Object} WatchtowerMultisigCoordinationServerAuthCredentials
+ * @property {string} "X-Auth-PubKey" - Hex-encoded public key used to sign the authentication message.
+ * @property {string} "X-Auth-Signature" - Combined signature string in the format:
+ *   "schnorr=<hex>;der=<hex>".
+ * @property {string} "X-Auth-Message" - The raw message that was signed, typically provided by the server.
+ */
 
 
 /**
@@ -52,7 +60,8 @@ export const Network = {
  */
 export const WatchtowerNetwork = {
     mainnet: 'mainnet',
-    chipnet: 'chipnet'
+    chipnet: 'chipnet',
+    local: 'local'
 }
 /**
  * @implements { NetworkProvider }
@@ -153,4 +162,54 @@ export class ElectrumNetworkProvider {
     //         this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.chipnet
     //     }
     // }
+}
+
+
+export class WatchtowerCoordinationServer {
+
+    /**
+     * @param {Object} config
+     * @param {WatchtowerNetworkType} config.network
+     */
+    constructor(config) {
+        switch (config?.network) {
+            case WatchtowerNetwork.chipnet:
+                this.hostname = 'https://chipnet.watchtower.cash'
+                break
+            case WatchtowerNetwork.mainnet:
+                this.hostname = 'https://watchtower.cash'
+                break
+            case WatchtowerNetwork.local:
+                this.hostname = 'http://localhost:8000'
+                break
+            default:
+                throw new Error('Invalid network for WatchtowerCoordinationServer')
+        }
+    }
+
+    /**
+     * @param {import('./wallet').MultisigWallet} wallet
+     * @return {Promise<import('./wallet').MultisigWallet>}
+     */
+    async createWallet(wallet) {
+        console.log('THIS', wallet)
+        const authCredentials = await wallet.generateAuthCredentials()
+        console.log('Auth credentials', authCredentials)
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/wallets/`,
+            wallet, 
+            { headers: await wallet.generateAuthCredentials() }
+        )
+        return response.data   
+    }
+
+    async fetchWallets({ xpub, xprv }) {
+        console.log('credentials'), MultisigWallet.generateAuthCredentials({ xprv, xpub })
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/wallets/?xpub=${xpub}`,
+            { headers: MultisigWallet.generateAuthCredentials({ xprv, xpub }) }
+        )
+
+        return response.data
+    }
 }
