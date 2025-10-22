@@ -377,7 +377,8 @@ const loadSessionProposals = async ({ showLoading } = { showLoading: true }) => 
       const proposals = await web3Wallet.value.getPendingSessionProposals()
       const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
       sessionProposals.value = proposals.filter((p) => {
-        return p.requiredNamespaces?.bch?.chains?.includes(chainIdFilter)
+        const namespaces = mergeRequiredAndOptionalNamespaces(p?.requiredNamespaces, p?.optionalNamespaces);
+        return namespaces?.bch?.chains?.includes(chainIdFilter)
       })
     }
   } catch (error) {
