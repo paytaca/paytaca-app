@@ -154,12 +154,17 @@ import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
+import multisig from 'src/store/multisig'
 
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
 const { t: $t } = useI18n()
-const { cashAddressNetworkPrefix } = useMultisigHelpers()
+const { 
+  multisigCoordinationServer, 
+  multisigNetworkProvider, 
+  resolveXprvOfXpub 
+} = useMultisigHelpers()
 const mOptions = ref()
 const nOptions = ref()
 const wallet = ref()
@@ -240,15 +245,9 @@ const onCreateClicked = async () => {
   
   const options = {
     store: $store,
-    provider: new WatchtowerNetworkProvider({
-      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-    }),
-    coordinationServer: new WatchtowerCoordinationServer({
-      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet
-    }),
-    resolveXprvOfXpub: createXprvFromXpubResolver({
-      walletVault: $store.getters['global/getVault']
-    })
+    provider: multisigNetworkProvider,
+    coordinationServer: multisigCoordinationServer,
+    resolveXprvOfXpub
   }
 
   const mOfn = new MultisigWallet(spec, options)

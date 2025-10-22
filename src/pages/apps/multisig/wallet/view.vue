@@ -220,7 +220,13 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { getSignerXPrv, getAssetTokenIdentity } = useMultisigHelpers()
+const { 
+  multisigCoordinationServer, 
+  multisigNetworkProvider, 
+  resolveXprvOfXpub,
+  getSignerXPrv, 
+  getAssetTokenIdentity
+} = useMultisigHelpers()
 const balances = ref()
 const balancesTokenIdentities = ref({})
 const balancesExpanded = ref(true)
@@ -236,15 +242,9 @@ const wallet = computed(() => {
   if (savedWallet) {
     return MultisigWallet.importFromObject(savedWallet, {
       store: $store,
-      provider: new WatchtowerNetworkProvider({
-        network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-      }),
-      coordinationServer: new WatchtowerCoordinationServer({
-        network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-      }),
-      resolveXprvOfXpub: createXprvFromXpubResolver({
-        walletVault: $store.getters['global/getVault']
-      })
+      provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer,
+      resolveXprvOfXpub
     })
   }
   return null

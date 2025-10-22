@@ -6,7 +6,8 @@ import { useRoute, useRouter } from 'vue-router'
 import Watchtower from 'src/lib/watchtower'
 import { CashAddressNetworkPrefix, binToHex } from 'bitauth-libauth-v3'
 import { getBcmrBackend } from 'src/wallet/cashtokens'
-import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
+import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
+import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
@@ -19,6 +20,24 @@ export const useMultisigHelpers = () => {
 
   const isChipnet = computed(() => {
     return $store.getters['global/isChipnet']
+  })
+
+  const multisigCoordinationServer = computed(() => {
+    return new WatchtowerCoordinationServer({
+      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+    })
+  })
+
+  const multisigNetworkProvider = computed(() => {
+    return new WatchtowerNetworkProvider({
+      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+    })
+  })
+
+  const resolveXPrvOfXpub = computed(() => {
+    return createXprvFromXpubResolver({
+      walletVault: $store.getters['global/getVault']
+    })
   })
 
   const txExplorerUrl = computed(() => {
@@ -40,9 +59,9 @@ export const useMultisigHelpers = () => {
     const wallets = $store.getters['multisig/getWallets']?.map((w) => {
       return MultisigWallet.importFromObject(w, {
         store: $store,
-        provider: new WatchtowerNetworkProvider({
-          network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-        })
+        provider: multisigNetworkProvider.value,
+        coordinationServer: multisigCoordinationServer.value,
+        resolveXprvOfXpub: resolveXPrvOfXpub.value
       })
     })
     return wallets
@@ -127,17 +146,17 @@ export const useMultisigHelpers = () => {
     return $store.getters['multisig/getTransactionsByLockingBytecode']({ lockingBytecodeHex})
   }
 
-  const getMultisigWalletByHash = (walletHash) => {
-    const savedWallet = $store.getters['multisig/getWalletByHash'](walletHash)
-    if (savedWallet) {
-      return MultisigWallet.importFromObject(savedWallet, {
-        provider: new WatchtowerNetworkProvider({
-          network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-        })
-      })
-    }
-    return null
-  }
+  // const getMultisigWalletByHash = (walletHash) => {
+  //   const savedWallet = $store.getters['multisig/getWalletByHash'](walletHash)
+  //   if (savedWallet) {
+  //     return MultisigWallet.importFromObject(savedWallet, {
+  //       provider: new WatchtowerNetworkProvider({
+  //         network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+  //       })
+  //     })
+  //   }
+  //   return null
+  // }
 
   /**
    * Retrieves token details from existing assets cache or Paytaca's BCMR indexer
@@ -210,7 +229,10 @@ export const useMultisigHelpers = () => {
     getTransactionsByMultisigWallet,
     getMultisigWalletBchBalance,
     txExplorerUrl,
-    getMultisigWalletByHash,
-    getAssetTokenIdentity
+    // getMultisigWalletByHash,
+    getAssetTokenIdentity,
+    multisigNetworkProvider: multisigNetworkProvider.value,
+    multisigCoordinationServer: multisigCoordinationServer.value,
+    resolveXprvOfXpub: resolveXPrvOfXpub.value
   }
 }
