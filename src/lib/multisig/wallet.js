@@ -538,6 +538,21 @@ export class MultisigWallet {
     return this.getWalletHash(this)
   }
 
+  getLastIssuedDepositAddressIndex(network) {
+    return this.networks?.[network]?.lastIssuedDepositAddressIndex || -1
+  }
+
+  getLastIssuedChangeAddressIndex(network) {
+    return this.networks?.[network]?.lastIssuedChangeAddressIndex || -1
+  }
+
+  getLastUsedDepositAddressIndex(network) {
+    return this.networks?.[network]?.lastUsedMainnetChangeAddressIndex || -1
+  }
+
+  getLastUsedChangeAddressIndex(network) {
+    return this.networks?.[network]?.lastUsedChangeAddressIndex || -1
+  }
 /**
  * Returns a deposit address from the wallet.
  *
@@ -940,7 +955,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     const outputsMap = outputs.map(o => ({}))
 
     let funderUtxos = null
-    const changeAddressIndex = this.lastIssuedChangeAddressIndex === undefined ? 0 : this.lastIssuedChangeAddressIndex + 1
+    const lastIssuedChangeAddressIndex = this.getLastIssuedChangeAddressIndex(this.options.provider.network)
+    const changeAddressIndex = lastIssuedChangeAddressIndex === undefined ? 0 : lastIssuedChangeAddressIndex + 1
     const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
 
     const satoshisChangeOutput = {
@@ -1090,6 +1106,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
   }
 
   async create(saveOptions) {
+
     if (this.options?.store) {
       if (this.options?.store?.commit) {
         this.options.store.commit('multisig/saveWallet', this)
@@ -1112,7 +1129,6 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     const syncedWallet = await this.options?.coordinationServer?.syncWallet(this)
     if (!syncedWallet?.id || !(/^[0-9]+$/.test(syncedWallet.id))) return
 
-    console.log('synced wallet', syncedWallet)
     if (!this.isSynced() || !this.updatedAt) {
       Object.assign(this, syncedWallet)
       this.save()

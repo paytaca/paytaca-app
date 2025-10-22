@@ -104,7 +104,7 @@ const downloadWallet = (multisigWallet) => {
   }
   $q.notify({
     color: 'primary',
-    message: `${multisigWallet.template?.name || 'Wallet'} imported`,
+    message: `${multisigWallet?.name || 'Wallet'} imported from server.`,
     timeout: 2000
   })
   if (multisigWalletsFromServer.value?.length === 0) {
