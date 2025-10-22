@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" persistent seamless full-width position="bottom">
-    <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
       <q-card-section class="text-grey-10">
         <div class="row items-start justify-start no-wrap q-gutter-x-sm">
           <PeerInfo v-if="sessionProposal?.proposer?.metadata" 
