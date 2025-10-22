@@ -1,7 +1,7 @@
 <template>
-  <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom br-15">
-    <div style="margin-bottom: 25px; margin-left: 10%; margin-right: 10%;">
-      <q-slide-item left-color="blue" @left="slide" style="background-color: transparent; border-radius: 40px;">
+  <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom">
+    <div style="margin-bottom: 25px; margin-left: 10%; margin-right: 10%; background: transparent;">
+      <q-slide-item left-color="blue" @left="slide" style="background: transparent; border-radius: 40px;">
         <template v-if="!locked" v-slot:left>
           <div style="font-size: 15px" class="text-body1">
             <q-icon class="material-icons q-mr-md" size="lg">task_alt</q-icon>
@@ -85,6 +85,7 @@ export default {
     width: 100%;
     z-index: 1500;
     padding-bottom: env(safe-area-inset-bottom, 0);
+    background: transparent !important;
     
     /* Ensure the element stays attached to viewport on iOS */
     -webkit-backface-visibility: hidden;
@@ -95,23 +96,15 @@ export default {
     /* Prevent iOS from hiding fixed elements during scroll */
     will-change: transform;
     
-    /* Add subtle background for visibility */
-    &::before {
-      content: '';
-      position: absolute;
-      top: -30px;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.05));
-      pointer-events: none;
-      z-index: -1;
+    /* Make sure all child elements are also transparent */
+    ::v-deep * {
+      background-color: transparent !important;
+    }
+    
+    /* Keep only the actual button gradient */
+    ::v-deep .q-item.bg-grad {
+      background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%) !important;
     }
   }
-}
-
-/* Dark mode background */
-body.body--dark .ramp-drag-slide-container.absolute-bottom::before {
-  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.3));
 }
 </style>

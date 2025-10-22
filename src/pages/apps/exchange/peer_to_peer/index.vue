@@ -90,7 +90,7 @@ export default {
     this.setupWebsocket()
   },
   beforeUnmount () {    
-    this.$q.loading.hide()    
+    // Removed loading.hide() since loading gif is no longer used
   },
   methods: {
     async loadWallet () {

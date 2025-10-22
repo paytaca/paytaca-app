@@ -309,7 +309,7 @@
                       :icon="sendingMessage ? 'sync' : 'send'" 
                       size="sm"
                       @click="sendChatMessage" 
-                      :disable="(!chatMessageInput.trim() && !chatAttachmentUrl) || sendingMessage"
+                      :disable="!chatMessageInput.trim() || sendingMessage"
                       :loading="sendingMessage"
                       class="send-button"
                     />
@@ -709,6 +709,22 @@ export default {
           return
         }
         
+        // Re-establish chat websocket connection when entering chat tab
+        // This ensures both parties can receive messages even if one joined later
+        if (this.chatRef && this.websockets.chat) {
+          console.log('Re-establishing chat websocket connection...')
+          this.websockets.chat.closeConnection()
+          this.websockets.chat = new WebSocketManager()
+          this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+          this.websockets.chat.subscribeToMessages(message => {
+            if (message?.type === 'new_message') {
+              const messageData = message.data
+              bus.emit('last-read-update')
+              bus.emit('new-message', messageData)
+            }
+          })
+        }
+        
         if (!this.chatLoaded) {
           this.loadChatData()
         } else {
@@ -918,6 +934,22 @@ export default {
         this.hasScrolledAwayFromTop = false
         this.userHasScrolled = false
         this.justLoadedMessages = false
+        
+        // Re-establish chat websocket connection after loading chat data
+        // This ensures fresh connection for receiving new messages
+        if (this.chatRef && this.websockets.chat) {
+          console.log('Re-establishing chat websocket after loading chat data...')
+          this.websockets.chat.closeConnection()
+          this.websockets.chat = new WebSocketManager()
+          this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+          this.websockets.chat.subscribeToMessages(message => {
+            if (message?.type === 'new_message') {
+              const messageData = message.data
+              bus.emit('last-read-update')
+              bus.emit('new-message', messageData)
+            }
+          })
+        }
 
         // Scroll to bottom with multiple attempts and stop infinite scroll if no more messages
         this.$nextTick(() => {
@@ -1083,7 +1115,28 @@ export default {
 
     async sendChatMessage () {
       const vm = this
-      if ((!vm.chatMessageInput.trim() && !vm.chatAttachment) || vm.sendingMessage) return
+      
+      // Validate message is not empty
+      if (!vm.chatMessageInput.trim()) {
+        if (vm.chatAttachment) {
+          vm.$q.notify({
+            type: 'warning',
+            message: vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty. Please add text with your attachment.'),
+            position: 'top',
+            timeout: 3000
+          })
+        } else {
+          vm.$q.notify({
+            type: 'warning',
+            message: vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty.'),
+            position: 'top',
+            timeout: 3000
+          })
+        }
+        return
+      }
+      
+      if (vm.sendingMessage) return
       
       try {
         vm.sendingMessage = true
@@ -1132,22 +1185,60 @@ export default {
           }
         }
 
+        // Store attachment URL before clearing
+        const tempAttachmentUrl = vm.chatAttachmentUrl
+        const hasAttachment = !!vm.chatAttachment
+        
+        // Clear inputs immediately for better UX
+        vm.chatMessageInput = ''
+        vm.chatAttachment = null
+        vm.chatAttachmentUrl = null
+        
+        // Create optimistic message immediately before API call completes
+        const tempMessageId = `temp_${Date.now()}`
+        const optimisticTempMessage = {
+          id: tempMessageId,
+          message: originalMessage,
+          _decryptedMessage: originalMessage,
+          encrypted: false,
+          created_at: new Date().toISOString(),
+          chatIdentity: {
+            id: vm.chatIdentity?.chat_identity_id || vm.chatIdentity?.id,
+            name: vm.chatIdentity?.name || 'You',
+            ref: vm.chatIdentity?.ref,
+            is_user: true
+          },
+          $tempMessage: true
+        }
+        
+        // Add attachment URL if present
+        if (hasAttachment && tempAttachmentUrl) {
+          optimisticTempMessage._decryptedAttachmentFile = {
+            url: tempAttachmentUrl
+          }
+        }
+        
+        // Add temporary message to chat immediately
+        const tempChatMessage = ChatMessage.parse(optimisticTempMessage)
+        tempChatMessage._decryptedMessage = originalMessage
+        if (!tempChatMessage.chatIdentity) {
+          tempChatMessage.chatIdentity = {}
+        }
+        tempChatMessage.chatIdentity.is_user = true
+        
+        // Add to UI before API response
+        vm.addMessageToChat(tempChatMessage)
+        
+        // Send message to API
         const response = await sendChatMessageAPI(data, originalMessage)
         
         // Extract the actual data from axios response
         const responseData = response?.data || response
         
-        // Store attachment URL before clearing
-        const tempAttachmentUrl = vm.chatAttachmentUrl
-        const hasAttachment = !!vm.chatAttachment
-        
-        // Clear inputs immediately
-        vm.chatMessageInput = ''
-        vm.chatAttachment = null
-        vm.chatAttachmentUrl = null
-        
-        // Optimistically add message to UI immediately
+        // Replace temporary message with real one
         if (responseData) {
+          // Remove temp message
+          vm.chatMessages = vm.chatMessages.filter(msg => msg.id !== tempMessageId)
           const messageId = responseData.id || Date.now()
           
           const optimisticMessageData = {

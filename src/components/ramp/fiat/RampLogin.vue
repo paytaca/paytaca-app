@@ -104,14 +104,15 @@ export default {
   },
   watch: {
     loggingIn (value) {
-      if (value && !this.register) {
-        this.$q.loading.show()
-      }
-      if (!value) {
-        setTimeout(() => {
-          this.$q.loading.hide()
-        }, 1500)
-      }
+      // Removed loading gif since skeleton loaders are used
+      // if (value && !this.register) {
+      //   this.$q.loading.show()
+      // }
+      // if (!value) {
+      //   setTimeout(() => {
+      //     this.$q.loading.hide()
+      //   }, 1500)
+      // }
     }
   },
   created () {
