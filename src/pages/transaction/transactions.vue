@@ -50,7 +50,7 @@
 					<q-btn class="full-width" align="left"  flat padding="0px">
 					<!-- <q-item clickable v-ripple class="br-15" > -->
 						<q-avatar size="35px">
-				            <img  :src="selectedAsset.logo">
+				            <img  :src="getAssetImageUrl(selectedAsset)">
 				          </q-avatar>
 						<span class="q-pl-sm">{{ selectedAsset.symbol }}</span>
 						<span>
@@ -338,6 +338,16 @@ export default {
 	methods: {
 		parseAssetDenomination,
 		getDarkModeClass,
+		getAssetImageUrl (asset) {
+			if (asset?.logo) {
+				if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+					return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+				} else {
+					return asset.logo
+				}
+			}
+			return 'bch-logo.png' // fallback
+		},
 		async getBchBalance (id, vm) {
 	      if (!id) {
 	        id = vm.selectedAsset.id
