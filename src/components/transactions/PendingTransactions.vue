@@ -44,7 +44,7 @@
 					P2P Exchange
 				</q-badge>
 
-				<div class="order-number">Order #{{ item.id }}</div>
+				<div class="order-number" :class="darkMode ? 'text-white' : 'text-black'">Order #{{ item.id }}</div>
 				<div class="order-counterparty" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
 					by {{ counterparty(item) }}
 				</div>

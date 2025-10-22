@@ -74,6 +74,17 @@
                 outline
                 color="red"/>
             </div>
+            <div v-if="adData?.description">
+              <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
+              <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+                <span>Description</span>
+              </div>
+              <div class="q-gutter-sm q-pt-sm q-px-lg">
+                <div class="description" :class="darkMode ? 'text-white' : 'text-grey-8'">
+                  {{ adData?.description }}
+                </div>
+              </div> 
+            </div>            
           </div>
         </div>
       </div>
@@ -200,7 +211,7 @@ export default {
   async mounted () {
     const vm = this
     vm.adData = vm.postData
-    console.log('adData:', vm.adData)
+    
     vm.fetchMarketPrice()
     vm.isLoaded = true
   },
@@ -247,5 +258,11 @@ export default {
 }
 .sell-color {
   color: #ed5f59;
+}
+.description {
+  text-align: justify;
+  text-align-last: left;
+  white-space:pre-wrap;
+  font-size: 15px;
 }
 </style>

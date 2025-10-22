@@ -221,6 +221,55 @@
                   </q-item>
                 </template>
               </q-select>
+            </div>            
+            <div class="row justify-between q-mx-lg q-pb-sm q-pt-md text-weight-bold">
+              <div>{{ $t('Description') }}</div>
+              <q-btn 
+                v-if="!editDescription" 
+                flat                 
+                :color="transactionType === 'BUY' ? 'blue-6': 'red-6'" 
+                padding="none" round icon="edit" size="md" 
+                @click="editDescription = true"
+              />
+              <!-- <q-btn 
+                v-else
+                flat 
+                color="red-6"
+                padding="none" round icon="close" size="md" 
+                @click="editDescription = false"
+              /> -->
+            </div>
+            <div class="q-mx-lg q-pb-sm" v-if="!editDescription">        
+              <div v-if="description" class="description" :class="darkMode ? 'text-white' : 'text-grey-8'">
+                {{ description }}
+              </div>
+              <div v-else class="text-center text-italic q-pb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                No description added...
+              </div>
+              <!-- <q-btn rounded outline label="Add Desctiption" no-caps :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"/> -->
+            </div>
+            <div v-else>
+              <q-input
+                v-model="description"
+                filled
+                height="25px" 
+                type="textarea"                      
+                >
+                  <template v-slot:append>
+                    <q-icon size="sm" padding="0px" name="save_as" 
+                      :color="transactionType === 'BUY' ? 'blue-6': 'red-6'"
+                      @click="() => { 
+                        editDescription = false
+                        adData.description = description
+                      }"/>
+                    <q-icon size="sm" padding="0px" name="close" 
+                      color="red-6"
+                      @click="() => { 
+                        editDescription = false 
+                        description = adData.description
+                      }"/>
+                  </template>
+                </q-input>                 
             </div>
             <div class="q-mx-md">
               <q-checkbox
@@ -414,7 +463,9 @@ export default {
       transactionType: null,
       previousRoute: null,
       adsState: null,
-      isBlinking: false
+      isBlinking: false,
+      description: '',
+      editDescription: false
     }
   },
   created () {
@@ -519,7 +570,8 @@ export default {
         ),
         minAmount: this.$t('MinAmountHint'),
         maxAmount: this.$t('MaxAmountHint'),
-        appealCooldown: this.$t('AppealCooldownHint')
+        appealCooldown: this.$t('AppealCooldownHint'),
+        description: 'Description or instruction for ads'
       }
     },
     confirmationData () {
@@ -633,6 +685,9 @@ export default {
           vm.adData.fixedPrice = parseFloat(data.fixed_price)
           vm.adData.floatingPrice = parseFloat(data.floating_price)
           vm.adData.fiatCurrency = data.fiat_currency
+          vm.adData.description = data.description
+
+          vm.description = vm.adData.description
 
           let tradeAmount = parseFloat(data.trade_amount)
           if (data.trade_amount_in_fiat) tradeAmount = tradeAmount.toFixed(2)
@@ -846,7 +901,8 @@ export default {
         // trade_amount_in_fiat: this.setTradeQuantityInFiat,
         appeal_cooldown_choice: data.appealCooldown.value,
         payment_methods: idList,
-        is_public: data.isPublic
+        is_public: data.isPublic,
+        description: data.description
       }
 
       if (this.setTradeLimitsInFiat) {
@@ -942,7 +998,8 @@ export default {
           !vm.isAmountValid(vm.adData.tradeAmount) ||
           !vm.isAmountValid(vm.adData.tradeCeiling) ||
           !vm.isAmountValid(vm.adData.tradeFloor) ||
-          !vm.tradeLimitsValid()) {
+          !vm.tradeLimitsValid() ||
+          vm.editDescription) {
         return true
       } else {
         return false
@@ -1052,4 +1109,9 @@ export default {
 }
 
 .blink { animation: blink 1.5s 5; }
+.description {
+  text-align: justify;
+  text-align-last: left;
+   white-space:pre-wrap;
+}
 </style>
