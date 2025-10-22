@@ -1,7 +1,7 @@
 <template>
   <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom">
     <div style="margin-bottom: 25px; margin-left: 10%; margin-right: 10%; background: transparent;">
-      <q-slide-item left-color="blue" @left="slide" style="background: transparent; border-radius: 40px;">
+      <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: 40px;">
         <template v-if="!locked" v-slot:left>
           <div style="font-size: 15px" class="text-body1">
             <q-icon class="material-icons q-mr-md" size="lg">task_alt</q-icon>
@@ -10,8 +10,8 @@
         </template>
         <q-item class="bg-grad text-white q-py-sm">
           <q-item-section avatar>
-            <q-icon v-if="locked" name="lock" size="sm" class="bg-blue q-pa-sm" style="border-radius: 50%" />
-            <q-icon v-else name="mdi-chevron-double-right" size="lg" class="bg-blue" style="border-radius: 50%" />
+            <q-icon v-if="locked" name="lock" size="sm" :class="`bg-${themeColor}`" class="q-pa-sm" style="border-radius: 50%" />
+            <q-icon v-else name="mdi-chevron-double-right" size="lg" :class="`bg-${themeColor}`" style="border-radius: 50%" />
           </q-item-section>
           <q-item-section class="text-right">
             <h6 class="q-my-sm text-white text-uppercase" style="font-size: medium;">{{ sliderText }}</h6>
@@ -30,7 +30,19 @@ export default {
   data () {
     return {
       swiped: false,
-      sliderText: this.$t('SwipeToSend')
+      sliderText: this.$t('SwipeToSend'),
+      theme: this.$store.getters['global/theme']
+    }
+  },
+  computed: {
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'orange-6',
+        'glassmorphic-red': 'pink-6'
+      }
+      return themeMap[this.theme] || 'blue-6'
     }
   },
   emits: ['ok', 'cancel'],
@@ -101,9 +113,15 @@ export default {
       background-color: transparent !important;
     }
     
-    /* Keep only the actual button gradient */
+    /* Keep only the actual button gradient - uses theme bg-grad */
     ::v-deep .q-item.bg-grad {
-      background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%) !important;
+      /* Gradient is provided by theme system */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+      
+      &:active {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
     }
   }
 }
