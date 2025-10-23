@@ -148,7 +148,7 @@
                   purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC
                 "
               >
-                <span class="col-12 text-center text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+                <span class="col-12 text-center text-caption" :class="darkMode ? 'text-grey-4' : ' text-grey-7'">
                   {{
                     $t(
                       "PurchasedOnDate",

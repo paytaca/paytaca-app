@@ -140,10 +140,10 @@
 
             <div class="row col-12 justify-between q-gutter-y-sm info-section">
               <div class="col-12 row justify-between">
-                <span class="col-6 text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+                <span class="col-6 text-caption q-pr-xs" :class="darkMode ? 'text-grey-4' : ' text-grey-7'">
                   {{ parseBchAddress(rsvp.bch_address) }}
                 </span>
-                <span class="col-6 text-right text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+                <span class="col-6 text-right text-caption q-pl-xs" :class="darkMode ? 'text-grey-4' : ' text-grey-7'">
                   {{
                     $t(
                       "ApprovedLastDate",
