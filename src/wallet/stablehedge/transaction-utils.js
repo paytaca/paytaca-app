@@ -165,9 +165,9 @@ export class TransactionBalancer {
     // Higher precision to handle multiple inputs better
     const feePerByteScaled = Math.round(this.feePerByte * 1000000)
     const feeScaled = this.txSize * BigInt(feePerByteScaled)
-    // Use proper rounding (round half up) instead of ceiling
-    // This prevents always overpaying by 1 satoshi
-    const fee = (feeScaled + 500000n) / 1000000n
+    // Always round up (ceiling) to ensure we never underpay
+    // This matches what JPP servers expect
+    const fee = (feeScaled + 999999n) / 1000000n
     return fee
   }
 
