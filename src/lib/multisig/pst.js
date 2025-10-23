@@ -5,7 +5,7 @@
 /**
    * @typedef {Object} PartialSignature
    * @property {Uint8Array} publicKey - The signer's public key (as bytecode).
-   * @property {string} publicKeyBip32DerivationPath - BIP32 derivation path (e.g., "0/0").
+   * @property {string} publicKeyRelativePath - BIP32 derivation path (e.g., "0/0").
    * @property {number} publicKeyRedeemScriptSlot - Index of redeem script slot.
    * @property {string} signer - Name or ID of the signer.
    * @property {string} sigHash - Sighash flag (usually one byte as hex).
@@ -31,7 +31,7 @@
    * @property {Uint8Array|string} lockingBytecode - The scriptPubkey, if string it's the hex representation of Uint8Array
    * @property {Uint8Array|string} [unlockingBytecode] - The scriptSig, if string it's the hex representation of Uint8Array
    * @property {TokenData} [token] - Optional CashToken information.
-   * @property {string} [addressPath] - Optional derivation path (e.g., "0/0").
+   * @property {string} [lockingBytecodeRelativePath] - Optional derivation path (e.g., "0/0").
    */
 
   /**
@@ -66,12 +66,14 @@
    * @typedef {Object} PartiallySignedTransactionOptions
    * @property {OnStateChangeCallback} onStateChange
    * @property {NetworkProvider} provider
+   * @property {CoordinationServer} coordinationServer
    * @property {Network} [network='mainnet']
    * @property {Object} [store] - Optional Vuex-style store.
    * @property {(type: string, payload?: any) => Promise<any>} [store.dispatch]
    * @property {(type: string, payload?: any) => void} [store.commit]
    * @property {Object.<string, any>} [store.state]
    * @property {Object.<string, any>} [store.getters]
+   * 
    */
 
 
@@ -357,7 +359,7 @@ export const combine = (psts) => {
         return (
           binsAreEqual(partialSignature.sig, ps.sig) &&
           binsAreEqual(partialSignature.sigHash, ps.sigHash) &&
-          partialSignature.publicKeyBip32DerivationPath === ps.publicKeyBip32DerivationPath &&
+          partialSignature.publicKeyRelativePath === ps.publicKeyRelativePath &&
           partialSignature.sigAlgo === ps.sigAlgo 
         )
       })
@@ -401,7 +403,7 @@ export const getSigningProgress = (pst) => {
       )
     })
 
-    const addressDerivationPath = correspondingInput.addressPath || '0/0'
+    const addressDerivationPath = correspondingInput.lockingBytecodeRelativePath || '0/0'
     const sortedSignersWithPublicKeys = derivePublicKeys({ signers: pst.wallet.signers, addressDerivationPath })
     const lockingData = getLockingData({ signers: pst.wallet.signers, addressDerivationPath })
     const template = createTemplate({ m: pst.wallet.m, signers: sortedSignersWithPublicKeys })
@@ -539,7 +541,7 @@ export class Pst {
         )
       })
 
-      const addressDerivationPath = correspondingInput.addressPath || '0/0'
+      const addressDerivationPath = correspondingInput.lockingBytecodeRelativePath || '0/0'
       const sortedSignersWithPublicKeys = derivePublicKeys({ signers: this.wallet.signers, addressDerivationPath })
       const lockingData = {
         bytecode: {}
@@ -626,7 +628,7 @@ export class Pst {
       const partialSignature = {
         index: inputIndex,
         publicKey: inputUnlockingBytecode.data.bytecode[keyVariable],
-        publicKeyBip32DerivationPath: this.inputs[inputIndex].addressPath || '0/0',
+        publicKeyRelativePath: this.inputs[inputIndex].lockingBytecodeRelativePath || '0/0',
         publicKeyRedeemScriptSlot: Number(keyVariable.split('.')[0].replace('key','')),
         signer: signer.name,
         sigHash: value.slice(-1),
@@ -664,7 +666,7 @@ export class Pst {
       }
 
       correspondingInput.sourceOutput = JSON.parse(stringify(correspondingInput.sourceOutput), libauthStringifyReviver)
-      const addressDerivationPath = correspondingInput.addressPath || '0/0'
+      const addressDerivationPath = correspondingInput.lockingBytecodeRelativePath || '0/0'
       const sortedSignersWithPublicKeys = derivePublicKeys({ signers: this.wallet.signers, addressDerivationPath })
       const lockingData = {
         bytecode: {}
@@ -821,7 +823,7 @@ export class Pst {
     let total = 0
     const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
     for (const index in this.outputs) {
-      if (this.outputs[index].addressPath) {
+      if (this.outputs[index].lockingBytecodeRelativePath) {
         total += Number(transaction.outputs[index].valueSatoshis)
       }
     }
@@ -835,9 +837,8 @@ export class Pst {
       purpose: this.purpose,
       unsignedTransactionHex: this.unsignedTransactionHex,
       inputs: this.inputs,
-      network: this.options?.provider?.network,
-      wallet: this.wallet,
-      walletHash: getWalletHash(this.wallet)
+      outputs: this.outputs,
+      walletHash: getWalletHash(this.wallet),
     }
 
     if (this.signedTransactionHash) {
@@ -859,6 +860,7 @@ export class Pst {
     if (format !== 'base64') {
       throw new Error(`${format} not yet supported`)
     }
+
     return binToBase64(utf8ToBin(stringify(this.toJSON())))
   }
 
@@ -883,6 +885,17 @@ export class Pst {
   async save(sync) {
     if (!this.options?.store) return
     return await this.options.store.dispatch('multisig/savePst', { pst: this, sync })
+  }
+
+  /**
+   * @param {function} done - Optional callback to be called when syncing is done.
+   */
+  async sync(done) {
+ 
+    if (!this.options?.store) return
+    await this.options.store.dispatch('multisig/syncPst', { pst: this })
+    done?.()
+    
   }
 
   static fromObject(pst, options) {
@@ -928,4 +941,72 @@ export class Pst {
     return pst
   }
 
+  /**
+   * Converts some pst values to exportable json safe format.
+   * Binary -> hex, bigint -> string
+   * 
+   * @return {Object} pst
+   */
+  static exportSafeJSONReplacer(k, v) {
+    const binaryKeys = new Set([
+      'outpointTransactionHash',
+      'publicKey',
+      'sig',
+      'sigHash',
+      'redeemScript',
+      'lockingBytecode',
+      'unlockingBytecode'
+    ]);
+    
+    const bigintKeys = new Set([
+      'valueSatoshis',
+      'amount'
+    ]);
+
+
+    if (binaryKeys.has(k)) {
+      return binToHex(Uint8Array.from(Object.values(v)))
+    }
+    
+    if (bigintKeys.has(k) && typeof v !== 'string') {
+      return value.toString();
+    }
+    return v
+  }
+
+  /**
+   * A JSON reviver that converts
+   * hex -> binary , string -> bigint (for keys that's expected to be bigint)
+   * 
+   * @return {Object} pst
+   */
+  static importSafeJSONReviver(k, v) {
+    const binaryKeys = new Set([
+      'outpointTransactionHash',
+      'publicKey',
+      'sig',
+      'sigHash',
+      'redeemScript',
+      'lockingBytecode',
+      'unlockingBytecode'
+    ]);
+    
+    const bigintKeys = new Set([
+      'valueSatoshis',
+      'amount'
+    ]);
+
+
+    if (binaryKeys.has(k)) {
+      return hexToBin(v)
+    }
+    
+    if (bigintKeys.has(k)) {
+      return BigInt(v)
+    }
+    return v
+  }
+
 }
+
+

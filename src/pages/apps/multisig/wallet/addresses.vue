@@ -36,12 +36,12 @@
                 </template>
                 <template v-slot:default>
                   <q-list>
-                    <q-item v-for="i, index in ((wallet.lastUsedDepositAddressIndex ?? 0) + 20)" :key="'deposit-'+index">
+                    <q-item v-for="i, index in ((wallet.getLastUsedDepositAddressIndex(wallet.options.provider.network) ?? 0) + 20)" :key="'deposit-'+index">
                       <q-item-section>
                         <q-item-label class="flex justify-between items-center">
                             <span>
                                 {{ index }} - {{ shortenString(wallet.getDepositAddress(index, cashAddressNetworkPrefix).address?.replace('bitcoincash:', ''), 30) }}
-                                <q-badge v-if="wallet.lastUsedDepositAddressIndex !== undefined && index === wallet.lastUsedDepositAddressIndex">
+                                <q-badge v-if="wallet.getLastUsedDepositAddressIndex(wallet.options.provider.network) !== undefined && index === wallet.getLastUsedDepositAddressIndex(wallet.options.provider.network) ">
                                     Last Used
                                 </q-badge>
                             </span>
@@ -57,12 +57,12 @@
               <q-expansion-item v-model="changeAddressesExpanded"  label="Change Addresses">
                 <template v-slot:default>
                   <q-list>
-                    <q-item v-for="i, index in ((wallet.lastUsedChangeAddressIndex ?? 0) + 20)" :key="'change-' + index">
+                    <q-item v-for="i, index in ((wallet.getLastUsedChangeAddressIndex(wallet.options.provider.network)  ?? 0) + 20)" :key="'change-' + index">
                       <q-item-section>
                         <q-item-label class="flex justify-between items-center">
                             <span>
                             {{ index }} - {{ shortenString(wallet.getChangeAddress(index, cashAddressNetworkPrefix).address?.replace('bitcoincash:', ''), 30) }}
-                                <q-badge v-if="wallet.lastUsedChangeAddressIndex !== undefined && index === wallet.lastUsedChangeAddressIndex">
+                                <q-badge v-if="wallet.getLastUsedChangeAddressIndex(wallet.options.provider.network)  !== undefined && index === wallet.getLastUsedChangeAddressIndex(wallet.options.provider.network) ">
                                     Last Used
                                 </q-badge>
                             </span>
@@ -104,7 +104,11 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { cashAddressNetworkPrefix } = useMultisigHelpers()
+const { 
+  cashAddressNetworkPrefix,
+  multisigNetworkProvider,
+  multisigCoordinationServer
+} = useMultisigHelpers()
 const depositAddressesExpanded = ref(true)
 const changeAddressesExpanded = ref(true)
 const depositAddresses = ref([])
@@ -120,9 +124,8 @@ const wallet = computed(() => {
   if (savedWallet) {
     return MultisigWallet.importFromObject(savedWallet, {
       store: $store,
-      provider: new WatchtowerNetworkProvider({
-        network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-      })
+      provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer
     })
   }
   return null
@@ -144,14 +147,15 @@ const showWalletReceiveDialog = () => {
 }
 
 const loadAddresses = () => {
-    const high1 = (wallet.value.lastIssuedDepositAddressIndex ?? 0) > 20 ? wallet.value.lastIssuedDepositAddressIndex : 20
+    console.log(wallet.value)
+    const high1 = (wallet.value.getLastIssuedDepositAddressIndex(wallet.value.options.provider.network) ?? 0) > 20 ? wallet.value.getLastIssuedDepositAddressIndex(wallet.value.options.provider.network) : 20
     for (let i = 0; i < high1; i++) {
         depositAddresses.value.push({
             index: i,
             address: wallet.value.getDepositAddress(i, cashAddressNetworkPrefix.value, cashAddressNetworkPrefix).address
         })
     }
-    const high2 = (wallet.value.lastIssuedChangeAddressIndex ?? 0) > 20 ? wallet.value.lastIssuedChangeAddressIndex : 20
+    const high2 = (wallet.value.getLastIssuedChangeAddressIndex(wallet.value.options.provider.network) ?? 0) > 20 ? wallet.value.getLastIssuedChangeAddressIndex(wallet.value.options.provider.network) : 20
     for (let i = 0; i < high2; i++) {
         changeAddresses.value.push({
             index: i,
@@ -161,6 +165,7 @@ const loadAddresses = () => {
 }
 
 onMounted(async () => {
+  console.log(wallet.value)
   loadAddresses()
 })
 
