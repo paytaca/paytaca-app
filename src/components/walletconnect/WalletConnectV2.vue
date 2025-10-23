@@ -569,6 +569,7 @@ const pairURI = async (uri) => {
     const prevSessionProposalsLength = sessionProposals.value?.length
     await web3Wallet.value.pair({ uri: uri })
     await loadSessionProposals({ showLoading: false })
+    await delay(1);
     if (invalidChainSessionProposals.value?.length && !sessionProposals.value?.length) {
       throw $t('ChainNotSupported', 'Chain not supported')
     }
