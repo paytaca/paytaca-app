@@ -156,7 +156,7 @@
       <div
         v-intersection="ordersPanelIntersectionOptions"
         class="q-mb-md q-pt-md"
-        :class="[orders.length ? 'orders--sticky-bottom' : '']"
+        :class="[orders.length ? 'orders--sticky-bottom' : '', getDarkModeClass(darkMode)]"
       >
         <div class="col-12 row items-center q-px-sm">
           <div class="text-h5 q-px-xs">Orders</div>
@@ -417,6 +417,7 @@ const ordersPanelIntersectionOptions = {
       'q-px-sm',
       'br-15',
       'shadow-2',
+      'pt-card'
     ]
     const target = observerEntry.target
     const hasStickyBottom = target.classList.contains('orders--sticky-bottom')
