@@ -13,7 +13,7 @@
                 <q-btn-group rounded>
                   <q-btn
                     @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'cashaddr')"
-                    :color="settings.addressDisplayFormat === 'cashaddr' ? 'brandblue': 'grey'"
+                    :color="settings.addressDisplayFormat === 'cashaddr' ? 'primary': 'grey'"
                     :outline="settings.addressDisplayFormat !== 'cashaddr'"
                     size="sm"
                     no-caps
@@ -23,7 +23,7 @@
                   </q-btn>
                   <q-btn
                     @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'tokenaddr')"
-                    :color="settings.addressDisplayFormat === 'tokenaddr' ? 'brandblue': 'grey'"
+                    :color="settings.addressDisplayFormat === 'tokenaddr' ? 'primary': 'grey'"
                     :outline="settings.addressDisplayFormat !== 'tokenaddr'"
                     size="sm"
                     no-caps
@@ -51,7 +51,7 @@
                   :disable="Boolean(loading) || Object.keys(activeSessions || {}).length === 0"
                   checked-icon="check"
                   unchecked-icon="clear"
-                  color="brandblue"
+                  color="primary"
                 >
                 </q-toggle>
               </q-item-section>
@@ -171,7 +171,7 @@
               v-model="showActiveSessions"
               left-label
               :disable="Boolean(loading)"
-              color="brandblue"
+              color="primary"
             >
             <div class="row items-center">
               <div style="position:relative">
@@ -333,7 +333,7 @@ const formatAddressForDisplay = (address, lockingBytecode = null) => {
 const onScannerDecode = async (content) => {
   const dialog = $q.dialog({
     title: $t('Connecting'),
-    progress: { color: 'brandblue' },
+    progress: { color: 'primary' },
     persistent: true,
     seamless: true,
     ok: false,
@@ -524,7 +524,6 @@ const connectNewSession = async (uri = '', prompt = true) => {
       prompt: {
         label: $t('SessionURL'),
         placeholder: $t('PasteURL'),
-        color: 'brandblue',
         model: uri,
         outlined: true,
         type: 'textarea',
@@ -534,7 +533,6 @@ const connectNewSession = async (uri = '', prompt = true) => {
       ok: {
         noCaps: true,
         label: $t('Proceed'),
-        color: 'brandblue',
         class: `button q-mr-md ${getDarkModeClass(darkMode.value)}`
       },
       cancel: {
@@ -580,7 +578,7 @@ const pairURI = async (uri) => {
       ok: {
         label: $t('Ok'),
         noCaps: true,
-        color: 'brandblue'
+        color: 'primary'
       },
       class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
     })
@@ -598,7 +596,7 @@ const disconnectSession = async (activeSession) => {
         ok: {
           label: $t('Yes'),
           noCaps: true,
-          color: 'brandblue'
+          color: 'primary'
         },
         cancel: {
           flat: true,
@@ -1034,7 +1032,7 @@ const onSessionExpire = async (data) => {
 }
 
 /**
- * @param {import('@walletconnect/web3wallet').IWeb3Wallet} _web3Wallet
+ * @param {import('@reown/walletkit').IWalletKit} _web3Wallet
  */
 const attachEventListeners = (_web3Wallet) => {
   _web3Wallet?.on?.('auth_request', onAuthRequest)
