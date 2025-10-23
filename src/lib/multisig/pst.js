@@ -853,7 +853,7 @@ export class Pst {
       data.outputs = this.outputs
     }
 
-    return JSON.parse(stringify(data))
+    return JSON.parse(JSON.stringify(data, Pst.exportSafeJSONReplacer))
   }
 
   export (format = 'base64') {
@@ -861,7 +861,7 @@ export class Pst {
       throw new Error(`${format} not yet supported`)
     }
 
-    return binToBase64(utf8ToBin(stringify(this.toJSON())))
+    return binToBase64(utf8ToBin(JSON.stringify(this.toJSON())))
   }
 
   static import (pstExportFormat, options, format = 'base64') {
@@ -869,7 +869,7 @@ export class Pst {
       throw new Error(`${format} not yet supported`)
     }
 
-    const pstImportData = JSON.parse(binToUtf8(base64ToBin(pstExportFormat)), libauthStringifyReviver)
+    const pstImportData = JSON.parse(binToUtf8(base64ToBin(pstExportFormat)), Pst.importSafeJSONReviver)
     return new Pst(pstImportData, options)
     
   }
@@ -884,7 +884,7 @@ export class Pst {
    */
   async save(sync) {
     if (!this.options?.store) return
-    return await this.options.store.dispatch('multisig/savePst', { pst: this, sync })
+    return await this.options.store.commit('multisig/savePst', this)
   }
 
   /**
@@ -899,8 +899,9 @@ export class Pst {
   }
 
   static fromObject(pst, options) {
+
     // if (pst instanceof Pst) return pst
-    const p = new Pst(JSON.parse(stringify(pst), libauthStringifyReviver), options)
+    const p = new Pst(JSON.parse(JSON.stringify(pst, Pst.exportSafeJSONReplacer), Pst.importSafeJSONReviver), options)
     if (p.wallet) {
       p.wallet = MultisigWallet.fromObject(p.wallet, options)
     }
@@ -964,7 +965,7 @@ export class Pst {
     ]);
 
 
-    if (binaryKeys.has(k)) {
+    if (binaryKeys.has(k) && typeof v !== 'string') {
       return binToHex(Uint8Array.from(Object.values(v)))
     }
     
@@ -997,13 +998,14 @@ export class Pst {
     ]);
 
 
-    if (binaryKeys.has(k)) {
+    if (binaryKeys.has(k) && !(v instanceof Uint8Array)) {
       return hexToBin(v)
     }
     
     if (bigintKeys.has(k)) {
-      return BigInt(v)
+      return BigInt(v ?? 0)
     }
+    
     return v
   }
 
