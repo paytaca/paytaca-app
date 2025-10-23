@@ -60,6 +60,7 @@
     style="visibility: hidden"
     @update:model-value="onUpdateTransactionFile">
     </q-file>
+    {{ psts }}
 </div>
 </template>
 
@@ -71,13 +72,17 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'components/header-nav'
-import { Pst } from 'src/lib/multisig'
+import { MultisigWallet, Pst } from 'src/lib/multisig'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-
+const { 
+  multisigNetworkProvider,
+  multisigCoordinationServer
+} = useMultisigHelpers() 
 const pstFileElementRef = ref()
 const pstFileModel = ref()  
 
@@ -85,16 +90,26 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const psts = computed(() => {
-  const pstObjects =  $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult).map(p => Pst.fromObject(p))
-  if (pstObjects) {
-    return pstObjects.map(p => {
-      return Pst.fromObject(p, {
-        store: $store
-      })
+const wallet = computed(() => {
+  const walletObject = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+  console.log('wallet object', walletObject)
+  if (walletObject) {
+    return MultisigWallet.fromObject(walletObject, {
+        store: $store,
+        provider: multisigNetworkProvider,
+        coordinationServer: multisigCoordinationServer
     })
   }
-  return []
+  return walletObject
+})
+
+const psts = computed(() => {
+  const pstObjects =  $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult)
+  return pstObjects.map(p => {
+    const pstInstance = Pst.fromObject(p, { store: $store })
+    pstInstance.wallet = wallet.value
+    return pstInstance
+  })
 })
 
 const importTransactionProposal = () => {
@@ -107,6 +122,7 @@ const onUpdateTransactionFile = (file) => {
     reader.onload = () => {
       const pstExportedData = reader.result
       const pstInstance = Pst.import(pstExportedData, { store: $store })
+      pstInstance.wallet = wallet.value
       pstInstance.save()
       router.push({ 
         name: 'app-multisig-wallet-pst-view', 
