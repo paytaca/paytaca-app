@@ -12,7 +12,7 @@
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="pst">
           <q-list>
-            <q-item>
+            <!-- <q-item>
               <q-item-section></q-item-section>
               <q-item-section side>
                 <q-btn @click="syncPst" flat dense :loading="isSyncing">
@@ -25,7 +25,7 @@
                   </template>
                 </q-btn>
               </q-item-section>
-            </q-item>
+            </q-item> -->
             <q-item>
               <q-item-section>
                 <q-item-label class="text-h5 text-bold">
@@ -130,9 +130,8 @@
             <q-separator></q-separator>
             <q-item class="q-mt-lg">
               <q-item-section>
-                <!-- <q-btn @click="() => pst?.delete()">Delete</q-btn> -->
                 <div class="row justify-between q-gutter-x-md">
-                  <q-btn v-if="signingProgress != 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="loadCosignerPst" v-close-popup>
+                  <q-btn :disabled="signingProgress.signingProgress === 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="loadCosignerPst" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center">
                         <q-icon name="mdi-file-upload" class="col-12" color="primary" size="lg"></q-icon>
@@ -143,7 +142,7 @@
                   <q-btn 
                     :loading="isBroadcasting"
                     @click="broadcastTransaction"
-                    :disable="signingProgress.signingProgress !== 'fully-signed'"
+                    :disable="signingProgress.signingProgress !== 'fully-signed' || pst.txid"
                     class="tile col-xs-3" flat dense no-caps>
                     <template v-slot:default>
                       <div class="row justify-center items-stretch">
@@ -158,7 +157,7 @@
                       </div>
                     </template>
                   </q-btn>
-                  <q-btn v-if="signingProgress != 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="openBottomsMenu" v-close-popup>
+                  <q-btn class="tile col-xs-3" flat dense no-caps @click="openBottomsMenu" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center">
                         <q-icon name="more_horiz" class="col-12" color="primary" size="lg"></q-icon>
@@ -179,6 +178,13 @@
           class="absolute-bottom"
         />
     </div>
+    <q-file
+      ref="pstFileElementRef"
+      v-model="pstFileModel"
+      :multiple="false"
+      style="visibility: hidden"
+      @update:model-value="onUpdatePstFile">
+    </q-file>
   </q-pull-to-refresh>
 </template>
 
@@ -201,8 +207,9 @@ import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDial
 
 const {
   getSignerXPrv,
-  isChipnet
-
+  isChipnet,
+  multisigNetworkProvider,
+  multisigCoordinationServer
 } = useMultisigHelpers()
 
 
@@ -216,20 +223,12 @@ const signingInitiatedBy = ref()
 const signingProgress = ref({})
 const isBroadcasting = ref(false)
 const isSyncing = ref(false)
+const pstFileElementRef = ref()
+const pstFileModel = ref()
+const pst = ref()
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
-})
-
-const pst = computed(() => {
-    const storedPst = $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
-    if (!storedPst) return null
-    const network = isChipnet ? 'chipnet' : 'mainnet'
-    const p = Pst.fromObject(
-      storedPst,
-      { store: $store, provider: new WatchtowerNetworkProvider({ network }) }
-    )
-    return p
 })
 
 const wallet = computed(() => {
@@ -247,8 +246,6 @@ const signButtonIcon = computed(() => {
     return 'draw'
   }
 })
-
-
 
 const openBottomsMenu = () => {
   $q.bottomSheet({
@@ -319,7 +316,7 @@ const commitSignTransaction = async () => {
 
   pst.value.sign(signingInitiatedBy.value.xprv)
   
-  signingProgress.value = pst.value.getSigningProgress(signingInitiatedBy.value.xpub)
+  signingProgress.value = pst.value.getSigningProgress()
   signingInitiatedBy.value = null
 }
 
@@ -396,6 +393,52 @@ const onConfirmSliderSwiped = async (reset) => {
   })
 }
 
+const loadCosignerPst = () => {
+  pstFileElementRef.value.pickFiles()
+}
+
+const onUpdatePstFile = (file) => {
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const importedPstInstance = Pst.import(reader.result)
+      const hash = importedPstInstance.unsignedTransactionHash
+      const existingPst = $store.getters['multisig/getPstByUnsignedTransactionHash'](hash)
+
+      let combinedPst = null
+
+      if (existingPst) {
+        const existingPstInstance = Pst.fromObject(JSON.parse(JSON.stringify(existingPst)))
+        combinedPst = existingPstInstance.combine([importedPstInstance])
+      }
+      
+      // $store.dispatch('multisig/saveTransaction', combinedPst || importedPst)
+      // $store.dispatch('multisig/syncTransactionSignatures', { multisigWallet: multisigWallet.value, multisigTransaction: combinedPst || importedPst })
+      // multisigTransaction.value = combinedPst || importedPst
+      
+      pst.value = combinedPst || importedPstInstance
+      pst.value.walletHash = wallet.value.walletHash
+      pst.value.wallet = wallet.value
+      pst.value.options = {
+        store: $store,
+        provider: multisigNetworkProvider,
+        coordinationServer: multisigCoordinationServer
+      }
+      pst.value.save()
+      signingProgress.value = pst.value.getSigningProgress()
+      // updateBroadcastStatus()
+      // signingProgress.value = getSigningProgress({
+      //   multisigWallet: multisigWallet.value,
+      //   multisigTransaction: multisigTransaction.value
+      // })
+    }
+    reader.onerror = (err) => {
+      console.err(err)
+    }
+    reader.readAsText(file)
+  }
+}
+
 onMounted(async () => {
   if (wallet.value) {
     for (const signer of wallet.value.signers) {
@@ -405,11 +448,17 @@ onMounted(async () => {
       }
     }
   }
-
-  if (pst.value) {
+  const storedPst = $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
+  if (storedPst) {
+    pst.value = Pst.fromObject(JSON.parse(JSON.stringify(storedPst)))
+    pst.value.wallet = wallet.value 
+    pst.value.options = {
+      store: $store,
+      provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer
+    }
     signingProgress.value = pst.value.getSigningProgress()
   }
-  
 })
 
 </script>

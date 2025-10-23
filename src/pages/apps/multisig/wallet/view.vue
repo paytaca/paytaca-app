@@ -255,10 +255,18 @@ const transactions = computed(() => {
   })?.filter(mt => mt.broadcastStatus !== 'done')
 })
 
-const psts = computed(() => {
-  return $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult).map(p => Pst.fromObject(p))
-})
+// const psts = computed(() => {
+//   return $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult).map(p => Pst.fromObject(p))
+// })
 
+const psts = computed(() => {
+  const pstObjects =  $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult)
+  return pstObjects.map(p => {
+    const pstInstance = Pst.fromObject(p, { store: $store })
+    pstInstance.wallet = wallet.value
+    return pstInstance
+  })
+})
 
 // const deleteWallet = async () => {
 //   await wallet.value.delete({ sync: false })
