@@ -521,7 +521,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
-import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo } from 'src/utils/transaction-memos.js'
+import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { ref } from 'vue'
@@ -723,41 +723,51 @@ export default {
         }, 200)     
     },
     async saveMemo() {
-      //encrypt memo
-      const encryptedMemo = await encryptMemo(this.keypair.privkey, this.keypair.pubkey, this.memo.note)
+      try {
+        // Ensure user is authenticated before saving
+        await authMemo()
 
-      const data = {
-        txid: this.transaction.txid,
-        note: encryptedMemo
-      }
+        //encrypt memo
+        const encryptedMemo = await encryptMemo(this.keypair.privkey, this.keypair.pubkey, this.memo.note)
 
-      let response = null
-      if (this.hasMemo) {
-        try {
-          response = await updateMemo(data)
-        } catch {          
-          this.networkError = true
+        const data = {
+          txid: this.transaction.txid,
+          note: encryptedMemo
         }
-      } else {
-        try {
-          response = await createMemo(data)
-        } catch {          
-          this.networkError = true
-        }
-      } 
 
-      if (response) {
+        let response = null
+        if (this.hasMemo) {
+          try {
+            response = await updateMemo(data)
+          } catch (error) {
+            console.error('Error updating memo:', error)
+            this.networkError = true
+          }
+        } else {
+          try {
+            response = await createMemo(data)
+          } catch (error) {
+            console.error('Error creating memo:', error)
+            this.networkError = true
+          }
+        } 
+
+        if (response) {
           if ('error' in response) { 
             this.hasMemo = false
           } else {     
-
             this.memo = response
             this.memo.note = await decryptMemo(this.keypair.privkey, this.memo.note)
             this.hasMemo = true
           }
         }
 
-      this.showMemo = false
+        this.showMemo = false
+      } catch (error) {
+        console.error('Error saving memo:', error)
+        this.networkError = true
+        this.showMemo = false
+      }
     },
     confirmDelete () {
       this.$q.dialog({

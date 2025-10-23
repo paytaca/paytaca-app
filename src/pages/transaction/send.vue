@@ -1909,6 +1909,11 @@ export default {
     
     /* Add padding at bottom to prevent content from being hidden under the slider */
     padding-bottom: 120px !important;
+
+    /* Reduce padding when transaction is sent (no DragSlide) */
+    &.sent {
+      padding-bottom: 24px !important;
+    }
   }
 
   /* iOS-specific fixes for DragSlide positioning */

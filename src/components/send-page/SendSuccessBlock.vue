@@ -17,46 +17,57 @@
         </template>
       </template>
 
-      <div class="text-center q-mt-lg">
-        <div class="text-grey">{{ $t('ReferenceId')}}</div>
-        <div class="text-h4" style="letter-spacing: 6px;">
+      <!-- Reference ID Section -->
+      <div class="reference-id-section q-mt-md">
+        <div class="text-grey text-weight-medium text-caption">{{ $t('ReferenceId')}}</div>
+        <div class="reference-id-value">
           {{ txid.substring(0, 6).toUpperCase() }}
         </div>
-        <q-separator color="grey"/>
+        <q-separator color="grey" class="q-mt-sm"/>
       </div>
-      <div class="q-px-xs q-mt-sm text-subtitle1">
+
+      <!-- View Details Button -->
+      <div class="q-mt-md q-mb-sm">
         <q-btn
-          label="View details"
-          class="q-my-sm button"
+          :label="$t('ViewDetails', {}, 'View details')"
+          no-caps
+          unelevated
+          class="button view-details-btn"
           @click="openSendSuccessDetailsDialog"
-        /><br /><br />
-        <div class="text-grey">{{ $t('TransactionId')}}</div>
+        />
+      </div>
+
+      <!-- Transaction ID Section -->
+      <div class="transaction-id-section q-mt-md">
+        <div class="text-grey text-weight-medium text-caption q-mb-sm">{{ $t('TransactionId')}}</div>
         <div 
-          class="txid-container row items-center justify-center q-gutter-xs"
+          class="txid-container"
           :class="getDarkModeClass(darkMode)"
           @click="copyTxid"
         >
-          <span style="font-family: monospace;">
+          <span class="txid-text">
             {{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}
           </span>
-          <q-icon name="content_copy" size="16px" class="copy-icon" />
+          <q-icon name="content_copy" size="18px" class="copy-icon" />
         </div>
+        <div class="view-explorer-container q-mt-sm">
         <a
-          class="button button-text-primary view-explorer-button"
-          style="text-decoration: none;"
+            class="view-explorer-link"
           :class="getDarkModeClass(darkMode)"
           :href="getExplorerLink(txid)"
           target="_blank"
         >
+            <q-icon name="open_in_new" size="16px" class="q-mr-xs" />
           {{ $t('ViewInExplorer') }}
         </a>
+        </div>
       </div>
-      <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-lg">
+      <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-md q-mb-xs" style="font-size: 13px;">
         {{ formattedTxTimestamp }}
       </div>
 
       <!-- Transaction Memo Section -->
-      <div class="row justify-center q-mt-md">
+      <div class="row justify-center q-mt-sm q-mb-sm">
         <div class="col-12 col-md-8 q-px-md">
           <div v-if="!editingMemo && transactionMemo" 
             class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
@@ -150,7 +161,7 @@ import {
   parseFiatCurrency,
   parseAssetDenomination
 } from 'src/utils/denomination-utils'
-import { fetchMemo, createMemo, updateMemo, encryptMemo, decryptMemo } from 'src/utils/transaction-memos.js'
+import { fetchMemo, createMemo, updateMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
 import { getKeypair } from 'src/exchange/chat/keys'
 
 import SendSuccessDetailsDialog from 'src/components/send-page/SendSuccessDetailsDialog.vue'
@@ -337,6 +348,9 @@ export default {
       }
 
       try {
+        // Ensure user is authenticated before saving
+        await authMemo()
+
         // Encrypt the memo before sending
         const encryptedMemo = await encryptMemo(
           this.keypair.privkey,
@@ -429,28 +443,122 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
   .sent-success-container {
     margin-top: -70px;
 
     .amount-label {
-      font-size: 25px;
+      font-size: 28px;
+      font-weight: 600;
       margin-top: -10px;
+      margin-bottom: 4px;
     }
+    
     .amount-fiat-label {
-      font-size: 25px;
-      margin-top: -15px;
+      font-size: 20px;
+      margin-top: 0;
+      opacity: 0.85;
     }
+
+    // Reference ID Section
+    .reference-id-section {
+      .reference-id-value {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        margin-top: 8px;
+        font-family: 'Courier New', monospace;
+      }
+    }
+
+    // View Details Button
+    .view-details-btn {
+      min-width: 180px;
+      font-weight: 500;
+      padding: 10px 24px;
+    }
+
+    // Transaction ID Section
+    .transaction-id-section {
+      .txid-container {
+        cursor: pointer;
+        padding: 12px 20px;
+        border-radius: 12px;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(128, 128, 128, 0.08);
+        border: 1px solid rgba(128, 128, 128, 0.2);
+        
+        &:hover {
+          background: rgba(128, 128, 128, 0.15);
+          border-color: rgba(128, 128, 128, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          
+          .copy-icon {
+            opacity: 1;
+            transform: scale(1.1);
+          }
+        }
+        
+        &:active {
+          transform: translateY(0);
+        }
+
+        .txid-text {
+          font-family: 'Courier New', monospace;
+          font-size: 15px;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+        }
+        
+        .copy-icon {
+          opacity: 0.7;
+          transition: all 0.2s ease;
+        }
+      }
+
+      .view-explorer-container {
+        display: block;
+        text-align: center;
+        
+        .view-explorer-link {
+          display: inline-flex;
+          align-items: center;
+          text-decoration: none;
+          color: var(--q-primary);
+          font-size: 15px;
+          font-weight: 500;
+          padding: 8px 16px;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          
+          &:hover {
+            background: rgba(0, 128, 0, 0.08);
+            transform: translateX(2px);
+          }
+          
+          &.dark {
+            color: #4ade80;
+          }
+        }
+      }
+    }
+    
+    // Memo Section
     .memo-container {
       min-width: 50vw;
-      border: 1px solid grey;
+      border: 1px solid rgba(128, 128, 128, 0.3);
       background-color: inherit;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
       
       &:hover {
-        border-color: rgba(128, 128, 128, 0.6);
-        transform: translateY(-1px);
+        border-color: rgba(128, 128, 128, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
     }
     
@@ -459,28 +567,6 @@ export default {
       
       .q-field {
         margin-bottom: 8px;
-      }
-    }
-
-    .txid-container {
-      cursor: pointer;
-      padding: 8px 16px;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      margin: 8px auto;
-      
-      &:hover {
-        background: rgba(128, 128, 128, 0.1);
-        
-        .copy-icon {
-          opacity: 1;
-        }
-      }
-      
-      .copy-icon {
-        opacity: 0.6;
-        transition: opacity 0.2s ease;
       }
     }
   }
