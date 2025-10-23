@@ -261,9 +261,7 @@ const $q = useQuasar()
 const $router = useRouter()
 const { t: $t } = useI18n()
 const $store = useStore()
-const {
-  multisigWallets
-} = useMultisigHelpers()
+const { multisigWallets } = useMultisigHelpers()
 
 const loading = ref/* <string> */()
 const processingSession = ref({}) /* <{ [topicOrId: string | number]: [processingMessage: string] }> */
@@ -274,14 +272,23 @@ const watchtower = ref()
  */
 // const walletExternalAddresses = ref/* <string[]> */()
 
-/* <{index: number, address: string, wif: string}[]> */
+
+/**
+ * @typedef SingleWalletInfo
+ * @property {Number} index
+ * @property {String} address
+ * @property {String} wif
+ */
+
+/** @type {import("vue").Ref<SingleWalletInfo[]>} */
 const walletAddresses = ref([])
 
 /**
  * Mapping of session proposal pairing topic and the address approved
  * for this proposal.
  * { [topic: string]: {index: number, address: string, wif: string} }
- */
+ * @type {import("vue").Ref<Record<String, SingleWalletInfo>>}
+ * */
 const sessionTopicWalletAddressMapping = ref({})
 const wallet = ref()
 const showActiveSessions = ref(false)
@@ -802,7 +809,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       if (sessionRequest.params.request.params?.broadcast) {
         const broadcastResponse = watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
         if (!broadcastResponse.success) {
-          response.error = { code: -1, error: broadcastResponse?.error }
+          response.error = { code: -32603, message: broadcastResponse?.error }
           response.result = undefined
         }
       }
@@ -810,7 +817,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
     } catch (err) {
       console.log('🚀 ~ respondToSignTransactionRequest ~ err:', err)
       response.error = {
-        code: -1,
+        code: -32603,
         reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
       }
       sessionRequest.error = true
@@ -836,19 +843,19 @@ const respondToSignMessageRequest = async (sessionRequest) => {
     const signingAddress = sessionRequest.params?.request?.params?.account
     const connectedAddressForTopic = sessionTopicWalletAddressMapping.value[sessionRequest.topic]
     if (!connectedAddressForTopic?.address || signingAddress !== connectedAddressForTopic.address) {
-      response.error = { code: -1, message: 'Account has no active session' }
+      response.error = { code: -32603, message: 'Account has no active session' }
     }
     const message = sessionRequest.params?.request?.params?.message
     if (message == undefined) {
-      response.error = { code: -1, message: 'Message parameter is mandatory' }
+      response.error = { code: -32603, message: 'Message parameter is mandatory' }
     }
     response.result = await signMessage(message, connectedAddressForTopic.wif)
     processingSession.value[sessionRequest.topic] = 'Confirming request'
   } catch (err) {
     console.error('🚀 ~ respondToSignMessageRequest ~ err:', err)
     response.error = {
-      code: -1,
-      reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
+      code: -32603,
+      message: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
     }
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
@@ -871,8 +878,8 @@ const respondToGetAccountsRequest = async (sessionRequest) => {
   } catch (err) {
     console.error(err)
     response.error = {
-      code: -1,
-      reason: err?.name === 'GetBCHAccountsError' ? err?.message : 'Unknown error'
+      code: -32603,
+      message: err?.name === 'GetBCHAccountsError' ? err?.message : 'Unknown error'
     }
   } finally {
     await web3Wallet.value.respondSessionRequest({ topic: sessionRequest?.topic, response })
@@ -889,7 +896,7 @@ const respondToSessionRequest = async (sessionRequest) => {
     if (![CHAINID_MAINNET, CHAINID_CHIPNET].includes(sessionRequest?.params?.chainId)) {
       await web3Wallet.value.respondSessionRequest({
         topic,
-        response: { id, jsonrpc: '2.0', error: { code: -32601, reason: 'Chain not supported' } }
+        response: { id, jsonrpc: '2.0', error: { code: 5100, message: 'Chain not supported' } }
       })
       await loadSessionRequests()
       delete processingSession.value[sessionRequest.id]
@@ -918,7 +925,7 @@ const respondToSessionRequest = async (sessionRequest) => {
           id,
           jsonrpc: '2.0',
           result: undefined,
-          error: { code: -32601, reason: 'Method not found' }
+          error: { code: -32601, message: 'Method not found' }
         }
         await web3Wallet.value.respondSessionRequest({ topic, response })
       }
@@ -955,7 +962,7 @@ const rejectSessionRequest = async (sessionRequest) => {
   try {
     await web3Wallet.value.respondSessionRequest({
       topic,
-      response: { id, jsonrpc: '2.0', error: { code: 5000, reason: 'User rejected' } }
+      response: { id, jsonrpc: '2.0', error: { code: 5000, message: 'User rejected' } }
     })
   } catch (error) {} finally { await loadSessionRequests({ showLoading: false }) }
 }
