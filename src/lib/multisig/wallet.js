@@ -947,7 +947,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       return {
         ...commonUtxoToLibauthInput(u, []),
         sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
-        addressPath: u.addressPath
+        addressPath: u.addressPath,
+        lockingBytecodeRelativePath: u.addressPath
       }
     })
 
@@ -1000,7 +1001,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
         let requiredSatoshisForTokenChange = getMofNDustThreshold(this.m, this.n, tokenChangeOutput)
         tokenChangeOutput.valueSatoshis = requiredSatoshisForTokenChange
         outputs.push(tokenChangeOutput)
-        outputsMap.push({ addressPath: `1/${changeAddressIndex}`, desc: 'token change' })
+        outputsMap.push({ addressPath: `1/${changeAddressIndex}`, lockingBytecodeRelativePath: `1/${changeAddressIndex}`, purpose: 'token-self-internal' })
         await this.issueChangeAddress(changeAddressIndex)
       } 
     }
@@ -1041,7 +1042,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
                 return {
                   ...commonUtxoToLibauthInput(u, []),
                   sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
-                  addressPath: u.addressPath
+                  addressPath: u.addressPath,
+                  lockingBytecodeRelativePath: u.addressPath
                 }
             })
         )
@@ -1059,7 +1061,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
     satoshisChangeOutput.valueSatoshis = totalSatoshisChangeAmount
     if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
       outputs.push(satoshisChangeOutput)
-      outputsMap.push({ addressPath: `1/${changeAddressIndex}`, desc: 'sats change' })
+      outputsMap.push({ addressPath: `1/${changeAddressIndex}`, lockingBytecodeRelativePath: `1/${changeAddressIndex}`, purpose: 'sats-self-internal' })
       await this.issueChangeAddress(changeAddressIndex)
     }
 
@@ -1069,8 +1071,8 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
       .addOutputs(outputs)
     const unsignedTransactionHex = transaction.build()
     inputs.forEach((input) => {
-      if (input.addressPath) {
-        input.redeemScript = this.getRedeemScript(input.addressPath)
+      if (input.lockingBytecodeRelativePath) {
+        input.redeemScript = this.getRedeemScript(input.lockingBytecodeRelativePath)
       }
     })
     const pst = new Pst({
