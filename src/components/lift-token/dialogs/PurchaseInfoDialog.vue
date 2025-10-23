@@ -1,7 +1,7 @@
 <template>
   <q-dialog persistent seamless ref="dialogRef" class="no-click-outside">
-    <q-card class="purchase-info-dialog-card text-bow full-width" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
-      <div class="row justify-between items-center q-px-lg q-pt-lg q-pb-md sticky-title" :class="getDarkModeClass(darkMode)">
+    <q-card class="pt-card-2 purchase-info-dialog-card text-bow full-width" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+      <div class="pt-card row justify-between items-center q-px-lg q-pt-lg q-pb-md sticky-title" :class="getDarkModeClass(darkMode)">
         <div class="col-10 q-gutter-sm">
           <q-badge
             :color="getStatusBadgeColor(parseStatus())"
@@ -37,7 +37,7 @@
           <div class="amount-display q-mb-xs">
             {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
           </div>
-          <div class="row q-gutter-sm text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+          <div class="row q-gutter-sm text-caption" :class="darkMode ? 'text-grey-4' : ' text-grey-7'">
             <span>
               {{
                 parseFiatCurrency(
@@ -574,9 +574,5 @@ export default {
   font-size: 13px;
   color: #999;
   font-style: italic;
-  
-  .dark & {
-    color: #666;
-  }
 }
 </style>
