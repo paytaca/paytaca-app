@@ -717,14 +717,13 @@ const approveSessionProposal = async (sessionProposal) => {
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
       namespaces: approvedNamespaces,
-      sessionProperties: {
-        wallet: {
-          address: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.address,
-          template: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.template
-        }
-      }
+      // sessionProperties: {
+      //   wallet: {
+      //     address: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.address,
+      //     template: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.template
+      //   }
+      // }
     })
-    await web3Wallet.value.getActiveSessions()
     activeSessions.value[session.topic] = session
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
