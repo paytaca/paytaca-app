@@ -297,7 +297,9 @@ const createProposal = async () => {
   }
 
   const options = {
-    store: $store
+    store: $store,
+    provider: multisigNetworkProvider,
+    coordinationServer: multisigCoordinationServer
   }
 
   const pst = await wallet.value.createPstFromTransactionProposal({
