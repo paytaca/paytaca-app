@@ -1657,7 +1657,8 @@ export default {
   }
   .jpp-panel-container {
     padding-top:5.5rem;
-    padding-bottom:5.5rem;
+    padding-bottom:120px;
+    position: relative;
   }
   .add-recipient-button {
     display: flex;

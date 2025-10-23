@@ -554,10 +554,44 @@ export class JSONPaymentProtocol {
     const changeOutput = { to: changeAddress, amount: 546n }
     txBuilder.outputs.push(changeOutput)
 
-    if (txBuilder.excessSats < 0n) {
-      txBuilder.outputs = txBuilder.outputs.filter(output => output !== changeOutput)
-    } else if (txBuilder.excessSats > 0n) {
-      changeOutput.amount += txBuilder.excessSats;
+    // Iteratively adjust change output to ensure correct fee
+    // This handles any rounding issues in fee calculation with multiple inputs
+    let iterations = 0
+    const maxIterations = 20
+    let previousExcess = null
+    
+    while (iterations < maxIterations) {
+      const excess = txBuilder.excessSats
+      
+      if (excess < 0n) {
+        // Not enough funds even with change output, remove it
+        txBuilder.outputs = txBuilder.outputs.filter(output => output !== changeOutput)
+        break
+      } else if (excess === 0n) {
+        // Perfect balance, we're done
+        break
+      } else if (excess > 0n && excess < 10n && previousExcess !== null && previousExcess === excess) {
+        // If we're stuck with a small positive excess (1-9 satoshis) that isn't changing,
+        // add it to the fee by reducing the change output by that amount
+        changeOutput.amount -= excess
+        if (changeOutput.amount < 546n) {
+          // If change becomes dust, remove it and accept the slight overpayment
+          txBuilder.outputs = txBuilder.outputs.filter(output => output !== changeOutput)
+        }
+        break
+      } else {
+        // Add excess to change output
+        previousExcess = excess
+        changeOutput.amount += excess
+      }
+      
+      iterations++
+    }
+    
+    // Final validation: ensure we're not underpaying
+    const finalExcess = txBuilder.excessSats
+    if (finalExcess < 0n) {
+      throw JsonPaymentProtocolError('Insufficient funds for transaction including fees')
     }
 
     this.preparedTx = { builder: txBuilder, verified: false }

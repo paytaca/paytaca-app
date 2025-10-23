@@ -7,27 +7,30 @@
     maximized
   >
     <q-card
-      class="q-px-md q-pt-md pt-card text-bow notifs-card wallet-card"
+      class="notifs-card wallet-card"
       :class="getDarkModeClass(darkMode)"
-      :style="{'padding-top': $q.platform.is.ios ? '50px' : '20px'}"
+      :style="{'padding-top': $q.platform.is.ios ? '20px' : '0px'}"
     >
-      <div class="row justify-between items-center">
-        <span class="text-bold text-h6 title">
-          {{ $t('Notifications') }}
-        </span>
-        <q-space/>
-        <q-btn
-          flat
-          round
-          padding="xs"
-          icon="close"
-          align="right"
-          class="close-button"
-          v-close-popup
-        />
+      <!-- Fixed Header -->
+      <div class="fixed-header" :class="getDarkModeClass(darkMode)">
+        <div class="row justify-between items-center q-px-lg q-py-sm">
+          <div class="notifs-title text-weight-bold text-grad">
+            {{ $t('Notifications') }}
+          </div>
+          <q-btn
+            round
+            flat
+            dense
+            icon="keyboard_double_arrow_right"
+            class="default-text-color"
+            v-close-popup
+          />
+        </div>
       </div>
 
-      <div>
+      <!-- Scrollable Content -->
+      <div class="scrollable-notifs-content" :class="getDarkModeClass(darkMode)">
+        <div class="q-px-md q-pt-md">
         <div class="row justify-end items-center q-mb-sm q-gutter-x-sm">
           <q-btn
             v-if="isCheckboxClicked"
@@ -179,6 +182,7 @@
             {{ $t('NoNotifications') }}
           </div>
         </template>
+        </div>
       </div>
     </q-card>
   </q-dialog>
@@ -425,6 +429,60 @@ export default {
     background-color: $grey-2 !important;
   }
   .notifs-card {
-    width: 45vh;
+    height: 100vh;
+    width: 90vw;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    
+    @media (max-width: 600px) {
+      width: 90vw;
+    }
+  }
+
+  .fixed-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    
+    &.dark {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    
+    &.light {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .notifs-title {
+    font-size: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .scrollable-notifs-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    /* Custom scrollbar styling */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
   }
 </style>

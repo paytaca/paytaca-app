@@ -31,20 +31,6 @@
         <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Wallet') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                    {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section avatar>
-                    <q-toggle
-                      v-model="showTokens"
-                      :color="toggleColor"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item>
               <q-item clickable v-ripple @click="isChipnet = !isChipnet">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -236,7 +222,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
       autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
-      showTokens: this.$store.getters['global/showTokens'],
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
       enableSLP: this.$store.getters['global/enableSLP'],
@@ -274,9 +259,6 @@ export default {
     },
     autoGenerateAddress (n, o) {
       this.$store.commit('global/toggleAutoGenerateAddress')
-    },
-    showTokens (n, o) {
-      this.$store.commit('global/showTokens')
     },
     enableSmartBCH (n, o) {
       this.$store.commit('global/enableSmartBCH')

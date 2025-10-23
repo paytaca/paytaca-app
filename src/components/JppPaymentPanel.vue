@@ -1,171 +1,206 @@
 <template>
-  <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-    <q-card-section style="margin-top: -3.5em;">
-        <div class="text-h6 ellipsis">{{$t('Payment')}}</div>
-        <div class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('PaymentID')}}:</div>
-          <div class="ellipsis">#{{ jpp?.parsed?.paymentId }}</div>
-          <q-btn
-            flat
-            icon="content_copy"
-            size="sm"
-            padding="xs"
-            @click="copyToClipboard(jpp?.parsed?.paymentId, $t('PaymentIdCopied'))"
-          />
-        </div>
-        <div v-if="jpp?.parsed?.paymentUrl" class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('URL')}}:</div>
-          <div class="ellipsis">{{ jpp?.parsed?.paymentUrl }}</div>
-          <q-btn
-            flat
-            icon="content_copy"
-            size="sm"
-            padding="xs"
-            @click="copyToClipboard(jpp?.parsed?.paymentUrl, $t('LinkCopied'))"
-          />
-        </div>
-        <div v-if="jpp?.parsed?.time" class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('Created')}}:</div>
-          <div>{{ formatTimestampToText(jpp?.parsed?.time) }}</div>
-        </div>
-        <div v-if="jpp?.parsed?.expires" class="row items-center no-wrap q-gutter-xs">
-          <div class="q-space" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('Expires')}}:</div>
-          <div>{{ formatTimestampToText(jpp?.parsed?.expires) }}</div>
-        </div>
-        <div v-if="jpp?.parsed?.memo" class="q-my-sm">
-          <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{$t('Memo')}}:</div>
-          <q-banner
-            class="text-body1 rounded-borders memo-banner"
-            :class="{'text-white': darkMode}"
-          >
-            {{ jpp.parsed?.memo }}
-          </q-banner>
-        </div>
-        <div>
-          <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-            {{$t('Recipient')}}{{ jpp?.parsed?.outputs?.length > 1 ? 's' : '' }}:
-          </div>
-
-          <div
-            v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)"
-            :key="index" class="q-mb-sm row items-start no-wrap"
-          >
-            <div class="text-grey" style="width:2em;">#{{ index+1 }}</div>
-            <div class="q-space">
-              <div class="row no-wrap items-start q-gutter-x-xs">
-                <div class="q-space">
-                  {{ ellipsisText(output.address, {start: 16, end: 5 }) }}
-                </div>
-                <div class="text-right">{{ output.amount / 10 ** 8 }} {{$t('BCH')}}</div>
+  <div>
+    <q-card class="pt-card text-bow payment-card" :class="getDarkModeClass(darkMode)">
+      <q-card-section class="q-pb-none" style="margin-top: -3.5em;">
+          <div class="text-h5 text-weight-bold q-mb-md">{{$t('Payment')}}</div>
+          
+          <!-- Payment Details Section -->
+          <div class="info-section q-mb-md">
+            <!-- Payment ID -->
+            <div class="info-item">
+              <div class="info-label" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{$t('PaymentID')}}
               </div>
-              <div v-if="output?.token?.category" class="row no-wrap items-start q-gutter-x-xs">
-                <div class="ellipsis" style="max-width:45vw;">
-                  Token: {{ ellipsisText(output?.token?.category, { start: 6, end: 6 }) }}
+              <div class="info-value row items-center no-wrap">
+                <div class="ellipsis-multiline">#{{ jpp?.parsed?.paymentId }}</div>
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="content_copy"
+                  size="sm"
+                  class="q-ml-xs"
+                  @click="copyToClipboard(jpp?.parsed?.paymentId, $t('PaymentIdCopied'))"
+                />
+              </div>
+            </div>
+
+            <!-- Payment URL -->
+            <div v-if="jpp?.parsed?.paymentUrl" class="info-item">
+              <div class="info-label" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{$t('URL')}}
+              </div>
+              <div class="info-value row items-center no-wrap">
+                <div class="ellipsis-multiline">{{ jpp?.parsed?.paymentUrl }}</div>
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="content_copy"
+                  size="sm"
+                  class="q-ml-xs"
+                  @click="copyToClipboard(jpp?.parsed?.paymentUrl, $t('LinkCopied'))"
+                />
+              </div>
+            </div>
+
+            <!-- Created & Expires -->
+            <div class="row q-col-gutter-md">
+              <div v-if="jpp?.parsed?.time" class="col-6">
+                <div class="info-item">
+                  <div class="info-label" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                    {{$t('Created')}}
+                  </div>
+                  <div class="info-value-small">{{ formatTimestampToText(jpp?.parsed?.time) }}</div>
                 </div>
-                <q-space/>
-                <div v-if="output?.token?.nft" class="text-brandblue text-underline">
-                  NFT
-                </div>
-                <div v-else>
-                  {{ formatTokenAmount(output?.token) }}
+              </div>
+              <div v-if="jpp?.parsed?.expires" class="col-6">
+                <div class="info-item">
+                  <div class="info-label" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                    {{$t('Expires')}}
+                  </div>
+                  <div class="info-value-small">{{ formatTimestampToText(jpp?.parsed?.expires) }}</div>
                 </div>
               </div>
             </div>
-            <q-popup-proxy :breakpoint="0">
+          </div>
+
+          <!-- Memo Section -->
+          <div v-if="jpp?.parsed?.memo" class="memo-section q-mb-md">
+            <div class="info-label q-mb-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              {{$t('Memo')}}
+            </div>
+            <div class="memo-content" :class="darkMode ? 'memo-dark' : 'memo-light'">
+              {{ jpp.parsed?.memo }}
+            </div>
+          </div>
+          <!-- Recipients Section -->
+          <div class="recipients-section q-mb-md">
+            <div class="info-label q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              {{$t('Recipient')}}{{ jpp?.parsed?.outputs?.length > 1 ? 's' : '' }}
+            </div>
+
+            <div class="recipients-list">
               <div
-                class="text-body2 pt-card pt-label address-popup q-pa-sm"
-                :class="getDarkModeClass(darkMode)"
+                v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)"
+                :key="index"
+                class="recipient-item"
+                :class="darkMode ? 'recipient-dark' : 'recipient-light'"
               >
-                <div class="text-caption text-grey">Recipient:</div>
-                <div>{{ output.address }}</div>
-
-                <div v-if="output?.token?.category" class="q-mt-sm">
-                  <div class="text-caption text-grey">Token:</div>
-                  <div v-ripple style="position: relative;" @click="copyToClipboard(output?.token?.category)">
-                    {{ output?.token?.category }}
-                    <q-icon name="content_copy"/>
-                  </div>
-                  
-                  <div v-if="output?.token?.amount" class="q-mt-sm">
-                    <div class="text-caption text-grey">Token amount:</div>
-                    <div>{{ formatTokenAmount(output?.token) }}</div>
-                  </div>
-
-                  <div v-if="output?.token?.nft" class="q-mt-sm">
-                    <div class="text-caption text-grey">
-                      NFT:
-                      <q-badge>{{ output?.token?.nft?.capability }}</q-badge>
-                    </div>
-                    <div>{{ output?.token?.nft?.commitment }}</div>
-                  </div>
+                <div class="recipient-header">
+                  <span class="recipient-number">#{{ index+1 }}</span>
+                  <span class="recipient-amount">{{ output.amount / 10 ** 8 }} BCH</span>
                 </div>
+                <div class="recipient-address">
+                  {{ ellipsisText(output.address, {start: 20, end: 8 }) }}
+                </div>
+                <div v-if="output?.token?.category" class="recipient-token">
+                  <q-icon name="token" size="xs" class="q-mr-xs"/>
+                  <span v-if="output?.token?.nft" class="text-brandblue">
+                    NFT
+                  </span>
+                  <span v-else>
+                    {{ formatTokenAmount(output?.token) }}
+                  </span>
+                </div>
+                <q-popup-proxy :breakpoint="0">
+                  <div
+                    class="text-body2 pt-card pt-label address-popup q-pa-md"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <div class="text-caption text-grey">Recipient:</div>
+                    <div class="q-mb-sm" style="word-break: break-all;">{{ output.address }}</div>
+
+                    <div v-if="output?.token?.category" class="q-mt-sm">
+                      <div class="text-caption text-grey">Token:</div>
+                      <div v-ripple style="position: relative; word-break: break-all;" class="cursor-pointer q-pa-xs" @click="copyToClipboard(output?.token?.category)">
+                        {{ output?.token?.category }}
+                        <q-icon name="content_copy" size="xs" class="q-ml-xs"/>
+                      </div>
+                      
+                      <div v-if="output?.token?.amount" class="q-mt-sm">
+                        <div class="text-caption text-grey">Token amount:</div>
+                        <div>{{ formatTokenAmount(output?.token) }}</div>
+                      </div>
+
+                      <div v-if="output?.token?.nft" class="q-mt-sm">
+                        <div class="text-caption text-grey">
+                          NFT:
+                          <q-badge>{{ output?.token?.nft?.capability }}</q-badge>
+                        </div>
+                        <div style="word-break: break-all;">{{ output?.token?.nft?.commitment }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </q-popup-proxy>
               </div>
-            </q-popup-proxy>
-          </div>
-          <strong v-if="jpp?.parsed?.outputs?.length > 10">
-            {{
-              $t(
-                "AndMoreAddresses",
-                { addressCount: jpp?.parsed?.outputs?.length - 10 },
-                `and ${jpp?.parsed?.outputs?.length - 10} more addresses`
-              )
-            }}
-          </strong>
-          <div v-if="jpp?.parsed?.outputs?.length > 1" class="q-mb-sm">
-            <div class="row items-center text-subtitle1">
-              <div class="q-space">{{ $t('Total') }}:</div>
-              <div>{{ jpp.total / 10 ** 8 }} BCH</div>
-            </div>
-            <template v-if="jpp?.tokenAmounts?.length">
-              <div v-for="(tokenData, index) in jpp?.tokenAmounts" :key="index" class="text-right text-subtitle2">
-                {{ formatTokenAmount(tokenData) }}
+              
+              <div v-if="jpp?.parsed?.outputs?.length > 10" class="text-center q-mt-sm text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{
+                  $t(
+                    "AndMoreAddresses",
+                    { addressCount: jpp?.parsed?.outputs?.length - 10 },
+                    `and ${jpp?.parsed?.outputs?.length - 10} more addresses`
+                  )
+                }}
               </div>
-            </template>
-            <div v-if="jpp?.nfts?.length" class="text-right text-subtitle2">
-              {{ jpp?.nfts?.length }}
-              {{ jpp?.nfts?.length === 1 ? 'NFT' : 'NFTs' }}
+            </div>
+
+            <!-- Total Section -->
+            <div class="total-section q-mt-md" :class="darkMode ? 'total-dark' : 'total-light'">
+              <div class="total-label">{{ $t('Total') }}</div>
+              <div class="total-amount">{{ jpp.total / 10 ** 8 }} BCH</div>
+              <template v-if="jpp?.tokenAmounts?.length">
+                <div v-for="(tokenData, index) in jpp?.tokenAmounts" :key="index" class="total-token">
+                  {{ formatTokenAmount(tokenData) }}
+                </div>
+              </template>
+              <div v-if="jpp?.nfts?.length" class="total-token">
+                {{ jpp?.nfts?.length }}
+                {{ jpp?.nfts?.length === 1 ? 'NFT' : 'NFTs' }}
+              </div>
             </div>
           </div>
-        </div>
-        <div v-if="jpp.txids.length">
-          <div class="text-subtitle1 transactions">
-            <template v-if="jpp.txids.length > 1">
-              {{ $t('Transactions') }}
-            </template>
-            <template v-else>
-              {{ $t('Transaction') }}
-            </template>
-          </div>
-          <div v-for="(txid, index) in jpp.txids" :key="index" class="row items-center">
-            <div class="q-space ellipsis">{{ ellipsisText(txid, {start: 10, end: 10 }) }}</div>
-            <div class="row q-gutter-x-sm">
-              <q-btn size="0.7em" padding="0.8em" rounded icon="content_copy" @click="copyToClipboard(txid)"/>
-              <q-btn size="0.7em" padding="0.8em" rounded icon="open_in_new" target="_blank" :href="txLink(txid)"/>
+          <div v-if="jpp.txids.length">
+            <div class="text-subtitle1 transactions">
+              <template v-if="jpp.txids.length > 1">
+                {{ $t('Transactions') }}
+              </template>
+              <template v-else>
+                {{ $t('Transaction') }}
+              </template>
+            </div>
+            <div v-for="(txid, index) in jpp.txids" :key="index" class="row items-center">
+              <div class="q-space ellipsis">{{ ellipsisText(txid, {start: 10, end: 10 }) }}</div>
+              <div class="row q-gutter-x-sm">
+                <q-btn size="0.7em" padding="0.8em" rounded icon="content_copy" @click="copyToClipboard(txid)"/>
+                <q-btn size="0.7em" padding="0.8em" rounded icon="open_in_new" target="_blank" :href="txLink(txid)"/>
+              </div>
             </div>
           </div>
-        </div>
-        <div v-if="loading" class="column items-center">
-          <q-spinner size="2em"/>
-          <div>{{ loadingMsg }}</div>
-        </div>
-        <q-banner v-else-if="errorMsg" class="bg-red text-white rounded-borders">
-          {{ errorMsg }}
-        </q-banner>
-        <div v-if="!showDragSlide && !loading" class="q-mt-sm">
-          <q-btn
-            no-caps
-            :label="$t('Confirm')"
-            class="full-width button"
-            @click="showDragSlide = true"
-          />
-        </div>
-      </q-card-section>
-      <DragSlide
-        v-if="showDragSlide && !loading"
-        @swiped="onSwipe()"
-        class="fixed-bottom drag-slide"
-      />
-  </q-card>
+          <div v-if="loading" class="column items-center">
+            <q-spinner size="2em"/>
+            <div>{{ loadingMsg }}</div>
+          </div>
+          <q-banner v-else-if="errorMsg" class="bg-red text-white rounded-borders">
+            {{ errorMsg }}
+          </q-banner>
+          <div v-if="!showDragSlide && !loading" class="q-mt-sm">
+            <q-btn
+              no-caps
+              :label="$t('Confirm')"
+              class="full-width button"
+              @click="showDragSlide = true"
+            />
+          </div>
+        </q-card-section>
+    </q-card>
+    <DragSlide
+      v-if="showDragSlide && !loading"
+      @swiped="onSwipe()"
+      class="fixed-bottom drag-slide"
+    />
+  </div>
 </template>
 <script setup>
 import { ellipsisText, formatTimestampToText } from "src/wallet/anyhedge/formatters";
@@ -302,10 +337,183 @@ function formatTokenAmount(tokenData) {
 </script>
 
 <style lang="scss" scoped>
-  .memo-banner {
-    border: 1px solid grey;
-    background-color: inherit;
+  .payment-card {
+    border-radius: 16px;
   }
+
+  .info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .info-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  .info-value {
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+    line-height: 1.4;
+  }
+
+  .info-value-small {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .ellipsis-multiline {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+  }
+
+  .memo-section {
+    .memo-content {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+      
+      &.memo-dark {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      &.memo-light {
+        background: rgba(0, 0, 0, 0.02);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+
+  .recipients-section {
+    .recipients-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .recipient-item {
+      padding: 12px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s ease;
+      
+      &.recipient-dark {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+      }
+      
+      &.recipient-light {
+        background: rgba(0, 0, 0, 0.02);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        
+        &:hover {
+          background: rgba(0, 0, 0, 0.04);
+          border-color: rgba(0, 0, 0, 0.1);
+        }
+      }
+    }
+
+    .recipient-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .recipient-number {
+      font-size: 11px;
+      opacity: 0.6;
+      font-weight: 500;
+    }
+
+    .recipient-amount {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Courier New', monospace;
+    }
+
+    .recipient-address {
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      opacity: 0.85;
+      cursor: pointer;
+      word-break: break-all;
+    }
+
+    .recipient-token {
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      opacity: 0.75;
+      margin-top: 2px;
+    }
+  }
+
+  .total-section {
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    &.total-dark {
+      background: rgba(59, 123, 246, 0.1);
+      border: 2px solid rgba(59, 123, 246, 0.3);
+    }
+    
+    &.total-light {
+      background: rgba(59, 123, 246, 0.08);
+      border: 2px solid rgba(59, 123, 246, 0.25);
+    }
+
+    .total-label {
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .total-amount {
+      font-size: 22px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      color: #3b7bf6;
+    }
+
+    .total-token {
+      font-size: 13px;
+      opacity: 0.85;
+      font-weight: 500;
+    }
+  }
+
   .drag-slide {
     position: fixed;
     bottom: 0;
@@ -313,10 +521,13 @@ function formatTokenAmount(tokenData) {
     right: 0;
     z-index: 1500;
   }
+
   .address-popup {
-    word-break: break-all;
+    max-width: 80vw;
+    border-radius: 12px;
   }
+
   .transactions {
-    margin-bottom: -8px
+    margin-bottom: -8px;
   }
 </style>

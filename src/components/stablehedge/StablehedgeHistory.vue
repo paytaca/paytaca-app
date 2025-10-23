@@ -202,8 +202,6 @@ export default defineComponent({
       }
       history.value = []
     }
-    const showTokens = computed(() => $store.getters['global/showTokens'])
-    watch(showTokens, () => computeTransactionsListHeight())
     onMounted(() => computeTransactionsListHeight())
     const transactionsListHeight = ref(undefined);
     function computeTransactionsListHeight () {
@@ -211,6 +209,7 @@ export default defineComponent({
       const footerMenu = vm.parent?.parent?.refs?.footerMenu?.$el
       if (!fixedSection || !footerMenu) {
         transactionsListHeight.value = undefined
+        return
       }
       const screenHeight = $q.screen.height
       const fixedSectionTop = (fixedSection?.offsetTop || 0);

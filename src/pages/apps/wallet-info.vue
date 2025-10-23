@@ -3,6 +3,27 @@
     <header-nav :title="$t('WalletInfo')" backnavpath="/apps" class="header-nav header-nav apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
       <div class="col-12 q-px-lg q-mt-md">
+        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('WalletManagement', {}, 'Wallet Management') }}</p>
+        <q-list class="pt-card wallet-info-list" :class="getDarkModeClass(darkMode)">
+          <q-item>
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletName') }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                {{ currentWalletName }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn
+                no-caps
+                class="button"
+                :label="$t('Rename')"
+                @click="openRenameDialog()"
+              />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+      <div class="col-12 q-px-lg q-mt-md">
         <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('BchAddresses') }}</p>
         <q-list class="pt-card wallet-info-list" :class="getDarkModeClass(darkMode)">
           <q-item clickable v-ripple>
@@ -249,11 +270,13 @@ import ago from 's-ago'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
+import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
 
 export default {
   name: 'app-wallet-info',
   components: {
-    HeaderNav
+    HeaderNav,
+    RenameDialog
   },
   data () {
     return {
@@ -283,6 +306,11 @@ export default {
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
+    },
+    currentWalletName () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const vault = this.$store.getters['global/getVault']
+      return vault[walletIndex]?.name || `Personal Wallet #${walletIndex + 1}`
     },
     bchUtxoScanTaskInfo() {
       let walletHash = this.getWallet('bch')?.walletHash
@@ -575,6 +603,16 @@ export default {
         timeout: 200,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
+      })
+    },
+    openRenameDialog () {
+      const vm = this
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      vm.$q.dialog({
+        component: RenameDialog,
+        componentProps: {
+          index: walletIndex
+        }
       })
     },
     showDeleteDialog () {

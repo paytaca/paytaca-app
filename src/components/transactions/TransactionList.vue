@@ -126,24 +126,8 @@ export default {
           .filter(Number.isSafeInteger)
       )
     },
-    showTokens () {
-      return this.$store.getters['global/showTokens']
-    },
     hasMoreTransactions () {
       return this.transactionsPage < this.transactionsMaxPage
-    }
-  },
-
-  watch: {
-    showTokens () {
-      this.computeTransactionsListHeight()
-      // Reconnect observer after height change
-      this.$nextTick(() => {
-        if (this.intersectionObserver && this.$refs.scrollSentinel) {
-          this.intersectionObserver.disconnect()
-          this.setupIntersectionObserver()
-        }
-      })
     }
   },
 
@@ -153,8 +137,17 @@ export default {
       const vm = this
 
       const screenHeight = vm.$q.screen.height
-      const fixedSectionHeight = vm.$parent.$parent.$refs.fixedSection.clientHeight
-      const footerMenuHeight = vm.$parent.$parent.$refs.footerMenu.$el.clientHeight
+      const fixedSection = vm.$parent?.$parent?.$refs?.fixedSection
+      const footerMenu = vm.$parent?.$parent?.$refs?.footerMenu?.$el
+      
+      if (!fixedSection || !footerMenu) {
+        // If refs aren't available yet, use a default height or skip
+        vm.transactionsListHeight = `${screenHeight - 400}px`
+        return
+      }
+      
+      const fixedSectionHeight = fixedSection.clientHeight
+      const footerMenuHeight = footerMenu.clientHeight
       vm.transactionsListHeight = `${screenHeight - (fixedSectionHeight + footerMenuHeight)}px`
     },
     scrollToBottomTransactionList () {

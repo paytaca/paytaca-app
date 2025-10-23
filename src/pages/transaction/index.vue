@@ -139,15 +139,7 @@
             @cashin="openCashIn()"
             @price-chart="openPriceChart()"
           />
-          <div
-            v-if="!showTokens"
-            class="text-center button button-text-primary show-tokens-label"
-            :class="getDarkModeClass(darkMode)"
-            @click.native="toggleShowTokens"
-          >
-            {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
-          </div>
-          <div class="row q-mt-sm" v-if="showTokens">
+          <div class="row q-mt-sm">
             <div class="col">
               <p
                 class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary"
@@ -210,9 +202,9 @@
               <AssetFilter v-if="hasAssetFilter" @filterTokens="isCT => isCashToken = isCT" />
             </div>
           </div>
-          <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
+          <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
           <!-- Cards without drag scroll on mobile -->
-          <template v-if="showTokens && $q.platform.is.mobile">
+          <template v-if="$q.platform.is.mobile">
             <asset-cards
               :assets="assets"
               :manage-assets="manageAssets"
@@ -231,7 +223,7 @@
             </asset-cards>
           </template>
           <!-- Cards with drag scroll on other platforms -->
-          <template v-if="showTokens && !$q.platform.is.mobile">
+          <template v-if="!$q.platform.is.mobile">
             <asset-cards
               :assets="assets"
               :manage-assets="manageAssets"
@@ -250,7 +242,7 @@
             >
             </asset-cards>
           </template>
-          <div v-if="showTokens && assets.length == 0" style="margin-bottom: 10px;">
+          <div v-if="assets.length == 0" style="margin-bottom: 10px;">
             <div class="text-center text-black">
                 <q-btn class="br-15" outline color="primary" label="Add New Asset" @click="addNewAsset()"/>
             </div>
@@ -454,7 +446,6 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       prevPath: null,
       showTokenSuggestionsDialog: false,
-      showTokens: this.$store.getters['global/showTokens'],
       isCashToken: true,
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;',
@@ -476,9 +467,6 @@ export default {
   watch: {
     online(newValue, oldValue) {
       this.onConnectivityChange(newValue)
-    },
-    showTokens (n, o) {
-      this.$store.commit('global/showTokens')
     },
     'assets.length': {
       handler(before, after) {
@@ -763,16 +751,15 @@ export default {
       await this.$nextTick()
       this.$refs.tokenMenu.updatePosition()
     },
-    toggleShowTokens () {
-      this.showTokens = !this.showTokens
-      this.adjustTransactionsDivHeight()
-    },
     adjustTransactionsDivHeight (opts={timeout: 500}) {
       const vm = this
       let timeout = opts?.timeout
       if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
-        const sectionHeight = vm.$refs.fixedSection.clientHeight
+        const fixedSection = vm.$refs?.fixedSection
+        if (!fixedSection) return
+        
+        const sectionHeight = fixedSection.clientHeight
         const clientWidth = document.body.clientWidth
         const elem = vm.$refs.transactionSection
         if (!elem?.style) return
@@ -1688,11 +1675,6 @@ export default {
         color: $red-5;
       }
     }
-  }
-  .show-tokens-label {
-    margin-top: 0px;
-    font-size: 13px;
-    padding-bottom: 15px;
   }
   .cash-in {
     background-color: #ECF3F3;

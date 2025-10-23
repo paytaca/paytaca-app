@@ -31,9 +31,16 @@
           @click="openSendSuccessDetailsDialog"
         /><br /><br />
         <div class="text-grey">{{ $t('TransactionId')}}</div>
-        <p style="font-family: monospace;" :class="getDarkModeClass(darkMode)">
-          {{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}
-        </p>
+        <div 
+          class="txid-container row items-center justify-center q-gutter-xs"
+          :class="getDarkModeClass(darkMode)"
+          @click="copyTxid"
+        >
+          <span style="font-family: monospace;">
+            {{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}
+          </span>
+          <q-icon name="content_copy" size="16px" class="copy-icon" />
+        </div>
         <a
           class="button button-text-primary view-explorer-button"
           style="text-decoration: none;"
@@ -46,21 +53,6 @@
       </div>
       <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-lg">
         {{ formattedTxTimestamp }}
-      </div>
-
-      <div
-        v-if="jpp && recipients[0]?.paymentAckMemo !== undefined"
-        class="row justify-center"
-      >
-        <div
-          class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
-          :class="getDarkModeClass(darkMode, 'text-white', '')"
-        >
-          <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">
-            {{ $t('Memo') }}:
-          </span>
-          {{ recipients[0].paymentAckMemo }}
-        </div>
       </div>
 
       <!-- Transaction Memo Section -->
@@ -423,6 +415,15 @@ export default {
     cancelEditMemo () {
       this.memoInput = this.transactionMemo
       this.editingMemo = false
+    },
+    copyTxid () {
+      this.$copyText(this.txid)
+      this.$q.notify({
+        message: this.$t('TransactionIdCopied', {}, 'Transaction ID copied to clipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
     }
   }
 }
@@ -458,6 +459,28 @@ export default {
       
       .q-field {
         margin-bottom: 8px;
+      }
+    }
+
+    .txid-container {
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      margin: 8px auto;
+      
+      &:hover {
+        background: rgba(128, 128, 128, 0.1);
+        
+        .copy-icon {
+          opacity: 1;
+        }
+      }
+      
+      .copy-icon {
+        opacity: 0.6;
+        transition: opacity 0.2s ease;
       }
     }
   }

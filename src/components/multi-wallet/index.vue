@@ -52,44 +52,13 @@
                     getDarkModeClass(darkMode),
                     isActive(index) ? 'active-wallet' : ''
                   ]"
-                  @click="selectedIndex = index"
+                  @click="switchWallet(index)"
                 >
                   <q-item-section>
                     <!-- Wallet name -->
                     <div class="wallet-name text-weight-medium" :class="isActive(index) ? 'text-grad' : ''">
                       {{ wallet.name }}
                     </div>
-                    <q-menu anchor="bottom right" self="top end" >
-                      <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
-                        <q-item clickable v-ripple v-close-popup>
-                          <q-item-section
-                            class="pt-label"
-                            :class="getDarkModeClass(darkMode)"
-                            @click="switchWallet(selectedIndex)"
-                          >
-                            {{ $t('SwitchWallet') }}
-                          </q-item-section>
-                        </q-item>
-                        <q-item clickable v-close-popup>
-                          <q-item-section
-                            class="pt-label"
-                            :class="getDarkModeClass(darkMode)"
-                            @click="openRenameDialog()"
-                          >
-                            {{ $t('Rename') }}
-                          </q-item-section>
-                        </q-item>
-                        <q-item clickable v-close-popup>
-                          <q-item-section
-                            class="pt-label"
-                            :class="getDarkModeClass(darkMode)"
-                            @click="openBasicInfoDialog()"
-                          >
-                            {{ $t('SeeBasicWalletInfo') }}
-                          </q-item-section>
-                        </q-item>
-                      </q-list>
-                    </q-menu>
                   </q-item-section>
                 </q-item>
               </template>
@@ -120,8 +89,6 @@
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
-import renameDialog from './renameDialog.vue'
-import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -135,13 +102,10 @@ export default {
       isChipnet: this.$store.getters['global/isChipnet'],
       vault: [],
       isloading: false,
-      secondDialog: false,
-      selectedIndex: null
+      secondDialog: false
     }
   },
   components: {
-    renameDialog,
-    BasicInfoDialog,
     LoadingWalletDialog,
     ProgressLoader
   },
@@ -214,17 +178,6 @@ export default {
     isActive (index) {
       return index === this.currentIndex
     },
-    openRenameDialog () {
-      this.$q.dialog({
-        component: renameDialog,
-        componentProps: {
-          index: this.selectedIndex
-        }
-      })
-        .onOk(() => {
-          this.processVaultName()
-        })
-    },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 
@@ -248,14 +201,6 @@ export default {
       } else {
         return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
-    },
-    openBasicInfoDialog () {
-      this.$q.dialog({
-        component: BasicInfoDialog,
-        componentProps: {
-          vaultIndex: this.selectedIndex
-        }
-      })
     },
     hide () {
       this.$refs['multi-wallet'].hide()

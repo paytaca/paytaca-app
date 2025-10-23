@@ -160,7 +160,15 @@ export class TransactionBalancer {
   }
 
   get txFee() {
-    return BigInt(Math.ceil(Number(this.txSize) * this.feePerByte))
+    // Use integer arithmetic to avoid floating-point precision issues
+    // Convert feePerByte to fixed-point: multiply by 1000000, divide result by 1000000
+    // Higher precision to handle multiple inputs better
+    const feePerByteScaled = Math.round(this.feePerByte * 1000000)
+    const feeScaled = this.txSize * BigInt(feePerByteScaled)
+    // Use proper rounding (round half up) instead of ceiling
+    // This prevents always overpaying by 1 satoshi
+    const fee = (feeScaled + 500000n) / 1000000n
+    return fee
   }
 
   get excessSats() {
