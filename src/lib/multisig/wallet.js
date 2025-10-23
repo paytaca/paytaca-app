@@ -47,6 +47,7 @@
 /**
  * @typedef {Object} MultisigWalletOptions
  * @property {NetworkProvider} provider
+ * @property {CoordinationServer} [coordinationServer]
  * @property {Network} [network='mainnet']
  * @property {Object} [store] - Optional Vuex-style store.
  * @property {(type: string, payload?: any) => Promise<any>} [store.dispatch]
@@ -1219,7 +1220,6 @@ async generateAuthCredentials(xpub) {
     } 
   }
 
-  
   static cashAddressToTokenAddress(cashAddress) {
     return lockingBytecodeToCashAddress({ 
       bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,

@@ -158,8 +158,8 @@
                         </q-avatar>
                         <div>
                           <div v-if="balancesTokenIdentities[asset]?.token?.symbol">
-                            <div class="text-bold">{{balancesTokenIdentities[asset].token.symbol}}</div>
-                            <sub  style="filter: brightness(80%)">{{balancesTokenIdentities[asset].name}}</sub>
+                            <div class="text-bold">{{balancesTokenIdentities[asset].token.symbol}} </div>
+                            <sub  style="filter: brightness(80%)">{{balancesTokenIdentities[asset].name}} [{{ shortenString(asset, 13) }}]</sub>
                           </div>
                           <div v-else-if="balancesTokenIdentities[asset]?.name">
                             <div class="text-bold">{{balancesTokenIdentities[asset].name}}</div>
@@ -238,7 +238,6 @@ const darkMode = computed(() => {
 
 const wallet = computed(() => {
   const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-  console.log('SAVED WALLET', savedWallet)
   if (savedWallet) {
     return MultisigWallet.importFromObject(savedWallet, {
       store: $store,
