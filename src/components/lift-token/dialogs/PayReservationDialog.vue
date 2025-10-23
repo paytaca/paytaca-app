@@ -318,22 +318,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.payment-dialog-card {
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  max-width: 500px;
-  
-  &.dark {
-    background: rgba(30, 30, 30, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  }
-}
-
 .price-info-box {
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.03);
