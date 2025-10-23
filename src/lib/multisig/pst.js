@@ -317,6 +317,7 @@ export const combine = (psts) => {
   if (!sameMetadata) throw new Error('Conflicting metadata')
 
   let combinedInputs = psts.map(pst => pst.inputs).flat()
+  console.log('combined inputs', combinedInputs)
   const inputIndexAndTransactionHashSet = new Set()
   for (const input of combinedInputs) {
 
@@ -383,8 +384,7 @@ export const combine = (psts) => {
     }
   }
   
-  
-  // combine
+  return psts[0]
 }
 
 export const getSigningProgress = (pst) => {
@@ -500,7 +500,10 @@ export class Pst {
     this.unsignedTransactionHex = instance.unsignedTransactionHex
     this.inputs = instance.inputs || []
     this.outputs = instance.outputs || []
-    this.wallet = instance.wallet
+    this.walletHash = instance.walletHash
+    if (instance.wallet) {
+      this.wallet = instance.wallet
+    }
     this.options = options
   }
 
@@ -651,9 +654,9 @@ export class Pst {
     const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
 
     const allInputsAreSigned = []
-    
+    const inputList = structuredClone(this.inputs)
     for (const input of transaction.inputs) {
-      let correspondingInput = this.inputs.find((i) => {
+      let correspondingInput = inputList.find((i) => {
         // const parsed = JSON.parse(stringify(i), libauthStringifyReviver)
         return (
           Number(input.outpointIndex) === Number(i.outpointIndex) &&
@@ -899,12 +902,11 @@ export class Pst {
   }
 
   static fromObject(pst, options) {
-
-    // if (pst instanceof Pst) return pst
+    if (pst instanceof Pst) return pst
     const p = new Pst(JSON.parse(JSON.stringify(pst, Pst.exportSafeJSONReplacer), Pst.importSafeJSONReviver), options)
-    if (p.wallet) {
-      p.wallet = MultisigWallet.fromObject(p.wallet, options)
-    }
+    // if (p.wallet) {
+    //   p.wallet = MultisigWallet.fromObject(p.wallet, options)
+    // }
     return p
   }
 
