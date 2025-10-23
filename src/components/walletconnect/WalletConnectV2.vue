@@ -295,6 +295,7 @@ const showActiveSessions = ref(false)
 const activeSessions = ref({})
 const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
 const sessionProposals = ref([])
+const invalidChainSessionProposals = ref([])
 const sessionRequests = ref([])
 /** @type {import("vue").Ref<import("@reown/walletkit").IWalletKit>} */
 const web3Wallet = ref()
@@ -343,7 +344,7 @@ const onScannerDecode = async (content) => {
     await new Promise(async (resolve, reject) => {
       setTimeout(() => reject(new Error('Timeout')), 15 * 1000)
       try {
-        const resp = await web3Wallet.value.pair({ uri: content })
+        const resp = await pairURI(content)
         resolve(resp)
       } catch (error) { reject(error) }
     })
@@ -384,9 +385,14 @@ const loadSessionProposals = async ({ showLoading } = { showLoading: true }) => 
     if (web3Wallet.value) {
       const proposals = await web3Wallet.value.getPendingSessionProposals()
       const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
+      invalidChainSessionProposals.value = [];
       sessionProposals.value = proposals.filter((p) => {
         const namespaces = mergeRequiredAndOptionalNamespaces(p?.requiredNamespaces, p?.optionalNamespaces);
-        return namespaces?.bch?.chains?.includes(chainIdFilter)
+        if (!namespaces?.bch?.chains?.includes(chainIdFilter)) {
+          invalidChainSessionProposals.value.push(p)
+          return false
+        }
+        return true
       })
     }
   } catch (error) {
@@ -562,6 +568,9 @@ const pairURI = async (uri) => {
     const prevSessionProposalsLength = sessionProposals.value?.length
     await web3Wallet.value.pair({ uri: uri })
     await loadSessionProposals({ showLoading: false })
+    if (invalidChainSessionProposals.value?.length && !sessionProposals.value?.length) {
+      throw $t('ChainNotSupported', 'Chain not supported')
+    }
     let tryAgain = 15
     const i = setInterval(() => {
       if (sessionProposals.value?.length > prevSessionProposalsLength || !tryAgain) {
@@ -580,7 +589,7 @@ const pairURI = async (uri) => {
         noCaps: true,
         color: 'primary'
       },
-      class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
+      class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
     })
   } finally {
     loading.value = ''
