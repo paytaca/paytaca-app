@@ -296,6 +296,7 @@ const activeSessions = ref({})
 const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
 const sessionProposals = ref([])
 const sessionRequests = ref([])
+/** @type {import("vue").Ref<import("@reown/walletkit").IWalletKit>} */
 const web3Wallet = ref()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
@@ -823,6 +824,9 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       sessionRequest.error = true
       processingSession.value[sessionRequest.topic] = 'Sending error response'
     } finally {
+      if (!response.result) delete response.result
+      if (!response.error) delete response.error
+      console.log(sessionRequest?.params?.request?.method, 'response', response);
       await web3Wallet.value.respondSessionRequest({
         topic: sessionRequest.topic, response
       })
@@ -860,6 +864,9 @@ const respondToSignMessageRequest = async (sessionRequest) => {
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
   } finally {
+    if (!response.result) delete response.result
+    if (!response.error) delete response.error
+    console.log(sessionRequest?.params?.request?.method, 'response', response);
     await web3Wallet.value.respondSessionRequest({ topic: sessionRequest.topic, response })
     if (!sessionRequest.error) {
       sessionRequest.confirmed = true
@@ -1038,10 +1045,11 @@ const attachEventListeners = (_web3Wallet) => {
   _web3Wallet?.on?.('session_update', onSessionUpdate)
   _web3Wallet?.on?.('session_event', onSessionEvent)
   _web3Wallet?.on?.('session_expire', onSessionExpire)
+  _web3Wallet?.on?.('session_request_expire', onSessionExpire)
 }
 
 /**
- * @param {import('@walletconnect/web3wallet').IWeb3Wallet} _web3Wallet
+ * @param {import('@reown/walletkit').IWalletKit} _web3Wallet
  */
 const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('auth_request', onAuthRequest)
@@ -1051,6 +1059,7 @@ const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('session_update', onSessionUpdate)
   _web3Wallet?.off?.('session_event', onSessionEvent)
   _web3Wallet?.off?.('session_expire', onSessionExpire)
+  _web3Wallet?.off?.('session_request_expire', onSessionExpire)
 }
 
 const refreshComponent = async () => {
