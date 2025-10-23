@@ -251,6 +251,7 @@ import {
   isMultisigWalletSynced
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import { APP_VERSION, compareAppVersions } from 'src/utils/version-control'
 const $emit = defineEmits([
   'request-scanner'
 ])
@@ -990,11 +991,27 @@ const disconnectAllSessions = async () => {
   }
 }
 
-const resetWallectConnect = async () => {
+const resetWallectConnect = async (opts = { silent: false }) => {
   await disconnectAllSessions()
   await resetWallectConnectDatabase()
   await loadActiveSessions()
-  alert('Reset done!')
+  if (!opts?.silent) alert('Reset done!')
+}
+
+window.test = compareAppVersions
+// NOTE: Can be removed if enough time has passed since writing
+async function wcVersionUpgradeMigration() {
+  try {
+    const resetFlagLocalStorageKey = 'WC2__2_22_4__UPGRADE_MIGRATE'
+    const migrated = localStorage.getItem(resetFlagLocalStorageKey);
+    if (migrated) return
+    const versionCompare = compareAppVersions(APP_VERSION, "0.23.0");
+    if (versionCompare <= 0) return
+    await resetWallectConnect({ silent: true });
+    localStorage.setItem(resetFlagLocalStorageKey, 1);
+  } catch(error) {
+    console.error(error)
+  }
 }
 
 const loadWeb3Wallet = async () => {
@@ -1100,6 +1117,7 @@ onMounted(async () => {
   try {
     loading.value = 'Loading...'
     await loadWeb3Wallet()
+    await wcVersionUpgradeMigration()
     loadActiveSessions()
     attachEventListeners(web3Wallet.value)
     if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {
