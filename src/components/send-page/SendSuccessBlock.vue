@@ -62,13 +62,18 @@
         </a>
         </div>
       </div>
-      <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-md q-mb-xs" style="font-size: 13px;">
+      <div v-if="formattedTxTimestamp" class="text-center text-grey q-mt-md q-mb-md" style="font-size: 13px;">
         {{ formattedTxTimestamp }}
       </div>
 
       <!-- Transaction Memo Section -->
       <div class="row justify-center q-mt-sm q-mb-sm">
-        <div class="col-12 col-md-8 q-px-md">
+        <div 
+          :class="[
+            memoInputFocused ? 'col-12 col-md-8' : 'col-auto',
+            'q-px-md memo-section-wrapper'
+          ]"
+        >
           <div v-if="!editingMemo && transactionMemo" 
             class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
             :class="getDarkModeClass(darkMode, 'text-white', '')"
@@ -92,26 +97,29 @@
             </div>
           </div>
 
-          <div v-else class="memo-input-container">
+          <div v-else class="memo-input-container" :class="{ 'memo-input-minimal': !memoInputFocused }">
             <q-input
+              ref="memoInputRef"
               v-model="memoInput"
               :dark="darkMode"
               filled
               :label="transactionMemo ? $t('EditMemo', {}, 'Edit memo') : $t('AddMemo', {}, 'Add memo (optional)')"
-              :placeholder="$t('AddNoteForThisTransaction', {}, 'Add a note for this transaction...')"
+              :placeholder="memoInputFocused ? $t('AddNoteForThisTransaction', {}, 'Add a note for this transaction...') : ''"
               :disable="networkError"
               maxlength="200"
-              counter
+              :counter="memoInputFocused"
               type="textarea"
-              rows="3"
+              :rows="memoInputFocused ? 3 : 1"
               class="q-mb-sm"
+              @focus="onMemoInputFocus"
+              @blur="onMemoInputBlur"
             >
               <template v-slot:append>
                 <q-icon 
-                  v-if="memoInput" 
+                  v-if="memoInput && memoInputFocused" 
                   name="close" 
                   class="cursor-pointer" 
-                  @click="memoInput = ''"
+                  @click="clearMemoInput"
                 />
               </template>
             </q-input>
@@ -120,7 +128,7 @@
                 {{ $t('NetworkError', {}, 'Network error. Try again later.') }}
               </div>
             </div>
-            <div class="row q-gutter-sm justify-end">
+            <div v-if="memoInputFocused" class="row q-gutter-sm justify-end">
               <q-btn
                 v-if="transactionMemo"
                 flat
@@ -198,7 +206,8 @@ export default {
       editingMemo: false,
       hasMemo: false,
       networkError: false,
-      keypair: null
+      keypair: null,
+      memoInputFocused: false
     }
   },
 
@@ -397,6 +406,12 @@ export default {
             this.transactionMemo = this.memoInput.trim()
             this.hasMemo = true
             this.editingMemo = false
+            this.memoInputFocused = false
+            
+            // Dismiss keyboard
+            if (this.$refs.memoInputRef) {
+              this.$refs.memoInputRef.blur()
+            }
             
             this.$q.notify({
               message: this.$t('MemoSaved', {}, 'Memo saved'),
@@ -429,6 +444,41 @@ export default {
     cancelEditMemo () {
       this.memoInput = this.transactionMemo
       this.editingMemo = false
+      this.memoInputFocused = false
+      // Dismiss keyboard
+      if (this.$refs.memoInputRef) {
+        this.$refs.memoInputRef.blur()
+      }
+    },
+    onMemoInputFocus () {
+      this.memoInputFocused = true
+      
+      // Scroll input into view on mobile when keyboard appears
+      this.$nextTick(() => {
+        if (this.$refs.memoInputRef && this.$refs.memoInputRef.$el) {
+          setTimeout(() => {
+            this.$refs.memoInputRef.$el.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            })
+          }, 300) // Delay to allow keyboard to open
+        }
+      })
+    },
+    onMemoInputBlur () {
+      // Collapse back to minimal if no text has been entered
+      if (!this.memoInput || this.memoInput.trim() === '') {
+        this.memoInputFocused = false
+      }
+    },
+    clearMemoInput () {
+      this.memoInput = ''
+      // Keep focus on the input after clearing
+      this.$nextTick(() => {
+        if (this.$refs.memoInputRef) {
+          this.$refs.memoInputRef.focus()
+        }
+      })
     },
     copyTxid () {
       this.$copyText(this.txid)
@@ -548,6 +598,10 @@ export default {
     }
     
     // Memo Section
+    .memo-section-wrapper {
+      transition: all 0.3s ease;
+    }
+
     .memo-container {
       min-width: 50vw;
       border: 1px solid rgba(128, 128, 128, 0.3);
@@ -564,9 +618,27 @@ export default {
     
     .memo-input-container {
       width: 100%;
+      transition: all 0.3s ease;
       
       .q-field {
         margin-bottom: 8px;
+        transition: all 0.3s ease;
+      }
+
+      &.memo-input-minimal {
+        min-width: 280px;
+        max-width: 400px;
+        
+        .q-field {
+          .q-field__control {
+            min-height: 48px !important;
+          }
+          
+          .q-field__native {
+            min-height: 48px !important;
+            resize: none;
+          }
+        }
       }
     }
   }

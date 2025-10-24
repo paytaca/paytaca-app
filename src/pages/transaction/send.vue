@@ -325,9 +325,6 @@
             @swiped="slideToSubmit"
             class="absolute-bottom"
           />
-          <footer-menu 
-            :class="{ 'send-page-footer-hidden': hideFooter }"
-          />
 
           <template v-if="sent">
             <SendSuccessBlock
