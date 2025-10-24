@@ -123,6 +123,8 @@ const routes = [
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
       { path: 'learn', component: () => import('src/pages/apps/learn.vue'), name: 'app-learn' },
       { path: 'wallet-backup', component: () => import('src/pages/apps/wallet-backup.vue'), name: 'app-wallet-backup' },
+      { path: 'wallet-backup/seed-phrase', component: () => import('src/pages/apps/wallet-backup/view-seed-phrase.vue'), name: 'app-wallet-backup-seed-phrase' },
+      { path: 'wallet-backup/shards', component: () => import('src/pages/apps/wallet-backup/view-shards.vue'), name: 'app-wallet-backup-shards' },
       {
         path: 'marketplace',
         component: () => import('src/layouts/MarketplaceLayout.vue'),
