@@ -1,7 +1,7 @@
 <template>
   <q-btn
     flat
-    :class="isMobile ? 'col-10' : 'col-12'"
+    :class="isMobile && !isChipnet ? 'col-10' : 'col-12'"
     align="left"
     @click="showMultiWalletDialog"
   >
@@ -13,8 +13,8 @@
           :class="getDarkModeClass(darkMode)"
         />
         <span
-          class="text-bold text-h6 wallet-name-label col-11"
-          :class="'text-grad'"
+          class="text-bold text-h6 wallet-name-label col-11 text-grad"
+          ref="walletLabel"
         >
           {{ walletNameLabel }}
         </span>
@@ -66,23 +66,31 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
     }
   },
 
   methods: {
     getDarkModeClass,
     showMultiWalletDialog () {
-      if (!this.isShow) {
-        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
+      if (this.isShow) {
+        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
         this.isShow = true
       } else {
-        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
+        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
         this.isShow = false
       }
     },
     onDialogHide () {
       this.isShow = false
     }
+  },
+
+  mounted () {
+    const labelEl = this.$refs.walletLabel
+    labelEl.style.maxWidth = `${labelEl.clientWidth - 15}px`
   }
 }
 </script>
