@@ -8,10 +8,10 @@
     <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
       <div class="row q-px-xs">
         <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
-          <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)">
+          <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
             <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
           </q-btn>
-          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="getDarkModeClass(darkMode)">{{ app.name }}</p>
+          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']">{{ app.name }}</p>
         </div>
       </div>
     </div>
@@ -127,7 +127,6 @@ export default {
           path: '/apps/lift-token',
           iconStyle: 'width: 50%; height: 60%;',
           active: !this.$store.getters['global/isChipnet'],
-          // property used for checking if user's whitelisting has been approved
           smartBCHOnly: false
         },
         {
