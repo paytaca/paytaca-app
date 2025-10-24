@@ -25,7 +25,6 @@
 /**
 * @typedef {Object} MultisigWalletNetworkData
 * @property {number} [lastIssuedDepositAddressIndex=0] - The last generated external address index, shown to the user to receive coins, or derived and stored locally
-* @property {number} [lastIssuedChangeAddressIndex]  - The last generated change address index, derived and stored locally doesn't have to be on chain
 * @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
 * @property {number} [lastUsedChangeAddressIndex]  - The last used change address on-chain.
 */
@@ -37,7 +36,6 @@
  * @property {number|string} [id] - The unique identifier of the wallet. If value is string it's the locking bytecode of the first address (address 0). If number it's the synced wallet id
  * @property {number} [n] - The total number of signers
  * @property {number} [lastIssuedDepositAddressIndex=0] - The last generated external address index, shown to the user to receive coins, or derived and stored locally
- * @property {number} [lastIssuedChangeAddressIndex]  - The last generated change address index, derived and stored locally doesn't have to be on chain
  * @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
  * @property {number} [lastUsedChangeAddressIndex]  - The last used change address on-chain.
  * @property {{[Network]: MultisigWalletNetworkData }} [networks] - Network specific state
@@ -544,10 +542,6 @@ export class MultisigWallet {
     return this.networks?.[network]?.lastIssuedDepositAddressIndex ?? -1
   }
 
-  getLastIssuedChangeAddressIndex(network) {
-    return this.networks?.[network]?.lastIssuedChangeAddressIndex ?? -1
-  }
-
   getLastUsedDepositAddressIndex(network) {
     return this.networks?.[network]?.lastUsedDepositAddressIndex ?? -1
   }
@@ -606,10 +600,10 @@ getChangeAddress(addressIndex, prefix) {
     let _addressIndex = addressIndex
 
     if (_addressIndex === undefined || _addressIndex < 0) {
-      if (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex === undefined) {
+      if (this.networks[this.options.provider.network].lastUsedChangeAddressIndex === undefined) {
         _addressIndex = 0
       } else {
-        _addressIndex = this.networks[this.options.provider.network].lastIssuedDepositAddressIndex + 1
+        _addressIndex = this.networks[this.options.provider.network].lastUsedChangeAddressIndex + 1
       }
     }
 
@@ -656,7 +650,7 @@ async getWalletUtxos() {
     dCounter++
   }
 
-  let lastChangeAddress = (this.networks[this.options.provider.network].lastIssuedChangeAddressIndex || 0) + 20
+  let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
 
   let cCounter = 0
 
@@ -718,15 +712,6 @@ async getWalletUtxos() {
     
   }
 
-  if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastIssuedChangeAddressIndex || -1)) {
-    this.networks[this.options.provider.network].lastIssuedChangeAddressIndex = highestUsedChangeAddressIndex       
-    this.options?.store?.commit?.('multisig/updateWalletLastIssuedChangeAddressIndex', { wallet: this, lastIssuedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network})   
-    syncAddressIndicesPromises.push({
-      key: 'lastIssuedChangeAddressIndex',
-      promise: async () => await this.options?.coordinationServer?.updateWalletLastIssuedChangeAddressIndex(this, highestUsedChangeAddressIndex, this.options.provider.network)
-    })
-  }
-
   const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
   results.forEach((res, i) => {
       const key = syncAddressIndicesPromises[i].key;
@@ -768,7 +753,7 @@ async getWalletBalance(asset, decimals) {
 
 async scanAddresses() {
 
-  let lastDepositAddress = (this.lastIssuedDepositAddressIndex || 0) + 20
+  let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
 
   let dIndex = 0
 
@@ -786,7 +771,7 @@ async scanAddresses() {
     dIndex++
   }
 
-  let lastChangeAddress = (this.lastIssuedChangeAddressIndex || 0) + 20
+  let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
 
   let cIndex = 0
 
@@ -867,7 +852,6 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
  */
 async issueDepositAddress(addressIndex) {
     
-  this.lastIssuedDepositAddressIndex = addressIndex
     
   if (!this.options?.store?.dispatch) return
 
@@ -899,24 +883,22 @@ async issueDepositAddress(addressIndex) {
  */
  async issueChangeAddress(addressIndex) {
 
-    this.lastIssuedChangeAddressIndex = addressIndex
-
     if (!this.options?.store?.commit) return
 
     this.options?.store?.commit(
-      'multisig/updateWalletLastIssuedChangeAddressIndex', 
-      { wallet: this, lastIssuedChangeAddressIndex: addressIndex, network: this.options.provider.network }
+      'multisig/updateLastUsedChangeAddressIndex', 
+      { wallet: this, lastUsedChangeAddressIndex: addressIndex, network: this.options.provider.network }
     ) 
     
     this.options
         ?.coordinationServer
-        ?.updateWalletLastIssuedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network)
+        ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
         .catch(e => e)
     
     retryWithBackoff(async () => {
       return await this.options?.store?.dispatch(
         'multisig/subscribeWalletAddress',
-        this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address
+        this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address
       )},
       2,
       1000
@@ -1008,8 +990,8 @@ async issueDepositAddress(addressIndex) {
     const outputsMap = outputs.map(o => ({}))
 
     let funderUtxos = null
-    const lastIssuedChangeAddressIndex = this.getLastIssuedChangeAddressIndex(this.options.provider.network)
-    const changeAddressIndex = lastIssuedChangeAddressIndex === undefined ? 0 : lastIssuedChangeAddressIndex + 1
+    const lastUsedChangeAddressIndex = this.getLastUsedChangeAddressIndex(this.options.provider.network)
+    const changeAddressIndex = lastUsedChangeAddressIndex === undefined ? 0 : lastUsedChangeAddressIndex + 1
     const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
 
     const satoshisChangeOutput = {
@@ -1235,10 +1217,6 @@ async issueDepositAddress(addressIndex) {
       name: this.name,
       m: this.m,
       signers: this.signers,
-      lastIssuedDepositAddressIndex: this.lastIssuedDepositAddressIndex,
-      lastIssuedChangeAddressIndex: this.lastIssuedChangeAddressIndex,
-      lastUsedDepositAddressIndex: this.lastUsedDepositAddressIndex,
-      lastUsedChangeAddressIndex: this.lastUsedChangeAddressIndex,
       networks: this.networks
     }
   }

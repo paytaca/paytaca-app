@@ -301,4 +301,8 @@ export function setWalletConnectedApps(state, connectedApps) {
   }
 }
 
+export function cacheCashtokenIdentity(state, { category, cashtokenIdentity }) {
+  state.cache.cashtokenIdentities[category] = cashtokenIdentity
+}
+
 

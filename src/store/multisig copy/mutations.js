@@ -1,6 +1,5 @@
-import { getMultisigCashAddress, getLockingBytecode, findMultisigWalletByLockingData, Pst, getWalletHash } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, findMultisigWalletByLockingData } from 'src/lib/multisig'
 import { hashTransaction, binToHex } from 'bitauth-libauth-v3'
-import { getWallet } from '../global/getters'
 
 export function createWallet (state, multisigWallet) {
   state.wallets.push(multisigWallet)
@@ -22,21 +21,21 @@ export function updateWalletId(state, { oldId, newId }) {
   wallet.id = newId
 }
 
-export function saveWallet (state, wallet) {
-  const index = state.wallets.findIndex(savedWallet => {
-    return getWalletHash(savedWallet) === getWalletHash(wallet)
+export function saveWallet (state, multisigWallet) {
+  const lockingBytecode = getLockingBytecode({ template: multisigWallet.template, lockingData: multisigWallet.lockingData })
+  const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)	
+  const index = state.wallets.findIndex((wallet) => {
+    const existingLockingBytecode = getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData })
+    const existingLockingBytecodeHex = binToHex(existingLockingBytecode.bytecode)
+    return lockingBytecodeHex === existingLockingBytecodeHex
   })
-
   if (index === -1) {
-    return state.wallets.push(wallet) 
+   return state.wallets.push(multisigWallet) 
   }
-
   if (state.wallets[index].enabled) {
-    wallet.enabled = true
+    multisigWallet.enabled = true
   }
-
-  state.wallets.splice(index, 1, wallet)
-
+  state.wallets.splice(index, 1, multisigWallet)
 }
 
 export function deleteWallet (state, { multisigWallet }) {
@@ -178,62 +177,4 @@ export function updateWalletUtxos (state, { walletAddress, utxos }) {
     utxos,
     lastUpdate: Math.floor(Date.now() / 1000)
   }
-}
-
-
-export function savePst(state, pst) {
-  const storedPstIndex = state.psts.findIndex(p => {
-    const instance = Pst.fromObject(p)
-    return instance.unsignedTransactionHash === pst.unsignedTransactionHash
-  })
-
-  if (storedPstIndex === -1) {
-    return state.psts.push(pst)
-  }
-  state.psts.splice(storedPstIndex, 1, pst)
-}
-
-
-export function deletePst(state, pst) {
-  const index = state.psts.findIndex(p => {
-    const instance = Pst.fromObject(p)
-    return instance.unsignedTransactionHash === pst.unsignedTransactionHash
-  })
-  if (index === -1) return
-  
-  state.psts.splice(index, 1)
-}
-
-export function addPstPartialSignature(state, { pst, inputIndex, partialSignature }) {
-  const index = state.psts.findIndex(p => {
-    const instance = Pst.fromObject(p)
-    return instance.unsignedTransactionHash === pst.unsignedTransactionHash
-  })
-
-  if (index === -1) return
-
-  if (!state.psts[index].inputs[inputIndex].partialSignatures) {
-    state.psts[index].inputs[inputIndex].partialSignatures = []
-  }
-
-  state.psts[index].inputs[inputIndex].partialSignatures.push(partialSignature)
-}
-
-
-export function updateWalletLastIssuedDepositAddressIndex(state, { wallet, lastIssuedDepositAddressIndex, network }) {
-  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
-  if (!storedWallet) return
-  storedWallet.networks[network].lastIssuedDepositAddressIndex = lastIssuedDepositAddressIndex
-}
-
-export function updateWalletLastUsedDepositAddressIndex(state, { wallet, lastUsedDepositAddressIndex, network }) {
-  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
-  if (!storedWallet) return
-  storedWallet.networks[network].lastUsedDepositAddressIndex = lastUsedDepositAddressIndex
-}
-
-export function updateWalletLastUsedChangeAddressIndex(state, { wallet, lastUsedChangeAddressIndex, network }) {
-  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
-  if (!storedWallet) return
-  storedWallet.networks[network].lastUsedChangeAddressIndex = lastUsedChangeAddressIndex
 }
