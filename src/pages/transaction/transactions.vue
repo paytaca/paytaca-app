@@ -106,6 +106,7 @@
 		          ref="transaction"
 		          :wallet="wallet"
 		          :denominationTabSelected="denominationTabSelected"
+		          @memo-updated="onMemoUpdated"
 		        />
 		        <div class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
 		        	<div class="col br-15 pt-card" :class="getDarkModeClass(darkmode)"
@@ -456,6 +457,19 @@ export default {
 	        this.assetInfoShown = false
 	        // this.$refs['asset-info'].hide()
 	      } catch {}
+	    },
+	    onMemoUpdated (memoData) {
+	      // Update the transaction in the list with the new encrypted memo
+	      const transactionListComponent = this.$refs['transaction-list-component']
+	      if (transactionListComponent && transactionListComponent.transactions) {
+	        const txIndex = transactionListComponent.transactions.findIndex(
+	          tx => tx.txid === memoData.txid
+	        )
+	        if (txIndex !== -1) {
+	          // Update the encrypted_memo field
+	          transactionListComponent.transactions[txIndex].encrypted_memo = memoData.encrypted_memo
+	        }
+	      }
 	    },
 	    formatBalance (asset) {
 	      if (asset.id.includes('ct') || asset.id.includes('sep20')) {

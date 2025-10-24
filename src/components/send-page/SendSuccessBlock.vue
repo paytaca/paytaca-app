@@ -67,83 +67,73 @@
       </div>
 
       <!-- Transaction Memo Section -->
-      <div class="row justify-center q-mt-sm q-mb-sm">
-        <div 
-          :class="[
-            memoInputFocused ? 'col-12 col-md-8' : 'col-auto',
-            'q-px-md memo-section-wrapper'
-          ]"
-        >
-          <div v-if="!editingMemo && transactionMemo" 
-            class="text-left q-my-sm rounded-borders q-px-md q-py-sm text-subtitle1 memo-container"
-            :class="getDarkModeClass(darkMode, 'text-white', '')"
-            @click="editingMemo = true"
-          >
-            <div class="row items-center">
-              <div class="col">
-                <span :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')">
-                  {{ $t('Memo') }}:
-                </span>
-                {{ transactionMemo }}
+      <div class="memo-section q-mt-md">
+        <div v-if="hasMemo || editingMemo" class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('Memo') }}</div>
+        <div class="row justify-center">
+          <div class="col-12 col-md-8 q-px-md">
+            <q-slide-transition>
+              <div v-if="!editingMemo">
+                <div v-if="hasMemo" class="memo-display-container">
+                  <div 
+                    class="memo-content-container"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <div class="memo-text">{{ transactionMemo }}</div>
+                    <div class="memo-actions">
+                      <q-btn flat icon="edit" size="sm" padding="xs sm" @click="openMemo()"/>
+                      <q-separator vertical :dark="darkMode"/>
+                      <q-btn flat icon="delete" size="sm" padding="xs sm" color="red-7" @click="confirmDelete()"/>
+                    </div>
+                  </div>
+                </div>
+                <div v-else>
+                  <q-item-section class="q-pt-sm text-center">
+                    <q-btn
+                      outline
+                      no-caps
+                      :label="$t('AddMemo', {}, 'Add memo')"
+                      icon="add"
+                      color="grey-7"
+                      class="br-15"
+                      padding="xs md"
+                      :disable="networkError"
+                      @click="openMemo()"
+                    />
+                    <div v-if="networkError" class="row justify-center q-pt-xs q-px-sm">
+                      <div class="text-grey-5 text-italic" style="font-size: 12px;">
+                        {{ $t('NetworkError', {}, 'Network error. Try again later.') }}
+                      </div>
+                    </div>
+                  </q-item-section>
+                </div>
               </div>
-              <q-btn 
-                flat 
-                dense 
-                round 
-                icon="edit" 
-                size="sm"
-                :class="getDarkModeClass(darkMode, 'text-grey-5', 'text-grey-8')"
-              />
-            </div>
-          </div>
-
-          <div v-else class="memo-input-container" :class="{ 'memo-input-minimal': !memoInputFocused }">
-            <q-input
-              ref="memoInputRef"
-              v-model="memoInput"
-              :dark="darkMode"
-              filled
-              :label="transactionMemo ? $t('EditMemo', {}, 'Edit memo') : $t('AddMemo', {}, 'Add memo (optional)')"
-              :placeholder="memoInputFocused ? $t('AddNoteForThisTransaction', {}, 'Add a note for this transaction...') : ''"
-              :disable="networkError"
-              maxlength="200"
-              :counter="memoInputFocused"
-              type="textarea"
-              :rows="memoInputFocused ? 3 : 1"
-              class="q-mb-sm"
-              @focus="onMemoInputFocus"
-              @blur="onMemoInputBlur"
-            >
-              <template v-slot:append>
-                <q-icon 
-                  v-if="memoInput && memoInputFocused" 
-                  name="close" 
-                  class="cursor-pointer" 
-                  @click="clearMemoInput"
-                />
-              </template>
-            </q-input>
-            <div v-if="networkError" class="row justify-between q-pb-xs q-px-sm">
-              <div class="text-grey-5 text-italic" style="font-size: 12px;">
-                {{ $t('NetworkError', {}, 'Network error. Try again later.') }}
-              </div>
-            </div>
-            <div v-if="memoInputFocused" class="row q-gutter-sm justify-end">
-              <q-btn
-                v-if="transactionMemo"
-                flat
-                no-caps
-                :label="$t('Cancel')"
-                @click="cancelEditMemo"
-              />
-              <q-btn
-                no-caps
-                class="button"
-                :label="$t('Save')"
-                :disable="!memoInput || memoInput === transactionMemo || networkError"
-                @click="saveMemo"
-              />
-            </div>
+              <q-item v-else style="overflow-wrap: anywhere;">
+                <q-item-section>
+                  <q-item-label>
+                    <div class="row items-start">
+                      <div class="col q-pr-sm">
+                        <input
+                          ref="memoInputRef"
+                          v-model="memoInput"
+                          type="text"
+                          class="memo-input"
+                          :class="darkMode ? 'memo-input-dark' : 'memo-input-light'"
+                          :placeholder="$t('AddNoteForThisTransaction', {}, 'Enter memo...')"
+                          style="width: 100%; border: none; outline: none; font-size: 14px; padding: 8px 12px; font-family: inherit; border-radius: 4px;"
+                          @keyup.enter="saveMemo()"
+                          @keyup.esc="cancelEditMemo()"
+                        />
+                      </div>
+                      <div class="row items-center no-wrap">
+                        <q-btn flat icon="check" size="sm" padding="xs sm" color="primary" :disable="!memoInput || memoInput === transactionMemo" @click="saveMemo()"/>
+                        <q-separator vertical :dark="darkMode"/>
+                        <q-btn flat icon="close" size="sm" padding="xs sm" @click="cancelEditMemo()"/>
+                      </div>
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-slide-transition>
           </div>
         </div>
       </div>
@@ -206,8 +196,7 @@ export default {
       editingMemo: false,
       hasMemo: false,
       networkError: false,
-      keypair: null,
-      memoInputFocused: false
+      keypair: null
     }
   },
 
@@ -323,24 +312,24 @@ export default {
         if (currentMemo) {
           if ('error' in currentMemo) {
             this.hasMemo = false
-            // Show input field if no memo exists
-            this.editingMemo = true
+            this.editingMemo = false
           } else {
             // Decrypt memo
             const decryptedNote = await decryptMemo(this.keypair.privkey, currentMemo.note)
             this.transactionMemo = decryptedNote
             this.memoInput = decryptedNote
             this.hasMemo = true
+            this.editingMemo = false
           }
         } else {
-          // Show input field if no memo exists
-          this.editingMemo = true
+          this.hasMemo = false
+          this.editingMemo = false
         }
       } catch (error) {
         console.error('Error loading memo:', error)
         this.networkError = true
-        // Show input field even on error
-        this.editingMemo = true
+        this.hasMemo = false
+        this.editingMemo = false
       }
     },
     async saveMemo () {
@@ -406,12 +395,6 @@ export default {
             this.transactionMemo = this.memoInput.trim()
             this.hasMemo = true
             this.editingMemo = false
-            this.memoInputFocused = false
-            
-            // Dismiss keyboard
-            if (this.$refs.memoInputRef) {
-              this.$refs.memoInputRef.blur()
-            }
             
             this.$q.notify({
               message: this.$t('MemoSaved', {}, 'Memo saved'),
@@ -441,42 +424,59 @@ export default {
         })
       }
     },
-    cancelEditMemo () {
-      this.memoInput = this.transactionMemo
-      this.editingMemo = false
-      this.memoInputFocused = false
-      // Dismiss keyboard
-      if (this.$refs.memoInputRef) {
-        this.$refs.memoInputRef.blur()
-      }
-    },
-    onMemoInputFocus () {
-      this.memoInputFocused = true
-      
-      // Scroll input into view on mobile when keyboard appears
-      this.$nextTick(() => {
-        if (this.$refs.memoInputRef && this.$refs.memoInputRef.$el) {
-          setTimeout(() => {
-            this.$refs.memoInputRef.$el.scrollIntoView({
-              behavior: 'smooth',
-              block: 'center'
-            })
-          }, 300) // Delay to allow keyboard to open
-        }
-      })
-    },
-    onMemoInputBlur () {
-      // Collapse back to minimal if no text has been entered
-      if (!this.memoInput || this.memoInput.trim() === '') {
-        this.memoInputFocused = false
-      }
-    },
-    clearMemoInput () {
-      this.memoInput = ''
-      // Keep focus on the input after clearing
+    openMemo () {
+      this.editingMemo = true
       this.$nextTick(() => {
         if (this.$refs.memoInputRef) {
           this.$refs.memoInputRef.focus()
+        }
+      })
+    },
+    cancelEditMemo () {
+      this.memoInput = this.transactionMemo
+      this.editingMemo = false
+    },
+    async confirmDelete () {
+      this.$q.dialog({
+        title: this.$t('DeletingThisMemo', {}, 'Deleting this Memo'),
+        message: '',
+        dark: this.darkMode,
+        ok: {
+          push: true,
+          color: 'primary',
+          flat: true
+        },
+        cancel: {
+          push: true,
+          color: 'primary',
+          flat: true
+        },
+        persistent: true,
+        class: this.darkMode ? 'text-white' : 'text-black'
+      }).onOk(async () => {
+        try {
+          const { deleteMemo } = await import('src/utils/transaction-memos.js')
+          await deleteMemo(this.txid)
+          this.hasMemo = false
+          this.transactionMemo = ''
+          this.memoInput = ''
+          
+          this.$q.notify({
+            message: this.$t('MemoDeleted', {}, 'Memo deleted'),
+            color: 'positive',
+            icon: 'check_circle',
+            position: 'top',
+            timeout: 2000
+          })
+        } catch (error) {
+          console.error('Error deleting memo:', error)
+          this.$q.notify({
+            message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 2000
+          })
         }
       })
     },
@@ -598,47 +598,48 @@ export default {
     }
     
     // Memo Section
-    .memo-section-wrapper {
-      transition: all 0.3s ease;
+    .memo-display-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
     }
 
-    .memo-container {
-      min-width: 50vw;
-      border: 1px solid rgba(128, 128, 128, 0.3);
-      background-color: inherit;
-      cursor: pointer;
+    .memo-content-container {
+      cursor: default;
+      padding: 12px 20px;
+      border-radius: 12px;
       transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(128, 128, 128, 0.08);
+      border: 1px solid rgba(128, 128, 128, 0.2);
+      max-width: 100%;
       
-      &:hover {
-        border-color: rgba(128, 128, 128, 0.5);
-        transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      .memo-text {
+        flex: 1;
+        word-break: break-word;
+        white-space: pre-wrap;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      
+      .memo-actions {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
       }
     }
-    
-    .memo-input-container {
-      width: 100%;
-      transition: all 0.3s ease;
-      
-      .q-field {
-        margin-bottom: 8px;
-        transition: all 0.3s ease;
-      }
 
-      &.memo-input-minimal {
-        min-width: 280px;
-        max-width: 400px;
-        
-        .q-field {
-          .q-field__control {
-            min-height: 48px !important;
-          }
-          
-          .q-field__native {
-            min-height: 48px !important;
-            resize: none;
-          }
-        }
+    .memo-input {
+      &.memo-input-dark {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+      
+      &.memo-input-light {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: black;
       }
     }
   }

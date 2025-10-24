@@ -90,7 +90,7 @@
 </template>
 <script setup>
 import ago from 's-ago'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
@@ -208,6 +208,14 @@ async function loadMemo() {
 onMounted(() => {
   loadMemo()
 })
+
+// Watch for changes to encrypted_memo and reload
+watch(
+  () => props.transaction?.encrypted_memo,
+  () => {
+    loadMemo()
+  }
+)
 </script>
 <style lang="scss" scoped>
 .transaction-item {
@@ -301,7 +309,7 @@ onMounted(() => {
 }
 
 .transaction-date {
-  font-size: 13px;
+  font-size: 14px;
   opacity: 0.6;
   flex-shrink: 0;
   
@@ -315,7 +323,7 @@ onMounted(() => {
 }
 
 .transaction-memo {
-  font-size: 12px;
+  font-size: 14px;
   opacity: 0.75;
   display: flex;
   align-items: center;
