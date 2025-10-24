@@ -222,7 +222,6 @@ import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { convertCashAddress } from 'src/wallet/chipnet'
-import { loadWallet } from 'src/wallet'
 import { buildApprovedNamespaces, getSdkError, mergeRequiredAndOptionalNamespaces } from '@walletconnect/utils'
 import Watchtower from 'src/lib/watchtower'
 import { useQuasar } from 'quasar'
@@ -241,7 +240,6 @@ import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
-import { loadLibauthHdWallet } from '../../wallet'
 import {
   createMultisigTransactionFromWCSessionRequest,
   generateTransactionHash,
@@ -291,7 +289,6 @@ const walletAddresses = ref([])
  * @type {import("vue").Ref<Record<String, SingleWalletInfo>>}
  * */
 const sessionTopicWalletAddressMapping = ref({})
-const wallet = ref()
 const showActiveSessions = ref(false)
 const activeSessions = ref({})
 const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
@@ -508,20 +505,6 @@ async function saveConnectedApp (session) {
     })
   } catch (error) { console.log('🚀 ~ saveConnectedApp ~ error:', error) }
 }
-
-// const accountInfo = computed(() => {
-//   return {
-//     address: bchWallet.value?.lastAddress,
-//     changeAddress: bchWallet.value?.lastChangeAddress,
-//     walletIndex: bchWallet.value?.lastAddressIndex
-//   }
-// })
-
-// async function getCurrentAddressWif() {
-//   const walletIndex = accountInfo.value.walletIndex
-//   const utxoPkWif = await getWalletByNetwork(wallet.value, 'bch').getPrivateKey(`0/${walletIndex}`)
-//   return utxoPkWif
-// }
 
 const connectNewSession = async (uri = '', prompt = true) => {
   if (prompt) {
@@ -1090,7 +1073,6 @@ const refreshComponent = async () => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
   await $store.dispatch('global/loadWalletConnectedApps')
-  wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
   walletAddresses.value = $store.getters['global/walletAddresses']
   await loadSessionRequests({ showLoading: true })
@@ -1106,7 +1088,6 @@ onBeforeMount(async () => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
   await $store.dispatch('global/loadWalletConnectedApps')
-  wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
   walletAddresses.value = $store.getters['global/walletAddresses']
   await loadSessionRequests()
