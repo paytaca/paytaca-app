@@ -1,6 +1,7 @@
 <template>
   <q-btn
     flat
+    ref="walletButton"
     :class="isMobile && !isChipnet ? 'col-10' : 'col-12'"
     align="left"
     @click="showMultiWalletDialog"
@@ -89,8 +90,9 @@ export default {
   },
 
   mounted () {
+    const buttonEl = this.$refs.walletButton.$el
     const labelEl = this.$refs.walletLabel
-    labelEl.style.maxWidth = `${labelEl.clientWidth - 15}px`
+    labelEl.style.maxWidth = `${Math.floor(buttonEl.clientWidth * 0.9)}px`
   }
 }
 </script>
