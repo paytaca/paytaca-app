@@ -288,6 +288,8 @@ export function merchantActivity (state) {
 }
 
 export function getWatchtowerBaseUrl (state) {
+  return 'http://localhost:8000'
+  
   if (state.isChipnet) {
     return 'https://chipnet.watchtower.cash'
   }
