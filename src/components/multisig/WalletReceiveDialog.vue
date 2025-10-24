@@ -67,10 +67,13 @@ const address = computed(() => {
 })
 
 onMounted(() => {
-  if (props.multisigWallet.lastIssuedDepositAddressIndex === undefined) {
+  addressIndex.value = 0
+  console.log(props.multisigWallet)
+  // console.log(props.multisigWallet)
+  if (props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex === undefined || props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex === -1) {
     return addressIndex.value = 0
   }
-  addressIndex.value = Number(props.multisigWallet.lastIssuedDepositAddressIndex)
+  addressIndex.value = Number(props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex )
 })
 
 </script>
