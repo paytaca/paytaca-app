@@ -1228,7 +1228,8 @@ export default {
 
       if (!hasError) {
         if (toSendBchRecipients.length > 0) {
-          let changeAddress = sendPageUtils.getChangeAddress('bch')
+          // Get change address dynamically (now async)
+          let changeAddress = await sendPageUtils.getChangeAddress('bch')
   
           if (token?.tokenId && this.userSelectedChangeAddress) {
             changeAddress = this.userSelectedChangeAddress
@@ -1244,9 +1245,10 @@ export default {
             mnemonic: vm.wallet.mnemonic,
             derivationPath: bchWallet.derivationPath
           }
+          // Get change addresses dynamically (now async)
           const changeAddresses = {
-            bch: sendPageUtils.getChangeAddress('bch'),
-            slp: sendPageUtils.getChangeAddress('slp')
+            bch: await sendPageUtils.getChangeAddress('bch'),
+            slp: await sendPageUtils.getChangeAddress('slp')
           }
   
           getWalletByNetwork(vm.wallet, 'slp')
