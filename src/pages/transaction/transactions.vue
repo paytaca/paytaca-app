@@ -101,31 +101,33 @@
 		                />
 		              </template> -->
 		            </div>
-			<div ref="transactionSection" class="transaction-row">				
-		        <transaction
-		          ref="transaction"
-		          :wallet="wallet"
-		          :denominationTabSelected="denominationTabSelected"
-		          @memo-updated="onMemoUpdated"
-		        />
-		        <div class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
-		        	<div class="col br-15 pt-card" :class="getDarkModeClass(darkmode)"
-		            :style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`" >
-		        		<button
-			              v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
-			              class="btn-custom q-mt-none"
-			              :class="[
-			                darkmode ? 'text-light' : 'text-dark', 
-			                `btn-${transactionFilterOpt.value}`,
-			                {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
-			              ]"
-			              @click="setTransactionsFilter(transactionFilterOpt.value)"
-			            >
-			              {{ transactionFilterOpt?.label }}
-			            </button>
-		        	</div>		      
-		        </div>	
+			
+			<transaction
+			  ref="transaction"
+			  :wallet="wallet"
+			  :denominationTabSelected="denominationTabSelected"
+			  @memo-updated="onMemoUpdated"
+			/>
+			
+			<div class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
+				<div class="col br-15 pt-card" :class="getDarkModeClass(darkmode)"
+				:style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`" >
+					<button
+					  v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
+					  class="btn-custom q-mt-none"
+					  :class="[
+					    darkmode ? 'text-light' : 'text-dark', 
+					    `btn-${transactionFilterOpt.value}`,
+					    {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
+					  ]"
+					  @click="setTransactionsFilter(transactionFilterOpt.value)"
+					>
+					  {{ transactionFilterOpt?.label }}
+					</button>
+				</div>		      
+			</div>
 
+			<div ref="transactionSection" class="transaction-row" :style="{ height: transactionRowHeight }">
 		        <div class="transaction-container" :class="darkmode ? 'text-light' : 'text-dark'">
 		          <!-- <div
 		            class="q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"	 
@@ -153,6 +155,8 @@
 		              :transactionsFilter="transactionsFilter"
 		              :selectedDenomination="selectedDenomination"
 		              @resolved-transaction="onStablehedgeTransaction"
+		              @scroll-up="handleScrollUp"
+		              @scroll-down="handleScrollDown"
 		            />
 		            <TransactionList
 		              v-else
@@ -162,6 +166,8 @@
 		              :wallet="wallet"
 		              :selectedNetworkProps="selectedNetwork"
 		              @on-show-transaction-details="showTransactionDetails"
+		              @scroll-up="handleScrollUp"
+		              @scroll-down="handleScrollDown"
 		            />
 		          </KeepAlive>
 		        </div>
@@ -210,7 +216,8 @@ export default {
 		        balance: 0
 		      },
 		    assetInfoShown: false,
-		    balanceLoaded: false
+		    balanceLoaded: false,
+		    transactionRowHeight: 'auto'
 		}
 	},
 	computed: {
@@ -334,11 +341,77 @@ export default {
 		this.$nextTick(() => {
 	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, asset.length > 0 ? this.selectedAsset : null )
 	        this.$refs['transaction-list-component'].getTransactions()
+	        
+	        // Calculate transaction row height
+	        this.calculateTransactionRowHeight()
 	      })
+	      
+	      // Recalculate on window resize
+	      window.addEventListener('resize', this.calculateTransactionRowHeight)
+	},
+	beforeUnmount() {
+	    window.removeEventListener('resize', this.calculateTransactionRowHeight)
+	},
+	watch: {
+	    txSearchActive() {
+	      // Recalculate height when search bar appears/disappears
+	      this.$nextTick(() => {
+	        this.calculateTransactionRowHeight()
+	      })
+	    }
 	},
 	methods: {
 		parseAssetDenomination,
 		getDarkModeClass,
+		calculateTransactionRowHeight() {
+			this.$nextTick(() => {
+				try {
+					const screenHeight = window.innerHeight
+					const fixedSection = this.$refs.fixedSection
+					const footerMenu = this.$refs.footerMenu?.$el
+					
+					if (!fixedSection || !footerMenu) {
+						// Fallback if refs not available
+						this.transactionRowHeight = 'calc(100vh - 250px)'
+						return
+					}
+					
+					// Calculate the height of everything above the transaction row
+					let heightAbove = 0
+					
+					// Get all children of fixedSection before transactionSection
+					const children = Array.from(fixedSection.children)
+					const transactionSectionIndex = children.indexOf(this.$refs.transactionSection)
+					
+					for (let i = 0; i < transactionSectionIndex; i++) {
+						heightAbove += children[i].offsetHeight
+					}
+					
+					// Add footer menu height
+					const footerHeight = footerMenu.offsetHeight
+					
+					// Calculate available height for transaction row
+					const availableHeight = screenHeight - heightAbove - footerHeight
+					
+					this.transactionRowHeight = `${availableHeight}px`
+				} catch (error) {
+					console.error('Error calculating transaction row height:', error)
+					this.transactionRowHeight = 'calc(100vh - 250px)'
+				}
+			})
+		},
+		handleScrollUp() {
+			// User scrolling up (viewing newer transactions) - show footer
+			if (this.$refs.footerMenu) {
+				this.$refs.footerMenu.showFooter()
+			}
+		},
+		handleScrollDown() {
+			// User scrolling down (viewing older transactions) - hide footer
+			if (this.$refs.footerMenu) {
+				this.$refs.footerMenu.hideFooter()
+			}
+		},
 		getAssetImageUrl (asset) {
 			if (asset?.logo) {
 				if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
@@ -390,6 +463,7 @@ export default {
 	            this.$nextTick(() => {
 			        this.$refs['transaction-list-component'].resetValues(null, null, asset)
 			        this.$refs['transaction-list-component'].getTransactions()
+			        this.calculateTransactionRowHeight()
 			      })
 	          })
 	    },
@@ -405,15 +479,23 @@ export default {
 	    },
 	    async onRefresh (done) {
 	      try {
-	        // Refresh transaction list
+	        // Reset and refresh transaction list
 	        if (this.$refs['transaction-list-component']) {
-	          await this.$refs['transaction-list-component'].getTransactions(1)
+	          // Reset the list state first
+	          this.$refs['transaction-list-component'].resetValues()
+	          // Then fetch fresh data
+	          await this.$refs['transaction-list-component'].getTransactions(1, { append: false })
 	        }
 	        
 	        // Refresh balance if needed
 	        if (this.selectedAsset?.id) {
 	          await this.getBchBalance(this.selectedAsset.id, this)
 	        }
+	        
+	        // Recalculate height in case anything changed
+	        this.$nextTick(() => {
+	          this.calculateTransactionRowHeight()
+	        })
 	      } catch (error) {
 	        console.error('Error refreshing:', error)
 	      } finally {
@@ -428,6 +510,7 @@ export default {
 	      this.$nextTick(() => {
 	        this.$refs['transaction-list-component'].resetValues(value)
 	        this.$refs['transaction-list-component'].getTransactions()
+	        this.calculateTransactionRowHeight()
 	      })
 	    },
 	    /**
@@ -512,7 +595,8 @@ export default {
 #app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh; // Fixed viewport height
+  overflow: hidden; // Prevent app container from scrolling
 }
 
 .fixed-container {
@@ -520,6 +604,13 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 0; // Important for flex children with overflow
+  max-height: 100%; // Explicitly constrain height
+  overflow: hidden; // Prevent the container from scrolling
+  
+  // Fixed elements (asset selector, transaction component, buttons) should not shrink
+  > :not(.transaction-row) {
+    flex-shrink: 0;
+  }
 }
 
 #bch-card {
@@ -535,35 +626,34 @@ export default {
 }
 .transaction-row {
    width: 100%;
-   flex: 1;
+   // Height set dynamically via JavaScript
    display: flex;
    flex-direction: column;
-   min-height: 0; // Important for flex children with overflow
 }
+
 .transaction-container {
-    overflow: hidden;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
-    flex: 1;
+    height: 100%; // Fill parent
     display: flex;
     flex-direction: column;
-    min-height: 0; // Important for flex children with overflow
     padding-bottom: 90px; // Account for fixed footer menu
+    overflow: hidden;
     
-    // Make KeepAlive wrapper expand
+    // Make KeepAlive wrapper fill height
     > * {
-      flex: 1;
+      height: 100%;
       display: flex;
       flex-direction: column;
-      min-height: 0;
+      overflow: hidden;
     }
     
-    // Override TransactionList height calculation
-    :deep(.transaction-list) {
-      flex: 1 !important;
-      height: auto !important;
-      overflow-y: auto;
-      min-height: 0;
+    // Ensure both list components are scrollable
+    :deep(.transaction-list),
+    :deep(.stablehedge-history-list) {
+      height: 100%;
+      overflow-y: auto !important;
+      overflow-x: hidden;
     }
     
     :deep(.transactions-content) {
