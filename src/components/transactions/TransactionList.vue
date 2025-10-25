@@ -39,7 +39,7 @@
       <div ref="scrollSentinel" class="scroll-sentinel"></div>
     </template>
     <div v-else class="loading-state">
-      <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
+      <TransactionListItemSkeleton v-for="i in 12" :key="i"/>
     </div>
   </div>
 </template>
@@ -435,6 +435,10 @@ export default {
 
   .loading-state {
     padding: 16px 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
   }
 
   .scroll-sentinel {

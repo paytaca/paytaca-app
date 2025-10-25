@@ -1,5 +1,5 @@
 <template>
-	<div id="app-container" class="sticky-header-container" :class="darkmode ? 'dark' : 'light'">
+	<q-pull-to-refresh id="app-container" class="sticky-header-container" :class="darkmode ? 'dark' : 'light'" @refresh="onRefresh">
 		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/"/>
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
@@ -169,7 +169,7 @@
 		</div>		
 
 		<footer-menu ref="footerMenu" />
-	</div>
+	</q-pull-to-refresh>
 </template>
 <script>
 import { markRaw } from '@vue/reactivity'
@@ -403,6 +403,23 @@ export default {
 	        this.$refs['transaction-list-component'].getTransactions(1, opts)
 	      }
 	    },
+	    async onRefresh (done) {
+	      try {
+	        // Refresh transaction list
+	        if (this.$refs['transaction-list-component']) {
+	          await this.$refs['transaction-list-component'].getTransactions(1)
+	        }
+	        
+	        // Refresh balance if needed
+	        if (this.selectedAsset?.id) {
+	          await this.getBchBalance(this.selectedAsset.id, this)
+	        }
+	      } catch (error) {
+	        console.error('Error refreshing:', error)
+	      } finally {
+	        done()
+	      }
+	    },
 	    setTransactionsFilter(value) {
 	      const transactionsFilters = this.transactionsFilterOpts.map(opt => opt?.value)
 	      if (transactionsFilters.indexOf(value) >= 0) this.transactionsFilter = value
@@ -488,6 +505,23 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+:deep(.q-pull-to-refresh__puller-container) {
+  min-width: 100vw !important;
+}
+
+#app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.fixed-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; // Important for flex children with overflow
+}
+
 #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
@@ -501,11 +535,55 @@ export default {
 }
 .transaction-row {
    width: 100%;
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   min-height: 0; // Important for flex children with overflow
 }
 .transaction-container {
     overflow: hidden;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; // Important for flex children with overflow
+    padding-bottom: 90px; // Account for fixed footer menu
+    
+    // Make KeepAlive wrapper expand
+    > * {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    
+    // Override TransactionList height calculation
+    :deep(.transaction-list) {
+      flex: 1 !important;
+      height: auto !important;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    
+    :deep(.transactions-content) {
+      padding-bottom: 20px; // Extra padding at the end of list
+    }
+    
+    :deep(.empty-state) {
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    :deep(.loading-state) {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 20px;
+    }
 }
 .transaction-wallet {
    font-size: 20px;

@@ -120,6 +120,7 @@
                           :class="darkMode ? 'memo-input-dark' : 'memo-input-light'"
                           :placeholder="$t('AddNoteForThisTransaction', {}, 'Enter memo...')"
                           style="width: 100%; border: none; outline: none; font-size: 14px; padding: 8px 12px; font-family: inherit; border-radius: 4px;"
+                          @input="onMemoInputChange"
                           @keyup.enter="saveMemo()"
                           @keyup.esc="cancelEditMemo()"
                         />
@@ -333,8 +334,22 @@ export default {
       }
     },
     async saveMemo () {
-      if (!this.txid || !this.memoInput) return
+      // Double-check the input value from DOM in case v-model hasn't updated
+      const domInputValue = this.$refs.memoInputRef?.value || ''
+      const memoToSave = domInputValue || this.memoInput
+      
+      console.log('saveMemo called')
+      console.log('- this.memoInput:', this.memoInput)
+      console.log('- DOM input value:', domInputValue)
+      console.log('- memoToSave:', memoToSave)
+      
+      if (!this.txid || !memoToSave) {
+        console.log('Early return - txid or memoToSave is empty')
+        return
+      }
+      
       if (!this.keypair) {
+        console.error('Keypair is missing')
         this.$q.notify({
           message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
           color: 'negative',
@@ -349,17 +364,41 @@ export default {
         // Ensure user is authenticated before saving
         await authMemo()
 
+        const trimmedMemo = memoToSave.trim()
+        console.log('Saving memo - Original text:', trimmedMemo)
+        
+        if (!trimmedMemo) {
+          console.error('Memo is empty after trimming')
+          return
+        }
+
         // Encrypt the memo before sending
         const encryptedMemo = await encryptMemo(
           this.keypair.privkey,
           this.keypair.pubkey,
-          this.memoInput.trim()
+          trimmedMemo
         )
+
+        console.log('Encrypted memo:', encryptedMemo)
+        
+        if (!encryptedMemo) {
+          console.error('Encryption failed - encryptedMemo is empty')
+          this.$q.notify({
+            message: this.$t('ErrorEncryptingMemo', {}, 'Error encrypting memo'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 2000
+          })
+          return
+        }
 
         const data = {
           txid: this.txid,
           note: encryptedMemo
         }
+        
+        console.log('Data being sent to server:', data)
 
         let response = null
         if (this.hasMemo) {
@@ -392,9 +431,13 @@ export default {
             })
           } else {
             // Successfully saved
-            this.transactionMemo = this.memoInput.trim()
+            const savedMemoText = memoToSave.trim()
+            this.transactionMemo = savedMemoText
+            this.memoInput = savedMemoText
             this.hasMemo = true
             this.editingMemo = false
+            
+            console.log('Memo saved successfully:', savedMemoText)
             
             this.$q.notify({
               message: this.$t('MemoSaved', {}, 'Memo saved'),
@@ -431,6 +474,10 @@ export default {
           this.$refs.memoInputRef.focus()
         }
       })
+    },
+    onMemoInputChange (event) {
+      console.log('Memo input changed:', event.target.value)
+      console.log('Current memoInput value:', this.memoInput)
     },
     cancelEditMemo () {
       this.memoInput = this.transactionMemo

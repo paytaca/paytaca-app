@@ -1,7 +1,6 @@
 <template>
-  <q-pull-to-refresh @refresh="onRefresh">
-    <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
-      <div>
+  <q-pull-to-refresh id="app-container" :class="getDarkModeClass(darkMode)" @refresh="onRefresh">
+    <div>
       <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <q-resize-observer @resize="onFixedSectionResize" />
           <div >
@@ -346,7 +345,6 @@
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
     />
-    </div>
   </q-pull-to-refresh>
 </template>
 
