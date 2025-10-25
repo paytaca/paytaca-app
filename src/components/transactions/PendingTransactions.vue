@@ -4,18 +4,6 @@
 			<div class="q-ml-lg button button-text-primary" style="font-size: 20px;">                
 				{{ $t('Pending') }}
 			</div>
-			<q-btn
-				v-if="orderTotal > 3"
-				flat
-				dense
-				no-caps
-				:label="$t('See All')"
-				:color="darkMode ? 'blue-4' : 'blue-6'"
-				@click="seeAllOrders"
-				size="sm"
-				padding="4px 8px"
-				class="q-mr-md"
-			/>
 		</div>
 		
 		<div class="row no-wrap q-pl-lg q-mb-lg no-scrollbar pending-container">
@@ -265,9 +253,54 @@ export default {
   padding: 16px;
   cursor: pointer;
   transition: transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
   
   &:active {
     transform: scale(0.96);
+  }
+  
+  // Shimmer effect overlay
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    animation: shimmer-sweep 3s ease-in-out infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+  
+  &.dark::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      transparent
+    );
+  }
+  
+  // Ensure content is above shimmer
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  50%, 100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
   }
 }
 
