@@ -136,7 +136,7 @@
             :selectedDenomination="selectedDenomination"
             :hasCashin="hasCashin"
             @cashin="openCashIn()"
-            @price-chart="openPriceChart()"
+            @spend-bch="openSpendBch()"
           />
           <div class="row q-mt-sm">
             <div class="col">
@@ -286,23 +286,6 @@
                   </template>
                 </q-input>
               </div>
-              <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
-                <q-btn
-                  unelevated
-                  @click="openPriceChart"
-                  icon="img:assets/img/theme/payhero/price-chart.png"
-                />
-                <q-btn
-                  v-else
-                  round
-                  color="blue-9"
-                  padding="xs"
-                  icon="mdi-chart-line-variant"
-                  class="q-ml-md"
-                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
-                  @click="openPriceChart"
-                />
-              </template>
             </div>
           </div>
           <div
@@ -373,7 +356,6 @@ import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import AddNewAsset from 'src/pages/transaction/dialog/AddNewAsset'
-import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import connectedDialog from '../connect/connectedDialog.vue'
@@ -453,7 +435,6 @@ export default {
       hasCashin: false,
       hasCashinAlert: false,
       availableCashinFiat: null,
-      isPriceChartDialogShown: false,
       websocketManager: null,
       assetClickTimer: null,
       assetClickCounter: 0 ,
@@ -651,16 +632,8 @@ export default {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
     },
-    openPriceChart () {
-      if (!this.isPriceChartDialogShown) {
-        this.isPriceChartDialogShown = true
-        this.$q.dialog({
-          component: PriceChart
-        })
-          .onDismiss(() => {
-            this.isPriceChartDialogShown = false
-          })
-      }
+    openSpendBch () {
+      this.$router.push({ name: 'spend-bch' })
     },
     async openCashIn () {
       await this.checkCashinAvailable()

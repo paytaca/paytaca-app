@@ -226,7 +226,7 @@ export default {
       showLegacy: false,
       lnsName: '',
       generateAddressOnLeave: false,
-      generating: false,
+      generating: true, // Start as true, set to false after address loads
       amount: '',
       amountDialog: false,
       setAmountInFiat: true,
@@ -546,8 +546,14 @@ export default {
     },
     async refreshDynamicAddress() {
       // Regenerate the dynamic address when needed
-      const address = await this.getAddress()
-      this.dynamicAddress = address
+      try {
+        const address = await this.getAddress()
+        this.dynamicAddress = address
+        this.generating = false // Address loaded successfully
+      } catch (error) {
+        console.error('Error refreshing dynamic address:', error)
+        this.generating = false // Stop generating even on error
+      }
     },
     getLastAddressIndex () {
       if (this.assetId.indexOf('slp/') > -1) {
@@ -828,7 +834,7 @@ export default {
         vm.setAmountInFiat = false
       }
     }
-    vm.generating = false
+    // Don't set generating to false here - let refreshDynamicAddress() handle it
   }
 }
 </script>
