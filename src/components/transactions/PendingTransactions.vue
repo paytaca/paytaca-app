@@ -88,11 +88,11 @@ export default {
 		      ],
 			exchangeOrders: [],
 			marketplaceOrders: [],
-			marketplacePagination: {
-				count: 0,
-				limit: 10,
-				offset: 0				
-			},
+		marketplacePagination: {
+			count: 0,
+			limit: 100, // Increased from 10 to show all pending orders
+			offset: 0				
+		},
 			fetchingOrders: false,
 			orderPage: 1,
 			orderTotal: 0,
@@ -127,7 +127,7 @@ export default {
 
 			let params = {
 				wallet_hash: this.$store.getters['global/getWallet']('bch').walletHash,
-				page_size: 3,
+				page_size: 100, // Increased from 3 to show all pending orders
 				page: this.orderPage 
 			}
 
@@ -192,7 +192,7 @@ export default {
 	    	const vm = this	
 		  	const params = {
 			    ref: await vm.$store.dispatch('marketplace/getCartRef'),
-			    limit: vm.marketplacePagination?.limit || 10,
+			    limit: vm.marketplacePagination?.limit || 100,
 			    offset: vm.marketplacePagination?.offset || undefined,
 			    storefront_id: undefined,
 			    exclude_statuses: ['completed', 'cancelled'].join(',')

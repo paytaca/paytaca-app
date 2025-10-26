@@ -714,7 +714,10 @@ export default {
     },
     hide () {
       this.$refs.dialog.hide()
-      this.$parent.toggleHideBalances()
+      // Only call if parent has the method
+      if (this.$parent && typeof this.$parent.toggleHideBalances === 'function') {
+        this.$parent.toggleHideBalances()
+      }
     },
     openMemo () {
       this.showMemo = true

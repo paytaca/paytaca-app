@@ -55,7 +55,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="shopping_bag" size="3em" color="primary" />
+                <q-icon name="img:marketplace.png" size="3em" />
               </div>
             </div>
             <div class="col">
@@ -201,15 +201,26 @@ export default {
       border-color: rgba(59, 123, 246, 0.2);
     }
     
-    .icon-container {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      background: rgba(59, 123, 246, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+  .icon-container {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(59, 123, 246, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    // Apply primary color to all icons for consistency
+    .q-icon {
+      color: #3B7BF6 !important;
     }
+    
+    // For image icons, add a colored overlay/filter effect
+    :deep(.q-icon__svg),
+    :deep(img) {
+      filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1264%) hue-rotate(203deg) brightness(99%) contrast(93%);
+    }
+  }
   }
 }
 
