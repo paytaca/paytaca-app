@@ -72,50 +72,6 @@
           </q-card-section>
         </q-card>
 
-        <!-- Online Sites -->
-        <q-card 
-          class="spend-option-card br-15"
-          :class="getDarkModeClass(darkMode)"
-        >
-          <q-card-section class="q-pa-lg">
-            <div class="row items-center q-mb-md">
-              <div class="col-auto q-mr-lg">
-                <div class="icon-container">
-                  <q-icon name="language" size="3em" color="primary" />
-                </div>
-              </div>
-              <div class="col">
-                <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-                  {{ $t('OnlineSites', {}, 'Online Sites') }}
-                </div>
-                <div class="text-body2 text-grey-7">
-                  {{ $t('OnlineSitesDescription', {}, 'Shop at thousands of online stores accepting BCH worldwide') }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Site Links -->
-            <div class="online-sites-list q-gutter-sm q-mt-md">
-              <q-btn
-                v-for="site in onlineSites"
-                :key="site.url"
-                :label="site.name"
-                unelevated
-                outline
-                rounded
-                color="primary"
-                class="site-btn"
-                :href="site.url"
-                target="_blank"
-                no-caps
-                padding="8px 20px"
-              >
-                <q-icon name="open_in_new" size="xs" class="q-ml-xs" />
-              </q-btn>
-            </div>
-          </q-card-section>
-        </q-card>
-
       </div>
 
       <!-- Footer Info -->
@@ -146,18 +102,6 @@ export default {
   components: {
     HeaderNav
   },
-  data() {
-    return {
-      onlineSites: [
-        { name: 'Bitcoin.com', url: 'https://www.bitcoin.com/buy-bch/' },
-        { name: 'Purse.io', url: 'https://purse.io/' },
-        { name: 'Newegg', url: 'https://www.newegg.com/' },
-        { name: 'Namecheap', url: 'https://www.namecheap.com/' },
-        { name: 'eGifter', url: 'https://www.egifter.com/' },
-        { name: 'Travala', url: 'https://www.travala.com/' }
-      ]
-    }
-  },
   computed: {
     darkMode() {
       return this.$store.getters['darkmode/getStatus']
@@ -175,22 +119,37 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-.spend-bch-page {
-  min-height: 100vh;
+<style lang="scss">
+/* Unscoped to ensure it applies properly */
+#app-container.spend-bch-page {
+  height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: block !important;
   padding-bottom: 80px;
+  
+  .header-nav-wrapper {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+  }
 }
 
-.content-container {
+
+
+#app-container.spend-bch-page .content-container {
   max-width: 800px;
   margin: 0 auto;
 }
 
-.hero-section {
+
+#app-container.spend-bch-page .hero-section {
   padding: 20px 0;
 }
 
-.spend-options {
+
+#app-container.spend-bch-page .spend-options {
   .spend-option-card {
     transition: all 0.3s ease;
     border: 1px solid transparent;
@@ -213,29 +172,19 @@ export default {
     // Apply primary color to all icons for consistency
     .q-icon {
       color: #3B7BF6 !important;
-    }
-    
-    // For image icons, add a colored overlay/filter effect
-    :deep(.q-icon__svg),
-    :deep(img) {
-      filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1264%) hue-rotate(203deg) brightness(99%) contrast(93%);
+      
+      // For image icons inside q-icon
+      img {
+        filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1264%) hue-rotate(203deg) brightness(99%) contrast(93%) !important;
+      }
     }
   }
   }
 }
 
-.online-sites-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  
-  .site-btn {
-    font-size: 14px;
-    font-weight: 500;
-  }
-}
 
-.dark {
+
+#app-container.spend-bch-page.dark {
   .spend-option-card {
     &.cursor-pointer:hover {
       border-color: rgba(255, 255, 255, 0.15);
@@ -248,7 +197,8 @@ export default {
   }
 }
 
-.footer-info {
+
+#app-container.spend-bch-page .footer-info {
   max-width: 600px;
   margin: 0 auto;
   padding-top: 40px;
@@ -256,12 +206,12 @@ export default {
   .info-banner {
     border: 1px solid rgba(59, 123, 246, 0.2);
     background: rgba(59, 123, 246, 0.05);
-    
-    .dark & {
-      border-color: rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.03);
-    }
   }
+}
+
+#app-container.spend-bch-page.dark .footer-info .info-banner {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
 }
 </style>
 
