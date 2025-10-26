@@ -74,7 +74,7 @@
       >
         <!-- DETAILS Tab -->
         <q-tab-panel name="details" class="q-pa-none">
-          <div class="tab-content-wrapper details-tab-content">
+          <div class="tab-content-wrapper details-tab-content scroll-y" @touchstart="preventPull">
             <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
             <div class="q-mx-md q-px-sm q-mb-sm">
             <TradeInfoCard
@@ -792,6 +792,18 @@ export default {
     formatDate,
     formatOrderStatus,
     getDarkModeClass,
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
 
     async loadData () {
       try {

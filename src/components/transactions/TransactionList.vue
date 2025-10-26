@@ -1,8 +1,9 @@
 <template>
   <div 
     ref="transactionList"
-    class="transaction-list"
+    class="transaction-list scroll-y"
     @scroll="onScroll"
+    @touchstart="preventPull"
   >
     <template v-if="transactionsLoaded">
       <div class="transactions-content">
@@ -157,6 +158,18 @@ export default {
           this.intersectionObserver.observe(this.$refs.scrollSentinel)
         }
       })
+    },
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
     },
     onScroll (event) {
       const element = event.target

@@ -63,7 +63,7 @@
         REVIEWS
       </div>
 
-      <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;">
+      <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
         <div v-if="!loadingReviews">
           <div v-if="reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
             No Reviews Yet
@@ -176,6 +176,18 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
     refreshContent (done) {
       this.fetchArbiter()
       this.fetchFeedback()

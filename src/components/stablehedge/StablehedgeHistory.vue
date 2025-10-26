@@ -1,5 +1,5 @@
 <template>
-  <div class="stablehedge-history-list" @scroll="onScroll">
+  <div class="stablehedge-history-list scroll-y" @scroll="onScroll" @touchstart="preventPull">
     <template v-if="fetchingHistory">
       <TransactionListItemSkeleton v-for="i in 4" :key="i"/>
     </template>
@@ -123,6 +123,19 @@ export default defineComponent({
     // Scroll tracking for footer hide/show
     const lastScrollTop = ref(0)
     const scrollThreshold = 50
+    
+    function preventPull(e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    }
     
     function onScroll(event) {
       const element = event.target
@@ -341,7 +354,8 @@ export default defineComponent({
       formatDate,
       formatTokenUnits,
       parseFiatCurrency,
-      onScroll
+      onScroll,
+      preventPull
     }
   },
 })
