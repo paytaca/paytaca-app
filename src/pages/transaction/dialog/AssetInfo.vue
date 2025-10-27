@@ -10,13 +10,13 @@
       </div>
 
       <q-card-section v-if="asset" class="q-pa-lg">
-        <!-- Header: Logo and Symbol -->
+        <!-- Header: Logo and Name -->
         <div class="asset-header text-center q-mb-lg">
           <div class="asset-logo-container">
             <img :src="getImageUrl(asset)" height="60" class="asset-logo">
           </div>
-          <div class="asset-symbol q-mt-sm text-weight-bold" style="font-size: 28px; letter-spacing: 0.5px;">
-            {{ asset.symbol }}
+          <div class="asset-name q-mt-sm text-weight-bold" style="font-size: 28px; letter-spacing: 0.5px;">
+            {{ assetDisplayName }}
           </div>
         </div>
 
@@ -27,6 +27,9 @@
           </div>
           <div class="balance-amount text-weight-bold" style="font-size: 32px; line-height: 1.2;">
             {{ parseAssetDenomination(denomination, asset) }}
+          </div>
+          <div v-if="assetFiatValue" class="fiat-value text-grey-7 q-mt-sm" style="font-size: 18px;">
+            {{ assetFiatValue }}
           </div>
         </div>
         
@@ -186,6 +189,23 @@ export default {
     fallbackAssetLogo () {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(this.asset && this.asset.id))
+    },
+    assetDisplayName () {
+      if (!this.asset) return ''
+      if (this.asset.id === 'bch') return 'Bitcoin Cash'
+      return this.asset.name || this.asset.symbol
+    },
+    assetFiatValue () {
+      if (!this.asset?.id) return ''
+      
+      const selectedCurrency = this.selectedCurrency?.symbol
+      const assetPrice = this.$store.getters['market/getAssetPrice'](this.asset.id, selectedCurrency)
+      if (!assetPrice) return ''
+
+      const balance = Number(this.asset.balance || 0)
+      const computedBalance = balance * Number(assetPrice)
+      
+      return this.parseFiatCurrency(computedBalance.toFixed(2), selectedCurrency)
     }
   },
 
@@ -393,7 +413,7 @@ export default {
     display: block;
   }
   
-  .asset-symbol {
+  .asset-name {
     color: inherit;
   }
 }
@@ -408,6 +428,10 @@ export default {
   
   .balance-amount {
     color: inherit;
+  }
+  
+  .fiat-value {
+    opacity: 0.85;
   }
 }
 

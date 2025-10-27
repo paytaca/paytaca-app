@@ -75,9 +75,13 @@ export default {
     currentTheme() {
       return this.darkMode ? 'dark' : 'light'
     },
+    currentLanguage() {
+      return this.$store.getters['global/language'] || 'en-us'
+    },
     mapUrlWithTheme() {
       const url = new URL(MAP_WEB_URL)
       url.searchParams.set('theme', this.currentTheme)
+      url.searchParams.set('lang', this.currentLanguage)
       return url.toString()
     }
   },
@@ -85,6 +89,10 @@ export default {
     darkMode() {
       // Reload iframe when dark mode changes
       this.updateTheme()
+    },
+    currentLanguage() {
+      // Reload iframe when language changes
+      this.updateUrl()
     }
   },
   methods: {
@@ -96,6 +104,13 @@ export default {
       // Reload iframe with new theme
       // Note: Cross-origin console warnings are expected and harmless
       // We only set iframe.src (allowed), not accessing iframe content
+      if (this.$refs.mapIframe) {
+        this.loading = true
+        this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
+      }
+    },
+    updateUrl() {
+      // Reload iframe with updated parameters
       if (this.$refs.mapIframe) {
         this.loading = true
         this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
@@ -115,8 +130,9 @@ export default {
     }
   },
   mounted() {
-    // Set initial URL with theme
+    // Set initial URL with theme and language
     this.mapUrl = this.mapUrlWithTheme
+    console.log('Map URL:', this.mapUrl) // Debug log
   }
 }
 </script>

@@ -261,6 +261,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import pinDialog from 'src/components/pin'
 import biometricWarningAttempts from 'src/components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { Capacitor } from '@capacitor/core'
+import SaveToGallery from 'src/utils/save-to-gallery'
 
 export default {
   name: 'view-shards',
@@ -430,23 +432,82 @@ export default {
         const shortHash = vm.walletHash.substring(0, 8)
         const filename = `${sanitizedWalletName}-${shortHash}-shard-${shardIndex + 1}.png`
 
-        canvas.toBlob((blob) => {
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = filename
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          URL.revokeObjectURL(url)
+        canvas.toBlob(async (blob) => {
+          try {
+            // Check if running on mobile
+            const isMobile = Capacitor.getPlatform() !== 'web'
+            
+            if (isMobile) {
+              // Convert blob to base64
+              const reader = new FileReader()
+              reader.onloadend = async () => {
+                try {
+                  const base64Data = reader.result.split(',')[1]
+                  console.log('[SaveQR] Attempting to save image, base64 length:', base64Data.length)
+                  console.log('[SaveQR] Filename:', filename)
+                  console.log('[SaveQR] SaveToGallery plugin:', SaveToGallery)
+                  
+                  // Save to photo library using our custom plugin
+                  const result = await SaveToGallery.saveImage({
+                    base64Data: base64Data,
+                    filename: filename
+                  })
+                  
+                  console.log('[SaveQR] Save successful:', result)
+                  
+                  vm.$q.notify({
+                    message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
+                    color: 'positive',
+                    icon: 'check_circle',
+                    position: 'top',
+                    timeout: 2000
+                  })
+                } catch (error) {
+                  console.error('[SaveQR] Error saving to photos:', error)
+                  console.error('[SaveQR] Error details:', {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                  })
+                  vm.$q.notify({
+                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
+                    color: 'negative',
+                    icon: 'error',
+                    position: 'top',
+                    timeout: 3000
+                  })
+                }
+              }
+              reader.readAsDataURL(blob)
+            } else {
+              // Desktop/web - use download link
+              const url = URL.createObjectURL(blob)
+              const link = document.createElement('a')
+              link.href = url
+              link.download = filename
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              URL.revokeObjectURL(url)
 
-          vm.$q.notify({
-            message: vm.$t('QRSaved', {}, 'QR code saved'),
-            color: 'positive',
-            icon: 'download',
-            position: 'top',
-            timeout: 2000
-          })
+              vm.$q.notify({
+                message: vm.$t('QRSaved', {}, 'QR code saved'),
+                color: 'positive',
+                icon: 'download',
+                position: 'top',
+                timeout: 2000
+              })
+            }
+          } catch (error) {
+            console.error('Error in download process:', error)
+            vm.$q.notify({
+              message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
+              color: 'negative',
+              icon: 'error',
+              position: 'top',
+              timeout: 2000
+            })
+          }
         })
       } catch (error) {
         console.error('Error downloading QR:', error)

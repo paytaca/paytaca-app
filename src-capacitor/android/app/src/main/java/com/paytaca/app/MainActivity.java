@@ -15,6 +15,7 @@ import com.getcapacitor.BridgeActivity;
 import com.paytaca.app.plugins.GpsServicePlugin;
 import com.paytaca.app.plugins.PushNotificationSettingsPlugin;
 import com.paytaca.app.plugins.DeepLinkHelperPlugin;
+import com.paytaca.app.plugins.SaveToGalleryPlugin;
 
 public class MainActivity extends BridgeActivity {
   @Override
@@ -22,6 +23,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(GpsServicePlugin.class);
     registerPlugin(PushNotificationSettingsPlugin.class);
     registerPlugin(DeepLinkHelperPlugin.class);
+    registerPlugin(SaveToGalleryPlugin.class);
 
     // CapacitorV3 to V4 upgrade required to move this after registerPlugin()
     super.onCreate(savedInstanceState);
