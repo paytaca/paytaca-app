@@ -86,7 +86,7 @@
                       <q-btn
                         flat
                         no-caps
-                        :label="$t('CopyToClipboard', {}, 'Copy')"
+                        :label="$t('Copy', {}, 'Copy')"
                         icon="content_copy"
                         color="primary"
                         @click="copyToClipboard(shards[0])"
@@ -155,7 +155,7 @@
                       <q-btn
                         flat
                         no-caps
-                        :label="$t('CopyToClipboard', {}, 'Copy')"
+                        :label="$t('Copy', {}, 'Copy')"
                         icon="content_copy"
                         color="primary"
                         @click="copyToClipboard(shards[1])"
@@ -224,7 +224,7 @@
                       <q-btn
                         flat
                         no-caps
-                        :label="$t('CopyToClipboard', {}, 'Copy')"
+                        :label="$t('Copy', {}, 'Copy')"
                         icon="content_copy"
                         color="primary"
                         @click="copyToClipboard(shards[2])"
