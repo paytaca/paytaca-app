@@ -46,7 +46,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Marketplace',
+          name: this.$t('Marketplace'),
           iconName: 'img:marketplace.png',
           path: '/apps/marketplace',
           active: true,
