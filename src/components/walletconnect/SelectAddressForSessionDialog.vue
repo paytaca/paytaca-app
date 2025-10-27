@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" persistent seamless full-width position="bottom">
-    <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
       <q-card-section class="text-grey-10">
         <div class="row items-start justify-start no-wrap q-gutter-x-sm">
           <PeerInfo v-if="sessionProposal?.proposer?.metadata" 
@@ -14,7 +14,7 @@
         <q-btn-group rounded>
           <q-btn 
             @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'cashaddr')" 
-            :color="settings.addressDisplayFormat === 'cashaddr' ? 'brandblue': 'grey'" 
+            :color="settings.addressDisplayFormat === 'cashaddr' ? 'primary': 'grey'" 
             :outline="settings.addressDisplayFormat !== 'cashaddr'"
             size="sm"
             no-caps
@@ -23,7 +23,7 @@
           </q-btn>
           <q-btn 
             @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'tokenaddr')" 
-            :color="settings.addressDisplayFormat === 'tokenaddr' ? 'brandblue': 'grey'" 
+            :color="settings.addressDisplayFormat === 'tokenaddr' ? 'primary': 'grey'" 
             :outline="settings.addressDisplayFormat !== 'tokenaddr'"
             size="sm"
             no-caps
@@ -33,7 +33,7 @@
         </q-btn-group>
       </div>
       <q-card-section>
-        <q-list bordered separator>
+        <q-list bordered separator style="max-height:calc(80vh - 18rem);overflow-y: auto;">
         <q-item-label header>SingleSig Address</q-item-label>
         <q-item
           v-for="item in addressOptions"
