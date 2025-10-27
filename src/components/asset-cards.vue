@@ -43,7 +43,7 @@
     <q-btn flat v-if="hasMoreTokens" class="add-asset-button asset-card-border shadow-5 bg-grad text-white" @click="goToAssetList">
       <div class="column items-center">
         <q-icon name="apps" size="28px" />
-        <div class="text-caption q-mt-xs">View All</div>
+        <div class="text-caption q-mt-xs">{{ $t('ViewAll') }}</div>
       </div>
     </q-btn>
     
