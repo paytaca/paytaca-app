@@ -23,9 +23,17 @@
     </div>
 
     <q-dialog v-model="showFilterDialog" position="bottom">
-      <q-card class="filter-dialog-card" :class="getDarkModeClass(darkMode)">
-        <q-card-section class="q-pb-sm">
+      <q-card class="pt-card filter-dialog-card" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="row justify-between items-center q-pb-sm">
           <div class="text-subtitle1 text-weight-bold">{{ $t('FilterReservations') }}</div>
+          <q-btn
+            flat
+            round
+            padding="sm"
+            icon="close"
+            class="close-button"
+            v-close-popup
+          />
         </q-card-section>
         <q-card-section class="q-pt-sm">
           <div class="filter-section">
