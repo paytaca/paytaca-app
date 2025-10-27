@@ -118,7 +118,7 @@
                           type="text"
                           class="memo-input"
                           :class="darkMode ? 'memo-input-dark' : 'memo-input-light'"
-                          :placeholder="$t('AddNoteForThisTransaction', {}, 'Enter memo...')"
+                          :placeholder="`${$t('EnterMemo', {}, 'Enter memo')}...`"
                           style="width: 100%; border: none; outline: none; font-size: 14px; padding: 8px 12px; font-family: inherit; border-radius: 4px;"
                           @input="onMemoInputChange"
                           @keyup.enter="saveMemo()"
