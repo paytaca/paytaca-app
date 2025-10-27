@@ -759,7 +759,7 @@ export default {
   Market: "Pasar",
   MarketPrice: "Harga Pasar",
   Marketplace: "Pasar",
-  MarketplaceCashbackDesc: "Pesan sekarang dan dapatkan {mix} - {max}% cashback!",
+  MarketplaceCashbackDesc: "Pesan sekarang dan dapatkan {min} - {max}% cashback!",
   MarketplaceCashbackDescOneTime: "Pesan sekarang dan dapatkan uang kembali sebesar {percent}%!",
   MarketplaceCashbackDescSub: "Dapatkan hingga nilai cashback maksimum sebesar {amount} {currency}.",
   MarketplaceCashbackMsg: "Dapatkan uang kembali {min} - {max}%!",

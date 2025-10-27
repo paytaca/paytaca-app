@@ -759,7 +759,7 @@ export default {
   Market: "市场",
   MarketPrice: "市价",
   Marketplace: "市场",
-  MarketplaceCashbackDesc: "立即订购即可获得 {mix} - {max}% 现金返还！",
+  MarketplaceCashbackDesc: "立即订购即可获得 {min} - {max}% 现金返还！",
   MarketplaceCashbackDescOneTime: "立即订购即可获得 {percent}% 现金返还！",
   MarketplaceCashbackDescSub: "最高返现金额为 {amount} {currency}。",
   MarketplaceCashbackMsg: "获得 {min} - {max}% 现金返还！",

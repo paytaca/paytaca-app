@@ -759,7 +759,7 @@ export default {
   Market: "Markt",
   MarketPrice: "Marktpreis",
   Marketplace: "Marktplatz",
-  MarketplaceCashbackDesc: "Bestellen Sie jetzt und erhalten Sie {mix} - {max} % Cashback!",
+  MarketplaceCashbackDesc: "Bestellen Sie jetzt und erhalten Sie {min} - {max} % Cashback!",
   MarketplaceCashbackDescOneTime: "Bestellen Sie jetzt und erhalten Sie {percent}% Cashback!",
   MarketplaceCashbackDescSub: "Erhalten Sie einen maximalen Cashback-Wert von {amount} {currency}.",
   MarketplaceCashbackMsg: "Erhalten Sie {min} - {max} % Cashback!",

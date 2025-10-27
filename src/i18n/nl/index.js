@@ -759,7 +759,7 @@ export default {
   Market: "Markt",
   MarketPrice: "Marktprijs",
   Marketplace: "Marktplaats",
-  MarketplaceCashbackDesc: "Bestel nu en ontvang {mix} - {max}% cashback!",
+  MarketplaceCashbackDesc: "Bestel nu en ontvang {min} - {max}% cashback!",
   MarketplaceCashbackDescOneTime: "Bestel nu en ontvang {percent}% cashback!",
   MarketplaceCashbackDescSub: "Ontvang een maximale cashbackwaarde van {amount} {currency}.",
   MarketplaceCashbackMsg: "Ontvang {min} - {max}% cashback!",

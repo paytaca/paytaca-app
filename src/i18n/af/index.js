@@ -759,7 +759,7 @@ export default {
   Market: "Mark",
   MarketPrice: "Markprys",
   Marketplace: "Markplek",
-  MarketplaceCashbackDesc: "Bestel nou en kry {mix} - {max}% kontantterugbetaling!",
+  MarketplaceCashbackDesc: "Bestel nou en kry {min} - {max}% kontantterugbetaling!",
   MarketplaceCashbackDescOneTime: "Bestel nou en kry {percent}% terugbetaling!",
   MarketplaceCashbackDescSub: "Kry tot maksimum terugbetalingswaarde van {amount} {currency}.",
   MarketplaceCashbackMsg: "Kry {min} - {max}% terugbetaling!",

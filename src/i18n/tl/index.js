@@ -759,7 +759,7 @@ export default {
   Market: "Pamilihan",
   MarketPrice: "Presyo ng merkado",
   Marketplace: "Marketplace",
-  MarketplaceCashbackDesc: "Mag -order ngayon at kumuha ng {mix} - {max}% cashback!",
+  MarketplaceCashbackDesc: "Mag -order ngayon at kumuha ng {min} - {max}% cashback!",
   MarketplaceCashbackDescOneTime: "Mag -order ngayon at kumuha ng {percent}% cashback!",
   MarketplaceCashbackDescSub: "Kumuha ng hanggang sa maximum na halaga ng cashback ng {amount} {currency}.",
   MarketplaceCashbackMsg: "Kumuha ng {min} - {max}% cashback!",

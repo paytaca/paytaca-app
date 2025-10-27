@@ -759,7 +759,7 @@ export default {
   Market: "시장",
   MarketPrice: "시장 가격",
   Marketplace: "시장",
-  MarketplaceCashbackDesc: "지금 주문하고 {mix} - {max}% 캐시백을 받으세요!",
+  MarketplaceCashbackDesc: "지금 주문하고 {min} - {max}% 캐시백을 받으세요!",
   MarketplaceCashbackDescOneTime: "지금 주문하고 {percent}% 캐시백을 받으세요!",
   MarketplaceCashbackDescSub: "{amount} {currency}의 최대 캐시백 가치를 얻으세요.",
   MarketplaceCashbackMsg: "{min} - {max}% 캐시백을 받으세요!",

@@ -1432,7 +1432,7 @@ const phrases = {
       MarketplaceCashbackMsgOneTime: 'Get {percent}% cashback!',
       MarketplaceCashbackMsg: 'Get {min} - {max}% cashback!',
       MarketplaceCashbackDescOneTime: 'Order now and get {percent}% cashback!',
-      MarketplaceCashbackDesc: 'Order now and get {mix} - {max}% cashback!',
+      MarketplaceCashbackDesc: 'Order now and get {min} - {max}% cashback!',
       MarketplaceCashbackDescSub: 'Get up to maximum cashback value of {amount} {currency}.'
     },
     {

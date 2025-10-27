@@ -759,7 +759,7 @@ export default {
   Market: "سوق",
   MarketPrice: "سعر السوق",
   Marketplace: "السوق",
-  MarketplaceCashbackDesc: "اطلب الآن واحصل على {mix} - {max}% استرداد نقدي!",
+  MarketplaceCashbackDesc: "اطلب الآن واحصل على {min} - {max}% استرداد نقدي!",
   MarketplaceCashbackDescOneTime: "اطلب الآن واحصل على استرداد نقدي بنسبة {percent}%!",
   MarketplaceCashbackDescSub: "احصل على ما يصل إلى الحد الأقصى لقيمة الاسترداد النقدي وهو {amount} {currency}.",
   MarketplaceCashbackMsg: "احصل على {min} - {max}% استرداد نقدي!",

@@ -759,7 +759,7 @@ export default {
   Market: "Рынок",
   MarketPrice: "Рыночная цена",
   Marketplace: "Торговая площадка",
-  MarketplaceCashbackDesc: "Закажите сейчас и получите кэшбэк {mix} – {max} %!",
+  MarketplaceCashbackDesc: "Закажите сейчас и получите кэшбэк {min} – {max} %!",
   MarketplaceCashbackDescOneTime: "Закажите сейчас и получите кэшбэк в размере {percent}%!",
   MarketplaceCashbackDescSub: "Получите максимальный кэшбэк в размере {amount} {currency}.",
   MarketplaceCashbackMsg: "Получите кэшбэк от {min} до {max} %!",

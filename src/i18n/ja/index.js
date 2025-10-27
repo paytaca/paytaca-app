@@ -759,7 +759,7 @@ export default {
   Market: "市場",
   MarketPrice: "市場価格",
   Marketplace: "市場",
-  MarketplaceCashbackDesc: "今すぐ注文すると、{mix} - {max}% のキャッシュバックを獲得できます!",
+  MarketplaceCashbackDesc: "今すぐ注文すると、{min} - {max}% のキャッシュバックを獲得できます!",
   MarketplaceCashbackDescOneTime: "今すぐ注文すると、{percent}% のキャッシュバックが得られます!",
   MarketplaceCashbackDescSub: "最大キャッシュバック額 {amount} {currency} を獲得します。",
   MarketplaceCashbackMsg: "{min} ～ {max}% のキャッシュバックを獲得しましょう!",
