@@ -341,12 +341,12 @@
     />
 
     <!-- Floating CTA Button -->
-    <!-- <lift-floating-c-t-a
+    <lift-floating-c-t-a
       icon="shopping_cart"
       :color="getThemeColor()"
       :tooltip-text="$t('BuyLIFTTokens')"
       @click="showBuyDialog = true"
-    /> -->
+    />
   </div>
 </template>
 
