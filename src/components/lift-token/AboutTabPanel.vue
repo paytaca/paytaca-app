@@ -302,7 +302,7 @@
           :dark-mode="darkMode"
         >
           <div class="faq-list">
-            <lift-faq-item
+            <lift-f-a-q-item
               v-for="(faq, index) in faqData"
               :key="index"
               :question="faq.question"
@@ -341,12 +341,12 @@
     />
 
     <!-- Floating CTA Button -->
-    <lift-floating-cta
+    <!-- <lift-floating-c-t-a
       icon="shopping_cart"
       :color="getThemeColor()"
       :tooltip-text="$t('BuyLIFTTokens')"
       @click="showBuyDialog = true"
-    />
+    /> -->
   </div>
 </template>
 

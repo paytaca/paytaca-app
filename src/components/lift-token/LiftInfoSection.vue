@@ -4,7 +4,6 @@
       :model-value="defaultExpanded"
       :label="title"
       :icon="icon"
-      :header-class="headerClass"
       expand-icon-class="text-grey-6"
       class="lift-expansion-item"
       :class="getDarkModeClass(darkMode)"
