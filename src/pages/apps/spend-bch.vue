@@ -12,7 +12,7 @@
         <h4 class="text-h4 text-weight-bold q-mb-sm" :class="getDarkModeClass(darkMode)">
           {{ $t('WhereToSpendBCH', {}, 'Where to Spend BCH') }}
         </h4>
-        <p class="text-body1 text-grey-5 q-mb-lg" style="max-width: 600px; margin: 0 auto;">
+        <p class="text-body1 q-mb-lg" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="max-width: 600px; margin: 0 auto;">
           {{ $t('SpendBCHDescription', {}, 'Discover the many places where you can use your Bitcoin Cash') }}
         </p>
       </div>
@@ -36,7 +36,7 @@
               <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
                 {{ $t('MerchantMap', {}, 'Merchant Map') }}
               </div>
-              <div class="text-body2 text-grey-5">
+              <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
                 {{ $t('MerchantMapDescription', {}, 'Find nearby merchants in our network accepting Bitcoin Cash') }}
               </div>
             </div>
@@ -62,7 +62,7 @@
               <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
                 {{ $t('Marketplace', {}, 'Marketplace') }}
               </div>
-              <div class="text-body2 text-grey-5">
+              <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
                 {{ $t('MarketplaceDescription', {}, 'Shop directly within Paytaca from merchants selling products for BCH') }}
               </div>
             </div>
