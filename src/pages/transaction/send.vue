@@ -114,7 +114,7 @@
                       id="send-to"
                       unelevated
                       no-caps
-                      class="full-width bg-grad send-to-btn"
+                      class="full-width bg-grad send-to-btn text-white"
                       size="lg"
                       @click="() => onScannerDecode(manualAddress, false)"
                     >
