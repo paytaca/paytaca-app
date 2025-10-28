@@ -5,98 +5,88 @@
     @refresh="getCollectibles"
   >
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
-    <q-icon id="context-menu" size="35px" name="more_vert" :style="{ 'margin-top': $q.platform.is.ios ? '42px' : '0px'}" class="text-pt-primary1">
-      <q-menu>
-        <q-list class="pt-card" :class="getDarkModeClass(darkMode)" style="min-width: 100px">
-          <q-item clickable v-close-popup>
-            <q-item-section
-              class="pt-label"
-              :class="getDarkModeClass(darkMode)"
-              @click="showAddress = !showAddress"
-            >
-              {{ $t('ShowReceivingAddress') }}
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-close-popup>
-            <q-item-section
-              class="pt-label"
-              :class="getDarkModeClass(darkMode)"
-              @click="getCollectibles()"
-            >
-              {{ $t('RefreshList') }}
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-menu>
-    </q-icon>
-    <q-tabs
-      dense
-      v-if="enableSmartBCH"
-      active-color="brandblue"
-      
-      class="col-12 q-px-lg"
-      :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '0px'}"
-      :modelValue="selectedNetwork"
-      @update:modelValue="changeNetwork"
+    
+    <!-- Main Tabs -->
+    <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '8px'}">
+      <div class="collectibles-tabs q-px-sm q-py-xs" :class="getDarkModeClass(darkMode)">
+        <button
+          class="collectibles-tab"
+          :class="[
+            darkMode ? 'dark' : '',
+            viewTab === 'gallery' ? 'active' : '',
+            `theme-${theme}`
+          ]"
+          :style="viewTab === 'gallery' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+          @click="viewTab = 'gallery'"
+        >
+          {{ $t('Gallery') }}
+        </button>
+        <button
+          class="collectibles-tab"
+          :class="[
+            darkMode ? 'dark' : '',
+            viewTab === 'receive' ? 'active' : '',
+            `theme-${theme}`
+          ]"
+          :style="viewTab === 'receive' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+          @click="viewTab = 'receive'"
+        >
+          {{ $t('Receive') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Panels -->
+    <q-tab-panels
+      animated
+      v-model="viewTab"
+      class="text-bow tab-panels-wrapper"
+      :class="getDarkModeClass(darkMode)"
     >
-      <q-tab
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        name="BCH"
-        label="BCH"
-      />
-      <q-tab
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        name="sBCH"
-        label="SmartBCH"
-      />
-    </q-tabs>
-    <div v-if="showAddress" class="flex flex-center" style="padding-top: 30px;">
-      <div class="q-pa-md br-15 justify-center">
-        <qr-code
-          :text="receivingAddress"
-          :size="200"
-          icon="/ct-logo.png"
-          @click="copyAddress(receivingAddress)"
-        />
-      </div>
-    </div>
-    <div v-if="showAddress" class="row">
-      <div class="col receiving-address-container">
-        <span class="qr-code-text text-weight-light text-center">
-          <div
-            class="text-nowrap text-bow receiving-address"
-            @click="copyAddress(receivingAddress)" :class="getDarkModeClass(darkMode)"
-          >
-            {{ receivingAddress }}
-          </div>
-        </span>
-      </div>
-    </div>
-    <div class="text-center text-bow" :class="getDarkModeClass(darkMode)" v-if="showAddress" @click="showAddress = !showAddress">
-      <q-btn icon="close" flat round dense class="close-button" />
-    </div>
-    <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
-      <q-tab-panel name="BCH">
-        <div v-if="enableSLP" class="row items-center justify-end">
-          <AssetFilter style="float:none" @filterTokens="filterTokens"/>
-        </div>
-        <keep-alive>
-          <CashTokensNFTs
-            v-if="bchNftType === 'ct' || !enableSLP"
-            ref="cashtokenNFTs"
-            :wallet="wallet"
+      <!-- Gallery Tab -->
+      <q-tab-panel name="gallery" class="q-pa-none tab-panel-content">
+        <!-- Network Tabs for Gallery -->
+        <q-tabs
+          dense
+          v-if="enableSmartBCH"
+          active-color="brandblue"
+          class="col-12 q-px-lg"
+          :modelValue="selectedNetwork"
+          @update:modelValue="changeNetwork"
+        >
+          <q-tab
+            class="network-selection-tab"
+            :class="getDarkModeClass(darkMode)"
+            name="BCH"
+            label="BCH"
           />
-          <SLPCollectibles
-            v-else-if="enableSLP"
-            ref="slpCollectibles"
-            :wallet="wallet"
-            style="margin:auto;"
+          <q-tab
+            class="network-selection-tab"
+            :class="getDarkModeClass(darkMode)"
+            name="sBCH"
+            label="SmartBCH"
           />
-        </keep-alive>
-      </q-tab-panel>
-      <q-tab-panel name="sBCH">
+        </q-tabs>
+        <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
+          <q-tab-panel name="BCH">
+            <div v-if="enableSLP" class="row items-center justify-end">
+              <AssetFilter style="float:none" @filterTokens="filterTokens"/>
+            </div>
+            <keep-alive>
+              <CashTokensNFTs
+                v-if="bchNftType === 'ct' || !enableSLP"
+                ref="cashtokenNFTs"
+                :wallet="wallet"
+              />
+              <SLPCollectibles
+                v-else-if="enableSLP"
+                ref="slpCollectibles"
+                :wallet="wallet"
+                style="margin:auto;"
+              />
+            </keep-alive>
+          </q-tab-panel>
+          <q-tab-panel name="sBCH">
         <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" :currentCountry="currentCountry" />
         <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :darkMode="darkMode" :asset="erc721AssetDetailDialog.asset"/>
         <div class="row items-start justify-end q-px-sm">
@@ -202,8 +192,73 @@
             />
           </q-tab-panel>
         </q-tab-panels>
+          </q-tab-panel>
+        </q-tab-panels>
+      </q-tab-panel>
+      
+      <!-- Receive Tab -->
+      <q-tab-panel name="receive" class="q-pa-none tab-panel-content">
+        <div class="receive-tab-content">
+          <!-- Network Selector -->
+          <q-tabs
+            dense
+            v-if="enableSmartBCH"
+            active-color="brandblue"
+            class="col-12 q-px-lg q-mb-md"
+            :modelValue="selectedNetwork"
+            @update:modelValue="changeNetwork"
+          >
+            <q-tab
+              class="network-selection-tab"
+              :class="getDarkModeClass(darkMode)"
+              name="BCH"
+              label="BCH"
+            />
+            <q-tab
+              class="network-selection-tab"
+              :class="getDarkModeClass(darkMode)"
+              name="sBCH"
+              label="SmartBCH"
+            />
+          </q-tabs>
+          
+          <!-- BCH Token Type Filter -->
+          <div v-if="selectedNetwork === 'BCH' && enableSLP" class="row items-center justify-center q-mb-md">
+            <AssetFilter style="float:none" @filterTokens="filterTokens"/>
+          </div>
+          
+          <!-- QR Code Display -->
+          <div class="flex flex-center" style="padding-top: 30px;">
+            <div class="q-pa-md br-15 justify-center">
+              <q-spinner v-if="!receivingAddress" color="primary" size="50px" />
+              <qr-code
+                v-else
+                :text="receivingAddress"
+                :size="200"
+                icon="/ct-logo.png"
+                @click="copyAddress(receivingAddress)"
+              />
+            </div>
+          </div>
+          
+          <!-- Address Display -->
+          <div v-if="receivingAddress" class="row">
+            <div class="col receiving-address-container">
+              <span class="qr-code-text text-weight-light text-center">
+                <div
+                  class="text-nowrap text-bow receiving-address"
+                  @click="copyAddress(receivingAddress)" 
+                  :class="getDarkModeClass(darkMode)"
+                >
+                  {{ receivingAddress }}
+                </div>
+              </span>
+            </div>
+          </div>
+        </div>
       </q-tab-panel>
     </q-tab-panels>
+    
     <div style="padding-bottom:60px;"></div>
   </q-pull-to-refresh>
 </template>
@@ -220,6 +275,11 @@ import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateReceivingAddress,
+  generateSbchAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 export default {
   name: 'app-wallet-info',
@@ -247,8 +307,9 @@ export default {
         asset: null
       },
       selectedERC721AssetIndex: -1,
-      showAddress: false,
-      wallet: null
+      viewTab: 'gallery',
+      wallet: null,
+      receivingAddress: ''
     }
   },
   computed: {
@@ -281,19 +342,24 @@ export default {
         return this.$store.commit('global/setNetwork', value)
       }
     },
-    receivingAddress () {
-      if (!this.wallet) return ''
-
-      if (this.isSep20) return this.$store.getters['global/getAddress']('sbch')
-      if (this.bchNftType === 'ct') {
-        const bchAddress = this.$store.getters['global/getAddress']('bch')
-        return convertCashAddress(bchAddress, false, true)
-      }
-      return this.$store.getters['global/getAddress']('slp')
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     }
   },
   methods: {
     getDarkModeClass,
+    getThemeColor() {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
     filterTokens (isCashToken) {
       this.bchNftType = isCashToken ? 'ct' : 'slp'
     },
@@ -374,6 +440,75 @@ export default {
         const wallet = new Wallet(mnemonic, vm.selectedNetwork)
         vm.wallet = markRaw(wallet)
       })
+    },
+    async getReceivingAddress () {
+      // Dynamically generate address like the Receive page
+      if (this.isSep20) {
+        // For sBCH, generate dynamically
+        try {
+          const address = await generateSbchAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex']
+          })
+          if (!address) {
+            throw new Error('Failed to generate and subscribe sBCH address')
+          }
+          this.receivingAddress = address
+        } catch (error) {
+          console.error('Error generating sBCH address:', error)
+          // Fallback to store if generation fails
+          this.receivingAddress = this.$store.getters['global/getAddress']('sbch')
+        }
+      } else {
+        // For BCH/SLP/CashTokens, generate dynamically
+        const walletType = this.bchNftType === 'ct' ? 'bch' : 'slp'
+        try {
+          const addressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
+          let address = await generateReceivingAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType(walletType),
+            addressIndex: addressIndex,
+            isChipnet: this.isChipnet
+          })
+          
+          // Check if subscription failed (returns null)
+          if (!address) {
+            throw new Error('Failed to subscribe address to watchtower')
+          }
+          
+          // Convert to CashToken format if needed
+          if (this.bchNftType === 'ct') {
+            address = convertCashAddress(address, this.isChipnet, true)
+          }
+          
+          this.receivingAddress = address
+        } catch (error) {
+          console.error('Error generating address:', error)
+          // Fallback to store if generation fails
+          if (this.bchNftType === 'ct') {
+            const bchAddress = this.$store.getters['global/getAddress']('bch')
+            this.receivingAddress = convertCashAddress(bchAddress, false, true)
+          } else {
+            this.receivingAddress = this.$store.getters['global/getAddress']('slp')
+          }
+        }
+      }
+    }
+  },
+  watch: {
+    async viewTab (newVal) {
+      if (newVal === 'receive') {
+        await this.getReceivingAddress()
+      }
+    },
+    async selectedNetwork () {
+      if (this.viewTab === 'receive') {
+        await this.getReceivingAddress()
+      }
+    },
+    async bchNftType () {
+      if (this.viewTab === 'receive') {
+        await this.getReceivingAddress()
+      }
     }
   },
   mounted () {
@@ -388,12 +523,72 @@ export default {
     overflow-y: auto;
     z-index: -10 !important;
   }
-  #context-menu {
-    position: fixed;
-    top: 16px;
-    right: 10px;
-    z-index: 150 !important;
+  
+  .tabs-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: inherit;
   }
+  
+  .collectibles-tabs {
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 12px;
+    padding: 4px;
+    
+    &.dark {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .collectibles-tab {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      &.dark {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      
+      &:hover:not(.active) {
+        background-color: rgba(0, 0, 0, 0.05);
+        
+        &.dark {
+          background-color: rgba(255, 255, 255, 0.08);
+        }
+      }
+      
+      &.active {
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        
+        &.dark {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+      }
+    }
+  }
+  
+  .tab-panels-wrapper {
+    background: inherit;
+  }
+  
+  .tab-panel-content {
+    min-height: 300px;
+  }
+  
+  .receive-tab-content {
+    padding: 20px 16px;
+  }
+  
   .receiving-address-container {
     padding: 20px 40px;
     overflow-wrap: break-word;
@@ -403,3 +598,4 @@ export default {
     }
   }
 </style>
+

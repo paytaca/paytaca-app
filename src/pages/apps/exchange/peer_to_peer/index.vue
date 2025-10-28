@@ -38,6 +38,7 @@ export default {
       reconnectWebsocket: true,
       showNoticeBoard: false,
       noticeBoardMessage: null,
+      noticeBoardType: null,
       forceLogin: false,
       wallet: null
     }
@@ -140,7 +141,9 @@ export default {
       }
     },
     updateUnreadCount (count) {
-      this.footerData.unreadOrdersCount = count
+      if (this.footerData) {
+        this.footerData.unreadOrdersCount = count
+      }
     },
     handleNewOrder (order) {
       const currency = this.$store.getters['ramp/ordersCurrency']

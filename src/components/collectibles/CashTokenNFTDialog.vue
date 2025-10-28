@@ -15,8 +15,8 @@
       </q-card-section>
 
       <q-img
-        fit="fill"
-        width="75"
+        fit="contain"
+        style="width: 100%; max-height: 400px;"
         :src="imageUrl"
         @error="() => onNftImageError()"
       >
@@ -173,6 +173,7 @@ import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
 import { computed, inject, ref, watch, onMounted } from "vue";
 import VueJsonPretty from 'vue-json-pretty'
+import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -239,7 +240,7 @@ const imageUrl = computed(() => {
       return imgUrl
     }
   }
-  return $store.getters['global/getDefaultAssetLogo']?.(`${props.nft?.category}|${props.nft?.commitment}`)
+  return noImage
 })
 
 function onNftImageError() {
