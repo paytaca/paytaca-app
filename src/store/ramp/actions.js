@@ -52,10 +52,11 @@ export function fetchAds (context, { component = null, params = null, overwrite 
       if (pageNumber !== null) pageNumber++
 
       // Build request parameters
+      // order_by=priority enables server-side smart ordering based on trades and ratings
       const parameters = {
         page: pageNumber,
         limit: state.itemsPerPage,
-        price_order: params.sort_type,
+        order_by: 'priority',
         currency: params.currency,
         owned: params.owned,
         trade_type: params.trade_type,

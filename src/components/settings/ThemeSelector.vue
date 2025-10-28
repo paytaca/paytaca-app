@@ -1,20 +1,19 @@
 <template>
   <q-select
-    :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="theme"
-    :options="filteredThemeOptions"
+    :options="themeOptions"
     :dark="darkMode"
-    @filter="filterThemeSelection"
+    :color="themeColor"
     dense
-    use-input
-    fill-input
-    borderless
-    hide-selected
+    outlined
+    rounded
+    hide-bottom-space
+    class="glass-input"
   >
     <template v-slot:option="scope">
       <q-item v-bind="scope.itemProps">
         <q-item-section>
-          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+          <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
             {{ scope.opt.label }}
           </q-item-label>
         </q-item-section>
@@ -30,17 +29,22 @@ export default {
   props: {
     darkMode: { type: Boolean }
   },
-  data () {
-    return {
-      filteredThemeOptions: []
-    }
-  },
   computed: {
     currentCountry () {
       return this.$store.getters['global/country'].code
     },
     language () {
       return this.$store.getters['global/language'].value
+    },
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'orange-6',
+        'glassmorphic-red': 'pink-6'
+      }
+      const currentTheme = this.$store.getters['global/theme']
+      return themeMap[currentTheme] || 'blue-6'
     },
     themeOptions() {
       const themes = [
@@ -56,9 +60,9 @@ export default {
         const currentTheme = this.$store.getters['global/theme']
         let filteredTheme = ''
         try {
-          filteredTheme = this.themeOptions.filter(a => a.value === currentTheme)[0].label
+          filteredTheme = this.themeOptions.filter(a => a.value === currentTheme)[0]
         } catch {
-          filteredTheme = this.$t('GlassmorphicBlue')
+          filteredTheme = { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') }
         }
         return filteredTheme
       },
@@ -67,29 +71,6 @@ export default {
         this.$store.commit('global/setTheme', newTheme)
         updateCssThemeColors(newTheme);
       }
-    }
-  },
-  methods: {
-    filterThemeSelection (val, update) {
-      if (val === '') {
-        update(() => {
-          this.filteredThemeOptions = this.themeOptions
-        })
-        return
-      }
-
-      update(() => {
-        const needle = val.toLowerCase()
-        this.filteredThemeOptions = this.themeOptions.filter(v => v.label.toLowerCase().indexOf(needle) > -1)
-      })
-    }
-  },
-  watch: {
-    language () {
-      this.themeOptions[0].label = this.$t('GlassmorphicBlue')
-      this.themeOptions[1].label = this.$t('GlassmorphicRed')
-      this.themeOptions[2].label = this.$t('GlassmorphicGreen')
-      this.themeOptions[3].label = this.$t('GlassmorphicGold')
     }
   }
 }

@@ -36,21 +36,6 @@
           @click="() => openStorefrontListOptsForm()"
         />
         <q-space/>
-        <LimitOffsetPagination
-          :pagination-props="{
-            maxPages: 3,
-            rounded: true,
-            size: '0.8rem',
-            padding: '0.3rem 0.8rem',
-            boundaryNumbers: true,
-            disable: fetchingStorefronts,
-            color: 'pt-primary1',
-          }"
-          class="q-mb-xs"
-          :hide-below-pages="2"
-          :modelValue="storefrontsPagination"
-          @update:modelValue="fetchStorefronts"
-        />
       </div>
       <div v-if="initialized" class="q-mx-xs q-mb-md row items-center justify-around">
         <q-btn
@@ -76,11 +61,23 @@
           @click="() => toggleDeliveryType(Checkout.DeliveryTypes.LOCAL_DELIVERY)"
         />
       </div>
-      <div v-if="(!initialized || !storefronts.length) && fetchingStorefronts" class="row items-center justify-center">
-        <q-spinner size="4em" color="pt-primary1"/>
-      </div>
-      <div class="row items-start justify-start q-mb-md">
-        <div v-for="storefront in storefronts" :key="storefront?.id" class="col-6 col-sm-4 q-pa-xs">
+      <div class="row items-start justify-start q-mb-md" ref="storefrontsContainer">
+        <!-- Skeleton loaders -->
+        <template v-if="(!initialized || !storefronts.length) && fetchingStorefronts">
+          <div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
+            <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+              <q-skeleton height="200px" />
+              <q-card-section class="q-py-sm">
+                <q-skeleton type="text" width="60%" />
+                <q-skeleton type="text" width="40%" class="q-mt-xs" />
+              </q-card-section>
+            </q-card>
+          </div>
+        </template>
+        
+        <!-- Actual storefronts -->
+        <template v-else>
+          <div v-for="storefront in storefronts" :key="storefront?.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow"
             :class="getDarkModeClass(darkMode)"
@@ -90,7 +87,11 @@
                 : undefined
             "
           >
-            <q-img :src="storefront?.imageUrl || noImage" ratio="1.75"/>
+            <q-img :src="storefront?.imageUrl || noImage" ratio="1.75">
+              <template v-slot:loading>
+                <q-skeleton height="100%" width="100%" square />
+              </template>
+            </q-img>
             <q-card-section class="q-py-sm">
               <div
                 v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
@@ -150,84 +151,24 @@
               </q-badge>
             </q-card-section>
           </q-card>
-        </div>
+          </div>
+        </template>
       </div>
-
-      <div
-        v-intersection="ordersPanelIntersectionOptions"
-        class="q-mb-md q-pt-md"
-        :class="[orders.length ? 'orders--sticky-bottom' : '']"
-      >
-        <div class="col-12 row items-center q-px-sm">
-          <div class="text-h5 q-px-xs">Orders</div>
-          <q-space/>
-          <q-btn
-            v-if="orders.length < ordersPagination.count"
-            flat
-            no-caps
-            label="View all"
-            :to="{ name: 'app-marketplace-orders'}"
-          />
-          
-        </div>
-        <div v-if="fetchingOrders" class="text-center q-px-md">
-          <q-spinner v-if="!orders?.length" size="1.5rem" color="pt-primary1" class="q-mb-sm"/>
-          <q-linear-progress v-else query reverse color="pt-primary1"/>
-        </div>
-        <div v-else class="q-mb-xs"></div>
-
-        <div v-if="!orders?.length && initialized" class="text-grey text-center q-mb-md">No active orders</div>
-        <div v-else class="q-py-sm orders-list">
-          <q-list separator>
-            <q-item
-              v-for="order in orders" :key="order?.id"
-              v-ripple
-              clickable
-              :to="{ name: 'app-marketplace-order', params: { orderId: order?.id } }"
-            >
-              <q-item-section>
-                <q-item-label>
-                  Order#{{ order?.id }}
-                </q-item-label>
-                <q-item-label>
-                  {{ order?.storefront?.name }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section avatar top>
-                <q-item-label>
-
-                  <q-badge v-if="order?.formattedStatus" :color="order?.statusColor" text-color="white">
-                    {{ order?.formattedStatus }}
-                  </q-badge>
-                </q-item-label>
-                <q-item-label>
-                  {{ Number(order?.total).toFixed(2) }}
-                  {{ order?.currency?.symbol }}
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </div>
-        <div v-if="!orders.length" class="row items-center justify-center">
-          <q-btn
-            flat
-            no-caps
-            label="Go to orders"
-            align="left"
-            padding="none xs"
-            class="text-underline text-weight-bold button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-            :to="{ name: 'app-marketplace-orders'}"
-          />
-        </div>
+      
+      <!-- Infinite scroll loading indicator -->
+      <div v-if="fetchingMoreStorefronts" class="row justify-center q-py-md">
+        <q-spinner size="2em" color="pt-primary1"/>
       </div>
+      
+      <!-- Scroll sentinel for infinite loading -->
+      <div ref="storefrontScrollSentinel" style="height: 1px; width: 100%;"></div>
     </div>
   </q-pull-to-refresh>
 </template>
 <script setup>
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
-import { Order, Storefront, Checkout } from 'src/marketplace/objects'
+import { Storefront, Checkout } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText, getISOWithTimezone, round, roundRating } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
@@ -235,7 +176,6 @@ import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
-import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import SessionLocationWidget from 'src/components/marketplace/SessionLocationWidget.vue'
 import MarketplaceHeaderMenu from 'src/components/marketplace/MarketplaceHeaderMenu.vue'
 import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
@@ -249,8 +189,6 @@ const initialized = ref(false)
 function resetPage() {
   storefronts.value = []
   storefrontsPagination.value = { count: 0, limit: 0, offset: 0 }
-  orders.value = []
-  ordersPagination.value = { count: 0, limit: 0, offset: 0 }
   initialized.value = false
 }
 
@@ -259,7 +197,6 @@ function resetPage() {
 onMounted(() => setTimeout(() => refreshPage(), 100))
 onActivated(() => {
   if (!initialized.value) return
-  fetchOrders()
 })
 
 const loadAppPromise = ref()
@@ -277,6 +214,145 @@ onUnmounted(() => bus.off('marketplace-init-promise', onLoadAppInit))
 
 onMounted(() => bus.on('marketplace-manual-select-location', manualSelectLocation))
 onUnmounted(() => bus.off('marketplace-manual-select-location', manualSelectLocation))
+
+// Infinite scroll setup
+let storefrontObserver = null
+let scrollListenerCleanup = null
+const storefrontsContainer = ref(null)
+
+function onScroll(event) {
+  if (fetchingStorefronts.value || fetchingMoreStorefronts.value) return
+  
+  const hasMore = storefronts.value.length < storefrontsPagination.value.count
+  if (!hasMore) return
+  
+  const element = event?.target || window
+  let scrollTop, scrollHeight, clientHeight
+  
+  if (element === window || element === document) {
+    scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    scrollHeight = document.documentElement.scrollHeight
+    clientHeight = window.innerHeight || document.documentElement.clientHeight
+  } else {
+    scrollTop = element.scrollTop
+    scrollHeight = element.scrollHeight
+    clientHeight = element.clientHeight
+  }
+  
+  const scrollBottom = scrollHeight - scrollTop - clientHeight
+  
+  // Load more when user is within 300px of the bottom
+  if (scrollBottom < 300) {
+    fetchStorefronts({ offset: storefrontsPagination.value.offset })
+  }
+}
+
+function setupInfiniteScroll() {
+  // Clean up existing observer and listeners
+  if (storefrontObserver) {
+    storefrontObserver.disconnect()
+  }
+  if (scrollListenerCleanup) {
+    scrollListenerCleanup()
+    scrollListenerCleanup = null
+  }
+  
+  nextTick(() => {
+    if (!storefrontScrollSentinel.value) return
+    
+    // Find the scroll container - the q-pull-to-refresh's inner scroll div
+    let scrollRoot = null
+    const appContainer = document.getElementById('app-container')
+    
+    // q-pull-to-refresh creates a scroll wrapper div inside it
+    if (appContainer) {
+      const scrollWrapper = appContainer.querySelector('.q-scrollarea, .q-pull-to-refresh__scroll')
+      scrollRoot = scrollWrapper || appContainer
+    }
+    
+    let initialIntersectionHandled = false
+    
+    const options = {
+      root: scrollRoot,
+      rootMargin: '200px',
+      threshold: 0.1
+    }
+    
+    storefrontObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        
+        // On first callback, just record the state and skip action
+        if (!initialIntersectionHandled) {
+          initialIntersectionHandled = true
+          // If it's not initially intersecting, we're good to process next time
+          if (!entry.isIntersecting) {
+            return
+          }
+          // If it IS initially intersecting, skip this one but process the next
+          return
+        }
+        
+        if (entry.isIntersecting && !fetchingStorefronts.value && !fetchingMoreStorefronts.value) {
+          // Check if there are more items to load
+          const hasMore = storefronts.value.length < storefrontsPagination.value.count
+          if (hasMore) {
+            fetchStorefronts({ offset: storefrontsPagination.value.offset })
+          }
+        }
+      },
+      options
+    )
+    storefrontObserver.observe(storefrontScrollSentinel.value)
+    
+    // Add scroll listener as backup for Safari full screen mode
+    const cleanupFns = []
+    
+    // Listen to window scroll
+    window.addEventListener('scroll', onScroll, { passive: true })
+    cleanupFns.push(() => window.removeEventListener('scroll', onScroll))
+    
+    // Listen to scroll container if found
+    if (scrollRoot) {
+      scrollRoot.addEventListener('scroll', onScroll, { passive: true })
+      cleanupFns.push(() => scrollRoot.removeEventListener('scroll', onScroll))
+    }
+    
+    scrollListenerCleanup = () => cleanupFns.forEach(fn => fn())
+  })
+}
+
+onUnmounted(() => {
+  if (storefrontObserver) {
+    storefrontObserver.disconnect()
+  }
+  if (scrollListenerCleanup) {
+    scrollListenerCleanup()
+  }
+})
+
+// Check if sentinel is visible and load more if needed
+function checkAndLoadMore() {
+  // Wait a bit for DOM to update
+  setTimeout(() => {
+    if (!storefrontScrollSentinel.value) return
+    if (fetchingStorefronts.value || fetchingMoreStorefronts.value) return
+    
+    const hasMore = storefronts.value.length < storefrontsPagination.value.count
+    if (!hasMore) return
+    
+    const rect = storefrontScrollSentinel.value.getBoundingClientRect()
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+    
+    // Check if sentinel is in viewport (with some margin for safety)
+    const isVisible = rect.top < viewportHeight && rect.bottom >= 0
+    
+    // If sentinel is visible, load more items
+    if (isVisible) {
+      fetchStorefronts({ offset: storefrontsPagination.value.offset })
+    }
+  }, 100)
+}
 const sessionLocationWidget = ref()
 function manualSelectLocation() {
   if (!sessionLocationWidget.value) return
@@ -288,15 +364,17 @@ function manualSelectLocation() {
 
 
 const customerCoordinates = computed(() => $store.getters['marketplace/customerCoordinates'])
-watch(customerCoordinates, () => fetchStorefronts())
+watch(customerCoordinates, () => fetchStorefronts({ reset: true }))
 const customerCoordinatesValid = computed(() => {
   return !Number.isNaN(customerCoordinates.value?.latitude) &&
          !Number.isNaN(customerCoordinates.value.longitude)
 })
 
 const fetchingStorefronts = ref(false)
+const fetchingMoreStorefronts = ref(false)
 const storefronts = ref([].map(Storefront.parse))
 const storefrontsPagination = ref({ count: 0, limit: 0, offset: 0 })
+const storefrontScrollSentinel = ref(null)
 const shopDeliveryTypeFilter = computed({
   get() {
     return $store.getters['marketplace/shopListOpts']?.deliveryType
@@ -316,7 +394,7 @@ const storefrontListOpts = computed(() => {
   }
   return data
 })
-watch(storefrontListOpts, () => fetchStorefronts(), { deep: true })
+watch(storefrontListOpts, () => fetchStorefronts({ reset: true }), { deep: true })
 function openStorefrontListOptsForm() {
   $q.dialog({
     title: 'Shops options',
@@ -336,10 +414,16 @@ function openStorefrontListOptsForm() {
   })
   .onOk(data => $store.commit('marketplace/setShopListOpts', { radius: parseFloat(data) }))
 }
-async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
+async function fetchStorefronts(opts={ limit: 0, offset: 0, reset: false }) {
+  // If resetting, clear the list
+  if (opts.reset) {
+    storefronts.value = []
+    storefrontsPagination.value = { count: 0, limit: 0, offset: 0 }
+  }
+  
   const params = {
     limit: opts?.limit || 6,
-    offset: opts?.offset || undefined,
+    offset: opts?.offset !== undefined ? opts?.offset : storefrontsPagination.value.offset,
     delivery_types: shopDeliveryTypeFilter.value || undefined,
     distance: '',
     active: true,
@@ -357,89 +441,57 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0 }) {
     return
   }
 
-  fetchingStorefronts.value = true
+  const isLoadingMore = params.offset > 0
+  if (isLoadingMore) {
+    fetchingMoreStorefronts.value = true
+  } else {
+    fetchingStorefronts.value = true
+  }
+  
   return backend.get(`connecta/storefronts/`, { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-      storefronts.value = response?.data?.results.map(storefrontData => {
+      const newStorefronts = response?.data?.results.map(storefrontData => {
         $store.commit('marketplace/cacheStorefront', storefrontData)
         return Storefront.parse(storefrontData)
       })
+      
+      // Append to existing list if loading more, otherwise replace
+      if (isLoadingMore) {
+        storefronts.value = [...storefronts.value, ...newStorefronts]
+      } else {
+        storefronts.value = newStorefronts
+      }
+      
       storefrontsPagination.value.count = response?.data?.count
       storefrontsPagination.value.limit = response?.data?.limit
-      storefrontsPagination.value.offset = response?.data?.offset
-    })
-    .finally(() => {
-      fetchingStorefronts.value = false
-    })
-}
-
-const fetchingOrders = ref(false)
-const orders = ref([].map(Order.parse))
-const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
-async function fetchOrders(opts = { limit: 0, offset: 0 }) {
-  const params = {
-    ref: await $store.dispatch('marketplace/getCartRef'),
-    limit: opts?.limit || 2,
-    offset: opts?.offset || undefined,
-    exclude_statuses: ['completed', 'cancelled'].join(','),
-  }
-  fetchingOrders.value = true
-  return backend.get(`connecta/orders/`, { params })
-    .then(response => {
-      if(!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-      orders.value = response?.data?.results?.map(Order.parse)
-
-      orders.value.forEach(order => {
-        if (!order?.storefrontId) return
-        order.storefront = $store.getters['marketplace/storefronts']
-          .find(storefront => storefront?.id == order?.storefrontId)
-        if (!order.storefront) order.fetchStorefront()
-      })
-      ordersPagination.value.count = response?.data?.count
-      ordersPagination.value.limit = response?.data?.limit
-      ordersPagination.value.offset = response?.data?.offset
+      storefrontsPagination.value.offset = response?.data?.offset + response?.data?.results.length
+      
+      // Set up infinite scroll observer after initial data is loaded
+      if (!isLoadingMore && response?.data?.results.length > 0) {
+        setupInfiniteScroll()
+      }
+      
       return response
     })
     .finally(() => {
-      fetchingOrders.value = false
+      fetchingStorefronts.value = false
+      fetchingMoreStorefronts.value = false
+    })
+    .then((response) => {
+      // After loading completes and loading states are cleared, check again if we need more
+      if (response?.data?.results.length > 0) {
+        checkAndLoadMore()
+      }
     })
 }
 
-const ordersPanelIntersectionOptions = {
-  /**
-   * @param {IntersectionObserverEntry} observerEntry 
-   */
-  handler(observerEntry) {
-    const stuckStateClasses = [
-      'orders--sticky-bottom--stuck',
-      'q-r-mx-md',
-      'q-px-sm',
-      'br-15',
-      'shadow-2',
-    ]
-    const target = observerEntry.target
-    const hasStickyBottom = target.classList.contains('orders--sticky-bottom')
-    
-    if (observerEntry.intersectionRatio < 0.95 && hasStickyBottom) {
-      observerEntry.target.classList.add(...stuckStateClasses)
-    } else {
-      observerEntry.target.classList.remove(...stuckStateClasses)
-    }
-  },
-  cfg: {
-    threshold: new Array(100).fill(0).map((e, index) => index / 100)
-  }
-}
 
 async function refreshPage(done=() => {}) {
   try {
     await loadAppPromise.value
     if (initialized.value && !customerCoordinatesValid.value) await manualSelectLocation()
-    await Promise.all([
-      fetchStorefronts(),
-      fetchOrders(),
-    ])
+    await fetchStorefronts({ reset: true })
   } finally {
     $store.commit('marketplace/setActiveStorefrontId', null)
     initialized.value = true
@@ -464,37 +516,6 @@ table.orders-table td {
 }
 .sticky-below-header.sticky-below-header--ios {
   top: 110px;
-}
-
-.orders--sticky-bottom {
-  position: sticky;
-  bottom: -20px;
-  left: 0;
-  right: 0;
-  padding-bottom: 30px;
-  transition: all 0.15s ease-out;
-}
-
-.orders--sticky-bottom.orders--sticky-bottom--stuck {
-  .orders-list {
-    max-height: 20vh;
-    overflow-y: auto;
-  }
-}
-
-.orders--sticky-bottom.orders--sticky-bottom--stuck {
-  @extend .shadow-2 !optional;
-}
-
-#app-container.dark {
-  .orders--sticky-bottom.orders--sticky-bottom--stuck {
-    background-color: $brand_dark;
-  }
-}
-#app-container.light {
-  .orders--sticky-bottom.orders--sticky-bottom--stuck {
-    background-color: $brand_light;
-  }
 }
 
 </style>

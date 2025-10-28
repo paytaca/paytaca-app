@@ -160,7 +160,15 @@ export class TransactionBalancer {
   }
 
   get txFee() {
-    return BigInt(Math.ceil(Number(this.txSize) * this.feePerByte))
+    // Use integer arithmetic to avoid floating-point precision issues
+    // Convert feePerByte to fixed-point: multiply by 1000000, divide result by 1000000
+    // Higher precision to handle multiple inputs better
+    const feePerByteScaled = Math.round(this.feePerByte * 1000000)
+    const feeScaled = this.txSize * BigInt(feePerByteScaled)
+    // Always round up (ceiling) to ensure we never underpay
+    // This matches what JPP servers expect
+    const fee = (feeScaled + 999999n) / 1000000n
+    return fee
   }
 
   get excessSats() {

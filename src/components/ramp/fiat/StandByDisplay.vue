@@ -66,7 +66,6 @@
             readonly
             dense
             filled
-            :loading="!contractBalance"
             :dark="darkMode"
             v-model="contractBalance">
             <template v-slot:append>
@@ -176,10 +175,6 @@
         </div>
       </div>
     </div>
-    <!-- Progress Loader -->
-    <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50px">
-      <ProgressLoader />
-    </div>
   </div>
   <!-- Dialogs -->
   <div v-if="openDialog">
@@ -215,7 +210,6 @@
 <script>
 import AppealForm from './dialogs/AppealForm.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackForm from './dialogs/FeedbackForm.vue'
 import { openURL } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
@@ -257,7 +251,6 @@ export default {
   components: {
     FeedbackDialog,
     AppealForm,
-    ProgressLoader,
     FeedbackForm,
     AttachmentDialog
   },

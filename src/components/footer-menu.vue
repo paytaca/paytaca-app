@@ -96,6 +96,12 @@ export default {
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
     },
+    hideFooter () {
+      this.isFooterHidden = true
+    },
+    showFooter () {
+      this.isFooterHidden = false
+    },
     handleScroll () {
       const currentScrollY = window.scrollY
       const windowHeight = window.innerHeight

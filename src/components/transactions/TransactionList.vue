@@ -1,9 +1,9 @@
 <template>
   <div 
     ref="transactionList"
-    class="transaction-list" 
-    :style="{height: transactionsListHeight}"
+    class="transaction-list scroll-y"
     @scroll="onScroll"
+    @touchstart="preventPull"
   >
     <template v-if="transactionsLoaded">
       <div class="transactions-content">
@@ -39,7 +39,7 @@
       <div ref="scrollSentinel" class="scroll-sentinel"></div>
     </template>
     <div v-else class="loading-state">
-      <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
+      <TransactionListItemSkeleton v-for="i in 12" :key="i"/>
     </div>
   </div>
 </template>
@@ -74,7 +74,9 @@ export default {
   },
 
   emits: [
-    'on-show-transaction-details'
+    'on-show-transaction-details',
+    'scroll-up',
+    'scroll-down'
   ],
 
   data () {
@@ -94,16 +96,16 @@ export default {
         logo: 'bch-logo.png',
         balance: 0
       },
-      transactionsListHeight: '100px',
       isLoadingMore: false,
-      intersectionObserver: null
+      intersectionObserver: null,
+      lastScrollTop: 0,
+      scrollThreshold: 50
     }
   },
 
   mounted () {
     this.selectedNetwork = this.selectedNetworkProps
     this.selectedAsset = this.selectedAssetProps
-    this.computeTransactionsListHeight()
     this.setupIntersectionObserver()
   },
 
@@ -126,37 +128,13 @@ export default {
           .filter(Number.isSafeInteger)
       )
     },
-    showTokens () {
-      return this.$store.getters['global/showTokens']
-    },
     hasMoreTransactions () {
       return this.transactionsPage < this.transactionsMaxPage
     }
   },
 
-  watch: {
-    showTokens () {
-      this.computeTransactionsListHeight()
-      // Reconnect observer after height change
-      this.$nextTick(() => {
-        if (this.intersectionObserver && this.$refs.scrollSentinel) {
-          this.intersectionObserver.disconnect()
-          this.setupIntersectionObserver()
-        }
-      })
-    }
-  },
-
   methods: {
     getDarkModeClass,
-    computeTransactionsListHeight () {
-      const vm = this
-
-      const screenHeight = vm.$q.screen.height
-      const fixedSectionHeight = vm.$parent.$parent.$refs.fixedSection.clientHeight
-      const footerMenuHeight = vm.$parent.$parent.$refs.footerMenu.$el.clientHeight
-      vm.transactionsListHeight = `${screenHeight - (fixedSectionHeight + footerMenuHeight)}px`
-    },
     scrollToBottomTransactionList () {
       this.$refs['bottom-transactions-list']?.scrollIntoView({ behavior: 'smooth' })
     },
@@ -181,9 +159,34 @@ export default {
         }
       })
     },
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
     onScroll (event) {
       const element = event.target
-      const scrollBottom = element.scrollHeight - element.scrollTop - element.clientHeight
+      const scrollTop = element.scrollTop
+      const scrollBottom = element.scrollHeight - scrollTop - element.clientHeight
+      
+      // Track scroll direction for footer hide/show
+      if (Math.abs(scrollTop - this.lastScrollTop) > this.scrollThreshold) {
+        if (scrollTop > this.lastScrollTop && scrollTop > 100) {
+          // Scrolling down (to older transactions) - hide footer
+          this.$emit('scroll-down')
+        } else if (scrollTop < this.lastScrollTop) {
+          // Scrolling up (to newer transactions) - show footer
+          this.$emit('scroll-up')
+        }
+        this.lastScrollTop = scrollTop
+      }
       
       // Load more when user is within 300px of the bottom
       if (scrollBottom < 300 && this.hasMoreTransactions && !this.isLoadingMore) {
@@ -343,8 +346,9 @@ export default {
   .transaction-list {
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
+    // overflow set by parent
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     
@@ -369,7 +373,7 @@ export default {
   }
 
   .transactions-content {
-    flex: 1;
+    flex-shrink: 0; // Don't compress content
   }
 
   .loading-more {
@@ -442,6 +446,10 @@ export default {
 
   .loading-state {
     padding: 16px 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
   }
 
   .scroll-sentinel {

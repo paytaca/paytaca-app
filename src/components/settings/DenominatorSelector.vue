@@ -1,21 +1,19 @@
 <template>
   <q-select
-    :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="denomination"
-    :options="denominationOptions"
+    :options="denominationDisplayOptions"
     :dark="darkMode"
-    @filter="filterDenominationSelection"
-    popup-content-style="color: black;"
+    :color="themeColor"
     dense
-    use-input
-    fill-input
-    borderless
-    hide-selected
+    outlined
+    rounded
+    hide-bottom-space
+    class="glass-input"
   >
     <template v-slot:option="scope">
       <q-item v-bind="scope.itemProps">
         <q-item-section>
-          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+          <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
             {{ scope.opt.label }}
           </q-item-label>
         </q-item-section>
@@ -35,32 +33,7 @@ export default {
         { value: 'BCH', label: 'BCH' },
         { value: 'mBCH', label: 'mBCH' },
         { value: 'Satoshis', label: 'Satoshis' }
-      ],
-      filteredDenominationOptions: []
-    }
-  },
-  methods: {
-    filterDenominationSelection (val, update) {
-      if (!val) {
-        this.filteredDenominationOptions = this.hkSelection(this.denominationOptions)
-      } else {
-        const needle = String(val).toLowerCase()
-        this.filteredDenominationOptions = this.hkSelection(this.denominationOptions)
-          .filter(denom => String(denom?.label).toLowerCase().indexOf(needle) >= 0)
-      }
-      update()
-    },
-    hkSelection (options) {
-      // get rid of duplicate DEEM entry from language switching
-      if (options.length > 3) {
-        options.pop()
-      }
-      if (this.currentCountry === 'HK' && !options.some((a) => a.value === this.$t('DEEM'))) {
-        options.push({ value: this.$t('DEEM'), label: this.$t('DEEM') })
-      } else if (this.currentCountry !== 'HK' && options.some((a) => a.value === this.$t('DEEM'))) {
-        options.pop()
-      }
-      return options
+      ]
     }
   },
   computed: {
@@ -70,9 +43,32 @@ export default {
     language () {
       return this.$store.getters['global/language'].value
     },
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'orange-6',
+        'glassmorphic-red': 'pink-6'
+      }
+      const currentTheme = this.$store.getters['global/theme']
+      return themeMap[currentTheme] || 'blue-6'
+    },
+    denominationDisplayOptions () {
+      let options = [...this.denominationOptions]
+      // Handle Hong Kong specific DEEM option
+      if (this.currentCountry === 'HK' && !options.some((a) => a.value === this.$t('DEEM'))) {
+        options.push({ value: this.$t('DEEM'), label: this.$t('DEEM') })
+      } else if (this.currentCountry !== 'HK' && options.some((a) => a.value === this.$t('DEEM'))) {
+        options = options.filter(a => a.value !== this.$t('DEEM'))
+      }
+      return options
+    },
     denomination: {
       get () {
-        return this.$store.getters['global/denomination']
+        const currentDenom = this.$store.getters['global/denomination']
+        // Return the full option object instead of just the string
+        const found = this.denominationDisplayOptions.find(opt => opt.value === currentDenom)
+        return found || { value: 'BCH', label: 'BCH' }
       },
       set (denom) {
         const newDenomination = denom.value
@@ -82,14 +78,15 @@ export default {
   },
   watch: {
     language () {
+      const currentDenomValue = this.denomination.value
       if (this.currentCountry === 'HK' &&
           this.language !== 'zh-tw' &&
-          this.denomination !== this.$t('DEEM') &&
-          !['BCH', 'mBCH', 'Satoshis'].includes(this.denomination)
+          currentDenomValue !== this.$t('DEEM') &&
+          !['BCH', 'mBCH', 'Satoshis'].includes(currentDenomValue)
       ) {
         this.$store.commit('global/setDenomination', 'DEEM')
       } else {
-        const translatedDenom = this.$t(this.denomination)
+        const translatedDenom = this.$t(currentDenomValue)
         this.$store.commit('global/setDenomination', translatedDenom)
       }
     }

@@ -90,7 +90,7 @@
       </q-btn>
 
       <div class="row items-center justify-center">
-        <q-spinner v-if="!initialized && fetchingProduct" size="4em" color="brandblue"/>
+        <q-spinner v-if="!initialized && fetchingProduct" size="4em" color="primary"/>
       </div>
       <div v-if="product?.description" class="q-mx-sm">
         {{ product?.description  }}
@@ -206,8 +206,7 @@
               v-else
               :disable="disableAddToCart"
               no-caps label="Add to cart"
-              color="brandblue"
-              class="full-width q-mt-md"
+              class="full-width q-mt-md button"
               @click="addSelectedVariantToCart()"
             />
           </div>

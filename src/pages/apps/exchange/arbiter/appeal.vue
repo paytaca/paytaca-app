@@ -15,7 +15,7 @@
           }}</div>
       </div>
       <q-pull-to-refresh :scroll-target="scrollTarget" @refresh="refreshData">
-        <div ref="scrollTarget" :style="`height: ${scrollHeight}px; overflow-y:auto;`">
+        <div ref="scrollTarget" :style="`height: ${scrollHeight}px; overflow-y:auto;`" class="scroll-y" @touchstart="preventPull">
           <div class="q-mx-sm q-mb-sm">
             <TradeInfoCard
               :order="order"
@@ -234,6 +234,18 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
     onSendingBch (sending) {
       this.sendingBch = sending
       if (!sending) {

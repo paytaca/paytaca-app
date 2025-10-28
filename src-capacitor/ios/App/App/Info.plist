@@ -56,7 +56,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>To be able to scan QR codes</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>To access features using camera/photos</string>
+	<string>To save QR codes and wallet backup images to your photo library</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>To access features using camera/photos</string>
 	<key>NSFaceIDUsageDescription</key>

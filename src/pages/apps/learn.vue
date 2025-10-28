@@ -75,9 +75,13 @@ export default {
     currentTheme() {
       return this.darkMode ? 'dark' : 'light'
     },
+    currentLanguage() {
+      return this.$store.getters['global/language'] || 'en-us'
+    },
     learnUrlWithTheme() {
       const url = new URL(LEARN_WEB_URL)
       url.searchParams.set('theme', this.currentTheme)
+      url.searchParams.set('lang', this.currentLanguage)
       return url.toString()
     }
   },
@@ -94,8 +98,13 @@ export default {
         const finalUrl = baseUrl.origin + newUrl
         const urlWithTheme = new URL(finalUrl)
         urlWithTheme.searchParams.set('theme', this.currentTheme)
+        urlWithTheme.searchParams.set('lang', this.currentLanguage)
         this.learnUrl = urlWithTheme.toString()
       }
+    },
+    currentLanguage() {
+      // Reload iframe when language changes
+      this.updateUrl()
     }
   },
   methods: {
@@ -107,6 +116,13 @@ export default {
       // Reload iframe with new theme
       // Note: Cross-origin console warnings are expected and harmless
       // We only set iframe.src (allowed), not accessing iframe content
+      if (this.$refs.learnIframe) {
+        this.loading = true
+        this.$refs.learnIframe.src = this.learnUrlWithTheme + '&t=' + Date.now()
+      }
+    },
+    updateUrl() {
+      // Reload iframe with updated parameters
       if (this.$refs.learnIframe) {
         this.loading = true
         this.$refs.learnIframe.src = this.learnUrlWithTheme + '&t=' + Date.now()
@@ -126,7 +142,7 @@ export default {
     }
   },
   mounted() {
-    // Set initial URL with theme
+    // Set initial URL with theme and language
     let finalUrl = LEARN_WEB_URL
     
     // If url query parameter is present (lesson URL from carousel), use it
@@ -137,11 +153,12 @@ export default {
       finalUrl = baseUrl.origin + this.$route.query.url
     }
     
-    // Add theme parameter
-    const urlWithTheme = new URL(finalUrl)
-    urlWithTheme.searchParams.set('theme', this.currentTheme)
+    // Add theme and language parameters
+    const urlWithParams = new URL(finalUrl)
+    urlWithParams.searchParams.set('theme', this.currentTheme)
+    urlWithParams.searchParams.set('lang', this.currentLanguage)
     
-    this.learnUrl = urlWithTheme.toString()
+    this.learnUrl = urlWithParams.toString()
     
     console.log('Learn URL:', this.learnUrl) // Debug log
   }

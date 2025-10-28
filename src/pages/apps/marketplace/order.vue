@@ -748,6 +748,10 @@ import OrderDisputeFormDialog from 'src/components/marketplace/order/OrderDisput
 import { loadWallet, Wallet } from 'src/wallet'
 import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateChangeAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
@@ -1220,20 +1224,41 @@ const wallet = ref([].map(() => new Wallet())[0])
 async function initWallet () {
   wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
 }
-function getChangeAddress(opts={chipnet: false}) {
-  const walletTypes = opts?.chipnet
-    ? $store.getters['global/getAllChipnetTypes']
-    : $store.getters['global/getAllWalletTypes']
+/**
+ * Dynamically generates change address from mnemonic instead of retrieving from store
+ * This prevents address mixup issues in multi-wallet scenarios
+ */
+async function getChangeAddress(opts={chipnet: false}) {
+  try {
+    const addressIndex = $store.getters['global/getLastAddressIndex']('bch')
+    const walletIndex = $store.getters['global/getWalletIndex']
+    
+    // Generate change address dynamically from mnemonic
+    const changeAddr = await generateChangeAddress({
+      walletIndex: walletIndex,
+      derivationPath: getDerivationPathForWalletType('bch'),
+      addressIndex: addressIndex,
+      isChipnet: opts?.chipnet || false
+    })
+    
+    return changeAddr
+  } catch (error) {
+    console.error('Error generating change address dynamically:', error)
+    // Fallback to store-retrieved change address if dynamic generation fails
+    const walletTypes = opts?.chipnet
+      ? $store.getters['global/getAllChipnetTypes']
+      : $store.getters['global/getAllWalletTypes']
 
-  const bchWalletData = walletTypes?.bch
-  return bchWalletData?.lastChangeAddress
+    const bchWalletData = walletTypes?.bch
+    return bchWalletData?.lastChangeAddress
+  }
 }
 
 async function sendBchPayment() {
   const amount = bchPaymentData.value.bchAmount
   const address = bchPaymentData.value.address
   const chipnet = address.indexOf('bchtest:') >= 0
-  const changeAddress = getChangeAddress({ chipnet })
+  const changeAddress = await getChangeAddress({ chipnet })
   // const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
   if (!wallet.value) await initWallet()
 

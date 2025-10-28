@@ -683,6 +683,27 @@ export default {
         let message = vm.message.trim()
         let attachment = vm.attachment
 
+        // Validate that message is not empty
+        if (!message) {
+          if (attachment) {
+            this.$q.notify({
+              type: 'warning',
+              message: this.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty. Please add text with your attachment.'),
+              position: 'top',
+              timeout: 3000
+            })
+          } else {
+            this.$q.notify({
+              type: 'warning',
+              message: this.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty.'),
+              position: 'top',
+              timeout: 3000
+            })
+          }
+          this.sendingMessage = false
+          return
+        }
+
         if (message) {
           // encrypt message
           if (encrypt) {

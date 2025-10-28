@@ -123,7 +123,7 @@
             {{ $t('ADS') }}
           </button>
         </div>
-        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
@@ -337,6 +337,18 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
     async loadWallet () {
       const isChipnet = this.$store.getters['global/isChipnet']
       const walletIndex = this.$store.getters['global/getWalletIndex']

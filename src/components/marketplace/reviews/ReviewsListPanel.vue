@@ -30,7 +30,11 @@
           ratio="1"
           class="rounded-borders"
           @click="() => openImage(imageUrl)"
-        />
+        >
+          <template v-slot:loading>
+            <q-skeleton height="100%" width="100%" square />
+          </template>
+        </q-img>
       </div>
       <q-separator spaced/>
     </div>

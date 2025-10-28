@@ -65,34 +65,66 @@
           :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="[{'dark': darkMode}, {'active-buy-btn': transactionType === 'SELL'}]"
+            :class="buyBchButtonClass"
+            :style="transactionType === 'SELL' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
             @click="transactionType='SELL'">
             {{ $t('BuyBCH') }}
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="[{'dark': darkMode}, {'active-sell-btn': transactionType === 'BUY'}]"
+            :class="sellBchButtonClass"
+            :style="transactionType === 'BUY' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
             @click="transactionType='BUY'">
             {{ $t('SellBCH') }}
           </button>
         </div>
       </q-pull-to-refresh>
       <div class="q-mt-sm">
-        <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-          <div v-if="displayEmptyList && !loading">
+        <!-- Skeleton Loading State -->
+        <div v-if="loading && (!listings || listings.length === 0)" class="q-px-md">
+          <q-list>
+            <q-item v-for="n in 5" :key="n" class="q-mb-sm">
+              <q-item-section>
+                <div class="q-pb-sm q-pl-md">
+                  <div class="row">
+                    <div class="col">
+                      <!-- User name -->
+                      <q-skeleton type="text" width="40%" height="18px" class="q-mb-xs" />
+                      <!-- Rating -->
+                      <div class="row q-mb-xs">
+                        <q-skeleton type="rect" width="100px" height="16px" />
+                        <q-skeleton type="text" width="40px" height="16px" class="q-ml-xs" />
+                      </div>
+                      <!-- Trade info -->
+                      <q-skeleton type="text" width="60%" height="14px" class="q-mb-xs" />
+                      <!-- Price -->
+                      <q-skeleton type="text" width="50%" height="22px" class="q-mb-xs" />
+                      <!-- Quantity and Limit -->
+                      <q-skeleton type="text" width="70%" height="14px" class="q-mb-xs" />
+                      <q-skeleton type="text" width="65%" height="14px" class="q-mb-sm" />
+                      <!-- Payment method badges -->
+                      <div class="row q-gutter-sm">
+                        <q-skeleton type="rect" width="80px" height="24px" style="border-radius: 12px;" />
+                        <q-skeleton type="rect" width="90px" height="24px" style="border-radius: 12px;" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+          <div v-if="displayEmptyList">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
           </div>
-          <div v-else>
-            <div class="row justify-center" v-if="loading">
-              <q-spinner-dots color="primary" size="40px" />
-            </div>
-          </div>
         </div>
+
+        <!-- Listings -->
         <div v-else>
-          <div class="row justify-center" v-if="loading">
-            <q-spinner-dots color="primary" size="40px" />
-          </div>
           <q-pull-to-refresh @refresh="refreshData">
             <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
               <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
@@ -263,6 +295,23 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    buyBchButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.transactionType === 'SELL',
+        [`theme-${this.theme}`]: true
+      }
+    },
+    sellBchButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.transactionType === 'BUY',
+        [`theme-${this.theme}`]: true
+      }
+    },
     amountFilterCurrency () {
       if (this.filters?.order_amount_currency === 'BCH') return 'BCH'
       if (this.selectedCurrency?.symbol !== 'All') {
@@ -309,6 +358,15 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
+    getThemeColor () {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
     openFilterSelection (type) {
       this.$q.dialog({
         component: FilterSelectionDialog,
@@ -520,17 +578,52 @@ export default {
     transition: .2s;
     font-weight: 500;
   }
-  .btn-custom:hover {
+  .btn-custom.dark {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .btn-custom:not(.active-theme-btn):hover {
     background-color: rgb(242, 243, 252);
     color: #4C4F4F;
   }
-  .btn-custom.active-buy-btn {
-    background-color: rgb(60, 100, 246) !important;
+  .btn-custom.dark:not(.active-theme-btn):hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  
+  /* Theme-based active button styles */
+  button.btn-custom.fiat-tab.active-theme-btn {
     color: #fff !important;
   }
-  .btn-custom.active-sell-btn {
-    background-color: #ed5f59 !important;
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+  
+  /* Dark mode active button */
+  button.btn-custom.fiat-tab.active-theme-btn.dark {
     color: #fff !important;
+  }
+  
+  /* Active button hover effects - slightly darken */
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
   .btn-transaction {
     font-size: 16px;

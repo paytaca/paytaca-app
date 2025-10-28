@@ -1,19 +1,17 @@
 <template>
-  <div class="row q-mb-md">
+  <div class="seed-phrase-container q-mb-md">
     <!-- create wallet / view wallet mnemonic -->
     <template v-if="!isImport">
-      <template v-for="(word, index) in mnemonic.split(' ')" :key="`${word}-${index}`">
-        <div class="row col-6 items-center" style="font-size: 17px;">
-          <div class="col-2 number" :class="getDarkModeClass(darkMode)">
-            <pre>{{ index + 1 }}</pre>
-          </div>
-          <div class="col-10">
-            <span class="word" :class="getDarkModeClass(darkMode)">
-              {{ word }}
-            </span>
-          </div>
-        </div>
-      </template>
+      <div class="words-wrapper">
+        <span
+          v-for="(word, index) in mnemonic.split(' ')"
+          :key="`${word}-${index}`"
+          class="word-chip"
+          :class="getDarkModeClass(darkMode)"
+        >
+          {{ word }}
+        </span>
+      </div>
     </template>
     <!-- import seed phrase -->
     <template v-else>
@@ -89,6 +87,35 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  .seed-phrase-container {
+    .words-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      padding: 20px;
+      
+      .word-chip {
+        padding: 10px 16px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        transition: all 0.2s ease;
+        
+        &.dark {
+          background: rgba(170, 178, 233, 0.85);
+          color: #000000;
+        }
+
+        &.light {
+          background: rgba(108, 117, 173, 0.9);
+          color: #ffffff;
+        }
+      }
+    }
+  }
+
   .number {
     &.dark {
       color: #D36EE1;
@@ -100,20 +127,6 @@ export default {
 
     pre {
       margin: 10px 0;
-    }
-  }
-  .word {
-    padding: 5px 10px;
-    border-radius: 20px;
-    
-    &.dark {
-      background: #AAB2E9;
-      color: #000000;
-    }
-
-    &.light {
-      background: #6c75ad;
-      color: #fff;
     }
   }
 </style>

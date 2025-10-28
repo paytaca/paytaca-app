@@ -768,45 +768,25 @@ const loadingMsg = ref('')
 const mainError = ref('')
 const errors = ref([])
 
-async function getAddressesFromStore() {
-  const response = { success: false, addressSet: { change: '', receiving: '', pubkey: '', index: 0, privateKey: '' } }
-  try {
-    const bchWalletInfo = $store.getters['global/getWallet']('bch')
-    if (bchWalletInfo) {
-      const { lastAddress, lastChangeAddress, lastAddressIndex } = bchWalletInfo
-      if (lastAddress && lastChangeAddress && lastAddressIndex >= 0 ) {
-        response.addressSet.receiving = lastAddress
-        response.addressSet.change = lastChangeAddress
-        response.addressSet.pubkey = await props.wallet.BCH.getPublicKey(`0/${lastAddressIndex}`)
-        response.addressSet.index = lastAddressIndex
-        response.addressSet.privateKey = await props.wallet.BCH.getPrivateKey(`0/${lastAddressIndex}`)
-        response.success = true
-      }
-    }
-  } catch(error) {
-    console.error(error)
-  }
-
-  return response
-}
-
+/**
+ * Gets addresses from the current wallet using the latest address index
+ * Generates dynamically to avoid address mixup issues in multi-wallet scenarios
+ */
 async function getAddresses() {
   const response = { success: false, error: null, addressSet: { change: '', receiving: '', pubkey: '', index: 0, privateKey: ''} }
   try {
     loadingMsg.value = $t('GenerateReceivingAddress')
     loading.value = true
 
-    const getAddressesFromStoreResponse = await getAddressesFromStore()
-    if (getAddressesFromStoreResponse.success) {
-      response.addressSet = getAddressesFromStoreResponse.addressSet
-      response.success = true
-      return response
-    }
-
-    const addressIndex = 0
+    // Get the current address index from store
+    const lastAddressIndex = $store.getters['global/getLastAddressIndex']('bch')
+    
+    // Generate addresses dynamically using the wallet's methods
+    const addressIndex = lastAddressIndex >= 0 ? lastAddressIndex : 0
     const result = await props.wallet.BCH.getNewAddressSet(addressIndex)
     const addressSet = result.addresses
     if (!addressSet?.receiving) throw new Error('Expected receiving address')
+    
     response.addressSet = addressSet
     response.addressSet.index = addressIndex
     response.addressSet.privateKey = await props.wallet.BCH.getPrivateKey(`0/${addressIndex}`)
