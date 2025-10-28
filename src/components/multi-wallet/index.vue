@@ -22,7 +22,7 @@
             round
             flat
             dense
-            color="black"
+            :color="darkMode ? 'white' : 'black'"
             icon="keyboard_double_arrow_left"
             class="default-text-color"
             @click="hide"

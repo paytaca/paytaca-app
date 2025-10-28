@@ -21,7 +21,7 @@
             round
             flat
             dense
-            color="black"
+            :color="darkMode ? 'white' : 'black'"
             icon="keyboard_double_arrow_right"
             class="default-text-color"
             v-close-popup
