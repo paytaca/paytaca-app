@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <div class="dialog-content q-px-lg q-pb-lg">
+      <div class="pt-card dialog-content q-px-lg q-pb-lg">
         <!-- Amount Section -->
         <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
           <div class="row items-center q-mb-sm">
@@ -387,7 +387,7 @@ export default {
 
 .info-card {
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.05);
   
   &.dark {
