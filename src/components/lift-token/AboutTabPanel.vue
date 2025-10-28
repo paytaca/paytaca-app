@@ -384,11 +384,11 @@ export default {
       tokenomicsData: [
         { category: this.$t('TokenSale'), percentage: 20, tokens: 200000000, description: this.$t('SeedPrivatePublicRounds') },
         { category: this.$t('CommunityIncentives'), percentage: 30, tokens: 300000000, description: this.$t('CampaignBasedDistribution') },
-        { category: this.$t('TeamAndAdvisors'), percentage: 15, tokens: 150000000, description: this.$t('1YearCliffVesting') },
+        { category: this.$t('TeamAndAdvisors'), percentage: 15, tokens: 150000000, description: this.$t('OneYearCliffVesting') },
         { category: this.$t('EcosystemGrowth'), percentage: 15, tokens: 150000000, description: this.$t('MilestoneBasedUnlocks') },
-        { category: this.$t('Partnerships'), percentage: 5, tokens: 50000000, description: this.$t('6MonthLockup') },
+        { category: this.$t('Partnerships'), percentage: 5, tokens: 50000000, description: this.$t('SixMonthLockup') },
         { category: this.$t('LiquidityPool'), percentage: 5, tokens: 50000000, description: this.$t('ImmediateAvailability') },
-        { category: this.$t('ReserveFund'), percentage: 10, tokens: 100000000, description: this.$t('24MonthLockup') }
+        { category: this.$t('ReserveFund'), percentage: 10, tokens: 100000000, description: this.$t('TwentyFourMonthLockup') }
       ],
       faqData: [
         {
