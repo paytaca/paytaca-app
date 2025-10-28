@@ -13,7 +13,7 @@
                 <q-btn-group rounded>
                   <q-btn
                     @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'cashaddr')"
-                    :color="settings.addressDisplayFormat === 'cashaddr' ? 'brandblue': 'grey'"
+                    :color="settings.addressDisplayFormat === 'cashaddr' ? 'primary': 'grey'"
                     :outline="settings.addressDisplayFormat !== 'cashaddr'"
                     size="sm"
                     no-caps
@@ -23,7 +23,7 @@
                   </q-btn>
                   <q-btn
                     @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'tokenaddr')"
-                    :color="settings.addressDisplayFormat === 'tokenaddr' ? 'brandblue': 'grey'"
+                    :color="settings.addressDisplayFormat === 'tokenaddr' ? 'primary': 'grey'"
                     :outline="settings.addressDisplayFormat !== 'tokenaddr'"
                     size="sm"
                     no-caps
@@ -51,7 +51,7 @@
                   :disable="Boolean(loading) || Object.keys(activeSessions || {}).length === 0"
                   checked-icon="check"
                   unchecked-icon="clear"
-                  color="brandblue"
+                  color="primary"
                 >
                 </q-toggle>
               </q-item-section>
@@ -171,7 +171,7 @@
               v-model="showActiveSessions"
               left-label
               :disable="Boolean(loading)"
-              color="brandblue"
+              color="primary"
             >
             <div class="row items-center">
               <div style="position:relative">
@@ -222,7 +222,6 @@ import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
 import { convertCashAddress } from 'src/wallet/chipnet'
-import { loadWallet } from 'src/wallet'
 import { buildApprovedNamespaces, getSdkError, mergeRequiredAndOptionalNamespaces } from '@walletconnect/utils'
 import Watchtower from 'src/lib/watchtower'
 import { useQuasar } from 'quasar'
@@ -241,7 +240,6 @@ import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
-import { loadLibauthHdWallet } from '../../wallet'
 import {
   createMultisigTransactionFromWCSessionRequest,
   generateTransactionHash,
@@ -251,6 +249,7 @@ import {
   isMultisigWalletSynced
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import { APP_VERSION, compareAppVersions } from 'src/utils/version-control'
 const $emit = defineEmits([
   'request-scanner'
 ])
@@ -261,9 +260,7 @@ const $q = useQuasar()
 const $router = useRouter()
 const { t: $t } = useI18n()
 const $store = useStore()
-const {
-  multisigWallets
-} = useMultisigHelpers()
+const { multisigWallets } = useMultisigHelpers()
 
 const loading = ref/* <string> */()
 const processingSession = ref({}) /* <{ [topicOrId: string | number]: [processingMessage: string] }> */
@@ -274,21 +271,31 @@ const watchtower = ref()
  */
 // const walletExternalAddresses = ref/* <string[]> */()
 
-/* <{index: number, address: string, wif: string}[]> */
+
+/**
+ * @typedef SingleWalletInfo
+ * @property {Number} index
+ * @property {String} address
+ * @property {String} wif
+ */
+
+/** @type {import("vue").Ref<SingleWalletInfo[]>} */
 const walletAddresses = ref([])
 
 /**
  * Mapping of session proposal pairing topic and the address approved
  * for this proposal.
  * { [topic: string]: {index: number, address: string, wif: string} }
- */
+ * @type {import("vue").Ref<Record<String, SingleWalletInfo>>}
+ * */
 const sessionTopicWalletAddressMapping = ref({})
-const wallet = ref()
 const showActiveSessions = ref(false)
 const activeSessions = ref({})
 const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
 const sessionProposals = ref([])
+const invalidChainSessionProposals = ref([])
 const sessionRequests = ref([])
+/** @type {import("vue").Ref<import("@reown/walletkit").IWalletKit>} */
 const web3Wallet = ref()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
@@ -325,7 +332,7 @@ const formatAddressForDisplay = (address, lockingBytecode = null) => {
 const onScannerDecode = async (content) => {
   const dialog = $q.dialog({
     title: $t('Connecting'),
-    progress: { color: 'brandblue' },
+    progress: { color: 'primary' },
     persistent: true,
     seamless: true,
     ok: false,
@@ -335,7 +342,7 @@ const onScannerDecode = async (content) => {
     await new Promise(async (resolve, reject) => {
       setTimeout(() => reject(new Error('Timeout')), 15 * 1000)
       try {
-        const resp = await web3Wallet.value.pair({ uri: content })
+        const resp = await pairURI(content)
         resolve(resp)
       } catch (error) { reject(error) }
     })
@@ -376,8 +383,14 @@ const loadSessionProposals = async ({ showLoading } = { showLoading: true }) => 
     if (web3Wallet.value) {
       const proposals = await web3Wallet.value.getPendingSessionProposals()
       const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
+      invalidChainSessionProposals.value = [];
       sessionProposals.value = proposals.filter((p) => {
-        return p.requiredNamespaces?.bch?.chains?.includes(chainIdFilter)
+        const namespaces = mergeRequiredAndOptionalNamespaces(p?.requiredNamespaces, p?.optionalNamespaces);
+        if (!namespaces?.bch?.chains?.includes(chainIdFilter)) {
+          invalidChainSessionProposals.value.push(p)
+          return false
+        }
+        return true
       })
     }
   } catch (error) {
@@ -493,20 +506,6 @@ async function saveConnectedApp (session) {
   } catch (error) { console.log('🚀 ~ saveConnectedApp ~ error:', error) }
 }
 
-// const accountInfo = computed(() => {
-//   return {
-//     address: bchWallet.value?.lastAddress,
-//     changeAddress: bchWallet.value?.lastChangeAddress,
-//     walletIndex: bchWallet.value?.lastAddressIndex
-//   }
-// })
-
-// async function getCurrentAddressWif() {
-//   const walletIndex = accountInfo.value.walletIndex
-//   const utxoPkWif = await getWalletByNetwork(wallet.value, 'bch').getPrivateKey(`0/${walletIndex}`)
-//   return utxoPkWif
-// }
-
 const connectNewSession = async (uri = '', prompt = true) => {
   if (prompt) {
     $q.dialog({
@@ -515,7 +514,6 @@ const connectNewSession = async (uri = '', prompt = true) => {
       prompt: {
         label: $t('SessionURL'),
         placeholder: $t('PasteURL'),
-        color: 'brandblue',
         model: uri,
         outlined: true,
         type: 'textarea',
@@ -525,7 +523,6 @@ const connectNewSession = async (uri = '', prompt = true) => {
       ok: {
         noCaps: true,
         label: $t('Proceed'),
-        color: 'brandblue',
         class: `button q-mr-md ${getDarkModeClass(darkMode.value)}`
       },
       cancel: {
@@ -555,6 +552,10 @@ const pairURI = async (uri) => {
     const prevSessionProposalsLength = sessionProposals.value?.length
     await web3Wallet.value.pair({ uri: uri })
     await loadSessionProposals({ showLoading: false })
+    await delay(1);
+    if (invalidChainSessionProposals.value?.length && !sessionProposals.value?.length) {
+      throw $t('ChainNotSupported', 'Chain not supported')
+    }
     let tryAgain = 15
     const i = setInterval(() => {
       if (sessionProposals.value?.length > prevSessionProposalsLength || !tryAgain) {
@@ -571,9 +572,9 @@ const pairURI = async (uri) => {
       ok: {
         label: $t('Ok'),
         noCaps: true,
-        color: 'brandblue'
+        color: 'primary'
       },
-      class: `br-15 pt-card text-caption ${getDarkModeClass(darkMode.value)}`
+      class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
     })
   } finally {
     loading.value = ''
@@ -589,7 +590,7 @@ const disconnectSession = async (activeSession) => {
         ok: {
           label: $t('Yes'),
           noCaps: true,
-          color: 'brandblue'
+          color: 'primary'
         },
         cancel: {
           flat: true,
@@ -708,14 +709,13 @@ const approveSessionProposal = async (sessionProposal) => {
     const session = await web3Wallet.value.approveSession({
       id: sessionProposal?.id,
       namespaces: approvedNamespaces,
-      sessionProperties: {
-        wallet: {
-          address: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.address,
-          template: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.template
-        }
-      }
+      // sessionProperties: {
+      //   wallet: {
+      //     address: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.address,
+      //     template: sessionTopicWalletAddressMapping.value?.[sessionProposal.pairingTopic]?.template
+      //   }
+      // }
     })
-    await web3Wallet.value.getActiveSessions()
     activeSessions.value[session.topic] = session
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
@@ -801,7 +801,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       if (sessionRequest.params.request.params?.broadcast) {
         const broadcastResponse = watchtower.value?.BCH.broadcastTransaction(response.result.signedTransaction)
         if (!broadcastResponse.success) {
-          response.error = { code: -1, error: broadcastResponse?.error }
+          response.error = { code: -32603, message: broadcastResponse?.error }
           response.result = undefined
         }
       }
@@ -809,12 +809,15 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
     } catch (err) {
       console.log('🚀 ~ respondToSignTransactionRequest ~ err:', err)
       response.error = {
-        code: -1,
+        code: -32603,
         reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
       }
       sessionRequest.error = true
       processingSession.value[sessionRequest.topic] = 'Sending error response'
     } finally {
+      if (!response.result) delete response.result
+      if (!response.error) delete response.error
+      console.log(sessionRequest?.params?.request?.method, 'response', response);
       await web3Wallet.value.respondSessionRequest({
         topic: sessionRequest.topic, response
       })
@@ -835,23 +838,26 @@ const respondToSignMessageRequest = async (sessionRequest) => {
     const signingAddress = sessionRequest.params?.request?.params?.account
     const connectedAddressForTopic = sessionTopicWalletAddressMapping.value[sessionRequest.topic]
     if (!connectedAddressForTopic?.address || signingAddress !== connectedAddressForTopic.address) {
-      response.error = { code: -1, message: 'Account has no active session' }
+      response.error = { code: -32603, message: 'Account has no active session' }
     }
     const message = sessionRequest.params?.request?.params?.message
     if (message == undefined) {
-      response.error = { code: -1, message: 'Message parameter is mandatory' }
+      response.error = { code: -32603, message: 'Message parameter is mandatory' }
     }
     response.result = await signMessage(message, connectedAddressForTopic.wif)
     processingSession.value[sessionRequest.topic] = 'Confirming request'
   } catch (err) {
     console.error('🚀 ~ respondToSignMessageRequest ~ err:', err)
     response.error = {
-      code: -1,
-      reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
+      code: -32603,
+      message: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
     }
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
   } finally {
+    if (!response.result) delete response.result
+    if (!response.error) delete response.error
+    console.log(sessionRequest?.params?.request?.method, 'response', response);
     await web3Wallet.value.respondSessionRequest({ topic: sessionRequest.topic, response })
     if (!sessionRequest.error) {
       sessionRequest.confirmed = true
@@ -870,8 +876,8 @@ const respondToGetAccountsRequest = async (sessionRequest) => {
   } catch (err) {
     console.error(err)
     response.error = {
-      code: -1,
-      reason: err?.name === 'GetBCHAccountsError' ? err?.message : 'Unknown error'
+      code: -32603,
+      message: err?.name === 'GetBCHAccountsError' ? err?.message : 'Unknown error'
     }
   } finally {
     await web3Wallet.value.respondSessionRequest({ topic: sessionRequest?.topic, response })
@@ -888,7 +894,7 @@ const respondToSessionRequest = async (sessionRequest) => {
     if (![CHAINID_MAINNET, CHAINID_CHIPNET].includes(sessionRequest?.params?.chainId)) {
       await web3Wallet.value.respondSessionRequest({
         topic,
-        response: { id, jsonrpc: '2.0', error: { code: -32601, reason: 'Chain not supported' } }
+        response: { id, jsonrpc: '2.0', error: { code: 5100, message: 'Chain not supported' } }
       })
       await loadSessionRequests()
       delete processingSession.value[sessionRequest.id]
@@ -917,7 +923,7 @@ const respondToSessionRequest = async (sessionRequest) => {
           id,
           jsonrpc: '2.0',
           result: undefined,
-          error: { code: -32601, reason: 'Method not found' }
+          error: { code: -32601, message: 'Method not found' }
         }
         await web3Wallet.value.respondSessionRequest({ topic, response })
       }
@@ -954,7 +960,7 @@ const rejectSessionRequest = async (sessionRequest) => {
   try {
     await web3Wallet.value.respondSessionRequest({
       topic,
-      response: { id, jsonrpc: '2.0', error: { code: 5000, reason: 'User rejected' } }
+      response: { id, jsonrpc: '2.0', error: { code: 5000, message: 'User rejected' } }
     })
   } catch (error) {} finally { await loadSessionRequests({ showLoading: false }) }
 }
@@ -969,11 +975,27 @@ const disconnectAllSessions = async () => {
   }
 }
 
-const resetWallectConnect = async () => {
+const resetWallectConnect = async (opts = { silent: false }) => {
   await disconnectAllSessions()
   await resetWallectConnectDatabase()
   await loadActiveSessions()
-  alert('Reset done!')
+  if (!opts?.silent) alert('Reset done!')
+}
+
+window.test = compareAppVersions
+// NOTE: Can be removed if enough time has passed since writing
+async function wcVersionUpgradeMigration() {
+  try {
+    const resetFlagLocalStorageKey = 'WC2__2_22_4__UPGRADE_MIGRATE'
+    const migrated = localStorage.getItem(resetFlagLocalStorageKey);
+    if (migrated) return
+    const versionCompare = compareAppVersions(APP_VERSION, "0.23.0");
+    if (versionCompare <= 0) return
+    await resetWallectConnect({ silent: true });
+    localStorage.setItem(resetFlagLocalStorageKey, 1);
+  } catch(error) {
+    console.error(error)
+  }
 }
 
 const loadWeb3Wallet = async () => {
@@ -1020,7 +1042,7 @@ const onSessionExpire = async (data) => {
 }
 
 /**
- * @param {import('@walletconnect/web3wallet').IWeb3Wallet} _web3Wallet
+ * @param {import('@reown/walletkit').IWalletKit} _web3Wallet
  */
 const attachEventListeners = (_web3Wallet) => {
   _web3Wallet?.on?.('auth_request', onAuthRequest)
@@ -1030,10 +1052,11 @@ const attachEventListeners = (_web3Wallet) => {
   _web3Wallet?.on?.('session_update', onSessionUpdate)
   _web3Wallet?.on?.('session_event', onSessionEvent)
   _web3Wallet?.on?.('session_expire', onSessionExpire)
+  _web3Wallet?.on?.('session_request_expire', onSessionExpire)
 }
 
 /**
- * @param {import('@walletconnect/web3wallet').IWeb3Wallet} _web3Wallet
+ * @param {import('@reown/walletkit').IWalletKit} _web3Wallet
  */
 const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('auth_request', onAuthRequest)
@@ -1043,13 +1066,13 @@ const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('session_update', onSessionUpdate)
   _web3Wallet?.off?.('session_event', onSessionEvent)
   _web3Wallet?.off?.('session_expire', onSessionExpire)
+  _web3Wallet?.off?.('session_request_expire', onSessionExpire)
 }
 
 const refreshComponent = async () => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
   await $store.dispatch('global/loadWalletConnectedApps')
-  wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
   walletAddresses.value = $store.getters['global/walletAddresses']
   await loadSessionRequests({ showLoading: true })
@@ -1065,7 +1088,6 @@ onBeforeMount(async () => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
   await $store.dispatch('global/loadWalletConnectedApps')
-  wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
   walletAddresses.value = $store.getters['global/walletAddresses']
   await loadSessionRequests()
@@ -1077,6 +1099,7 @@ onMounted(async () => {
   try {
     loading.value = 'Loading...'
     await loadWeb3Wallet()
+    await wcVersionUpgradeMigration()
     loadActiveSessions()
     attachEventListeners(web3Wallet.value)
     if (Object.keys($store.getters['global/lastAddressAndIndex'] || {}).length === 0) {

@@ -500,7 +500,8 @@ async function refreshPage(done=() => {}) {
 }
 </script>
 <style scoped lang="scss">
-@import '/src/css/shared.scss'; // Using this should get you the variables
+@import '../../../css/shared.scss'; // Using this should get you the variables
+
 table.orders-table {
   border-spacing: map-get($space-xs, "x") map-get($space-sm, "y");
 }

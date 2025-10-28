@@ -487,6 +487,8 @@ const phrases = {
       NoPendingSessionProposals: "No pending session proposals",
       NewSession: "New Session",
       SessionURL: "Session URL",
+      ChainNotSupported: "Chain not supported",
+      SelectAddress: "Select Address",
       ApprovingSession: "Approving session",
       ActiveSessions: "Active Sessions",
       SelectCollection: "Select Collection",
