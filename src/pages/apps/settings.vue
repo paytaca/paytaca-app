@@ -50,7 +50,7 @@
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
                       </q-item-label>
-                      <q-item-label caption style="line-height:1;margin-top:3px;" >
+                      <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
                         {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
                       </q-item-label>
                   </q-item-section>
@@ -166,18 +166,18 @@
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
                 <q-item-section>
-                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
-                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">v{{ appVersion }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" caption>{{ $t('Version') }}</q-item-label>
+                  <q-item-label class="pt-label text-grad" :class="getDarkModeClass(darkMode)">v{{ appVersion }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
                   <q-item-label>
                     <a
                       :href="repoUrl"
                       target="_blank"
-                      :class="darkMode ? 'text-grad' : 'text-blue-9'"
+                      class="text-grad"
                       style="text-decoration: none;"
                     >
                       {{ repoUrl }}

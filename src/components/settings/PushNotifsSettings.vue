@@ -1,6 +1,6 @@
 <template>
-  <div class="col-12 q-px-lg q-mt-md">
-    <p class="q-px-sm q-my-sm dim-text section-title text-h6">{{ $t('PushNotifications') }}</p>
+  <div class="col-12 q-px-lg q-mt-md text-bow" :class="getDarkModeClass(darkMode)">
+    <p class="q-px-sm q-my-sm section-title text-subtitle1">{{ $t('PushNotifications') }}</p>
     <q-list bordered separator class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
       <q-item>
         <q-item-section>
