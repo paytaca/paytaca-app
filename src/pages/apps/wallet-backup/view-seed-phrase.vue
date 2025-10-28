@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="seed-phrase-view-container sticky-header-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="seed-phrase-view-container sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('SeedPhrase', {}, 'Seed Phrase')" backnavpath="/apps/wallet-backup" class="header-nav apps-header" />
 
     <div class="content-wrapper" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">

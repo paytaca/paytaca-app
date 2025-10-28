@@ -1,7 +1,7 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
     <q-card
-      class="q-dialog-plugin br-15 pt-card"
+      class="q-dialog-plugin br-15 pt-card text-bow"
       style="padding: 5px 0;"
       :class="getDarkModeClass(darkMode)"
     >

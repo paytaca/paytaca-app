@@ -7,7 +7,11 @@
         class="q-px-sm apps-header gift-app-header"
       />
       
-      <div class="create-gift-content" :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
+      <div
+        class="create-gift-content text-bow"
+        :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}"
+        :class="getDarkModeClass(darkMode)"
+      >
         <!-- Processing State -->
         <div v-if="processing" class="processing-state q-px-md">
           <div class="pt-card processing-card" :class="getDarkModeClass(darkMode)">
@@ -374,7 +378,7 @@
                 unelevated
               no-caps
                 size="lg"
-                class="full-width bg-grad generate-btn"
+                class="full-width bg-grad generate-btn text-white"
               :disable="(createNewCampaign && !campaignName) || disableGenerateButton() || amountBCH > spendableBch"
               @click="processRequest()"
             >

@@ -30,8 +30,8 @@
         </div>
         <div
           v-else
-          class="send-form-container"
-          :class="sent ? 'q-mt-md sent' : 'q-mt-xs'"
+          class="send-form-container text-bow"
+          :class="[sent ? 'q-mt-md sent' : 'q-mt-xs', getDarkModeClass(darkMode)]"
         >
           <div class="q-pa-md enter-address-container">
             <div v-if="isNFT && !sent" class="nft-container">
@@ -190,7 +190,7 @@
                 <q-btn
                   unelevated
                   no-caps
-                  class="full-width bg-grad gift-link-btn q-mt-md"
+                  class="full-width bg-grad gift-link-btn q-mt-md text-white"
                   size="lg"
                   @click="navigateToCreateGift"
                 >

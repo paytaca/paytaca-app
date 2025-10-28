@@ -110,9 +110,9 @@
             <div v-else-if="!giftsList.length"
               class="empty-state"
             >
-              <q-icon name="mdi-gift-outline" size="80px" class="text-grey-5 q-mb-md"/>
-              <div class="text-h6 text-grey-6">{{ $t('NoUnclaimedGifts', {}, 'No unclaimed gifts') }}</div>
-              <div class="text-caption text-grey-5 q-mt-sm">
+              <q-icon name="mdi-gift-outline" size="80px" class="q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'"/>
+              <div class="text-h6" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">{{ $t('NoUnclaimedGifts', {}, 'No unclaimed gifts') }}</div>
+              <div class="text-caption q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
                 {{ $t('CreateYourFirstGift', {}, 'Create your first gift to get started') }}
               </div>
             </div>
@@ -247,9 +247,10 @@
               <q-icon 
                 :name="activeTab === 'claimed' ? 'mdi-check-circle-outline' : 'mdi-recycle'" 
                 size="80px" 
-                class="text-grey-5 q-mb-md"
+                class="q-mb-md"
+                :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
               />
-              <div class="text-h6 text-grey-6">
+              <div class="text-h6" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                 {{ activeTab === 'claimed' ? $t('NoClaimedGifts', {}, 'No claimed gifts') : $t('NoRecoveredGifts', {}, 'No recovered gifts') }}
               </div>
             </div>

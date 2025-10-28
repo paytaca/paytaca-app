@@ -21,6 +21,7 @@
             round
             flat
             dense
+            color="black"
             icon="keyboard_double_arrow_right"
             class="default-text-color"
             v-close-popup
@@ -36,6 +37,7 @@
             v-if="isCheckboxClicked"
             flat
             round
+            color="primary"
             :disable="isLoading"
             icon="cancel"
             @click="isCheckboxClicked = false"
@@ -45,12 +47,13 @@
             round
             :disable="isLoading || notifsList.length === 0"
             :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
-            :color="isCheckboxClicked ? 'red' : ''"
+            :color="isCheckboxClicked ? 'red' : 'primary'"
             @click="massDeleteNotifs"
           />
           <q-btn
             flat
             round
+            color="primary"
             icon="refresh"
             :disable="isLoading"
             @click="refreshNotifsList()"
@@ -58,6 +61,7 @@
           <q-btn
             flat
             round
+            color="primary"
             icon="mark_chat_read"
             :disable="isLoading || notifsList.length === 0"
             @click="markAllAsRead()"
@@ -65,6 +69,7 @@
           <q-btn
             flat
             round
+            color="primary"
             :disable="isLoading"
             icon="filter_alt"
             @click="openFilterDialog"
