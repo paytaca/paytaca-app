@@ -9,8 +9,8 @@
             class="lift-logo"
           />
         </div>
-        <div class="text-h4 text-weight-bold q-mb-xs">LIFT Token</div>
-        <div class="text-subtitle1 text-grey-7 q-mb-md">
+        <div class="text-h4 text-weight-bold q-mb-xs q-mt-sm">LIFT Token</div>
+        <div class="text-subtitle1 q-mb-md" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
           {{ $t('LiftTagline', {}, 'Leveraging Incentives for Financial Transformation') }}
         </div>
         
@@ -56,7 +56,7 @@
             flat
             no-caps
             size="lg"
-            class="secondary-cta-button"
+            class="secondary-cta-button button button-text-primary"
             :class="getDarkModeClass(darkMode)"
             @click="scrollToContent"
           >
@@ -326,7 +326,7 @@
           no-caps
           size="lg"
           icon="shopping_cart"
-          class="cta-button"
+          class="cta-button button"
           @click="showBuyDialog = true"
         />
       </div>
@@ -499,6 +499,11 @@ export default {
       &.dark {
         background: rgba(255, 255, 255, 0.05);
         border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      &.light {
+        background: black;
+        border-color: black;
       }
     }
     
