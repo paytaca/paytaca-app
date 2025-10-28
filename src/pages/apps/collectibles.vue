@@ -79,17 +79,17 @@
     </div>
     <q-tab-panels v-if="!showAddress" v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
       <q-tab-panel name="BCH">
-        <div class="row items-center justify-end">
+        <div v-if="enableSLP" class="row items-center justify-end">
           <AssetFilter style="float:none" @filterTokens="filterTokens"/>
         </div>
         <keep-alive>
           <CashTokensNFTs
-            v-if="bchNftType === 'ct'"
+            v-if="bchNftType === 'ct' || !enableSLP"
             ref="cashtokenNFTs"
             :wallet="wallet"
           />
           <SLPCollectibles
-            v-else
+            v-else-if="enableSLP"
             ref="slpCollectibles"
             :wallet="wallet"
             style="margin:auto;"
@@ -263,6 +263,9 @@ export default {
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
+    },
+    enableSLP () {
+      return this.$store.getters['global/enableSLP']
     },
     isSep20 () {
       return this.selectedNetwork === 'sBCH'

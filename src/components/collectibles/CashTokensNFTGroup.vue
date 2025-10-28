@@ -1,8 +1,22 @@
 <template>
   <div>
-    <div v-if="fetchingNfts" class="row items-center justify-center">
-      <ProgressLoader />
-    </div>
+    <!-- Skeleton Loaders -->
+    <template v-if="fetchingNfts && !nfts.length">
+      <div class="row items-start justify-between q-pa-md">
+        <q-card
+          v-for="n in 6" :key="`skeleton-${n}`"
+          class="q-ma-sm"
+          :style="nftDivStyle"
+        >
+          <q-skeleton height="130px" width="100%" square />
+          <q-card-section class="q-pa-sm">
+            <q-skeleton type="text" width="80%" />
+          </q-card-section>
+        </q-card>
+      </div>
+    </template>
+
+    <!-- Actual NFTs -->
     <div class="row items-start justify-between q-pa-md" ref="nftDivRef">
       <q-card
         v-for="nft in nfts" :key="nft?.id"
@@ -13,16 +27,23 @@
       >
         <q-img
           :src="imageUrl(nft)"
-          fit="fill"
+          ratio="1"
+          fit="cover"
           @error="() => onNftImageError(nft)"
         >
-          <q-inner-loading :showing="nft.$state.fetchingMetadata" class="text-center">
-            <q-spinner size="35px"/>
-            <span class="text-caption">{{ $t('LoadingMetadata') }} ...</span>
-          </q-inner-loading>
+          <template v-slot:loading>
+            <q-skeleton height="100%" width="100%" square />
+          </template>
+          <!-- Metadata loading overlay with skeleton -->
+          <div v-if="nft.$state.fetchingMetadata" class="absolute-full flex flex-center" style="background: rgba(0, 0, 0, 0.5);">
+            <div class="column items-center q-gutter-sm" style="width: 80%;">
+              <q-skeleton type="rect" width="80%" height="80px" />
+              <q-skeleton type="text" width="60%" />
+            </div>
+          </div>
         </q-img>
-        <q-card-section v-if="nft?.parsedMetadata?.name || nft?.parsedMetadata?.description" class="q-pa-sm">
-          <div class="text-subtitle1 ellipsis-3-lines">{{ nft?.parsedMetadata?.name }}</div>
+        <q-card-section class="q-pa-sm">
+          <div class="text-subtitle1 ellipsis-3-lines">{{ getNftName(nft) }}</div>
           <!-- <div class="ellipsis">{{ nft?.parsedMetadata?.description }}</div> -->
         </q-card-section>
       </q-card>
@@ -70,6 +91,7 @@ import { computed, onMounted, onUpdated, ref, watch } from "vue";
 import ProgressLoader from 'components/ProgressLoader'
 import LimitOffsetPagination from 'components/LimitOffsetPagination.vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import noImage from 'src/assets/no-image.svg'
 
 defineExpose({
   fetchNfts,
@@ -104,7 +126,7 @@ const imageUrl = computed(() => {
         return imgUrl
       }
     } else {
-      return generateFallbackImage(nft)
+      return noImage
     }
   }
 })
@@ -174,10 +196,22 @@ function onNftImageError(nft=CashNonFungibleToken.parse()) {
   nft.changeIpfsBaseUrl()
 }
 
-function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
-  return $store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
+function getNftName(nft) {
+  if (nft?.parsedMetadata?.name) {
+    return nft.parsedMetadata.name
+  }
+  // Fallback to truncated category ID
+  if (nft?.category) {
+    const category = nft.category
+    if (category.length > 15) {
+      return `${category.substring(0, 6)}...${category.substring(category.length - 6)}`
+    }
+    return category
+  }
+  return 'Unknown NFT'
 }
 
+// Removed generateFallbackImage - now using no-image.svg from Marketplace
 // function getImageUrl (nft) {
 //   const imgUrl = nft?.parsedMetadata?.imageUrl 
 //   if (imgUrl) {
@@ -187,7 +221,7 @@ function generateFallbackImage(nft=CashNonFungibleToken.parse()) {
 //       return imgUrl
 //     }
 //   } else {
-//     return generateFallbackImage(nft)
+//     return noImage
 //   }
 // }
 </script>
