@@ -56,7 +56,7 @@
                   {{ $t('HowToSend', {}, 'How would you like to send?') }}
                 </div>
                 <div class="text-caption text-center q-mt-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
-                  {{ $t('ChooseMethod', {}, 'Choose a method to send your') }} {{ asset.symbol || 'BCH' }}
+                  {{ $t('ChooseMethod', { symbol: asset.symbol || 'BCH' }, `Choose a method to send your ${asset.symbol || 'BCH'}`) }}
                 </div>
               </div>
 

@@ -11,7 +11,13 @@
           <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
             <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
           </q-btn>
-          <p class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label" :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']">{{ app.name }}</p>
+          <p
+            class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label"
+            :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
+            style="word-break: break-all;"
+          >
+            {{ app.name }}
+          </p>
         </div>
       </div>
     </div>
@@ -46,7 +52,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Marketplace',
+          name: this.$t('Marketplace'),
           iconName: 'img:marketplace.png',
           path: '/apps/marketplace',
           active: true,

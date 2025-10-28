@@ -40,7 +40,7 @@
                 <div class="shard-number bg-grad">1</div>
                 <div class="col q-ml-md">
                   <div class="shard-title">{{ $t('FirstShard', {}, 'First Shard') }}</div>
-                  <div class="shard-subtitle">{{ $t('PersonalQRDescription2', {}, 'Print, laminate, and store in a safe place') }}</div>
+                  <div class="shard-subtitle">{{ $t('ViewShards1stShardDescription', {}, 'Print, laminate, and store in a safe place') }}</div>
                 </div>
                 <q-icon 
                   :name="expandedShard === 0 ? 'expand_less' : 'expand_more'" 
@@ -86,7 +86,7 @@
                       <q-btn
                         flat
                         no-caps
-                        :label="$t('CopyToClipboard', {}, 'Copy')"
+                        :label="$t('Copy', {}, 'Copy')"
                         icon="content_copy"
                         color="primary"
                         @click="copyToClipboard(shards[0])"
@@ -109,7 +109,7 @@
                 <div class="shard-number bg-grad">2</div>
                 <div class="col q-ml-md">
                   <div class="shard-title">{{ $t('SecondShard', {}, 'Second Shard') }}</div>
-                  <div class="shard-subtitle">{{ $t('ForSharingQRDescription2', {}, 'Print out this and store somewhere safe') }}</div>
+                  <div class="shard-subtitle">{{ $t('ViewShards2ndShardDescription', {}, 'Print this out and store somewhere safe') }}</div>
                 </div>
                 <q-icon 
                   :name="expandedShard === 1 ? 'expand_less' : 'expand_more'" 
@@ -155,7 +155,7 @@
                       <q-btn
                         flat
                         no-caps
-                        :label="$t('CopyToClipboard', {}, 'Copy')"
+                        :label="$t('Copy', {}, 'Copy')"
                         icon="content_copy"
                         color="primary"
                         @click="copyToClipboard(shards[1])"
@@ -178,7 +178,7 @@
                 <div class="shard-number bg-grad">3</div>
                 <div class="col q-ml-md">
                   <div class="shard-title">{{ $t('ExtraShard', {}, 'Third Shard') }}</div>
-                  <div class="shard-subtitle">{{ $t('ExtraQRDescription2', {}, 'Print, laminate, and store in another location') }}</div>
+                  <div class="shard-subtitle">{{ $t('ViewShards3rdShardDescription', {}, 'Print, laminate, and store in another location') }}</div>
                 </div>
                 <q-icon 
                   :name="expandedShard === 2 ? 'expand_less' : 'expand_more'" 
@@ -224,7 +224,7 @@
                       <q-btn
                         flat
                         no-caps
-                        :label="$t('CopyToClipboard', {}, 'Copy')"
+                        :label="$t('Copy', {}, 'Copy')"
                         icon="content_copy"
                         color="primary"
                         @click="copyToClipboard(shards[2])"

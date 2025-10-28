@@ -18,7 +18,7 @@
               {{ $t('CreatingGift') }}
             </div>
             <p class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
-              {{ $t('PleaseWait', {}, 'Please wait while we create your gift...') }}
+              {{ $t('PleaseWaitGift', {}, 'Please wait while we create your gift') }}...
             </p>
           <progress-loader />
         </div>
