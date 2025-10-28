@@ -1,6 +1,6 @@
 <template>
   <q-dialog persistent seamless ref="dialogRef" class="no-click-outside">
-    <q-card class="pt-card-2 purchase-info-dialog-card text-bow full-width" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+    <q-card v-if="purchase" class="pt-card-2 purchase-info-dialog-card text-bow full-width" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
       <div class="pt-card row justify-between items-center q-px-lg q-pt-lg q-pb-md sticky-title" :class="getDarkModeClass(darkMode)">
         <div class="col-10 q-gutter-sm">
           <q-badge
@@ -330,6 +330,8 @@ export default {
   },
 
   mounted() {
+    if (!this.purchase || !this.purchase.purchase_vesting_details) return;
+    
     for (let i = 0; i < 4; i++) {
       if (this.purchase.purchase_vesting_details[i]?.vested_date)
         this.vestingDetailsList.push(this.purchase.purchase_vesting_details[i]);

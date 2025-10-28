@@ -70,8 +70,6 @@
         <div class="empty-state-card q-pa-xl" :class="getDarkModeClass(darkMode)">
           <q-icon name="mdi-inbox-outline" size="64px" class="text-grey-5 q-mb-md" />
           <div class="text-h6 q-mb-sm text-bold">{{ $t("EmptyReservations1") }}</div>
-          <div class="text-body2 q-mb-xs">{{ $t("EmptyReservations2") }}</div>
-          <div class="text-body2" v-html="$t('EmptyReservations3')" />
         </div>
       </div>
     </template>

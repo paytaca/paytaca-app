@@ -6,6 +6,7 @@
     class="no-click-outside"
   >
     <q-card
+      v-if="rsvp"
       class="payment-dialog-card full-width q-pa-lg text-body1 text-bow"
       :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
@@ -219,13 +220,17 @@ export default {
     },
 
     parseToken() {
+      if (!this.rsvp) return 0;
+      
       let tkn = this.rsvp.reserved_amount_tkn;
-      if (Object.keys(this.rsvp.reservation_partial_purchase).length > 0) {
+      if (this.rsvp.reservation_partial_purchase && Object.keys(this.rsvp.reservation_partial_purchase).length > 0) {
         tkn = this.rsvp.reservation_partial_purchase.tkn_unpaid;
       }
       return tkn;
     },
     computeUsdBch() {
+      if (!this.rsvp || !this.rsvp.sale_group) return;
+      
       this.amountUsd =
         Number(this.amountTkn) * SaleGroupPrice[this.rsvp.sale_group];
       if (this.rsvp.discount > 0) {
@@ -296,6 +301,8 @@ export default {
   },
 
   async mounted() {
+    if (!this.rsvp) return;
+    
     const oracleData = await getOracleData()
     this.currentUsdPrice = oracleData.price
     this.currentMessageTimestamp = oracleData.messageTimestamp
