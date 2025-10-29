@@ -73,6 +73,14 @@ export default {
           smartBCHOnly: false
         },
         {
+          name: 'Address Book',
+          iconName: 'mdi-book-account',
+          path: '',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('Gifts'),
           iconName: 'mdi-gift',
           path: '/apps/gifts/',
