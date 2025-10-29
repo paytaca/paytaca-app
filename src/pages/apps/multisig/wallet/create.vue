@@ -11,7 +11,6 @@
             />
             <div class="row justify-center">
                 <div class="col-xs-12 text-right q-px-sm q-gutter-y-sm">
-                  {{ step }}
                   <q-stepper
                     v-model="step"
                     ref="stepper"
@@ -72,13 +71,14 @@
                         dense
                         clearable
                         >
+                        <template v-slot:append>
+                          <q-btn
+                            @click="() => openLocalWalletsSelectionDialog({ signer, signerIndex: i })"
+                            dense flat no-caps icon="mdi-form-select">
+                          </q-btn>
+                        </template>
                       </q-input>
-                      <!-- <q-btn
-                        @click="() => openLocalWalletsSelectionDialog({ signer, signerIndex })"
-                        :color="darkMode? 'warning': 'primary'"
-                        dense outline no-caps icon="mdi-form-select">
-                        Pick xpub from this wallet
-                      </q-btn> -->
+                      <q-input v-model="signer.masterFingerprint" label="Enter Master Fingerprint" outlined dense required></q-input>
                     </div>
                     <q-stepper-navigation>
                         <q-btn :disable="!signer.xpub || !signer.name" @click="$refs.stepper.next()" color="primary" label="Continue" />
@@ -90,7 +90,7 @@
                       title="Finish"
                       done-icon="done_all"
                     >
-                      <q-list bordered separator class="text-left">
+                      <q-list separator class="text-left">
                         <q-item-label header>Wallet Specs</q-item-label>
                         <q-item>
                           <q-item-section>
@@ -149,12 +149,13 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { shortenString, MultisigWallet } from 'src/lib/multisig'
+import { shortenString, MultisigWallet, getMasterFingerPrint } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
-import multisig from 'src/store/multisig'
+import { loadWallet } from 'src/wallet'
+import { binToHex } from 'bitauth-libauth-v3'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -163,7 +164,8 @@ const { t: $t } = useI18n()
 const { 
   multisigCoordinationServer, 
   multisigNetworkProvider, 
-  resolveXprvOfXpub 
+  resolveXprvOfXpub,
+  getSignerWalletFromVault
 } = useMultisigHelpers()
 const mOptions = ref()
 const nOptions = ref()
@@ -196,9 +198,11 @@ const openLocalWalletsSelectionDialog = ({ signer, signerIndex }) => {
       signerName: signer.name
     }
 
-  }).onOk((selectedWallet) => {
-    console.log('🚀 ~ openLocalWalletsSelectionDialog ~ selectedWallet:', selectedWallet)
-    wallet.value.signers[signerIndex].xpub = selectedWallet.wallet.bch.xPubKey
+  }).onOk(async (selectedWallet) => {
+    signers.value[signerIndex].xpub = selectedWallet.wallet.bch.xPubKey
+    const localWallet = getSignerWalletFromVault({ xpub: selectedWallet.wallet.bch.xPubKey })
+    const { mnemonic } = await loadWallet('BCH', localWallet.vaultIndex)
+    signers.value[signerIndex].masterFingerprint = binToHex(getMasterFingerPrint(mnemonic))
   })
 }
 
@@ -218,7 +222,8 @@ const initializeSigners = (n) => {
     while(signers.value.length !== n) {
       signers.value.push({
         name: '',
-        xpub: ''
+        xpub: '',
+        masterFingerprint: ''
       })
     }
   }
@@ -227,12 +232,8 @@ const initializeSigners = (n) => {
 const onResetClicked = () => {
   m.value = 2
   n.value = 3
-  signers.value = [
-    { name: 'Palace', xpub: 'xpub6ChaFrC7FJCKs4HTyKS17ywUSuN5FgWf3VRX6eLezi7Zrh4XwBY5RD87v1bJTAf3Vf71bfMAWCMEd1G3mQdNMiFhYVmRj3Gg1m7ReSR5KHk'},
-    {name: 'Truly', xpub: 'xpub6D6VvR6s1TtD1ovMShqpEXPeRAT7qUxRkYzAXi7WF1LpMr4xN9Ahh8FYrfh3zKEKQUUPvjc9p8syMpctuVuc586PXooQGMjzX5ZK3HrDhuG'},
-    { name: 'Case', xpub: 'xpub6CZTCrufor8D291ufL5ECFMcuFYDReMS6b5pfMjL3qjfPSoUMfeMP6FqsvfXbywcwQDD88sriRZDrbKbauStkBuEV5igshUHRMhq5BLrXRp'}
-  ]
   name.value = `My ${m.value} of ${n.value} wallet`
+  initializeSigners(n.value)
 }
 
 const onCreateClicked = async () => {
