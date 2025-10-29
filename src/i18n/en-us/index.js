@@ -1467,7 +1467,7 @@ export default {
   SelectExistingCampaign: "Select existing campaign",
   SelectFromList: "Select from list",
   SelectImage: "Select image",
-  SelectLanguage: "SelectLanguage",
+  SelectLanguage: "Select Language",
   SelectLiquidityPool: "Select liquidity pool",
   SelectLocation: "Select Location",
   SelectMethods: "Select methods",
