@@ -24,24 +24,37 @@ contract TapToPay(
         require(checkSig(backendSig, backendPk), 'Invalid backend signature');
         require(checkSig(terminalSig, terminalPk), 'Invalid terminal signature');
 
+        // enforcing that the min number of outputs is 2 and max is 3
         require(tx.outputs.length >= 2 && tx.outputs.length <= 3, 'Unexpected number of outputs, must be 2 or 3');
 
-        // auth NFT presented must have correct category and commitment
-        bytes tokenCategory = (tx.inputs[0].tokenCategory).split(32)[0];
-        require(tokenCategory == category, 'Invalid token category');
+        /* auth NFT presented must have correct category */ 
+        // Take the first 32 bytes (base tokenID) of the token category from the first input and save it as tokenCategory.
+        // Specified 32 bytes just in case it's longer (e.g. 64 bytes) - the rest of the bytes may just be commitment data
+        bytes tokenCategory = (tx.inputs[0].tokenCategory).split(32)[0]; 
+        require(tokenCategory == category, 'Invalid token category'); 
 
-        // terminalHash now binds the Paytaca app's phone ID + wallet key as the authorized 'terminal'
+        // terminalHash now binds the Paytaca app's phone ID + pubkey of the wallet as the authorized 'terminal'
         bytes fullHash = sha256(terminalId + terminalPk);
         bytes terminalHash = fullHash.split(27)[0];
 
+        // stores the commitment of the first input to commitment
         bytes commitment = tx.inputs[0].nftCommitment;
 
-        // expectedTerminalHash in the NFT must now match the Paytaca app (phone) instead of a hardware terminal
+        /* expectedTerminalHash in the NFT must now match the Paytaca app (phone) instead of a hardware terminal */
+        // splits commitment into 2 parts: first byte (flag) - could indicate type of NFT
+        // the rest of the byte - commitment data
         bytes flag, bytes rest = commitment.split(1);
+
+        // splits rest into 2 parts: first 4 bytes stored in expirationBlock
+        // the rest of the byte is stored in rest2
         bytes expirationBlock, bytes rest2 = rest.split(4);
+
+        // splits rest2 into two parts: first 8 bytes stored in spendLimit
+        // the rest of the byte is stored in expectedTerminalHash
         bytes spendLimit, bytes expectedTerminalHash = rest2.split(8);
         
         require(flag == 0x01, 'Access denied: Terminal is not authorized');
+        // Only continue if the terminal hash matches what the contract expects (the authorized device)
         require(terminalHash == expectedTerminalHash, 'Access denied: Invalid terminal id');
         require(tx.locktime <= int(expirationBlock), 'Authentication has expired');
 
@@ -49,12 +62,19 @@ contract TapToPay(
         require(commitment == tx.outputs[0].nftCommitment, 'Auth NFT output commitment should not change');
 
         // auth NFT must be sent back to this contract
+        // retrieves the locking script or bytecode of the input the contract is currently spending
+        // it takes the contract's own code and conditions that locked the funds being spent now
         bytes contractLock = tx.inputs[this.activeInputIndex].lockingBytecode;
+        // if the locking script of output 0 is equal to the contract's locking script, result is true
+        // meaning NFTs are being sent back to contract
         bool nftSendsToContract = tx.outputs[0].lockingBytecode == contractLock;
         require(nftSendsToContract, 'Auth NFT must send back to this contract');
 
         // Output[1] must send payment to the Paytaca app wallet (phone) instead of an external terminal
+        // creates a lock, and insert terminalPk to the locking script or
+        // creates a lock that only the authorized terminalPk can open
         bytes25 recipientLock = new LockingBytecodeP2PKH(hash160(terminalPk));
+        // checks if output 1 is sending funds to the intended recipient
         bool sendsToRecipient = tx.outputs[1].lockingBytecode == recipientLock;
         require(sendsToRecipient, 'Send amount must send to the recipient');
 
@@ -63,9 +83,13 @@ contract TapToPay(
         require(actualSendAmount <= int(spendLimit), 'Send amount exceeds spend limit');
 
         // require that any change (enforced to be at output[2]) is sent back to this contract
+        // ouput 0 is auth NFT
+        // output 1 is amount to be send to someone
+        // output 2 is change that should be sent back to contract
         if (tx.outputs.length == 3) {
             require(tx.outputs[2].lockingBytecode == contractLock, 'Change must be sent back to contract');
         }
+    
     }
 
     function sweep(pubkey ownerPk, sig ownerSig) {

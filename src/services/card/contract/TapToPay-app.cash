@@ -3,7 +3,8 @@ pragma cashscript ^0.11.0;
 contract TapToPay(
   bytes20 ownerPkh, 
   bytes20 backendPkh, 
-  bytes category
+  bytes category,
+  int newBCV
   ) {
 
     /*
@@ -13,7 +14,7 @@ contract TapToPay(
       - Writes data to it
       - Provides its own public key + signature acting as the "terminal"
 
-      instead of an external terminal, the phone app itself plays that role.
+      instead of an external terminal, the phone app (POS) itself plays that role.
     */
     function spend(
       bytes TerminalId, // app generated terminal ID
@@ -22,7 +23,7 @@ contract TapToPay(
       sig backendSig, // backend service signature
       pubkey backendPk // backend public key
     ){
-      // verify backend
+      // verify backend/server (another layer of security)
       require(hash160(backendPk) == backendPkh, 'Invalid backend public key hash');
       require(checkSig(backendSig, backendPk), 'Invalid backend signature');
 
@@ -97,9 +98,28 @@ contract TapToPay(
     /*
       Owner can "mutate" — update contract rules or migrate state.  
     */
-    function mutate(pubkey ownerPk, sig ownerSig) {
+    function mutate(pubkey ownerPk, sig ownerSig, sig terminalSig, bytes newContractLockingBytecode) {
+        // verify owner
         require(hash160(ownerPk) == ownerPkh, 'Invalid owner public key hash');
         require(checkSig(ownerSig, ownerPk), 'Invalid owner signature');
+
+        // verify terminal signed authorization for this transaction
+        require(checkSig(terminalSig, terminalPk), 'Invalid terminal signature');
+
+        // newContractLockingBytecode must not be empty
+        require(newContractLockingBytecode.length > 0, 'Missing new contract locking bytecode');
+
+        // assume new BCV is written in output[1]
+        // assuming output[0] is payment/fee, index 1 is the new contract state
+        require(tx.outputs[1].lockingBytecode == newContractLockingBytecode, 'New contract state must be in output[1]');
+        
+        // new BCV is embedded inside the new locking bytecode 
+        // new locking bytecode must differ from current locking bytecode
+        // compute current contract locking bytecode
+        bytes currentLocking = tx.outputs[0].lockingBytecode; 
+        require(newContractLockingBytecode != currentLocking, 'New contract locking bytecode must be different');
+
+      
     }
 }
 
