@@ -75,7 +75,7 @@ export default {
         {
           name: 'Address Book',
           iconName: 'mdi-book-account',
-          path: '',
+          path: '/apps/address-book/',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
