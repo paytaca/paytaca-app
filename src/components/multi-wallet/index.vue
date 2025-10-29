@@ -12,107 +12,76 @@
       :class="getDarkModeClass(darkMode)"
       :style="{'padding-top': $q.platform.is.ios ? '20px' : '0px'}"
     >
-      <div class="row justify-end q-px-lg q-pt-md asset-option">
-        <q-btn
-          round
-          ripple
-          color="primary"
-          class="button-default"
-          :class="getDarkModeClass(darkMode)"
-          @click="hide"
-        >
-          <q-icon name="keyboard_double_arrow_left" class="default-text-color" />
-        </q-btn>
+      <!-- Fixed Header -->
+      <div class="fixed-header" :class="getDarkModeClass(darkMode)">
+        <div class="row justify-between items-center q-px-lg q-py-sm">
+          <div class="wallets-title text-weight-bold text-grad">
+            {{ $t('Wallets') }}
+          </div>
+          <q-btn
+            round
+            flat
+            dense
+            :color="darkMode ? 'white' : 'black'"
+            icon="keyboard_double_arrow_left"
+            class="default-text-color"
+            @click="hide"
+          />
+        </div>
       </div>
 
-      <div class="row no-wrap items-center justify-center q-px-lg">
-        <div class="q-space q-mt-sm text-weight-medium text-h6 title">
-          {{ $t('Wallets') }}
+      <!-- Scrollable Wallet List -->
+      <div class="scrollable-wallet-list" :class="getDarkModeClass(darkMode)">
+        <div v-if="isloading" class="flex flex-center q-py-xl">
+          <ProgressLoader />
         </div>
-        <div
-          clickable
-          class="text-blue-9 create-import-button button button-text-primary"
+        <div v-else-if="!isWalletsRecovered" class="row justify-center text-center q-py-md q-px-lg">
+          <span class="q-mb-md" :class="getDarkModeClass(darkMode)">
+            <q-spinner class="q-mr-sm"/><i>Recovering your wallets, please wait</i>
+            <div v-if="walletRecoveryMessage">{{ walletRecoveryMessage }}</div>
+          </span>
+        </div>
+        <div v-else class="q-py-md">
+          <q-virtual-scroll :items="vault" virtual-scroll-slice-size="10">
+            <template v-slot="{ item: wallet, index }">
+              <template v-if="wallet.deleted !== true">
+                <q-item
+                  clickable
+                  v-ripple
+                  class="wallet-item q-px-md"
+                  :class="[
+                    getDarkModeClass(darkMode),
+                    isActive(index) ? 'active-wallet' : ''
+                  ]"
+                  @click="switchWallet(index)"
+                >
+                  <q-item-section>
+                    <!-- Wallet name -->
+                    <div class="wallet-name text-weight-medium" :class="isActive(index) ? 'text-grad' : ''">
+                      {{ wallet.name }}
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </template>
+          </q-virtual-scroll>
+        </div>
+      </div>
+
+      <!-- Fixed Bottom Button -->
+      <div class="fixed-footer" :class="getDarkModeClass(darkMode)">
+        <q-btn
+          unelevated
+          no-caps
+          class="full-width create-import-button bg-grad"
           @click="() => {
             $router.push('/accounts')
             hide()
           }"
         >
-          {{ $t('CreateOrImportWallet') }}
-        </div>
-      </div>
-      <q-card-section class="q-pt-sm flex flex-center" v-if="isloading">
-        <ProgressLoader />
-      </q-card-section>
-      <q-card-section class="q-pt-sm" v-else>
-        <q-virtual-scroll :items="vault">
-          <template v-slot="{ item: wallet, index }">
-            <template v-if="wallet.deleted !== true">
-              <q-item
-                clickable
-                v-ripple
-                class="q-pb-sm bottom-border"
-                :class="getDarkModeClass(darkMode)"
-                @click="selectedIndex = index"
-              >
-                <q-item-section style="overflow-wrap: break-word;">
-                  <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
-                    <span class="text-h5" style="font-size: 15px;">
-                      {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
-                    </span>
-                    <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
-                      {{ parseAssetDenomination(denomination, getAssetData(index), false, 10) }}
-                    </span>
-                  </div>
-                  <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
-                    <span class="address" :class="getDarkModeClass(darkMode)">
-                      {{ arrangeAddressText(wallet) }}
-                    </span>
-                    <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass(darkMode)">
-                      {{ parseFiatCurrency(getAssetMarketBalance(getAssetData(index)), selectedMarketCurrency) }}
-                    </span>
-                  </div>
-                  <q-menu anchor="bottom right" self="top end" >
-                    <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
-                      <q-item clickable v-ripple v-close-popup>
-                        <q-item-section
-                          class="pt-label"
-                          :class="getDarkModeClass(darkMode)"
-                          @click="switchWallet(selectedIndex)"
-                        >
-                          {{ $t('SwitchWallet') }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section
-                          class="pt-label"
-                          :class="getDarkModeClass(darkMode)"
-                          @click="openRenameDialog()"
-                        >
-                          {{ $t('Rename') }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section
-                          class="pt-label"
-                          :class="getDarkModeClass(darkMode)"
-                          @click="openBasicInfoDialog()"
-                        >
-                          {{ $t('SeeBasicWalletInfo') }}
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-item-section>
-              </q-item>
-            </template>
-          </template>
-        </q-virtual-scroll>
-      </q-card-section>
-      <div v-if="!isWalletsRecovered" class="row justify-center text-center q-pb-md q-mx-lg q-px-lg">
-        <span class="q-mb-md" :class="getDarkModeClass(darkMode)">
-          <q-spinner class="q-mr-sm"/><i>Recovering your wallets, please wait</i>
-          <div v-if="walletRecoveryMessage">{{ walletRecoveryMessage }}</div>
-        </span>
+          <q-icon name="add_circle_outline" size="18px" class="q-mr-sm" />
+          <span class="text-weight-medium">{{ $t('CreateOrImportWallet') }}</span>
+        </q-btn>
       </div>
     </q-card>
   </q-dialog>
@@ -121,8 +90,6 @@
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
-import renameDialog from './renameDialog.vue'
-import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 
@@ -136,13 +103,10 @@ export default {
       isChipnet: this.$store.getters['global/isChipnet'],
       vault: [],
       isloading: false,
-      secondDialog: false,
-      selectedIndex: null
+      secondDialog: false
     }
   },
   components: {
-    renameDialog,
-    BasicInfoDialog,
     LoadingWalletDialog,
     ProgressLoader
   },
@@ -212,28 +176,8 @@ export default {
 
       loadingDialog.hide()
     },
-    arrangeAddressText (wallet) {
-      let address = ''
-      if (this.isChipnet) {
-        address = wallet.chipnet.bch.lastAddress
-      } else {
-        address = wallet.wallet.bch.lastAddress
-      }
-      return address.slice(0, 16) + '.....' + address.slice(45)
-    },
     isActive (index) {
       return index === this.currentIndex
-    },
-    openRenameDialog () {
-      this.$q.dialog({
-        component: renameDialog,
-        componentProps: {
-          index: this.selectedIndex
-        }
-      })
-        .onOk(() => {
-          this.processVaultName()
-        })
     },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
@@ -258,14 +202,6 @@ export default {
       } else {
         return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
-    },
-    openBasicInfoDialog () {
-      this.$q.dialog({
-        component: BasicInfoDialog,
-        componentProps: {
-          vaultIndex: this.selectedIndex
-        }
-      })
     },
     hide () {
       this.$refs['multi-wallet'].hide()
@@ -318,29 +254,154 @@ export default {
 </script>
 <style lang="scss" scoped>
 .wallet-card {
-  height: 525px;
-  .bottom-border {
-    border-bottom-width: 1px;
-    border-bottom-style: solid;
+  height: 100vh;
+  width: 90vw;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  
+  @media (max-width: 600px) {
+    width: 90vw;
   }
-  .address, .market-currency {
-    font-size: 12px;
+}
+
+.fixed-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  
+  &.dark {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.3);
   }
 }
-.inactive-color {
-  color: #ed5e59;
-  -webkit-text-fill-color: #ed5e59;
+
+.wallets-title {
+  font-size: 20px;
+  letter-spacing: 0.5px;
 }
-.active-color {
-  color: #8ec351;
-  -webkit-text-fill-color: #8ec351;
+
+.scrollable-wallet-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
 }
+
+.fixed-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  
+  &.dark {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.wallet-item {
+  border-radius: 10px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 0 12px 4px 12px;
+  padding: 12px 16px;
+  min-height: 48px;
+  border: none;
+  background: transparent;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(2px);
+  }
+  
+  &.active-wallet {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    
+    &.dark {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    &.light {
+      background: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+  .wallet-name {
+    font-size: 15px;
+    letter-spacing: 0.2px;
+    line-height: 1.5;
+    transition: opacity 0.2s ease;
+    
+    .wallet-item.dark & {
+      opacity: 0.9;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .wallet-item.light & {
+      opacity: 1;
+      color: rgba(0, 0, 0, 0.87);
+    }
+    
+    .wallet-item:hover & {
+      opacity: 1;
+    }
+    
+    .wallet-item.active-wallet & {
+      opacity: 1;
+      font-weight: 600;
+    }
+  }
+
 .pt-card {
   min-width: 150px;
   font-size: 15px;
 }
+
 .create-import-button {
-  margin-top: 10px;
-  cursor: pointer;
+  border-radius: 10px;
+  height: 44px;
+  font-size: 13px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(0px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
 }
 </style>

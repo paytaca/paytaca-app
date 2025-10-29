@@ -2,6 +2,7 @@
  * with properties that are the same all throughout different themes.
 */
 
+@use "sass:color";
 @import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
 
 /* ----- VARIABLES ----- */
@@ -88,13 +89,13 @@ In html/template:
   &.dark {
     color: white;
     .text-bow-muted {
-      color: darken(#fff, 30%);
+      color: color.scale(#fff, $lightness: -30%);
     }
   }
   &.light {
     color: black;
     .text-bow-muted {
-      color: lighten(#000, 30%);
+      color: color.scale(#000, $lightness: 30%);
     }
   }
 }

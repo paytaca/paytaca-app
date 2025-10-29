@@ -1784,13 +1784,35 @@ const wallet = ref([].map(() => new Wallet())[0])
 async function initWallet () {
   wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
 }
-function getChangeAddress(opts={chipnet: false}) {
-  const walletTypes = opts?.chipnet
-    ? $store.getters['global/getAllChipnetTypes']
-    : $store.getters['global/getAllWalletTypes']
+/**
+ * Dynamically generates change address from mnemonic instead of retrieving from store
+ * This prevents address mixup issues in multi-wallet scenarios
+ */
+async function getChangeAddress(opts={chipnet: false}) {
+  try {
+    const { generateChangeAddress: genChangeAddr, getDerivationPathForWalletType: getDerivPath } = await import('src/utils/address-generation-utils.js')
+    const addressIndex = $store.getters['global/getLastAddressIndex']('bch')
+    const walletIndex = $store.getters['global/getWalletIndex']
+    
+    // Generate change address dynamically from mnemonic
+    const changeAddr = await genChangeAddr({
+      walletIndex: walletIndex,
+      derivationPath: getDerivPath('bch'),
+      addressIndex: addressIndex,
+      isChipnet: opts?.chipnet || false
+    })
+    
+    return changeAddr
+  } catch (error) {
+    console.error('Error generating change address dynamically:', error)
+    // Fallback to store-retrieved change address if dynamic generation fails
+    const walletTypes = opts?.chipnet
+      ? $store.getters['global/getAllChipnetTypes']
+      : $store.getters['global/getAllWalletTypes']
 
-  const bchWalletData = walletTypes?.bch
-  return bchWalletData?.lastChangeAddress
+    const bchWalletData = walletTypes?.bch
+    return bchWalletData?.lastChangeAddress
+  }
 }
 
 function onSendBchPaymentSwipe(resetSwipe=()=>{}) {
@@ -1809,7 +1831,7 @@ async function sendBchPayment() {
   const amount = bchPaymentData.value.bchAmount
   const address = bchPaymentData.value.address
   const chipnet = address.indexOf('bchtest:') >= 0
-  const changeAddress = getChangeAddress({ chipnet })
+  const changeAddress = await getChangeAddress({ chipnet })
   if (!wallet.value) await initWallet()
 
   const dialog = $q.dialog({

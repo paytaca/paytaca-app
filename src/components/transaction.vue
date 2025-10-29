@@ -436,84 +436,76 @@
               </div>
             </q-slide-transition>
 
-            <q-slide-transition>
-              <div v-if="!showMemo">
-                <div v-if="hasMemo">
-                  <q-item-section class="q-pt-sm">
-                    <q-input
-                      v-model="memo.note"
-                      filled
-                      height="25px" 
-                      type="textarea"
-                      readonly
-                    />                  
-                  </q-item-section>   
-                  <q-item-section class="q-pt-sm">
-                    <div class="row">
-                      <div class="col-11">
-                         <q-btn 
-                          outline
-                          class="br-15 full-width"             
-                          padding="xs sm"
-                          label="Update"
-                          color="primary"
-                          @click="openMemo()"
-                        />
+            <!-- Memo Section -->
+            <div class="memo-section q-mt-md q-px-md">
+              <div v-if="hasMemo || showMemo" class="text-grey text-weight-medium text-caption q-mb-sm">{{ $t('Memo') }}</div>
+              <q-slide-transition>
+                <div v-if="!showMemo">
+                  <div v-if="hasMemo" class="memo-display-container">
+                    <div 
+                      class="memo-content-container"
+                      :class="getDarkModeClass(darkMode)"
+                    >
+                      <div class="memo-text">{{ memo.note }}</div>
+                      <div class="memo-actions">
+                        <q-btn flat icon="edit" size="sm" padding="xs sm" @click="openMemo()"/>
+                        <q-separator vertical :dark="darkMode"/>
+                        <q-btn flat icon="delete" size="sm" padding="xs sm" color="red-7" @click="confirmDelete()"/>
                       </div>
-                      <div class="col-1 text-right">
-                        <q-btn class="q-pt-xs" round flat color="red-7" size="md" icon="delete" padding="none" @click="confirmDelete()"/>
-                      </div>
-                    </div>                   
-                  </q-item-section>
-                </div>
-                <div v-else>
-                  <q-item-section class="q-pt-sm">
-                    <q-btn         
-                        class="br-15 full-width"             
-                        padding="xs sm"
-                        label="Add Memo"
-                        color="primary"
+                    </div>
+                  </div>
+                  <div v-else>
+                    <q-item-section class="q-pt-sm">
+                      <q-btn
+                        outline
+                        no-caps
+                        :label="$t('AddMemo', {}, 'Add memo')"
+                        icon="add"
+                        color="grey-7"
+                        class="br-15"
+                        padding="xs md"
                         :disable="networkError"
                         @click="openMemo()"
                       />
                       <div v-if="networkError" class="row justify-between q-pt-xs q-px-sm">
                         <div class="text-grey-5 text-italic" style="font-size: 12px;">
-                          Network Error. Try again later
+                          {{ $t('NetworkError', {}, 'Network error. Try again later.') }}
                         </div>
                         <div>
                           <q-btn flat padding="none" color="grey-7" size="sm" icon="refresh" @click="show(transaction)"/>
                         </div>
-                      </div>                      
-                  </q-item-section> 
-                </div>                                          
-              </div>
-              <div v-else>
-                <q-item-section class="q-pt-sm">
-                   <q-input
-                    ref="memoInput"
-                    v-model="memo.note"
-                    filled
-                    height="25px" 
-                    type="textarea"
-
-                  >
-                    <template v-slot:append>
-                      <q-icon size="sm" padding="0px" name="close" @click="showMemo = false"/>
-                    </template>
-                  </q-input>                    
-                </q-item-section>   
-                <q-item-section class="q-pt-sm">
-                  <q-btn 
-                    class="br-15"             
-                    padding="xs sm"
-                    label="Save"
-                    color="primary"
-                    :disable="!memo.note"
-                    @click="saveMemo()"
-                  />
-                </q-item-section>
-              </div>                              
-            </q-slide-transition>
+                      </div>
+                    </q-item-section>
+                  </div>
+                </div>
+                <q-item v-else style="overflow-wrap: anywhere;">
+                  <q-item-section>
+                    <q-item-label>
+                      <div class="row items-start">
+                        <div class="col q-pr-sm">
+                          <input
+                            ref="memoInput"
+                            v-model="memo.note"
+                            type="text"
+                            class="memo-input"
+                            :class="darkMode ? 'memo-input-dark' : 'memo-input-light'"
+                            :placeholder="$t('AddNoteForThisTransaction', {}, 'Enter memo...')"
+                            style="width: 100%; border: none; outline: none; font-size: 14px; padding: 8px 12px; font-family: inherit; border-radius: 4px;"
+                            @keyup.enter="saveMemo()"
+                            @keyup.esc="showMemo = false"
+                          />
+                        </div>
+                        <div class="row items-center no-wrap">
+                          <q-btn flat icon="check" size="sm" padding="xs sm" color="primary" :disable="!memo.note" @click="saveMemo()"/>
+                          <q-separator vertical :dark="darkMode"/>
+                          <q-btn flat icon="close" size="sm" padding="xs sm" @click="showMemo = false"/>
+                        </div>
+                      </div>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-slide-transition>
+            </div>
           </q-list>
         </q-card-section>
       </q-card>
@@ -533,7 +525,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
-import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo } from 'src/utils/transaction-memos.js'
+import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { ref } from 'vue'
@@ -541,6 +533,7 @@ import { ref } from 'vue'
 
 export default {
   name: 'transaction',
+  emits: ['memo-updated'],
   props: {
     wallet: Object,
     denominationTabSelected: String,
@@ -721,7 +714,10 @@ export default {
     },
     hide () {
       this.$refs.dialog.hide()
-      this.$parent.toggleHideBalances()
+      // Only call if parent has the method
+      if (this.$parent && typeof this.$parent.toggleHideBalances === 'function') {
+        this.$parent.toggleHideBalances()
+      }
     },
     openMemo () {
       this.showMemo = true
@@ -735,41 +731,58 @@ export default {
         }, 200)     
     },
     async saveMemo() {
-      //encrypt memo
-      const encryptedMemo = await encryptMemo(this.keypair.privkey, this.keypair.pubkey, this.memo.note)
+      try {
+        // Ensure user is authenticated before saving
+        await authMemo()
 
-      const data = {
-        txid: this.transaction.txid,
-        note: encryptedMemo
-      }
+        //encrypt memo
+        const encryptedMemo = await encryptMemo(this.keypair.privkey, this.keypair.pubkey, this.memo.note)
 
-      let response = null
-      if (this.hasMemo) {
-        try {
-          response = await updateMemo(data)
-        } catch {          
-          this.networkError = true
+        const data = {
+          txid: this.transaction.txid,
+          note: encryptedMemo
         }
-      } else {
-        try {
-          response = await createMemo(data)
-        } catch {          
-          this.networkError = true
-        }
-      } 
 
-      if (response) {
+        let response = null
+        if (this.hasMemo) {
+          try {
+            response = await updateMemo(data)
+          } catch (error) {
+            console.error('Error updating memo:', error)
+            this.networkError = true
+          }
+        } else {
+          try {
+            response = await createMemo(data)
+          } catch (error) {
+            console.error('Error creating memo:', error)
+            this.networkError = true
+          }
+        } 
+
+        if (response) {
           if ('error' in response) { 
             this.hasMemo = false
           } else {     
-
             this.memo = response
+            const encryptedNote = this.memo.note
             this.memo.note = await decryptMemo(this.keypair.privkey, this.memo.note)
             this.hasMemo = true
+            
+            // Emit memo updated event with encrypted memo
+            this.$emit('memo-updated', {
+              txid: this.transaction.txid,
+              encrypted_memo: encryptedNote
+            })
           }
         }
 
-      this.showMemo = false
+        this.showMemo = false
+      } catch (error) {
+        console.error('Error saving memo:', error)
+        this.networkError = true
+        this.showMemo = false
+      }
     },
     confirmDelete () {
       this.$q.dialog({
@@ -796,6 +809,12 @@ export default {
         this.memo = {
           note: ''
         }
+        
+        // Emit memo updated event (with null to indicate deletion)
+        this.$emit('memo-updated', {
+          txid: this.transaction.txid,
+          encrypted_memo: null
+        })
       }).onCancel(() => {        
       })
     },
@@ -964,5 +983,75 @@ export default {
   }
   .text-gray {
     color: gray;
+  }
+  
+  .memo-input {
+    transition: all 0.2s ease;
+    
+    &:focus {
+      box-shadow: 0 0 0 2px rgba(var(--q-primary-rgb), 0.2);
+    }
+  }
+  
+  .memo-input-light {
+    color: rgba(0, 0, 0, 0.87);
+    background-color: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    
+    &:focus {
+      background-color: rgba(0, 0, 0, 0.06);
+      border-color: var(--q-primary);
+    }
+    
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.4);
+    }
+  }
+  
+  .memo-input-dark {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    
+    &:focus {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: var(--q-primary);
+    }
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  .memo-display-container {
+    display: flex;
+    margin-bottom: 12px;
+  }
+
+  .memo-content-container {
+    cursor: default;
+    padding: 12px 20px;
+    border-radius: 12px;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(128, 128, 128, 0.08);
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    max-width: 100%;
+    
+    .memo-text {
+      flex: 1;
+      word-break: break-word;
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .memo-actions {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
   }
 </style>

@@ -16,7 +16,7 @@
 	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
 	                  <q-icon class="default-text-color"  size="24px" :name="opt.icon"/>
 	                </q-btn>
-	                <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ opt.label }}</div>
+	                <div class="q-pt-xs text-center text-capitalize" :class="disableButton(opt.name) ? 'text-grey' : ''" style="font-size: 13px;">{{ opt.label }}</div>
 	              </div>
 	            </div>
 		</div>
@@ -60,7 +60,7 @@ export default {
 	        { name: 'send', label: this.$t('Send'), icon: 'img:app-send.svg' },
 	        { name: 'receive', label: this.$t('Receive'), icon: 'img:app-receive.svg' },
 	        { name: 'cash in', label: this.$t('CashIn'), icon: 'img:cashin.svg' },
-	        { name: 'price chart', label: this.$t('PriceChart'), icon: 'query_stats' }
+	        { name: 'spend bch', label: this.$t('SpendBCH', {}, 'Spend BCH'), icon: 'storefront' }
 		],
 			stablehedgeOpt: [		
 		        { name: 'freeze', label: this.$t('Freeze'), icon: 'ac_unit' },
@@ -92,8 +92,8 @@ export default {
 		}
 	},
 	emits: [
-		'cashin', 
-		'price-chart',
+		'cashin',
+		'spend-bch',
 		'stats',
     'deposit',
     'redeem'
@@ -133,8 +133,8 @@ export default {
 	        case 'cash in':
 	          this.$emit('cashin')
 	          break
-	        case 'price chart':
-	          this.$emit('price-chart')
+	        case 'spend bch':
+	          this.$emit('spend-bch')
 	          break
 	        case 'stats':
 	        	this.$emit('stats')

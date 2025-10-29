@@ -32,10 +32,10 @@
 		      </q-card-section>
 			<div :class="darkMode ? 'text-white' : 'text-black'">
 				<q-list separator class="q-px-lg">
-					<q-item class="q-py-md" clickable v-ripple v-for="asset in filteredList" @click="onOKClick(asset)">
+					<q-item class="q-py-md" clickable v-ripple v-for="asset in filteredList" @click="onOKClick(asset)" :key="asset.id">
 						<q-item-section avatar>
 		          <q-avatar>
-		            <img :src="asset.logo">
+		            <img :src="getImageUrl(asset)">
 		          </q-avatar>
 		        </q-item-section>
 		        <q-item-section class="text-bold">{{ asset.name }}</q-item-section>
@@ -82,6 +82,16 @@ export default {
 	},
 	methods: {
 		getDarkModeClass,
+		getImageUrl (asset) {
+			if (asset?.logo) {
+				if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+					return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+				} else {
+					return asset.logo
+				}
+			}
+			return ''
+		},
 		onOKClick (asset) {
       // if (coin.offline === false) {
       this.$emit('ok', asset)

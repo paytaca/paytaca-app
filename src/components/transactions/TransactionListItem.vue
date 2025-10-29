@@ -59,6 +59,10 @@
           <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
           <template v-else>{{ formatDate(transaction.date_created) }}</template>
         </span>
+        <span v-if="decryptedMemo" class="transaction-memo" :class="getDarkModeClass(darkMode)">
+          <q-icon name="mdi-note-text" size="14px" class="q-mr-xs" />
+          {{ decryptedMemo }}
+        </span>
       </div>
     </div>
     <div v-if="badges.length > 0" class="transaction-badges q-mt-sm">
@@ -86,18 +90,22 @@
 </template>
 <script setup>
 import ago from 's-ago'
-import { computed } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
+import { decryptMemo } from 'src/utils/transaction-memos.js'
+import { getKeypair } from 'src/exchange/chat/keys'
 
 const $store = useStore()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
+
+const decryptedMemo = ref('')
 
 const props = defineProps({
   transaction: Object,
@@ -175,6 +183,39 @@ const isStablehedgeTx = computed(() => Boolean(stablehedgeTxData.value))
 function formatDate (date) {
   return ago(new Date(date))
 }
+
+async function loadMemo() {
+  if (!props.transaction?.encrypted_memo) {
+    decryptedMemo.value = ''
+    return
+  }
+
+  try {
+    const keypair = await getKeypair().catch(console.error)
+    if (!keypair) {
+      console.error('Failed to get keypair for memo decryption')
+      return
+    }
+
+    const decrypted = await decryptMemo(keypair.privkey, props.transaction.encrypted_memo)
+    decryptedMemo.value = decrypted
+  } catch (error) {
+    console.error('Error decrypting memo:', error)
+    decryptedMemo.value = ''
+  }
+}
+
+onMounted(() => {
+  loadMemo()
+})
+
+// Watch for changes to encrypted_memo and reload
+watch(
+  () => props.transaction?.encrypted_memo,
+  () => {
+    loadMemo()
+  }
+)
 </script>
 <style lang="scss" scoped>
 .transaction-item {
@@ -264,11 +305,13 @@ function formatDate (date) {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 .transaction-date {
-  font-size: 13px;
+  font-size: 14px;
   opacity: 0.6;
+  flex-shrink: 0;
   
   &.dark {
     color: #a6acaf;
@@ -276,6 +319,31 @@ function formatDate (date) {
   
   &.light {
     color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.transaction-memo {
+  font-size: 14px;
+  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  text-align: right;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+  
+  &.dark {
+    color: #b8bfc4;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.65);
+  }
+
+  .q-icon {
+    flex-shrink: 0;
   }
 }
 

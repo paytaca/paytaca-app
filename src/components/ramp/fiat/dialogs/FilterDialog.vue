@@ -275,13 +275,14 @@
             </div>
           </div>
 
-          <div class="q-pt-md">
+          <!-- Price Order removed for ads - server prioritizes by trades and ratings -->
+          <!-- <div class="q-pt-md">
             <div class="sm-font-size text-weight-bold">{{ $t('PriceOrder') }}</div>
             <div class="q-pt-xs q-gutter-sm">
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'ascending'" @click="storeFilters.sort_type = 'ascending'">{{ type === 'filterSellAd' ? `${$t('Default')}: ` : '' }}  {{ $t('Ascending') }}</q-badge>
               <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="storeFilters.sort_type !== 'descending'" @click="storeFilters.sort_type = 'descending'">{{ type === 'filterBuyAd' ? `${$t('Default')}: ` : '' }}  {{ $t('Descending') }}</q-badge>
             </div>
-          </div>
+          </div> -->
 
           <div class="text-center q-pt-sm q-px-sm q-pb-lg">
             <div class="row justify-center q-gutter-sm q-pt-md">

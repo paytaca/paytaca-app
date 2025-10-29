@@ -1,8 +1,18 @@
 <template>
   <div>
-    <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <ProgressLoader />
-    </div>
+    <!-- Skeleton Loaders -->
+    <template v-if="fetchingCollectibles && !collectibles.length">
+      <div class="q-pa-md row items-start">
+        <q-card
+          v-for="n in 6" :key="`skeleton-${n}`"
+          class="collectible-card q-ma-sm"
+        >
+          <q-skeleton height="130px" width="100%" square />
+        </q-card>
+      </div>
+    </template>
+
+    <!-- Actual Collectibles -->
     <template v-if="collectibles.length > 0">
       <div class="q-pa-md row items-start">
         <q-card
@@ -12,10 +22,14 @@
           @click="showDetails(collectible)"
         >
           <q-img
-            :src="getImageUrl(collectible)"
+            :src="getImageUrl(collectible) || noImage"
             :alt="`#${collectible.id}`"
             fit="fill"
-          />
+          >
+            <template v-slot:loading>
+              <q-skeleton height="100%" width="100%" square />
+            </template>
+          </q-img>
         </q-card>
       </div>
       <div class="row q-mt-sm items-center justify-center">
@@ -55,6 +69,7 @@
 import ERC721CollectibleDetail from 'components/collectibles/ERC721CollectibleDetail.vue'
 import ProgressLoader from 'components/ProgressLoader'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import noImage from 'src/assets/no-image.svg'
 
 export default {
   name: 'ERC721Collectibles',
@@ -81,7 +96,8 @@ export default {
         limit: 10,
         offset: 0,
         count: 0
-      }
+      },
+      noImage
     }
   },
 

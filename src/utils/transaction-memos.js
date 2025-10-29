@@ -140,16 +140,43 @@ export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
   }
 
  export async function encryptMemo (privkey, pubkey, memo) {
- 	// encrypt message
-    const encryptedMessage = encryptMessage({
-      data: memo,
-      privkey: privkey,
-      pubkeys: pubkey
-    })
-   	const serializedEncryptedMessage = compressEncryptedMessage(encryptedMessage)
-    const message = serializedEncryptedMessage
-
-    return message
+ 	try {
+ 		// encrypt message
+ 		console.log('encryptMemo - Input memo:', memo)
+ 		console.log('encryptMemo - privkey exists:', !!privkey)
+ 		console.log('encryptMemo - pubkey exists:', !!pubkey)
+ 		
+ 		if (!memo || !privkey || !pubkey) {
+ 			console.error('encryptMemo - Missing required parameters')
+ 			return null
+ 		}
+ 		
+    	const encryptedMessage = encryptMessage({
+      		data: memo,
+      		privkey: privkey,
+      		pubkeys: pubkey
+    	})
+    	
+    	console.log('encryptMemo - Encrypted message:', encryptedMessage)
+    	
+    	if (!encryptedMessage) {
+    		console.error('encryptMemo - encryptMessage returned null/undefined')
+    		return null
+    	}
+    	
+   		const serializedEncryptedMessage = compressEncryptedMessage(encryptedMessage)
+   		console.log('encryptMemo - Serialized message:', serializedEncryptedMessage)
+   		
+   		if (!serializedEncryptedMessage) {
+   			console.error('encryptMemo - compressEncryptedMessage returned null/undefined')
+   			return null
+   		}
+    	
+    	return serializedEncryptedMessage
+ 	} catch (error) {
+ 		console.error('encryptMemo - Error during encryption:', error)
+ 		return null
+ 	}
  }
 
  export async function generateMemoHash (wallethash) {

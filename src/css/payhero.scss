@@ -454,16 +454,6 @@ body.theme-payhero {
     }
   }
 
-  .ignored-tokens-button {
-    &.dark {
-      background: $button_yellow !important;
-    }
-
-    &.light {
-      background-color: white !important;
-    }
-  }
-
   .q-item.q-item--active,
   .q-field--dark .q-field__control,
   .q-checkbox__inner--truthy,

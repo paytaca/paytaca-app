@@ -1,5 +1,5 @@
 <template>
-	<div id="app-container" class="sticky-header-container" :class="darkmode ? 'dark' : 'light'">
+	<q-pull-to-refresh id="app-container" class="sticky-header-container" :class="darkmode ? 'dark' : 'light'" @refresh="onRefresh">
 		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/"/>
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
@@ -50,7 +50,7 @@
 					<q-btn class="full-width" align="left"  flat padding="0px">
 					<!-- <q-item clickable v-ripple class="br-15" > -->
 						<q-avatar size="35px">
-				            <img  :src="selectedAsset.logo">
+				            <img  :src="getAssetImageUrl(selectedAsset)">
 				          </q-avatar>
 						<span class="q-pl-sm">{{ selectedAsset.symbol }}</span>
 						<span>
@@ -101,30 +101,33 @@
 		                />
 		              </template> -->
 		            </div>
-			<div ref="transactionSection" class="transaction-row">				
-		        <transaction
-		          ref="transaction"
-		          :wallet="wallet"
-		          :denominationTabSelected="denominationTabSelected"
-		        />
-		        <div class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
-		        	<div class="col br-15 pt-card" :class="getDarkModeClass(darkmode)"
-		            :style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`" >
-		        		<button
-			              v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
-			              class="btn-custom q-mt-none"
-			              :class="[
-			                darkmode ? 'text-light' : 'text-dark', 
-			                `btn-${transactionFilterOpt.value}`,
-			                {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
-			              ]"
-			              @click="setTransactionsFilter(transactionFilterOpt.value)"
-			            >
-			              {{ transactionFilterOpt?.label }}
-			            </button>
-		        	</div>		      
-		        </div>	
+			
+			<transaction
+			  ref="transaction"
+			  :wallet="wallet"
+			  :denominationTabSelected="denominationTabSelected"
+			  @memo-updated="onMemoUpdated"
+			/>
+			
+			<div class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
+				<div class="col br-15 pt-card" :class="getDarkModeClass(darkmode)"
+				:style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`" >
+					<button
+					  v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
+					  class="btn-custom q-mt-none"
+					  :class="[
+					    darkmode ? 'text-light' : 'text-dark', 
+					    `btn-${transactionFilterOpt.value}`,
+					    {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
+					  ]"
+					  @click="setTransactionsFilter(transactionFilterOpt.value)"
+					>
+					  {{ transactionFilterOpt?.label }}
+					</button>
+				</div>		      
+			</div>
 
+			<div ref="transactionSection" class="transaction-row" :style="{ height: transactionRowHeight }">
 		        <div class="transaction-container" :class="darkmode ? 'text-light' : 'text-dark'">
 		          <!-- <div
 		            class="q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"	 
@@ -152,6 +155,8 @@
 		              :transactionsFilter="transactionsFilter"
 		              :selectedDenomination="selectedDenomination"
 		              @resolved-transaction="onStablehedgeTransaction"
+		              @scroll-up="handleScrollUp"
+		              @scroll-down="handleScrollDown"
 		            />
 		            <TransactionList
 		              v-else
@@ -161,6 +166,8 @@
 		              :wallet="wallet"
 		              :selectedNetworkProps="selectedNetwork"
 		              @on-show-transaction-details="showTransactionDetails"
+		              @scroll-up="handleScrollUp"
+		              @scroll-down="handleScrollDown"
 		            />
 		          </KeepAlive>
 		        </div>
@@ -168,7 +175,7 @@
 		</div>		
 
 		<footer-menu ref="footerMenu" />
-	</div>
+	</q-pull-to-refresh>
 </template>
 <script>
 import { markRaw } from '@vue/reactivity'
@@ -209,7 +216,8 @@ export default {
 		        balance: 0
 		      },
 		    assetInfoShown: false,
-		    balanceLoaded: false
+		    balanceLoaded: false,
+		    transactionRowHeight: 'auto'
 		}
 	},
 	computed: {
@@ -333,11 +341,87 @@ export default {
 		this.$nextTick(() => {
 	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, asset.length > 0 ? this.selectedAsset : null )
 	        this.$refs['transaction-list-component'].getTransactions()
+	        
+	        // Calculate transaction row height
+	        this.calculateTransactionRowHeight()
 	      })
+	      
+	      // Recalculate on window resize
+	      window.addEventListener('resize', this.calculateTransactionRowHeight)
+	},
+	beforeUnmount() {
+	    window.removeEventListener('resize', this.calculateTransactionRowHeight)
+	},
+	watch: {
+	    txSearchActive() {
+	      // Recalculate height when search bar appears/disappears
+	      this.$nextTick(() => {
+	        this.calculateTransactionRowHeight()
+	      })
+	    }
 	},
 	methods: {
 		parseAssetDenomination,
 		getDarkModeClass,
+		calculateTransactionRowHeight() {
+			this.$nextTick(() => {
+				try {
+					const screenHeight = window.innerHeight
+					const fixedSection = this.$refs.fixedSection
+					const footerMenu = this.$refs.footerMenu?.$el
+					
+					if (!fixedSection || !footerMenu) {
+						// Fallback if refs not available
+						this.transactionRowHeight = 'calc(100vh - 250px)'
+						return
+					}
+					
+					// Calculate the height of everything above the transaction row
+					let heightAbove = 0
+					
+					// Get all children of fixedSection before transactionSection
+					const children = Array.from(fixedSection.children)
+					const transactionSectionIndex = children.indexOf(this.$refs.transactionSection)
+					
+					for (let i = 0; i < transactionSectionIndex; i++) {
+						heightAbove += children[i].offsetHeight
+					}
+					
+					// Add footer menu height
+					const footerHeight = footerMenu.offsetHeight
+					
+					// Calculate available height for transaction row
+					const availableHeight = screenHeight - heightAbove - footerHeight
+					
+					this.transactionRowHeight = `${availableHeight}px`
+				} catch (error) {
+					console.error('Error calculating transaction row height:', error)
+					this.transactionRowHeight = 'calc(100vh - 250px)'
+				}
+			})
+		},
+		handleScrollUp() {
+			// User scrolling up (viewing newer transactions) - show footer
+			if (this.$refs.footerMenu) {
+				this.$refs.footerMenu.showFooter()
+			}
+		},
+		handleScrollDown() {
+			// User scrolling down (viewing older transactions) - hide footer
+			if (this.$refs.footerMenu) {
+				this.$refs.footerMenu.hideFooter()
+			}
+		},
+		getAssetImageUrl (asset) {
+			if (asset?.logo) {
+				if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+					return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+				} else {
+					return asset.logo
+				}
+			}
+			return 'bch-logo.png' // fallback
+		},
 		async getBchBalance (id, vm) {
 	      if (!id) {
 	        id = vm.selectedAsset.id
@@ -379,6 +463,7 @@ export default {
 	            this.$nextTick(() => {
 			        this.$refs['transaction-list-component'].resetValues(null, null, asset)
 			        this.$refs['transaction-list-component'].getTransactions()
+			        this.calculateTransactionRowHeight()
 			      })
 	          })
 	    },
@@ -392,6 +477,31 @@ export default {
 	        this.$refs['transaction-list-component'].getTransactions(1, opts)
 	      }
 	    },
+	    async onRefresh (done) {
+	      try {
+	        // Reset and refresh transaction list
+	        if (this.$refs['transaction-list-component']) {
+	          // Reset the list state first
+	          this.$refs['transaction-list-component'].resetValues()
+	          // Then fetch fresh data
+	          await this.$refs['transaction-list-component'].getTransactions(1, { append: false })
+	        }
+	        
+	        // Refresh balance if needed
+	        if (this.selectedAsset?.id) {
+	          await this.getBchBalance(this.selectedAsset.id, this)
+	        }
+	        
+	        // Recalculate height in case anything changed
+	        this.$nextTick(() => {
+	          this.calculateTransactionRowHeight()
+	        })
+	      } catch (error) {
+	        console.error('Error refreshing:', error)
+	      } finally {
+	        done()
+	      }
+	    },
 	    setTransactionsFilter(value) {
 	      const transactionsFilters = this.transactionsFilterOpts.map(opt => opt?.value)
 	      if (transactionsFilters.indexOf(value) >= 0) this.transactionsFilter = value
@@ -400,6 +510,7 @@ export default {
 	      this.$nextTick(() => {
 	        this.$refs['transaction-list-component'].resetValues(value)
 	        this.$refs['transaction-list-component'].getTransactions()
+	        this.calculateTransactionRowHeight()
 	      })
 	    },
 	    /**
@@ -447,6 +558,19 @@ export default {
 	        // this.$refs['asset-info'].hide()
 	      } catch {}
 	    },
+	    onMemoUpdated (memoData) {
+	      // Update the transaction in the list with the new encrypted memo
+	      const transactionListComponent = this.$refs['transaction-list-component']
+	      if (transactionListComponent && transactionListComponent.transactions) {
+	        const txIndex = transactionListComponent.transactions.findIndex(
+	          tx => tx.txid === memoData.txid
+	        )
+	        if (txIndex !== -1) {
+	          // Update the encrypted_memo field
+	          transactionListComponent.transactions[txIndex].encrypted_memo = memoData.encrypted_memo
+	        }
+	      }
+	    },
 	    formatBalance (asset) {
 	      if (asset.id.includes('ct') || asset.id.includes('sep20')) {
 	        const convertedBalance = asset.balance / 10 ** asset.decimals
@@ -464,6 +588,31 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+:deep(.q-pull-to-refresh__puller-container) {
+  min-width: 100vw !important;
+}
+
+#app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; // Fixed viewport height
+  overflow: hidden; // Prevent app container from scrolling
+}
+
+.fixed-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; // Important for flex children with overflow
+  max-height: 100%; // Explicitly constrain height
+  overflow: hidden; // Prevent the container from scrolling
+  
+  // Fixed elements (asset selector, transaction component, buttons) should not shrink
+  > :not(.transaction-row) {
+    flex-shrink: 0;
+  }
+}
+
 #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
@@ -477,11 +626,54 @@ export default {
 }
 .transaction-row {
    width: 100%;
+   // Height set dynamically via JavaScript
+   display: flex;
+   flex-direction: column;
 }
+
 .transaction-container {
-    overflow: hidden;
     border-top-left-radius: 36px;
     border-top-right-radius: 36px;
+    height: 100%; // Fill parent
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 90px; // Account for fixed footer menu
+    overflow: hidden;
+    
+    // Make KeepAlive wrapper fill height
+    > * {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    // Ensure both list components are scrollable
+    :deep(.transaction-list),
+    :deep(.stablehedge-history-list) {
+      height: 100%;
+      overflow-y: auto !important;
+      overflow-x: hidden;
+    }
+    
+    :deep(.transactions-content) {
+      padding-bottom: 20px; // Extra padding at the end of list
+    }
+    
+    :deep(.empty-state) {
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    :deep(.loading-state) {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 20px;
+    }
 }
 .transaction-wallet {
    font-size: 20px;

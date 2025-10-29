@@ -58,7 +58,7 @@
             </q-item>
             <q-separator></q-separator>
             <q-item>
-              <span @click="resetWallectConnect">Reset Wallet Connect<q-icon name="danger" /></span>
+              <span @click="resetWallectConnect">{{ $t('ResetWalletConnect') }}<q-icon name="danger" /></span>
             </q-item>
           </q-menu>
         </q-btn>

@@ -6,26 +6,31 @@
     class="no-click-outside"
   >
     <q-card
-      class="full-width q-pa-md text-body1 text-bow"
-      :class="getDarkModeClass(darkMode, 'bg-pt-dark', 'bg-pt-light')"
+      v-if="rsvp"
+      class="payment-dialog-card full-width q-pa-lg text-body1 text-bow"
+      :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
-      <div class="row justify-between items-center q-mb-md">
-        <span class="text-h6">{{ $t("PurchaseLift") }}</span>
+      <div class="row justify-between items-center q-mb-lg">
+        <span class="text-h5 text-weight-bold">{{ $t("PurchaseLift") }}</span>
         <q-btn
           flat
           round
-          padding="xs"
+          padding="sm"
           icon="close"
           class="close-button"
           v-close-popup
         />
       </div>
 
-      <div class="row justify-between q-mb-md">
-        <span>
-          {{ formatWithLocale(SaleGroupPrice[rsvp.sale_group]) }} USD/LIFT
-        </span>
-        <span>{{ formatWithLocale(currentUsdPrice) }} USD/BCH</span>
+      <div class="price-info-box q-pa-sm q-mb-md" :class="getDarkModeClass(darkMode)">
+        <div class="row justify-between">
+          <span class="text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+            {{ formatWithLocale(SaleGroupPrice[rsvp.sale_group]) }} USD/LIFT
+          </span>
+          <span class="text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+            {{ formatWithLocale(currentUsdPrice) }} USD/BCH
+          </span>
+        </div>
       </div>
 
       <div class="col">
@@ -96,18 +101,24 @@
         <span>{{ parseLiftToken(unpaidLift) }}</span>
       </div>
 
-      <div class="row full-width justify-evenly q-mt-md">
+      <div class="row full-width justify-evenly q-mt-lg q-gutter-x-md">
         <q-btn
+          unelevated
           rounded
           outline
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
+          no-caps
+          class="col dialog-btn-outline"
+          :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
           :label="$t('Cancel')"
           v-close-popup
         />
         <q-btn
+          unelevated
           rounded
-          class="button"
+          no-caps
+          class="col dialog-btn-primary"
+          :class="`theme-${theme}`"
+          :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
           :label="$t('Purchase')"
           :disable="
             Number(amountTkn) === 0 ||
@@ -169,6 +180,9 @@ export default {
     darkMode() {
       return this.$store.getters["darkmode/getStatus"];
     },
+    theme() {
+      return this.$store.getters["global/theme"];
+    },
     selectedMarketCurrency() {
       const currency = this.$store.getters["market/selectedCurrency"];
       return currency?.symbol;
@@ -186,14 +200,37 @@ export default {
     parseFiatCurrency,
     formatWithLocale,
 
+    getThemeColor() {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
+    getDarkerThemeColor() {
+      const themeColors = {
+        'glassmorphic-blue': '#1e88e5',
+        'glassmorphic-gold': '#fb8c00',
+        'glassmorphic-green': '#43a047',
+        'glassmorphic-red': '#e91e63'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
+
     parseToken() {
+      if (!this.rsvp) return 0;
+      
       let tkn = this.rsvp.reserved_amount_tkn;
-      if (Object.keys(this.rsvp.reservation_partial_purchase).length > 0) {
+      if (this.rsvp.reservation_partial_purchase && Object.keys(this.rsvp.reservation_partial_purchase).length > 0) {
         tkn = this.rsvp.reservation_partial_purchase.tkn_unpaid;
       }
       return tkn;
     },
     computeUsdBch() {
+      if (!this.rsvp || !this.rsvp.sale_group) return;
+      
       this.amountUsd =
         Number(this.amountTkn) * SaleGroupPrice[this.rsvp.sale_group];
       if (this.rsvp.discount > 0) {
@@ -264,6 +301,8 @@ export default {
   },
 
   async mounted() {
+    if (!this.rsvp) return;
+    
     const oracleData = await getOracleData()
     this.currentUsdPrice = oracleData.price
     this.currentMessageTimestamp = oracleData.messageTimestamp
@@ -284,6 +323,82 @@ export default {
   },
 };
 </script>
+
+<style lang="scss" scoped>
+.price-info-box {
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.dialog-btn-outline {
+  font-weight: 600;
+  border-width: 2px;
+  padding: 10px 24px;
+  
+  &.theme-glassmorphic-blue {
+    border-color: #42a5f5;
+    color: #42a5f5;
+    
+    &.dark {
+      border-color: #64b5f6;
+      color: #64b5f6;
+    }
+  }
+  
+  &.theme-glassmorphic-gold {
+    border-color: #ffa726;
+    color: #ffa726;
+    
+    &.dark {
+      border-color: #ffb74d;
+      color: #ffb74d;
+    }
+  }
+  
+  &.theme-glassmorphic-green {
+    border-color: #4caf50;
+    color: #4caf50;
+    
+    &.dark {
+      border-color: #66bb6a;
+      color: #66bb6a;
+    }
+  }
+  
+  &.theme-glassmorphic-red {
+    border-color: #f54270;
+    color: #f54270;
+    
+    &.dark {
+      border-color: #f77;
+      color: #f77;
+    }
+  }
+}
+
+.dialog-btn-primary {
+  font-weight: 600;
+  color: white;
+  padding: 10px 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+</style>
 
 <style lang="scss">
 .q-field--dark.q-field--error {

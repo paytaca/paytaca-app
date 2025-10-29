@@ -158,6 +158,10 @@ import { getWatchtowerWebsocketUrl, convertCashAddress } from 'src/wallet/chipne
 import { Address } from 'src/wallet'
 import { useWakeLock } from '@vueuse/core'
 import { formatWithLocale } from 'src/utils/denomination-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader'
@@ -255,15 +259,37 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    getAddresses () {
+    async getAddresses () {
       const vm = this
 
-      vm.addresses.push(vm.$store.getters['global/getAddress']('bch'))
-      vm.addresses.push(convertCashAddress(
-        vm.$store.getters['global/getAddress']('bch'),
-        this.isChipnet,
-        true
-      ))
+      // Generate addresses dynamically from mnemonic instead of using stored addresses
+      try {
+        const addressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        
+        // Generate regular BCH address
+        const bchAddress = await generateReceivingAddress({
+          walletIndex: walletIndex,
+          derivationPath: getDerivationPathForWalletType('bch'),
+          addressIndex: addressIndex,
+          isChipnet: vm.isChipnet
+        })
+        
+        // Generate CashToken address (token-aware format)
+        const ctAddress = convertCashAddress(bchAddress, vm.isChipnet, true)
+        
+        vm.addresses.push(bchAddress)
+        vm.addresses.push(ctAddress)
+      } catch (error) {
+        console.error('Error generating addresses dynamically:', error)
+        // Fallback to store-retrieved addresses if dynamic generation fails
+        vm.addresses.push(vm.$store.getters['global/getAddress']('bch'))
+        vm.addresses.push(convertCashAddress(
+          vm.$store.getters['global/getAddress']('bch'),
+          this.isChipnet,
+          true
+        ))
+      }
     },
     convertToLegacyAddress (address) {
       const addressObj = new Address(address)
@@ -314,7 +340,7 @@ export default {
     const vm = this
 
     vm.generatingAddress = true
-    vm.getAddresses()
+    await vm.getAddresses() // Wait for address generation to complete
     vm.generatingAddress = false
 
     vm.setupListener()

@@ -1,209 +1,221 @@
 <template>
   <div
     v-if="isloaded"
-    class="q-pt-sm q-mx-md text-bow"
+    class="payment-confirmation-container text-bow"
     :class="getDarkModeClass(darkMode)">
-    <div class="q-mx-md q-px-sm">
-      <div class="sm-font-size q-pb-xs q-ml-xs">{{ $t('Arbiter') }}</div>
-      <q-input
-        class="q-pb-xs md-font-size"
-        readonly
-        dense
-        filled
-        :dark="darkMode"
-        :label="data?.arbiter?.address"
-        v-model="data.arbiter.name">
-      </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractAddress') }}</div>
-      <q-input
-        class="q-pb-xs"
-        readonly
-        dense
-        filled
-        :dark="darkMode"
-        :label="data?.contract.address">
-        <template v-slot:append>
-          <div v-if="data?.contract.address">
-            <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink)"/>
-            <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(data?.contract.address)"/>
-          </div>
-        </template>
-      </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
-      <q-input
-        class="q-pb-xs md-font-size"
-        readonly
-        dense
-        filled
-        :loading="!contractBalance"
-        :dark="darkMode"
-        v-model="contractBalance">
-        <template v-slot:append>
-          <span>BCH</span>
-        </template>
-      </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">{{ data?.type === 'buyer' ? $t('PayTheSeller') : $t('ExpectFiatPaymentOf') }}</div>
-      <div @click="copyToClipboard(fiatAmount)">
-        <q-input
-          class="q-pb-xs md-font-size"
-          readonly
-          dense
-          filled
-          :dark="darkMode"
-          :rules="[$parent.isValidInputAmount]"
-          v-model="fiatAmount">
-          <template v-slot:append>
-            <span>{{ order?.ad?.fiat_currency?.symbol }}</span>
-          </template>
-        </q-input>
-      </div>
+    
+    <!-- Contract Information Section -->
+    <div class="section-wrapper">
+      <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+        {{ $t('ContractInformation', {}, 'Contract Information') }}
+      </p>
+      <q-list class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+        <q-item>
+          <q-item-section>
+            <q-item-label caption class="text-caption">{{ $t('Arbiter') }}</q-item-label>
+            <q-item-label class="payment-detail-text">{{ data.arbiter.name }}</q-item-label>
+            <q-item-label caption class="text-caption q-mt-xs text-grey">{{ data?.arbiter?.address }}</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-item-label caption class="text-caption">{{ $t('ContractAddress') }}</q-item-label>
+            <q-item-label class="payment-detail-text ellipsis">{{ data?.contract.address }}</q-item-label>
+          </q-item-section>
+          <q-item-section side v-if="data?.contract.address">
+            <div class="row q-gutter-xs">
+              <q-btn flat dense round size="sm" icon="open_in_new" color="blue-grey-6" @click="openURL(explorerLink)"/>
+              <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click="copyToClipboard(data?.contract.address)"/>
+            </div>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
+            <q-item-label class="payment-detail-text">
+              <span v-if="contractBalance">{{ contractBalance }} BCH</span>
+              <q-spinner-dots v-else color="primary" size="sm"/>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable @click="copyToClipboard(fiatAmount)">
+          <q-item-section>
+            <q-item-label caption class="text-caption">
+              {{ data?.type === 'buyer' ? $t('PayTheSeller') : $t('ExpectFiatPaymentOf') }}
+            </q-item-label>
+            <q-item-label class="payment-detail-text text-weight-bold text-primary">
+              {{ fiatAmount }} {{ order?.ad?.fiat_currency?.symbol }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-icon name="content_copy" size="sm" color="blue-grey-6"/>
+          </q-item-section>
+        </q-item>
+      </q-list>
     </div>
-    <div class="q-mx-md q-px-xs q-pt-sm">
-      <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">{{ $t('PAYMENTMETHODS') }}</div>
-        <div class="text-center sm-font-size q-mx-md q-mb-sm">
-        <!-- <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp; -->
-        <span v-if="data?.type === 'buyer'">{{ order.is_cash_in ? 'You selected this payment method' : $t('SelectPaymentMethod') }}</span>
+
+    <!-- Payment Methods Section -->
+    <div class="section-wrapper">
+      <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+        {{ $t('PAYMENTMETHODS') }}
+      </p>
+      <div class="text-center q-px-md q-mb-md instruction-text" :class="getDarkModeClass(darkMode)">
+        <span v-if="data?.type === 'buyer'">{{ order.is_cash_in ? 'You selected this payment method' : 'Upload your proof of payment for the method you used' }}</span>
         <span v-if="data?.type === 'seller'">The buyer selected the following payment methods.</span>
       </div>
-      <div class="full-width">
-        <div v-for="(method, index) in paymentMethods" :key="index">
-          <div class="q-py-xs">
-            <q-card flat bordered :dark="darkMode">
-              <q-expansion-item
-                class="pt-card text-bow"
-                :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
-                :default-opened=true
-                :label="method.payment_type"
-                expand-separator >
-                <q-card class="row q-py-sm q-px-md pt-card" :class="getDarkModeClass(darkMode)">
-                  <div class="col">
-                    <div class="row">
-                      <div class="col q-pr-sm q-py-xs">
-                        <div v-for="(field, index) in method.values" :key="index">
-                          <div v-if="field.value">{{ field.field_reference.fieldname }}:</div>
-                          <div v-if="field.value" class="q-ml-sm text-weight-bold">
-                            {{ field.value }}
-                            <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(field.value)"/>
-                          </div>
-                        </div>
-                        <div v-for="(field, index) in method.dynamic_values" :key="index">
-                            {{ field.fieldname }}
-                            <div class="q-ml-sm text-weight-bold">
-                              {{ dynamicVal(field) }}
-                              <q-icon size="1em" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(dynamicVal(field))"/>
-                            </div>
-                        </div>
-                      </div>
-                      <div v-if="data?.type !== 'seller'">
-                        <q-checkbox v-model="method.selected" @click="order.is_cash_in ? '' : selectPaymentMethod(method, index)" :dark="darkMode" :disable="order.is_cash_in"/>
-                      </div>
-                    </div>
-                    <div v-if="method.attachments?.length > 0" class="row">
-                      <q-btn
-                        flat dense no-caps
-                        icon="image"
-                        class="row button button-text-primary q-my-none q-py-none"
-                        label="View Proof of Payment"
-                        style="font-size: small;"
-                        @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
-                    </div>
-                    <div v-else>
-                      <span v-if="hasUploadingMsg" class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
-                    </div>
-                    <div v-if="data?.type !== 'seller'" class="row">
-                      <q-btn
-                        v-if="!!method.attachment"
-                        flat dense
-                        icon="cancel"
-                        size="sm"
-                        color="red"
-                        @click="cancelAttachment(method)"/>
-                      <q-btn
-                        flat dense no-caps no-wrap
-                        class="row button button-text-primary q-my-none q-py-none"
-                        style="font-size: small;"
-                        :disable="!method.selected"
-                        @click="onClickUpload(index)">
-                        <!-- <template v-slot:prepend> -->
-                          <q-icon v-if="!method.attachment" name="upload" class="q-mr-sm"/>
-                          <span style="max-width: 200px; overflow-x: scroll; text-align: left;">
-                            {{ method.attachment?.name || 'Upload Proof of Payment' }}
-                          </span>
-                        <!-- </template> -->
-                      </q-btn>
-                      <q-file
-                        ref="filePickerRef"
-                        :max-file-size="maxFileSize"
-                        clearable
-                        accept="image/jpg, image/png, image/jpeg"
-                        dense
-                        color="blue-12"
-                        label="Upload Proof of Payment"
-                        style="display: none"
-                        v-model="method.attachment"
-                        @update:model-value="onSelectAttachment(index, method.id)"
-                        @rejected="onRejectedFilePick">
-                        <template v-slot:prepend>
-                          <q-icon name="upload" />
-                        </template>
-                      </q-file>
-                    </div>
-                  </div>
-                </q-card>
-              </q-expansion-item>
-              <div v-if="data?.type === 'buyer'">
-                <q-banner class="bg-primary text-white text-center" v-if="method.selected && !method.attachment">
-                  <span class="sm-font-size">Please upload Proof of Payment first before you proceed</span>
-                </q-banner>
+
+      <div class="payment-methods-list">
+        <div v-for="(method, index) in paymentMethods" :key="index" class="payment-method-item">
+          <q-card 
+            flat 
+            :dark="darkMode"
+            :class="{'payment-method-selected': method.selected && data?.type !== 'seller'}"
+            class="pt-card payment-method-card">
+            <q-expansion-item
+              class="text-bow"
+              :class="getDarkModeClass(darkMode)"
+              :default-opened=true
+              :label="method.payment_type"
+              header-class="payment-method-header"
+              expand-separator >
+              <q-list class="payment-details-list" :class="getDarkModeClass(darkMode)">
+                <template v-for="(field, fieldIndex) in (method.values || [])" :key="fieldIndex">
+                  <q-item v-if="field && field.value" dense>
+                    <q-item-section>
+                      <q-item-label caption class="text-caption">{{ field.field_reference?.fieldname }}</q-item-label>
+                      <q-item-label class="payment-field-value">{{ field.value }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click.stop="copyToClipboard(field.value)"/>
+                    </q-item-section>
+                  </q-item>
+                </template>
+
+                <template v-for="(field, fieldIndex) in (method.dynamic_values || [])" :key="'dynamic-' + fieldIndex">
+                  <q-item v-if="field" dense>
+                    <q-item-section>
+                      <q-item-label caption class="text-caption">{{ field?.fieldname }}</q-item-label>
+                      <q-item-label class="payment-field-value">{{ dynamicVal(field) }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click.stop="copyToClipboard(dynamicVal(field))"/>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-list>
+
+              <!-- Upload Section -->
+              <div class="upload-section q-pa-md" :class="getDarkModeClass(darkMode)">
+                <!-- Upload Button for Buyer -->
+                <q-btn
+                  v-if="data?.type !== 'seller' && !method.attachment && (!method.attachments || method.attachments.length === 0)"
+                  unelevated
+                  no-caps
+                  color="primary"
+                  class="full-width upload-proof-btn"
+                  icon="cloud_upload"
+                  label="Upload Proof of Payment"
+                  @click="selectAndUpload(method, index)"
+                />
+                
+                <!-- Attachment Display (pending upload) -->
+                <q-chip
+                  v-if="data?.type !== 'seller' && method.attachment"
+                  removable
+                  color="primary"
+                  text-color="white"
+                  icon="attach_file"
+                  @remove="cancelAttachment(method)"
+                  class="full-width q-pa-md"
+                >
+                  <span class="ellipsis" style="max-width: 200px;">
+                    {{ method.attachment?.name }}
+                  </span>
+                </q-chip>
+                
+                <!-- View uploaded proof -->
+                <q-btn
+                  v-if="method.attachments?.length > 0"
+                  outline
+                  no-caps
+                  color="positive"
+                  icon="image"
+                  label="View Uploaded Proof of Payment"
+                  class="full-width"
+                  @click.stop="viewPaymentAttachment(method.attachments[0].image?.url)"
+                />
+                
+                <!-- Uploading message -->
+                <div v-if="hasUploadingMsg && !method.attachment && (!method.attachments || method.attachments.length === 0)" class="text-center q-py-sm">
+                  <span class="text-primary">
+                    Uploading Proof of Payment 
+                    <q-icon name="refresh" color="primary" size="xs" @click.stop="$emit('refresh')"/>
+                  </span>
+                </div>
+
+                <!-- Hidden file input -->
+                <q-file
+                  v-if="data?.type !== 'seller'"
+                  ref="filePickerRef"
+                  :max-file-size="maxFileSize"
+                  clearable
+                  accept="image/jpg, image/png, image/jpeg"
+                  dense
+                  color="blue-12"
+                  label="Upload Proof of Payment"
+                  style="display: none"
+                  v-model="method.attachment"
+                  @update:model-value="onSelectAttachment(index, method.id)"
+                  @rejected="onRejectedFilePick">
+                  <template v-slot:prepend>
+                    <q-icon name="upload" />
+                  </template>
+                </q-file>
               </div>
-            </q-card>
-          </div>
+            </q-expansion-item>
+          </q-card>
         </div>
       </div>
     </div>
-    <div
-      v-if="data?.type === 'seller' && !sendingBch"
-      class="row q-mx-md q-px-md q-pt-sm text-center sm-font-size"
-      style="overflow-wrap: break-word;">
-        <span> Please release the funds if you have received fiat payment. </span>
+
+    <!-- Seller Instructions -->
+    <div v-if="data?.type === 'seller' && !sendingBch" class="section-wrapper">
+      <q-banner class="instruction-banner q-mx-md" :class="getDarkModeClass(darkMode)">
+        <template v-slot:avatar>
+          <q-icon name="info" color="blue-6" />
+        </template>
+        <span class="text-body2">Please release the funds if you have received fiat payment.</span>
+      </q-banner>
     </div>
-    <div class="q-mb-sm q-mt-sm">
-      <div class="q-mx-md q-px-md">
-        <div v-if="data?.type === 'seller'">
-          <!-- Errors -->
-          <div class="row q-mb-sm" v-if="sendErrors.length > 0">
-            <div class="col bg-red-1 text-red q-pa-lg pp-text" style="overflow-x: auto; max-width: 275px">
-              <ul style="margin-left: -40px; list-style: none;">
-                <li v-for="(error, index) in sendErrors" :key="index">
-                  <q-icon name="error" left/>
-                  {{ error }}
-                </li>
-              </ul>
-            </div>
-          </div>
-          <!-- Info messages -->
-          <!-- <div v-if="sendingBch" class="sm-font-size">
-            <q-spinner class="q-mr-sm"/>{{ $t('SendingBchPleaseWait') }}
-          </div> -->
-          <!-- <div v-else class="row justify-center sm-font-size" style="overflow-wrap: break-word;">
-            <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
-            <span class="col text-left q-ml-sm">{{ $t('PaymentConfirmationReleaseFundsMsg') }}</span>
-          </div> -->
-        </div>
-      </div>
-      <!-- Appeal Button -->
-      <div class="row justify-center" v-if="showAppealBtn">
-        <q-btn
-          v-if="!sendingBch"
-          :loading="loadAppealButton"
-          flat
-          no-caps
-          :disable="countDown !== '' || loadAppealButton"
-          :label="appealBtnLabel"
-          color="blue-6"
-          @click="onOpenAppealForm"
-        />
-      </div>
+
+    <!-- Errors Section -->
+    <div v-if="data?.type === 'seller' && sendErrors.length > 0" class="section-wrapper">
+      <q-banner class="error-banner q-mx-md bg-negative text-white" rounded>
+        <template v-slot:avatar>
+          <q-icon name="error" color="white" />
+        </template>
+        <ul class="q-ma-none q-pl-md">
+          <li v-for="(error, index) in sendErrors" :key="index">{{ error }}</li>
+        </ul>
+      </q-banner>
+    </div>
+
+    <!-- Appeal Button -->
+    <div v-if="showAppealBtn" class="section-wrapper text-center q-pb-lg">
+      <q-btn
+        v-if="!sendingBch"
+        :loading="loadAppealButton"
+        outline
+        no-caps
+        :disable="countDown !== '' || loadAppealButton"
+        :label="appealBtnLabel"
+        color="blue-6"
+        padding="12px 32px"
+        @click="onOpenAppealForm"
+      />
     </div>
   </div>
   <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50px">
@@ -215,13 +227,6 @@
   :key="dragSlideKey"
   :text="dragSlideTitle"
   :locked="lockDragSlide"
-  :style="{
-    position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1500,
-  }"
   @click="checkDragslideStatus()"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
@@ -408,13 +413,27 @@ export default {
       this.selectedPaymentMethods[index].attachment = this.paymentMethods[methodIndex].attachment
     },
     async uploadAttachments (orderPaymentMethods) {
-      this.selectedPaymentMethods.forEach(async paymentMethod => {
+      // Use Promise.all to properly wait for all uploads to complete
+      const uploadPromises = this.selectedPaymentMethods.map(async paymentMethod => {
         const index = orderPaymentMethods.map(e => e.payment_method).indexOf(paymentMethod.id)
         console.log(`Uploading ${orderPaymentMethods[index].id}: ${paymentMethod.attachment.name}`)
         const formData = new FormData()
         formData.append('image', paymentMethod.attachment)
-        await this.uploadAttachment(formData, orderPaymentMethods[index].id)
+        return await this.uploadAttachment(formData, orderPaymentMethods[index].id)
       })
+      
+      // Wait for all uploads to complete
+      await Promise.all(uploadPromises)
+      
+      // Clear local attachments after successful upload
+      this.selectedPaymentMethods.forEach(paymentMethod => {
+        const methodIndex = this.paymentMethods.findIndex(m => m.id === paymentMethod.id)
+        if (methodIndex > -1) {
+          this.paymentMethods[methodIndex].attachment = null
+        }
+      })
+      
+      // Refresh order details to get the uploaded attachments from server
       await this.fetchOrderDetail()
     },
     async uploadAttachment (formdata, orderPaymentId) {
@@ -462,7 +481,7 @@ export default {
         switch (status) {
           case 'ESCRW': {
             const resp = await vm.sendConfirmPayment(vm.data?.type)
-            vm.uploadAttachments(resp.order_payment_methods)
+            await vm.uploadAttachments(resp.order_payment_methods)
             break
           }
           case 'PD_PN': {
@@ -585,6 +604,22 @@ export default {
         }
       }
     },
+    selectAndUpload (method, methodIndex) {
+      // If already selected, just open file picker
+      if (method.selected) {
+        this.onClickUpload(methodIndex)
+        return
+      }
+      
+      // Otherwise, select the method first then open file picker
+      method.selected = true
+      this.selectPaymentMethod(method, methodIndex)
+      
+      // Use nextTick to ensure DOM is updated before opening file picker
+      this.$nextTick(() => {
+        this.onClickUpload(methodIndex)
+      })
+    },
     onSecurityOk () {
       this.showDragSlide = false
       this.dragSlideKey++
@@ -652,6 +687,149 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+// Container
+.payment-confirmation-container {
+  padding-bottom: 120px;
+}
+
+// Section Wrapper
+.section-wrapper {
+  margin-bottom: 24px;
+  padding: 0 16px;
+}
+
+// Section Title (matching settings page)
+.section-title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+  
+  &.dark {
+    color: #e0e2e5;
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// Instruction Text
+.instruction-text {
+  font-size: 14px;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+// Card Styling (matching settings page)
+.pt-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// Payment Info List
+.payment-info-list {
+  .q-item {
+    padding: 16px 20px;
+    min-height: 60px;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+  }
+  
+  &.dark .q-item:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.payment-detail-text {
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+// Payment Methods List
+.payment-methods-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.payment-method-item {
+  margin-bottom: 0;
+}
+
+.payment-method-card {
+  transition: all 0.3s ease;
+  
+  &.payment-method-selected {
+    border: 2px solid #21ba45 !important;
+    box-shadow: 0 4px 12px rgba(33, 186, 69, 0.2);
+  }
+}
+
+.payment-method-header {
+  padding: 16px 20px;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.payment-details-list {
+  .q-item {
+    padding: 12px 20px;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+  }
+  
+  &.dark .q-item:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+.payment-field-value {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+// Upload Section
+.upload-section {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  
+  &.dark {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.upload-proof-btn {
+  font-weight: 500;
+  padding: 12px 16px;
+  font-size: 15px;
+  height: 48px;
+  
+  :deep(.q-btn__content) {
+    .q-icon {
+      font-size: 22px;
+    }
+  }
+}
+
+// Banners
+.instruction-banner {
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.error-banner {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+// Legacy styles (kept for compatibility)
 .xs-font-size {
   font-size: smaller;
 }
@@ -661,15 +839,10 @@ export default {
 .md-font-size {
   font-size: medium;
 }
-
 .lg-font-size {
   font-size: large;
 }
 .subtext {
   opacity: .5;
-}
-.tooltipcard {
-  background: grey;
-  opacity: 10%;
 }
 </style>

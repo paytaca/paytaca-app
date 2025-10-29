@@ -13,23 +13,30 @@
 	      <template v-else>
 		<p v-if="amountSent && Number(amountSent) > 0" class="amount-label">{{ amountSent }} {{ assetSymbol }}</p>
 	      </template>
-	      <div class="text-center q-mt-lg">
-		<div class="text-grey">{{ $t('ReferenceId')}}</div>
-		<div class="text-h4" style="letter-spacing: 6px;">{{ txid.substring(0, 6).toUpperCase() }}</div>
-		<q-separator color="grey"/>
+	      <!-- Reference ID Section -->
+	      <div class="reference-id-section q-mt-lg">
+		<div class="text-grey text-weight-medium text-caption">{{ $t('ReferenceId')}}</div>
+		<div class="reference-id-value">{{ txid.substring(0, 6).toUpperCase() }}</div>
+		<q-separator color="grey" class="q-mt-sm"/>
 	      </div>
-	      <div class="q-px-xs q-mt-sm text-subtitle1">
-		<div class="text-grey">{{ $t('TransactionId')}}</div>
-		<p style="font-family: monospace;" :class="getDarkModeClass(darkMode)">{{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}</p>
-		<a
-		  class="button button-text-primary view-explorer-button"
-		  style="text-decoration: none;"
-		  :class="getDarkModeClass(darkMode)"
-		  :href="getExplorerLink(txid)"
-		  target="_blank"
-		>
-		  {{ $t('ViewInExplorer') }}
-		</a>
+	      
+	      <!-- Transaction ID Section -->
+	      <div class="transaction-id-section q-mt-lg">
+		<div class="text-grey text-weight-medium text-caption q-mb-sm">{{ $t('TransactionId')}}</div>
+		<div class="txid-container" :class="getDarkModeClass(darkMode)">
+		  <span class="txid-text">{{ txid.slice(0, 8) }}...{{ txid.slice(-8) }}</span>
+		</div>
+		<div class="view-explorer-container q-mt-sm">
+		  <a
+		    class="view-explorer-link"
+		    :class="getDarkModeClass(darkMode)"
+		    :href="getExplorerLink(txid)"
+		    target="_blank"
+		  >
+		    <q-icon name="open_in_new" size="16px" class="q-mr-xs" />
+		    {{ $t('ViewInExplorer') }}
+		  </a>
+		</div>
 	      </div>
 	    </div>
 	  </div>
@@ -73,9 +80,73 @@ const onCloseClick = () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* unset default style for active item */
 .q-item.q-router-link--active, .q-item--active {
- color: inherit
+ color: inherit;
+}
+
+.sent-success-container {
+  .amount-label {
+    font-size: 24px;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+
+  // Reference ID Section
+  .reference-id-section {
+    .reference-id-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 8px;
+      margin-top: 8px;
+      font-family: 'Courier New', monospace;
+    }
+  }
+
+  // Transaction ID Section
+  .transaction-id-section {
+    .txid-container {
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: inline-block;
+      background: rgba(128, 128, 128, 0.08);
+      border: 1px solid rgba(128, 128, 128, 0.2);
+      margin: 8px auto;
+
+      .txid-text {
+        font-family: 'Courier New', monospace;
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+      }
+    }
+
+    .view-explorer-container {
+      display: block;
+      text-align: center;
+      
+      .view-explorer-link {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        color: var(--q-primary);
+        font-size: 15px;
+        font-weight: 500;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background: rgba(0, 128, 0, 0.08);
+          transform: translateX(2px);
+        }
+        
+        &.dark {
+          color: #4ade80;
+        }
+      }
+    }
+  }
 }
 </style>

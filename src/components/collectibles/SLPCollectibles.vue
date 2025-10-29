@@ -1,8 +1,21 @@
 <template>
   <div class="pt-label" :class="getDarkModeClass(darkMode, '', 'text-grey-8')">
-    <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <ProgressLoader />
-    </div>
+    <!-- Skeleton Loaders -->
+    <template v-if="fetchingCollectibles && !collectibles.length">
+      <div class="q-mx-md q-px-sm q-mb-md">
+        <q-skeleton type="text" width="40%" height="32px" class="q-ml" />
+      </div>
+      <div class="q-pa-md row items-start">
+        <q-card
+          v-for="n in 6" :key="`skeleton-${n}`"
+          class="collectible-card q-ma-sm"
+        >
+          <q-skeleton height="130px" width="100%" square />
+        </q-card>
+      </div>
+    </template>
+
+    <!-- Actual Content -->
     <template v-if="collectibles.length > 0">
       <div class="q-mx-md q-px-sm row items-center">
         <div class="q-space text-h5 q-ml">{{ $t('SLPCollectibles') }}</div>

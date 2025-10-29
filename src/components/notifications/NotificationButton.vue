@@ -1,5 +1,5 @@
 <template>
-  <div class="col-2 flex justify-end" v-if="isMobile">
+  <div class="col-2 flex justify-end" v-if="isMobile && !isChipnet">
     <q-btn
       flat
       round
@@ -40,6 +40,9 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
     },
     currentWalletHash () {
       return this.$store.getters['global/getWallet']('bch')?.walletHash

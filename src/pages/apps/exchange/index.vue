@@ -1,10 +1,48 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
-    <router-view :key="$route.path"></router-view>
+    <router-view v-if="isloaded" :key="$route.path"></router-view>
+    
+    <!-- Skeleton Loading State for Initial Auth -->
+    <div v-else class="full-width">
+      <!-- Header (visible during loading) -->
+      <HeaderNav title="P2P Exchange" backnavpath="/apps" class="header-nav p2p-exchange-header" />
+      
+      <!-- Content Skeletons -->
+      <div class="q-px-md">
+        <!-- Tab Buttons Skeleton -->
+        <div class="row justify-center q-mb-md">
+          <q-skeleton type="rect" width="70%" height="48px" style="border-radius: 24px;" />
+        </div>
+        
+        <!-- Listing Skeletons -->
+        <q-list>
+        <q-item v-for="n in 5" :key="n" class="q-mb-sm">
+          <q-item-section>
+            <div class="q-pb-sm">
+              <q-skeleton type="text" width="40%" height="18px" class="q-mb-xs" />
+              <div class="row q-mb-xs">
+                <q-skeleton type="rect" width="100px" height="16px" />
+                <q-skeleton type="text" width="40px" height="16px" class="q-ml-xs" />
+              </div>
+              <q-skeleton type="text" width="60%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="50%" height="22px" class="q-mb-xs" />
+              <q-skeleton type="text" width="70%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="65%" height="14px" class="q-mb-sm" />
+              <div class="row q-gutter-sm">
+                <q-skeleton type="rect" width="80px" height="24px" style="border-radius: 12px;" />
+                <q-skeleton type="rect" width="90px" height="24px" style="border-radius: 12px;" />
+              </div>
+            </div>
+          </q-item-section>
+        </q-item>
+      </q-list>
+      </div>
+    </div>
   </div>
   <OngoingMaintenanceDialog v-if="appDisabled"/>
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import OngoingMaintenanceDialog from 'src/components/ramp/fiat/dialogs/OngoingMaintenanceDialog.vue'
 import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
 import packageInfo from '../../../../package.json'
@@ -15,6 +53,7 @@ import { loadRampWallet } from 'src/exchange/wallet'
 
 export default {
   components: {
+    HeaderNav,
     OngoingMaintenanceDialog
   },
   data () {
@@ -47,16 +86,9 @@ export default {
       if (val) {
         this.goToMainPage()
       }
-    },
-    isloaded (val) {
-      if (val) {
-        this.$q.loading.hide()
-      }
     }
   },
-  async mounted () {    
-    this.$q.loading.show()
-
+  async mounted () {
     const appEnabled = this.$store.getters['global/appControl']
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled
@@ -174,3 +206,18 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+.p2p-exchange-header {
+  ::v-deep .text-h5 {
+    -webkit-text-fill-color: #fff !important;
+    background: none !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+  }
+  
+  ::v-deep .pt-arrow-left-link .material-icons {
+    color: #fff !important;
+  }
+}
+</style>

@@ -4,11 +4,21 @@
       v-if="imageUrl && !forceUseDefaultImg"
       :src="imageUrl" fit="fill"
       @error="() => forceUseDefaultImg = true"
-    />
-    <q-img v-else :src="defaultImageUrl" fit="fill"></q-img>
+    >
+      <template v-slot:loading>
+        <q-skeleton height="100%" width="100%" square />
+      </template>
+    </q-img>
+    <q-img v-else :src="defaultImageUrl" fit="fill">
+      <template v-slot:loading>
+        <q-skeleton height="100%" width="100%" square />
+      </template>
+    </q-img>
   </q-card>
 </template>
 <script>
+import noImage from 'src/assets/no-image.svg'
+
 export default {
   name: 'SLPCollectiblesItem',
   props: {
@@ -16,7 +26,8 @@ export default {
   },
   data() {
     return {
-      forceUseDefaultImg: false
+      forceUseDefaultImg: false,
+      noImage
     }
   },
   computed: {
@@ -28,7 +39,7 @@ export default {
     },
     defaultImageUrl() {
       if (this.imageUrl && !this.forceUseDefaultImg) return ''
-      return this.$store.getters['global/getDefaultAssetLogo']?.(this.collectible?.token_id)
+      return noImage
     }
   },
   watch: {

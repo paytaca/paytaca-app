@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
+  <q-pull-to-refresh id="app-container" :class="getDarkModeClass(darkMode)" @refresh="onRefresh">
     <div>
       <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <q-resize-observer @resize="onFixedSectionResize" />
@@ -17,28 +17,7 @@
               />
             </div>
 
-            <div class="row" :class="enableSmartBCH || enableStablhedge ? 'q-pt-lg': 'q-pt-sm'">
-              <template v-if="enableStablhedge">
-                <q-tabs
-                  class="col-12 q-px-sm q-pb-md"
-                  v-model="stablehedgeTab"
-                  style="margin-top: -25px;"
-                  indicator-color=""
-                >
-                  <q-tab
-                    name="bch"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    label="BCH"
-                  />
-                  <q-tab
-                    name="stablehedge"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    :label="$t('Stablehedge')"
-                  />
-                </q-tabs>
-              </template>
+            <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
               <template v-if="enableSmartBCH">
                 <q-tabs
                   class="col-12 q-px-sm q-pb-md"
@@ -113,7 +92,6 @@
                       </div>
                       <div v-else>
                         <p class="q-mb-none">
-                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
                           <span ellipsis class="text-h5" >
                             {{ bchBalanceText }}
                           </span>
@@ -158,17 +136,9 @@
             :selectedDenomination="selectedDenomination"
             :hasCashin="hasCashin"
             @cashin="openCashIn()"
-            @price-chart="openPriceChart()"
+            @spend-bch="openSpendBch()"
           />
-          <div
-            v-if="!showTokens"
-            class="text-center button button-text-primary show-tokens-label"
-            :class="getDarkModeClass(darkMode)"
-            @click.native="toggleShowTokens"
-          >
-            {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
-          </div>
-          <div class="row q-mt-sm" v-if="showTokens">
+          <div class="row q-mt-sm">
             <div class="col">
               <p
                 class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary"
@@ -186,15 +156,6 @@
                   :style="assetsCloseButtonColor"
                   :class="getDarkModeClass(darkMode)"
                   @click="toggleManageAssets"
-                />
-                <q-btn
-                  flat
-                  padding="none"
-                  size="sm"
-                  icon="settings"
-                  class="settings-button"           
-                  :class="getDarkModeClass(darkMode)"
-                  @click="$router.push({ name: 'asset-list' })"
                 />
                 <!-- <q-btn
                   flat
@@ -240,9 +201,9 @@
               <AssetFilter v-if="hasAssetFilter" @filterTokens="isCT => isCashToken = isCT" />
             </div>
           </div>
-          <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
+          <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
           <!-- Cards without drag scroll on mobile -->
-          <template v-if="showTokens && $q.platform.is.mobile">
+          <template v-if="$q.platform.is.mobile">
             <asset-cards
               :assets="assets"
               :manage-assets="manageAssets"
@@ -261,7 +222,7 @@
             </asset-cards>
           </template>
           <!-- Cards with drag scroll on other platforms -->
-          <template v-if="showTokens && !$q.platform.is.mobile">
+          <template v-if="!$q.platform.is.mobile">
             <asset-cards
               :assets="assets"
               :manage-assets="manageAssets"
@@ -280,7 +241,7 @@
             >
             </asset-cards>
           </template>
-          <div v-if="showTokens && assets.length == 0" style="margin-bottom: 10px;">
+          <div v-if="assets.length == 0" style="margin-bottom: 10px;">
             <div class="text-center text-black">
                 <q-btn class="br-15" outline color="primary" label="Add New Asset" @click="addNewAsset()"/>
             </div>
@@ -288,7 +249,7 @@
 
           <PendingTransactions :key="pendingTransactionsKey"/>
           
-          <LearnLessonsCarousel />
+          <LearnLessonsCarousel :key="learnCarouselKey" />
         </div>
       <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
@@ -325,23 +286,6 @@
                   </template>
                 </q-input>
               </div>
-              <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
-                <q-btn
-                  unelevated
-                  @click="openPriceChart"
-                  icon="img:assets/img/theme/payhero/price-chart.png"
-                />
-                <q-btn
-                  v-else
-                  round
-                  color="blue-9"
-                  padding="xs"
-                  icon="mdi-chart-line-variant"
-                  class="q-ml-md"
-                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
-                  @click="openPriceChart"
-                />
-              </template>
             </div>
           </div>
           <div
@@ -384,7 +328,7 @@
       :slp-wallet-hash="getWallet('slp').walletHash"
       :sbch-address="getWallet('sbch').lastAddress"
     />
-  </div>
+  </q-pull-to-refresh>
 </template>
 
 <script>
@@ -412,7 +356,6 @@ import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
 import AddNewAsset from 'src/pages/transaction/dialog/AddNewAsset'
-import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import connectedDialog from '../connect/connectedDialog.vue'
@@ -483,7 +426,6 @@ export default {
       securityOptionDialogStatus: 'dismiss',
       prevPath: null,
       showTokenSuggestionsDialog: false,
-      showTokens: this.$store.getters['global/showTokens'],
       isCashToken: true,
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;',
@@ -493,20 +435,17 @@ export default {
       hasCashin: false,
       hasCashinAlert: false,
       availableCashinFiat: null,
-      isPriceChartDialogShown: false,
       websocketManager: null,
       assetClickTimer: null,
       assetClickCounter: 0 ,
-      pendingTransactionsKey: 0
+      pendingTransactionsKey: 0,
+      learnCarouselKey: 0
     }
   },
 
   watch: {
     online(newValue, oldValue) {
       this.onConnectivityChange(newValue)
-    },
-    showTokens (n, o) {
-      this.$store.commit('global/showTokens')
     },
     'assets.length': {
       handler(before, after) {
@@ -657,6 +596,27 @@ export default {
     parseFiatCurrency,
     getDarkModeClass,
     isHongKong,
+    async onRefresh (done) {
+      try {
+        // Refresh wallet balances and token icons
+        await this.onConnectivityChange(true)
+        
+        // Refresh transaction list
+        if (this.$refs['transaction-list-component']) {
+          await this.$refs['transaction-list-component'].getTransactions(1)
+        }
+        
+        // Refresh pending transactions
+        this.pendingTransactionsKey++
+        
+        // Refresh Learn carousel
+        this.learnCarouselKey++
+      } catch (error) {
+        console.error('Error refreshing:', error)
+      } finally {
+        done()
+      }
+    },
     executeTxSearch (value) {
       if (String(value).length == 0 || String(value).length >= 6) {
         const opts = {txSearchReference: value}
@@ -672,16 +632,8 @@ export default {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
     },
-    openPriceChart () {
-      if (!this.isPriceChartDialogShown) {
-        this.isPriceChartDialogShown = true
-        this.$q.dialog({
-          component: PriceChart
-        })
-          .onDismiss(() => {
-            this.isPriceChartDialogShown = false
-          })
-      }
+    openSpendBch () {
+      this.$router.push({ name: 'spend-bch' })
     },
     async openCashIn () {
       await this.checkCashinAvailable()
@@ -770,16 +722,15 @@ export default {
       await this.$nextTick()
       this.$refs.tokenMenu.updatePosition()
     },
-    toggleShowTokens () {
-      this.showTokens = !this.showTokens
-      this.adjustTransactionsDivHeight()
-    },
     adjustTransactionsDivHeight (opts={timeout: 500}) {
       const vm = this
       let timeout = opts?.timeout
       if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
-        const sectionHeight = vm.$refs.fixedSection.clientHeight
+        const fixedSection = vm.$refs?.fixedSection
+        if (!fixedSection) return
+        
+        const sectionHeight = fixedSection.clientHeight
         const clientWidth = document.body.clientWidth
         const elem = vm.$refs.transactionSection
         if (!elem?.style) return
@@ -1488,7 +1439,7 @@ export default {
       const unlisted_tokens = await assetSettings.fetchUnlistedTokens()
       const assetIDs = vm.assets.map(asset => asset.id)
 
-      if(unlisted_tokens) {
+      if(Array.isArray(unlisted_tokens) && unlisted_tokens.length > 0) {
         let diff = assetIDs.filter(asset => unlisted_tokens.includes(asset))
 
         if (diff.length > 0) {
@@ -1695,11 +1646,6 @@ export default {
         color: $red-5;
       }
     }
-  }
-  .show-tokens-label {
-    margin-top: 0px;
-    font-size: 13px;
-    padding-bottom: 15px;
   }
   .cash-in {
     background-color: #ECF3F3;
