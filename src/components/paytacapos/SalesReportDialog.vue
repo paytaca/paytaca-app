@@ -17,10 +17,21 @@
         </div>
         <q-card class="pt-card">
           <q-card-section>
-            <div class="row items-center">
+            <div class="row items-start">
               <div class="q-space text-subtitle1">{{ $t('TotalSales') }}</div>
               <div class="text-right">
                 <div class="text-subtitle1">{{ getAssetDenomination(denomination, totalSales.total) }}</div>
+                <div
+                  v-if="totalSales?.tokenAmounts?.length"
+                  class="text-caption q-r-mt-sm q-mb-xs"
+                  style="display: grid; grid-template-columns: auto auto; column-gap: 4px;"
+                >
+                  <template v-for="tokenAmount in totalSales?.tokenAmounts" :key="tokenAmount?.category">
+                    <div>{{ tokenAmount?.parsedAmount }}</div>
+                    <div>{{ tokenAmount?.symbol }}</div>
+                  </template>
+                </div>
+                <q-separator v-if="totalSales?.tokenAmounts?.length && totalSales.totalMarketValue && totalSales.currency"/>
                 <div v-if="(totalSales.totalMarketValue && totalSales.currency)" class="text-subtitle2">
                   {{ totalSales.totalMarketValue.toFixed(2) }} {{ totalSales.currency }}
                 </div>
@@ -50,7 +61,7 @@
           </q-card-section>
         </q-card>
       </q-card-section>
-      <div class="q-pa-sm" style="max-height:50vh;overflow:auto;">
+      <div class="q-pa-sm" :style="`max-height:${salesReportListHeight};overflow:auto;`">
         <q-list v-if="Array.isArray(salesReportData?.data)" :dark="darkMode">
           <template v-for="(record) in salesReportData?.data">
             <q-item>
@@ -63,7 +74,7 @@
               </q-item-section>
               <q-item-section avatar>
                 <q-item-label>
-                  {{ getAssetDenomination(denomination, record?.total) }}
+                  {{ formatRecordAmount(record) }}
                 </q-item-label>
                 <q-item-label v-if="(record?.total_market_value && record?.currency)" caption>
                   {{ Number(record.total_market_value).toFixed(2) }} {{ record.currency }}
@@ -78,8 +89,8 @@
   </q-dialog>
 </template>
 <script setup>
-import { padPosId } from 'src/wallet/pos';
-import { computed, ref, onMounted, watch } from 'vue';
+import { padPosId, summarizeSalesReports } from 'src/wallet/pos';
+import { computed, ref, onMounted, watch, nextTick } from 'vue';
 import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import Watchtower from 'watchtower-cash-js';
@@ -153,8 +164,10 @@ function fetchSalesReport(opts) {
   watchtower.BCH._api.get(`paytacapos/devices/sales_report/${walletHash}/`, { params })
     .then(response => {
       salesReportData.value = response?.data
+      nextTick(() => fetchMissingTokenMetadata())
     })
 }
+
 onMounted(() => fetchSalesReport({
   timestampFrom: Math.floor(new Date().setFullYear(new Date().getFullYear() - 1) / 1000),
   timestampTo: null,
@@ -178,27 +191,77 @@ watch(() => [innerVal.value, props.merchantId, props.posDevice?.posid], () => {
 })
 
 const totalSales = computed(() => {
-  const data = {
-    total: 0,
-    currency: '',
-    totalMarketValue: 0,
-    totalCount: 0,
-  }
-  if (Array.isArray(salesReportData.value?.data)) {
-    data.total = salesReportData.value.data.reduce((subtotal, record) => subtotal + record?.total, 0)
-    data.totalCount = salesReportData.value.data.reduce((subtotal, record) => subtotal + record?.count, 0)
-    const currencies = salesReportData.value.data
-      .map(record => record?.currency)
-      .filter(Boolean)
-      .filter((e, i, l) => l.indexOf(e) === i)
-    const hasMissingMarketValue = salesReportData.value.data.find(record => !record?.total_market_value || !record?.currency)
-    if (!hasMissingMarketValue && currencies.length === 1) {
-      data.currency = currencies[0]
-      data.totalMarketValue = salesReportData.value.data.reduce((subtotal, record) => subtotal + record?.total_market_value, 0)
+  if (!Array.isArray(salesReportData.value?.data)) {
+    return {
+      total: 0,
+      currency: '',
+      totalMarketValue: 0,
+      tokenAmounts: [],
+      total: 0,
     }
-  } 
+  }
+  const summarizedData = summarizeSalesReports(salesReportData.value?.data);
+  return {
+    ...summarizedData,
+    tokenAmounts: summarizedData.tokenAmounts.map(tokenAmount => {
+      const tokenMetadata = resolveTokenMetadata(tokenAmount)
+      const decimals = parseInt(tokenMetadata.decimals);
+      const parsedAmount = tokenAmount.amount / 10 ** decimals;
+      return Object.assign(tokenAmount, {
+        ...tokenMetadata,
+        parsedAmount: parsedAmount.toFixed(decimals),
+      })
+    })
+  }
+})
 
-  return data
+const tokenCategoriesInSales = computed(() => {
+  return totalSales.value.tokenAmounts
+    .map(data => data?.category)
+    .filter((element, index, list) => list.indexOf(element) === index);
+})
+
+const tokenMetadata = ref([].map(() => {
+  return { id: '', name: '', symbol: '', decimals: '' }
+}))
+function fetchMissingTokenMetadata() {
+  const promises = tokenCategoriesInSales.value.filter(category => {
+    const metadata = resolveTokenMetadata({ category })
+    return metadata?.invalid
+  }).map(category => {
+    return watchtower.BCH._api.get(`cashtokens/fungible/${category}/`)
+      .then(response => {
+        const id = response?.data?.id;
+        if (id != `ct/${category}`) return Promise.rej({ response })
+        const { name, symbol, decimals } = response.data;        
+        const parsedData = { id, name, symbol, decimals };
+
+        const index = tokenMetadata.value.findIndex(metadata => metadata?.category === category);
+        if (index >= 0) tokenMetadata.value[index] = parsedData;
+        else tokenMetadata.value.push(parsedData);
+      })
+  })
+  return Promise.all(promises)
+}
+
+function resolveTokenMetadata(tokenAmount) {
+  const assetId = `ct/${tokenAmount?.category}`;
+  const metadata = tokenMetadata.value.find(metadata => metadata?.id === assetId)
+  if (metadata) return metadata
+  const assets = $store.getters['assets/getAssets'];
+
+  const asset = assets.find(asset => asset?.id === assetId)
+  if (asset) {
+    const { id, name, symbol, decimals } = asset;
+    return { id, name, symbol, decimals };
+  }
+
+  return { invalid: true, id: '', name: '', symbol: `ct-${tokenAmount?.category?.substring(0, 4)}`, decimals: 0 };
+}
+
+const salesReportListHeight = computed(() => {
+  const height = totalSales.value.tokenAmounts.length * 1.25
+  return `calc(50vh -${height}rem)`;
 })
 
 function formatMonth(month) {
@@ -213,5 +276,20 @@ function formatRangeType(value) {
   if (value === 'day') return $t('Daily')
   if (value === 'month') return $t('Monthly')
   return value
+}
+
+/**
+ * 
+ * @param {Object} record 
+ * @param {Number} record.total
+ * @param {String} record.ft_category
+ */
+function formatRecordAmount(record) {
+  if (!record?.ft_category) return getAssetDenomination(denomination.value, record?.total)
+  const metadata = resolveTokenMetadata({ category: record?.ft_category });
+  const decimals = parseInt(metadata.decimals);
+  const symbol = metadata.symbol;
+  const parsedAmount = record?.total / 10 ** decimals;
+  return `${parsedAmount.toFixed(decimals)} ${symbol}`;
 }
 </script>
