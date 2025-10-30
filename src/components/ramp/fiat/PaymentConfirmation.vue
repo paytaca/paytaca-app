@@ -36,7 +36,7 @@
             <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
             <q-item-label class="payment-detail-text">
               <span v-if="contractBalance">{{ contractBalance }} BCH</span>
-              <q-spinner-dots v-else color="primary" size="sm"/>
+              <q-skeleton v-else type="text" width="100px" height="20px" />
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -218,8 +218,35 @@
       />
     </div>
   </div>
-  <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50px">
-    <ProgressLoader />
+  <div v-if="!isloaded" class="payment-confirmation-container text-bow" :class="getDarkModeClass(darkMode)">
+    <!-- Skeleton for Contract Information Section -->
+    <div class="section-wrapper">
+      <q-skeleton type="text" width="40%" height="20px" class="q-px-sm q-my-sm" />
+      <q-card flat bordered class="pt-card" :class="getDarkModeClass(darkMode)">
+        <q-list class="payment-info-list">
+          <q-item v-for="n in 4" :key="n">
+            <q-item-section>
+              <q-skeleton type="text" width="30%" height="12px" class="q-mb-xs" />
+              <q-skeleton type="text" width="60%" height="18px" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-card>
+    </div>
+    
+    <!-- Skeleton for Payment Methods Section -->
+    <div class="section-wrapper">
+      <q-skeleton type="text" width="45%" height="20px" class="q-px-sm q-my-sm" />
+      <q-skeleton type="text" width="70%" height="14px" class="q-mx-md q-mb-md" />
+      <q-card flat bordered class="pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
+        <div class="q-pa-md">
+          <q-skeleton type="text" width="40%" height="16px" class="q-mb-sm" />
+          <q-skeleton type="text" width="100%" height="14px" class="q-mb-xs" />
+          <q-skeleton type="text" width="90%" height="14px" class="q-mb-md" />
+          <q-skeleton type="rect" width="100%" height="48px" style="border-radius: 8px;" />
+        </div>
+      </q-card>
+    </div>
   </div>
   <RampDragSlide
   v-touch-swipe.mouse="checkDragslideStatus"
@@ -230,7 +257,7 @@
   @click="checkDragslideStatus()"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
-  <AppealForm v-if="showAppealForm" :userType="this.data?.type" :order="order" @back="showAppealForm = false" @loadAppeal="loadAppealButton = true; showDragSlide = false"/>
+  <AppealForm v-if="showAppealForm" :userType="this.data?.type" :order="order" @back="onCloseAppealForm" @loadAppeal="onAppealSubmit"/>
   <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
   <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
@@ -281,7 +308,8 @@ export default {
       attachmentUrl: null,
       loadAppealButton: false,
       errorDialogActive: false,
-      showNoticeDialog: false
+      showNoticeDialog: false,
+      appealSubmitted: false
     }
   },
   components: {
@@ -306,7 +334,8 @@ export default {
       const status = this.order?.status.value      
       const userType = this.data?.type
       if (userType === 'seller') {
-        showBtn = status === 'ESCRW'
+        // Seller can appeal at ESCRW (if buyer doesn't pay) or PD_PN (if seller didn't receive payment)
+        showBtn = status === 'ESCRW' || status === 'PD_PN'
       }
 
       if (userType === 'buyer') {
@@ -631,6 +660,22 @@ export default {
     },
     onOpenAppealForm () {
       this.showAppealForm = true
+      this.showDragSlide = false
+      this.appealSubmitted = false
+    },
+    onAppealSubmit () {
+      // Appeal submission has started - keep drag slide hidden and track that appeal was submitted
+      this.appealSubmitted = true
+      this.loadAppealButton = true
+      this.showDragSlide = false
+    },
+    onCloseAppealForm () {
+      this.showAppealForm = false
+      // Only show drag slide button again if the appeal was NOT submitted (user just cancelled)
+      if (!this.appealSubmitted) {
+        this.showDragSlide = true
+      }
+      // If appeal was submitted, keep drag slide hidden
     },
     appealCountdown () {
       const vm = this
@@ -689,13 +734,27 @@ export default {
 <style lang="scss" scoped>
 // Container
 .payment-confirmation-container {
-  padding-bottom: 120px;
+  padding-bottom: 160px;
+  
+  // iOS specific - add more padding for safe area and drag slide button
+  @supports (-webkit-touch-callout: none) {
+    padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 // Section Wrapper
 .section-wrapper {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
   padding: 0 16px;
+  
+  // Add extra spacing for the last section on iOS
+  &:last-of-type {
+    margin-bottom: 40px;
+    
+    @supports (-webkit-touch-callout: none) {
+      margin-bottom: 48px;
+    }
+  }
 }
 
 // Section Title (matching settings page)

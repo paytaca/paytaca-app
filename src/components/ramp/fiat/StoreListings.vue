@@ -257,7 +257,8 @@ export default {
         sell: true,
         buy: true
       },
-      switchFlag: false
+      switchFlag: false,
+      isInitialMount: true
     }
   },
   watch: {
@@ -276,6 +277,10 @@ export default {
         })
     },
     async selectedCurrency () {
+      // Skip watcher on initial mount to prevent double loading
+      if (this.isInitialMount) {
+        return
+      }
       this.switchFlag = true
       this.loading = true
       this.filterComponentKey++
@@ -351,9 +356,11 @@ export default {
   async mounted () {
     const vm = this
     await vm.fetchPaymentTypes()
-    vm.fetchFiatCurrencies()
+    await vm.fetchFiatCurrencies()
     vm.updateFilters()
     vm.resetAndRefetchListings()
+    // Enable watchers after initial mount to prevent double loading
+    vm.isInitialMount = false
   },
   methods: {
     getDarkModeClass,

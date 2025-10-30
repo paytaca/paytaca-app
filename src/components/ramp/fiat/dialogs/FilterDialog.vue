@@ -18,8 +18,8 @@
             <div v-if="orderFilters.sort_type" class="q-pt-md">
               <div class="sm-font-size text-weight-bold">{{ $t('SortType') }}</div>
               <div class="q-pt-xs q-gutter-sm">
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">{{ type === 'filterOngoingOrder' ? 'Default: ' : '' }} Oldest First</q-badge>
-                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">{{ type === 'filterCompletedOrder' ? 'Default: ' : '' }} Newest First</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'ascending'" @click="orderFilters.sort_type = 'ascending'">Oldest First</q-badge>
+                <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="orderFilters.sort_type !== 'descending'" @click="orderFilters.sort_type = 'descending'">{{ type === 'filterOngoingOrder' || type === 'filterCompletedOrder' ? 'Default: ' : '' }} Newest First</q-badge>
               </div>
             </div>
             <!-- Trade type -->

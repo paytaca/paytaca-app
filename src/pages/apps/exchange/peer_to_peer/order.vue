@@ -142,8 +142,14 @@
         <!-- HISTORY Tab -->
         <q-tab-panel name="history" class="q-pa-none">
           <div class="tab-content-wrapper">
-          <div v-if="statusHistory.length === 0" class="row justify-center q-py-lg">
-            <ProgressLoader/>
+          <div v-if="statusHistory.length === 0" class="q-pa-md">
+            <q-card flat bordered v-for="n in 3" :key="n" class="status-card q-mb-md" :class="getDarkModeClass(darkMode)">
+              <q-card-section class="q-pa-md">
+                <q-skeleton type="text" width="40%" height="18px" class="q-mb-xs" />
+                <q-skeleton type="text" width="30%" height="12px" class="q-mb-xs" />
+                <q-skeleton type="text" width="50%" height="12px" />
+              </q-card-section>
+            </q-card>
           </div>
           <div v-else>
             <div v-for="(status, index) in statusHistory" :key="index" class="q-pb-sm">
@@ -181,8 +187,17 @@
           </div>
           
           <!-- Chat Loading -->
-          <div v-else-if="chatMessages.length === 0 && !chatLoaded" class="row justify-center q-py-lg">
-            <ProgressLoader />
+          <div v-else-if="chatMessages.length === 0 && !chatLoaded" class="q-pa-md">
+            <div v-for="n in 4" :key="n" class="chat-message-skeleton q-mb-md">
+              <div class="row items-start q-gutter-sm">
+                <q-skeleton type="circle" size="32px" />
+                <div class="col">
+                  <q-skeleton type="text" width="30%" height="12px" class="q-mb-xs" />
+                  <q-skeleton type="rect" width="70%" height="60px" style="border-radius: 12px;" />
+                  <q-skeleton type="text" width="20%" height="10px" class="q-mt-xs" />
+                </div>
+              </div>
+            </div>
           </div>
           
           <!-- Chat Content (Active) -->
@@ -1746,11 +1761,16 @@ export default {
       })
     },
 
-    async generateContract () {
+    async generateContract (shouldReloadChildren = false) {
       const vm = this
       await vm.fetchFees()
       await vm.fetchContract()
-      if (vm.escrowContract || !vm.contract) return
+      
+      // Skip if no contract data, but allow regeneration if shouldReloadChildren is true
+      // (happens when websocket receives contract updates after initial load)
+      if (!vm.contract) return
+      if (vm.escrowContract && !shouldReloadChildren) return
+      
       const publicKeys = vm.contract.pubkeys
       const addresses = vm.contract.addresses
       const fees_ = {
@@ -1760,7 +1780,12 @@ export default {
       }
       const timestamp = vm.contract.timestamp
       vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
-      vm.reloadChildComponents()
+      
+      // Only reload children when explicitly requested (e.g., from websocket updates)
+      // This prevents annoying reload on initial page load
+      if (shouldReloadChildren) {
+        vm.reloadChildComponents()
+      }
     },
 
     async fetchAd () {
@@ -2152,7 +2177,8 @@ export default {
           }
           await this.fetchOrder()
           if (message?.contract_address) {
-            await this.fetchContract()
+            // Regenerate contract and reload children to update contract balance
+            await this.generateContract(true)
             this.escrowTransferKey++
           }
         } else {
