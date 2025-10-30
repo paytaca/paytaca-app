@@ -59,7 +59,7 @@ export default {
 		bchOpt: [				
 	        { name: 'send', label: this.$t('Send'), icon: 'img:app-send.svg' },
 	        { name: 'receive', label: this.$t('Receive'), icon: 'img:app-receive.svg' },
-	        { name: 'cash in', label: this.$t('CashIn'), icon: 'img:cashin.svg' },
+	        { name: 'cash in', label: this.$t('GetBCH', {}, 'Get BCH'), icon: 'img:cashin.svg' },
 	        { name: 'spend bch', label: this.$t('SpendBCH', {}, 'Spend BCH'), icon: 'storefront' }
 		],
 			stablehedgeOpt: [		

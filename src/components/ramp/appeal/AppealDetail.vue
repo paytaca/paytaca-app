@@ -95,7 +95,7 @@
           </div>
         </div>
       </div>
-      <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
+      <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm" style="margin-bottom: 20px;">
         <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
           <div class="text-center q-py-xs text-weight-bold text-uppercase">
             {{ $t('SelectAction') }}
@@ -171,10 +171,12 @@
     :locked="!selectedAction"
     :style="{
       position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
+      bottom: '0',
+      left: '0',
+      right: '0',
       zIndex: 1500,
+      marginBottom: '0',
+      paddingBottom: 'env(safe-area-inset-bottom)',
     }"
     @click="checkDragslideStatus()"
     @ok="onSubmit"

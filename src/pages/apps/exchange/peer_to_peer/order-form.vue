@@ -3,6 +3,39 @@
   <q-pull-to-refresh @refresh="loadData">
     <div v-if="state !== 'order-process'">
       <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
+        <!-- Skeleton Loader -->
+        <div v-if="!isloaded" class="skeleton-form-container q-pa-md">
+          <!-- Title Skeleton -->
+          <div class="text-center q-py-md">
+            <q-skeleton type="text" width="200px" height="28px" style="margin: 0 auto;" />
+          </div>
+          
+          <!-- Trade Info Card Skeleton -->
+          <div class="q-mx-lg q-px-xs q-mb-sm">
+            <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Ad Info Card Skeleton -->
+          <div class="q-mx-md q-mb-md">
+            <q-skeleton type="rect" height="200px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Input Card Skeleton -->
+          <div class="q-mx-md q-mb-md">
+            <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Action Button Skeleton -->
+          <div class="q-mx-md q-py-md">
+            <q-skeleton type="rect" height="50px" style="border-radius: 25px;" />
+          </div>
+
+          <!-- Warning Card Skeleton (if applicable) -->
+          <div class="q-mx-md">
+            <q-skeleton type="rect" height="80px" style="border-radius: 15px;" />
+          </div>
+        </div>
+        
         <!-- Form Body -->
         <div v-if="isloaded">
           <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
@@ -195,12 +228,6 @@
             </div>
           </q-scroll-area>
         </div>
-        <!-- Progress Loader -->
-        <div v-else>
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader />
-          </div>
-        </div>
         <!-- Dialogs -->
         <div v-if="openDialog">
           <MiscDialogs
@@ -238,7 +265,6 @@
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
@@ -270,7 +296,6 @@ export default {
   },
   components: {
     CustomKeyboard,
-    ProgressLoader,
     AddPaymentMethods,
     MiscDialogs,
     TradeInfoCard,
@@ -1002,25 +1027,109 @@ export default {
 
   .warning-card {
     border-left: 4px solid #ff9800 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-warning 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
     
     &.dark {
-      background: rgba(255, 152, 0, 0.1) !important;
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.15) 40%,
+          rgba(255, 255, 255, 0.35) 50%,
+          rgba(255, 255, 255, 0.15) 60%,
+          transparent 70%
+        );
+      }
     }
     
     &.light {
-      background: rgba(255, 152, 0, 0.05) !important;
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%) !important;
     }
   }
 
   .info-card {
     border-left: 4px solid #2196f3 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-info 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
     
     &.dark {
-      background: rgba(33, 150, 243, 0.1) !important;
+      background: rgba(33, 150, 243, 0.12) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.1) 40%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0.1) 60%,
+          transparent 70%
+        );
+      }
     }
     
     &.light {
-      background: rgba(33, 150, 243, 0.05) !important;
+      background: rgba(33, 150, 243, 0.08) !important;
     }
   }
 
@@ -1036,12 +1145,81 @@ export default {
     }
   }
 
+  @keyframes sparkle-card {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+  }
+
+  @keyframes pulse-warning {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes pulse-info {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.015);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.25);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
   /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
   @media (max-width: 599px) {
     .pt-card {
       &:hover {
         transform: none;
       }
+    }
+  }
+
+  /* ==================== SKELETON LOADER STYLES ==================== */
+  .skeleton-form-container {
+    animation: fadeIn 0.3s ease-out;
+    
+    .q-skeleton {
+      animation: shimmer 1.5s infinite;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
 </style>

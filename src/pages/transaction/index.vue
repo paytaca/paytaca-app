@@ -614,13 +614,32 @@ export default {
         componentProps: {
           fiatCurrencies: this.availableCashinFiat
         }
-      }).onOk((asset) => {
-        // console.log('asset: ', )
-        // vm.assetList = this.assets
-        // console.log('closing cashin')
+      }).onOk(() => {
+        // Refresh data
         this.resetAndRefetchData()
-        // if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
+    },
+    handleCashinOrderCreated (data) {
+      console.log('Cashin order created event received:', data)
+      if (data && data.orderId) {
+        console.log('Navigating to order page:', data.orderId)
+        // Wait a bit for dialog to fully close before navigation
+        setTimeout(() => {
+          console.log('Executing navigation with order_id query param:', data.orderId)
+          // Navigate to P2P Exchange with order_id as query parameter
+          // This prevents the exchange/index.vue from redirecting to store page
+          this.$router.push({
+            path: '/apps/exchange/peer-to-peer/',
+            query: { order_id: data.orderId }
+          })
+            .then(() => {
+              console.log('Navigation successful')
+            })
+            .catch((err) => {
+              console.error('Navigation error:', err)
+            })
+        }, 500)
+      }
     },
     async checkCashinAvailable () {
       this.hasCashin = false
@@ -1442,11 +1461,13 @@ export default {
 
   unmounted () {
     bus.off('handle-push-notification', this.handleOpenedNotification)
+    bus.off('cashin-order-created', this.handleCashinOrderCreated)
     this.closeCashinWebSocket()
   },
   created () {
     bus.on('cashin-alert', (value) => { this.hasCashinAlert = value })
     bus.on('handle-push-notification', this.handleOpenedNotification)
+    bus.on('cashin-order-created', this.handleCashinOrderCreated)
   },
   beforeMount () {
     const vm = this

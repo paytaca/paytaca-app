@@ -3,26 +3,33 @@
     
     <!-- Skeleton Loader -->
     <div v-if="!isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
-      <!-- Tabs Skeleton -->
-      <div class="skeleton-tabs" :class="getDarkModeClass(darkMode)">
-        <q-skeleton type="rect" width="80px" height="40px" class="skeleton-tab" />
-        <q-skeleton type="rect" width="80px" height="40px" class="skeleton-tab" />
-        <q-skeleton type="rect" width="80px" height="40px" class="skeleton-tab" />
+      <!-- Order Header Skeleton -->
+      <div class="skeleton-header">
+        <q-skeleton type="text" width="150px" height="20px" class="q-mb-xs" style="margin: 0 auto;" />
+        <q-skeleton type="text" width="100px" height="14px" style="margin: 0 auto;" />
+      </div>
+
+      <!-- Pill Tabs Skeleton -->
+      <div class="skeleton-tabs-wrapper">
+        <div class="skeleton-tabs-container" :class="getDarkModeClass(darkMode)">
+          <q-skeleton type="rect" width="100px" height="44px" class="skeleton-pill-tab" />
+          <q-skeleton type="rect" width="100px" height="44px" class="skeleton-pill-tab" />
+          <q-skeleton type="rect" width="100px" height="44px" class="skeleton-pill-tab" />
+        </div>
       </div>
 
       <!-- Content Skeleton -->
       <div class="skeleton-content q-pa-md">
-        <!-- Card Skeleton -->
-        <q-skeleton type="rect" height="120px" class="q-mb-md" style="border-radius: 8px;" />
+        <!-- Trade Info Card Skeleton -->
+        <q-skeleton type="rect" height="140px" class="q-mb-md q-mt-md" style="border-radius: 15px;" />
         
-        <!-- Trade Info Skeleton -->
+        <!-- Payment/Status Card Skeleton -->
         <div class="q-mb-md">
-          <q-skeleton type="text" width="30%" height="16px" class="q-mb-sm" />
-          <q-skeleton type="text" width="100%" height="20px" class="q-mb-xs" />
-          <q-skeleton type="text" width="70%" height="20px" />
+          <q-skeleton type="text" width="30%" height="14px" class="q-mb-sm" />
+          <q-skeleton type="rect" height="100px" style="border-radius: 12px;" />
         </div>
 
-        <!-- Details Skeleton -->
+        <!-- Details Section Skeleton -->
         <div class="q-mb-md">
           <q-skeleton type="text" width="40%" height="16px" class="q-mb-sm" />
           <q-skeleton type="text" width="100%" height="18px" class="q-mb-xs" />
@@ -31,7 +38,7 @@
         </div>
 
         <!-- Action Button Skeleton -->
-        <q-skeleton type="rect" height="48px" class="q-mt-lg" style="border-radius: 24px;" />
+        <q-skeleton type="rect" height="50px" class="q-mt-lg" style="border-radius: 25px;" />
       </div>
     </div>
 
@@ -43,26 +50,54 @@
       </div>
 
       <!-- Tabs -->
-      <q-tabs
-        v-model="activeTab"
-        dense
-        no-caps
-        class="order-tabs"
-        :class="[getDarkModeClass(darkMode), `text-${theme}`]"
-        :active-color="theme"
-        :indicator-color="theme"
-        align="center"
-      >
-        <q-tab name="details" :label="$t('Details', {}, 'Details')" />
-        <q-tab name="history" :label="$t('History', {}, 'History')">
-          <q-badge v-if="order?.has_unread_status" color="red" floating rounded />
-        </q-tab>
-        <q-tab v-if="showChatTab" name="chat" :label="$t('Chat', {}, 'Chat')">
-          <q-badge v-if="isChatEnabled && unreadChatCount > 0" color="red" floating rounded>
-            {{ unreadChatCount }}
-          </q-badge>
-        </q-tab>
-      </q-tabs>
+      <div class="tabs-wrapper q-mb-md">
+        <div 
+          class="order-tabs-container" 
+          :class="getDarkModeClass(darkMode)"
+        >
+          <button
+            class="order-tab-btn"
+            :class="[
+              darkMode ? 'dark' : '',
+              activeTab === 'details' ? 'active-tab-btn' : '',
+              `theme-${theme}`
+            ]"
+            :style="activeTab === 'details' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="activeTab = 'details'"
+          >
+            {{ $t('Details', {}, 'Details') }}
+          </button>
+          <button
+            class="order-tab-btn"
+            :class="[
+              darkMode ? 'dark' : '',
+              activeTab === 'history' ? 'active-tab-btn' : '',
+              `theme-${theme}`
+            ]"
+            :style="activeTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="activeTab = 'history'"
+          >
+            {{ $t('History', {}, 'History') }}
+            <q-badge v-if="order?.has_unread_status" color="red" floating rounded />
+          </button>
+          <button
+            v-if="showChatTab"
+            class="order-tab-btn"
+            :class="[
+              darkMode ? 'dark' : '',
+              activeTab === 'chat' ? 'active-tab-btn' : '',
+              `theme-${theme}`
+            ]"
+            :style="activeTab === 'chat' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="activeTab = 'chat'"
+          >
+            {{ $t('Chat', {}, 'Chat') }}
+            <q-badge v-if="isChatEnabled && unreadChatCount > 0" color="red" floating rounded>
+              {{ unreadChatCount }}
+            </q-badge>
+          </button>
+        </div>
+      </div>
 
       <!-- Tab Panels -->
       <q-tab-panels
@@ -203,7 +238,7 @@
           <!-- Chat Content (Active) -->
           <div v-else class="chat-container">
             <!-- Messages area (flex-grows to push input down) -->
-            <div class="chat-messages-area">
+            <div class="chat-messages-area" @click="handleChatAreaClick">
               <!-- Chat messages -->
               <div class="chat-messages-wrapper" ref="chatScrollTarget" :class="{ 'new-message-glow': newMessageGlow }">
               <!-- Encrypted message notice -->
@@ -305,6 +340,7 @@
                 />
                 
                 <q-input
+                  ref="chatInput"
                   v-model="chatMessageInput"
                   outlined
                   rounded
@@ -1137,6 +1173,18 @@ export default {
       } finally {
         this.loadingMoreMessages = false
         done()
+      }
+    },
+
+    handleChatAreaClick (event) {
+      // Blur the chat input when clicking elsewhere in the chat area
+      // This will hide the mobile keyboard
+      if (this.$refs.chatInput) {
+        const inputElement = this.$refs.chatInput.$el
+        // Check if the click target is not the input or its children
+        if (!inputElement.contains(event.target)) {
+          this.$refs.chatInput.blur()
+        }
       }
     },
 
@@ -2221,6 +2269,16 @@ export default {
 
     handleRequestError (error) {
       bus.emit('handle-request-error', error)
+    },
+
+    getThemeColor() {
+      const themeMap = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeMap[this.theme] || '#42a5f5'
     }
   }
 }
@@ -2253,25 +2311,41 @@ export default {
   }
 
   // Skeleton Loader Styles
-  .skeleton-tabs {
+  .skeleton-header {
+    flex-shrink: 0;
+    padding: 16px 20px;
+    text-align: center;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .skeleton-tabs-wrapper {
     display: flex;
-    gap: 8px;
-    padding: 8px 12px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     justify-content: center;
+    padding: 0 8px 16px 8px;
+  }
+
+  .skeleton-tabs-container {
+    display: inline-flex;
+    gap: 8px;
+    background-color: rgb(242, 243, 252);
+    border-radius: 28px;
+    padding: 6px;
     
     &.dark {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.1);
     }
   }
 
-  .skeleton-tab {
-    border-radius: 4px;
+  .skeleton-pill-tab {
+    border-radius: 22px;
   }
 
   .skeleton-content {
     padding: 16px;
     overflow-y: auto;
+    flex: 1;
   }
 
   // Order Header
@@ -2279,14 +2353,9 @@ export default {
     flex-shrink: 0;
     padding: 16px 20px;
     text-align: center;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     max-width: 100%;
     overflow-x: hidden;
     box-sizing: border-box;
-    
-    &.dark {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
   }
 
   .order-title {
@@ -2307,80 +2376,110 @@ export default {
     overflow-wrap: break-word;
   }
 
-  // Tabs Styling
-  .order-tabs {
-    flex-shrink: 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    background: transparent;
+  // Tabs Styling - Pill Button Style
+  .tabs-wrapper {
+    display: flex;
+    justify-content: center;
     padding: 0 8px;
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    box-sizing: border-box;
-    
-    // Hide scrollbar on mobile
-    &::-webkit-scrollbar {
-      display: none;
-      height: 0;
-    }
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .order-tabs-container {
+    display: inline-flex;
+    gap: 8px;
+    background-color: rgb(242, 243, 252);
+    border-radius: 28px;
+    padding: 6px;
     
     &.dark {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.1);
     }
+  }
 
-    :deep(.q-tab) {
-      padding: 12px 20px;
-      font-weight: 400;
-      font-size: 13px;
-      text-transform: none;
-      letter-spacing: 0.2px;
-      transition: all 0.2s ease;
-      opacity: 0.45;
-      min-height: 44px;
-      
-      .q-icon {
-        display: none;
-      }
-      
-      &:hover {
-        opacity: 0.7;
-      }
-    }
-
-    :deep(.q-tab--active) {
-      font-weight: 500;
-      opacity: 1;
-    }
-
-    :deep(.q-tabs__indicator) {
-      height: 2px;
-      border-radius: 2px 2px 0 0;
+  .order-tab-btn {
+    min-width: 100px;
+    height: 44px;
+    border-radius: 22px;
+    border: none;
+    color: #4C4F4F;
+    background-color: transparent;
+    outline: 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    
+    &:hover:not(.active-tab-btn) {
+      background-color: rgba(0, 0, 0, 0.05);
     }
     
-    :deep(.q-tab__label) {
-      margin-top: 0;
+    &.dark {
+      color: rgba(255, 255, 255, 0.7);
+      
+      &:hover:not(.active-tab-btn) {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
     }
     
-    // Badge positioning as superscript
+    // Badge positioning
     :deep(.q-badge--floating) {
-      top: 4px;
-      right: -20px;
+      top: -4px;
+      right: -8px;
       font-size: 10px;
       min-width: 18px;
       min-height: 18px;
       padding: 2px 5px;
-      margin-left: 8px;
     }
-    
-    // History tab badge - dot only (no text), same positioning as Chat
-    :deep(.q-tab[name="history"] .q-badge--floating) {
-      min-width: 10px;
-      min-height: 10px;
-      padding: 0;
-      // Uses same top and right positioning as other badges
-    }
+  }
+
+  // Theme-based active tab styles
+  .order-tab-btn.active-tab-btn {
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+
+  // Dark mode active tab
+  .order-tab-btn.active-tab-btn.dark {
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  // Active tab hover effects
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
 
   .order-tab-panels {
@@ -2513,16 +2612,57 @@ export default {
 
   .chat-disabled-banner {
     border-radius: 16px;
-    background: rgba(158, 158, 158, 0.1);
-    border: 1px solid rgba(158, 158, 158, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+    border: 2px solid rgba(255, 152, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     max-width: 500px;
     margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-banner 2s ease-in-out infinite;
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 70%
+      );
+      animation: sparkle-banner 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    :deep(.q-banner__avatar),
+    :deep(.q-banner__content) {
+      position: relative;
+      z-index: 2;
+    }
   }
 
   .chat-disabled-banner.dark {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
+    border: 2px solid rgba(255, 152, 0, 0.5);
+    
+    &::before {
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.15) 40%,
+        rgba(255, 255, 255, 0.35) 50%,
+        rgba(255, 255, 255, 0.15) 60%,
+        transparent 70%
+      );
+    }
   }
 
   .chat-disabled-content {
@@ -2933,12 +3073,20 @@ export default {
 
   // Mobile Responsive Adjustments
   @media (max-width: 600px) {
-    .order-header {
+    .order-header, .skeleton-header {
       padding: 12px 16px;
     }
 
-    .order-tabs {
-      padding: 0 4px;
+    .order-tabs-container, .skeleton-tabs-container {
+      gap: 6px;
+      padding: 5px;
+    }
+    
+    .order-tab-btn, .skeleton-pill-tab {
+      min-width: 90px;
+      height: 40px;
+      font-size: 13px;
+      padding: 0 12px;
     }
 
     .tab-content-wrapper {
@@ -2996,7 +3144,7 @@ export default {
 
   // Extra small screens
   @media (max-width: 400px) {
-    .order-header {
+    .order-header, .skeleton-header {
       padding: 10px 12px;
     }
 
@@ -3008,13 +3156,20 @@ export default {
       font-size: 11px;
     }
 
-    .order-tabs {
-      padding: 0 2px;
+    .tabs-wrapper, .skeleton-tabs-wrapper {
+      padding: 0 4px;
+    }
+    
+    .order-tabs-container, .skeleton-tabs-container {
+      gap: 4px;
+      padding: 4px;
     }
 
-    :deep(.q-tab) {
-      padding: 10px 16px !important;
-      font-size: 12px !important;
+    .order-tab-btn, .skeleton-pill-tab {
+      min-width: 80px;
+      height: 38px;
+      font-size: 12px;
+      padding: 0 10px;
     }
 
     .tab-content-wrapper {
@@ -3055,6 +3210,40 @@ export default {
           background: transparent !important;
         }
       }
+    }
+  }
+  
+  // Animation keyframes for prominent alerts
+  @keyframes sparkle-banner {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+  }
+
+  @keyframes pulse-banner {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
   </style>
