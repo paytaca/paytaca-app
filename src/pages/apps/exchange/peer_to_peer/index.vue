@@ -114,7 +114,7 @@ export default {
       this.forceLogin = true
       this.showLogin = true
     },
-    fetchUser () {
+    fetchUser () {      
       backend.get('ramp-p2p/user').then(response => {
         this.updateUnreadCount(response?.data?.user?.unread_orders_count)
       })
