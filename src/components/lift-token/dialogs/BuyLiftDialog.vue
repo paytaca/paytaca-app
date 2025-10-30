@@ -48,7 +48,7 @@
                 />
                 <div class="col q-ml-sm">
                   <div class="text-weight-medium">{{ round.name }}</div>
-                  <div class="text-caption text-grey-6">{{ round.subtitle }}</div>
+                  <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">{{ round.subtitle }}</div>
                 </div>
               </div>
             </q-card>
@@ -64,13 +64,13 @@
       >
         <!-- Price -->
         <div class="text-center q-mb-md">
-          <div class="text-overline text-grey-6" :class="{'text-grey-4': darkMode}">
+          <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             {{ $t('PricePerToken') }}
           </div>
           <div class="price-display text-h4 text-weight-bold" :style="`color: ${getThemeColor()}`">
             ${{ formatPriceDisplay(displayedPrice) }}
           </div>
-          <div class="text-caption text-grey-6" :class="{'text-grey-4': darkMode}">
+          <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             USD {{ $t('PerToken') }}
           </div>
         </div>
@@ -79,7 +79,7 @@
 
         <!-- Minimum Purchase -->
         <div class="text-center q-mb-md">
-          <div class="text-overline text-grey-6" :class="{'text-grey-4': darkMode}">
+          <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             {{ $t('MinimumPurchase') }}
           </div>
           <div class="text-h6 text-weight-bold q-mt-xs">
@@ -91,7 +91,7 @@
 
         <!-- Vesting Schedule -->
         <div class="text-center">
-          <div class="text-overline text-grey-6" :class="{'text-grey-4': darkMode}">
+          <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             {{ $t('VestingSchedule') }}
           </div>
           <div 

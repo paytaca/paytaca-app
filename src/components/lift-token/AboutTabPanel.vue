@@ -9,8 +9,8 @@
             class="lift-logo"
           />
         </div>
-        <div class="text-h4 text-weight-bold q-mb-xs">LIFT Token</div>
-        <div class="text-subtitle1 text-grey-7 q-mb-md">
+        <div class="text-h4 text-weight-bold q-mb-xs q-mt-sm">LIFT Token</div>
+        <div class="text-subtitle1 q-mb-md" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
           {{ $t('LiftTagline', {}, 'Leveraging Incentives for Financial Transformation') }}
         </div>
         
@@ -56,7 +56,7 @@
             flat
             no-caps
             size="lg"
-            class="secondary-cta-button"
+            class="secondary-cta-button button button-text-primary"
             :class="getDarkModeClass(darkMode)"
             @click="scrollToContent"
           >
@@ -302,7 +302,7 @@
           :dark-mode="darkMode"
         >
           <div class="faq-list">
-            <lift-faq-item
+            <lift-f-a-q-item
               v-for="(faq, index) in faqData"
               :key="index"
               :question="faq.question"
@@ -326,7 +326,7 @@
           no-caps
           size="lg"
           icon="shopping_cart"
-          class="cta-button"
+          class="cta-button button"
           @click="showBuyDialog = true"
         />
       </div>
@@ -341,7 +341,7 @@
     />
 
     <!-- Floating CTA Button -->
-    <lift-floating-cta
+    <lift-floating-c-t-a
       icon="shopping_cart"
       :color="getThemeColor()"
       :tooltip-text="$t('BuyLIFTTokens')"
@@ -384,11 +384,11 @@ export default {
       tokenomicsData: [
         { category: this.$t('TokenSale'), percentage: 20, tokens: 200000000, description: this.$t('SeedPrivatePublicRounds') },
         { category: this.$t('CommunityIncentives'), percentage: 30, tokens: 300000000, description: this.$t('CampaignBasedDistribution') },
-        { category: this.$t('TeamAndAdvisors'), percentage: 15, tokens: 150000000, description: this.$t('1YearCliffVesting') },
+        { category: this.$t('TeamAndAdvisors'), percentage: 15, tokens: 150000000, description: this.$t('OneYearCliffVesting') },
         { category: this.$t('EcosystemGrowth'), percentage: 15, tokens: 150000000, description: this.$t('MilestoneBasedUnlocks') },
-        { category: this.$t('Partnerships'), percentage: 5, tokens: 50000000, description: this.$t('6MonthLockup') },
+        { category: this.$t('Partnerships'), percentage: 5, tokens: 50000000, description: this.$t('SixMonthLockup') },
         { category: this.$t('LiquidityPool'), percentage: 5, tokens: 50000000, description: this.$t('ImmediateAvailability') },
-        { category: this.$t('ReserveFund'), percentage: 10, tokens: 100000000, description: this.$t('24MonthLockup') }
+        { category: this.$t('ReserveFund'), percentage: 10, tokens: 100000000, description: this.$t('TwentyFourMonthLockup') }
       ],
       faqData: [
         {
@@ -499,6 +499,11 @@ export default {
       &.dark {
         background: rgba(255, 255, 255, 0.05);
         border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      &.light {
+        background: black;
+        border-color: black;
       }
     }
     
