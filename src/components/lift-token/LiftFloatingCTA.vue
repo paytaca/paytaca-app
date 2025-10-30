@@ -4,7 +4,7 @@
       fab
       :icon="icon"
       :color="color"
-      :class="['floating-cta-button', { 'pulse-animation': pulse }]"
+      :class="['button floating-cta-button', { 'pulse-animation': pulse }]"
       @click="$emit('click')"
     >
       <q-badge v-if="badge" color="red" floating>

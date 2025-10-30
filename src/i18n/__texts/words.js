@@ -139,7 +139,6 @@ const words = [
     Low: "Low",
     Asset: "Asset",
     Calculate: "Calculate",
-    Expired: "Expired",
     High: "High",
     Liquidity: "Liquidity"
   },
@@ -456,7 +455,7 @@ const words = [
     SpendBCH: 'Spend BCH',
     SelectCountry: 'Select Country',
     SearchCountry: 'Search Country',
-    SelectLanguage: 'SelectLanguage',
+    SelectLanguage: 'Select Language',
     SearchLanguage: 'Search Language',
     SearchCurrency: 'Search Currency',
     Camera: 'Camera',
