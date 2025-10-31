@@ -1,14 +1,14 @@
 <template>
   <q-layout>
     <q-page-container>
-      <q-page>
+      <q-page class="lift-token-page">
+        <header-nav
+          class="apps-header"
+          backnavpath="/apps"
+          :title="`LIFT ${this.$t('Token')}`"
+          id="header-nav"
+        />
         <div id="app-container" class="sticky-header-container lift-token-main" :class="getDarkModeClass(darkMode)">
-          <header-nav
-            class="apps-header"
-            backnavpath="/apps"
-            :title="`LIFT ${this.$t('Token')}`"
-            id="header-nav"
-          />
       
           <!-- Loading state with skeletons -->
           <template v-if="isLoading">
@@ -355,15 +355,36 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.lift-token-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .lift-token-main {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
 #app-container {
   overflow: hidden !important;
+  flex: 1;
+  min-height: 0;
+}
+
+.apps-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: inherit;
+  flex-shrink: 0;
+  
+  ::v-deep .pt-header {
+    background: inherit;
+  }
 }
 
 .tabs-wrapper {
@@ -377,11 +398,16 @@ export default {
   background-color: transparent !important;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
+  height: 100%;
 }
 
 .tab-panel-content {
   height: 100%;
-  overflow: hidden;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .lift-token-tabs {

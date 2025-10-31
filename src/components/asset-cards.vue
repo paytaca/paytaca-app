@@ -40,12 +40,7 @@
       </div>
       <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
-    <q-btn flat v-if="hasMoreTokens" class="add-asset-button asset-card-border shadow-5 bg-grad text-white" @click="goToAssetList">
-      <div class="column items-center">
-        <q-icon name="apps" size="28px" />
-        <div class="text-caption q-mt-xs view-all-button">{{ $t('ViewAll') }}</div>
-      </div>
-    </q-btn>
+    <!-- Manage button moved to inline with Tokens label in transaction/index.vue -->
     
   </div>
 </template>

@@ -1,11 +1,11 @@
 <template>
   <div
-    class="q-pt-sm q-mx-md text-bow"
+    class="escrow-transfer-container q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-sm q-px-md">
-      <div class="sm-font-size q-pl-xs q-pb-xs">Arbiter</div>
+      <div class="sm-font-size q-pl-xs q-pb-xs q-pt-xs">Arbiter</div>
       <q-select
-        class="q-mb-sm"
+        class="q-mb-md"
         :dark="darkMode"
         filled
         dense
@@ -32,9 +32,9 @@
             </span>
           </template>
       </q-select>
-      <div class="sm-font-size q-pl-xs q-pb-xs">Contract Address</div>
+      <div class="sm-font-size q-pl-xs q-pb-xs q-pt-sm">Contract Address</div>
       <q-input
-        class="q-pb-sm"
+        class="q-pb-md"
         readonly
         filled
         dense
@@ -57,9 +57,9 @@
       </q-input>
 
       <!-- Display contract balance -->
-      <div class="sm-font-size q-pl-xs q-pb-xs">Contract Balance</div>
+      <div class="sm-font-size q-pl-xs q-pb-xs q-pt-sm">Contract Balance</div>
       <q-input
-        class="q-pb-sm"
+        class="q-pb-md"
         readonly
         filled
         dense
@@ -67,9 +67,9 @@
         :loading="escrowBalance === null"
         v-model:model-value="escrowBalance">
       </q-input>
-      <div class="sm-font-size q-pl-xs q-pb-xs">Transfer Amount</div>
+      <div class="sm-font-size q-pl-xs q-pb-xs q-pt-sm">Transfer Amount</div>
       <q-input
-        class="q-pb-xs md-font-size"
+        class="q-pb-sm md-font-size"
         readonly
         filled
         dense
@@ -98,8 +98,8 @@
           <q-spinner class="q-mr-sm"/>{{ $t('SendingBchPleaseWait') }}
         </div> -->
         <div class="sm-font-size q-mt-sm">
-          <div class="row q-ml-xs">
-            Fee: <q-spinner-facebook v-if="!fees" class="q-mx-sm q-mt-xs"/><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
+          <div class="row q-ml-xs items-center">
+            Fee: <q-skeleton v-if="!fees" type="text" width="80px" height="16px" class="q-mx-sm" /><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
           </div>
           <div class="row q-ml-xs">
             Balance: {{ balance }} BCH
@@ -108,10 +108,10 @@
       </div>
     </div>
     <!-- Warning message for when no currency arbiter is available for ad -->
-    <div v-if="!loading && !hasArbiters" class="warning-box q-mx-lg q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
-      There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.order?.ad?.fiat_currency?.symbol }}). Please try again later.
+    <div v-if="!loading && !hasArbiters" class="warning-box q-mx-lg q-my-md" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+      There's currently no arbiter assigned for transactions related to this ad in its currency ({{ this.order?.ad?.fiat_currency?.symbol }}). Please try again later.
     </div>
-    <div class="row q-mt-sm q-pt-xs q-mx-lg">
+    <div class="row q-mt-md q-pt-sm q-mx-lg">
       <q-btn
         :loading="loadCancelButton"
         flat
@@ -131,7 +131,7 @@
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 1500,
+        zIndex: 9999,
       }"
       @ok="onSecurityOk"
       @cancel="onSecurityCancel"
@@ -484,6 +484,15 @@ export default {
 }
 </script>
 <style scoped>
+.escrow-transfer-container {
+  padding-bottom: 160px;
+  
+  /* iOS specific - add more padding for safe area and drag slide button */
+  @supports (-webkit-touch-callout: none) {
+    padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .sm-font-size {
   font-size: small;
 }

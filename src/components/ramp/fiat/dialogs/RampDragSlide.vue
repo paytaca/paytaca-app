@@ -1,6 +1,6 @@
 <template>
   <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom">
-    <div style="margin-bottom: 25px; margin-left: 10%; margin-right: 10%; background: transparent;">
+    <div class="drag-slide-inner">
       <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: 40px;">
         <template v-if="!locked" v-slot:left>
           <div style="font-size: 15px" class="text-body1">
@@ -95,9 +95,11 @@ export default {
     left: 0;
     right: 0;
     width: 100%;
-    z-index: 1500;
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 9999 !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    padding-top: 20px;
     background: transparent !important;
+    pointer-events: auto;
     
     /* Ensure the element stays attached to viewport on iOS */
     -webkit-backface-visibility: hidden;
@@ -123,6 +125,27 @@ export default {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
     }
+  }
+}
+
+.drag-slide-inner {
+  margin-bottom: 16px;
+  margin-left: 10%;
+  margin-right: 10%;
+  background: transparent;
+  position: relative;
+  z-index: 10000;
+  
+  /* iOS specific - add more bottom margin */
+  @supports (-webkit-touch-callout: none) {
+    margin-bottom: 20px;
+  }
+  
+  /* Ensure all child elements have proper z-index */
+  :deep(.q-slide-item),
+  :deep(.q-item) {
+    position: relative;
+    z-index: 10001;
   }
 }
 </style>

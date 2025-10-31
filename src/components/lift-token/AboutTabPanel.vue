@@ -1,6 +1,6 @@
 <template>
-  <div class="about-tab-panel" style="height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-    <div class="q-pa-md">
+  <div class="about-tab-panel" style="flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+    <div class="q-pa-md" style="padding-bottom: 120px;">
       <!-- Hero Section -->
       <div class="hero-section q-mb-lg text-center">
         <div class="logo-container q-mb-md" :class="getDarkModeClass(darkMode)">
@@ -339,14 +339,6 @@
       :theme="theme"
       @purchase="handlePurchase"
     />
-
-    <!-- Floating CTA Button -->
-    <lift-floating-c-t-a
-      icon="shopping_cart"
-      :color="getThemeColor()"
-      :tooltip-text="$t('BuyLIFTTokens')"
-      @click="showBuyDialog = true"
-    />
   </div>
 </template>
 
@@ -355,7 +347,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import LiftInfoSection from './LiftInfoSection.vue'
 import SaleRoundCard from './SaleRoundCard.vue'
 import LiftFAQItem from './LiftFAQItem.vue'
-import LiftFloatingCTA from './LiftFloatingCTA.vue'
 import BuyLiftDialog from './dialogs/BuyLiftDialog.vue'
 
 export default {
@@ -364,7 +355,6 @@ export default {
     LiftInfoSection,
     SaleRoundCard,
     LiftFAQItem,
-    LiftFloatingCTA,
     BuyLiftDialog
   },
   props: {

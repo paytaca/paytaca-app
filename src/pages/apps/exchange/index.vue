@@ -5,7 +5,7 @@
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">
       <!-- Header (visible during loading) -->
-      <HeaderNav title="P2P Exchange" backnavpath="/apps" class="header-nav p2p-exchange-header" />
+      <HeaderNav title="P2P Exchange" backnavpath="/apps" class="header-nav" />
       
       <!-- Content Skeletons -->
       <div class="q-px-md">
@@ -206,18 +206,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.p2p-exchange-header {
-  ::v-deep .text-h5 {
-    -webkit-text-fill-color: #fff !important;
-    background: none !important;
-    color: #fff !important;
-    font-weight: 600 !important;
-  }
-  
-  ::v-deep .pt-arrow-left-link .material-icons {
-    color: #fff !important;
-  }
-}
-</style>

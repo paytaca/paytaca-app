@@ -584,7 +584,7 @@ export default {
         priceTypes: ['FIXED', 'FLOATING']
       },
       orderFilters: {
-        sort_type: 'ascending',
+        sort_type: 'descending',
         sort_by: 'created_at',
         status: [],
         payment_types: [],
