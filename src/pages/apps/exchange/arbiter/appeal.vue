@@ -1,6 +1,72 @@
 <template>
   <HeaderNav :title="`Ramp Appeals`" :backnavpath="previousRoute" class="header-nav" />
-  <div v-if="isloaded && escrowContract"
+  
+  <!-- Skeleton Loading State -->
+  <div v-if="!isloaded || !escrowContract" class="q-mx-md q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+    <!-- Header Skeleton -->
+    <div class="text-center q-pb-md">
+      <q-skeleton type="text" width="200px" height="24px" class="q-mb-xs" style="margin: 0 auto;" />
+      <q-skeleton type="text" width="120px" height="16px" style="margin: 0 auto;" />
+    </div>
+    
+    <!-- Trade Info Card Skeleton -->
+    <q-card class="br-15 q-mb-md" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+      <q-card-section>
+        <div class="row items-center q-mb-sm">
+          <q-skeleton type="QAvatar" size="40px" class="q-mr-sm" />
+          <div class="col">
+            <q-skeleton type="text" width="60%" height="18px" class="q-mb-xs" />
+            <q-skeleton type="text" width="40%" height="14px" />
+          </div>
+        </div>
+        <q-skeleton type="rect" height="80px" class="q-mt-md" style="border-radius: 12px;" />
+      </q-card-section>
+    </q-card>
+    
+    <!-- Appeal Details Skeleton -->
+    <q-card class="br-15 q-mb-md" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+      <q-card-section>
+        <div class="row items-start q-mb-sm">
+          <div class="col">
+            <q-skeleton type="QBadge" width="80px" height="20px" class="q-mb-sm" />
+            <q-skeleton type="text" width="70%" height="18px" class="q-mb-xs" />
+            <q-skeleton type="text" width="50%" height="16px" class="q-mb-xs" />
+            <q-skeleton type="text" width="45%" height="14px" class="q-mb-sm" />
+            <div class="row q-gutter-xs">
+              <q-skeleton type="QBadge" width="70px" height="18px" />
+              <q-skeleton type="QBadge" width="90px" height="18px" />
+            </div>
+          </div>
+          <q-skeleton type="QBtn" size="40px" />
+        </div>
+      </q-card-section>
+    </q-card>
+    
+    <!-- Contract Info Skeleton -->
+    <q-card class="br-15 q-mb-md" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+      <q-card-section>
+        <q-skeleton type="text" width="40%" height="14px" class="q-mb-xs" />
+        <q-skeleton type="rect" height="40px" class="q-mb-md" style="border-radius: 8px;" />
+        <q-skeleton type="text" width="40%" height="14px" class="q-mb-xs" />
+        <q-skeleton type="rect" height="40px" class="q-mb-md" style="border-radius: 8px;" />
+        <div class="row justify-end q-gutter-sm">
+          <q-skeleton type="text" width="120px" height="14px" />
+          <q-skeleton type="text" width="120px" height="14px" />
+        </div>
+      </q-card-section>
+    </q-card>
+    
+    <!-- Action Buttons Skeleton -->
+    <q-card class="br-15 q-pa-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+      <q-skeleton type="text" width="40%" height="18px" class="q-mb-sm" style="margin: 0 auto;" />
+      <div class="row q-gutter-sm q-px-sm">
+        <q-skeleton type="QBtn" class="col" height="40px" style="border-radius: 20px;" />
+        <q-skeleton type="QBtn" class="col" height="40px" style="border-radius: 20px;" />
+      </div>
+    </q-card>
+  </div>
+  
+  <div v-else
     class="q-mx-md q-px-none text-bow"
     :class="getDarkModeClass(darkMode)">
       <div class="text-center q-pb-sm">
@@ -15,7 +81,7 @@
           }}</div>
       </div>
       <q-pull-to-refresh :scroll-target="scrollTarget" @refresh="refreshData">
-        <div ref="scrollTarget" :style="`height: ${scrollHeight}px; overflow-y:auto; padding-bottom: ${state === 'form' ? '120px' : '20px'};`" class="scroll-y" @touchstart="preventPull">
+        <div ref="scrollTarget" :style="`height: ${scrollHeight}px; overflow-y:auto; padding-bottom: ${state === 'form' ? '180px' : '20px'};`" class="scroll-y" @touchstart="preventPull">
           <div class="q-mx-sm q-mb-sm">
             <TradeInfoCard
               :order="order"
@@ -69,6 +135,7 @@
             :data="appealDetailData"
             :escrowContract="escrowContract"
             :state="state"
+            :chatOpen="openChat"
             @back="$emit('back')"
             @refresh="refreshData"
             @update-page-name="(val) => {$emit('updatePageName', val)}"
