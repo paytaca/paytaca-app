@@ -107,7 +107,7 @@ export default {
   width: 100%;
   left: 0 !important;
   bottom: 0 !important;
-  z-index: 1;
+  z-index: 9000;
 }
 .pt-keyboard-container {
   height: 250px;
