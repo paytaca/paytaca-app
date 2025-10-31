@@ -134,7 +134,17 @@ import {
   cashAddressToLockingBytecode,
   compileScript,
   base58AddressToLockingBytecode,
-  secp256k1
+  secp256k1,
+  deriveHdPublicNode,
+  deriveSeedFromBip39Mnemonic,
+  deriveHdPrivateNodeFromSeed,
+  hash160,
+  binToNumberUintLE,
+  numberToBinUintLE,
+  bigIntToVmNumber,
+  SigningSerializationAlgorithmIdentifier,
+  SigningSerializationTypeBch,
+  encodeLockingBytecodeP2sh20
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 
@@ -143,7 +153,9 @@ import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from
 import { estimateFee, getMofNDustThreshold, MultisigTransactionBuilder, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
 import { retryWithBackoff } from 'src/utils/async-utils.js'
-
+import { SigningSerializationTypeBCH } from '@bitauth/libauth'
+import { extractBip32RelativePath, extractPublicKeysFromRedeemScript } from './index.js'
+import { Psbt } from './psbt.js'
 
 const getHdKeys = ({ signers, addressIndex = 0 /* { [signerIndex: number]: { xpub: string, name: string ...} } */ }) => {
   const hdKeys = {
@@ -352,21 +364,33 @@ export const generateFilename = multisigWallet => {
 
 
 
+export const sortPublicKeysBip67 = (publicKeys) => {
+  return publicKeys.sort((publicKeyA, publicKeyB) => {
+    return binToHex(publicKeyA).localeCompare(binToHex(publicKeyB))
+  })
+}
 
+/** 
+* @param {string} xpub
+* @param {string} relativeDerivationPath Example: '0/1' 
+* @returns {Uint8Array} The public key at the provided Bip32 relative derivation path. 
+*/
+export const derivePublicKey = (xpub, relativeDerivationPath) => {
+  const decodedHdPublicKey = decodeHdPublicKey(xpub, relativeDerivationPath)
+  const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, relativeDerivationPath)
+  return publicKey
+}
 /**
  * @param {Object} params
  * @param {MultisigWalletSigner[]} params.signers
  * @param {string} [params.addressDerivationPath='0/0']
  * @returns {MultisigWalletSigner[]} The multisig wallet signers with publicKey at `addressDerivationPath` set
  */
-export const derivePublicKeys = ({ signers, addressDerivationPath = '0/0', bip67Sort = true }) => {
+export const derivePublicKeys = ({ signers, addressDerivationPath, bip67Sort = true }) => {
   const _signers = structuredClone(signers)
   const signersWithPublicKeys = _signers.map(signer => {
-    const decodedHdPublicKey = decodeHdPublicKey(signer.xpub, addressDerivationPath)
-    const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, addressDerivationPath)
-    signer.publicKey = binToHex(publicKey)
+    signer.publicKey = binToHex(derivePublicKey(signer.xpub, addressDerivationPath))
     signer.addressDerivationPath = addressDerivationPath
-    signer.parentFingerPrint = decodeHdPublicKey.parentFingerPrint
     return signer
   })
 
@@ -376,6 +400,7 @@ export const derivePublicKeys = ({ signers, addressDerivationPath = '0/0', bip67
     return signerA.publicKey.localeCompare(signerB.publicKey)
   })
   return signersWithPublicKeys
+
 }
 
 export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkPrefix.mainnet }) => {
@@ -460,26 +485,80 @@ export const isValidAddress = (address) => {
   return [false, lockingBytecodeOrError]
 }
 
-export const getRedeemScript = ({ multisigWallet, addressDerivationPath }) => {
-  const sortedSignersWithPublicKeys = derivePublicKeys({ signers: multisigWallet.signers, addressDerivationPath })
+// passed should be public keys
+/**
+ * @param {Object} wallet 
+ * @param {number} m 
+ * @param {Array<{ publicKey: string, name?: string }>} signers Signers with public keys 
+ */
+// export const getRedeemScript = ({ m, signers }) => {
+//   // const sortedSignersWithPublicKeys = derivePublicKeys({ signers: signers, addressDerivationPath })
+//   if (signers.some(s => !s.publicKey)) throw new Error(`Missing public key`)
+//   const lockingData = {
+//     bytecode: {}
+//   }
+//   for (const index in signers) {
+//     let publicKey = signers[index].publicKey 
+//     if (typeof(publicKey) === 'string') {
+//       publicKey = hexToBin(publicKey)
+//     }
+//     lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
+//   }
+
+//   const template = createTemplate({ m, signers }) // Create template for public key set
+//   const compiler = getCompiler({ template })
+//   const script = compileScript('lock', lockingData, compiler.configuration)
+//   // const lockingScript = script.bytecode
+//   const redeemScript = script.reduce.bytecode
+//   return redeemScript
+// }
+
+export const generateRedeemScript = (m, publicKeys) => {
+  const sortedPublicKeys = sortPublicKeysBip67(publicKeys)
   const lockingData = {
     bytecode: {}
   }
-  for (const index in sortedSignersWithPublicKeys) {
-    let publicKey = sortedSignersWithPublicKeys[index].publicKey 
+  for (const index in sortedPublicKeys) {
+    let publicKey = sortedPublicKeys[index]
     if (typeof(publicKey) === 'string') {
       publicKey = hexToBin(publicKey)
     }
     lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
   }
 
-  const template = createTemplate({ m: multisigWallet.m, signers: sortedSignersWithPublicKeys })
+  const template = createTemplate({ m, signers: sortedPublicKeys.map((p) => ({ publicKey: p })) }) // Create template for public key set
   const compiler = getCompiler({ template })
   const script = compileScript('lock', lockingData, compiler.configuration)
   // const lockingScript = script.bytecode
-  const redeemScript = script.reduce.bytecode
-  return redeemScript
+  return script.reduce.bytecode
 }
+
+/**
+ * @returns 1st 4 bytes of the hash160 of the master public key
+ */
+export const getMasterFingerprint = (mnemonic) => {
+  return hash160(
+    deriveHdPublicNode(
+      deriveHdPrivateNodeFromSeed(
+        deriveSeedFromBip39Mnemonic(mnemonic)
+      )).publicKey
+    ).slice(0, 4)
+}
+
+/**
+ * @returns {Uint8Array} 1st 4 bytes of the hash160 of the master public key in UintLE 
+ */
+export const getMasterFingerprintUintLE = (mnemonic) => {
+  return bigIntToVmNumber(
+    BigInt(
+        parseInt(
+          binToHex(getMasterFingerprint(mnemonic)), 
+          16
+        )
+      )
+  )
+}
+
 
 export class PriceOracle {
   /**
@@ -536,6 +615,11 @@ export class MultisigWallet {
 
   get walletHash() {
     return this.getWalletHash(this)
+  }
+
+  getMasterFingerprintOfPublicKey(publicKey, fullDerivationPath) {
+    const pubkey = publicKey instanceof Uint8Array? binToHex(publicKey): pubkey
+
   }
 
   getLastIssuedDepositAddressIndex(network) {
@@ -618,9 +702,11 @@ getWalletHash() {
   return getWalletHash(this)
 }
 
-getRedeemScript(addressDerivationPath) {
-  return getRedeemScript({ multisigWallet: this, addressDerivationPath })
-}
+// getRedeemScript(addressDerivationPath) {
+//   const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath })
+//   console.log('Derived ', signersWithPublicKeys)
+//   return getRedeemScript({ m: this.m, signers: signersWithPublicKeys })
+// }
 
 /**
  * @param {string} address - The cashaddress
@@ -886,7 +972,7 @@ async issueDepositAddress(addressIndex) {
     if (!this.options?.store?.commit) return
 
     this.options?.store?.commit(
-      'multisig/updateLastUsedChangeAddressIndex', 
+      'multisig/updateWalletLastUsedChangeAddressIndex', 
       { wallet: this, lastUsedChangeAddressIndex: addressIndex, network: this.options.provider.network }
     ) 
     
@@ -904,6 +990,134 @@ async issueDepositAddress(addressIndex) {
       1000
     ).catch((e) => e)
  }
+
+  async selectUtxos(proposal) {
+
+    if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
+      throw new Error('Sending mixed assets is not yet supported!')
+    }
+
+    if (!this.utxos) {
+      await this.getWalletUtxos()
+    }
+
+    let targetBch = 
+      proposal.recipients
+        ?.filter(r => r.asset === 'bch')
+        .reduce((total, nextR) => {
+          total = Big(total).add(nextR.amount || 0)
+          return total}, '0'
+        )
+    
+    let targetSatoshis = Big(targetBch).mul(1e8)
+
+    /**
+     * @type {{Object.<string, bigint>}} - Key is the asset which is the token category
+     */
+    let targetTokens = {}
+
+    // Get target token amount of each asset(token category), convert decimal amount to vm number
+    for (const r of proposal.recipients) {
+      if (r.asset === 'bch') continue
+      let tokenAmountInVmNumber = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
+      if (!targetTokens[r.asset]) {
+        targetTokens[r.asset] = tokenAmountInVmNumber
+        continue
+      }
+      targetTokens[r.asset] = BigInt(Big(targetTokens[r.asset]).add(tokenAmountInVmNumber))
+    }
+
+    let satoshiUtxos = null
+    if (Number(targetSatoshis) > 0) {
+      // trying to send bch
+      satoshiUtxos = selectUtxos(this.utxos?.filter(u => !u.token), { targetSatoshis })
+      if (!satoshiUtxos.satoshisSatisfied) {
+        throw new Error('Insufficient BCH balance!')
+      }
+    }
+
+    let tokenUtxos = null
+    if (Object.keys(targetTokens).length > 0) {
+      // trying to send tokens
+      tokenUtxos = selectUtxos(this.utxos?.filter(u => Boolean(u.token)), { targetTokens })
+      if (!tokenUtxos.tokensSatisfied) {
+        throw new Error('Insufficient token balance!')
+      }
+    }
+
+    let selectedUtxos = []
+
+    if (satoshiUtxos) {
+      selectedUtxos = selectedUtxos.concat(satoshiUtxos.selectedUtxos)
+    }
+
+    if (tokenUtxos) {
+      selectedUtxos = selectedUtxos.concat(tokenUtxos.selectedUtxos)
+    }
+
+
+    let inputs = selectedUtxos?.map((u) => {
+      return {
+        ...commonUtxoToLibauthInput(u, []),
+        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
+      }
+    })
+
+    let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
+
+    let funderUtxos = null
+    const lastUsedChangeAddressIndex = this.getLastUsedChangeAddressIndex(this.options.provider.network)
+    const changeAddressIndex = lastUsedChangeAddressIndex === undefined ? 0 : lastUsedChangeAddressIndex + 1
+    const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
+
+
+    const satoshisChangeOutput = {
+      lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+      valueSatoshis: 0n
+    }
+
+    const satoshisChangeOutputDustThreshold = 
+      getMofNDustThreshold(
+        this.m, this.n, 
+        satoshisChangeOutput
+      )
+
+    const estimatedFee = estimateFee(structuredClone(inputs), structuredClone(outputs), createTemplate(this))
+    
+    let totalSatoshisInputsAmount = 
+      inputs
+        .reduce((target, nextInput) => target += nextInput.sourceOutput.valueSatoshis, 0n)
+
+    const totalSatoshiOutputsAmount = 
+      outputs
+        .reduce((target, nextOutput) => target += nextOutput?.valueSatoshis, 0n)
+
+    let totalSatoshisChangeAmount = totalSatoshisInputsAmount - totalSatoshiOutputsAmount
+
+    let additionalFunds = 0
+
+    if (totalSatoshisChangeAmount < estimatedFee) {
+      
+      if (funderUtxos) { 
+        funderUtxos = selectUtxos(funderUtxos.remainingUtxos?.filter(u => !u.token), { targetSatoshis: estimatedFee +  satoshisChangeOutputDustThreshold })
+      } else {
+        funderUtxos = selectUtxos(this.utxos?.filter(u => !u.token), { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
+      }
+
+      if (!funderUtxos.satoshisSatisfied) {
+        throw new Error('Insufficient BCH balance for fee!')
+      }
+
+      additionalFunds = 
+        funderUtxos.selectedUtxos.filter(u => !u.token).reduce((sats, nextU)=> sats += nextU.satoshis, 0)
+
+      selectedUtxos = 
+        selectedUtxos.concat(
+            funderUtxos.selectedUtxos
+        )
+    }
+    return selectedUtxos
+  }
 
   /**
    * Create a transaction proposal to send BCH or CashTokens
@@ -976,23 +1190,50 @@ async issueDepositAddress(addressIndex) {
       selectedUtxos = selectedUtxos.concat(tokenUtxos.selectedUtxos)
     }
 
+
     let inputs = selectedUtxos?.map((u) => {
+
+        const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: u.addressPath })
+        const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
+          const fullDerivationPath = (this.derivationPath || `m/44'/145'/0'/`) + u.addressPath
+          return {
+            [s.publicKey]: {
+              path: fullDerivationPath,
+              masterFingerprint: s.masterFingerprint
+            }
+          }
+        }))
+      
       return {
         ...commonUtxoToLibauthInput(u, []),
         sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
-        addressPath: u.addressPath,
-        lockingBytecodeRelativePath: u.addressPath
+        sigHash: SigningSerializationTypeBCH.allOutputs,
+        bip32Derivation,
+        redeemScript: generateRedeemScript(this.m, signersWithPublicKeys.map(s => hexToBin(s.publicKey)))
       }
     })
 
     let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
 
-    const outputsMap = outputs.map(o => ({}))
+    const outputsMap = outputs.map(o => o)
 
     let funderUtxos = null
     const lastUsedChangeAddressIndex = this.getLastUsedChangeAddressIndex(this.options.provider.network)
     const changeAddressIndex = lastUsedChangeAddressIndex === undefined ? 0 : lastUsedChangeAddressIndex + 1
     const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
+    const changeAddressPublicKeySet = derivePublicKeys({ 
+      signers: this.signers, 
+      addressDerivationPath: `1/${changeAddressIndex}` 
+    })
+    const changeAddressRedeemScript = generateRedeemScript(this.m, changeAddressPublicKeySet.map(s=> hexToBin(s.publicKey)))
+    const changeAddressBip32Derivation = changeAddressPublicKeySet.reduce((acc, nextSigner) => {
+      acc[nextSigner.publicKey] = {
+        path: (this.derivationPath || `m/44'145'/0'/`) +  `1/${changeAddressIndex}`,
+        masterFingerprint: nextSigner.masterFingerprint
+      }
+      return acc
+    }, {})
+
 
     const satoshisChangeOutput = {
       lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
@@ -1032,9 +1273,15 @@ async issueDepositAddress(addressIndex) {
         }
 
         let requiredSatoshisForTokenChange = getMofNDustThreshold(this.m, this.n, tokenChangeOutput)
+
         tokenChangeOutput.valueSatoshis = requiredSatoshisForTokenChange
         outputs.push(tokenChangeOutput)
-        outputsMap.push({ addressPath: `1/${changeAddressIndex}`, lockingBytecodeRelativePath: `1/${changeAddressIndex}`, purpose: 'token-self-internal' })
+        outputsMap.push({ 
+          ...tokenChangeOutput,
+          bip32Derivation: changeAddressBip32Derivation,
+          redeemScript: changeAddressRedeemScript,
+          purpose: 'token-self-internal' 
+        })
         await this.issueChangeAddress(changeAddressIndex)
       } 
     }
@@ -1072,11 +1319,25 @@ async issueDepositAddress(addressIndex) {
       inputs = 
         inputs.concat(
               funderUtxos.selectedUtxos?.map((u) => {
+
+                const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: u.addressPath })
+                const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
+                const fullDerivationPath = (this.derivationPath || `m/44'/145'/0'/`) + u.addressPath
+                  return {
+                    [s.publicKey]: {
+                      path: fullDerivationPath,
+                      masterFingerprint: s.masterFingerprint
+                    }
+                  }
+                }))
+
+
                 return {
                   ...commonUtxoToLibauthInput(u, []),
                   sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
-                  addressPath: u.addressPath,
-                  lockingBytecodeRelativePath: u.addressPath
+                  // addressPath: u.addressPath,
+                  sigHash: SigningSerializationTypeBCH.allOutputs,
+                  bip32Derivation
                 }
             })
         )
@@ -1094,7 +1355,12 @@ async issueDepositAddress(addressIndex) {
     satoshisChangeOutput.valueSatoshis = totalSatoshisChangeAmount
     if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
       outputs.push(satoshisChangeOutput)
-      outputsMap.push({ addressPath: `1/${changeAddressIndex}`, lockingBytecodeRelativePath: `1/${changeAddressIndex}`, purpose: 'sats-self-internal' })
+      outputsMap.push({
+        ...satoshisChangeOutput,
+        bip32Derivation: changeAddressBip32Derivation,
+        redeemScript: changeAddressRedeemScript,
+        purpose: 'sats-self-internal'
+      })
       await this.issueChangeAddress(changeAddressIndex)
     }
 
@@ -1103,11 +1369,14 @@ async issueDepositAddress(addressIndex) {
       .addInputs(inputs)
       .addOutputs(outputs)
     const unsignedTransactionHex = transaction.build()
+
     inputs.forEach((input) => {
-      if (input.lockingBytecodeRelativePath) {
-        input.redeemScript = this.getRedeemScript(input.lockingBytecodeRelativePath)
-      }
+      input.redeemScript = generateRedeemScript(
+        this.m, 
+        Object.keys(input.bip32Derivation).map(publicKey => hexToBin(publicKey))
+      )
     })
+
     const pst = new Pst({
       origin: proposal.origin,
       creator: proposal.creator,
@@ -1119,6 +1388,150 @@ async issueDepositAddress(addressIndex) {
     }, options)
 
     return pst
+  }
+
+  async createPst(proposal, options) {
+
+    if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
+      throw new Error('Sending mixed assets is not yet supported!')
+    }
+
+    if (!this.utxos) {
+      const u = await this.getWalletUtxos()
+    }
+
+    let selectedUtxos = await this.selectUtxos(proposal)
+    let inputs = selectedUtxos?.map((u) => {
+
+        const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: u.addressPath })
+        const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
+          const fullDerivationPath = (this.derivationPath || `m/44'/145'/0'/`) + u.addressPath
+          return {
+            [s.publicKey]: {
+              path: fullDerivationPath,
+              masterFingerprint: s.masterFingerprint
+            }
+          }
+        }))
+      
+      return {
+        ...commonUtxoToLibauthInput(u, []),
+        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
+        sigHash: SigningSerializationTypeBCH.allOutputs,
+        bip32Derivation,
+        redeemScript: generateRedeemScript(this.m, signersWithPublicKeys.map(s => hexToBin(s.publicKey)))
+      }
+    })
+
+    let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
+    const lastUsedChangeAddressIndex = this.getLastUsedChangeAddressIndex(this.options.provider.network)
+    const changeAddressIndex = lastUsedChangeAddressIndex === undefined ? 0 : lastUsedChangeAddressIndex + 1
+    const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
+    const changeAddressPublicKeySet = derivePublicKeys({ 
+      signers: this.signers, 
+      addressDerivationPath: `1/${changeAddressIndex}` 
+    })
+    const changeAddressRedeemScript = generateRedeemScript(this.m, changeAddressPublicKeySet.map(s=> hexToBin(s.publicKey)))
+    const changeAddressBip32Derivation = changeAddressPublicKeySet.reduce((acc, nextSigner) => {
+      acc[nextSigner.publicKey] = {
+        path: (this.derivationPath || `m/44'145'/0'/`) +  `1/${changeAddressIndex}`,
+        masterFingerprint: nextSigner.masterFingerprint
+      }
+      return acc
+    }, {})
+
+
+    const satoshisChangeOutput = {
+      lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+      valueSatoshis: 0n
+    }
+
+    const satoshisChangeOutputDustThreshold = 
+      getMofNDustThreshold(
+        this.m, this.n, 
+        satoshisChangeOutput
+      )
+
+    let tokenChangeOutput = null
+
+    if (selectedUtxos?.find(utxo => Boolean(utxo.token))) {
+
+      const tokenInputsTotalTokensValue = 
+        inputs
+          .filter(i=> Boolean(i.sourceOutput.token))
+          .reduce((target, nextInput) => target += nextInput.sourceOutput.token.amount, 0n)
+
+      const tokenOutputsTotalTokensValue = 
+        outputs
+          .filter(o=> Boolean(o.token))
+          .reduce((target, nextInput) => target += nextInput.token.amount, 0n)
+      
+      let tokensChangeAmount = tokenInputsTotalTokensValue - tokenOutputsTotalTokensValue
+
+      if (tokensChangeAmount > 0) {  
+        tokenChangeOutput =  {
+          lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+          valueSatoshis: 0n, //temporary
+          token: {
+            ...outputs[0].token,
+            amount: tokensChangeAmount,
+          }
+        }
+
+        let requiredSatoshisForTokenChange = getMofNDustThreshold(this.m, this.n, tokenChangeOutput)
+
+        tokenChangeOutput.valueSatoshis = requiredSatoshisForTokenChange
+        outputs.push({ 
+          ...tokenChangeOutput,
+          bip32Derivation: changeAddressBip32Derivation,
+          redeemScript: changeAddressRedeemScript,
+          purpose: 'token-self-internal' 
+        })
+        await this.issueChangeAddress(changeAddressIndex)
+      } 
+    }
+
+    const estimatedFee = estimateFee(structuredClone(inputs), structuredClone(outputs), createTemplate(this))
+
+    let totalSatoshisInputsAmount = 
+      inputs
+        .reduce((target, nextInput) => target += nextInput.sourceOutput.valueSatoshis, 0n)
+
+    const totalSatoshiOutputsAmount = 
+      outputs
+        .reduce((target, nextOutput) => target += nextOutput?.valueSatoshis, 0n)
+
+    
+    let totalSatoshisChangeAmount = totalSatoshisInputsAmount - (totalSatoshiOutputsAmount + estimatedFee)
+
+    satoshisChangeOutput.valueSatoshis = totalSatoshisChangeAmount
+    if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
+      outputs.push({
+        ...satoshisChangeOutput,
+        bip32Derivation: changeAddressBip32Derivation,
+        redeemScript: changeAddressRedeemScript,
+        purpose: 'sats-self-internal'
+      })
+      await this.issueChangeAddress(changeAddressIndex)
+    }
+
+    const transaction = new MultisigTransactionBuilder()
+    transaction
+      .addInputs(inputs)
+      .addOutputs(outputs)
+    const unsignedTransactionHex = transaction.build()
+
+
+    return new Pst({
+      origin: proposal.origin,
+      creator: proposal.creator,
+      purpose: proposal.purpose,
+      unsignedTransactionHex,
+      inputs,
+      outputs,
+      wallet: this
+    }, options)
+    
   }
 
   isSynced() {
