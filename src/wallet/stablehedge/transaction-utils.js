@@ -1,29 +1,8 @@
-import { SignatureTemplate, Transaction } from "cashscript"
-import { hash256, placeholder, scriptToBytecode } from "@cashscript/utils"
-import { cashScriptOutputToLibauthOutput, createInputScript, createSighashPreimage, getInputSize, getOutputSize, getPreimageSize, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils";
+import { SignatureTemplate } from "cashscript"
+import { hash256, scriptToBytecode } from "@cashscript/utils"
+import { cashScriptOutputToLibauthOutput, createSighashPreimage, getOutputSize, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils";
 import { binToHex, cashAddressToLockingBytecode, encodeTransactionBCH, hexToBin } from "@bitauth/libauth";
 import { P2PKH_INPUT_SIZE } from "cashscript/dist/constants";
-
-/**
- * Taken directly from Transaction class' fee calculation
- * Returns the bytesize of contract's transaction input
- * @param {Transaction} transaction
- */
-export function calculateInputSize(transaction) {
-  const redeemScript = transaction.redeemScript || transaction.contract?.redeemScript
-  const placeholderArgs = transaction.args.map((arg) => (arg instanceof SignatureTemplate ? placeholder(65) : arg));
-  // Create a placeholder preimage of the correct size
-  const placeholderPreimage = transaction.abiFunction.covenant
-      ? placeholder(getPreimageSize(scriptToBytecode(redeemScript)))
-      : undefined;
-  // Create a placeholder input script for size calculation using the placeholder
-  // arguments and correctly sized placeholder preimage
-  const placeholderScript = createInputScript(redeemScript, placeholderArgs, transaction.selector, placeholderPreimage);
-
-  // Add one extra byte per input to over-estimate tx-in count
-  const contractInputSize = getInputSize(placeholderScript) + 1;
-  return contractInputSize
-}
 
 /**
  * @param {Object} opts

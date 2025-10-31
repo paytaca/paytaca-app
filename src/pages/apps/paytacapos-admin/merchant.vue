@@ -29,63 +29,9 @@
                 <q-icon name="phone" size="1rem" class="q-mr-sm"/>
                 {{ merchantInfo?.primaryContactNumber }}
               </q-item-label>
-              <q-item-label v-if="merchantInfo?.formattedLocation" class="text-subtitle2 text-weight-light ellipsis-2-lines">
+              <q-item-label v-if="merchantInfo?.formattedLocation" class="text-subtitle1 text-weight-light ellipsis-2-lines">
                 <q-icon name="location_on" size="1rem" class="q-mr-sm"/>
                 {{ merchantInfo?.formattedLocation }}
-              </q-item-label>
-              <q-item-label
-                class="text-subtitle1 text-weight-light ellipsis-2-lines"
-                v-ripple style="position:relative;"
-              >
-                <div class="row items-center">
-                  <q-icon name="store" size="1rem" class="q-mr-sm"/>
-                  <span v-if="!merchantBranches.length" class="text-grey">{{ $t('NoBranches') }}</span>
-                  <span v-else>
-                    {{ merchantBranches.length }} {{merchantBranches.length > 1 ? $t('Branches'): $t('BranchSmall')}}
-                  </span>
-                  <q-space/>
-                  <q-icon name="more_horiz" size="1.5em" class="q-px-sm"/>
-                </div>
-                <q-menu
-                  anchor="bottom right"
-                  self="top right"
-                  class="q-pa-sm pt-card text-bow"
-                  :class="getDarkModeClass(darkMode)"
-                >
-                  <q-list separator :dark="darkMode">
-                    <q-item
-                      v-for="branch in merchantBranches" :key="branch.id"
-                      dense
-                      clickable
-                      v-ripple
-                      @click="showBranchInfo(branch)"
-                    >
-                      <q-item-section>
-                        <q-item-label>
-                          {{ branch.name }}
-                          <span v-if="branch?.isMain" class="text-caption text-grey">
-                            ({{ $t('MainBranch', {}, 'Main Branch') }})
-                          </span>
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      dense
-                      clickable
-                      v-ripple
-                      @click="openNewBranchForm()"
-                    >
-                      <q-item-section>
-                        <q-item-label>
-                          {{ $t('Add', {}, 'Add') }}
-                        </q-item-label>
-                      </q-item-section>
-                      <q-item-section side>
-                        <q-icon name="add" color="green"/>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
               </q-item-label>
             </q-item-section>
           </template>
@@ -125,6 +71,118 @@
         </div> -->
       </q-card-section>
     </q-card>
+
+    <div
+      class="row no-wrap items-stretch justify-around q-gutter-x-md q-px-md q-pb-md text-bow"
+      :class="getDarkModeClass(darkMode)"
+      style="overflow-x: auto;"
+    >
+      <q-card class="action-card br-15 q-pa-md" style="position: relative;" v-ripple>
+        <div class="action-card-title">
+          <div>{{ capitalize($t('Branches')) }}</div>
+        </div>
+        <div class="row items-center justify-between">
+          <span v-if="!merchantBranches.length" class="text-grey">{{ $t('NoBranches') }}</span>
+          <span v-else>
+            {{ merchantBranches.length }} {{merchantBranches.length > 1 ? $t('Branches'): $t('BranchSmall')}}
+          </span>
+          <q-icon name="more_horiz" size="1.5em"/>
+        </div>
+        <q-menu
+          anchor="bottom left"
+          self="top left"
+          class="q-pa-sm pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <q-list separator :dark="darkMode">
+            <q-item
+              v-for="branch in merchantBranches" :key="branch.id"
+              dense
+              clickable
+              v-ripple
+              @click="showBranchInfo(branch)"
+            >
+              <q-item-section>
+                <q-item-label>
+                  {{ branch.name }}
+                  <span v-if="branch?.isMain" class="text-caption text-grey">
+                    ({{ $t('MainBranch', {}, 'Main Branch') }})
+                  </span>
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              dense
+              clickable
+              v-ripple
+              @click="openNewBranchForm()"
+            >
+              <q-item-section>
+                <q-item-label>
+                  {{ $t('Add', {}, 'Add') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="add" color="green"/>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-card>
+      <q-card class="action-card br-15 q-pa-md" style="position: relative;" v-ripple>
+        <div class="action-card-title">{{ $t('AcceptedTokens') }}</div>
+        <q-icon size="1.4rem" name="help" @click.stop class="float-right">
+          <q-menu class="pt-card-2 q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+            {{ $t('AcceptedTokensDesc', 'Select tokens to accept as payment other than BitcoinCash') }}
+          </q-menu>
+        </q-icon>
+        <q-spinner v-if="fetchingAcceptedTokens"/>
+        <div v-else>
+          <template v-if="merchantAcceptedTokens.length == 0">{{ $t('NoTokens') }}</template>
+          <template v-else-if="merchantAcceptedTokens.length === 1">1 {{ $t('Token') }}</template>
+          <template v-else>{{ merchantAcceptedTokens.length }} {{ $t('Tokens') }}</template>
+        </div>
+        <q-menu
+          class="q-pa-sm pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
+          style="max-height: 50vh;"
+        >
+          <q-list separator :dark="darkMode">
+            <q-item clickable @click="showTokenOptionsDialog()">
+              <q-item-section>
+                <q-item-label>{{ $t('Edit') }}</q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-icon name="edit" size="1em" />
+              </q-item-section>
+            </q-item>
+            <q-item-label v-if="!merchantAcceptedTokens.length" header class="text-grey">
+              {{ $t('NoTokens') }}
+            </q-item-label>
+            <q-item v-for="fungibleCashtoken in merchantAcceptedTokens" :key="fungibleCashtoken?.category" dense>
+              <q-item-section v-if="fungibleCashtoken.imageUrl" side>
+                <img
+                  height="30"
+                  :src="convertIpfsUrl(fungibleCashtoken.imageUrl)"
+                  :fallback-src="convertIpfsUrl(fungibleCashtoken.imageUrl, 1)"
+                  @error="onImgErrorIpfsSrc"
+                />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ fungibleCashtoken?.name }}</q-item-label>
+                <q-item-label caption>{{ fungibleCashtoken?.symbol }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-card>
+
+      <!-- <q-card class="col-5 br-15">
+        <q-card-section>
+          <div class="text-subtitle1">Another card</div>
+        </q-card-section>
+      </q-card> -->
+    </div>
 
     <q-card
       class="br-15 q-pt-sm q-mx-md pt-card text-bow"
@@ -313,6 +371,13 @@
       :new-branch="!branchFormDialog.branch?.id"
       :merchant-id="merchantId"
     />
+    <MerchantTokenOptionsFormDialog
+      v-model="tokenOptionsDialogOpts.show"
+      :merchant="merchantInfo"
+      :selectedTokens="merchantAcceptedTokens"
+      @saved="onTokenOptionsSaved"
+      closeOnSave
+    />
     <PosDeviceFormDialog
       v-model="posDeviceFormDialog.show"
       :new-device="!Boolean(posDeviceFormDialog.posDevice)"
@@ -332,15 +397,19 @@
 
 <script setup>
 import BCHJS from '@psf/bch-js';
+import { FungibleCashToken } from 'src/marketplace/objects';
+import { backend as marketplaceBackend } from 'src/marketplace/backend';
 import { backend as posBackend, parsePosDeviceData, padPosId, authToken } from 'src/wallet/pos'
+import { convertIpfsUrl } from 'src/wallet/cashtokens';
 import { bus } from 'src/wallet/event-bus';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { capitalize, computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { debounce, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from 'src/components/header-nav.vue'
 import BranchFormDialog from 'src/components/paytacapos/BranchFormDialog.vue'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
+import MerchantTokenOptionsFormDialog from 'src/components/paytacapos/MerchantTokenOptionsFormDialog.vue'
 import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
 import { loadWallet } from 'src/wallet'
 import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.vue'
@@ -349,7 +418,6 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter } from 'vue-router'
-// import { fetchMerchants } from 'src/store/paytacapos/actions';
 
 const bchjs = new BCHJS()
 
@@ -459,6 +527,39 @@ function openNewBranchForm() {
   hidePopups()
   branchFormDialog.value = { show: true, branch: null }
 }
+
+const merchantAcceptedTokens = ref([].map(FungibleCashToken.parse))
+const fetchingAcceptedTokens = ref(false)
+async function fetchAcceptedTokens() {
+  const params = { watchtower_merchant_ids: merchantId }
+  fetchingAcceptedTokens.value = true
+  return marketplaceBackend.get(`merchants/watchtower/accepted_tokens/`, { params })
+    .then(response => {
+      const data = response.data?.find?.(record => record?.watchtower_merchant_id == merchantId)
+      if (!data || !Array.isArray(data?.accepted_tokens)) return Promise.reject({ response })
+      merchantAcceptedTokens.value = data.accepted_tokens.map(FungibleCashToken.parse);
+      return response
+    })
+    .finally(() => {
+      fetchingAcceptedTokens.value = false
+    })
+}
+
+const tokenOptionsDialogOpts = ref({ show: false })
+function showTokenOptionsDialog() {
+  tokenOptionsDialogOpts.value.show = true
+}
+
+function onTokenOptionsSaved(data) {
+  console.log('onTokenOptionsSaved', data)
+  merchantAcceptedTokens.value = data.accepted_tokens.map(FungibleCashToken.parse)
+  $q.notify({
+    type: 'positive',
+    message : $t('Success'),
+    icon: 'check',
+  })
+}
+
 
 const posDevices = ref([].map(parsePosDeviceData))
 posDevices.value = []
@@ -1073,6 +1174,7 @@ async function refreshPage(done=() => {}) {
       })
 
     await Promise.all([
+      fetchAcceptedTokens(),
       fetchPosDevices(),
       fetchBranches(),
       checkCashoutAvailability(),
@@ -1140,5 +1242,15 @@ function resetCashoutData () {
     position: absolute;
     top: 0rem;
     right: 2.5rem;
+  }
+
+  .action-card {
+    width: calc(50% - 16px);
+
+    .action-card-title {
+      font-size: 1rem;
+      line-height: 1.25;
+      min-height: 1.75rem;
+    }
   }
 </style>

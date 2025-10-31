@@ -234,6 +234,11 @@ const phrases = {
       TransactionDeadline: "Transaction Deadline",
       TransactionSent: "Transaction Sent",
       UnlinkDevice: "Unlink device",
+      AcceptedTokens: "Accepted Tokens",
+      FetchingTokens: "Fetching Tokens",
+      AcceptedTokensDesc: "Select tokens to accept as payment other than BitcoinCash",
+      FungibleTokenFilterPlaceholder: "Filter by token ID, symbol, or name",
+      NoTokens: 'No Tokens',
       
       // Learn App
       'See All': 'See All',
