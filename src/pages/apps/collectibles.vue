@@ -7,7 +7,7 @@
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     
     <!-- Main Tabs -->
-    <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '8px'}">
+    <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
       <div class="collectibles-tabs q-px-sm q-py-xs" :class="getDarkModeClass(darkMode)">
         <button
           class="collectibles-tab"

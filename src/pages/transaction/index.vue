@@ -138,67 +138,36 @@
             @cashin="openCashIn()"
             @spend-bch="openSpendBch()"
           />
-          <div class="row q-mt-sm">
-            <div class="col">
-              <p
-                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary"
-                style="font-size: 20px;"
+          <div class="row items-center justify-between q-mb-sm q-mt-sm">
+            <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
+              {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
+              <q-btn
+                flat
+                padding="none"
+                v-if="manageAssets"
+                size="sm"
+                icon="close"
+                class="settings-button"
+                :style="assetsCloseButtonColor"
                 :class="getDarkModeClass(darkMode)"
-              >
-                {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
-                <q-btn
-                  flat
-                  padding="none"
-                  v-if="manageAssets"
-                  size="sm"
-                  icon="close"
-                  class="settings-button"
-                  :style="assetsCloseButtonColor"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="toggleManageAssets"
-                />
-                <!-- <q-btn
-                  flat
-                  padding="none"
-                  size="sm"
-                  class="settings-button"
-                  :icon="settingsButtonIcon"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="updateTokenMenuPosition"
-                >
-                  <q-menu
-                    ref="tokenMenu"
-                    class="text-bow token-menu"
-                    :class="getDarkModeClass(darkMode)"
-                  >
-                    <q-list class="pt-card token-menu-list" :class="getDarkModeClass(darkMode)">
-                      <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleManageAssets">
-                          {{ $t(isHongKong(currentCountry) ? 'ManagePoints' : 'ManageTokens') }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section @click="checkMissingAssets({autoOpen: true})">
-                          {{ $t(isHongKong(currentCountry) ? 'ScanForPoints' : 'ScanForTokens') }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleShowTokens">
-                          {{ $t(isHongKong(currentCountry) ? 'HidePoints' : 'HideTokens') }}
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-btn> -->
-              </p>
+                @click="toggleManageAssets"
+              />
             </div>
-
-            <div
-              v-show="selectedNetwork === networks.BCH.name"
-              class="col-3 q-mt-sm"
-              style="margin-top: -5px !important;"
-            >
-              <AssetFilter v-if="hasAssetFilter" @filterTokens="isCT => isCashToken = isCT" />
+            <div class="row items-center q-gutter-sm">
+              <AssetFilter 
+                v-if="hasAssetFilter && selectedNetwork === networks.BCH.name" 
+                @filterTokens="isCT => isCashToken = isCT" 
+              />
+              <q-btn
+                flat
+                dense
+                no-caps
+                :label="$t('Manage')"
+                :color="darkMode ? 'blue-4' : 'blue-6'"
+                @click="goToAssetList"
+                padding="4px 8px"
+                class="q-mr-md"
+              />
             </div>
           </div>
           <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
@@ -635,6 +604,9 @@ export default {
     openSpendBch () {
       this.$router.push({ name: 'spend-bch' })
     },
+    goToAssetList () {
+      this.$router.push({ name: 'asset-list' })
+    },
     async openCashIn () {
       await this.checkCashinAvailable()
       this.$q.dialog({
@@ -642,13 +614,32 @@ export default {
         componentProps: {
           fiatCurrencies: this.availableCashinFiat
         }
-      }).onOk((asset) => {
-        // console.log('asset: ', )
-        // vm.assetList = this.assets
-        // console.log('closing cashin')
+      }).onOk(() => {
+        // Refresh data
         this.resetAndRefetchData()
-        // if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
+    },
+    handleCashinOrderCreated (data) {
+      console.log('Cashin order created event received:', data)
+      if (data && data.orderId) {
+        console.log('Navigating to order page:', data.orderId)
+        // Wait a bit for dialog to fully close before navigation
+        setTimeout(() => {
+          console.log('Executing navigation with order_id query param:', data.orderId)
+          // Navigate to P2P Exchange with order_id as query parameter
+          // This prevents the exchange/index.vue from redirecting to store page
+          this.$router.push({
+            path: '/apps/exchange/peer-to-peer/',
+            query: { order_id: data.orderId }
+          })
+            .then(() => {
+              console.log('Navigation successful')
+            })
+            .catch((err) => {
+              console.error('Navigation error:', err)
+            })
+        }, 500)
+      }
     },
     async checkCashinAvailable () {
       this.hasCashin = false
@@ -1470,11 +1461,13 @@ export default {
 
   unmounted () {
     bus.off('handle-push-notification', this.handleOpenedNotification)
+    bus.off('cashin-order-created', this.handleCashinOrderCreated)
     this.closeCashinWebSocket()
   },
   created () {
     bus.on('cashin-alert', (value) => { this.hasCashinAlert = value })
     bus.on('handle-push-notification', this.handleOpenedNotification)
+    bus.on('cashin-order-created', this.handleCashinOrderCreated)
   },
   beforeMount () {
     const vm = this

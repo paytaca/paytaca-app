@@ -5,9 +5,51 @@
     <div class="q-mx-md q-mb-lg q-pb-lg text-bow"
       :class="getDarkModeClass(darkMode)"
       :style="`height: ${minHeight}px;`">
-      <div v-if="!isloaded">
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader />
+      <div v-if="!isloaded" class="q-mx-md q-pt-lg">
+        <!-- Avatar -->
+        <div class="row justify-center q-mt-md">
+          <q-skeleton type="circle" style="width: 64px; height: 64px;" />
+        </div>
+        <!-- Name & action icons -->
+        <div class="row justify-center q-mt-sm">
+          <q-skeleton type="text" style="width: 40%; height: 22px;" />
+        </div>
+        <!-- Edit payment methods button -->
+        <div class="row q-mx-lg q-px-md q-pt-md" v-if="true">
+          <q-skeleton type="rect" class="q-space q-mx-md" style="height: 36px; border-radius: 24px;" />
+        </div>
+        <!-- Rating row -->
+        <div class="row justify-center q-mt-sm q-gutter-xs">
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="text" style="width: 60px; height: 16px; margin-left: 8px;" />
+        </div>
+        <!-- Trade count and completion -->
+        <div class="row justify-center q-mt-xs q-gutter-md">
+          <q-skeleton type="text" style="width: 90px; height: 14px;" />
+          <q-skeleton type="text" style="width: 110px; height: 14px;" />
+        </div>
+        <!-- Tabs -->
+        <div class="row q-mt-md q-mb-sm br-15 pt-card md-font-size" :class="getDarkModeClass(darkMode)" style="padding: 4px; margin-left: 10%; margin-right: 10%;">
+          <q-skeleton type="rect" class="col" style="height: 30px; border-radius: 20px; margin-right: 6px;" />
+          <q-skeleton type="rect" class="col" style="height: 30px; border-radius: 20px; margin-left: 6px;" />
+        </div>
+        <!-- List items placeholder -->
+        <div class="q-mx-lg q-px-md">
+          <div v-for="i in 3" :key="i" class="q-pt-md">
+            <q-skeleton type="text" style="width: 40%; height: 16px;" />
+            <q-skeleton type="text" style="width: 30%; height: 12px; opacity: .6;" />
+            <div class="q-mt-xs q-gutter-xs">
+              <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px; display: inline-block;" />
+              <q-skeleton type="text" style="width: 40px; height: 14px; display: inline-block; margin-left: 6px;" />
+            </div>
+            <q-skeleton type="text" style="width: 90%; height: 14px;" />
+            <q-skeleton type="text" style="width: 70%; height: 14px;" />
+            <q-separator :dark="darkMode" class="q-mt-md" />
+          </div>
         </div>
       </div>
       <div v-else>

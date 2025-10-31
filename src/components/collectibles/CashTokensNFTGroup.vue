@@ -118,6 +118,10 @@ const props = defineProps({
 
 const imageUrl = computed(() => {
   return (nft) => {
+    // Don't show placeholder while metadata is loading
+    if (nft?.$state?.fetchingMetadata) {
+      return null
+    }
     const imgUrl = nft?.parsedMetadata?.imageUrl
     if (imgUrl) {
       if (imgUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {

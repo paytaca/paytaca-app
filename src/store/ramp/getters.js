@@ -211,17 +211,6 @@ export function getOrdersPageNumber (state) {
 }
 
 /** cashin order getters */
-export function getCashinOrders (state) {
-  return state.cashinOrders
-}
-
-export function getCashinOrdersTotalPages (state) {
-  return state.cashinOrdersTotalPages
-}
-
-export function getCashinOrdersPageNumber (state) {
-  return state.cashinOrdersPageNumber
-}
 
 // appeals getters //
 export function pendingAppeals (state) {

@@ -719,14 +719,38 @@ export default {
         border-bottom-left-radius: 16px;
         border-bottom-right-radius: 16px;
         margin-top: -8px;
+        overflow: visible;
 
         .qr-container {
           display: flex;
           justify-content: center;
-          padding: 12px;
+          align-items: center;
+          padding: 20px;
           background: white;
           border-radius: 12px;
           margin-bottom: 20px;
+          overflow: visible;
+          min-height: 340px; // Accommodate 280px QR + 30px padding on each side
+          
+          // Ensure QR code component has enough space and isn't clipped
+          :deep(.qr) {
+            width: 100%;
+            max-width: 340px;
+            overflow: visible;
+          }
+          
+          :deep(canvas),
+          :deep(svg),
+          :deep(img) {
+            max-width: 100%;
+            height: auto;
+            display: block;
+          }
+          
+          // Ensure SVG padding doesn't cause overflow
+          :deep(svg) {
+            box-sizing: border-box;
+          }
         }
 
         .qr-action-buttons {
@@ -814,7 +838,12 @@ export default {
           padding: 20px;
 
           .qr-container {
-            padding: 10px;
+            padding: 16px;
+            min-height: 320px; // Slightly smaller for mobile
+            
+            :deep(.qr) {
+              max-width: 100%;
+            }
           }
 
           .qr-action-buttons {
