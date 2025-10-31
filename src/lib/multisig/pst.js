@@ -278,7 +278,7 @@ export const extractNValue = (redeemScript) => {
   return parseInt(redeemScript.slice(-4,-2), 16) - 0x50
 }
 
-export const extractPublicKeys = (redeemScript) => {
+export const extractPublicKeysFromRedeemScript = (redeemScript) => {
   // Convert hex string to Uint8Array if needed
   const script = typeof redeemScript === 'string'
     ? Uint8Array.from(Buffer.from(redeemScript, 'hex'))
@@ -402,7 +402,7 @@ export const getSigningProgress = (pst) => {
       continue
     }
 
-    const redeemScriptPublicKeys = extractPublicKeys(pst.inputs[inputIndex].redeemScript)
+    const redeemScriptPublicKeys = extractPublicKeysFromRedeemScript(pst.inputs[inputIndex].redeemScript)
 
     const m = extractMValue(correspondingInput.redeemScript)
 
@@ -503,7 +503,7 @@ export const publicKeySigned = ({ publicKey, pst }) => {
 
       correspondingInput.sourceOutput = JSON.parse(stringify(correspondingInput.sourceOutput), libauthStringifyReviver)
       
-      const publicKeysFromRedeemScript = extractPublicKeys(correspondingInput.redeemScript)
+      const publicKeysFromRedeemScript = extractPublicKeysFromRedeemScript(correspondingInput.redeemScript)
       
       const publicKeyIsOnRedeemScript = publicKeysFromRedeemScript.some((p) => {
         return binsAreEqual(publicKey, p) 
@@ -634,36 +634,39 @@ export class Pst {
         )
       })
 
-      const addressDerivationPath = correspondingInput.lockingBytecodeRelativePath
-      const sortedSignersWithPublicKeys = derivePublicKeys({ signers: this.wallet.signers, addressDerivationPath })
+      if (!correspondingInput.redeemScript) continue
+
+      const sortedPublicKeys = sortPublicKeysBip67(extractPublicKeysFromRedeemScript(correspondingInput.redeemScript))
+      const inputLockingBytecode = encodeLockingBytecodeP2sh20(hash160(correspondingInput.redeemScript))
+
       const lockingData = {
         bytecode: {}
       }
-      for (const index in sortedSignersWithPublicKeys) {
-        let publicKey = sortedSignersWithPublicKeys[index].publicKey 
+
+      for (const index in sortedPublicKeys) {
+        let publicKey = sortedPublicKeys[index]
         if (typeof(publicKey) === 'string') {
           publicKey = hexToBin(publicKey)
         }
         lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
       }
 
-      const template = createTemplate({ m: this.wallet.m, signers: sortedSignersWithPublicKeys })
-      const lockingBytecode = getLockingBytecode({ lockingData, template }) // lockingBytecode === lockingScript
-
+      
       // Not our input continue
-
-      if (!binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, lockingBytecode.bytecode)) {
+      if (!binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, inputLockingBytecode)) {
         continue
       }
-
+      
+      const template = createTemplate({ m: this.wallet.m, signers: sortedPublicKeys.map(p => ({ publicKey: p })) })
       const compiler = getCompiler({ template })
+      const bip32RelativeDerivationPath = extractBip32RelativePath(
+        correspondingInput.bip32Derivation[Object.keys(correspondingInput.bip32Derivation)[0]].path
+      )
       const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
-      const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, addressDerivationPath)
-        // Determine the position of the signer on the locking script, sortedSignersWit... is already sorted
-        // so signer position is implicit using this method
-      const signerIndex = sortedSignersWithPublicKeys.findIndex(s => s.xpub === signer.xpub)
-      // Remember signer so we can include it on the signature output
-      signer = sortedSignersWithPublicKeys[signerIndex]
+      const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, bip32RelativeDerivationPath)
+      const decodedHdPublicKey = decodeHdPublicKey(xpub, bip32RelativeDerivationPath)
+      const { publicKey: publicKeyDerivedFromXprvXpub } = deriveHdPathRelative(decodedHdPublicKey.node, bip32RelativeDerivationPath)
+      const signerIndex = sortedPublicKeys.findIndex(publicKeyFromRedeemScript => binsAreEqual(publicKeyFromRedeemScript, publicKeyDerivedFromXprvXpub))
       const sourceOutputUnlockingData = {
         ...lockingData,
         keys: {
@@ -734,7 +737,7 @@ export class Pst {
         continue
       }
       
-      const publicKeysFromRedeemScript = extractPublicKeys(correspondingInput.redeemScript)
+      const publicKeysFromRedeemScript = extractPublicKeysFromRedeemScript(correspondingInput.redeemScript)
       
       const publicKeyDerivedFromXpubForThisInput = publicKeysFromRedeemScript.find((p) => {
         const decodedHdPublicKey = decodeHdPublicKey(xpub)
@@ -808,7 +811,7 @@ export class Pst {
         const inputUnlockingData = {
           bytecode: {}
         }
-        const publicKeys = extractPublicKeys(this.inputs[inputIndex].redeemScript)
+        const publicKeys = extractPublicKeysFromRedeemScript(this.inputs[inputIndex].redeemScript)
         for (const publicKeyIndex in publicKeys ) {
           inputUnlockingData.bytecode[`key${Number(publicKeyIndex) + 1}.public_key`] = publicKeys[publicKeyIndex]
         }
