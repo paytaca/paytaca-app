@@ -922,14 +922,19 @@ export class Pst {
 
   getTotalChangeSatoshis() {
     let total = 0
-    const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
-    for (const index in this.outputs) {
-      if (this.outputs[index].lockingBytecodeRelativePath) {
-        total += Number(transaction.outputs[index].valueSatoshis)
-      }
-    }
+    // const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
+    for (const output of this.outputs) {
+     if (!output.bip32Derivation) continue
+      const pubkey = Object.keys(output.bip32Derivation)[0] 
+      const path = output.bip32Derivation[pubkey].path
+      const relativePath = extractBip32RelativePath(path)
+      if (relativePath.startsWith('1/') ) {
+        total += Number(output.valueSatoshis)
+       }
+     }
     return total
   }
+  
 
   toJSON() {
     const data = {
