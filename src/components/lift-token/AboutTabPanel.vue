@@ -337,6 +337,7 @@
       v-model="showBuyDialog"
       :dark-mode="darkMode"
       :theme="theme"
+      :lift-swap-contract-address="liftSwapContractAddress"
       @purchase="handlePurchase"
     />
   </div>
@@ -363,6 +364,10 @@ export default {
     userLiftBalance: {
       type: Number,
       default: 0
+    },
+    liftSwapContractAddress: {
+      type: String,
+      default: ''
     }
   },
   emits: ['navigate-to-buy'],
@@ -454,16 +459,31 @@ export default {
         this.showBuyDialog = true
       }
     },
-    handlePurchase(purchaseData) {
-      console.log('Purchase data:', purchaseData)
-      this.$q.notify({
-        message: this.$t('PurchaseInitiated', {}, 'Purchase initiated. Please complete the payment in the Reservations tab.'),
-        color: 'positive',
-        icon: 'check_circle',
-        timeout: 3000
-      })
-      // Navigate to reservations tab
-      this.$emit('navigate-to-buy')
+    handlePurchase(result) {
+      if (result?.success) {
+        this.$q.notify({
+          message: this.$t('PurchaseSuccessful', {}, 'Purchase successful. View details in the Purchases tab.'),
+          color: 'positive',
+          icon: 'check_circle',
+          timeout: 3000
+        })
+        this.$emit('navigate-to-buy')
+      } else if (result?.errorMessage) {
+        this.$q.notify({
+          message: result.errorMessage,
+          color: 'negative',
+          icon: 'error',
+          timeout: 4000
+        })
+      } else {
+        this.$q.notify({
+          message: this.$t('PurchaseInitiated', {}, 'Purchase initiated. Please complete the payment in the Reservations tab.'),
+          color: 'positive',
+          icon: 'check_circle',
+          timeout: 3000
+        })
+        this.$emit('navigate-to-buy')
+      }
     }
   }
 }
