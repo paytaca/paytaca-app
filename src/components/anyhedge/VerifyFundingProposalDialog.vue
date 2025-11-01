@@ -22,7 +22,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/transaction/' + spendingTx"
+              :href="'https://explorer.paytaca.com/tx/' + spendingTx"
               target="_blank"
             />
           </div>

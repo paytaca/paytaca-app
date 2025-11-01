@@ -572,10 +572,7 @@ export default {
     },
     explorerLink () {
       const txid = this.transaction.txid
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-
-      if (this.transaction.asset.id.split('/')[0] === 'ct')
-        url = 'https://explorer.bitcoinunlimited.info/tx/'
+      let url = 'https://explorer.paytaca.com/tx/'
 
       if (this.isChipnet) {
         url = `${process.env.TESTNET_EXPLORER_URL}/tx/`

@@ -127,8 +127,8 @@ export async function getChangeAddress (walletType) {
 }
 
 export function getExplorerLink (txid, isCashToken) {
-  let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-  if (isCashToken) url = 'https://explorer.bitcoinunlimited.info/tx/'
+  let url = 'https://explorer.paytaca.com/tx/'
+  if (isCashToken) url = 'https://explorer.paytaca.com/tx/'
   if (isChipnet()) url = 'https://chipnet.chaingraph.cash/tx/'
   return `${url}${txid}`
 }
