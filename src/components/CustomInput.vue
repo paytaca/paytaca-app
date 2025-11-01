@@ -17,11 +17,13 @@
     </template>
   </q-input>
 
-  <custom-keyboard
-    :custom-keyboard-state="keyboardState"
-    v-on:addKey="setAmount"
-    v-on:makeKeyAction="makeKeyAction"
-  />
+  <teleport to="body">
+    <custom-keyboard
+      :custom-keyboard-state="keyboardState"
+      v-on:addKey="setAmount"
+      v-on:makeKeyAction="makeKeyAction"
+    />
+  </teleport>
 </template>
 
 <script>
