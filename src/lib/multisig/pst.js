@@ -603,19 +603,6 @@ export class Pst {
     return hashTransaction(hexToBin(this.unsignedTransactionHex))
   }
 
-
-  _creatorIsCosigner(creator) {
-    return // TODO VALIDATE THAT THE CREATOR IS ONE OF THE SIGNERS OF THE WALLET å
-  }
-
-  addInput(input) {
-    this.inputs.push(input)
-  }
-
-  addOutput(output) {
-    this.outputs.push(output)
-  }
-
   sign(xprv) {
     const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
     let signer = this.wallet.signers.find(signer => signer.xpub === xpub)
@@ -897,33 +884,33 @@ export class Pst {
     return getSigningProgress(this)
   }
 
-  getTotalInputSatoshis() {
-    return this.inputs.reduce((total, input) => {
+  getTotalSatsInput() {
+    return this.inputs.filter(i => !i.sourceOutput?.token).reduce((total, input) => {
       return total + Number(input.sourceOutput.valueSatoshis)
     }, 0)
   }
 
-  getTotalOutputSatoshis() {
+  getTotalSatsOutput() {
     let total = 0
     const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
-    for (const output of transaction.outputs) {
+    for (const output of transaction.outputs.filter(o => !o.token)) {
       total += Number(output.valueSatoshis)
     }
     return total        
   }
 
-  getFeeSatoshis() {
-    return this.getTotalInputSatoshis() - this.getTotalOutputSatoshis()
+  getSatsFee() {
+    return this.getTotalSatsInput() - this.getTotalSatsOutput()
   }
 
-  getTotalDebitSatoshis() {
-    return this.getTotalInputSatoshis() - this.getTotalChangeSatoshis() - this.getFeeSatoshis()
+  getTotalSatsDebit() {
+    return this.getTotalSatsInput() - this.getTotalSatsChange() - this.getSatsFee()
   }
 
-  getTotalChangeSatoshis() {
+  getTotalSatsChange() {
     let total = 0
     // const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
-    for (const output of this.outputs) {
+    for (const output of this.outputs.filter(o => !o.token)) {
      if (!output.bip32Derivation) continue
       const pubkey = Object.keys(output.bip32Derivation)[0] 
       const path = output.bip32Derivation[pubkey].path
@@ -934,7 +921,40 @@ export class Pst {
      }
     return total
   }
-  
+
+  /**
+   * @param {string} category
+   */
+  getTotalTokenInput(category) {
+    return this.inputs.filter(i => i.sourceOutput?.token && binToHex(i.sourceOutput.token.category) === category).reduce((total, input) => {
+      return total + BigInt(input.sourceOutput.token.amount)
+    }, 0n)
+  }
+
+  /**
+   * @param {string} category
+   */
+  getTotalTokenChange(category) {
+    let total = 0n
+    console.log('THIS OUTPUTS', this.outputs)
+    // const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
+    for (const output of this.outputs.filter(o => o.token && binToHex(o.token.category) === category)) {
+      console.log('OUTPUT', output)
+      if (!output.bip32Derivation) continue
+      const pubkey = Object.keys(output.bip32Derivation)[0] 
+      const path = output.bip32Derivation[pubkey].path
+      const relativePath = extractBip32RelativePath(path)
+      if (relativePath.startsWith('1/') ) {
+        total += BigInt(output.token.amount)
+       }
+       console.log('O', output)
+     }
+    return total
+  }
+
+  getTotalTokenDebit(category) {
+    return this.getTotalTokenInput(category) - this.getTotalTokenChange(category)
+  }
 
   toJSON() {
     const data = {
