@@ -343,8 +343,15 @@ export default {
       console.log('- DOM input value:', domInputValue)
       console.log('- memoToSave:', memoToSave)
       
-      if (!this.txid || !memoToSave) {
-        console.log('Early return - txid or memoToSave is empty')
+      if (!this.txid) {
+        console.log('Early return - txid is empty')
+        return
+      }
+      
+      // Check if memo is empty or just whitespace
+      const trimmedMemo = memoToSave.trim()
+      if (!trimmedMemo) {
+        console.log('Early return - memo is empty or just whitespace')
         return
       }
       
@@ -363,14 +370,6 @@ export default {
       try {
         // Ensure user is authenticated before saving
         await authMemo()
-
-        const trimmedMemo = memoToSave.trim()
-        console.log('Saving memo - Original text:', trimmedMemo)
-        
-        if (!trimmedMemo) {
-          console.error('Memo is empty after trimming')
-          return
-        }
 
         // Encrypt the memo before sending
         const encryptedMemo = await encryptMemo(
@@ -431,13 +430,12 @@ export default {
             })
           } else {
             // Successfully saved
-            const savedMemoText = memoToSave.trim()
-            this.transactionMemo = savedMemoText
-            this.memoInput = savedMemoText
+            this.transactionMemo = trimmedMemo
+            this.memoInput = trimmedMemo
             this.hasMemo = true
             this.editingMemo = false
             
-            console.log('Memo saved successfully:', savedMemoText)
+            console.log('Memo saved successfully:', trimmedMemo)
             
             this.$q.notify({
               message: this.$t('MemoSaved', {}, 'Memo saved'),

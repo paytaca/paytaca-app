@@ -8,7 +8,7 @@
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || name || '')"
-        :backnavpath="!backPath ? '/' : backPath"
+        :backnavpath="backNavigationPath"
         class="header-nav"
       />
       <q-banner
@@ -555,6 +555,17 @@ export default {
       if (this.isSLP || this.isCashToken) return 'BCH'
       return this.$store.getters['global/denomination']
     },
+    backNavigationPath () {
+      if (this.backPath) return this.backPath
+      if (this.sent && this.assetId) {
+        // After sending, navigate to transaction list for this asset
+        return {
+          name: 'transaction-list',
+          query: { assetID: this.assetId }
+        }
+      }
+      return '/'
+    },
     theme () {
       return this.$store.getters['global/theme']
     },
@@ -634,7 +645,7 @@ export default {
     selectedAssetMarketPrice () {
       if (!this.bip21Expires) {
         if (!this.selectedAssetMarketPrice) {
-          this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
+          this.$store.dispatch('market/updateAssetPrices', { assetId: this.assetId, customCurrency: this.paymentCurrency })
         }
 
         for (let i = 0; i < this.recipients.length; i++) {
@@ -886,7 +897,7 @@ export default {
 
         currency = paymentUriData.outputs[0].amount?.currency
         vm.paymentCurrency = currency
-        vm.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
+        vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId, customCurrency: currency })
 
         amountValue = paymentUriData.outputs[0].amount?.value
         vm.payloadAmount = paymentUriData.outputs[0].amount?.value
@@ -1585,6 +1596,9 @@ export default {
       if (vm.assetId.indexOf('ct/') > -1) vm.isCashToken = true
       vm.walletType = 'bch'
     }
+
+    // Fetch latest price for the selected asset
+    vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId })
 
     let path = 'send-success.mp3'
     if (this.$q.platform.is.ios) path = 'public/assets/send-success.mp3'

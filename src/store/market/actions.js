@@ -59,10 +59,18 @@ export function getAllAssetList (context) {
   return { mainchain, smartchain }
 }
 
-export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null }) {
+export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null, assetId = null }) {
   const selectedCurrency = context.state.selectedCurrency?.symbol
   const assetList = await context.dispatch('getAllAssetList')
-  const coinIds = [...assetList.mainchain, ...assetList.smartchain]
+  
+  // If assetId is provided, filter to only that asset
+  let assetsToFetch = [...assetList.mainchain, ...assetList.smartchain]
+  if (assetId) {
+    assetsToFetch = assetsToFetch.filter(({ asset }) => asset && asset.id === assetId)
+    if (assetsToFetch.length === 0) return // Asset not found
+  }
+  
+  const coinIds = assetsToFetch
     .map(({ coin }) => coin && coin.id)
     .filter(Boolean)
     .filter((e, i, s) => s.indexOf(e) === i)
@@ -100,7 +108,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
     fetchUsdRate = !coinIds.map(coinId => prices?.[coinId]?.[loweredSelectedCurrency]).every(Boolean)
   }
 
-  const newAssetPrices = [...assetList.mainchain, ...assetList.smartchain]
+  const newAssetPrices = assetsToFetch
     .filter(({ coin, asset }) => coin?.id && asset?.id)
     .map(({ asset, coin }) => {
       return {

@@ -9,7 +9,7 @@
       >
         <div class="col-1">
           <router-link
-            :to="{ path: backnavpath }"
+            :to="backTo"
             class="pt-arrow-left-link"
             :class="{'text-grad': darkMode}"
             :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
@@ -47,7 +47,7 @@
       >
         <div class="col-1">
           <router-link
-            :to="{ path: backnavpath }"
+            :to="backTo"
             class="pt-arrow-left-link"
             :class="{'text-grad': darkMode}"
             :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
@@ -91,7 +91,7 @@ export default {
       default: ''
     },
     backnavpath: {
-      type: String,
+      type: [String, Object],
       default: ''
     },
     rewardsPage: {
@@ -111,6 +111,12 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    backTo () {
+      if (typeof this.backnavpath === 'object') {
+        return this.backnavpath
+      }
+      return { path: this.backnavpath }
     }
   },
   mounted () {
@@ -133,7 +139,11 @@ export default {
   methods: {
     async onClick () {
       if (this.backnavpath) {
-        await this.$router.push({ path: this.backnavpath })
+        if (typeof this.backnavpath === 'object') {
+          await this.$router.push(this.backnavpath)
+        } else {
+          await this.$router.push({ path: this.backnavpath })
+        }
       } else {
         this.$router.go(-1)
       }
