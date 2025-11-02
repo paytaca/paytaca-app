@@ -870,14 +870,18 @@ export default {
       let fungibleTokenAmount = null
       let paymentUriData = null
 
-      const prefixlessAddressValidation = sendPageUtils.parseAddressWithoutPrefix(content)
-      if (prefixlessAddressValidation.valid) {
-        return [
-          prefixlessAddressValidation.address,
-          null,
-          null,
-          null,
-        ]
+      // Only parse as prefixless address if content doesn't have query params
+      // Query params indicate BIP21 URI that needs full parsing
+      if (!content.includes('?')) {
+        const prefixlessAddressValidation = sendPageUtils.parseAddressWithoutPrefix(content)
+        if (prefixlessAddressValidation.valid) {
+          return [
+            prefixlessAddressValidation.address,
+            null,
+            null,
+            null,
+          ]
+        }
       }
 
       try {

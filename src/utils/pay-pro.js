@@ -4,7 +4,8 @@ export async function parsePayPro (uri) {
       bip21: {},
       paypro: {}
     }
-    const uriParser = new URLSearchParams(uri.split('?')[1])
+    const queryString = uri.split('?')[1]
+    const uriParser = new URLSearchParams(queryString)
 
     // Get BIP21 and custom parameters
     if (uriParser.has('amount')) {
@@ -12,6 +13,9 @@ export async function parsePayPro (uri) {
     }
     if (uriParser.has('expires')) {
       data.bip21.expires = parseInt(uriParser.get('expires'))
+    }
+    if (uriParser.has('price_id')) {
+      data.bip21.price_id = uriParser.get('price_id')
     }
 
     // Get PayPro parameters

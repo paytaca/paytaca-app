@@ -441,11 +441,19 @@ export function decodeBIP0021URI(paymentUri, opts) {
     parameters: null,
   }
   const urlObject = new URL(paymentUri)
-  if (!urlObject?.protocol || !urlObject?.pathname) return
+  if (!urlObject?.protocol || !urlObject?.pathname) {
+    return
+  }
 
-  if (!isTokenAddress(`${urlObject.protocol}${urlObject.pathname}`)) {
+  const fullAddress = `${urlObject.protocol}${urlObject.pathname}`
+  const isTokenAddr = isTokenAddress(fullAddress)
+  
+  if (!isTokenAddr) {
     // only check if not token address, bchjs is not cashtoken aware?
-    if (!bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)) return
+    const isCashAddr = bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)
+    if (!isCashAddr) {
+      return
+    }
   }
 
   response.address = urlObject.protocol + urlObject.pathname

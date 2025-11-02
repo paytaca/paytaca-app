@@ -79,6 +79,10 @@ export default {
       type: String,
       default: ''
     },
+    paymentUrl: {
+      type: String,
+      default: ''
+    },
     backPath: {
       type: String,
       default: null
@@ -181,6 +185,10 @@ export default {
           network: this.selectedNetwork,
           address: this.address,
           backPath: this.backPath
+        }
+        // If paymentUrl is provided, pass it to preserve all BIP21 parameters
+        if (this.paymentUrl) {
+          query.paymentUrl = this.paymentUrl
         }
         this.$router.push({
           name: 'transaction-send',

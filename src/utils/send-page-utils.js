@@ -212,7 +212,9 @@ export function parseAddressWithoutPrefix(prefixlessAddress) {
   if (typeof prefixlessAddress !== 'string') return {valid: false, error: 'Invalid address' }
 
   const resultWPrefix = decodeCashAddress(prefixlessAddress)
-  if (typeof resultWPrefix !== 'string') return { valid: true, address: prefixlessAddress }
+  if (typeof resultWPrefix !== 'string') {
+    return { valid: true, address: prefixlessAddress }
+  }
 
   const result = decodeCashAddressFormatWithoutPrefix(prefixlessAddress)
   if (typeof result === 'string') return { valid: false, error: result }
