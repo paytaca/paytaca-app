@@ -358,6 +358,7 @@ import { getNetworkTimeDiff } from 'src/utils/time'
 import { getCashbackAmount } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
+import Watchtower from 'watchtower-cash-js'
 import {
   getWalletByNetwork,
   convertTokenAmount
@@ -543,7 +544,9 @@ export default {
       isWalletAddress: false,
       userSelectedChangeAddress: '',
       focusedInputField: '',
-      isScrolledToBottom: false
+      isScrolledToBottom: false,
+      priceId: null,
+      priceIdPrice: null
     }
   },
 
@@ -720,6 +723,21 @@ export default {
       this.isScrolledToBottom = (scrollTop + clientHeight >= scrollHeight - threshold)
     },
 
+    // Fetch price by price_id
+    async fetchPriceById(priceId) {
+      if (!priceId) return null
+      try {
+        const watchtower = new Watchtower(this.isChipnet)
+        const response = await watchtower.BCH._api.get(`asset-price-log/${priceId}/`)
+        if (response?.data?.price_value) {
+          return parseFloat(response.data.price_value)
+        }
+      } catch (error) {
+        console.error('Error fetching price by price_id:', error)
+      }
+      return null
+    },
+
     // ========== main methods ==========
     // on component mount
     async initWallet () {
@@ -791,7 +809,9 @@ export default {
         if (typeof currency === 'string') {
           const newSelectedCurrency = vm.currencyOptions.find(_currency => _currency?.symbol === currency)
           if (newSelectedCurrency?.symbol) {
-            amount = (amountValue / vm.selectedAssetMarketPrice).toFixed(8)
+            // Use priceIdPrice if available, otherwise use selectedAssetMarketPrice
+            const priceToUse = vm.priceIdPrice || vm.selectedAssetMarketPrice
+            amount = (amountValue / priceToUse).toFixed(8)
 
             currentRecipient.amount = amount
             currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
@@ -902,6 +922,13 @@ export default {
         amountValue = paymentUriData.outputs[0].amount?.value
         vm.payloadAmount = paymentUriData.outputs[0].amount?.value
         address = paymentUriData.outputs[0].address
+      }
+
+      // Extract price_id from payment URI if present
+      if (paymentUriData?.otherParams?.price_id) {
+        vm.priceId = paymentUriData.otherParams.price_id
+        // Fetch price using price_id
+        vm.priceIdPrice = await vm.fetchPriceById(vm.priceId)
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -1246,7 +1273,7 @@ export default {
             changeAddress = this.userSelectedChangeAddress
           }
           getWalletByNetwork(vm.wallet, 'bch')
-            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients)
+            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, vm.priceId)
             .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
         } else if (toSendSlpRecipients.length > 0) {
           const tokenId = vm.assetId.split('slp/')[1]

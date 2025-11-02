@@ -154,15 +154,17 @@ class Watchtower extends WatchtowerSdk {
     }
   }
 
-  async broadcastTx (tx) {
+  async broadcastTx (tx, priceId) {
+    const body = { transaction: tx }
+    if (priceId) {
+      body.price_id = priceId
+    }
     const r = await fetch(`${this._baseUrl}broadcast/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        transaction: tx
-      })
+      body: JSON.stringify(body)
     })
     if (r.status >= 400) {
       this.error =

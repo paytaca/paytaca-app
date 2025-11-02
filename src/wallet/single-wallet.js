@@ -180,7 +180,7 @@ export default class SingleWallet {
    * @param {{ tokenId: String, commitment?: String, capability?: String, txid?: String, vout?: Number }} [token]
    * @returns {import("watchtower-cash-js/dist/bch").SendResponse}
    */
-  sendBch(recipients, token, broadcast=true) {
+  sendBch(recipients, token, broadcast=true, priceId) {
     let address;
     if (token) {
       address = this.isChipnet ? this.testnetTokenAddress : this.tokenAddress; 
@@ -193,6 +193,9 @@ export default class SingleWallet {
       changeAddress: this.isChipnet ? this.testnetAddress : this.cashAddress,
       token,
       broadcast: broadcast,
+    }
+    if (priceId) {
+      data.priceId = priceId
     }
     return this.watchtower.BCH.send(data);
   }
