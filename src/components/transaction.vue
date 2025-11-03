@@ -42,16 +42,16 @@
                   balance: stablehedgeTxView ? stablehedgeTxData?.bch : transaction.amount
                 })}` }}
               </q-item-label>
-              <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
+              <q-item-label v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="row items-center text-caption">
                 <template v-if="stablehedgeTxView">
                   {{ `${parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency)}` }}
                 </template>
                 <template v-else>
                   <template v-if="transaction.record_type === 'outgoing'">
-                    {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                    {{ `${parseFiatCurrency(displayFiatAmount, selectedMarketCurrency)}` }}
                   </template>
                   <template v-else>
-                    {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                    {{ `${parseFiatCurrency(displayFiatAmount, selectedMarketCurrency)}` }}
                   </template>
                   <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
                     <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
@@ -614,6 +614,17 @@ export default {
       }
 
       return (Number(transaction.amount) * Number(this.marketAssetPrice)).toFixed(5)
+    },
+    // Prefer provided fiat_amounts for the selected fiat currency; otherwise fallback
+    // to the computed market value. Accept zero values as valid.
+    fiatAmountOverride () {
+      const code = this.selectedMarketCurrency
+      const provided = code && this.transaction?.fiat_amounts ? this.transaction.fiat_amounts[code] : undefined
+      const numeric = Number(provided)
+      return Number.isFinite(numeric) ? numeric : null
+    },
+    displayFiatAmount () {
+      return this.fiatAmountOverride ?? this.transactionAmountMarketValue
     },
     txFeeMarketValue () {
       const bchMarketValue = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)

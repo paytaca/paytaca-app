@@ -45,11 +45,11 @@
               }}
             </div>
             <div
-              v-if="marketValueData?.marketValue"
+              v-if="displayFiatAmount !== null && displayFiatAmount !== undefined"
               class="amount-secondary"
               :class="getDarkModeClass(darkMode)"
             >
-              {{ parseFiatCurrency(marketValueData?.marketValue, selectedMarketCurrency) }}
+              {{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}
             </div>
           </template>
         </div>
@@ -168,6 +168,19 @@ const marketValueData = computed(() => {
     }
   }
   return data
+})
+
+// Prefer provided fiat_amounts in the transaction when available for the
+// wallet's preferred fiat currency; otherwise fall back to computed market value.
+const fiatAmountOverride = computed(() => {
+  const code = selectedMarketCurrency.value
+  const provided = code && props.transaction?.fiat_amounts ? props.transaction.fiat_amounts[code] : undefined
+  const numeric = Number(provided)
+  return Number.isFinite(numeric) ? numeric : null
+})
+
+const displayFiatAmount = computed(() => {
+  return fiatAmountOverride.value ?? marketValueData.value?.marketValue
 })
 
 const badges = computed(() => {
