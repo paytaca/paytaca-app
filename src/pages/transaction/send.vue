@@ -151,7 +151,7 @@
                       @click="showQrScanner = true"
                     >
                       <div class="column items-center q-py-sm">
-                        <q-icon name="mdi-camera" size="32px"/>
+                        <q-icon name="mdi-qrcode-scan" size="32px"/>
                         <div class="text-caption q-mt-xs">{{ $t('Camera', {}, 'Camera') }}</div>
                       </div>
                     </q-btn>

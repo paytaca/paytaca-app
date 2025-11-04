@@ -2,7 +2,7 @@
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + ' ' + asset.symbol)"
-      backnavpath="/receive/select-asset"
+      :backnavpath="backNavPath"
       class="header-nav"
     ></header-nav>
     <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -248,6 +248,14 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    backNavPath () {
+      const back = this.$router && this.$router.options && this.$router.options.history && this.$router.options.history.state
+        ? this.$router.options.history.state.back || ''
+        : ''
+      // If navigated from receive asset selector, go back there; otherwise go home
+      if (typeof back === 'string' && back.includes('/receive/select-asset')) return '/receive/select-asset'
+      return '/'
     },
     theme () {
       return this.$store.getters['global/theme']

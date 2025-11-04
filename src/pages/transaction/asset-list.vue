@@ -463,15 +463,14 @@ export default {
 	      })
 	    },
 	    async fetchAssetInfo (list) {
-	    	let temp = []
-	    	
-	    	for (const id of list) {	    		
+	    	const ids = Array.isArray(list) ? list : []
+	    	const temp = []
+	    	for (const id of ids) {
 	    		const asset = await this.$store.getters['assets/getAsset'](id)
-	    		
-	    		if (asset.length > 0) {	    			
+	    		if (Array.isArray(asset) && asset.length > 0) {
 	    			temp.push(asset[0])
-	    		}	    		
-	    	}	    	
+	    		}
+	    	}
 	    	return temp
 	    },
 	    async getUnlistedTokens (opts = { includeIgnored: false }) {

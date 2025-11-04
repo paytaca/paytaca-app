@@ -25,8 +25,17 @@
         :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
         @click="openLesson(lesson)"
       >
-        <div class="lesson-icon-wrapper" :style="{ background: lesson.gradient }">
-          <div class="lesson-icon">{{ lesson.icon }}</div>
+        <div class="lesson-media" :class="darkMode ? 'dark' : 'light'">
+          <img
+            v-if="getLessonImage(lesson)"
+            :src="getLessonImage(lesson)"
+            alt="lesson image"
+            class="lesson-img"
+            loading="lazy"
+          />
+          <div v-else class="lesson-fallback" :style="{ background: lesson.gradient }">
+            <div class="lesson-icon">{{ lesson.icon }}</div>
+          </div>
         </div>
         <div class="lesson-title">{{ lesson.title }}</div>
         <div class="lesson-description" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
@@ -63,6 +72,10 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    getLessonImage(lesson) {
+      // Prefer explicit image fields; fallback to thumbnail or cover
+      return lesson?.image || lesson?.thumbnail || lesson?.cover || ''
+    },
     async fetchLessons() {
       if (this.loading) return
       
@@ -190,18 +203,32 @@ export default {
   }
 }
 
-.lesson-icon-wrapper {
-  width: 48px;
-  height: 48px;
+.lesson-media {
+  width: 128px;
+  height: 128px;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   margin-bottom: 12px;
+}
+.lesson-media.dark { background: rgba(255,255,255,0.06); }
+.lesson-media.light { background: rgba(0,0,0,0.04); }
+
+.lesson-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.lesson-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
 }
 
 .lesson-icon {
-  font-size: 24px;
+  font-size: 36px;
   line-height: 1;
 }
 
