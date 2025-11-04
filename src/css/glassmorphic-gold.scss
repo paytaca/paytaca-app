@@ -32,8 +32,19 @@ body.theme-glassmorphic-gold {
   /* ----- IDS ----- */
   #registration-container {
     min-height: 100vh;
-    background-image: $bg_gradient;
     position: relative !important;
+
+    &.dark {
+      background: #3d3224 !important;
+    }
+
+    &.light {
+      background-color: #fff8e1 !important;
+    }
+
+    &.grad {
+      background-image: $bg_gradient;
+    }
 
     .q-field--dark {
       .q-field__control {

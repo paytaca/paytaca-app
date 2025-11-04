@@ -211,8 +211,17 @@
             </asset-cards>
           </template>
           <div v-if="assets.length == 0" style="margin-bottom: 10px;">
-            <div class="text-center text-black">
-                <q-btn class="br-15" outline color="primary" label="Add New Asset" @click="addNewAsset()"/>
+            <div class="text-center">
+              <q-btn
+                outline
+                no-caps
+                class="br-15"
+                color="grey-7"
+                icon="call_received"
+                padding="xs md"
+                label="Receive Tokens"
+                @click="$router.push({ name: 'transaction-receive', query: { assetId: 'ct/unlisted', network: 'BCH' } })"
+              />
             </div>
           </div>
 

@@ -1,7 +1,7 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
-      :title="$t('Receive') + ' ' + asset.symbol"
+      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + ' ' + asset.symbol)"
       backnavpath="/receive/select-asset"
       class="header-nav"
     ></header-nav>
@@ -79,7 +79,7 @@
           <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
           <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
         </div>
-        <div class="row q-mt-md" v-if="walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
+        <div class="row q-mt-md" v-if="!generating && walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
           <q-toggle
             v-model="legacy"
             class="text-bow"
@@ -90,30 +90,31 @@
             :label="$t('LegacyAddressFormat')"
           />
         </div>
-        <div class="row">
+        <div class="row" v-if="!generating">
           <div class="col copy-container">
-            <span class="qr-code-text text-weight-light text-center">
+            <div class="qr-code-text text-weight-light text-center">
               <div
-                class="text-nowrap text-bow"
-                style="letter-spacing: 1px;"
+                class="text-bow"
+                style="letter-spacing: 1px; word-break: break-all;"
                 @click="copyToClipboard(isCt ? address : addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
-                {{ address.substring(0, 16) }}...{{ address.substring(address.length - 4) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
+                {{ address }}
               </div>
-              <div v-if="lnsName" class="text-center text-caption" style="color: #000 !important;">
-                {{ lnsName }}
-                <q-btn
-                  type="a"
-                  size="sm"
-                  flat
-                  padding="none"
-                  icon="open_in_new"
-                  :href="`https://app.bch.domains/name/${lnsName}/details`"
-                  target="_blank"
-                />
-              </div>
-            </span>
+              
+            </div>
+            <div class="row justify-center q-mt-md q-mx-lg">
+              <q-btn
+                outline
+                no-caps
+                class="br-15"
+                color="grey-7"
+                icon="content_copy"
+                padding="xs md"
+                :label="$t('ClickToCopyAddress')"
+                @click="copyToClipboard(isCt ? address : addressAmountFormat)"
+              />
+            </div>
             <div v-if="amount && !isCt" class="text-center">
               <q-separator class="q-mb-sm q-mx-md q-mt-md" style="height: 2px;" />
               <div class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -127,7 +128,7 @@
               </div>
             </div>
             <div
-              v-if="!isCt"
+              v-if="!isCt && !assetId.endsWith('unlisted')"
               class="text-center button button-text-primary q-pt-md"
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
@@ -224,7 +225,6 @@ export default {
       assetLoaded: false,
       legacy: false,
       showLegacy: false,
-      lnsName: '',
       generateAddressOnLeave: false,
       generating: true, // Start as true, set to false after address loads
       amount: '',
@@ -354,18 +354,6 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    updateLnsName () {
-      if (!this.isSep20) return
-      if (!this.address) return
-
-      return this.$store.dispatch('lns/resolveAddress', { address: this.address })
-        .then(response => {
-          if (response && response.name) {
-            this.lnsName = response.name
-            return Promise.resolve(response)
-          }
-        })
     },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
@@ -737,10 +725,7 @@ export default {
   },
 
   watch: {
-    address () {
-      this.lnsName = ''
-      this.updateLnsName()
-    },
+    address () {},
     walletType () {
       // Refresh dynamic address when wallet type changes
       this.refreshDynamicAddress()
@@ -799,7 +784,6 @@ export default {
     await vm.refreshDynamicAddress()
     
     vm.setupListener()
-    this.updateLnsName()
 
     let path = 'send-success.mp3'
     if (this.$q.platform.is.ios) {

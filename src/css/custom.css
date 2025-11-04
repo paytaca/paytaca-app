@@ -72,7 +72,6 @@ a {
 
 #registration-container {
   min-height: 100vh;
-  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
   position: relative !important;
 }
 

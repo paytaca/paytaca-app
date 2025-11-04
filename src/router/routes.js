@@ -94,7 +94,11 @@ const routes = [
     path: '/accounts',
     component: () => import('layouts/Accounts.vue'),
     children: [
-      { path: '', component: () => import('pages/registration/accounts.vue'), name: 'create-account', props: route => route.query }
+      { path: '', component: () => import('pages/registration/accounts.vue'), name: 'create-account', props: route => route.query },
+      { path: 'create/step-1', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-1', props: route => route.query },
+      { path: 'create/step-2', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-2', props: route => route.query },
+      { path: 'create/step-3', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-3', props: route => route.query },
+      { path: 'create/step-4', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-4', props: route => route.query }
     ]
   },
   {

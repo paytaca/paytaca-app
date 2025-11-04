@@ -93,7 +93,7 @@
                   </q-badge>
                 </template>
               </q-item-label>
-              <div v-if="!transaction.asset.id.startsWith('bch')">
+              <div v-if="showTokenTypeBadge">
                 <TokenTypeBadge :assetId="transaction.asset.id" abbreviate />
               </div>
             </q-item-section>
@@ -583,6 +583,19 @@ export default {
     isSep20Tx () {
       const hash = String(this.transaction && this.transaction.hash)
       return /^0x[0-9a-f]{64}/i.test(hash)
+    },
+    enableSLP () {
+      return this.$store.getters['global/enableSLP']
+    },
+    isCTAsset () {
+      const id = String(this.transaction?.asset?.id || '')
+      return id.startsWith('ct/')
+    },
+    showTokenTypeBadge () {
+      const id = String(this.transaction?.asset?.id || '')
+      if (id.startsWith('bch')) return false
+      if (this.isCTAsset && !this.enableSLP) return false
+      return true
     },
     fallbackAssetLogo () {
       if (!this.transaction || !this.transaction.asset) return ''

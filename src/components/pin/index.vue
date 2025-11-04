@@ -288,6 +288,11 @@ export default {
           .then(() => {
             setTimeout(() => {
               if (vm.pinDialogAction === 'SET UP') {
+                // Finish loader and close dialog before proceeding
+                vm.loader = false
+                vm.removeKey('reset')
+                vm.dialog = false
+                vm.$emit('update:pinDialogAction', '')
                 vm.$emit('nextAction', 'proceed')
               } else {
                 resetAll()
@@ -300,17 +305,13 @@ export default {
         vm.loader = false
         vm.removeKey('reset')
         vm.$emit('nextAction')
-        try {
-          vm.pinDialogAction = ''
-        } catch {}
-        finally {
-          vm.$emit('update:pinDialogAction')
-        }
+        vm.$emit('update:pinDialogAction', '')
       }
     },
     cancelPin () {
       this.removeKey('reset')
       this.$emit('nextAction', 'cancel')
+      this.$emit('update:pinDialogAction', '')
     }
   }
 }
