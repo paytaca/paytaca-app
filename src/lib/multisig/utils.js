@@ -234,3 +234,78 @@ export const estimateUnlockingBytecodeSize = (m, n, sigType = 'ecdsa') => {
 
   return scriptSigSize
 }
+
+/**
+ * Return the non-hardened part of a BIP32 derivation path.
+ * Example: "m/48'/145'/0'/0/5" → "0/5"
+ */
+export const bip32ExtractRelativePath = (fullPath) => {
+  if (!fullPath.startsWith("m/")) {
+    throw new Error("Path must start with 'm/'");
+  }
+
+  const parts = fullPath
+    .slice(2)
+    .split('/')
+    .filter(Boolean);
+
+  const lastHardenedIndex = parts.reduce(
+    (idx, el, i) => (el.endsWith("'") ? i : idx),
+    -1
+  );
+
+  const nonHardened = parts.slice(lastHardenedIndex + 1).join('/');
+  return nonHardened || '';
+}
+
+/**
+ * Encode a BIP32 derivation path string (e.g. "m/44'/145'/0'/0/5")
+ * into a Uint8Array of 32-bit little-endian integers. The derivation 
+ * path is represented as 32 bit unsigned integer indexes concatenated 
+ * with each other.
+ */
+export function bip32EncodeDerivationPath(path) {
+  if (!path.startsWith("m/")) {
+    throw new Error("Path must start with 'm/'");
+  }
+
+  const elements = path
+    .slice(2)
+    .split("/")
+    .filter(Boolean);
+
+  const bytes = new Uint8Array(elements.length * 4);
+  const view = new DataView(bytes.buffer);
+
+  elements.forEach((el, i) => {
+    const hardened = el.endsWith("'");
+    const index = parseInt(el.replace("'", ""), 10);
+    const value = hardened ? index + 0x80000000 : index;
+    view.setUint32(i * 4, value, true); // little-endian
+  });
+
+  return bytes;
+}
+
+
+/**
+ * Decode a Uint8Array of 32-bit little-endian integers
+ * back into a BIP32 path string (e.g. "m/44'/145'/0'/0/5").
+ */
+export function bip32DecodeDerivationPath(bytes) {
+  if (bytes.length % 4 !== 0) {
+    throw new Error("Invalid derivation path bytes");
+  }
+
+  const view = new DataView(bytes.buffer);
+  const elements = [];
+
+  for (let i = 0; i < bytes.length; i += 4) {
+    const value = view.getUint32(i, true); // little-endian
+    const hardened = value >= 0x80000000;
+    const index = hardened ? value - 0x80000000 : value;
+    elements.push(hardened ? `${index}'` : `${index}`);
+  }
+
+  return "m/" + elements.join("/");
+}

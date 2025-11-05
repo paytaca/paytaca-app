@@ -155,7 +155,7 @@ const loadAddresses = () => {
             address: wallet.value.getDepositAddress(i, cashAddressNetworkPrefix.value, cashAddressNetworkPrefix).address
         })
     }
-    const high2 = (wallet.value.getLastIssuedChangeAddressIndex(wallet.value.options.provider.network) ?? 0) > 20 ? wallet.value.getLastIssuedChangeAddressIndex(wallet.value.options.provider.network) : 20
+    const high2 = (wallet.value.getLastUsedChangeAddressIndex(wallet.value.options.provider.network) ?? 0) > 20 ? wallet.value.getLastUsedChangeAddressIndex(wallet.value.options.provider.network) : 20
     for (let i = 0; i < high2; i++) {
         changeAddresses.value.push({
             index: i,

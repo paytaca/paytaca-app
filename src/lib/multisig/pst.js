@@ -110,7 +110,7 @@ import {
 
 import { derivePublicKeys, getLockingBytecode, getCompiler, getLockingData, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
 import { createTemplate } from './template.js'
-import { extractBip32RelativePath } from './utils.js'
+import { bip32ExtractRelativePath } from './utils.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -520,58 +520,6 @@ export const publicKeySigned = ({ publicKey, pst }) => {
     return allInputsAreSigned.every(isSigned => isSigned)
 }
 
-/**
- * Encode a BIP32 derivation path string (e.g. "m/44'/145'/0'/0/5")
- * into a Uint8Array of 32-bit little-endian integers. The derivation 
- * path is represented as 32 bit unsigned integer indexes concatenated 
- * with each other.
- */
-export function encodeDerivationPath(path) {
-  if (!path.startsWith("m/")) {
-    throw new Error("Path must start with 'm/'");
-  }
-
-  const elements = path
-    .slice(2)
-    .split("/")
-    .filter(Boolean);
-
-  const bytes = new Uint8Array(elements.length * 4);
-  const view = new DataView(bytes.buffer);
-
-  elements.forEach((el, i) => {
-    const hardened = el.endsWith("'");
-    const index = parseInt(el.replace("'", ""), 10);
-    const value = hardened ? index + 0x80000000 : index;
-    view.setUint32(i * 4, value, true); // little-endian
-  });
-
-  return bytes;
-}
-
-/**
- * Decode a Uint8Array of 32-bit little-endian integers
- * back into a BIP32 path string (e.g. "m/44'/145'/0'/0/5").
- */
-export function decodeDerivationPath(bytes) {
-  if (bytes.length % 4 !== 0) {
-    throw new Error("Invalid derivation path bytes");
-  }
-
-  const view = new DataView(bytes.buffer);
-  const elements = [];
-
-  for (let i = 0; i < bytes.length; i += 4) {
-    const value = view.getUint32(i, true); // little-endian
-    const hardened = value >= 0x80000000;
-    const index = hardened ? value - 0x80000000 : value;
-    elements.push(hardened ? `${index}'` : `${index}`);
-  }
-
-  return "m/" + elements.join("/");
-}
-
-
 export class Pst {
 
   /**
@@ -646,7 +594,7 @@ export class Pst {
       
       const template = createTemplate({ m: this.wallet.m, signers: sortedPublicKeys.map(p => ({ publicKey: p })) })
       const compiler = getCompiler({ template })
-      const bip32RelativeDerivationPath = extractBip32RelativePath(
+      const bip32RelativeDerivationPath = bip32ExtractRelativePath(
         correspondingInput.bip32Derivation[Object.keys(correspondingInput.bip32Derivation)[0]].path
       )
       const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
@@ -730,7 +678,7 @@ export class Pst {
         const decodedHdPublicKey = decodeHdPublicKey(xpub)
         const { publicKey } = deriveHdPathRelative(
           decodedHdPublicKey.node, 
-          extractBip32RelativePath(correspondingInput.bip32Derivation[binToHex(p)].path)
+          bip32ExtractRelativePath(correspondingInput.bip32Derivation[binToHex(p)].path)
         )
         return binsAreEqual(publicKey, p) 
       })
@@ -914,7 +862,7 @@ export class Pst {
      if (!output.bip32Derivation) continue
       const pubkey = Object.keys(output.bip32Derivation)[0] 
       const path = output.bip32Derivation[pubkey].path
-      const relativePath = extractBip32RelativePath(path)
+      const relativePath = bip32ExtractRelativePath(path)
       if (relativePath.startsWith('1/') ) {
         total += Number(output.valueSatoshis)
        }
@@ -936,14 +884,12 @@ export class Pst {
    */
   getTotalTokenChange(category) {
     let total = 0n
-    console.log('THIS OUTPUTS', this.outputs)
     // const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
     for (const output of this.outputs.filter(o => o.token && binToHex(o.token.category) === category)) {
-      console.log('OUTPUT', output)
       if (!output.bip32Derivation) continue
       const pubkey = Object.keys(output.bip32Derivation)[0] 
       const path = output.bip32Derivation[pubkey].path
-      const relativePath = extractBip32RelativePath(path)
+      const relativePath = bip32ExtractRelativePath(path)
       if (relativePath.startsWith('1/') ) {
         total += BigInt(output.token.amount)
        }
@@ -1187,8 +1133,6 @@ export class Pst {
         return result
       }
     }
-
-    
     return v
   }
 
