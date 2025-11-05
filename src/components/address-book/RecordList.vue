@@ -18,7 +18,7 @@
           v-ripple
         >
           <q-item-section>
-            <q-item-label>{{ rec.name }}</q-item-label>
+            <q-item-label id="name-label">{{ rec.name }}</q-item-label>
             <q-item-label caption>
               {{ rec.address_count }}
               {{ rec.address_count === 1 ? 'address' : 'addresses' }}
@@ -39,3 +39,11 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+#name-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+</style>
