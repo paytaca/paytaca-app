@@ -1647,9 +1647,6 @@ export default {
 </script>
 
 <style lang="scss">
-  .q-field--outlined .q-field__control:before {
-    border: 2px solid #3b7bf6;
-  }
   @keyframes fadein {
     from{ opacity:0; }
     to{ opacity:1; }
