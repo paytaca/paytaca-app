@@ -117,6 +117,7 @@ export default {
       isCashToken: true,
       tokenNotFoundDialog: null,
       favorites: [],
+      customList: null,
       showAllTokens: false
     }
   },
@@ -168,20 +169,42 @@ export default {
         assets = assets.slice(1)
       }
 
-      // Sort: BCH first, then favorites (preserving their assigned order), then others
+      // Sort: BCH first, then favorites (using custom list order), then others
       const bchAsset = assets.find(asset => asset?.id === 'bch')
       const favoriteTokenIds = vm.favorites
         .filter(item => item.favorite === 1)
         .map(item => item.id)
       
-      // Sort favorites according to their order in the favorites array
-      const favoriteAssets = favoriteTokenIds
-        .map(id => assets.find(asset => asset?.id === id))
-        .filter(Boolean)
-      
-      const otherAssets = assets.filter(asset => 
-        asset?.id !== 'bch' && !favoriteTokenIds.includes(asset?.id)
-      )
+      // Build ordered list from custom list if available
+      let orderedAssets = []
+      if (vm.customList && vm.customList.BCH && Array.isArray(vm.customList.BCH)) {
+        // Map all assets from custom list in order (excluding BCH which is handled separately)
+        orderedAssets = vm.customList.BCH
+          .map(id => {
+            // Skip BCH as it's handled separately
+            if (id === 'bch') return null
+            return assets.find(asset => {
+              const aid = String(asset?.id || '')
+              return aid === id || aid.endsWith('/' + id)
+            })
+          })
+          .filter(Boolean)
+      } else {
+        // Fallback: use all assets in their current order
+        orderedAssets = assets.filter(asset => asset?.id !== 'bch')
+      }
+
+      // Separate into favorites and others, preserving custom list order
+      const favoriteAssets = orderedAssets.filter(asset => {
+        const aid = String(asset?.id || '')
+        return favoriteTokenIds.some(fid => fid === aid || aid.endsWith('/' + fid))
+      })
+
+      const sortedOtherAssets = orderedAssets.filter(asset => {
+        const aid = String(asset?.id || '')
+        const isFav = favoriteTokenIds.some(fid => fid === aid || aid.endsWith('/' + fid))
+        return !isFav
+      })
 
       // Hide non-favorite tokens by default
       if (!vm.showAllTokens) {
@@ -194,7 +217,7 @@ export default {
       return [
         ...(bchAsset ? [bchAsset] : []),
         ...favoriteAssets,
-        ...otherAssets
+        ...sortedOtherAssets
       ]
     },
     hasNonFavoriteTokens () {
@@ -282,14 +305,20 @@ export default {
     const assets = vm.$store.getters['assets/getAssets']
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
-    // Fetch favorites for sorting
+    // Fetch custom list and favorites for sorting
     try {
-      const favorites = await assetSettings.fetchFavorites()
+      const [customList, favorites] = await Promise.all([
+        assetSettings.fetchCustomList(),
+        assetSettings.fetchFavorites()
+      ])
+      if (customList && !('error' in customList)) {
+        vm.customList = customList
+      }
       if (favorites && Array.isArray(favorites)) {
         vm.favorites = favorites
       }
     } catch (error) {
-      console.error('Error fetching favorites:', error)
+      console.error('Error fetching custom list or favorites:', error)
     }
 
     if (this.$route.query.error === 'token-mismatch') {
