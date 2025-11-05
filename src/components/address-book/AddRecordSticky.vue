@@ -10,7 +10,7 @@
         self="center right"
         :offset="[10, 10]"
       >
-        Add New Contact
+        Add New Record
       </q-tooltip>
     </q-btn>
   </q-page-sticky>
@@ -18,6 +18,6 @@
 
 <script>
 export default {
-  name: 'AddContactSticky'
+  name: 'AddRecordSticky'
 }
 </script>
