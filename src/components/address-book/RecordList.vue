@@ -16,6 +16,7 @@
         <q-item
           clickable
           v-ripple
+          @click="$router.push(`view-record/${rec.id}/`)"
         >
           <q-item-section>
             <q-item-label id="name-label">{{ rec.name }}</q-item-label>

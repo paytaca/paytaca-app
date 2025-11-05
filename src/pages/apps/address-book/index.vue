@@ -102,17 +102,17 @@ export default {
         letter_group: 'favorites',
         data: [
           {
-            id: 1,
+            id: 2,
             name: '_hearty737',
             address_count: 5
           },
           {
-            id: 1,
+            id: 3,
             name: 'Fiona Apple',
             address_count: 1
           },
           {
-            id: 1,
+            id: 4,
             name: 'Wendy Darling',
             address_count: 0
           }

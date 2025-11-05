@@ -284,6 +284,11 @@ const routes = [
             path: '',
             name: 'app-address-book',
             component: () => import('src/pages/apps/address-book/index.vue')
+          },
+          {
+            path: 'view-record/:id/',
+            name: 'app-address-book-view-record',
+            component: () => import('src/pages/apps/address-book/view-record.vue')
           }
         ]
       }
