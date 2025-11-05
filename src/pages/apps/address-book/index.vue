@@ -14,51 +14,54 @@
             id="header-nav"
           />
 
-          <!-- loading skeletons animation -->
-      
+          
           <div class="q-px-md">
-            <!-- search bar -->
-            <div
-              class="full-width q-mb-md"
-              id="search-filter-div"
-            >
-              <q-input
-                rounded
-                outlined
-                clearable
-                dense
-                label="Search name"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="search"></q-icon>
-                </template>
-              </q-input>
-            </div>
+            <!-- loading skeletons animation -->
 
-            <!-- lists container -->
-            <div id="lists-container">
-              <!-- favorites list -->
-              <div v-if="favoritesList.length > 0">
-                <record-list :list="favoritesList" />
+            <!-- <template> -->
+              <!-- search bar -->
+              <div
+                class="full-width q-mb-md"
+                id="search-filter-div"
+              >
+                <q-input
+                  rounded
+                  outlined
+                  clearable
+                  dense
+                  label="Search name"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="search"></q-icon>
+                  </template>
+                </q-input>
               </div>
   
-              <!-- contacts list -->
-               <div v-if="recordsList.length > 0">
-                <record-list :list="recordsList" />
-               </div>
-  
-               <div
-                class="text-center text-h6 q-mt-md"
-                :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-                v-else
-              >
-                <p>Empty address book</p>
-                <p>
-                  Click on <q-icon name="mdi-account-plus" size="sm" />
-                  to add a new record
-                </p>
-               </div>
-            </div>
+              <!-- lists container -->
+              <div id="lists-container">
+                <!-- favorites list -->
+                <div v-if="favoritesList.length > 0">
+                  <record-list :list="favoritesList" />
+                </div>
+    
+                <!-- contacts list -->
+                 <div v-if="recordsList.length > 0">
+                  <record-list :list="recordsList" />
+                 </div>
+    
+                 <div
+                  class="text-center text-h6 q-mt-md"
+                  :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+                  v-else
+                >
+                  <p>Empty address book</p>
+                  <p>
+                    Click on <q-icon name="mdi-account-plus" size="sm" />
+                    to add a new record
+                  </p>
+                 </div>
+              </div>
+            <!-- </template> -->
           </div>
 
           <!-- add new record sticky button -->
