@@ -178,6 +178,7 @@
               :manage-assets="manageAssets"
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
+              :refreshing-token-ids="refreshingTokenIds"
               :network="selectedNetwork"
               :wallet="wallet"
               :isCashToken="isCashToken"
@@ -197,6 +198,7 @@
               :manage-assets="manageAssets"
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
+              :refreshing-token-ids="refreshingTokenIds"
               v-dragscroll.x="true"
               :network="selectedNetwork"
               :wallet="wallet"
@@ -397,6 +399,7 @@ export default {
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       balanceLoaded: false,
+      refreshingTokenIds: [],
       wallet: null,
       manageAssets: false,
       assetInfoShown: false,
@@ -1100,6 +1103,9 @@ export default {
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
 
+        // Refresh favorite tokens + BCH
+        const favoriteRefreshPromise = vm.refreshFavoriteTokenBalances()
+
         const balancePromise = vm.getBalance(vm.selectedAsset.id)
         // const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
 
@@ -1112,6 +1118,7 @@ export default {
 
         return Promise.allSettled([
           balancePromise,
+          favoriteRefreshPromise,
           // txFetchPromise,
           tokenIconUpdatePromise,
         ])
@@ -1120,6 +1127,56 @@ export default {
         vm.transactionsLoaded = true
       }
       this.adjustTransactionsDivHeight()
+    },
+    async refreshFavoriteTokenBalances() {
+      const vm = this
+      try {
+        // Fetch favorites from server
+        const favorites = await assetSettings.fetchFavorites()
+        
+        if (!favorites || !Array.isArray(favorites)) {
+          return Promise.resolve()
+        }
+
+        // Extract favorite token IDs (where favorite === 1)
+        const favoriteTokenIds = favorites
+          .filter(item => item.favorite === 1)
+          .map(item => item.id)
+          .filter(Boolean) // Remove any undefined/null values
+
+        // Always include BCH (id: 'bch')
+        const tokensToRefresh = [...new Set([...favoriteTokenIds, 'bch'])]
+
+        // Add tokens to refreshing array to show skeleton loaders
+        tokensToRefresh.forEach(tokenId => {
+          if (!vm.refreshingTokenIds.includes(tokenId)) {
+            vm.refreshingTokenIds.push(tokenId)
+          }
+        })
+
+        // Refresh balances for all favorite tokens + BCH
+        const balancePromises = tokensToRefresh.map(tokenId => {
+          return vm.getBalance(tokenId)
+            .catch(error => {
+              console.error(`Error refreshing balance for ${tokenId}:`, error)
+              return null
+            })
+            .finally(() => {
+              // Remove token from refreshing array when done (success or error)
+              const index = vm.refreshingTokenIds.indexOf(tokenId)
+              if (index > -1) {
+                vm.refreshingTokenIds.splice(index, 1)
+              }
+            })
+        })
+
+        return Promise.allSettled(balancePromises)
+      } catch (error) {
+        console.error('Error refreshing favorite token balances:', error)
+        // Clear all refreshing tokens on error
+        vm.refreshingTokenIds = []
+        return Promise.resolve()
+      }
     },
     async handleOpenedNotification() {
       const openedNotification = this.$store.getters['notification/openedNotification']

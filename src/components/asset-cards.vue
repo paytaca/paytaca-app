@@ -22,7 +22,7 @@
       </q-intersection>
       <div class="row" style="margin-top: -7px;">
         <q-space />
-        <div v-if="!balanceLoaded && !manageAssets && asset.id === selectedAsset.id" style="width: 100%;">
+        <div v-if="(!balanceLoaded && !manageAssets && asset.id === selectedAsset.id) || (refreshingTokenIds.includes(asset.id) && !manageAssets)" style="width: 100%;">
           <q-skeleton type="rect"/>
         </div>
         <template v-else>
@@ -70,6 +70,10 @@ export default {
     manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
     balanceLoaded: { type: Boolean },
+    refreshingTokenIds: {
+      type: Array,
+      default: () => []
+    },
     isCashToken: { type: Boolean },
     currentLanguage: { type: String },
     currentCountry: { type: String }
