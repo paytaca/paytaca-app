@@ -1245,7 +1245,32 @@ export default {
           id: assetId,
         }
       }
-      this.showTransactionDetails(transaction)
+
+      // Navigate to transaction detail page instead of opening dialog
+      const finalAssetId = String(asset?.id || assetId || 'bch')
+      const query = (() => {
+        // BCH: no category
+        if (finalAssetId === 'bch' || (finalAssetId.startsWith('bch') && !finalAssetId.includes('/'))) {
+          return {}
+        }
+        // Token: extract category from ct/{category} or slp/{category}
+        const parts = finalAssetId.split('/')
+        if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+          return { category: parts[1] }
+        }
+        return {}
+      })()
+
+      if (!transaction.asset && asset) {
+        transaction.asset = asset
+      }
+
+      this.$router.push({
+        name: 'transaction-detail',
+        params: { txid },
+        query,
+        state: { tx: transaction }
+      })
     },
     async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
       if (!data) return

@@ -283,6 +283,18 @@ const routes = [
       }
     ]
   },
+  {
+    path: '/transaction/tx/:txid',
+    component: () => import('layouts/Transaction.vue'),
+    children: [
+      {
+        path: '',
+        name: 'transaction-detail',
+        props: route => Object.assign({}, route.params, route.query),
+        component: () => import('src/pages/transactions/TransactionDetail.vue')
+      }
+    ]
+  },
   // Always leave this as last one,
   // but you can also remove it
   {

@@ -739,6 +739,9 @@ export default {
       if (this.$parent && typeof this.$parent.toggleHideBalances === 'function') {
         this.$parent.toggleHideBalances()
       }
+    if (typeof this.hideCallback === 'function') {
+      try { this.hideCallback() } catch (e) {}
+    }
     },
     openMemo () {
       this.showMemo = true

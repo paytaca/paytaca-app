@@ -541,16 +541,29 @@ export default {
 	    },
 	    showTransactionDetails (transaction) {
 	      const vm = this
-	      // vm.hideMultiWalletDialog()
 	      vm.hideAssetInfo()
-	      const txCheck = setInterval(function () {
-	        if (transaction) {
-	          if (!transaction?.asset) transaction.asset = vm.selectedAsset
-	          vm.$refs.transaction.show(transaction)
-	          vm.hideBalances = true
-	          clearInterval(txCheck)
+	      const txid = transaction?.txid
+	      if (!txid) return
+	      if (!transaction?.asset) transaction.asset = vm.selectedAsset
+	      const assetId = String(transaction?.asset?.id || vm.selectedAsset?.id || '')
+	      const query = (() => {
+	        // BCH: asset id is 'bch' or starts with 'bch' without a slash
+	        if (assetId === 'bch' || (assetId.startsWith('bch') && !assetId.includes('/'))) {
+	          return {}
 	        }
-	      }, 100)
+	        // Token: extract category from ct/{category} or slp/{category}
+	        const parts = assetId.split('/')
+	        if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+	          return { category: parts[1] }
+	        }
+	        return {}
+	      })()
+	      vm.$router.push({
+	        name: 'transaction-detail',
+	        params: { txid },
+	        query,
+	        state: { tx: transaction }
+	      })
 	    },
 	    hideAssetInfo () {
 	      try {

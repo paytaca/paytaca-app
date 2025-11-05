@@ -247,7 +247,7 @@ export default {
 
   mounted () {
     this.amountSent = parseAssetDenomination(
-      this.denomination, { ...this.asset, balance: this.totalAmountSent }
+      this.denomination, { ...this.asset, balance: Math.abs(this.totalAmountSent) }
     )
     this.fiatAmountSent = this.parseFiatAmount(
       this.totalFiatAmountSent, this.totalAmountSent
@@ -277,17 +277,14 @@ export default {
       })
     },
     parseFiatAmount (origFiatAmount, origAmount) {
-      let fiatAmount
-      if (origFiatAmount > 0 && this.asset.id === 'bch') {
-        fiatAmount = parseFiatCurrency(
-          origFiatAmount, this.currentSendPageCurrency()
-        )
-      } else {
-        fiatAmount = parseFiatCurrency(
-          this.convertToFiatAmount(origAmount), this.currentSendPageCurrency()
-        )
+      const currency = this.currentSendPageCurrency()
+      const fiatProvided = Number(origFiatAmount)
+      if (Number.isFinite(fiatProvided) && this.asset.id === 'bch') {
+        return parseFiatCurrency(Math.abs(fiatProvided), currency)
       }
-      return fiatAmount
+      const amountAbs = Math.abs(Number(origAmount))
+      const converted = this.convertToFiatAmount(amountAbs)
+      return parseFiatCurrency(converted, currency)
     },
     async loadMemo () {
       if (!this.txid) return
