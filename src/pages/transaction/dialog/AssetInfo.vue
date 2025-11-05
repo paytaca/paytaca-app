@@ -9,97 +9,99 @@
         <q-btn icon="close" flat round dense v-close-popup :color="darkMode ? 'grey' : 'black'" class="close-button"/>
       </div>
 
-      <q-card-section v-if="asset" class="q-pa-lg">
+      <q-card-section v-if="asset" class="q-pa-md">
         <!-- Header: Logo and Name -->
-        <div class="asset-header text-center q-mb-lg">
+        <div class="asset-header text-center q-mb-md">
           <div class="asset-logo-container">
-            <img :src="getImageUrl(asset)" height="60" class="asset-logo">
+            <img :src="getImageUrl(asset)" height="45" class="asset-logo">
           </div>
-          <div class="asset-name q-mt-sm text-weight-bold" style="font-size: 28px; letter-spacing: 0.5px;">
+          <div class="asset-name q-mt-xs text-weight-bold" style="font-size: 20px; letter-spacing: 0.3px;">
             {{ assetDisplayName }}
           </div>
         </div>
 
         <!-- Balance Display -->
-        <div class="balance-section text-center q-mb-lg">
-          <div class="balance-label text-grey-6 text-weight-medium" style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+        <div class="balance-section text-center q-mb-md">
+          <div class="balance-label text-grey-6 text-weight-medium" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
             {{ $t('Balance', {}, 'Balance') }}
           </div>
-          <div class="balance-amount text-weight-bold" style="font-size: 32px; line-height: 1.2;">
+          <div class="balance-amount text-weight-bold" style="font-size: 24px; line-height: 1.2;">
             {{ parseAssetDenomination(denomination, asset) }}
           </div>
-          <div v-if="assetFiatValue" class="fiat-value text-grey-7 q-mt-sm" style="font-size: 18px;">
+          <div v-if="assetFiatValue" class="fiat-value text-grey-7 q-mt-xs" style="font-size: 14px;">
             {{ assetFiatValue }}
           </div>
         </div>
         
         <!-- Price Chart for BCH -->
-        <div v-if="asset.id === 'bch'" class="price-chart-section q-mb-lg">
-          <div class="section-divider q-mb-md"></div>
+        <div v-if="asset.id === 'bch'" class="price-chart-section q-mb-md">
+          <div class="section-divider q-mb-sm"></div>
           
-          <div v-if="!chartLoaded" class="row justify-center q-py-lg">
-            <q-spinner color="primary" size="2.5em" />
+          <div v-if="!chartLoaded" class="row justify-center q-py-md">
+            <q-spinner color="primary" size="2em" />
           </div>
-          <div v-else-if="networkError" class="text-center q-py-lg">
-            <q-icon name="cloud_off" size="3em" color="grey-5" class="q-mb-sm" />
-            <div class="text-grey-6" style="font-size: 13px;">
+          <div v-else-if="networkError" class="text-center q-py-md">
+            <q-icon name="cloud_off" size="2em" color="grey-5" class="q-mb-xs" />
+            <div class="text-grey-6" style="font-size: 11px;">
               {{ $t('ChartUnavailableOffline', {}, 'Chart unavailable offline') }}
             </div>
           </div>
           <div v-else>
             <!-- Current Price Display -->
-            <div class="current-price-section text-center q-mb-md">
-              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+            <div class="current-price-section text-center q-mb-sm">
+              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
                 {{ $t('CurrentPrice', {}, 'Current Price') }}
               </div>
-              <div class="price-value text-weight-bold" style="font-size: 24px;">
+              <div class="price-value text-weight-bold" style="font-size: 18px;">
                 {{ parseFiatCurrency(currentPrice, selectedCurrency?.symbol) }}
               </div>
               <div class="price-change q-mt-xs">
                 <q-chip 
                   :color="priceIncreased ? 'green-1' : 'red-1'"
                   :text-color="priceIncreased ? 'green-8' : 'red-8'"
-                  size="sm"
+                  size="xs"
                   class="text-weight-bold"
                 >
                   <q-icon size="xs" :name="priceIncreased ? 'mdi-trending-up' : 'mdi-trending-down'" class="q-mr-xs"/>
                   {{ priceIncreased ? '+' : '' }}{{ priceChangePercent }}%
-                  <span class="text-weight-regular q-ml-xs" style="font-size: 11px;">24h</span>
+                  <span class="text-weight-regular q-ml-xs" style="font-size: 9px;">24h</span>
                 </q-chip>
               </div>
             </div>
 
             <!-- Chart -->
-            <q-card flat bordered class="chart-card q-pa-md" :class="getDarkModeClass(darkMode)">
+            <q-card flat bordered class="chart-card q-pa-sm" :class="getDarkModeClass(darkMode)">
               <div class="chart-wrapper">
                 <canvas ref="priceChart"></canvas>
               </div>
             </q-card>
           </div>
           
-          <div class="section-divider q-mt-md"></div>
+          <div class="section-divider q-mt-sm"></div>
         </div>
         
         <!-- Token Info (for non-BCH assets) -->
-        <div v-if="asset.id !== 'bch'" class="token-info-section text-center q-mb-lg">
-          <div class="section-divider q-mb-md"></div>
-          <a
-            :href="assetLink"
-            class="token-id-link"
-            :class="getDarkModeClass(darkMode, 'text-grey-7', 'text-grey-6')"
-            target="_blank"
-          >
-            {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
-            <q-icon name="open_in_new" size="sm" class="q-ml-xs" />
-          </a>
-          <div class="q-mt-sm text-grey-6" style="font-size: 13px;">
-            {{ $t('Decimals', {}, 'Decimals') }}: <span class="text-weight-medium">{{ asset.decimals }}</span>
+        <div v-if="asset.id !== 'bch'" class="token-info-section text-center q-mb-md">
+          <div class="section-divider q-mb-sm"></div>
+          <div class="metadata-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
+            {{ $t('Metadata', {}, 'Metadata') }}
           </div>
-          <div class="section-divider q-mt-md"></div>
+          <div class="view-explorer-container q-mt-xs">
+            <a
+              :href="assetLink"
+              class="view-explorer-link"
+              :class="getDarkModeClass(darkMode)"
+              target="_blank"
+            >
+              {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
+              <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+            </a>
+          </div>
+          <div class="section-divider q-mt-sm"></div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="action-buttons q-mt-lg row q-gutter-md justify-center">
+        <div class="action-buttons q-mt-md row q-gutter-sm justify-center">
           <q-btn 
             @click="send" 
             rounded 
@@ -108,10 +110,10 @@
             color="primary"
             text-color="white"
             no-caps
-            padding="10px 32px"
-            style="min-width: 130px; font-size: 15px; font-weight: 600;"
+            padding="8px 24px"
+            style="min-width: 110px; font-size: 13px; font-weight: 600;"
           >
-            <q-icon name="send" size="18px" class="q-mr-sm" />
+            <q-icon name="send" size="16px" class="q-mr-xs" />
             {{ $t('Send') }}
           </q-btn>
           <q-btn 
@@ -122,10 +124,10 @@
             color="primary"
             text-color="white"
             no-caps
-            padding="10px 32px"
-            style="min-width: 130px; font-size: 15px; font-weight: 600;"
+            padding="8px 24px"
+            style="min-width: 110px; font-size: 13px; font-weight: 600;"
           >
-            <q-icon name="qr_code_2" size="18px" class="q-mr-sm" />
+            <q-icon name="qr_code_2" size="16px" class="q-mr-xs" />
             {{ $t('Receive') }}
           </q-btn>
         </div>
@@ -395,11 +397,11 @@ export default {
 
 // Header Section
 .asset-header {
-  padding: 8px 0;
+  padding: 4px 0;
   
   .asset-logo-container {
     display: inline-block;
-    padding: 12px;
+    padding: 8px;
     border-radius: 50%;
     background: rgba(59, 123, 246, 0.08);
     transition: transform 0.2s ease;
@@ -420,7 +422,7 @@ export default {
 
 // Balance Section
 .balance-section {
-  padding: 16px 0;
+  padding: 8px 0;
   
   .balance-label {
     opacity: 0.8;
@@ -450,7 +452,7 @@ export default {
   max-width: 100%;
   
   .current-price-section {
-    padding: 12px 0;
+    padding: 6px 0;
     
     .price-label {
       opacity: 0.8;
@@ -484,38 +486,55 @@ export default {
 
 .chart-wrapper {
   width: 100%;
-  height: 180px;
+  height: 120px;
   position: relative;
 }
 
 // Token Info Section
 .token-info-section {
-  .token-id-link {
-    text-decoration: none;
-    font-family: monospace;
-    font-size: 14px;
-    transition: opacity 0.2s ease;
-    display: inline-flex;
-    align-items: center;
+  .view-explorer-container {
+    display: block;
+    text-align: center;
     
-    &:hover {
-      opacity: 0.7;
+    .view-explorer-link {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      color: var(--q-primary);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: rgba(59, 123, 246, 0.08);
+        transform: translateX(2px);
+      }
+      
+      &.dark {
+        color: #4ade80;
+        
+        &:hover {
+          background: rgba(74, 222, 128, 0.1);
+        }
+      }
     }
   }
 }
 
 // Action Buttons
 .action-buttons {
-  padding-top: 8px;
+  padding-top: 4px;
   
   .action-btn {
     font-weight: 600;
-    letter-spacing: 0.3px;
-    box-shadow: 0 2px 8px rgba(59, 123, 246, 0.25);
+    letter-spacing: 0.2px;
+    box-shadow: 0 2px 6px rgba(59, 123, 246, 0.25);
     transition: all 0.3s ease;
     
     &:hover {
-      box-shadow: 0 4px 12px rgba(59, 123, 246, 0.35);
+      box-shadow: 0 3px 10px rgba(59, 123, 246, 0.35);
       transform: translateY(-1px);
     }
     

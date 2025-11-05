@@ -83,7 +83,11 @@
                   class="q-mt-md"
                 >
                   <template v-slot:prepend>
-                    <q-icon name="mdi-content-paste" />
+                    <q-icon 
+                      name="mdi-content-paste" 
+                      class="cursor-pointer"
+                      @click="pasteFromClipboard"
+                    />
                   </template>
                   <template v-slot:append>
                     <q-icon
@@ -688,6 +692,32 @@ export default {
     convertToBCH,
     customNumberFormatting,
     getDarkModeClass,
+
+    // ========== clipboard methods ==========
+    async pasteFromClipboard() {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const text = await navigator.clipboard.readText()
+          if (text) {
+            this.manualAddress = text.trim()
+          }
+        } else {
+          // Fallback for older browsers or environments without Clipboard API
+          this.$q.notify({
+            message: this.$t('ClipboardNotSupported', {}, 'Clipboard access not supported'),
+            color: 'warning',
+            icon: 'warning'
+          })
+        }
+      } catch (error) {
+        console.error('Error pasting from clipboard:', error)
+        this.$q.notify({
+          message: this.$t('PasteFailed', {}, 'Failed to paste from clipboard'),
+          color: 'negative',
+          icon: 'error'
+        })
+      }
+    },
 
     // ========== navigation methods ==========
     navigateToCreateGift() {

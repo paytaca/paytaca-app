@@ -25,7 +25,7 @@
         >
           <div id="bitcoin-cash"
             class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)">
-            <div class="row q-pt-sm q-pb-xs q-pl-md">
+            <div class="row q-pt-sm q-pb-xs q-pl-md" style="width: 100%;">
               <div>
                 <img
                   :src="getImageUrl(asset)"
@@ -44,9 +44,24 @@
                   {{ parseAssetDenomination(denomination, asset, false, 16) }}
                 </p>
               </div>
+              <div v-if="isFavorite(asset.id)" class="q-pr-sm" style="display: flex; align-items: center;">
+                <q-icon name="star" size="20px" color="amber-6" />
+              </div>
             </div>
           </div>
         </div>
+      </div>
+      <!-- Show More / Show Less Button -->
+      <div v-if="hasNonFavoriteTokens" class="q-pa-md text-center">
+        <q-btn
+          flat
+          no-caps
+          :label="showAllTokens ? $t('ShowLess', {}, 'Show Less') : $t('ShowMore', {}, 'Show More')"
+          :icon="showAllTokens ? 'expand_less' : 'expand_more'"
+          @click="showAllTokens = !showAllTokens"
+          :class="getDarkModeClass(darkMode)"
+          color="primary"
+        />
       </div>
       <div class="vertical-space" v-if="assets.length > 5"></div>
     </template>
@@ -68,6 +83,7 @@ import { convertTokenAmount } from 'src/wallet/chipnet'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import * as assetSettings from 'src/utils/asset-settings'
 
 export default {
   name: 'Send-select-asset',
@@ -99,7 +115,9 @@ export default {
       result: '',
       error: '',
       isCashToken: true,
-      tokenNotFoundDialog: null
+      tokenNotFoundDialog: null,
+      favorites: [],
+      showAllTokens: false
     }
   },
   computed: {
@@ -136,7 +154,7 @@ export default {
       const vm = this
 
       // eslint-disable-next-line array-callback-return
-      const assets = vm.$store.getters['assets/getAssets'].filter(function (item) {
+      let assets = vm.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           const isBch = item?.id === 'bch'
           const tokenType = item?.id?.split?.('/')?.[0]
@@ -147,10 +165,59 @@ export default {
       })
 
       if (vm.address !== '' && vm.address.includes('bitcoincash:zq')) {
-        return assets.splice(1)
+        assets = assets.slice(1)
       }
 
-      return assets
+      // Sort: BCH first, then favorites (preserving their assigned order), then others
+      const bchAsset = assets.find(asset => asset?.id === 'bch')
+      const favoriteTokenIds = vm.favorites
+        .filter(item => item.favorite === 1)
+        .map(item => item.id)
+      
+      // Sort favorites according to their order in the favorites array
+      const favoriteAssets = favoriteTokenIds
+        .map(id => assets.find(asset => asset?.id === id))
+        .filter(Boolean)
+      
+      const otherAssets = assets.filter(asset => 
+        asset?.id !== 'bch' && !favoriteTokenIds.includes(asset?.id)
+      )
+
+      // Hide non-favorite tokens by default
+      if (!vm.showAllTokens) {
+        return [
+          ...(bchAsset ? [bchAsset] : []),
+          ...favoriteAssets
+        ]
+      }
+
+      return [
+        ...(bchAsset ? [bchAsset] : []),
+        ...favoriteAssets,
+        ...otherAssets
+      ]
+    },
+    hasNonFavoriteTokens () {
+      const vm = this
+      const favoriteTokenIds = vm.favorites
+        .filter(item => item.favorite === 1)
+        .map(item => item.id)
+      
+      const allAssets = vm.$store.getters['assets/getAssets'].filter(function (item) {
+        if (item) {
+          const isBch = item?.id === 'bch'
+          const tokenType = item?.id?.split?.('/')?.[0]
+
+          if (vm.isCashToken) return tokenType === 'ct' || isBch
+          return tokenType === 'slp' || isBch
+        }
+      })
+
+      const otherAssets = allAssets.filter(asset => 
+        asset?.id !== 'bch' && !favoriteTokenIds.includes(asset?.id)
+      )
+
+      return otherAssets.length > 0
     }
   },
   methods: {
@@ -176,6 +243,9 @@ export default {
           return this.getFallbackAssetLogo(asset)
         }
       }
+    },
+    isFavorite(assetId) {
+      return this.favorites.some(item => item.id === assetId && item.favorite === 1)
     },
     redirectToSend (asset) {
       if (this.online) {
@@ -211,6 +281,16 @@ export default {
     vm.$store.dispatch('market/updateAssetPrices', {})
     const assets = vm.$store.getters['assets/getAssets']
     assets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+
+    // Fetch favorites for sorting
+    try {
+      const favorites = await assetSettings.fetchFavorites()
+      if (favorites && Array.isArray(favorites)) {
+        vm.favorites = favorites
+      }
+    } catch (error) {
+      console.error('Error fetching favorites:', error)
+    }
 
     if (this.$route.query.error === 'token-mismatch') {
       this.$router.replace({ path: this.$route.path })
