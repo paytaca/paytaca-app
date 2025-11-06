@@ -8,6 +8,7 @@
 		
 		<div class="row no-wrap q-pl-lg q-mb-lg no-scrollbar pending-container">
 			<div
+				v-if="pending"
 				v-for="(item, index) in pending"
 				:key="item.id"
 				class="pending-card pt-card"
@@ -38,6 +39,32 @@
 				</div>
 				<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
 					{{ item.status.label }}
+				</div>
+			</div>
+			<div 
+				v-if="pendingAppeals"				
+				v-for="(item, index) in pendingAppeals"
+				:key="item.id"
+				class="pending-card pt-card"
+				:class="darkMode ? 'dark' : 'light'"
+				:style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
+				@click="selectTransaction(item.order.id, 'appeal')"
+			>
+				<q-badge 	
+					outline				
+					:color="darkMode ? 'blue-4' : 'blue-6'" 
+					class="q-mb-sm"
+					style="font-size: 9px; padding: 3px 8px;"
+				>
+					{{ item.type.label }}
+				</q-badge>				
+
+				<div class="order-number" :class="darkMode ? 'text-white' : 'text-black'">Appeal #{{ item.id }}</div>
+				<div class="order-counterparty" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+					Order #{{ item.order.id }}
+				</div>
+				<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+					{{ item.reasons[0] }}
 				</div>
 			</div>
         	<!-- <q-card v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
@@ -77,6 +104,7 @@ export default {
 		return {
 			isSorted: false,
 			pending: [],
+			pendingAppeals: [],
 			ongoingStatuses: [		       
 		        { value: 'ESCRW_PN', label: this.$t('EscrowPending') },
 		        { value: 'ESCRW', label: this.$t('Escrowed') },
@@ -88,14 +116,16 @@ export default {
 		      ],
 			exchangeOrders: [],
 			marketplaceOrders: [],
-		marketplacePagination: {
-			count: 0,
-			limit: 100, // Increased from 10 to show all pending orders
-			offset: 0				
-		},
+			marketplacePagination: {
+				count: 0,
+				limit: 100, // Increased from 10 to show all pending orders
+				offset: 0				
+			},
 			fetchingOrders: false,
 			orderPage: 1,
 			orderTotal: 0,
+			appealPage: 1,
+			appealTotal: 0
 		}
 	},
 	computed: {
@@ -106,7 +136,7 @@ export default {
 	      return this.$store.getters['ramp/getUser']
 	    },
 	    emptyList () {
-	    	return this.pending.length === 0 && this.marketplaceOrders.length === 0
+	    	return this.pending.length === 0 && this.marketplaceOrders.length === 0 && this.pendingAppeals.length == 0
 	    }
 	},
 	components: {
@@ -114,6 +144,7 @@ export default {
 	},
 	async mounted () {		
 		this.fetchOrders()
+		this.fetchAppeals()
 		this.fetchMarketOrders()
 
 	},
@@ -132,7 +163,7 @@ export default {
 			}
 
 			await backend.get(apiURL, { params: params})
-				.then(response => {
+				.then(response => {					
 					this.orderTotal = response.data.count
 					if (overwrite) {
 						this.pending.push(...response.data.results)
@@ -144,6 +175,30 @@ export default {
 				})
 				.catch(error => {
 					console.error(error)
+				})
+		},
+		async fetchAppeals (overwrite = false) {
+			const vm = this
+
+			let apiURL = '/ramp-p2p/appeal/public/'
+
+			let params = {
+				wallet_hash: vm.$store.getters['global/getWallet']('bch').walletHash,
+				page_size: 100,
+				page: vm.appealPage
+			}
+
+			await backend.get(apiURL, { params: params })
+				.then(response => {					
+					vm.appealTotal = response.data.count
+					if (overwrite) {
+						this.pendingAppeals.push(...response.data.results)
+					} else {
+						this.pendingAppeals = response.data.results
+					}
+				})
+				.catch(error => {
+					console.log(error)
 				})
 		},
 		seeMoreOrders () {
@@ -177,15 +232,17 @@ export default {
 	      }
 	      return order?.owner?.name
 	    },
-	    selectTransaction(orderID, type) {
+	    selectTransaction(transactionID, type) {
 	    	if (type === 'exchange') {
 	    		const params = {
-		    		order: orderID,
+		    		order: transactionID,
 		    		redirect: true
 		    	}
-		    	this.$router.push({ name: 'exchange', query: { order_id: orderID } })
+		    	this.$router.push({ name: 'exchange', query: { order_id: transactionID } })
 	    	} else if (type === 'marketplace') {
-	    		this.$router.push({ name: 'app-marketplace-order', params: { orderId: orderID } })
+	    		this.$router.push({ name: 'app-marketplace-order', params: { orderId: transactionID } })
+	    	} else if (type === 'appeal') {
+	    		this.$router.push({ name: 'exchange', query: { appeal_id: transactionID }})
 	    	}
 	    },
 	    async fetchMarketOrders(opts={limit: 0, offset: 0 }) {	    	

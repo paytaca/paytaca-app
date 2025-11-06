@@ -122,7 +122,11 @@ export default {
     goToMainPage () {
       this.$store.commit('ramp/updateUser', this.user)
       if (this.user?.is_arbiter) {
-        this.$router?.push({ name: 'arbiter-appeals' })
+        if ('appeal_id' in this.$route.query) {
+          this.$router?.push({ name: 'arbiter-appeals', query: this.$route.query})
+        } else {
+          this.$router?.push({ name: 'arbiter-appeals' })
+        }        
       } else {
         if ('ad_id' in this.$route.query) {
           this.$router?.push({ name: 'p2p-store', query: this.$route.query })
