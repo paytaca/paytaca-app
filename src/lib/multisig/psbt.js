@@ -1,121 +1,165 @@
 import { bigIntToBinUint64LE, bigIntToCompactSize, numberToBinInt32LE } from "@bitauth/libauth"
-import { bigIntToCompactUint, binToHex, decodeHdPublicKey, encodeTokenPrefix, hexToBin, isHex, numberToBinUint32LE, sortObjectKeys } from "bitauth-libauth-v3"
+import { bigIntToCompactUint, binToHex, decodeHdPublicKey, encodeTokenPrefix, hexToBin, isHex, numberToBinUint32LE, readCompactUint, readRemainingBytes, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
 import { bip32EncodeDerivationPath } from "."
 
 export const PSBT_MAGIC = '70736274ff'
 
-export const PSBT_KEY_TYPES = {
+// export const PSBT_KEY_TYPES = {
   // ---------- Global map ----------
-  PSBT_GLOBAL_UNSIGNED_TX: '00',         // The unsigned transaction (no witnesses)                
-  PSBT_GLOBAL_XPUB: '01',                // Extended public keys and their derivation paths
-  PSBT_GLOBAL_TX_VERSION: '02',          // Transaction Version                                
-  PSBT_GLOBAL_FALLBACK_LOCKTIME: '03',
-  PSBT_GLOBAL_INPUT_COUNT: '04',         // Number of inputs (BIP 370)
-  PSBT_GLOBAL_OUTPUT_COUNT: '05',        // Number of inputs (BIP 370)
-  PSBT_GLOBAL_TX_MODIFIABLE: '06',       // Allowed modifications (BIP 370)
-  PSBT_GLOBAL_SP_ECDH_SHARE: '07',
-  PSBT_GLOBAL_SP_DLEQ: '08',
-  PSBT_GLOBAL_VERSION: 'fb',             // PSBT version number (added in BIP 370)
-  PSBT_GLOBAL_PROPRIETARY: 'fc',         // Custom (proprietary) key-value pair
+const PSBT_GLOBAL_UNSIGNED_TX= '00'         // The unsigned transaction (no witnesses)                
+const PSBT_GLOBAL_XPUB= '01'                // Extended public keys and their derivation paths
+const PSBT_GLOBAL_TX_VERSION= '02'          // Transaction Version                                
+const PSBT_GLOBAL_FALLBACK_LOCKTIME= '03'
+const PSBT_GLOBAL_INPUT_COUNT= '04'         // Number of inputs (BIP 370)
+const PSBT_GLOBAL_OUTPUT_COUNT= '05'        // Number of inputs (BIP 370)
+const PSBT_GLOBAL_TX_MODIFIABLE= '06'       // Allowed modifications (BIP 370)
+const PSBT_GLOBAL_SP_ECDH_SHARE= '07'
+const PSBT_GLOBAL_SP_DLEQ= '08'
+const PSBT_GLOBAL_VERSION= 'fb'             // PSBT version number (added in BIP 370)
+const PSBT_GLOBAL_PROPRIETARY= 'fc'         // Custom (proprietary) key-value pair
 
   // ---------- Input map ----------
-  // PSBT_IN_NON_WITNESS_UTXO: '00',        // Full previous transaction
-  PSBT_IN_WITNESS_UTXO: '01',            // Output being spent
-  PSBT_IN_PARTIAL_SIG: '02',             // Partial signature
-  PSBT_IN_SIGHASH_TYPE: '03',            // Sighash type (uint32)
-  PSBT_IN_REDEEM_SCRIPT: '04',           // Redeem script (for P2SH)
-  PSBT_IN_WITNESS_SCRIPT: '05',          // Witness script (for P2WSH)
-  PSBT_IN_BIP32_DERIVATION: '06',        // Derivation path data
-  PSBT_IN_FINAL_SCRIPTSIG: '07',         // Final scriptSig
-  PSBT_IN_FINAL_SCRIPTWITNESS: '08',     // Final scriptWitness
-  PSBT_IN_POR_COMMITMENT: '09',          // Proof of reserves commitment
-  PSBT_IN_RIPEMD160: '0a',
-  PSBT_IN_SHA256: '0b',
-  PSBT_IN_HASH160: '0c',
-  PSBT_IN_HASH256: '0d',
-  PSBT_IN_PREVIOUS_TXID: '0e',
-  PSBT_IN_OUTPUT_INDEX: '0f',
-  PSBT_IN_SEQUENCE: '10',
-  PSBT_IN_REQUIRED_TIME_LOCKTIME: '11',
-  PSBT_IN_REQUIRED_HEIGHT_LOCKTIME: '12',
-  PSBT_IN_TAP_KEY_SIG: '13',             // Taproot key path signature (BIP 371)
-  PSBT_IN_TAP_SCRIPT_SIG: '14',          // Taproot script path signatures
-  PSBT_IN_TAP_LEAF_SCRIPT: '15',         // Taproot leaf scripts
-  PSBT_IN_TAP_BIP32_DERIVATION: '16',    // Taproot BIP32 derivation
-  PSBT_IN_TAP_INTERNAL_KEY: '17',        // Taproot internal key
-  PSBT_IN_TAP_MERKLE_ROOT: '18',         // Taproot merkle root
-  PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS: '1a',
-  PSBT_IN_MUSIG2_PUB_NONCE: '1b',
-  PSBT_IN_MUSIG2_PARTIAL_SIG: '1c',
-  PSBT_IN_SP_ECDH_SHARE: '1d',
-  PSBT_IN_SP_ECDH_SHARE: '1d',
-  PSBT_IN_PROPRIETARY: 'fc',             // Custom (proprietary) key-value pair
+const PSBT_IN_NON_WITNESS_UTXO= '00'        // Full previous transaction
+const PSBT_IN_WITNESS_UTXO= '01'            // Output being spent
+const PSBT_IN_PARTIAL_SIG= '02'             // Partial signature
+const PSBT_IN_SIGHASH_TYPE= '03'            // Sighash type (uint32)
+const PSBT_IN_REDEEM_SCRIPT= '04'           // Redeem script (for P2SH)
+const PSBT_IN_WITNESS_SCRIPT= '05'          // Witness script (for P2WSH)
+const PSBT_IN_BIP32_DERIVATION= '06'        // Derivation path data
+const PSBT_IN_FINAL_SCRIPTSIG= '07'         // Final scriptSig
+const PSBT_IN_FINAL_SCRIPTWITNESS= '08'     // Final scriptWitness
+const PSBT_IN_POR_COMMITMENT= '09'          // Proof of reserves commitment
+const PSBT_IN_RIPEMD160= '0a'
+const PSBT_IN_SHA256= '0b'
+const PSBT_IN_HASH160= '0c'
+const PSBT_IN_HASH256= '0d'
+const PSBT_IN_PREVIOUS_TXID= '0e'
+const PSBT_IN_OUTPUT_INDEX= '0f'
+const PSBT_IN_SEQUENCE= '10'
+const PSBT_IN_REQUIRED_TIME_LOCKTIME= '11'
+const PSBT_IN_REQUIRED_HEIGHT_LOCKTIME= '12'
+const PSBT_IN_TAP_KEY_SIG= '13'             // Taproot key path signature (BIP 371)
+const PSBT_IN_TAP_SCRIPT_SIG= '14'          // Taproot script path signatures
+const PSBT_IN_TAP_LEAF_SCRIPT= '15'         // Taproot leaf scripts
+const PSBT_IN_TAP_BIP32_DERIVATION= '16'    // Taproot BIP32 derivation
+const PSBT_IN_TAP_INTERNAL_KEY= '17'        // Taproot internal key
+const PSBT_IN_TAP_MERKLE_ROOT= '18'         // Taproot merkle root
+const PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS= '1a'
+const PSBT_IN_MUSIG2_PUB_NONCE= '1b'
+const PSBT_IN_MUSIG2_PARTIAL_SIG= '1c'
+const PSBT_IN_SP_ECDH_SHARE= '1d'
+const PSBT_IN_SP_DLEQ = '0x1e'
+const PSBT_IN_PROPRIETARY= 'fc'             // Custom (proprietary) key-value pair
 
   // ---------- Output map ----------
-  PSBT_OUT_REDEEM_SCRIPT: '00',          // Redeem script (for P2SH)
-  PSBT_OUT_WITNESS_SCRIPT: '01',         // Witness script (for P2WSH)
-  PSBT_OUT_BIP32_DERIVATION: '02',       // Derivation path data
-  PSBT_OUT_AMOUNT: '03',
-  PSBT_OUT_SCRIPT: '04',
-  PSBT_OUT_TAP_INTERNAL_KEY: '05',
-  PSBT_OUT_TAP_TREE: '06',
-  PSBT_OUT_TAP_BIP32_DERIVATION: '07',
-  PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS: '08',
-  PSBT_OUT_SP_V0_INFO: '09',
-  PSBT_OUT_SP_V0_LABEL: '0a',
-  PSBT_OUT_DNSSEC_PROOF: '35',
-  PSBT_OUT_TOKEN: '36',                  // Token Prefix
-  PSBT_OUT_PROPRIETARY: 'fc'
-}
+const PSBT_OUT_REDEEM_SCRIPT= '00'          // Redeem script (for P2SH)
+const PSBT_OUT_WITNESS_SCRIPT= '01'         // Witness script (for P2WSH)
+const PSBT_OUT_BIP32_DERIVATION= '02'       // Derivation path data
+const PSBT_OUT_AMOUNT= '03'
+const PSBT_OUT_SCRIPT= '04'
+const PSBT_OUT_TAP_INTERNAL_KEY= '05'
+const PSBT_OUT_TAP_TREE= '06'
+const PSBT_OUT_TAP_BIP32_DERIVATION= '07'
+const PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS= '08'
+const PSBT_OUT_SP_V0_INFO= '09'
+const PSBT_OUT_SP_V0_LABEL= '0a'
+const PSBT_OUT_DNSSEC_PROOF= '35'
+const PSBT_OUT_TOKEN= '36'                  // Token Prefix
+const PSBT_OUT_PROPRIETARY= 'fc'
+// }
 
 
 export class Magic {
+  
   serialize() {
     return hexToBin('70736274ff')
+  }
+
+  deserialize(serialized) {
+
   }
 }
 
 export class Key {
+
   constructor(keyType, keyData = new Uint8Array([])){
-    this.keyType = keyType
+    this.keyType = keyType // Should be compact uint, future proof this by converting to compact uint
     this.keyData = keyData
     this.keyLen = keyType && keyData && bigIntToCompactUint(keyType.length + keyData.length)
   }
+
   serialize(){
-    this.s = new Uint8Array([...this.keyLen, ...this.keyType, ...this.keyData])
-    return this.s
+    return new Uint8Array([...this.keyLen, ...this.keyType, ...this.keyData])
   }
-  deserialize(s){}
+  
+  deserialize(serialized){
+    const keyLenReadResult = readCompactUint({ bin: serialized, index: 0 }) // Result is bigint
+    const keyTypeReadResult = readCompactUint(keyLenReadResult.position)    // Key Type is compactUint
+    const keyDataReadResult = readRemainingBytes(keyTypeReadResult.position)
+    this.keyLen = bigIntToCompactUint(keyLenReadResult.result)
+    this.keyType = bigIntToCompactUint(keyTypeReadResult.result)
+    this.keyData = keyDataReadResult.result 
+    return this 
+  }
+
   toString(){
     return binToHex(this.serialize())
   }
 }
 
 export class Value {
+  
   constructor(value) {
     this.value = value
     this.valueLen = value && bigIntToCompactUint(this.value.length)
   }
+
   serialize(){
-    this.s = new Uint8Array([...this.valueLen, ...this.value])
-    return this.s
+    return new Uint8Array([...this.valueLen, ...this.value])
   }
-  deserialize(s){}
+
+  /**
+   * @param {Uint8Array} serialized value
+   * @returns {Uint8Array} The extracted value
+   */
+  deserialize(serialized){
+    const valueLenReadResult = readCompactUint({ bin: serialized, index: 0 }) // Result is bigint
+    this.valueLen = bigIntToCompactUint(valueLenReadResult.result)
+    const valueDataReadResult = readRemainingBytes(valueLenReadResult.position)  
+    this.value = valueDataReadResult.result
+    return this 
+  }
+
   toString() {
     return binToHex(this.serialize())
   }
 }
 
 export class KeyPair {
+  
   constructor(key, value) {
     this.key = key,
     this.value = value
   }
+
   serialize(){
     this.s = new Uint8Array([...this.key.serialize(), ...this.value.serialize()]) 
     return this.s
   }
-  deserialize(s){}
+
+  /**
+   * @param {Uint8Array} serialized KeyPair
+   */
+  deserialize(serialized) {
+    const keyLenReadResult = readCompactUint(serialized)
+    const key = serialized.slice(0, Number(keyLenReadResult.result))
+    const value = readRemainingBytes({ 
+      bin: serialized, index: Number(keyLenReadResult.result) + 1 
+    })
+    this.key  = (new Key()).deserialize(key)
+    this.value = (new Value()).deserialize(value)
+    return this
+  }
 
   toString(){
     return binToHex(this.serialize())
@@ -123,6 +167,18 @@ export class KeyPair {
 }
 
 export class GlobalMap {
+  constructor() {
+    this.keypairs = {}
+  }
+
+  // Should be removed, testing for psbt0 only
+  setUnsignedTx(tx) {
+    const _tx = isHex(tx)? hexToBin(tx): tx
+    const k = new Key(hexToBin(PSBT_GLOBAL_UNSIGNED_TX))
+    const v = new Value(_tx)
+    this.keypairs[PSBT_GLOBAL_UNSIGNED_TX] = new KeyPair(k, v)
+  }
+
   /**
    * Optional
    * 
@@ -207,15 +263,63 @@ export class GlobalMap {
   setPsbtVersion(version = 3){
 
     const k = new Key(hexToBin(PSBT_GLOBAL_VERSION))
-    const v = new Value(numberToBinInt32LE(version ?? 3))
+    const v = new Value(numberToBinUint32LE(version ?? 3))
     this.keypairs[PSBT_GLOBAL_VERSION] = new KeyPair(k, v)
     return this
   }
 
-  serialize() {
-    const sorted = sortObjectKeys(this.keypairs)
+  /**
+   * @param {Uint8Array} identifier Example: utf8ToBin('paytaca')
+   * @param {Uint8Array} subtype compact size uint
+   * @param {Uint8Array} subkeydata Example: utf8ToBin('origin')
+   * @param {Uint8Array} value Example: utf8ToBin('https://paytaca.com')
+   */
+  addProprietaryField(identifier, value, subtype = new Uint8Array([]), subkeydata = new Uint8Array([])){
+    const k = new Key(
+      hexToBin(PSBT_GLOBAL_PROPRIETARY), 
+      new Uint8Array([bigIntToCompactUint(...identifier.length), ...identifier, ...subtype, ...subkeydata])
+    )
+
+    const v = new Value(value)
+    
+    if (!this.keypairs[PSBT_GLOBAL_PROPRIETARY]) {
+      this.keypairs[PSBT_GLOBAL_PROPRIETARY] = []
+    }
+    this.keypairs[PSBT_GLOBAL_PROPRIETARY].push(new KeyPair(k, v))
+    return this
+  }
+
+  sanitizeForVersion(psbtVersion, keypairs) {
+    const sorted = { ...keypairs }
+    for (const key of Object.keys(sorted)) {
+      if (psbtVersion === 0) {
+        switch(key) {
+          case PSBT_GLOBAL_TX_VERSION:
+          case PSBT_GLOBAL_FALLBACK_LOCKTIME:
+          case PSBT_GLOBAL_INPUT_COUNT:
+          case PSBT_GLOBAL_OUTPUT_COUNT:
+          case PSBT_GLOBAL_TX_MODIFIABLE:
+          case PSBT_GLOBAL_SP_ECDH_SHARE:
+          case PSBT_GLOBAL_SP_DLEQ:
+            delete sorted[key]
+        }
+      }
+      if (psbtVersion === 2) {
+        switch(key) {
+          case PSBT_GLOBAL_UNSIGNED_TX:
+            delete sorted[key]
+        }
+      }
+    }
+    return sorted
+  }
+  /**
+   * @params {number} psbtVersion
+   */
+  serialize(psbtVersion) {
+    const sorted = sortObjectKeys(this.sanitizeForVersion(psbtVersion, this.keypairs))
     let s = new Uint8Array([])
-    for (const keyType in Object.keys(sorted)) {
+    for (const keyType of Object.keys(sorted)) {
       if (sorted[keyType] instanceof Array) {
         sorted[keyType].forEach((keypair) => {
           s = new Uint8Array([...s, ...keypair.serialize()])
@@ -229,10 +333,17 @@ export class GlobalMap {
     s = new Uint8Array([...s, hexToBin('00')]) // Add separator
     return s
   }
-
 }
 
+export const PaytacaProprietaryIdentifierPrefix = utf8ToBin('paytaca')
+export const PaytacaProprietarySubtypeOrigin = new Uint8Array([...bigIntToCompactUint(1)])
+export const PaytacaProprietarySubkeyDataOrigin = utf8ToBin('origin')
+export const PaytacaProprietarySubtypePurpose = new Uint8Array([...bigIntToCompactUint(2)], ...utf8ToBin('purpose'))
+
 export class PsbtInput {
+  constructor() {
+    this.keypairs = {}
+  }
   /**
    * @param {string|Uint8Array} tx
    */
@@ -267,7 +378,7 @@ export class PsbtInput {
    * Sighash
    */
   setSighashType(number){
-
+    if (number === undefined) return 
     const k = new Key(hexToBin(PSBT_IN_SIGHASH_TYPE))
     const v = new Value(numberToBinUint32LE(number))
     this.keypairs[PSBT_IN_SIGHASH_TYPE] = new KeyPair(k, v)
@@ -279,7 +390,6 @@ export class PsbtInput {
    */
   setRedeemScript(redeemScript){
     if (!redeemScript) return
-
     const _redeemScript = isHex(redeemScript) ? hexToBin(redeemScript): redeemScript
     const k = new Key(hexToBin(PSBT_IN_REDEEM_SCRIPT))
     const v = new Value(_redeemScript)
@@ -373,19 +483,67 @@ export class PsbtInput {
 
 
   /**
-   * @param {string|Uint8Array} identifier
-   * @param {string|Uint8Array} subtype 
+   * @param {Uint8Array} identifier Example: utf8ToBin('paytaca')
+   * @param {Uint8Array} subtype compact size uint
+   * @param {Uint8Array} subkeydata Example: utf8ToBin('origin')
+   * @param {Uint8Array} value Example: utf8ToBin('https://paytaca.com')
    */
-  addProprietaryField(identifier, subtype){
-    // TODO
+  addProprietaryField(identifier, value, subtype = new Uint8Array([]), subkeydata = new Uint8Array([])){
+    const k = new Key(
+      hexToBin(PSBT_IN_PROPRIETARY), 
+      new Uint8Array([bigIntToCompactUint(...identifier.length), ...identifier, ...subtype, ...subkeydata])
+    )
+
+    const v = new Value(value)
+    
+    if (!this.keypairs[PSBT_IN_PROPRIETARY]) {
+      this.keypairs[PSBT_IN_PROPRIETARY] = []
+    }
+    this.keypairs[PSBT_IN_PROPRIETARY].push(new KeyPair(k, v))
+    return this
   }
 
-  serialize() {
-    const sorted = sortObjectKeys(this.keypairs)
+  sanitizeForVersion(psbtVersion, keypairs) {
+    console.log('KEYPAIRS', keypairs)
+    const sorted = { ...keypairs }
+    console.log('SORTED', sorted)
+    for (const key of Object.keys(sorted)) {
+      if (psbtVersion === 0) {
+        switch(key) {
+          case PSBT_IN_PREVIOUS_TXID:
+          case PSBT_IN_OUTPUT_INDEX:
+          case PSBT_IN_SEQUENCE:
+          case PSBT_IN_REQUIRED_TIME_LOCKTIME:
+          case PSBT_IN_REQUIRED_HEIGHT_LOCKTIME:
+          case PSBT_IN_SP_ECDH_SHARE:
+          case PSBT_IN_SP_DLEQ:  
+            delete sorted[key]
+        }
+      }
+      if (psbtVersion > 0) {
+        switch(key) {
+          case PSBT_IN_PREVIOUS_TXID:
+            if (!keypairs[key]) throw new Error(`PSBT_IN_PREVIOUS_TXID missing, required on version: ${psbtVersion}`)
+          case PSBT_IN_OUTPUT_INDEX:
+            if (!keypairs[key]) throw new Error(`PSBT_IN_OUTPUT_INDEX missing, required on version: ${psbtVersion}`)
+        }
+      }
+    }
+    return sorted
+  }
+
+  /**
+   * @params {number} [psbtVersion = 3]
+   */
+  serialize(psbtVersion) {
+    
+    const sorted = sortObjectKeys(this.sanitizeForVersion(psbtVersion, this.keypairs))
     let s = new Uint8Array([])
-    for (const keyType in Object.keys(sorted)) {
+    for (const keyType of Object.keys(sorted)) {
       if (sorted[keyType] instanceof Array) {
         sorted[keyType].forEach((keypair) => {
+          console.log('KEYPAIR', keypair)
+          keypair.prototype = KeyPair
           s = new Uint8Array([...s, ...keypair.serialize()])
         })
         continue
@@ -394,12 +552,15 @@ export class PsbtInput {
         s = new Uint8Array([...s, ...sorted[keyType].serialize()])
       }
     }
-    s = new Uint8Array([...s, hexToBin('00')])
-    return s
+    return new Uint8Array([...s, hexToBin('00')])
   }
+
 }
 
 export class PsbtOutput {
+  constructor() {
+    this.keypairs = {}
+  }
   /**
    * @param {string|Uint8Array} redeemScript
    */
@@ -498,14 +659,61 @@ export class PsbtOutput {
     return this
   }
 
-  addProprietaryField(){}
+  /**
+   * @param {Uint8Array} identifier Example: utf8ToBin('paytaca')
+   * @param {Uint8Array} subtype compact size uint
+   * @param {Uint8Array} subkeydata Example: utf8ToBin('origin')
+   * @param {Uint8Array} value Example: utf8ToBin('https://paytaca.com')
+   */
+  addProprietaryField(identifier, value, subtype = new Uint8Array([]), subkeydata = new Uint8Array([])){
+    const k = new Key(
+      hexToBin(PSBT_OUT_PROPRIETARY), 
+      new Uint8Array([bigIntToCompactUint(...identifier.length), ...identifier, ...subtype, ...subkeydata])
+    )
 
-  serialize() {
-    const sorted = sortObjectKeys(this.keypairs)
+    const v = new Value(value)
+    
+    if (!this.keypairs[PSBT_OUT_PROPRIETARY]) {
+      this.keypairs[PSBT_OUT_PROPRIETARY] = []
+    }
+    this.keypairs[PSBT_OUT_PROPRIETARY].push(new KeyPair(k, v))
+    return this
+  }
+
+  sanitizeForVersion(psbtVersion, keypairs) {
+    const sorted = { ...keypairs }
+    for (const key of Object.keys(sorted)) {
+      if (psbtVersion === 0) {
+        switch(key) {
+          case PSBT_OUT_AMOUNT:
+          case PSBT_OUT_SCRIPT:
+          case PSBT_OUT_SP_V0_INFO:
+          case PSBT_OUT_SP_V0_LABEL:
+            delete sorted[key]
+        }
+      }
+      if (psbtVersion > 0) {
+        switch(key) {
+          case PSBT_OUT_AMOUNT:
+            if (!keypairs[key]) throw new Error(`PSBT_OUT_AMOUNT missing, required on version ${psbtVersion}`)
+        }
+      }
+    }
+    return sorted
+  }
+
+  /**
+   * @params {number} [psbtVersion = 3]
+   */
+  serialize(psbtVersion) {
+    console.log('outputmap', this.keypairs)
+    const sorted = sortObjectKeys(this.sanitizeForVersion(psbtVersion, this.keypairs))
+    console.log('sorted', sorted)
     let s = new Uint8Array([])
-    for (const keyType in Object.keys(sorted)) {
+    for (const keyType of Object.keys(sorted)) {
       if (sorted[keyType] instanceof Array) {
         sorted[keyType].forEach((keypair) => {
+          
           s = new Uint8Array([...s, ...keypair.serialize()])
         })
         continue
@@ -514,32 +722,79 @@ export class PsbtOutput {
         s = new Uint8Array([...s, ...sorted[keyType].serialize()])
       }
     }
-    s = new Uint8Array([...s, hexToBin('00')])
+    
+    return new Uint8Array([...s, hexToBin('00')])
+  }
+}
+
+
+export class InputMap {
+  constructor() {
+    this.inputs = []
+  }
+
+  /**
+   * 
+   * @param {PsbtInput} input
+   */ 
+  add(input){
+    this.inputs.push(input)
+  }
+
+  serialize() {
+    let s = new Uint8Array([])
+    this.inputs.forEach((input) => {
+      s = new Uint8Array([...s, ...input.serialize()])
+    })
+    return new Uint8Array([...s, hexToBin('00')])
+  }
+}
+
+export class OutputMap {
+  constructor() {
+    this.outputs = []
+  }
+  /**
+   * 
+   * @param {PsbtOutput} output
+   */
+  add(output){
+    this.outputs.push(output)
+  } 
+
+  serialize() {
+    let s = new Uint8Array([])
+    this.outputs.forEach((output) => {
+      s = new Uint8Array([...s, ...output.serialize()])
+    })
     return s
   }
 }
 
 export class Psbt {
 
-
-  addPsbtInput(input){
-    if (!this.inputs) {
-      this.inputs = []
-      return this
-    }
-    this.inputs.push(input)
-    return this
+  constructor() {
+    this.magic = new Magic()
+    this.globalMap = new GlobalMap()
+    this.inputMap = new InputMap()
+    this.outputMap = new OutputMap()
   }
 
-  addPsbtOutput(){
-    if (!this.outputs) {
-      this.outputs = []
-      return this 
-    }
-    this.outputs.push(output)
-    return this
+  serialize() {
+    const magic = (new Magic()).serialize()
+    const psbtVersion = this.globalMap.keypairs[PSBT_GLOBAL_TX_VERSION]?.value
+    console.log('PSBT VERSION', psbtVersion)
+    const globalMap = this.globalMap.serialize()
+    const inputMap = this.inputMap.serialize()
+    const outputMap = this.outputMap.serialize()
+    const size = new Uint8Array(magic.length +  globalMap.length + inputMap.length + outputMap.length)
+    this.serialized = new Uint8Array(size.length)
+    this.serialized.set(magic)
+    this.serialized.set(globalMap, magic.length)
+    this.serialized.set(inputMap, magic.length + globalMap.length)
+    this.serialized.set(outputMap, magic.length + globalMap.length + inputMap.length)
+    return this.serialized
   }
-
   
 }
 
