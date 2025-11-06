@@ -1414,7 +1414,7 @@ const phrases = {
       NetworkError: 'Network error. Try again later.',
       WhereToSpendBCH: 'Where to Spend BCH',
       SpendBCHDescription: 'Discover the many places where you can use your Bitcoin Cash',
-      MerchantMapDescription: 'Find nearby merchants in our network accepting Bitcoin Cash',
+      MerchantMapDescription: 'Find nearby merchants in our network accepting BCH',
       MarketplaceDescription: 'Shop directly within Paytaca from merchants selling products for BCH',
       SpendBCHFooter: 'More merchants are joining the BCH network every day. Check back often for new options!',
       ResetWalletConnect: 'Reset Wallet Connect'

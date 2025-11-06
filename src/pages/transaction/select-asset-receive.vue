@@ -41,14 +41,53 @@
         <div
           v-for="(asset, index) in assets"
           :key="index"
-          @click="checkIfFirstTimeReceiver(asset)"
-          role="button"
-          class="row q-pl-lg q-pr-lg"
         >
-          <div class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)" v-if="isCashToken">
+          <!-- FAVORITES label - show before first favorite token -->
+          <div 
+            v-if="shouldShowFavoritesLabel(asset, index)"
+            class="q-pl-lg q-pr-lg q-mt-md q-mb-sm"
+          >
+            <p 
+              class="q-ma-none text-uppercase text-weight-bold"
+              :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
+              style="font-size: 12px; letter-spacing: 1px;"
+            >
+              FAVORITES
+            </p>
+          </div>
+          <!-- OTHER TOKENS label - show before first non-favorite token -->
+          <div 
+            v-if="shouldShowOtherTokensLabel(asset, index)"
+            class="q-pl-lg q-pr-lg q-mt-md q-mb-sm"
+          >
+            <p 
+              class="q-ma-none text-uppercase text-weight-bold"
+              :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
+              style="font-size: 12px; letter-spacing: 1px;"
+            >
+              OTHER TOKENS
+            </p>
+          </div>
+          <div
+            @click="checkIfFirstTimeReceiver(asset)"
+            role="button"
+            class="row q-pl-lg q-pr-lg"
+          >
+          <div 
+            class="col row group-currency q-mb-sm" 
+            :class="getDarkModeClass(darkMode)" 
+            v-if="isCashToken"
+          >
             <div class="row q-pt-sm q-pb-xs q-pl-md" style="width: 100%;">
               <div>
                 <img
+                  v-if="asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'"
+                  src="ct-logo.png"
+                  width="50"
+                  alt=""
+                />
+                <img
+                  v-else
                   :src="getImageUrl(asset)"
                   width="50"
                   alt=""
@@ -61,7 +100,18 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
+                <p 
+                  v-if="asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'"
+                  class="q-ma-none amount-text" 
+                  :class="getDarkModeClass(darkMode, '', 'text-grad')"
+                >
+                  Any Fungible CashToken
+                </p>
+                <p 
+                  v-else-if="asset.id !== 'ct/unlisted' && asset.id !== 'sep20/unlisted' && asset.id !== 'slp/unlisted'"
+                  class="q-ma-none amount-text" 
+                  :class="getDarkModeClass(darkMode, '', 'text-grad')"
+                >
                   <template v-if="!asset.name.includes('New')">
                     <span>
                       {{ parseAssetDenomination(denomination, asset, false, 16) }}
@@ -75,6 +125,7 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
         <q-banner
           v-if="!isCashToken"
@@ -84,18 +135,6 @@
         >
           {{ `Receiving SLP ${isHongKong(currentCountry) ? 'points' : 'tokens'} is temporarily disabled until further notice.` }}
         </q-banner>
-      </div>
-      <!-- Show More / Show Less Button -->
-      <div v-if="hasNonFavoriteTokens && selectedNetwork === networks.BCH.name" class="q-pa-md text-center">
-        <q-btn
-          flat
-          no-caps
-          :label="showAllTokens ? $t('ShowLess', {}, 'Show Less') : $t('ShowMore', {}, 'Show More')"
-          :icon="showAllTokens ? 'expand_less' : 'expand_more'"
-          @click="showAllTokens = !showAllTokens"
-          :class="getDarkModeClass(darkMode)"
-          color="primary"
-        />
       </div>
       <div class="vertical-space" v-if="assets.length > 5"></div>
     </template>
@@ -144,7 +183,6 @@ export default {
       wallet: null,
       favorites: [],
       customList: null,
-      showAllTokens: false
     }
   },
   computed: {
@@ -194,12 +232,18 @@ export default {
         })
         const unlistedAsset = {
           id: 'sep20/unlisted',
-          name: this.$t('NewUnlisted'),
+          name: 'CashToken',
           symbol: 'SEP20 token',
           logo: themedNewTokenIcon
         }
-        _assets.push(unlistedAsset)
-        return _assets
+        // Ordering: sBCH first, then unlisted SEP20 token, then others
+        const bchAsset = _assets.find(asset => asset?.id === 'bch')
+        const otherAssets = _assets.filter(asset => asset?.id !== 'bch')
+        return [
+          ...(bchAsset ? [bchAsset] : []),
+          unlistedAsset,
+          ...otherAssets
+        ]
       }
 
       const vm = this
@@ -215,14 +259,14 @@ export default {
       })
       let unlistedAsset = {
         id: 'slp/unlisted',
-        name: this.$t('NewUnlisted'),
+        name: 'CashToken',
         symbol: 'SLP token',
         logo: themedNewTokenIcon
       }
       if (vm.isCashToken) {
         unlistedAsset = {
           id: 'ct/unlisted',
-          name: this.$t('NewUnlisted'),
+          name: 'CashToken',
           symbol: 'CashToken',
           logo: themedNewTokenIcon
         } 
@@ -264,47 +308,61 @@ export default {
         return !isFav
       })
 
-      // Hide non-favorite tokens by default
+      // Ordering: BCH first, then New/Unlisted CashToken (if CashToken mode), then favorites, then others
       const baseList = [
         ...(bchAsset ? [bchAsset] : []),
+        // Add unlisted CashToken right after BCH if in CashToken mode
+        ...(vm.isCashToken ? [unlistedAsset] : []),
         ...favoriteAssets
       ]
 
-      const finalList = this.showAllTokens
-        ? [...baseList, ...sortedOtherAssets, unlistedAsset]
-        : [...baseList]
+      // Always show all tokens
+      const finalList = [...baseList, ...sortedOtherAssets, ...(vm.isCashToken ? [] : [unlistedAsset])]
 
       return finalList
-    }
-  ,
-    hasNonFavoriteTokens () {
-      const vm = this
-      const favoriteTokenIds = vm.favorites
-        .filter(item => item.favorite === 1)
-        .map(item => item.id)
-
-      const allAssets = vm.$store.getters['assets/getAssets'].filter(function (item) {
-        if (item) {
-          const isBch = item?.id === 'bch'
-          const tokenType = item?.id?.split?.('/')?.[0]
-
-          if (vm.isCashToken) return tokenType === 'ct' || isBch
-          return tokenType === 'slp' || isBch
-        }
-      })
-
-      const otherAssets = allAssets.filter(asset => {
-        const aid = String(asset?.id || '')
-        const isFav = favoriteTokenIds.some(fid => fid === aid || aid.endsWith('/' + fid))
-        return aid !== 'bch' && !isFav
-      })
-
-      return otherAssets.length > 0
     }
   },
   methods: {
     isFavorite(assetId) {
       return this.favorites.some(item => item.id === assetId && item.favorite === 1)
+    },
+    shouldShowFavoritesLabel(asset, index) {
+      // Show label if:
+      // 1. Current asset is a favorite
+      // 2. Previous asset (if exists) is not a favorite (or is BCH/unlisted CashToken)
+      if (!this.isFavorite(asset.id)) return false
+      
+      if (index === 0) return false // Don't show before first item
+      
+      const previousAsset = this.assets[index - 1]
+      if (!previousAsset) return false
+      
+      // Show if previous asset was BCH or unlisted CashToken, or if it wasn't a favorite
+      const isUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'sep20/unlisted' || previousAsset.id === 'slp/unlisted'
+      const isBch = previousAsset.id === 'bch'
+      const wasFavorite = this.isFavorite(previousAsset.id)
+      
+      return (isBch || isUnlisted || !wasFavorite)
+    },
+    shouldShowOtherTokensLabel(asset, index) {
+      // Show label if:
+      // 1. Current asset is NOT a favorite (and not BCH or unlisted CashToken)
+      // 2. Previous asset (if exists) was a favorite, BCH, or unlisted CashToken
+      const isUnlisted = asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'
+      const isBch = asset.id === 'bch'
+      if (isBch || isUnlisted || this.isFavorite(asset.id)) return false
+      
+      if (index === 0) return false // Don't show before first item
+      
+      const previousAsset = this.assets[index - 1]
+      if (!previousAsset) return false
+      
+      // Show if previous asset was a favorite, BCH, or unlisted CashToken
+      const prevIsUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'sep20/unlisted' || previousAsset.id === 'slp/unlisted'
+      const prevIsBch = previousAsset.id === 'bch'
+      const prevWasFavorite = this.isFavorite(previousAsset.id)
+      
+      return (prevIsBch || prevIsUnlisted || prevWasFavorite)
     },
     convertTokenAmount,
     parseAssetDenomination,

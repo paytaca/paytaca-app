@@ -3,6 +3,7 @@ import { migrateVuexStorage } from 'src/utils/indexed-db-rollback/rollback-vuex-
 import { populateMissingVaults, recoverWalletsFromStorage } from 'src/utils/indexed-db-rollback/wallet-recovery'
 import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferences'
 import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
+import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import useStore from 'src/store'
 
 /**
@@ -48,6 +49,9 @@ export default boot(async (obj) => {
     await resetWalletsAssetsList()
     updatePreferences()
     populateMissingVaults()
+    
+    // Load cached wallet names on startup to populate vault names if empty
+    loadCachedWalletNames(store)
   } catch (err) {
     console.error('Error initializing Vuex store:', err)
     // Initialize store with default state if hydration fails
@@ -55,3 +59,29 @@ export default boot(async (obj) => {
     obj.app.use(store)
   }
 })
+
+/**
+ * Load cached wallet names and populate vault if names are empty
+ * This ensures wallet names are available immediately, even before server sync
+ */
+function loadCachedWalletNames(store) {
+  try {
+    const cachedNames = getAllWalletNames()
+    const vault = store.getters['global/getVault']
+    
+    if (!vault || vault.length === 0) return
+    
+    // Update vault names from cache if they're empty
+    vault.forEach((wallet, index) => {
+      const walletHash = wallet?.wallet?.bch?.walletHash
+      if (walletHash && (!wallet.name || wallet.name === '')) {
+        const cachedName = cachedNames[walletHash]
+        if (cachedName) {
+          store.commit('global/updateWalletName', { index, name: cachedName })
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Error loading cached wallet names:', error)
+  }
+}

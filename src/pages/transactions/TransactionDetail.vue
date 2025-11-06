@@ -1,5 +1,5 @@
 <template>
-  <div class="transaction-detail-wrapper" :class="getDarkModeClass(darkMode)">
+  <div class="transaction-detail-wrapper" :class="getDarkModeClass(darkMode)" :style="wrapperBackgroundStyle">
     <div class="transaction-detail-header-wrapper">
       <header-nav :title="$t('Transaction', {}, 'Transaction')" class="header-nav apps-header" @click:left="goBack" />
     </div>
@@ -57,7 +57,7 @@
         </div>
 
         <div class="text-grey text-weight-medium text-caption" style="margin-top: 14px;">&nbsp;{{ $t('DateAndTime', {}, 'Date & Time') }}</div>
-        <div class="date-prominent q-mt-xs q-mb-lg date-block-ss" style="margin-top: 10px;">
+        <div class="date-prominent q-mt-xs q-mb-lg date-block-ss" :class="getDarkModeClass(darkMode)" style="margin-top: 10px;">
           {{ formatDate(tx.tx_timestamp || tx.date_created) }}
         </div>
 
@@ -192,22 +192,48 @@ export default {
       if (!bchMarketValue) return ''
       const gas = this.tx.tx_fee / (10 ** 8)
       return (Number(gas) * Number(bchMarketValue))
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    wrapperBackgroundStyle () {
+      const theme = this.theme
+      const isDark = this.darkMode
+      
+      // Map of themes to their background colors [dark, light]
+      const themeBackgrounds = {
+        'glassmorphic-blue': {
+          dark: '#273746',
+          light: '#ecf3f3'
+        },
+        'glassmorphic-gold': {
+          dark: '#3d3224',
+          light: '#fff8e1'
+        },
+        'glassmorphic-green': {
+          dark: '#263d32',
+          light: '#e8f5e9'
+        },
+        'glassmorphic-red': {
+          dark: '#462733',
+          light: '#f3ecec'
+        }
+      }
+      
+      // Default to blue theme if theme not found
+      const bgColors = themeBackgrounds[theme] || themeBackgrounds['glassmorphic-blue']
+      const backgroundColor = isDark ? bgColors.dark : bgColors.light
+      
+      return {
+        backgroundColor: backgroundColor
+      }
     }
   },
   async mounted () {
     await this.initWallet()
     
     // Ensure HTML and body have the correct background color to match our wrapper
-    this.$nextTick(() => {
-      const htmlEl = document.documentElement
-      const bodyEl = document.body
-      if (htmlEl) {
-        htmlEl.style.backgroundColor = this.darkMode ? '#273746' : '#ECF3F3'
-      }
-      if (bodyEl) {
-        bodyEl.style.backgroundColor = this.darkMode ? '#273746' : '#ECF3F3'
-      }
-    })
+    this.updateBackgroundColors()
     
     const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
     if (preloaded) {
@@ -230,11 +256,32 @@ export default {
       bodyEl.style.backgroundColor = ''
     }
   },
+  watch: {
+    theme () {
+      this.updateBackgroundColors()
+    },
+    darkMode () {
+      this.updateBackgroundColors()
+    }
+  },
   methods: {
     getDarkModeClass,
     parseFiatCurrency,
     getAssetDenomination,
     parseAssetDenomination,
+    updateBackgroundColors () {
+      this.$nextTick(() => {
+        const backgroundColor = this.wrapperBackgroundStyle.backgroundColor
+        const htmlEl = document.documentElement
+        const bodyEl = document.body
+        if (htmlEl) {
+          htmlEl.style.backgroundColor = backgroundColor
+        }
+        if (bodyEl) {
+          bodyEl.style.backgroundColor = backgroundColor
+        }
+      })
+    },
     hexToRef (hex6) {
       return hexToRefUtil(hex6)
     },
@@ -555,7 +602,9 @@ export default {
 .view-explorer-link-ss { display: inline-flex; align-items: center; text-decoration: none; font-size: 15px; font-weight: 500; padding: 8px 16px; border-radius: 8px; color: var(--q-primary); transition: all 0.2s ease; }
 .view-explorer-link-ss:hover { background: rgba(0, 128, 0, 0.08); transform: translateX(2px); }
 .view-explorer-link-ss.dark { color: #4ade80; }
-.date-prominent { text-align: center; color: rgba(255,255,255,0.85); font-size: 16px; font-weight: 500; }
+.date-prominent { text-align: center; font-size: 16px; font-weight: 500; }
+.date-prominent.dark { color: rgba(255,255,255,0.85); }
+.date-prominent:not(.dark) { color: rgba(0,0,0,0.85); }
 .content-container-ss { min-width: 320px; max-width: 700px; margin: 0 auto; padding-top: 8px; }
 .section-block-ss { margin-top: 12px; }
 .date-block-ss { opacity: 0.9; }
@@ -565,15 +614,11 @@ export default {
   display: flex;
   flex-direction: column;
   width: 100%;
-  background-color: #ECF3F3;
   position: relative;
   /* Ensure wrapper fills at least the viewport but doesn't force extra height */
   min-height: 100vh;
   /* But also ensure it doesn't create extra space beyond content */
-}
-
-.transaction-detail-wrapper.dark {
-  background-color: #273746;
+  /* Background color is set dynamically via :style binding based on theme */
 }
 
 

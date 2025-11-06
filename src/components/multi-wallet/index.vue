@@ -89,6 +89,7 @@
 <script>
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getWalletName } from 'src/utils/wallet-name-cache'
 
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -131,16 +132,33 @@ export default {
       const tempVault = vm.$store.getters['global/getVault']
       const vaultNameUpdatePromises = tempVault.map(async (wallet, index) => {
         let tempName = wallet.name
+        const walletHash = wallet?.wallet?.bch?.walletHash
+        
         if (wallet.name === '') { // from vuex store
-          tempName = `Personal Wallet #${index + 1}`
+          // Check cache before falling back to generic name
+          const cachedName = walletHash ? getWalletName(walletHash) : null
+          if (cachedName) {
+            tempName = cachedName
+          } else {
+            tempName = `Personal Wallet #${index + 1}`
+          }
         } else {
           const walletName = await vm.$store.dispatch(
             'global/syncWalletName',
             { walletIndex: index }
           ).catch(console.error) ?? ''
 
-          if (walletName) tempName = walletName
-          else tempName = `Personal Wallet #${index + 1}`
+          if (walletName) {
+            tempName = walletName
+          } else {
+            // If sync failed, check cache before falling back to generic name
+            const cachedName = walletHash ? getWalletName(walletHash) : null
+            if (cachedName) {
+              tempName = cachedName
+            } else {
+              tempName = `Personal Wallet #${index + 1}`
+            }
+          }
         }
 
         vm.$store.commit('global/updateWalletName', { index, name: tempName })
@@ -156,7 +174,14 @@ export default {
 
       tempVault.forEach((wallet, index) => {
         if (wallet.name === '') {
-          vm.$store.commit('global/updateWalletName', { index, name: `Personal Wallet #${index + 1}` })
+          // Check cache before using generic name
+          const walletHash = wallet?.wallet?.bch?.walletHash
+          const cachedName = walletHash ? getWalletName(walletHash) : null
+          if (cachedName) {
+            vm.$store.commit('global/updateWalletName', { index, name: cachedName })
+          } else {
+            vm.$store.commit('global/updateWalletName', { index, name: `Personal Wallet #${index + 1}` })
+          }
         }
       })
     },

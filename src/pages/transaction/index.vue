@@ -221,7 +221,7 @@
                 no-caps
                 class="br-15"
                 color="grey-7"
-                icon="call_received"
+                icon="qr_code"
                 padding="xs md"
                 label="Receive Tokens"
                 @click="$router.push({ name: 'transaction-receive', query: { assetId: 'ct/unlisted', network: 'BCH' } })"

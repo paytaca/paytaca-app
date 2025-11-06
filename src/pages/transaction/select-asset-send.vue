@@ -19,10 +19,38 @@
           id = "asset-dropdown"
           v-for="(asset, index) in assets"
           :key="index"
-          @click="redirectToSend(asset)"
-          role="button"
-          class="row q-pl-lg q-pr-lg"
         >
+          <!-- FAVORITES label - show before first favorite token -->
+          <div 
+            v-if="shouldShowFavoritesLabel(asset, index)"
+            class="q-pl-lg q-pr-lg q-mt-md q-mb-sm"
+          >
+            <p 
+              class="q-ma-none text-uppercase text-weight-bold"
+              :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
+              style="font-size: 12px; letter-spacing: 1px;"
+            >
+              FAVORITES
+            </p>
+          </div>
+          <!-- OTHER TOKENS label - show before first non-favorite token -->
+          <div 
+            v-if="shouldShowOtherTokensLabel(asset, index)"
+            class="q-pl-lg q-pr-lg q-mt-md q-mb-sm"
+          >
+            <p 
+              class="q-ma-none text-uppercase text-weight-bold"
+              :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
+              style="font-size: 12px; letter-spacing: 1px;"
+            >
+              OTHER TOKENS
+            </p>
+          </div>
+          <div
+            @click="redirectToSend(asset)"
+            role="button"
+            class="row q-pl-lg q-pr-lg"
+          >
           <div id="bitcoin-cash"
             class="col row group-currency q-mb-sm" :class="getDarkModeClass(darkMode)">
             <div class="row q-pt-sm q-pb-xs q-pl-md" style="width: 100%;">
@@ -49,19 +77,8 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
-      </div>
-      <!-- Show More / Show Less Button -->
-      <div v-if="hasNonFavoriteTokens" class="q-pa-md text-center">
-        <q-btn
-          flat
-          no-caps
-          :label="showAllTokens ? $t('ShowLess', {}, 'Show Less') : $t('ShowMore', {}, 'Show More')"
-          :icon="showAllTokens ? 'expand_less' : 'expand_more'"
-          @click="showAllTokens = !showAllTokens"
-          :class="getDarkModeClass(darkMode)"
-          color="primary"
-        />
       </div>
       <div class="vertical-space" v-if="assets.length > 5"></div>
     </template>
@@ -117,8 +134,7 @@ export default {
       isCashToken: true,
       tokenNotFoundDialog: null,
       favorites: [],
-      customList: null,
-      showAllTokens: false
+      customList: null
     }
   },
   computed: {
@@ -206,41 +222,12 @@ export default {
         return !isFav
       })
 
-      // Hide non-favorite tokens by default
-      if (!vm.showAllTokens) {
-        return [
-          ...(bchAsset ? [bchAsset] : []),
-          ...favoriteAssets
-        ]
-      }
-
+      // Always show all tokens
       return [
         ...(bchAsset ? [bchAsset] : []),
         ...favoriteAssets,
         ...sortedOtherAssets
       ]
-    },
-    hasNonFavoriteTokens () {
-      const vm = this
-      const favoriteTokenIds = vm.favorites
-        .filter(item => item.favorite === 1)
-        .map(item => item.id)
-      
-      const allAssets = vm.$store.getters['assets/getAssets'].filter(function (item) {
-        if (item) {
-          const isBch = item?.id === 'bch'
-          const tokenType = item?.id?.split?.('/')?.[0]
-
-          if (vm.isCashToken) return tokenType === 'ct' || isBch
-          return tokenType === 'slp' || isBch
-        }
-      })
-
-      const otherAssets = allAssets.filter(asset => 
-        asset?.id !== 'bch' && !favoriteTokenIds.includes(asset?.id)
-      )
-
-      return otherAssets.length > 0
     }
   },
   methods: {
@@ -269,6 +256,41 @@ export default {
     },
     isFavorite(assetId) {
       return this.favorites.some(item => item.id === assetId && item.favorite === 1)
+    },
+    shouldShowFavoritesLabel(asset, index) {
+      // Show label if:
+      // 1. Current asset is a favorite
+      // 2. Previous asset (if exists) is not a favorite (or is BCH)
+      if (!this.isFavorite(asset.id)) return false
+      
+      if (index === 0) return false // Don't show before first item
+      
+      const previousAsset = this.assets[index - 1]
+      if (!previousAsset) return false
+      
+      // Show if previous asset was BCH or if it wasn't a favorite
+      const isBch = previousAsset.id === 'bch'
+      const wasFavorite = this.isFavorite(previousAsset.id)
+      
+      return (isBch || !wasFavorite)
+    },
+    shouldShowOtherTokensLabel(asset, index) {
+      // Show label if:
+      // 1. Current asset is NOT a favorite (and not BCH)
+      // 2. Previous asset (if exists) was a favorite or BCH
+      const isBch = asset.id === 'bch'
+      if (isBch || this.isFavorite(asset.id)) return false
+      
+      if (index === 0) return false // Don't show before first item
+      
+      const previousAsset = this.assets[index - 1]
+      if (!previousAsset) return false
+      
+      // Show if previous asset was BCH or a favorite
+      const prevIsBch = previousAsset.id === 'bch'
+      const prevWasFavorite = this.isFavorite(previousAsset.id)
+      
+      return (prevIsBch || prevWasFavorite)
     },
     redirectToSend (asset) {
       if (this.online) {
