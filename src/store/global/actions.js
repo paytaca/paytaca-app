@@ -4,6 +4,7 @@ import { decodePrivateKeyWif } from '@bitauth/libauth'
 import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
+import { saveWalletName, getWalletName } from 'src/utils/wallet-name-cache'
 import { loadLibauthHdWallet, loadWallet } from '../../wallet'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
@@ -126,10 +127,34 @@ export async function syncWalletName (context, opts) {
     return // throw new Error('No wallet hash found')
   }
 
-  const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
-  const decryptedName = decryptWalletName(walletName, walletHash)
-  context.commit('updateWalletName', { index: opts?.walletIndex, name: decryptedName })
-  return decryptedName
+  // Check cache first for offline support
+  const cachedName = getWalletName(walletHash)
+  if (cachedName) {
+    // Update Vuex with cached name
+    context.commit('updateWalletName', { index: opts?.walletIndex, name: cachedName })
+  }
+
+  try {
+    // Try to fetch from server
+    const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
+    if (walletName) {
+      const decryptedName = decryptWalletName(walletName, walletHash)
+      // Save to cache for offline use
+      saveWalletName(walletHash, decryptedName)
+      context.commit('updateWalletName', { index: opts?.walletIndex, name: decryptedName })
+      return decryptedName
+    }
+  } catch (error) {
+    // If fetch fails (e.g., offline), use cached name if available
+    if (cachedName) {
+      return cachedName
+    }
+    // Re-throw if no cache available
+    throw error
+  }
+
+  // If no server response and no cache, return cached name or empty string
+  return cachedName || ''
 }
 
 export async function updateWalletNameInPreferences (context, data) {
@@ -145,6 +170,8 @@ export async function updateWalletNameInPreferences (context, data) {
 
   try {
     const decryptedName = decryptWalletName(data.walletName, walletHash)
+    // Save to cache for offline use
+    saveWalletName(walletHash, decryptedName)
     context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
   } catch (error) {
     console.error(error)
@@ -188,6 +215,11 @@ export async function saveExistingWallet (context) {
   if (vault.length > 0) {
     if (vault[0]) {
       if (!vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+        // Clear all cached wallet names when clearing vault
+        const allCachedNames = getAllWalletNames()
+        Object.keys(allCachedNames).forEach(walletHash => {
+          removeWalletName(walletHash)
+        })
         context.commit('clearVault')
       }
     }

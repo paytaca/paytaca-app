@@ -1,5 +1,6 @@
 import { deleteMnemonic } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
+import { removeWalletName } from 'src/utils/wallet-name-cache'
 
 export function setWalletsRecovered (state, value) {
   state.walletsRecovered = Boolean(value)
@@ -115,6 +116,14 @@ export function updateCurrentWallet (state, index) {
 
 export function deleteWallet (state, index) {
   // Mark wallet as deleted
+  const wallet = state.vault[index]
+  const walletHash = wallet?.wallet?.bch?.walletHash
+  
+  // Remove cached wallet name
+  if (walletHash) {
+    removeWalletName(walletHash)
+  }
+  
   state.vault[index].deleted = true
   // Delete the mnemonic seed phrase for this wallet
   deleteMnemonic(index)
