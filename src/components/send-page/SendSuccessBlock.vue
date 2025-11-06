@@ -21,7 +21,7 @@
       <div class="reference-id-section q-mt-md">
         <div class="text-grey text-weight-medium text-caption">{{ $t('ReferenceId')}}</div>
         <div class="reference-id-value">
-          {{ txid.substring(0, 6).toUpperCase() }}
+          {{ hexToRef(txid.substring(0, 6)) }}
         </div>
         <q-separator color="grey" class="q-mt-sm"/>
       </div>
@@ -162,6 +162,7 @@ import {
 } from 'src/utils/denomination-utils'
 import { fetchMemo, createMemo, updateMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
 import { getKeypair } from 'src/exchange/chat/keys'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 import SendSuccessDetailsDialog from 'src/components/send-page/SendSuccessDetailsDialog.vue'
 
@@ -206,10 +207,20 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     transactionBreakdownData () {
+      // Helper to convert amount to smallest unit if needed for tokens
+      const convertAmountForDisplay = (amount) => {
+        if (this.asset && this.asset.decimals && this.asset.id !== 'bch' && this.asset.id !== 'sbch') {
+          // Amount is in human-readable format, convert to smallest unit
+          return amount * (10 ** this.asset.decimals)
+        }
+        return amount
+      }
+
       if (this.jpp?.parsed?.outputs !== undefined) {
         return this.jpp.parsed.outputs.map(value => {
+          const convertedAmount = convertAmountForDisplay(value.amount)
           const amount = parseAssetDenomination(
-            this.denomination, { ...this.asset, balance: value.amount }
+            this.denomination, { ...this.asset, balance: convertedAmount }
           )
           const fiatAmount = this.parseFiatAmount(0, value.amount)
 
@@ -220,8 +231,9 @@ export default {
         })
       } else {
         return this.recipients.map(value => {
+          const convertedAmount = convertAmountForDisplay(value.amount)
           const amount = parseAssetDenomination(
-            this.denomination, { ...this.asset, balance: value.amount }
+            this.denomination, { ...this.asset, balance: convertedAmount }
           )
           const fiatAmount = this.parseFiatAmount(0, value.amount)
           const tokenAmount = this.isCashToken ? '' : ` (${fiatAmount})`
@@ -246,8 +258,16 @@ export default {
   },
 
   mounted () {
+    // For tokens, totalAmountSent is in human-readable format, but parseAssetDenomination
+    // expects balance in smallest units. Convert if needed.
+    let balanceForDisplay = Math.abs(this.totalAmountSent)
+    if (this.asset && this.asset.decimals && this.asset.id !== 'bch' && this.asset.id !== 'sbch') {
+      // Convert from human-readable format to smallest unit
+      balanceForDisplay = balanceForDisplay * (10 ** this.asset.decimals)
+    }
+    
     this.amountSent = parseAssetDenomination(
-      this.denomination, { ...this.asset, balance: Math.abs(this.totalAmountSent) }
+      this.denomination, { ...this.asset, balance: balanceForDisplay }
     )
     this.fiatAmountSent = this.parseFiatAmount(
       this.totalFiatAmountSent, this.totalAmountSent
@@ -257,6 +277,7 @@ export default {
 
   methods: {
     getDarkModeClass,
+    hexToRef,
 
     getExplorerLink (txid) {
       return getExplorerLink(txid, this.isCashToken)

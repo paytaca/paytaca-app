@@ -15,13 +15,15 @@
           <template v-if="tx.record_type === 'incoming'">{{ $t('Received') }}</template>
           <template v-else>{{ $t('Sent') }}</template>
         </div>
-        <div class="row justify-center q-mt-sm q-mb-md" style="margin-top: 8px;">
-          <q-icon :name="tx.record_type === 'incoming' ? 'arrow_downward' : 'arrow_upward'" class="direction-icon" />
+        <div class="row justify-center q-mt-sm q-mb-md" style="margin-top: 12px;">
+          <div class="direction-icon-container" :class="getDarkModeClass(darkMode)">
+            <q-icon :name="tx.record_type === 'incoming' ? 'arrow_downward' : 'arrow_upward'" class="direction-icon" />
+          </div>
         </div>
 
         <!-- Amount block (mirrors SendSuccessBlock proportions) -->
         <div class="amount-block q-mt-md text-center section-block-ss">
-          <div class="row justify-center q-gutter-sm amount-row-ss" style="margin-top: 20px;">
+          <div class="row justify-center q-gutter-sm amount-row-ss" style="margin-top: 25px;">
             <q-avatar size="40px" class="amount-avatar-ss"><img :src="getImageUrl(tx.asset)" alt="asset-logo" /></q-avatar>
             <div class="amount-label-ss">{{ displayAmountText }}</div>
           </div>
@@ -33,7 +35,7 @@
         <!-- Reference ID (big, spaced, with separator) -->
         <div class="reference-id-section section-block-ss q-mt-lg" style="margin-top: 25px;">
           <div class="text-grey text-weight-medium text-caption">&nbsp;{{ $t('ReferenceId')}}</div>
-          <div class="reference-id-value-ss">{{ tx.txid.substring(0, 6).toUpperCase() }}</div>
+          <div class="reference-id-value-ss">{{ hexToRef(tx.txid.substring(0, 6)) }}</div>
           <q-separator color="grey" class="q-mt-sm ref-separator-ss"/>
         </div>
 
@@ -118,6 +120,7 @@ import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
 import { getKeypair } from 'src/exchange/chat/keys'
+import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 
 export default {
   name: 'TransactionDetailPage',
@@ -207,6 +210,9 @@ export default {
     parseFiatCurrency,
     getAssetDenomination,
     parseAssetDenomination,
+    hexToRef (hex6) {
+      return hexToRefUtil(hex6)
+    },
     async fetchAndShow () {
       try {
         const effectiveWalletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
@@ -302,9 +308,32 @@ export default {
           this.memoInput = trimmedMemo
           this.hasMemo = true
           this.editingMemo = false
+          
+          this.$q.notify({
+            message: this.$t('MemoSaved', {}, 'Memo saved'),
+            color: 'positive',
+            icon: 'check_circle',
+            position: 'top',
+            timeout: 2000
+          })
+        } else {
+          this.$q.notify({
+            message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 2000
+          })
         }
       } catch (error) {
         this.networkError = true
+        this.$q.notify({
+          message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
+          color: 'negative',
+          icon: 'error',
+          position: 'top',
+          timeout: 2000
+        })
       }
     },
     async confirmDelete () {
@@ -315,8 +344,23 @@ export default {
         this.transactionMemo = ''
         this.memoInput = ''
         this.editingMemo = false
+        
+        this.$q.notify({
+          message: this.$t('MemoDeleted', {}, 'Memo deleted'),
+          color: 'positive',
+          icon: 'check_circle',
+          position: 'top',
+          timeout: 2000
+        })
       } catch (error) {
         this.networkError = true
+        this.$q.notify({
+          message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+          color: 'negative',
+          icon: 'error',
+          position: 'top',
+          timeout: 2000
+        })
       }
     },
     async initWallet () {
@@ -397,7 +441,42 @@ export default {
   padding: 16px 14px;
 }
 .page-title { font-size: 28px; letter-spacing: 1px; }
-.direction-icon { font-size: 40px; }
+.direction-icon-container {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  position: relative;
+}
+.direction-icon-container.dark {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.direction-icon-container.light {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+.direction-icon-container .direction-icon {
+  font-size: 32px;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
 .amount-primary { font-size: 20px; }
 .amount-label-ss { font-size: 28px; font-weight: 600; margin-top: -4px; margin-bottom: 4px; }
 .amount-fiat-label-ss { font-size: 20px; opacity: 0.85; margin-top: 0; }

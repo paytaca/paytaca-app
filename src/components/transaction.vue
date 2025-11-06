@@ -123,12 +123,12 @@
               v-ripple
               style="overflow-wrap: anywhere;"
               v-if="!isSep20Tx && (transaction.asset.id.startsWith('bch') || transaction.asset.id.startsWith('ct/'))"
-              @click="copyToClipboard(isSep20Tx ? transaction.hash.substring(0, 6).toUpperCase() : transaction.txid.substring(0, 6).toUpperCase())"
+              @click="copyToClipboard(hexToRef(isSep20Tx ? transaction.hash.substring(0, 6) : transaction.txid.substring(0, 6)))"
             >
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('ReferenceId') }}</q-item-label>
                 <q-item-label>
-                  {{ transaction.txid.substring(0, 6).toUpperCase() }}
+                  {{ hexToRef(transaction.txid.substring(0, 6)) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -529,6 +529,7 @@ import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { ref } from 'vue'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 
 export default {
@@ -687,6 +688,7 @@ export default {
     getAssetDenomination,
     parseAssetDenomination,
     parseFiatCurrency,
+    hexToRef,
     getDarkModeClass,
     convertCashAddress,
     concatenate (array) {
