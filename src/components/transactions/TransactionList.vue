@@ -50,7 +50,7 @@ import TransactionListItemSkeleton from 'src/components/transactions/Transaction
 
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { normalizeRefToHex } from 'src/utils/reference-id-utils'
+import { refToHex } from 'src/utils/reference-id-utils'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const recordTypeMap = {
@@ -275,9 +275,9 @@ export default {
       let txSearchReference = opts.txSearchReference
       const shouldAppend = opts.append
 
-      // Normalize reference to hex format (handles both hex and decimal inputs)
-      if (txSearchReference) {
-        txSearchReference = normalizeRefToHex(txSearchReference) || txSearchReference
+      // Convert decimal reference to hex if needed (safety check)
+      if (txSearchReference && /^[0-9]{8}$/.test(txSearchReference)) {
+        txSearchReference = refToHex(txSearchReference)
       }
 
       let requestPromise

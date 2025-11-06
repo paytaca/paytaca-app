@@ -1,6 +1,26 @@
 <template>
-  <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets">
+  <div class="row no-wrap q-gutter-md q-pl-lg q-mb-md no-scrollbar" id="asset-container" v-show="assets || isLoadingInitial">
     
+    <!-- Skeleton loaders for initial loading -->
+    <template v-if="isLoadingInitial && (!assets || assets.length === 0 || !filteredFavAssets || filteredFavAssets.length === 0)">
+      <div
+        v-for="n in 3"
+        :key="`skeleton-${n}`"
+        class="method-cards asset-card-border q-pa-md q-mr-none"
+        :style="{ 'margin-left': n === 1 ? '0px' : '12px' }"
+      >
+        <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
+          <q-skeleton type="circle" size="30px" class="q-mr-xs" />
+          <q-skeleton type="rect" width="60px" height="20px" class="q-ml-sm" />
+        </div>
+        <div class="row" style="margin-top: -7px;">
+          <q-space />
+          <q-skeleton type="rect" width="80px" height="18px" />
+        </div>
+      </div>
+    </template>
+    
+    <!-- Actual asset cards -->
     <div
       v-for="(asset, index) in filteredFavAssets"
       :key="index"
@@ -76,7 +96,11 @@ export default {
     },
     isCashToken: { type: Boolean },
     currentLanguage: { type: String },
-    currentCountry: { type: String }
+    currentCountry: { type: String },
+    isLoadingInitial: {
+      type: Boolean,
+      default: false
+    }
   },
   data () {
     return {

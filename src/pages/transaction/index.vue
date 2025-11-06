@@ -183,6 +183,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :is-loading-initial="isLoadingAssets"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -204,6 +205,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :is-loading-initial="isLoadingAssets"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -256,14 +258,11 @@
                   label="Search by Reference ID"
                   v-model="txSearchReference"
                   debounce="200"
-                  placeholder="00000000 or 6C028D"
+                  placeholder="00000000"
                   @update:model-value="(val) => { 
-                    const cleaned = val.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 8);
-                    // Allow hex (6 chars) or decimal (8 digits)
-                    if (cleaned.length <= 6 || /^[0-9]{8}$/.test(cleaned)) {
-                      txSearchReference = cleaned;
-                      executeTxSearch(txSearchReference);
-                    }
+                    const cleaned = val.replace(/[^0-9]/g, '').slice(0, 8);
+                    txSearchReference = cleaned;
+                    executeTxSearch(txSearchReference);
                   }"
                 >
                   <template v-slot:prepend>
@@ -338,7 +337,7 @@ import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { debounce } from 'quasar'
-import { normalizeRefToHex } from 'src/utils/reference-id-utils'
+import { refToHex } from 'src/utils/reference-id-utils'
 
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
@@ -410,6 +409,7 @@ export default {
       balanceLoaded: false,
       refreshingTokenIds: [],
       wallet: null,
+      isLoadingAssets: true,
       manageAssets: false,
       assetInfoShown: false,
       pinDialogAction: '',
@@ -444,6 +444,13 @@ export default {
         const assetsWasEmpty = before == 0
         const assetsIsEmpty = after == 0
         if (assetsWasEmpty !== assetsIsEmpty) this.adjustTransactionsDivHeight({ timeout: 100 })
+        
+        // Mark assets as loaded once they're available
+        if (this.isLoadingAssets) {
+          this.$nextTick(() => {
+            this.isLoadingAssets = false
+          })
+        }
       }
     },
     manageAssets() {
@@ -609,15 +616,13 @@ export default {
     },
     executeTxSearch (value) {
       const valueStr = String(value || '')
-      // Allow empty, 6-char hex, or 8-digit decimal
-      if (valueStr.length === 0 || valueStr.length === 6 || valueStr.length === 8) {
-        // Normalize to hex format (handles both hex and decimal inputs)
-        const hexRef = normalizeRefToHex(valueStr)
-        if (valueStr.length === 0 || hexRef) {
-          const opts = {txSearchReference: hexRef}
-          this.$refs['tx-search'].blur()
-          this.$refs['transaction-list-component'].getTransactions(1, opts)
-        }
+      // Allow empty or 8-digit decimal
+      if (valueStr.length === 0 || valueStr.length === 8) {
+        // Convert decimal reference to hex before API call
+        const hexRef = valueStr && valueStr.length === 8 ? refToHex(valueStr) : valueStr
+        const opts = {txSearchReference: hexRef}
+        this.$refs['tx-search'].blur()
+        this.$refs['transaction-list-component'].getTransactions(1, opts)
       }
     },
     onFixedSectionResize: debounce(function (size) {
@@ -1650,7 +1655,18 @@ export default {
 
     // add unapplied unlisted token
     vm.checkUnappliedUnlistedTokens()
-  }
+    
+    // Set loading to false after initial mount operations complete
+    // If assets exist, the watcher will handle it, otherwise set it after a delay
+    this.$nextTick(() => {
+      if (this.assets.length === 0) {
+        // If no assets, still mark as loaded after a brief delay
+        setTimeout(() => {
+          this.isLoadingAssets = false
+        }, 500)
+      }
+    })
+  },
 }
 </script>
 

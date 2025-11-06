@@ -72,14 +72,11 @@
 		                  label="Search by Reference ID"
 		                  v-model="txSearchReference"
 		                  debounce="200"
-		                  placeholder="00000000 or 6C028D"
+		                  placeholder="00000000"
 		                  @update:model-value="(val) => { 
-		                    const cleaned = val.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 8);
-		                    // Allow hex (6 chars) or decimal (8 digits)
-		                    if (cleaned.length <= 6 || /^[0-9]{8}$/.test(cleaned)) {
-		                      txSearchReference = cleaned;
-		                      executeTxSearch(txSearchReference);
-		                    }
+		                    const cleaned = val.replace(/[^0-9]/g, '').slice(0, 8);
+		                    txSearchReference = cleaned;
+		                    executeTxSearch(txSearchReference);
 		                  }"
 		                >
 		                  <template v-slot:prepend>
@@ -195,7 +192,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { registerMemoUser, authMemo } from 'src/utils/transaction-memos'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
-import { normalizeRefToHex } from 'src/utils/reference-id-utils'
+import { refToHex } from 'src/utils/reference-id-utils'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
@@ -481,15 +478,13 @@ export default {
 	    },
 	    executeTxSearch (value) {
 	      const valueStr = String(value || '')
-	      // Allow empty, 6-char hex, or 8-digit decimal
-	      if (valueStr.length === 0 || valueStr.length === 6 || valueStr.length === 8) {
-	        // Normalize to hex format (handles both hex and decimal inputs)
-	        const hexRef = normalizeRefToHex(valueStr)
-	        if (valueStr.length === 0 || hexRef) {
-	          const opts = {txSearchReference: hexRef}
-	          this.$refs['tx-search'].blur()
-	          this.$refs['transaction-list-component'].getTransactions(1, opts)
-	        }
+	      // Allow empty or 8-digit decimal
+	      if (valueStr.length === 0 || valueStr.length === 8) {
+	        // Convert decimal reference to hex before API call
+	        const hexRef = valueStr && valueStr.length === 8 ? refToHex(valueStr) : valueStr
+	        const opts = {txSearchReference: hexRef}
+	        this.$refs['tx-search'].blur()
+	        this.$refs['transaction-list-component'].getTransactions(1, opts)
 	      }
 	    },
 	    async onRefresh (done) {

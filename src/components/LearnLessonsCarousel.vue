@@ -1,10 +1,11 @@
 <template>
-  <div v-if="lessons.length > 0" class="learn-carousel-container text-bow" :class="getDarkModeClass(darkMode)">
+  <div v-if="loading || lessons.length > 0" class="learn-carousel-container text-bow" :class="getDarkModeClass(darkMode)">
     <div class="row items-center justify-between q-mb-sm">
       <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
         {{ $t('Learn') }}
       </div>
       <q-btn
+        v-if="!loading && lessons.length > 0"
         flat
         dense
         no-caps
@@ -16,7 +17,31 @@
       />
     </div>
     
-    <div class="row no-wrap q-pl-lg q-mb-lg no-scrollbar lessons-container">
+    <!-- Skeleton Loading State -->
+    <div v-if="loading" class="row no-wrap q-pl-lg q-mb-lg no-scrollbar lessons-container">
+      <div
+        v-for="n in 5"
+        :key="`skeleton-${n}`"
+        class="lesson-card pt-card"
+        :class="darkMode ? 'dark' : 'light'"
+        :style="{ 'margin-left': n === 1 ? '0px' : '12px' }"
+      >
+        <q-skeleton
+          type="rect"
+          height="128px"
+          width="128px"
+          class="lesson-media-skeleton"
+          :class="darkMode ? 'dark' : 'light'"
+        />
+        <q-skeleton type="text" width="90%" height="18px" class="q-mt-sm" />
+        <q-skeleton type="text" width="100%" height="14px" class="q-mt-xs" />
+        <q-skeleton type="text" width="80%" height="14px" class="q-mt-xs" />
+        <q-skeleton type="text" width="60%" height="12px" class="q-mt-sm" />
+      </div>
+    </div>
+
+    <!-- Actual Lessons -->
+    <div v-else-if="lessons.length > 0" class="row no-wrap q-pl-lg q-mb-lg no-scrollbar lessons-container">
       <div
         v-for="(lesson, index) in lessons"
         :key="lesson.id"
@@ -62,7 +87,7 @@ export default {
   data() {
     return {
       lessons: [],
-      loading: false
+      loading: true // Start with loading true to show skeletons on initial mount
     }
   },
   computed: {
@@ -76,18 +101,30 @@ export default {
       // Prefer explicit image fields; fallback to thumbnail or cover
       return lesson?.image || lesson?.thumbnail || lesson?.cover || ''
     },
-    async fetchLessons() {
-      if (this.loading) return
+    async fetchLessons(forceRefresh = false) {
+      // Don't show loading if we're refreshing in background (already have lessons)
+      const isBackgroundRefresh = this.lessons.length > 0
       
-      this.loading = true
+      if (!isBackgroundRefresh) {
+        this.loading = true
+      }
       
       try {
-        // Check cache first
-        const cached = this.getCachedLessons()
-        if (cached) {
-          this.lessons = cached
-          this.loading = false
-          return
+        // Check cache first (unless forcing refresh)
+        if (!forceRefresh) {
+          const cached = this.getCachedLessons()
+          if (cached) {
+            this.lessons = cached
+            if (!isBackgroundRefresh) {
+              this.loading = false
+            }
+            // If background refresh, continue to fetch fresh data
+            if (isBackgroundRefresh) {
+              // Still fetch fresh data in background
+            } else {
+              return
+            }
+          }
         }
 
         // Fetch from API
@@ -102,17 +139,22 @@ export default {
       } catch (error) {
         console.error('Error fetching learn lessons:', error)
         
-        // Try cached data even if expired
-        const cached = this.getCachedLessons(true)
-        if (cached) {
-          this.lessons = cached
-        } else {
-          // If CORS error or network error, silently hide the section
-          // The component will be hidden via v-if when lessons.length === 0
-          this.lessons = []
+        // Only try expired cache if we don't already have lessons
+        if (this.lessons.length === 0) {
+          const cached = this.getCachedLessons(true)
+          if (cached) {
+            this.lessons = cached
+          } else {
+            // If CORS error or network error, silently hide the section
+            // The component will be hidden via v-if when lessons.length === 0
+            this.lessons = []
+          }
         }
+        // If we already have lessons (background refresh), just keep them
       } finally {
-        this.loading = false
+        if (!isBackgroundRefresh) {
+          this.loading = false
+        }
       }
     },
     getCachedLessons(ignoreExpiry = false) {
@@ -157,10 +199,30 @@ export default {
     }
   },
   mounted() {
-    // Fetch lessons with a slight delay to not block critical page loading
-    setTimeout(() => {
-      this.fetchLessons()
-    }, 500)
+    // Always start with loading state to show skeletons
+    this.loading = true
+    
+    // Check cache
+    const cached = this.getCachedLessons()
+    const minSkeletonDelay = 800 // Minimum delay to show skeleton (ms)
+    
+    if (cached && cached.length > 0) {
+      // If cache exists, show it after minimum delay to ensure skeleton is visible
+      setTimeout(() => {
+        this.lessons = cached
+        this.loading = false
+      }, minSkeletonDelay)
+      
+      // Fetch fresh data in background to update cache
+      setTimeout(() => {
+        this.fetchLessons(true) // Force refresh to get latest data
+      }, 500)
+    } else {
+      // No cache - keep loading state and fetch
+      setTimeout(() => {
+        this.fetchLessons(false)
+      }, 500)
+    }
   }
 }
 </script>
@@ -260,5 +322,12 @@ export default {
   letter-spacing: 0.5px;
   font-weight: 500;
 }
+
+.lesson-media-skeleton {
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+.lesson-media-skeleton.dark { background: rgba(255,255,255,0.06); }
+.lesson-media-skeleton.light { background: rgba(0,0,0,0.04); }
 </style>
 

@@ -1,15 +1,17 @@
 <template>
-  <div class="q-pa-none">
-    <header-nav :title="$t('Transaction', {}, 'Transaction')" class="header-nav apps-header" @click:left="goBack" />
-
-    <div id="app-container" class="sticky-header-container transaction-detail-page" :class="getDarkModeClass(darkMode)">
-    <div v-if="loadError" class="q-pa-md text-center">
-      <div class="text-subtitle1 q-mb-sm">{{ loadError }}</div>
-      <q-btn outline color="primary" no-caps @click="goBack">{{ $t('Back', {}, 'Back') }}</q-btn>
+  <div class="transaction-detail-wrapper" :class="getDarkModeClass(darkMode)">
+    <div class="transaction-detail-header-wrapper">
+      <header-nav :title="$t('Transaction', {}, 'Transaction')" class="header-nav apps-header" @click:left="goBack" />
     </div>
+    
+    <div class="transaction-detail-content-wrapper" :class="getDarkModeClass(darkMode)">
+      <div v-if="loadError" class="q-pa-md text-center">
+        <div class="text-subtitle1 q-mb-sm">{{ loadError }}</div>
+        <q-btn outline color="primary" no-caps @click="goBack">{{ $t('Back', {}, 'Back') }}</q-btn>
+      </div>
 
-    <div v-else-if="tx && tx.asset" class="q-pa-lg">
-      <div class="text-bow text-center content-container-ss" :class="getDarkModeClass(darkMode)">
+      <div v-else-if="tx && tx.asset" class="q-pa-lg">
+        <div class="text-bow text-center content-container-ss" :class="getDarkModeClass(darkMode)">
         <!-- Page title and direction icon -->
         <div class="text-center page-title text-uppercase">
           <template v-if="tx.record_type === 'incoming'">{{ $t('Received') }}</template>
@@ -104,11 +106,10 @@
             </div>
           </div>
         </div>
+        </div>
       </div>
     </div>
-    </div>
   </div>
-  
 </template>
 
 <script>
@@ -140,7 +141,7 @@ export default {
       editingMemo: false,
       hasMemo: false,
       networkError: false,
-      keypair: null
+      keypair: null,
     }
   },
   computed: {
@@ -195,6 +196,19 @@ export default {
   },
   async mounted () {
     await this.initWallet()
+    
+    // Ensure HTML and body have the correct background color to match our wrapper
+    this.$nextTick(() => {
+      const htmlEl = document.documentElement
+      const bodyEl = document.body
+      if (htmlEl) {
+        htmlEl.style.backgroundColor = this.darkMode ? '#273746' : '#ECF3F3'
+      }
+      if (bodyEl) {
+        bodyEl.style.backgroundColor = this.darkMode ? '#273746' : '#ECF3F3'
+      }
+    })
+    
     const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
     if (preloaded) {
       this.attachAssetIfMissing(preloaded)
@@ -204,6 +218,17 @@ export default {
     }
 
     this.fetchAndShow()
+  },
+  beforeUnmount () {
+    // Reset background colors
+    const htmlEl = document.documentElement
+    const bodyEl = document.body
+    if (htmlEl) {
+      htmlEl.style.backgroundColor = ''
+    }
+    if (bodyEl) {
+      bodyEl.style.backgroundColor = ''
+    }
   },
   methods: {
     getDarkModeClass,
@@ -245,7 +270,9 @@ export default {
           }
           this.attachAssetIfMissing(tx, categoryParam)
           this.tx = tx
-          this.$nextTick(() => this.loadMemo())
+          this.$nextTick(() => {
+            this.loadMemo()
+          })
         } else {
           this.loadError = this.$t('TransactionNotFound', {}, 'Transaction not found')
         }
@@ -532,17 +559,88 @@ export default {
 .content-container-ss { min-width: 320px; max-width: 700px; margin: 0 auto; padding-top: 8px; }
 .section-block-ss { margin-top: 12px; }
 .date-block-ss { opacity: 0.9; }
-.transaction-detail-page { 
-  min-height: calc(100vh - 70px) !important; 
-  padding-bottom: 0 !important; 
-  height: calc(100vh - 70px) !important; 
+
+/* New wrapper structure - completely independent of sticky-header-container */
+.transaction-detail-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background-color: #ECF3F3;
+  position: relative;
+  /* Ensure wrapper fills at least the viewport but doesn't force extra height */
+  min-height: 100vh;
+  /* But also ensure it doesn't create extra space beyond content */
+}
+
+.transaction-detail-wrapper.dark {
+  background-color: #273746;
+}
+
+
+.transaction-detail-header-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.transaction-detail-content-wrapper {
+  flex: 1;
+  width: 100%;
+  padding-bottom: 20px;
   display: flex;
   flex-direction: column;
 }
-.transaction-detail-page > div:first-of-type {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+
+.transaction-detail-content-wrapper .content-container-ss {
+  padding-bottom: 0;
+}
+
+.transaction-detail-content-wrapper .memo-section {
+  margin-bottom: 20px;
+}
+
+/* Fix header title cut-off on mobile */
+@media (max-width: 600px) {
+  .transaction-detail-wrapper .apps-header .pt-header {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    overflow: visible !important;
+  }
+  
+  .transaction-detail-wrapper .apps-header .pt-header .col-1:first-child {
+    flex: 0 0 32px !important;
+    max-width: 32px !important;
+    min-width: 32px !important;
+    padding-right: 0 !important;
+  }
+  
+  .transaction-detail-wrapper .apps-header .pt-header .col-10 {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    overflow: visible !important;
+  }
+  
+  .transaction-detail-wrapper .apps-header .pt-header .col-10 p {
+    line-height: 1.3 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    word-break: break-word !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .transaction-detail-wrapper .apps-header .pt-header .col-1:last-child {
+    flex: 0 0 32px !important;
+    max-width: 32px !important;
+    min-width: 32px !important;
+    padding-left: 0 !important;
+  }
 }
 
 /* Make the Reference ID separator span the full viewport width */
@@ -570,6 +668,7 @@ export default {
 .memo-actions { display: flex; align-items: center; flex-shrink: 0; }
 .memo-input.memo-input-dark { background-color: rgba(255, 255, 255, 0.1); color: white; }
 .memo-input.memo-input-light { background-color: rgba(0, 0, 0, 0.05); color: black; }
+
 </style>
 
 
