@@ -9,7 +9,9 @@
       </q-item-label>
 
       <q-card
-        class="q-mb-sm q-mx-md"
+        flat
+        bordered
+        class="q-mb-sm q-mx-md record-card"
         v-for="rec in record.data"
         :key="rec.id"
       >
