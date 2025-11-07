@@ -1,5 +1,5 @@
 import { bigIntToBinUint64LE, bigIntToCompactSize, numberToBinInt32LE } from "@bitauth/libauth"
-import { bigIntToCompactUint, binsAreEqual, binToBigIntUintLE, binToHex, decodeHdPublicKey, encodeTokenPrefix, hexToBin, isHex, numberToBinUint32LE, readCompactUint, readRemainingBytes, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { bigIntToCompactUint, binsAreEqual, binToBigIntUintLE, binToHex, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, hexToBin, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
 import { bip32EncodeDerivationPath } from "."
 
 export const PSBT_MAGIC = '70736274ff'
@@ -92,14 +92,18 @@ export class Key {
     return new Uint8Array([...this.keyLen, ...this.keyType, ...this.keyData])
   }
   
-  deserialize(serialized){
-    const keyLenReadResult = readCompactUint({ bin: serialized, index: 0 }) // Result is bigint
-    const keyTypeReadResult = readCompactUint(keyLenReadResult.position)    // Key Type is compactUint
-    const keyDataReadResult = readRemainingBytes(keyTypeReadResult.position)
-    this.keyLen = bigIntToCompactUint(keyLenReadResult.result)
-    this.keyType = bigIntToCompactUint(keyTypeReadResult.result)
-    this.keyData = keyDataReadResult.result 
-    return this 
+  deserialize(nextKeyReadPosition) {
+    const keyLenReadResult = readCompactUint(nextKeyReadPosition)
+    const keyLen = keyLenReadResult.result
+    this.keyLen = bigIntToCompactUint(keyLen)
+    if (keyLen === 0n) return keyLenReadResult.position
+    const keyReader = readBytes(Number(keyLen))
+    const keyReadResult = keyReader(keyLenReadResult.position)
+    const keyType = keyReadResult.result.slice(0, 1) // first byte is key type
+    const keyData = keyReadResult.result.slice(1)
+    this.keyType = keyType
+    this.keyData = keyData
+    return keyReadResult.position
   }
 
   toString(){
@@ -119,15 +123,18 @@ export class Value {
   }
 
   /**
-   * @param {Uint8Array} serialized value
-   * @returns {Uint8Array} The extracted value
+   * @param {import('@bitauth/libauth').ReadPosition} valueReadPosition The ReadPosition of the value to read
+   * @returns {import('@bitauth/libauth').ReadPosition|undefined} Next Read Position after reading the value at this position
    */
-  deserialize(serialized){
-    const valueLenReadResult = readCompactUint({ bin: serialized, index: 0 }) // Result is bigint
-    this.valueLen = bigIntToCompactUint(valueLenReadResult.result)
-    const valueDataReadResult = readRemainingBytes(valueLenReadResult.position)  
-    this.value = valueDataReadResult.result
-    return this 
+  deserialize(valueReadPosition) {
+    const valueLenReadResult = readCompactUint(valueReadPosition)
+    const valueLen = valueLenReadResult.result 
+    const valueDataReader = readBytes(Number(valueLen))
+    const valueDataReadResult = valueDataReader(valueLenReadResult.position)
+    const valueData = valueDataReadResult.result
+    this.valueLen = bigIntToCompactUint(valueLen)
+    this.value = valueData
+    return valueDataReadResult.position
   }
 
   toString() {
@@ -147,18 +154,19 @@ export class KeyPair {
     return this.s
   }
 
-  /**
-   * @param {Uint8Array} serialized KeyPair
+   /**
+   * @param {import('@bitauth/libauth').ReadPosition} keyPairReadPosition The ReadPosition of the keypair to read
+   * @returns {import('@bitauth/libauth').ReadPosition} Next Read Position after reading the keypair at this position
    */
-  deserialize(serialized) {
-    const keyLenReadResult = readCompactUint(serialized)
-    const key = serialized.slice(0, Number(keyLenReadResult.result))
-    const value = readRemainingBytes({ 
-      bin: serialized, index: Number(keyLenReadResult.result) + 1 
-    })
-    this.key  = (new Key()).deserialize(key)
-    this.value = (new Value()).deserialize(value)
-    return this
+  deserialize(keyPairReadPosition) {
+    const key = new Key()
+    const value = new Value()
+    const nextReadPosition = key.deserialize(keyPairReadPosition)
+    this.key = key 
+    if (compactUintToBigInt(key.keyLen) === 0n) return keyPairReadPosition 
+    const nextKeyPairReadPosition = value.deserialize(nextReadPosition)
+    this.value = value 
+    return nextKeyPairReadPosition
   }
 
   toString(){
@@ -167,10 +175,32 @@ export class KeyPair {
 }
 
 export class GlobalMap {
+
   constructor() {
     this.keypairs = {}
   }
 
+  getInputCount() {
+    
+    if (this.keypairs[PSBT_GLOBAL_INPUT_COUNT]?.value?.value) {
+      return compactUintToBigInt(this.keypairs[PSBT_GLOBAL_INPUT_COUNT].value.value)
+    }
+    if (this.keypairs[PSBT_GLOBAL_UNSIGNED_TX]?.value?.value) {
+      const decoded = decodeTransaction(this.keypairs[PSBT_GLOBAL_UNSIGNED_TX]?.value?.value)
+      return decoded?.inputs?.length
+    }
+  }
+
+  getOutputCount() {
+    
+    if (this.keypairs[PSBT_GLOBAL_OUTPUT_COUNT]?.value?.value) {
+      return compactUintToBigInt(this.keypairs[PSBT_GLOBAL_OUTPUT_COUNT].value.value)
+    }
+    if (this.keypairs[PSBT_GLOBAL_UNSIGNED_TX]?.value?.value) {
+      const decoded = decodeTransaction(this.keypairs[PSBT_GLOBAL_UNSIGNED_TX]?.value?.value)
+      return decoded?.outputs?.length
+    }
+  }
   // Should be removed, testing for psbt0 only
   setUnsignedTx(tx) {
     const _tx = isHex(tx)? hexToBin(tx): tx
@@ -335,56 +365,34 @@ export class GlobalMap {
   }
 
   /**
-   * @param {Uint8Array} serialized GlobalMap and remaining bytes
+   * @param {import('@bitauth/libauth').ReadPosition} readPosition PsbtOutput map (starting at its first key length) and remaining bytes
    */
-  deserialize(serialized) {
-    // Parse keypairs until the 0x00 separator byte
-    let index = 0
-    this.keypairs = this.keypairs || {}
+  deserialize(readPosition) {
+    let limit = readPosition.bin.length
+    let index = readPosition.index
+    let nextReadPosition = readPosition
 
-    while (index < serialized.length) {
-      // Separator (single 0x00 byte) ends the global map
-      if (serialized[index] === 0) {
-        index += 1
+    while (index < limit) {
+      const keyPair = new KeyPair()
+      nextReadPosition = keyPair.deserialize(nextReadPosition)
+
+      if (compactUintToBigInt(keyPair.key.keyLen) === 0n) {
         break
       }
-
-      
-      const keyLenRead = readCompactUint({ bin: serialized, index })
-      const keyLen = Number(keyLenRead.result)
-      const keyStart = keyLenRead.position.index
-      const keyEnd = keyStart + keyLen
-      const keyBytes = serialized.slice(keyStart, keyEnd)
-
-      
-      const valueLenRead = readCompactUint({ bin: serialized, index: keyEnd })
-      const valueLen = Number(valueLenRead.result)
-      const valueStart = valueLenRead.position.index
-      const valueEnd = valueStart + valueLen
-      const valueBytes = serialized.slice(valueStart, valueEnd)
-
-      
-      index = valueEnd
-
-      
-      const key = (new Key()).deserialize(keyBytes)
-      const value = (new Value()).deserialize(valueBytes)
-      const keypair = new KeyPair(key, value)
-
-      
-      const keyTypeHex = binToHex(key.keyType)
+      const keyTypeHex = binToHex(keyPair.key.keyType)
 
       if (this.keypairs[keyTypeHex] === undefined) {
-        this.keypairs[keyTypeHex] = keypair
+        this.keypairs[keyTypeHex] = keyPair
       } else if (this.keypairs[keyTypeHex] instanceof Array) {
-        this.keypairs[keyTypeHex].push(keypair)
+        this.keypairs[keyTypeHex].push(keyPair)
       } else {
         // Convert existing single entry to array to accommodate keytype with multiple values
-        this.keypairs[keyTypeHex] = [this.keypairs[keyTypeHex], keypair]
+        this.keypairs[keyTypeHex] = [this.keypairs[keyTypeHex], keyPair]
       }
+      index = nextReadPosition.index
     }
-    this.bytesConsumed = index
-    return this
+
+    return {...nextReadPosition, index: nextReadPosition.index + 1}
   }
 }
 
@@ -593,7 +601,6 @@ export class PsbtInput {
     for (const keyType of Object.keys(sorted)) {
       if (sorted[keyType] instanceof Array) {
         sorted[keyType].forEach((keypair) => {
-          console.log('KEYPAIR', keypair)
           keypair.prototype = KeyPair
           s = new Uint8Array([...s, ...keypair.serialize()])
         })
@@ -607,48 +614,33 @@ export class PsbtInput {
   }
 
   /**
-   * @param {Uint8Array} serialized PsbtInput map (starting at its first key length) and remaining bytes
+   * @param {Uint8Array} readPosition PsbtInput map (starting at its first key length) and remaining bytes
    */
-  deserialize(serialized) {
-    let index = 0
-    this.keypairs = this.keypairs || {}
+  deserialize(readPosition) {
+    let limit = readPosition.bin.length
+    let index = readPosition.index
+    let nextReadPosition = readPosition
 
-    while (index < serialized.length) {
-      if (serialized[index] === 0) {
-        index += 1
+    while (index < limit) {
+      const keyPair = new KeyPair()
+      nextReadPosition = keyPair.deserialize(nextReadPosition)
+      if (compactUintToBigInt(keyPair.key.keyLen) === 0n) {
         break
       }
-
-      const keyLenRead = readCompactUint({ bin: serialized, index })
-      const keyLen = Number(keyLenRead.result)
-      const keyStart = keyLenRead.position.index
-      const keyEnd = keyStart + keyLen
-      const keyBytes = serialized.slice(keyStart, keyEnd)
-
-      const valueLenRead = readCompactUint({ bin: serialized, index: keyEnd })
-      const valueLen = Number(valueLenRead.result)
-      const valueStart = valueLenRead.position.index
-      const valueEnd = valueStart + valueLen
-      const valueBytes = serialized.slice(valueStart, valueEnd)
-
-      index = valueEnd
-
-      const key = (new Key()).deserialize(keyBytes)
-      const value = (new Value()).deserialize(valueBytes)
-      const keypair = new KeyPair(key, value)
-      const keyTypeHex = binToHex(key.keyType)
+      const keyTypeHex = binToHex(keyPair.key.keyType)
 
       if (this.keypairs[keyTypeHex] === undefined) {
-        this.keypairs[keyTypeHex] = keypair
+        this.keypairs[keyTypeHex] = keyPair
       } else if (this.keypairs[keyTypeHex] instanceof Array) {
-        this.keypairs[keyTypeHex].push(keypair)
+        this.keypairs[keyTypeHex].push(keyPair)
       } else {
-        this.keypairs[keyTypeHex] = [this.keypairs[keyTypeHex], keypair]
+        // Convert existing single entry to array to accommodate keytype with multiple values
+        this.keypairs[keyTypeHex] = [this.keypairs[keyTypeHex], keyPair]
       }
+      index = nextReadPosition.index
     }
 
-    this.bytesConsumed = index
-    return this
+    return { ...nextReadPosition, index: nextReadPosition.index + 1 } // next index after separator
   }
 
 }
@@ -802,9 +794,7 @@ export class PsbtOutput {
    * @params {number} [psbtVersion = 3]
    */
   serialize(psbtVersion) {
-    console.log('outputmap', this.keypairs)
     const sorted = sortObjectKeys(this.sanitizeForVersion(psbtVersion, this.keypairs))
-    console.log('sorted', sorted)
     let s = new Uint8Array([])
     for (const keyType of Object.keys(sorted)) {
       if (sorted[keyType] instanceof Array) {
@@ -821,50 +811,34 @@ export class PsbtOutput {
     
     return new Uint8Array([...s, hexToBin('00')])
   }
-
   /**
-   * @param {Uint8Array} serialized PsbtOutput map (starting at its first key length) and remaining bytes
+   * @param {import('@bitauth/libauth').ReadPosition} readPosition PsbtOutput map (starting at its first key length) and remaining bytes
    */
-  deserialize(serialized) {
-    let index = 0
-    this.keypairs = this.keypairs || {}
+   deserialize(readPosition) {
+    let limit = readPosition.bin.length
+    let index = readPosition.index
+    let nextReadPosition = readPosition
 
-    while (index < serialized.length) {
-      if (serialized[index] === 0) {
-        index += 1
+    while (index < limit) {
+      const keyPair = new KeyPair()
+      nextReadPosition = keyPair.deserialize(nextReadPosition)
+      if (compactUintToBigInt(keyPair.key.keyLen) === 0n) {
         break
       }
-
-      const keyLenRead = readCompactUint({ bin: serialized, index })
-      const keyLen = Number(keyLenRead.result)
-      const keyStart = keyLenRead.position.index
-      const keyEnd = keyStart + keyLen
-      const keyBytes = serialized.slice(keyStart, keyEnd)
-
-      const valueLenRead = readCompactUint({ bin: serialized, index: keyEnd })
-      const valueLen = Number(valueLenRead.result)
-      const valueStart = valueLenRead.position.index
-      const valueEnd = valueStart + valueLen
-      const valueBytes = serialized.slice(valueStart, valueEnd)
-
-      index = valueEnd
-
-      const key = (new Key()).deserialize(keyBytes)
-      const value = (new Value()).deserialize(valueBytes)
-      const keypair = new KeyPair(key, value)
-      const keyTypeHex = binToHex(key.keyType)
+      const keyTypeHex = binToHex(keyPair.key.keyType)
 
       if (this.keypairs[keyTypeHex] === undefined) {
-        this.keypairs[keyTypeHex] = keypair
+        this.keypairs[keyTypeHex] = keyPair
       } else if (this.keypairs[keyTypeHex] instanceof Array) {
-        this.keypairs[keyTypeHex].push(keypair)
+        this.keypairs[keyTypeHex].push(keyPair)
       } else {
-        this.keypairs[keyTypeHex] = [this.keypairs[keyTypeHex], keypair]
+        // Convert existing single entry to array to accommodate keytype with multiple values
+        this.keypairs[keyTypeHex] = [this.keypairs[keyTypeHex], keyPair]
       }
+      index = nextReadPosition.index
     }
 
-    this.bytesConsumed = index
-    return this
+    return { ...nextReadPosition, index: nextReadPosition.index + 1}
   }
 }
 
@@ -889,6 +863,18 @@ export class InputMap {
     })
     return new Uint8Array([...s, hexToBin('00')])
   }
+
+  deserialize(readPosition, inputCount) {
+    let nextReadPosition = readPosition
+    let i = 0
+    while (i < inputCount) {
+      const input = new PsbtInput()
+      nextReadPosition = input.deserialize(nextReadPosition)
+      this.inputs.push(input)
+      i++
+    }
+    return {...nextReadPosition, index: nextReadPosition.index + 1} 
+  }
 }
 
 export class OutputMap {
@@ -910,6 +896,20 @@ export class OutputMap {
     })
     return s
   }
+
+  deserialize(readPosition, outputCount) {
+    let nextReadPosition = readPosition
+    let i = 0
+    while (i < outputCount) {
+      const output = new PsbtOutput()
+      nextReadPosition = output.deserialize(nextReadPosition)
+      this.outputs.push(output)
+      i++
+    }
+    // not really necessary increment index to next byte that's isn't separator, 
+    // just to make it consistent
+    return { ...nextReadPosition, index: nextReadPosition.index + 1 }  
+  }
 }
 
 export class Psbt {
@@ -927,6 +927,8 @@ export class Psbt {
       binToBigIntUintLE(this.globalMap.keypairs[PSBT_GLOBAL_VERSION]?.value ?? new Uint8Array[0])
     )
     const globalMap = this.globalMap.serialize(psbtVersion)
+    
+
     const inputMap = this.inputMap.serialize(psbtVersion)
     const outputMap = this.outputMap.serialize(psbtVersion)
     const size = new Uint8Array(magic.length +  globalMap.length + inputMap.length + outputMap.length)
@@ -939,45 +941,38 @@ export class Psbt {
   }
   
   /**
-   * @param {Uint8Array|string} serialized Full PSBT including magic bytes
+   * @param {Uint8Array|string} serialized Full PSBT binary including magic bytes
    */
   deserialize(serialized){
+
     const bin = isHex(serialized) ? hexToBin(serialized) : serialized
-    const magic = hexToBin(PSBT_MAGIC)
-    // Validate magic prefix
-    for (let i = 0; i < magic.length; i++) {
-      if (bin[i] !== magic[i]) throw new Error('Invalid PSBT magic bytes')
+
+    const readMagicBytes = readBytes(5)
+
+    const readMagicBytesResult = readMagicBytes({ bin, index: 0 })
+
+    if (!binsAreEqual(readMagicBytesResult.result, hexToBin(PSBT_MAGIC))) throw new Error('Not Psbt')
+    
+    this.globalMap = new GlobalMap()
+    
+    let nextReadPosition = this.globalMap.deserialize(readMagicBytesResult.position)
+
+    const inputCount = this.globalMap.getInputCount()
+    
+    const outputCount = this.globalMap.getOutputCount()
+    
+    if (!inputCount) {
+      throw new Error('Unable to parse input count!')
     }
 
-    let index = magic.length
-
-    // Global Map
-    const gm = new GlobalMap().deserialize(bin.slice(index))
-    this.globalMap = gm
-    index += gm.bytesConsumed ?? 0
-
-    // Input Maps
-    this.inputMap = new InputMap()
-    while (index < bin.length) {
-      if (bin[index] === 0) { // trailing separator for the entire input map block
-        index += 1
-        break
-      }
-      const input = new PsbtInput().deserialize(bin.slice(index))
-      this.inputMap.add(input)
-      index += input.bytesConsumed ?? 0
+    if (!outputCount) {
+      throw new Error('Unable to parse output count!')
     }
-
-    // Output Maps
-    this.outputMap = new OutputMap()
-    while (index < bin.length) {
-      const output = new PsbtOutput().deserialize(bin.slice(index))
-      this.outputMap.add(output)
-      index += output.bytesConsumed ?? 0
-    }
-
-    this.serialized = bin
-    return this
+    
+    nextReadPosition = this.inputMap.deserialize(nextReadPosition, inputCount)
+    nextReadPosition = this.outputMap.deserialize(nextReadPosition, outputCount)
+    
+    return nextReadPosition
   }
   
 }
