@@ -265,11 +265,21 @@ export const bip32ExtractRelativePath = (fullPath) => {
  * with each other.
  */
 export function bip32EncodeDerivationPath(path) {
-  if (!path.startsWith("m/")) {
+  if (typeof path !== 'string') {
+    throw new TypeError('Path must be a string');
+  }
+
+  const trimmed = path.trim();
+
+  if (trimmed === 'm') {
+    return new Uint8Array();
+  }
+
+  if (!trimmed.startsWith("m/")) {
     throw new Error("Path must start with 'm/'");
   }
 
-  const elements = path
+  const elements = trimmed
     .slice(2)
     .split("/")
     .filter(Boolean);
@@ -279,7 +289,22 @@ export function bip32EncodeDerivationPath(path) {
 
   elements.forEach((el, i) => {
     const hardened = el.endsWith("'");
-    const index = parseInt(el.replace("'", ""), 10);
+    const indexStr = hardened ? el.slice(0, -1) : el;
+
+    if (!/^[0-9]+$/.test(indexStr)) {
+      throw new Error(`Invalid derivation index '${el}'`);
+    }
+
+    const index = Number.parseInt(indexStr, 10);
+
+    if (!Number.isSafeInteger(index) || index < 0 || index > 0x7fffffff) {
+      throw new Error(`Derivation index out of range '${el}'`);
+    }
+
+    if (!hardened && index >= 0x80000000) {
+      throw new Error(`Unhardened index must be < 2^31 ('${el}')`);
+    }
+
     const value = hardened ? index + 0x80000000 : index;
     view.setUint32(i * 4, value, true); // little-endian
   });
@@ -293,19 +318,27 @@ export function bip32EncodeDerivationPath(path) {
  * back into a BIP32 path string (e.g. "m/44'/145'/0'/0/5").
  */
 export function bip32DecodeDerivationPath(bytes) {
-  if (bytes.length % 4 !== 0) {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new TypeError('Derivation path bytes must be a Uint8Array');
+  }
+
+  if (bytes.byteLength === 0) {
+    return 'm';
+  }
+
+  if (bytes.byteLength % 4 !== 0) {
     throw new Error("Invalid derivation path bytes");
   }
 
-  const view = new DataView(bytes.buffer);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const elements = [];
 
-  for (let i = 0; i < bytes.length; i += 4) {
+  for (let i = 0; i < bytes.byteLength; i += 4) {
     const value = view.getUint32(i, true); // little-endian
     const hardened = value >= 0x80000000;
     const index = hardened ? value - 0x80000000 : value;
     elements.push(hardened ? `${index}'` : `${index}`);
   }
 
-  return "m/" + elements.join("/");
+  return elements.length ? `m/${elements.join('/')}` : 'm';
 }
