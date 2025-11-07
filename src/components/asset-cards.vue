@@ -9,13 +9,15 @@
         class="method-cards asset-card-border q-mr-none"
         :style="{ 'margin-left': n === 1 ? '0px' : '12px' }"
       >
-        <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
-          <q-skeleton type="circle" size="30px" class="q-mr-xs" />
-          <q-skeleton type="rect" width="60px" height="20px" class="q-ml-sm" />
+        <div class="row items-center no-wrap justify-between q-mb-xs">
+          <q-skeleton type="circle" size="28px" class="q-mr-xs" />
+          <q-skeleton type="rect" width="60px" height="15px" class="text-right" />
         </div>
-        <div class="row" style="margin-top: -7px;">
-          <q-space />
-          <q-skeleton type="rect" width="80px" height="18px" />
+        <div class="row items-end justify-end">
+          <div class="text-right">
+            <q-skeleton type="rect" width="80px" height="18px" class="q-mb-none" />
+            <q-skeleton type="rect" width="60px" height="11px" class="q-mt-xs" />
+          </div>
         </div>
       </div>
     </template>
@@ -41,7 +43,10 @@
       </div>
       <div class="row items-end justify-end">
         <div v-if="(!balanceLoaded && asset.id === selectedAsset.id) || refreshingTokenIds.includes(asset.id)" class="text-right">
-          <q-skeleton type="rect" width="80px" height="20px" />
+          <q-skeleton type="rect" width="80px" height="18px" class="q-mb-none" />
+          <template v-if="asset.id !== 'bch'">
+            <q-skeleton type="rect" width="60px" height="11px" class="q-mt-xs" />
+          </template>
         </div>
         <template v-else>
           <div class="text-right">
@@ -51,9 +56,6 @@
             <template v-if="asset.id !== 'bch'">
               <p v-if="getAssetFiatValue(asset)" class="asset-fiat-value q-mb-none q-mt-xs">
                 {{ getAssetFiatValue(asset) }}
-              </p>
-              <p v-else-if="hasPriceLoading(asset)" class="asset-fiat-value q-mb-none q-mt-xs">
-                <q-skeleton type="rect" width="60px" height="12px" />
               </p>
             </template>
           </div>
@@ -249,13 +251,6 @@ export default {
       if (!currencySymbol) return ''
       
       const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, currencySymbol)
-      
-      // For tokens, if price is not available, show 0.00 instead of empty
-      if (asset.id !== 'bch' && (!assetPrice || assetPrice === 0)) {
-        return parseFiatCurrency('0.00', currencySymbol)
-      }
-      
-      // For BCH, return empty if no price
       if (!assetPrice || assetPrice === 0) return ''
 
       let balance = Number(asset.balance || 0)
@@ -279,19 +274,6 @@ export default {
       const _ = this.assetPrices
       // Wrapper method to ensure reactivity
       return this.getAssetMarketBalance(asset)
-    },
-    hasPriceLoading (asset) {
-      // Check if price might be loading (price doesn't exist but we expect it to)
-      if (!asset || !asset.id || asset.id === 'bch') return false
-      
-      const selectedCurrency = this.$store.getters['market/selectedCurrency']
-      const currencySymbol = selectedCurrency?.symbol
-      if (!currencySymbol) return false
-      
-      // If we have a balance but no price, it might be loading
-      const hasBalance = Number(asset.balance || 0) > 0
-      const hasPrice = this.$store.getters['market/getAssetPrice'](asset.id, currencySymbol)
-      return hasBalance && !hasPrice
     },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']

@@ -86,51 +86,61 @@
               <div class="col text-white" @click="selectBch" v-touch-hold.mouse="() => showAssetInfo(bchAsset)">
                 <q-card id="bch-card">
                   <q-card-section horizontal>
-                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">
-                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" class="bch-skeleton">
-                        <q-skeleton class="text-h5" type="rect"/>
+                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px; min-height: 80px;">
+                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; width: 100%;">
+                        <div>
+                          <q-skeleton type="rect" width="120px" height="24px" class="q-mb-xs" />
+                          <q-skeleton type="rect" width="100px" height="16px" class="q-mb-xs" />
+                        </div>
+                        <div>
+                          <q-skeleton type="rect" width="180px" height="24px" />
+                        </div>
                       </div>
-                      <div v-else>
-                        <p class="q-mb-none">
-                          <span ellipsis class="text-h5" >
-                            {{ bchBalanceText }}
-                          </span>
-                        </p>
-                        <div v-if="getAssetMarketBalance(bchAsset)">
-                          {{ getAssetMarketBalance(bchAsset) }}
+                      <div v-else style="min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; width: 100%;">
+                        <div>
+                          <p class="q-mb-none">
+                            <span ellipsis class="text-h5" >
+                              {{ bchBalanceText }}
+                            </span>
+                          </p>
+                          <div v-if="getAssetMarketBalance(bchAsset)">
+                            {{ getAssetMarketBalance(bchAsset) }}
+                          </div>
+                          <div v-else-if="loadingBchPrice" class="row justify-start">
+                            <q-skeleton type="rect" width="100px" height="16px" />
+                          </div>
                         </div>
-                        <div v-else-if="loadingBchPrice" class="row justify-start">
-                          <q-skeleton type="rect" width="100px" height="16px" />
+                        <div>
+                          <div @click.stop style="display: inline-block;">
+                            <q-select
+                              :model-value="bchBalanceMode"
+                              :options="balanceModeOptions"
+                              option-label="label"
+                              option-value="value"
+                              emit-value
+                              map-options
+                              dense
+                              borderless
+                              class="balance-mode-selector q-mt-xs"
+                              style="max-width: 200px; font-size: 12px; height: 24px;"
+                              @update:model-value="onBalanceModeChange"
+                            />
+                          </div>
+                          <q-badge
+                            rounded
+                            class="flex justify-start items-center yield-container"
+                            v-if="walletYield"
+                          >
+                            <q-icon
+                              size="sm"
+                              :name="walletYield > 0 ? 'arrow_drop_up' : 'arrow_drop_down'"
+                              :color="walletYield > 0 ? 'green-5' : 'red-5'"
+                            />
+                            <span class="yield text-weight-bold" :class="walletYield > 0 ? 'positive' : 'negative'">
+                              {{ `${walletYield} ${selectedMarketCurrency}` }}
+                            </span>
+                          </q-badge>
                         </div>
-                        <div @click.stop style="display: inline-block;">
-                          <q-select
-                            :model-value="bchBalanceMode"
-                            :options="balanceModeOptions"
-                            option-label="label"
-                            option-value="value"
-                            emit-value
-                            map-options
-                            dense
-                            borderless
-                            class="balance-mode-selector q-mt-xs"
-                            style="max-width: 200px; font-size: 12px; height: 24px;"
-                            @update:model-value="onBalanceModeChange"
-                          />
-                        </div>
-                        <q-badge
-                          rounded
-                          class="flex justify-start items-center yield-container"
-                          v-if="walletYield"
-                        >
-                          <q-icon
-                            size="sm"
-                            :name="walletYield > 0 ? 'arrow_drop_up' : 'arrow_drop_down'"
-                            :color="walletYield > 0 ? 'green-5' : 'red-5'"
-                          />
-                          <span class="yield text-weight-bold" :class="walletYield > 0 ? 'positive' : 'negative'">
-                            {{ `${walletYield} ${selectedMarketCurrency}` }}
-                          </span>
-                        </q-badge>
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
@@ -781,6 +791,9 @@ export default {
     },
     async onRefresh (done) {
       try {
+        // Refresh Learn carousel immediately to show skeletons right away
+        this.learnCarouselKey++
+        
         // Refresh wallet balances and token icons
         await this.onConnectivityChange(true)
         
@@ -797,9 +810,6 @@ export default {
         
         // Refresh pending transactions
         this.pendingTransactionsKey++
-        
-        // Refresh Learn carousel
-        this.learnCarouselKey++
       } catch (error) {
         console.error('Error refreshing:', error)
       } finally {
@@ -1952,6 +1962,7 @@ export default {
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
+    height: 108px;
     .bch-skeleton {
       height: 53px;
       width: 100%

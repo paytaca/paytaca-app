@@ -102,31 +102,14 @@ export default {
       return lesson?.image || lesson?.thumbnail || lesson?.cover || ''
     },
     async fetchLessons(forceRefresh = false) {
-      // Don't show loading if we're refreshing in background (already have lessons)
-      const isBackgroundRefresh = this.lessons.length > 0
+      // If not forcing refresh and we already have lessons, this is a background refresh
+      const isBackgroundRefresh = !forceRefresh && this.lessons.length > 0
       
       if (!isBackgroundRefresh) {
         this.loading = true
       }
       
       try {
-        // Check cache first (unless forcing refresh)
-        if (!forceRefresh) {
-          const cached = this.getCachedLessons()
-          if (cached) {
-            this.lessons = cached
-            if (!isBackgroundRefresh) {
-              this.loading = false
-            }
-            // If background refresh, continue to fetch fresh data
-            if (isBackgroundRefresh) {
-              // Still fetch fresh data in background
-            } else {
-              return
-            }
-          }
-        }
-
         // Fetch from API
         const response = await axios.get(LEARN_API_URL, {
           timeout: 10000
@@ -139,18 +122,18 @@ export default {
       } catch (error) {
         console.error('Error fetching learn lessons:', error)
         
-        // Only try expired cache if we don't already have lessons
+        // On error, fall back to cache if available (only if we don't have lessons)
         if (this.lessons.length === 0) {
-          const cached = this.getCachedLessons(true)
-          if (cached) {
+          const cached = this.getCachedLessons(true) // Allow expired cache as fallback
+          if (cached && cached.length > 0) {
             this.lessons = cached
           } else {
-            // If CORS error or network error, silently hide the section
+            // If no cache available, hide the section
             // The component will be hidden via v-if when lessons.length === 0
             this.lessons = []
           }
         }
-        // If we already have lessons (background refresh), just keep them
+        // If we already have lessons (background refresh failed), just keep existing lessons
       } finally {
         if (!isBackgroundRefresh) {
           this.loading = false
@@ -199,30 +182,12 @@ export default {
     }
   },
   mounted() {
-    // Always start with loading state to show skeletons
+    // Always show skeletons and fetch fresh data on mount (initial load or pull-to-refresh)
     this.loading = true
+    this.lessons = [] // Clear any previous lessons to show skeletons
     
-    // Check cache
-    const cached = this.getCachedLessons()
-    const minSkeletonDelay = 800 // Minimum delay to show skeleton (ms)
-    
-    if (cached && cached.length > 0) {
-      // If cache exists, show it after minimum delay to ensure skeleton is visible
-      setTimeout(() => {
-        this.lessons = cached
-        this.loading = false
-      }, minSkeletonDelay)
-      
-      // Fetch fresh data in background to update cache
-      setTimeout(() => {
-        this.fetchLessons(true) // Force refresh to get latest data
-      }, 500)
-    } else {
-      // No cache - keep loading state and fetch
-      setTimeout(() => {
-        this.fetchLessons(false)
-      }, 500)
-    }
+    // Fetch fresh data from API
+    this.fetchLessons(true) // Force refresh to get latest data
   }
 }
 </script>
