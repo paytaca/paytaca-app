@@ -64,7 +64,7 @@ const PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS= '08'
 const PSBT_OUT_SP_V0_INFO= '09'
 const PSBT_OUT_SP_V0_LABEL= '0a'
 const PSBT_OUT_DNSSEC_PROOF= '35'
-const PSBT_OUT_TOKEN= '36'                  // Token Prefix
+const PSBT_OUT_TOKEN= '36'                  // CashToken BCH
 const PSBT_OUT_PROPRIETARY= 'fc'
 // }
 
@@ -234,11 +234,11 @@ export class GlobalMap {
 
   /**
    * 
-   * @param {number} [version=2]
+   * @param {number} [version = 2] 
    */
   setTxVersion(version = 2){
     const k = new Key(hexToBin(PSBT_GLOBAL_TX_VERSION))
-    const v = new Value(numberToBinInt32LE(version ?? 2))
+    const v = new Value(numberToBinInt32LE(version))
     this.keypairs[PSBT_GLOBAL_TX_VERSION] = new KeyPair(k, v)
     return this
   }
@@ -286,14 +286,14 @@ export class GlobalMap {
   }
 
   /**
-   * Version 3, requires CHIP
+   * TODO: Create CHIP
    * 
-   * @param {number} [version = 3]
+   * @param {number} [version = 145] Using BCH's bip32 cointype for PSBT version
    */
-  setPsbtVersion(version = 3){
+  setPsbtVersion(version = 145){
 
     const k = new Key(hexToBin(PSBT_GLOBAL_VERSION))
-    const v = new Value(numberToBinUint32LE(version ?? 3))
+    const v = new Value(numberToBinUint32LE(version))
     this.keypairs[PSBT_GLOBAL_VERSION] = new KeyPair(k, v)
     return this
   }
