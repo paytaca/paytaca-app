@@ -317,7 +317,7 @@
       </div>
       
       <!-- Bottom CTA -->
-      <div class="bottom-cta q-mt-xl q-mb-lg text-center">
+      <div class="bottom-cta q-mt-xl q-mb-lg text-center" :class="getDarkModeClass(darkMode)">
         <div class="text-h6 q-mb-md">{{ $t('ReadyToGetStarted') }}?</div>
         <q-btn
           :label="$t('BuyLIFTTokens')"
@@ -620,7 +620,14 @@ export default {
   .bottom-cta {
     padding: 24px;
     border-radius: 16px;
-    background: linear-gradient(135deg, rgba(66, 165, 245, 0.1), rgba(66, 165, 245, 0.05));
+    
+    &.dark {
+      background: linear-gradient(135deg, rgba(66, 165, 245, 0.15), rgba(66, 165, 245, 0.08));
+    }
+    
+    &.light {
+      background: linear-gradient(135deg, rgba(66, 165, 245, 0.1), rgba(66, 165, 245, 0.05));
+    }
     
     .cta-button {
       border-radius: 24px;
