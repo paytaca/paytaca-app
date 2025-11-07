@@ -4,6 +4,7 @@
       class="apps-header header-nav"
       backnavpath="/apps"
       :title="`LIFT ${this.$t('Token')}`"
+      id="header-nav"
     />
 
     <!-- Loading state with skeletons -->
@@ -145,7 +146,7 @@
 
     <template v-else>
       <!-- Fixed Tabs -->
-      <div class="tabs-wrapper q-mt-sm q-mb-sm">
+      <div class="tabs-wrapper q-mt-sm q-mb-sm" id="fixed-tabs-wrapper">
         <div
           class="lift-token-tabs q-pa-xs"
           :class="getDarkModeClass(darkMode)"
@@ -343,6 +344,10 @@ export default {
   async mounted() {
     this.$store.dispatch("market/updateAssetPrices", { customCurrency: "USD" });
     await this.retrieveData();
+
+    const headerNav = document.getElementById('header-nav')
+    const fixedTabsWrapper = document.getElementById('fixed-tabs-wrapper')
+    fixedTabsWrapper.style.top = `${headerNav.clientHeight}px`
   },
 };
 </script>
@@ -356,6 +361,7 @@ export default {
   width: 100%;
   box-sizing: border-box;
   position: sticky;
+  z-index: 100;
 }
 
 .tab-panels-wrapper {
