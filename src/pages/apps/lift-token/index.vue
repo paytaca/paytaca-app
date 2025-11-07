@@ -146,7 +146,11 @@
 
     <template v-else>
       <!-- Fixed Tabs -->
-      <div class="tabs-wrapper q-mt-sm q-mb-sm" id="fixed-tabs-wrapper">
+      <div
+        class="tabs-wrapper q-mt-sm q-mb-sm pt-header"
+        :class="getDarkModeClass(darkMode)"
+        id="fixed-tabs-wrapper"
+      >
         <div
           class="lift-token-tabs q-pa-xs"
           :class="getDarkModeClass(darkMode)"
