@@ -322,15 +322,6 @@ export default {
       this.filterRsvpList(saleGroup);
       this.showFilterDialog = false;
     },
-    getThemeColor() {
-      const themeColors = {
-        'glassmorphic-blue': '#42a5f5',
-        'glassmorphic-gold': '#ffa726',
-        'glassmorphic-green': '#4caf50',
-        'glassmorphic-red': '#f54270'
-      }
-      return themeColors[this.theme] || '#42a5f5'
-    },
     parseBchAddress(address) {
       const addLen = address.length;
       return `${address.substring(0, 17)}...${address.substring(
