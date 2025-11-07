@@ -551,9 +551,8 @@ export class PsbtInput {
     const encodedSourceOutput = encodeTransactionOutput(sourceOutput)
     const k = new Key(hexToBin(PSBT_IN_SOURCE_UTXO))
     const v = new Value(encodedSourceOutput)
-    this.keypairs[keyType] = new KeyPair(k, v)
+    this.keypairs[PSBT_IN_SOURCE_UTXO] = new KeyPair(k, v)
   }
-
 
   /**
    * @param {Uint8Array} identifier Example: utf8ToBin('paytaca')
