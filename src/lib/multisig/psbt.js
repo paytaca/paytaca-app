@@ -1,5 +1,5 @@
 import { bigIntToBinUint64LE, bigIntToCompactSize, numberToBinInt32LE } from "@bitauth/libauth"
-import { bigIntToCompactUint, binsAreEqual, binToBigIntUintLE, binToHex, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, hexToBin, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { bigIntToCompactUint, binsAreEqual, binToBigIntUintLE, binToHex, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
 import { bip32EncodeDerivationPath } from "."
 
 export const PSBT_MAGIC = '70736274ff'
@@ -25,6 +25,7 @@ const PSBT_IN_PARTIAL_SIG= '02'             // Partial signature
 const PSBT_IN_SIGHASH_TYPE= '03'            // Sighash type (uint32)
 const PSBT_IN_REDEEM_SCRIPT= '04'           // Redeem script (for P2SH)
 const PSBT_IN_WITNESS_SCRIPT= '05'          // Witness script (for P2WSH)
+
 const PSBT_IN_BIP32_DERIVATION= '06'        // Derivation path data
 const PSBT_IN_FINAL_SCRIPTSIG= '07'         // Final scriptSig
 const PSBT_IN_FINAL_SCRIPTWITNESS= '08'     // Final scriptWitness
@@ -48,7 +49,8 @@ const PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS= '1a'
 const PSBT_IN_MUSIG2_PUB_NONCE= '1b'
 const PSBT_IN_MUSIG2_PARTIAL_SIG= '1c'
 const PSBT_IN_SP_ECDH_SHARE= '1d'
-const PSBT_IN_SP_DLEQ = '0x1e'
+const PSBT_IN_SP_DLEQ = '1e'
+const PSBT_IN_SOURCE_UTXO = '1f'            // (Version 145 allows inclusion, Version 0,2 requires exclusion) Encoded source output
 const PSBT_IN_PROPRIETARY= 'fc'             // Custom (proprietary) key-value pair
 
   // ---------- Output map ----------
@@ -64,7 +66,7 @@ const PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS= '08'
 const PSBT_OUT_SP_V0_INFO= '09'
 const PSBT_OUT_SP_V0_LABEL= '0a'
 const PSBT_OUT_DNSSEC_PROOF= '35'
-const PSBT_OUT_TOKEN= '36'                  // CashToken BCH
+const PSBT_OUT_CASHTOKEN= '36'               // Version(145) token prefix encoded
 const PSBT_OUT_PROPRIETARY= 'fc'
 // }
 
@@ -288,10 +290,10 @@ export class GlobalMap {
   /**
    * TODO: Create CHIP
    * 
-   * @param {number} [version = 145] Using BCH's bip32 cointype for PSBT version
+   * @param {number} [version = 145] Using BCH's bip44 cointype as PSBT version
    */
   setPsbtVersion(version = 145){
-
+    console.log('SETTING PSBT VERSION', version)
     const k = new Key(hexToBin(PSBT_GLOBAL_VERSION))
     const v = new Value(numberToBinUint32LE(version))
     this.keypairs[PSBT_GLOBAL_VERSION] = new KeyPair(k, v)
@@ -340,6 +342,7 @@ export class GlobalMap {
             delete sorted[key]
         }
       }
+      // allow inclusion of all fields on version 145
     }
     return sorted
   }
@@ -535,10 +538,19 @@ export class PsbtInput {
    * Sets either PSBT_IN_REQUIRED_TIME_LOCKTIME or PSBT_IN_REQUIRED_HEIGHT_LOCKTIME
    */
   setRequiredLocktime(locktime) {
-
     const keyType = locktime >= 500000000 ? PSBT_IN_REQUIRED_TIME_LOCKTIME: PSBT_IN_REQUIRED_HEIGHT_LOCKTIME
     const k = new Key(hexToBin(keyType))
     const v = new Value(numberToBinUint32LE(locktime))
+    this.keypairs[keyType] = new KeyPair(k, v)
+  }
+
+  /**
+   * @param {import('@bitauth/libauth').Output}
+   */
+  setSourceUtxo(sourceOutput){
+    const encodedSourceOutput = encodeTransactionOutput(sourceOutput)
+    const k = new Key(hexToBin(PSBT_IN_SOURCE_UTXO))
+    const v = new Value(encodedSourceOutput)
     this.keypairs[keyType] = new KeyPair(k, v)
   }
 
@@ -565,7 +577,7 @@ export class PsbtInput {
   }
 
   sanitizeForVersion(psbtVersion, keypairs) {
-    const sorted = { ...keypairs }
+    const sorted = sortObjectKeys({ ...keypairs })
     for (const key of Object.keys(sorted)) {
       if (psbtVersion === 0) {
         switch(key) {
@@ -586,6 +598,15 @@ export class PsbtInput {
           case PSBT_IN_OUTPUT_INDEX:
             if (!keypairs[key]) throw new Error(`PSBT_IN_OUTPUT_INDEX missing, required on version: ${psbtVersion}`)
         }
+      }
+      if (psbtVersion === 145) {
+        switch(key) {
+          // This actually should be optional
+          // We can make the PSBT_IN_NON_WITNESS_UTXO optional if this field is present
+          case PSBT_IN_SOURCE_UTXO:  
+            if (!keypairs[PSBT_IN_NON_WITNESS_UTXO] && !keypairs[key]) throw new Error(`PSBT_IN_SOURCE_UTXO missing, required on version: ${psbtVersion}`)
+        }
+        
       }
     }
     return sorted
@@ -722,10 +743,10 @@ export class PsbtOutput {
       _token = hexToBin(token)
     }
 
-    const k = new Key(hexToBin(PSBT_OUT_TOKEN))
+    const k = new Key(hexToBin(PSBT_OUT_CASHTOKEN))
     const v = new Value(_token)
 
-    this.keypairs[PSBT_OUT_TOKEN] = new KeyPair(k, v)
+    this.keypairs[PSBT_OUT_CASHTOKEN] = new KeyPair(k, v)
     return this
   }
 
@@ -791,7 +812,7 @@ export class PsbtOutput {
   }
 
   /**
-   * @params {number} [psbtVersion = 3]
+   * @param {number} psbtVersion
    */
   serialize(psbtVersion) {
     const sorted = sortObjectKeys(this.sanitizeForVersion(psbtVersion, this.keypairs))
@@ -924,11 +945,10 @@ export class Psbt {
   serialize() {
     const magic = (new Magic()).serialize()
     const psbtVersion = Number(
-      binToBigIntUintLE(this.globalMap.keypairs[PSBT_GLOBAL_VERSION]?.value ?? new Uint8Array[0])
+      binToBigIntUintLE(this.globalMap.keypairs[PSBT_GLOBAL_VERSION]?.value?.value ?? new Uint8Array[0])
     )
+    console.log('psbt version', psbtVersion)
     const globalMap = this.globalMap.serialize(psbtVersion)
-    
-
     const inputMap = this.inputMap.serialize(psbtVersion)
     const outputMap = this.outputMap.serialize(psbtVersion)
     const size = new Uint8Array(magic.length +  globalMap.length + inputMap.length + outputMap.length)
