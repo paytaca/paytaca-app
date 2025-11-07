@@ -31,6 +31,9 @@
           <div v-if="assetFiatValue" class="fiat-value text-grey-7 q-mt-xs" style="font-size: 14px;">
             {{ assetFiatValue }}
           </div>
+          <div v-else-if="loadingFiatValue" class="fiat-value q-mt-xs" style="font-size: 14px;">
+            <q-skeleton type="rect" width="100px" height="16px" class="q-mx-auto" />
+          </div>
         </div>
         
         <!-- Price Chart for BCH -->
@@ -80,24 +83,63 @@
           <div class="section-divider q-mt-sm"></div>
         </div>
         
-        <!-- Token Info (for non-BCH assets) -->
-        <div v-if="asset.id !== 'bch'" class="token-info-section text-center q-mb-md">
-          <div class="section-divider q-mb-sm"></div>
-          <div class="metadata-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
-            {{ $t('Metadata', {}, 'Metadata') }}
+        <!-- Token Info and Price (for non-BCH assets) -->
+        <div v-if="asset.id !== 'bch'" class="token-sections q-mb-md">
+          <div class="section-divider q-mb-md"></div>
+          
+          <!-- Token Info -->
+          <div class="token-info-section text-center q-mb-md">
+            <div class="metadata-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
+              {{ $t('Metadata', {}, 'Metadata') }}
+            </div>
+            <div class="view-explorer-container q-mt-xs">
+              <a
+                :href="assetLink"
+                class="view-explorer-link"
+                :class="getDarkModeClass(darkMode)"
+                target="_blank"
+              >
+                {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
+                <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+              </a>
+            </div>
           </div>
-          <div class="view-explorer-container q-mt-xs">
-            <a
-              :href="assetLink"
-              class="view-explorer-link"
-              :class="getDarkModeClass(darkMode)"
-              target="_blank"
-            >
-              {{ asset.id.split('/')[1].slice(0, 7) }}...{{ asset.id.split('/')[1].slice(-7) }}
-              <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
-            </a>
+          
+          <!-- Price Display for Tokens -->
+          <div class="token-price-section text-center">
+            <div v-if="tokenPrice" class="current-price-section q-mb-sm">
+              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
+                {{ $t('CurrentPrice', {}, 'Current Price') }}
+              </div>
+              <div class="price-value text-weight-bold" style="font-size: 18px;">
+                {{ formattedTokenPrice }}
+              </div>
+              <div class="price-per-token text-grey-7 q-mt-xs" style="font-size: 11px;">
+                {{ $t('PerToken', {}, 'per token') }}
+              </div>
+            </div>
+            <div v-else-if="loadingTokenPrice" class="current-price-section q-mb-sm">
+              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
+                {{ $t('CurrentPrice', {}, 'Current Price') }}
+              </div>
+              <div class="row justify-center q-mt-sm">
+                <q-skeleton type="rect" width="120px" height="24px" />
+              </div>
+              <div class="row justify-center q-mt-xs">
+                <q-skeleton type="rect" width="60px" height="14px" />
+              </div>
+            </div>
+            <div v-else class="current-price-section q-mb-sm">
+              <div class="price-label text-grey-6 text-weight-medium" style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px;">
+                {{ $t('CurrentPrice', {}, 'Current Price') }}
+              </div>
+              <div class="price-value text-grey-6" style="font-size: 14px;">
+                {{ $t('PriceNotAvailable', {}, 'Price not available') }}
+              </div>
+            </div>
           </div>
-          <div class="section-divider q-mt-sm"></div>
+          
+          <div class="section-divider q-mt-md"></div>
         </div>
 
         <!-- Action Buttons -->
@@ -156,7 +198,6 @@ export default {
   data () {
     return {
       asset: null,
-      selectedCurrency: this.$store.getters['market/selectedCurrency'],
       // Price chart data
       chartLoaded: false,
       networkError: false,
@@ -165,13 +206,18 @@ export default {
       currentPrice: 0,
       priceChangePercent: 0,
       priceIncreased: true,
-      autoUpdateInterval: null
+      autoUpdateInterval: null,
+      // Token price loading state
+      loadingTokenPrice: false
     }
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    selectedCurrency () {
+      return this.$store.getters['market/selectedCurrency']
     },
     denomination () {
       return this.$store.getters['global/denomination']
@@ -201,13 +247,53 @@ export default {
       if (!this.asset?.id) return ''
       
       const selectedCurrency = this.selectedCurrency?.symbol
+      if (!selectedCurrency) return ''
+      
       const assetPrice = this.$store.getters['market/getAssetPrice'](this.asset.id, selectedCurrency)
-      if (!assetPrice) return ''
+      if (!assetPrice || assetPrice === 0) return ''
 
-      const balance = Number(this.asset.balance || 0)
+      let balance = Number(this.asset.balance || 0)
+      
+      // Adjust for token decimals (balance is in smallest units)
+      // For BCH, use balance directly (matching home page calculation)
+      // For tokens, divide by 10^decimals to get token units
+      if (this.asset.id !== 'bch' && this.asset.decimals) {
+        const decimals = parseInt(this.asset.decimals) || 0
+        if (decimals > 0) {
+          balance = balance / (10 ** decimals)
+        }
+      }
+      
       const computedBalance = balance * Number(assetPrice)
       
       return this.parseFiatCurrency(computedBalance.toFixed(2), selectedCurrency)
+    },
+    loadingFiatValue () {
+      // Show loading for fiat value when:
+      // 1. For tokens: when loadingTokenPrice is true
+      // 2. For BCH: when chart is loading (chartLoaded is false and not networkError)
+      if (!this.asset?.id) return false
+      
+      if (this.asset.id === 'bch') {
+        return !this.chartLoaded && !this.networkError
+      } else {
+        return this.loadingTokenPrice
+      }
+    },
+    tokenPrice () {
+      if (!this.asset?.id || this.asset.id === 'bch') return null
+      
+      const selectedCurrency = this.selectedCurrency?.symbol
+      if (!selectedCurrency) return null
+      
+      const assetPrice = this.$store.getters['market/getAssetPrice'](this.asset.id, selectedCurrency)
+      if (!assetPrice || assetPrice === 0) return null
+      
+      return Number(assetPrice)
+    },
+    formattedTokenPrice () {
+      if (!this.tokenPrice) return null
+      return this.parseFiatCurrency(this.tokenPrice, this.selectedCurrency?.symbol)
     }
   },
 
@@ -217,10 +303,37 @@ export default {
     parseFiatCurrency,
     async show (asset) {
       try {
+        // Reset loading state when showing new asset
+        this.loadingTokenPrice = false
         this.asset = asset
         this.$refs.dialog.show()
         
-        // Load price chart if BCH
+        // Fetch price using unified asset-prices API for both BCH and tokens
+        const selectedCurrency = this.selectedCurrency?.symbol
+        if (selectedCurrency) {
+          // Set loading state for tokens
+          if (asset.id !== 'bch') {
+            this.loadingTokenPrice = true
+          }
+          
+          try {
+            // Use unified asset-prices API for both BCH and tokens
+            // Don't clear existing prices to avoid removing other assets' cached prices
+            await this.$store.dispatch('market/updateAssetPrices', { 
+              assetId: asset.id,
+              clearExisting: false 
+            })
+          } catch (error) {
+            // Price might not be available for this asset
+            console.debug('Price not available for asset:', asset.id, error)
+          } finally {
+            if (asset.id !== 'bch') {
+              this.loadingTokenPrice = false
+            }
+          }
+        }
+        
+        // Load price chart if BCH (for chart visualization)
         if (asset.id === 'bch') {
           await this.loadPriceData()
           this.$nextTick(() => {
@@ -255,6 +368,8 @@ export default {
         this.priceChart.destroy()
         this.priceChart = null
       }
+      // Reset loading state when hiding
+      this.loadingTokenPrice = false
       this.$refs.dialog.hide()
     },
     onDialogHide () {
@@ -488,6 +603,27 @@ export default {
   width: 100%;
   height: 120px;
   position: relative;
+}
+
+// Token Price Section
+.token-price-section {
+  max-width: 100%;
+  
+  .current-price-section {
+    padding: 6px 0;
+    
+    .price-label {
+      opacity: 0.8;
+    }
+    
+    .price-value {
+      color: inherit;
+    }
+    
+    .price-per-token {
+      opacity: 0.7;
+    }
+  }
 }
 
 // Token Info Section

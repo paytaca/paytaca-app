@@ -78,16 +78,28 @@
 
         <div class="row col-12 flex-center q-pb-md">
           <div class="col copy-container">
-            <span class="qr-code-text text-weight-light text-center">
+            <div class="qr-code-text text-weight-light text-center">
               <div
-                class="text-nowrap text-bow"
-                style="letter-spacing: 1px;"
+                class="text-bow"
+                style="letter-spacing: 1px; word-break: break-all;"
                 @click="copyToClipboard(isCt ? address : addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
-                {{ displayAddress(address) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
+                {{ address }}
               </div>
-            </span>
+            </div>
+            <div class="row justify-center q-mt-md q-mx-lg">
+              <q-btn
+                outline
+                no-caps
+                class="br-15"
+                color="grey-7"
+                icon="content_copy"
+                padding="xs md"
+                :label="$t('ClickToCopyAddress')"
+                @click="copyToClipboard(isCt ? address : addressAmountFormat)"
+              />
+            </div>
           </div>
         </div>
         <div v-if="amount && !isCt" class="text-center row col-12 flex-center">   
@@ -236,11 +248,6 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    displayAddress (address) {
-      if (address) {
-        return address.substring(0, 16) + '...' + address.substring(address.length - 4)
-      }
     },
     convertFiatToSelectedAsset (amount) {
       const parsedAmount = Number(amount)

@@ -61,14 +61,97 @@ export function getAllAssetList (context) {
 
 export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null, assetId = null }) {
   const selectedCurrency = context.state.selectedCurrency?.symbol
+  
+  // If assetId is provided, use the unified endpoint to fetch price for that specific asset
+  // This works for tokens (ct/..., slp/...) as well as BCH
+  if (assetId) {
+    const vsCurrencies = [selectedCurrency, customCurrency]
+      .filter(Boolean)
+      .filter((element, index, array) => array.indexOf(element) === array.lastIndexOf(element))
+    
+    if (!vsCurrencies.length) return
+    
+    // Normalize asset ID for API (uppercase for BCH, keep as-is for tokens)
+    const normalizedAssetId = assetId === 'bch' ? 'BCH' : assetId
+    
+    try {
+      const { data } = await axios.get(
+        'https://watchtower.cash/api/asset-prices/',
+        {
+          params: {
+            assets: normalizedAssetId,
+            vs_currencies: vsCurrencies.join(',')
+          }
+        }
+      )
+      
+      if (!data?.prices || !Array.isArray(data.prices)) return
+      
+      // Build prices object from response
+      // Filter by asset to ensure we get the correct price for this specific asset
+      // Note: For tokens, API returns tokens/currency (e.g., tokens per PHP), but we need currency/token (e.g., PHP per token)
+      // For BCH, API returns currency/BCH (e.g., PHP per BCH) which is already in the correct format
+      const prices = {}
+      const isToken = assetId && assetId !== 'bch' && assetId.includes('/')
+      
+      data.prices.forEach(priceData => {
+        // Match the asset to ensure we're getting the right price
+        const responseAsset = String(priceData?.asset || '').toLowerCase()
+        const expectedAsset = normalizedAssetId.toLowerCase()
+        
+        if (responseAsset !== expectedAsset) return
+        if (!priceData?.currency || !priceData?.price_value) return
+        
+        const currency = String(priceData.currency).toLowerCase()
+        const rawPrice = parseFloat(priceData.price_value)
+        if (!isFinite(rawPrice)) return
+        
+        // For tokens, convert from tokens/currency to currency/token (take reciprocal)
+        // For BCH, use the price directly as it's already currency/BCH
+        const price = isToken && rawPrice !== 0 ? 1 / rawPrice : rawPrice
+        
+        // Debug logging for price calculation
+        if (assetId && (assetId.includes('musd') || assetId.includes('MUSD'))) {
+          console.log('Price calculation:', {
+            assetId,
+            isToken,
+            currency,
+            rawPrice,
+            calculatedPrice: price,
+            priceData
+          })
+        }
+        
+        prices[currency] = price
+      })
+      
+      // Check if we need USD rates for conversion
+      let fetchUsdRate = false
+      if (selectedCurrency) {
+        const loweredSelectedCurrency = String(selectedCurrency).toLowerCase()
+        fetchUsdRate = !prices[loweredSelectedCurrency] && prices.usd
+      }
+      
+      const newAssetPrices = [{
+        assetId: assetId,
+        prices: prices
+      }]
+      
+      if (clearExisting) context.commit('clearAssetPrices')
+      context.commit('updateAssetPrices', newAssetPrices)
+      if (fetchUsdRate) context.dispatch('updateUsdRates', { currency: selectedCurrency })
+      
+      return
+    } catch (error) {
+      console.error('Error fetching asset price:', error)
+      return
+    }
+  }
+  
+  // For bulk updates, still use the old method with getAllAssetList for backwards compatibility
   const assetList = await context.dispatch('getAllAssetList')
   
-  // If assetId is provided, filter to only that asset
   let assetsToFetch = [...assetList.mainchain, ...assetList.smartchain]
-  if (assetId) {
-    assetsToFetch = assetsToFetch.filter(({ asset }) => asset && asset.id === assetId)
-    if (assetsToFetch.length === 0) return // Asset not found
-  }
   
   const coinIds = assetsToFetch
     .map(({ coin }) => coin && coin.id)
@@ -77,7 +160,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
 
   const vsCurrencies = [selectedCurrency, customCurrency]
     .filter(Boolean)
-    .filter((element, index, array) => array.indexOf(element) === index)
+    .filter((element, index, array) => array.indexOf(element) === array.lastIndexOf(element))
 
   const { data: priceDataList } = await axios.get(
     'https://watchtower.cash/api/market-prices/',

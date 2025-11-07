@@ -30,17 +30,24 @@ export function updateSelectedCurrency (state, currency) {
  * @param {{ assetId: String, prices: Map<String, Number>, coinId: String }[]} assetPrices
  */
 export function updateAssetPrices (state, assetPrices) {
-  if (assetPrices.length) {
-    // Always clear prior to update
-    state.assetPrices = []
-  }
+  if (!Array.isArray(assetPrices)) return
 
   assetPrices.forEach(assetPrice => {
+    if (!assetPrice?.assetId) return
+    
     let updated = false
     for (var i = 0; i < state.assetPrices.length; i++) {
       if (state.assetPrices[i].assetId === assetPrice.assetId) {
         updated = true
-        state.assetPrices[i] = assetPrice
+        // Merge prices if they exist to allow incremental updates
+        if (assetPrice.prices && state.assetPrices[i].prices) {
+          state.assetPrices[i].prices = {
+            ...state.assetPrices[i].prices,
+            ...assetPrice.prices
+          }
+        } else {
+          state.assetPrices[i] = assetPrice
+        }
       }
     }
     if (!updated) state.assetPrices.push(assetPrice)

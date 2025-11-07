@@ -96,7 +96,27 @@
                             {{ bchBalanceText }}
                           </span>
                         </p>
-                        <div>{{ getAssetMarketBalance(bchAsset) }}</div>
+                        <div v-if="getAssetMarketBalance(bchAsset)">
+                          {{ getAssetMarketBalance(bchAsset) }}
+                        </div>
+                        <div v-else-if="loadingBchPrice" class="row justify-start">
+                          <q-skeleton type="rect" width="100px" height="16px" />
+                        </div>
+                        <div @click.stop style="display: inline-block;">
+                          <q-select
+                            :model-value="bchBalanceMode"
+                            :options="balanceModeOptions"
+                            option-label="label"
+                            option-value="value"
+                            emit-value
+                            map-options
+                            dense
+                            borderless
+                            class="balance-mode-selector q-mt-xs"
+                            style="max-width: 200px; font-size: 12px; height: 24px;"
+                            @update:model-value="onBalanceModeChange"
+                          />
+                        </div>
                         <q-badge
                           rounded
                           class="flex justify-start items-center yield-container"
@@ -429,7 +449,10 @@ export default {
       assetClickTimer: null,
       assetClickCounter: 0 ,
       pendingTransactionsKey: 0,
-      learnCarouselKey: 0
+      learnCarouselKey: 0,
+      loadingBchPrice: false,
+      bchBalanceMode: localStorage.getItem('bchBalanceMode') || 'bch-only',
+      favoriteTokenIds: [] // Store favorite token IDs for synchronous access
     }
   },
 
@@ -531,7 +554,11 @@ export default {
     bchBalanceText() {
       if (!this.balanceLoaded && this.selectedAsset?.id === this?.bchAsset?.id) return '0'
       const currentDenomination = this.selectedDenomination
-      const balance = this.bchAsset.balance
+      
+      // Use aggregated balance if mode is 'bch+favorites', otherwise use BCH balance only
+      const balance = this.bchBalanceMode === 'bch+favorites' 
+        ? this.aggregatedBchBalance 
+        : this.bchAsset.balance
 
       if (this.selectedNetwork === 'sBCH') {
         return `${String(balance).substring(0, 10)} ${selectedNetwork}`
@@ -586,6 +613,137 @@ export default {
         { label: this.$t('Sent'), value: 'sent' },
         { label: this.$t('Received'), value: 'received' },
       ]
+    },
+    balanceModeOptions () {
+      return [
+        { label: this.$t('BCHOnly', {}, 'BCH only'), value: 'bch-only' },
+        { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' }
+      ]
+    },
+    favoriteTokens () {
+      // Get assets from store based on network
+      const allAssets = this.selectedNetwork === 'sBCH' 
+        ? this.$store.getters['sep20/getAssets']
+        : this.$store.getters['assets/getAssets']
+
+      // Filter assets to match favorite token IDs and current network
+      const favoriteAssets = allAssets.filter(asset => {
+        if (!asset || !asset.id || asset.id === 'bch') return false
+        // Match exact ID or check if ID ends with the favorite token ID
+        return this.favoriteTokenIds.some(favId => {
+          const assetId = String(asset.id)
+          return assetId === favId || assetId.endsWith('/' + favId)
+        })
+      })
+
+      return favoriteAssets
+    },
+    aggregatedBchBalance () {
+      // If mode is 'bch-only', just return BCH balance in satoshis
+      if (this.bchBalanceMode !== 'bch+favorites') {
+        return Number(this.bchAsset?.balance || 0)
+      }
+
+      // Get BCH price in fiat
+      const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+      if (!bchPriceInFiat || bchPriceInFiat === 0) {
+        // If BCH price not available, return BCH balance only
+        return Number(this.bchAsset?.balance || 0)
+      }
+
+      // Get BCH balance - balance is already in BCH units
+      const bchBalanceInBch = Number(this.bchAsset?.balance || 0)
+      let totalBalanceInBch = bchBalanceInBch
+
+      // Get favorite tokens
+      const favoriteAssets = this.favoriteTokens
+
+      // Calculate aggregated balance - sum all values in BCH
+      for (const token of favoriteAssets) {
+        try {
+          // Get token balance and account for decimals
+          let tokenBalance = Number(token.balance || 0)
+          if (token.decimals) {
+            const decimals = parseInt(token.decimals) || 0
+            if (decimals > 0) {
+              tokenBalance = tokenBalance / (10 ** decimals)
+            }
+          }
+
+          // Get token price in fiat
+          const tokenPriceInFiat = this.$store.getters['market/getAssetPrice'](token.id, this.selectedMarketCurrency)
+          if (!tokenPriceInFiat || tokenPriceInFiat === 0) {
+            // Skip tokens without prices
+            continue
+          }
+
+          // Calculate token value in BCH: (tokenBalance * tokenPriceInFiat) / bchPriceInFiat
+          const tokenValueInBch = (tokenBalance * tokenPriceInFiat) / bchPriceInFiat
+          
+          // Add to total in BCH
+          totalBalanceInBch += tokenValueInBch
+        } catch (error) {
+          // Skip tokens with errors
+          console.debug('Error calculating token value for aggregated balance:', token.id, error)
+          continue
+        }
+      }
+
+      // Return total in BCH (balance is already in BCH units)
+      return totalBalanceInBch
+    },
+    aggregatedFiatValue () {
+      if (this.bchBalanceMode !== 'bch+favorites') {
+        return this.getAssetMarketBalance(this.bchAsset)
+      }
+
+      // Start with BCH balance fiat conversion
+      const bchBalance = Number(this.bchAsset?.balance || 0)
+      const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+      
+      if (!bchPriceInFiat || bchPriceInFiat === 0) {
+        return ''
+      }
+
+      // BCH balance is already in BCH units, not satoshis
+      const bchBalanceInBch = bchBalance
+      const bchFiatValue = bchBalanceInBch * Number(bchPriceInFiat)
+      let totalFiatValue = bchFiatValue
+
+      // Get favorite tokens
+      const favoriteAssets = this.favoriteTokens
+
+      // Add fiat conversion of each token balance directly
+      for (const token of favoriteAssets) {
+        try {
+          // Get token balance and account for decimals
+          let tokenBalance = Number(token.balance || 0)
+          if (token.decimals) {
+            const decimals = parseInt(token.decimals) || 0
+            if (decimals > 0) {
+              tokenBalance = tokenBalance / (10 ** decimals)
+            }
+          }
+
+          // Get token price in fiat
+          const tokenPriceInFiat = this.$store.getters['market/getAssetPrice'](token.id, this.selectedMarketCurrency)
+          if (!tokenPriceInFiat || tokenPriceInFiat === 0) {
+            // Skip tokens without prices
+            continue
+          }
+
+          // Calculate token value in fiat directly: tokenBalance * tokenPriceInFiat
+          const tokenValueInFiat = tokenBalance * tokenPriceInFiat
+          
+          totalFiatValue += tokenValueInFiat
+        } catch (error) {
+          // Skip tokens with errors
+          console.debug('Error calculating token fiat value for aggregated balance:', token.id, error)
+          continue
+        }
+      }
+
+      return parseFiatCurrency(totalFiatValue.toFixed(2), this.selectedMarketCurrency)
     }
   },
   methods: {
@@ -593,10 +751,44 @@ export default {
     parseFiatCurrency,
     getDarkModeClass,
     isHongKong,
+    onBalanceModeChange (value) {
+      // Save to localStorage for persistence
+      localStorage.setItem('bchBalanceMode', value)
+      this.bchBalanceMode = value
+    },
+    async loadFavoriteTokenIds () {
+      try {
+        // Fetch favorites from server
+        const favorites = await assetSettings.fetchFavorites()
+        
+        if (!favorites || !Array.isArray(favorites)) {
+          this.favoriteTokenIds = []
+          return
+        }
+
+        // Extract favorite token IDs (where favorite === 1)
+        const favoriteTokenIds = favorites
+          .filter(item => item.favorite === 1)
+          .map(item => item.id)
+          .filter(Boolean) // Remove any undefined/null values
+          .filter(id => id !== 'bch') // Exclude BCH itself
+
+        this.favoriteTokenIds = favoriteTokenIds
+      } catch (error) {
+        console.error('Error loading favorite token IDs:', error)
+        this.favoriteTokenIds = []
+      }
+    },
     async onRefresh (done) {
       try {
         // Refresh wallet balances and token icons
         await this.onConnectivityChange(true)
+        
+        // Load favorite token IDs
+        await this.loadFavoriteTokenIds()
+        
+        // Refresh prices for all favorite tokens + BCH
+        await this.refreshFavoriteTokenPrices()
         
         // Refresh transaction list
         if (this.$refs['transaction-list-component']) {
@@ -779,8 +971,22 @@ export default {
         // vm.$refs['transaction-list-component'].getTransactions()
       }
     },
-    selectBch () {     
-      const vm = this       
+    selectBch (event) {     
+      const vm = this
+      
+      // Check if click is on the dropdown or its menu
+      if (event && event.target) {
+        const target = event.target
+        const isDropdownClick = target.closest('.balance-mode-selector') || 
+                                target.closest('.q-menu') ||
+                                target.closest('.q-select__dropdown-icon') ||
+                                target.classList.contains('balance-mode-selector')
+        
+        if (isDropdownClick) {
+          return // Don't handle click if it's on the dropdown
+        }
+      }
+      
       // vm.selectedAsset = this.bchAsset
       // vm.getBalance(this.bchAsset.id)
       // vm.txSearchActive = false
@@ -818,6 +1024,11 @@ export default {
     },
     getAssetMarketBalance (asset) {
       if (!asset?.id) return ''
+
+      // If BCH and mode is 'bch+favorites', return aggregated fiat value
+      if (asset.id === 'bch' && this.bchBalanceMode === 'bch+favorites') {
+        return this.aggregatedFiatValue
+      }
 
       const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
       if (!assetPrice) return ''
@@ -1123,6 +1334,9 @@ export default {
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
 
+        // Load favorite token IDs
+        await vm.loadFavoriteTokenIds()
+        
         // Refresh favorite tokens + BCH
         const favoriteRefreshPromise = vm.refreshFavoriteTokenBalances()
 
@@ -1195,6 +1409,42 @@ export default {
         console.error('Error refreshing favorite token balances:', error)
         // Clear all refreshing tokens on error
         vm.refreshingTokenIds = []
+        return Promise.resolve()
+      }
+    },
+    async refreshFavoriteTokenPrices() {
+      const vm = this
+      try {
+        // Fetch favorites from server
+        const favorites = await assetSettings.fetchFavorites()
+        
+        if (!favorites || !Array.isArray(favorites)) {
+          return Promise.resolve()
+        }
+
+        // Extract favorite token IDs (where favorite === 1)
+        const favoriteTokenIds = favorites
+          .filter(item => item.favorite === 1)
+          .map(item => item.id)
+          .filter(Boolean) // Remove any undefined/null values
+
+        // Always include BCH (id: 'bch')
+        const tokensToRefresh = [...new Set([...favoriteTokenIds, 'bch'])]
+
+        // Refresh prices for all favorite tokens + BCH using unified API
+        const pricePromises = tokensToRefresh.map(assetId => {
+          return vm.$store.dispatch('market/updateAssetPrices', {
+            assetId: assetId,
+            clearExisting: false
+          }).catch(error => {
+            console.error(`Error refreshing price for ${assetId}:`, error)
+            return null
+          })
+        })
+
+        return Promise.allSettled(pricePromises)
+      } catch (error) {
+        console.error('Error refreshing favorite token prices:', error)
         return Promise.resolve()
       }
     },
@@ -1650,7 +1900,22 @@ export default {
       })
     }
 
-    vm.$store.dispatch('market/updateAssetPrices', {})
+    // Load favorite token IDs first
+    await vm.loadFavoriteTokenIds()
+
+    // Fetch prices for all favorite tokens + BCH using unified API
+    // Only show loading if price is not already available
+    const existingBchPrice = vm.$store.getters['market/getAssetPrice']('bch', vm.selectedMarketCurrency)
+    if (!existingBchPrice) {
+      vm.loadingBchPrice = true
+    }
+    vm.refreshFavoriteTokenPrices()
+      .then(() => {
+        vm.loadingBchPrice = false
+      })
+      .catch(() => {
+        vm.loadingBchPrice = false
+      })
     vm.computeWalletYield()
 
     // add unapplied unlisted token
