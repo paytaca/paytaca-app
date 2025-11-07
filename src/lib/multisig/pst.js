@@ -105,12 +105,14 @@ import {
   hash256,
   hash160,
   encodeLockingBytecodeP2sh20,
-  decodeHdPublicKey
+  decodeHdPublicKey,
+  readCompactUint
 } from 'bitauth-libauth-v3'
 
 import { derivePublicKeys, getLockingBytecode, getCompiler, getLockingData, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
 import { createTemplate } from './template.js'
 import { bip32ExtractRelativePath } from './utils.js'
+import { Psbt, PsbtInput, PsbtOutput } from './psbt.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -526,17 +528,19 @@ export class Pst {
    * @param {PartiallySignedTransaction} instance
    */
   constructor(instance, options) {
-    this.creator = instance.creator
-    this.origin = instance.origin
-    this.purpose = instance.purpose
-    this.unsignedTransactionHex = instance.unsignedTransactionHex
-    this.inputs = instance.inputs || []
-    this.outputs = instance.outputs || []
-    this.walletHash = instance.walletHash
-    if (instance.wallet) {
+    this.creator = instance?.creator
+    this.origin = instance?.origin
+    this.purpose = instance?.purpose
+    this.unsignedTransactionHex = instance?.unsignedTransactionHex
+    this.version = instance?.version || 2
+    this.locktime = instance?.locktime ?? 0
+    this.inputs = instance?.inputs || []
+    this.outputs = instance?.outputs || []
+    this.walletHash = instance?.walletHash
+    if (instance?.wallet) {
       this.wallet = instance.wallet
     }
-    if (instance.isSynced) {
+    if (instance?.isSynced) {
       this.isSynced = instance.isSynced
     }
     if (options) {
@@ -546,7 +550,8 @@ export class Pst {
 
   get unsignedTransactionHash () {
     if (!this.unsignedTransactionHex) {
-      throw new Error('No unsigned transaction hex available')
+      // throw new Error('No unsigned transaction hex available')
+      return 
     }
     return hashTransaction(hexToBin(this.unsignedTransactionHex))
   }
@@ -925,6 +930,79 @@ export class Pst {
     }
 
     return JSON.parse(JSON.stringify(data, Pst.exportSafeJSONReplacer))
+  }
+
+  toPSBT(version = 145) {
+    
+    const psbt = new Psbt()
+    const txVersionReadResult = readCompactUint({ bin: hexToBin(this.unsignedTransactionHex), index: 0})
+    psbt.globalMap.setUnsignedTx(this.unsignedTransactionHex)
+    psbt.globalMap.setTxVersion(Number(txVersionReadResult.result))
+    psbt.globalMap.setInputCount(this.inputs.length)
+    psbt.globalMap.setOutputCount(this.outputs.length)
+    psbt.globalMap.setPsbtVersion(version)
+
+    for(const input of this.inputs) {
+      const psbtInput = new PsbtInput()
+      // const unsignedTransactionHex = 
+      // psbtInput.setUtxo(hexToBin('<full tx of prevout>')
+      psbtInput.setSourceUtxo(input.sourceOutput)
+      Object.keys(input.signatures || {}).forEach(publicKey => {
+        psbtInput.addPartialSig(hexToBin(publicKey), input.signatures[publicKey])
+      })
+      psbtInput.setSighashType(input.sigHash)
+      psbtInput.setRedeemScript(input.redeemScript)
+      Object.keys(input.bip32Derivation || {}).forEach(publicKey => {
+        psbtInput.addBip32Derivation(
+          hexToBin(publicKey), 
+          input.bip32Derivation[publicKey].masterFingerprint,
+          input.bip32Derivation[publicKey].path
+        )
+      })
+      psbtInput.setFinalScriptSig(input.scriptSig)
+      psbtInput.setPrevTxid(input.outpointTransactionHash)
+      psbtInput.setOutputIndex(input.outpointIndex)
+      psbtInput.setSequenceNumber(input.sequenceNumber)
+      psbt.inputMap.add(psbtInput)
+    }
+    for (const output of this.outputs) {
+      const psbtOutput = new PsbtOutput()
+      psbtOutput.setRedeemScript(output.redeemScript)
+      Object.keys(output.bip32Derivation || {}).forEach(publicKey => {
+        psbtOutput.addBip32Derivation(
+          hexToBin(publicKey), 
+          output.bip32Derivation[publicKey].masterFingerprint,
+          output.bip32Derivation[publicKey].path
+        )
+      })
+      psbtOutput.setAmount(output.valueSatoshis)
+      psbtOutput.setToken(output.token)
+      psbtOutput.setOutScript(output.lockingBytecode)
+      psbt.outputMap.add(psbtOutput)
+    }
+    const serialized = psbt.serialize()
+    return binToBase64(serialized)
+  }
+
+  /**
+   * @param {string} psbt The base64 encoded psbt
+   * @return {Pst} 
+   */
+  static fromPSBT(psbt) {
+    
+    const newPsbt = new Psbt()
+    newPsbt.deserialize(base64ToBin(psbt))
+    const pst = new Pst()
+    pst.unsignedTransactionHex = newPsbt.globalMap.getUnsignedTx() 
+    if (pst.unsignedTransactionHex) {
+      pst.unsignedTransactionHex = binToHex(pst.unsignedTransactionHex)
+    }
+
+    for(const psbtInput of newPsbt.inputMap?.inputs) {
+      const signatures = psbtInput.getPartialSigs()
+      const bip32Derivation = psbtInput.getBip32Derivation()
+      // TODO: signatures, bip32derivation parsing ok, continue with other fields
+    }
   }
 
   export (format = 'base64') {
