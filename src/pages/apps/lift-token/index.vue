@@ -13,9 +13,9 @@
           <!-- Loading state with skeletons -->
           <template v-if="isLoading">
             <!-- Skeleton Tabs -->
-            <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
+            <div class="tabs-wrapper q-mt-sm q-mb-sm">
               <div
-                class="lift-token-tabs q-px-sm q-py-xs"
+                class="lift-token-tabs q-pa-xs"
                 :class="getDarkModeClass(darkMode)"
               >
                 <q-skeleton
@@ -149,9 +149,9 @@
       
           <template v-else>
             <!-- Fixed Tabs -->
-            <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
+            <div class="tabs-wrapper q-mt-sm q-mb-sm">
               <div
-                class="lift-token-tabs q-px-sm q-py-xs"
+                class="lift-token-tabs q-pa-xs"
                 :class="getDarkModeClass(darkMode)"
               >
                 <button
@@ -379,19 +379,17 @@ export default {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: inherit;
   flex-shrink: 0;
-  
-  ::v-deep .pt-header {
-    background: inherit;
-  }
 }
 
 .tabs-wrapper {
   display: flex;
   justify-content: center;
-  padding: 0 8px;
+  padding: 0 clamp(20px, 5vw, 32px);
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  position: sticky;
 }
 
 .tab-panels-wrapper {
@@ -412,10 +410,12 @@ export default {
 
 .lift-token-tabs {
   display: inline-flex;
-  gap: 8px;
+  gap: clamp(4px, 1.5vw, 8px);
   background-color: rgb(242, 243, 252);
   border-radius: 24px;
   padding: 4px;
+  max-width: 100%;
+  box-sizing: border-box;
   
   &.dark {
     background-color: rgba(255, 255, 255, 0.1);
@@ -423,7 +423,7 @@ export default {
 }
 
 .lift-token-tab {
-  min-width: 120px;
+  min-width: clamp(90px, 25vw, 120px);
   height: 40px;
   border-radius: 20px;
   border: none;
@@ -433,8 +433,9 @@ export default {
   cursor: pointer;
   transition: all 0.3s;
   font-weight: 500;
-  font-size: 14px;
-  padding: 0 20px;
+  font-size: clamp(12px, 3vw, 14px);
+  padding: 0 clamp(12px, 4vw, 20px);
+  flex: 1 1 auto;
   
   &:hover:not(.active-theme-btn) {
     background-color: rgba(0, 0, 0, 0.05);
