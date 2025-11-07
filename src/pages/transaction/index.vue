@@ -83,7 +83,7 @@
               </template>
             </div>
             <div class="row q-mt-xs">
-              <div class="col text-white" @click="selectBch">
+              <div class="col text-white" @click="selectBch" v-touch-hold.mouse="() => showAssetInfo(bchAsset)">
                 <q-card id="bch-card">
                   <q-card-section horizontal>
                     <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">

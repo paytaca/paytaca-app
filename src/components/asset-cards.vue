@@ -6,7 +6,7 @@
       <div
         v-for="n in 3"
         :key="`skeleton-${n}`"
-        class="method-cards asset-card-border q-pa-md q-mr-none"
+        class="method-cards asset-card-border q-mr-none"
         :style="{ 'margin-left': n === 1 ? '0px' : '12px' }"
       >
         <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
@@ -24,39 +24,40 @@
     <div
       v-for="(asset, index) in filteredFavAssets"
       :key="index"
-      class="method-cards asset-card-border q-pa-md q-mr-none"
+      class="method-cards asset-card-border q-mr-none"
       :class="[{ selected: asset?.id === selectedAsset?.id }]"
       @click="(event) => {
         selectAsset(event, asset)
       }"
+      v-touch-hold.mouse="() => showAssetInfo(asset)"
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
       v-touch-pan="handlePan"
     >
-      <q-intersection>
-        <div class="row items-start no-wrap justify-between" style="margin-top: -6px;">
-          <img :src="getImageUrl(asset)" height="30" class="q-mr-xs" alt="">
-          <p class="col q-pl-sm text-right asset-symbol">
-            {{ asset.symbol }}
-          </p>
-        </div>
-      </q-intersection>
-      <div class="row" style="margin-top: -7px;">
-        <q-space />
-        <div v-if="(!balanceLoaded && !manageAssets && asset.id === selectedAsset.id) || (refreshingTokenIds.includes(asset.id) && !manageAssets)" style="width: 100%;">
-          <q-skeleton type="rect"/>
+      <div class="row items-center no-wrap justify-between q-mb-xs">
+        <img :src="getImageUrl(asset)" height="28" class="q-mr-xs" alt="">
+        <p class="col text-right asset-symbol">
+          {{ asset.symbol }}
+        </p>
+      </div>
+      <div class="row items-end justify-end">
+        <div v-if="(!balanceLoaded && asset.id === selectedAsset.id) || refreshingTokenIds.includes(asset.id)" class="text-right">
+          <q-skeleton type="rect" width="80px" height="20px" />
         </div>
         <template v-else>
-          <p v-if="!manageAssets" class="float-right text-no-wrap asset-balance">
-            {{ parseAssetDenomination(denomination, { ...asset, excludeSymbol: true }) }}
-          </p>
+          <div class="text-right">
+            <p class="asset-balance q-mb-none">
+              {{ parseAssetDenomination(denomination, { ...asset, excludeSymbol: true }) }}
+            </p>
+            <template v-if="asset.id !== 'bch'">
+              <p v-if="getAssetFiatValue(asset)" class="asset-fiat-value q-mb-none q-mt-xs">
+                {{ getAssetFiatValue(asset) }}
+              </p>
+              <p v-else-if="hasPriceLoading(asset)" class="asset-fiat-value q-mb-none q-mt-xs">
+                <q-skeleton type="rect" width="60px" height="12px" />
+              </p>
+            </template>
+          </div>
         </template>
-
-        <div
-          v-if="manageAssets && asset.symbol !== 'BCH'"
-          @click="() => removeAsset(asset)"
-          style="float: right; width: 20px; margin-top: -5px;">
-          <q-btn icon="close" class="remove-asset-button" size="8px" flat round dense v-close-popup />
-        </div>
       </div>
       <button class="q-ml-sm" style="border: none; background-color: transparent"></button>
     </div>
@@ -67,17 +68,15 @@
 
 <script>
 import * as assetSettings from 'src/utils/asset-settings'
-import { parseAssetDenomination } from 'src/utils/denomination-utils'
+import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
-import RemoveAsset from '../pages/transaction/dialog/RemoveAsset'
 
 export default {
   name: 'asset-cards',
   emits: [
     'hide-asset-info',
     'show-asset-info',
-    'select-asset',
-    'removed-asset'
+    'select-asset'
   ],
   props: {
     network: {
@@ -87,7 +86,6 @@ export default {
     wallet: { type: Object },
     forcePropsAssets: { type: Boolean },
     assets: { type: Array },
-    manageAssets: { type: Boolean },
     selectedAsset: { type: Object },
     balanceLoaded: { type: Boolean },
     refreshingTokenIds: {
@@ -124,6 +122,10 @@ export default {
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
+    },
+    assetPrices () {
+      // Force reactivity by accessing the store getter
+      return this.$store.getters['market/assetPrices']
     },
     filteredFavAssets () {
       if (this.networkError || this.forcePropsAssets) {
@@ -241,13 +243,55 @@ export default {
     },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
+      
+      const selectedCurrency = this.$store.getters['market/selectedCurrency']
+      const currencySymbol = selectedCurrency?.symbol
+      if (!currencySymbol) return ''
+      
+      const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, currencySymbol)
+      
+      // For tokens, if price is not available, show 0.00 instead of empty
+      if (asset.id !== 'bch' && (!assetPrice || assetPrice === 0)) {
+        return parseFiatCurrency('0.00', currencySymbol)
+      }
+      
+      // For BCH, return empty if no price
+      if (!assetPrice || assetPrice === 0) return ''
 
-      const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
-      if (!assetPrice) return ''
-
-      const computedBalance = Number(asset.balance || 0) * Number(assetPrice)
-
-      return computedBalance.toFixed(2)
+      let balance = Number(asset.balance || 0)
+      
+      // Adjust for token decimals (balance is in smallest units)
+      // For BCH, use balance directly (matching home page calculation)
+      // For tokens, divide by 10^decimals to get token units
+      if (asset.id !== 'bch' && asset.decimals) {
+        const decimals = parseInt(asset.decimals) || 0
+        if (decimals > 0) {
+          balance = balance / (10 ** decimals)
+        }
+      }
+      
+      const computedBalance = balance * Number(assetPrice)
+      
+      return parseFiatCurrency(computedBalance.toFixed(2), currencySymbol)
+    },
+    getAssetFiatValue (asset) {
+      // Access assetPrices to ensure reactivity
+      const _ = this.assetPrices
+      // Wrapper method to ensure reactivity
+      return this.getAssetMarketBalance(asset)
+    },
+    hasPriceLoading (asset) {
+      // Check if price might be loading (price doesn't exist but we expect it to)
+      if (!asset || !asset.id || asset.id === 'bch') return false
+      
+      const selectedCurrency = this.$store.getters['market/selectedCurrency']
+      const currencySymbol = selectedCurrency?.symbol
+      if (!currencySymbol) return false
+      
+      // If we have a balance but no price, it might be loading
+      const hasBalance = Number(asset.balance || 0) > 0
+      const hasPrice = this.$store.getters['market/getAssetPrice'](asset.id, currencySymbol)
+      return hasBalance && !hasPrice
     },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
@@ -286,6 +330,10 @@ export default {
         }, 200)
       }
     },
+    showAssetInfo (asset) {
+      // Handle long press to show asset info dialog
+      this.$emit('show-asset-info', asset)
+    },
     addNewAsset () {
       const vm = this
       vm.$q.dialog({
@@ -300,28 +348,6 @@ export default {
         component: AddNewAsset
       }).onOk((asset) => {
         if (asset.data?.id) vm.selectAsset(null, asset.data)
-      })
-    },
-    removeAsset (asset) {
-      const vm = this
-      const assetName = asset.name
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      vm.$q.dialog({
-        component: RemoveAsset,
-        assetName
-      }).onOk(() => {
-        if (this.isSep20) {
-          vm.$store.commit('sep20/addRemovedAssetIds', asset.id)
-          const commitName = 'sep20/removeAsset'
-          return vm.$store.commit(commitName, asset.id)
-        }
-        vm.$store.commit('assets/removeAsset', asset.id)
-        vm.$store.commit('assets/addRemovedAssetIds', {
-          vaultIndex: walletIndex,
-          id: asset.id
-        })
-        vm.$emit('removed-asset', asset)
-      }).onCancel(() => {
       })
     },
     handlePan (evt) {
@@ -393,30 +419,50 @@ export default {
   }
 
   .method-cards {
-    height: 78px;
+    min-height: 90px;
+    height: auto;
     min-width: 150px;
     border-radius: 16px;
     margin-bottom: 5px !important;
+    padding: 12px !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     
     .asset-symbol {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       color: #EAEEFF;
-      font-size: 19px;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.2;
+      margin: 0;
     }
     .asset-balance {
       overflow: hidden;
       text-overflow: ellipsis;
       color: #EAEEFF;
-      margin-top: -5px;
       font-size: 18px;
+      font-weight: 600;
+      line-height: 1.2;
+      margin: 0;
+    }
+    .asset-fiat-value {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #EAEEFF;
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.7;
+      line-height: 1.3;
+      margin: 0;
     }
     .remove-asset-button {
       background: red;
