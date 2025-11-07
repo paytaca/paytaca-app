@@ -151,13 +151,11 @@ export default {
 
 <style lang="scss">
 .pt-header {
-  color: #3B7BF6;
   margin-top: 0;
   margin-left: auto;
   margin-right: auto;
   padding-top: 20px;
   z-index: 100;
-  background: #ecf3f3;
 }
 .pt-arrow-left-link {
   position: absolute;
