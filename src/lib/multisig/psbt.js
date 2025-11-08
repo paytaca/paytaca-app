@@ -1,5 +1,5 @@
 import { bigIntToBinUint64LE, bigIntToCompactSize, numberToBinInt32LE } from "@bitauth/libauth"
-import { bigIntToCompactUint, binsAreEqual, binToBigIntUintLE, binToHex, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { bigIntToCompactUint, binsAreEqual, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
 import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "."
 
 export const PSBT_MAGIC = '70736274ff'
@@ -188,13 +188,11 @@ export class Bip32DerivationKeyPair extends KeyPair {
   getMasterFingerprint() {
     const masterFingerprintReader = readBytes(4)
     const masterFingerPrintReadResult = masterFingerprintReader({ bin: this.value.value, index: 0 })
-    console.log('MSTER FINGER PRINT', masterFingerPrintReadResult)
     return masterFingerPrintReadResult.result
   }
 
   getDerivationPath() {
     const derivationPathReadResult = readRemainingBytes({ bin: this.value.value, index: 4 })
-    console.log('derivationPathReadResult', derivationPathReadResult)
     return derivationPathReadResult.result
   }
 
@@ -281,6 +279,14 @@ export class GlobalMap {
     return this
   }
 
+  getTxVersion() {
+    const v = this.keypairs[PSBT_GLOBAL_TX_VERSION]?.value?.value 
+    if (v) {
+      return binToNumberInt32LE(v)
+    }
+    return v
+  }
+
 
   /**
    * @param {number} locktime
@@ -294,6 +300,15 @@ export class GlobalMap {
 
     return this
   }
+
+  getFallbackLocktime() {
+    const v = this.keypairs[PSBT_GLOBAL_FALLBACK_LOCKTIME]?.value?.value 
+    if (v) {
+      return binToNumberUint32LE(v)
+    }
+    return v
+  }
+
   /**
    * Should only be called internally
    * @param {number} count
@@ -329,7 +344,6 @@ export class GlobalMap {
    * @param {number} [version = 145] Using BCH's bip44 cointype as PSBT version
    */
   setPsbtVersion(version = 145){
-    console.log('SETTING PSBT VERSION', version)
     const k = new Key(hexToBin(PSBT_GLOBAL_VERSION))
     const v = new Value(numberToBinUint32LE(version))
     this.keypairs[PSBT_GLOBAL_VERSION] = new KeyPair(k, v)
@@ -345,7 +359,7 @@ export class GlobalMap {
   addProprietaryField(identifier, value, subtype = new Uint8Array([]), subkeydata = new Uint8Array([])){
     const k = new Key(
       hexToBin(PSBT_GLOBAL_PROPRIETARY), 
-      new Uint8Array([bigIntToCompactUint(...identifier.length), ...identifier, ...subtype, ...subkeydata])
+      new Uint8Array([...bigIntToCompactUint(identifier.length), ...identifier, ...subtype, ...subkeydata])
     )
 
     const v = new Value(value)
@@ -355,6 +369,47 @@ export class GlobalMap {
     }
     this.keypairs[PSBT_GLOBAL_PROPRIETARY].push(new KeyPair(k, v))
     return this
+  }
+
+  getProprietaryFields(identifier) {
+    
+    if (!this.keypairs[PSBT_GLOBAL_PROPRIETARY]) return
+    
+    const proprietaryFields = []
+    
+    const keypairs = this.keypairs[PSBT_GLOBAL_PROPRIETARY] instanceof KeyPair ? 
+      [ this.keypairs[PSBT_GLOBAL_PROPRIETARY] ] : 
+      this.keypairs[PSBT_GLOBAL_PROPRIETARY]
+
+    for (const keypair of keypairs) {
+      const keyData = keypair.key?.keyData
+      if (!keyData) return proprietaryFields
+
+      const identifierLenReadResult = readCompactUint({ bin: keyData, index: 0})
+      const identifierReader = readBytes(Number(identifierLenReadResult.result))
+      const identifierReadResult = identifierReader(identifierLenReadResult.position)
+      if (!binsAreEqual(identifier, identifierReadResult.result)) {
+        return 
+      }
+      
+      const proprietaryField = {
+        identifier: identifierReadResult.result
+      }
+
+      const subTypeReadResult = readCompactUint(identifierReadResult.position)
+      const subKeyDataReadResult = readRemainingBytes(subTypeReadResult.position)
+      proprietaryField.subType = subTypeReadResult.result 
+      proprietaryField.subKeyData = subKeyDataReadResult.result
+
+      proprietaryField.value = readRemainingBytes({
+        bin: this.keypairs[PSBT_GLOBAL_PROPRIETARY]?.value?.value || Uint8Array.from([]),
+        index: 0
+      })
+      
+      proprietaryFields.push(proprietaryField)
+    }
+
+    return proprietaryFields
   }
 
   sanitizeForVersion(psbtVersion, keypairs) {
@@ -435,10 +490,7 @@ export class GlobalMap {
   }
 }
 
-export const PaytacaProprietaryIdentifierPrefix = utf8ToBin('paytaca')
-export const PaytacaProprietarySubtypeOrigin = new Uint8Array([...bigIntToCompactUint(1)])
-export const PaytacaProprietarySubkeyDataOrigin = utf8ToBin('origin')
-export const PaytacaProprietarySubtypePurpose = new Uint8Array([...bigIntToCompactUint(2)], ...utf8ToBin('purpose'))
+
 
 export class PsbtInput {
   constructor() {
@@ -584,7 +636,7 @@ export class PsbtInput {
   /**
    * @param {string|Uint8Array} index The outpoint transaction hash
    */
-  setPrevTxid(outpointTxHash){
+  setOutpointTransactionHash(outpointTxHash){
     if (!outpointTxHash) return
 
     const _txid = isHex(outpointTxHash) ? hexToBin(outpointTxHash): outpointTxHash
@@ -597,27 +649,36 @@ export class PsbtInput {
     return this
   }
 
+  getOutpointTransactionHash() {
+    return this.keypairs[PSBT_IN_PREVIOUS_TXID]?.value?.value
+  }
   /**
    * @param {number} index The outpoint index
    */
-  setOutputIndex(index){
-
+  setOutpointIndex(index){
     const k = new Key(hexToBin(PSBT_IN_OUTPUT_INDEX))
-
     const v = new Value(numberToBinUint32LE(index))
-
     this.keypairs[PSBT_IN_OUTPUT_INDEX] = new KeyPair(k, v)
+    return this
+  }
+
+  getOutpointIndex() {
+    if(!this.keypairs[PSBT_IN_OUTPUT_INDEX]?.value?.value) return 
+    return binToNumberUint32LE(this.keypairs[PSBT_IN_OUTPUT_INDEX]?.value?.value)
   }
 
 
   setSequenceNumber(sequenceNumber) {
-
-    // const _sequenceNumber = sequenceNumber > 0 ? numberToBinUint32LE(sequenceNumber) : hexToBin('ffffffff')
     const k = new Key(hexToBin(PSBT_IN_SEQUENCE))
     const v = new Value(numberToBinUint32LE(sequenceNumber))
-
     this.keypairs[PSBT_IN_SEQUENCE] = new KeyPair(k, v)
     return this
+  }
+
+  getSequenceNumber() {
+    const v = this.keypairs[PSBT_IN_SEQUENCE]?.value?.value 
+    if (!v) return v
+    return binToNumberUint32LE(v)
   }
 
   /**
@@ -640,6 +701,11 @@ export class PsbtInput {
     this.keypairs[PSBT_IN_SOURCE_UTXO] = new KeyPair(k, v)
   }
 
+  getSourceUtxo(){
+    const v = this.keypairs[PSBT_IN_SOURCE_UTXO]?.value?.value 
+    if (!v) return 
+    return readTransactionOutput({ bin: v, index: 0 }).result
+  }
   /**
    * @param {Uint8Array} identifier Example: utf8ToBin('paytaca')
    * @param {Uint8Array} subtype compact size uint
@@ -1032,7 +1098,6 @@ export class Psbt {
     const psbtVersion = Number(
       binToBigIntUintLE(this.globalMap.keypairs[PSBT_GLOBAL_VERSION]?.value?.value ?? new Uint8Array[0])
     )
-    console.log('psbt version', psbtVersion)
     const globalMap = this.globalMap.serialize(psbtVersion)
     const inputMap = this.inputMap.serialize(psbtVersion)
     const outputMap = this.outputMap.serialize(psbtVersion)
