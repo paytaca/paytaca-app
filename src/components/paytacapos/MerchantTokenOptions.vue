@@ -126,9 +126,14 @@ function resetFormData() {
 function getTokenImageUrl(url, useFallbackDomain = false) {
   const baseURL = useFallbackDomain ? IPFS_DOMAINS[1] : undefined;
   const convertedUrl = convertIpfsUrl(url, baseURL);
-  if (convertedUrl && convertedUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-    return convertedUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN;
+  
+  // Add Pinata gateway token for all IPFS URLs that use the paytaca.com gateway
+  if (convertedUrl && convertedUrl.startsWith('https://ipfs.paytaca.com/')) {
+    // Check if URL already has query parameters
+    const separator = convertedUrl.includes('?') ? '&' : '?';
+    return convertedUrl + separator + 'pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN;
   }
+  
   return convertedUrl;
 }
 
