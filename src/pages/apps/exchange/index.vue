@@ -93,6 +93,15 @@ export default {
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled
     } else {
+      // Ensure wallet state is initialized before accessing getters
+      const wallet = this.$store.getters['global/getWallet']('bch')
+      const walletHash = wallet?.walletHash
+      if (walletHash) {
+        // Initialize wallet-specific state if not already initialized
+        this.$store.commit('ramp/initializeWalletState', walletHash)
+        this.$store.commit('paytacapos/initializeWalletState', walletHash)
+      }
+      
       // Parallelize independent operations
       const [versionCheckResult, rampWallet, userResult] = await Promise.allSettled([
         this.checkVersionUpdate(),

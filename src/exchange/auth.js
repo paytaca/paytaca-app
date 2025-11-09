@@ -198,9 +198,15 @@ export function getAuthToken () {
         try {
           await loadRampWallet()
         } catch (error) {
-          // If wallet can't be loaded, resolve with null
-          resolve(null)
-          return
+          // If wallet can't be loaded, try old global key as fallback
+          try {
+            const oldToken = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY_PREFIX })
+            resolve(oldToken.value)
+            return
+          } catch (e) {
+            resolve(null)
+            return
+          }
         }
       }
       
@@ -209,11 +215,21 @@ export function getAuthToken () {
         .then(token => {
           resolve(token.value)
         })
-        .catch(error => {
-          // Token doesn't exist - this is expected for first-time authentication
-          // Don't log as error, just resolve with null
-          // The calling code should handle authentication if token is null
-          resolve(null)
+        .catch(async error => {
+          // Fallback: try old global key for backward compatibility with existing users
+          try {
+            const oldToken = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY_PREFIX })
+            // If found, trigger migration (async, non-blocking)
+            if (oldToken?.value && rampWallet?.walletHash) {
+              const newKey = getTokenStorageKey()
+              SecureStoragePlugin.set({ key: newKey, value: oldToken.value })
+                .catch(e => console.warn('Failed to migrate token:', e))
+            }
+            resolve(oldToken.value)
+          } catch (e) {
+            // No token found in either location
+            resolve(null)
+          }
         })
     } catch (error) {
       resolve(null)

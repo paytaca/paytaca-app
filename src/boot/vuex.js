@@ -25,7 +25,20 @@ export default boot(async (obj) => {
     // This is a manual hydration step to ensure the store is populated
     const persistedState = localStorage.getItem('vuex')
     if (persistedState) {
-      store.replaceState(JSON.parse(persistedState))
+      const parsedState = JSON.parse(persistedState)
+      
+      // Ensure new wallet-specific structure exists after hydration
+      // Migrate old structure to new structure if needed
+      if (parsedState.ramp && !parsedState.ramp.byWallet) {
+        parsedState.ramp.byWallet = {}
+        // If there's old state data, we could migrate it here, but for now we'll start fresh
+        // to avoid complexity and potential issues
+      }
+      if (parsedState.paytacapos && !parsedState.paytacapos.byWallet) {
+        parsedState.paytacapos.byWallet = {}
+      }
+      
+      store.replaceState(parsedState)
       console.log('[Hydration] Vuex state manually hydrated.')
     }
 

@@ -87,6 +87,16 @@ export default {
   },  
   async mounted () {    
     await this.loadWallet()
+    
+    // Ensure wallet state is initialized before accessing getters
+    const wallet = this.$store.getters['global/getWallet']('bch')
+    const walletHash = wallet?.walletHash
+    if (walletHash) {
+      // Initialize wallet-specific state if not already initialized
+      this.$store.commit('ramp/initializeWalletState', walletHash)
+      this.$store.commit('paytacapos/initializeWalletState', walletHash)
+    }
+    
     // Fetch user non-blocking - check store first
     this.fetchUser()
     // Setup WebSocket non-blocking - don't await it

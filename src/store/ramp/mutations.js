@@ -1,67 +1,176 @@
+import { Store } from 'src/store'
+import { getInitialWalletState } from './state'
+
+/**
+ * Get current wallet hash from global store
+ * @returns {string|null} Current wallet hash
+ */
+function getCurrentWalletHash() {
+  try {
+    const wallet = Store.getters['global/getWallet']('bch')
+    return wallet?.walletHash || null
+  } catch (error) {
+    return null
+  }
+}
+
+/**
+ * Get or initialize wallet-specific state
+ * @param {Object} state - Ramp store state
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {Object} Wallet-specific state
+ */
+function getOrInitWalletState(state, walletHash = null) {
+  const hash = walletHash || getCurrentWalletHash()
+  if (!hash) {
+    console.warn('No wallet hash available for ramp state')
+    return null
+  }
+  
+  // Ensure byWallet exists
+  if (!state.byWallet) {
+    state.byWallet = {}
+  }
+  
+  // Initialize wallet state if it doesn't exist
+  if (!state.byWallet[hash]) {
+    // Set directly - Vuex will make it reactive
+    state.byWallet[hash] = getInitialWalletState()
+  }
+  
+  return state.byWallet[hash]
+}
+
+/**
+ * Initialize wallet state for a specific wallet hash
+ * @param {Object} state - Ramp store state
+ * @param {string} walletHash - Wallet hash
+ */
+export function initializeWalletState(state, walletHash) {
+  if (!walletHash) {
+    console.warn('initializeWalletState: walletHash is required')
+    return
+  }
+  
+  // Ensure byWallet exists
+  if (!state.byWallet) {
+    state.byWallet = {}
+  }
+  
+  if (!state.byWallet[walletHash]) {
+    state.byWallet[walletHash] = getInitialWalletState()
+  }
+}
+
 export function updateFeatureToggles (state, data) {
   state.featureToggles = data
 }
 
 export function updateShowAdLimitMessage (state, data) {
-  state.showAdLimitMessage = data
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.showAdLimitMessage = data
+  }
 }
 
 export function updateCashinOrderList (state, data) {
-  state.cashinOrderList = data
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.cashinOrderList = data
+  }
 }
 
 export function updateCashinOrderListPage (state, value) {
   if (!value) value = 1
-  state.cashinOrderListPage = value
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.cashinOrderListPage = value
+  }
 }
 
 export function updateCashinOrderListTotalPage (state, value) {
   if (!value) value = 1
-  state.cashinOrderListTotalPage = value
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.cashinOrderListTotalPage = value
+  }
 }
 
 export function resetCashinOrderList (state) {
-  state.cashinOrderList = []
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.cashinOrderList = []
+  }
 }
 
 export function resetCashinOrderListPage (state) {
-  state.cashinOrderListPage = 1
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.cashinOrderListPage = 1
+  }
 }
 
 export function resetCashinOrderListTotalPage (state) {
-  state.cashinOrderListTotalPage = 1
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.cashinOrderListTotalPage = 1
+  }
 }
 
 export function updateStoreListingTab (state, tab) {
-  state.storeListingTab = tab
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.storeListingTab = tab
+  }
 }
 
 export function updateAdListingTab (state, tab) {
-  state.adListingTab = tab
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.adListingTab = tab
+  }
 }
 
 export function updateOrderListingTab (state, tab) {
-  state.orderListingTab = tab
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.orderListingTab = tab
+  }
 }
 
 export function updateAppealListingTab (state, tab) {
-  state.appealListingTab = tab
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.appealListingTab = tab
+  }
 }
 
 export function resetStoreListingTab (state) {
-  state.storeListingTab = 'SELL'
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.storeListingTab = 'SELL'
+  }
 }
 
 export function resetAdListingTab (state) {
-  state.adListingTab = 'BUY'
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.adListingTab = 'BUY'
+  }
 }
 
 export function resetOrderListingTab (state) {
-  state.orderListingTab = 'ONGOING'
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.orderListingTab = 'ONGOING'
+  }
 }
 
 export function resetAppealListingTab (state) {
-  state.appealListingTab = 'PENDING'
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.appealListingTab = 'PENDING'
+  }
 }
 
 export function resetListingTabs (state) {
@@ -72,23 +181,47 @@ export function resetListingTabs (state) {
 }
 
 export function updateStoreBuyFilters (state, { filters = {}, currency = null }) {
-  if (!currency) return (() => { state.storeBuyFilters = {} })()
-  state.storeBuyFilters[currency] = filters
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!currency) {
+    walletState.storeBuyFilters = {}
+    return
+  }
+  if (!walletState.storeBuyFilters) walletState.storeBuyFilters = {}
+  walletState.storeBuyFilters[currency] = filters
 }
 
 export function updateStoreSellFilters (state, { filters = {}, currency = null }) {
-  if (!currency) return (() => { state.storeSellFilters = {} })()
-  state.storeSellFilters[currency] = filters
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!currency) {
+    walletState.storeSellFilters = {}
+    return
+  }
+  if (!walletState.storeSellFilters) walletState.storeSellFilters = {}
+  walletState.storeSellFilters[currency] = filters
 }
 
 export function updateOngoingOrderFilters (state, { filters = {}, currency = null }) {
-  if (!currency) return (() => { state.ongoingOrderFilters = {} })()
-  state.ongoingOrderFilters[currency] = filters
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!currency) {
+    walletState.ongoingOrderFilters = {}
+    return
+  }
+  if (!walletState.ongoingOrderFilters) walletState.ongoingOrderFilters = {}
+  walletState.ongoingOrderFilters[currency] = filters
 }
 
 export function updateCompletedOrderFilters (state, { filters = {}, currency = null }) {
-  if (!currency) return (() => { state.completedOrderFilters = {} })()
-  state.completedOrderFilters[currency] = filters
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!currency) {
+    walletState.completedOrderFilters = {}
+    return
+  }
+  if (!walletState.completedOrderFilters) walletState.completedOrderFilters = {}
+  walletState.completedOrderFilters[currency] = filters
 }
 
 export function resetOrderFilters (state, currency) {
@@ -97,9 +230,15 @@ export function resetOrderFilters (state, currency) {
 }
 
 export function resetOngoingOrderFilters (state, currency) {
-  if (!currency) return (() => { state.ongoingOrderFilters = {} })()
-  const paymentTypes = state.paymentTypes[currency] || []
-  state.ongoingOrderFilters[currency] = {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!currency) {
+    walletState.ongoingOrderFilters = {}
+    return
+  }
+  const paymentTypes = walletState.paymentTypes?.[currency] || []
+  if (!walletState.ongoingOrderFilters) walletState.ongoingOrderFilters = {}
+  walletState.ongoingOrderFilters[currency] = {
     sort_type: 'descending',
     sort_by: 'created_at',
     status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
@@ -119,9 +258,15 @@ export function resetOngoingOrderFilters (state, currency) {
 }
 
 export function resetCompletedOrderFilters (state, currency) {
-  if (!currency) return (() => { state.completedOrderFilters = {} })()
-  const paymentTypes = state.paymentTypes[currency] || []
-  state.completedOrderFilters[currency] = {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!currency) {
+    walletState.completedOrderFilters = {}
+    return
+  }
+  const paymentTypes = walletState.paymentTypes?.[currency] || []
+  if (!walletState.completedOrderFilters) walletState.completedOrderFilters = {}
+  walletState.completedOrderFilters[currency] = {
     sort_type: 'descending',
     sort_by: 'last_modified_at',
     status: ['CNCL', 'RLS', 'RFN'],
@@ -146,10 +291,12 @@ export function updateStoreFilterPaymentTypes (state, { paymentTypes = [], curre
 }
 
 export function updateStoreSellFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
   if (!currency) currency = 'All'
-  if (!state.storeSellFilters) {
-    state.storeSellFilters = {}
-    state.storeSellFilters[currency] = {
+  if (!walletState.storeSellFilters) {
+    walletState.storeSellFilters = {}
+    walletState.storeSellFilters[currency] = {
       sort_type: 'ascending',
       price_type: {
         fixed: true,
@@ -161,16 +308,18 @@ export function updateStoreSellFilterPaymentTypes (state, { paymentTypes = [], c
       order_amount_currency: null
     }
   } else {
-    if (!state.storeSellFilters[currency]) state.storeSellFilters[currency] = {}
-    state.storeSellFilters[currency].payment_types = paymentTypes
+    if (!walletState.storeSellFilters[currency]) walletState.storeSellFilters[currency] = {}
+    walletState.storeSellFilters[currency].payment_types = paymentTypes
   }
 }
 
 export function updateStoreBuyFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
   if (!currency) currency = 'All'
-  if (!state.storeBuyFilters) {
-    state.storeBuyFilters = {}
-    state.storeBuyFilters[currency] = {
+  if (!walletState.storeBuyFilters) {
+    walletState.storeBuyFilters = {}
+    walletState.storeBuyFilters[currency] = {
       sort_type: 'descending',
       price_type: {
         fixed: true,
@@ -182,16 +331,18 @@ export function updateStoreBuyFilterPaymentTypes (state, { paymentTypes = [], cu
       order_amount_currency: null
     }
   } else {
-    if (!state.storeBuyFilters[currency]) state.storeBuyFilters[currency] = {}
-    state.storeBuyFilters[currency].payment_types = paymentTypes
+    if (!walletState.storeBuyFilters[currency]) walletState.storeBuyFilters[currency] = {}
+    walletState.storeBuyFilters[currency].payment_types = paymentTypes
   }
 }
 
 export function updateOngoingOrderFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
   if (!currency) currency = 'All'
-  if (!state.ongoingOrderFilters) {
-    state.ongoingOrderFilters = {}
-    state.ongoingOrderFilters[currency] = {
+  if (!walletState.ongoingOrderFilters) {
+    walletState.ongoingOrderFilters = {}
+    walletState.ongoingOrderFilters[currency] = {
       sort_type: 'descending',
       sort_by: 'created_at',
       status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
@@ -209,16 +360,18 @@ export function updateOngoingOrderFilterPaymentTypes (state, { paymentTypes = []
       }
     }
   } else {
-    if (!state.ongoingOrderFilters[currency]) state.ongoingOrderFilters[currency] = {}
-    state.ongoingOrderFilters[currency].payment_types = paymentTypes
+    if (!walletState.ongoingOrderFilters[currency]) walletState.ongoingOrderFilters[currency] = {}
+    walletState.ongoingOrderFilters[currency].payment_types = paymentTypes
   }
 }
 
 export function updateCompletedOrderFilterPaymentTypes (state, { paymentTypes = [], currency = null }) {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
   if (!currency) currency = 'All'
-  if (!state.completedOrderFilters) {
-    state.completedOrderFilters = {}
-    state.completedOrderFilters[currency] = {
+  if (!walletState.completedOrderFilters) {
+    walletState.completedOrderFilters = {}
+    walletState.completedOrderFilters[currency] = {
       sort_type: 'descending',
       sort_by: 'last_modified_at',
       status: ['CNCL', 'RLS', 'RFN'],
@@ -234,8 +387,8 @@ export function updateCompletedOrderFilterPaymentTypes (state, { paymentTypes = 
       }
     }
   } else {
-    if (!state.completedOrderFilters[currency]) state.completedOrderFilters[currency] = {}
-    state.completedOrderFilters[currency].payment_types = paymentTypes
+    if (!walletState.completedOrderFilters[currency]) walletState.completedOrderFilters[currency] = {}
+    walletState.completedOrderFilters[currency].payment_types = paymentTypes
   }
 }
 
@@ -245,9 +398,15 @@ export function resetStoreFilters (state, currency) {
 }
 
 export function resetStoreBuyFilters (state, currency) {
-  if (!currency) return (() => { state.storeBuyFilters = {} })()
-  const paymentTypes = state.paymentTypes[currency] || []
-  state.storeBuyFilters[currency] = {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!currency) {
+    walletState.storeBuyFilters = {}
+    return
+  }
+  const paymentTypes = walletState.paymentTypes?.[currency] || []
+  if (!walletState.storeBuyFilters) walletState.storeBuyFilters = {}
+  walletState.storeBuyFilters[currency] = {
     sort_type: 'descending',
     price_type: {
       fixed: true,
@@ -261,9 +420,15 @@ export function resetStoreBuyFilters (state, currency) {
 }
 
 export function resetStoreSellFilters (state, currency) {
-  if (!currency) return (() => { state.storeSellFilters = {} })()
-  const paymentTypes = state.paymentTypes[currency] || []
-  state.storeSellFilters[currency] = {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!currency) {
+    walletState.storeSellFilters = {}
+    return
+  }
+  const paymentTypes = walletState.paymentTypes?.[currency] || []
+  if (!walletState.storeSellFilters) walletState.storeSellFilters = {}
+  walletState.storeSellFilters[currency] = {
     sort_type: 'ascending',
     price_type: {
       fixed: true,
@@ -277,63 +442,88 @@ export function resetStoreSellFilters (state, currency) {
 }
 
 export function updateUser (state, user) {
-  state.user = user
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.user = user
+  }
 }
 
-export function resetUser (state) {
-  state.user = null
-  state.wallet = null
+export function resetUser (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (walletState) {
+    walletState.user = null
+    walletState.wallet = null
+  }
 }
 
 export function saveTxid (state, data) {
-  if (!state.txids[data.id]) {
-    state.txids[data.id] = {}
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!walletState.txids) walletState.txids = {}
+  if (!walletState.txids[data.id]) {
+    walletState.txids[data.id] = {}
   }
-  state.txids[data.id][data.txidInfo.action] = data.txidInfo.txid
+  walletState.txids[data.id][data.txidInfo.action] = data.txidInfo.txid
 }
 
 export function clearOrderTxids (state, id) {
-  delete state.txids[id]
+  const walletState = getOrInitWalletState(state)
+  if (!walletState || !walletState.txids) return
+  delete walletState.txids[id]
   console.log(`cleared order ${id} txids`)
 }
 
 // ~ store mutations ~ //
 
 export function updateStoreBuyListings (state, { overwrite = false, data }) {
-  if (overwrite) state.storeBuyListings = data.ads
-  else state.storeBuyListings.push(...data.ads)
-  state.storeBuyTotalPages = data.total_pages
-  state.storeBuyItemsCount = data.count
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (overwrite) walletState.storeBuyListings = data.ads
+  else walletState.storeBuyListings.push(...data.ads)
+  walletState.storeBuyTotalPages = data.total_pages
+  walletState.storeBuyItemsCount = data.count
 }
 
 export function updateStoreSellListings (state, { overwrite = false, data }) {
-  if (overwrite) state.storeSellListings = data.ads
-  else state.storeSellListings.push(...data.ads)
-  state.storeSellTotalPages = data.total_pages
-  state.storeSellItemsCount = data.count
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (overwrite) walletState.storeSellListings = data.ads
+  else walletState.storeSellListings.push(...data.ads)
+  walletState.storeSellTotalPages = data.total_pages
+  walletState.storeSellItemsCount = data.count
 }
 
 export function incStoreBuyPage (state) {
-  state.storeBuyPageNumber++
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.storeBuyPageNumber = (walletState.storeBuyPageNumber || 0) + 1
+  }
 }
 
 export function incStoreSellPage (state) {
-  state.storeSellPageNumber++
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.storeSellPageNumber = (walletState.storeSellPageNumber || 0) + 1
+  }
 }
 
-export function resetStorePagination (state) {
-  state.storeBuyPageNumber = null
-  state.storeBuyTotalPages = null
-  state.storeBuyItemsCount = 0
+export function resetStorePagination (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  walletState.storeBuyPageNumber = null
+  walletState.storeBuyTotalPages = null
+  walletState.storeBuyItemsCount = 0
 
-  state.storeSellPageNumber = null
-  state.storeSellTotalPages = null
-  state.storeSellItemsCount = 0
+  walletState.storeSellPageNumber = null
+  walletState.storeSellTotalPages = null
+  walletState.storeSellItemsCount = 0
 }
 
-export function resetStoreData (state) {
-  state.storeBuyListings = []
-  state.storeSellListings = []
+export function resetStoreData (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  walletState.storeBuyListings = []
+  walletState.storeSellListings = []
 }
 
 // ~ store mutations ~ //
@@ -341,36 +531,50 @@ export function resetStoreData (state) {
 // ~ ads mutations ~ //
 
 export function updateAdsBuyListings (state, { overwrite = false, data }) {
-  if (overwrite) state.adsBuyListings = []
-  state.adsBuyListings.push(...data.ads)
-  state.adsBuyTotalPages = data.total_pages
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (overwrite) walletState.adsBuyListings = []
+  walletState.adsBuyListings.push(...data.ads)
+  walletState.adsBuyTotalPages = data.total_pages
 }
 
 export function updateAdsSellListings (state, { overwrite = false, data }) {
-  if (overwrite) state.adsSellListings = []
-  state.adsSellListings.push(...data.ads)
-  state.adsSellTotalPages = data.total_pages
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (overwrite) walletState.adsSellListings = []
+  walletState.adsSellListings.push(...data.ads)
+  walletState.adsSellTotalPages = data.total_pages
 }
 
 export function incAdsBuyPage (state) {
-  state.adsBuyPageNumber++
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.adsBuyPageNumber = (walletState.adsBuyPageNumber || 0) + 1
+  }
 }
 
 export function incAdsSellPage (state) {
-  state.adsSellPageNumber++
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.adsSellPageNumber = (walletState.adsSellPageNumber || 0) + 1
+  }
 }
 
-export function resetAdsPagination (state) {
-  state.adsBuyPageNumber = null
-  state.adsBuyTotalPages = null
+export function resetAdsPagination (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  walletState.adsBuyPageNumber = null
+  walletState.adsBuyTotalPages = null
 
-  state.adsSellPageNumber = null
-  state.adsSellTotalPages = null
+  walletState.adsSellPageNumber = null
+  walletState.adsSellTotalPages = null
 }
 
-export function resetAdsData (state) {
-  state.adsBuyListings = []
-  state.adsSellListings = []
+export function resetAdsData (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  walletState.adsBuyListings = []
+  walletState.adsSellListings = []
 }
 
 // ~ ads mutations ~ //
@@ -378,36 +582,50 @@ export function resetAdsData (state) {
 // ~ orders mutations ~ //
 
 export function updateOngoingOrders (state, { overwrite = false, data }) {
-  if (overwrite) state.ongoingOrders = []
-  state.ongoingOrders.push(...data.orders)
-  state.ongoingOrdersTotalPages = data.total_pages
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (overwrite) walletState.ongoingOrders = []
+  walletState.ongoingOrders.push(...data.orders)
+  walletState.ongoingOrdersTotalPages = data.total_pages
 }
 
 export function updateCompletedOrders (state, { overwrite = false, data }) {
-  if (overwrite) state.completedOrders = []
-  state.completedOrders.push(...data.orders)
-  state.completedOrdersTotalPages = data.total_pages
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (overwrite) walletState.completedOrders = []
+  walletState.completedOrders.push(...data.orders)
+  walletState.completedOrdersTotalPages = data.total_pages
 }
 
 export function incOngoingOrdersPage (state) {
-  state.ongoingOrdersPageNumber++
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.ongoingOrdersPageNumber = (walletState.ongoingOrdersPageNumber || 0) + 1
+  }
 }
 
 export function incCompletedOrdersPage (state) {
-  state.completedOrdersPageNumber++
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.completedOrdersPageNumber = (walletState.completedOrdersPageNumber || 0) + 1
+  }
 }
 
-export function resetOrdersPagination (state) {
-  state.ongoingOrdersPageNumber = null
-  state.ongoingOrdersTotalPages = null
+export function resetOrdersPagination (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  walletState.ongoingOrdersPageNumber = null
+  walletState.ongoingOrdersTotalPages = null
 
-  state.completedOrdersPageNumber = null
-  state.completedOrdersTotalPages = null
+  walletState.completedOrdersPageNumber = null
+  walletState.completedOrdersTotalPages = null
 }
 
-export function resetOrdersData (state) {
-  state.ongoingOrders = []
-  state.completedOrders = []
+export function resetOrdersData (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  walletState.ongoingOrders = []
+  walletState.completedOrders = []
 }
 
 // ~ orders mutations ~ //
@@ -416,81 +634,113 @@ export function resetOrdersData (state) {
 
 // ~ appeals mutations ~ //
 export function updatePendingAppeals (state, { overwrite = false, data }) {
-  if (overwrite) state.pendingAppeals = []
-  state.pendingAppeals.push(...data.appeals)
-  state.pendingAppealsTotalPages = data.total_pages
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (overwrite) walletState.pendingAppeals = []
+  walletState.pendingAppeals.push(...data.appeals)
+  walletState.pendingAppealsTotalPages = data.total_pages
 }
 
 export function updateResolvedAppeals (state, { overwrite = false, data }) {
-  if (overwrite) state.resolvedAppeals = []
-  state.resolvedAppeals.push(...data.appeals)
-  state.resolvedAppealsTotalPages = data.total_pages
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (overwrite) walletState.resolvedAppeals = []
+  walletState.resolvedAppeals.push(...data.appeals)
+  walletState.resolvedAppealsTotalPages = data.total_pages
 }
 
 export function incPendingAppealsPage (state) {
-  state.pendingAppealsPageNumber++
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.pendingAppealsPageNumber = (walletState.pendingAppealsPageNumber || 0) + 1
+  }
 }
 
 export function incResolvedAppealsPage (state) {
-  state.resolvedAppealsPageNumber++
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.resolvedAppealsPageNumber = (walletState.resolvedAppealsPageNumber || 0) + 1
+  }
 }
 
-export function resetAppealsPagination (state) {
-  state.pendingAppealsPageNumber = null
-  state.pendingAppealsTotalPages = null
+export function resetAppealsPagination (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  walletState.pendingAppealsPageNumber = null
+  walletState.pendingAppealsTotalPages = null
 
-  state.resolvedAppealsPageNumber = null
-  state.resolvedAppealsTotalPages = null
+  walletState.resolvedAppealsPageNumber = null
+  walletState.resolvedAppealsTotalPages = null
 }
 
-export function resetAppealsData (state) {
-  state.pendingAppeals = []
-  state.resolvedAppeals = []
+export function resetAppealsData (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  walletState.pendingAppeals = []
+  walletState.resolvedAppeals = []
 }
 // ~ appeals mutations ~ //
 
-export function resetPagination (state) {
-  state.itemsPerPage = 20
-  resetStorePagination(state)
-  resetAdsPagination(state)
-  resetOrdersPagination(state)
-  resetAppealsPagination(state)
+export function resetPagination (state, walletHash = null) {
+  resetStorePagination(state, walletHash)
+  resetAdsPagination(state, walletHash)
+  resetOrdersPagination(state, walletHash)
+  resetAppealsPagination(state, walletHash)
 }
 
-export function resetData (state) {
-  resetStoreData(state)
-  resetAdsData(state)
-  resetOrdersData(state)
-  resetAppealsData(state)
+export function resetData (state, walletHash = null) {
+  resetStoreData(state, walletHash)
+  resetAdsData(state, walletHash)
+  resetOrdersData(state, walletHash)
+  resetAppealsData(state, walletHash)
 }
 
 export function updateWallet (state, wallet) {
-  state.wallet = wallet
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.wallet = wallet
+  }
 }
 
 export function updatePaymentTypes (state, { paymentTypes = [], currency = null }) {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
   if (!currency) currency = 'All'
-  if (!state.paymentTypes) state.paymentTypes = {}
-  state.paymentTypes[currency] = paymentTypes
+  if (!walletState.paymentTypes) walletState.paymentTypes = {}
+  walletState.paymentTypes[currency] = paymentTypes
 }
 
-export function resetPaymentTypes (state) {
-  state.paymentTypes = {}
+export function resetPaymentTypes (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (walletState) {
+    walletState.paymentTypes = {}
+  }
 }
 
 export function updateChatIdentity (state, data) {
-  if (!state.chatIdentity) state.chatIdentity = {}
-  state.chatIdentity[data.ref] = data.chatIdentity
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!walletState.chatIdentity) walletState.chatIdentity = {}
+  walletState.chatIdentity[data.ref] = data.chatIdentity
 }
 
-export function resetChatIdentity (state) {
-  state.chatIdentity = {}
+export function resetChatIdentity (state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (walletState) {
+    walletState.chatIdentity = {}
+  }
 }
 
 export function setStoreOrderFiltersMigrate (state, value) {
-  state.migrateStoreOrderFilters = value
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.migrateStoreOrderFilters = value
+  }
 }
 
 export function setOrdersCurrency (state, value) {
-  state.ordersCurrency = value
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.ordersCurrency = value
+  }
 }

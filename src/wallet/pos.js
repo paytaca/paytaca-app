@@ -5,6 +5,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 import { Store } from 'src/store'
 import { Wallet } from 'src/wallet'
+import { getCurrentWalletStorageKey, getWalletStorageKey, getWalletHash } from 'src/utils/wallet-storage'
 
 import packageInfo from '../../package.json'
 
@@ -24,7 +25,20 @@ backend.interceptors.request.use(async (config) => {
 })
 
 
-const AUTH_TOKEN_STORAGE_KEY = 'paytacapos-admin-auth-key'
+const AUTH_TOKEN_STORAGE_KEY_PREFIX = 'paytacapos-admin-auth-key'
+
+/**
+ * Get wallet-specific storage key for PaytacaPOS auth token
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {string} Storage key with wallet hash
+ */
+function getAuthTokenStorageKey(walletHash = null) {
+  if (walletHash) {
+    return getWalletStorageKey(AUTH_TOKEN_STORAGE_KEY_PREFIX, walletHash)
+  }
+  return getCurrentWalletStorageKey(AUTH_TOKEN_STORAGE_KEY_PREFIX)
+}
+
 export const authToken = Object.freeze({
   /**
    * @param {Wallet} wallet 
@@ -44,26 +58,55 @@ export const authToken = Object.freeze({
       public_key: pubkey
     }
     const loginResponse = await backend.post(`/auth/login/main`, body)
-    await this.save(loginResponse.data.token)
+    // Use wallet hash from the wallet parameter for storage key
+    const storageKey = getAuthTokenStorageKey(wallet.BCH.walletHash)
+    await SecureStoragePlugin.set({ key: storageKey, value: loginResponse.data.token })
     return loginResponse.data.token
   },
-  save(value) {
+  save(value, walletHash = null) {
+    const key = getAuthTokenStorageKey(walletHash)
     return SecureStoragePlugin
-      .set({ key: AUTH_TOKEN_STORAGE_KEY, value })
+      .set({ key, value })
       .then(success => { return success.value })
   },
-  get() {
-    return SecureStoragePlugin.get({ key: AUTH_TOKEN_STORAGE_KEY })
+  get(walletHash = null) {
+    const key = getAuthTokenStorageKey(walletHash)
+    return SecureStoragePlugin.get({ key })
       .then(token => {
         return token?.value
       })
-      .catch(error => {
-        console.error('Item with specified key does not exist:', error)
-        return null
+      .catch(async error => {
+        // Fallback: try old global key for backward compatibility with existing users
+        try {
+          const oldToken = await SecureStoragePlugin.get({ key: AUTH_TOKEN_STORAGE_KEY_PREFIX })
+          // If found, trigger migration (async, non-blocking)
+          // Get walletHash from parameter or from store
+          const targetWalletHash = walletHash || getWalletHash()
+          if (oldToken?.value && targetWalletHash) {
+            const newKey = getAuthTokenStorageKey(targetWalletHash)
+            SecureStoragePlugin.set({ key: newKey, value: oldToken.value })
+              .catch(e => console.warn('Failed to migrate PaytacaPOS token:', e))
+          }
+          return oldToken?.value || null
+        } catch (e) {
+          // No token found in either location
+          return null
+        }
       })
   },
-  delete() {
-    return SecureStoragePlugin.remove({ AUTH_TOKEN_STORAGE_KEY })
+  delete(walletHash = null) {
+    const key = getAuthTokenStorageKey(walletHash)
+    return SecureStoragePlugin.remove({ key })
+  },
+  /**
+   * Delete authentication token for a specific wallet hash
+   * @param {string} walletHash - The wallet hash to delete token for
+   */
+  deleteForWallet(walletHash) {
+    if (walletHash) {
+      const key = getAuthTokenStorageKey(walletHash)
+      return SecureStoragePlugin.remove({ key })
+    }
   },
 })
 

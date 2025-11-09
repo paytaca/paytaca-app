@@ -269,22 +269,42 @@ export async function syncCurrentWalletToVault(context) {
   )
 }
 
+import { migrateGlobalToWalletSpecific } from 'src/utils/wallet-migration'
+
 export async function switchWallet (context, index) {
   return new Promise((resolve, reject) => {
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         context.dispatch('syncCurrentWalletToVault', )
         context.commit('assets/updatedCurrentAssets', index, { root: true })
-        context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
-        context.commit('paytacapos/clearBranchInfo', {}, { root: true })
-        context.commit('ramp/resetUser', {}, { root: true })
-        context.commit('ramp/resetData', {}, { root: true })
-        context.commit('ramp/resetChatIdentity', {}, { root: true })
-        context.commit('ramp/resetPagination', {}, { root: true })
-        // Removed: deleteAuthToken() - tokens are now wallet-specific
-        // Each wallet maintains its own token, so switching wallets doesn't delete tokens
-        // This allows users to switch back to previously authenticated wallets without re-authentication
-
+        
+        // Get wallet hash for the new wallet to initialize state
+        const vault = context.state.vault
+        const newWallet = vault[index]
+        const walletHash = newWallet?.BCH?.walletHash || newWallet?.walletHash
+        
+        // Initialize wallet-specific state if hash is available
+        if (walletHash) {
+          // Initialize ramp store state for the new wallet
+          context.commit('ramp/initializeWalletState', walletHash, { root: true })
+          
+          // Initialize paytacapos store state for the new wallet
+          context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
+          
+          // Trigger migration if needed (try to migrate, but don't fail if it doesn't work)
+          // Import migration dynamically to avoid circular dependencies
+          try {
+            const { migrateGlobalToWalletSpecific } = await import('src/utils/wallet-migration')
+            await migrateGlobalToWalletSpecific(walletHash)
+          } catch (migrationError) {
+            // Migration errors are non-critical - app can continue with fresh state
+            console.warn('Migration failed (non-critical):', migrationError)
+          }
+        }
+        
+        // Removed all reset/clear commits - data is now wallet-specific and persists
+        // No need to clear data when switching wallets since each wallet has its own state
+        
         context.commit('updateWalletIndex', index)
         context.commit('updateCurrentWallet', index)
 
