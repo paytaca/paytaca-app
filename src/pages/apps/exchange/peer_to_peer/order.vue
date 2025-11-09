@@ -640,7 +640,11 @@ export default {
         case 'standby-view':
           if (this.order?.status?.value === 'CNF') {
             return 'Escrow Pending'
-          } else { return this.order?.status?.label }
+          } else {
+            const formattedStatus = this.formatOrderStatus(this.order?.status?.value)
+            // Fallback to label if formatOrderStatus returns empty (unknown status) or if status value is missing
+            return formattedStatus || this.order?.status?.label || ''
+          }
         case 'escrow-bch':
           return 'Escrow bch'
         case 'tx-confirmation':
