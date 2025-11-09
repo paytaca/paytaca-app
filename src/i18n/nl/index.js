@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Voorstel annuleren",
   CancelThisOrder: "Deze bestelling annuleren?",
   CancelUnlinkRequestError: "Fout bij ontkoppelingsverzoek annuleren",
-  Canceled: "Geannuleerd",
   Cancelled: "Geannuleerd",
   CancellingContract: "Contract opzeggen",
   CancellingContractError: "Er is een fout opgetreden bij het opzeggen van het contract",

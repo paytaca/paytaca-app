@@ -227,7 +227,6 @@ export default {
   CancelProposal: "إلغاء الاقتراح",
   CancelThisOrder: "إلغاء هذا الطلب؟",
   CancelUnlinkRequestError: "خطأ في إلغاء طلب إلغاء الربط",
-  Canceled: "تم الإلغاء",
   Cancelled: "تم الإلغاء",
   CancellingContract: "إلغاء العقد",
   CancellingContractError: "حدث خطأ في إلغاء العقد",

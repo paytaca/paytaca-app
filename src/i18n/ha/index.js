@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Soke tsari",
   CancelThisOrder: "Soke wannan tsari?",
   CancelUnlinkRequestError: "Soke kuskuren nema",
-  Canceled: "Soke",
   Cancelled: "Soke",
   CancellingContract: "Kwarewar kwangila",
   CancellingContractError: "Ci karo da kuskure a cikin matsalar warware kwangila",

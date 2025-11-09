@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Kanselleer voorstel",
   CancelThisOrder: "Kanselleer hierdie bestelling?",
   CancelUnlinkRequestError: "Kanselleer ontkoppelversoekfout",
-  Canceled: "Gekanselleer",
   Cancelled: "Gekanselleer",
   CancellingContract: "Kanselleer kontrak",
   CancellingContractError: "Kon nie kontrak kanselleer nie",

@@ -93,9 +93,23 @@ export default {
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled
     } else {
-      await this.checkVersionUpdate()
-      await loadRampWallet()
-      await this.getUser()
+      // Parallelize independent operations
+      const [versionCheckResult, rampWallet, userResult] = await Promise.allSettled([
+        this.checkVersionUpdate(),
+        loadRampWallet(),
+        this.getUser()
+      ])
+      
+      // Store wallet instance in Vuex to avoid duplicate loading
+      if (rampWallet.status === 'fulfilled') {
+        this.$store.commit('ramp/updateWallet', rampWallet.value)
+      }
+      
+      // Handle version check errors gracefully (non-blocking)
+      if (versionCheckResult.status === 'rejected') {
+        console.error('Version check failed:', versionCheckResult.reason)
+      }
+      
       if (this.$route.name === 'exchange') {
         this.goToMainPage()
       }
@@ -107,15 +121,19 @@ export default {
       await backend.get('auth')
         .then(async (response) => {
           this.user = response.data
+          // Store user in Vuex for use by other components
+          this.$store.commit('ramp/updateUser', response.data)
           this.continue = true
+          // Set isloaded earlier - don't wait for version check
           this.isloaded = true
         })
         .catch(error => {
-          if (error.response.data.error === 'user does not exist') {
+          if (error.response?.data?.error === 'user does not exist') {
             this.continue = true
           } else {
             console.error(error.response || error)
           }
+          // Set isloaded even on error so UI can render
           this.isloaded = true
         })
     },
@@ -159,8 +177,8 @@ export default {
       }
 
       if (platform) {
-        // fetching version check
-        await backend.get(`ramp-p2p/version/check/${platform}/`)
+        // fetching version check - non-blocking, don't prevent UI from showing
+        backend.get(`ramp-p2p/version/check/${platform}/`)
           .then(response => {
             if (!('error' in response.data)) {
               const latestVer = response.data?.latest_version
@@ -201,9 +219,8 @@ export default {
             }
           })
           .catch(error => {
-            console.error(error)
-            this.appDisabled = true
-            this.isloaded = true
+            console.error('Version check failed:', error)
+            // Don't set appDisabled or isloaded here - version check is non-critical
           })
       }
     }

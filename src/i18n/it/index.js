@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Annulla proposta",
   CancelThisOrder: "Annullare questo ordine?",
   CancelUnlinkRequestError: "Errore di richiesta di scollegamento annullato",
-  Canceled: "Annullato",
   Cancelled: "Annullato",
   CancellingContract: "Annullamento contratto",
   CancellingContractError: "Errore riscontrato nell'annullamento del contratto",

@@ -227,7 +227,6 @@ export default {
   CancelProposal: "取消提案",
   CancelThisOrder: "取消這個訂單嗎？",
   CancelUnlinkRequestError: "取消取消鏈接請求錯誤",
-  Canceled: "取消",
   Cancelled: "取消",
   CancellingContract: "取消合同",
   CancellingContractError: "取消合同時遇到錯誤",

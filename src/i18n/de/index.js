@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Vorschlag abbrechen",
   CancelThisOrder: "Diese Bestellung stornieren?",
   CancelUnlinkRequestError: "Fehler bei der Anforderung zum Aufheben der Verknüpfung abbrechen",
-  Canceled: "Abgesagt",
   Cancelled: "Abgesagt",
   CancellingContract: "Vertrag kündigen",
   CancellingContractError: "Bei der Vertragskündigung ist ein Fehler aufgetreten",

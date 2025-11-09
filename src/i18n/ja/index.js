@@ -227,7 +227,6 @@ export default {
   CancelProposal: "提案をキャンセルする",
   CancelThisOrder: "この注文をキャンセルしますか?",
   CancelUnlinkRequestError: "リンク解除リクエストのキャンセルエラー",
-  Canceled: "キャンセル",
   Cancelled: "キャンセル",
   CancellingContract: "契約の解除",
   CancellingContractError: "契約解除時にエラーが発生しました",

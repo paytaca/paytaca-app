@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Отменить предложение",
   CancelThisOrder: "Отменить этот заказ?",
   CancelUnlinkRequestError: "Ошибка запроса отмены связи",
-  Canceled: "Отменено",
   Cancelled: "Отменено",
   CancellingContract: "Отмена контракта",
   CancellingContractError: "Обнаружена ошибка при расторжении договора.",

@@ -368,7 +368,7 @@ export default {
         { value: 'RFN_PN', label: this.$t('RefundPending') }
       ],
       completedStatuses: [
-        { value: 'CNCL', label: this.$t('Canceled') },
+        { value: 'CNCL', label: this.$t('Cancelled') },
         { value: 'RLS', label: this.$t('Released') },
         { value: 'RFN', label: this.$t('Refunded') }
       ],

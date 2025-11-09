@@ -289,7 +289,6 @@ const words = [
     Limits: 'Limits',
     Funded: 'Funded',
     Released: 'Released',
-    Canceled: 'Canceled',
     Ongoing: 'Ongoing',
     Completed: 'Completed',
     Cancelled: 'Cancelled',

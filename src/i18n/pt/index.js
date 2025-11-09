@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Cancelar proposta",
   CancelThisOrder: "Cancelar este pedido?",
   CancelUnlinkRequestError: "Erro ao cancelar solicitação de desvinculação",
-  Canceled: "Cancelado",
   Cancelled: "Cancelado",
   CancellingContract: "Cancelamento de contrato",
   CancellingContractError: "Erro encontrado no cancelamento do contrato",

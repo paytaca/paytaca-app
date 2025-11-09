@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Annuler la proposition",
   CancelThisOrder: "Annuler cette commande ?",
   CancelUnlinkRequestError: "Erreur d'annulation de la demande de dissociation",
-  Canceled: "Annulé",
   Cancelled: "Annulé",
   CancellingContract: "Résiliation du contrat",
   CancellingContractError: "Erreur rencontrée lors de l'annulation du contrat",

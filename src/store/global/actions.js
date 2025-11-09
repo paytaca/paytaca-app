@@ -281,7 +281,9 @@ export async function switchWallet (context, index) {
         context.commit('ramp/resetData', {}, { root: true })
         context.commit('ramp/resetChatIdentity', {}, { root: true })
         context.commit('ramp/resetPagination', {}, { root: true })
-        deleteAuthToken()
+        // Removed: deleteAuthToken() - tokens are now wallet-specific
+        // Each wallet maintains its own token, so switching wallets doesn't delete tokens
+        // This allows users to switch back to previously authenticated wallets without re-authentication
 
         context.commit('updateWalletIndex', index)
         context.commit('updateCurrentWallet', index)

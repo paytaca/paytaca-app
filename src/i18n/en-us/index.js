@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Cancel proposal",
   CancelThisOrder: "Cancel this order?",
   CancelUnlinkRequestError: "Cancel unlink request error",
-  Canceled: "Canceled",
   Cancelled: "Cancelled",
   CancellingContract: "Cancelling contract",
   CancellingContractError: "Encountered error in cancelling contract",

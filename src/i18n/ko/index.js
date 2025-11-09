@@ -227,7 +227,6 @@ export default {
   CancelProposal: "제안 취소",
   CancelThisOrder: "이 주문을 취소하시겠습니까?",
   CancelUnlinkRequestError: "연결 해제 요청 취소 오류",
-  Canceled: "취소",
   Cancelled: "취소",
   CancellingContract: "계약해지",
   CancellingContractError: "계약 취소 중 오류가 발생했습니다.",

@@ -227,7 +227,6 @@ export default {
   CancelProposal: "Batalkan lamaran",
   CancelThisOrder: "Batalkan pesanan ini?",
   CancelUnlinkRequestError: "Batalkan kesalahan permintaan pembatalan tautan",
-  Canceled: "Dibatalkan",
   Cancelled: "Dibatalkan",
   CancellingContract: "Membatalkan kontrak",
   CancellingContractError: "Terjadi kesalahan dalam pembatalan kontrak",
