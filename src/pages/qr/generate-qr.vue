@@ -311,33 +311,25 @@ export default {
         const data = JSON.parse(message.data)
         if (this.incomingTransactions.indexOf(data.txid) === -1) {
           this.incomingTransactions.push(data.txid)
-          vm.$confetti.start({
-            particles: [
-              {
-                type: 'heart'
+          
+          // Redirect to transaction details page for all received transactions
+          if (data.txid) {
+            // Extract category from token_id if it's a token transaction, otherwise it's BCH
+            const query = { new: 'true' }
+            if (data.token_id && data.token_id !== 'bch') {
+              const parts = data.token_id.split('/')
+              if (parts.length === 2 && parts[0] === 'ct') {
+                query.category = parts[1]
               }
-            ],
-            size: 3,
-            dropRate: 3
-          })
-          if (!vm.$q.platform.is.mobile) {
-            let decimals = 8
-            let amount = data.value / (10 ** decimals)
-            if (data.token_id.startsWith('ct/')) {
-              decimals = data.token_decimals
-              amount = Number(data.amount) / (10 ** data.token_decimals)
             }
-            vm.$q.notify({
-              classes: 'br-15 text-body1',
-              message: `${amount.toFixed(decimals)} ${data.token_symbol.toUpperCase()} received!`,
-              color: 'blue-9',
-              position: 'bottom',
-              timeout: 4000
+            // For BCH transactions, no category query param is needed
+            vm.$router.push({
+              name: 'transaction-detail',
+              params: { txid: data.txid },
+              query
             })
+            return // Exit early - confetti will be shown on transaction details page
           }
-          setTimeout(function () {
-            vm.$confetti.stop()
-          }, 3000)
         }
       }
     }

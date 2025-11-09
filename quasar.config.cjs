@@ -47,7 +47,6 @@ module.exports = defineConfig((ctx) => {
       'gravatar',
       'websocket',
       'walletconnect',
-      'confetti',
       'keyboard',
       'deep-link',
       'directives',

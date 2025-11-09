@@ -202,6 +202,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 import HeaderNav from '../../components/header-nav'
 import CustomInput from 'src/components/CustomInput.vue'
+import confetti from 'canvas-confetti'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -391,10 +392,10 @@ export default {
       vm.stopSbchListener()
       delete this?.$options?.sockets
 
-      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+        getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
-          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(function (result) {
+          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
             const addresses = result.addresses
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'bch',
@@ -403,14 +404,14 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             // Refresh the dynamic address after generating new address
-            vm.refreshDynamicAddress()
-            try { vm.setupListener() } catch {}
+            await vm.refreshDynamicAddress()
+            try { await vm.setupListener() } catch {}
           }).finally(() => {
             vm.generating = false
           })
         }
         if (vm.walletType === 'slp') {
-          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(function (addresses) {
+          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (addresses) {
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'slp',
               lastAddress: addresses.receiving,
@@ -418,8 +419,8 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             // Refresh the dynamic address after generating new address
-            vm.refreshDynamicAddress()
-            try { vm.setupListener() } catch {}
+            await vm.refreshDynamicAddress()
+            try { await vm.setupListener() } catch {}
           })
         }
 
@@ -590,15 +591,19 @@ export default {
       const vm = this
       vm.generateAddressOnLeave = vm.$store.getters['global/autoGenerateAddress']
       vm.playSound(true)
-      vm.$confetti.start({
-        particles: [
-          {
-            type: 'heart'
-          }
-        ],
-        size: 3,
-        dropRate: 3
+      
+      // Launch confetti using canvas-confetti
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { x: 0.5, y: 0.75 },
+        startVelocity: 55,
+        gravity: 0.8,
+        decay: 0.9,
+        scalar: 0.8,
+        colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
       })
+      
       if (!vm.$q.platform.is.mobile) {
         vm.$q.notify({
           classes: 'br-15 text-body1',
@@ -609,21 +614,23 @@ export default {
           timeout: 4000
         })
       }
-      setTimeout(function () {
-        vm.$confetti.stop()
-      }, 3000)
     },
     convertToLegacyAddress (address) {
       const addressObj = new Address(address)
       return addressObj.toLegacyAddress()
     },
-    setupListener () {
+    async setupListener () {
       const vm = this
       if (vm.isSep20) return vm.setupSbchListener()
 
       let url
       let assetType
-      const address = vm.getAddress(true)
+      // getAddress is async, so we need to await it
+      const address = await vm.getAddress(true)
+      if (!address) {
+        console.error('Failed to get address for websocket listener')
+        return
+      }
       const wsURL = getWatchtowerWebsocketUrl(this.isChipnet)
 
       if (vm.assetId.indexOf('slp/') > -1) {
@@ -643,6 +650,21 @@ export default {
 
         if (assetType === 'slp' || isListedToken) {
           if (data.token_id.split('/')[1] === tokenId) {
+            // Redirect to transaction details page for all received transactions
+            if (data.txid) {
+              const category = data.token_id ? data.token_id.split('/')[1] : ''
+              const query = { new: 'true' }
+              if (category) {
+                query.category = category
+              }
+              vm.$router.push({
+                name: 'transaction-detail',
+                params: { txid: data.txid },
+                query
+              })
+              return // Exit early to prevent notification
+            }
+            
             vm.notifyOnReceive(
               data.amount / (10 ** data.token_decimals),
               data.token_symbol.toUpperCase(),
@@ -658,6 +680,26 @@ export default {
           } else {
             amount = Number(data.amount) / (10 ** data.token_decimals)
           }
+          
+          // Redirect to transaction details page for all received transactions
+          if (data.txid) {
+            // Extract category from token_id if it's a token transaction, otherwise it's BCH
+            const query = { new: 'true' }
+            if (data.token_id && data.token_id !== 'bch') {
+              const parts = data.token_id.split('/')
+              if (parts.length === 2 && parts[0] === 'ct') {
+                query.category = parts[1]
+              }
+            }
+            // For BCH transactions, no category query param is needed
+            vm.$router.push({
+              name: 'transaction-detail',
+              params: { txid: data.txid },
+              query
+            })
+            return // Exit early to prevent notification and token addition
+          }
+          
           vm.notifyOnReceive(
             amount,
             data.token_symbol.toUpperCase(),
@@ -665,8 +707,13 @@ export default {
           )
 
           // if unlisted token is detected, add to front of list
-          // check if token already added in list
-          if (!vm.tokens.map(a => a.id).includes(data.token_id)) {
+          // check if token already added in list using store getters
+          const allAssets = vm.$store.getters['assets/getAssets'] || []
+          const allSep20Assets = vm.$store.getters['sep20/getAssets'] || []
+          const existingAsset = allAssets.find(a => a && a.id === data.token_id) || 
+                               allSep20Assets.find(a => a && a.id === data.token_id)
+          
+          if (!existingAsset) {
             try {
               const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
               if (newTokenData) {
@@ -791,7 +838,8 @@ export default {
     // Generate the dynamic address first
     await vm.refreshDynamicAddress()
     
-    vm.setupListener()
+    // Setup websocket listener (async, needs to await address)
+    await vm.setupListener()
 
     let path = 'send-success.mp3'
     if (this.$q.platform.is.ios) {

@@ -7,9 +7,9 @@
           flat
           round
           dense
-          icon="arrow_back"
+          icon="home"
           color="white"
-          @click="$router.back()"
+          @click="goToHome"
         />
         <div class="col text-center">
           <div class="text-subtitle1 text-weight-medium text-white">
@@ -126,6 +126,20 @@ export default {
       if (this.$refs.learnIframe) {
         this.loading = true
         this.$refs.learnIframe.src = this.learnUrlWithTheme + '&t=' + Date.now()
+      }
+    },
+    goToHome() {
+      // Navigate to the home page of the Learn site in the iframe
+      // Always use the base LEARN_WEB_URL, ignoring any route query parameters
+      if (this.$refs.learnIframe) {
+        this.loading = true
+        // Use the base URL with theme and language, not any specific lesson URL
+        this.learnUrl = this.learnUrlWithTheme
+        this.$refs.learnIframe.src = this.learnUrlWithTheme + '&t=' + Date.now()
+        // Clear any route query parameters to ensure we're at home
+        if (this.$route.query.url) {
+          this.$router.replace({ query: {} })
+        }
       }
     },
     closeApp() {

@@ -122,6 +122,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
+import confetti from 'canvas-confetti'
 
 export default {
   name: 'TransactionDetailPage',
@@ -235,15 +236,40 @@ export default {
     // Ensure HTML and body have the correct background color to match our wrapper
     this.updateBackgroundColors()
     
+    // Check if this is a new transaction from receive page
+    // Handle both properly formatted query and malformed URLs with double ?
+    const query = this.$route?.query || {}
+    const isNewTransaction = query.new === 'true' || 
+                             (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                             (window.location.search && window.location.search.includes('new=true'))
+    
     const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
     if (preloaded) {
       this.attachAssetIfMissing(preloaded)
       this.tx = preloaded
-      this.$nextTick(() => this.loadMemo())
+      this.$nextTick(() => {
+        this.loadMemo()
+        // Launch confetti if this is a new transaction
+        if (isNewTransaction) {
+          setTimeout(() => {
+            this.launchConfetti()
+          }, 500)
+        }
+      })
       return
     }
 
-    this.fetchAndShow()
+    await this.fetchAndShow()
+    
+    // Launch confetti if this is a new transaction (after fetch completes)
+    if (isNewTransaction) {
+      this.$nextTick(() => {
+        // Wait a bit for the transaction to render
+        setTimeout(() => {
+          this.launchConfetti()
+        }, 500)
+      })
+    }
   },
   beforeUnmount () {
     // Reset background colors
@@ -319,6 +345,16 @@ export default {
           this.tx = tx
           this.$nextTick(() => {
             this.loadMemo()
+            // Launch confetti if this is a new transaction (check here too in case mounted didn't catch it)
+            const query = this.$route?.query || {}
+            const isNewTransaction = query.new === 'true' || 
+                                     (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                                     (window.location.search && window.location.search.includes('new=true'))
+            if (isNewTransaction) {
+              setTimeout(() => {
+                this.launchConfetti()
+              }, 500)
+            }
           })
         } else {
           this.loadError = this.$t('TransactionNotFound', {}, 'Transaction not found')
@@ -504,6 +540,20 @@ export default {
           return 'bch-logo.png'
         }
       }
+    },
+    launchConfetti () {
+      // Launch basic cannon confetti from middle lower half of page
+      // Origin: center horizontally (0.5), 75% down vertically (0.75)
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { x: 0.5, y: 0.75 },
+        startVelocity: 55,
+        gravity: 0.8,
+        decay: 0.9,
+        scalar: 0.8,
+        colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
+      })
     }
   }
 }
