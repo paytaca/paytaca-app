@@ -9,7 +9,10 @@
       <div class="row q-px-xs">
         <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
           <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
-            <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
+            <q-icon size="30px" color="white" :name="app.iconName"/> <br>
+            <q-tooltip v-if="app.description" :delay="500" class="text-body2" :class="getDarkModeClass(darkMode)">
+              {{ app.description }}
+            </q-tooltip>                              
           </q-btn>
           <p
             class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label"
@@ -82,9 +85,10 @@ export default {
         },
         {
           name: this.$t('Learn'),
-          iconName: 'school',
+          iconName: 'lightbulb',
           path: '/apps/learn',
           iconStyle: 'font-size: 4em',
+          description: this.$t('LearnDescription'),
           active: true,
           smartBCHOnly: false
         },

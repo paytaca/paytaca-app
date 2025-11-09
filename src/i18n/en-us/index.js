@@ -783,6 +783,7 @@ export default {
   LastName: "Last name",
   LastVestingDate: "Last vesting period was {date}",
   Learn: "Learn",
+  LearnDescription: "Comprehensive learning platform for Bitcoin Cash and Paytaca. Explore tutorials, guides, and educational content to master BCH fundamentals, advanced features, and the Paytaca wallet ecosystem.",
   LearnMore: "Learn More",
   LeavingPage: "Leaving page",
   LegacyAddressFormat: "Legacy format",
