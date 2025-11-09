@@ -109,7 +109,7 @@ export default {
     executeSecurityChecking () {
       const vm = this
       setTimeout(() => {
-        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+        if (vm.$store.getters['global/preferredSecurity'] === 'pin') {
           vm.pinDialogAction = 'VERIFY'
         } else {
           vm.verifyBiometric()

@@ -42,6 +42,8 @@ export default {
       })
       .onOk(value => {
         this.$store.commit('market/updateSelectedCurrency', value)
+        // Save to vault for wallet-specific settings
+        this.$store.commit('global/saveWalletSetting', { key: 'currency', value: value })
         this.$store.dispatch('global/saveWalletPreferences')
         this.$store.dispatch('market/updateAssetPrices', {})
       })

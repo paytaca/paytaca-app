@@ -454,6 +454,8 @@ export default {
 	        console.log('INCONSISTENCY DETECTED!')
 	        console.log('Wallet index:', walletIndex)
 	        this.$store.commit('global/updateCurrentWallet', walletIndex)
+	        // Sync settings to darkmode and market modules
+	        this.$store.dispatch('global/syncSettingsToModules')
 	        // location.reload()
 	      }	      
 	    },

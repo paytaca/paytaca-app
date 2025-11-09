@@ -63,6 +63,10 @@ export default boot(async (obj) => {
     updatePreferences()
     populateMissingVaults()
     
+    // Migrate existing wallets to have wallet-specific settings
+    // This applies current global settings to all existing wallets for smooth migration
+    store.dispatch('global/migrateWalletSettings')
+    
     // Load cached wallet names on startup to populate vault names if empty
     loadCachedWalletNames(store)
   } catch (err) {

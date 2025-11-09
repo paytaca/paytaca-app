@@ -3,7 +3,15 @@ export function currencyOptions (state) {
   return state.currencyOptions
 }
 
-export function selectedCurrency (state) {
+export function selectedCurrency (state, getters, rootState) {
+  // Check if wallet-specific settings exist in vault
+  if (rootState && rootState.global && rootState.global.vault && rootState.global.vault[rootState.global.walletIndex]) {
+    const vaultSettings = rootState.global.vault[rootState.global.walletIndex].settings
+    if (vaultSettings && vaultSettings.currency) {
+      return vaultSettings.currency
+    }
+  }
+  // Fallback to module state
   if (typeof state.selectedCurrency === 'object') {
     return state.selectedCurrency
   } else {

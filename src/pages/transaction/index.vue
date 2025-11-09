@@ -1206,7 +1206,8 @@ export default {
     },
 
     verifyOrSetupPIN () {
-      if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+      const preferredSecurity = this.$store.getters['global/preferredSecurity']
+      if (preferredSecurity === 'pin') {
         this.setVerifyDialogAction()
       } else {
         this.setPreferredSecurity('pin')
@@ -1229,7 +1230,7 @@ export default {
         })
     },
     setPreferredSecurity (auth) {
-      this.$q.localStorage.set('preferredSecurity', auth)
+      this.$store.commit('global/setPreferredSecurity', auth)
       if (auth === 'pin') {
         this.pinDialogAction = 'SET UP'
       } else {
@@ -1273,6 +1274,8 @@ export default {
         // console.log('Wallet index:', this.$store.getters['global/getWalletIndex'])
         console.log('Wallet index:', walletIndex)
         this.$store.commit('global/updateCurrentWallet', walletIndex)
+        // Sync settings to darkmode and market modules
+        this.$store.dispatch('global/syncSettingsToModules')
         // location.reload()
       }
 
@@ -1734,7 +1737,7 @@ export default {
     async checkSecurityPreferenceSetup() {
       const vm = this
       // Check if preferredSecurity and if it's set as PIN
-      const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
+      const preferredSecurity = this.$store.getters['global/preferredSecurity']
       let forceRecreate = false
       if (preferredSecurity === null) {
         forceRecreate = true

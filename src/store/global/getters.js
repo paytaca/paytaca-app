@@ -289,3 +289,23 @@ export function getWatchtowerBaseUrl (state) {
   }
   return 'https://watchtower.cash'
 }
+
+/**
+ * Get preferred security method for current wallet
+ * Returns 'pin' or 'biometric'
+ */
+export function preferredSecurity (state) {
+  const walletIndex = state.walletIndex
+  if (state.vault && state.vault[walletIndex] && state.vault[walletIndex].settings) {
+    return state.vault[walletIndex].settings.preferredSecurity || 'pin'
+  }
+  // Fallback to localStorage for backward compatibility during migration
+  try {
+    const storedPref = typeof window !== 'undefined' && window.localStorage 
+      ? window.localStorage.getItem('preferredSecurity') 
+      : null
+    return storedPref || 'pin'
+  } catch (e) {
+    return 'pin'
+  }
+}

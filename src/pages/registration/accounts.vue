@@ -745,6 +745,8 @@ export default {
       
       // Update current wallet to switch to the newly created wallet
       this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+      // Sync settings to darkmode and market modules
+      this.$store.dispatch('global/syncSettingsToModules')
 
       // If vault was not empty before creating this wallet, sync the previous wallet first
       // Check if vault existed before we created this new entry
@@ -777,6 +779,8 @@ export default {
           // Restore to new wallet index
           this.$store.commit('global/updateWalletIndex', newWalletIndex)
           this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+          // Sync settings to darkmode and market modules
+          this.$store.dispatch('global/syncSettingsToModules')
         }
       }
 
@@ -973,12 +977,12 @@ export default {
             this.securityOptionDialogStatus = 'show'
           } else {
             this.pinDialogAction = 'SET UP'
-            this.$q.localStorage.set('preferredSecurity', 'pin')
+            this.$store.commit('global/setPreferredSecurity', 'pin')
           }
         },
         (error) => {
           this.pinDialogAction = 'SET UP'
-          this.$q.localStorage.set('preferredSecurity', 'pin')
+          this.$store.commit('global/setPreferredSecurity', 'pin')
           console.log('Implementation error: ', error)
         })
     },
@@ -1008,7 +1012,7 @@ export default {
         )
     },
     setPreferredSecurity (auth) {
-      this.$q.localStorage.set('preferredSecurity', auth)
+        this.$store.commit('global/setPreferredSecurity', auth)
       if (auth === 'pin') {
         this.pinDialogAction = 'SET UP'
       } else {
@@ -1041,9 +1045,9 @@ export default {
     setupSecurity (authType) {
       if (authType === 'pin') {
         this.pinDialogAction = 'SET UP'
-        this.$q.localStorage.set('preferredSecurity', 'pin')
+        this.$store.commit('global/setPreferredSecurity', 'pin')
       } else if (authType === 'biometric' && this.isMobile) {
-        this.$q.localStorage.set('preferredSecurity', 'biometric')
+        this.$store.commit('global/setPreferredSecurity', 'biometric')
         this.verifyBiometric()
       }
     },

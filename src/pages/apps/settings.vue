@@ -268,6 +268,8 @@ export default {
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
+      // Save to vault for wallet-specific settings
+      this.$store.commit('global/saveWalletSetting', { key: 'darkMode', value: newVal })
     },
   },
   methods: {
@@ -287,7 +289,7 @@ export default {
           this.pinDialogAction = 'SET NEW'
         }
         if (this.securityChange === 'switch-to-biometric') {
-          this.$q.localStorage.set('preferredSecurity', 'biometric')
+          this.$store.commit('global/setPreferredSecurity', 'biometric')
           this.pinStatus = false
         }
       }
@@ -304,7 +306,7 @@ export default {
         .then(() => {
           // Authentication successful
           setTimeout(() => {
-            vm.$q.localStorage.set('preferredSecurity', 'pin')
+            vm.$store.commit('global/setPreferredSecurity', 'pin')
             vm.pinStatus = true
             vm.pinDialogAction = 'SET NEW'
             vm.disablePinDialogClose = true
@@ -318,7 +320,7 @@ export default {
     },
     setPreferredSecurity (auth) {
       const vm = this
-      const currentPref = this.$q.localStorage.getItem('preferredSecurity')
+      const currentPref = this.$store.getters['global/preferredSecurity']
       if (currentPref === 'pin' && auth === 'biometric') {
         vm.securityChange = 'switch-to-biometric'
         vm.pinDialogAction = 'VERIFY'
@@ -347,7 +349,8 @@ export default {
       })
   },
   mounted () {
-    if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+    const preferredSecurity = this.$store.getters['global/preferredSecurity']
+    if (preferredSecurity === 'pin') {
       this.pinStatus = true
     } else {
       this.pinStatus = false

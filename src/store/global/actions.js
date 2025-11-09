@@ -245,6 +245,48 @@ export async function saveExistingWallet (context) {
   }
 }
 
+/**
+ * Migrate existing wallets to have wallet-specific settings
+ * This should be called once during app initialization to migrate existing wallets
+ */
+export function migrateWalletSettings (context) {
+  // Get current values from all modules
+  const darkMode = context.rootGetters['darkmode/getStatus']
+  const currency = context.rootGetters['market/selectedCurrency']
+  
+  // Call mutation with current values
+  context.commit('migrateWalletSettings', {
+    darkMode: darkMode,
+    currency: currency
+  })
+  
+  // After migration, sync current wallet's settings to modules
+  context.dispatch('syncSettingsToModules')
+}
+
+/**
+ * Update darkMode and currency module states when switching wallets
+ * This ensures components that directly access state (not getters) work correctly
+ */
+export function syncSettingsToModules (context) {
+  const vault = context.getters.getVault
+  const walletIndex = context.getters.getWalletIndex
+  
+  if (vault && vault[walletIndex] && vault[walletIndex].settings) {
+    const settings = vault[walletIndex].settings
+    
+    // Update darkmode module state
+    if (settings.darkMode !== undefined) {
+      context.commit('darkmode/setDarkmodeSatus', settings.darkMode, { root: true })
+    }
+    
+    // Update market module state
+    if (settings.currency) {
+      context.commit('market/updateSelectedCurrency', settings.currency, { root: true })
+    }
+  }
+}
+
 export async function syncCurrentWalletToVault(context) {
   const currentIndex = context.getters.getWalletIndex
   const wallet = context.getters.getAllWalletTypes
@@ -307,6 +349,8 @@ export async function switchWallet (context, index) {
         
         context.commit('updateWalletIndex', index)
         context.commit('updateCurrentWallet', index)
+        // Sync settings to darkmode and market modules
+        context.dispatch('syncSettingsToModules')
 
         resolve()
       } catch (error) {

@@ -481,7 +481,10 @@ export default {
       const vm = this
       vm.isloaded = false
       await vm.fetchAd()
-      await vm.fetchArbiters()
+      // Only fetch arbiters if ad was successfully loaded with fiat_currency
+      if (vm.ad && vm.ad.fiat_currency) {
+        await vm.fetchArbiters()
+      }
       vm.setupWebSocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
@@ -654,6 +657,12 @@ export default {
     },
     async fetchArbiters () {
       const vm = this
+      // Check if ad and fiat_currency are available before making the request
+      if (!vm.ad || !vm.ad.fiat_currency || !vm.ad.fiat_currency.symbol) {
+        console.warn('Cannot fetch arbiters: ad or fiat_currency is not available')
+        vm.arbitersAvailable = []
+        return
+      }
       await backend.get('ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
         .then(response => {
           vm.arbitersAvailable = response.data
