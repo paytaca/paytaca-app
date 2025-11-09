@@ -28,6 +28,7 @@
               <div v-if="showTradeTypeHint" class="xs-font-size subtext">{{ hintMessage }}</div>
               <div class="q-pt-xs q-gutter-sm">
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('trade-type')" @click="orderSetAllSelected('trade-type')">{{ $t('DefaultAll') }}</q-badge>
+                <q-badge rounded color="red" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy && !orderFilters.trade_type?.sell" @click="orderClearTradeType()">{{ $t('Clear') }}</q-badge>
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.buy" @click="setOrderFilter('trade-type-buy', !orderFilters.trade_type?.buy)">Buy</q-badge>
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.trade_type?.sell" @click="setOrderFilter('trade-type-sell', !orderFilters.trade_type?.sell)">Sell</q-badge>
               </div>
@@ -44,6 +45,14 @@
                   :outline="!orderAllSelected('status')"
                   @click="orderSetAllSelected('status')">
                   {{ $t('DefaultAll') }}
+                </q-badge>
+                <q-badge
+                  rounded
+                  color="red"
+                  class="q-pa-sm"
+                  :outline="orderFilters.status?.length === 0"
+                  @click="orderClearStatus()">
+                  {{ $t('Clear') }}
                 </q-badge>
                 <q-badge
                   v-for="(status, index) in statuses"
@@ -68,6 +77,14 @@
                   :outline="!orderAllSelected('apl-status')"
                   @click="orderSetAllSelected('apl-status')">
                   {{ $t('DefaultAll') }}
+                </q-badge>
+                <q-badge
+                  class="q-pa-sm"
+                  color="red"
+                  rounded
+                  :outline="!orderFilters.appealable && !orderFilters.not_appealable"
+                  @click="orderClearAppealableStatus()">
+                  {{ $t('Clear') }}
                 </q-badge>
                 <q-badge
                   class="q-pa-sm"
@@ -102,6 +119,14 @@
                 </q-badge>
                 <q-badge
                   class="q-pa-sm"
+                  color="red"
+                  rounded
+                  :outline="orderFilters.payment_types?.length === 0"
+                  @click="orderClearPaymentTypes()">
+                  {{ $t('Clear') }}
+                </q-badge>
+                <q-badge
+                  class="q-pa-sm"
                   color="blue-grey-6"
                   rounded
                   v-for="payment in paymentTypes"
@@ -127,6 +152,14 @@
                 </q-badge>
                 <q-badge
                   class="q-pa-sm"
+                  color="red"
+                  rounded
+                  :outline="orderFilters.time_limits?.length === 0"
+                  @click="orderClearTimeLimits()">
+                  {{ $t('Clear') }}
+                </q-badge>
+                <q-badge
+                  class="q-pa-sm"
                   color="blue-grey-6"
                   rounded
                   v-for="(value, index) in ptl"
@@ -143,6 +176,7 @@
               <div v-if="showOwnershipHint" class="xs-font-size subtext">{{ hintMessage }}</div>
               <div class="q-pt-xs q-gutter-sm">
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderAllSelected('ownership')" @click="orderSetAllSelected('ownership')">{{ $t('DefaultAll') }}</q-badge>
+                <q-badge rounded color="red" class="q-pa-sm" :outline="!orderFilters.ownership.owned && !orderFilters.ownership.notOwned" @click="orderClearOwnership()">{{ $t('Clear') }}</q-badge>
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.owned" @click="setOrderFilter('owned', !orderFilters.ownership.owned)">{{ $t('CreatedByMe') }}</q-badge>
                 <q-badge rounded color="blue-grey-6" class="q-pa-sm" :outline="!orderFilters.ownership.notOwned" @click="setOrderFilter('notOwned', !orderFilters.ownership.notOwned)">{{ $t('CreatedByCounterparty') }}</q-badge>
               </div>
@@ -206,6 +240,14 @@
               </q-badge>
               <q-badge
                 rounded
+                color="red"
+                class="q-pa-sm"
+                :outline="!storeFilters?.price_type?.fixed && !storeFilters?.price_type?.floating"
+                @click="storeClearPriceType()">
+                {{ $t('Clear') }}
+              </q-badge>
+              <q-badge
+                rounded
                 color="blue-grey-6"
                 class="q-pa-sm"
                 :outline="!storeFilters?.price_type?.fixed"
@@ -238,6 +280,14 @@
               </q-badge>
               <q-badge
                 class="q-pa-sm"
+                color="red"
+                rounded
+                :outline="storeFilters.payment_types?.length === 0"
+                @click="storeClearPaymentTypes()">
+                {{ $t('Clear') }}
+              </q-badge>
+              <q-badge
+                class="q-pa-sm"
                 color="blue-grey-6"
                 rounded
                 v-for="payment in paymentTypes"
@@ -261,6 +311,14 @@
                 :outline="!storeAllSelected('time-limit')"
                 @click="storeSetAllSelected('time-limit')">
                 {{ $t('DefaultAll') }}
+              </q-badge>
+              <q-badge
+                class="q-pa-sm"
+                color="red"
+                rounded
+                :outline="storeFilters.time_limits?.length === 0"
+                @click="storeClearTimeLimits()">
+                {{ $t('Clear') }}
               </q-badge>
               <q-badge
                 class="q-pa-sm"
@@ -474,6 +532,33 @@ export default {
           break
       }
     },
+    orderClearPaymentTypes () {
+      this.orderFilters.payment_types = []
+      this.showPaymentTypeHint = false
+    },
+    orderClearTradeType () {
+      this.orderFilters.trade_type.buy = false
+      this.orderFilters.trade_type.sell = false
+      this.showTradeTypeHint = false
+    },
+    orderClearStatus () {
+      this.orderFilters.status = []
+      this.showStatusHint = false
+    },
+    orderClearAppealableStatus () {
+      this.orderFilters.appealable = false
+      this.orderFilters.not_appealable = false
+      this.showAppealableStatusHint = false
+    },
+    orderClearTimeLimits () {
+      this.orderFilters.time_limits = []
+      this.showTimeLimitHint = false
+    },
+    orderClearOwnership () {
+      this.orderFilters.ownership.owned = false
+      this.orderFilters.ownership.notOwned = false
+      this.showOwnershipHint = false
+    },
     orderAllSelected (type) {
       const vm = this
       switch (type) {
@@ -591,6 +676,19 @@ export default {
           vm.storeFilters.time_limits = vm.ptl
           break
       }
+    },
+    storeClearPaymentTypes () {
+      this.storeFilters.payment_types = []
+      this.showPaymentTypeHint = false
+    },
+    storeClearPriceType () {
+      this.storeFilters.price_type.fixed = false
+      this.storeFilters.price_type.floating = false
+      this.showPriceTypeHint = false
+    },
+    storeClearTimeLimits () {
+      this.storeFilters.time_limits = []
+      this.showTimeLimitHint = false
     },
     storeAllSelected (type) {
       const vm = this

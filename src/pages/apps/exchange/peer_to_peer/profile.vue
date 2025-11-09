@@ -657,6 +657,8 @@ export default {
     margin-left: 10%;
     margin-right: 10%;
     margin-top: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
   }
   .btn-custom {
     height: 30px;
@@ -667,16 +669,18 @@ export default {
     background-color: transparent;
     outline:0;
     cursor: pointer;
-    transition: .2s;
+    transition: all 0.3s ease;
     font-weight: 500;
   }
   .btn-custom:hover {
     background-color: rgb(242, 243, 252);
     color: #4C4F4F;
+    transform: translateY(-1px);
   }
   .btn-custom.active-btn {
     background-color: rgb(60, 100, 246) !important;
     color: #fff !important;
+    box-shadow: 0 2px 8px rgba(60, 100, 246, 0.3);
   }
   .btn-custom.dark {
     background-color: #1c2833;
@@ -691,5 +695,29 @@ export default {
     width: 70px;
     z-index: 1;
     left: 10px;
+  }
+  
+  /* Enhanced styling for profile elements */
+  .q-icon[name='o_account_circle'] {
+    transition: transform 0.3s ease;
+  }
+  .q-icon[name='o_account_circle']:hover {
+    transform: scale(1.05);
+  }
+  
+  /* Better spacing for review items */
+  .q-pt-md {
+    transition: all 0.2s ease;
+  }
+  
+  /* Improved ad card styling */
+  .q-item {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .q-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 </style>
