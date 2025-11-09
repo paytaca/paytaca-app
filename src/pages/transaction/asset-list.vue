@@ -115,7 +115,7 @@
 			    </q-list>
 			    <div v-else class="text-center" style="margin-top: 50px;">
 		            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-		            <p :class="{ 'text-black': !darkMode }">{{ $t('No Assets To Display') }}</p>
+		            <p :class="darkmode ? 'text-white' : 'text-black'">{{ $t('NoTokensToDisplay') }}</p>
 		          </div>
 		      <div class="banner" v-if="networkError">
 		      	<q-banner class="bg-primary text-white">

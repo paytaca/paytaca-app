@@ -101,6 +101,20 @@ export function updateWalletSnapshot (state, details) {
 export function updateCurrentWallet (state, index) {
   const vault = state.vault[index]
 
+  // Safety check: ensure vault entry exists and has wallet/chipnet properties
+  if (!vault) {
+    console.warn(`updateCurrentWallet: Vault entry at index ${index} does not exist`)
+    return
+  }
+
+  if (!vault.wallet) {
+    console.warn(`updateCurrentWallet: Vault entry at index ${index} does not have wallet property`)
+    // Initialize empty wallet structure if missing
+    state.wallets = {}
+    state.chipnet__wallets = {}
+    return
+  }
+
   let wallet = vault.wallet
   wallet = JSON.stringify(wallet)
   wallet = JSON.parse(wallet)
@@ -108,10 +122,14 @@ export function updateCurrentWallet (state, index) {
   state.wallets = wallet
 
   let chipnet = vault.chipnet
-  chipnet = JSON.stringify(chipnet)
-  chipnet = JSON.parse(chipnet)
-
-  state.chipnet__wallets = chipnet
+  if (chipnet) {
+    chipnet = JSON.stringify(chipnet)
+    chipnet = JSON.parse(chipnet)
+    state.chipnet__wallets = chipnet
+  } else {
+    // Initialize empty chipnet if missing
+    state.chipnet__wallets = {}
+  }
 }
 
 export function deleteWallet (state, index) {

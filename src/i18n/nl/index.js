@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "Geen doorlopend contract",
   NoOrder: "Geen bestelling",
   NoOrderstoDisplay: "Geen bestellingen om weer te geven",
+  NoTokensToDisplay: "Geen tokens om weer te geven",
   NoPaymentMethodAdded: "Geen betaalmethode toegevoegd",
   NoPaymentMethodAvailable: "Geen betaalmethode beschikbaar",
   NoPaymentMethodSelected: "Geen betaalmethode geselecteerd",

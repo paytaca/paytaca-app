@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "Tidak ada kontrak yang sedang berlangsung",
   NoOrder: "Tidak ada pesanan",
   NoOrderstoDisplay: "Tidak Ada Pesanan untuk Ditampilkan",
+  NoTokensToDisplay: "Tidak Ada Token untuk Ditampilkan",
   NoPaymentMethodAdded: "Tidak Ada Metode Pembayaran yang Ditambahkan",
   NoPaymentMethodAvailable: "Tidak ada metode pembayaran yang tersedia",
   NoPaymentMethodSelected: "Tidak ada metode pembayaran yang dipilih",

@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "沒有持續的合同",
   NoOrder: "沒有訂單",
   NoOrderstoDisplay: "沒有可顯示的訂單",
+  NoTokensToDisplay: "沒有可顯示的代幣",
   NoPaymentMethodAdded: "未添加付款方式",
   NoPaymentMethodAvailable: "沒有可用的付款方式",
   NoPaymentMethodSelected: "未選擇付款方式",

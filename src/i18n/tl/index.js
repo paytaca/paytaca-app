@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "Walang patuloy na kontrata",
   NoOrder: "Walang order",
   NoOrderstoDisplay: "Walang mga order na ipakita",
+  NoTokensToDisplay: "Walang mga token na ipakita",
   NoPaymentMethodAdded: "Walang idinagdag na paraan ng pagbabayad",
   NoPaymentMethodAvailable: "Walang magagamit na paraan ng pagbabayad",
   NoPaymentMethodSelected: "Walang napiling paraan ng pagbabayad",

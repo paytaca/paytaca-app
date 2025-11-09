@@ -5,6 +5,7 @@
     full-height
     position="left"
     maximized
+    @before-show="onDialogShow"
     @before-hide="$emit('dialog-hide')"    
   >
     <q-card
@@ -32,8 +33,17 @@
 
       <!-- Scrollable Wallet List -->
       <div class="scrollable-wallet-list" :class="getDarkModeClass(darkMode)">
-        <div v-if="isloading" class="flex flex-center q-py-xl">
-          <ProgressLoader />
+        <div v-if="isloading" class="q-py-md">
+          <q-item
+            v-for="n in 5"
+            :key="`skeleton-${n}`"
+            class="wallet-item q-px-md"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-item-section>
+              <q-skeleton type="text" width="70%" height="24px" />
+            </q-item-section>
+          </q-item>
         </div>
         <div v-else-if="!isWalletsRecovered" class="row justify-center text-center q-py-md q-px-lg">
           <span class="q-mb-md" :class="getDarkModeClass(darkMode)">
@@ -92,7 +102,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getWalletName } from 'src/utils/wallet-name-cache'
 
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 export default {
   emits: [
@@ -108,12 +117,22 @@ export default {
     }
   },
   components: {
-    LoadingWalletDialog,
-    ProgressLoader
+    LoadingWalletDialog
   },
   watch: {
     isWalletsRecovered (val) {
       if (val) this.loadData()
+    },
+    // Watch for vault changes in the store to update the list immediately
+    storeVault: {
+      handler (newVault) {
+        if (newVault && newVault.length > 0 && this.isWalletsRecovered) {
+          // Update vault data when store vault changes
+          this.arrangeVaultData()
+        }
+      },
+      deep: true,
+      immediate: false
     }
   },
   methods: {
@@ -131,6 +150,11 @@ export default {
 
       const tempVault = vm.$store.getters['global/getVault']
       const vaultNameUpdatePromises = tempVault.map(async (wallet, index) => {
+        // Skip deleted wallets
+        if (wallet.deleted === true) {
+          return
+        }
+
         let tempName = wallet.name
         const walletHash = wallet?.wallet?.bch?.walletHash
         
@@ -173,6 +197,11 @@ export default {
       const tempVault = vm.$store.getters['global/getVault']
 
       tempVault.forEach((wallet, index) => {
+        // Skip deleted wallets
+        if (wallet.deleted === true) {
+          return
+        }
+
         if (wallet.name === '') {
           // Check cache before using generic name
           const walletHash = wallet?.wallet?.bch?.walletHash
@@ -231,6 +260,19 @@ export default {
     hide () {
       this.$refs['multi-wallet'].hide()
     },
+    async onDialogShow () {
+      // Refresh wallet list every time the sidebar is shown
+      // Update current index first
+      this.currentIndex = this.$store.getters['global/getWalletIndex']
+      
+      // Immediately update vault data from store
+      this.arrangeVaultData()
+      
+      // Then load full data if wallets are recovered
+      if (this.isWalletsRecovered) {
+        await this.loadData()
+      }
+    },
     async loadData () {
       const vm = this
       vm.$store.dispatch('assets/updateVaultBchBalances', {
@@ -270,6 +312,10 @@ export default {
     },
     walletRecoveryMessage() {
       return this.$store.getters['global/walletRecoveryMessage']
+    },
+    // Computed property to watch store vault changes
+    storeVault () {
+      return this.$store.getters['global/getVault']
     }
   },
   async mounted () {

@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "継続的な契約はありません",
   NoOrder: "注文なし",
   NoOrderstoDisplay: "表示する注文がありません",
+  NoTokensToDisplay: "表示するトークンがありません",
   NoPaymentMethodAdded: "支払い方法が追加されていません",
   NoPaymentMethodAvailable: "利用できる支払い方法がありません",
   NoPaymentMethodSelected: "支払い方法が選択されていません",

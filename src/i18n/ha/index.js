@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "Babu Yarjejeniyar cigaba",
   NoOrder: "Babu oda",
   NoOrderstoDisplay: "Babu umarni don nunawa",
+  NoTokensToDisplay: "Babu jakunkuna don nunawa",
   NoPaymentMethodAdded: "Babu hanyar biyan kuɗi",
   NoPaymentMethodAvailable: "Babu hanyar biyan kuɗi",
   NoPaymentMethodSelected: "Babu hanyar biyan kuɗi",

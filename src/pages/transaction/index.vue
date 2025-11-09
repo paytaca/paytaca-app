@@ -244,7 +244,7 @@
             >
             </asset-cards>
           </template>
-          <div v-if="assets.length == 0" style="margin-bottom: 10px;">
+          <div v-if="assets.length == 0 && !isLoadingAssets" style="margin-bottom: 10px;">
             <div class="text-center">
               <q-btn
                 outline

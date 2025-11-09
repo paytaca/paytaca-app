@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "Sin contrato en curso",
   NoOrder: "Sin orden",
   NoOrderstoDisplay: "No hay pedidos para mostrar",
+  NoTokensToDisplay: "No hay tokens para mostrar",
   NoPaymentMethodAdded: "No se agregó ningún método de pago",
   NoPaymentMethodAvailable: "No hay método de pago disponible",
   NoPaymentMethodSelected: "No se seleccionó ningún método de pago",

@@ -785,6 +785,7 @@ const phrases = {
       PayFiat: 'Pay Fiat',
       ReleaseBCH: 'Release BCH',
       NoOrderstoDisplay: 'No Orders to Display',
+      NoTokensToDisplay: 'No Tokens to Display',
       ConfirmOrder: 'Confirm Order?',
       CancelThisOrder: 'Cancel this order?',
       NoMessage: 'No message',

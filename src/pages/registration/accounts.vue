@@ -228,7 +228,7 @@
     </div>
 
     <!-- Step 2: Language and Currency Selection -->
-    <div v-if="currentStep === 2 && !importSeedPhrase" class="content-section center-viewport">
+    <div v-if="currentStep === 2 && !importSeedPhrase" class="content-section center-viewport step-2-container" :class="{'ios-safe-area': $q.platform.is.ios}">
       <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5>
       <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingDescription') }}</p>
       <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -272,29 +272,35 @@
     </div>
 
     <!-- Step 3: Theme Selection -->
-    <div v-if="currentStep === 3 && !importSeedPhrase" class="content-section center-viewport">
+    <div v-if="currentStep === 3 && !importSeedPhrase" class="content-section center-viewport step-3-container" :class="{'ios-safe-area': $q.platform.is.ios}">
       <ThemeSelectorPreview :choosePreferedSecurity="goToStep4" />
     </div>
 
     <!-- Step 4: Security Authentication Setup -->
-    <div v-if="currentStep === 4 && !importSeedPhrase" class="content-section center-viewport">
+    <div v-if="currentStep === 4 && !importSeedPhrase" class="content-section center-viewport step-4-container" :class="{'ios-safe-area': $q.platform.is.ios}">
       <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('SecurityAuthentication') }}</h5>
       <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('ChoosePreferredSecAuth') }}</p>
-      <q-btn
-        no-caps
-        rounded
-        :label="$t('SetupPin') || 'Setup PIN'"
-        class="full-width primary-cta bg-grad"
-        @click="setupSecurity('pin')"
-      />
-      <q-btn
-        v-if="isMobile"
-        no-caps
-        rounded
-        :label="$t('SetupBiometric') || 'Setup Biometric'"
-        class="full-width primary-cta bg-grad q-mt-sm"
-        @click="setupSecurity('biometric')"
-      />
+      <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
+        <q-list class="flat-list">
+          <q-item class="glass-item" :class="getDarkModeClass(darkMode)" clickable @click="setupSecurity('pin')">
+            <q-item-section>
+              <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('SetupPin') || 'Setup PIN' }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="lock" size="24px" />
+            </q-item-section>
+          </q-item>
+          <q-separator v-if="isMobile" spaced class="thin-separator" />
+          <q-item v-if="isMobile" class="glass-item" :class="getDarkModeClass(darkMode)" clickable @click="setupSecurity('biometric')">
+            <q-item-section>
+              <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('SetupBiometric') || 'Setup Biometric' }}</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="fingerprint" size="24px" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
     </div>
     <div
       class="pt-wallet q-mt-sm pt-card-2"
@@ -731,15 +737,21 @@ export default {
       const info = { wallet, chipnet, name: '' }
       this.$store.commit('global/updateVault', info)
       
-      // Update wallet index AFTER vault is created
-      this.$store.commit('global/updateWalletIndex', this.walletIndex)
+      // Get the actual index of the newly created wallet (vault length - 1 after update)
+      const newWalletIndex = this.$store.getters['global/getVault'].length - 1
+      
+      // Update wallet index to the newly created wallet to make it active
+      this.$store.commit('global/updateWalletIndex', newWalletIndex)
+      
+      // Update current wallet to switch to the newly created wallet
+      this.$store.commit('global/updateCurrentWallet', newWalletIndex)
 
       // If vault was not empty before creating this wallet, sync the previous wallet first
       // Check if vault existed before we created this new entry
-      const vaultBeforeCreate = this.walletIndex > 0
+      const vaultBeforeCreate = newWalletIndex > 0
       if (vaultBeforeCreate) {
         const vault = this.$store.getters['global/getVault']
-        const previousWalletIndex = this.walletIndex - 1
+        const previousWalletIndex = newWalletIndex - 1
         
         // Save wallet data from snapshot for new wallet first
         this.newWalletSnapshot.walletInfo.map(walletInfo => {
@@ -763,7 +775,8 @@ export default {
             console.error('Error syncing previous wallet to vault:', error)
           }
           // Restore to new wallet index
-          this.$store.commit('global/updateWalletIndex', this.walletIndex)
+          this.$store.commit('global/updateWalletIndex', newWalletIndex)
+          this.$store.commit('global/updateCurrentWallet', newWalletIndex)
         }
       }
 
@@ -778,8 +791,8 @@ export default {
       asset.asset = adjustedAssets
       asset.chipnet_assets = adjustedChipnetAssets
 
-      this.$store.commit('assets/updateVault', { index: this.walletIndex, asset: asset })
-      this.$store.commit('assets/updatedCurrentAssets', this.walletIndex)
+      this.$store.commit('assets/updateVault', { index: newWalletIndex, asset: asset })
+      this.$store.commit('assets/updatedCurrentAssets', newWalletIndex)
 
       // ramp reset
       this.$store.commit('ramp/resetUser')
@@ -1496,6 +1509,21 @@ export default {
   opacity: 0.8;
   margin-top: 6px;
   margin-bottom: 14px;
+}
+
+/* Step 2, 3, and 4 containers with mobile-safe padding */
+.step-2-container,
+.step-3-container,
+.step-4-container {
+  padding-top: 24px;
+  
+  @media (max-width: 768px) {
+    padding-top: 60px;
+  }
+  
+  &.ios-safe-area {
+    padding-top: max(env(safe-area-inset-top, 44px), 60px) !important;
+  }
 }
 
 /* Glassmorphic panel for step-2 */

@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "진행 중인 계약이 없습니다.",
   NoOrder: "주문 불가",
   NoOrderstoDisplay: "표시할 주문이 없습니다.",
+  NoTokensToDisplay: "표시할 토큰이 없습니다.",
   NoPaymentMethodAdded: "결제 수단이 추가되지 않았습니다.",
   NoPaymentMethodAvailable: "사용 가능한 결제 수단이 없습니다.",
   NoPaymentMethodSelected: "선택한 결제 수단이 없습니다.",

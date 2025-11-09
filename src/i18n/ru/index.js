@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "Нет действующего контракта",
   NoOrder: "Нет заказа",
   NoOrderstoDisplay: "Нет заказов для отображения",
+  NoTokensToDisplay: "Нет токенов для отображения",
   NoPaymentMethodAdded: "Способ оплаты не добавлен",
   NoPaymentMethodAvailable: "Нет доступного способа оплаты",
   NoPaymentMethodSelected: "Способ оплаты не выбран",

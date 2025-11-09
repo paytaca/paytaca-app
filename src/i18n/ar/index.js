@@ -976,6 +976,7 @@ export default {
   NoOngoingContract: "لا يوجد عقد مستمر",
   NoOrder: "لا يوجد أمر",
   NoOrderstoDisplay: "لا توجد أوامر للعرض",
+  NoTokensToDisplay: "لا توجد رموز للعرض",
   NoPaymentMethodAdded: "لم تتم إضافة طريقة الدفع",
   NoPaymentMethodAvailable: "لا توجد طريقة دفع متاحة",
   NoPaymentMethodSelected: "لم يتم تحديد طريقة الدفع",
