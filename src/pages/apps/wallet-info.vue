@@ -42,6 +42,14 @@
               </q-item-label>
             </q-item-section>
           </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWalletMasterFingerprint('bch'))">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('MasterFingerprint') }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWalletMasterFingerprint('bch') }}
+              </q-item-label>
+            </q-item-section>
+          </q-item>
           <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
             <q-item-section>
               <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
@@ -271,7 +279,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
-
+import { binToHex, deriveHdPrivateNodeFromSeed, deriveHdPublicNode, hash160 } from '@bitauth/libauth'
+import { deriveSeedFromBip39Mnemonic } from 'bitauth-libauth-v3' 
 export default {
   name: 'app-wallet-info',
   components: {
@@ -595,6 +604,21 @@ export default {
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
+    },
+    getWalletMasterFingerprint(type) {
+      const w = this.$store.getters['global/getWallet'](type)
+
+      console.log('w', w)
+      console.log('w', this.wallet)
+      if (!this.wallet?.mnemonic) return 
+      return binToHex(
+          hash160(
+          deriveHdPublicNode(
+            deriveHdPrivateNodeFromSeed(
+              deriveSeedFromBip39Mnemonic(this.wallet.mnemonic)
+            )).publicKey
+          ).slice(0, 4)
+      )
     },
     copyToClipboard (value) {
       this.$copyText(value)
