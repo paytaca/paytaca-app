@@ -3,17 +3,17 @@
 body.theme-glassmorphic-gold {
   /* ----- VARIABLES ----- */
   $color_4: #fff;
-  $color_6: #ffa726;
+  $color_6: #e18908;
 
   $text_gold_9: #e65100;
   $bg_card_dark: #332818;
   $bg_gradient: linear-gradient(
     to right bottom,
-    #ffa726,
-    #ffb038,
-    #ffb84a,
-    #ffc05c,
-    #ffc86e
+    #e18908,
+    #e1921a,
+    #e19a2c,
+    #e1a23e,
+    #e1aa50
   );
   
   $theme_primary1: $color_6;
@@ -60,16 +60,16 @@ body.theme-glassmorphic-gold {
   #bch-card {
     background-image: linear-gradient(
       to right bottom,
-      rgba(255, 167, 38, 0.9),
-      rgba(255, 176, 56, 0.9),
-      rgba(255, 184, 74, 0.9),
-      rgba(255, 192, 92, 0.9),
-      rgba(255, 200, 110, 0.9)
+      rgba(225, 137, 8, 0.9),
+      rgba(225, 146, 26, 0.9),
+      rgba(225, 154, 44, 0.9),
+      rgba(225, 162, 62, 0.9),
+      rgba(225, 170, 80, 0.9)
     );
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px 0 rgba(255, 167, 38, 0.15) !important;
+    box-shadow: 0 8px 32px 0 rgba(225, 137, 8, 0.15) !important;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
@@ -79,7 +79,7 @@ body.theme-glassmorphic-gold {
   
   #apps {
     padding: 20px 20px 80px 20px;
-    color: #ffa726;
+    color: #e18908;
   }
   
 
@@ -109,31 +109,31 @@ body.theme-glassmorphic-gold {
   .bg-grad.button {
     background-image: linear-gradient(
       to right bottom,
-      rgba(255, 167, 38, 0.85),
-      rgba(255, 176, 56, 0.85),
-      rgba(255, 184, 74, 0.85),
-      rgba(255, 192, 92, 0.85),
-      rgba(255, 200, 110, 0.85)
+      rgba(225, 137, 8, 0.85),
+      rgba(225, 146, 26, 0.85),
+      rgba(225, 154, 44, 0.85),
+      rgba(225, 162, 62, 0.85),
+      rgba(225, 170, 80, 0.85)
     ) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 20px 0 rgba(255, 167, 38, 0.12);
+    box-shadow: 0 4px 20px 0 rgba(225, 137, 8, 0.12);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     &:hover, &:active {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px 0 rgba(255, 167, 38, 0.18);
+      box-shadow: 0 8px 24px 0 rgba(225, 137, 8, 0.18);
     }
   }
   .text-grad {
     background: -webkit-linear-gradient(
       -70deg,
-      #ffa726,
-      #ffb038,
-      #ffb84a,
-      #ffc05c,
-      #ffc86e
+      #e18908,
+      #e1921a,
+      #e19a2c,
+      #e1a23e,
+      #e1aa50
     );
     background-clip: text;
     -webkit-background-clip: text;
@@ -258,16 +258,16 @@ body.theme-glassmorphic-gold {
     border-radius: 16px;
     background-image: linear-gradient(
       to right bottom,
-      rgba(255, 167, 38, 0.85),
-      rgba(255, 176, 56, 0.85),
-      rgba(255, 184, 74, 0.85),
-      rgba(255, 192, 92, 0.85),
-      rgba(255, 200, 110, 0.85)
+      rgba(225, 137, 8, 0.85),
+      rgba(225, 146, 26, 0.85),
+      rgba(225, 154, 44, 0.85),
+      rgba(225, 162, 62, 0.85),
+      rgba(225, 170, 80, 0.85)
     );
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 4px 20px 0 rgba(255, 167, 38, 0.1);
+    box-shadow: 0 4px 20px 0 rgba(225, 137, 8, 0.1);
   }
   .method-cards-dark {
     background-image: linear-gradient(
@@ -319,7 +319,7 @@ body.theme-glassmorphic-gold {
     }
 
     .default-text-color {
-      color: #ffa726 !important;
+      color: #e18908 !important;
     }
     .default-text-color-2 {
       filter: brightness(0) saturate(100%) invert(68%) sepia(63%) saturate(1548%) hue-rotate(360deg) brightness(101%) contrast(104%);
@@ -327,22 +327,22 @@ body.theme-glassmorphic-gold {
   }
 
   .bg-pink {
-    background: #ffb74d;
+    background: #e1992f;
   }
 
   .btn-scan {
     background-image: linear-gradient(
       to right bottom,
-      rgba(255, 167, 38, 0.85),
-      rgba(255, 176, 56, 0.85),
-      rgba(255, 184, 74, 0.85),
-      rgba(255, 192, 92, 0.85),
-      rgba(255, 200, 110, 0.85)
+      rgba(225, 137, 8, 0.85),
+      rgba(225, 146, 26, 0.85),
+      rgba(225, 154, 44, 0.85),
+      rgba(225, 162, 62, 0.85),
+      rgba(225, 170, 80, 0.85)
     );
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 20px 0 rgba(255, 167, 38, 0.12);
+    box-shadow: 0 4px 20px 0 rgba(225, 137, 8, 0.12);
   }
 
   .group-currency {
@@ -361,7 +361,7 @@ body.theme-glassmorphic-gold {
 
     .text-token {
       &.dark {
-        color: #ffb74d;
+        color: #e1992f;
       }
 
       &.light {
@@ -384,11 +384,11 @@ body.theme-glassmorphic-gold {
 
     &.q-tab--active {
       &.dark {
-        color: rgba(255, 167, 38, 1) !important;
+        color: rgba(225, 137, 8, 1) !important;
       }
 
       &.light {
-        color: #ffa726 !important;
+        color: #e18908 !important;
       }
     }
 
@@ -404,27 +404,27 @@ body.theme-glassmorphic-gold {
   }
 
   .button {
-    background: #ffa726 !important;
+    background: #e18908 !important;
     color: white !important;
 
     &.button-text-primary {
       background: transparent !important;
-      color: #ffa726 !important;
+      color: #e18908 !important;
     }
 
     &.button-text-secondary {
       background: transparent !important;
-      color: #ffa726 !important;
+      color: #e18908 !important;
     }
 
     &.button-icon {
       background: transparent !important;
-      color: #ffa726 !important;
+      color: #e18908 !important;
     }
   }
 
   .settings-button {
-    color: #ffa726;
+    color: #e18908;
   }
 
   .transaction-container, .points-earned-div {
@@ -452,7 +452,7 @@ body.theme-glassmorphic-gold {
     }
 
     &.active-transaction-btn {
-      background-color: rgb(255, 167, 38) !important;
+      background-color: rgb(225, 137, 8) !important;
       color: #fff !important;
     }
   }
@@ -484,15 +484,15 @@ body.theme-glassmorphic-gold {
   }
 
   .bg-button-toggle {
-    background: #ffa726 !important;
+    background: #e18908 !important;
   }
 
   .q-btn.q-btn--rounded.bg-amber {
-    background-color: #ffa726 !important;
+    background-color: #e18908 !important;
   }
 
   .pin-icon {
-    color: #ffa726;
+    color: #e18908;
   }
 
   .primary-filter {
@@ -501,21 +501,21 @@ body.theme-glassmorphic-gold {
 
   #qr-button {
     button {
-      background-color: #ffa726 !important;
-      border-color: rgba(255, 167, 38, 0.3) !important;
+      background-color: #e18908 !important;
+      border-color: rgba(225, 137, 8, 0.3) !important;
       
       &.light {
         background-color: #fff !important;
-        border-color: #ffa726 !important;
+        border-color: #e18908 !important;
 
         .default-text-color {
-          color: #ffa726 !important;
+          color: #e18908 !important;
         }
       }
 
       &.dark {
-        background-color: #ffa726 !important;
-        border-color: rgba(255, 167, 38, 0.5) !important;
+        background-color: #e18908 !important;
+        border-color: rgba(225, 137, 8, 0.5) !important;
 
         .default-text-color {
           color: white !important;
