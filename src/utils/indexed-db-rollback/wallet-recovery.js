@@ -286,13 +286,37 @@ export async function recoverWalletsFromStorage() {
     const walletIndices = await getWalletIndicesFromStorage()
     console.log('[Wallet Recovery] walletIndices found:', walletIndices);
 
+    // Filter out wallets that already exist in the vault
+    // A wallet exists if the vault entry at that index has a wallet hash
+    const recoverableIndices = walletIndices.filter(index => {
+        const vaultEntry = vault[index]
+        // Skip if vault entry doesn't exist or doesn't have a wallet hash
+        if (!vaultEntry || !vaultEntry.wallet) {
+            return true // Needs recovery
+        }
+        // Check if wallet has a BCH wallet hash (indicates it's a real wallet, not just an empty entry)
+        const hasWalletHash = vaultEntry.wallet?.bch?.walletHash || vaultEntry.wallet?.BCH?.walletHash
+        return !hasWalletHash // Only recover if no wallet hash exists
+    })
+
+    console.log('[Wallet Recovery] Recoverable indices (after filtering existing wallets):', recoverableIndices);
+
     // Only recover the last 30 wallet indices
-    if (walletIndices.length > 30) {
-        walletIndices.splice(0, walletIndices.length - 30)
+    if (recoverableIndices.length > 30) {
+        recoverableIndices.splice(0, recoverableIndices.length - 30)
     }
 
-    const lastWalletIndex = Math.max(...walletIndices)
-    const hasRecoverableWallets = vault.length < lastWalletIndex+1 && walletIndices.length > 0
+    if (recoverableIndices.length === 0) {
+        const walletRecoveryV2Done = localStorage.getItem(WALLET_RECOVERY2_FLAG_KEY)
+        if (walletRecoveryV2Done) {
+            Store.commit('global/setWalletsRecovered', true)
+            console.log('[Wallet Recovery] No recoverable wallets found, exiting recovery process.')
+            return
+        }
+    }
+
+    const lastWalletIndex = Math.max(...recoverableIndices, -1)
+    const hasRecoverableWallets = recoverableIndices.length > 0
     console.log('[Wallet Recovery] hasRecoverableWallets:', hasRecoverableWallets);
 
     const walletRecoveryV2Done = localStorage.getItem(WALLET_RECOVERY2_FLAG_KEY)
@@ -306,16 +330,16 @@ export async function recoverWalletsFromStorage() {
     Store.commit('global/setWalletsRecovered', false)
 
     // Await the first wallet only
-    const firstIndex = walletIndices[0]
+    const firstIndex = recoverableIndices[0]
     await recoverWallet(firstIndex, true).catch(error => {
         Store.commit('global/setWalletRecoveryMessage', String(error))
         return Promise.reject(error)
     })
     Store.commit('global/updateWalletIndex', firstIndex)
-    walletIndices.shift()
+    recoverableIndices.shift()
 
     // Start the recovery process for remaining wallets in parallel so it wont block boot
-    const promises = walletIndices.map(index => recoverWallet(index))
+    const promises = recoverableIndices.map(index => recoverWallet(index))
     Promise.all(promises).then(() => {
         Store.commit('global/setWalletsRecovered', true)
         localStorage.setItem(WALLET_RECOVERY2_FLAG_KEY, true)

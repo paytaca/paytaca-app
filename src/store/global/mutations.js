@@ -78,8 +78,13 @@ export function updateVault (state, details) {
       return v.wallet?.bch?.walletHash === details.wallet?.bch?.walletHash
     })
     if (existingIndex !== -1) {
-      // Update existing entry
+      // Update existing entry, but preserve settings if they exist
+      const existingSettings = state.vault[existingIndex].settings
       state.vault[existingIndex] = details
+      // Preserve existing settings if they were set
+      if (existingSettings && Object.keys(existingSettings).length > 0) {
+        state.vault[existingIndex].settings = existingSettings
+      }
     } else {
       // Add new entry
       state.vault.push(details)
@@ -206,6 +211,20 @@ export function saveWalletSetting (state, { key, value }) {
       state.vault[state.walletIndex].settings = getDefaultWalletSettings()
     }
     state.vault[state.walletIndex].settings[key] = value
+  }
+}
+
+/**
+ * Update all settings for a wallet at a specific index
+ * Used during wallet creation to preserve settings set during onboarding
+ */
+export function updateWalletSettings (state, { index, settings }) {
+  if (state.vault && state.vault[index]) {
+    if (!state.vault[index].settings) {
+      state.vault[index].settings = getDefaultWalletSettings()
+    }
+    // Merge provided settings into existing settings
+    Object.assign(state.vault[index].settings, settings)
   }
 }
 

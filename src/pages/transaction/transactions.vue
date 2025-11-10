@@ -369,6 +369,49 @@ export default {
 	methods: {
 		parseAssetDenomination,
 		getDarkModeClass,
+		serializeTransaction (tx) {
+			if (!tx) return null
+			
+			// Create a serializable copy of the transaction
+			// Remove functions, circular references, and non-serializable objects
+			try {
+				const serialized = JSON.parse(JSON.stringify(tx, (key, value) => {
+					// Skip functions
+					if (typeof value === 'function') {
+						return undefined
+					}
+					// Skip symbols
+					if (typeof value === 'symbol') {
+						return undefined
+					}
+					// Convert BigNumber-like objects to strings if they have toString
+					if (value && typeof value === 'object' && 'toString' in value && typeof value.toString === 'function') {
+						try {
+							return value.toString()
+						} catch (e) {
+							return undefined
+						}
+					}
+					return value
+				}))
+				return serialized
+			} catch (error) {
+				console.error('Error serializing transaction:', error)
+				// Fallback: return only essential properties
+				return {
+					txid: tx.txid || tx.tx_hash || tx.hash,
+					asset: tx.asset,
+					record_type: tx.record_type,
+					amount: tx.amount,
+					date_created: tx.date_created,
+					block: tx.block,
+					from: tx.from,
+					to: tx.to,
+					senders: tx.senders,
+					recipients: tx.recipients
+				}
+			}
+		},
 		calculateTransactionRowHeight() {
 			this.$nextTick(() => {
 				try {
@@ -570,12 +613,15 @@ export default {
 	        }
 	        return {}
 	      })()
-	      vm.$router.push({
-	        name: 'transaction-detail',
-	        params: { txid },
-	        query,
-	        state: { tx: transaction }
-	      })
+      // Serialize transaction object to avoid DataCloneError
+      const serializedTx = vm.serializeTransaction(transaction)
+
+      vm.$router.push({
+        name: 'transaction-detail',
+        params: { txid },
+        query,
+        state: { tx: serializedTx }
+      })
 	    },
 	    hideAssetInfo () {
 	      try {

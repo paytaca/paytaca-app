@@ -341,9 +341,9 @@
     <TokenSuggestionsDialog
       ref="tokenSuggestionsDialog"
       v-model="showTokenSuggestionsDialog"
-      :bch-wallet-hash="getWallet('bch').walletHash"
-      :slp-wallet-hash="getWallet('slp').walletHash"
-      :sbch-address="getWallet('sbch').lastAddress"
+      :bch-wallet-hash="getWallet('bch')?.walletHash || ''"
+      :slp-wallet-hash="getWallet('slp')?.walletHash || ''"
+      :sbch-address="getWallet('sbch')?.lastAddress || ''"
     />
   </q-pull-to-refresh>
 </template>
@@ -761,6 +761,49 @@ export default {
     parseFiatCurrency,
     getDarkModeClass,
     isHongKong,
+    serializeTransaction (tx) {
+      if (!tx) return null
+      
+      // Create a serializable copy of the transaction
+      // Remove functions, circular references, and non-serializable objects
+      try {
+        const serialized = JSON.parse(JSON.stringify(tx, (key, value) => {
+          // Skip functions
+          if (typeof value === 'function') {
+            return undefined
+          }
+          // Skip symbols
+          if (typeof value === 'symbol') {
+            return undefined
+          }
+          // Convert BigNumber-like objects to strings if they have toString
+          if (value && typeof value === 'object' && 'toString' in value && typeof value.toString === 'function') {
+            try {
+              return value.toString()
+            } catch (e) {
+              return undefined
+            }
+          }
+          return value
+        }))
+        return serialized
+      } catch (error) {
+        console.error('Error serializing transaction:', error)
+        // Fallback: return only essential properties
+        return {
+          txid: tx.txid || tx.tx_hash || tx.hash,
+          asset: tx.asset,
+          record_type: tx.record_type,
+          amount: tx.amount,
+          date_created: tx.date_created,
+          block: tx.block,
+          from: tx.from,
+          to: tx.to,
+          senders: tx.senders,
+          recipients: tx.recipients
+        }
+      }
+    },
     onBalanceModeChange (value) {
       // Save to localStorage for persistence
       localStorage.setItem('bchBalanceMode', value)
@@ -1248,7 +1291,21 @@ export default {
     },
 
     getWallet (type) {
-      return this.$store.getters['global/getWallet'](type)
+      const wallet = this.$store.getters['global/getWallet'](type)
+      // Return wallet if it exists, otherwise return a safe default object
+      if (!wallet) {
+        // Return a minimal wallet object to prevent errors
+        return {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          subscribed: false
+        }
+      }
+      return wallet
     },
 
     async checkMissingAssets (opts = { autoOpen: false }) {
@@ -1548,11 +1605,14 @@ export default {
         transaction.asset = asset
       }
 
+      // Serialize transaction object to avoid DataCloneError
+      const serializedTx = this.serializeTransaction(transaction)
+
       this.$router.push({
         name: 'transaction-detail',
         params: { txid },
         query,
-        state: { tx: transaction }
+        state: { tx: serializedTx }
       })
     },
     async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
@@ -1852,98 +1912,128 @@ export default {
 
   },
   async mounted () {
-    const vm = this
-    let walletLoadPromise
-    if (navigator.onLine) {
-      walletLoadPromise = vm.onConnectivityChange(true)
-    } else {
-      walletLoadPromise = vm.loadWallets()
-    }
-    await Promise.race([ asyncSleep(500), walletLoadPromise ])
-
-    this.checkVersionUpdate()
-      .catch(error => {
-        console.error('Error checking version update:', error)
-        return false
-      })
-      .then(updatePromptShown => {
-        if (updatePromptShown) return true
-        this.checkSecurityPreferenceSetup()
-      })
-
-    // Only handle notifications that were just received
-    const openedNotification = this.$store.getters['notification/openedNotification']
-    if (openedNotification?.id) {
-      this.handleOpenedNotification()
-    }
-
     try {
-      await Promise.all([
-        this.checkCashinAvailable(),
-        this.setupCashinWebSocket(),
-        this.resetCashinOrderPagination(),
-        this.checkCashinAlert(),
-      ])
-    } catch(error) {
-      console.error(error)
-    }
-
-    // refactored to fetch tokens in batch by 3 instead of all at once
-    const assets = vm.$store.getters['assets/getAssets']
-    for (var i = 0; i < assets.length; i = i + 3) {
-      const chunk = assets.slice(i, i + 3).map(a => {
-        return vm.$store.dispatch('assets/getAssetMetadata', a.id)
-      })
-      await Promise.allSettled(chunk)
-    }
-
-    // check if newly-received token is already stored in vuex store,
-    // if not, then add it to the very first of the list
-    const tokens = vm.selectedNetwork === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
-    const walletIndex = vm.$store.getters['global/getWalletIndex']
-    const vaultRemovedAssetIds = vm.$store.getters['assets/getRemovedAssetIds'][walletIndex].removedAssetIds ?? []
-
-    if (tokens.length > 0) {
-      const assetsId = assets.map(a => a.id)
-      const newTokens = tokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
-
-      newTokens.forEach(token => {
-        vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, token)
-        vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
-      })
-    }
-
-    // Load favorite token IDs first
-    await vm.loadFavoriteTokenIds()
-
-    // Fetch prices for all favorite tokens + BCH using unified API
-    // Only show loading if price is not already available
-    const existingBchPrice = vm.$store.getters['market/getAssetPrice']('bch', vm.selectedMarketCurrency)
-    if (!existingBchPrice) {
-      vm.loadingBchPrice = true
-    }
-    vm.refreshFavoriteTokenPrices()
-      .then(() => {
-        vm.loadingBchPrice = false
-      })
-      .catch(() => {
-        vm.loadingBchPrice = false
-      })
-    vm.computeWalletYield()
-
-    // add unapplied unlisted token
-    vm.checkUnappliedUnlistedTokens()
-    
-    // Set loading to false after initial mount operations complete
-    // If assets exist, the watcher will handle it, otherwise set it after a delay
-    this.$nextTick(() => {
-      if (this.assets.length === 0) {
-        // If no assets, still mark as loaded after a brief delay
-        setTimeout(() => {
-          this.isLoadingAssets = false
-        }, 500)
+      const vm = this
+      let walletLoadPromise
+      if (navigator.onLine) {
+        walletLoadPromise = vm.onConnectivityChange(true)
+      } else {
+        walletLoadPromise = vm.loadWallets()
       }
-    })
+      await Promise.race([ asyncSleep(500), walletLoadPromise ])
+
+      this.checkVersionUpdate()
+        .catch(error => {
+          console.error('Error checking version update:', error)
+          return false
+        })
+        .then(updatePromptShown => {
+          if (updatePromptShown) return true
+          this.checkSecurityPreferenceSetup()
+        })
+
+      // Only handle notifications that were just received
+      const openedNotification = this.$store.getters['notification/openedNotification']
+      if (openedNotification?.id) {
+        this.handleOpenedNotification()
+      }
+
+      try {
+        await Promise.all([
+          this.checkCashinAvailable(),
+          this.setupCashinWebSocket(),
+          this.resetCashinOrderPagination(),
+          this.checkCashinAlert(),
+        ])
+      } catch(error) {
+        console.error('Error in cashin operations:', error)
+      }
+
+      // refactored to fetch tokens in batch by 3 instead of all at once
+      const assets = vm.$store.getters['assets/getAssets'] || []
+      for (var i = 0; i < assets.length; i = i + 3) {
+        const chunk = assets.slice(i, i + 3).map(a => {
+          return vm.$store.dispatch('assets/getAssetMetadata', a.id)
+        })
+        await Promise.allSettled(chunk)
+      }
+
+      // check if newly-received token is already stored in vuex store,
+      // if not, then add it to the very first of the list
+      try {
+        const tokens = vm.selectedNetwork === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        const removedAssetIdsGetter = vm.$store.getters['assets/getRemovedAssetIds']
+        const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+
+        if (tokens && tokens.length > 0) {
+          const assetsId = assets.map(a => a.id)
+          const newTokens = tokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
+
+          newTokens.forEach(token => {
+            vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, token)
+            vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+          })
+        }
+      } catch (error) {
+        console.error('Error loading tokens:', error)
+      }
+
+      // Load favorite token IDs first
+      try {
+        await vm.loadFavoriteTokenIds()
+      } catch (error) {
+        console.error('Error loading favorite token IDs:', error)
+      }
+
+      // Fetch prices for all favorite tokens + BCH using unified API
+      // Only show loading if price is not already available
+      try {
+        const existingBchPrice = vm.$store.getters['market/getAssetPrice']('bch', vm.selectedMarketCurrency)
+        if (!existingBchPrice) {
+          vm.loadingBchPrice = true
+        }
+        vm.refreshFavoriteTokenPrices()
+          .then(() => {
+            vm.loadingBchPrice = false
+          })
+          .catch(() => {
+            vm.loadingBchPrice = false
+          })
+      } catch (error) {
+        console.error('Error refreshing token prices:', error)
+        vm.loadingBchPrice = false
+      }
+
+      try {
+        vm.computeWalletYield()
+      } catch (error) {
+        console.error('Error computing wallet yield:', error)
+      }
+
+      // add unapplied unlisted token
+      try {
+        vm.checkUnappliedUnlistedTokens()
+      } catch (error) {
+        console.error('Error checking unapplied unlisted tokens:', error)
+      }
+      
+      // Set loading to false after initial mount operations complete
+      // If assets exist, the watcher will handle it, otherwise set it after a delay
+      this.$nextTick(() => {
+        if (this.assets.length === 0) {
+          // If no assets, still mark as loaded after a brief delay
+          setTimeout(() => {
+            this.isLoadingAssets = false
+          }, 500)
+        }
+      })
+    } catch (error) {
+      console.error('Error in mounted hook:', error)
+      // Ensure loading state is reset even on error
+      this.isLoadingAssets = false
+      this.loadingBchPrice = false
+    }
   },
 }
 </script>

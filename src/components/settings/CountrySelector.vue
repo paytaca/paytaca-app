@@ -55,8 +55,12 @@ export default {
         if (currency.length !== 0) {
           currency = currency[0]
           vm.$store.commit('market/updateSelectedCurrency', currency)
-          vm.$store.dispatch('global/saveWalletPreferences')
         }
+        
+        // Persist preferences to backend if wallet hash exists
+        vm.$store.dispatch('global/saveWalletPreferences').catch(() => {
+          // Silently fail if wallet hash doesn't exist yet (e.g., during registration)
+        })
       })
     }
   }
