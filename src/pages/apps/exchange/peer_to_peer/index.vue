@@ -38,6 +38,7 @@ export default {
       reconnectWebsocket: true,
       showNoticeBoard: false,
       noticeBoardMessage: null,
+      noticeBoardType: null,
       forceLogin: false,
       wallet: null
     }
@@ -90,7 +91,7 @@ export default {
     this.setupWebsocket()
   },
   beforeUnmount () {    
-    this.$q.loading.hide()    
+    // Removed loading.hide() since loading gif is no longer used
   },
   methods: {
     async loadWallet () {
@@ -140,7 +141,9 @@ export default {
       }
     },
     updateUnreadCount (count) {
-      this.footerData.unreadOrdersCount = count
+      if (this.footerData) {
+        this.footerData.unreadOrdersCount = count
+      }
     },
     handleNewOrder (order) {
       const currency = this.$store.getters['ramp/ordersCurrency']
@@ -164,19 +167,14 @@ export default {
       }
       // NB: this does not filter by payment types
       if (addToList) {
-        if (order.is_cash_in) {
-          const cashinOrders = [...this.$store.getters['ramp/getCashinOrders']]
-          cashinOrders.unshift(order)
-          this.$store.commit('ramp/updateCashinOrders', { overwrite: true, data: { orders: cashinOrders } })
+        // All orders (including cash-in) now go into the main orders list
+        const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
+        if (filters.sort_type === 'descending') {
+          ongoingOrders.unshift(order)
         } else {
-          const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
-          if (filters.sort_type === 'descending') {
-            ongoingOrders.unshift(order)
-          } else {
-            ongoingOrders.push(order)
-          }
-          this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
+          ongoingOrders.push(order)
         }
+        this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
       }
     },
     setupWebsocket () {

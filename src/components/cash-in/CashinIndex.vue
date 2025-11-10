@@ -380,9 +380,23 @@ export default {
       this.state = 'cashin-order'
       await this.fetchUser()
       // 2. create order
-      await this.createOrder()
+      const orderCreated = await this.createOrder()
       this.loading = false
-      if (nextStep) this.step++
+      
+      // 3. redirect to P2P Exchange order page if order was created successfully
+      if (orderCreated && this.orderId) {
+        console.log('Order created successfully with ID:', this.orderId)
+        const orderId = this.orderId
+        // Close the dialog first
+        this.$refs.dialog.hide()
+        // Wait for dialog to close, then emit navigation event
+        setTimeout(() => {
+          console.log('Emitting cashin-order-created event with orderId:', orderId)
+          bus.emit('cashin-order-created', { orderId: orderId })
+        }, 300)
+      } else if (nextStep) {
+        this.step++
+      }
     },
     updateSelectedCurrency (currency) {
       this.selectedCurrency = currency
@@ -444,11 +458,14 @@ export default {
         })
     },
     async createOrder () {
-      if (!this.orderPayload) return
+      if (!this.orderPayload) return false
       const vm = this
       try {
         const response = await backend.post('/ramp-p2p/order/', this.orderPayload, { authorize: true })
-        vm.orderId = response.data.order?.id
+        vm.orderId = response.data.order?.id || response.data.id
+        console.log('Order created with ID:', vm.orderId)
+        console.log('Full response:', response.data)
+        return true // Order created successfully
       } catch (error) {
         console.error(error.response || error)
         if (error.response) {
@@ -465,6 +482,7 @@ export default {
           console.error(error)
           this.dislayNetworkError()
         }
+        return false // Order creation failed
       }
     },
     async sendConfirmPayment (retries = 1) {

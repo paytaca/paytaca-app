@@ -15,8 +15,8 @@
       </q-card-section>
 
       <q-img
-        fit="fill"
-        width="75"
+        fit="contain"
+        style="width: 100%; max-height: 400px;"
         :src="imageUrl"
         @error="() => onNftImageError()"
       >
@@ -69,8 +69,7 @@
           <div class="row items-start q-gutter-x-xs">
             <div class="q-mb-sm" style="flex-grow:0.5;">
               <div class="text-caption text-grey">{{ $t('Name') }}</div>
-              <div v-if="nft?.parsedMetadata?.name" style="word-break: break-all;">{{ nft?.parsedMetadata?.name }}</div>
-              <div v-else class="text-grey">---</div>
+              <div style="word-break: break-all;">{{ nft?.parsedMetadata?.name || fallbackName }}</div>
             </div>
             <div v-if="nft?.parsedMetadata?.symbol" class="q-mb-sm">
               <div class="text-caption text-grey">{{ $t('Symbol') }}</div>
@@ -170,11 +169,11 @@
 </template>
 <script setup>
 import 'vue-json-pretty/lib/styles.css';
-import { ellipsisText } from "src/wallet/anyhedge/formatters";
 import { useQuasar } from 'quasar';
 import { useStore } from 'vuex';
 import { computed, inject, ref, watch, onMounted } from "vue";
 import VueJsonPretty from 'vue-json-pretty'
+import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -221,10 +220,11 @@ watch(innerVal, () => {
 const tab = ref('details')
 
 const fallbackName = computed(() => {
-  return [
-    ellipsisText(props?.nft?.category, {start: 0, end: 10}),
-    props?.nft?.commitment,
-  ].join(':')
+  const category = props?.nft?.category
+  if (category && category.length > 15) {
+    return `${category.substring(0, 6)}...${category.substring(category.length - 6)}`
+  }
+  return category || 'Unknown NFT'
 })
 
 const transactionUrl = computed(() => `https://3xpl.com/bitcoin-cash/transaction/${props.nft?.currentTxid}/`)
@@ -240,7 +240,7 @@ const imageUrl = computed(() => {
       return imgUrl
     }
   }
-  return $store.getters['global/getDefaultAssetLogo']?.(`${props.nft?.category}|${props.nft?.commitment}`)
+  return noImage
 })
 
 function onNftImageError() {

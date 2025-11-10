@@ -48,7 +48,7 @@
               <template v-slot="{ item: token, index }">
                 <q-item clickable @click="onOKClick(token)">
                   <q-item-section avatar>
-                    <img v-if="token.image_url" :src="token.image_url" height="30" class="q-mr-xs" alt="">
+                    <img v-if="token.image_url" :src="getImageUrl(token)" height="30" class="q-mr-xs" alt="">
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>{{ token.symbol }}</q-item-label>
@@ -99,7 +99,7 @@
               @click="onOKClick(Object.assign({ customToken: true }, customToken.info))"
             >
               <q-item-section avatar>
-                <img v-if="customToken.info.image_url" :src="customToken.info.image_url" height="30" class="q-mr-xs" alt="">
+                <img v-if="customToken.info.image_url" :src="getImageUrl(customToken.info)" height="30" class="q-mr-xs" alt="">
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ customToken.info.symbol }}</q-item-label>
@@ -225,6 +225,16 @@ export default {
   methods: {
     isHongKong,
     getDarkModeClass,
+    getImageUrl (token) {
+      if (token?.image_url) {
+        if (token.image_url.startsWith('https://ipfs.paytaca.com/ipfs')) {
+          return token.image_url + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+        } else {
+          return token.image_url
+        }
+      }
+      return ''
+    },
     formatNumber (value = 0, decimals = 6) {
       return Number(value.toPrecision(decimals))
     },

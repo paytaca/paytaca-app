@@ -46,10 +46,6 @@ export function autoGenerateAddress(state) {
   return state.autoGenerateAddress
 }
 
-export function showTokens (state) {
-  return state.showTokens
-}
-
 export function enableStablhedge (state) {
   return state.enableStablhedge
 }

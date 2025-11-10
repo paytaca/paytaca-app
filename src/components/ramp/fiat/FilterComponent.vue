@@ -52,7 +52,7 @@ export default {
         order_amount_currency: null
       },
       defaultOngoingOrderFilters: {
-        sort_type: 'ascending',
+        sort_type: 'descending',
         sort_by: 'created_at',
         status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
         appealable: true,
@@ -157,6 +157,14 @@ export default {
       }
 
       vm.filters = JSON.parse(JSON.stringify(savedFilters))
+      
+      // Migration: Update old ongoing filters to new default (descending/newest first)
+      if (vm.type === 'order' && vm.transactionType === 'ONGOING' && vm.filters.sort_type === 'ascending') {
+        vm.filters.sort_type = 'descending'
+        // Update the store with the new sort order
+        vm.$store.commit('ramp/updateOngoingOrderFilters', { filter: vm.filters, currency: this.currency || 'All' })
+      }
+      
       vm.defaultFiltersOn = vm.updateDefaultFiltersFlag()
     },
     updateDefaultFiltersFlag () {

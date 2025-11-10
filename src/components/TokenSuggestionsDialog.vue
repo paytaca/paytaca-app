@@ -16,23 +16,6 @@
         />
       </div>
 
-      <q-btn
-        v-if="!loading"
-        :label="$t(isHongKong(currentCountry) ? 'ViewIgnoredPoints' : 'ViewIgnoredTokens')"
-        no-caps
-        flat
-        padding="none"
-        size="sm"
-        icon="mdi-eye"
-        class="q-mx-md button button-text-primary"
-        :text-color="darkMode ? 'blue-5' : 'blue-9'"
-        :class="getDarkModeClass(darkMode)"
-        style="margin-top:-1.5rem;"
-        :to="{
-          path: '/apps/settings/ignored-tokens',
-          query: { backNavPath: '/' }
-        }"
-      />
       <q-card-section class="q-pt-none q-px-sm">
         <template v-if="!loading && (parsedMainchainTokens.length || parsedSmartchainTokens.length)">
           <q-tabs

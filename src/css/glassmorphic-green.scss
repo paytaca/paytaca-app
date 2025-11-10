@@ -416,16 +416,6 @@ body.theme-glassmorphic-green {
     color: #43a047;
   }
 
-  .ignored-tokens-button {
-    &.dark {
-      background: #43a047 !important;
-    }
-
-    &.light {
-      background-color: white !important;
-    }
-  }
-
   .transaction-container, .points-earned-div {
     &.dark {
       background-color: rgba(38, 61, 50, 0.6);

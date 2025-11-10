@@ -10,7 +10,11 @@
         <q-space/>
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
-      <q-img :src="imageUrl" fit="fill" width="75"></q-img>
+      <q-img 
+        :src="imageUrl || noImage" 
+        fit="contain" 
+        style="width: 100%; max-height: 400px;"
+      />
       <q-card-section v-if="collectibleAttributes.length">
         <div class="text-subtitle1">{{ $t('Properties') }}</div>
         <q-separator/>
@@ -39,6 +43,7 @@
 <script>
 import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import noImage from 'src/assets/no-image.svg'
 
 export default {
   name: 'ERC721CollectibleDetail',
@@ -52,7 +57,8 @@ export default {
   },
   data () {
     return {
-      val: this.modelValue
+      val: this.modelValue,
+      noImage
     }
   },
   computed: {

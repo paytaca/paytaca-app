@@ -1,12 +1,5 @@
 <template>
   <div>
-    <q-dialog v-model="loadingApp" persistent>
-      <div class="q-pa-md text-center">
-        <q-spinner size="1.5em" class="q-mb-sm"/>
-        <div class="text-subtitle">Loading app</div>
-        <div v-if="loadAppMsg" class="text-subtitle">{{ loadAppMsg }}</div>
-      </div>
-    </q-dialog>
     <router-view v-slot="{ Component }">
       <keep-alive>
         <component :is="Component" v-bind="{ cartDialog: { value: showCartsDialog, toggle: toggleShowCartsDialog, cart: activeStorefrontCart } }"/>

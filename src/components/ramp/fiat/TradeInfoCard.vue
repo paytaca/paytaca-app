@@ -1,5 +1,5 @@
 <template>
-  <q-card flat bordered :dark="darkMode" class="text-bow br-15">
+  <q-card flat bordered :dark="darkMode" class="text-bow br-15 q-mt-md">
     <q-card-section bordered class="pt-card" :class="getDarkModeClass(darkMode)" style="overflow-x: auto;">
       <div v-if="type !== 'appeal'">
         <div class="xs-font-size">{{ tradeTypeLabel() }}</div>
@@ -37,11 +37,6 @@
                 <div v-if="!counterparty?.last_online_at" class="row xs-font-size text-grey">
                   Offline for a long time
                 </div>
-            </div>
-            <div v-if="type === 'order'" class="col-auto q-mx-sm">
-                <q-btn size="1.2em" padding="none" dense ripple round flat class="button button-icon" icon="forum" @click="onViewChat">
-                  <q-badge v-show="unread" floating color="red" rounded>{{ unread }}</q-badge>
-                </q-btn>
             </div>
         </div>
       </div>
@@ -141,21 +136,16 @@
                 <span class="sm-font-size q-ml-xs">/BCH </span>
               </div>
               <div v-if="type === 'order'">
-                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
-                  {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}{{ tradeAmount }}
-                </span>
-                <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
-              </div>
-              <div v-if="type === 'order'" class="row q-mt-none">
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat">
-                  {{
-                    $t(
-                      'ViewAmountInCurrency',
-                      { currency: byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol },
-                      `View amount in ${ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }`
-                    )
-                  }}
-                </q-btn>
+                <div class="xs-font-size q-mb-sm">{{ $t('AMOUNT', {}, 'AMOUNT') }}</div>
+                <div>
+                  <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ tradeAmountBCH }}
+                  </span>
+                  <span class="sm-font-size q-ml-xs">BCH</span>
+                </div>
+                <div class="md-font-size text-grey" style="margin-top: 2px;">
+                  {{ order?.ad?.fiat_currency?.symbol }} {{ tradeAmountFiat }}
+                </div>
               </div>
             </div>
             <q-space/>
@@ -166,26 +156,17 @@
         <div v-else>
           <div class="row no-wrap justify-between">
             <div class="col-auto">
-              <div class="row xs-font-size">{{ $t('TradeAmount') }}</div>
+              <div class="row xs-font-size q-mb-sm">{{ $t('TradeAmount') }}</div>
               <div class="q-mb-none">
-                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label">
-                  {{ byFiat ? `${order?.ad?.fiat_currency?.symbol} ` : '' }}
-                </span>
-                <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
-                    {{ tradeAmount }}
-                </span>
-                <span class="sm-font-size q-ml-xs">{{ byFiat ? '' : 'BCH' }}</span>
-              </div>
-              <div class="row q-mt-none">
-                <q-btn style="font-size: smaller;" padding="none" flat no-caps color="primary" @click="byFiat = !byFiat">
-                  {{
-                    $t(
-                      'ViewAmountInCurrency',
-                      { currency: byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol },
-                      `View amount in ${ byFiat ? 'BCH' : order?.ad?.fiat_currency?.symbol }`
-                    )
-                  }}
-                </q-btn>
+                <div>
+                  <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ tradeAmountBCH }}
+                  </span>
+                  <span class="sm-font-size q-ml-xs">BCH</span>
+                </div>
+                <div class="md-font-size text-grey" style="margin-top: 2px;">
+                  {{ order?.ad?.fiat_currency?.symbol }} {{ tradeAmountFiat }}
+                </div>
               </div>
             </div>
             <div class="col-auto q-ml-md q-mr-sm text-right">
@@ -211,20 +192,15 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bchToFiat, formatCurrency, formatDate, satoshiToBch } from 'src/exchange'
-import { generateChatRef, fetchChatMembers } from 'src/exchange/chat'
-import { bus } from 'src/wallet/event-bus'
 
 export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      websocket: null,
-      byFiat: false,
-      chatRef: '',
-      unread: 0
+      websocket: null
     }
   },
-  emits: ['view-ad', 'view-peer', 'view-reviews', 'view-chat'],
+  emits: ['view-ad', 'view-peer', 'view-reviews'],
   props: {
     order: Object,
     ad: Object,
@@ -233,11 +209,7 @@ export default {
       default: 'ad'
     }
   },
-  created () {
-    bus.on('last-read-update', this.onLastReadUpdate)
-  },
   async mounted () {
-    this.loadChatInfo()
   },
   computed: {
     orderOwner () {
@@ -255,13 +227,12 @@ export default {
     userInfo () {
       return this.$store.getters['ramp/getUser']
     },
-    tradeAmount () {
-      let amount = 0
-      if (this.byFiat) {
-        amount = formatCurrency(bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price), this.order?.fiat_currency?.symbol)
-      } else {
-        amount = satoshiToBch(this.order?.trade_amount)
-      }
+    tradeAmountBCH () {
+      const amount = satoshiToBch(this.order?.trade_amount)
+      return String(amount).replace(/[^\d.,-]/g, '')
+    },
+    tradeAmountFiat () {
+      const amount = formatCurrency(bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price), this.order?.fiat_currency?.symbol)
       return String(amount).replace(/[^\d.,-]/g, '')
     },
     counterparty () {
@@ -287,9 +258,6 @@ export default {
       const diffInHours = diffInMilliseconds / (1000 * 60 * 60)
       return diffInHours
     },
-    onLastReadUpdate () {
-      this.fetchChatUnread(this.chatRef)
-    },
     tradeTypeLabel () {
       const order = this.order
       if (!order) return this.$t('TradingWith')
@@ -308,25 +276,6 @@ export default {
           }
       }
     },
-    async loadChatInfo () {
-      const vm = this
-      if (vm.order) {
-        const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-        vm.chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
-        vm.fetchChatUnread(vm.chatRef)
-      }
-    },
-    async fetchChatUnread (chatRef) {
-      const user = this.$store.getters['ramp/getUser']
-      await fetchChatMembers(chatRef).then(response => {
-        const userMember = response?.filter(member => {
-          return user?.chat_identity_id === member?.chat_identity?.id
-        })[0]
-        this.unread = userMember?.unread_count || 0
-      }).catch(error => {
-        console.error(error?.response || error)
-      })
-    },
     onViewAd () {
       this.$emit('view-ad')
     },
@@ -335,9 +284,6 @@ export default {
     },
     onViewReviews () {
       this.$emit('view-reviews')
-    },
-    onViewChat () {
-      this.$emit('view-chat')
     }
   }
 }

@@ -129,10 +129,6 @@ export function toggleAutoGenerateAddress (state) {
   state.autoGenerateAddress = !state.autoGenerateAddress
 }
 
-export function showTokens (state) {
-  state.showTokens = !state.showTokens
-}
-
 export function enableStablhedge(state, value) {
   value = value === undefined ? !state.enableStablhedge : Boolean(value)
   state.enableStablhedge = value

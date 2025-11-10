@@ -21,7 +21,7 @@ export async function fetchCustomList ()  {
 			console.error(error.response)
 			if (error.response) {
 				if (error.response.status === 404) {
-					customList = error.response.data
+					customList = ['error']
 				}					
 			}			
 		})

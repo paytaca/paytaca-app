@@ -55,101 +55,51 @@
         :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
         <button
           class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'ONGOING'}"
+          :class="ongoingButtonClass"
+          :style="statusType === 'ONGOING' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
           @click="statusType='ONGOING'">
           {{ $t('Ongoing') }}
         </button>
         <button
           class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-          :class="{'dark': darkMode, 'active-transaction-btn': statusType == 'COMPLETED'}"
+          :class="completedButtonClass"
+          :style="statusType === 'COMPLETED' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
           @click="statusType='COMPLETED'">
           {{ $t('Completed') }}
         </button>
       </div>
     </q-pull-to-refresh>
     <div class="q-mt-sm">
-      <div v-if="listings.length == 0 && cashinOrders.length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="localListings.length == 0" class="relative text-center" style="margin-top: 50px;">
         <div v-if="displayEmptyList">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
         </div>
         <div v-else>
-          <div class="row justify-center" v-if="loading">
-            <q-spinner-dots color="primary" size="40px" />
+          <!-- Skeleton loader for empty list -->
+          <div v-if="loading" class="q-px-md">
+            <div v-for="n in 3" :key="n" class="skeleton-order-card q-mb-md" :class="getDarkModeClass(darkMode)">
+              <div class="row q-pa-md">
+                <div class="col">
+                  <q-skeleton type="text" width="40%" height="16px" class="q-mb-sm" />
+                  <q-skeleton type="text" width="30%" height="12px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="50%" height="18px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="35%" height="20px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="25%" height="14px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="30%" height="12px" />
+                </div>
+                <div class="col-auto text-right">
+                  <q-skeleton type="text" width="60px" height="14px" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div v-else class="q-mb-none">
-        <div class="row justify-center" v-if="loading">
-          <q-spinner-dots color="primary" size="40px" />
-        </div>
         <q-pull-to-refresh @refresh="refreshData">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <q-card bordered flat v-if="showCashInList" class="q-mx-xs q-my-xs text-bow" :class="getDarkModeClass(darkMode)">
-              <div v-for="(listing, index) in cashinOrders" :key="index">
-                <q-item clickable @click="selectOrder(listing)">
-                  <q-item-section>
-                    <div class="q-pt-sm q-pb-sm" :style="index < cashinOrders.length-1 ? darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7' : ''">
-                      <div class="row q-mx-md">
-                        <div class="col ib-text">
-                          <div
-                            class="q-mb-none pt-label sm-font-size"
-                            :class="getDarkModeClass(darkMode)">
-                            {{
-                              $t(
-                                'OrderIdNo',
-                                { ID: listing?.id },
-                                `ORDER #${ listing?.id }`
-                              )
-                            }}
-                            <q-badge v-if="listing.is_cash_in" class="q-mr-xs text-weight-bold" outline rounded size="sm" color="warning" label="Cash In" />
-                            <q-badge v-if="!listing.read_at" outline rounded size="sm" color="red" label="New"/>
-                          </div>
-                          <div class="pt-label text-weight-bold" style="font-size: x-small; opacity: .7;">{{ tradeTypeLabel(listing) }}</div>
-                          <span
-                            class=" pt-label md-font-size text-weight-bold"
-                            :class="getDarkModeClass(darkMode)">
-                            {{ userNameView(counterparty(listing)) }}
-                          </span>
-                          <div
-                            class="col-transaction text-uppercase pt-label lg-font-size"
-                            :class="[getDarkModeClass(darkMode), amountColor(listing)]">
-                            {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.price, satoshiToBch(listing.trade_amount)), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
-                          </div>
-                          <div class="sm-font-size">
-                            {{ formatCurrency(satoshiToBch(listing.trade_amount)) }} BCH</div>
-                          <div v-if="listing.created_at" class="sm-font-size subtext">{{ formatDate(listing.created_at, true) }}</div>
-                        </div>
-                        <div class="text-right">
-                          <div
-                            v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
-                            class="text-weight-bold subtext sm-font-size text-blue">
-                            {{ $t('Appealable') }}
-                          </div>
-                          <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
-                            <q-rating
-                              readonly
-                              :model-value = "listing?.feedback?.rating || 0"
-                              size="1em"
-                              color="yellow-9"
-                              icon="star"
-                            />
-                          </div>
-                          <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
-                            {{ listing.status?.label }}
-                          </div>
-                          <div class="text-weight-bold subtext sm-font-size" v-else>
-                            {{ listing.status?.label }}
-                          </div>
-                          <!-- <q-icon color="blue-5" class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="notifications_active"/> -->
-                        </div>
-                      </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </div>
-            </q-card>
-            <div v-for="(listing, index) in listings" :key="index">
+            <div v-for="(listing, index) in localListings" :key="index">
               <q-item clickable @click="selectOrder(listing)">
                 <q-item-section>
                   <div class="q-pt-sm q-pb-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
@@ -264,7 +214,8 @@ export default {
       notifType: null,
       loadingMoreData: false,
       displayEmptyList: false,
-      ongoingSearch: false
+      ongoingSearch: false,
+      localListings: []
     }
   },
   watch: {
@@ -285,6 +236,23 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    ongoingButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.statusType === 'ONGOING',
+        [`theme-${this.theme}`]: true
+      }
+    },
+    completedButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.statusType === 'COMPLETED',
+        [`theme-${this.theme}`]: true
+      }
+    },
     minHeight () {
       return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
     },
@@ -304,9 +272,6 @@ export default {
     completedOrders () {
       return this.$store.getters['ramp/getCompletedOrders']
     },
-    cashinOrders () {
-      return this.$store.getters['ramp/getCashinOrders']
-    },
     hasMoreData () {
       const vm = this
       vm.updatePaginationValues()
@@ -314,9 +279,6 @@ export default {
     },
     userInfo () {
       return this.$store.getters['ramp/getUser']
-    },
-    showCashInList () {
-      return this.statusType === 'ONGOING' && this.cashinOrders?.length > 0 && !this.ongoingSearch
     }
   },
   async mounted () {
@@ -348,6 +310,15 @@ export default {
     getDarkModeClass,
     formatDate,
     formatCurrency,
+    getThemeColor () {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
     tradeTypeLabel (order) {
       switch (order.trade_type) {
         case 'BUY':
@@ -468,22 +439,6 @@ export default {
           this.handleRequestError(error)
         })
     },
-    async fetchCashinOrders (overwrite = false) {
-      const vm = this
-      const params = {
-        wallet_hash: wallet.walletHash,
-        owned: false
-      }
-      await vm.$store.dispatch('ramp/fetchCashinOrders', { params: params, overwrite: overwrite })
-        .then(response => {
-          // vm.updatePaginationValues()
-          return Promise.resolve(response)
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-          return Promise.reject(error)
-        })
-    },
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
@@ -525,7 +480,17 @@ export default {
       const currency = this.selectedCurrency?.symbol
       vm.$store.commit('ramp/setOrdersCurrency', currency || vm.$t('All'))
       const filters = vm.$store.getters[getterName](currency || vm.$t('All'))
-      if (filters) vm.filters = JSON.parse(JSON.stringify(filters))
+      if (filters) {
+        vm.filters = JSON.parse(JSON.stringify(filters))
+        
+        // Migration: Update old ongoing filters to new default (descending/newest first)
+        if (vm.statusType === 'ONGOING' && vm.filters.sort_type === 'ascending') {
+          vm.filters.sort_type = 'descending'
+          // Update the store with the new sort order
+          const mutationName = 'ramp/updateOngoingOrderFilters'
+          vm.$store.commit(mutationName, { filter: vm.filters, currency: currency || vm.$t('All') })
+        }
+      }
     },
     async loadMoreData () {
       const vm = this
@@ -545,12 +510,34 @@ export default {
     },
     async resetAndRefetchListings () {
       this.$store.commit('ramp/resetOrdersPagination')
-      this.$store.commit('ramp/resetCashinOrdersPagination')
+      
+      // Reset displayEmptyList to show skeleton
+      this.displayEmptyList = false
+      
+      // Clear local listings immediately to show skeleton
+      this.localListings = []
+      
       this.loading = true
-      await this.fetchCashinOrders(true)
+      
+      // Ensure minimum loading time for skeleton visibility
+      const startTime = Date.now()
+      const minLoadingTime = 500 // 500ms minimum
+      
       await this.fetchOrders(true)
+      
+      // Update local listings from store (now includes cash-in orders from backend)
+      this.localListings = [...this.listings]
+      
+      // Calculate remaining time to reach minimum loading time
+      const elapsedTime = Date.now() - startTime
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime)
+      
+      // Wait for remaining time if needed
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime))
+      }
 
-      setTimeout(() =>{
+      setTimeout(() => {
         this.displayEmptyList = true
       }, 150)
 
@@ -679,20 +666,52 @@ export default {
     transition: .2s;
     font-weight: 500;
   }
-  .btn-custom:hover {
+  .btn-custom:not(.active-theme-btn):hover {
     background-color: rgb(242, 243, 252);
     color: #4C4F4F;
   }
-  .btn-custom.active-transaction-btn {
-    background-color: rgb(13,71,161) !important;
-    color: #fff;
-  }
-  .btn-custom.active-sell-btn {
-    background-color: #ed5f59 !important;
+  .btn-custom.dark:not(.active-theme-btn):hover {
+    background-color: rgba(255, 255, 255, 0.1);
     color: #fff;
   }
   .btn-custom.dark {
-    background-color: #1c2833;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Theme-based active button styles */
+  button.btn-custom.fiat-tab.active-theme-btn {
+    color: #fff !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+  
+  /* Dark mode active button */
+  button.btn-custom.fiat-tab.active-theme-btn.dark {
+    color: #fff !important;
+  }
+  
+  /* Active button hover effects - slightly darken */
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
   .col-transaction {
     padding-top: 2px;
@@ -708,5 +727,20 @@ export default {
     width: 70px;
     z-index: 1;
     left: 10px;
+  }
+  
+  /* Skeleton loader styles */
+  .skeleton-order-card {
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
   }
 </style>

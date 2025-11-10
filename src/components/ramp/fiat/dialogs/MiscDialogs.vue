@@ -580,11 +580,11 @@ export default {
       storeFilters: {
         selectedPaymentTypes: [],
         selectedPTL: [15, 30, 45, 60],
-        priceOrder: null,
+        // priceOrder removed - server prioritizes ads by trades and ratings
         priceTypes: ['FIXED', 'FLOATING']
       },
       orderFilters: {
-        sort_type: 'ascending',
+        sort_type: 'descending',
         sort_by: 'created_at',
         status: [],
         payment_types: [],
@@ -781,7 +781,7 @@ export default {
     },
     updateStoreFilters (filters) {
       if (!filters) return
-      this.storeFilters.priceOrder = filters.price_order
+      // priceOrder removed - server handles ordering
       this.storeFilters.priceTypes = filters.price_types
       this.storeFilters.selectedPaymentTypes = filters.payment_types
       this.storeFilters.selectedPTL = filters.time_limits
@@ -1006,9 +1006,8 @@ export default {
           vm.info = vm.data
           return 'submit'
         case 'filterAd':
-          vm.info = {
-            price_order: vm.storeFilters.priceOrder
-          }
+          vm.info = {}
+          // price_order removed - server handles ordering by trades and ratings
           if (vm.storeFilters.selectedPaymentTypes) {
             vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
           }

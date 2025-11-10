@@ -1,31 +1,31 @@
 <template>
   <div
     class="row justify-center fixed-footer"
-    :class="getDarkModeClass()"
-    :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}"
+    :class="[getDarkModeClass(), { 'footer-hidden': isFooterHidden }]"
+    :style="{bottom: $q.platform.is.ios ? '36px' : '16px'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatStore')">
-          <q-icon class="mb-2" :class="isActive('FiatStore') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_storefront"/>
+      <button class="footer-icon-btn" :class="getDarkModeClass()" @click="onSelectMenu('FiatStore')">
+        <q-icon class="mb-2" :class="isActive('FiatStore') ? 'default-text-color' : 'default-text-color'" size="30px" name="sym_o_storefront"/>
+        <br>
         <span>{{ $t('Home') }}</span>
-      </q-btn>
-      <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatAds')">
-          <q-icon class="mb-2" :class="isActive('FiatAds') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_sell"/>
+      </button>
+      <button class="footer-icon-btn" :class="getDarkModeClass()" @click="onSelectMenu('FiatAds')">
+        <q-icon class="mb-2" :class="isActive('FiatAds') ? 'default-text-color' : 'default-text-color'" size="30px" name="sym_o_sell"/>
+        <br>
         <span>{{ $t('Ads') }}</span>
-      </q-btn>
-      <q-btn flat no-caps dense class="footer-icon-btn btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatOrders')">
-        <q-icon class="mb-2" :class="isActive('FiatOrders') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"></q-icon>
+      </button>
+      <button class="footer-icon-btn" :class="getDarkModeClass()" @click="onSelectMenu('FiatOrders')">
+        <q-icon class="mb-2" :class="isActive('FiatOrders') ? 'default-text-color' : 'default-text-color'" size="30px" name="sym_o_receipt_long"></q-icon>
         <q-badge v-if="data?.unreadOrdersCount > 0" rounded color="red" floating>{{ data?.unreadOrdersCount }}</q-badge>
-        <!-- <q-badge class="" rounded color="red" floating>4</q-badge> -->
+        <br>
         <span>{{ $t('Orders') }}</span>
-      </q-btn>
-      <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('FiatProfileCard')">
-          <q-icon class="mb-2" :class="isActive('FiatProfileCard') ? 'default-text-color' : 'inactive-color'" size="30px" name="o_account_circle"/>
+      </button>
+      <button class="footer-icon-btn" :class="getDarkModeClass()" @click="onSelectMenu('FiatProfileCard')">
+        <q-icon class="mb-2" :class="isActive('FiatProfileCard') ? 'default-text-color' : 'default-text-color'" size="30px" name="o_account_circle"/>
+        <br>
         <span>{{ $t('Profile') }}</span>
-      </q-btn>
-      <q-btn flat no-caps dense v-if="$q.platform.is.bex" class="footer-icon-btn q-mr-xs btn-ellipse" @click="expandBex">
-        <i class="footer-icon mdi mdi-launch default-text-color"></i>
-      </q-btn>
+      </button>
     </div>
   </div>
 </template>
@@ -36,7 +36,10 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      activeButton: 'FiatStore'
+      activeButton: 'FiatStore',
+      lastScrollY: 0,
+      isFooterHidden: false,
+      scrollThreshold: 50
     }
   },
   emits: ['clicked'],
@@ -48,6 +51,10 @@ export default {
   },
   mounted () {
     if (this.tab) this.activeButton = this.tab
+    window.addEventListener('scroll', this.handleScroll, { passive: true })
+  },
+  beforeUnmount() {
+    window.removeEventListener('scroll', this.handleScroll)
   },
   methods: {
     expandBex () {
@@ -88,6 +95,40 @@ export default {
     },
     getDarkModeClass (darkModeClass = '', lightModeClass = '') {
       return this.darkMode ? `dark ${darkModeClass}` : `light ${lightModeClass}`
+    },
+    handleScroll () {
+      const currentScrollY = window.scrollY
+      const windowHeight = window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+
+      // If at the top of the page, always show the footer
+      if (currentScrollY <= 10) {
+        this.isFooterHidden = false
+        this.lastScrollY = currentScrollY
+        return
+      }
+
+      // If at the bottom of the page, always hide the footer
+      if (currentScrollY + windowHeight >= documentHeight - 10) {
+        this.isFooterHidden = true
+        this.lastScrollY = currentScrollY
+        return
+      }
+
+      // Only hide/show if scrolled past threshold
+      if (Math.abs(currentScrollY - this.lastScrollY) < this.scrollThreshold) {
+        return
+      }
+
+      if (currentScrollY > this.lastScrollY && currentScrollY > 100) {
+        // Scrolling down - hide footer
+        this.isFooterHidden = true
+      } else if (currentScrollY < this.lastScrollY) {
+        // Scrolling up - show footer
+        this.isFooterHidden = false
+      }
+
+      this.lastScrollY = currentScrollY
     }
   }
 }
@@ -101,37 +142,46 @@ export default {
     position: fixed;
     height: 67px;
     padding-top: 5px;
-    width: 100%;
-    bottom: 0;
-    background-color: #fff;
-    border-top-right-radius: 20px;
-    border-top-left-radius: 20px;
-    box-shadow: 1px -0.5px 2px 1px rgba(99, 103, 103, .1);
+    width: calc(100% - 32px) !important;
+    max-width: 600px;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 6;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 
-    .footer-icon {
-      font-size: 30px !important;
-      color: rgb(60, 100, 246) !important;
-    }
     .footer-icon-btn {
       border-radius: 20px;
       border: none;
-      width: 40px;
+      width: 60px;
       height: 50px;
       outline: none;
       background-color: transparent;
       font-size: 12px;
       color: black;
       line-height: 20px;
+      min-width: 50px;
     }
     .footer-btn-container {
       margin-top: 1px !important;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-wrap: nowrap;
     }
-    .default-text-color {
-      color: rgb(60, 100, 246) !important;
-    }
-    .inactive-color {
-      color: gray;
-    }
+  }
+  .fixed-footer.dark {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 
+                0 2px 8px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .footer-hidden {
+    transform: translateX(-50%) translateY(120px);
+    opacity: 0;
+    pointer-events: none;
   }
 </style>

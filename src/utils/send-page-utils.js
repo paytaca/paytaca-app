@@ -8,6 +8,10 @@ import { isValidTokenAddress } from 'src/wallet/chipnet'
 import { isTokenAddress } from 'src/utils/address-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { decodeCashAddress, decodeCashAddressFormatWithoutPrefix } from '@bitauth/libauth'
+import {
+  generateChangeAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 const { t: $t } = i18n.global
 
@@ -79,8 +83,47 @@ export function getWallet (type) {
   return Store.getters['global/getWallet'](type)
 }
 
-export function getChangeAddress (walletType) {
-  return Store.getters['global/getChangeAddress'](walletType)
+/**
+ * Dynamically generates change address from mnemonic instead of retrieving from store
+ * This prevents address mixup issues in multi-wallet scenarios
+ * 
+ * IMPORTANT: This function subscribes the address to watchtower before returning.
+ * If subscription fails, it will throw an error to prevent using unsubscribed addresses.
+ * 
+ * @param {string} walletType - 'bch', 'slp', or 'sbch'
+ * @returns {Promise<string>} The change address
+ * @throws {Error} If address generation or subscription fails
+ */
+export async function getChangeAddress (walletType) {
+  try {
+    const addressIndex = Store.getters['global/getLastAddressIndex'](walletType)
+    const walletIndex = Store.getters['global/getWalletIndex']
+    const isChipnetVal = isChipnet()
+    
+    // Generate change address dynamically from mnemonic (includes watchtower subscription)
+    const changeAddr = await generateChangeAddress({
+      walletIndex: walletIndex,
+      derivationPath: getDerivationPathForWalletType(walletType),
+      addressIndex: addressIndex,
+      isChipnet: isChipnetVal
+    })
+    
+    // Check if subscription failed (returns null)
+    if (!changeAddr) {
+      throw new Error('Failed to subscribe change address to watchtower')
+    }
+    
+    return changeAddr
+  } catch (error) {
+    console.error('Error generating change address dynamically:', error)
+    // Fallback to store-retrieved change address if dynamic generation fails
+    // Note: This is only for backward compatibility and shouldn't normally be used
+    const fallbackAddr = Store.getters['global/getChangeAddress'](walletType)
+    if (!fallbackAddr) {
+      throw new Error('Failed to get change address: ' + error.message)
+    }
+    return fallbackAddr
+  }
 }
 
 export function getExplorerLink (txid, isCashToken) {

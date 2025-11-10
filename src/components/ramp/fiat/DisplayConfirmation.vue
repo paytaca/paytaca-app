@@ -3,8 +3,9 @@
     class="q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-pb-md" v-if="isLoaded">
-      <div class="text-center text-weight-bold q-mt-sm" style="font-size: large;">CONFIRM AD DETAILS</div>
+      <div class="text-center text-weight-bold q-mt-sm q-mb-md text-h5 text-grad">{{ $t('ConfirmAdDetails', {}, 'CONFIRM AD DETAILS') }}</div>
       <div v-if="type === 'ads'" :style="`height: ${minHeight - 170}px;`" style="overflow-y:auto;">
+        <div class="pt-card q-pa-md br-15" :class="darkMode ? 'dark' : 'light'">
         <div class="md-font-size pt-label" :class="getDarkModeClass(darkMode)">
           <div class="q-pt-sm q-mx-md">
             <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
@@ -72,15 +73,27 @@
                 :label="method?.payment_type?.short_name || method?.payment_type?.full_name"
                 rounded
                 outline
-                color="red"/>
+                :color="themeColor"/>
             </div>
+            <div v-if="adData?.description">
+              <q-separator :dark="darkMode" class="q-my-md q-mx-md"/>
+              <div class="row no-wrap q-mx-lg text-weight-bold" style="font-size: medium;">
+                <span>Description</span>
+              </div>
+              <div class="q-gutter-sm q-pt-sm q-px-lg">
+                <div class="description" :class="darkMode ? 'text-white' : 'text-grey-8'">
+                  {{ adData?.description }}
+                </div>
+              </div> 
+            </div>            
           </div>
+        </div>
         </div>
       </div>
 
       <div v-if="type === 'order'">
         <div class="q-pt-lg">
-          <div class="text-center lg-font-size text-weight-bold" :class="transactionType === 'SELL' ? 'buy-color' : 'sell-color'">
+          <div class="text-center lg-font-size text-weight-bold text-grad">
             <span>{{ transactionType === 'SELL' ? 'Buying': 'Selling' }} BCH {{ transactionType === 'SELL' ? 'from': 'to' }}</span><br>
             <span>
               <u>{{ adData.owner}}</u>
@@ -107,7 +120,7 @@
           <div class="text-center q-px-md">
             <div class="md-font-size text-weight-bold q-py-sm">Pay With</div>
             <div class="q-gutter-sm q-px-lg">
-              <q-badge v-for="method in adData.payment_methods" :key="method.id" rounded outline :color="transactionType === 'SELL'? 'blue': 'red'">
+              <q-badge v-for="method in adData.payment_methods" :key="method.id" rounded outline :color="themeColor">
                 {{ method.payment_type }}
               </q-badge>
             </div>
@@ -164,6 +177,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      theme: this.$store.getters['global/theme'],
       adData: null,
       isLoaded: false,
       wallet: null,
@@ -171,6 +185,17 @@ export default {
       dragSlideKey: 0,
       marketPrice: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+    }
+  },
+  computed: {
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'orange-6',
+        'glassmorphic-red': 'pink-6'
+      }
+      return themeMap[this.theme] || 'blue-6'
     }
   },
   emits: ['back', 'submit'],
@@ -200,7 +225,7 @@ export default {
   async mounted () {
     const vm = this
     vm.adData = vm.postData
-    console.log('adData:', vm.adData)
+    
     vm.fetchMarketPrice()
     vm.isLoaded = true
   },
@@ -242,10 +267,34 @@ export default {
 .subtext {
   opacity: .5;
 }
-.buy-color {
-  color: rgb(60, 100, 246);
+
+.description {
+  text-align: justify;
+  text-align-last: left;
+  white-space:pre-wrap;
+  font-size: 15px;
+  line-height: 1.6;
 }
-.sell-color {
-  color: #ed5f59;
+
+/* Enhanced pt-card styling */
+.pt-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.br-15 {
+  border-radius: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 599px) {
+  .pt-card {
+    &:hover {
+      transform: none;
+    }
+  }
 }
 </style>

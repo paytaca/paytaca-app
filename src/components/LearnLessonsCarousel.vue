@@ -1,5 +1,5 @@
 <template>
-  <div v-if="lessons.length > 0" class="learn-carousel-container">
+  <div v-if="lessons.length > 0" class="learn-carousel-container text-bow" :class="getDarkModeClass(darkMode)">
     <div class="row items-center justify-between q-mb-sm">
       <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
         {{ $t('Learn') }}
@@ -42,6 +42,7 @@
 
 <script>
 import axios from 'axios'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const LEARN_API_URL = 'https://learn.paytaca.com/api/lessons'
 const CACHE_KEY = 'paytaca_learn_lessons'
@@ -61,6 +62,7 @@ export default {
     }
   },
   methods: {
+    getDarkModeClass,
     async fetchLessons() {
       if (this.loading) return
       

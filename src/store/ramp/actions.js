@@ -52,10 +52,11 @@ export function fetchAds (context, { component = null, params = null, overwrite 
       if (pageNumber !== null) pageNumber++
 
       // Build request parameters
+      // order_by=priority enables server-side smart ordering based on trades and ratings
       const parameters = {
         page: pageNumber,
         limit: state.itemsPerPage,
-        price_order: params.sort_type,
+        order_by: 'priority',
         currency: params.currency,
         owned: params.owned,
         trade_type: params.trade_type,
@@ -124,40 +125,6 @@ export function fetchAds (context, { component = null, params = null, overwrite 
   })
 }
 
-export async function fetchCashinOrders (context, { params = null, overwrite = false }) {
-  return new Promise((resolve, reject) => {
-    const state = context.state
-
-    // Setup pagination parameters
-    let pageNumber = state.cashinOrdersPageNumber
-    const totalPages = state.cashinOrdersTotalPages
-    if (pageNumber <= totalPages || (!pageNumber && !totalPages)) {
-      // Increment page by 1 if not fetching data for the first time
-      if (pageNumber !== null) pageNumber++
-
-      const parameters = {
-        wallet_hash: params.wallet_hash,
-        page: pageNumber,
-        limit: state.itemsPerPage,
-        status_type: 'ONGOING',
-        owned: params.owned
-      }
-
-      const apiURL = '/ramp-p2p/order/cash-in/'
-      backend.get(apiURL, { params: parameters })
-        .then((response) => {
-          context.commit('updateCashinOrders', { overwrite: overwrite, data: response.data })
-          context.commit('incCashinOrdersPage')
-          resolve(response.data)
-        })
-        .catch(error => {
-          reject(error)
-        })
-    } else {
-      resolve()
-    }
-  })
-}
 
 export async function fetchCashinOrderList (context, { params = null }) {
   const state = context.state

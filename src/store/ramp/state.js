@@ -36,9 +36,6 @@ export default function () {
     completedOrders: [],
 
     // cashin orders
-    cashinOrdersPageNumber: null,
-    cashinOrdersTotalPages: null,
-    cashinOrders: [],
 
     // appeals pagination
     pendingAppealsPageNumber: null,
@@ -56,7 +53,7 @@ export default function () {
     storeSellFilters: {},
     paymentTypes: {},
     ongoingOrderFilters: {
-      sort_type: 'ascending',
+      sort_type: 'descending',
       sort_by: 'created_at',
       status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
       appealable: true,

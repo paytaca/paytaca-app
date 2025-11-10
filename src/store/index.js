@@ -46,7 +46,6 @@ export const Store = createStore({
       //   'global.country',
       //   'global.theme',
       //   'global.isChipnet',
-      //   'global.showTokens',
       //   'global.enableStablhedge',
       //   'global.enableSmartBCH',
       //   'global.user',

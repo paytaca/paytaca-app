@@ -31,49 +31,6 @@
         <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Wallet') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-              <q-item>
-                  <q-item-section>
-                    <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                      {{ $t('Currency') }}
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <CurrencySelector :darkMode="darkMode" />
-                  </q-item-section>
-              </q-item>
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                    {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section avatar>
-                    <q-toggle
-                      v-model="showTokens"
-                      :color="toggleColor"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item>
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                    {{ $t(isHongKong(currentCountry) ? 'ManageIgnoredPoints' : 'ManageIgnoredTokens') }}
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn
-                    flat
-                    :label="$t('Manage')"
-                    no-caps
-                    :to="{
-                      path: '/apps/settings/ignored-tokens',
-                      query: { backNavPath: '/apps/settings' }
-                    }"
-                  />
-                </q-item-section>
-              </q-item>
-
               <q-item clickable v-ripple @click="isChipnet = !isChipnet">
                   <q-item-section>
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -93,7 +50,7 @@
                       <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                         {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
                       </q-item-label>
-                      <q-item-label caption style="line-height:1;margin-top:3px;" >
+                      <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
                         {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
                       </q-item-label>
                   </q-item-section>
@@ -169,6 +126,15 @@
 
             <q-item>
               <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Currency') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <CurrencySelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
+
+            <q-item>
+              <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Theme') }}</q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -200,18 +166,18 @@
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
                 <q-item-section>
-                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('Version') }}</q-item-label>
-                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">v{{ appVersion }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" caption>{{ $t('Version') }}</q-item-label>
+                  <q-item-label class="pt-label text-grad" :class="getDarkModeClass(darkMode)">v{{ appVersion }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" caption>{{ $t('SourceCodeRepo') }}</q-item-label>
                   <q-item-label>
                     <a
                       :href="repoUrl"
                       target="_blank"
-                      :class="darkMode ? 'text-grad' : 'text-blue-9'"
+                      class="text-grad"
                       style="text-decoration: none;"
                     >
                       {{ repoUrl }}
@@ -256,7 +222,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
       autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
-      showTokens: this.$store.getters['global/showTokens'],
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
       enableSLP: this.$store.getters['global/enableSLP'],
@@ -294,9 +259,6 @@ export default {
     },
     autoGenerateAddress (n, o) {
       this.$store.commit('global/toggleAutoGenerateAddress')
-    },
-    showTokens (n, o) {
-      this.$store.commit('global/showTokens')
     },
     enableSmartBCH (n, o) {
       this.$store.commit('global/enableSmartBCH')
@@ -480,6 +442,16 @@ export default {
           border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
       }
+    }
+  }
+
+  .glass-input {
+    :deep(.q-field__control) {
+      transition: all 0.3s ease;
+    }
+    
+    :deep(.q-field__native) {
+      font-weight: 500;
     }
   }
 </style>

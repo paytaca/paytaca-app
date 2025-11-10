@@ -100,7 +100,7 @@ export function resetOngoingOrderFilters (state, currency) {
   if (!currency) return (() => { state.ongoingOrderFilters = {} })()
   const paymentTypes = state.paymentTypes[currency] || []
   state.ongoingOrderFilters[currency] = {
-    sort_type: 'ascending',
+    sort_type: 'descending',
     sort_by: 'created_at',
     status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
     appealable: true,
@@ -192,7 +192,7 @@ export function updateOngoingOrderFilterPaymentTypes (state, { paymentTypes = []
   if (!state.ongoingOrderFilters) {
     state.ongoingOrderFilters = {}
     state.ongoingOrderFilters[currency] = {
-      sort_type: 'ascending',
+      sort_type: 'descending',
       sort_by: 'created_at',
       status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
       appealable: true,
@@ -413,24 +413,6 @@ export function resetOrdersData (state) {
 // ~ orders mutations ~ //
 
 /** cashin orders */
-export function updateCashinOrders (state, { overwrite = false, data }) {
-  if (overwrite) state.cashinOrders = []
-  state.cashinOrders.push(...data.orders)
-  state.cashinOrdersTotalPages = data.total_pages
-}
-
-export function incCashinOrdersPage (state) {
-  state.cashinOrdersPageNumber++
-}
-
-export function resetCashinOrdersPagination (state) {
-  state.cashinOrdersPageNumber = null
-  state.cashinOrdersTotalPages = null
-}
-
-export function resetCashinOrdersData (state) {
-  state.cashinOrders = []
-}
 
 // ~ appeals mutations ~ //
 export function updatePendingAppeals (state, { overwrite = false, data }) {
