@@ -30,7 +30,7 @@
               :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
               style="font-size: 12px; letter-spacing: 1px;"
             >
-              FAVORITES
+              {{ $t('Favorites').toLocaleUpperCase() }}
             </p>
           </div>
           <!-- OTHER TOKENS label - show before first non-favorite token -->
@@ -43,7 +43,7 @@
               :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
               style="font-size: 12px; letter-spacing: 1px;"
             >
-              OTHER TOKENS
+              {{ $t('OtherTokens').toLocaleUpperCase() }}
             </p>
           </div>
           <div

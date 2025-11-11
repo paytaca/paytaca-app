@@ -93,8 +93,6 @@
 
 <script>
 import ProgressLoader from '../../components/ProgressLoader'
-import 'capacitor-secure-storage-plugin'
-import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../../wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { sha256 } from 'js-sha256'
@@ -304,11 +302,11 @@ export default {
         let secretKey = null
         try {
           secretKey = await SecureStoragePlugin.get({ key: pinKey })
-        } catch (error) {
+        } catch {
           try {
             // fallback for retrieving pin using unhashed mnemonic
             secretKey = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-          } catch (error1) {
+          } catch {
             // fallback for old process of pin retrieval
             secretKey = await SecureStoragePlugin.get({ key: 'pin' })
           }

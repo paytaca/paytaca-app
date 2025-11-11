@@ -464,6 +464,10 @@ const words = [
     WalletManagement: 'Wallet Management',
     SaveQR: 'Save QR',
     ViewAll: 'View All'
+  },
+  {
+    Favorites: 'Favorites',
+    OtherTokens: 'Other Tokens',
   }
 ]
 

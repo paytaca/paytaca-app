@@ -1543,6 +1543,13 @@ const phrases = {
       FAQ4Answer: 'The vesting schedule varies by round. Seed round participants have a 2-year lockup followed by quarterly releases. Private round participants have a 1-year lockup followed by quarterly releases. Public round tokens are released immediately with no lockup period.',
       FAQ5Question: 'How are the tokens distributed?',
       FAQ5Answer: 'The total supply of 1 billion LIFT tokens is distributed across various categories: 20% for token sale, 30% for community incentives, 15% for ecosystem growth, 15% for team and advisors, and smaller allocations for partnerships, liquidity pool, and reserve fund. This distribution supports long-term ecosystem development and community engagement.',
+
+      CutleryIncludedMsg: 'Your order will include cutlery',
+      CutleryNotIncludedMsg: 'Your order will not include cutlery',
+      AdditionalChargesForCutlery: 'Additional charges for cutlery',
+
+      LearnDescription: "Comprehensive learning platform for Bitcoin Cash and Paytaca. Explore tutorials, guides, and educational content to master BCH fundamentals, advanced features, and the Paytaca wallet ecosystem.",
+
     }
   ],
   dynamic: [
@@ -1620,11 +1627,6 @@ const phrases = {
       StablehedgeContractDesc1: "Stablehedge uses {cashscriptLink} smart contracts to store your funds and ensure that exchanged assets within transactions are correct",
       StablehedgeContractDesc2: "The exchanged amounts are calculated based on the price values taken from {priceOracleLink}",
       StablehedgeLiquidityDesc1: "A part of your frozen funds are pooled with other users and locked in a leveraged short contract in {BCHBullLink} to protect against price drops",
-    },
-    {
-      CutleryIncludedMsg: 'Your order will include cutlery',
-      CutleryNotIncludedMsg: 'Your order will not include cutlery',
-      AdditionalChargesForCutlery: 'Additional charges for cutlery',
     },
     {
       InitialUP: 'Initial {points} from referral',

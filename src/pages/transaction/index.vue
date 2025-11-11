@@ -115,6 +115,8 @@
                             <q-select
                               :model-value="bchBalanceMode"
                               :options="balanceModeOptions"
+                              :dark="darkMode"
+                              label-color="white"
                               option-label="label"
                               option-value="value"
                               emit-value
@@ -122,6 +124,7 @@
                               dense
                               borderless
                               class="balance-mode-selector q-mt-xs"
+                              :popup-content-class="`text-bow ${getDarkModeClass(darkMode)}`"
                               style="max-width: 200px; font-size: 12px; height: 24px;"
                               @update:model-value="onBalanceModeChange"
                             />
@@ -2137,8 +2140,15 @@ export default {
   }
 </style>
 
-<style>
+<style lang="scss">
 .q-notifications__list--bottom {
   margin-bottom: 70px;
+}
+.balance-mode-selector {
+  .q-field__inner
+  .q-field__control .q-field__control-container
+  .q-field__native > .ellipsis, .q-field__append .q-icon {
+    color: white !important;
+  }
 }
 </style>
