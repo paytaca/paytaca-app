@@ -106,13 +106,15 @@ import {
   hash160,
   encodeLockingBytecodeP2sh20,
   decodeHdPublicKey,
-  readCompactUint
+  readCompactUint,
+  bigIntToCompactUint
 } from 'bitauth-libauth-v3'
 
 import { derivePublicKeys, getLockingBytecode, getCompiler, getLockingData, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
 import { createTemplate } from './template.js'
 import { bip32ExtractRelativePath } from './utils.js'
-import { Psbt, PsbtInput, PsbtOutput } from './psbt.js'
+import { GlobalMap, Psbt, PsbtInput, PsbtOutput } from './psbt.js'
+import { MultisigTransactionBuilder } from './transaction-builder.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -522,6 +524,18 @@ export const publicKeySigned = ({ publicKey, pst }) => {
     return allInputsAreSigned.every(isSigned => isSigned)
 }
 
+export const PaytacaProprietaryField = Object.freeze({
+  identifier: utf8ToBin('paytaca'),
+  SubType: {
+    origin: bigIntToCompactUint(1),
+    purpose: bigIntToCompactUint(2)
+  },
+  SubKeyData: {
+    origin: utf8ToBin('origin'),
+    purpose: utf8ToBin('purpose')
+  }
+})
+
 export class Pst {
 
   /**
@@ -548,12 +562,23 @@ export class Pst {
     }
   }
 
+  
   get unsignedTransactionHash () {
     if (!this.unsignedTransactionHex) {
       // throw new Error('No unsigned transaction hex available')
       return 
     }
     return hashTransaction(hexToBin(this.unsignedTransactionHex))
+  }
+
+  /**
+   * @returns {string} Unsigned transaction hex
+   */
+  getUnsignedTransaction(){
+    return (new MultisigTransactionBuilder())
+      .addInputs(this.inputs)
+      .addOutputs(this.outputs)
+      .build()
   }
 
   sign(xprv) {
@@ -802,7 +827,6 @@ export class Pst {
       })
       this.vmVerificationSuccess = verificationResult
     }
-    console.log('FINAL COMPLIATON', { finalCompilationResult: finalCompilation, vmVerificationSuccess: this.vmVerificationSuccess })
     return { finalCompilationResult: finalCompilation, vmVerificationSuccess: this.vmVerificationSuccess }
   }
 
@@ -898,7 +922,6 @@ export class Pst {
       if (relativePath.startsWith('1/') ) {
         total += BigInt(output.token.amount)
        }
-       console.log('O', output)
      }
     return total
   }
@@ -941,6 +964,21 @@ export class Pst {
     psbt.globalMap.setInputCount(this.inputs.length)
     psbt.globalMap.setOutputCount(this.outputs.length)
     psbt.globalMap.setPsbtVersion(version)
+    psbt.globalMap.setFallbackLocktime(this.locktime)
+
+    this.origin && psbt.globalMap.addProprietaryField(
+      PaytacaProprietaryField.identifier, 
+      utf8ToBin(this.origin), 
+      PaytacaProprietaryField.SubType.origin, 
+      PaytacaProprietaryField.SubKeyData.origin
+    )
+
+    this.purpose && psbt.globalMap.addProprietaryField(
+      PaytacaProprietaryField.identifier, 
+      utf8ToBin(this.purpose), 
+      PaytacaProprietaryField.SubType.purpose, 
+      PaytacaProprietaryField.SubKeyData.purpose
+    )
 
     for(const input of this.inputs) {
       const psbtInput = new PsbtInput()
@@ -960,8 +998,8 @@ export class Pst {
         )
       })
       psbtInput.setFinalScriptSig(input.scriptSig)
-      psbtInput.setPrevTxid(input.outpointTransactionHash)
-      psbtInput.setOutputIndex(input.outpointIndex)
+      psbtInput.setOutpointTransactionHash(input.outpointTransactionHash)
+      psbtInput.setOutpointIndex(input.outpointIndex)
       psbtInput.setSequenceNumber(input.sequenceNumber)
       psbt.inputMap.add(psbtInput)
     }
@@ -978,6 +1016,10 @@ export class Pst {
       psbtOutput.setAmount(output.valueSatoshis)
       psbtOutput.setToken(output.token)
       psbtOutput.setOutScript(output.lockingBytecode)
+      if (output.purpose) {
+        psbtOutput.addProprietaryField(PaytacaProprietaryField.identifier, utf8ToBin(output.purpose), PaytacaProprietaryField.SubType.purpose, PaytacaProprietaryField.SubKeyData.purpose)
+      }
+      
       psbt.outputMap.add(psbtOutput)
     }
     const serialized = psbt.serialize()
@@ -985,23 +1027,57 @@ export class Pst {
   }
 
   /**
-   * @param {string} psbt The base64 encoded psbt
+   * @param {string} _psbt The base64 encoded psbt
    * @return {Pst} 
    */
-  static fromPSBT(psbt) {
-    
-    const newPsbt = new Psbt()
-    newPsbt.deserialize(base64ToBin(psbt))
+  static fromPSBT(_psbt) {
+    const psbt = new Psbt()
+    psbt.deserialize(base64ToBin(_psbt))
     const pst = new Pst()
-    pst.unsignedTransactionHex = newPsbt.globalMap.getUnsignedTx() 
+    pst.unsignedTransactionHex = psbt.globalMap.getUnsignedTx() 
+    
     if (pst.unsignedTransactionHex) {
       pst.unsignedTransactionHex = binToHex(pst.unsignedTransactionHex)
     }
 
-    for(const psbtInput of newPsbt.inputMap?.inputs) {
-      const signatures = psbtInput.getPartialSigs()
-      const bip32Derivation = psbtInput.getBip32Derivation()
-      // TODO: signatures, bip32derivation parsing ok, continue with other fields
+    pst.version = psbt.globalMap.getTxVersion()
+    pst.locktime = psbt.globalMap.getFallbackLocktime()
+    
+    psbt.globalMap.getProprietaryFields(PaytacaProprietaryField.identifier)?.forEach(pf => {
+      if (pf.subKeyData && pf.value) {
+        pst[pf.getSubKeyData(binToUtf8)] = pf.getValue(binToUtf8)
+      }
+    })
+
+    for(const psbtInput of psbt.inputMap?.inputs) {
+      pst.inputs.push({
+        outpointIndex: psbtInput.getOutpointIndex(),
+        outpointTransactionHash: psbtInput.getOutpointTransactionHash(),
+        sequenceNumber: psbtInput.getSequenceNumber(),
+        signatures: psbtInput.getPartialSigs(),
+        bip32Derivation: psbtInput.getBip32Derivation(),
+        redeemScript: psbtInput.getRedeemScript(),
+        sourceOutput: psbtInput.getSourceUtxo()
+      })
+    }
+
+    for(const psbtOutput of psbt.outputMap?.outputs) {
+      const o = {
+        valueSatoshis: psbtOutput.getAmount()
+      }
+      const bip32Derivation = psbtOutput.getBip32Derivation()
+      const token = psbtOutput.getToken()
+      const lockingBytecode = psbtOutput.getOutScript()
+
+      const purpose = psbtOutput.getProprietaryFields(PaytacaProprietaryField.identifier)?.find(pf => {
+        return binsAreEqual(pf.getSubKeyData(), PaytacaProprietaryField.SubKeyData.purpose)
+      })
+
+      if (token) o.token = token 
+      if (Object.keys(bip32Derivation).length > 0) o.bip32Derivation = bip32Derivation
+      if (lockingBytecode) o.lockingBytecode = lockingBytecode
+      if (purpose?.value) o.purpose = purpose.getValue(binToUtf8)
+      pst.outputs.push(o)
     }
   }
 
