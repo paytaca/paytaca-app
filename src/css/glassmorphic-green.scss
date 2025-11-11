@@ -193,7 +193,13 @@ body.theme-glassmorphic-green {
 
   .pt-header {
     color: $color_6;
-    background: unset;
+    &.dark {
+      background: #263d32;
+    }
+
+    &.light {
+      background: #e8f5e9;
+    }
   }
 
   .pt-arrow-left-link {

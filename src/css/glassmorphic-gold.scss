@@ -193,7 +193,14 @@ body.theme-glassmorphic-gold {
 
   .pt-header {
     color: $color_6;
-    background: unset;
+    
+    &.dark {
+      background: #3d3224;
+    }
+
+    &.light {
+      background: #fff8e1;
+    }
   }
 
   .pt-arrow-left-link {

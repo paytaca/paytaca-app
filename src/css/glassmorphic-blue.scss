@@ -193,7 +193,14 @@ body.theme-glassmorphic-blue {
 
   .pt-header {
     color: $color_6;
-    background: unset;
+
+    &.dark {
+      background: #273746;
+    }
+
+    &.light {
+      background: #ecf3f3;
+    }
   }
 
   .pt-arrow-left-link {

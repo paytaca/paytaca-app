@@ -5,7 +5,7 @@
         ref="header-nav"
         class="pt-header row no-wrap"
         :style="{'padding-top': $q.platform.is.ios ? '73px' : '18px', 'height': $q.platform.is.ios ? '95px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
-        :class="{'pt-card-3': darkMode}"
+        :class="getDarkModeClass(darkMode)"
       >
         <div class="col-1">
           <router-link
@@ -82,6 +82,7 @@
 
 <script>
 import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 
 export default {
   name: 'header-nav',
@@ -137,6 +138,7 @@ export default {
     if (this.addedBodyPadding) document.body.style.paddingTop = ''
   },
   methods: {
+    getDarkModeClass,
     async onClick () {
       if (this.backnavpath) {
         if (typeof this.backnavpath === 'object') {
