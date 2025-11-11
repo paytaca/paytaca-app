@@ -469,6 +469,7 @@ const words = [
     Favorites: 'Favorites',
     OtherTokens: 'Other Tokens',
     SetupBiometric: 'Setup Biometric',
+    TransactionMetadata: 'Transaction Metadata',
   }
 ]
 
