@@ -463,10 +463,12 @@ export default {
         const walletType = this.bchNftType === 'ct' ? 'bch' : 'slp'
         try {
           const addressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
+          // Ensure addressIndex is a valid number (default to 0 if undefined/null)
+          const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
           let address = await generateReceivingAddress({
             walletIndex: this.$store.getters['global/getWalletIndex'],
             derivationPath: getDerivationPathForWalletType(walletType),
-            addressIndex: addressIndex,
+            addressIndex: validAddressIndex,
             isChipnet: this.isChipnet
           })
           

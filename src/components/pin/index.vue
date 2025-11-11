@@ -8,7 +8,7 @@
     transition-hide="slide-down"
     seamless
     >
-      <q-card v-if="loader" class="full-height flex flex-center text-bow" :class="getDarkModeClass(darkMode)">
+      <q-card v-if="loader" class="full-height flex flex-center text-bow" :class="getDarkModeClass(darkMode)" :style="wrapperBackgroundStyle">
           <q-card-section>
             <div class="row">
               <div class="col-12 text-center q-mt-lg">
@@ -21,7 +21,7 @@
           </q-card-section>
       </q-card>
 
-      <q-card v-else id="app-container" :class="getDarkModeClass(darkMode)">
+      <q-card v-else id="app-container" :class="getDarkModeClass(darkMode)" :style="wrapperBackgroundStyle">
         <q-card-section class="q-mt-md q-pb-none">
             <div class="text-center">
                 <p class="text-h6 text-blue-9 text-uppercase" :class="{'text-grad': darkMode}"><strong>{{ actionCaption }}</strong></p>
@@ -168,6 +168,42 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    wrapperBackgroundStyle () {
+      const theme = this.theme
+      const isDark = this.darkMode
+      
+      // Map of themes to their background colors [dark, light]
+      const themeBackgrounds = {
+        'glassmorphic-blue': {
+          dark: '#273746',
+          light: '#ecf3f3'
+        },
+        'glassmorphic-gold': {
+          dark: '#3d3224',
+          light: '#fff8e1'
+        },
+        'glassmorphic-green': {
+          dark: '#263d32',
+          light: '#e8f5e9'
+        },
+        'glassmorphic-red': {
+          dark: '#462733',
+          light: '#f3ecec'
+        },
+        'payhero': {
+          dark: '#012121',
+          light: '#012121'
+        }
+      }
+      
+      // Default to blue theme if theme not found
+      const bgColors = themeBackgrounds[theme] || themeBackgrounds['glassmorphic-blue']
+      const backgroundColor = isDark ? bgColors.dark : bgColors.light
+      
+      return {
+        backgroundColor: backgroundColor
+      }
     }
   },
   methods: {

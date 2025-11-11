@@ -466,7 +466,6 @@ const words = [
     ViewAll: 'View All'
   },
   {
-    BCHOnly: 'BCH Only',
     Favorites: 'Favorites',
     OtherTokens: 'Other Tokens',
   }

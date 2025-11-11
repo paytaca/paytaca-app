@@ -510,10 +510,13 @@ export default {
       // Generate address dynamically from mnemonic instead of using stored address
       try {
         const addressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        // Ensure addressIndex is a valid number (default to 0 if undefined/null)
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        
         let address = await generateReceivingAddress({
           walletIndex: this.$store.getters['global/getWalletIndex'],
           derivationPath: getDerivationPathForWalletType(this.walletType),
-          addressIndex: addressIndex,
+          addressIndex: validAddressIndex,
           isChipnet: this.isChipnet
         })
         

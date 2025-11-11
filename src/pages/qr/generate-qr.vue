@@ -272,13 +272,15 @@ export default {
       // Generate addresses dynamically from mnemonic instead of using stored addresses
       try {
         const addressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+        // Ensure addressIndex is a valid number (default to 0 if undefined/null)
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         
         // Generate regular BCH address
         const bchAddress = await generateReceivingAddress({
           walletIndex: walletIndex,
           derivationPath: getDerivationPathForWalletType('bch'),
-          addressIndex: addressIndex,
+          addressIndex: validAddressIndex,
           isChipnet: vm.isChipnet
         })
         

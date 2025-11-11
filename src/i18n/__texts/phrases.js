@@ -72,6 +72,10 @@ const phrases = {
       DarkMode: "Dark Mode",
       GetStartedWithPaytaca: "Get Started",
       GetBCH: "Get BCH",
+      AddMemo: "Add memo",
+      DateAndTime: "Date & Time",
+      BCHOnly: "BCH only",
+      BCHPlusFavorites: "BCH + favorite tokens",
       DerivationPath: "Derivation Path",
       DeviceSuspended: "Device suspended",
       DeviceUnsuspended: "Device unsuspended",
@@ -1544,9 +1548,8 @@ const phrases = {
       CutleryNotIncludedMsg: 'Your order will not include cutlery',
       AdditionalChargesForCutlery: 'Additional charges for cutlery',
 
-      BCHPlusFavorites: 'BCH + favorite tokens',
       LearnDescription: "Comprehensive learning platform for Bitcoin Cash and Paytaca. Explore tutorials, guides, and educational content to master BCH fundamentals, advanced features, and the Paytaca wallet ecosystem.",
-      
+
     }
   ],
   dynamic: [

@@ -10,7 +10,7 @@
         <q-btn outline color="primary" no-caps @click="goBack">{{ $t('Back', {}, 'Back') }}</q-btn>
       </div>
 
-      <div v-else-if="tx && tx.asset" class="q-pa-lg">
+      <div v-else-if="tx && tx.asset && transactionId" class="q-pa-lg">
         <div class="text-bow text-center content-container-ss" :class="getDarkModeClass(darkMode)">
         <!-- Page title and direction icon -->
         <div class="text-center page-title text-uppercase">
@@ -37,15 +37,15 @@
         <!-- Reference ID (big, spaced, with separator) -->
         <div class="reference-id-section section-block-ss q-mt-lg" style="margin-top: 25px;">
           <div class="text-grey text-weight-medium text-caption">&nbsp;{{ $t('ReferenceId')}}</div>
-          <div class="reference-id-value-ss">{{ hexToRef(tx.txid.substring(0, 6)) }}</div>
+          <div class="reference-id-value-ss">{{ transactionId ? hexToRef(transactionId.substring(0, 6)) : '' }}</div>
           <q-separator color="grey" class="q-mt-sm ref-separator-ss"/>
         </div>
 
         <!-- Transaction ID block (copyable with explorer link below) -->
         <div class="transaction-id-section section-block-ss q-mt-md" style="margin-top: 25px;">
           <div class="text-grey text-weight-medium text-caption q-mb-sm">&nbsp;{{ $t('TransactionId')}}</div>
-          <div class="txid-container-ss" :class="getDarkModeClass(darkMode)" @click="copyToClipboard(tx.txid)">
-            <span class="txid-text-ss">{{ tx.txid.slice(0, 8) }}...{{ tx.txid.slice(-8) }}</span>
+          <div class="txid-container-ss" :class="getDarkModeClass(darkMode)" @click="transactionId && copyToClipboard(transactionId)">
+            <span class="txid-text-ss">{{ transactionId ? `${transactionId.slice(0, 8)}...${transactionId.slice(-8)}` : '' }}</span>
             <q-icon name="content_copy" size="18px" class="copy-icon-ss" />
           </div>
           <div class="view-explorer-container q-mt-sm">
@@ -153,8 +153,13 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
+    transactionId () {
+      // Normalize transaction ID from various possible property names
+      if (!this.tx) return ''
+      return this.tx.txid || this.tx.tx_hash || this.tx.hash || ''
+    },
     explorerLink () {
-      const txid = this.tx && this.tx.txid
+      const txid = this.transactionId
       let url = 'https://explorer.paytaca.com/tx/'
       if (this.$store.getters['global/isChipnet']) {
         url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
@@ -245,8 +250,31 @@ export default {
     
     const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
     if (preloaded) {
-      this.attachAssetIfMissing(preloaded)
-      this.tx = preloaded
+      // Check if preloaded is already corrupted (has numeric string keys like "0", "1", etc.)
+      const preloadedKeys = Object.keys(preloaded)
+      if (preloadedKeys.length > 0 && preloadedKeys.every(k => /^\d+$/.test(k))) {
+        // Don't use corrupted data, fetch from API instead
+        await this.fetchAndShow()
+        return
+      }
+      
+      // Create a mutable copy since router state objects are readonly
+      let mutableTx = this.createMutableCopy(preloaded)
+      
+      // Check if copy is corrupted
+      const mutableKeys = Object.keys(mutableTx)
+      if (mutableKeys.length > 0 && mutableKeys.every(k => /^\d+$/.test(k))) {
+        // Fetch from API instead of using corrupted copy
+        await this.fetchAndShow()
+        return
+      }
+      
+      // Ensure the transaction object itself is not frozen
+      if (Object.isFrozen(mutableTx)) {
+        mutableTx = { ...mutableTx }
+      }
+      this.attachAssetIfMissing(mutableTx)
+      this.tx = mutableTx
       this.$nextTick(() => {
         this.loadMemo()
         // Launch confetti if this is a new transaction
@@ -295,6 +323,51 @@ export default {
     parseFiatCurrency,
     getAssetDenomination,
     parseAssetDenomination,
+    createMutableCopy (obj) {
+      // Create a deep mutable copy of an object
+      // This is needed because objects from router state or API responses may be readonly/frozen
+      if (!obj) return obj
+      
+      // Check if object is already corrupted (has numeric string keys like "0", "1", etc.)
+      const keys = Object.keys(obj)
+      if (keys.length > 0 && keys.every(k => /^\d+$/.test(k))) {
+        // Object appears corrupted, return original to let caller handle it
+        return obj
+      }
+      
+      // Use structuredClone if available (better for complex objects)
+      if (typeof structuredClone !== 'undefined') {
+        try {
+          return structuredClone(obj)
+        } catch (error) {
+          // structuredClone might fail for some objects, fall back to JSON
+        }
+      }
+      
+      // Fallback to JSON serialization
+      try {
+        const jsonString = JSON.stringify(obj)
+        if (!jsonString || jsonString === '{}' || jsonString === 'null') {
+          return { ...obj }
+        }
+        const copied = JSON.parse(jsonString)
+        // Ensure the object is not frozen
+        if (Object.isFrozen(copied)) {
+          return { ...copied }
+        }
+        return copied
+      } catch (error) {
+        // Final fallback: shallow copy with unfreeze attempt
+        const shallow = { ...obj }
+        // Try to unfreeze nested objects
+        for (const key in shallow) {
+          if (shallow[key] && typeof shallow[key] === 'object' && !Array.isArray(shallow[key]) && Object.isFrozen(shallow[key])) {
+            shallow[key] = { ...shallow[key] }
+          }
+        }
+        return shallow
+      }
+    },
     updateBackgroundColors () {
       this.$nextTick(() => {
         const backgroundColor = this.wrapperBackgroundStyle.backgroundColor
@@ -338,11 +411,22 @@ export default {
         if (tx) {
           // Prefer preloaded asset metadata (logo, symbol) if available
           const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
-          if (preloaded?.asset) {
-            tx.asset = preloaded.asset
+          // Create a mutable copy since objects from API or router state may be readonly
+          let mutableTx = this.createMutableCopy(tx)
+          // Ensure the transaction object itself is not frozen
+          if (Object.isFrozen(mutableTx)) {
+            mutableTx = { ...mutableTx }
           }
-          this.attachAssetIfMissing(tx, categoryParam)
-          this.tx = tx
+          if (preloaded?.asset) {
+            // Create a mutable copy of the asset as well
+            let assetCopy = this.createMutableCopy(preloaded.asset)
+            if (Object.isFrozen(assetCopy)) {
+              assetCopy = { ...assetCopy }
+            }
+            mutableTx.asset = assetCopy
+          }
+          this.attachAssetIfMissing(mutableTx, categoryParam)
+          this.tx = mutableTx
           this.$nextTick(() => {
             this.loadMemo()
             // Launch confetti if this is a new transaction (check here too in case mounted didn't catch it)
@@ -365,12 +449,13 @@ export default {
     },
     async loadMemo () {
       try {
-        if (!this.tx?.txid) return
+        const txid = this.transactionId
+        if (!txid) return
         // prepare keypair
         this.keypair = await getKeypair().catch(console.error)
         let currentMemo = null
         try {
-          currentMemo = await fetchMemo(this.tx.txid)
+          currentMemo = await fetchMemo(txid)
         } catch (err) {
           this.networkError = true
         }
@@ -402,14 +487,15 @@ export default {
     },
     async saveMemo () {
       try {
-        if (!this.tx?.txid) return
+        const txid = this.transactionId
+        if (!txid) return
         await authMemo()
         // ensure keypair
         if (!this.keypair) this.keypair = await getKeypair().catch(console.error)
         const trimmedMemo = String(this.memoInput || '').trim()
         if (!trimmedMemo) return
         const encryptedMemo = await encryptMemo(this.keypair?.privkey, this.keypair?.pubkey, trimmedMemo)
-        const data = { txid: this.tx.txid, note: encryptedMemo }
+        const data = { txid: txid, note: encryptedMemo }
         let response = null
         if (this.hasMemo) response = await updateMemo(data).catch(err => { this.networkError = true })
         else response = await createMemo(data).catch(err => { this.networkError = true })
@@ -448,8 +534,9 @@ export default {
     },
     async confirmDelete () {
       try {
-        if (!this.tx?.txid) return
-        await deleteMemo(this.tx.txid)
+        const txid = this.transactionId
+        if (!txid) return
+        await deleteMemo(txid)
         this.hasMemo = false
         this.transactionMemo = ''
         this.memoInput = ''
@@ -488,7 +575,13 @@ export default {
           const assets = this.$store.getters['assets/getAssets'] || []
           const match = assets.find(a => String(a?.id || '').endsWith(`/${categoryParam}`))
           if (match) {
-            tx.asset = match
+            // Create a mutable copy of the asset to avoid readonly issues
+            let assetCopy = this.createMutableCopy(match)
+            // Ensure the asset object itself is not frozen
+            if (Object.isFrozen(assetCopy)) {
+              assetCopy = { ...assetCopy }
+            }
+            tx.asset = assetCopy
             return
           }
         } catch {}
@@ -499,15 +592,19 @@ export default {
       if (Array.isArray(bchAsset)) bchAsset = bchAsset[0]
       if (!bchAsset) {
         bchAsset = { id: 'bch', symbol: 'BCH', name: 'Bitcoin Cash', logo: 'bch-logo.png', balance: 0 }
+      } else {
+        // Create a mutable copy of the asset to avoid readonly issues
+        bchAsset = this.createMutableCopy(bchAsset)
+        // Ensure the asset object itself is not frozen
+        if (Object.isFrozen(bchAsset)) {
+          bchAsset = { ...bchAsset }
+        }
       }
       tx.asset = bchAsset
     },
     goBack () {
-      if (window.history.length > 1) {
-        this.$router.back()
-      } else {
-        this.$router.push({ name: 'transaction-list' })
-      }
+      // Navigate to wallet home page
+      this.$router.push('/')
     },
     formatDate (date) {
       const dateObj = new Date(date)

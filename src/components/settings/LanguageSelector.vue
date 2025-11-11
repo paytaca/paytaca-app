@@ -49,7 +49,59 @@ export default {
       return this.$store.getters['global/language'] || 'en-us'
     },
     currentLanguageLabel () {
-      return this.$t(translationKeys[this.currentLanguage])
+      const langCode = this.currentLanguage
+      console.log('[LanguageSelector] Current language code:', langCode)
+      
+      // Normalize to lowercase for lookup
+      const normalizedLangCode = langCode ? langCode.toLowerCase() : 'en-us'
+      
+      // Handle both 'en' and 'en-us' for English
+      let lookupCode = normalizedLangCode
+      if (normalizedLangCode === 'en') {
+        lookupCode = 'en-us'
+      }
+      
+      // Get the translation key for this language code (e.g., "English" for "en-us")
+      const translationKey = translationKeys[lookupCode] || translationKeys[normalizedLangCode]
+      console.log('[LanguageSelector] Translation key found:', translationKey, 'for code:', lookupCode)
+      
+      if (!translationKey) {
+        // If no translation key found, try to find a reasonable display name
+        // For 'en' or other short codes, map to full names
+        if (langCode && langCode.length <= 2) {
+          // Map common 2-letter codes to full names
+          const shortCodeMap = {
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'pt': 'Portuguese',
+            'it': 'Italian',
+            'ja': 'Japanese',
+            'ko': 'Korean',
+            'zh': 'Chinese',
+            'ar': 'Arabic',
+            'ru': 'Russian',
+            'nl': 'Dutch',
+            'id': 'Indonesian',
+            'tl': 'Tagalog',
+            'ha': 'Hausa',
+            'af': 'Afrikaans'
+          }
+          const mapped = shortCodeMap[langCode.toLowerCase()] || langCode.toUpperCase()
+          console.log('[LanguageSelector] Using short code map:', mapped)
+          return mapped
+        }
+        // If no translation key found, return uppercase language code (but not truncated)
+        console.warn('[LanguageSelector] No translation key found for:', langCode)
+        return langCode
+      }
+      
+      // Always use the translation key name directly (e.g., "English")
+      // This ensures we show the proper language name instead of codes like "EN" or "en-us"
+      // The translation key names are already the correct labels we want to display
+      console.log('[LanguageSelector] Returning translation key:', translationKey)
+      return translationKey
     }
   },
   methods: {
@@ -64,15 +116,34 @@ export default {
           this.$store.commit('global/setLanguage', lang.value)
 
           const denomination = this.$store.getters['global/denomination']
-          if (!['zh-tw', 'zh-cn'].includes(lang.value) &&
-              denomination !== this.$t('DEEM') &&
-              !['BCH', 'mBCH', 'Satoshis'].includes(denomination)
-          ) {
-            this.$store.commit('global/setDenomination', 'DEEM')
-          } else {
-            const translatedDenom = this.$t(denomination)
-            this.$store.commit('global/setDenomination', translatedDenom)
+          // Only update denomination if it's not a standard one
+          if (!['BCH', 'mBCH', 'Satoshis'].includes(denomination)) {
+            try {
+              const deemValue = this.$t('DEEM')
+              if (!['zh-tw', 'zh-cn'].includes(lang.value) && denomination !== deemValue) {
+                this.$store.commit('global/setDenomination', 'DEEM')
+              } else if (denomination !== deemValue) {
+                // Try to translate the denomination, but only if it's not already a standard value
+                try {
+                  const translatedDenom = this.$t(denomination)
+                  if (translatedDenom && translatedDenom !== denomination) {
+                    this.$store.commit('global/setDenomination', translatedDenom)
+                  }
+                } catch (error) {
+                  // If translation fails, keep current denomination
+                  console.warn('Could not translate denomination:', denomination, error)
+                }
+              }
+            } catch (error) {
+              // If DEEM translation fails, just keep current denomination
+              console.warn('Could not translate DEEM:', error)
+            }
           }
+          
+          // Persist preferences to backend if wallet hash exists
+          this.$store.dispatch('global/saveWalletPreferences').catch(() => {
+            // Silently fail if wallet hash doesn't exist yet (e.g., during registration)
+          })
         }
       })
     }

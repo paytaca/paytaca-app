@@ -97,132 +97,30 @@
       v-if="currentStep === 1"
     >
       <transition name="fade" mode="out-in">
-        <!-- Bouncing Wallet (During Seed Generation) -->
+        <!-- Paytaca Logo with Circle Container Animation -->
         <div
-          v-if="!walletCreationComplete"
-          key="bouncing"
+          v-if="!walletCreationError"
+          key="creating"
           class="wallet-animation-container"
         >
-          <div class="wallet-icon-wrapper">
-            <svg
-              class="wallet-icon bouncing"
-              width="100"
-              height="100"
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <!-- Wallet body -->
-              <rect
-                x="15"
-                y="25"
-                width="70"
-                height="50"
-                rx="8"
-                ry="8"
-                class="wallet-body"
-              />
-              <!-- Card sticking out -->
-              <rect
-                x="20"
-                y="15"
-                width="60"
-                height="40"
-                rx="6"
-                ry="6"
-                class="wallet-card"
-              />
-              <!-- Card lines -->
-              <line
-                x1="30"
-                y1="30"
-                x2="70"
-                y2="30"
-                class="card-line"
-              />
-              <line
-                x1="30"
-                y1="38"
-                x2="65"
-                y2="38"
-                class="card-line"
-              />
-              <!-- Wallet flap -->
-              <path
-                d="M 15 25 Q 15 15 25 15 L 75 15 Q 85 15 85 25"
-                class="wallet-flap"
-                fill="none"
-              />
-            </svg>
+          <div class="logo-glass-circle creating" :class="getDarkModeClass(darkMode)">
+            <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
           </div>
-          <p class="creation-text text-bow" :class="getDarkModeClass(darkMode)">{{ $t('CreatingYourWallet') }}...</p>
-          <div v-if="walletCreationError" class="q-mt-md text-center">
+        </div>
+        
+        <!-- Error State -->
+        <div
+          v-else
+          key="error"
+          class="wallet-animation-container"
+        >
+          <div class="logo-glass-circle" :class="getDarkModeClass(darkMode)">
+            <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
+          </div>
+          <div class="q-mt-md text-center">
             <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ walletCreationError }}</p>
             <q-btn flat no-caps color="primary" :label="$t('Retry') || 'Retry'" @click="generateSeedPhrase" />
           </div>
-        </div>
-
-        <!-- Shine Effect (When Seed Generation Complete) -->
-        <div
-          v-else-if="walletCreationComplete"
-          key="shining"
-          class="wallet-animation-container"
-        >
-          <div class="wallet-icon-wrapper shine-wrapper">
-            <svg
-              class="wallet-icon shining"
-              width="100"
-              height="100"
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <!-- Wallet body -->
-              <rect
-                x="15"
-                y="25"
-                width="70"
-                height="50"
-                rx="8"
-                ry="8"
-                class="wallet-body"
-              />
-              <!-- Card sticking out -->
-              <rect
-                x="20"
-                y="15"
-                width="60"
-                height="40"
-                rx="6"
-                ry="6"
-                class="wallet-card"
-              />
-              <!-- Card lines -->
-              <line
-                x1="30"
-                y1="30"
-                x2="70"
-                y2="30"
-                class="card-line"
-              />
-              <line
-                x1="30"
-                y1="38"
-                x2="65"
-                y2="38"
-                class="card-line"
-              />
-              <!-- Wallet flap -->
-              <path
-                d="M 15 25 Q 15 15 25 15 L 75 15 Q 85 15 85 25"
-                class="wallet-flap"
-                fill="none"
-              />
-            </svg>
-          </div>
-          <p class="creation-text text-bow" :class="getDarkModeClass(darkMode)">
-            {{ $t('WalletCreated') }}!
-          </p>
         </div>
       </transition>
     </div>
@@ -533,6 +431,8 @@ import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
+import { getAllAssets } from 'src/store/assets/getters'
+import initialAssetState from 'src/store/assets/state'
 
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
@@ -628,19 +528,33 @@ export default {
       isOnboarding: false, // this.isVaultEmpty
       pageLoaded: false,
       walletCreationComplete: false,
-      walletCreationError: ''
+      walletCreationError: '',
+      isRedirecting: false,
+      step2Initialized: false
       // moveToReferral: false,
     }
   },
   watch: {
-    currentStep (val) {
+    currentStep (val, oldVal) {
+      // Reset step2Initialized when leaving step 2
+      if (oldVal === 2 && val !== 2) {
+        this.step2Initialized = false
+      }
+      
       // Handle step-specific initialization
       if (val === 1 && !this.mnemonic && !this.importSeedPhrase) {
         // Step 1: Generate seed phrase
         this.generateSeedPhrase()
       } else if (val === 2 && !this.importSeedPhrase) {
-        // Step 2: Auto-detect language and currency
-        this.initializeStep2()
+        // Step 2: Auto-detect language and currency (geoip call happens here)
+        this.$nextTick(() => {
+          this.initializeStep2()
+        })
+      } else if (val === 4 && !this.importSeedPhrase) {
+        // Step 4: Force theme update when entering step 4 to ensure theme changes from step 3 apply immediately
+        this.$nextTick(() => {
+          this.$forceUpdate()
+        })
       }
     },
     seedPhraseBackup (val) {
@@ -655,6 +569,10 @@ export default {
           // Initialize step 1 if needed
           if (routeStep === 1 && !this.mnemonic && !this.importSeedPhrase) {
             // Will be handled by currentStep watcher
+          }
+          // Initialize step 2 when navigating to it (geoip call happens here)
+          if (routeStep === 2 && !this.importSeedPhrase) {
+            this.initializeStep2()
           }
         }
       }
@@ -725,7 +643,10 @@ export default {
       })
     },
     saveToVault () {
-      // saving to wallet vault - create vault entry first
+      // Get current wallet index (should already be set from initializeVaultEntry)
+      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
+      
+      // saving to wallet vault - update existing entry or create new one
       let wallet = this.$store.getters['global/getAllWalletTypes']
       wallet = JSON.stringify(wallet)
       wallet = JSON.parse(wallet)
@@ -737,23 +658,50 @@ export default {
       const info = { wallet, chipnet, name: '' }
       this.$store.commit('global/updateVault', info)
       
-      // Get the actual index of the newly created wallet (vault length - 1 after update)
-      const newWalletIndex = this.$store.getters['global/getVault'].length - 1
+      // Get the actual index of the wallet (may be updated if it was a new entry)
+      const walletIndex = this.$store.getters['global/getVault'].findIndex(v => {
+        return v.wallet?.bch?.walletHash === wallet?.bch?.walletHash
+      })
+      const finalWalletIndex = walletIndex !== -1 ? walletIndex : this.$store.getters['global/getVault'].length - 1
       
-      // Update wallet index to the newly created wallet to make it active
-      this.$store.commit('global/updateWalletIndex', newWalletIndex)
+      // Settings should already be saved during steps 2-4 since vault entry exists
+      // But ensure they're up to date with current state
+      const currentSettings = {
+        language: this.$store.getters['global/language'],
+        theme: this.$store.getters['global/theme'],
+        country: this.$store.getters['global/country'],
+        denomination: this.$store.getters['global/denomination'],
+        preferredSecurity: this.$store.getters['global/preferredSecurity'],
+        isChipnet: this.$store.getters['global/isChipnet'],
+        autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
+        enableStablhedge: this.$store.getters['global/enableStablhedge'],
+        enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+        enableSLP: this.$store.getters['global/enableSLP'],
+        // Get darkMode from darkmode module
+        darkMode: this.$store.getters['darkmode/getStatus'],
+        // Get currency from market module
+        currency: this.$store.getters['market/selectedCurrency']
+      }
+      // Use mutation to update settings (prevents Vuex mutation error)
+      this.$store.commit('global/updateWalletSettings', {
+        index: finalWalletIndex,
+        settings: currentSettings
+      })
       
-      // Update current wallet to switch to the newly created wallet
-      this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+      // Update wallet index to the wallet to make it active
+      this.$store.commit('global/updateWalletIndex', finalWalletIndex)
+      
+      // Update current wallet to switch to the wallet
+      this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
       // Sync settings to darkmode and market modules
       this.$store.dispatch('global/syncSettingsToModules')
 
       // If vault was not empty before creating this wallet, sync the previous wallet first
       // Check if vault existed before we created this new entry
-      const vaultBeforeCreate = newWalletIndex > 0
+      const vaultBeforeCreate = finalWalletIndex > 0
       if (vaultBeforeCreate) {
         const vault = this.$store.getters['global/getVault']
-        const previousWalletIndex = newWalletIndex - 1
+        const previousWalletIndex = finalWalletIndex - 1
         
         // Save wallet data from snapshot for new wallet first
         this.newWalletSnapshot.walletInfo.map(walletInfo => {
@@ -777,8 +725,8 @@ export default {
             console.error('Error syncing previous wallet to vault:', error)
           }
           // Restore to new wallet index
-          this.$store.commit('global/updateWalletIndex', newWalletIndex)
-          this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+          this.$store.commit('global/updateWalletIndex', finalWalletIndex)
+          this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
           // Sync settings to darkmode and market modules
           this.$store.dispatch('global/syncSettingsToModules')
         }
@@ -795,8 +743,8 @@ export default {
       asset.asset = adjustedAssets
       asset.chipnet_assets = adjustedChipnetAssets
 
-      this.$store.commit('assets/updateVault', { index: newWalletIndex, asset: asset })
-      this.$store.commit('assets/updatedCurrentAssets', newWalletIndex)
+      this.$store.commit('assets/updateVault', { index: finalWalletIndex, asset: asset })
+      this.$store.commit('assets/updatedCurrentAssets', finalWalletIndex)
 
       // ramp reset
       this.$store.commit('ramp/resetUser')
@@ -822,6 +770,10 @@ export default {
     },
     saveAndRedirect () {
       const vm = this
+      // Prevent multiple calls
+      if (vm.isRedirecting) return
+      vm.isRedirecting = true
+      
       vm.$store.dispatch('global/saveWalletPreferences')
       vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
         return vm.promptEnablePushNotification()?.catch?.(console.error)
@@ -830,8 +782,16 @@ export default {
         // Ensure mnemonic is readable before navigating to '/' (router guard depends on it)
         try {
           await vm.ensureMnemonicReady()
-        } catch (e) { console.warn('mnemonic readiness wait timeout', e) }
-        vm.$router.push('/').catch(() => {})
+        } catch (e) { 
+          console.warn('mnemonic readiness wait timeout', e)
+          vm.isRedirecting = false
+        }
+        vm.$router.push('/').catch(() => {
+          vm.isRedirecting = false
+        })
+      }).catch((error) => {
+        console.error('Error during saveAndRedirect:', error)
+        vm.isRedirecting = false
       })
     },
     async ensureMnemonicReady () {
@@ -987,6 +947,9 @@ export default {
         })
     },
     verifyBiometric () {
+      // Prevent multiple calls
+      if (this.isRedirecting) return
+      
       // Authenticate using biometrics before logging the user in
       NativeBiometric.verifyIdentity({
         reason: this.$t('NativeBiometricReason1'),
@@ -1005,8 +968,13 @@ export default {
           console.log('Verification error: ', error)
           if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled')) {
             console.error(error)
+            // Reset flag on cancellation to allow retry
+            this.isRedirecting = false
           } else {
-            this.verifyBiometric()
+            // Only retry if not already redirecting
+            if (!this.isRedirecting) {
+              this.verifyBiometric()
+            }
           }
         }
         )
@@ -1021,6 +989,9 @@ export default {
     },
     executeActionTaken (action) {
       const vm = this
+      // Prevent multiple calls
+      if (vm.isRedirecting) return
+      
       if (action === 'proceed') {
         // Redirect immediately after PIN setup; wallet creation continues in background
         vm.saveAndRedirect()
@@ -1036,13 +1007,21 @@ export default {
         this.openThemeSelector = true
       }
     },
-    goToStep3 () {
+    async goToStep3 () {
+      // Save preferences before navigating to step 3
+      // This ensures country, language, and currency settings from step 2 are persisted
+      await this.$store.dispatch('global/saveWalletPreferences').catch(() => {
+        // Silently fail if wallet hash doesn't exist yet
+      })
       this.$router.push('/accounts/create/step-3')
     },
     goToStep4 () {
       this.$router.push('/accounts/create/step-4')
     },
     setupSecurity (authType) {
+      // Prevent multiple calls
+      if (this.isRedirecting) return
+      
       if (authType === 'pin') {
         this.pinDialogAction = 'SET UP'
         this.$store.commit('global/setPreferredSecurity', 'pin')
@@ -1052,34 +1031,135 @@ export default {
       }
     },
     async initializeStep2 () {
-      // Auto-detect language and currency for step 2
-      await this.$store.dispatch('market/updateSupportedCurrencies', {})
-
-      const ipGeoPreferences = await this.getIPGeolocationPreferences()
-
-      // set currency immediately (no timeout) and persist
-      const currencyOptions = this.$store.getters['market/currencyOptions']
-      const currency = currencyOptions.find(o => o.symbol === ipGeoPreferences.currency.symbol)
-      if (currency?.symbol) {
-        this.$store.commit('market/updateSelectedCurrency', currency)
+      // Prevent duplicate calls
+      if (this.step2Initialized) {
+        console.log('[Step 2] Already initialized, skipping geoip call')
+        return
       }
-      this.currencySelectorRerender = true
+      this.step2Initialized = true
+      console.log('[Step 2] Initializing step 2 - making geoip call...')
       
-      // set language to English by default
-      const defaultLang = 'en-us'
-      
-      if (this.isVaultEmpty) {
-        this.setLanguage(defaultLang)
-      }
-      
-      // set country
-      this.$store.commit('global/setCountry', {
-        country: ipGeoPreferences.country,
-        denomination: this.$t('DEEM')
-      })
+      try {
+        // Auto-detect language and currency for step 2
+        await this.$store.dispatch('market/updateSupportedCurrencies', {})
 
-      // persist preferences to avoid later overrides (e.g., refetchWalletPreferences)
-      await this.$store.dispatch('global/saveWalletPreferences').catch(() => {})
+        const ipGeoPreferences = await this.getIPGeolocationPreferences()
+        console.log('[Step 2] Geoip preferences received:', ipGeoPreferences)
+
+        // set currency immediately (no timeout) and persist
+        // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
+        const currencyOptions = this.$store.getters['market/currencyOptions']
+        console.log('[Step 2] Available currency options:', currencyOptions.map(c => ({ symbol: c.symbol, name: c.name })))
+        console.log('[Step 2] Looking for currency code:', ipGeoPreferences.currency.symbol)
+        // Match by symbol (which is the currency code like "PHP")
+        let currency = currencyOptions.find(o => o.symbol === ipGeoPreferences.currency.symbol)
+        console.log('[Step 2] Selected currency:', currency)
+        
+        // If currency not found in options, create it from geoip data
+        if (!currency && ipGeoPreferences.currency.symbol && ipGeoPreferences.currency.name) {
+          const newCurrency = {
+            symbol: ipGeoPreferences.currency.symbol,
+            name: ipGeoPreferences.currency.name
+          }
+          // Add to currency options if not already there
+          const updatedOptions = [...currencyOptions]
+          if (!updatedOptions.some(c => c.symbol === newCurrency.symbol)) {
+            updatedOptions.push(newCurrency)
+            this.$store.commit('market/updateCurrencyOptions', updatedOptions)
+            console.log('[Step 2] Added currency to options:', newCurrency)
+          }
+          // Get the currency reference from the store after updating (must be same reference for indexOf to work)
+          const updatedCurrencyOptions = this.$store.getters['market/currencyOptions']
+          currency = updatedCurrencyOptions.find(c => c.symbol === newCurrency.symbol)
+        }
+        
+        if (currency?.symbol) {
+          // Get the exact reference from state.currencyOptions (required for indexOf to work)
+          // The mutation uses indexOf which compares by reference, not value
+          const stateCurrencyOptions = this.$store.state.market.currencyOptions
+          const currencyFromState = stateCurrencyOptions.find(c => c.symbol === currency.symbol)
+          
+          if (currencyFromState) {
+            // Update currency in market store (must be exact reference from state array)
+            this.$store.commit('market/updateSelectedCurrency', currencyFromState)
+            // Also save to vault settings for wallet-specific storage
+            this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currencyFromState })
+            console.log('[Step 2] Currency set to:', currencyFromState.symbol, currencyFromState.name)
+          } else {
+            // Fallback: set directly in state if mutation fails
+            console.warn('[Step 2] Currency not in state options array, setting directly')
+            this.$store.state.market.selectedCurrency = currency
+            this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currency })
+            console.log('[Step 2] Currency set directly to:', currency.symbol, currency.name)
+          }
+        } else {
+          console.warn('[Step 2] Currency not found and could not be created for:', ipGeoPreferences.currency.symbol)
+          console.warn('[Step 2] Available symbols:', currencyOptions.map(c => c.symbol))
+        }
+        this.currencySelectorRerender = true
+        
+        // set language from geoip preferences
+        const languageCodes = ipGeoPreferences.langs || ['en-us']
+        
+        // Sort language codes (prefer codes with dashes, e.g., 'en-us' over 'en')
+        languageCodes.sort((a, b) => {
+          const aHasDash = a.includes('-') ? 0 : 1
+          const bHasDash = b.includes('-') ? 0 : 1
+          return aHasDash - bHasDash
+        })
+        
+        // Find first matching supported language
+        let selectedLangCode = 'en-us' // default fallback
+        const supportedLanguageCodes = Object.keys(supportedLangsI18n)
+        console.log('[Step 2] Language codes from geoip:', languageCodes)
+        console.log('[Step 2] Supported language codes:', supportedLanguageCodes)
+        for (let languageCode of languageCodes) {
+          // Try exact match first
+          if (supportedLanguageCodes.includes(languageCode)) {
+            selectedLangCode = languageCode
+            console.log('[Step 2] Exact language match found:', languageCode)
+            break
+          }
+          // Try matching general language code (e.g., 'en' from 'en-ph')
+          const generalLanguageCode = languageCode.replace(/-.*$/, '')
+          const languageMatched = supportedLanguageCodes.find(langOption => {
+            // Check if supported language starts with the general code (e.g., 'en-us' starts with 'en')
+            return langOption.startsWith(generalLanguageCode + '-') || langOption === generalLanguageCode
+          })
+          if (languageMatched) {
+            selectedLangCode = languageMatched
+            console.log('[Step 2] General language match found:', languageCode, '->', languageMatched)
+            break
+          }
+        }
+        console.log('[Step 2] Selected language code:', selectedLangCode)
+        
+        // Always set language during registration (step 2), regardless of vault state
+        // The vault entry exists but settings should be updated
+        if (selectedLangCode && supportedLangsI18n[selectedLangCode]) {
+          this.setLanguage(selectedLangCode)
+          // Also save to vault settings explicitly
+          this.$store.commit('global/saveWalletSetting', { key: 'language', value: selectedLangCode })
+          console.log('[Step 2] Language set to:', selectedLangCode)
+        } else {
+          console.warn('[Step 2] Invalid language code or not supported:', selectedLangCode)
+        }
+        
+        // set country
+        console.log('[Step 2] Setting country:', ipGeoPreferences.country)
+        this.$store.commit('global/setCountry', {
+          country: ipGeoPreferences.country,
+          denomination: 'BCH' // Default denomination, can be changed by user later
+        })
+        console.log('[Step 2] Country set to:', ipGeoPreferences.country)
+
+        // persist preferences to avoid later overrides (e.g., refetchWalletPreferences)
+        await this.$store.dispatch('global/saveWalletPreferences').catch(() => {})
+      } catch (error) {
+        console.error('[Step 2] Error initializing step 2:', error)
+        // Reset flag so it can be retried
+        this.step2Initialized = false
+      }
     },
     async generateSeedPhrase () {
       if (this.mnemonic || this.walletCreationInProgress) return
@@ -1097,19 +1177,113 @@ export default {
         ])
         this.mnemonic = result
         
+        // Create minimal vault entry immediately so settings can be saved during steps 2-4
+        this.initializeVaultEntry()
+        
         // Show shine effect briefly
         this.walletCreationComplete = true
+        // Wait 3 seconds after mnemonic creation before proceeding
         setTimeout(() => {
           // Start wallet creation in background
           this.createWalletsInBackground()
           // Navigate to step 2
           this.$router.push('/accounts/create/step-2')
-        }, 2000)
+        }, 3000)
       } catch (error) {
         console.error('Error generating seed phrase:', error)
     this.walletCreationInProgress = false
     this.walletCreationError = this.$t('ErrorGeneratingSeedPhrase') || 'Failed to generate seed phrase. Please retry.'
       }
+    },
+    initializeVaultEntry () {
+      // Create a minimal vault entry right after mnemonic generation
+      // This allows settings to be saved during steps 2-4
+      const wallet = new Wallet(this.mnemonic)
+      const walletHash = wallet.BCH.walletHash
+      
+      // Create minimal wallet structure with all wallet types (BCH, SLP, sBCH)
+      const minimalWallet = {
+        bch: {
+          walletHash: wallet.BCH.walletHash,
+          derivationPath: wallet.BCH.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        },
+        slp: {
+          walletHash: wallet.SLP.walletHash,
+          derivationPath: wallet.SLP.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        },
+        sbch: {
+          walletHash: wallet.sBCH.walletHash,
+          derivationPath: wallet.sBCH.derivationPath,
+          lastAddress: '',
+          subscribed: false
+        }
+      }
+      
+      const minimalChipnet = {
+        bch: {
+          walletHash: wallet.BCH_CHIP.walletHash,
+          derivationPath: wallet.BCH_CHIP.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        },
+        slp: {
+          walletHash: wallet.SLP_TEST.walletHash,
+          derivationPath: wallet.SLP_TEST.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      
+      // Create vault entry with minimal wallet data
+      // Settings will be initialized by updateVault mutation
+      const vaultEntry = {
+        wallet: minimalWallet,
+        chipnet: minimalChipnet,
+        name: ''
+        // Don't set settings here - let updateVault initialize it with defaults
+      }
+      
+      // Add to vault (this will initialize settings with defaults)
+      this.$store.commit('global/updateVault', vaultEntry)
+      
+      // Get the index of the newly created wallet
+      const newWalletIndex = this.$store.getters['global/getVault'].length - 1
+      
+      // Initialize assets vault entry for this wallet index to prevent errors
+      // This ensures getRemovedAssetIds getter doesn't fail
+      const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
+      if (!assetsVault[newWalletIndex]) {
+        // Initialize with empty assets list
+        const emptyAssets = getAllAssets(initialAssetState())
+        // Add removedAssetIds property to match expected structure
+        emptyAssets.removedAssetIds = []
+        this.$store.commit('assets/updateVault', {
+          index: newWalletIndex,
+          asset: emptyAssets
+        })
+        this.$store.commit('assets/updatedCurrentAssets', newWalletIndex)
+      }
+      
+      // Update wallet index to the newly created wallet
+      this.$store.commit('global/updateWalletIndex', newWalletIndex)
+      
+      // Update current wallet to load settings structure
+      this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+      
+      // Update walletIndex in component
+      this.walletIndex = newWalletIndex
     },
     async createWalletsInBackground () {
       // This runs in background - no UI updates needed
@@ -1254,25 +1428,54 @@ export default {
 
       const apiKey = process.env.IPGEO_API_KEY
       const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}`
-      const response = await this.$axios.get(url)?.catch(console.error)
+      let response
+      try {
+        response = await this.$axios.get(url)
+        console.log('[GeoIP] Raw API response:', response?.data)
+      } catch (error) {
+        console.error('[GeoIP] Error fetching geoip data:', error)
+        // Return default values if API call fails
+        return result
+      }
 
       if (response?.data?.country_name) {
         result.country = {
-          name: response?.data?.country_name,
-          code: response?.data?.country_code2
+          name: response.data.country_name,
+          code: response.data.country_code2
         }
+        console.log('[GeoIP] Country parsed:', result.country)
+      } else {
+        console.warn('[GeoIP] No country_name in response')
       }
 
-      if (response?.data?.currency.code) {
+      if (response?.data?.currency?.code) {
         result.currency = {
-          symbol: response?.data?.currency.code,
-          name: response?.data?.currency?.name
+          symbol: response.data.currency.code, // Store code as symbol (e.g., "PHP")
+          name: response.data.currency.name
         }
+        console.log('[GeoIP] Currency parsed:', result.currency)
+      } else {
+        console.warn('[GeoIP] No currency.code in response:', response?.data?.currency)
       }
 
       if (typeof response?.data?.languages === 'string' && response?.data?.languages) {
-        result.langs = response?.data?.languages?.toLowerCase().split(',')
+        // Split languages and normalize
+        let langs = response.data.languages.toLowerCase().split(',').map(lang => lang.trim())
+        
+        // Map language codes to supported codes
+        // "fil" (Filipino) maps to "tl" (Tagalog) in the app
+        langs = langs.map(lang => {
+          if (lang === 'fil') return 'tl'
+          return lang
+        })
+        
+        result.langs = langs
+        console.log('[GeoIP] Languages parsed:', result.langs)
+      } else {
+        console.warn('[GeoIP] No languages in response:', response?.data?.languages)
       }
+      
+      console.log('[GeoIP] Final result:', result)
       return result
     },
     resolveDeviceLangCode() {
@@ -1413,6 +1616,11 @@ export default {
     if (this.currentStep === 1 && !this.mnemonic && !this.importSeedPhrase) {
       this.$nextTick(() => this.generateSeedPhrase())
     }
+    
+    // If user lands directly on step-2, ensure geoip call happens
+    if (this.currentStep === 2 && !this.importSeedPhrase) {
+      this.$nextTick(() => this.initializeStep2())
+    }
   }
 }
 </script>
@@ -1526,7 +1734,7 @@ export default {
   }
   
   &.ios-safe-area {
-    padding-top: max(env(safe-area-inset-top, 44px), 60px) !important;
+    padding-top: max(env(safe-area-inset-top, 44px), 80px) !important;
   }
 }
 
@@ -1781,124 +1989,43 @@ export default {
   align-items: center;
   justify-content: center;
   text-align: center;
+  min-height: 100vh;
+  width: 100%;
   padding: 40px;
 }
 
 .wallet-icon-wrapper {
   position: relative;
-  margin-bottom: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
-// Wallet Icon SVG Styles
-.wallet-icon {
-  display: block;
-}
-
-.wallet-creation-view.dark {
-  .wallet-icon {
-    .wallet-body {
-      stroke: rgba(255, 255, 255, 0.9);
-      fill: rgba(255, 255, 255, 0.05);
-      stroke-width: 2.5;
-    }
-    
-    .wallet-card {
-      stroke: rgba(255, 255, 255, 0.7);
-      fill: rgba(255, 255, 255, 0.1);
-      stroke-width: 2;
-    }
-    
-    .card-line {
-      stroke: rgba(255, 255, 255, 0.4);
-      stroke-width: 1.5;
-    }
-    
-    .wallet-flap {
-      stroke: rgba(255, 255, 255, 0.9);
-      stroke-width: 2.5;
-    }
+// Larger circle container for step 1 wallet creation
+.wallet-animation-container .logo-glass-circle {
+  width: 150px;
+  height: 150px;
+  padding: 35px;
+  
+  .logo-image {
+    height: 80px;
   }
 }
 
-.wallet-creation-view.light {
-  .wallet-icon {
-    .wallet-body {
-      stroke: #3B7BF6;
-      fill: rgba(59, 123, 246, 0.08);
-      stroke-width: 2.5;
-    }
-    
-    .wallet-card {
-      stroke: #3B7BF6;
-      fill: rgba(59, 123, 246, 0.12);
-      stroke-width: 2;
-    }
-    
-    .card-line {
-      stroke: rgba(59, 123, 246, 0.5);
-      stroke-width: 1.5;
-    }
-    
-    .wallet-flap {
-      stroke: #3B7BF6;
-      stroke-width: 2.5;
-    }
-  }
+// Slow pulsing animation for circle container during wallet creation
+.logo-glass-circle.creating {
+  animation: circlePulse 3s ease-in-out infinite;
 }
 
-// Bouncing Animation
-.wallet-icon.bouncing {
-  animation: bounce 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-}
-
-@keyframes bounce {
+@keyframes circlePulse {
   0%, 100% {
-    transform: translateY(0);
+    transform: scale(1);
+    opacity: 1;
   }
   50% {
-    transform: translateY(-30px);
-  }
-}
-
-// Shine Effect
-.shine-wrapper {
-  position: relative;
-}
-
-.shine-wrapper::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.6) 50%,
-    transparent 100%
-  );
-  animation: shine 2.5s infinite;
-  pointer-events: none;
-  z-index: 10;
-  border-radius: 50%;
-}
-
-.wallet-icon.shining {
-  position: relative;
-  display: block;
-}
-
-@keyframes shine {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
+    transform: scale(1.05);
+    opacity: 0.9;
   }
 }
 
