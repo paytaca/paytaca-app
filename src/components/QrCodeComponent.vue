@@ -85,7 +85,8 @@ export default {
   },
   computed: {
     wrapperSize () {
-      return this.padding + 30 + this.size
+      const divisor = this.$q.platform.is.mobile ? 1.3 : 1;
+      return this.padding + 30 + this.size / divisor;
     }
   },
   mounted() {
