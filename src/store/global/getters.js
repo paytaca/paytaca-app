@@ -302,7 +302,7 @@ export function preferredSecurity (state) {
     try {
       return state.vault[walletIndex].settings.preferredSecurity.split('|')[1]
     } catch {
-      return pin
+      return 'pin'
     }
   }
   // Fallback to localStorage for backward compatibility during migration
