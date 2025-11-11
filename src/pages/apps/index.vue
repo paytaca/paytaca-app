@@ -257,6 +257,7 @@ export default {
     onLongPressAppsTitle () {
       if (!this.showDebugApp) {
         this.$q.dialog({
+          class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
           title: this.$t('Show Debug App'),
           message: this.$t('Do you want to show the Debug app? This will provide access to debugging tools and utilities.'),
           cancel: true,
