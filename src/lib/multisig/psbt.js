@@ -1,5 +1,5 @@
 import { bigIntToBinUint64LE, bigIntToCompactSize, numberToBinInt32LE } from "@bitauth/libauth"
-import { bigIntToCompactUint, binsAreEqual, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { bigIntToCompactUint, binsAreEqual, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
 import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "."
 
 export const PSBT_MAGIC = '70736274ff'
@@ -201,6 +201,78 @@ export class Bip32DerivationKeyPair extends KeyPair {
   }
 }
 
+export class ProprietaryField {
+  constructor({identifier, subKeyData, subType, value}){
+    this.identifier = identifier
+    this.subKeyData = subKeyData
+    this.subType = subType
+    this.value = value
+  }
+
+
+  /**
+   * @param {Function} decoder Function that knows how to decode the value
+   */
+  getIdentifier(decoder) {
+    return decoder ? decoder(this.identifier): this.identifier 
+  }
+
+  /**
+   * @param {Function} decoder Function that knows how to decode the value
+   */
+  getValue(decoder) {
+    if (!this.value) return 
+    return decoder ? decoder(this.value): this.value 
+  }
+  
+  /**
+   * @param {Function} decoder Function that knows how to decode the value
+   */
+  getSubKeyData(decoder) {
+    return decoder ? decoder(this.subKeyData): this.subKeyData 
+  }
+
+  static extractProprietaryFields(keypairs, identifier) {
+    const KEY_TYPE = 'fc'
+    if (!keypairs[KEY_TYPE]) return
+    
+    const proprietaryFields = []
+    
+    const _keypairs = keypairs[KEY_TYPE] instanceof KeyPair ? 
+      [ keypairs[KEY_TYPE] ] : 
+      keypairs[KEY_TYPE]
+
+    for (const keypair of _keypairs) {
+      const keyData = keypair.key?.keyData
+      if (!keyData) return proprietaryFields
+
+      const identifierLenReadResult = readCompactUint({ bin: keyData, index: 0})
+      const identifierReader = readBytes(Number(identifierLenReadResult.result))
+      const identifierReadResult = identifierReader(identifierLenReadResult.position)
+      if (!binsAreEqual(identifier, identifierReadResult.result)) {
+        return 
+      }
+      
+      const proprietaryField = {
+        identifier: identifierReadResult.result
+      }
+
+      const subTypeReadResult = readCompactUint(identifierReadResult.position)
+      const subKeyDataReadResult = readRemainingBytes(subTypeReadResult.position)
+      proprietaryField.subType = subTypeReadResult.result 
+      proprietaryField.subKeyData = subKeyDataReadResult.result
+      
+      proprietaryField.value = readRemainingBytes({
+        bin: keypair?.value?.value || Uint8Array.from([]),
+        index: 0
+      })?.result
+      proprietaryFields.push(new ProprietaryField(proprietaryField))
+    }
+
+    return proprietaryFields
+  }
+}
+
 export class GlobalMap {
 
   constructor() {
@@ -372,49 +444,13 @@ export class GlobalMap {
   }
 
   getProprietaryFields(identifier) {
-    
-    if (!this.keypairs[PSBT_GLOBAL_PROPRIETARY]) return
-    
-    const proprietaryFields = []
-    
-    const keypairs = this.keypairs[PSBT_GLOBAL_PROPRIETARY] instanceof KeyPair ? 
-      [ this.keypairs[PSBT_GLOBAL_PROPRIETARY] ] : 
-      this.keypairs[PSBT_GLOBAL_PROPRIETARY]
-
-    for (const keypair of keypairs) {
-      const keyData = keypair.key?.keyData
-      if (!keyData) return proprietaryFields
-
-      const identifierLenReadResult = readCompactUint({ bin: keyData, index: 0})
-      const identifierReader = readBytes(Number(identifierLenReadResult.result))
-      const identifierReadResult = identifierReader(identifierLenReadResult.position)
-      if (!binsAreEqual(identifier, identifierReadResult.result)) {
-        return 
-      }
-      
-      const proprietaryField = {
-        identifier: identifierReadResult.result
-      }
-
-      const subTypeReadResult = readCompactUint(identifierReadResult.position)
-      const subKeyDataReadResult = readRemainingBytes(subTypeReadResult.position)
-      proprietaryField.subType = subTypeReadResult.result 
-      proprietaryField.subKeyData = subKeyDataReadResult.result
-
-      proprietaryField.value = readRemainingBytes({
-        bin: this.keypairs[PSBT_GLOBAL_PROPRIETARY]?.value?.value || Uint8Array.from([]),
-        index: 0
-      })
-      
-      proprietaryFields.push(proprietaryField)
-    }
-
-    return proprietaryFields
+    return ProprietaryField.extractProprietaryFields(this.keypairs, identifier)
   }
 
   sanitizeForVersion(psbtVersion, keypairs) {
     const sorted = { ...keypairs }
     for (const key of Object.keys(sorted)) {
+      if (psbtVersion === 145) break
       if (psbtVersion === 0) {
         switch(key) {
           case PSBT_GLOBAL_TX_VERSION:
@@ -459,7 +495,7 @@ export class GlobalMap {
   }
 
   /**
-   * @param {import('@bitauth/libauth').ReadPosition} readPosition PsbtOutput map (starting at its first key length) and remaining bytes
+   * @param {import('@bitauth/libauth').ReadPosition} readPosition Psbt global map (starting at its first key length) and remaining bytes
    */
   deserialize(readPosition) {
     let limit = readPosition.bin.length
@@ -469,12 +505,10 @@ export class GlobalMap {
     while (index < limit) {
       const keyPair = new KeyPair()
       nextReadPosition = keyPair.deserialize(nextReadPosition)
-
       if (compactUintToBigInt(keyPair.key.keyLen) === 0n) {
         break
       }
       const keyTypeHex = binToHex(keyPair.key.keyType)
-
       if (this.keypairs[keyTypeHex] === undefined) {
         this.keypairs[keyTypeHex] = keyPair
       } else if (this.keypairs[keyTypeHex] instanceof Array) {
@@ -715,7 +749,7 @@ export class PsbtInput {
   addProprietaryField(identifier, value, subtype = new Uint8Array([]), subkeydata = new Uint8Array([])){
     const k = new Key(
       hexToBin(PSBT_IN_PROPRIETARY), 
-      new Uint8Array([bigIntToCompactUint(...identifier.length), ...identifier, ...subtype, ...subkeydata])
+      new Uint8Array([...bigIntToCompactUint(identifier.length), ...identifier, ...subtype, ...subkeydata])
     )
 
     const v = new Value(value)
@@ -725,6 +759,10 @@ export class PsbtInput {
     }
     this.keypairs[PSBT_IN_PROPRIETARY].push(new KeyPair(k, v))
     return this
+  }
+
+  getProprietaryFields(identifier) {
+    return ProprietaryField.extractProprietaryFields(this.keypairs, identifier)
   }
 
   sanitizeForVersion(psbtVersion, keypairs) {
@@ -837,6 +875,7 @@ export class PsbtOutput {
     return this
   }
 
+
   /**
    * @param {string|Uint8Array} publicKey
    * @param {string|Uint8Array} masterFingerprint
@@ -860,6 +899,28 @@ export class PsbtOutput {
     return this
   }
 
+
+  /**
+   * @returns {Object<string, Object<string,string>>} Example: { <publickey>: { path: m'..., masterFingerPrint: 0a121212 } }
+   */
+  getBip32Derivation(){
+    if (!this.keypairs[PSBT_OUT_BIP32_DERIVATION]) return {}
+    const bip32Derivation = {}
+    if (this.keypairs[PSBT_OUT_BIP32_DERIVATION] instanceof Array) {
+      for(const keypair of this.keypairs[PSBT_OUT_BIP32_DERIVATION]) {
+        const bip32DerKeyPair = Bip32DerivationKeyPair.fromKeyPair(keypair)
+        const publicKey = bip32DerKeyPair.key.keyData        
+        const masterFingerprint = bip32DerKeyPair.getMasterFingerprint()
+        const derivationPath = bip32DerKeyPair.getDerivationPath()
+        bip32Derivation[binToHex(publicKey)] = {
+          path: bip32DecodeDerivationPath(derivationPath),
+          masterFingerprint: binToHex(masterFingerprint)
+        }
+      }
+      return bip32Derivation
+    }
+  }
+
   /**
    * @param {bigint} satoshis Satoshi value
    */
@@ -868,6 +929,11 @@ export class PsbtOutput {
     const v = new Value(bigIntToBinUint64LE(satoshis))
     this.keypairs[PSBT_OUT_AMOUNT] = new KeyPair(k, v)
     return this
+  }
+
+  getAmount() {
+    return this.keypairs[PSBT_OUT_AMOUNT]?.value?.value && 
+      binToBigIntUint64LE(this.keypairs[PSBT_OUT_AMOUNT]?.value?.value) 
   }
 
   /**
@@ -901,6 +967,11 @@ export class PsbtOutput {
     return this
   }
 
+  getToken() {
+    return this.keypairs[PSBT_OUT_CASHTOKEN]?.value?.value && 
+      readTokenPrefix({ bin: this.keypairs[PSBT_OUT_CASHTOKEN]?.value?.value, index: 0 })
+  }
+
   /**
    * The locking script or scriptPubKey
    * @param {string|Uint8Array} lockingScript
@@ -919,6 +990,10 @@ export class PsbtOutput {
     return this
   }
 
+  getOutScript() {
+    return this.keypairs[PSBT_OUT_SCRIPT]?.value?.value
+  }
+
   /**
    * @param {Uint8Array} identifier Example: utf8ToBin('paytaca')
    * @param {Uint8Array} subtype compact size uint
@@ -928,7 +1003,7 @@ export class PsbtOutput {
   addProprietaryField(identifier, value, subtype = new Uint8Array([]), subkeydata = new Uint8Array([])){
     const k = new Key(
       hexToBin(PSBT_OUT_PROPRIETARY), 
-      new Uint8Array([bigIntToCompactUint(...identifier.length), ...identifier, ...subtype, ...subkeydata])
+      new Uint8Array([...bigIntToCompactUint(identifier.length), ...identifier, ...subtype, ...subkeydata])
     )
 
     const v = new Value(value)
@@ -938,6 +1013,10 @@ export class PsbtOutput {
     }
     this.keypairs[PSBT_OUT_PROPRIETARY].push(new KeyPair(k, v))
     return this
+  }
+
+  getProprietaryFields(identifier) {
+    return ProprietaryField.extractProprietaryFields(this.keypairs, identifier)
   }
 
   sanitizeForVersion(psbtVersion, keypairs) {
