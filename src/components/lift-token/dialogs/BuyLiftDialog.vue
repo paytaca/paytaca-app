@@ -6,7 +6,7 @@
     class="no-click-outside"
   >
     <q-card
-      class="buy-lift-dialog-card full-width q-pa-lg text-body1 text-bow"
+      class="buy-lift-dialog-card pt-card full-width q-pa-lg text-body1 text-bow"
       :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
       <div class="row justify-between items-center q-mb-lg">
