@@ -296,16 +296,22 @@ export function getWatchtowerBaseUrl (state) {
  */
 export function preferredSecurity (state) {
   const walletIndex = state.walletIndex
-  if (state.vault && state.vault[walletIndex] && state.vault[walletIndex].settings) {
-    return state.vault[walletIndex].settings.preferredSecurity || 'pin'
+  if (state.vault?.[walletIndex]?.settings) {
+    // parse preferredSecurity since it is prepended
+    // with __q_strn|<pin|biometric>
+    try {
+      return state.vault[walletIndex].settings.preferredSecurity.split('|')[1]
+    } catch {
+      return pin
+    }
   }
   // Fallback to localStorage for backward compatibility during migration
   try {
-    const storedPref = typeof window !== 'undefined' && window.localStorage 
-      ? window.localStorage.getItem('preferredSecurity') 
+    const storedPref = globalThis?.localStorage 
+      ? globalThis.localStorage.getItem('preferredSecurity') 
       : null
     return storedPref || 'pin'
-  } catch (e) {
+  } catch {
     return 'pin'
   }
 }
