@@ -125,6 +125,8 @@ export default {
   watch: {
     modeTab (val) {
       this.$store.commit('darkmode/setDarkmodeSatus', val === 'dark')
+      // Save to vault for wallet-specific settings
+      this.$store.commit('global/saveWalletSetting', { key: 'darkMode', value: val === 'dark' })
     },
     selectedTheme () {
       this.$store.commit('global/setTheme', this.selectedTheme)
