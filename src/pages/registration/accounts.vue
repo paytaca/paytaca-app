@@ -33,36 +33,36 @@
             <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.4s' }">
               <div 
                 id="create-new-wallet"
-                class="action-glass-card pt-card bg-grad cursor-pointer"
+                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
                 :class="getDarkModeClass(darkMode)"
                 @click="initCreateWallet()"
               >
                 <div class="action-icon-wrapper">
                   <div class="row justify-center">
-                    <q-icon name="mdi-wallet-plus-outline" class="col-12" color="primary" size="29px"></q-icon>
+                    <q-icon name="mdi-wallet-plus-outline" class="col-12" :color="darkMode ? 'primary' : 'black'" size="29px"></q-icon>
                   </div>
                 </div>
-                <div class="action-content text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="action-content">
                   <div class="text-subtitle1 q-mb-xs">{{ $t('CreateNewWallet') }}</div>
-                  <div class="text-body2 q-mt-xs text-bow" :class="getDarkModeClass(darkMode)">{{ $t('CreateWalletDescription') || 'Start fresh' }}</div>
+                  <div class="text-body2 q-mt-xs">{{ $t('CreateWalletDescription') || 'Start fresh' }}</div>
                 </div>
               </div>
             </transition>
 
             <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.5s' }">
               <div 
-                class="action-glass-card pt-card bg-grad cursor-pointer"
+                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
                 :class="getDarkModeClass(darkMode)"
                 @click="() => { importSeedPhrase = true }"
               >
                 <div class="action-icon-wrapper">
                   <div class="row justify-center">
-                    <q-icon name="mdi-key-variant" class="col-12" color="primary" size="29px"></q-icon>
+                    <q-icon name="mdi-key-variant" class="col-12" :color="darkMode ? 'primary' : 'black'" size="29px"></q-icon>
                   </div>
                 </div>
-                <div class="action-content text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="action-content">
                   <div class="text-subtitle1 q-mb-xs">{{ $t('RestoreExistingWallet') }}</div>
-                  <div class="text-body2 q-mt-xs text-bow" :class="getDarkModeClass(darkMode)">{{ $t('RestoreWalletDescriptionShort') || 'Restore from backup' }}</div>
+                  <div class="text-body2 q-mt-xs">{{ $t('RestoreWalletDescriptionShort') || 'Restore from backup' }}</div>
                 </div>
               </div>
             </transition>
@@ -1892,12 +1892,8 @@ export default {
 }
 
 /* Make action cards adopt themed gradient while keeping text legible */
-.action-glass-card.bg-grad {
-  color: #fff;
-}
 .action-glass-card.bg-grad .text-subtitle1,
 .action-glass-card.bg-grad .text-body2 {
-  color: #fff !important;
   opacity: 0.95;
 }
 

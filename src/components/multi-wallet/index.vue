@@ -79,7 +79,7 @@
       </div>
 
       <!-- Fixed Bottom Button -->
-      <div class="fixed-footer" :class="getDarkModeClass(darkMode)">
+      <div class="fixed-footer text-bow" :class="getDarkModeClass(darkMode)">
         <q-btn
           unelevated
           no-caps
