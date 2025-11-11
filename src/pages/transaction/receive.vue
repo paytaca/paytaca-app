@@ -183,7 +183,6 @@
 <script>
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
-import { NativeAudio } from '@capacitor-community/native-audio'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
@@ -202,7 +201,6 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 import HeaderNav from '../../components/header-nav'
 import CustomInput from 'src/components/CustomInput.vue'
-import confetti from 'canvas-confetti'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const sBCHWalletType = 'Smart BCH'
@@ -583,29 +581,9 @@ export default {
         return assets[0]
       }
     },
-    playSound (success) {
-      if (success) {
-        NativeAudio.play({
-          assetId: 'send-success'
-        })
-      }
-    },
     notifyOnReceive (amount, symbol, logo, decimals = 0, isCashToken = false) {
       const vm = this
       vm.generateAddressOnLeave = vm.$store.getters['global/autoGenerateAddress']
-      vm.playSound(true)
-      
-      // Launch confetti using canvas-confetti
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { x: 0.5, y: 0.75 },
-        startVelocity: 55,
-        gravity: 0.8,
-        decay: 0.9,
-        scalar: 0.8,
-        colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
-      })
       
       if (!vm.$q.platform.is.mobile) {
         vm.$q.notify({
@@ -656,6 +634,38 @@ export default {
             // Redirect to transaction details page for all received transactions
             if (data.txid) {
               const category = data.token_id ? data.token_id.split('/')[1] : ''
+              
+              // Get asset from store or construct from websocket data
+              let asset = vm.asset
+              if (!asset && data.token_id) {
+                const assetId = data.token_id
+                asset = vm.getAsset(assetId)
+                
+                // If not found, construct basic asset object
+                if (!asset) {
+                  asset = {
+                    id: assetId,
+                    symbol: data.token_symbol?.toUpperCase() || 'TOKEN',
+                    decimals: data.token_decimals || 0,
+                    logo: vm.getImageUrl ? vm.getImageUrl({ id: assetId }) : 'bch-logo.png'
+                  }
+                }
+              }
+              
+              // Calculate amount
+              const amount = data.amount / (10 ** data.token_decimals)
+              
+              // Construct transaction object from websocket data
+              const wsTransaction = {
+                txid: data.txid,
+                record_type: 'incoming',
+                amount: amount,
+                asset: asset,
+                tx_timestamp: Date.now(),
+                date_created: Date.now(),
+                _fromWebsocket: true
+              }
+              
               const query = { new: 'true' }
               if (category) {
                 query.category = category
@@ -663,7 +673,8 @@ export default {
               vm.$router.push({
                 name: 'transaction-detail',
                 params: { txid: data.txid },
-                query
+                query,
+                state: { tx: wsTransaction, fromWebsocket: true }
               })
               return // Exit early to prevent notification
             }
@@ -686,6 +697,42 @@ export default {
           
           // Redirect to transaction details page for all received transactions
           if (data.txid) {
+            // Get asset from store or construct from websocket data
+            let asset = vm.asset
+            if (!asset && data.token_id) {
+              const assetId = data.token_id === 'bch' ? 'bch' : data.token_id
+              asset = vm.getAsset(assetId)
+              
+              // If not found, construct basic asset object
+              if (!asset) {
+                asset = {
+                  id: assetId,
+                  symbol: data.token_symbol?.toUpperCase() || (data.token_id === 'bch' ? 'BCH' : 'TOKEN'),
+                  decimals: data.token_decimals || (data.token_id === 'bch' ? 8 : 0),
+                  logo: vm.getImageUrl ? vm.getImageUrl({ id: assetId }) : (data.token_id === 'bch' ? 'bch-logo.png' : 'token-logo.png')
+                }
+              }
+            }
+            
+            // Calculate amount based on token type
+            let txAmount = 0
+            if (data.token_name === 'bch') {
+              txAmount = data.value / (10 ** 8) // Convert satoshis to BCH
+            } else {
+              txAmount = Number(data.amount) / (10 ** data.token_decimals)
+            }
+            
+            // Construct transaction object from websocket data
+            const wsTransaction = {
+              txid: data.txid,
+              record_type: 'incoming',
+              amount: txAmount,
+              asset: asset,
+              tx_timestamp: Date.now(),
+              date_created: Date.now(),
+              _fromWebsocket: true
+            }
+            
             // Extract category from token_id if it's a token transaction, otherwise it's BCH
             const query = { new: 'true' }
             if (data.token_id && data.token_id !== 'bch') {
@@ -698,7 +745,8 @@ export default {
             vm.$router.push({
               name: 'transaction-detail',
               params: { txid: data.txid },
-              query
+              query,
+              state: { tx: wsTransaction, fromWebsocket: true }
             })
             return // Exit early to prevent notification and token addition
           }
@@ -820,9 +868,6 @@ export default {
       delete this?.$options?.sockets
     }
 
-    NativeAudio.unload({
-      assetId: 'send-success',
-    })
 
     await self.wakeLock.release()
   },
@@ -844,17 +889,6 @@ export default {
     // Setup websocket listener (async, needs to await address)
     await vm.setupListener()
 
-    let path = 'send-success.mp3'
-    if (this.$q.platform.is.ios) {
-      path = 'public/assets/send-success.mp3'
-    }
-    NativeAudio.preload({
-      assetId: 'send-success',
-      assetPath: path,
-      audioChannelNum: 1,
-      volume: 1.0,
-      isUrl: false
-    })
 
     self.wakeLock = useWakeLock()
     await wakeLock.request('screen')

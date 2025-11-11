@@ -364,7 +364,6 @@
 
 <script>
 import { markRaw } from '@vue/reactivity'
-import { NativeAudio } from '@capacitor-community/native-audio'
 import { pushNotificationsManager } from 'src/boot/push-notifications'
 import { getMnemonic, Wallet, Address } from 'src/wallet'
 import { getNetworkTimeDiff } from 'src/utils/time'
@@ -1002,7 +1001,6 @@ export default {
       this.recipients[0].recipientAddress = this.jpp.parsed.outputs
         .slice(0, 10).map(output => output.address).join(', ')
       this.recipients[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
-      this.playSound(true)
       this.txTimestamp = Date.now()
       this.sending = false
       this.sent = true
@@ -1506,7 +1504,6 @@ export default {
             vm.txid = txId
             vm.sent = true
             vm.txTimestamp = Date.now()
-            vm.playSound(true)
           } catch (e) {
             sendPageUtils.raiseNotifyError(e.message)
           }
@@ -1648,7 +1645,6 @@ export default {
       if (result.success) {
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
-        vm.playSound(true)
         vm.sending = false
         vm.sent = true
 
@@ -1682,9 +1678,6 @@ export default {
       this.isWalletAddress = isWalletAddress
       this.inputExtras[this.currentRecipientIndex].isLegacyAddress = isLegacy
       this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
-    },
-    playSound (success) {
-      if (success) NativeAudio.play({ assetId: 'send-success' })
     },
     decimalObj (isFiat) {
       return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
@@ -1731,16 +1724,6 @@ export default {
     // Fetch latest price for the selected asset
     vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId })
 
-    let path = 'send-success.mp3'
-    if (this.$q.platform.is.ios) path = 'public/assets/send-success.mp3'
-    NativeAudio.preload({
-      assetId: 'send-success',
-      assetPath: path,
-      audioChannelNum: 1,
-      volume: 1.0,
-      isUrl: false
-    })
-
     vm.selectedDenomination = vm.denomination
     // Load wallets
     vm.initWallet().then(() => vm.adjustWalletBalance())
@@ -1766,7 +1749,6 @@ export default {
   },
 
   unmounted () {
-    NativeAudio.unload({ assetId: 'send-success' })
     
     // Remove scroll listener
     const container = document.querySelector('.send-form-container')

@@ -24,6 +24,7 @@
             class="text-h5 text-uppercase text-center q-my-none"
             :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+            v-on-long-press="onLongPressTitle"
           >
             {{ title }}
           </p>
@@ -62,6 +63,7 @@
             class="text-h5 text-uppercase text-center q-my-none"
             :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+            v-on-long-press="onLongPressTitle"
           >
             {{ title }}
           </p>
@@ -81,10 +83,14 @@
 </template>
 
 <script>
+import { vOnLongPress } from '@vueuse/components'
 import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 
 export default {
   name: 'header-nav',
+  directives: {
+    'on-long-press': vOnLongPress,
+  },
   props: {
     title: {
       type: String,
@@ -102,7 +108,7 @@ export default {
   components: {
     HelpDialog
   },
-  emits: ['click'],
+  emits: ['click', 'long-press-title'],
   data () {
     return {
       addedBodyPadding: false
@@ -154,6 +160,9 @@ export default {
         component: HelpDialog,
         componentProps: { page: this.rewardsPage }
       })
+    },
+    onLongPressTitle () {
+      this.$emit('long-press-title')
     }
   }
 }

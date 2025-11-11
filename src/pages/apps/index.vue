@@ -4,6 +4,7 @@
       :title="$t('Apps')"
       backnavpath="/"
       class="q-px-sm apps-header"
+      @long-press-title="onLongPressAppsTitle"
     />
     <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
       <div class="row q-px-xs">
@@ -45,6 +46,7 @@ export default {
   },
   data () {
     return {
+      showDebugApp: localStorage.getItem('debugAppVisible') === 'true',
       apps: [
       {
           name: 'P2P Exchange',
@@ -205,6 +207,14 @@ export default {
           smartBCHOnly: false
         }
       ],
+      debugApp: {
+        name: 'Debug',
+        iconName: 'bug_report',
+        path: '/apps/debug',
+        active: true,
+        iconStyle: 'font-size: 4em',
+        smartBCHOnly: false
+      },
       filteredApps: [],
       appHeight: null,
       rampAppSelection: false,
@@ -243,10 +253,40 @@ export default {
       if (webSocketManager?.isOpen()) {
         webSocketManager.closeConnection()
       }
+    },
+    onLongPressAppsTitle () {
+      if (!this.showDebugApp) {
+        this.$q.dialog({
+          title: this.$t('Show Debug App'),
+          message: this.$t('Do you want to show the Debug app? This will provide access to debugging tools and utilities.'),
+          cancel: true,
+          persistent: true
+        }).onOk(() => {
+          this.showDebugApp = true
+          localStorage.setItem('debugAppVisible', 'true')
+          this.updateFilteredApps()
+        })
+      }
+    },
+    updateFilteredApps () {
+      this.filteredApps = [...this.apps]
+      
+      // Add debug app if visible
+      if (this.showDebugApp) {
+        this.filteredApps.push(this.debugApp)
+      }
+      
+      // Filter by smartBCH if needed
+      if (!this.enableSmartBCH) {
+        this.filteredApps = this.filteredApps.filter((app) => {
+          if (!app.smartBCHOnly) {
+            return true
+          }
+        })
+      }
     }
   },
   created () {
-    this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
     const themedIconPath = ''
 
@@ -263,13 +303,8 @@ export default {
 
     // Removed PayHero theme icon customization
 
-    if (!this.enableSmartBCH) {
-      this.filteredApps = this.apps.filter((app) => {
-        if (!app.smartBCHOnly) {
-          return true
-        }
-      })
-    }
+    // Update filtered apps after all modifications
+    this.updateFilteredApps()
   },
   mounted () {
     this.fetchAppControl()

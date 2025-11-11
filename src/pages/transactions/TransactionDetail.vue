@@ -125,7 +125,7 @@
                   </div>
                   <div v-else>
                     <q-item-section class="q-pt-sm text-center">
-                      <q-btn outline no-caps :label="$t('AddMemo', {}, 'Add memo')" icon="add" color="grey-7" class="br-15" padding="xs md" :disable="networkError" @click="openMemo()"/>
+                      <q-btn outline no-caps :label="$t('AddMemo', {}, 'Add memo')" icon="add" color="grey-7" class="br-15" padding="xs md" :disable="networkError || usingWebsocketData" @click="openMemo()"/>
                     </q-item-section>
                   </div>
                 </div>
@@ -167,6 +167,7 @@ import { getKeypair } from 'src/exchange/chat/keys'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
+import { Capacitor } from '@capacitor/core'
 
 export default {
   name: 'TransactionDetailPage',
@@ -183,6 +184,8 @@ export default {
       isLoading: false,
       retryCount: 0,
       maxRetries: 7,
+      audioPreloaded: false,
+      successfulAudioPath: null,
       // memo state
       transactionMemo: '',
       memoInput: '',
@@ -190,6 +193,8 @@ export default {
       hasMemo: false,
       networkError: false,
       keypair: null,
+      usingWebsocketData: false, // Track if we're using websocket data as fallback
+      backgroundFetchActive: false, // Track if background fetch is active
     }
   },
   computed: {
@@ -288,20 +293,16 @@ export default {
     // Ensure HTML and body have the correct background color to match our wrapper
     this.updateBackgroundColors()
     
-    // Preload sound for new transactions
-    let path = 'send-success.mp3'
-    if (this.$q.platform.is.ios) path = 'public/assets/send-success.mp3'
-    try {
-      await NativeAudio.preload({
-        assetId: 'send-success',
-        assetPath: path,
-        audioChannelNum: 1,
-        volume: 1.0,
-        isUrl: false
+    // Preload sound for new transactions (always preload, not just for new transactions)
+    // This ensures sound is ready when needed
+    // Don't block on audio errors - confetti should still work
+    this.preloadAudio()
+      .then(() => {
+        this.audioPreloaded = true
       })
-    } catch (error) {
-      console.error('Error preloading sound:', error)
-    }
+      .catch(() => {
+        this.audioPreloaded = false
+      })
     
     // Check if this is a new transaction from receive page
     // Handle both properly formatted query and malformed URLs with double ?
@@ -340,10 +341,9 @@ export default {
       this.$nextTick(() => {
         this.loadMemo()
         // Launch confetti if this is a new transaction
+        // Wait for DOM to be fully rendered before triggering
         if (isNewTransaction) {
-          setTimeout(async () => {
-            await this.launchConfetti()
-          }, 500)
+          this.waitForRenderAndLaunchConfetti()
         }
       })
       return
@@ -351,15 +351,8 @@ export default {
 
     await this.fetchAndShow()
     
-    // Launch confetti if this is a new transaction (after fetch completes)
-    if (isNewTransaction) {
-      this.$nextTick(() => {
-        // Wait a bit for the transaction to render
-        setTimeout(async () => {
-          await this.launchConfetti()
-        }, 500)
-      })
-    }
+    // Note: Confetti is launched inside fetchAndShow after transaction loads successfully
+    // Don't launch it here to avoid launching before transaction data is available
   },
   beforeUnmount () {
     // Reset background colors
@@ -371,6 +364,9 @@ export default {
     if (bodyEl) {
       bodyEl.style.backgroundColor = ''
     }
+    
+    // Stop background fetch
+    this.backgroundFetchActive = false
     
     // Unload sound
     NativeAudio.unload({
@@ -457,12 +453,21 @@ export default {
       
       try {
         const effectiveWalletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
-        const effectiveTxid = this.txid
+        // Get txid from prop first, then fallback to route params (for redirects from receive page)
+        const effectiveTxid = this.txid || this.$route?.params?.txid
+        console.log('[TransactionDetail] fetchAndShow:', { effectiveWalletHash, effectiveTxid, retryAttempt, propTxid: this.txid, routeTxid: this.$route?.params?.txid })
+        
         if (!effectiveWalletHash || !effectiveTxid) {
+          console.error('[TransactionDetail] Missing walletHash or txid:', { effectiveWalletHash, effectiveTxid, propTxid: this.txid, routeParams: this.$route?.params })
           this.isLoading = false
           this.loadError = this.$t('TransactionNotFound', {}, 'Transaction not found')
           return
         }
+        
+        // Check for websocket data as fallback
+        const wsData = (window && window.history && window.history.state && window.history.state.tx) || null
+        const isFromWebsocket = window?.history?.state?.fromWebsocket || false
+        
         const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
         // Prefer explicit query param; fallback to preloaded tx.asset.id (ct/{cat} | slp/{cat})
         let categoryParam = this.$route?.query?.category || ''
@@ -476,8 +481,10 @@ export default {
         }
         const categoryPath = categoryParam ? `/${categoryParam}` : ''
         const url = `${baseUrl}/history/wallet/${encodeURIComponent(effectiveWalletHash)}${categoryPath}/`
+        console.log('[TransactionDetail] Fetching from URL:', url, 'txid:', effectiveTxid)
         const { data } = await axios.get(url, { params: { txids: effectiveTxid } })
         const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
+        console.log('[TransactionDetail] API response:', { hasTx: !!tx, dataKeys: Object.keys(data || {}), retryAttempt })
 
         if (tx) {
           // Prefer preloaded asset metadata (logo, symbol) if available
@@ -500,21 +507,53 @@ export default {
           this.tx = mutableTx
           this.isLoading = false
           this.retryCount = 0
+          
+          // Check if this is a new transaction and launch confetti/sound
+          const query = this.$route?.query || {}
+          const isNewTransaction = query.new === 'true' || 
+                                   (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                                   (window.location.search && window.location.search.includes('new=true'))
+          
+          console.log('[TransactionDetail] Transaction loaded, isNewTransaction:', isNewTransaction, 'query:', query)
+          
           this.$nextTick(() => {
             this.loadMemo()
-            // Launch confetti if this is a new transaction (check here too in case mounted didn't catch it)
-            const query = this.$route?.query || {}
-            const isNewTransaction = query.new === 'true' || 
-                                     (typeof query.category === 'string' && query.category.includes('?new=true')) ||
-                                     (window.location.search && window.location.search.includes('new=true'))
+            // Launch confetti if this is a new transaction
+            // Wait for DOM to be fully rendered before triggering
             if (isNewTransaction) {
-              setTimeout(async () => {
-                await this.launchConfetti()
-              }, 500)
+              this.waitForRenderAndLaunchConfetti()
             }
           })
         } else {
           // Transaction not found, retry with exponential backoff
+          // After 2 retries, if we have websocket data, use it as fallback
+          if (retryAttempt >= 2 && wsData && isFromWebsocket) {
+            console.log('[TransactionDetail] Using websocket data as fallback after', retryAttempt, 'retries')
+            const mutableTx = this.createMutableCopy(wsData)
+            this.attachAssetIfMissing(mutableTx, categoryParam)
+            this.tx = mutableTx
+            this.isLoading = false
+            this.retryCount = 0
+            this.usingWebsocketData = true // Mark that we're using websocket data
+            
+            // Start background fetch to get real API data
+            this.startBackgroundFetch()
+            
+            // Check if this is a new transaction and launch confetti/sound
+            const query = this.$route?.query || {}
+            const isNewTransaction = query.new === 'true' || 
+                                     (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                                     (window.location.search && window.location.search.includes('new=true'))
+            
+            this.$nextTick(() => {
+              this.loadMemo()
+              if (isNewTransaction) {
+                this.waitForRenderAndLaunchConfetti()
+              }
+            })
+            return
+          }
+          
           if (retryAttempt < this.maxRetries) {
             const delay = Math.min(1000 * Math.pow(2, retryAttempt), 30000) // Cap at 30 seconds
             this.retryCount = retryAttempt + 1
@@ -522,12 +561,71 @@ export default {
               this.fetchAndShow(retryAttempt + 1)
             }, delay)
           } else {
+            // All retries exhausted
+            // If we have websocket data, use it as final fallback
+            if (wsData && isFromWebsocket) {
+              console.log('[TransactionDetail] All retries exhausted, using websocket data as final fallback')
+              const mutableTx = this.createMutableCopy(wsData)
+              this.attachAssetIfMissing(mutableTx, categoryParam)
+              this.tx = mutableTx
+              this.isLoading = false
+              this.retryCount = 0
+              this.usingWebsocketData = true // Mark that we're using websocket data
+              
+              // Start background fetch to get real API data
+              this.startBackgroundFetch()
+              
+              const query = this.$route?.query || {}
+              const isNewTransaction = query.new === 'true' || 
+                                       (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                                       (window.location.search && window.location.search.includes('new=true'))
+              
+              this.$nextTick(() => {
+                this.loadMemo()
+                if (isNewTransaction) {
+                  this.waitForRenderAndLaunchConfetti()
+                }
+              })
+              return
+            }
+            
             this.isLoading = false
             this.loadError = this.$t('TransactionNotFound', {}, 'Transaction not found')
           }
         }
       } catch (err) {
         // Retry on error with exponential backoff
+        // Check for websocket fallback after 2 retries
+        const wsData = (window && window.history && window.history.state && window.history.state.tx) || null
+        const isFromWebsocket = window?.history?.state?.fromWebsocket || false
+        
+        if (retryAttempt >= 2 && wsData && isFromWebsocket) {
+          console.log('[TransactionDetail] Using websocket data as fallback after error on retry', retryAttempt)
+          const categoryParam = this.$route?.query?.category || ''
+          const mutableTx = this.createMutableCopy(wsData)
+          this.attachAssetIfMissing(mutableTx, categoryParam)
+          this.tx = mutableTx
+          this.isLoading = false
+          this.retryCount = 0
+          this.usingWebsocketData = true // Mark that we're using websocket data
+          
+          // Start background fetch to get real API data
+          this.startBackgroundFetch()
+          
+          const query = this.$route?.query || {}
+          const isNewTransaction = query.new === 'true' || 
+                                   (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                                   (window.location.search && window.location.search.includes('new=true'))
+          
+          this.$nextTick(() => {
+            this.loadMemo()
+            if (isNewTransaction) {
+              this.waitForRenderAndLaunchConfetti()
+            }
+          })
+          return
+        }
+        
         if (retryAttempt < this.maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, retryAttempt), 30000) // Cap at 30 seconds
           this.retryCount = retryAttempt + 1
@@ -535,6 +633,38 @@ export default {
             this.fetchAndShow(retryAttempt + 1)
           }, delay)
         } else {
+          // All retries exhausted
+          // If we have websocket data, use it as final fallback
+          const wsData = (window && window.history && window.history.state && window.history.state.tx) || null
+          const isFromWebsocket = window?.history?.state?.fromWebsocket || false
+          
+          if (wsData && isFromWebsocket) {
+            console.log('[TransactionDetail] All retries exhausted after error, using websocket data as final fallback')
+            const categoryParam = this.$route?.query?.category || ''
+            const mutableTx = this.createMutableCopy(wsData)
+            this.attachAssetIfMissing(mutableTx, categoryParam)
+            this.tx = mutableTx
+            this.isLoading = false
+            this.retryCount = 0
+            this.usingWebsocketData = true // Mark that we're using websocket data
+            
+            // Start background fetch to get real API data
+            this.startBackgroundFetch()
+            
+            const query = this.$route?.query || {}
+            const isNewTransaction = query.new === 'true' || 
+                                     (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                                     (window.location.search && window.location.search.includes('new=true'))
+            
+            this.$nextTick(() => {
+              this.loadMemo()
+              if (isNewTransaction) {
+                this.waitForRenderAndLaunchConfetti()
+              }
+            })
+            return
+          }
+          
           this.isLoading = false
           this.loadError = this.$t('FailedToLoadTransaction', {}, 'Failed to load transaction')
         }
@@ -543,6 +673,105 @@ export default {
     retryFetch () {
       this.retryCount = 0
       this.fetchAndShow(0)
+    },
+    /**
+     * Start background fetch to get real API data when using websocket fallback
+     * This continues fetching with exponential backoff until transaction is found
+     */
+    async startBackgroundFetch (retryAttempt = 0) {
+      if (this.backgroundFetchActive) {
+        console.log('[TransactionDetail] Background fetch already active, skipping')
+        return
+      }
+      
+      this.backgroundFetchActive = true
+      const maxBackgroundRetries = 10 // More retries for background fetch
+      
+      const fetchInBackground = async (attempt = 0) => {
+        // Check if component is still mounted and background fetch should continue
+        if (!this.backgroundFetchActive) {
+          console.log('[TransactionDetail] Background fetch stopped')
+          return
+        }
+        
+        try {
+          const effectiveWalletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
+          const effectiveTxid = this.txid || this.$route?.params?.txid
+          
+          if (!effectiveWalletHash || !effectiveTxid) {
+            this.backgroundFetchActive = false
+            return
+          }
+          
+          const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
+          let categoryParam = this.$route?.query?.category || ''
+          if (!categoryParam && this.tx?.asset?.id) {
+            const assetId = String(this.tx.asset.id)
+            const parts = assetId.split('/')
+            if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+              categoryParam = parts[1]
+            }
+          }
+          const categoryPath = categoryParam ? `/${categoryParam}` : ''
+          const url = `${baseUrl}/history/wallet/${encodeURIComponent(effectiveWalletHash)}${categoryPath}/`
+          
+          console.log('[TransactionDetail] Background fetch attempt', attempt, 'for txid:', effectiveTxid)
+          const { data } = await axios.get(url, { params: { txids: effectiveTxid } })
+          const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
+          
+          if (tx) {
+            // Transaction found! Update with real API data
+            console.log('[TransactionDetail] Background fetch successful, updating transaction data')
+            const mutableTx = this.createMutableCopy(tx)
+            if (Object.isFrozen(mutableTx)) {
+              mutableTx = { ...mutableTx }
+            }
+            
+            // Preserve asset if we have it
+            if (this.tx?.asset) {
+              mutableTx.asset = this.tx.asset
+            }
+            
+            this.attachAssetIfMissing(mutableTx, categoryParam)
+            this.tx = mutableTx
+            this.usingWebsocketData = false // Enable memo button now
+            this.backgroundFetchActive = false
+            
+            // Reload memo with real transaction data
+            this.$nextTick(() => {
+              this.loadMemo()
+            })
+          } else {
+            // Not found yet, retry with exponential backoff
+            if (attempt < maxBackgroundRetries) {
+              const delay = Math.min(1000 * Math.pow(2, attempt), 30000) // Cap at 30 seconds
+              console.log('[TransactionDetail] Background fetch: transaction not found, retrying in', delay, 'ms')
+              setTimeout(() => {
+                fetchInBackground(attempt + 1)
+              }, delay)
+            } else {
+              console.log('[TransactionDetail] Background fetch: max retries reached, stopping')
+              this.backgroundFetchActive = false
+            }
+          }
+        } catch (err) {
+          console.error('[TransactionDetail] Background fetch error:', err)
+          // Retry on error
+          if (attempt < maxBackgroundRetries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt), 30000)
+            setTimeout(() => {
+              fetchInBackground(attempt + 1)
+            }, delay)
+          } else {
+            this.backgroundFetchActive = false
+          }
+        }
+      }
+      
+      // Start with a small delay to not interfere with initial render
+      setTimeout(() => {
+        fetchInBackground(0)
+      }, 1000)
     },
     async loadMemo () {
       try {
@@ -735,54 +964,164 @@ export default {
         }
       }
     },
-    async playSound (success) {
-      if (success) {
+    async preloadAudio () {
+      // Try different path formats for iOS
+      let paths = ['send-success.mp3']
+      if (this.$q.platform.is.ios) {
+        // Try multiple iOS path formats - iOS Native Audio looks for files in the bundle
+        // The file is at public/assets/sounds/send-success.mp3 which becomes www/assets/sounds/send-success.mp3
+        paths = [
+          'assets/sounds/send-success.mp3',  // Relative to www
+          'send-success.mp3',  // Just filename (if in root)
+          '/assets/sounds/send-success.mp3',  // Absolute from www root
+          Capacitor.convertFileSrc('assets/sounds/send-success.mp3'),  // Capacitor URL conversion
+          Capacitor.convertFileSrc('/assets/sounds/send-success.mp3')  // Capacitor URL with leading slash
+        ]
+      }
+      
+      for (const path of paths) {
         try {
-          await NativeAudio.play({
-            assetId: 'send-success'
+          await NativeAudio.preload({
+            assetId: 'send-success',
+            assetPath: path,
+            audioChannelNum: 1,
+            volume: 1.0,
+            isUrl: this.$q.platform.is.ios && (path.startsWith('http') || path.startsWith('capacitor'))
           })
+          // Store the successful path for later use
+          this.successfulAudioPath = path
+          return // Success, exit
         } catch (error) {
-          console.error('Error playing sound:', error)
-          // Fallback: try to preload and play again
-          try {
-            let path = 'send-success.mp3'
-            if (this.$q.platform.is.ios) path = 'public/assets/send-success.mp3'
-            await NativeAudio.preload({
-              assetId: 'send-success',
-              assetPath: path,
-              audioChannelNum: 1,
-              volume: 1.0,
-              isUrl: false
-            })
-            await NativeAudio.play({
-              assetId: 'send-success'
-            })
-          } catch (retryError) {
-            console.error('Error retrying sound playback:', retryError)
-          }
+          // Try next path
         }
       }
+      throw new Error('All audio preload attempts failed')
+    },
+    async playSound (success) {
+      if (!success) return
+      
+      try {
+        // Ensure audio is preloaded before playing
+        if (!this.audioPreloaded) {
+          await this.preloadAudio()
+          this.audioPreloaded = true
+        }
+        
+        await NativeAudio.play({
+          assetId: 'send-success'
+        })
+      } catch (error) {
+        // Try to preload and play again (non-blocking)
+        this.preloadAudio()
+          .then(() => {
+            this.audioPreloaded = true
+            return NativeAudio.play({ assetId: 'send-success' })
+          })
+          .catch(() => {
+            // Ignore retry errors
+          })
+      }
+    },
+    /**
+     * Wait for the transaction content to be rendered in the DOM before launching confetti
+     * Uses requestAnimationFrame to wait for the next paint cycle
+     */
+    async waitForRenderAndLaunchConfetti (maxAttempts = 10) {
+      let attempts = 0
+      
+      const checkAndLaunch = () => {
+        attempts++
+        
+        // Check if transaction content is actually rendered in the DOM
+        // Look for a key element that should exist when transaction is displayed
+        const transactionContent = document.querySelector('.content-container-ss')
+        const hasTransactionId = this.transactionId && this.transactionId.length > 0
+        
+        if (transactionContent && hasTransactionId && this.tx && this.tx.asset) {
+          // Content is rendered, wait for next animation frame to ensure paint is complete
+          requestAnimationFrame(() => {
+            requestAnimationFrame(async () => {
+              // Double RAF ensures the browser has painted the content
+              await this.launchConfetti()
+            })
+          })
+        } else if (attempts < maxAttempts) {
+          // Not ready yet, wait for next frame and check again
+          requestAnimationFrame(checkAndLaunch)
+        } else {
+          // Max attempts reached, launch anyway (fallback)
+          this.launchConfetti()
+        }
+      }
+      
+      // Start checking after next tick
+      this.$nextTick(() => {
+        requestAnimationFrame(checkAndLaunch)
+      })
     },
     async launchConfetti () {
-      // Play sound for new transaction
-      // On iOS, add a small delay to ensure preload is complete
-      if (this.$q.platform.is.ios) {
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-      await this.playSound(true)
+      // Play sound for new transaction (non-blocking - don't wait for it)
+      // Ensure audio is ready by waiting for next frame (allows preload to complete)
+      requestAnimationFrame(() => {
+        this.playSound(true).catch(() => {
+          // Ignore sound errors
+        })
+      })
       
       // Launch basic cannon confetti from middle lower half of page
       // Origin: center horizontally (0.5), 75% down vertically (0.75)
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { x: 0.5, y: 0.75 },
-        startVelocity: 55,
-        gravity: 0.8,
-        decay: 0.9,
-        scalar: 0.8,
-        colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
-      })
+      // iOS WebView needs special handling for canvas rendering
+      try {
+        if (this.$q.platform.is.ios) {
+          // For iOS, wait a bit longer and ensure canvas is ready
+          await new Promise(resolve => setTimeout(resolve, 100))
+          // Force canvas initialization on iOS with explicit dimensions
+          const canvas = document.createElement('canvas')
+          canvas.width = window.innerWidth
+          canvas.height = window.innerHeight
+          canvas.style.position = 'fixed'
+          canvas.style.top = '0'
+          canvas.style.left = '0'
+          canvas.style.width = '100%'
+          canvas.style.height = '100%'
+          canvas.style.pointerEvents = 'none'
+          canvas.style.zIndex = '9999'
+          document.body.appendChild(canvas)
+          
+          // Use the canvas for confetti
+          const myConfetti = confetti.create(canvas, { resize: true, useWorker: false })
+          myConfetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { x: 0.5, y: 0.75 },
+            startVelocity: 55,
+            gravity: 0.8,
+            decay: 0.9,
+            scalar: 0.8,
+            colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
+          })
+          
+          // Clean up canvas after animation
+          setTimeout(() => {
+            if (canvas.parentNode) {
+              canvas.parentNode.removeChild(canvas)
+            }
+          }, 3000)
+        } else {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { x: 0.5, y: 0.75 },
+            startVelocity: 55,
+            gravity: 0.8,
+            decay: 0.9,
+            scalar: 0.8,
+            colors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e']
+          })
+        }
+      } catch (error) {
+        // Ignore confetti errors
+      }
     }
   }
 }
