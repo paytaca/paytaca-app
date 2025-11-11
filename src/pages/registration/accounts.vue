@@ -182,7 +182,7 @@
         <q-list class="flat-list">
           <q-item class="glass-item" :class="getDarkModeClass(darkMode)" clickable @click="setupSecurity('pin')">
             <q-item-section>
-              <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('SetupPin') || 'Setup PIN' }}</q-item-label>
+              <q-item-label class="pt-setting-menu text-bow" :class="getDarkModeClass(darkMode)">{{ $t('SetupPin') || 'Setup PIN' }}</q-item-label>
             </q-item-section>
             <q-item-section side>
               <q-icon name="lock" size="24px" />
@@ -191,7 +191,7 @@
           <q-separator v-if="isMobile" spaced class="thin-separator" />
           <q-item v-if="isMobile" class="glass-item" :class="getDarkModeClass(darkMode)" clickable @click="setupSecurity('biometric')">
             <q-item-section>
-              <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('SetupBiometric') || 'Setup Biometric' }}</q-item-label>
+              <q-item-label class="pt-setting-menu text-bow" :class="getDarkModeClass(darkMode)">{{ $t('SetupBiometric') || 'Setup Biometric' }}</q-item-label>
             </q-item-section>
             <q-item-section side>
               <q-icon name="fingerprint" size="24px" />
@@ -2052,12 +2052,6 @@ export default {
 }
 .pt-setting-menu {
   font-weight: 400;
-  &.dark {
-    color: #e0e2e5;
-  }
-  &.light {
-    color: #3B7BF6;
-  }
 }
 
 </style>
