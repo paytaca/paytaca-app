@@ -104,7 +104,111 @@
           {{ formatDate(tx.tx_timestamp || tx.date_created) }}
         </div>
 
-        
+        <!-- Transaction Metadata Section -->
+        <template v-if="attributeDetails?.length">
+          <q-separator spaced class="q-mt-lg"/>
+          <div class="q-px-md row items-center justify-center section-block-ss">
+            <div class="text-grey text-weight-medium text-caption">{{ $t('TransactionMetadata', {}, 'Transaction metadata') }}</div>
+            <q-btn flat icon="more_vert" padding="sm" round class="q-r-mr-md">
+              <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                <q-item
+                  :active="displayRawAttributes"
+                  clickable v-close-popup
+                  @click="() => displayRawAttributes = true"
+                >
+                  <q-item-section>
+                    <q-item-label>{{ $t('DisplayRawData', {}, 'Display raw data') }}</q-item-label>    
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  :active="!displayRawAttributes"
+                  clickable v-close-popup
+                  @click="() => displayRawAttributes = false"
+                >
+                  <q-item-section>
+                    <q-item-label>{{ $t('DisplayRefinedData', {}, 'Display refined data') }}</q-item-label>    
+                  </q-item-section>
+                </q-item>
+              </q-menu>
+            </q-btn>
+          </div>
+          <q-slide-transition>
+            <div>
+              <div v-if="!displayRawAttributes" v-for="(group, index) in attributeDetails" :key="index" class="q-my-sm section-block-ss"> 
+                <div class="q-px-md text-subtitle1 text-left">{{ group?.name }}</div>
+                <q-item
+                  v-for="(attributeDetails, index2) in group?.items" :key="`${index}-${index2}`"
+                >
+                  <q-item-section>
+                    <q-item-label class="text-grey row items-center justify-left">
+                      <div>{{ attributeDetails?.label }}</div>
+                      <template v-if="attributeDetails?.tooltip">
+                        <q-icon name="description" size="1.25em" class="q-ml-xs"/>
+                        <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                          {{ attributeDetails?.tooltip }}
+                        </q-menu>
+                      </template>
+                    </q-item-label>
+                    <q-item-label>
+                      <div class="row items-start no-wrap justify-left">
+                        <div class="q-space q-my-xs text-left" style="word-break:break-all">
+                          {{ attributeDetails?.text }}
+                        </div>
+                        <div
+                          v-for="(action, index3) in attributeDetails?.actions" :key="`${index}-${index2}-${index3}`"
+                          class="row items-center"
+                        >
+                          <q-btn
+                            flat :icon="action?.icon"
+                            size="sm" padding="xs sm"
+                            @click.stop="() => handleAttributeAction(action)"
+                          />
+                          <q-separator
+                            v-if="index3 < attributeDetails?.actions?.length - 1"
+                            vertical
+                            :dark="darkMode"
+                          />
+                        </div>
+                      </div>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </div>
+            </div>
+          </q-slide-transition>
+          <q-slide-transition>
+            <div v-if="displayRawAttributes">
+              <q-item v-for="(attribute, index) in tx?.attributes" :key="index">
+                <q-item-section side top>
+                  <q-item-label caption class="text-grey">
+                    #{{ index + 1 }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label caption class="text-grey row items-center justify-left">
+                    <div>{{ attribute?.key }}</div>
+                    <template v-if="attribute?.description">
+                      <q-icon size="1.25em" name="description" class="q-ml-xs"/>
+                      <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                        {{ attribute?.description }}
+                      </q-menu>
+                    </template>
+                  </q-item-label>
+                  <q-item-label class="text-left" style="word-break:break-all;">
+                    {{ attribute?.value }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side top>
+                  <q-btn
+                    flat icon="content_copy"
+                    size="sm" padding="xs sm"
+                    @click="() => copyToClipboard(JSON.stringify(attribute))"
+                  />
+                </q-item-section>
+              </q-item>
+            </div>
+          </q-slide-transition>
+        </template>
 
         <!-- Memo Section (mirrors SendSuccessBlock styling, centered) -->
         <div class="memo-section section-block-ss q-mt-lg q-mb-md">
@@ -168,6 +272,12 @@ import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
+import { parseAttributesToGroups } from 'src/utils/tx-attributes'
+import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
+import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
+import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
+import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
+import JppDetailDialog from 'src/components/JppDetailDialog.vue'
 
 export default {
   name: 'TransactionDetailPage',
@@ -195,6 +305,7 @@ export default {
       keypair: null,
       usingWebsocketData: false, // Track if we're using websocket data as fallback
       backgroundFetchActive: false, // Track if background fetch is active
+      displayRawAttributes: false,
     }
   },
   computed: {
@@ -285,6 +396,10 @@ export default {
       return {
         backgroundColor: backgroundColor
       }
+    },
+    attributeDetails () {
+      if (!Array.isArray(this.tx?.attributes)) return []
+      return parseAttributesToGroups({ attributes: this.tx?.attributes })
     }
   },
   async mounted () {
@@ -1122,6 +1237,79 @@ export default {
       } catch (error) {
         // Ignore confetti errors
       }
+    },
+    /**
+     * @param {{type: String, args?: any[]}} action
+     */
+    handleAttributeAction (action) {
+      const args = Array.isArray(action?.args) ? action?.args : []
+      if (action?.type === 'copy_to_clipboard') {
+        return this.copyToClipboard(...args)
+      } else if (action?.type === 'open_anyhedge_contract') {
+        return this.displayAnyhedgeContract(...args)
+      } else if (action?.type === 'open_jpp_invoice') {
+        return this.displayJppInvoice(...args)
+      }
+    },
+    displayAnyhedgeContract (contractAddress) {
+      const walletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
+      const dialog = this.$q.dialog({
+        title: 'AnyHedge Contract',
+        message: 'Fetching contract',
+        ok: false,
+        seamless: true,
+        progress: true,
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      })
+      anyhedgeBackend.get(`anyhedge/hedge-positions/${contractAddress}/`)
+        .then(async (response) => {
+          if (!response?.data?.address) return Promise.reject({ response })
+          const parsedContractData = await parseHedgePositionData(response?.data)
+          dialog.hide()
+
+          let viewAs
+          if (parsedContractData?.shortWalletHash === walletHash) viewAs = 'short'
+          if (parsedContractData?.longWalletHash === walletHash) viewAs = 'long'
+          this.$q.dialog({
+            component: HedgeContractDetailDialog,
+            componentProps: {
+              contract: parsedContractData,
+              wallet: this.wallet,
+              viewAs: viewAs,
+              viewPositionInTitle: true,
+            },
+          })
+          return Promise.resolve(response)
+        })
+        .catch(error => {
+          console.error(error)
+          dialog.update({ message: 'Unable to fetch contract data' })
+        })
+    },
+    displayJppInvoice (uuid) {
+      const dialog = this.$q.dialog({
+        title: 'Invoice',
+        message: 'Fetching data',
+        ok: false,
+        seamless: true,
+        progress: true,
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      })
+      return JSONPaymentProtocol.fetch(`https://watchtower.cash/api/jpp/invoices/${uuid}/`)
+        .then(response => {
+          dialog.hide()
+          this.$q.dialog({
+            component: JppDetailDialog,
+            componentProps: {
+              jpp: response,
+            },
+          })
+          return response
+        })
+        .catch(error => {
+          console.error(error)
+          dialog.update({ message: 'Unable to fetch data' })
+        })
     }
   }
 }
@@ -1233,9 +1421,11 @@ export default {
   flex-direction: column;
   width: 100%;
   position: relative;
-  /* Ensure wrapper fills at least the viewport but doesn't force extra height */
-  min-height: 100vh;
-  /* But also ensure it doesn't create extra space beyond content */
+  /* Constrain to viewport and enable scrolling */
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   /* Background color is set dynamically via :style binding based on theme */
 }
 
@@ -1246,6 +1436,7 @@ export default {
   z-index: 100;
   width: 100%;
   flex-shrink: 0;
+  background: inherit; /* Ensure header has background to cover scrolling content */
 }
 
 .transaction-detail-content-wrapper {
@@ -1254,6 +1445,7 @@ export default {
   padding-bottom: 20px;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Important for flex children */
 }
 
 .transaction-detail-content-wrapper .content-container-ss {
