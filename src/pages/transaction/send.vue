@@ -350,6 +350,15 @@
         </div>
       </template>
     </div>
+
+    <Pin
+      v-model:pin-dialog-action="pinDialogAction"
+      @nextAction="pinDialogNextAction"
+    />
+    <BiometricWarningAttempt
+      :warning-attempts="warningAttemptsStatus"
+      @closeBiometricWarningAttempts="verifyBiometric()"
+    />
   </div>
 </template>
 
@@ -387,8 +396,10 @@ import {
   processOnetimePoints
 } from 'src/utils/engagementhub-utils/rewards'
 
-import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
+import Pin from 'src/components/pin/index.vue'
+import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
+import { NativeBiometric } from 'capacitor-native-biometric'
 import JppPaymentPanel from 'src/components/JppPaymentPanel.vue'
 import ProgressLoader from 'src/components/ProgressLoader'
 import HeaderNav from 'src/components/header-nav'
@@ -414,7 +425,11 @@ export default {
     QrScanner,
     SendPageForm,
     QRUploader,
-    SendSuccessBlock
+    SendSuccessBlock,
+    PointsReceivedDialog,
+    LoadingWalletDialog,
+    Pin,
+    BiometricWarningAttempt
   },
 
   props: {
@@ -516,6 +531,8 @@ export default {
         incorrectAddress: false
       }],
       expandedItems: {},
+      pinDialogAction: '',
+      warningAttemptsStatus: 'dismiss',
 
       /** @type {Wallet} */
       wallet: null,
@@ -1247,12 +1264,65 @@ export default {
         }
       }
 
-      vm.$q.dialog({ component: SecurityCheckDialog })
-        .onOk(() => {
+      // Directly execute security checking without intermediate dialog
+      console.log('[SendPage] slideToSubmit: Calling executeSecurityChecking directly (no SecurityCheckDialog)')
+      vm.executeSecurityChecking(reset)
+    },
+    executeSecurityChecking (reset = () => {}) {
+      const vm = this
+      console.log('[SendPage] executeSecurityChecking: Starting authentication (no SecurityCheckDialog)')
+      setTimeout(() => {
+        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+        console.log('[SendPage] executeSecurityChecking: preferredSecurity =', preferredSecurity)
+        if (preferredSecurity === 'pin') {
+          console.log('[SendPage] executeSecurityChecking: Setting pinDialogAction to VERIFY')
+          // Reset first to ensure watcher is triggered
+          vm.pinDialogAction = ''
+          vm.$nextTick(() => {
+            vm.pinDialogAction = 'VERIFY'
+            console.log('[SendPage] executeSecurityChecking: pinDialogAction set to VERIFY')
+          })
+        } else {
+          console.log('[SendPage] executeSecurityChecking: Calling verifyBiometric')
+          vm.verifyBiometric(reset)
+        }
+      }, 300)
+    },
+    verifyBiometric (reset = () => {}) {
+      const vm = this
+      NativeBiometric.verifyIdentity({
+        reason: vm.$t('NativeBiometricReason2'),
+        title: vm.$t('SecurityAuthentication'),
+        subtitle: vm.$t('NativeBiometricSubtitle'),
+        description: ''
+      }).then(
+        () => {
+          // Authentication successful
           vm.customKeyboardState = 'dismiss'
           vm.handleSubmit()
-        })
-        .onDismiss(() => reset?.())
+        },
+        (error) => {
+          // Failed to authenticate
+          vm.warningAttemptsStatus = 'dismiss'
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+            reset?.()
+          } else if (error.message.includes('Too many attempts. Try again later.')) {
+            vm.warningAttemptsStatus = 'show'
+          } else {
+            vm.verifyBiometric(reset)
+          }
+        }
+      )
+    },
+    pinDialogNextAction (action) {
+      const vm = this
+      if (action === 'proceed') {
+        vm.pinDialogAction = ''
+        vm.customKeyboardState = 'dismiss'
+        vm.handleSubmit()
+      } else {
+        vm.pinDialogAction = ''
+      }
     },
     async handleSubmit () {
       const vm = this

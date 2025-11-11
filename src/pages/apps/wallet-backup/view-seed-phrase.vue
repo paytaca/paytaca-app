@@ -108,10 +108,19 @@ export default {
     
     executeSecurityChecking () {
       const vm = this
+      console.log('[WalletBackup-SeedPhrase] executeSecurityChecking called')
+      console.log('[WalletBackup-SeedPhrase] $store available:', !!vm.$store)
+      console.log('[WalletBackup-SeedPhrase] preferredSecurity:', vm.$store?.getters?.['global/preferredSecurity'])
+      
       setTimeout(() => {
-        if (vm.$store.getters['global/preferredSecurity'] === 'pin') {
+        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+        console.log('[WalletBackup-SeedPhrase] Setting security check, preferredSecurity:', preferredSecurity)
+        if (preferredSecurity === 'pin') {
+          console.log('[WalletBackup-SeedPhrase] Setting pinDialogAction to VERIFY')
           vm.pinDialogAction = 'VERIFY'
+          console.log('[WalletBackup-SeedPhrase] pinDialogAction after set:', vm.pinDialogAction)
         } else {
+          console.log('[WalletBackup-SeedPhrase] Calling verifyBiometric')
           vm.verifyBiometric()
         }
       }, 300)
@@ -180,7 +189,13 @@ export default {
   },
 
   mounted () {
+    console.log('[WalletBackup-SeedPhrase] Component mounted, calling executeSecurityChecking')
     this.executeSecurityChecking()
+  },
+  watch: {
+    pinDialogAction (newVal, oldVal) {
+      console.log('[WalletBackup-SeedPhrase] pinDialogAction changed from', oldVal, 'to', newVal)
+    }
   }
 }
 </script>

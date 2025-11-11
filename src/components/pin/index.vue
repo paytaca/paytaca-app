@@ -136,12 +136,16 @@ export default {
     'disableClose': { type: Boolean, default: false }
   },
   watch: {
-    pinDialogAction () {
+    pinDialogAction (newVal, oldVal) {
       const vm = this
+      console.log('[PinDialog] pinDialogAction watcher triggered')
+      console.log('[PinDialog] Old value:', oldVal, 'New value:', newVal)
       if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
+        console.log('[PinDialog] Valid action detected, opening dialog')
         vm.pin = ''
         vm.removeKey('delete')
         vm.dialog = true
+        console.log('[PinDialog] dialog set to:', vm.dialog)
 
         if (vm.pinDialogAction === 'SET UP') {
           vm.actionCaption = vm.$t('SetupPin')
@@ -154,9 +158,12 @@ export default {
         vm.btnIcon = vm.pinDialogAction === 'VERIFY' ? 'verified_user' : 'done'
         vm.subTitle = vm.pinDialogAction === 'VERIFY' ? vm.$t('PinSubtext1') : vm.$t('PinSubtext2')
       } else {
+        console.log('[PinDialog] Action is not SET UP/SET NEW/VERIFY, value:', vm.pinDialogAction)
         if (vm.pinDialogAction === 'SKIP') {
+          console.log('[PinDialog] SKIP action, emitting proceed')
           vm.$emit('nextAction', 'proceed')
         } else {
+          console.log('[PinDialog] Closing dialog')
           vm.dialog = false
         }
       }

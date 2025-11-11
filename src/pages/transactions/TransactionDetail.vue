@@ -1,15 +1,58 @@
 <template>
   <div class="transaction-detail-wrapper" :class="getDarkModeClass(darkMode)" :style="wrapperBackgroundStyle">
     <div class="transaction-detail-header-wrapper">
-      <header-nav :title="$t('Transaction', {}, 'Transaction')" class="header-nav apps-header" @click:left="goBack" />
+      <header-nav :title="$t('Transaction', {}, 'Transaction')" :backnavpath="'/'" class="header-nav apps-header" @click:left="goBack" />
     </div>
     
     <div class="transaction-detail-content-wrapper" :class="getDarkModeClass(darkMode)">
-      <div v-if="loadError" class="q-pa-md text-center">
+      <!-- Skeleton Loading State -->
+      <div v-if="isLoading" class="q-pa-lg">
+        <div class="text-bow text-center content-container-ss" :class="getDarkModeClass(darkMode)">
+          <!-- Page title skeleton -->
+          <q-skeleton type="text" width="120px" height="28px" class="q-mx-auto q-mb-md" />
+          
+          <!-- Direction icon skeleton -->
+          <div class="row justify-center q-mt-sm q-mb-md">
+            <q-skeleton type="circle" size="60px" />
+          </div>
+
+          <!-- Amount block skeleton -->
+          <div class="amount-block q-mt-md text-center section-block-ss">
+            <div class="row justify-center q-gutter-sm amount-row-ss" style="margin-top: 25px;">
+              <q-skeleton type="circle" size="40px" />
+              <q-skeleton type="text" width="150px" height="32px" />
+            </div>
+            <q-skeleton type="text" width="100px" height="20px" class="q-mt-sm q-mx-auto" />
+          </div>
+
+          <!-- Reference ID skeleton -->
+          <div class="reference-id-section section-block-ss q-mt-lg" style="margin-top: 25px;">
+            <q-skeleton type="text" width="100px" height="14px" class="q-mb-xs" />
+            <q-skeleton type="text" width="80px" height="24px" class="q-mx-auto" />
+            <q-separator color="grey" class="q-mt-sm ref-separator-ss"/>
+          </div>
+
+          <!-- Transaction ID skeleton -->
+          <div class="transaction-id-section section-block-ss q-mt-md" style="margin-top: 25px;">
+            <q-skeleton type="text" width="120px" height="14px" class="q-mb-sm" />
+            <q-skeleton type="rect" height="40px" class="q-mb-sm" style="border-radius: 8px;" />
+            <q-skeleton type="text" width="140px" height="16px" class="q-mx-auto" />
+          </div>
+
+          <!-- Date skeleton -->
+          <q-skeleton type="text" width="100px" height="14px" class="q-mt-md" />
+          <q-skeleton type="text" width="180px" height="20px" class="q-mt-xs q-mb-lg" />
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="loadError && !isLoading" class="q-pa-md text-center">
         <div class="text-subtitle1 q-mb-sm">{{ loadError }}</div>
+        <q-btn outline color="primary" no-caps @click="retryFetch" class="q-mr-sm">{{ $t('Retry', {}, 'Retry') }}</q-btn>
         <q-btn outline color="primary" no-caps @click="goBack">{{ $t('Back', {}, 'Back') }}</q-btn>
       </div>
 
+      <!-- Transaction Content -->
       <div v-else-if="tx && tx.asset && transactionId" class="q-pa-lg">
         <div class="text-bow text-center content-container-ss" :class="getDarkModeClass(darkMode)">
         <!-- Page title and direction icon -->
@@ -123,6 +166,7 @@ import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo
 import { getKeypair } from 'src/exchange/chat/keys'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
+import { NativeAudio } from '@capacitor-community/native-audio'
 
 export default {
   name: 'TransactionDetailPage',
@@ -136,6 +180,9 @@ export default {
       denominationTabSelected: 'BCH',
       loadError: '',
       tx: null,
+      isLoading: false,
+      retryCount: 0,
+      maxRetries: 7,
       // memo state
       transactionMemo: '',
       memoInput: '',
@@ -241,6 +288,21 @@ export default {
     // Ensure HTML and body have the correct background color to match our wrapper
     this.updateBackgroundColors()
     
+    // Preload sound for new transactions
+    let path = 'send-success.mp3'
+    if (this.$q.platform.is.ios) path = 'public/assets/send-success.mp3'
+    try {
+      await NativeAudio.preload({
+        assetId: 'send-success',
+        assetPath: path,
+        audioChannelNum: 1,
+        volume: 1.0,
+        isUrl: false
+      })
+    } catch (error) {
+      console.error('Error preloading sound:', error)
+    }
+    
     // Check if this is a new transaction from receive page
     // Handle both properly formatted query and malformed URLs with double ?
     const query = this.$route?.query || {}
@@ -265,7 +327,7 @@ export default {
       const mutableKeys = Object.keys(mutableTx)
       if (mutableKeys.length > 0 && mutableKeys.every(k => /^\d+$/.test(k))) {
         // Fetch from API instead of using corrupted copy
-        await this.fetchAndShow()
+        await this.fetchAndShow(0)
         return
       }
       
@@ -279,8 +341,8 @@ export default {
         this.loadMemo()
         // Launch confetti if this is a new transaction
         if (isNewTransaction) {
-          setTimeout(() => {
-            this.launchConfetti()
+          setTimeout(async () => {
+            await this.launchConfetti()
           }, 500)
         }
       })
@@ -293,8 +355,8 @@ export default {
     if (isNewTransaction) {
       this.$nextTick(() => {
         // Wait a bit for the transaction to render
-        setTimeout(() => {
-          this.launchConfetti()
+        setTimeout(async () => {
+          await this.launchConfetti()
         }, 500)
       })
     }
@@ -309,6 +371,11 @@ export default {
     if (bodyEl) {
       bodyEl.style.backgroundColor = ''
     }
+    
+    // Unload sound
+    NativeAudio.unload({
+      assetId: 'send-success'
+    })
   },
   watch: {
     theme () {
@@ -384,11 +451,15 @@ export default {
     hexToRef (hex6) {
       return hexToRefUtil(hex6)
     },
-    async fetchAndShow () {
+    async fetchAndShow (retryAttempt = 0) {
+      this.isLoading = true
+      this.loadError = ''
+      
       try {
         const effectiveWalletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
         const effectiveTxid = this.txid
         if (!effectiveWalletHash || !effectiveTxid) {
+          this.isLoading = false
           this.loadError = this.$t('TransactionNotFound', {}, 'Transaction not found')
           return
         }
@@ -427,6 +498,8 @@ export default {
           }
           this.attachAssetIfMissing(mutableTx, categoryParam)
           this.tx = mutableTx
+          this.isLoading = false
+          this.retryCount = 0
           this.$nextTick(() => {
             this.loadMemo()
             // Launch confetti if this is a new transaction (check here too in case mounted didn't catch it)
@@ -435,17 +508,41 @@ export default {
                                      (typeof query.category === 'string' && query.category.includes('?new=true')) ||
                                      (window.location.search && window.location.search.includes('new=true'))
             if (isNewTransaction) {
-              setTimeout(() => {
-                this.launchConfetti()
+              setTimeout(async () => {
+                await this.launchConfetti()
               }, 500)
             }
           })
         } else {
-          this.loadError = this.$t('TransactionNotFound', {}, 'Transaction not found')
+          // Transaction not found, retry with exponential backoff
+          if (retryAttempt < this.maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, retryAttempt), 30000) // Cap at 30 seconds
+            this.retryCount = retryAttempt + 1
+            setTimeout(() => {
+              this.fetchAndShow(retryAttempt + 1)
+            }, delay)
+          } else {
+            this.isLoading = false
+            this.loadError = this.$t('TransactionNotFound', {}, 'Transaction not found')
+          }
         }
       } catch (err) {
-        this.loadError = this.$t('FailedToLoadTransaction', {}, 'Failed to load transaction')
+        // Retry on error with exponential backoff
+        if (retryAttempt < this.maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, retryAttempt), 30000) // Cap at 30 seconds
+          this.retryCount = retryAttempt + 1
+          setTimeout(() => {
+            this.fetchAndShow(retryAttempt + 1)
+          }, delay)
+        } else {
+          this.isLoading = false
+          this.loadError = this.$t('FailedToLoadTransaction', {}, 'Failed to load transaction')
+        }
       }
+    },
+    retryFetch () {
+      this.retryCount = 0
+      this.fetchAndShow(0)
     },
     async loadMemo () {
       try {
@@ -638,7 +735,42 @@ export default {
         }
       }
     },
-    launchConfetti () {
+    async playSound (success) {
+      if (success) {
+        try {
+          await NativeAudio.play({
+            assetId: 'send-success'
+          })
+        } catch (error) {
+          console.error('Error playing sound:', error)
+          // Fallback: try to preload and play again
+          try {
+            let path = 'send-success.mp3'
+            if (this.$q.platform.is.ios) path = 'public/assets/send-success.mp3'
+            await NativeAudio.preload({
+              assetId: 'send-success',
+              assetPath: path,
+              audioChannelNum: 1,
+              volume: 1.0,
+              isUrl: false
+            })
+            await NativeAudio.play({
+              assetId: 'send-success'
+            })
+          } catch (retryError) {
+            console.error('Error retrying sound playback:', retryError)
+          }
+        }
+      }
+    },
+    async launchConfetti () {
+      // Play sound for new transaction
+      // On iOS, add a small delay to ensure preload is complete
+      if (this.$q.platform.is.ios) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      await this.playSound(true)
+      
       // Launch basic cannon confetti from middle lower half of page
       // Origin: center horizontally (0.5), 75% down vertically (0.75)
       confetti({

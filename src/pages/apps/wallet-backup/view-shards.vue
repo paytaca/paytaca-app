@@ -539,10 +539,19 @@ export default {
     
     executeSecurityChecking () {
       const vm = this
+      console.log('[WalletBackup-Shards] executeSecurityChecking called')
+      console.log('[WalletBackup-Shards] $store available:', !!vm.$store)
+      console.log('[WalletBackup-Shards] preferredSecurity:', vm.$store?.getters?.['global/preferredSecurity'])
+      
       setTimeout(() => {
-        if (vm.$store.getters['global/preferredSecurity'] === 'pin') {
+        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+        console.log('[WalletBackup-Shards] Setting security check, preferredSecurity:', preferredSecurity)
+        if (preferredSecurity === 'pin') {
+          console.log('[WalletBackup-Shards] Setting pinDialogAction to VERIFY')
           vm.pinDialogAction = 'VERIFY'
+          console.log('[WalletBackup-Shards] pinDialogAction after set:', vm.pinDialogAction)
         } else {
+          console.log('[WalletBackup-Shards] Calling verifyBiometric')
           vm.verifyBiometric()
         }
       }, 300)
@@ -625,7 +634,13 @@ export default {
   },
 
   mounted () {
+    console.log('[WalletBackup-Shards] Component mounted, calling executeSecurityChecking')
     this.executeSecurityChecking()
+  },
+  watch: {
+    pinDialogAction (newVal, oldVal) {
+      console.log('[WalletBackup-Shards] pinDialogAction changed from', oldVal, 'to', newVal)
+    }
   }
 }
 </script>
