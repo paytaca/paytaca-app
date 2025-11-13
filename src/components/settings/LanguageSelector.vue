@@ -88,20 +88,26 @@ export default {
             'ha': 'Hausa',
             'af': 'Afrikaans'
           }
-          const mapped = shortCodeMap[langCode.toLowerCase()] || langCode.toUpperCase()
-          console.log('[LanguageSelector] Using short code map:', mapped)
-          return mapped
+          const mapped = shortCodeMap[langCode.toLowerCase()]
+          if (mapped) {
+            console.log('[LanguageSelector] Using short code map:', mapped)
+            // Translate the mapped key
+            return this.$t(mapped)
+          }
+          // If no mapping found, return uppercase language code
+          console.warn('[LanguageSelector] No mapping found for short code:', langCode)
+          return langCode.toUpperCase()
         }
         // If no translation key found, return uppercase language code (but not truncated)
         console.warn('[LanguageSelector] No translation key found for:', langCode)
         return langCode
       }
       
-      // Always use the translation key name directly (e.g., "English")
-      // This ensures we show the proper language name instead of codes like "EN" or "en-us"
-      // The translation key names are already the correct labels we want to display
-      console.log('[LanguageSelector] Returning translation key:', translationKey)
-      return translationKey
+      // Translate the translation key to show the language name in the current language
+      // For example, if current language is Spanish and selected language is English,
+      // this will show "Inglés" instead of "English"
+      console.log('[LanguageSelector] Translating key:', translationKey)
+      return this.$t(translationKey)
     }
   },
   methods: {
