@@ -1,7 +1,8 @@
-import { bigIntToBinUint64LE, bigIntToCompactSize, numberToBinInt32LE } from "@bitauth/libauth"
-import { bigIntToCompactUint, binsAreEqual, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
-import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "."
-
+import { bigIntToBinUint64LE, bigIntToCompactSize, compactSizeToBigInt, numberToBinInt32LE } from "@bitauth/libauth"
+import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "./utils"
+import { PsbtController } from './psbt-controller'
+import { MultisigTransactionBuilder } from "./transaction-builder"
 export const PSBT_MAGIC = '70736274ff'
 
 // export const PSBT_KEY_TYPES = {
@@ -69,6 +70,31 @@ const PSBT_OUT_DNSSEC_PROOF= '35'
 const PSBT_OUT_CASHTOKEN= '36'               // Version(145) token prefix encoded
 const PSBT_OUT_PROPRIETARY= 'fc'
 // }
+
+
+export const ProprietaryFields = Object.freeze({
+  paytaca: {
+    identifier: utf8ToBin('paytaca'),
+    subKey: {
+      walletHash: {
+        subType: bigIntToCompactUint(0),
+        subKeyData: utf8ToBin('walletHash')
+      },
+      origin: {
+        subType: bigIntToCompactUint(1),
+        subKeyData: utf8ToBin('origin')
+      },
+      purpose: {
+        subType: bigIntToCompactUint(2),
+        subKeyData: utf8ToBin('purpose')
+      },
+      network: {
+        subType: bigIntToCompactUint(3),
+        subKeyData: utf8ToBin('network')
+      }
+    } 
+  }
+})
 
 
 export class Magic {
@@ -313,10 +339,11 @@ export class GlobalMap {
    * @returns {Uint8Array} The unsigned tx value
    */
   getUnsignedTx() {
-    return this.keypairs[PSBT_GLOBAL_UNSIGNED_TX]?.value?.value
+    if (this.keypairs[PSBT_GLOBAL_UNSIGNED_TX]?.value?.value) {
+      return this.keypairs[PSBT_GLOBAL_UNSIGNED_TX]?.value?.value
+    }
   }
   
-
   /**
    * Optional
    * 
@@ -445,6 +472,18 @@ export class GlobalMap {
 
   getProprietaryFields(identifier) {
     return ProprietaryField.extractProprietaryFields(this.keypairs, identifier)
+  }
+
+  /**
+   * @param {Uint8Array} identifier 
+   * @param {Uint8Array|number} subType
+   */
+  getProprietaryFieldBySubType(identifier, subType) {
+    const proprietaryFields = this.getProprietaryFields(identifier)
+    return proprietaryFields.find(pf => {
+      const _subType = subType instanceof Uint8Array? compactUintToBigInt(subType): BigInt(subType)
+      return pf.subType === _subType
+    })
   }
 
   sanitizeForVersion(psbtVersion, keypairs) {
@@ -665,6 +704,10 @@ export class PsbtInput {
 
     this.keypairs[PSBT_IN_FINAL_SCRIPTSIG] = new KeyPair(k, v)
     return this
+  }
+
+  getFinalScriptSig() {
+    return this.keypairs[PSBT_IN_FINAL_SCRIPTSIG]?.value?.value 
   }
 
   /**
@@ -1172,6 +1215,45 @@ export class Psbt {
     this.outputMap = new OutputMap()
   }
 
+  /**
+   * Helper if unsigned tx isn't set on the global map
+   * @returns {Uint8Array} The unsigned tx value
+   */
+  getUnsignedTx() {
+    if (this.globalMap.getUnsignedTx()) {
+      return this.globalMap.getUnsignedTx()
+    }
+    const tx = {}
+    tx.version = this.globalMap.getTxVersion()
+    tx.locktime = this.globalMap.getFallbackLocktime()
+    for(const psbtInput of this.inputMap?.inputs) {
+      tx.inputs.push({
+        outpointIndex: psbtInput.getOutpointIndex(),
+        outpointTransactionHash: psbtInput.getOutpointTransactionHash(),
+        sequenceNumber: psbtInput.getSequenceNumber(),
+        sourceOutput: psbtInput.getSourceUtxo(),
+        unlockingBytecode: []
+      })
+    }
+
+    for(const psbtOutput of psbt.outputMap?.outputs) {
+      const o = {
+        valueSatoshis: psbtOutput.getAmount()
+      }
+      const token = psbtOutput.getToken()
+      const lockingBytecode = psbtOutput.getOutScript()
+      if (token) o.token = token 
+      if (lockingBytecode) o.lockingBytecode = lockingBytecode
+      tx.outputs.push(o)
+    }
+    const unsignedTx = new MultisigTransactionBuilder()
+    unsignedTx.setVersion(tx.version)
+    unsignedTx.setLocktime(tx.locktime)
+    unsignedTx.addInputs(tx.inputs)
+    unsignedTx.addOutputs(tx.outputs)
+    return hexToBin(unsignedTx.build())
+  }
+
   serialize() {
     const magic = (new Magic()).serialize()
     const psbtVersion = Number(
@@ -1190,11 +1272,11 @@ export class Psbt {
   }
   
   /**
-   * @param {Uint8Array|string} serialized Full PSBT binary including magic bytes
+   * @param {Uint8Array|string} serialized Full PSBT binary or base64 encoded binary including magic bytes
    */
   deserialize(serialized){
 
-    const bin = isHex(serialized) ? hexToBin(serialized) : serialized
+    const bin = isBase64(serialized) ? base64ToBin(serialized) : serialized
 
     const readMagicBytes = readBytes(5)
 
@@ -1217,12 +1299,166 @@ export class Psbt {
     if (!outputCount) {
       throw new Error('Unable to parse output count!')
     }
-    
+    this.inputMap = new InputMap()
+    this.outputMap = new OutputMap()
     nextReadPosition = this.inputMap.deserialize(nextReadPosition, inputCount)
-    nextReadPosition = this.outputMap.deserialize(nextReadPosition, outputCount)
-    
+    nextReadPosition = this.outputMap.deserialize(nextReadPosition, outputCount) 
     return nextReadPosition
   }
-  
+
+  /**
+   * Encodes decoded data to this PSBT instance
+   * @param {Object} decode The decodeResult from decode()
+   */
+  encode(decoded, version = 145) {
+    this.globalMap = new GlobalMap()
+    this.inputMap = new InputMap()
+    this.outputMap = new OutputMap()
+    const txVersionReadResult = readCompactUint({ bin: hexToBin(decoded.unsignedTransactionHex), index: 0})
+    this.globalMap.setUnsignedTx(decoded.unsignedTransactionHex)
+    this.globalMap.setTxVersion(Number(txVersionReadResult.result))
+    this.globalMap.setInputCount(decoded.inputs.length)
+    this.globalMap.setOutputCount(decoded.outputs.length)
+    this.globalMap.setPsbtVersion(version)
+    this.globalMap.setFallbackLocktime(decoded.locktime)
+
+    this.globalMap.addProprietaryField(
+      ProprietaryFields.paytaca.identifier, 
+      hexToBin(decoded.walletHash), 
+      ProprietaryFields.paytaca.subKey.walletHash.subType, 
+      ProprietaryFields.paytaca.subKey.walletHash.subKeyData
+    )
+
+    decoded.origin && this.globalMap.addProprietaryField(
+      ProprietaryFields.paytaca.identifier, 
+      utf8ToBin(decoded.origin), 
+      ProprietaryFields.paytaca.subKey.origin.subType, 
+      ProprietaryFields.paytaca.subKey.origin.subKeyData
+    )
+
+    decoded.purpose && this.globalMap.addProprietaryField(
+      ProprietaryFields.paytaca.identifier, 
+      utf8ToBin(decoded.purpose), 
+      ProprietaryFields.paytaca.subKey.purpose.subType, 
+      ProprietaryFields.paytaca.subKey.purpose.subKeyData
+    )
+
+    this.globalMap.addProprietaryField(
+      ProprietaryFields.paytaca.identifier, 
+        utf8ToBin(decoded.network),
+        ProprietaryFields.paytaca.subKey.network.subType, 
+        ProprietaryFields.paytaca.subKey.network.subKeyData
+      )
+
+
+    for(const input of decoded.inputs) {
+      const psbtInput = new PsbtInput()
+      // const unsignedTransactionHex = 
+      // psbtInput.setUtxo(hexToBin('<full tx of prevout>')
+      psbtInput.setSourceUtxo(input.sourceOutput)
+      Object.keys(input.signatures || {}).forEach(publicKey => {
+        psbtInput.addPartialSig(hexToBin(publicKey), input.signatures[publicKey])
+      })
+      psbtInput.setSighashType(input.sigHash)
+      psbtInput.setRedeemScript(input.redeemScript)
+      Object.keys(input.bip32Derivation || {}).forEach(publicKey => {
+        psbtInput.addBip32Derivation(
+          hexToBin(publicKey), 
+          input.bip32Derivation[publicKey].masterFingerprint,
+          input.bip32Derivation[publicKey].path
+        )
+      })
+      psbtInput.setFinalScriptSig(input.scriptSig)
+      psbtInput.setOutpointTransactionHash(input.outpointTransactionHash)
+      psbtInput.setOutpointIndex(input.outpointIndex)
+      psbtInput.setSequenceNumber(input.sequenceNumber)
+      this.inputMap.add(psbtInput)
+    }
+    for (const output of decoded.outputs) {
+      const psbtOutput = new PsbtOutput()
+      psbtOutput.setRedeemScript(output.redeemScript)
+      Object.keys(output.bip32Derivation || {}).forEach(publicKey => {
+        psbtOutput.addBip32Derivation(
+          hexToBin(publicKey), 
+          output.bip32Derivation[publicKey].masterFingerprint,
+          output.bip32Derivation[publicKey].path
+        )
+      })
+      psbtOutput.setAmount(output.valueSatoshis)
+      psbtOutput.setToken(output.token)
+      psbtOutput.setOutScript(output.lockingBytecode)
+      if (output.purpose) {
+        psbtOutput.addProprietaryField(
+          ProprietaryFields.paytaca.identifier, 
+          utf8ToBin(output.purpose), 
+          ProprietaryFields.paytaca.subKey.purpose.subType, 
+          ProprietaryFields.paytaca.subKey.purpose.subKeyData)
+      }
+      
+      this.outputMap.add(psbtOutput)
+    }
+    return this
+  }
+
+  /**
+   * @param {string} base64 Encoded PSBT
+   * @param {Object} decodeResult Mutable object, recipient of decoded values
+   */
+  decode (base64, decodeResult) {
+
+    this.deserialize(base64ToBin(base64))
+    decodeResult.version = this.globalMap.getTxVersion()
+    decodeResult.locktime = this.globalMap.getFallbackLocktime()
+    this.globalMap.getProprietaryFields(ProprietaryFields.paytaca.identifier)?.forEach(pf => {
+      if (pf.subKeyData && pf.value) {
+        let valueDecoder = binToUtf8
+        if (binsAreEqual(pf.subKeyData,  ProprietaryFields.paytaca.subKey.walletHash.subKeyData)) {
+          valueDecoder = binToHex
+        }
+        decodeResult[pf.getSubKeyData(binToUtf8)] = pf.getValue(valueDecoder)
+      }
+    })
+
+    decodeResult.inputs = []
+
+    for(const psbtInput of this.inputMap?.inputs) {
+      decodeResult.inputs.push({
+        outpointIndex: psbtInput.getOutpointIndex(),
+        outpointTransactionHash: psbtInput.getOutpointTransactionHash(),
+        sequenceNumber: psbtInput.getSequenceNumber(),
+        signatures: psbtInput.getPartialSigs(),
+        bip32Derivation: psbtInput.getBip32Derivation(),
+        redeemScript: psbtInput.getRedeemScript(),
+        sourceOutput: psbtInput.getSourceUtxo(),
+        unlockingBytecode: psbtInput.getFinalScriptSig() || []
+      })
+    }
+
+    decodeResult.outputs = []
+
+    for(const psbtOutput of this.outputMap?.outputs) {
+      const o = {
+        valueSatoshis: psbtOutput.getAmount()
+      }
+      const bip32Derivation = psbtOutput.getBip32Derivation()
+      const token = psbtOutput.getToken()
+      const lockingBytecode = psbtOutput.getOutScript()
+
+      const purpose = psbtOutput.getProprietaryFields(ProprietaryFields.paytaca.identifier)?.find(pf => {
+        return binsAreEqual(pf.getSubKeyData(), ProprietaryFields.paytaca.subKey.purpose.subKeyData)
+      })
+
+      if (token) o.token = token 
+      if (Object.keys(bip32Derivation).length > 0) o.bip32Derivation = bip32Derivation
+      if (lockingBytecode) o.lockingBytecode = lockingBytecode
+      if (purpose?.value) o.purpose = purpose.getValue(binToUtf8)
+      decodeResult.outputs.push(o)
+    }
+    return this
+  }
+
+  toString() {
+    return binToBase64(this.serialize())
+  }
 }
 
