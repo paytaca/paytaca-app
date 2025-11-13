@@ -53,7 +53,7 @@
               <div 
                 class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
                 :class="getDarkModeClass(darkMode)"
-                @click="() => { importSeedPhrase = true }"
+                @click="initRestoreWallet()"
               >
                 <div class="action-icon-wrapper">
                   <div class="row justify-center">
@@ -126,7 +126,7 @@
     </div>
 
     <!-- Step 2: Language and Currency Selection -->
-    <div v-if="currentStep === 2 && !importSeedPhrase" class="content-section center-viewport step-2-container" :class="{'ios-safe-area': $q.platform.is.ios}">
+    <div v-if="(currentStep === 2 && !importSeedPhrase) || restoreStep === 3" class="content-section center-viewport step-2-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5>
       <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingDescription') }}</p>
       <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -170,12 +170,12 @@
     </div>
 
     <!-- Step 3: Theme Selection -->
-    <div v-if="currentStep === 3 && !importSeedPhrase" class="content-section center-viewport step-3-container" :class="{'ios-safe-area': $q.platform.is.ios}">
+    <div v-if="(currentStep === 3 && !importSeedPhrase) || restoreStep === 4" class="content-section center-viewport step-3-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <ThemeSelectorPreview :choosePreferedSecurity="goToStep4" />
     </div>
 
     <!-- Step 4: Security Authentication Setup -->
-    <div v-if="currentStep === 4 && !importSeedPhrase" class="content-section center-viewport step-4-container" :class="{'ios-safe-area': $q.platform.is.ios}">
+    <div v-if="(currentStep === 4 && !importSeedPhrase) || restoreStep === 5" class="content-section center-viewport step-4-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('SecurityAuthentication') }}</h5>
       <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('ChoosePreferredSecAuth') }}</p>
       <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -200,74 +200,146 @@
         </q-list>
       </div>
     </div>
-    <div
-      class="pt-wallet q-mt-sm pt-card-2"
-      :class="getDarkModeClass(darkMode, 'registration')"
-      v-if="importSeedPhrase && mnemonic.length === 0"
-    >
-      <template v-if="authenticationPhase === 'options'">
-        <div>          
-          <AuthenticationChooser
-            :importSeedPhrase="importSeedPhrase"
-            @change-authentication-phase="onChangeAuthenticationPhase"
-          />
-        </div>
-      </template>
+    <!-- Restore Step 1: Authentication Method Selection -->
+    <div v-if="restoreStep === 1 && authenticationPhase === 'options' && mnemonic.length === 0" class="minimal-wallet-container restore-step-1" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+      <div v-if="serverOnline === true" v-cloak>
+        <!-- Content Section -->
+        <div class="content-section">
+          <!-- Welcome Text with Animation -->
+          <transition appear @enter="onWelcomeEnter">
+            <div class="welcome-text text-bow" :class="getDarkModeClass(darkMode)">
+              <h4 class="text-h6 q-mb-sm">{{ $t('ChooseBackupPhase') || 'Choose Restore Method' }}</h4>
+              <p class="text-subtitle2 q-mt-xs">{{ $t('ChooseBackupPhaseDescription') || 'Select how you want to restore your wallet' }}</p>
+            </div>
+          </transition>
 
-      <template v-else-if="authenticationPhase === 'shards'">
+          <!-- Action Buttons - Glassmorphic with Icons -->
+          <div class="actions-container">
+            <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.4s' }">
+              <div 
+                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
+                :class="getDarkModeClass(darkMode)"
+                @click="onChangeAuthenticationPhase(false)"
+              >
+                <div class="action-icon-wrapper">
+                  <div class="row justify-center">
+                    <q-icon name="mdi-key-variant" class="col-12" :color="darkMode ? 'primary' : 'black'" size="29px"></q-icon>
+                  </div>
+                </div>
+                <div class="action-content">
+                  <div class="text-subtitle1 q-mb-xs">{{ $t('ProceedWithSeedPhrase') || 'Restore with Seed Phrase' }}</div>
+                  <div class="text-body2 q-mt-xs">{{ $t('ImportSeedPhraseDescription') || 'Enter your 12-word backup phrase' }}</div>
+                </div>
+              </div>
+            </transition>
+
+            <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.5s' }">
+              <div 
+                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
+                :class="getDarkModeClass(darkMode)"
+                @click="onChangeAuthenticationPhase(true)"
+              >
+                <div class="action-icon-wrapper">
+                  <div class="row justify-center">
+                    <q-icon name="mdi-qrcode-scan" class="col-12" :color="darkMode ? 'primary' : 'black'" size="29px"></q-icon>
+                  </div>
+                </div>
+                <div class="action-content">
+                  <div class="text-subtitle1 q-mb-xs">{{ $t('ProceedWithShards') || 'Restore with Shards' }}</div>
+                  <div class="text-body2 q-mt-xs">{{ $t('ImportShardsDescription') || 'Use QR code images of shards' }}</div>
+                </div>
+              </div>
+            </transition>
+          </div>
+
+          <!-- Back Button with Animation -->
+          <transition appear @enter="onBackButtonEnter">
+            <div class="back-button-container">
+              <q-btn
+                flat
+                no-caps
+                :label="$t('Back')"
+                icon="arrow_back"
+                class="back-button text-bow"
+                :class="getDarkModeClass(darkMode)"
+                @click="$router.push('/accounts')"
+              />
+            </div>
+          </transition>
+        </div>
+      </div>
+      <div v-else-if="serverOnline === false" class="error-section">
+        <div class="error-glass-card" :class="getDarkModeClass(darkMode)">
+          {{ $t('NoInternetConnectionNotice') }} &#128533;
+        </div>
+      </div>
+    </div>
+
+    <!-- Restore Step 2: Seed Phrase Entry -->
+    <div v-if="restoreStep === 2 && mnemonic.length === 0" class="content-section center-viewport step-2-container restore-step-2" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+      <template v-if="authenticationPhase === 'shards'">
         <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="initCreateWallet" />
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
-        <div class="col-12 q-px-lg">
-          <div >
-            <div class="q-py-lg">
-              <p class="text-center text-subtitle1 text-bow" :class="getDarkModeClass(darkMode)">
-                {{ $t('RestoreWalletDescription') }}
-              </p>
+        <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('RestoreExistingWallet') }}</h5>
+        <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('RestoreWalletDescription') }}</p>
+        
+        <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
               <template v-if="useTextArea">
+            <div class="q-pa-md">
                 <div class="row justify-start q-mb-sm">
                   <q-btn
                     flat
                     no-caps
                     padding="xs sm"
                     icon="arrow_back"
-                    class="button button-text-primary"
+                  class="glass-button-text"
                     :class="getDarkModeClass(darkMode)"
                     :label="$t('EnterOneByOne')"
                     @click="useTextArea = false, seedPhraseBackup = ''"
                   />
                 </div>
-                <q-input type="textarea" class="q-mt-xs bg-grey-3 q-px-md q-py-sm br-15" v-model="seedPhraseBackup" />
+              <q-input 
+                type="textarea" 
+                v-model="seedPhraseBackup" 
+                :placeholder="$t('PasteSeedPhrase')"
+                class="q-mt-xs glass-textarea"
+                :class="getDarkModeClass(darkMode)"
+                outlined
+                rows="4"
+              />
+            </div>
               </template>
               <template v-else>
+            <div class="q-pa-md">
                 <div class="row justify-end q-mb-xs">
                   <q-btn
                     flat
                     no-caps
                     padding="xs sm"
                     icon-right="arrow_forward"
-                    class="button button-text-primary"
+                  class="glass-button-text"
                     :class="getDarkModeClass(darkMode)"
                     :label="$t('PasteSeedPhrase')"
                     @click="useTextArea = true, seedPhraseBackup = ''"
                   />
                 </div>
                 <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
+            </div>
               </template>
+        </div>
+        
               <q-btn
                 rounded
-                class="full-width q-mt-md button"
+          :label="$t('RestoreWallet')"
+          class="q-mt-lg full-width primary-cta bg-grad"
                 @click="initCreateWallet()"
                 :disable="!validateSeedPhrase()"
-                :label="$t('RestoreWallet')"
               />
-            </div>
-          </div>
-        </div>
       </template>
     </div>
 
-    <div class="row" v-if="mnemonic.length > 0 && !$route.path.startsWith('/accounts/create/step-')">
+    <div class="row" v-if="mnemonic.length > 0 && !$route.path.startsWith('/accounts/create/step-') && !$route.path.startsWith('/accounts/restore/step-')">
       <div
         class="pt-get-started q-mt-sm pt-card-2"
         :class="getDarkModeClass(darkMode, 'registration')"
@@ -560,7 +632,15 @@ export default {
       this.seedPhraseBackup = this.cleanUpSeedPhrase(val)
     },
     $route (to) {
-      // Handle route changes for step-based flow
+      // Reset restore flow state when navigating back to /accounts
+      if (to.path === '/accounts' || to.path === '/accounts/') {
+        this.importSeedPhrase = false
+        this.authenticationPhase = 'options'
+        this.seedPhraseBackup = null
+        this.useTextArea = false
+      }
+      
+      // Handle route changes for create flow
       if (to.path.startsWith('/accounts/create/step-')) {
         const stepMatch = to.path.match(/step-(\d+)/)
         if (stepMatch) {
@@ -572,6 +652,34 @@ export default {
           // Initialize step 2 when navigating to it (geoip call happens here)
           if (routeStep === 2 && !this.importSeedPhrase) {
             this.initializeStep2()
+          }
+        }
+      }
+      // Handle route changes for restore flow
+      if (to.path.startsWith('/accounts/restore/step-')) {
+        const stepMatch = to.path.match(/step-(\d+)/)
+        if (stepMatch) {
+          const routeStep = parseInt(stepMatch[1], 10)
+          // Initialize step 1: set importSeedPhrase and authenticationPhase
+          if (routeStep === 1) {
+            this.importSeedPhrase = true
+            this.authenticationPhase = 'options'
+          }
+          // Initialize step 2: ensure importSeedPhrase is set
+          if (routeStep === 2) {
+            this.importSeedPhrase = true
+            // Preserve authenticationPhase if already set, otherwise default to 'backup-phrase'
+            if (!this.authenticationPhase || this.authenticationPhase === 'options') {
+              this.authenticationPhase = 'backup-phrase'
+            }
+          }
+          // Initialize step 3 (settings) when navigating to it (geoip call happens here)
+          if (routeStep === 3) {
+            // Reset step2Initialized to allow initializeStep2 to run for restore flow
+            this.step2Initialized = false
+            this.$nextTick(() => {
+              this.initializeStep2()
+            })
           }
         }
       }
@@ -593,6 +701,16 @@ export default {
     currentStep () {
       // Extract step number from route path
       if (this.$route.path.startsWith('/accounts/create/step-')) {
+        const match = this.$route.path.match(/step-(\d+)/)
+        if (match) {
+          return parseInt(match[1], 10)
+        }
+      }
+      return 0
+    },
+    restoreStep () {
+      // Extract step number from restore route path
+      if (this.$route.path.startsWith('/accounts/restore/step-')) {
         const match = this.$route.path.match(/step-(\d+)/)
         if (match) {
           return parseInt(match[1], 10)
@@ -806,7 +924,21 @@ export default {
       }
       throw new Error('mnemonic not ready')
     },
-    initCreateWallet () {
+    async initCreateWallet () {
+      // Handle restore flow
+      if (this.importSeedPhrase && this.restoreStep === 2) {
+        // Validate seed phrase before proceeding
+        if (!this.validateSeedPhrase() && this.authenticationPhase === 'backup-phrase') {
+          return
+        }
+        // Create wallet from seed phrase and navigate to step-3
+        await this.createWallets()
+        // Navigate to settings step (step-3)
+        this.$router.push('/accounts/restore/step-3')
+        return
+      }
+      
+      // Handle create flow
       if (this.steps === -1) {
         // Navigate to step-1 route and start wallet creation
         this.$router.push('/accounts/create/step-1').then(() => {
@@ -814,6 +946,13 @@ export default {
         })
       }
       this.$forceUpdate()
+    },
+    initRestoreWallet () {
+      // Set importSeedPhrase flag and navigate to restore step-1
+      this.importSeedPhrase = true
+      this.$router.push('/accounts/restore/step-1').then(() => {
+        this.authenticationPhase = 'options'
+      })
     },
     async createWallets () {
       const vm = this
@@ -1012,10 +1151,20 @@ export default {
       await this.$store.dispatch('global/saveWalletPreferences').catch(() => {
         // Silently fail if wallet hash doesn't exist yet
       })
+      // Handle restore flow navigation
+      if (this.importSeedPhrase && this.restoreStep === 3) {
+        this.$router.push('/accounts/restore/step-4')
+      } else {
       this.$router.push('/accounts/create/step-3')
+      }
     },
     goToStep4 () {
+      // Handle restore flow navigation
+      if (this.importSeedPhrase && this.restoreStep === 4) {
+        this.$router.push('/accounts/restore/step-5')
+      } else {
       this.$router.push('/accounts/create/step-4')
+      }
     },
     setupSecurity (authType) {
       // Prevent multiple calls
@@ -1395,8 +1544,19 @@ export default {
     },
     onChangeAuthenticationPhase (isShard) {
       this.authenticationPhase = isShard ? 'shards' : 'backup-phrase'
+      // Navigate to step-2 for seed phrase entry
+      if (this.restoreStep === 1) {
+        this.$router.push('/accounts/restore/step-2')
+      }
     },
     onProceedToNextStep () {
+      // Handle restore flow navigation
+      if (this.importSeedPhrase && this.restoreStep > 0) {
+        // Navigate to settings step (step-3)
+        this.$router.push('/accounts/restore/step-3')
+        return
+      }
+      
       this.steps = this.totalSteps
       this.authenticationPhase = 'options'
 
@@ -1588,6 +1748,19 @@ export default {
     if (this.$route.path.startsWith('/accounts/create/step-') && this.steps === -1 && !this.importSeedPhrase) {
       this.steps = 0
     }
+    
+    // Check if we're on a restore route and initialize restore flow if needed
+    if (this.$route.path.startsWith('/accounts/restore/step-')) {
+      this.importSeedPhrase = true
+      if (this.restoreStep === 1) {
+        this.authenticationPhase = 'options'
+      } else if (this.restoreStep === 2) {
+        // Preserve authenticationPhase if already set, otherwise default to 'backup-phrase'
+        if (!this.authenticationPhase || this.authenticationPhase === 'options') {
+          this.authenticationPhase = 'backup-phrase'
+        }
+      }
+    }
 
     if (this.recreate) {
       this.mnemonic = await getMnemonic(0) || ''
@@ -1618,6 +1791,12 @@ export default {
     
     // If user lands directly on step-2, ensure geoip call happens
     if (this.currentStep === 2 && !this.importSeedPhrase) {
+      this.$nextTick(() => this.initializeStep2())
+    }
+    
+    // If user lands directly on restore step-3, ensure geoip call happens
+    if (this.restoreStep === 3) {
+      this.step2Initialized = false
       this.$nextTick(() => this.initializeStep2())
     }
   }
@@ -1658,6 +1837,10 @@ export default {
   max-width: 480px;
   margin: 0 auto;
   position: relative;
+  
+  @media (max-width: 768px) {
+    padding-top: 40px;
+  }
 }
 
 .logo-section {
@@ -1716,10 +1899,18 @@ export default {
   gap: 12px;
 }
 
+.step-title {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
 .step-subtitle {
   opacity: 0.8;
   margin-top: 6px;
   margin-bottom: 14px;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* Step 2, 3, and 4 containers with mobile-safe padding */
@@ -1730,6 +1921,40 @@ export default {
   
   @media (max-width: 768px) {
     padding-top: 60px;
+  }
+  
+  &.ios-safe-area {
+    padding-top: max(env(safe-area-inset-top, 44px), 80px) !important;
+  }
+  
+  &.mobile-safe-area {
+    @media (max-width: 768px) {
+      padding-top: max(60px, calc(env(safe-area-inset-top, 0px) + 40px)) !important;
+    }
+  }
+}
+
+/* Restore step 1 container with mobile-safe padding */
+.restore-step-1 {
+  @media (max-width: 768px) {
+    padding-top: max(60px, calc(env(safe-area-inset-top, 0px) + 40px)) !important;
+  }
+  
+  &.ios-safe-area {
+    padding-top: max(env(safe-area-inset-top, 44px), 80px) !important;
+  }
+  
+  &.mobile-safe-area {
+    @media (max-width: 768px) {
+      padding-top: max(60px, calc(env(safe-area-inset-top, 0px) + 40px)) !important;
+    }
+  }
+}
+
+/* Restore step 2 container with additional mobile-safe padding */
+.restore-step-2 {
+  @media (max-width: 768px) {
+    padding-top: max(60px, calc(env(safe-area-inset-top, 0px) + 40px)) !important;
   }
   
   &.ios-safe-area {
@@ -1754,6 +1979,68 @@ export default {
   &.light {
     background: rgba(255, 255, 255, 0.55);
     border-color: rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* Glassmorphic textarea styling */
+.glass-textarea {
+  :deep(.q-field__control) {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    
+    &.dark {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    &.light {
+      background: rgba(255, 255, 255, 0.3) !important;
+      border-color: rgba(0, 0, 0, 0.1) !important;
+    }
+  }
+  
+  :deep(.q-field__native) {
+    color: inherit;
+  }
+}
+
+/* Glassmorphic text button styling */
+.glass-button-text {
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  
+  :deep(.q-btn__content) {
+    padding: 4px 8px;
+  }
+  
+  &.dark {
+    color: rgba(255, 255, 255, 0.9) !important;
+    background: rgba(255, 255, 255, 0.05);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 1) !important;
+    }
+    
+    &:active {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.8) !important;
+    background: rgba(255, 255, 255, 0.3);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.5);
+      color: rgba(0, 0, 0, 1) !important;
+    }
+    
+    &:active {
+      background: rgba(255, 255, 255, 0.6);
+    }
   }
 }
 
