@@ -195,7 +195,7 @@ export default class SingleWallet {
       broadcast: broadcast,
     }
     if (priceId) {
-      data.priceId = priceId
+      data.price_id = priceId
     }
     return this.watchtower.BCH.send(data);
   }

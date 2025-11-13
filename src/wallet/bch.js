@@ -278,7 +278,7 @@ export class BchWallet {
       broadcast
     }
     if (priceId) {
-      data.priceId = priceId
+      data.price_id = priceId
     }
     const result = await this.watchtower.BCH.send(data)
     return result
