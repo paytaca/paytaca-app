@@ -99,5 +99,5 @@ export function paymentOTPCache(state) {
 
 export function cashoutMerchant (state) {
   const walletState = getWalletState(state)
-  return walletState.cashoutMerchant || {}
+  return walletState.cashoutMerchant || null
 }

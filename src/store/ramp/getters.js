@@ -98,14 +98,14 @@ export function appealListingTab (state) {
 export function ongoingOrderFilters (state) {
   const walletState = getWalletState(state)
   return function (currency) {
-    return walletState.ongoingOrderFilters?.[currency] || walletState.ongoingOrderFilters
+    return walletState.ongoingOrderFilters?.[currency] || {}
   }
 }
 
 export function completedOrderFilters (state) {
   const walletState = getWalletState(state)
   return function (currency) {
-    return walletState.completedOrderFilters?.[currency] || walletState.completedOrderFilters
+    return walletState.completedOrderFilters?.[currency] || {}
   }
 }
 
