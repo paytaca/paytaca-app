@@ -103,7 +103,7 @@
                       <span>{{ appeal?.type?.label }} Appeal</span>
                     </div>
                     <div class="row md-font-size">
-                      <span>Order ID: {{ order?.tracking_id}}</span>
+                      <span>Order ID: {{ order?.id}}</span>
                     </div>
                     <div class="row subtext md-font-size">
                       <span>Submitted by {{ appeal?.owner?.name }}</span>

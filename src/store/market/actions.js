@@ -206,8 +206,10 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
     // When clearing, pass as full update to ensure clean state
     context.commit('updateAssetPrices', { assetPrices: newAssetPrices, isFullUpdate: true })
   } else {
-    // For bulk updates without explicit clear, still treat as full update to remove stale assets
-    context.commit('updateAssetPrices', { assetPrices: newAssetPrices, isFullUpdate: true })
+    // For bulk updates without explicit clear, don't treat as full update
+    // to preserve existing token prices that aren't included in this update
+    // (getAllAssetList only returns assets without '/' in ID, excluding tokens)
+    context.commit('updateAssetPrices', { assetPrices: newAssetPrices, isFullUpdate: false })
   }
   if (fetchUsdRate) context.dispatch('updateUsdRates', { currency: selectedCurrency })
 }
