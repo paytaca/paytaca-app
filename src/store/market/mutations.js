@@ -50,17 +50,31 @@ export function updateAssetPrices (state, payload) {
       if (state.assetPrices[i].assetId === assetPrice.assetId) {
         updated = true
         // Merge prices if they exist to allow incremental updates
-        if (assetPrice.prices && state.assetPrices[i].prices) {
-          state.assetPrices[i].prices = {
+        if (assetPrice.prices && Object.keys(assetPrice.prices).length > 0) {
+          // Ensure we have a prices object to merge into
+          if (!state.assetPrices[i].prices) {
+            state.assetPrices[i].prices = {}
+          }
+          // Merge prices - this creates a new object to ensure Vue reactivity
+          const mergedPrices = {
             ...state.assetPrices[i].prices,
             ...assetPrice.prices
           }
-        } else {
+          // Replace the entire entry to ensure reactivity is triggered
+          state.assetPrices[i] = {
+            ...state.assetPrices[i],
+            prices: mergedPrices
+          }
+        } else if (assetPrice.prices) {
+          // If new prices object exists but is empty, still update to ensure consistency
           state.assetPrices[i] = assetPrice
         }
+        break
       }
     }
-    if (!updated) state.assetPrices.push(assetPrice)
+    if (!updated && assetPrice.prices && Object.keys(assetPrice.prices).length > 0) {
+      state.assetPrices.push(assetPrice)
+    }
   })
 }
 
@@ -83,3 +97,4 @@ export function updateUsdRates (state, data) {
     state.usdRatesLastUpdate[rateInfo.symbol] = data?.timestamp || Date.now()
   })
 }
+

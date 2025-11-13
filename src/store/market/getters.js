@@ -30,10 +30,16 @@ export function getAssetPrice (state) {
     if (!Array.isArray(state.assetPrices)) return null
     const assetPrice = state.assetPrices.find(assetPrice => assetPrice && assetPrice.assetId === assetId)
     if (!assetPrice || !assetPrice.prices) return null
+    
+    // Ensure prices object is not empty
+    const priceKeys = Object.keys(assetPrice.prices)
+    if (priceKeys.length === 0) return null
 
-    // 2. check if resolved asset price from coingecko has the currency it is looking for
+    // 2. check if resolved asset price has the currency it is looking for
     const parsedCurrencySymbol = String(currencySymbol).toLowerCase()
-    if (assetPrice.prices[parsedCurrencySymbol]) return assetPrice.prices[parsedCurrencySymbol]
+    if (assetPrice.prices[parsedCurrencySymbol]) {
+      return assetPrice.prices[parsedCurrencySymbol]
+    }
 
     // 3. step 2 has none, check if has usd rates & calculate
     if (!state.usdRates || !state.usdRates[parsedCurrencySymbol.toUpperCase()]) return null

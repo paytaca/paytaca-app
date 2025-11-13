@@ -222,6 +222,11 @@ export default {
     denomination () {
       return this.$store.getters['global/denomination']
     },
+    assetPrices () {
+      // Force reactivity by accessing the store getter
+      // This ensures computed properties that depend on prices will update when prices change
+      return this.$store.getters['market/assetPrices']
+    },
     isSep20 () {
       return this.network === 'sBCH'
     },
@@ -245,6 +250,9 @@ export default {
     },
     assetFiatValue () {
       if (!this.asset?.id) return ''
+      
+      // Access assetPrices to ensure reactivity
+      const _ = this.assetPrices
       
       const selectedCurrency = this.selectedCurrency?.symbol
       if (!selectedCurrency) return ''
@@ -282,6 +290,9 @@ export default {
     },
     tokenPrice () {
       if (!this.asset?.id || this.asset.id === 'bch') return null
+      
+      // Access assetPrices to ensure reactivity
+      const _ = this.assetPrices
       
       const selectedCurrency = this.selectedCurrency?.symbol
       if (!selectedCurrency) return null
