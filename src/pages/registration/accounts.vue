@@ -527,7 +527,6 @@ export default {
       skipToBackupPhrase: false,
       isOnboarding: false, // this.isVaultEmpty
       pageLoaded: false,
-      walletCreationComplete: false,
       walletCreationError: '',
       isRedirecting: false,
       step2Initialized: false
