@@ -222,7 +222,7 @@ export default {
       const payload = {
         txid: txid,
         key: 'merchant_cashout',
-        value: this.merchant.name
+        value: this.merchant?.name
       }
 
       const watchtower = new Watchtower()
@@ -233,7 +233,7 @@ export default {
       const url = '/paytacapos/cash-out/'
       const body = {
         payment_method_id: this.paymentMethod.id,
-        merchant_id: this.merchant.id,
+        merchant_id: this.merchant?.id,
         currency: this.currency.symbol,
         txids: txids
       }
