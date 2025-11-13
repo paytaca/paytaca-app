@@ -280,6 +280,7 @@ export default {
     },
     async hideDebugApp () {
       this.$q.dialog({
+        class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
         title: this.$t('Hide Debug App'),
         message: this.$t('Are you sure you want to hide the Debug app? You can show it again by long pressing the Apps header.'),
         cancel: true,

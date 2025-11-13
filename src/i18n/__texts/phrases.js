@@ -1551,6 +1551,9 @@ const phrases = {
       LearnDescription: "Comprehensive learning platform for Bitcoin Cash and Paytaca. Explore tutorials, guides, and educational content to master BCH fundamentals, advanced features, and the Paytaca wallet ecosystem.",
       TransactionIdCopied: 'Transaction ID copied to clipboard',
       AddressCopied: 'Address copied to clipboard',
+
+      DisplayRawData: 'Display Raw Data',
+      DisplayRefinedData: 'Display Refined Data',
     }
   ],
   dynamic: [
