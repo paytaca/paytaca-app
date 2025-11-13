@@ -201,8 +201,14 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
       }
     })
 
-  if (clearExisting) context.commit('clearAssetPrices')
-  context.commit('updateAssetPrices', newAssetPrices)
+  if (clearExisting) {
+    context.commit('clearAssetPrices')
+    // When clearing, pass as full update to ensure clean state
+    context.commit('updateAssetPrices', { assetPrices: newAssetPrices, isFullUpdate: true })
+  } else {
+    // For bulk updates without explicit clear, still treat as full update to remove stale assets
+    context.commit('updateAssetPrices', { assetPrices: newAssetPrices, isFullUpdate: true })
+  }
   if (fetchUsdRate) context.dispatch('updateUsdRates', { currency: selectedCurrency })
 }
 

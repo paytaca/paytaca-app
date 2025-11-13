@@ -27,10 +27,20 @@ export function updateSelectedCurrency (state, currency) {
 /**
  *
  * @param {Object} state vuex module state
- * @param {{ assetId: String, prices: Map<String, Number>, coinId: String }[]} assetPrices
+ * @param {{ assetPrices: Array, isFullUpdate?: Boolean } | Array} payload - Either an array of asset prices (backwards compatible) or an object with assetPrices and optional isFullUpdate flag
  */
-export function updateAssetPrices (state, assetPrices) {
+export function updateAssetPrices (state, payload) {
+  // Handle backwards compatibility: if payload is an array, treat it as assetPrices
+  const assetPrices = Array.isArray(payload) ? payload : payload?.assetPrices
+  const isFullUpdate = Array.isArray(payload) ? false : (payload?.isFullUpdate ?? false)
+  
   if (!Array.isArray(assetPrices)) return
+
+  // For full updates, remove assets not in the new update to prevent stale data
+  if (isFullUpdate && assetPrices.length > 0) {
+    const updatedAssetIds = new Set(assetPrices.map(ap => ap?.assetId).filter(Boolean))
+    state.assetPrices = state.assetPrices.filter(ap => updatedAssetIds.has(ap?.assetId))
+  }
 
   assetPrices.forEach(assetPrice => {
     if (!assetPrice?.assetId) return
