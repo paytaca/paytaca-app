@@ -47,8 +47,8 @@
 				:key="item.id"
 				class="pending-card pt-card"
 				:class="darkMode ? 'dark' : 'light'"
-				:style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
-				@click="selectTransaction(item.order.id, 'appeal')"
+				:style="{ 'margin-left': (index === 0 && pending.length === 0) ? '0px' : '12px' }"
+				@click="selectTransaction(item.id, 'appeal')"
 			>
 				<q-badge 	
 					outline				
@@ -64,7 +64,7 @@
 					Order #{{ item.order.id }}
 				</div>
 				<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
-					{{ item.reasons[0] }}
+					{{ Array.isArray(item.reasons) && item.reasons.length > 0 ? item.reasons[0] : '' }}
 				</div>
 			</div>
         	<!-- <q-card v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"

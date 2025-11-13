@@ -103,6 +103,9 @@ export default {
         // Do not hide the skeleton here; let renderQRCode finish and fade-in SVG then clear loading
         const container = document.getElementById(`qr-${this.qrId}`)
         if (container) container.style.display = 'block'
+        // Call renderQRCode to handle the case where generating becomes false
+        // This ensures loading is cleared even if text is empty
+        this.renderQRCode()
       }
     },
     text(newVal, oldVal) {
@@ -119,7 +122,11 @@ export default {
       // Guard: Do not attempt to render with empty content
       const content = (vm.text ?? '').toString().trim()
       if (!content || !container) {
-        // Keep skeleton visible until we have content and a mount point
+        // If generating is false and we have no content, clear loading state
+        // This prevents the skeleton from staying visible indefinitely
+        if (!vm.generating) {
+          vm.loading = false
+        }
         return
       }
 

@@ -497,6 +497,9 @@ export default {
       this.isProcessing = true
 
       try {
+        // Note: Fees are handled automatically by watchtower library (deducted from change output).
+        // estimatedNetworkFeeBch is used only for balance validation to ensure sufficient funds.
+        // The 7th parameter is priceId (for BIP21 price tracking), not fee.
         const result = await getWalletByNetwork(wallet, 'bch').sendBch(
           undefined,
           '',
@@ -510,7 +513,7 @@ export default {
               tokenAmount: undefined
             }
           ],
-          { fee: this.estimatedNetworkFeeBch }
+          undefined // priceId - not used for this transaction
         )
 
         if (!result?.success || !result?.txid) {
