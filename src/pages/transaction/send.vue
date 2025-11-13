@@ -857,6 +857,16 @@ export default {
           if (newSelectedCurrency?.symbol) {
             // Use priceIdPrice if available, otherwise use selectedAssetMarketPrice
             const priceToUse = vm.priceIdPrice || vm.selectedAssetMarketPrice
+            
+            // Validate price exists and is a valid number before division
+            if (!priceToUse || typeof priceToUse !== 'number' || priceToUse <= 0 || !isFinite(priceToUse)) {
+              sendPageUtils.raiseNotifyError(
+                vm.$t('NoPriceDataFound', 'No price data found for currency conversion')
+              )
+              currentRecipient.recipientAddress = ''
+              return
+            }
+            
             amount = (amountValue / priceToUse).toFixed(8)
 
             currentRecipient.amount = amount
