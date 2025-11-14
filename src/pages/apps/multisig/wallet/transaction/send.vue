@@ -145,7 +145,7 @@ import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/n
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import darkmode from 'src/store/darkmode'
 import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
-import { decodeCashAddress } from 'bitauth-libauth-v3'
+import { binToHex, decodeCashAddress } from 'bitauth-libauth-v3'
 
 const $store = useStore()
 const route = useRoute()
@@ -302,16 +302,26 @@ const createProposal = async () => {
     coordinationServer: multisigCoordinationServer
   }
 
-  const pst = await wallet.value.createPstFromTransactionProposal({
+  const pst = await wallet.value.createPst({
     creator: creator,
     origin: 'paytaca-wallet',
     purpose: purpose.value,
     recipients: recipients.value
   }, options)
+ 
+  try {
 
-  await pst.save()
+    await pst.save()
+    
+    router.push({ name: 'app-multisig-wallet-pst-view', params: { unsignedtransactionhash: pst.unsignedTransactionHash }})
 
-  router.push({ name: 'app-multisig-wallet-pst-view', params: { unsignedtransactionhash: pst.unsignedTransactionHash }})
+  } catch (error) {
+    $q.dialog({
+      message: error,
+      class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+
+  }
 }
 
 onMounted(async () => {
@@ -325,7 +335,7 @@ onMounted(async () => {
         [$store.getters['market/selectedCurrency'].symbol]
       )
 
-  const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.getLastIssuedChangeAddressIndex(network) + 1).address
+  const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.getLastUsedChangeAddressIndex(network) + 1).address
   const promises = [
     (async () => $store.dispatch(
       'multisig/subscribeWalletAddress',
