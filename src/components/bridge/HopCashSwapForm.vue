@@ -297,6 +297,11 @@ import BiometricWarningAttempt from 'components/authOption/biometric-warning-att
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateReceivingAddress,
+  generateSbchAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 const hopCashFee = {
   pctg: 0.001,
@@ -339,7 +344,8 @@ export default {
       verification: {
         type: '',
         warningAttemptsStatus: 'dismiss'
-      }
+      },
+      defaultRecipientAddress: ''
     }
   },
 
@@ -417,12 +423,32 @@ export default {
         this.amount = Number(reversePaytacaDeducted.toFixed(8))
       }
     },
-    defaultRecipientAddress () {
-      if (!this.wallet) return ''
-      if (this.transferType === 'c2s') {
-        return this.$store.getters['global/getAddress']('sbch')
+    async loadDefaultRecipientAddress () {
+      if (!this.wallet) {
+        this.defaultRecipientAddress = ''
+        return
       }
-      return this.$store.getters['global/getAddress']('bch')
+      try {
+        if (this.transferType === 'c2s') {
+          const address = await generateSbchAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex']
+          })
+          this.defaultRecipientAddress = address || ''
+        } else {
+          const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+          const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+          const address = await generateReceivingAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType('bch'),
+            addressIndex: validAddressIndex,
+            isChipnet: this.$store.getters['global/isChipnet']
+          })
+          this.defaultRecipientAddress = address || ''
+        }
+      } catch (error) {
+        console.error('Error generating default recipient address:', error)
+        this.defaultRecipientAddress = ''
+      }
     }
   },
   methods: {
@@ -478,7 +504,7 @@ export default {
           })
       }
     }, 5000),
-    updateWalletBalance: throttle(function (all = false) {
+    updateWalletBalance: throttle(async function (all = false) {
       const id = 'bch'
       if (this.transferType === 'c2s' || all) {
         this.wallet.BCH.getBalance().then((response) => {
@@ -489,7 +515,10 @@ export default {
         })
       }
       if (this.transferType === 's2c') {
-        const address = this.$store.getters['global/getAddress']('sbch')
+        const address = await generateSbchAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex']
+        })
+        if (!address) return
         this.wallet.sBCH.getBalance(address)
           .then(balance => {
             const commitName = 'sep20/updateAssetBalance'
@@ -637,6 +666,9 @@ export default {
   watch: {
     transferType (val) {
       this.loadWallet(val)
+        .then(() => {
+          this.loadDefaultRecipientAddress()
+        })
       this.updateBridgeBalances()
     }
   },
@@ -645,6 +677,7 @@ export default {
     this.loadWallet('c2s')
       .then(() => {
         this.updateWalletBalance(true)
+        this.loadDefaultRecipientAddress()
       })
     this.updateBridgeBalances(true)
   }

@@ -320,6 +320,11 @@ import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SpicebotBridgeTokenSelectDialog from './SpicebotBridgeTokenSelectDialog.vue'
 import SpicebotBridgeSwapListenerDialog from './SpicebotBridgeSwapListenerDialog.vue'
 import { isHongKong, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateReceivingAddress,
+  generateSbchAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 export default {
   name: 'SpicebotBridgeForm',
@@ -359,7 +364,8 @@ export default {
         swapRequest: null,
 
         sentTxid: ''
-      }
+      },
+      senderAddress: ''
     }
   },
   computed: {
@@ -378,8 +384,21 @@ export default {
 
       return false
     },
-    senderAddress () {
-      return this.$store.getters['global/getAddress']('slp')
+    async loadSenderAddress () {
+      try {
+        const addressIndex = this.$store.getters['global/getLastAddressIndex']('slp')
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        const address = await generateReceivingAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType('slp'),
+          addressIndex: validAddressIndex,
+          isChipnet: this.$store.getters['global/isChipnet']
+        })
+        this.senderAddress = address || ''
+      } catch (error) {
+        console.error('Error generating SLP address:', error)
+        this.senderAddress = ''
+      }
     },
     computedFormData () {
       const data = {
@@ -730,6 +749,7 @@ export default {
   mounted () {
     this.loadWallet()
     this.fetchTokens()
+    this.loadSenderAddress()
   }
 }
 </script>

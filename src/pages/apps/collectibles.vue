@@ -455,8 +455,13 @@ export default {
           this.receivingAddress = address
         } catch (error) {
           console.error('Error generating sBCH address:', error)
-          // Fallback to store if generation fails
-          this.receivingAddress = this.$store.getters['global/getAddress']('sbch')
+          this.$q.notify({
+            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+            color: 'negative',
+            icon: 'warning'
+          })
+          // Don't fallback to store - address generation must succeed
+          this.receivingAddress = null
         }
       } else {
         // For BCH/SLP/CashTokens, generate dynamically
@@ -485,13 +490,13 @@ export default {
           this.receivingAddress = address
         } catch (error) {
           console.error('Error generating address:', error)
-          // Fallback to store if generation fails
-          if (this.bchNftType === 'ct') {
-            const bchAddress = this.$store.getters['global/getAddress']('bch')
-            this.receivingAddress = convertCashAddress(bchAddress, false, true)
-          } else {
-            this.receivingAddress = this.$store.getters['global/getAddress']('slp')
-          }
+          this.$q.notify({
+            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+            color: 'negative',
+            icon: 'warning'
+          })
+          // Don't fallback to store - address generation must succeed
+          this.receivingAddress = null
         }
       }
     }

@@ -204,6 +204,10 @@ import { debounce } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { isConformingNamespaces } from '@walletconnect/utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 // import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 // import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
@@ -420,13 +424,38 @@ export default {
         vm.refundAddress = content
       }
     },
-    setBCHAddress () {
+    async getBchAddress () {
+      try {
+        const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        const address = await generateReceivingAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType('bch'),
+          addressIndex: validAddressIndex,
+          isChipnet: this.$store.getters['global/isChipnet']
+        })
+        return address
+      } catch (error) {
+        console.error('Error generating BCH address:', error)
+        return null
+      }
+    },
+    async setBCHAddress () {
       const vm = this
+      const bchAddress = await vm.getBchAddress()
+      if (!bchAddress) {
+        vm.$q.notify({
+          message: vm.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
+        return
+      }
       if (vm.deposit.coin === 'BCH') {
-        vm.refundAddress = vm.bchAddress
+        vm.refundAddress = bchAddress
       }
       if (vm.settle.coin === 'BCH') {
-        vm.settleAddress = vm.bchAddress
+        vm.settleAddress = bchAddress
       }
     },
     checkErrorMsg () {
@@ -445,9 +474,13 @@ export default {
       if (max < amount) {
         vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
       }
-      // balance checking
-      if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {
-        vm.errorMsg = 'Wallet Balance not enough'
+      // balance checking - compare with dynamically generated address
+      if (vm.deposit.coin === 'BCH') {
+        vm.getBchAddress().then(bchAddress => {
+          if (bchAddress && amount > vm.bchBalance && vm.refundAddress === bchAddress) {
+            vm.errorMsg = 'Wallet Balance not enough'
+          }
+        })
       }
 
       if (vm.errorMsg) {
@@ -646,9 +679,6 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    bchAddress () {
-      return this.$store.getters['global/getAddress']('bch')
-    },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
@@ -674,7 +704,10 @@ export default {
     vm.deposit.icon = await vm.getCoinImage(vm.deposit.coin, vm.deposit.network)
     vm.settle.icon = await vm.getCoinImage(vm.settle.coin, vm.settle.network)
 
-    vm.settleAddress = this.bchAddress
+    const bchAddress = await vm.getBchAddress()
+    if (bchAddress) {
+      vm.settleAddress = bchAddress
+    }
 
     vm.getTokenList()
   }
