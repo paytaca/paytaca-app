@@ -449,6 +449,7 @@ export default {
         const message = this.$t('ContractAddressUnavailable', {}, 'Unable to resolve the contract address. Please try again later.')
         raiseNotifyError(message)
         this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
         return
       }
 
@@ -460,6 +461,7 @@ export default {
         const message = this.$t('WalletUnavailable', {}, 'Wallet is not ready. Please try again.')
         raiseNotifyError(message)
         this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
         return
       }
 
@@ -484,6 +486,7 @@ export default {
         const message = this.$t('InvalidPurchaseAmount', {}, 'Purchase amount is not valid.')
         raiseNotifyError(message)
         this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
         return
       }
 
@@ -491,6 +494,7 @@ export default {
         const message = this.$t('BalanceExceeded', {}, 'Insufficient BCH balance to cover amount and fee.')
         raiseNotifyError(message)
         this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
         return
       }
 

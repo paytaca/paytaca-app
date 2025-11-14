@@ -300,7 +300,7 @@ export default {
     parseFiatAmount (origFiatAmount, origAmount) {
       const currency = this.currentSendPageCurrency()
       const fiatProvided = Number(origFiatAmount)
-      if (Number.isFinite(fiatProvided) && this.asset.id === 'bch') {
+      if (Number.isFinite(fiatProvided) && fiatProvided !== 0 && this.asset.id === 'bch') {
         return parseFiatCurrency(Math.abs(fiatProvided), currency)
       }
       const amountAbs = Math.abs(Number(origAmount))

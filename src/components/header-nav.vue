@@ -120,10 +120,14 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     backTo () {
-      if (typeof this.backnavpath === 'object') {
+      if (typeof this.backnavpath === 'object' && this.backnavpath !== null && Object.keys(this.backnavpath).length > 0) {
         return this.backnavpath
       }
-      return { path: this.backnavpath }
+      if (typeof this.backnavpath === 'string' && this.backnavpath.trim() !== '') {
+        return { path: this.backnavpath }
+      }
+      // Return empty path as fallback
+      return { path: '/' }
     }
   },
   mounted () {
@@ -146,7 +150,12 @@ export default {
   methods: {
     getDarkModeClass,
     async onClick () {
-      if (this.backnavpath) {
+      // Check if backnavpath is a valid non-empty string or a non-empty object
+      const hasValidPath = typeof this.backnavpath === 'string' 
+        ? this.backnavpath.trim() !== ''
+        : typeof this.backnavpath === 'object' && this.backnavpath !== null && Object.keys(this.backnavpath).length > 0
+
+      if (hasValidPath) {
         if (typeof this.backnavpath === 'object') {
           await this.$router.push(this.backnavpath)
         } else {

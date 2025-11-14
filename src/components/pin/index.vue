@@ -329,12 +329,13 @@ export default {
           .then(() => {
             setTimeout(() => {
               if (vm.pinDialogAction === 'SET UP') {
-                // Finish loader and close dialog before proceeding
+                // Emit proceed action first so parent can handle it while dialog is still active
+                vm.$emit('nextAction', 'proceed')
+                // Then finish loader and close dialog after parent receives the proceed signal
                 vm.loader = false
                 vm.removeKey('reset')
                 vm.dialog = false
                 vm.$emit('update:pinDialogAction', '')
-                vm.$emit('nextAction', 'proceed')
               } else {
                 resetAll()
               }

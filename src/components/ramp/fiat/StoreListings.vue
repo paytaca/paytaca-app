@@ -232,7 +232,7 @@ export default {
   components: {
     FilterComponent
   },
-  emits: ['orderCancelled'],
+  emits: ['orderCanceled'],
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -486,7 +486,8 @@ export default {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
           // Even on error, try to fetch listings if we have a currency
-          if (vm.isInitialMount && vm.selectedCurrency) {
+          // But only if we're not waiting for authentication (pendingFetch)
+          if (vm.isInitialMount && !vm.pendingFetch && vm.selectedCurrency) {
             vm.updateFilters()
             vm.resetAndRefetchListings()
           }
