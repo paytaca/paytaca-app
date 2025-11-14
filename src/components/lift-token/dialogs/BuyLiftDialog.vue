@@ -161,6 +161,10 @@ import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
 import { getChangeAddress, raiseNotifyError } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { loadLibauthHdWallet, getMnemonic, Wallet } from 'src/wallet'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 import CustomInput from 'src/components/CustomInput.vue'
 
 export default {
@@ -527,7 +531,18 @@ export default {
           throw new Error(this.$t('PaymentSendingError', {}, 'Failed to send payment.'))
         }
 
-        const buyerAddress = this.$store.getters['global/getAddress']('bch')
+        // Generate BCH address dynamically
+        const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        const buyerAddress = await generateReceivingAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType('bch'),
+          addressIndex: validAddressIndex,
+          isChipnet: this.$store.getters['global/isChipnet']
+        })
+        if (!buyerAddress) {
+          throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
+        }
         const addressPath = await getAddressPath(buyerAddress)
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const libauthWallet = await loadLibauthHdWallet(walletIndex, false)

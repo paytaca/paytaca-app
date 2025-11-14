@@ -496,8 +496,8 @@ export default {
             color: 'negative',
             icon: 'warning'
           })
-          // Fallback to store if generation fails
-          return this.$store.getters['global/getAddress'](this.walletType)
+          // Don't fallback to store - address generation must succeed
+          return null
         }
       } else if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
@@ -534,12 +534,8 @@ export default {
           color: 'negative',
           icon: 'warning'
         })
-        // Fallback to store-retrieved address if dynamic generation fails
-        let address = this.$store.getters['global/getAddress'](this.walletType)
-        if (this.assetId.indexOf('ct/') > -1 && !forListener) {
-          address = convertCashAddress(address, this.isChipnet, true)
-        }
-        return address
+        // Don't fallback to store - address generation must succeed
+        return null
       }
     },
     async refreshDynamicAddress() {

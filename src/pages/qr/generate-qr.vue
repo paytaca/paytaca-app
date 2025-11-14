@@ -291,13 +291,12 @@ export default {
         vm.addresses.push(ctAddress)
       } catch (error) {
         console.error('Error generating addresses dynamically:', error)
-        // Fallback to store-retrieved addresses if dynamic generation fails
-        vm.addresses.push(vm.$store.getters['global/getAddress']('bch'))
-        vm.addresses.push(convertCashAddress(
-          vm.$store.getters['global/getAddress']('bch'),
-          this.isChipnet,
-          true
-        ))
+        this.$q.notify({
+          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
+        // Don't fallback to store - address generation must succeed
       }
     },
     convertToLegacyAddress (address) {

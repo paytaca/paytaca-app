@@ -86,6 +86,10 @@ import { getChangeAddress, raiseNotifyError } from "src/utils/send-page-utils";
 import { getWalletByNetwork } from "src/wallet/chipnet";
 import { getWalletTokenAddress } from "src/utils/engagementhub-utils/rewards";
 import { loadLibauthHdWallet } from "src/wallet"
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 import DragSlide from "src/components/drag-slide.vue";
 import SecurityCheckDialog from "src/components/SecurityCheckDialog.vue";
@@ -131,7 +135,20 @@ export default {
     parseFiatCurrency,
     parseLiftToken,
     getAssetDenomination,
-
+    async getBuyerAddress() {
+      const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+      const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+      const address = await generateReceivingAddress({
+        walletIndex: this.$store.getters['global/getWalletIndex'],
+        derivationPath: getDerivationPathForWalletType('bch'),
+        addressIndex: validAddressIndex,
+        isChipnet: this.$store.getters['global/isChipnet']
+      })
+      if (!address) {
+        throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
+      }
+      return address
+    },
     securityCheck(reset = () => {}) {
       this.isSliderLoading = true;
 
@@ -190,7 +207,7 @@ export default {
           buyer_token_address: tokenAddress,
           // bch address used for this transaction, can be or
           // not be the bch address used for the reservation
-          buyer_tx_address: this.$store.getters["global/getAddress"]("bch"),
+          buyer_tx_address: await this.getBuyerAddress(),
 
           reservation: this.rsvp.id,
           partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1,

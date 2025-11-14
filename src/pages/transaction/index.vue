@@ -371,6 +371,7 @@ import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { debounce } from 'quasar'
 import { refToHex } from 'src/utils/reference-id-utils'
+import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 
 import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
@@ -1147,13 +1148,18 @@ export default {
       if (vm.selectedNetwork === 'sBCH') return vm.getSbchBalance(id, vm)
       return vm.getBchBalance(id, vm)
     },
-    getSbchBalance (id, vm) {
+    async getSbchBalance (id, vm) {
       if (!id) {
         id = vm.selectedAsset.id
       }
       const parsedId = String(id)
 
-      const address = vm.$store.getters['global/getAddress']('sbch')
+      const address = await generateSbchAddress({
+        walletIndex: vm.$store.getters['global/getWalletIndex']
+      })
+      if (!address) {
+        return Promise.reject(new Error('Failed to generate sBCH address'))
+      }
       if (sep20IdRegexp.test(parsedId)) {
         const contractAddress = parsedId.match(sep20IdRegexp)[1]
         return vm.wallet.sBCH.getSep20TokenBalance(contractAddress, address)
@@ -1627,12 +1633,17 @@ export default {
       const watchtower = new Watchtower()
       if (chain === 'sBCH') {
         return watchtower.BCH._api(`smartbch/transactions/${txid}/transfers/`)
-          .then(response => {
+          .then(async response => {
             const txTransfer = response?.data?.find?.(tx => {
               if (typeof logIndex === 'number') return tx?.log_index === logIndex
               return true
             })
-            const address = this.$store.getters['global/getAddress']('sbch')
+            const address = await generateSbchAddress({
+              walletIndex: this.$store.getters['global/getWalletIndex']
+            })
+            if (!address) {
+              throw new Error('Failed to generate sBCH address')
+            }
             return parseTransactionTransfer(txTransfer, { address })
           })
           .catch(error => {

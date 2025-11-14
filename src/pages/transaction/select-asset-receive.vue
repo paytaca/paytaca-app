@@ -159,6 +159,7 @@ import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeRece
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { convertTokenAmount, getWalletByNetwork } from 'src/wallet/chipnet'
 import * as assetSettings from 'src/utils/asset-settings'
+import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 
 export default {
   name: 'Receive-page',
@@ -454,7 +455,12 @@ export default {
     },
     async getSbchTransactions (asset) {
       const vm = this
-      const address = vm.$store.getters['global/getAddress']('sbch')
+      const address = await generateSbchAddress({
+        walletIndex: vm.$store.getters['global/getWalletIndex']
+      })
+      if (!address) {
+        return Promise.reject(new Error('Failed to generate sBCH address'))
+      }
       const id = asset.id
       const sep20IdRegexp = /sep20\/(.*)/
       let historyLength = -1
