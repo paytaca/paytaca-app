@@ -205,15 +205,13 @@ import {
   isMultisigWalletSynced,
   generateFilename,
   MultisigWallet,
-  Pst
+  Pst,
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import { CashAddressNetworkPrefix, sortObjectKeys } from 'bitauth-libauth-v3'
-import { WatchtowerNetwork, WatchtowerNetworkProvider, WatchtowerCoordinationServer } from 'src/lib/multisig/network'
-import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
+import { sortObjectKeys } from 'bitauth-libauth-v3'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -225,7 +223,8 @@ const {
   multisigNetworkProvider, 
   resolveXprvOfXpub,
   getSignerXPrv, 
-  getAssetTokenIdentity
+  getAssetTokenIdentity,
+  cashAddressNetworkPrefix
 } = useMultisigHelpers()
 const balances = ref()
 const balancesTokenIdentities = ref({})
@@ -249,29 +248,12 @@ const wallet = computed(() => {
   return null
 })
 
-const transactions = computed(() => {
-  return $store.getters['multisig/getTransactionsByWalletAddress']({
-    address: route.params.address
-  })?.filter(mt => mt.broadcastStatus !== 'done')
-})
-
-// const psts = computed(() => {
-//   return $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult).map(p => Pst.fromObject(p))
-// })
-
 const psts = computed(() => {
-  const pstObjects =  $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult)
-  return pstObjects.map(p => {
-    const pstInstance = Pst.fromObject(p, { store: $store })
-    pstInstance.wallet = wallet.value
-    return pstInstance
+  const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
+  return psbts?.map(psbtBase64 => {
+    return Pst.fromPsbt(psbtBase64)
   })
 })
-
-// const deleteWallet = async () => {
-//   await wallet.value.delete({ sync: false })
-//   router.push({ name: 'app-multisig' })
-// }
 
 const exportWallet = () => {
   const data = wallet.value.exportToBase64()
@@ -323,14 +305,14 @@ const syncWallet = async () => {
     $q.loading.hide()
   }
 }
+
 const showWalletReceiveDialog = () => {
-  const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
   $q.dialog({
     component: WalletReceiveDialog,
     componentProps: {
       darkMode: darkMode.value,
       multisigWallet: wallet.value,
-      cashAddressNetworkPrefix: addressPrefix
+      cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
     }
   }).onOk(() => {
     openWalletActionsDialog()
@@ -339,7 +321,7 @@ const showWalletReceiveDialog = () => {
 
 const openWalletActionsDialog = () => {
   const disableActions = []
-  if (transactions.value?.length > 0) {
+  if (psts.value?.length > 0) {
     disableActions.push('send-bch')
     disableActions.push('import-tx')
   }
@@ -371,7 +353,6 @@ const openWalletActionsDialog = () => {
 
   }).onOk(async (action) => {
     if (action.value === 'delete-wallet') {
-      console.log('delete wallet')
        $q.dialog({
           message: 'Are you sure you want to delete wallet?',
           ok: { label: 'Yes' },
@@ -424,15 +405,6 @@ const openWalletActionsDialog = () => {
   // })
 }
 
-const onTxProposalClick = async () => {
-  await $store.dispatch('multisig/fetchTransactions', wallet.value)
-  if (transactions.value.length > 0) {
-    router.push({
-      name: 'app-multisig-wallet-transactions',
-      params: { address: route.params.address }
-    })
-  }
-}
 
 const loadHdPrivateKeys = async (signers) => {
   if (!hdPrivateKeys.value) {
@@ -467,12 +439,13 @@ const loadCashtokenIdentitiesToBalances = async() => {
 const refreshBalance = async () => {
   try {
     balancesRefreshing.value = true
-  } catch (error) {} finally {
-    balancesRefreshing.value = false
     balances.value = await wallet.value.getWalletBalances()
+    
     if (balances.value) {
       balances.value = sortObjectKeys(balances.value)
     }
+  } catch (error) {} finally {
+    balancesRefreshing.value = false
   }
 }
 
@@ -484,20 +457,24 @@ watch(wallet.value, async (newWallet) => {
 
 onMounted(async () => {
   try {
+    await loadHdPrivateKeys(wallet.value?.signers)
+
     balancesRefreshing.value = true
-    balances.value = await wallet.value.getWalletBalances()
+    // balances.value = await wallet.value.getWalletBalances()
+    await refreshBalance()
 
     if (balances.value) {
       balances.value = sortObjectKeys(balances.value)
     }
-    await loadHdPrivateKeys(wallet.value?.signers)
+    
     await loadCashtokenIdentitiesToBalances()
   } 
-  catch (error) {}
+  catch (error) {
+    // ! Notify warning
+  }
   finally {
     balancesRefreshing.value = false
   }
-
 })
 </script>
 
@@ -511,4 +488,4 @@ onMounted(async () => {
   font-size: xx-large;
 }
 
-</style>i
+</style>
