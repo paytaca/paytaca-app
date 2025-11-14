@@ -49,7 +49,7 @@ export const useMultisigHelpers = () => {
     if (isChipnet.value) {
       return 'https://chipnet.chaingraph.cash/tx'
     }
-    return 'https://blockchair.com/bitcoin-cash/transaction'
+    return 'https://explorer.paytaca.com/tx'
   })
 
   const cashAddressNetworkPrefix = computed(() => {

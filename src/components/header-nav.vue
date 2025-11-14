@@ -5,11 +5,11 @@
         ref="header-nav"
         class="pt-header row no-wrap"
         :style="{'padding-top': $q.platform.is.ios ? '73px' : '18px', 'height': $q.platform.is.ios ? '95px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
-        :class="{'pt-card-3': darkMode}"
+        :class="getDarkModeClass(darkMode)"
       >
         <div class="col-1">
           <router-link
-            :to="{ path: backnavpath }"
+            :to="backTo"
             class="pt-arrow-left-link"
             :class="{'text-grad': darkMode}"
             :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
@@ -24,6 +24,7 @@
             class="text-h5 text-uppercase text-center q-my-none"
             :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+            v-on-long-press="onLongPressTitle"
           >
             {{ title }}
           </p>
@@ -47,7 +48,7 @@
       >
         <div class="col-1">
           <router-link
-            :to="{ path: backnavpath }"
+            :to="backTo"
             class="pt-arrow-left-link"
             :class="{'text-grad': darkMode}"
             :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
@@ -62,6 +63,7 @@
             class="text-h5 text-uppercase text-center q-my-none"
             :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+            v-on-long-press="onLongPressTitle"
           >
             {{ title }}
           </p>
@@ -81,17 +83,22 @@
 </template>
 
 <script>
+import { vOnLongPress } from '@vueuse/components'
 import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 
 export default {
   name: 'header-nav',
+  directives: {
+    'on-long-press': vOnLongPress,
+  },
   props: {
     title: {
       type: String,
       default: ''
     },
     backnavpath: {
-      type: String,
+      type: [String, Object],
       default: ''
     },
     rewardsPage: {
@@ -102,7 +109,7 @@ export default {
   components: {
     HelpDialog
   },
-  emits: ['click'],
+  emits: ['click', 'long-press-title'],
   data () {
     return {
       addedBodyPadding: false
@@ -111,6 +118,16 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    backTo () {
+      if (typeof this.backnavpath === 'object' && this.backnavpath !== null && Object.keys(this.backnavpath).length > 0) {
+        return this.backnavpath
+      }
+      if (typeof this.backnavpath === 'string' && this.backnavpath.trim() !== '') {
+        return { path: this.backnavpath }
+      }
+      // Return empty path as fallback
+      return { path: '/' }
     }
   },
   mounted () {
@@ -131,9 +148,19 @@ export default {
     if (this.addedBodyPadding) document.body.style.paddingTop = ''
   },
   methods: {
+    getDarkModeClass,
     async onClick () {
-      if (this.backnavpath) {
-        await this.$router.push({ path: this.backnavpath })
+      // Check if backnavpath is a valid non-empty string or a non-empty object
+      const hasValidPath = typeof this.backnavpath === 'string' 
+        ? this.backnavpath.trim() !== ''
+        : typeof this.backnavpath === 'object' && this.backnavpath !== null && Object.keys(this.backnavpath).length > 0
+
+      if (hasValidPath) {
+        if (typeof this.backnavpath === 'object') {
+          await this.$router.push(this.backnavpath)
+        } else {
+          await this.$router.push({ path: this.backnavpath })
+        }
       } else {
         this.$router.go(-1)
       }
@@ -144,6 +171,9 @@ export default {
         component: HelpDialog,
         componentProps: { page: this.rewardsPage }
       })
+    },
+    onLongPressTitle () {
+      this.$emit('long-press-title')
     }
   }
 }

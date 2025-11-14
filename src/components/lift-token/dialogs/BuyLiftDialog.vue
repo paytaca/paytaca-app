@@ -6,7 +6,7 @@
     class="no-click-outside"
   >
     <q-card
-      class="buy-lift-dialog-card full-width q-pa-lg text-body1 text-bow"
+      class="buy-lift-dialog-card pt-card full-width q-pa-lg text-body1 text-bow"
       :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
       <div class="row justify-between items-center q-mb-lg">
@@ -144,7 +144,8 @@
         no-caps
         class="full-width purchase-button"
         :class="`theme-${theme}`"
-        :disable="!canPurchase"
+        :disable="!canPurchase || isProcessing"
+        :loading="isProcessing"
         @click="proceedToPurchase"
       />
     </q-card>
@@ -152,9 +153,18 @@
 </template>
 
 <script>
+import { markRaw } from '@vue/reactivity'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getOracleData, SaleGroupPrice } from 'src/utils/engagementhub-utils/lift-token'
+import { getOracleData, generateSignature, getAddressPath, processPurchaseApi } from 'src/utils/engagementhub-utils/lift-token'
 import { formatWithLocale } from 'src/utils/denomination-utils'
+import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
+import { getChangeAddress, raiseNotifyError } from 'src/utils/send-page-utils'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { loadLibauthHdWallet, getMnemonic, Wallet } from 'src/wallet'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 import CustomInput from 'src/components/CustomInput.vue'
 
 export default {
@@ -165,19 +175,27 @@ export default {
   props: {
     modelValue: Boolean,
     darkMode: Boolean,
-    theme: String
+    theme: String,
+    liftSwapContractAddress: {
+      type: String,
+      default: ''
+    }
   },
   emits: ['update:modelValue', 'purchase'],
   data() {
     return {
       innerVal: this.modelValue,
+      contractAddress: this.liftSwapContractAddress || '',
       selectedRound: 'public',
       amountTkn: 0,
       amountUsd: 0,
       amountBch: 0,
       currentUsdPrice: 0,
+      messageTimestamp: 0,
+      isProcessing: false,
       isGlowing: false,
       roundChangeKey: 0,
+      wallet: null,
       displayedPrice: 0.05, // Animated price display
       displayedMinPurchase: 1000, // Animated minimum purchase display
       animationFrame: null,
@@ -227,10 +245,16 @@ export default {
     selectedRoundVesting() {
       return this.selectedRoundData?.vesting || ''
     },
+    estimatedNetworkFeeBch() {
+      return 0.00002
+    },
+    totalBchWithFee() {
+      return Number(this.amountBch || 0) + this.estimatedNetworkFeeBch
+    },
     canPurchase() {
       return (
         Number(this.amountTkn) >= this.selectedRoundMinPurchase &&
-        Number(this.amountBch) <= this.walletBalance &&
+        this.totalBchWithFee <= this.walletBalance &&
         Number(this.amountTkn) > 0
       )
     },
@@ -263,6 +287,12 @@ export default {
     },
     innerVal(val) {
       this.$emit('update:modelValue', val)
+      if (!val) {
+        this.resetFormState()
+      }
+    },
+    liftSwapContractAddress(val) {
+      this.contractAddress = val
     }
   },
   methods: {
@@ -282,6 +312,31 @@ export default {
     },
     formatPriceDisplay(price) {
       return price.toFixed(3)
+    },
+    resetFormState() {
+      this.isProcessing = false
+      if (!this.innerVal) {
+        this.amountTkn = 0
+        this.amountUsd = 0
+        this.amountBch = 0
+        this.computeUsdBch()
+      }
+    },
+    async ensureWallet() {
+      if (this.wallet) return this.wallet
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const mnemonic = await getMnemonic(walletIndex)
+      const wallet = new Wallet(mnemonic, 'BCH')
+      this.wallet = markRaw(wallet)
+      return this.wallet
+    },
+    getSaleGroupCode(roundId) {
+      const mapping = {
+        seed: 'seed',
+        private: 'priv',
+        public: 'pblc'
+      }
+      return mapping[roundId]
     },
     animatePriceRoll(targetPrice) {
       // Cancel any existing animation
@@ -388,20 +443,151 @@ export default {
       }
       this.computeUsdBch()
     },
-    proceedToPurchase() {
-      this.$emit('purchase', {
-        round: this.selectedRound,
-        amountTkn: this.amountTkn,
-        amountUsd: this.amountUsd,
-        amountBch: this.amountBch
+    async proceedToPurchase() {
+      if (this.isProcessing) return
+      if (!this.canPurchase) return
+
+      const purchaseTkn = Math.round(Number(this.amountTkn || 0) * 10 ** 2)
+
+      if (!this.contractAddress) {
+        const message = this.$t('ContractAddressUnavailable', {}, 'Unable to resolve the contract address. Please try again later.')
+        raiseNotifyError(message)
+        this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
+        return
+      }
+
+      const wallet = await this.ensureWallet().catch(error => {
+        console.error('Failed to initialize wallet for purchase:', error)
+        return null
       })
-      this.innerVal = false
+      if (!wallet) {
+        const message = this.$t('WalletUnavailable', {}, 'Wallet is not ready. Please try again.')
+        raiseNotifyError(message)
+        this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
+        return
+      }
+
+      if (!this.messageTimestamp) {
+        try {
+          const oracleData = await getOracleData()
+          this.currentUsdPrice = oracleData.price
+          this.messageTimestamp = oracleData.messageTimestamp || this.messageTimestamp
+          this.computeUsdBch()
+        } catch (err) {
+          console.warn('Failed to refresh oracle data:', err)
+        }
+      }
+
+      const purchase = {
+        tkn: purchaseTkn,
+        usd: Number(this.amountUsd || 0),
+        bch: Number(this.amountBch || 0)
+      }
+
+      if (purchase.bch <= 0 || Number.isNaN(purchase.bch)) {
+        const message = this.$t('InvalidPurchaseAmount', {}, 'Purchase amount is not valid.')
+        raiseNotifyError(message)
+        this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
+        return
+      }
+
+      if (this.totalBchWithFee > this.walletBalance) {
+        const message = this.$t('BalanceExceeded', {}, 'Insufficient BCH balance to cover amount and fee.')
+        raiseNotifyError(message)
+        this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
+        return
+      }
+
+      this.isProcessing = true
+
+      try {
+        // Note: Fees are handled automatically by watchtower library (deducted from change output).
+        // estimatedNetworkFeeBch is used only for balance validation to ensure sufficient funds.
+        // The 7th parameter is priceId (for BIP21 price tracking), not fee.
+        // Get change address for BCH transaction
+        const changeAddress = await getChangeAddress('bch')
+        
+        const result = await getWalletByNetwork(wallet, 'bch').sendBch(
+          undefined,
+          '',
+          changeAddress,
+          null,
+          undefined,
+          [
+            {
+              address: this.contractAddress,
+              amount: purchase.bch,
+              tokenAmount: undefined
+            }
+          ],
+          undefined // priceId - not used for this transaction
+        )
+
+        if (!result?.success || !result?.txid) {
+          throw new Error(this.$t('PaymentSendingError', {}, 'Failed to send payment.'))
+        }
+
+        // Generate BCH address dynamically
+        const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        const buyerAddress = await generateReceivingAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType('bch'),
+          addressIndex: validAddressIndex,
+          isChipnet: this.$store.getters['global/isChipnet']
+        })
+        if (!buyerAddress) {
+          throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
+        }
+        const addressPath = await getAddressPath(buyerAddress)
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+        const wif = libauthWallet.getPrivateKeyWifAt(addressPath)
+        const signature = await generateSignature(result.txid, wif)
+        const satsWithFee = Math.floor(purchase.bch * 10 ** 8)
+        const tokenAddress = await getWalletTokenAddress()
+
+        const data = {
+          purchased_amount_usd: purchase.usd,
+          purchased_amount_tkn: purchase.tkn,
+          purchased_amount_sats: satsWithFee,
+          current_date: new Date().toISOString(),
+          tx_id: result.txid,
+          buyer_sig: signature,
+          buyer_token_address: tokenAddress,
+          buyer_tx_address: buyerAddress,
+          reservation: -1,
+          partial_purchase: -1,
+          sale_group: this.getSaleGroupCode(this.selectedRound),
+          message_timestamp: this.messageTimestamp
+        }
+
+        const isSuccessful = await processPurchaseApi(data)
+        if (!isSuccessful) {
+          throw new Error(this.$t('PurchasePaymentError', {}, 'Failed to record the purchase.'))
+        }
+
+        this.$emit('purchase', { success: true, txId: result.txid })
+        this.innerVal = false
+      } catch (error) {
+        console.error('BuyLiftDialog proceeds error:', error)
+        const message = error?.message || this.$t('PurchasePaymentError', {}, 'Failed to complete the purchase.')
+        raiseNotifyError(message)
+        this.$emit('purchase', { success: false, errorMessage: message })
+      } finally {
+        this.isProcessing = false
+      }
     }
   },
   async mounted() {
     try {
       const oracleData = await getOracleData()
       this.currentUsdPrice = oracleData.price
+      this.messageTimestamp = oracleData.messageTimestamp || 0
       this.displayedPrice = this.selectedRoundPrice
       this.displayedMinPurchase = this.selectedRoundMinPurchase
       // Start with 0 amount
@@ -410,6 +596,7 @@ export default {
     } catch (error) {
       console.error('Error fetching oracle data:', error)
       this.currentUsdPrice = 400 // Fallback price
+      this.messageTimestamp = 0
     }
   },
   beforeUnmount() {

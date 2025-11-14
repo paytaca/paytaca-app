@@ -220,6 +220,7 @@ import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
+import { getAuthToken } from 'src/exchange/auth'
 
 export default {
   setup () {
@@ -258,8 +259,16 @@ export default {
         buy: true
       },
       switchFlag: false,
-      isInitialMount: true
+      isInitialMount: true,
+      pendingFetch: false // Track if we have a pending fetch waiting for authentication
     }
+  },
+  created () {
+    // Listen for relogged event to retry fetching after authentication
+    bus.on('relogged', this.handleRelogged)
+  },
+  beforeUnmount () {
+    bus.off('relogged', this.handleRelogged)
   },
   watch: {
     async transactionType (value) {
@@ -355,10 +364,26 @@ export default {
   },
   async mounted () {
     const vm = this
-    await vm.fetchPaymentTypes()
+    // Check if we have an auth token before proceeding
+    // If no token exists after wallet switch, wait for authentication
+    const token = await getAuthToken()
+    
+    // Start fetching fiat currencies first (needed for listings)
+    // Payment types can load in parallel but are not required for initial listing fetch
     await vm.fetchFiatCurrencies()
-    vm.updateFilters()
-    vm.resetAndRefetchListings()
+    // Fetch payment types in parallel (non-blocking)
+    vm.fetchPaymentTypes()
+    
+    // Only fetch listings if we have an auth token
+    // If no token, the fetch will be triggered after authentication via handleRelogged
+    if (!token) {
+      // No token - mark as pending and wait for authentication
+      vm.pendingFetch = true
+      // Trigger authentication by emitting session-expired if not already triggered
+      // This ensures login dialog appears
+      bus.emit('session-expired')
+    }
+    
     // Enable watchers after initial mount to prevent double loading
     vm.isInitialMount = false
   },
@@ -426,7 +451,12 @@ export default {
     },
     async fetchPaymentTypes () {
       const vm = this
-      await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
+      // Fetch payment types in background - non-blocking for initial render
+      vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
+        .then(() => {
+          // Update filters when payment types are loaded
+          vm.updateFilters()
+        })
         .catch(error => {
           this.handleRequestError(error)
         })
@@ -440,11 +470,26 @@ export default {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
           vm.fiatCurrencies.unshift('All')
+          // Start fetching listings as soon as currency is available
+          // Don't wait for payment types
+          // Always fetch on initial currency load (when isInitialMount is true)
+          // This ensures listings load after wallet switch when component is recreated
+          // But only if we're not waiting for authentication (pendingFetch)
+          if (vm.isInitialMount && !vm.pendingFetch) {
+            vm.updateFilters()
+            vm.resetAndRefetchListings()
+          }
         })
         .catch(error => {
           vm.fiatCurrencies = vm.availableFiat
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
+          }
+          // Even on error, try to fetch listings if we have a currency
+          // But only if we're not waiting for authentication (pendingFetch)
+          if (vm.isInitialMount && !vm.pendingFetch && vm.selectedCurrency) {
+            vm.updateFilters()
+            vm.resetAndRefetchListings()
           }
           this.handleRequestError(error)
         })
@@ -463,6 +508,8 @@ export default {
             overwrite: overwrite
           })
           .then(() => {
+            // Clear pending flag on success
+            this.pendingFetch = false
             vm.updatePaginationValues()
 
             setTimeout(() => {
@@ -472,8 +519,25 @@ export default {
             }, 50)
           })
           .catch(error => {
+            // Handle 403 errors gracefully - authentication will be triggered by backend interceptor
+            // Don't show error to user if it's a 403 (session expired) - authentication will handle it
+            if (error?.response?.status === 403) {
+              // Session expired or not authenticated - mark as pending and wait for authentication
+              // Backend interceptor will emit 'session-expired' to trigger login
+              this.pendingFetch = true
+              this.loading = false
+              return
+            }
             this.handleRequestError(error)
           })
+      }
+    },
+    handleRelogged () {
+      // Authentication completed - retry fetching if we had a pending fetch
+      if (this.pendingFetch && this.selectedCurrency) {
+        this.pendingFetch = false
+        this.loading = true
+        this.resetAndRefetchListings(true)
       }
     },
     async receiveDialog (data) {

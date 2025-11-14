@@ -227,9 +227,13 @@ export class RampContract {
     return result
   }
 
-  async broadcastTransaction (txHex) {
+  async broadcastTransaction (txHex, priceId) {
     try {
-      const response = await watchtower.BCH._api.post('broadcast/', { transaction: txHex })
+      const broadcastData = { transaction: txHex }
+      if (priceId) {
+        broadcastData.price_id = priceId
+      }
+      const response = await watchtower.BCH._api.post('broadcast/', broadcastData)
       return response.data
     } catch (error) {
       console.error(error.response || error)

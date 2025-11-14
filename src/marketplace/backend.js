@@ -2,6 +2,7 @@ import BCHJS from '@psf/bch-js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { setupCache } from 'axios-cache-interceptor'
 import axios from 'axios'
+import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage'
 
 const bchjs = new BCHJS()
 
@@ -54,38 +55,52 @@ export async function sigAuthInterceptor(config) {
 }
 backend.interceptors.request.use(sigAuthInterceptor)
 
-const SIGNER_STORAGE_KEY = 'marketplace-api-customer-signer-data'
+const SIGNER_STORAGE_KEY_PREFIX = 'marketplace-api-customer-signer-data'
 
-export async function signPaytacaCustomerData(data) {
+/**
+ * Get wallet-specific storage key for marketplace signer data
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {string} Storage key with wallet hash
+ */
+function getSignerDataStorageKey(walletHash = null) {
+  if (walletHash) {
+    return getWalletStorageKey(SIGNER_STORAGE_KEY_PREFIX, walletHash)
+  }
+  return getCurrentWalletStorageKey(SIGNER_STORAGE_KEY_PREFIX)
+}
+
+export async function signPaytacaCustomerData(data, walletHash = null) {
   const response = { walletHash: '', signature: '' }
-  const { value } = await getSignerData()
+  const { value } = await getSignerData(walletHash)
   if (!value) return response
 
-  const [walletHash, privkey] = value.split(':')
-  if (!walletHash || !privkey) return response
-  response.walletHash = walletHash
+  const [storedWalletHash, privkey] = value.split(':')
+  if (!storedWalletHash || !privkey) return response
+  response.walletHash = storedWalletHash
 
   response.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
   return response
 }
 
-export async function getSignerData() {
+export async function getSignerData(walletHash = null) {
   try {
-    const data = await SecureStoragePlugin.get({ key: SIGNER_STORAGE_KEY })
+    const key = getSignerDataStorageKey(walletHash)
+    const data = await SecureStoragePlugin.get({ key })
     return { success: true, value: data.value } 
   } catch(error) {
     return { success: false, error: error }
   }
 }
 
-export async function setSignerData(value='') {
+export async function setSignerData(value='', walletHash = null) {
   try {
+    const key = getSignerDataStorageKey(walletHash)
     if (value === undefined) {
-      const removeResp = await SecureStoragePlugin.remove({ key: SIGNER_STORAGE_KEY })
+      const removeResp = await SecureStoragePlugin.remove({ key })
       return { success: removeResp.value }
     }
 
-    const setResponse = await SecureStoragePlugin.set({ key: SIGNER_STORAGE_KEY, value: value })
+    const setResponse = await SecureStoragePlugin.set({ key, value: value })
     return { success: setResponse.value }
   } catch(error) {
     console.error(error)

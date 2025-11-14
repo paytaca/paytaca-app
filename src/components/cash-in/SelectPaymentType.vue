@@ -11,7 +11,7 @@
       <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
       <p style="font-size: medium;">{{ $t('NoAdsAvailable') }} ☹ <br>{{ $t('CashinNetworkError2') }}</p>
     </div>
-    <q-card flat bordered class="q-mt-sm q-mx-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" v-else>
+    <q-card flat bordered class="q-mt-sm q-mx-md text-bow" :class="[getDarkModeClass(darkMode), darkMode ? 'pt-card' : 'bg-grey-4']" v-else>
       <q-virtual-scroll :items="options" style="max-height: 40vh;">
         <template v-slot="{ item: method, index }">
           <q-item clickable @click="selectPaymentType(method)" :key="index">

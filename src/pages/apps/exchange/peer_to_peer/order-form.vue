@@ -11,12 +11,12 @@
           </div>
           
           <!-- Trade Info Card Skeleton -->
-          <div class="q-mx-lg q-px-xs q-mb-sm">
+          <div class="q-mx-md q-mb-sm">
             <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
           </div>
 
           <!-- Ad Info Card Skeleton -->
-          <div class="q-mx-md q-mb-md">
+          <div class="q-mx-md q-mt-md q-mb-md">
             <q-skeleton type="rect" height="200px" style="border-radius: 15px;" />
           </div>
 
@@ -43,7 +43,7 @@
           </div>
           <q-btn v-if="adShareLinkEnabled !== false" :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
           <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
-            <div class="q-mx-lg q-px-xs q-mb-sm">
+            <div class="q-mx-md q-mb-sm">
               <TradeInfoCard
                 :order="order"
                 :ad="ad"
@@ -51,48 +51,48 @@
                 @view-peer="onViewPeer"
                 @view-reviews="showReviews=true"/>
             </div>
-            <div class="q-mx-md">
+            <div class="q-mx-md q-mt-md">
               <!-- Ad Info Card -->
               <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
-              <div class="q-pt-xs sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('PriceType') }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ ad.price_type }}
-                  </span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('MinTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs"> {{ tradeFloor }} {{ tradeLimitsCurrency(ad) }}</span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('MaxTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs">{{ tradeCeiling }} {{ tradeLimitsCurrency(ad) }}</span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>
-                    {{
-                      $t(
-                        'AppealableAfterCooldown',
-                        { cooldown: appealCooldown.label },
-                        `Appealable after ${ appealCooldown.label }`
-                      )
-                    }}
-                  </span>
-                </div>
-                <div class="q-mx-lg">
-                  <div class="row">Payment types</div>
-                  <q-badge outline :color="themeColor" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
-                </div>
-                <!-- Display Description on Order Form -->
-                <div v-if="ad?.description" class="q-mx-lg q-mt-md q-mb-sm">
-                  <q-separator class="q-my-sm"/>
-                  <div class="row">{{ $t('Description') }}</div>
-                  <div class="description sm-font-size" :class="darkMode ? 'text-white' : 'text-grey-8'">
-                    {{ ad?.description }}
+                <div class="sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('PriceType') }}</span>
+                    <span class="text-nowrap q-ml-xs">
+                      {{ ad.price_type }}
+                    </span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('MinTradeLimit') }}</span>
+                    <span class="text-nowrap q-ml-xs"> {{ tradeFloor }} {{ tradeLimitsCurrency(ad) }}</span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('MaxTradeLimit') }}</span>
+                    <span class="text-nowrap q-ml-xs">{{ tradeCeiling }} {{ tradeLimitsCurrency(ad) }}</span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>
+                      {{
+                        $t(
+                          'AppealableAfterCooldown',
+                          { cooldown: appealCooldown.label },
+                          `Appealable after ${ appealCooldown.label }`
+                        )
+                      }}
+                    </span>
+                  </div>
+                  <div class="q-mb-sm">
+                    <div class="row q-mb-xs">Payment types</div>
+                    <q-badge outline :color="themeColor" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
+                  </div>
+                  <!-- Display Description on Order Form -->
+                  <div v-if="ad?.description" class="q-mt-md q-mb-sm">
+                    <q-separator class="q-my-sm"/>
+                    <div class="row q-mb-xs">{{ $t('Description') }}</div>
+                    <div class="description sm-font-size" :class="darkMode ? 'text-white' : 'text-grey-8'">
+                      {{ ad?.description }}
+                    </div>
                   </div>
                 </div>
-              </div>
               </div>
 
               <!-- Input Card -->
@@ -348,7 +348,7 @@ export default {
       vm.previousRoute = from.path
     })
   },
-  emits: ['back', 'orderCanceled', 'updatePageName'],
+  emits: ['back', 'orderCancelled', 'updatePageName'],
   computed: {
     themeColor () {
       const themeMap = {
@@ -481,7 +481,10 @@ export default {
       const vm = this
       vm.isloaded = false
       await vm.fetchAd()
-      await vm.fetchArbiters()
+      // Only fetch arbiters if ad was successfully loaded with fiat_currency
+      if (vm.ad && vm.ad.fiat_currency) {
+        await vm.fetchArbiters()
+      }
       vm.setupWebSocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
@@ -637,6 +640,11 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
+        if (!orderId) {
+          console.warn('Order ID is missing, skipping fetchOrderMembers')
+          resolve([])
+          return
+        }
         backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
@@ -649,6 +657,12 @@ export default {
     },
     async fetchArbiters () {
       const vm = this
+      // Check if ad and fiat_currency are available before making the request
+      if (!vm.ad || !vm.ad.fiat_currency || !vm.ad.fiat_currency.symbol) {
+        console.warn('Cannot fetch arbiters: ad or fiat_currency is not available')
+        vm.arbitersAvailable = []
+        return
+      }
       await backend.get('ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
         .then(response => {
           vm.arbitersAvailable = response.data
@@ -683,8 +697,23 @@ export default {
       const _members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
       const chatRef = generateChatRef(vm.order.id, vm.order.created_at, _members)
       createChatSession(orderId, chatRef)
-        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
-        .catch(console.error)
+        .then(chatRef => {
+          if (chatRef) {
+            // Only update members if session was created successfully
+            updateChatMembers(chatRef, chatMembers).catch(error => {
+              // Silently handle errors - chat identity might not be ready
+              if (error.response?.status !== 403) {
+                console.error('Failed to update chat members:', error)
+              }
+            })
+          }
+        })
+        .catch(error => {
+          // Silently handle 403 errors - chat identity not ready yet
+          if (error.response?.status !== 403) {
+            console.error('Failed to create chat session:', error)
+          }
+        })
     },
     isValidInputAmount (value = this.amount) {
       let valid = true
@@ -872,8 +901,8 @@ export default {
     onBack () {
       this.$emit('back')
     },
-    onOrderCanceled () {
-      this.$emit('orderCanceled')
+    onOrderCancelled () {
+      this.$emit('orderCancelled')
     },
     recievePaymentMethods (item) {
       this.$refs.addPaymentMethodsRef.loadSubmitButton = true

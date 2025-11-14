@@ -203,10 +203,13 @@ export function updateAssetMetadata (state, data) {
   if (!data) return
 
   const a = assets.find(a => a && a.id === data.id)
+  
+  // Only update if asset exists, otherwise do nothing
+  if (!a) return
 
-  a.name = data.name,
-  a.symbol = data.symbol,
-  a.decimals = data.decimals,
+  a.name = data.name
+  a.symbol = data.symbol
+  a.decimals = data.decimals
   a.logo = data.logo || ''
 }
 

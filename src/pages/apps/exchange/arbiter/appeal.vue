@@ -103,7 +103,7 @@
                       <span>{{ appeal?.type?.label }} Appeal</span>
                     </div>
                     <div class="row md-font-size">
-                      <span>Order ID: {{ order?.tracking_id}}</span>
+                      <span>Order ID: {{ order?.id}}</span>
                     </div>
                     <div class="row subtext md-font-size">
                       <span>Submitted by {{ appeal?.owner?.name }}</span>
@@ -361,8 +361,13 @@ export default {
     updateOrderReadAt () {
       const vm = this
       if (vm.appeal.read_at) return
+      const orderId = vm.appeal?.order?.id
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping updateOrderReadAt')
+        return Promise.resolve()
+      }
       return new Promise((resolve, reject) => {
-        const url = `/ramp-p2p/order/${vm.appeal?.order?.id}/members/`
+        const url = `/ramp-p2p/order/${orderId}/members/`
         backend.patch(url, null, { authorize: true })
           .then(response => {
             resolve(response.data)
@@ -375,7 +380,13 @@ export default {
     },
     async fetchAppeal () {
       const vm = this
-      await backend.get(`/ramp-p2p/order/${this.$route.params?.order}/appeal/`, { authorize: true })
+      const orderId = this.$route.params?.order
+      if (!orderId) {
+        console.warn('Order ID is missing from route params, skipping fetchAppeal')
+        this.loading = false
+        return
+      }
+      await backend.get(`/ramp-p2p/order/${orderId}/appeal/`, { authorize: true })
         .then(response => {
           vm.appeal = response.data.appeal
           vm.loading = false
@@ -387,6 +398,10 @@ export default {
     },
     async fetchTransactions () {
       const orderId = this.$route.params?.order || this.appeal?.order?.id
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping fetchTransactions')
+        return
+      }
       await backend.get(`/ramp-p2p/order/${orderId}/contract/transactions/`, { authorize: true })
         .then(response => {
           this.transactions = response.data
@@ -397,6 +412,10 @@ export default {
     },
     async fetchFees () {
       const orderId = this.$route.params?.order || this.appeal?.order?.id
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping fetchFees')
+        return
+      }
       await backend.get(`/ramp-p2p/order/${orderId}/contract/fees/`, { authorize: true })
         .then(response => {
           this.fees = response.data
@@ -407,6 +426,10 @@ export default {
     },
     async fetchAdSnapshot () {
       const orderId = this.$route.params?.order || this.appeal?.order?.id
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping fetchAdSnapshot')
+        return
+      }
       await backend.get(`/ramp-p2p/order/${orderId}/ad/snapshot/`, { authorize: true })
         .then(response => {
           this.adSnapshot = response.data
@@ -418,6 +441,11 @@ export default {
     async fetchOrder () {
       this.loading = true
       const orderId = this.$route.params?.order || this.appeal?.order?.id
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping fetchOrder')
+        this.loading = false
+        return
+      }
       await backend.get(`/ramp-p2p/order/${orderId}`, { authorize: true })
         .then(response => {
           this.amount = satoshiToBch(response.data?.order?.trade_amount)
@@ -430,6 +458,10 @@ export default {
     },
     async fetchContract () {
       const orderId = this.$route.params?.order || this.appeal?.order?.id
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping fetchContract')
+        return
+      }
       const url = `/ramp-p2p/order/${orderId}/contract/`
       await backend.get(url, { authorize: true })
         .then(response => {

@@ -58,7 +58,18 @@ export async function getKeyPairFromWalletMnemonic () {
 }
 
 export async function getWalletTokenAddress () {
-  const bchAddress = Store.getters['global/getAddress']('bch')
+  const { generateReceivingAddress, getDerivationPathForWalletType } = await import('src/utils/address-generation-utils.js')
+  const addressIndex = Store.getters['global/getLastAddressIndex']('bch')
+  const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+  const bchAddress = await generateReceivingAddress({
+    walletIndex: Store.getters['global/getWalletIndex'],
+    derivationPath: getDerivationPathForWalletType('bch'),
+    addressIndex: validAddressIndex,
+    isChipnet: Store.getters['global/isChipnet']
+  })
+  if (!bchAddress) {
+    throw new Error('Failed to generate BCH address')
+  }
   return convertCashAddress(bchAddress, false, true)
 }
 

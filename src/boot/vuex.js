@@ -3,6 +3,7 @@ import { migrateVuexStorage } from 'src/utils/indexed-db-rollback/rollback-vuex-
 import { populateMissingVaults, recoverWalletsFromStorage } from 'src/utils/indexed-db-rollback/wallet-recovery'
 import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferences'
 import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
+import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import useStore from 'src/store'
 
 /**
@@ -23,18 +24,26 @@ export default boot(async (obj) => {
     // Hydrate Vuex store from localStorage if available
     // This is a manual hydration step to ensure the store is populated
     let persistedState = localStorage.getItem('vuex')
-    
     if (persistedState) {
-
-      persistedState = JSON.parse(persistedState)
+      const parsedState = JSON.parse(persistedState)
+      // Ensure new wallet-specific structure exists after hydration
+      // Migrate old structure to new structure if needed
+      if (parsedState.ramp && !parsedState.ramp.byWallet) {
+        parsedState.ramp.byWallet = {}
+        // If there's old state data, we could migrate it here, but for now we'll start fresh
+        // to avoid complexity and potential issues
+      }
+      if (parsedState.paytacapos && !parsedState.paytacapos.byWallet) {
+        parsedState.paytacapos.byWallet = {}
+      }
       
-      if (persistedState.global && !persistedState.global.cache) {
-        persistedState.global.cache = {
+      if (parsedState.global && !parsedState.global.cache) {
+        parsedState.global.cache = {
           cashtokenIdentities: {}
         }
       }
 
-      store.replaceState(persistedState)
+      store.replaceState(parsedState)
       console.log('[Hydration] Vuex state manually hydrated.')
     }
 
@@ -58,6 +67,13 @@ export default boot(async (obj) => {
     await resetWalletsAssetsList()
     updatePreferences()
     populateMissingVaults()
+    
+    // Migrate existing wallets to have wallet-specific settings
+    // This applies current global settings to all existing wallets for smooth migration
+    store.dispatch('global/migrateWalletSettings')
+    
+    // Load cached wallet names on startup to populate vault names if empty
+    loadCachedWalletNames(store)
   } catch (err) {
     console.error('Error initializing Vuex store:', err)
     // Initialize store with default state if hydration fails
@@ -65,3 +81,29 @@ export default boot(async (obj) => {
     obj.app.use(store)
   }
 })
+
+/**
+ * Load cached wallet names and populate vault if names are empty
+ * This ensures wallet names are available immediately, even before server sync
+ */
+function loadCachedWalletNames(store) {
+  try {
+    const cachedNames = getAllWalletNames()
+    const vault = store.getters['global/getVault']
+    
+    if (!vault || vault.length === 0) return
+    
+    // Update vault names from cache if they're empty
+    vault.forEach((wallet, index) => {
+      const walletHash = wallet?.wallet?.bch?.walletHash
+      if (walletHash && (!wallet.name || wallet.name === '')) {
+        const cachedName = cachedNames[walletHash]
+        if (cachedName) {
+          store.commit('global/updateWalletName', { index, name: cachedName })
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Error loading cached wallet names:', error)
+  }
+}

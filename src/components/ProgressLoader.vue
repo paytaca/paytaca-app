@@ -1,13 +1,15 @@
 <template>
   <div class="lds-ellipsis transparent" :class="isTight ? 'tight' : ''">
-    <div :class="color ? `bg-${color}` : 'theme-primary'"></div>
-    <div :class="color ? `bg-${color}` : 'theme-primary'"></div>
-    <div :class="color ? `bg-${color}` : 'theme-primary'"></div>
-    <div :class="color ? `bg-${color}` : 'theme-primary'"></div>
+    <div :class="color ? `bg-${color}` : 'theme-primary'" :style="themePrimaryStyle"></div>
+    <div :class="color ? `bg-${color}` : 'theme-primary'" :style="themePrimaryStyle"></div>
+    <div :class="color ? `bg-${color}` : 'theme-primary'" :style="themePrimaryStyle"></div>
+    <div :class="color ? `bg-${color}` : 'theme-primary'" :style="themePrimaryStyle"></div>
   </div>
 </template>
 
 <script>
+import { mapGetters } from 'vuex'
+
 export default {
   name: 'ProgressLoader',
   props: {
@@ -16,13 +18,41 @@ export default {
       default: null
     },
     isTight: { type: Boolean, default: false }
+  },
+  computed: {
+    ...mapGetters('global', ['theme']),
+    themePrimaryStyle () {
+      // If a specific color is provided, don't apply theme style
+      if (this.color) {
+        return {}
+      }
+      
+      // Get theme from store (now reactive via mapGetters)
+      const theme = this.theme || 'glassmorphic-blue'
+      
+      // Map of themes to their primary colors
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270',
+        'payhero': '#ffbf00'
+      }
+      
+      const primaryColor = themeColors[theme] || themeColors['glassmorphic-blue']
+      
+      return {
+        backgroundColor: primaryColor
+      }
+    }
   }
 }
 </script>
 
 <style scoped>
 .theme-primary {
-  background-color: var(--q-primary) !important;
+  /* Fallback to CSS variable, but inline style from themePrimaryStyle will override */
+  background-color: var(--q-primary);
 }
 
 .lds-ellipsis {

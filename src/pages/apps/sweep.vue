@@ -392,6 +392,22 @@ export default {
   methods: {
     getDarkModeClass,
     isHongKong,
+    async getRecipientAddress(walletType = 'bch') {
+      // Get address from the current wallet instance instead of global store
+      // to ensure we use the correct wallet in multi-wallet setup
+      if (!this.wallet) return null
+      
+      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
+      const wallet = walletType === 'slp' ? this.wallet.SLP : this.wallet.BCH
+      
+      try {
+        const addressSet = await wallet.getAddressSetAt(lastAddressIndex)
+        return addressSet.receiving
+      } catch (error) {
+        console.error('Error getting recipient address:', error)
+        return null
+      }
+    },
     round(value, decimals=0) {
       decimals = parseInt(decimals)
       if (!decimals) return value
@@ -464,17 +480,30 @@ export default {
       this.fetching = false
       this.sweeping = false
     },
-    sweepToken (token) {
+    async sweepToken (token) {
       const vm = this
       vm.sweeping = true
       vm.selectedToken = token.token_id
+      
+      const recipientAddress = await vm.getRecipientAddress('slp')
+      if (!recipientAddress) {
+        vm.$q.notify({
+          message: vm.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+          icon: 'mdi-close-circle',
+          color: 'red-5'
+        })
+        vm.sweeping = false
+        vm.selectedToken = null
+        return
+      }
+      
       vm.sweeper.sweepToken(
         token.address,
         vm.wif,
         token.token_id,
         token.spendable,
         vm.getFeeFunder(),
-        vm.$store.getters['global/getAddress']('slp')
+        recipientAddress
       ).then(function (result) {
         if (!result.success) {
           vm.$q.notify({
@@ -487,8 +516,17 @@ export default {
         vm.getTokens()
       })
     },
-    sweepCashTokenFungible(token) {
-      const bchAddress = this.$store.getters['global/getAddress']('bch')
+    async sweepCashTokenFungible(token) {
+      const bchAddress = await this.getRecipientAddress('bch')
+      if (!bchAddress) {
+        this.$q.notify({
+          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+          icon: 'mdi-close-circle',
+          color: 'red-5'
+        })
+        return
+      }
+      
       const tokenAddress = convertCashAddress(bchAddress, false, true)
       this.sweeping = true
       this.selectedToken = token?.category
@@ -516,8 +554,17 @@ export default {
           })
       })
     },
-    sweepCashTokenNonFungible(token=CashNonFungibleToken.parse()) {
-      const bchAddress = this.$store.getters['global/getAddress']('bch')
+    async sweepCashTokenNonFungible(token=CashNonFungibleToken.parse()) {
+      const bchAddress = await this.getRecipientAddress('bch')
+      if (!bchAddress) {
+        this.$q.notify({
+          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+          icon: 'mdi-close-circle',
+          color: 'red-5'
+        })
+        return
+      }
+      
       const tokenAddress = convertCashAddress(bchAddress, false, true)
       this.sweeping = true
       this.selectedToken = token?.category
@@ -549,14 +596,24 @@ export default {
           })
       })
     },
-    sweepBch () {
+    async sweepBch () {
+      const recipientAddress = await this.getRecipientAddress('bch')
+      if (!recipientAddress) {
+        this.$q.notify({
+          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+          icon: 'mdi-close-circle',
+          color: 'red-5'
+        })
+        return
+      }
+      
       this.sweeping = true
       this.selectedToken = 'bch'
       this.sweeper.sweepBch(
         this.sweeper.bchAddress,
         this.wif,
         this.bchBalance,
-        this.$store.getters['global/getAddress']('bch')
+        recipientAddress
       )
       this.getTokens(false)
           .then(() => {

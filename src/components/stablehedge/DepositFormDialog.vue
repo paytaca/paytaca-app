@@ -5,7 +5,7 @@
     @hide="onDialogHide"
   >
     <q-card
-      class="br-15 text-bow"
+      class="br-15 text-bow pt-card"
       :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark' : 'bg-pt-light']"
       style="width: 350px; max-width: 90vw;"
     >

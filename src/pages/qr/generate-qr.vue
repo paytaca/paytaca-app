@@ -78,16 +78,28 @@
 
         <div class="row col-12 flex-center q-pb-md">
           <div class="col copy-container">
-            <span class="qr-code-text text-weight-light text-center">
+            <div class="qr-code-text text-weight-light text-center">
               <div
-                class="text-nowrap text-bow"
-                style="letter-spacing: 1px;"
+                class="text-bow"
+                style="letter-spacing: 1px; word-break: break-all;"
                 @click="copyToClipboard(isCt ? address : addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
-                {{ displayAddress(address) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
+                {{ address }}
               </div>
-            </span>
+            </div>
+            <div class="row justify-center q-mt-md q-mx-lg">
+              <q-btn
+                outline
+                no-caps
+                class="br-15"
+                color="grey-7"
+                icon="content_copy"
+                padding="xs md"
+                :label="$t('ClickToCopyAddress')"
+                @click="copyToClipboard(isCt ? address : addressAmountFormat)"
+              />
+            </div>
           </div>
         </div>
         <div v-if="amount && !isCt" class="text-center row col-12 flex-center">   
@@ -237,11 +249,6 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    displayAddress (address) {
-      if (address) {
-        return address.substring(0, 16) + '...' + address.substring(address.length - 4)
-      }
-    },
     convertFiatToSelectedAsset (amount) {
       const parsedAmount = Number(amount)
       if (!parsedAmount) return ''
@@ -265,13 +272,15 @@ export default {
       // Generate addresses dynamically from mnemonic instead of using stored addresses
       try {
         const addressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+        // Ensure addressIndex is a valid number (default to 0 if undefined/null)
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         
         // Generate regular BCH address
         const bchAddress = await generateReceivingAddress({
           walletIndex: walletIndex,
           derivationPath: getDerivationPathForWalletType('bch'),
-          addressIndex: addressIndex,
+          addressIndex: validAddressIndex,
           isChipnet: vm.isChipnet
         })
         
@@ -282,13 +291,12 @@ export default {
         vm.addresses.push(ctAddress)
       } catch (error) {
         console.error('Error generating addresses dynamically:', error)
-        // Fallback to store-retrieved addresses if dynamic generation fails
-        vm.addresses.push(vm.$store.getters['global/getAddress']('bch'))
-        vm.addresses.push(convertCashAddress(
-          vm.$store.getters['global/getAddress']('bch'),
-          this.isChipnet,
-          true
-        ))
+        this.$q.notify({
+          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
+        // Don't fallback to store - address generation must succeed
       }
     },
     convertToLegacyAddress (address) {
@@ -304,33 +312,25 @@ export default {
         const data = JSON.parse(message.data)
         if (this.incomingTransactions.indexOf(data.txid) === -1) {
           this.incomingTransactions.push(data.txid)
-          vm.$confetti.start({
-            particles: [
-              {
-                type: 'heart'
+          
+          // Redirect to transaction details page for all received transactions
+          if (data.txid) {
+            // Extract category from token_id if it's a token transaction, otherwise it's BCH
+            const query = { new: 'true' }
+            if (data.token_id && data.token_id !== 'bch') {
+              const parts = data.token_id.split('/')
+              if (parts.length === 2 && parts[0] === 'ct') {
+                query.category = parts[1]
               }
-            ],
-            size: 3,
-            dropRate: 3
-          })
-          if (!vm.$q.platform.is.mobile) {
-            let decimals = 8
-            let amount = data.value / (10 ** decimals)
-            if (data.token_id.startsWith('ct/')) {
-              decimals = data.token_decimals
-              amount = Number(data.amount) / (10 ** data.token_decimals)
             }
-            vm.$q.notify({
-              classes: 'br-15 text-body1',
-              message: `${amount.toFixed(decimals)} ${data.token_symbol.toUpperCase()} received!`,
-              color: 'blue-9',
-              position: 'bottom',
-              timeout: 4000
+            // For BCH transactions, no category query param is needed
+            vm.$router.push({
+              name: 'transaction-detail',
+              params: { txid: data.txid },
+              query
             })
+            return // Exit early - confetti will be shown on transaction details page
           }
-          setTimeout(function () {
-            vm.$confetti.stop()
-          }, 3000)
         }
       }
     }

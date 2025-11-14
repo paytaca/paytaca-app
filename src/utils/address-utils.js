@@ -5,8 +5,13 @@ import { CashAddressType, decodeCashAddress, encodeCashAddress, CashAddressNetwo
  * @return true if address is a token address
  */
 export const isTokenAddress = (address /* :string */) => {
-  const { type } = decodeCashAddress(address)
-  return type === CashAddressType.p2pkhWithTokens || type === CashAddressType.p2shWithTokens
+  try {
+    const decodedAddress = decodeCashAddress(address)
+    if (typeof decodedAddress === 'string') return false
+    return decodedAddress.type === CashAddressType.p2pkhWithTokens || decodedAddress.type === CashAddressType.p2shWithTokens
+  } catch (error) {
+    return false
+  }
 }
 
 /**

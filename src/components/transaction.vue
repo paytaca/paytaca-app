@@ -42,16 +42,16 @@
                   balance: stablehedgeTxView ? stablehedgeTxData?.bch : transaction.amount
                 })}` }}
               </q-item-label>
-              <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
+              <q-item-label v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="row items-center text-caption">
                 <template v-if="stablehedgeTxView">
                   {{ `${parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency)}` }}
                 </template>
                 <template v-else>
                   <template v-if="transaction.record_type === 'outgoing'">
-                    {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                    {{ `${parseFiatCurrency(displayFiatAmount, selectedMarketCurrency)}` }}
                   </template>
                   <template v-else>
-                    {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                    {{ `${parseFiatCurrency(displayFiatAmount, selectedMarketCurrency)}` }}
                   </template>
                   <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
                     <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
@@ -93,7 +93,7 @@
                   </q-badge>
                 </template>
               </q-item-label>
-              <div v-if="!transaction.asset.id.startsWith('bch')">
+              <div v-if="showTokenTypeBadge">
                 <TokenTypeBadge :assetId="transaction.asset.id" abbreviate />
               </div>
             </q-item-section>
@@ -123,12 +123,12 @@
               v-ripple
               style="overflow-wrap: anywhere;"
               v-if="!isSep20Tx && (transaction.asset.id.startsWith('bch') || transaction.asset.id.startsWith('ct/'))"
-              @click="copyToClipboard(isSep20Tx ? transaction.hash.substring(0, 6).toUpperCase() : transaction.txid.substring(0, 6).toUpperCase())"
+              @click="copyToClipboard(hexToRef(isSep20Tx ? transaction.hash.substring(0, 6) : transaction.txid.substring(0, 6)))"
             >
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('ReferenceId') }}</q-item-label>
                 <q-item-label>
-                  {{ transaction.txid.substring(0, 6).toUpperCase() }}
+                  {{ hexToRef(transaction.txid.substring(0, 6)) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -529,6 +529,7 @@ import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { getKeypair } from 'src/exchange/chat/keys'
 import { ref } from 'vue'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 
 export default {
@@ -572,10 +573,7 @@ export default {
     },
     explorerLink () {
       const txid = this.transaction.txid
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-
-      if (this.transaction.asset.id.split('/')[0] === 'ct')
-        url = 'https://explorer.bitcoinunlimited.info/tx/'
+      let url = 'https://explorer.paytaca.com/tx/'
 
       if (this.isChipnet) {
         url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
@@ -586,6 +584,19 @@ export default {
     isSep20Tx () {
       const hash = String(this.transaction && this.transaction.hash)
       return /^0x[0-9a-f]{64}/i.test(hash)
+    },
+    enableSLP () {
+      return this.$store.getters['global/enableSLP']
+    },
+    isCTAsset () {
+      const id = String(this.transaction?.asset?.id || '')
+      return id.startsWith('ct/')
+    },
+    showTokenTypeBadge () {
+      const id = String(this.transaction?.asset?.id || '')
+      if (id.startsWith('bch')) return false
+      if (this.isCTAsset && !this.enableSLP) return false
+      return true
     },
     fallbackAssetLogo () {
       if (!this.transaction || !this.transaction.asset) return ''
@@ -617,6 +628,17 @@ export default {
       }
 
       return (Number(transaction.amount) * Number(this.marketAssetPrice)).toFixed(5)
+    },
+    // Prefer provided fiat_amounts for the selected fiat currency; otherwise fallback
+    // to the computed market value. Accept zero values as valid.
+    fiatAmountOverride () {
+      const code = this.selectedMarketCurrency
+      const provided = code && this.transaction?.fiat_amounts ? this.transaction.fiat_amounts[code] : undefined
+      const numeric = Number(provided)
+      return Number.isFinite(numeric) ? numeric : null
+    },
+    displayFiatAmount () {
+      return this.fiatAmountOverride ?? this.transactionAmountMarketValue
     },
     txFeeMarketValue () {
       const bchMarketValue = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
@@ -666,6 +688,7 @@ export default {
     getAssetDenomination,
     parseAssetDenomination,
     parseFiatCurrency,
+    hexToRef,
     getDarkModeClass,
     convertCashAddress,
     concatenate (array) {
@@ -718,6 +741,9 @@ export default {
       if (this.$parent && typeof this.$parent.toggleHideBalances === 'function') {
         this.$parent.toggleHideBalances()
       }
+    if (typeof this.hideCallback === 'function') {
+      try { this.hideCallback() } catch (e) {}
+    }
     },
     openMemo () {
       this.showMemo = true
