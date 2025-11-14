@@ -25,6 +25,17 @@ export function updateSelectedCurrency (state, currency) {
 }
 
 /**
+ * Set selected currency without strict validation (for fallback cases)
+ * This mutation allows setting a currency even if it's not in currencyOptions
+ * @param {Object} state vuex module state
+ * @param {{symbol: String, name: String}} currency
+ */
+export function setSelectedCurrency (state, currency) {
+  if (!currency || typeof currency !== 'object') return
+  state.selectedCurrency = currency
+}
+
+/**
  *
  * @param {Object} state vuex module state
  * @param {{ assetPrices: Array, isFullUpdate?: Boolean } | Array} payload - Either an array of asset prices (backwards compatible) or an object with assetPrices and optional isFullUpdate flag

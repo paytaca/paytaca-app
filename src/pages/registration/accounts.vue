@@ -1234,11 +1234,11 @@ export default {
             this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currencyFromState })
             console.log('[Step 2] Currency set to:', currencyFromState.symbol, currencyFromState.name)
           } else {
-            // Fallback: set directly in state if mutation fails
-            console.warn('[Step 2] Currency not in state options array, setting directly')
-            this.$store.state.market.selectedCurrency = currency
+            // Fallback: use mutation to set currency if not found in state options array
+            console.warn('[Step 2] Currency not in state options array, using fallback mutation')
+            this.$store.commit('market/setSelectedCurrency', currency)
             this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currency })
-            console.log('[Step 2] Currency set directly to:', currency.symbol, currency.name)
+            console.log('[Step 2] Currency set via fallback mutation to:', currency.symbol, currency.name)
           }
         } else {
           console.warn('[Step 2] Currency not found and could not be created for:', ipGeoPreferences.currency.symbol)

@@ -500,10 +500,13 @@ export default {
         // Note: Fees are handled automatically by watchtower library (deducted from change output).
         // estimatedNetworkFeeBch is used only for balance validation to ensure sufficient funds.
         // The 7th parameter is priceId (for BIP21 price tracking), not fee.
+        // Get change address for BCH transaction
+        const changeAddress = await getChangeAddress('bch')
+        
         const result = await getWalletByNetwork(wallet, 'bch').sendBch(
           undefined,
           '',
-          undefined,
+          changeAddress,
           null,
           undefined,
           [
