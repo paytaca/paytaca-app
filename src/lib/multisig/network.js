@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3";
 import { MultisigWallet } from './wallet';
+import { ElectrumNetworkProvider } from 'cashscript';
 
 /**
  * @typedef {'mainnet' | 'testnet3' | 'testnet4' | 'chipnet' | 'mocknet' | 'regtest'} Network
@@ -123,7 +124,6 @@ export class WatchtowerNetworkProvider {
 
     async getAddressBalance(address) {
         const decodedCashAddress = decodeCashAddress(address)
-        console.log('decoded cash address', decodedCashAddress) 
         return []
     }
 
@@ -141,13 +141,18 @@ export class WatchtowerNetworkProvider {
     async broadcastTransaction(rawTxHex) { 
         return  await axios.post(`${this.hostname}/api/broadcast/`, { transaction: rawTxHex })
     }
+
+    async getRawTransaction(txid) {
+        const provider = new ElectrumNetworkProvider(this.network)
+        return await provider.getRawTransaction(txid)
+    }
 }
 
 
-/**
- * @implements { NetworkProvider }
- */
-export class ElectrumNetworkProvider {
+// /**
+//  * @implements { NetworkProvider }
+//  */
+// export class ElectrumNetworkProvider {
 
     // /**
     //  * @param {Object} config
@@ -162,7 +167,7 @@ export class ElectrumNetworkProvider {
     //         this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.chipnet
     //     }
     // }
-}
+// }
 
 
 export class WatchtowerCoordinationServer {
@@ -172,18 +177,17 @@ export class WatchtowerCoordinationServer {
      * @param {WatchtowerNetworkType} config.network
      */
     constructor(config) {
-        switch (config?.network) {
+        this.network = config.network || WatchtowerNetwork.mainnet
+        switch (this.network) {
             case WatchtowerNetwork.chipnet:
                 this.hostname = 'https://chipnet.watchtower.cash'
                 break
             case WatchtowerNetwork.mainnet:
-                this.hostname = 'https://watchtower.cash'
+                this.hostname = 'https://watchtower.cash'    
                 break
             case WatchtowerNetwork.local:
                 this.hostname = 'http://localhost:8000'
                 break
-            default:
-                throw new Error('Invalid network for WatchtowerCoordinationServer')
         }
     }
 
@@ -192,9 +196,6 @@ export class WatchtowerCoordinationServer {
      * @return {Promise<import('./wallet').MultisigWallet>}
      */
     async createWallet(wallet) {
-        console.log('THIS', wallet)
-        const authCredentials = await wallet.generateAuthCredentials()
-        console.log('Auth credentials', authCredentials)
         const response = await axios.post(
             `${this.hostname}/api/multisig/wallets/`,
             wallet, 
@@ -203,13 +204,60 @@ export class WatchtowerCoordinationServer {
         return response.data   
     }
 
+    /**
+     * @param {import('./wallet').MultisigWallet} wallet
+     * @return {Promise<import('./wallet').MultisigWallet>} 
+     */
+    async syncWallet(wallet) {
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/wallets/${wallet.walletHash}/sync/`,
+            wallet, 
+            { headers: await wallet.generateAuthCredentials() }
+        )
+        return response.data   
+    }
+
+    async updateWalletLastIssuedDepositAddressIndex(wallet, lastIssuedDepositAddressIndex, network) {
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/wallets/${wallet.walletHash}/last-issued-deposit-address-index`,
+            { network: network || this.network, lastIssuedDepositAddressIndex }, 
+            { headers: await wallet.generateAuthCredentials() }
+        )
+        return response.data
+    }
+
+    async updateWalletLastUsedDepositAddressIndex(wallet, lastUsedDepositAddressIndex, network) {
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/wallets/${wallet.walletHash}/last-used-deposit-address-index`,
+            { network: network || this.network, lastUsedDepositAddressIndex }, 
+            { headers: await wallet.generateAuthCredentials() }
+        )
+        return response.data
+    }
+
+    async updateWalletLastUsedChangeAddressIndex(wallet, lastUsedChangeAddressIndex, network) {
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/wallets/${wallet.walletHash}/last-used-change-address-index`,
+            { network: network || this.network, lastUsedChangeAddressIndex }, 
+            { headers: await wallet.generateAuthCredentials() }
+        )
+        return response.data
+    }
+
     async fetchWallets({ xpub, xprv }) {
-        console.log('credentials'), MultisigWallet.generateAuthCredentials({ xprv, xpub })
         const response = await axios.get(
             `${this.hostname}/api/multisig/wallets/?xpub=${xpub}`,
             { headers: MultisigWallet.generateAuthCredentials({ xprv, xpub }) }
         )
-
+        return response.data
+    }
+    
+    async uploadPst(pst) {
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/psts/`,
+            pst, 
+            { headers: await pst.wallet.generateAuthCredentials() }
+        )
         return response.data
     }
 }
