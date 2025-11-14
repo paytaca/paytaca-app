@@ -1,5 +1,5 @@
 import { bigIntToBinUint64LE, bigIntToCompactSize, compactSizeToBigInt, numberToBinInt32LE } from "@bitauth/libauth"
-import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
 import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "./utils"
 import { PsbtController } from './psbt-controller'
 import { MultisigTransactionBuilder } from "./transaction-builder"
@@ -51,7 +51,6 @@ const PSBT_IN_MUSIG2_PUB_NONCE= '1b'
 const PSBT_IN_MUSIG2_PARTIAL_SIG= '1c'
 const PSBT_IN_SP_ECDH_SHARE= '1d'
 const PSBT_IN_SP_DLEQ = '1e'
-const PSBT_IN_SOURCE_UTXO = '1f'            // (Version 145 allows inclusion, Version 0,2 requires exclusion) Encoded source output
 const PSBT_IN_PROPRIETARY= 'fc'             // Custom (proprietary) key-value pair
 
   // ---------- Output map ----------
@@ -572,12 +571,16 @@ export class PsbtInput {
   /**
    * @param {string|Uint8Array} tx
    */
-  setUtxo(tx){
+  setOutpointTransaction(tx){
     const _tx = isHex(tx) ? hexToBin(tx) : tx
     const k = new Key(hexToBin(PSBT_IN_NON_WITNESS_UTXO))
     const v = new Value(_tx)
     this.keypairs[PSBT_IN_NON_WITNESS_UTXO] = new KeyPair(k, v)
     return this
+  }
+
+  getOutpointTransaction() {
+    return this.keypairs[PSBT_IN_NON_WITNESS_UTXO]?.value?.value
   }
 
   /**
@@ -769,20 +772,17 @@ export class PsbtInput {
   }
 
   /**
-   * @param {import('@bitauth/libauth').Output}
+   * Helper method that retrieves source output from the PSBT_IN_NON_WITNESS_UTXO
+   * @returns {import('@bitauth/libauth').Output}
    */
-  setSourceUtxo(sourceOutput){
-    const encodedSourceOutput = encodeTransactionOutput(sourceOutput)
-    const k = new Key(hexToBin(PSBT_IN_SOURCE_UTXO))
-    const v = new Value(encodedSourceOutput)
-    this.keypairs[PSBT_IN_SOURCE_UTXO] = new KeyPair(k, v)
+  getSourceUtxo(){
+    const prevTx = this.getOutpointTransaction() 
+    if (!prevTx) return 
+    const decodedPrevTx = decodeTransactionBch(prevTx)
+    const index = this.getOutpointIndex()
+    return decodedPrevTx.outputs[index]
   }
 
-  getSourceUtxo(){
-    const v = this.keypairs[PSBT_IN_SOURCE_UTXO]?.value?.value 
-    if (!v) return 
-    return readTransactionOutput({ bin: v, index: 0 }).result
-  }
   /**
    * @param {Uint8Array} identifier Example: utf8ToBin('paytaca')
    * @param {Uint8Array} subtype compact size uint
@@ -830,15 +830,6 @@ export class PsbtInput {
           case PSBT_IN_OUTPUT_INDEX:
             if (!keypairs[key]) throw new Error(`PSBT_IN_OUTPUT_INDEX missing, required on version: ${psbtVersion}`)
         }
-      }
-      if (psbtVersion === 145) {
-        switch(key) {
-          // This actually should be optional
-          // We can make the PSBT_IN_NON_WITNESS_UTXO optional if this field is present
-          case PSBT_IN_SOURCE_UTXO:  
-            if (!keypairs[PSBT_IN_NON_WITNESS_UTXO] && !keypairs[key]) throw new Error(`PSBT_IN_SOURCE_UTXO missing, required on version: ${psbtVersion}`)
-        }
-        
       }
     }
     return sorted
@@ -1353,9 +1344,7 @@ export class Psbt {
 
     for(const input of decoded.inputs) {
       const psbtInput = new PsbtInput()
-      // const unsignedTransactionHex = 
-      // psbtInput.setUtxo(hexToBin('<full tx of prevout>')
-      psbtInput.setSourceUtxo(input.sourceOutput)
+      psbtInput.setOutpointTransaction(input.outpointTransaction)
       Object.keys(input.signatures || {}).forEach(publicKey => {
         psbtInput.addPartialSig(hexToBin(publicKey), input.signatures[publicKey])
       })
@@ -1425,6 +1414,7 @@ export class Psbt {
       decodeResult.inputs.push({
         outpointIndex: psbtInput.getOutpointIndex(),
         outpointTransactionHash: psbtInput.getOutpointTransactionHash(),
+        outpointTransaction: psbtInput.getOutpointTransaction(),
         sequenceNumber: psbtInput.getSequenceNumber(),
         signatures: psbtInput.getPartialSigs(),
         bip32Derivation: psbtInput.getBip32Derivation(),
