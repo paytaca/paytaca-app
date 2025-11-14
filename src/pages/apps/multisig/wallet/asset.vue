@@ -21,13 +21,12 @@
                    size="md"
                   :color="assetHeaderIcon === 'token'? 'grey': '' "
                 />
-                <div class="text-bold" style="font-size: larger;">{{ assetHeaderName }}</div>
+                <div class="text-bold" style="font-size: larger;">{{ assetHeaderName }}</div>                
               </div>
               <div class="col-xs-12 text-center">
                 <div class="text-grey-6">Balance</div>
                 <div class="items-center justify-center q-gutter-x-sm">
                   <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
-                  
                   <div class="text-grey-6">{{ assetPrice? `=${assetPrice}` : '' }}</div>
                 </div>
               </div>
@@ -56,20 +55,35 @@
             </div>
             <q-list>
               <q-separator spaced inset />
-              <q-item v-if="wallet">
+              <q-item>
                 <q-item-section>
                   <q-item-label>
                     <div class="flex items-center">
-                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">{{ wallet?.name }}</span>
+                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">Token ID</span>
                     </div>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                  <q-item-label class="flex flex-wrap items-center">
-                   <span>{{ shortenString(`${wallet.getWalletHash()}`, 20)}}</span>
+                   <span>{{ shortenString(route.query.asset, 20)}}</span>
                  </q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item v-if="wallet">
+                <q-item-section>
+                  <q-item-label>
+                    <div class="flex items-center">
+                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">Wallet</span>
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                 <q-item-label class="flex flex-wrap items-center">
+                   <span>{{ wallet.name || shortenString(`${wallet.id || ''}`, 20)}}</span>
+                 </q-item-label>
+                </q-item-section>
+              </q-item>
+
               <q-separator spaced inset />
               <q-expansion-item v-model="historyExpanded">
                 <template v-slot:header>
