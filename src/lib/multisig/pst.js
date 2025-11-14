@@ -107,14 +107,16 @@ import {
   encodeLockingBytecodeP2sh20,
   decodeHdPublicKey,
   readCompactUint,
-  bigIntToCompactUint
+  bigIntToCompactUint,
+  decodeTransactionBch
 } from 'bitauth-libauth-v3'
 
 import { derivePublicKeys, getLockingBytecode, getCompiler, getLockingData, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
 import { createTemplate } from './template.js'
 import { bip32ExtractRelativePath } from './utils.js'
-import { GlobalMap, Psbt, PsbtInput, PsbtOutput } from './psbt.js'
+import { GlobalMap, Psbt, PsbtInput, PsbtOutput, ProprietaryFields } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
+import { WatchtowerNetworkProvider } from './network.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -524,51 +526,107 @@ export const publicKeySigned = ({ publicKey, pst }) => {
     return allInputsAreSigned.every(isSigned => isSigned)
 }
 
-export const PaytacaProprietaryField = Object.freeze({
-  identifier: utf8ToBin('paytaca'),
-  SubType: {
-    origin: bigIntToCompactUint(1),
-    purpose: bigIntToCompactUint(2)
-  },
-  SubKeyData: {
-    origin: utf8ToBin('origin'),
-    purpose: utf8ToBin('purpose')
-  }
-})
-
 export class Pst {
 
-  /**
-   * @param {PartiallySignedTransaction} instance
-   */
-  constructor(instance, options) {
-    this.creator = instance?.creator
-    this.origin = instance?.origin
-    this.purpose = instance?.purpose
-    this.unsignedTransactionHex = instance?.unsignedTransactionHex
-    this.version = instance?.version || 2
-    this.locktime = instance?.locktime ?? 0
-    this.inputs = instance?.inputs || []
-    this.outputs = instance?.outputs || []
-    this.walletHash = instance?.walletHash
-    if (instance?.wallet) {
-      this.wallet = instance.wallet
-    }
-    if (instance?.isSynced) {
-      this.isSynced = instance.isSynced
-    }
-    if (options) {
-      this.options = options
-    }
+  // /**
+  //  * @param {PartiallySignedTransaction} instance
+  //  */
+  // constructor(instance, options) {
+  //   this.creator = instance?.creator
+  //   this.origin = instance?.origin
+  //   this.purpose = instance?.purpose
+  //   this.unsignedTransactionHex = instance?.unsignedTransactionHex
+  //   this.version = instance?.version || 2
+  //   this.locktime = instance?.locktime ?? 0
+  //   this.inputs = instance?.inputs || []
+  //   this.outputs = instance?.outputs || []
+  //   this.walletHash = instance?.walletHash
+  //   if (instance?.wallet) {
+  //     this.wallet = instance.wallet
+  //   }
+  //   if (instance?.isSynced) {
+  //     this.isSynced = instance.isSynced
+  //   }
+  //   if (options) {
+  //     this.options = options
+  //   }
+  // }
+
+  constructor() {
+    this.inputs = [] 
+    this.outputs = []
+    this.version = 2 
+    this.locktime = 0
+    this.options = {}
+  }
+
+  setCreator(creator) {
+    this.creator = creator 
+    return this 
+  }
+
+  setOrigin(origin) {
+    this.origin = origin
+    return this
+  }
+
+  setPurpose(purpose) {
+    this.purpose = purpose 
+    return this
+  }
+
+  setWallet(wallet) {
+    this.wallet = wallet 
+    return this
+  }
+
+  setStore(store) {
+    this.options.store = store 
+    return this
+  }
+
+  setProvider(provider) {
+    this.options.provider = provider
+    return this
+  }
+
+  setCoordinationServer(coordinationServer) {
+    this.options.coordinationServer = coordinationServer
+    return this
+  }
+
+  setTxVersion(version) {
+    this.version = version 
+    return this
+  }
+
+  setLocktime(locktime) {
+    this.locktime = locktime 
+    return this
+  }
+
+  addInputs(inputs) {
+    this.inputs = this.inputs.concat(inputs)
+    return this
+  }
+
+  addOutputs(outputs) {
+    this.outputs = this.outputs.concat(outputs)
+    return this
+  }
+
+
+  get unsignedTransactionHex() {
+    return this.getUnsignedTransaction()
   }
 
   
   get unsignedTransactionHash () {
-    if (!this.unsignedTransactionHex) {
+    if (!this.getUnsignedTransaction()) {
       // throw new Error('No unsigned transaction hex available')
       return 
     }
-    return hashTransaction(hexToBin(this.unsignedTransactionHex))
+    return hashTransaction(hexToBin(this.getUnsignedTransaction()))
   }
 
   /**
@@ -581,6 +639,17 @@ export class Pst {
       .build()
   }
 
+  get network() {
+    return this.options?.provider?.network ?? 'mainnet'
+  }
+
+  set network(n) {
+    this.options = {
+      ...this.options,
+      networkProvider: new WatchtowerNetworkProvider({ network: n })
+    }
+  }
+
   sign(xprv) {
     const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
     let signer = this.wallet.signers.find(signer => signer.xpub === xpub)
@@ -589,7 +658,7 @@ export class Pst {
       throw new Error('Private key provided does not match any signer')
     }
 
-    const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
+    const transaction = decodeTransactionCommon(hexToBin(this.getUnsignedTransaction()))
 
     for (const input of transaction.inputs) {
       let correspondingInput = this.inputs.find((i) => {
@@ -615,7 +684,6 @@ export class Pst {
         }
         lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
       }
-
       
       // Not our input continue
       if (!binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, inputLockingBytecode)) {
@@ -650,7 +718,6 @@ export class Pst {
         script: unlockingScriptId,
         token: correspondingInput.sourceOutput.token,
       }
-
     } // end for
 
     
@@ -677,8 +744,7 @@ export class Pst {
       this.inputs[inputIndex].signatures[signerPublicKeyForThisInput] = sigValue
 
       if (this.options?.store) {
-        // TODO: upload
-        this.options.store.commit('multisig/addPstSignature', { pst: this, inputIndex, publicKey: signerPublicKeyForThisInput, sigValue: binToHex(sigValue) })
+        this.save()
       }
     }
     return 
@@ -955,153 +1021,63 @@ export class Pst {
     return JSON.parse(JSON.stringify(data, Pst.exportSafeJSONReplacer))
   }
 
-  toPSBT(version = 145) {
+  async toPsbt(version = 145) {
     
-    const psbt = new Psbt()
-    const txVersionReadResult = readCompactUint({ bin: hexToBin(this.unsignedTransactionHex), index: 0})
-    psbt.globalMap.setUnsignedTx(this.unsignedTransactionHex)
-    psbt.globalMap.setTxVersion(Number(txVersionReadResult.result))
-    psbt.globalMap.setInputCount(this.inputs.length)
-    psbt.globalMap.setOutputCount(this.outputs.length)
-    psbt.globalMap.setPsbtVersion(version)
-    psbt.globalMap.setFallbackLocktime(this.locktime)
-
-    this.origin && psbt.globalMap.addProprietaryField(
-      PaytacaProprietaryField.identifier, 
-      utf8ToBin(this.origin), 
-      PaytacaProprietaryField.SubType.origin, 
-      PaytacaProprietaryField.SubKeyData.origin
-    )
-
-    this.purpose && psbt.globalMap.addProprietaryField(
-      PaytacaProprietaryField.identifier, 
-      utf8ToBin(this.purpose), 
-      PaytacaProprietaryField.SubType.purpose, 
-      PaytacaProprietaryField.SubKeyData.purpose
-    )
-
-    for(const input of this.inputs) {
-      const psbtInput = new PsbtInput()
-      // const unsignedTransactionHex = 
-      // psbtInput.setUtxo(hexToBin('<full tx of prevout>')
-      psbtInput.setSourceUtxo(input.sourceOutput)
-      Object.keys(input.signatures || {}).forEach(publicKey => {
-        psbtInput.addPartialSig(hexToBin(publicKey), input.signatures[publicKey])
-      })
-      psbtInput.setSighashType(input.sigHash)
-      psbtInput.setRedeemScript(input.redeemScript)
-      Object.keys(input.bip32Derivation || {}).forEach(publicKey => {
-        psbtInput.addBip32Derivation(
-          hexToBin(publicKey), 
-          input.bip32Derivation[publicKey].masterFingerprint,
-          input.bip32Derivation[publicKey].path
-        )
-      })
-      psbtInput.setFinalScriptSig(input.scriptSig)
-      psbtInput.setOutpointTransactionHash(input.outpointTransactionHash)
-      psbtInput.setOutpointIndex(input.outpointIndex)
-      psbtInput.setSequenceNumber(input.sequenceNumber)
-      psbt.inputMap.add(psbtInput)
-    }
-    for (const output of this.outputs) {
-      const psbtOutput = new PsbtOutput()
-      psbtOutput.setRedeemScript(output.redeemScript)
-      Object.keys(output.bip32Derivation || {}).forEach(publicKey => {
-        psbtOutput.addBip32Derivation(
-          hexToBin(publicKey), 
-          output.bip32Derivation[publicKey].masterFingerprint,
-          output.bip32Derivation[publicKey].path
-        )
-      })
-      psbtOutput.setAmount(output.valueSatoshis)
-      psbtOutput.setToken(output.token)
-      psbtOutput.setOutScript(output.lockingBytecode)
-      if (output.purpose) {
-        psbtOutput.addProprietaryField(PaytacaProprietaryField.identifier, utf8ToBin(output.purpose), PaytacaProprietaryField.SubType.purpose, PaytacaProprietaryField.SubKeyData.purpose)
+    for (const [i, input] of this.inputs.entries()) {
+      if (!input.outpointTransaction) {
+        const tx = await this.options.provider.getRawTransaction(binToHex(input.outpointTransactionHash))
+        input.outpointTransaction = hexToBin(tx)
       }
-      
-      psbt.outputMap.add(psbtOutput)
+
+      const computedTransactionHash = hashTransaction(input.outpointTransaction)
+      if (computedTransactionHash !== binToHex(input.outpointTransactionHash)) {
+        throw new Error(`Input ${i} references a previous transaction that doesn't much its outpoint transaction hash.`)
+      }
+
+      const decodedTx = decodeTransactionBch(input.outpointTransaction)
+      const expectedSourceOutput = decodedTx.outputs[input.outpointIndex]
+      if (!expectedSourceOutput) {
+        throw new Error(`Input ${i} references an output that does not exist in the previous transaction.`)
+      } 
     }
-    const serialized = psbt.serialize()
-    return binToBase64(serialized)
+
+
+    const psbt = new Psbt()
+    this.walletHash = this.wallet?.getWalletHash()
+    psbt.encode(this, version)
+    return psbt 
   }
 
   /**
-   * @param {string} _psbt The base64 encoded psbt
+   * @param {string} base64 The base64 encoded PSBT
    * @return {Pst} 
    */
-  static fromPSBT(_psbt) {
+  static fromPsbt(base64) {
     const psbt = new Psbt()
-    psbt.deserialize(base64ToBin(_psbt))
     const pst = new Pst()
-    pst.unsignedTransactionHex = psbt.globalMap.getUnsignedTx() 
-    
-    if (pst.unsignedTransactionHex) {
-      pst.unsignedTransactionHex = binToHex(pst.unsignedTransactionHex)
-    }
-
-    pst.version = psbt.globalMap.getTxVersion()
-    pst.locktime = psbt.globalMap.getFallbackLocktime()
-    
-    psbt.globalMap.getProprietaryFields(PaytacaProprietaryField.identifier)?.forEach(pf => {
-      if (pf.subKeyData && pf.value) {
-        pst[pf.getSubKeyData(binToUtf8)] = pf.getValue(binToUtf8)
-      }
-    })
-
-    for(const psbtInput of psbt.inputMap?.inputs) {
-      pst.inputs.push({
-        outpointIndex: psbtInput.getOutpointIndex(),
-        outpointTransactionHash: psbtInput.getOutpointTransactionHash(),
-        sequenceNumber: psbtInput.getSequenceNumber(),
-        signatures: psbtInput.getPartialSigs(),
-        bip32Derivation: psbtInput.getBip32Derivation(),
-        redeemScript: psbtInput.getRedeemScript(),
-        sourceOutput: psbtInput.getSourceUtxo()
-      })
-    }
-
-    for(const psbtOutput of psbt.outputMap?.outputs) {
-      const o = {
-        valueSatoshis: psbtOutput.getAmount()
-      }
-      const bip32Derivation = psbtOutput.getBip32Derivation()
-      const token = psbtOutput.getToken()
-      const lockingBytecode = psbtOutput.getOutScript()
-
-      const purpose = psbtOutput.getProprietaryFields(PaytacaProprietaryField.identifier)?.find(pf => {
-        return binsAreEqual(pf.getSubKeyData(), PaytacaProprietaryField.SubKeyData.purpose)
-      })
-
-      if (token) o.token = token 
-      if (Object.keys(bip32Derivation).length > 0) o.bip32Derivation = bip32Derivation
-      if (lockingBytecode) o.lockingBytecode = lockingBytecode
-      if (purpose?.value) o.purpose = purpose.getValue(binToUtf8)
-      pst.outputs.push(o)
-    }
+    psbt.decode(base64, pst)
+    return pst 
   }
 
-  export (format = 'base64') {
-    if (format !== 'base64') {
+  async export(format = 'psbt', version = 145) {
+    if (format !== 'psbt' && version !== 145) {
       throw new Error(`${format} not yet supported`)
     }
-
-    return binToBase64(utf8ToBin(JSON.stringify(this.toJSON())))
+    const psbt = await this.toPsbt(version)
+    return psbt.toString()
   }
 
-  static import (pstExportFormat, options, format = 'base64') {
-    if (format !== 'base64') {
-      throw new Error(`${format} not yet supported`)
-    }
-
-    const pstImportData = JSON.parse(binToUtf8(base64ToBin(pstExportFormat)), Pst.importSafeJSONReviver)
-    return new Pst(pstImportData, options)
-    
+  static import(base64Psbt) {
+    return Pst.fromPsbt(base64Psbt)
   }
+
 
   async delete({ sync = false } = {}) {
     if (!this.options?.store) return
-    return await this.options.store.dispatch('multisig/deletePst', { pst: this, sync })
+    this.options.store.commit('multisig/deletePsbt', this.unsignedTransactionHash) 
+    if (sync) {
+      return await this.options.store.dispatch('multisig/deletePsbt', this.unsignedTransactionHash)
+    }
   }
 
   /**
@@ -1109,7 +1085,8 @@ export class Pst {
    */
   async save(sync) {
     if (!this.options?.store) return
-    return await this.options.store.commit('multisig/savePst', this.toJSON())
+    const psbt = await this.toPsbt()
+    return await this.options.store.commit('multisig/savePsbt', psbt)
   }
 
   async upload() {
@@ -1136,9 +1113,19 @@ export class Pst {
       Object.assign(this, remotePst)
       this.save()
     }
-    
     return this
-    
+  }
+
+  /**
+   * Hydrates this Pst from a stored Psbt
+   * @param {string} unsignedTransactionHash The transaction identifier
+   */
+  loadFromStore(unsignedTransactionHash){
+    if (!this.options?.store) return
+    const psbtBase64 = this.options.store.getters['multisig/getPsbtByUnsignedTransactionHash'](unsignedTransactionHash)
+    if (!psbtBase64) return
+    (new Psbt()).decode(psbtBase64, this)
+    return this
   }
 
   static fromObject(pst, options) {
