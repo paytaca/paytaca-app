@@ -145,9 +145,12 @@ export default {
   methods: {
     getDarkModeClass,
     toggleBackupTypeDialog (backupType) {
+      console.log('[WalletBackup] toggleBackupTypeDialog called with backupType:', backupType)
       if (backupType === 'seedphrase') {
+        console.log('[WalletBackup] Navigating to seed-phrase page')
         this.$router.push('/apps/wallet-backup/seed-phrase')
       } else if (backupType === 'shard') {
+        console.log('[WalletBackup] Navigating to shards page')
         this.$router.push('/apps/wallet-backup/shards')
       }
     }

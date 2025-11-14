@@ -291,7 +291,7 @@ export default {
       if (this.isChipnet) {
         url = `${process.env.TESTNET_EXPLORER_URL}/address/`
       } else {
-        url = 'https://blockchair.com/bitcoin-cash/address/'
+        url = 'https://explorer.paytaca.com/address/'
       }
       return `${url}${this.contractAddress}`
     },

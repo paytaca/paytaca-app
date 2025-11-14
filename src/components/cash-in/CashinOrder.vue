@@ -177,10 +177,10 @@ export default {
       return this.$store.getters['global/isChipnet']
     },
     explorerLink () {
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+      let url = 'https://explorer.paytaca.com/tx/'
 
       // if (this.transaction.asset.id.split('/')[0] === 'ct') {
-      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      //   url = 'https://explorer.paytaca.com/tx/'
       // }
 
       if (this.isChipnet) {

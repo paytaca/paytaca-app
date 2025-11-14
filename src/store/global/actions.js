@@ -4,6 +4,7 @@ import { decodePrivateKeyWif } from '@bitauth/libauth'
 import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
+import { saveWalletName, getWalletName } from 'src/utils/wallet-name-cache'
 import { loadLibauthHdWallet, loadWallet } from '../../wallet'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
@@ -97,7 +98,7 @@ export function updateConnectivityStatus (context, online) {
 
 export async function refetchWalletPreferences (context) {
   const walletHash = context.getters.getWallet('bch')?.walletHash
-  if (!walletHash) return Promise.reject('wallet hash not found')
+  if (!walletHash) return Promise.reject(new Error('wallet hash not found'))
   try {
     const preferencesResponse = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
     context.dispatch('updateWalletPreferences', preferencesResponse?.data)
@@ -126,10 +127,34 @@ export async function syncWalletName (context, opts) {
     return // throw new Error('No wallet hash found')
   }
 
-  const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
-  const decryptedName = decryptWalletName(walletName, walletHash)
-  context.commit('updateWalletName', { index: opts?.walletIndex, name: decryptedName })
-  return decryptedName
+  // Check cache first for offline support
+  const cachedName = getWalletName(walletHash)
+  if (cachedName) {
+    // Update Vuex with cached name
+    context.commit('updateWalletName', { index: opts?.walletIndex, name: cachedName })
+  }
+
+  try {
+    // Try to fetch from server
+    const walletName = await context.dispatch('fetchWalletName', walletHash) ?? ''
+    if (walletName) {
+      const decryptedName = decryptWalletName(walletName, walletHash)
+      // Save to cache for offline use
+      saveWalletName(walletHash, decryptedName)
+      context.commit('updateWalletName', { index: opts?.walletIndex, name: decryptedName })
+      return decryptedName
+    }
+  } catch (error) {
+    // If fetch fails (e.g., offline), use cached name if available
+    if (cachedName) {
+      return cachedName
+    }
+    // Re-throw if no cache available
+    throw error
+  }
+
+  // If no server response and no cache, return cached name or empty string
+  return cachedName || ''
 }
 
 export async function updateWalletNameInPreferences (context, data) {
@@ -145,6 +170,8 @@ export async function updateWalletNameInPreferences (context, data) {
 
   try {
     const decryptedName = decryptWalletName(data.walletName, walletHash)
+    // Save to cache for offline use
+    saveWalletName(walletHash, decryptedName)
     context.commit('updateWalletName', { index: data.walletIndex, name: decryptedName })
   } catch (error) {
     console.error(error)
@@ -168,7 +195,7 @@ export async function updateWalletPreferences (context, data) {
 
 export async function saveWalletPreferences (context) {
   const walletHash = context.getters.getWallet('bch')?.walletHash
-  if (!walletHash) return Promise.reject('wallet hash not found')
+  if (!walletHash) return Promise.reject(new Error('wallet hash not found'))
   const data = {}
 
   const selectedCurrency = context.rootGetters['market/selectedCurrency']
@@ -188,6 +215,11 @@ export async function saveExistingWallet (context) {
   if (vault.length > 0) {
     if (vault[0]) {
       if (!vault[0].hasOwnProperty('chipnet') || !vault[0].hasOwnProperty('wallet')) {
+        // Clear all cached wallet names when clearing vault
+        const allCachedNames = getAllWalletNames()
+        Object.keys(allCachedNames).forEach(walletHash => {
+          removeWalletName(walletHash)
+        })
         context.commit('clearVault')
       }
     }
@@ -209,6 +241,48 @@ export async function saveExistingWallet (context) {
         chipnet: chipnet
       }
       context.commit('updateVault', info)
+    }
+  }
+}
+
+/**
+ * Migrate existing wallets to have wallet-specific settings
+ * This should be called once during app initialization to migrate existing wallets
+ */
+export function migrateWalletSettings (context) {
+  // Get current values from all modules
+  const darkMode = context.rootGetters['darkmode/getStatus']
+  const currency = context.rootGetters['market/selectedCurrency']
+  
+  // Call mutation with current values
+  context.commit('migrateWalletSettings', {
+    darkMode: darkMode,
+    currency: currency
+  })
+  
+  // After migration, sync current wallet's settings to modules
+  context.dispatch('syncSettingsToModules')
+}
+
+/**
+ * Update darkMode and currency module states when switching wallets
+ * This ensures components that directly access state (not getters) work correctly
+ */
+export function syncSettingsToModules (context) {
+  const vault = context.getters.getVault
+  const walletIndex = context.getters.getWalletIndex
+  
+  if (vault && vault[walletIndex] && vault[walletIndex].settings) {
+    const settings = vault[walletIndex].settings
+    
+    // Update darkmode module state
+    if (settings.darkMode !== undefined) {
+      context.commit('darkmode/setDarkmodeSatus', settings.darkMode, { root: true })
+    }
+    
+    // Update market module state
+    if (settings.currency) {
+      context.commit('market/updateSelectedCurrency', settings.currency, { root: true })
     }
   }
 }
@@ -237,22 +311,46 @@ export async function syncCurrentWalletToVault(context) {
   )
 }
 
+import { migrateGlobalToWalletSpecific } from 'src/utils/wallet-migration'
+
 export async function switchWallet (context, index) {
   return new Promise((resolve, reject) => {
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         context.dispatch('syncCurrentWalletToVault', )
         context.commit('assets/updatedCurrentAssets', index, { root: true })
-        context.commit('paytacapos/clearMerchantsInfo', {}, { root: true })
-        context.commit('paytacapos/clearBranchInfo', {}, { root: true })
-        context.commit('ramp/resetUser', {}, { root: true })
-        context.commit('ramp/resetData', {}, { root: true })
-        context.commit('ramp/resetChatIdentity', {}, { root: true })
-        context.commit('ramp/resetPagination', {}, { root: true })
-        deleteAuthToken()
-
+        
+        // Get wallet hash for the new wallet to initialize state
+        const vault = context.state.vault
+        const newWallet = vault[index]
+        const walletHash = newWallet?.BCH?.walletHash || newWallet?.walletHash
+        
+        // Initialize wallet-specific state if hash is available
+        if (walletHash) {
+          // Initialize ramp store state for the new wallet
+          context.commit('ramp/initializeWalletState', walletHash, { root: true })
+          
+          // Initialize paytacapos store state for the new wallet
+          context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
+          
+          // Trigger migration if needed (try to migrate, but don't fail if it doesn't work)
+          // Import migration dynamically to avoid circular dependencies
+          try {
+            const { migrateGlobalToWalletSpecific } = await import('src/utils/wallet-migration')
+            await migrateGlobalToWalletSpecific(walletHash)
+          } catch (migrationError) {
+            // Migration errors are non-critical - app can continue with fresh state
+            console.warn('Migration failed (non-critical):', migrationError)
+          }
+        }
+        
+        // Removed all reset/clear commits - data is now wallet-specific and persists
+        // No need to clear data when switching wallets since each wallet has its own state
+        
         context.commit('updateWalletIndex', index)
         context.commit('updateCurrentWallet', index)
+        // Sync settings to darkmode and market modules
+        context.dispatch('syncSettingsToModules')
 
         resolve()
       } catch (error) {

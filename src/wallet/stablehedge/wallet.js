@@ -460,8 +460,11 @@ export class StablehedgeWallet {
       })
   }
 
-  async broadcast(transaction='') {
+  async broadcast(transaction='', priceId) {
     const data = { transaction }
+    if (priceId) {
+      data.price_id = priceId
+    }
     return this.apiBackend.post(`broadcast/`, data)
   }
 

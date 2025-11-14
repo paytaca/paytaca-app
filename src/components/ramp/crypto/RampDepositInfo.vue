@@ -85,6 +85,10 @@
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { getMnemonic, Wallet } from 'src/wallet'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 // import { getMnemonic, Wallet } from '../../../wallet'
 // import { getMemoedVNodeCall } from '@vue/compiler-core'
 // import { getNetwork } from '@ethersproject/networks'
@@ -226,7 +230,17 @@ export default {
     vm.depositAddress = vm.shiftInfo.shift_info.deposit.address
     vm.state = vm.type
     if (vm.state === 'created') {
-      if (vm.shiftInfo.shift_info.deposit.coin === 'BCH' && vm.refundAddress === vm.$store.getters['global/getAddress']('bch')) {
+      // Generate BCH address dynamically for comparison
+      const addressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+      const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+      const bchAddress = await generateReceivingAddress({
+        walletIndex: vm.$store.getters['global/getWalletIndex'],
+        derivationPath: getDerivationPathForWalletType('bch'),
+        addressIndex: validAddressIndex,
+        isChipnet: vm.$store.getters['global/isChipnet']
+      })
+      
+      if (vm.shiftInfo.shift_info.deposit.coin === 'BCH' && bchAddress && vm.refundAddress === bchAddress) {
         vm.sendBCH = true
         await vm.sendingBCH()
       } else {

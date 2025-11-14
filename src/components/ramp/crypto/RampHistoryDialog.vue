@@ -118,6 +118,10 @@ import { getMnemonic, Wallet } from 'src/wallet'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 export default {
   components: {
@@ -135,8 +139,7 @@ export default {
       has_next: false,
       total_page: 1,
       showInfo: false,
-      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
-      bchAddress: this.$store.getters['global/getAddress']('bch')
+      baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL
     }
   },
   computed: {
@@ -192,11 +195,28 @@ export default {
       const wallet = new Wallet(mnemonic)
 
       const walletHash = wallet.BCH.getWalletHash()
+      
+      // Generate BCH address dynamically
+      const addressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+      const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+      const bchAddress = await generateReceivingAddress({
+        walletIndex: vm.$store.getters['global/getWalletIndex'],
+        derivationPath: getDerivationPathForWalletType('bch'),
+        addressIndex: validAddressIndex,
+        isChipnet: vm.$store.getters['global/isChipnet']
+      })
+
+      if (!bchAddress) {
+        vm.networkError = true
+        vm.isloaded = true
+        return
+      }
+
       const url = vm.baseUrl + '/ramp/history/' + walletHash
       const response = await vm.$axios.get(url, {
         params: {
           page: vm.page,
-          address: vm.bchAddress
+          address: bchAddress
         }
       }).catch(function () {
         vm.networkError = true

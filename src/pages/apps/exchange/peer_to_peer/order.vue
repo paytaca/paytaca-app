@@ -640,7 +640,11 @@ export default {
         case 'standby-view':
           if (this.order?.status?.value === 'CNF') {
             return 'Escrow Pending'
-          } else { return this.order?.status?.label }
+          } else {
+            const formattedStatus = this.formatOrderStatus(this.order?.status?.value)
+            // Fallback to label if formatOrderStatus returns empty (unknown status) or if status value is missing
+            return formattedStatus || this.order?.status?.label || ''
+          }
         case 'escrow-bch':
           return 'Escrow bch'
         case 'tx-confirmation':
@@ -731,7 +735,7 @@ export default {
       const expiryDate = new Date(vm.order.expires_at)
       const exception = [
         this.$t('Released'),
-        this.$t('Canceled')
+        this.$t('Cancelled')
       ]
       if (expiryDate < now && vm.order.expires_at && !exception.includes(vm.order.status.label)) {
         return true
@@ -1761,7 +1765,12 @@ export default {
 
     async fetchOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${this.$route.params?.order}/`
+      const orderId = this.$route.params?.order
+      if (!orderId) {
+        console.warn('Order ID is missing from route params, skipping fetchOrder')
+        return
+      }
+      const url = `/ramp-p2p/order/${orderId}/`
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.order = response.data
@@ -1770,14 +1779,18 @@ export default {
           const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
           const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
           vm.chatRef = chatRef
-          if (vm.order?.chat_session_ref !== chatRef) {
-            updateOrderChatSessionRef(vm.order?.id, chatRef)
+          if (vm.order?.chat_session_ref !== chatRef && vm.order?.id) {
+            updateOrderChatSessionRef(vm.order.id, chatRef)
             fetchChatSession(chatRef)
               .catch(error => {
-                if (error.response?.status === 404) {
-                  vm.createGroupChat(vm.order?.id, chatRef)
+                if (error.response?.status === 404 && vm.order?.id) {
+                  vm.createGroupChat(vm.order.id, chatRef)
+                } else if (error.response?.status === 403) {
+                  // 403 means chat identity not ready - silently ignore
+                  // Don't call handleRequestError for chat-related 403s
+                } else {
+                  this.handleRequestError(error)
                 }
-                this.handleRequestError(error)
               })
           }
           
@@ -1838,6 +1851,10 @@ export default {
 
     async fetchAd () {
       const vm = this
+      if (!vm.order?.id) {
+        console.warn('Order ID is missing, skipping fetchAd')
+        return
+      }
       const url = `/ramp-p2p/order/${vm.order.id}/ad/snapshot/`
       await backend.get(url, { authorize: true })
         .then(response => {
@@ -1878,7 +1895,12 @@ export default {
     async updateOrderReadAt () {
       const vm = this
       if (vm.order?.read_at) return
-      const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
+      const orderId = vm.order?.id || vm.$route.params?.order
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping updateOrderReadAt')
+        return
+      }
+      const url = `/ramp-p2p/order/${orderId}/members/`
       backend.patch(url, null, { authorize: true }).catch(error => { this.handleRequestError(error) })
     },
 
@@ -1888,16 +1910,36 @@ export default {
       const members = await vm.fetchOrderMembers(orderId)
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
       createChatSession(orderId, chatRef)
-        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
-        .catch(console.error)
+        .then(chatRef => {
+          if (chatRef) {
+            // Only update members if session was created successfully
+            updateChatMembers(chatRef, chatMembers).catch(error => {
+              // Silently handle errors - chat identity might not be ready
+              if (error.response?.status !== 403) {
+                console.error('Failed to update chat members:', error)
+              }
+            })
+          }
+        })
+        .catch(error => {
+          // Silently handle 403 errors - chat identity not ready yet
+          if (error.response?.status !== 403) {
+            console.error('Failed to create chat session:', error)
+          }
+        })
     },
 
     async fetchOrderMembers (orderId) {
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping fetchOrderMembers')
+        return []
+      }
       try {
         const response = await backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
         return response.data
       } catch (error) {
         this.handleRequestError(error)
+        return []
       }
     },
 
@@ -2059,6 +2101,10 @@ export default {
 
     async cancelOrder () {
       const vm = this
+      if (!vm.order?.id) {
+        console.warn('Order ID is missing, skipping cancelOrder')
+        return
+      }
       const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       await backend.post(url, {}, { authorize: true })
         .then(response => {
@@ -2073,7 +2119,11 @@ export default {
 
     async fetchFees () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order?.id}/contract/fees/`
+      if (!vm.order?.id) {
+        console.warn('Order ID is missing, skipping fetchFees')
+        return
+      }
+      const url = `/ramp-p2p/order/${vm.order.id}/contract/fees/`
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.fees = response.data
@@ -2084,8 +2134,12 @@ export default {
     },
 
     async fetchContract () {
+      if (!this.order?.id) {
+        console.warn('Order ID is missing, skipping fetchContract')
+        return
+      }
       try {
-        const url = `/ramp-p2p/order/${this.order?.id}/contract/`
+        const url = `/ramp-p2p/order/${this.order.id}/contract/`
         const response = await backend.get(url, { authorize: true })
         this.contract = response.data
       } catch (error) {
@@ -2121,6 +2175,10 @@ export default {
 
     addArbiterToChat () {
       const vm = this
+      if (!vm.order?.id) {
+        console.warn('Order ID is missing, skipping addArbiterToChat')
+        return
+      }
       const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
       const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
       vm.fetchOrderMembers(vm.order.id)
@@ -2215,6 +2273,10 @@ export default {
     setupWebSocket () {
       this.closeWSConnection()
       // Subscribe to order updates
+      if (!this.order?.id) {
+        console.warn('Order ID is missing, skipping WebSocket setup')
+        return
+      }
       this.websockets.order = new WebSocketManager()
       this.websockets.order.setWebSocketUrl(`${getBackendWsUrl()}order/${this.order.id}/`)
       this.websockets.order.subscribeToMessages(async (message) => {

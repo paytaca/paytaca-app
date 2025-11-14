@@ -39,6 +39,10 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 export default {
   data () {
@@ -103,6 +107,22 @@ export default {
 
       const walletHash = wallet.BCH.getWalletHash()
 
+      // Generate BCH address dynamically
+      const addressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+      const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+      const bchAddress = await generateReceivingAddress({
+        walletIndex: vm.$store.getters['global/getWalletIndex'],
+        derivationPath: getDerivationPathForWalletType('bch'),
+        addressIndex: validAddressIndex,
+        isChipnet: vm.$store.getters['global/isChipnet']
+      })
+
+      if (!bchAddress) {
+        vm.networkError = true
+        vm.isloaded = true
+        return
+      }
+
       let info = {
         deposit: vm.rampData.deposit,
         settle: vm.rampData.settle,
@@ -113,7 +133,7 @@ export default {
           type: vm.rampType(),
           user_ip: ip,
           wallet_hash: walletHash,
-          bch_address: vm.$store.getters['global/getAddress']('bch')
+          bch_address: bchAddress
         }
       }
 

@@ -2,7 +2,7 @@
   <q-dialog persistent seamless ref="dialog" class="no-click-outside details-dialog">
     <q-card class="details-card pt-card text-bow" :class="getDarkModeClass(darkMode)">
       <!-- Header -->
-      <div class="dialog-header">
+      <div class="dialog-header pt-card" :class="getDarkModeClass(darkMode)">
         <div class="header-content">
           <q-icon name="receipt_long" size="24px" class="header-icon" />
           <span class="header-title">
@@ -224,7 +224,6 @@ export default {
     max-width: 600px;
     width: 90vw;
     border-radius: 16px;
-    overflow: hidden;
   }
 
   // Header
@@ -233,6 +232,9 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 20px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
     
     .header-content {
       display: flex;

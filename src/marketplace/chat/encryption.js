@@ -118,14 +118,15 @@ function privToPub(priv) {
  */
 function encryptData(data, key, iv) {
   const bytes = Buffer.from(data)
-  let encrypted = ''
+  let encryptedHex = ''
   for (var i = 0; i < bytes.length; i += CHUNK_SIZE) {
     const chunk = bytes.toString('hex', i, i+CHUNK_SIZE)
     const cipheriv = crypto.createCipheriv('aes-256-cbc', key, iv)
-    cipheriv.update(chunk, 'hex', 'hex')
-    encrypted += cipheriv.final('hex')
+    const updatedHex = cipheriv.update(chunk, 'hex', 'hex')
+    const finalHex = cipheriv.final('hex')
+    encryptedHex += (updatedHex || '') + (finalHex || '')
   }
-  return Buffer.from(encrypted, 'hex').toString('base64')
+  return Buffer.from(encryptedHex, 'hex').toString('base64')
 }
 
 /**
@@ -137,21 +138,23 @@ function decryptData(data, key, iv, opts={ inputEncoding: 'base64', outputEncodi
   const inputEncoding = opts?.inputEncoding || 'base64'
   const outputEncoding = opts?.outputEncoding || 'utf8'
   const dataBytes = Buffer.from(data, inputEncoding === 'binary' ? undefined : inputEncoding)
-  let decryptedData = Buffer.from([])
+  let decryptedHex = ''
   const HEX_CHUNK_SIZE = CHUNK_SIZE+1
 
   for(var i = 0; i < dataBytes.length; i += HEX_CHUNK_SIZE) {
     const chunk = dataBytes.toString('hex', i, i + HEX_CHUNK_SIZE)
     const decipheriv = crypto.createDecipheriv('aes-256-cbc', key, iv)
-    decipheriv.update(chunk, 'hex', 'hex')
-    decryptedData += decipheriv.final('hex')
+    const updatedHex = decipheriv.update(chunk, 'hex', 'hex')
+    const finalHex = decipheriv.final('hex')
+    decryptedHex += (updatedHex || '') + (finalHex || '')
   }
 
   if (outputEncoding !== 'hex') {
-    if (outputEncoding === 'binary') decryptedData = Buffer.from(decryptedData, 'hex')
-    else decryptedData = Buffer.from(decryptedData, 'hex').toString(outputEncoding)
+    if (outputEncoding === 'binary') return Buffer.from(decryptedHex, 'hex')
+    return Buffer.from(decryptedHex, 'hex').toString(outputEncoding)
   }
-  return decryptedData
+
+  return decryptedHex
 }
 
 /**

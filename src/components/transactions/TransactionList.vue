@@ -50,6 +50,8 @@ import TransactionListItemSkeleton from 'src/components/transactions/Transaction
 
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { refToHex } from 'src/utils/reference-id-utils'
+import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const recordTypeMap = {
@@ -203,9 +205,14 @@ export default {
           this.isLoadingMore = false
         })
     },
-    getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, append: false }) {
+    async getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, append: false }) {
       if (this.selectedNetwork === 'sBCH') {
-        const address = this.$store.getters['global/getAddress']('sbch')
+        const address = await generateSbchAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex']
+        })
+        if (!address) {
+          return Promise.reject(new Error('Failed to generate sBCH address'))
+        }
         return this.getSbchTransactions(address, opts)
       }
       return this.getBchTransactions(page, opts)
@@ -271,8 +278,13 @@ export default {
       const asset = vm.selectedAsset
       const id = vm.selectedAsset.id
       const recordType = recordTypeMap[vm.transactionsFilter]
-      const txSearchReference = opts.txSearchReference
+      let txSearchReference = opts.txSearchReference
       const shouldAppend = opts.append
+
+      // Convert decimal reference to hex if needed (safety check)
+      if (txSearchReference && /^[0-9]{8}$/.test(txSearchReference)) {
+        txSearchReference = refToHex(txSearchReference)
+      }
 
       let requestPromise
       if (id.indexOf('slp/') > -1) {

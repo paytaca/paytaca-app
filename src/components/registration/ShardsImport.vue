@@ -6,7 +6,7 @@
 
   <QRUploader ref="qr-upload" @detect-upload="onUploadDetect" />
 
-  <div class="text-bow q-px-lg" :class="getDarkModeClass(darkMode)">
+  <div class="text-bow q-px-lg shards-import-container" :class="getDarkModeClass(darkMode)">
     <p class="text-center text-subtitle1">
       {{ $t('RestoreShardsDescription') }}
     </p>
@@ -224,6 +224,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  .shards-import-container {
+    @media (max-width: 768px) {
+      padding-top: 20px;
+    }
+  }
+  
   .qr-placeholder-div {
     height: 150px;
     width: 150px;

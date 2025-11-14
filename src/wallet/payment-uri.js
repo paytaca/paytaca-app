@@ -190,7 +190,11 @@ export function parsePaymentUri(content, opts) {
 
   let bip0021Decoded, bip0021DecodeError 
   if (opts?.chain === 'main') {
-    try { bip0021Decoded = decodeBIP0021URI(content, opts) } catch(err) { bip0021DecodeError = err }
+    try { 
+      bip0021Decoded = decodeBIP0021URI(content, opts)
+    } catch(err) { 
+      bip0021DecodeError = err
+    }
   }
   let eip681Decoded, eip681DecodeError
   if (opts?.chain === 'smart') {

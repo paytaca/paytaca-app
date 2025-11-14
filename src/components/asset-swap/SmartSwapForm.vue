@@ -455,6 +455,7 @@ import SmartSwapTokenSelectorDialog from './SmartSwapTokenSelectorDialog.vue'
 import SmartSwapRouteDialog from './SmartSwapRouteDialog.vue'
 import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 
 export default {
   name: 'SmartSwapForm',
@@ -474,7 +475,7 @@ export default {
   data () {
     return {
       wallet: null,
-      address: this.$store.getters['global/getAddress']('sbch'),
+      address: '',
 
       // info that the user can update
       formData: {
@@ -999,7 +1000,19 @@ export default {
     async loadWallet () {
       const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
       this.wallet = markRaw(new Wallet(mnemonic))
+      await this.loadAddress()
       return this.wallet
+    },
+    async loadAddress () {
+      try {
+        const address = await generateSbchAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex']
+        })
+        this.address = address || ''
+      } catch (error) {
+        console.error('Error generating sBCH address:', error)
+        this.address = ''
+      }
     }
   },
   watch: {

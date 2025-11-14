@@ -57,7 +57,7 @@ export async function updatePreferences () {
     console.log('ipGeoPreferences:', ipGeoPreferences)
     Store.commit('global/setCountry', {
       country: ipGeoPreferences.country,
-      denomination: $t('DEEM')
+      denomination: 'BCH' // Default denomination, can be changed by user later
     })
 
     const languageCodes = ipGeoPreferences.langs

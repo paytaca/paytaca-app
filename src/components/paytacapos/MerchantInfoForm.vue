@@ -327,11 +327,94 @@ async function getInitialSelectCoordinatePosition() {
 }
 
 async function selectCoordinates(opts={ autoFocusSearch: false }) {
-  const initLocation = await getInitialSelectCoordinatePosition()
+  // Request location permission if not already granted
+  if (!geolocationManager.permissionState.value.granted) {
+    try {
+      await geolocationManager.updateGeolocationPermission({ request: true })
+    } catch (error) {
+      console.log('Location permission request failed:', error)
+    }
+  }
+
+  // Show loading dialog while getting location
+  let loadingDialog
+  const showLoadingDialog = () => {
+    loadingDialog = $q.dialog({
+      title: $t('GettingLocation', {}, 'Getting your location'),
+      message: $t('PleaseWait', {}, 'Please wait...'),
+      progress: true,
+      ok: false,
+      persistent: true,
+      color: 'brandblue',
+      class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }
+
+  // Get user's current GPS location if permission is granted
+  let gpsLocation = null
+  if (geolocationManager.permissionState.value.granted) {
+    try {
+      showLoadingDialog()
+      const locationResult = await geolocationManager.geolocate({ 
+        timeout: 15000,
+        enableHighAccuracy: true 
+      })
+      if (locationResult?.position?.latitude && locationResult?.position?.longitude) {
+        gpsLocation = {
+          latitude: locationResult.position.latitude,
+          longitude: locationResult.position.longitude,
+          zoom: 16,
+        }
+      }
+    } catch (error) {
+      console.log('Geolocation failed:', error)
+    } finally {
+      if (loadingDialog) {
+        try { loadingDialog.hide() } catch {}
+      }
+    }
+  }
+
+  // Determine initial location
+  let initLocation = null
+  let disableGeolocate = true
+  
+  if (gpsLocation) {
+    // Use accurate GPS location
+    initLocation = gpsLocation
+    disableGeolocate = true
+  } else if (merchantInfoForm.value.location.latitude && merchantInfoForm.value.location.longitude) {
+    // Use existing merchant coordinates if available
+    initLocation = {
+      latitude: merchantInfoForm.value.location.latitude,
+      longitude: merchantInfoForm.value.location.longitude,
+      zoom: 18,
+    }
+    disableGeolocate = true
+  } else {
+    // No location available - let the dialog try to geolocate
+    // Get fallback location but allow dialog to refine it
+    const fallbackLocation = await getInitialSelectCoordinatePosition()
+    // Only use fallback if it's from GPS, otherwise let dialog geolocate
+    const deviceLocation = geolocationManager.location.value?.position
+    if (deviceLocation?.latitude && deviceLocation?.longitude) {
+      initLocation = {
+        latitude: deviceLocation.latitude,
+        longitude: deviceLocation.longitude,
+        zoom: 16,
+      }
+      disableGeolocate = true
+    } else {
+      // Use fallback but enable geolocate to refine
+      initLocation = fallbackLocation
+      disableGeolocate = false
+    }
+  }
+
   $q.dialog({
     component: PinLocationDialog,
     componentProps: {
-      disableGeolocate: true,
+      disableGeolocate: disableGeolocate,
       search: {
         enable: true,
         autofocus: opts?.autoFocusSearch,

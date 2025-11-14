@@ -27,7 +27,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.address"
+              :href="'https://explorer.paytaca.com/address/' + contract.address"
               target="_blank"
             />
           </div>
@@ -82,7 +82,7 @@
                 icon="launch"
                 size="xs" padding="xs"
                 class="q-ml-sm"
-                :href="'https://blockchair.com/bitcoin-cash/transaction/' + contract.fundingTxHash"
+                :href="'https://explorer.paytaca.com/tx/' + contract.fundingTxHash"
                 target="_blank"
               />
             </div>
@@ -252,7 +252,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.shortPayoutAddress"
+              :href="'https://explorer.paytaca.com/address/' + contract.metadata.shortPayoutAddress"
               target="_blank"
             />
           </div>
@@ -265,7 +265,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.longPayoutAddress"
+              :href="'https://explorer.paytaca.com/address/' + contract.metadata.longPayoutAddress"
               target="_blank"
             />
           </div>
@@ -301,7 +301,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/transaction/' + settlementMetadata.txid"
+              :href="'https://explorer.paytaca.com/tx/' + settlementMetadata.txid"
               target="_blank"
             />
           </div>
@@ -397,7 +397,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/transaction/' + mutualRedemptionData.txHash"
+              :href="'https://explorer.paytaca.com/tx/' + mutualRedemptionData.txHash"
               target="_blank"
             />
           </div>

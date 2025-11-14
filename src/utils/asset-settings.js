@@ -2,12 +2,25 @@ import axios from 'axios'
 import { Store } from 'src/store'
 import crypto from 'crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+import { getCurrentWalletStorageKey, getWalletStorageKey, getWalletHash } from 'src/utils/wallet-storage'
 
 export const backend = axios.create()
 const baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
-const TOKEN_STORAGE_KEY = 'asset-auth-key'
+const TOKEN_STORAGE_KEY_PREFIX = 'asset-auth-key'
+
+/**
+ * Get wallet-specific storage key for asset auth token
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {string} Storage key with wallet hash
+ */
+function getTokenStorageKey(walletHash = null) {
+  if (walletHash) {
+    return getWalletStorageKey(TOKEN_STORAGE_KEY_PREFIX, walletHash)
+  }
+  return getCurrentWalletStorageKey(TOKEN_STORAGE_KEY_PREFIX)
+}
 
 export async function fetchCustomList ()  {
 	let customList = null
@@ -237,25 +250,57 @@ export function sha256 (data) {
   return _sha256.digest().toString('hex')
 }
 
-export function saveAuthToken (value) {
-	SecureStoragePlugin.set({TOKEN_STORAGE_KEY, value}).then(success => { return success.value })
+export function saveAuthToken (value, walletHash = null) {
+	const key = getTokenStorageKey(walletHash)
+	return SecureStoragePlugin.set({ key, value }).then(success => { return success.value })
 }
 
-export function getAuthToken () {
-	return new Promise((resolve, reject) => {
-		SecureStoragePlugin.get({ TOKEN_STORAGE_KEY })
-			.then(token => {
-				// console.log('token: ', token)
-				resolve(token.value)
-			})
-			.catch(error => {
-				console.error('Item with specified key does not exist:', error)
-        		resolve(null)	
-			})
+export function getAuthToken (walletHash = null) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const key = getTokenStorageKey(walletHash)
+			SecureStoragePlugin.get({ key })
+				.then(token => {
+					resolve(token.value)
+				})
+				.catch(async error => {
+					// Fallback: try old global key for backward compatibility with existing users
+					try {
+						const oldToken = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY_PREFIX })
+						// If found, trigger migration (async, non-blocking)
+						// Get walletHash from parameter or from store
+						const targetWalletHash = walletHash || getWalletHash()
+						if (oldToken?.value && targetWalletHash) {
+							const newKey = getTokenStorageKey(targetWalletHash)
+							SecureStoragePlugin.set({ key: newKey, value: oldToken.value })
+								.catch(e => console.warn('Failed to migrate asset token:', e))
+						}
+						resolve(oldToken.value)
+					} catch (e) {
+						// No token found in either location
+						resolve(null)
+					}
+				})
+		} catch (error) {
+			resolve(null)
+		}
 	})
 }
 
-export function deleteAuthToken () {
-	SecureStoragePlugin.remove({ TOKEN_STORAGE_KEY })
-	console.log('Asset auth token deleted')
+export function deleteAuthToken (walletHash = null) {
+	const key = getTokenStorageKey(walletHash)
+	SecureStoragePlugin.remove({ key })
+	console.log('Asset auth token deleted for wallet:', walletHash || 'current')
+}
+
+/**
+ * Delete authentication token for a specific wallet hash
+ * @param {string} walletHash - The wallet hash to delete token for
+ */
+export function deleteAuthTokenForWallet(walletHash) {
+	if (walletHash) {
+		const key = getTokenStorageKey(walletHash)
+		SecureStoragePlugin.remove({ key })
+		console.log('Asset auth token deleted for wallet:', walletHash)
+	}
 }

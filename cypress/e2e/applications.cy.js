@@ -52,7 +52,7 @@ describe('Applications Page', () => {
     cy.url().should('include', '/#/apps');
 
     // Test Merchant Admin with Translation Handling
-    testAppNavigation('apps-pos-admin', '/#/apps/pos-admin');
+    testAppNavigation('apps-pos-admin', '/#/apps/merchant-admin');
 
     // Test Wallet Info with Translation Handling
     testAppNavigation('apps-wallet-info', '/#/apps/wallet-info');

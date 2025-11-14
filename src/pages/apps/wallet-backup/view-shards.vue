@@ -539,10 +539,19 @@ export default {
     
     executeSecurityChecking () {
       const vm = this
+      console.log('[WalletBackup-Shards] executeSecurityChecking called')
+      console.log('[WalletBackup-Shards] $store available:', !!vm.$store)
+      console.log('[WalletBackup-Shards] preferredSecurity:', vm.$store?.getters?.['global/preferredSecurity'])
+      
       setTimeout(() => {
-        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+        console.log('[WalletBackup-Shards] Setting security check, preferredSecurity:', preferredSecurity)
+        if (preferredSecurity === 'pin') {
+          console.log('[WalletBackup-Shards] Setting pinDialogAction to VERIFY')
           vm.pinDialogAction = 'VERIFY'
+          console.log('[WalletBackup-Shards] pinDialogAction after set:', vm.pinDialogAction)
         } else {
+          console.log('[WalletBackup-Shards] Calling verifyBiometric')
           vm.verifyBiometric()
         }
       }, 300)
@@ -625,7 +634,13 @@ export default {
   },
 
   mounted () {
+    console.log('[WalletBackup-Shards] Component mounted, calling executeSecurityChecking')
     this.executeSecurityChecking()
+  },
+  watch: {
+    pinDialogAction (newVal, oldVal) {
+      console.log('[WalletBackup-Shards] pinDialogAction changed from', oldVal, 'to', newVal)
+    }
   }
 }
 </script>
@@ -668,6 +683,10 @@ export default {
 
   // Accordion Shards
   .shards-section {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    
     .shard-accordion-item {
       .shard-header {
         padding: 20px 24px;
@@ -719,23 +738,36 @@ export default {
         border-bottom-left-radius: 16px;
         border-bottom-right-radius: 16px;
         margin-top: -8px;
-        overflow: visible;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
 
         .qr-container {
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 20px;
+          padding: 12px;
           background: white;
           border-radius: 12px;
           margin-bottom: 20px;
-          overflow: visible;
-          min-height: 340px; // Accommodate 280px QR + 30px padding on each side
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          overflow-x: hidden;
+          height: auto;
+          
+          // Override QR code component's fixed 345px width to make it responsive
+          :deep(.qr-wrap) {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
           
           // Ensure QR code component has enough space and isn't clipped
           :deep(.qr) {
             width: 100%;
-            max-width: 340px;
+            max-width: 100%;
             overflow: visible;
           }
           
@@ -836,10 +868,23 @@ export default {
 
         .shard-content {
           padding: 20px;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
 
           .qr-container {
-            padding: 16px;
-            min-height: 320px; // Slightly smaller for mobile
+            padding: 10px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            height: auto;
+            
+            // Override QR code component's fixed width on mobile
+            :deep(.qr-wrap) {
+              max-width: 100% !important;
+              width: 100% !important;
+              box-sizing: border-box !important;
+            }
             
             :deep(.qr) {
               max-width: 100%;

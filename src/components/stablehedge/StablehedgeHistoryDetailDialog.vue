@@ -169,7 +169,7 @@ export default defineComponent({
     const isChipnet = computed(() => $store.getters['global/isChipnet'])
     const explorerLink = computed(() => {
       const txid = props.record?.txid
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+      let url = 'https://explorer.paytaca.com/tx/'
 
       if (isChipnet.value) url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
 

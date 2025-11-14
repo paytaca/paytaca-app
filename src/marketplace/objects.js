@@ -1920,7 +1920,7 @@ export class EscrowContract {
     if (isNaN(index) || index < 0) return ''
 
     if (isTestnet) return `${process.env.TESTNET_EXPLORER_URL}/tx/${txid}#output-${index}`
-    return `https://blockchair.com/bitcoin-cash/transaction/${txid}?o=${index}`
+    return `https://explorer.paytaca.com/tx/${txid}?o=${index}`
   }
 
   get settlementTxLink() {
@@ -1930,7 +1930,7 @@ export class EscrowContract {
     if (!txid) return ''
 
     if (isTestnet) return `${process.env.TESTNET_EXPLORER_URL}/tx/${txid}`
-    return `https://blockchair.com/bitcoin-cash/transaction/${txid}`
+    return `https://explorer.paytaca.com/tx/${txid}`
   }
 
   getPendingSettlementAppeals() {

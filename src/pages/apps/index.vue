@@ -4,12 +4,16 @@
       :title="$t('Apps')"
       backnavpath="/"
       class="q-px-sm apps-header"
+      @long-press-title="onLongPressAppsTitle"
     />
     <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
       <div class="row q-px-xs">
         <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
           <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
             <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
+            <q-tooltip v-if="app.description" :delay="500" class="text-body2" :class="getDarkModeClass(darkMode)">
+              {{ app.description }}
+            </q-tooltip>                              
           </q-btn>
           <p
             class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label"
@@ -42,6 +46,7 @@ export default {
   },
   data () {
     return {
+      showDebugApp: localStorage.getItem('debugAppVisible') === 'true',
       apps: [
       {
           name: 'P2P Exchange',
@@ -82,9 +87,10 @@ export default {
         },
         {
           name: this.$t('Learn'),
-          iconName: 'school',
+          iconName: 'lightbulb',
           path: '/apps/learn',
           iconStyle: 'font-size: 4em',
+          description: this.$t('LearnDescription'),
           active: true,
           smartBCHOnly: false
         },
@@ -139,7 +145,7 @@ export default {
         {
           name: this.$t('MerchantAdmin', {}, 'Merchant Admin'),
           iconName: 'point_of_sale',
-          path: '/apps/pos-admin',
+          path: '/apps/merchant-admin',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
@@ -201,6 +207,14 @@ export default {
           smartBCHOnly: false
         }
       ],
+      debugApp: {
+        name: 'Debug',
+        iconName: 'bug_report',
+        path: '/apps/debug',
+        active: true,
+        iconStyle: 'font-size: 4em',
+        smartBCHOnly: false
+      },
       filteredApps: [],
       appHeight: null,
       rampAppSelection: false,
@@ -239,10 +253,41 @@ export default {
       if (webSocketManager?.isOpen()) {
         webSocketManager.closeConnection()
       }
+    },
+    onLongPressAppsTitle () {
+      if (!this.showDebugApp) {
+        this.$q.dialog({
+          class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          title: this.$t('Show Debug App'),
+          message: this.$t('Do you want to show the Debug app? This will provide access to debugging tools and utilities.'),
+          cancel: true,
+          persistent: true
+        }).onOk(() => {
+          this.showDebugApp = true
+          localStorage.setItem('debugAppVisible', 'true')
+          this.updateFilteredApps()
+        })
+      }
+    },
+    updateFilteredApps () {
+      this.filteredApps = [...this.apps]
+      
+      // Add debug app if visible
+      if (this.showDebugApp) {
+        this.filteredApps.push(this.debugApp)
+      }
+      
+      // Filter by smartBCH if needed
+      if (!this.enableSmartBCH) {
+        this.filteredApps = this.filteredApps.filter((app) => {
+          if (!app.smartBCHOnly) {
+            return true
+          }
+        })
+      }
     }
   },
   created () {
-    this.filteredApps = this.apps
     const currentTheme = this.$store.getters['global/theme']
     const themedIconPath = ''
 
@@ -259,13 +304,8 @@ export default {
 
     // Removed PayHero theme icon customization
 
-    if (!this.enableSmartBCH) {
-      this.filteredApps = this.apps.filter((app) => {
-        if (!app.smartBCHOnly) {
-          return true
-        }
-      })
-    }
+    // Update filtered apps after all modifications
+    this.updateFilteredApps()
   },
   mounted () {
     this.fetchAppControl()

@@ -94,12 +94,12 @@ export default {
       if (this.isChipnet) {
         url = `${process.env.TESTNET_EXPLORER_URL}`
       } else {
-        url = 'https://blockchair.com/bitcoin-cash'
+        url = 'https://explorer.paytaca.com'
       }
 
       if (linkType === 'txid') {
         const txid = this.order?.transactions.outputs[0].txid
-        url = this.isChipnet ? `${url}/tx/` : `${url}/transaction/`
+        url = `${url}/tx/`
         return `${url}${txid}`
       } else {
         const address = this.order?.payout_address.replace('bitcoincash:', '')
@@ -108,7 +108,7 @@ export default {
       }
 
       // if (this.transaction.asset.id.split('/')[0] === 'ct') {
-      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      //   url = 'https://explorer.paytaca.com/tx/'
       // }
     },
     arrangeAddressText (address) {
