@@ -31,3 +31,31 @@ export const withTimeout = async (promise, ms, error) => {
     ),
   ]);
 };
+
+/**
+ * Retries an asynchronous function multiple times with optional exponential backoff.
+ *
+ * @template T
+ * @param {() => Promise<T>} fn - The asynchronous function to execute.
+ * @param {number} [retries=2] - The number of retry attempts (total tries = retries).
+ * @param {number} [delay=500] - Initial delay between retries, in milliseconds.
+ * @returns {Promise<T>} Resolves with the result of `fn()` if it eventually succeeds.
+ * @throws Will throw the last error if all retry attempts fail.
+ *
+ * @example
+ * // Example usage:
+ * const data = await retryWithBackoff(() => axios.get('/api/data'), 3, 1000);
+ * console.log(data);
+ */
+export async function retryWithBackoff(fn, retries = 2, delay = 500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err; 
+      console.warn(`Retry ${i + 1} failed, waiting ${delay}ms...`);
+      await new Promise(res => setTimeout(res, delay));
+      delay *= 2; 
+    }
+  }
+}
