@@ -70,6 +70,7 @@ import ERC721CollectibleDetail from 'components/collectibles/ERC721CollectibleDe
 import ProgressLoader from 'components/ProgressLoader'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import noImage from 'src/assets/no-image.svg'
+import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 
 export default {
   name: 'ERC721Collectibles',
@@ -147,7 +148,13 @@ export default {
       }
       this.fetchingCollectibles = true
       // this.wallet.sBCH.getNFTs(this.contractAddress, _opts)
-      const address = this.$store.getters['global/getAddress']('sbch')
+      const address = await generateSbchAddress({
+        walletIndex: this.$store.getters['global/getWalletIndex']
+      })
+      if (!address) {
+        this.fetchingCollectibles = false
+        return
+      }
       this.wallet.sBCH.getOwnedNFTs(this.contractAddress, address, _opts)
         .finally(() => {
           this.fetchingCollectibles = false

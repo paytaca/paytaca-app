@@ -256,6 +256,10 @@
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
+import {
   convertPoints,
   getKeyPairFromWalletMnemonic,
   getWalletTokenAddress,
@@ -420,11 +424,24 @@ export default {
         )
   
         if (txId) {
+          // Generate BCH address dynamically
+          const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+          const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+          const bchAddress = await generateReceivingAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType('bch'),
+            addressIndex: validAddressIndex,
+            isChipnet: this.$store.getters['global/isChipnet']
+          })
+          if (!bchAddress) {
+            throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
+          }
+          
           // call to engagement-hub to process swapping
           const data = {
             tx_id: txId,
             amount: Number(this.pointsToRedeem),
-            address: this.$store.getters['global/getAddress']('bch'),
+            address: bchAddress,
             token_address: await getWalletTokenAddress(),
             promo: this.pointsType,
             id: this.promoId
