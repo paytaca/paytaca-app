@@ -136,6 +136,22 @@ export default {
   methods: {
     getAssetDenomination,
     getDarkModeClass,
+    async getRecipientAddress(walletType = 'bch') {
+      // Get address from the current wallet instance instead of global store
+      // to ensure we use the correct wallet in multi-wallet setup
+      if (!this.wallet) return null
+      
+      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
+      const wallet = walletType === 'slp' ? this.wallet.SLP : this.wallet.BCH
+      
+      try {
+        const addressSet = await wallet.getAddressSetAt(lastAddressIndex)
+        return addressSet.receiving
+      } catch (error) {
+        console.error('Error getting recipient address:', error)
+        return null
+      }
+    },
     decryptShard(encryptedHex, password) {
       const key = pbkdf2.pbkdf2Sync(password, '_saltDefault2024', 1, 128 / 8, 'sha512')
       const encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex)
