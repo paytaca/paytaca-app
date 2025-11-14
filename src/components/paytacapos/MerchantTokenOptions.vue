@@ -44,8 +44,8 @@
           <q-item-section v-if="fungibleCashtoken.imageUrl" avatar>
             <img
               height="35"
-              :src="convertIpfsUrl(fungibleCashtoken.imageUrl)"
-              :fallback-src="convertIpfsUrl(fungibleCashtoken.imageUrl, 1)"
+              :src="getTokenImageUrl(fungibleCashtoken.imageUrl)"
+              :fallback-src="getTokenImageUrl(fungibleCashtoken.imageUrl, true)"
               @error="onImgErrorIpfsSrc"
             />
           </q-item-section>
@@ -79,7 +79,7 @@
 import { backend as posBackend } from 'src/wallet/pos'
 import { backend as marketplaceBackend } from 'src/marketplace/backend';
 import { FungibleCashToken } from 'src/marketplace/objects';
-import { convertIpfsUrl } from 'src/wallet/cashtokens';
+import { convertIpfsUrl, IPFS_DOMAINS } from 'src/wallet/cashtokens';
 import { computed, onMounted, ref } from 'vue';
 
 const $emit = defineEmits(['saved'])
@@ -121,6 +121,33 @@ function toggleAcceptedToken(fungibleCashtoken=FungibleCashToken.parse()) {
 
 function resetFormData() {
   formData.value.acceptedTokens = [...props.initialValue];
+}
+
+function getTokenImageUrl(url, useFallbackDomain = false) {
+  const baseURL = useFallbackDomain ? IPFS_DOMAINS[1] : undefined;
+  const convertedUrl = convertIpfsUrl(url, baseURL);
+  
+  // Add Pinata gateway token for all IPFS URLs that use the paytaca.com gateway
+  if (convertedUrl && convertedUrl.startsWith('https://ipfs.paytaca.com/')) {
+    // Check if URL already has query parameters
+    const separator = convertedUrl.includes('?') ? '&' : '?';
+    return convertedUrl + separator + 'pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN;
+  }
+  
+  return convertedUrl;
+}
+
+/**
+ * @param {Event} evt 
+ */
+function onImgErrorIpfsSrc(evt) {
+  if (evt.target?.fallbackHandled) return
+
+  evt.target.fallbackHandled = true;
+  const fallbackSrc = evt.target?.attributes?.['fallback-src']?.value;
+  if (fallbackSrc && evt.target.src != fallbackSrc) {
+    evt.target.src = fallbackSrc;
+  }
 }
 
 

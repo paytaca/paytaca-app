@@ -32,8 +32,19 @@ body.theme-glassmorphic-blue {
   /* ----- IDS ----- */
   #registration-container {
     min-height: 100vh;
-    background-image: $bg_gradient;
     position: relative !important;
+
+    &.dark {
+      background: #273746 !important;
+    }
+
+    &.light {
+      background-color: #ecf3f3 !important;
+    }
+
+    &.grad {
+      background-image: $bg_gradient;
+    }
 
     .q-field--dark {
       .q-field__control {
@@ -182,7 +193,14 @@ body.theme-glassmorphic-blue {
 
   .pt-header {
     color: $color_6;
-    background: unset;
+
+    &.dark {
+      background: #273746;
+    }
+
+    &.light {
+      background: #ecf3f3;
+    }
   }
 
   .pt-arrow-left-link {

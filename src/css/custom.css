@@ -72,8 +72,30 @@ a {
 
 #registration-container {
   min-height: 100vh;
-  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
   position: relative !important;
+  /* Default gradient background for backward compatibility */
+  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
+}
+
+#registration-container.dark {
+  background: #273746 !important;
+}
+
+#registration-container.light {
+  background-color: #ecf3f3 !important;
+}
+
+#registration-container.grad {
+  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe) !important;
+  background: none !important;
+}
+
+/* When using default theme (body doesn't have a glassmorphic theme class), 
+   preserve gradient even when .dark or .light classes are present */
+body:not([class*="theme-glassmorphic"]):not([class*="theme-payhero"]) #registration-container.dark,
+body:not([class*="theme-glassmorphic"]):not([class*="theme-payhero"]) #registration-container.light {
+  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe) !important;
+  background: none !important;
 }
 
 .pt-brand {

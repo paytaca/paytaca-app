@@ -1,8 +1,8 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
-      :title="$t('Receive') + ' ' + asset.symbol"
-      backnavpath="/receive/select-asset"
+      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + ' ' + asset.symbol)"
+      :backnavpath="backNavPath"
       class="header-nav"
     ></header-nav>
     <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -79,7 +79,7 @@
           <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
           <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
         </div>
-        <div class="row q-mt-md" v-if="walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
+        <div class="row q-mt-md" v-if="!generating && walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
           <q-toggle
             v-model="legacy"
             class="text-bow"
@@ -90,30 +90,31 @@
             :label="$t('LegacyAddressFormat')"
           />
         </div>
-        <div class="row">
+        <div class="row" v-if="!generating">
           <div class="col copy-container">
-            <span class="qr-code-text text-weight-light text-center">
+            <div class="qr-code-text text-weight-light text-center">
               <div
-                class="text-nowrap text-bow"
-                style="letter-spacing: 1px;"
+                class="text-bow"
+                style="letter-spacing: 1px; word-break: break-all;"
                 @click="copyToClipboard(isCt ? address : addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
-                {{ address.substring(0, 16) }}...{{ address.substring(address.length - 4) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
+                {{ address }}
               </div>
-              <div v-if="lnsName" class="text-center text-caption" style="color: #000 !important;">
-                {{ lnsName }}
-                <q-btn
-                  type="a"
-                  size="sm"
-                  flat
-                  padding="none"
-                  icon="open_in_new"
-                  :href="`https://app.bch.domains/name/${lnsName}/details`"
-                  target="_blank"
-                />
-              </div>
-            </span>
+              
+            </div>
+            <div class="row justify-center q-mt-md q-mx-lg">
+              <q-btn
+                outline
+                no-caps
+                class="br-15"
+                color="grey-7"
+                icon="content_copy"
+                padding="xs md"
+                :label="$t('ClickToCopyAddress')"
+                @click="copyToClipboard(isCt ? address : addressAmountFormat)"
+              />
+            </div>
             <div v-if="amount && !isCt" class="text-center">
               <q-separator class="q-mb-sm q-mx-md q-mt-md" style="height: 2px;" />
               <div class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -127,7 +128,7 @@
               </div>
             </div>
             <div
-              v-if="!isCt"
+              v-if="!isCt && !assetId.endsWith('unlisted')"
               class="text-center button button-text-primary q-pt-md"
               style="font-size: 18px;"
               :class="getDarkModeClass(darkMode)"
@@ -182,7 +183,6 @@
 <script>
 import { getMnemonic, Wallet, Address } from '../../wallet'
 import { watchTransactions } from '../../wallet/sbch'
-import { NativeAudio } from '@capacitor-community/native-audio'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
@@ -224,7 +224,6 @@ export default {
       assetLoaded: false,
       legacy: false,
       showLegacy: false,
-      lnsName: '',
       generateAddressOnLeave: false,
       generating: true, // Start as true, set to false after address loads
       amount: '',
@@ -248,6 +247,14 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    backNavPath () {
+      const back = this.$router && this.$router.options && this.$router.options.history && this.$router.options.history.state
+        ? this.$router.options.history.state.back || ''
+        : ''
+      // If navigated from receive asset selector, go back there; otherwise go home
+      if (typeof back === 'string' && back.includes('/receive/select-asset')) return '/receive/select-asset'
+      return '/'
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -355,18 +362,6 @@ export default {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
     },
-    updateLnsName () {
-      if (!this.isSep20) return
-      if (!this.address) return
-
-      return this.$store.dispatch('lns/resolveAddress', { address: this.address })
-        .then(response => {
-          if (response && response.name) {
-            this.lnsName = response.name
-            return Promise.resolve(response)
-          }
-        })
-    },
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
@@ -395,10 +390,10 @@ export default {
       vm.stopSbchListener()
       delete this?.$options?.sockets
 
-      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+        getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
-          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(function (result) {
+          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
             const addresses = result.addresses
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'bch',
@@ -407,14 +402,14 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             // Refresh the dynamic address after generating new address
-            vm.refreshDynamicAddress()
-            try { vm.setupListener() } catch {}
+            await vm.refreshDynamicAddress()
+            try { await vm.setupListener() } catch {}
           }).finally(() => {
             vm.generating = false
           })
         }
         if (vm.walletType === 'slp') {
-          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(function (addresses) {
+          getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (addresses) {
             vm.$store.commit('global/generateNewAddressSet', {
               type: 'slp',
               lastAddress: addresses.receiving,
@@ -422,8 +417,8 @@ export default {
               lastAddressIndex: newAddressIndex
             })
             // Refresh the dynamic address after generating new address
-            vm.refreshDynamicAddress()
-            try { vm.setupListener() } catch {}
+            await vm.refreshDynamicAddress()
+            try { await vm.setupListener() } catch {}
           })
         }
 
@@ -513,10 +508,13 @@ export default {
       // Generate address dynamically from mnemonic instead of using stored address
       try {
         const addressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        // Ensure addressIndex is a valid number (default to 0 if undefined/null)
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        
         let address = await generateReceivingAddress({
           walletIndex: this.$store.getters['global/getWalletIndex'],
           derivationPath: getDerivationPathForWalletType(this.walletType),
-          addressIndex: addressIndex,
+          addressIndex: validAddressIndex,
           isChipnet: this.isChipnet
         })
         
@@ -583,26 +581,10 @@ export default {
         return assets[0]
       }
     },
-    playSound (success) {
-      if (success) {
-        NativeAudio.play({
-          assetId: 'send-success'
-        })
-      }
-    },
     notifyOnReceive (amount, symbol, logo, decimals = 0, isCashToken = false) {
       const vm = this
       vm.generateAddressOnLeave = vm.$store.getters['global/autoGenerateAddress']
-      vm.playSound(true)
-      vm.$confetti.start({
-        particles: [
-          {
-            type: 'heart'
-          }
-        ],
-        size: 3,
-        dropRate: 3
-      })
+      
       if (!vm.$q.platform.is.mobile) {
         vm.$q.notify({
           classes: 'br-15 text-body1',
@@ -613,21 +595,23 @@ export default {
           timeout: 4000
         })
       }
-      setTimeout(function () {
-        vm.$confetti.stop()
-      }, 3000)
     },
     convertToLegacyAddress (address) {
       const addressObj = new Address(address)
       return addressObj.toLegacyAddress()
     },
-    setupListener () {
+    async setupListener () {
       const vm = this
       if (vm.isSep20) return vm.setupSbchListener()
 
       let url
       let assetType
-      const address = vm.getAddress(true)
+      // getAddress is async, so we need to await it
+      const address = await vm.getAddress(true)
+      if (!address) {
+        console.error('Failed to get address for websocket listener')
+        return
+      }
       const wsURL = getWatchtowerWebsocketUrl(this.isChipnet)
 
       if (vm.assetId.indexOf('slp/') > -1) {
@@ -647,6 +631,54 @@ export default {
 
         if (assetType === 'slp' || isListedToken) {
           if (data.token_id.split('/')[1] === tokenId) {
+            // Redirect to transaction details page for all received transactions
+            if (data.txid) {
+              const category = data.token_id ? data.token_id.split('/')[1] : ''
+              
+              // Get asset from store or construct from websocket data
+              let asset = vm.asset
+              if (!asset && data.token_id) {
+                const assetId = data.token_id
+                asset = vm.getAsset(assetId)
+                
+                // If not found, construct basic asset object
+                if (!asset) {
+                  asset = {
+                    id: assetId,
+                    symbol: data.token_symbol?.toUpperCase() || 'TOKEN',
+                    decimals: data.token_decimals || 0,
+                    logo: vm.getImageUrl ? vm.getImageUrl({ id: assetId }) : 'bch-logo.png'
+                  }
+                }
+              }
+              
+              // Calculate amount
+              const amount = data.amount / (10 ** data.token_decimals)
+              
+              // Construct transaction object from websocket data
+              const wsTransaction = {
+                txid: data.txid,
+                record_type: 'incoming',
+                amount: amount,
+                asset: asset,
+                tx_timestamp: Date.now(),
+                date_created: Date.now(),
+                _fromWebsocket: true
+              }
+              
+              const query = { new: 'true' }
+              if (category) {
+                query.category = category
+              }
+              vm.$router.push({
+                name: 'transaction-detail',
+                params: { txid: data.txid },
+                query,
+                state: { tx: wsTransaction, fromWebsocket: true }
+              })
+              return // Exit early to prevent notification
+            }
+            
             vm.notifyOnReceive(
               data.amount / (10 ** data.token_decimals),
               data.token_symbol.toUpperCase(),
@@ -662,6 +694,63 @@ export default {
           } else {
             amount = Number(data.amount) / (10 ** data.token_decimals)
           }
+          
+          // Redirect to transaction details page for all received transactions
+          if (data.txid) {
+            // Get asset from store or construct from websocket data
+            let asset = vm.asset
+            if (!asset && data.token_id) {
+              const assetId = data.token_id === 'bch' ? 'bch' : data.token_id
+              asset = vm.getAsset(assetId)
+              
+              // If not found, construct basic asset object
+              if (!asset) {
+                asset = {
+                  id: assetId,
+                  symbol: data.token_symbol?.toUpperCase() || (data.token_id === 'bch' ? 'BCH' : 'TOKEN'),
+                  decimals: data.token_decimals || (data.token_id === 'bch' ? 8 : 0),
+                  logo: vm.getImageUrl ? vm.getImageUrl({ id: assetId }) : (data.token_id === 'bch' ? 'bch-logo.png' : 'token-logo.png')
+                }
+              }
+            }
+            
+            // Calculate amount based on token type
+            let txAmount = 0
+            if (data.token_name === 'bch') {
+              txAmount = data.value / (10 ** 8) // Convert satoshis to BCH
+            } else {
+              txAmount = Number(data.amount) / (10 ** data.token_decimals)
+            }
+            
+            // Construct transaction object from websocket data
+            const wsTransaction = {
+              txid: data.txid,
+              record_type: 'incoming',
+              amount: txAmount,
+              asset: asset,
+              tx_timestamp: Date.now(),
+              date_created: Date.now(),
+              _fromWebsocket: true
+            }
+            
+            // Extract category from token_id if it's a token transaction, otherwise it's BCH
+            const query = { new: 'true' }
+            if (data.token_id && data.token_id !== 'bch') {
+              const parts = data.token_id.split('/')
+              if (parts.length === 2 && parts[0] === 'ct') {
+                query.category = parts[1]
+              }
+            }
+            // For BCH transactions, no category query param is needed
+            vm.$router.push({
+              name: 'transaction-detail',
+              params: { txid: data.txid },
+              query,
+              state: { tx: wsTransaction, fromWebsocket: true }
+            })
+            return // Exit early to prevent notification and token addition
+          }
+          
           vm.notifyOnReceive(
             amount,
             data.token_symbol.toUpperCase(),
@@ -669,8 +758,13 @@ export default {
           )
 
           // if unlisted token is detected, add to front of list
-          // check if token already added in list
-          if (!vm.tokens.map(a => a.id).includes(data.token_id)) {
+          // check if token already added in list using store getters
+          const allAssets = vm.$store.getters['assets/getAssets'] || []
+          const allSep20Assets = vm.$store.getters['sep20/getAssets'] || []
+          const existingAsset = allAssets.find(a => a && a.id === data.token_id) || 
+                               allSep20Assets.find(a => a && a.id === data.token_id)
+          
+          if (!existingAsset) {
             try {
               const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
               if (newTokenData) {
@@ -737,10 +831,7 @@ export default {
   },
 
   watch: {
-    address () {
-      this.lnsName = ''
-      this.updateLnsName()
-    },
+    address () {},
     walletType () {
       // Refresh dynamic address when wallet type changes
       this.refreshDynamicAddress()
@@ -777,9 +868,6 @@ export default {
       delete this?.$options?.sockets
     }
 
-    NativeAudio.unload({
-      assetId: 'send-success',
-    })
 
     await self.wakeLock.release()
   },
@@ -798,20 +886,9 @@ export default {
     // Generate the dynamic address first
     await vm.refreshDynamicAddress()
     
-    vm.setupListener()
-    this.updateLnsName()
+    // Setup websocket listener (async, needs to await address)
+    await vm.setupListener()
 
-    let path = 'send-success.mp3'
-    if (this.$q.platform.is.ios) {
-      path = 'public/assets/send-success.mp3'
-    }
-    NativeAudio.preload({
-      assetId: 'send-success',
-      assetPath: path,
-      audioChannelNum: 1,
-      volume: 1.0,
-      isUrl: false
-    })
 
     self.wakeLock = useWakeLock()
     await wakeLock.request('screen')

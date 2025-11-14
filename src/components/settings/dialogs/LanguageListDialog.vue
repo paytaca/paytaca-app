@@ -80,33 +80,38 @@ const translationKeys = {
 export default {
 	data () {
 		return {
-			searchText: '',
-			languages: [
-				{ value: 'en-us', label: this.$t('English') },
-				{ value: 'zh-cn', label: this.$t('ChineseSimplified') },
-				{ value: 'zh-tw', label: this.$t('ChineseTraditional') },
-				{ value: 'nl', label: this.$t('Dutch') },
-				{ value: 'fr', label: this.$t('French') },
-				{ value: 'de', label: this.$t('German') },
-				{ value: 'ha', label: this.$t('Hausa') },
-				{ value: 'id', label: this.$t('Indonesian') },
-				{ value: 'it', label: this.$t('Italian') },
-				{ value: 'ja', label: this.$t('Japanese') },
-				{ value: 'ko', label: this.$t('Korean') },
-				{ value: 'pt', label: this.$t('Portuguese') },
-				{ value: 'pt-br', label: this.$t('BrazilianPortuguese') },
-				{ value: 'es', label: this.$t('Spanish') },
-				{ value: 'es-ar', label: this.$t('ArgentinianSpanish') },
-				{ value: 'tl', label: this.$t('Tagalog') },
-				{ value: 'af', label: this.$t('Afrikaans') },
-				{ value: 'ru', label: this.$t('Russian') },
-				{ value: 'ar', label: this.$t('Arabic') }
-			]
+			searchText: ''
 		}
 	},
 	computed: {
 		darkMode () {
 	    return this.$store.getters['darkmode/getStatus']
+	  },
+	  languages () {
+	    // Build languages array with proper labels
+	    // Always use translationKeys values directly to avoid "EN" translation issues
+	    // These are already good display names (e.g., "English", "Tagalog", etc.)
+	    return [
+	      { value: 'en-us', label: translationKeys['en-us'] },
+	      { value: 'zh-cn', label: translationKeys['zh-cn'] },
+	      { value: 'zh-tw', label: translationKeys['zh-tw'] },
+	      { value: 'nl', label: translationKeys['nl'] },
+	      { value: 'fr', label: translationKeys['fr'] },
+	      { value: 'de', label: translationKeys['de'] },
+	      { value: 'ha', label: translationKeys['ha'] },
+	      { value: 'id', label: translationKeys['id'] },
+	      { value: 'it', label: translationKeys['it'] },
+	      { value: 'ja', label: translationKeys['ja'] },
+	      { value: 'ko', label: translationKeys['ko'] },
+	      { value: 'pt', label: translationKeys['pt'] },
+	      { value: 'pt-br', label: translationKeys['pt-br'] },
+	      { value: 'es', label: translationKeys['es'] },
+	      { value: 'es-ar', label: translationKeys['es-ar'] },
+	      { value: 'tl', label: translationKeys['tl'] },
+	      { value: 'af', label: translationKeys['af'] },
+	      { value: 'ru', label: translationKeys['ru'] },
+	      { value: 'ar', label: translationKeys['ar'] }
+	    ]
 	  },
 	  filteredList () {
       if (!this.searchText) return this.languages

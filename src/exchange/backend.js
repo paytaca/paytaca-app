@@ -3,18 +3,47 @@ import { Store } from 'src/store'
 import { getAuthToken } from './auth'
 import { wallet } from './wallet'
 
+import { bus } from 'src/wallet/event-bus'
+
 export const backend = axios.create()
 backend.interceptors.request.use(async (config) => {
   config.baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''  
   const wallet = Store.getters['global/getWallet']('bch')
   config.headers['wallet-hash'] = wallet.walletHash
   if (config.authorize) {
-    await getAuthToken().then(token => {
+    const token = await getAuthToken()
+    // Only set Authorization header if token exists
+    // If token is null, the request will fail with 401/403, which should trigger authentication
+    if (token) {
       config.headers.Authorization = `Token ${token}`
-    })
+    }
   }
   return config
 })
+
+// Response interceptor to handle authentication errors
+backend.interceptors.response.use(
+  response => response,
+  error => {
+    // Handle 403 Forbidden errors - typically means session expired or not authenticated
+    // Check if this was an authorized request (requires authentication)
+    const wasAuthorizedRequest = error?.config?.authorize === true
+    if (error?.response?.status === 403 && wasAuthorizedRequest) {
+      // Check if it's a chat-related 403 (chat identity not ready)
+      const errorDetail = error?.response?.data?.detail || ''
+      const errorMessage = error?.response?.data?.error || ''
+      const fullErrorText = `${errorDetail} ${errorMessage}`.toLowerCase()
+      
+      // Skip chat-related 403 errors
+      if (!fullErrorText.includes('chat identity') && !fullErrorText.includes('chat_identity')) {
+        // Emit session-expired event to trigger authentication
+        // This will show the login dialog in P2P Exchange
+        bus.emit('session-expired')
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 export function getBackendWsUrl () {
   return Store.getters['global/isChipnet'] ? process.env.CHIPNET_RAMP_WS_URL : process.env.MAINNET_RAMP_WS_URL || ''

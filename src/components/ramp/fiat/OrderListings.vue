@@ -611,7 +611,7 @@ export default {
       return appealable
     },
     isCompleted (status) {
-      if (status === 'Released' || status === 'Refunded' || status === 'Canceled') return true
+      if (status === 'Released' || status === 'Refunded' || status === 'Cancelled') return true
       return false
     },
     orderFiatAmount (lockedPrice, cryptoAmount) {

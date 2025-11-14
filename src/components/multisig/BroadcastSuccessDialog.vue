@@ -16,7 +16,7 @@
 	      <!-- Reference ID Section -->
 	      <div class="reference-id-section q-mt-lg">
 		<div class="text-grey text-weight-medium text-caption">{{ $t('ReferenceId')}}</div>
-		<div class="reference-id-value">{{ txid.substring(0, 6).toUpperCase() }}</div>
+		<div class="reference-id-value">{{ hexToRef(txid.substring(0, 6)) }}</div>
 		<q-separator color="grey" class="q-mt-sm"/>
 	      </div>
 	      
@@ -58,6 +58,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { getExplorerLink } from 'src/utils/send-page-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 const props = defineProps({
   successMessage: String,

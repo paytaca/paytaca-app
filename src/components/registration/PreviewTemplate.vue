@@ -14,7 +14,7 @@
       </q-card>
 
       <!-- action buttons section -->
-      <div :class="`row justify-center text-bow q-mt-sm q-px-xs ${mode}`">
+      <div :class="`row justify-center text-bow q-mt-sm ${mode}`">
         <div
           v-for="index in 4"
           v-bind:key="`${index}-action`"
@@ -30,7 +30,7 @@
       </div>
 
       <!-- tokens section -->
-      <div :class="`row justify-center text-bow q-mt-md q-px-xs ${mode}`">
+      <div :class="`row justify-center text-bow q-mt-md ${mode}`">
         <div
           v-for="index in 2"
           v-bind:key="`${index}-action`"
@@ -81,6 +81,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  body.preview {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   #p-app-container {
     height: 170px !important;
     min-height: 170px !important;
@@ -91,6 +95,7 @@ export default {
     position: relative !important;
     flex-direction: column;
     display: flex;
+    padding: 0; /* ensure no inner padding */
   }
   #p-bch-card {
     margin: 10px 10px 0 10px;

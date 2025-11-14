@@ -135,9 +135,23 @@ function initMap() {
     moved.value = true
     updateCoordinates()
   })
+  
+  // Function to trigger reverse geocoding after map is ready
+  const triggerInitialReverseGeocode = () => {
+    if (props.search?.forceResults && coordinates.value?.lat && coordinates.value?.lng) {
+      // Use setTimeout to ensure search control is ready
+      setTimeout(() => {
+        reverseGeocode()
+      }, 500)
+    }
+  }
+  
   if (!props.disableGeolocate && autoLocate && !props.static) {
     _map.locate({setView: true, maxZoom: 16, timeout: 3000 })
-    _map.on('locationfound', () => updateCoordinates())
+    _map.on('locationfound', () => {
+      updateCoordinates()
+      triggerInitialReverseGeocode()
+    })
   }
 
   if (props.static) {
@@ -150,6 +164,13 @@ function initMap() {
     if (props.search?.autofocus) {
       document.getElementsByClassName('pin-dialog-search-input')?.item(0)?.focus?.()
     }
+    // Automatically reverse geocode the initial location
+    triggerInitialReverseGeocode()
+  } else if (props.search?.forceResults) {
+    // Even if search UI is not enabled, still reverse geocode if forceResults is true
+    // This requires the search control to be added first
+    addSearch()
+    triggerInitialReverseGeocode()
   }
 }
 watch(() => [props.static], () => {

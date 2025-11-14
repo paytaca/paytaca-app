@@ -205,6 +205,7 @@
                     :dark-mode="darkMode"
                     :theme="theme"
                     :user-lift-balance="userLiftBalance"
+                    :lift-swap-contract-address="liftSwapContractAddress"
                     @navigate-to-buy="sectionTab = 'reserves'"
                   />
                 </q-tab-panel>

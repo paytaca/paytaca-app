@@ -66,16 +66,36 @@ export function convertTokenAmount (amount, decimals, decimalPlaces=2, isBCH=fal
 
 export function convertToTokenAmountWithDecimals(amount, decimals, isBCH=false, isSLP=false) {
   if (isBCH || isSLP) return amount
-  if (amount === 0) return amount
+  if (amount === null || amount === undefined) return 0
 
-  const parsedAmount = BigInt(parseInt(amount) || 0)
+  const amountStr = String(amount)
+  if (!amountStr.trim()) return 0
+
+  // If amount already includes a fractional part, treat it as human-readable value
+  if (amountStr.includes('.') || amountStr.toLowerCase().includes('e')) {
+    const numericAmount = Number(amountStr)
+    return Number.isFinite(numericAmount) ? numericAmount : 0
+  }
+
   const parsedDecimals = parseInt(decimals) || 0
   const multiplier = BigInt(10) ** BigInt(parsedDecimals)
 
-  const remainder = parsedAmount % multiplier
-  if (remainder > 0n) {
-    return Number(parsedAmount) / Number(multiplier)
+  let parsedAmount
+  try {
+    parsedAmount = BigInt(amountStr)
+  } catch {
+    const fallback = Number(amountStr)
+    return Number.isFinite(fallback) ? fallback : 0
   }
 
-  return parsedAmount / multiplier
+  const isNegative = parsedAmount < 0n
+  const absAmount = isNegative ? parsedAmount * -1n : parsedAmount
+
+  const remainder = absAmount % multiplier
+  let converted = remainder === 0n
+    ? Number(absAmount / multiplier)
+    : Number(absAmount) / Number(multiplier)
+
+  if (isNegative) converted *= -1
+  return converted
 }

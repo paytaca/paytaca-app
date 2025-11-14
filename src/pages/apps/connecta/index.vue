@@ -472,7 +472,7 @@ export default {
 
     async executeSecurityChecking () {
       setTimeout(() => {
-        if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+        if (this.$store.getters['global/preferredSecurity'] === 'pin') {
           this.openPinVerification()
         } else {
           this.verifyBiometric()
