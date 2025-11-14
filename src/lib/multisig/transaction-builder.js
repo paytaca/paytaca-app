@@ -186,8 +186,12 @@ export class MultisigTransactionBuilder {
     this.version = 2
   }
 
+  setVersion(version) {
+    this.version = version
+  }
+  
   setLocktime (locktime) {
-    this.locktime = locktime
+    this.locktime = locktime || 0
     return this
   }
 
@@ -196,7 +200,12 @@ export class MultisigTransactionBuilder {
    * @param { import("@bitauth/libauth").Input[] } inputs
    */
   addInputs(inputs) {
-    this.inputs = this.inputs.concat(inputs)
+    this.inputs = this.inputs.concat(inputs.map(i => {
+      if (!i.sequenceNumber) {
+        i.sequenceNumber = parseInt('ffffffff', 16)
+      }
+      return i
+    }))
     return this
   }
   
