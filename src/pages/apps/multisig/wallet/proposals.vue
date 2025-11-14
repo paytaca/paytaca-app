@@ -15,7 +15,7 @@
                 </q-item>
                 <q-item>
                     <q-item-section>
-                        <q-btn icon="mdi-file-import" color="primary" @click="importTransactionProposal" no-caps>Import From File</q-btn>
+                        <q-btn icon="mdi-file-import" color="primary" @click="importPsbt" no-caps>Import From File</q-btn>
                     </q-item-section>
                 </q-item>
              </q-list>
@@ -25,18 +25,18 @@
             <q-item
               v-for="pst, i in psts"
               :key="i" clickable
-              :to="{ name: 'app-multisig-wallet-pst-view', params: { wallethash: route.params.wallethash, unsignedtransactionhash: pst.unsignedTransactionHash } }"
+              :to="{ name: 'app-multisig-wallet-pst-view', params: { wallethash: route.params.wallethash, unsignedtransactionhash: pst?.unsignedTransactionHash } }"
               class="q-py-md"
             >
               <q-item-section>
                 <q-item-label class="text-weight-bold flex items-center">
-                  <span>{{i + 1}}. {{ pst.purpose }}</span>
+                  <span>{{i + 1}}. Purpose: {{ pst.purpose }}</span>
                 </q-item-label>
                 <q-item-label caption>
                   Origin: {{ pst.origin }}
                 </q-item-label>
                 <q-item-label caption>
-                  <!-- Current Signatures: {{ pst.getSignatureCount() }} / {{ pst.getRequiredSignatures() }} -->
+                  Signing Progress: {{ pst.getSigningProgress()?.signingProgress }}
                 </q-item-label>
               </q-item-section>
               <q-item-section side top>
@@ -104,15 +104,15 @@ const wallet = computed(() => {
 })
 
 const psts = computed(() => {
-  const pstObjects =  $store.getters['multisig/getPstsByWalletHash'](route.params.wallethash)?.filter(p => !p.broadcastResult)
-  return pstObjects.map(p => {
-    const pstInstance = Pst.fromObject(p, { store: $store })
-    pstInstance.wallet = wallet.value
-    return pstInstance
+  const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
+  return psbts?.map(psbtBase64 => {
+    const pst = Pst.fromPsbt(psbtBase64)
+    pst.setWallet(wallet.value)
+    return pst
   })
 })
 
-const importTransactionProposal = () => {
+const importPsbt = () => {
   pstFileElementRef.value.pickFiles()
 }
 
@@ -120,13 +120,13 @@ const onUpdateTransactionFile = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      const pstExportedData = reader.result
-      const pstInstance = Pst.import(pstExportedData, { store: $store })
-      pstInstance.wallet = wallet.value
-      pstInstance.save()
+      const pst = Pst.import(reader.result)
+      pst.setStore($store)
+      pst.setWallet(wallet.value)
+      pst.save()
       router.push({ 
         name: 'app-multisig-wallet-pst-view', 
-        params: { unsignedtransactionhash: pstInstance.unsignedTransactionHash }
+        params: { unsignedtransactionhash: pst.unsignedTransactionHash }
       })
     }
     reader.onerror = (err) => {
