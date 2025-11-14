@@ -1,7 +1,6 @@
-import { bigIntToBinUint64LE, bigIntToCompactSize, compactSizeToBigInt, numberToBinInt32LE } from "@bitauth/libauth"
+import { bigIntToBinUint64LE, numberToBinInt32LE } from "@bitauth/libauth"
 import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
 import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "./utils"
-import { PsbtController } from './psbt-controller'
 import { MultisigTransactionBuilder } from "./transaction-builder"
 export const PSBT_MAGIC = '70736274ff'
 
