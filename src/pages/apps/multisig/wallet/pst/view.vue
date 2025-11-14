@@ -52,32 +52,57 @@
                 </q-item-label>
               </q-item-section>
             </q-item>
-            <q-item>
-              <q-item-section>
-                Debit
-              </q-item-section>
-              <q-item-section side>
-                <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg" :label="`- ${pst.getTotalDebitSatoshis() / 1e8}`" color="red">
-                  &nbsp;
-                </q-btn>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>
-                Change
-              </q-item-section>
-              <q-item-section side>
-                <q-btn icon-right="img:bitcoin-cash-circle.svg" :label="Big(pst.getTotalChangeSatoshis()).div(1e8).toString()" flat dense>
-                  &nbsp;
-                </q-btn>
-              </q-item-section>
-            </q-item>
+            <template v-if="pst.getTotalSatsDebit() > 0">
+              <q-item >
+                <q-item-section>
+                  Debit
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg" :label="`- ${pst.getTotalSatsDebit() / 1e8}`" color="red">
+                    &nbsp;
+                  </q-btn>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  Change [BCH]
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn icon-right="img:bitcoin-cash-circle.svg" :label="Big(pst.getTotalSatsChange()).div(1e8).toString()" flat dense>
+                    &nbsp;
+                  </q-btn>
+                </q-item-section>
+              </q-item>
+            </template>
+            
+            <template v-for="category, i in pstOutputsTokenCategories">
+              <q-item v-if="pst.getTotalTokenDebit(category) > 0">
+                <q-item-section>
+                 Token Debit [{{ shortenString(category, 12)}}]
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn flat dense icon-right="token" :label="`- ${pst.getTotalTokenDebit(category)}`" color="red">
+                    &nbsp;
+                  </q-btn>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  Token Change [{{ shortenString(category, 12)}}] 
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn icon-right="token" :label="pst.getTotalTokenChange(category)" flat dense>
+                    &nbsp;
+                  </q-btn>
+                </q-item-section>
+              </q-item>
+            </template>
             <q-item>
               <q-item-section>
                 Fee
               </q-item-section>
               <q-item-section side>
-                <q-btn icon-right="img:bitcoin-cash-circle.svg" :label="Big(pst.getFeeSatoshis()).div(1e8).toString()" flat dense>
+                <q-btn icon-right="img:bitcoin-cash-circle.svg" :label="Big(pst.getSatsFee()).div(1e8).toString()" flat dense>
                   &nbsp;
                 </q-btn>
               </q-item-section>
@@ -191,25 +216,28 @@
 <script setup>
 
 import { useStore } from 'vuex'
-import { useQuasar } from 'quasar'
+import { QSpinnerDots, useQuasar } from 'quasar'
 import { computed, ref, onMounted, nextTick, reactive, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
+import { binToHex, decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { MultisigWallet, Pst, shortenString } from 'src/lib/multisig'
+import { getSigningProgress, MultisigWallet, Pst, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
 import Big from 'big.js'
 import { WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDialog.vue'
+import { withTimeout } from 'src/utils/async-utils'
+import { Psbt, psbtToLibauthTemplate } from 'src/lib/multisig/psbt'
 
 const {
   getSignerXPrv,
   isChipnet,
   multisigNetworkProvider,
-  multisigCoordinationServer
+  multisigCoordinationServer,
+  resolveXprvOfXpub
 } = useMultisigHelpers()
 
 
@@ -222,7 +250,6 @@ const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const signingProgress = ref({})
 const isBroadcasting = ref(false)
-const isSyncing = ref(false)
 const pstFileElementRef = ref()
 const pstFileModel = ref()
 const pst = ref()
@@ -234,10 +261,21 @@ const darkMode = computed(() => {
 const wallet = computed(() => {
   const walletObject = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
   if (walletObject) {
-    return MultisigWallet.fromObject(walletObject)
+    return MultisigWallet.fromObject(
+      walletObject,
+      { 
+        network: multisigNetworkProvider,
+        coordinationServer: multisigCoordinationServer,
+        resolveXprvOfXpub
+      }
+    )
   }
   return walletObject
 })  
+
+const pstOutputsTokenCategories = computed(() => {
+    return new Set(pst.value?.outputs.map(o => o.token?.category ? binToHex(o.token.category) : '').filter(c=> Boolean(c)) || [])
+})
 
 const signButtonIcon = computed(() => {
   return (signer) => {
@@ -246,6 +284,34 @@ const signButtonIcon = computed(() => {
     return 'draw'
   }
 })
+
+const syncPst = async () => {
+
+  try {
+
+    $q.loading.show({
+      spinner: QSpinnerDots,
+      spinnerColor: 'primary',
+      messageColor: 'primary',
+      message: 'Syncing Pst...'
+    })
+
+    await withTimeout(pst.value.upload(), 10000, 'Request timed-out!')
+    
+  } catch (error) {
+
+    $q.notify({
+        type: 'Warning',
+        message: error,
+        position: 'bottom',
+        timeout: 3000,
+        color: 'dark'
+    })
+
+  } finally {
+    $q.loading.hide()
+  }
+}
 
 const openBottomsMenu = () => {
   $q.bottomSheet({
@@ -261,13 +327,13 @@ const openBottomsMenu = () => {
       {
         icon: 'cloud_upload',
         label: 'Sync',
-        value: 'share-pst',
+        value: 'sync-pst',
         color: 'primary'
       },
       {
         icon: 'mdi-file-export',
-        label: 'Export PST',
-        value: 'export-pst',
+        label: 'Export PSBT',
+        value: 'export-psbt',
         color: 'primary'
       }
     ],
@@ -279,7 +345,11 @@ const openBottomsMenu = () => {
       router.push(`/apps/multisig/wallet/${route.params.wallethash}`)
     }
 
-    if (action.value === 'export-pst') {
+    if (action.value === 'sync-pst') {
+      await syncPst()
+    }
+
+    if (action.value === 'export-psbt') {
       const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
       $q.dialog({
         title: 'Enter Filename',
@@ -288,14 +358,20 @@ const openBottomsMenu = () => {
           type: 'text',
           model: defaultFilename
         }
-      }).onOk((filename) => {
+      }).onOk(async (filename) => {
+        
         if (!filename) return
-        const data = pst.value.export()
-        const blob = new Blob([data], { type: 'text/plain' })
+
+        const base64Psbt = await pst.value.export()
+        const blob = new Blob(
+          [base64Psbt], 
+          { type: 'text/plain' }
+        )
+
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `${filename}.ppst`
+        a.download = `${filename}.psbt`
         document.body.appendChild(a)
         a.click()
       }).onCancel(() => {})
@@ -325,7 +401,7 @@ const showBroadcastSuccessDialog = async (txid) => {
   $q.dialog({
     component: BroadcastSuccessDialog,
     componentProps: {
-      amountSent: pst.value.getTotalDebitSatoshis() / 1e8,
+      amountSent: pst.value.getTotalSatsDebit() / 1e8,
       txid: txid,
       successMessage: message,
       darkMode: darkMode.value
@@ -336,13 +412,6 @@ const showBroadcastSuccessDialog = async (txid) => {
   })
 }
 
-const syncPst = async () => {
-  if (!pst.value) return
-  isSyncing.value = true
-  await pst.value.sync(() => {
-    isSyncing.value = false
-  })
-}
 
 const broadcastTransaction = async () => {
   try {
@@ -401,36 +470,30 @@ const onUpdatePstFile = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      const importedPstInstance = Pst.import(reader.result)
-      const hash = importedPstInstance.unsignedTransactionHash
-      const existingPst = $store.getters['multisig/getPstByUnsignedTransactionHash'](hash)
-
-      let combinedPst = null
-
-      if (existingPst) {
-        const existingPstInstance = Pst.fromObject(JSON.parse(JSON.stringify(existingPst)))
-        combinedPst = existingPstInstance.combine([importedPstInstance])
+      try {
+        const imported = Pst.import(reader.result)
+        const base64 = $store.getters['multisig/getPsbtByUnsignedTransactionHash'](imported.unsignedTransactionHash)
+        let combined = null
+        if (base64) {
+          const stored = Pst.fromPsbt(base64)
+          combined = stored.combine([imported])
+        } 
+        pst.value = combined || imported
+        pst.value
+          .setWallet(wallet.value)
+          .setStore($store)
+          .setProvider(multisigNetworkProvider)
+          .setCoordinationServer(multisigCoordinationServer)
+        pst.value.save()
+        signingProgress.value = pst.value.getSigningProgress()  
+      } catch (error) {
+        console.log('Error', error)
+        $q.dialog({
+          message: 'Error importing PSBT!',
+          class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+        })
       }
       
-      // $store.dispatch('multisig/saveTransaction', combinedPst || importedPst)
-      // $store.dispatch('multisig/syncTransactionSignatures', { multisigWallet: multisigWallet.value, multisigTransaction: combinedPst || importedPst })
-      // multisigTransaction.value = combinedPst || importedPst
-      
-      pst.value = combinedPst || importedPstInstance
-      pst.value.walletHash = wallet.value.walletHash
-      pst.value.wallet = wallet.value
-      pst.value.options = {
-        store: $store,
-        provider: multisigNetworkProvider,
-        coordinationServer: multisigCoordinationServer
-      }
-      pst.value.save()
-      signingProgress.value = pst.value.getSigningProgress()
-      // updateBroadcastStatus()
-      // signingProgress.value = getSigningProgress({
-      //   multisigWallet: multisigWallet.value,
-      //   multisigTransaction: multisigTransaction.value
-      // })
     }
     reader.onerror = (err) => {
       console.err(err)
@@ -447,16 +510,17 @@ onMounted(async () => {
         signersXPrv.value[signer.xpub] = xprv
       }
     }
-  }
-  const storedPst = $store.getters['multisig/getPstByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
+  }  
+
+  const storedPst = 
+    (new Pst())
+      .setStore($store)
+      .setWallet(wallet.value)
+      .setCoordinationServer(multisigCoordinationServer)
+      .loadFromStore(route.params.unsignedtransactionhash)
+  
   if (storedPst) {
-    pst.value = Pst.fromObject(JSON.parse(JSON.stringify(storedPst)))
-    pst.value.wallet = wallet.value 
-    pst.value.options = {
-      store: $store,
-      provider: multisigNetworkProvider,
-      coordinationServer: multisigCoordinationServer
-    }
+    pst.value = storedPst
     signingProgress.value = pst.value.getSigningProgress()
   }
 })
