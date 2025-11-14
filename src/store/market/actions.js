@@ -162,7 +162,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
     .filter(Boolean)
     .filter((e, i, s) => s.indexOf(e) === i)
 
-  const vsCurrencies = [selectedCurrency, customCurrency]
+  const vsCurrencies = [currencySymbol, customCurrency]
     .filter(Boolean)
     .filter((element, index, array) => array.indexOf(element) === array.lastIndexOf(element))
 
@@ -190,8 +190,8 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
   })
 
   let fetchUsdRate = false
-  if (selectedCurrency) {
-    const loweredSelectedCurrency = String(selectedCurrency).toLowerCase()
+  if (currencySymbol) {
+    const loweredSelectedCurrency = String(currencySymbol).toLowerCase()
     fetchUsdRate = !coinIds.map(coinId => prices?.[coinId]?.[loweredSelectedCurrency]).every(Boolean)
   }
 
@@ -215,7 +215,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
     // (getAllAssetList only returns assets without '/' in ID, excluding tokens)
     context.commit('updateAssetPrices', { assetPrices: newAssetPrices, isFullUpdate: false })
   }
-  if (fetchUsdRate) context.dispatch('updateUsdRates', { currency: selectedCurrency })
+  if (fetchUsdRate) context.dispatch('updateUsdRates', { currency: currencySymbol })
 }
 
 /**
@@ -240,7 +240,7 @@ export async function updateUsdRates (context, { currency, priceDataAge }) {
     try {
       const { data } = await axios.get(`https://api.yadio.io/rate/${currency}/USD`)
       if (!data.rate) {
-        return Promise.reject()
+        return Promise.reject(new Error(`No rate data returned for currency: ${currency}`))
       }
       // API returns rate from currency to USD (e.g., 1 PHP = 0.018 USD)
       // But we need rate from USD to currency (e.g., 1 USD = 55.56 PHP)
@@ -251,11 +251,11 @@ export async function updateUsdRates (context, { currency, priceDataAge }) {
       ]
     } catch (error) {
       console.error('Error fetching USD rate from API:', error)
-      return Promise.reject(error)
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)))
     }
   } else {
     const { data } = await axios.get('https://api.yadio.io/exrates/USD')
-    if (!data.USD) return Promise.reject()
+    if (!data.USD) return Promise.reject(new Error('No USD rate data returned from API'))
 
     rates = Object.getOwnPropertyNames(data)
       .map(symbol => {

@@ -344,8 +344,16 @@ export default {
         }
       },
       (error) => {
+        // Handle UNIMPLEMENTED error gracefully (e.g., when running in web browser)
+        if (error?.code === 'UNIMPLEMENTED' || error?.message?.includes('not implemented')) {
+          this.securityAuth = false
+          this.pinStatus = true
+          // Silently handle - biometrics not available on this platform
+          return
+        }
+        // Log other errors for debugging
         this.pinStatus = true
-        console.log('Implementation error: ', error)
+        console.warn('Biometric availability check error:', error)
       })
   },
   mounted () {

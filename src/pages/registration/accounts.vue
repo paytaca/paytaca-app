@@ -619,7 +619,9 @@ export default {
       } else if (val === 2 && !this.importSeedPhrase) {
         // Step 2: Auto-detect language and currency (geoip call happens here)
         this.$nextTick(() => {
-          this.initializeStep2()
+          this.initializeStep2().catch(error => {
+            console.error('[Step 2] Unhandled error in initializeStep2:', error)
+          })
         })
       } else if (val === 4 && !this.importSeedPhrase) {
         // Step 4: Force theme update when entering step 4 to ensure theme changes from step 3 apply immediately
@@ -651,7 +653,9 @@ export default {
           }
           // Initialize step 2 when navigating to it (geoip call happens here)
           if (routeStep === 2 && !this.importSeedPhrase) {
-            this.initializeStep2()
+            this.initializeStep2().catch(error => {
+              console.error('[Step 2] Unhandled error in initializeStep2:', error)
+            })
           }
         }
       }
@@ -891,7 +895,9 @@ export default {
       if (vm.isRedirecting) return
       vm.isRedirecting = true
       
-      vm.$store.dispatch('global/saveWalletPreferences')
+      vm.$store.dispatch('global/saveWalletPreferences').catch(error => {
+        console.warn('Failed to save wallet preferences:', error)
+      })
       vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
         return vm.promptEnablePushNotification()?.catch?.(console.error)
       }).then(async function () {
@@ -1777,8 +1783,8 @@ export default {
     
     // Check server status
     this.$axios.get('https://watchtower.cash/api/status/', { timeout: 30000 }).then(response => {
-      if (response.status !== 200) return Promise.reject()
-      if (response.data.status !== 'up') return Promise.reject()
+      if (response.status !== 200) return Promise.reject(new Error('Server status check returned non-200 status'))
+      if (response.data.status !== 'up') return Promise.reject(new Error('Server status is not up'))
       this.serverOnline = true
     }).catch(() => {
       this.serverOnline = false
@@ -1791,13 +1797,21 @@ export default {
     
     // If user lands directly on step-2, ensure geoip call happens
     if (this.currentStep === 2 && !this.importSeedPhrase) {
-      this.$nextTick(() => this.initializeStep2())
+      this.$nextTick(() => {
+        this.initializeStep2().catch(error => {
+          console.error('[Step 2] Unhandled error in initializeStep2:', error)
+        })
+      })
     }
     
     // If user lands directly on restore step-3, ensure geoip call happens
     if (this.restoreStep === 3) {
       this.step2Initialized = false
-      this.$nextTick(() => this.initializeStep2())
+      this.$nextTick(() => {
+        this.initializeStep2().catch(error => {
+          console.error('[Step 2] Unhandled error in initializeStep2:', error)
+        })
+      })
     }
   }
 }
