@@ -137,7 +137,7 @@ export default {
       this.collectibleDetail.collectible = collectible
     },
 
-    fetchCollectibles (opts = {}) {
+    async fetchCollectibles (opts = {}) {
       if (!this.wallet) return
       const _opts = opts || {}
       if (!Number.isSafeInteger(_opts.limit)) _opts.limit = 6

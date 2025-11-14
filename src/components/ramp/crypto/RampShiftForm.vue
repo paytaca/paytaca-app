@@ -458,7 +458,7 @@ export default {
         vm.settleAddress = bchAddress
       }
     },
-    checkErrorMsg () {
+    async checkErrorMsg () {
       const vm = this
       const min = parseFloat(vm.minimum)
       const max = parseFloat(vm.maximum)
@@ -476,11 +476,10 @@ export default {
       }
       // balance checking - compare with dynamically generated address
       if (vm.deposit.coin === 'BCH') {
-        vm.getBchAddress().then(bchAddress => {
-          if (bchAddress && amount > vm.bchBalance && vm.refundAddress === bchAddress) {
-            vm.errorMsg = 'Wallet Balance not enough'
-          }
-        })
+        const bchAddress = await vm.getBchAddress()
+        if (bchAddress && amount > vm.bchBalance && vm.refundAddress === bchAddress) {
+          vm.errorMsg = 'Wallet Balance not enough'
+        }
       }
 
       if (vm.errorMsg) {
@@ -523,7 +522,7 @@ export default {
       } else {
         vm.settleAmount = ''
       }
-      vm.checkErrorMsg()
+      await vm.checkErrorMsg()
       vm.setBCHAddress()
     }, 500),
     async loadIcon () {
