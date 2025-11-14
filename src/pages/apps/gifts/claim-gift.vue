@@ -198,14 +198,21 @@ export default {
           privateKey = sss.combine([share1, giftCode])
         }
         vm.sweeper = new SweepPrivateKey(privateKey.toString())
-        vm.sweeper.getBchBalance().then(function (data) {
+        vm.sweeper.getBchBalance().then(async function (data) {
           vm.bchAmount = data.spendable || 0
           if (vm.bchAmount > 0) {
+            const recipientAddress = await vm.getRecipientAddress('bch')
+            if (!recipientAddress) {
+              vm.error = vm.$t('FailedToGetAddress', {}, 'Failed to get recipient address')
+              vm.processing = false
+              return
+            }
+            
             vm.sweeper.sweepBch(
               vm.sweeper.bchAddress,
               privateKey.toString(),
               vm.bchAmount,
-              vm.$store.getters['global/getAddress']('bch')
+              recipientAddress
             )
             if (vm.action === 'Recover') {
               vm.$store.dispatch('gifts/deleteGift', giftCodeHash)
