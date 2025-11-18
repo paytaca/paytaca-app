@@ -1,10 +1,32 @@
 <template>
 <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
     <!-- back button -->
-    <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="state != 'form'" @click="clickBack"></div>
+    <!-- <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="state != 'form'" @click="clickBack"></div> -->
     <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps" class="header-nav" />
-    <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
-      <ProgressLoader/>
+    <div v-if="!isloaded" class="q-mx-md">
+      <!-- <ProgressLoader/> -->
+
+      <div class="row justify-end q-mr-lg q-mb-md">
+        <q-skeleton type="circle" height="30px" width="30px"/>
+      </div>
+      <!-- Swap Info -->
+      <div class="q-mx-md q-mb-sm">
+        <q-skeleton type="rect" height="300px" style="border-radius: 15px;" />
+      </div>
+
+      <!-- Address Input -->
+      <div class="q-mx-md q-mt-md">
+        <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+      </div>
+
+      <div class="row q-mx-md q-py-md text-center justify-center">
+        <q-skeleton type="text" width="50%" />
+      </div>    
+
+      <!-- Action Button Skeleton -->
+      <div class="q-mx-md">
+        <q-skeleton type="rect" height="50px" style="border-radius: 25px;" />
+      </div>    
     </div>
     <div v-else>
         <!-- CRYPTO Tab Content -->

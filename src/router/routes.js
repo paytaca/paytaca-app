@@ -152,7 +152,16 @@ const routes = [
           { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } }
         ]
       },
-      { path: 'ramp/crypto', component: () => import('src/pages/apps/ramp-crypto.vue'), name: 'ramp-crypto' },
+      { 
+        path: 'ramp/crypto', 
+        name: 'ramp-crypto',
+        component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue')      
+      },
+      {
+        path: 'ramp/crypto/history/',
+        name: 'crypto-swap-history',
+        component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history.vue'),
+      },
       {
         path: 'exchange/',
         name: 'exchange',
@@ -300,7 +309,7 @@ const routes = [
         component: () => import('src/pages/transactions/TransactionDetail.vue')
       }
     ]
-  },
+  },  
   // Always leave this as last one,
   // but you can also remove it
   {

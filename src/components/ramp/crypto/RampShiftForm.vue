@@ -10,164 +10,198 @@
   >
     <div class="row items-center justify-end q-mr-lg">
       <q-btn
-        round
-        padding="xs"
-        icon="mdi-history"
-        class="q-ml-md button"
-        @click="openHistory"
-      />
-    </div>
-    <div class="text-center q-pb-md q-mt-sm">
-      {{ $t('SwapFrom') }}:
-    </div>
-
-    <q-item clickable class="q-mx-md">
-      <q-item-section avatar class="items-center" @click="selectSourceToken">
-        <div class="q-mb-sm currency-icon" v-html="deposit.icon"></div>
-        <q-item-label>
-          {{deposit.coin }}<q-icon v-show="!isFromBCH" name="expand_more"/>
-        </q-item-label>
-        <q-item-label class="text-center currency-name">
-          {{getNetwork(deposit)}}
-        </q-item-label>
-      </q-item-section>
-      <q-item-section>
-        <q-input
-          dense
-          filled
-          :dark="darkMode"
-          v-model="shiftAmount"
-          @update:modelValue="function(){
-              updateConvertionRate()
-            }"
-        />
-        <q-item-label
-          class="text-right q-mt-sm"
-          caption
-          :class="darkMode ? 'text-grey-6' : ''"
-          v-if="deposit.coin==='BCH'"
-        >
-          {{ $t('Balance') }}: {{ bchBalance }}
-        </q-item-label>
-          <q-item-label
-            class="text-right q-mt-sm"
-            caption
-            style="color:red"
-            v-if="errorMsg"
-          >
-            {{ errorMsg }}
-          </q-item-label>
-      </q-item-section>
-    </q-item>
-    <div class="q-px-md q-my-xs row items-center justify-center">
-      <q-btn
-        icon="mdi-swap-vertical"
-        round
-        text-color="blue-9"
-        color="grey-4"
         unelevated
-        @click="swapCoin"
-      />
+        ripple
+        dense    
+        icon="sym_o_receipt_long"
+        class="button button-text-primary"
+        size="18px"
+        :class="getDarkModeClass(darkMode)"
+        @click="openHistory"
+      />    
     </div>
 
-    <div class="full-width text-center q-mt-md">
-      {{ $t('SwapTo') }}:
-    </div>
+    <div class="q-mx-md">
+      <!-- Swap Setting Card -->
+      <div class="pt-card q-pa-md q-my-sm br-15" :class="darkMode ? 'dark' : 'light'">
+        
+        <div class="q-mt-sm text-h5 text-center text-weight-bold lg-font-size text-grad">
+          {{ $t('SwapFrom') }}:
+        </div>
 
-    <q-item class="q-mx-md q-mb-lg">
-      <q-item-section avatar class="item-center" @click="selectSettleToken">
-        <div class="q-mb-sm currency-icon" v-html="settle.icon"></div>
-        <q-item-label class="">
-          {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
-        </q-item-label>
-        <q-item-label class="text-center currency-name">
-          {{ getNetwork(settle) }}
-        </q-item-label>
-      </q-item-section>
+        <q-item clickable>
+          <q-item-section avatar class="items-center" @click="selectSourceToken">
+            <div class="q-mb-sm currency-icon" v-html="deposit.icon"></div>
+            <q-item-label>
+              {{deposit.coin }}<q-icon v-show="!isFromBCH" name="expand_more"/>
+            </q-item-label>
+            <!-- <q-item-label class="text-center sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
+              {{getNetwork(deposit)}}
+            </q-item-label> -->
+          </q-item-section>
+          <q-item-section>
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="shiftAmount"
+              @update:modelValue="function(){
+                  updateConvertionRate()
+                }"
+            />
+            <q-item-label
+              class="text-right q-mt-sm"
+              caption
+              :class="darkMode ? 'text-grey-6' : ''"
+              v-if="deposit.coin==='BCH'"
+            >
+              {{ $t('Balance') }}: {{ bchBalance }}
+            </q-item-label>
+              <q-item-label
+                class="text-right q-mt-sm"
+                caption
+                style="color:red"
+                v-if="errorMsg"
+              >
+                {{ errorMsg }}
+              </q-item-label>
+          </q-item-section>
+        </q-item>
 
-      <q-item-section>
-        <q-skeleton v-if="!amountLoaded && shiftAmount" type="rect"/>
-        <q-input
-            v-else
-            disable
-            dense
-            filled
-            :dark="darkMode"
-            :modelValue="settleAmount"
+        <div class="q-px-md q-my-xs row items-center justify-center">
+          <q-btn
+            icon="mdi-swap-vertical"
+            round          
+            class="button bg-grad"          
+            @click="swapCoin"
+            unelevated
           />
-          <q-item-label
-            class="text-right q-mt-sm"
-            caption
-            :class="darkMode ? 'text-grey-6' : ''"
-            v-if="settleAmount && shiftAmount"
-          >
-            <i>1 {{ deposit.coin }} = {{ convertionRate }} {{ settle.coin }}</i>
-          </q-item-label>
-      </q-item-section>
-    </q-item>
-    <q-separator spaced class="q-mx-lg" :color="darkMode ? 'white' : 'gray'"/>
-    <q-item class="q-mx-md q-pt-lg" v-show="!isToBCH">
-      <q-item-section class="justify-center">
-        <div class="q-pb-sm q-pl-sm">
-          {{ $t('ReceivingAddress') }}
         </div>
-        <q-input
-          dense
-          filled
-          :dark="darkMode"
-          v-model="settleAddress"
-        >
-          <template v-slot:append>
-            <q-icon name="close" class="close-button" @click="settleAddress = ''"/>&nbsp;
-            <q-icon
-              name="mdi-qrcode-scan"
-              class="button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
-              @click="displayScanner('receive')"
-            />
-          </template>
-       </q-input>
-      </q-item-section>
-    </q-item>
-    <q-item class="q-mx-md q-pt-lg" v-show="!isFromBCH">
-      <q-item-section class="justify-center">
-        <div class="q-pb-sm q-pl-sm">
-          {{ $t('RefundAddress') }}
+
+        <div class="q-mt-md text-h5 text-center text-weight-bold lg-font-size text-grad">
+          {{ $t('SwapTo') }}:
         </div>
-        <q-input
-          dense
-          filled
-          :dark="darkMode"
-          v-model="refundAddress"
-        >
-          <template v-slot:append>
-            <q-icon name="close" class="close-button" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp;
-            <q-icon
-              name="mdi-qrcode-scan"
-              class="button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
-              @click="displayScanner('refund')"
-            />
-          </template>
-       </q-input>
-      </q-item-section>
-    </q-item>
-    <div class="row justify-center q-mt-md" style="color: gray;">
+
+        <q-item class="q-mb-lg">
+          <q-item-section avatar class="item-center" @click="selectSettleToken">
+            <div class="q-mb-sm currency-icon" v-html="settle.icon"></div>
+            <q-item-label class="">
+              {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
+            </q-item-label>
+            <!-- <q-item-label class="text-center sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
+              {{ getNetwork(settle) }}
+            </q-item-label> -->
+          </q-item-section>
+
+          <q-item-section>
+            <q-skeleton v-if="!amountLoaded && shiftAmount" type="rect"/>
+            <q-input
+                v-else
+                disable
+                dense
+                filled
+                :dark="darkMode"
+                :modelValue="settleAmount"
+              />
+              <q-item-label
+                class="text-right q-mt-sm"
+                caption
+                :class="darkMode ? 'text-grey-6' : ''"
+                v-if="settleAmount && shiftAmount"
+              >
+                <i>1 {{ deposit.coin }} = {{ convertionRate }} {{ settle.coin }}</i>
+              </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>    
+
+      <div class="pt-card q-pa-md q-mt-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
+        <q-item class="q-pt-sm" v-show="!isToBCH">
+          <q-item-section class="justify-center">
+            <div class="q-pb-sm q-pl-sm text-weight-bold">
+              {{ $t('ReceivingAddress') }}
+            </div>
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="settleAddress"
+            >
+              <template v-slot:append>
+                <q-icon name="close" class="close-button" @click="settleAddress = ''"/>&nbsp;
+                <q-icon
+                  name="mdi-qrcode-scan"
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="displayScanner('receive')"
+                />
+              </template>
+           </q-input>
+          </q-item-section>
+        </q-item>
+        <q-item class="q-pt-sm" v-show="!isFromBCH">
+          <q-item-section class="justify-center">
+            <div class="q-pb-sm q-pl-sm text-weight-bold">
+              {{ $t('RefundAddress') }}
+            </div>
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="refundAddress"
+            >
+              <template v-slot:append>
+                <q-icon name="close" class="close-button" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp;
+                <q-icon
+                  name="mdi-qrcode-scan"
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="displayScanner('refund')"
+                />
+              </template>
+           </q-input>
+          </q-item-section>
+        </q-item>  
+      </div>
+    </div>
+    
+    
+    <div class="row justify-center q-mt-md text-grey-6">
       <span>{{ $t('PoweredBy') }} SideShift.ai</span>
     </div>
-    <div class="row q-mx-md q-py-lg">
+    <div class="row q-mx-md q-py-md">
       <q-btn
         :disable="hasError || !shiftAmount || !settleAddress || !amountLoaded || !refundAddress"
-        rounded
-        no-caps
+        rounded        
         :label="$t('Submit')"
-        class="q-space button"
+        class="full-width q-py-sm text-weight-bold bg-grad button"
         @click="checkData()"
       />
     </div>
   </div>
-  <div class="row justify-center q-py-lg" style="margin-top: 50%" v-if="!isloaded && !error">
-    <ProgressLoader />
+  <div class="q-mx-md" v-if="!isloaded && !error">
+    <!-- <ProgressLoader /> -->
+    <div class="row justify-end q-mr-lg q-mb-md">
+      <q-skeleton type="circle" height="30px" width="30px"/>
+    </div>
+    <!-- Swap Info -->
+    <div class="q-mx-md q-mb-sm">
+      <q-skeleton type="rect" height="300px" style="border-radius: 15px;" />
+    </div>
+
+    <!-- Address Input -->
+    <div class="q-mx-md q-mt-md">
+      <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+    </div>
+
+    <div class="row q-mx-md q-py-md text-center justify-center">
+      <q-skeleton type="text" width="50%" />
+    </div>    
+
+    <!-- Action Button Skeleton -->
+    <div class="q-mx-md">
+      <q-skeleton type="rect" height="50px" style="border-radius: 25px;" />
+    </div>    
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
@@ -310,14 +344,15 @@ export default {
       this.setBCHAddress()
     },
     openHistory () {
-      this.$q.dialog({
-        component: RampHistoryDialog
-      })
-        .onOk(data => {
-          this.depositInfoState = 'history'
-          this.shiftData = data
-          this.state = 'deposit'
-        })
+      // this.$q.dialog({
+      //   component: RampHistoryDialog
+      // })
+      //   .onOk(data => {
+      //     this.depositInfoState = 'history'
+      //     this.shiftData = data
+      //     this.state = 'deposit'
+      //   })
+      this.$router.push({ name: 'crypto-swap-history' })
     },
     displayScanner (type = '') {
       const vm = this
@@ -728,5 +763,252 @@ export default {
   .currency-name {
     font-size: 10px;
     color: gray;
+  }
+  /* ==================== FONT SIZES ==================== */
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
+
+  /* ==================== UTILITIES ==================== */
+  .subtext {
+    opacity: .5;
+  }
+
+  .description {
+    text-align: justify;
+    text-align-last: left;
+    white-space: pre-wrap;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .br-15 {
+    border-radius: 15px;
+  }
+
+  /* ==================== GLASSMORPHIC ENHANCEMENTS ==================== */
+  .pt-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInUp 0.4s ease-out;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .bg-grad.button {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-3px);
+    }
+    
+    &:active:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
+
+  .warning-card {
+    border-left: 4px solid #ff9800 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-warning 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
+    
+    &.dark {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.15) 40%,
+          rgba(255, 255, 255, 0.35) 50%,
+          rgba(255, 255, 255, 0.15) 60%,
+          transparent 70%
+        );
+      }
+    }
+    
+    &.light {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%) !important;
+    }
+  }
+
+  .info-card {
+    border-left: 4px solid #2196f3 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-info 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
+    
+    &.dark {
+      background: rgba(33, 150, 243, 0.12) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.1) 40%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0.1) 60%,
+          transparent 70%
+        );
+      }
+    }
+    
+    &.light {
+      background: rgba(33, 150, 243, 0.08) !important;
+    }
+  }
+
+  /* ==================== ANIMATIONS ==================== */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes sparkle-card {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+  }
+
+  @keyframes pulse-warning {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes pulse-info {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.015);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.25);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+  @media (max-width: 599px) {
+    .pt-card {
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+
+  /* ==================== SKELETON LOADER STYLES ==================== */
+  .skeleton-form-container {
+    animation: fadeIn 0.3s ease-out;
+    
+    .q-skeleton {
+      animation: shimmer 1.5s infinite;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 </style>
