@@ -780,14 +780,6 @@ export default {
     opacity: .5;
   }
 
-  .description {
-    text-align: justify;
-    text-align-last: left;
-    white-space: pre-wrap;
-    font-size: 15px;
-    line-height: 1.6;
-  }
-
   .br-15 {
     border-radius: 15px;
   }
@@ -814,113 +806,6 @@ export default {
     }
   }
 
-  .warning-card {
-    border-left: 4px solid #ff9800 !important;
-    position: relative;
-    overflow: hidden;
-    animation: pulse-warning 2s ease-in-out infinite;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    
-    // Sparkle effect overlay
-    &::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(
-        45deg,
-        transparent 30%,
-        rgba(255, 255, 255, 0.2) 40%,
-        rgba(255, 255, 255, 0.5) 50%,
-        rgba(255, 255, 255, 0.2) 60%,
-        transparent 70%
-      );
-      animation: sparkle-card 3s linear infinite;
-      pointer-events: none;
-      z-index: 1;
-    }
-    
-    // Ensure content is above sparkle
-    .row, q-icon, div {
-      position: relative;
-      z-index: 2;
-    }
-    
-    &.dark {
-      background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%) !important;
-      
-      &::before {
-        background: linear-gradient(
-          45deg,
-          transparent 30%,
-          rgba(255, 255, 255, 0.15) 40%,
-          rgba(255, 255, 255, 0.35) 50%,
-          rgba(255, 255, 255, 0.15) 60%,
-          transparent 70%
-        );
-      }
-    }
-    
-    &.light {
-      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%) !important;
-    }
-  }
-
-  .info-card {
-    border-left: 4px solid #2196f3 !important;
-    position: relative;
-    overflow: hidden;
-    animation: pulse-info 2s ease-in-out infinite;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    
-    // Sparkle effect overlay
-    &::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(
-        45deg,
-        transparent 30%,
-        rgba(255, 255, 255, 0.1) 40%,
-        rgba(255, 255, 255, 0.3) 50%,
-        rgba(255, 255, 255, 0.1) 60%,
-        transparent 70%
-      );
-      animation: sparkle-card 3s linear infinite;
-      pointer-events: none;
-      z-index: 1;
-    }
-    
-    // Ensure content is above sparkle
-    .row, q-icon, div {
-      position: relative;
-      z-index: 2;
-    }
-    
-    &.dark {
-      background: rgba(33, 150, 243, 0.12) !important;
-      
-      &::before {
-        background: linear-gradient(
-          45deg,
-          transparent 30%,
-          rgba(255, 255, 255, 0.1) 40%,
-          rgba(255, 255, 255, 0.25) 50%,
-          rgba(255, 255, 255, 0.1) 60%,
-          transparent 70%
-        );
-      }
-    }
-    
-    &.light {
-      background: rgba(33, 150, 243, 0.08) !important;
-    }
-  }
 
   /* ==================== ANIMATIONS ==================== */
   @keyframes slideInUp {
@@ -931,15 +816,6 @@ export default {
     to {
       opacity: 1;
       transform: translateY(0);
-    }
-  }
-
-  @keyframes sparkle-card {
-    0% {
-      transform: translateX(-100%) translateY(-100%) rotate(45deg);
-    }
-    100% {
-      transform: translateX(100%) translateY(100%) rotate(45deg);
     }
   }
 

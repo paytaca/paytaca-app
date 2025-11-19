@@ -47,6 +47,8 @@
       </div>
     </div>
 
+    <!--  -->
+
     <div class="q-py-lg">
       <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
         <span>{{ $t('DepositAmount') }}:</span>
