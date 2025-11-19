@@ -3,118 +3,140 @@
     <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps/crypto-swap/history/" class="header-nav" />
 
     <div v-if="isloaded">
-      <div class="text-h5 text-center text-weight-bold lg-font-size text-grad">
-        {{ historyInfo.shift_status.toUpperCase() }}
+      <div v-if="historyInfo.shift_status === 'waiting'">
+        <RampDepositInfo
+          :shiftData="historyInfo"
+          :refundAddress="shiftInfo.refundAddress"
+          type="history"
+          v-on:retry=""
+          v-on:done=""
+        />
       </div>
 
-      <div class="row no-wrap justify-around items-baseline">
-        <div class="col-4 column items-center">
-          <div class="text-lowercase q-mt-sm pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px">
-            {{ $t('From') }}
+      <div v-else>
+        <div class="pt-card q-ma-md br-15" :class="getDarkModeClass(darkMode)">
+          <div class="text-h5 text-center text-weight-bold lg-font-size text-grad q-pt-md">
+            {{ historyInfo.shift_status.toUpperCase() }}
           </div>
-          <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="shiftInfo.deposit.icon"></div>
-          <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
-            {{ shiftInfo.deposit.coin}}
-          </div>
-          <div class="text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px; color:gray;">
-            ({{ getNetwork(shiftInfo.deposit) }})
-          </div>
-        </div>
 
-        <div class="col-4 text-center">
-          <br>
-          <q-btn
-            rounded
-            flat
-            padding="sm"
-            icon="arrow_forward"
-            disable
-            class="button button-text-primary"
-            :class="getDarkModeClass(darkMode)"
-          />
-        </div>
-
-        <div class="col-4 column items-center">
-          <div class="q-mt-sm text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px;">
-            {{ $t('To') }}
-          </div>
-          <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="shiftInfo.settle.icon"></div>
-          <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
-            {{ shiftInfo.settle.coin }}
-          </div>
-          <div class="text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px; color:gray;">
-            ({{ getNetwork(shiftInfo.settle) }})
-          </div>
-        </div>
-      </div>
-
-      <div class="q-py-lg">
-        <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-          <span>{{ $t('DepositAmount') }}:</span>
-          <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.depositAmount }} {{ shiftInfo.deposit.coin }}</span>
-        </div>
-        <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-          <span>{{ $t('ReceivingAmount') }}:</span>
-          <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.settleAmount }} {{ shiftInfo.settle.coin }}</span>
-        </div>
-      </div>
-
-      <div class="q-pb-lg" v-if="historyInfo.shift_status == 'settled'">
-        <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-          <span>{{ $t('DateCompleted') }}:</span>
-          <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ getDate(historyInfo.date_shift_completed) }}</span>
-        </div>
-        <div class="text-center q-pt-md q-px-lg pt-label" :class="getDarkModeClass(darkMode)">
-          <span>{{ $t('TransactionId') }}:</span><br>
-          <div class="q-pt-sm q-px-lg" @click="copyToClipboard(historyInfo.shift_info.txn_details.txid)">
-            <span style="font-size: 15px; overflow-wrap: break-word;">{{ historyInfo.shift_info.txn_details.txid }}</span>
-          </div>
-        </div>
-      </div>
-
-      <q-item clickable @click="copyToClipboard(historyInfo.shift_info.deposit.address)" v-if="historyInfo.shift_status === 'waiting' && historyInfo.ramp_type === 'on'">
-        <q-item-section class="text-center q-px-md">
-          <q-item-label>{{ $t('DepositAddress') }}: </q-item-label>
-
-          <q-item-label class="q-px-lg text-h5" style="overflow-wrap: break-word">
-            <span class="qr-code-text text-weight-light text-center">
-              <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(historyInfo.shift_info.deposit.address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
-                {{ historyInfo.shift_info.deposit.address }}<br>
-                <span style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</span><br>
-                <span style="font-size: 12px">or</span>
+          <div class="row no-wrap justify-around items-baseline">
+            <div class="col-4 column items-center">
+              <div class="text-lowercase q-my-sm sm-font-size" :class="getDarkModeClass(darkMode)">
+                {{ $t('From') }}
               </div>
-              <div class="text-center q-py-sm">
-                <q-btn round size="md" class="btn-scan text-white" icon="mdi-qrcode" @click="openDepositInfo()"/>
+              <div class="logo" v-html="shiftInfo.deposit.icon"></div>
+              <div class="text-weight-bold md-font-size q-pt-sm" :class="getDarkModeClass(darkMode)">
+                {{ shiftInfo.deposit.coin}}
               </div>
-            </span>
-          </q-item-label>
-        </q-item-section>
-      </q-item>
+              <div class="text-lowercase sm-font-size text-grey-6">
+                ({{ getNetwork(shiftInfo.deposit) }})
+              </div>
+            </div>
 
-      <q-separator class="q-mx-lg q-mb-md" :dark="darkMode"/>
+            <div class="col-4 text-center">
+              <br>
+              <q-btn
+                rounded
+                flat
+                padding="sm"
+                icon="arrow_forward"
+                disable
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+              />
+            </div>
 
-      <q-item>
-        <q-item-section class="text-center q-pb-sm q-pt-sm" :style="`width: ${maxWidth - 80}px`" style="overflow-wrap: break-word;">
-          <q-item-label>{{ $t('ReceivingAddress:') }} </q-item-label>
-          <q-item-label class=" q-pt-xs">
-          <span style="font-size: 13px;">{{ shiftInfo.settleAddress }}</span>
-          </q-item-label>
-        </q-item-section>
-      </q-item>
-      <q-item>
-        <q-item-section class="text-center" :style="`width: ${maxWidth - 80}px`" style="overflow-wrap: break-word;">
-          <q-item-label>{{ $t('RefundAddress') }}: </q-item-label>
-          <q-item-label class="q-px-lg q-pt-xs">
-            <span style="font-size: 13px;">{{ shiftInfo.refundAddress }}</span>
-          </q-item-label>
-        </q-item-section>
-      </q-item>
+            <div class="col-4 column items-center">
+              <div class="q-my-sm text-lowercase sm-font-size" :class="getDarkModeClass(darkMode)">
+                {{ $t('To') }}
+              </div>
+              <div class="logo" v-html="shiftInfo.settle.icon"></div>
+              <div class="text-weight-bold md-font-size q-pt-sm" :class="getDarkModeClass(darkMode)">
+                {{ shiftInfo.settle.coin }}
+              </div>
+              <div class="text-lowercase sm-font-size text-grey-6">
+                ({{ getNetwork(shiftInfo.settle) }})
+              </div>
+            </div>
+          </div>
 
+          <div class="q-py-lg">
+            <div class="row justify-between no-wrap q-mx-lg sm-font-size" :class="getDarkModeClass(darkMode)">
+              <span class="text-weight-bold">{{ $t('DepositAmount') }}:</span>
+              <span class="text-nowrap q-ml-xs">
+                <span class="md-font-size">{{ shiftInfo.depositAmount }}</span> &nbsp;
+                <span class="text-weight-bold">{{ shiftInfo.deposit.coin }}</span>
+              </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg sm-font-size" :class="getDarkModeClass(darkMode)">
+              <span class="text-weight-bold">{{ $t('ReceivingAmount') }}:</span>
+              <span class="text-nowrap q-ml-xs">
+                <span class="md-font-size">{{ shiftInfo.settleAmount }}</span> &nbsp;
+                <span class="text-weight-bold">{{ shiftInfo.settle.coin }}</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="q-pb-lg" v-if="historyInfo.shift_status == 'settled'">
+            <div class="row justify-between no-wrap q-mx-lg sm-font-size" :class="getDarkModeClass(darkMode)">
+              <span class="text-weight-bold">{{ $t('DateCompleted') }}:</span>
+              <span class="text-nowrap q-ml-xs">{{ getDate(historyInfo.date_shift_completed) }}</span>
+            </div>
+            <div class="text-center q-pt-md q-px-lg sm-font-size" :class="getDarkModeClass(darkMode)">
+              <span class="text-weight-bold">{{ $t('TransactionId') }}:</span><br>
+              <div class="q-pt-sm q-px-lg md-font-size address-container" @click="copyToClipboard(historyInfo.shift_info.txn_details.txid)">
+                <span style="overflow-wrap: break-word;">{{ historyInfo.shift_info.txn_details.txid }}</span>
+              </div>
+            </div>
+          </div>
+
+          <q-item clickable @click="copyToClipboard(historyInfo.shift_info.deposit.address)" v-if="historyInfo.shift_status === 'waiting' && historyInfo.ramp_type === 'on'">
+            <q-item-section class="text-center q-px-md">
+              <q-item-label>{{ $t('DepositAddress') }}: </q-item-label>
+
+              <q-item-label class="q-px-lg text-h5" style="overflow-wrap: break-word">
+                <span class="qr-code-text text-weight-light text-center">
+                  <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(historyInfo.shift_info.deposit.address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+                    {{ historyInfo.shift_info.deposit.address }}<br>
+                    <span style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</span><br>
+                    <span style="font-size: 12px">or</span>
+                  </div>
+                  <div class="text-center q-py-sm">
+                    <q-btn round size="md" class="btn-scan text-white" icon="mdi-qrcode" @click="openDepositInfo()"/>
+                  </div>
+                </span>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </div>
+
+        <div class="pt-card q-ma-md br-15" :class="getDarkModeClass(darkMode)">
+          <!-- <q-separator class="q-mx-lg q-mb-md" :dark="darkMode"/> -->
+
+          <q-item class="q-pt-md" clickable @click="copyToClipboard(shiftInfo.settleAddress)">
+            <q-item-section class="text-center q-pb-sm q-pt-sm address-container">
+              <q-item-label class="sm-font-size text-weight-bold">{{ $t('ReceivingAddress:') }} </q-item-label>
+              <q-item-label class=" q-pt-xs md-font-size text-grey-6">
+                <span>{{ shiftInfo.settleAddress }}</span>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable @click="copyToClipboard(shiftInfo.refundAddress)">
+            <q-item-section class="text-center q-pb-lg address-container">
+              <q-item-label class="sm-font-size text-weight-bold">{{ $t('RefundAddress') }}: </q-item-label>
+              <q-item-label class=" q-pt-xs md-font-size text-grey-6">
+                <span>{{ shiftInfo.refundAddress }}</span>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
+import RampDepositInfo from 'src/components/ramp/crypto/RampDepositInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -137,7 +159,8 @@ export default {
     },
   },
   components: {
-    HeaderNav
+    HeaderNav,
+    RampDepositInfo
   },
   async mounted () {
     const vm = this
@@ -185,7 +208,7 @@ export default {
       this.$emit('open-qr')
     },
     copyToClipboard (value) {
-      if (this.historyInfo.shift_status !== 'expired') {
+      // if (this.historyInfo.shift_status !== 'expired') {
         this.$copyText(value)
         this.$q.notify({
           message: this.$t('CopiedToClipboard'),
@@ -193,7 +216,7 @@ export default {
           color: 'blue-9',
           icon: 'mdi-clipboard-check'
         })
-      }
+      // }
     },
     getDate (date) {
       const tempDate = date.split('T')
@@ -217,6 +240,17 @@ export default {
     color: white;
   }
 
+  .logo {
+    height: 50px; 
+    width: 50px; 
+    border-radius: 50%;
+  }
+  .address-container {
+    overflow-wrap: break-word;
+    width: 15rem;
+    white-space: normal;
+    word-break: break-word;
+  }
   /* ==================== FONT SIZES ==================== */
   .sm-font-size {
     font-size: small;

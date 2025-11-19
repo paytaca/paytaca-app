@@ -1,117 +1,125 @@
 <template>
   <div v-if="isloaded">
-    <div class="text-h5 text-center q-pb-md" style="font-size: 15px;" v-if="state === 'confirmation'">Please check to confirm...</div>
-    <div class="text-h5 text-center" style="font-size: 18px;" v-if="state === 'history'">{{ historyInfo.shift_status.toUpperCase() }}</div>
-    <!-- <div v-if="historyInfo.ramp_type === 'on' && historyInfo.shift_status !== 'expired'" style="width: 100%; text-align: center; color: #3b7bf6;">
-      <p style="font-size: 15px;" @click="openDepositInfo()">Show QR Code</p>
-    </div> -->
+    <div class="pt-card q-ma-md br-15" :class="getDarkModeClass(darkMode)">
+      
+      <div class="text-h5 text-center text-weight-bold md-font-size q-pt-md" v-if="state === 'confirmation'">Please check to confirm...</div>
+      <!-- <div class="text-h5 text-center" style="font-size: 18px;" v-if="state === 'history'">{{ historyInfo.shift_status.toUpperCase() }}</div> -->
 
-    <div class="row no-wrap justify-around items-baseline">
-      <div class="col-4 column items-center">
-        <div class="text-lowercase q-mt-sm pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px">
-          {{ $t('From') }}
-        </div>
-        <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="shiftInfo.deposit.icon"></div>
-        <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
-          {{ shiftInfo.deposit.coin}}
-        </div>
-        <div class="text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px; color:gray;">
-          ({{ getNetwork(shiftInfo.deposit) }})
-        </div>
-      </div>
+      <!-- <div v-if="historyInfo.ramp_type === 'on' && historyInfo.shift_status !== 'expired'" style="width: 100%; text-align: center; color: #3b7bf6;">
+        <p style="font-size: 15px;" @click="openDepositInfo()">Show QR Code</p>
+      </div> -->
 
-      <div class="col-4 text-center">
-        <br>
-        <q-btn
-          rounded
-          flat
-          padding="sm"
-          icon="arrow_forward"
-          disable
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
-        />
-      </div>
-
-      <div class="col-4 column items-center">
-        <div class="q-mt-sm text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px;">
-          {{ $t('To') }}
-        </div>
-        <div style="height: 30px; width: 30px; border-radius: 50%;" v-html="shiftInfo.settle.icon"></div>
-        <div class="text-subtitle1 text-center pt-label" :class="getDarkModeClass(darkMode)">
-          {{ shiftInfo.settle.coin }}
-        </div>
-        <div class="text-lowercase pt-label" :class="getDarkModeClass(darkMode)" style="font-size:11px; color:gray;">
-          ({{ getNetwork(shiftInfo.settle) }})
-        </div>
-      </div>
-    </div>
-
-    <!--  -->
-
-    <div class="q-py-lg">
-      <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-        <span>{{ $t('DepositAmount') }}:</span>
-        <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.depositAmount }} {{ shiftInfo.deposit.coin }}</span>
-      </div>
-      <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-        <span>{{ $t('ReceivingAmount') }}:</span>
-        <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ shiftInfo.settleAmount }} {{ shiftInfo.settle.coin }}</span>
-      </div>
-    </div>
-
-    <div class="q-pb-lg" v-if="historyInfo.shift_status == 'settled'">
-      <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
-        <span>{{ $t('DateCompleted') }}:</span>
-        <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ getDate(historyInfo.date_shift_completed) }}</span>
-      </div>
-      <div class="text-center q-pt-md q-px-lg pt-label" :class="getDarkModeClass(darkMode)">
-        <span>{{ $t('TransactionId') }}:</span><br>
-        <div class="q-pt-sm q-px-lg" @click="copyToClipboard(historyInfo.shift_info.txn_details.txid)">
-          <span style="font-size: 15px; overflow-wrap: break-word;">{{ historyInfo.shift_info.txn_details.txid }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="state === 'history'">
-      <q-item clickable @click="copyToClipboard(historyInfo.shift_info.deposit.address)" v-if="historyInfo.shift_status === 'waiting' && historyInfo.ramp_type === 'on'">
-        <q-item-section class="text-center q-px-md">
-          <q-item-label>{{ $t('DepositAddress') }}: </q-item-label>
-
-          <q-item-label class="q-px-lg text-h5" style="overflow-wrap: break-word">
-            <span class="qr-code-text text-weight-light text-center">
-              <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(historyInfo.shift_info.deposit.address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
-                {{ historyInfo.shift_info.deposit.address }}<br>
-                <span style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</span><br>
-                <span style="font-size: 12px">or</span>
+      <div class="row no-wrap justify-around items-baseline">
+            <div class="col-4 column items-center">
+              <div class="text-lowercase q-my-sm sm-font-size" :class="getDarkModeClass(darkMode)">
+                {{ $t('From') }}
               </div>
-              <div class="text-center q-py-sm">
-                <q-btn round size="md" class="btn-scan text-white" icon="mdi-qrcode" @click="openDepositInfo()"/>
+              <div class="logo" v-html="shiftInfo.deposit.icon"></div>
+              <div class="text-weight-bold md-font-size q-pt-sm" :class="getDarkModeClass(darkMode)">
+                {{ shiftInfo.deposit.coin}}
               </div>
-            </span>
-          </q-item-label>
-        </q-item-section>
-      </q-item>
+              <div class="text-lowercase sm-font-size text-grey-6">
+                ({{ getNetwork(shiftInfo.deposit) }})
+              </div>
+            </div>
+
+            <div class="col-4 text-center">
+              <br>
+              <q-btn
+                rounded
+                flat
+                padding="sm"
+                icon="arrow_forward"
+                disable
+                class="button button-text-primary"
+                :class="getDarkModeClass(darkMode)"
+              />
+            </div>
+
+            <div class="col-4 column items-center">
+              <div class="q-my-sm text-lowercase sm-font-size" :class="getDarkModeClass(darkMode)">
+                {{ $t('To') }}
+              </div>
+              <div class="logo" v-html="shiftInfo.settle.icon"></div>
+              <div class="text-weight-bold md-font-size q-pt-sm" :class="getDarkModeClass(darkMode)">
+                {{ shiftInfo.settle.coin }}
+              </div>
+              <div class="text-lowercase sm-font-size text-grey-6">
+                ({{ getNetwork(shiftInfo.settle) }})
+              </div>
+            </div>
+          </div>
+
+      <div class="q-py-lg">
+            <div class="row justify-between no-wrap q-mx-lg sm-font-size" :class="getDarkModeClass(darkMode)">
+              <span class="text-weight-bold">{{ $t('DepositAmount') }}:</span>
+              <span class="text-nowrap q-ml-xs">
+                <span class="md-font-size">{{ shiftInfo.depositAmount }}</span> &nbsp;
+                <span class="text-weight-bold">{{ shiftInfo.deposit.coin }}</span>
+              </span>
+            </div>
+            <div class="row justify-between no-wrap q-mx-lg sm-font-size" :class="getDarkModeClass(darkMode)">
+              <span class="text-weight-bold">{{ $t('ReceivingAmount') }}:</span>
+              <span class="text-nowrap q-ml-xs">
+                <span class="md-font-size">{{ shiftInfo.settleAmount }}</span> &nbsp;
+                <span class="text-weight-bold">{{ shiftInfo.settle.coin }}</span>
+              </span>
+            </div>
+          </div>
+
+      <div class="q-pb-lg" v-if="historyInfo.shift_status == 'settled'">
+        <div class="row justify-between no-wrap q-mx-lg pt-label" :class="getDarkModeClass(darkMode)">
+          <span>{{ $t('DateCompleted') }}:</span>
+          <span class="text-nowrap q-ml-xs" style="font-size: 15px">{{ getDate(historyInfo.date_shift_completed) }}</span>
+        </div>
+        <div class="text-center q-pt-md q-px-lg pt-label" :class="getDarkModeClass(darkMode)">
+          <span>{{ $t('TransactionId') }}:</span><br>
+          <div class="q-pt-sm q-px-lg" @click="copyToClipboard(historyInfo.shift_info.txn_details.txid)">
+            <span style="font-size: 15px; overflow-wrap: break-word;">{{ historyInfo.shift_info.txn_details.txid }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- <div v-if="state === 'history'">
+        <q-item clickable @click="copyToClipboard(historyInfo.shift_info.deposit.address)" v-if="historyInfo.shift_status === 'waiting' && historyInfo.ramp_type === 'on'">
+          <q-item-section class="text-center q-px-md">
+            <q-item-label>{{ $t('DepositAddress') }}: </q-item-label>
+
+            <q-item-label class="q-px-lg text-h5" style="overflow-wrap: break-word">
+              <span class="qr-code-text text-weight-light text-center">
+                <div class="text-nowrap" style="letter-spacing: 1px" @click="copyToClipboard(historyInfo.shift_info.deposit.address)" :class="$store.getters['darkmode/getStatus'] ? 'text-white' : 'pp-text'">
+                  {{ historyInfo.shift_info.deposit.address }}<br>
+                  <span style="font-size: 12px; margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</span><br>
+                  <span style="font-size: 12px">or</span>
+                </div>
+                <div class="text-center q-py-sm">
+                  <q-btn round size="md" class="btn-scan text-white" icon="mdi-qrcode" @click="openDepositInfo()"/>
+                </div>
+              </span>
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div> -->
     </div>
-
-    <q-separator class="q-mx-lg q-mb-md" :color="darkMode ? 'white' : 'gray'"/>
-
-    <q-item>
-      <q-item-section class="text-center q-pb-sm q-pt-sm" :style="`width: ${maxWidth - 80}px`" style="overflow-wrap: break-word;">
-        <q-item-label>{{ $t('ReceivingAddress:') }} </q-item-label>
-        <q-item-label class=" q-pt-xs">
-        <span style="font-size: 13px;">{{ shiftInfo.settleAddress }}</span>
-        </q-item-label>
-      </q-item-section>
-    </q-item>
-    <q-item>
-      <q-item-section class="text-center" :style="`width: ${maxWidth - 80}px`" style="overflow-wrap: break-word;">
-        <q-item-label>{{ $t('RefundAddress') }}: </q-item-label>
-        <q-item-label class="q-px-lg q-pt-xs">
-          <span style="font-size: 13px;">{{ shiftInfo.refundAddress }}</span>
-        </q-item-label>
-      </q-item-section>
-    </q-item>
+    
+    <div class="pt-card q-ma-md br-15" :class="getDarkModeClass(darkMode)"s>
+      <q-item class="q-pt-md" clickable @click="copyToClipboard(shiftInfo.settleAddress)">
+            <q-item-section class="text-center q-pb-sm q-pt-sm address-container">
+              <q-item-label class="sm-font-size text-weight-bold">{{ $t('ReceivingAddress:') }} </q-item-label>
+              <q-item-label class=" q-pt-xs md-font-size text-grey-6">
+                <span>{{ shiftInfo.settleAddress }}</span>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable @click="copyToClipboard(shiftInfo.refundAddress)">
+            <q-item-section class="text-center q-pb-lg address-container">
+              <q-item-label class="sm-font-size text-weight-bold">{{ $t('RefundAddress') }}: </q-item-label>
+              <q-item-label class=" q-pt-xs md-font-size text-grey-6">
+                <span>{{ shiftInfo.refundAddress }}</span>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+    </div>
   </div>
 </template>
 
@@ -216,5 +224,510 @@ export default {
   .btn-scan {
     background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
     color: white;
+  }
+   .logo {
+    height: 50px; 
+    width: 50px; 
+    border-radius: 50%;
+  }
+  .address-container {
+    overflow-wrap: break-word;
+    width: 15rem;
+    white-space: normal;
+    word-break: break-word;
+  }
+  /* ==================== FONT SIZES ==================== */
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
+
+  /* ==================== UTILITIES ==================== */
+  .subtext {
+    opacity: .5;
+  }
+
+  .description {
+    text-align: justify;
+    text-align-last: left;
+    white-space: pre-wrap;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .br-15 {
+    border-radius: 15px;
+  }
+
+  /* ==================== GLASSMORPHIC ENHANCEMENTS ==================== */
+  .pt-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInUp 0.4s ease-out;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .bg-grad.button {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-3px);
+    }
+    
+    &:active:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
+
+  .warning-card {
+    border-left: 4px solid #ff9800 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-warning 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
+    
+    &.dark {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.15) 40%,
+          rgba(255, 255, 255, 0.35) 50%,
+          rgba(255, 255, 255, 0.15) 60%,
+          transparent 70%
+        );
+      }
+    }
+    
+    &.light {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%) !important;
+    }
+  }
+
+  .info-card {
+    border-left: 4px solid #2196f3 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-info 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
+    
+    &.dark {
+      background: rgba(33, 150, 243, 0.12) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.1) 40%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0.1) 60%,
+          transparent 70%
+        );
+      }
+    }
+    
+    &.light {
+      background: rgba(33, 150, 243, 0.08) !important;
+    }
+  }
+
+  /* ==================== ANIMATIONS ==================== */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes sparkle-card {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+  }
+
+  @keyframes pulse-warning {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes pulse-info {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.015);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.25);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+  @media (max-width: 599px) {
+    .pt-card {
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+
+  /* ==================== SKELETON LOADER STYLES ==================== */
+  .skeleton-form-container {
+    animation: fadeIn 0.3s ease-out;
+    
+    .q-skeleton {
+      animation: shimmer 1.5s infinite;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+ /* ==================== FONT SIZES ==================== */
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
+
+  /* ==================== UTILITIES ==================== */
+  .subtext {
+    opacity: .5;
+  }
+
+  .description {
+    text-align: justify;
+    text-align-last: left;
+    white-space: pre-wrap;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .br-15 {
+    border-radius: 15px;
+  }
+
+  /* ==================== GLASSMORPHIC ENHANCEMENTS ==================== */
+  .pt-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInUp 0.4s ease-out;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .bg-grad.button {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-3px);
+    }
+    
+    &:active:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
+
+  .warning-card {
+    border-left: 4px solid #ff9800 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-warning 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
+    
+    &.dark {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.15) 40%,
+          rgba(255, 255, 255, 0.35) 50%,
+          rgba(255, 255, 255, 0.15) 60%,
+          transparent 70%
+        );
+      }
+    }
+    
+    &.light {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%) !important;
+    }
+  }
+
+  .info-card {
+    border-left: 4px solid #2196f3 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-info 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
+    
+    &.dark {
+      background: rgba(33, 150, 243, 0.12) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.1) 40%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0.1) 60%,
+          transparent 70%
+        );
+      }
+    }
+    
+    &.light {
+      background: rgba(33, 150, 243, 0.08) !important;
+    }
+  }
+
+  /* ==================== ANIMATIONS ==================== */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes sparkle-card {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+  }
+
+  @keyframes pulse-warning {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes pulse-info {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.015);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.25);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+  @media (max-width: 599px) {
+    .pt-card {
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+
+  /* ==================== SKELETON LOADER STYLES ==================== */
+  .skeleton-form-container {
+    animation: fadeIn 0.3s ease-out;
+    
+    .q-skeleton {
+      animation: shimmer 1.5s infinite;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 </style>

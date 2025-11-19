@@ -4,7 +4,7 @@
     @decode="onScannerDecode"
   />
   <div
-    class="q-mx-md q-mb-lg text-bow"
+    class="q-mx-sm q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     v-if="isloaded && state === 'form' && !error"
   >
@@ -179,7 +179,7 @@
       />
     </div>
   </div>
-  <div class="q-mx-md" v-if="!isloaded && !error">
+  <div class="q-mx-sm" v-if="!isloaded && !error">
     <!-- <ProgressLoader /> -->
     <div class="row justify-end q-mr-lg q-mb-md">
       <q-skeleton type="circle" height="30px" width="30px"/>
@@ -212,6 +212,9 @@
       v-on:retry="updateState('form')"
     />
   </div>
+  <div class="text-center col q-mt-sm pt-internet-required" v-if="error">
+    {{ $t('BackendDown') }} &#128533;
+  </div>
 
   <div v-if="state === 'deposit'">
     <RampDepositInfo
@@ -221,9 +224,6 @@
       v-on:retry="updateState('form')"
       v-on:done="reset()"
     />
-  </div>
-  <div class="text-center col q-mt-sm pt-internet-required" v-if="error">
-    {{ $t('BackendDown') }} &#128533;
   </div>
 </template>
 
@@ -295,6 +295,7 @@ export default {
       bus.emit('update-state', val)
     }
   },
+  emits: ['deposit'],
   methods: {
     getDarkModeClass,
     selectSourceToken () {
@@ -436,6 +437,10 @@ export default {
     },
     updateState (state) {
       this.state = state
+
+      if (this.state === 'deposit') {
+        this.$emit('deposit')
+      }
     },
     openDepositInfo (info) {
       this.updateState('deposit')

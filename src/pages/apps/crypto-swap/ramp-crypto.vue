@@ -1,9 +1,9 @@
 <template>
 <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
     <!-- back button -->
-    <!-- <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="state != 'form'" @click="clickBack"></div> -->
-    <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps" class="header-nav" />
-    <div v-if="!isloaded" class="q-mx-md">
+    <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="state != 'form'" @click="clickBack"></div>
+    <HeaderNav :title="$t('CryptoSwap')" :backnavpath="backnav" class="header-nav" />
+    <div v-if="!isloaded" class="q-mx-sm">
       <!-- <ProgressLoader/> -->
 
       <div class="row justify-end q-mr-lg q-mb-md">
@@ -30,7 +30,7 @@
     </div>
     <div v-else>
         <!-- CRYPTO Tab Content -->
-        <RampShiftForm v-if="isAllowed" ref="shiftForm"/>
+        <RampShiftForm v-if="isAllowed" ref="shiftForm" @deposit="backnav='/apps/crypto-swap/history/'"/>
         <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
             <div>{{ $t('FeatureBlockedInYourCountry') }} &#128533;</div>
         </div>
@@ -55,7 +55,8 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isAllowed: true,
       isloaded: false,
-      state: 'form'
+      state: 'form',
+      backnav: '/apps'
     }
   },
   created () {

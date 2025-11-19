@@ -19,8 +19,8 @@
             <div class="col q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
-                  <div v-html="shiftInfo.shift_info.deposit.icon" class="receive-icon-asset"></div>
-                  <qr-code :text="depositAddress" :size="200" class="q-mb-sm"></qr-code>
+                  <div v-html="shiftInfo.shift_info.deposit.icon" style="background: white;" class="receive-icon-asset bg-grad"></div>
+                  <qr-code border-width="5px" :border-color="themeColor" :text="depositAddress" :size="200" class="q-mb-sm"></qr-code>
                 </div>
               </div>
             </div>
@@ -47,8 +47,8 @@
         <div class="q-pt-md text-h2 text-red-5 q-py-lg">
           {{ $t('Expired') }}
         </div>
-        <div class="q-pt-lg">
-          <q-btn color="blue-9" :label="$t('TryAgain')" @click="$emit('retry')"></q-btn>
+        <div class="q-pt-lg q-mx-lg">
+          <q-btn rounded class="button full-width" :label="$t('TryAgain')" @click="$router.push({ name: 'crypto-swap-form'})"></q-btn>
         </div>
       </div>
     </div>
@@ -132,7 +132,16 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
-    }
+    },
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': '#2196F3',
+        'glassmorphic-green': '#4CAF50',
+        'glassmorphic-gold': '#FF9800',
+        'glassmorphic-red': '#E91E63'
+      }
+      return themeMap[this.theme] || 'blue-6'
+    },
   },
   methods: {
     getDarkModeClass,
@@ -165,7 +174,7 @@ export default {
       const expire = vm.shiftInfo.shift_info.shift_expiration
       const expireDate = new Date(expire).getTime()
 
-      const x = setInterval(function () {
+      const x = setInterval(() => {
         const now = new Date().getTime()
         // find distance
         const distance = expireDate - now
@@ -262,6 +271,7 @@ export default {
   .qr-code-container {
     padding-left: 10px;
     padding-right: 10px;
+
   }
   .qr-code-text {
     font-size: 18px;
@@ -269,8 +279,7 @@ export default {
   }
   .receive-icon-asset {
     position: absolute;
-    margin-top: 107px;
-    background: white;
+    margin-top: 90px;
     border-radius: 50%;
     padding: 4px;
     height: 45px;
