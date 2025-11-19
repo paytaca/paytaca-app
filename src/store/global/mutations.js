@@ -97,7 +97,11 @@ export function updateVault (state, details) {
     const existingIndex = state.vault.findIndex((v, idx) => {
       const existingHash = v?.wallet?.bch?.walletHash
       const normalizedExisting = existingHash ? String(existingHash).trim() : null
-      return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
+      // Compare directly - this handles null/undefined cases correctly
+      // Returns true when both are null (preventing duplicates with missing walletHash)
+      // Returns true when both are the same non-null string
+      // Returns false when they differ
+      return normalizedExisting === normalizedNew
     })
     
     if (existingIndex !== -1) {
@@ -118,7 +122,9 @@ export function updateVault (state, details) {
       // Check if any entry has the same walletHash but wasn't found (edge case)
       const doubleCheckIndex = state.vault.findIndex((v, idx) => {
         const hash = v?.wallet?.bch?.walletHash
-        return hash && newWalletHash && String(hash).trim() === String(newWalletHash).trim()
+        const normalizedDoubleCheckHash = hash ? String(hash).trim() : null
+        // Use same comparison logic as main check for consistency
+        return normalizedDoubleCheckHash === normalizedNew
       })
       
       if (doubleCheckIndex !== -1) {
