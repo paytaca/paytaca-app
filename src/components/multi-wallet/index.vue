@@ -206,11 +206,8 @@ export default {
           // Check cache before using generic name
           const walletHash = wallet?.wallet?.bch?.walletHash
           const cachedName = walletHash ? getWalletName(walletHash) : null
-          if (cachedName) {
-            vm.$store.commit('global/updateWalletName', { index, name: cachedName })
-          } else {
-            vm.$store.commit('global/updateWalletName', { index, name: `Personal Wallet #${index + 1}` })
-          }
+          const newName = cachedName || `Personal Wallet #${index + 1}`
+          vm.$store.commit('global/updateWalletName', { index, name: newName })
         }
       })
     },
