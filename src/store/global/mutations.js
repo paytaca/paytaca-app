@@ -72,9 +72,12 @@ export function updateVault (state, details) {
   // Extract walletHash with better error handling
   const newWalletHash = details?.wallet?.bch?.walletHash
   
+  let targetIndex = -1 // Track which index was actually modified
+  
   // Simple approach: if vault is empty, create first entry, otherwise push new entry
   if (!state.vault || state.vault.length === 0) {
     state.vault = [details]
+    targetIndex = 0 // First entry is at index 0
   } else {
     // Check for duplicate walletHashes in existing vault
     const existingHashes = state.vault.map((v, idx) => ({
@@ -117,6 +120,7 @@ export function updateVault (state, details) {
         name: existingName || details.name || '',
         deleted: existingDeleted || false
       }
+      targetIndex = existingIndex // Track the index that was updated
     } else {
       // Double-check: Sometimes the walletHash might not match due to structure differences
       // Check if any entry has the same walletHash but wasn't found (edge case)
@@ -139,17 +143,20 @@ export function updateVault (state, details) {
           name: existingName || details.name || '',
           deleted: existingDeleted || false
         }
+        targetIndex = doubleCheckIndex // Track the index that was updated
       } else {
         console.warn('[updateVault] No matching walletHash found, adding NEW entry. This may indicate a duplicate!')
         // Add new entry
         state.vault.push(details)
+        targetIndex = state.vault.length - 1 // New entry is at the end
       }
     }
   }
   
   // Ensure the entry has a name and settings
-  const targetIndex = state.vault.length - 1
-  if (state.vault[targetIndex]) {
+  // Use the tracked targetIndex instead of always using the last entry
+  // This applies to both empty vault (targetIndex = 0) and non-empty vault cases
+  if (targetIndex !== -1 && state.vault[targetIndex]) {
     if (!state.vault[targetIndex].name) {
       state.vault[targetIndex].name = ''
     }
