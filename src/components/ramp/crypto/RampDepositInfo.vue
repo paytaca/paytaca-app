@@ -122,7 +122,8 @@ export default {
       baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
       error: false,
       isloaded: false,
-      maxWidth: this.$q.screen.width
+      maxWidth: this.$q.screen.width,
+      countDownInterval: null
     }
   },
   props: {
@@ -188,7 +189,7 @@ export default {
       const expire = vm.shiftInfo.shift_info.shift_expiration
       const expireDate = new Date(expire).getTime()
 
-      const x = setInterval(() => {
+      this.countDownInterval = setInterval(() => {
         const now = new Date().getTime()
         // find distance
         const distance = expireDate - now
@@ -202,7 +203,7 @@ export default {
         vm.countDown = minutes + ':' + seconds
 
         if (distance < 0) {
-          clearInterval(x)
+          clearInterval(this.countDownInterval)
           vm.countDown = this.$t('Expired')
           vm.shiftExpired = true
         }
@@ -278,6 +279,9 @@ export default {
     }
 
     vm.isloaded = true
+  },
+  beforeUnmount () {
+    clearInterval(this.countDownInterval)
   }
 }
 </script>
