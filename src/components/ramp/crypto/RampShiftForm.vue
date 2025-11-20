@@ -107,7 +107,7 @@
                 class="text-right q-mt-sm"
                 caption
                 :class="darkMode ? 'text-grey-6' : ''"
-                v-if="settleAmount && shiftAmount"
+                v-if="settleAmount && shiftAmount && convertionRate"
               >
                 <i>1 {{ deposit.coin }} = {{ convertionRate.toFixed(8) }} {{ settle.coin }}</i>
               </q-item-label>
@@ -532,6 +532,7 @@ export default {
       vm.invalidAmount = false
       vm.amountLoaded = false
       vm.hasError = false
+      vm.error = false
       // vm.errorMsg = ''
 
       //check if valid amount
@@ -562,10 +563,16 @@ export default {
             } else {
               // Non-200/201 status - set amountLoaded to true to stop skeleton loader
               vm.amountLoaded = true
+              // Clear conversion rate and settle amount to prevent displaying misleading 0.00000000 rate
+              vm.convertionRate = ''
+              vm.settleAmount = ''
             }
           } else if (vm.error) {
             // Error case - ensure amountLoaded is true to stop skeleton loader
             vm.amountLoaded = true
+            // Clear conversion rate and settle amount to prevent displaying misleading 0.00000000 rate
+            vm.convertionRate = ''
+            vm.settleAmount = ''
           }          
         } else {
           vm.invalidAmount = true
