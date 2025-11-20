@@ -60,7 +60,12 @@ export default {
     }
   },
   created () {
+    // Register bus event listener for state updates
     bus.on('update-state', this.updateState)
+  },
+  beforeUnmount () {
+    // Clean up bus event listener to prevent memory leaks
+    bus.off('update-state', this.updateState)
   },
   async mounted () {
     const vm = this
