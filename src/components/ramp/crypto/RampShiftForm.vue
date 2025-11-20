@@ -542,7 +542,10 @@ export default {
 
           // check exchange rate
           const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network
-          const resp = await vm.$axios.get(url).catch(function () { vm.error = true })
+          const resp = await vm.$axios.get(url).catch(function () { 
+            vm.error = true
+            return null
+          })
 
           if (resp && !vm.error) {
             if (resp.status === 200 || resp.status === 201) {
@@ -629,9 +632,12 @@ export default {
       const vm = this
       const url = 'https://sideshift.ai/api/v2/coins'
 
-      const resp = await vm.$axios.get(url).catch(function () { vm.error = true })
+      const resp = await vm.$axios.get(url).catch(function () { 
+        vm.error = true
+        return null
+      })
 
-      if (resp.status === 200 || resp.status === 201) {
+      if (resp && (resp.status === 200 || resp.status === 201)) {
         for (const item in resp.data) {
           const coinData = resp.data[item]
 
