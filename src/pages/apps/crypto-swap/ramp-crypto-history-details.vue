@@ -8,8 +8,8 @@
           :shiftData="historyInfo"
           :refundAddress="shiftInfo.refundAddress"
           type="history"
-          v-on:retry=""
-          v-on:done=""
+          v-on:retry="returnToForm()"
+          v-on:done="returnToForm()"
         />
       </div>
 
@@ -217,6 +217,9 @@ export default {
           icon: 'mdi-clipboard-check'
         })
       // }
+    },
+    returnToForm () {
+      this.$router.push({ name: 'crypto-swap-form'})
     },
     getDate (date) {
       const tempDate = date.split('T')
