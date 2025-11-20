@@ -71,7 +71,7 @@ export default {
     const vm = this
     // check permission first
     const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
-    if (!permission.data.createShift) {
+    if (permission && !permission.data.createShift) {
       vm.isAllowed = false
     }
     vm.isloaded = true

@@ -249,7 +249,7 @@ export default {
   async mounted () {
     const vm = this
 
-    vm.shiftInfo = vm.shiftData
+    vm.shiftInfo = vm.shiftData    
 
     vm.depositAddress = vm.shiftInfo.shift_info.deposit.address
     vm.state = vm.type
@@ -271,7 +271,7 @@ export default {
         vm.countingDown()
       }
     } else if (vm.state === 'history') {
-      if (this.shiftData.status === 'expired') {
+      if (this.shiftData.shift_status === 'expired') {
         vm.shiftExpired = true
       } else {
         vm.countingDown()
