@@ -75,21 +75,15 @@
             </div>
           </div>
 
-          <template
-            v-if="
-              purchase.purchase_more_details.sale_group !== SaleGroup.PUBLIC
-            "
-          >
-            <div class="detail-row q-mb-sm">
-              <div class="detail-label">
-                <q-icon name="mdi-lock-clock" size="16px" class="q-mr-xs" />
-                {{ $t("LockupPeriod") }}
-              </div>
-              <div class="detail-value">
-                {{ parseLocaleDate(purchase.lockup_date) }}
-              </div>
+          <div class="detail-row q-mb-sm">
+            <div class="detail-label">
+              <q-icon name="mdi-lock-clock" size="16px" class="q-mr-xs" />
+              {{ $t("LockupPeriod") }}
             </div>
-          </template>
+            <div class="detail-value">
+              {{ parseLocaleDate(purchase.lockup_date) }}
+            </div>
+          </div>
 
           <div class="detail-row q-mb-sm">
             <div class="detail-label">
