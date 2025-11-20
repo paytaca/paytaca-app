@@ -577,9 +577,11 @@ export default {
         } else {
           vm.invalidAmount = true
           vm.settleAmount = ''
+          vm.amountLoaded = true // Set to true to stop skeleton loader for invalid amounts
         }
       } else {
         vm.settleAmount = ''
+        vm.amountLoaded = true // Set to true to stop skeleton loader when shiftAmount is empty
       }
       await vm.checkErrorMsg()
       vm.setBCHAddress()
