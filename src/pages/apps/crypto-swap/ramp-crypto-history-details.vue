@@ -2,7 +2,7 @@
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps/crypto-swap/history/" class="header-nav" />
 
-    <div v-if="isloaded">
+    <div v-if="isloaded && !isDetailsEmpty">
       <div v-if="historyInfo.shift_status === 'waiting'">
         <RampDepositInfo
           :shiftData="historyInfo"
@@ -144,7 +144,8 @@ export default {
     return {
       isloaded: false,
       shiftInfo: {},
-      historyInfo: {}
+      historyInfo: {},
+      isDetailsEmpty: false
     }
   },
   props: {
@@ -188,6 +189,8 @@ export default {
           settleAddress: temp.settle.address,
           settleAmount: temp.settle.amount
         }
+      } else {
+        vm.isDetailsEmpty = true
       }
     },
     getNetwork (type) {

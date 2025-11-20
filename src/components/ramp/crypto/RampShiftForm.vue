@@ -544,17 +544,19 @@ export default {
           const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network
           const resp = await vm.$axios.get(url).catch(function () { vm.error = true })
 
-          if (resp.status === 200 || resp.status === 201) {
-            vm.convertionRate = parseFloat(resp.data.rate)
-            const shift = parseFloat(vm.shiftAmount)
+          if (resp && !vm.error) {
+            if (resp.status === 200 || resp.status === 201) {
+              vm.convertionRate = parseFloat(resp.data.rate)
+              const shift = parseFloat(vm.shiftAmount)
 
-            vm.settleAmount = shift * vm.convertionRate
-            vm.settleAmount = vm.settleAmount.toFixed(8)
-            vm.minimum = resp.data.min
-            vm.maximum = resp.data.max
+              vm.settleAmount = shift * vm.convertionRate
+              vm.settleAmount = vm.settleAmount.toFixed(8)
+              vm.minimum = resp.data.min
+              vm.maximum = resp.data.max
 
-            vm.amountLoaded = true
-          }
+              vm.amountLoaded = true
+            }
+          }          
         } else {
           vm.invalidAmount = true
           vm.settleAmount = ''
