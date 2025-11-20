@@ -155,7 +155,7 @@ export default {
         'glassmorphic-gold': '#FF9800',
         'glassmorphic-red': '#E91E63'
       }
-      return themeMap[this.theme] || 'blue-6'
+      return themeMap[this.theme] || '#2196F3'
     },
   },
   methods: {
