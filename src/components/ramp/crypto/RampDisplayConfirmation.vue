@@ -11,7 +11,10 @@
       />
     </div>
   </div>
-  <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
+  <div class="justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
+    <div v-if="creatingShift" class="md-font-size text-grad">
+      Processing Order...   
+    </div>
     <ProgressLoader />
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
@@ -55,7 +58,8 @@ export default {
       },
       state: '',
       baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
-      error_msg: this.$t('BackendDown')
+      error_msg: this.$t('BackendDown'),
+      creatingShift: false
     }
   },
   emits: ['close', 'confirmed', 'retry'],
@@ -101,6 +105,7 @@ export default {
     async createShift () {
       const vm = this
       vm.isloaded = false
+      vm.creatingShift = true
       const ip = await this.getIPAddr()
       const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
       const wallet = new Wallet(mnemonic)
@@ -167,6 +172,7 @@ export default {
       const vm = this
       await vm.createShift()
       vm.isloaded = true
+      vm.creatingShift = false
 
       if (!vm.networkError) {
         vm.$emit('confirmed', vm.shiftData)
@@ -195,5 +201,8 @@ export default {
   font-size: 24px;
   padding: 30px;
   color: gray;
+}
+.md-font-size {
+  font-size: medium;
 }
 </style>
