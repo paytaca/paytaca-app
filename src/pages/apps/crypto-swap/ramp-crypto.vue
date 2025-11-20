@@ -76,9 +76,6 @@ export default {
     }
     vm.isloaded = true
   },
-  beforeUnmount() {
-    bus.off('update-state', this.updateState)
-  },
   methods: {
     getDarkModeClass,
     updateState (state) {
