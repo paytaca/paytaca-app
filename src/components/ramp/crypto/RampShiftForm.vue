@@ -544,6 +544,7 @@ export default {
           const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network
           const resp = await vm.$axios.get(url).catch(function () { 
             vm.error = true
+            vm.amountLoaded = true // Set to true even on error to stop skeleton loader
             return null
           })
 
@@ -558,7 +559,13 @@ export default {
               vm.maximum = resp.data.max
 
               vm.amountLoaded = true
+            } else {
+              // Non-200/201 status - set amountLoaded to true to stop skeleton loader
+              vm.amountLoaded = true
             }
+          } else if (vm.error) {
+            // Error case - ensure amountLoaded is true to stop skeleton loader
+            vm.amountLoaded = true
           }          
         } else {
           vm.invalidAmount = true
