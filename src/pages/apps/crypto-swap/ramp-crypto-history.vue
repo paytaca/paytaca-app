@@ -108,8 +108,9 @@
                 style="width: 100%;"
               >
                 <p v-if="!loadingNextPage" @click="loadingNextPage = true; getTransactions();">{{ $t('ShowMore') }}</p>
-                <div class="row justify-center q-pt-sm" v-if="loadingNextPage">
-                  <div v-for="n in 5" :key="n" class="skeleton-order-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="row justify-center q-pt-sm q-mb-sm" v-if="loadingNextPage">
+                  <ProgressLoader/>
+                  <!-- <div v-for="n in 5" :key="n" class="skeleton-order-card q-mb-md" :class="getDarkModeClass(darkMode)">
                     <div class="row q-pa-md">
                       <div class="col">
                         <div class="row q-pb-sm">
@@ -127,7 +128,7 @@
                     </div>
 
                     <q-separator class="q-mx-sm q-mt-sm" :dark="darkMode"/>
-                  </div>
+                  </div> -->
                 </div>
               </div>
             </div>

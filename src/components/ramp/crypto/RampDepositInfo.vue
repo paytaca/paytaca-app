@@ -10,16 +10,17 @@
           <!--TODO:-->
           Please send exactly <br>
           <b style="letter-spacing: 1px;">
-            {{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }} ({{ getNetwork(shiftInfo) }})
+            <span class="text-grad">{{ parseFloat(shiftInfo.shift_info.deposit.amount) }} {{ shiftInfo.shift_info.deposit.coin }}</span> 
+            <!-- (<span class="text-lowercase">{{ getNetwork(shiftInfo) }}</span>) -->
           </b> to...
         </div>
 
-        <div class="row q-pt-md">
+        <div class="row q-pt-sm">
           <div class="col qr-code-container">
             <div class="col q-pl-sm q-pr-sm q-pt-md">
               <div class="row text-center">
                 <div class="col row justify-center q-pt-md" @click="copyToClipboard(shiftInfo.shift_info.deposit.address)">
-                  <div v-html="shiftInfo.shift_info.deposit.icon" style="background: white;" class="receive-icon-asset bg-grad"></div>
+                  <div v-html="shiftInfo.shift_info.deposit.icon" style="background: white;" class="receive-icon-asset"></div>
                   <qr-code border-width="5px" :border-color="themeColor" :text="depositAddress" :size="200" class="q-mb-sm"></qr-code>
                 </div>
               </div>
@@ -31,18 +32,29 @@
             <span class="qr-code-text text-weight-light text-center">
               <div style="letter-spacing: 1px" class="pt-label" :class="getDarkModeClass(darkMode)">
                 {{ shiftInfo.shift_info.deposit.address }}
-                <p class="text-caption" style="margin-top: 7px;">{{ $t('ClickToCopyAddress') }}</p>
+                <p class="text-caption q-pt-sm" style="margin-top: 7px;">
+                  <q-btn
+                    outline
+                    no-caps
+                    class="br-15"
+                    color="grey-6"
+                    icon="content_copy"
+                    padding="xs md"
+                    :label="$t('ClickToCopyAddress')"                    
+                  />
+                </p>
               </div>
             </span>
           </div>
         </div>
-        <div class="text-center q-pt-md text-h2 text-blue-5">
+        <div class="text-center q-pt-md text-h2 text-grad text-weight-bold">
           {{ countDown }}
         </div>
-        <div class="text-center q-pt-md">
-          <span style="font-size:13px;">{{ $t('SendBeforeTimerEnds') }}</span>
+        <div class="text-center q-pt-md sm-font-size">
+          <span>{{ $t('SendBeforeTimerEnds') }}</span>
         </div>
       </div>
+
       <div class="text-center" v-if="shiftExpired">
         <div class="q-pt-md text-h2 text-red-5 q-py-lg">
           {{ $t('Expired') }}
@@ -56,7 +68,8 @@
       <div v-if="processing">
         <div class="text-center text-h5 q-px-lg send-bch-messages">
           <!--TODO:-->
-          Sending <b>{{ shiftInfo.shift_info.deposit.amount }}</b> BCH to <b>{{ shiftInfo.shift_info.settle.address }}</b>
+          Sending <span class="text-weight-bold text-grad">{{ shiftInfo.shift_info.deposit.amount }} BCH</span> to 
+          <span class="text-grad">{{ shiftInfo.shift_info.settle.address }}</span>
         </div>
         <div class="row justify-center q-py-lg">
           <ProgressLoader />
@@ -65,10 +78,11 @@
       <div v-if="!sendFailed && !processing">
         <div class="text-center text-h5 q-px-lg send-bch-messages">
           <!--TODO:-->
-          <b>{{ shiftInfo.shift_info.deposit.amount }} BCH</b> Sent!
+          <q-icon class="button button-text-primary q-pb-sm" size="80px" name="sym_o_check_circle"/>
+          <div><span class="text-weight-bold text-grad">{{ shiftInfo.shift_info.deposit.amount }} BCH</span> Sent!</div>
         </div>
         <div class="q-pt-lg text-center">
-          <q-btn color="blue-9" :label="$t('Back')" @click="$emit('done')"></q-btn>
+          <q-btn rounded class="button full-width" :label="$t('Back')" @click="$emit('done')"></q-btn>
         </div>
       </div>
       <div v-if="sendFailed && !processing">
@@ -76,7 +90,7 @@
           {{ $t('SorryFailedToSendBch') }}
         </div>
         <div class="q-pt-lg text-center">
-          <q-btn color="blue-9" :label="$t('TryAgain')" @click="$emit('retry')"></q-btn>
+          <q-btn rounded class="button full-width" :label="$t('TryAgain')" @click="$emit('retry')"></q-btn>
         </div>
       </div>
     </div>
@@ -295,5 +309,7 @@ export default {
     margin-top: 100px;
     font-size: 20px;
     overflow-wrap: break-word;
+    white-space: normal;
+    word-break: break-word;
   }
 </style>
