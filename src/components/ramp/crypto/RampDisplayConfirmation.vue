@@ -11,11 +11,13 @@
       />
     </div>
   </div>
-  <div class="justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
-    <div v-if="creatingShift" class="md-font-size text-grad">
-      Processing Order...   
-    </div>
-    <ProgressLoader />
+  <div class="row justify-center q-py-lg text-center" style="margin-top: 100px" v-if="!isloaded">
+    <div>
+      <div v-if="creatingShift" class="text-h6 text-grad text-center">
+        Processing Order...   
+      </div>
+      <ProgressLoader />
+    </div>    
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
     <div class="q-px-lg">{{error_msg }} &#128533;</div>
