@@ -342,3 +342,25 @@ export function bip32DecodeDerivationPath(bytes) {
 
   return elements.length ? `m/${elements.join('/')}` : 'm';
 }
+
+/**
+ * Decode a binary HD public key payload back to its components
+ * 
+ * Reverse of import('@bitauth/libauth').encodeHdPublicKeyPayload
+ * @param {Uint8Array} payload - 78 bytes
+ * @returns {import('@bitauth/libauth').DecodedHdKey<HdPublicNodeValid>} 
+ */
+export function decodeHdPublicKeyPayload(payload) {
+  if (payload.length !== 78) throw new Error("Invalid payload length");
+  return {
+    network: binsAreEqual(payload.slice(0, 4), hexToBin('0488B21E')) ? 'mainnet': 'testnet',
+    node: {
+      version: payload.slice(0, 4),                     // Uint8Array(4)
+      depth: payload[4],                                // number
+      parentFingerprint: payload.slice(5, 9),          // Uint8Array(4)
+      childIndex: binToBigIntUintBE(payload.slice(9, 13)), // Uint8Array(4)
+      chainCode: payload.slice(13, 45),                // Uint8Array(32)
+      publicKey: payload.slice(45, 78)
+    }
+  };
+}
