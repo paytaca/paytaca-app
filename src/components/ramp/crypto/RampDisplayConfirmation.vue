@@ -97,8 +97,9 @@ export default {
       const IPurl = 'https://api.ipify.org?format=json'
       const test = await vm.$axios.get(IPurl).catch(function () {
         vm.networkError = true
+        return null
       })
-      if (test.status !== 500) {
+      if (test && test.status !== 500) {
         return test.data.ip
       } else {
         return null
@@ -150,8 +151,9 @@ export default {
       ).catch(function () {
         vm.networkError = true
         vm.isloaded = true
+        return null
       })
-      if (response.status === 200) {
+      if (response && response.status === 200) {
         // Invalid Address Errors
         if ('error' in response.data) {
           const errorMsg = response.data.error.message.toLowerCase()

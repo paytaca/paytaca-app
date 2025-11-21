@@ -256,8 +256,9 @@ export default {
       }).catch(function () {
         vm.networkError = true
         vm.isloaded = true
+        return null
       })
-      if (response.status === 200 || response.status === 201) {
+      if (response && (response.status === 200 || response.status === 201)) {
         const data = response.data
         if (data.history) {
           vm.transactions.push(...data.history)
