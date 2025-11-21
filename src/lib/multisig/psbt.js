@@ -1,5 +1,5 @@
 import { bigIntToBinUint64LE, numberToBinInt32LE } from "@bitauth/libauth"
-import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
 import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "./utils"
 import { MultisigTransactionBuilder } from "./transaction-builder"
 export const PSBT_MAGIC = '70736274ff'
@@ -350,9 +350,8 @@ export class GlobalMap {
    * @param {string|Uint8Array} derivationPath
    */
   addXPub(xpub, masterFingerprint, derivationPath) {
-
-    const publicKey = decodeHdPublicKey(xpub).node.publicKey
-    const k = new Key(hexToBin(PSBT_GLOBAL_XPUB), publicKey)
+    const encodedHdPublicKey = encodeHdPublicKeyPayload(decodeHdPublicKey(xpub))
+    const k = new Key(hexToBin(PSBT_GLOBAL_XPUB), encodedHdPublicKey)
     let mf = isHex(masterFingerprint) ? hexToBin(masterFingerprint): masterFingerprint 
     let dp = bip32EncodeDerivationPath(derivationPath)
 
