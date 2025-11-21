@@ -109,7 +109,7 @@
                 :class="darkMode ? 'text-grey-6' : ''"
                 v-if="settleAmount && shiftAmount && convertionRate"
               >
-                <i>1 {{ deposit.coin }} = {{ convertionRate.toFixed(8) }} {{ settle.coin }}</i>
+                <i>1 {{ deposit.coin }} = {{ parseFloat(convertionRate).toFixed(8) }} {{ settle.coin }}</i>
               </q-item-label>
           </q-item-section>
         </q-item>
