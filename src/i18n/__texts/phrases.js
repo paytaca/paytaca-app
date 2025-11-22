@@ -264,6 +264,7 @@ const phrases = {
       InvalidTradeResult: 'Invalid trade result. Please try again.',
       PlatformFee: 'Platform Fee',
       VerifyingTransaction: 'Verifying transaction',
+      PerformingTrade: 'Performing trade',
     },
     {
       TotalHedgeValue: "Total hedge value",

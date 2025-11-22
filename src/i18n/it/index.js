@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "In attesa di rilascio",
   PendingSessionRequests: "Richieste di sessione in sospeso",
   PerToken: "per gettone",
+  PerformingTrade: "Esecuzione di scambi commerciali",
   Period: "Periodo",
   Permissions: "Autorizzazioni: vedere indirizzo, saldo del conto, attività e suggerire transazioni da approvare",
   PersonalQRDescription1: "Questo codice QR deve essere salvato e archiviato in modo sicuro nel tuo dispositivo.",

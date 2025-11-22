@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "Rilis Tertunda",
   PendingSessionRequests: "Permintaan sesi tertunda",
   PerToken: "per tanda",
+  PerformingTrade: "Melakukan perdagangan",
   Period: "Periode",
   Permissions: "Izin: melihat alamat, saldo akun, aktivitas, dan menyarankan transaksi untuk disetujui",
   PersonalQRDescription1: "Kode QR ini perlu disimpan dan disimpan dengan aman di perangkat Anda.",

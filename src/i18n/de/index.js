@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "Ausstehende Veröffentlichung",
   PendingSessionRequests: "Ausstehende Sitzungsanfragen",
   PerToken: "pro Token",
+  PerformingTrade: "Handel durchführen",
   Period: "Zeitraum",
   Permissions: "Berechtigungen: Adresse, Kontostand, Aktivität einsehen und Transaktionen zur Genehmigung vorschlagen",
   PersonalQRDescription1: "Dieser QR-Code muss sicher auf Ihrem Gerät gespeichert und gespeichert werden.",

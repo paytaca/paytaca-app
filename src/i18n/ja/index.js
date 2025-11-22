@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "リリース保留中",
   PendingSessionRequests: "保留中のセッションリクエスト",
   PerToken: "トークンごと",
+  PerformingTrade: "貿易の実行",
   Period: "期間",
   Permissions: "権限: 住所、口座残高、アクティビティを確認し、承認するトランザクションを提案します。",
   PersonalQRDescription1: "この QR コードはデバイスに安全に保存する必要があります。",

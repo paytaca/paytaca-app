@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "In afwachting van vrijgave",
   PendingSessionRequests: "In behandeling zijnde sessieverzoeken",
   PerToken: "per token",
+  PerformingTrade: "Handel uitvoeren",
   Period: "Periode",
   Permissions: "Machtigingen: bekijk adres, rekeningsaldo, activiteit en stel transacties voor om goed te keuren",
   PersonalQRDescription1: "Deze QR-code moet veilig op uw apparaat worden opgeslagen en bewaard.",

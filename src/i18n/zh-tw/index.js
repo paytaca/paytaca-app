@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "Pending Release",
   PendingSessionRequests: "Pending session requests",
   PerToken: "per token",
+  PerformingTrade: "進行貿易",
   Period: "Period",
   Permissions: "Permissions: see address, account balance, activity and suggest transactions to approve",
   PersonalQRDescription1: "This QR code needs to be saved and stored securely in your device.",

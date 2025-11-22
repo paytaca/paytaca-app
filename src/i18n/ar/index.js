@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "في انتظار الإصدار",
   PendingSessionRequests: "طلبات الجلسة المعلقة",
   PerToken: "لكل رمز",
+  PerformingTrade: "أداء التجارة",
   Period: "فترة",
   Permissions: "الأذونات: راجع العنوان ورصيد الحساب والنشاط واقترح المعاملات للموافقة عليها",
   PersonalQRDescription1: "يجب حفظ رمز الاستجابة السريعة هذا وتخزينه بشكل آمن في جهازك.",

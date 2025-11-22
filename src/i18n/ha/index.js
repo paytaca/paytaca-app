@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "A lokacin sake",
   PendingSessionRequests: "Abubuwan da ke jiran zaman",
   PerToken: "a kowane alama",
+  PerformingTrade: "Yin ciniki",
   Period: "Kayadadden lokaci",
   Permissions: "Izini: Duba Adireshin, daidaitaccen asusun, aiki da kuma bayar da shawarar ma'amaloli don amincewa",
   PersonalQRDescription1: "Wannan lambar QR tana buƙatar samun ceto da adana lafiya a cikin na'urarka.",

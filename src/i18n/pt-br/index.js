@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "Liberação pendente",
   PendingSessionRequests: "Solicitações de sessão pendentes",
   PerToken: "por token",
+  PerformingTrade: "Realizando comércio",
   Period: "Período",
   Permissions: "Permissões: veja endereço, saldo da conta, atividade e sugira transações para aprovar",
   PersonalQRDescription1: "Este código QR precisa ser salvo e armazenado com segurança no seu dispositivo.",

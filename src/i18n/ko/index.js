@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "출시 대기 중",
   PendingSessionRequests: "보류 중인 세션 요청",
   PerToken: "토큰당",
+  PerformingTrade: "거래 수행",
   Period: "기간",
   Permissions: "권한: 주소, 계좌 잔고, 활동을 확인하고 승인할 거래 제안",
   PersonalQRDescription1: "이 QR 코드는 장치에 안전하게 저장되고 보관되어야 합니다.",

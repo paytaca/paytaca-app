@@ -1139,6 +1139,7 @@ export default {
   PendingRelease: "Hangende vrystelling",
   PendingSessionRequests: "Hangende sessieversoeke",
   PerToken: "per teken",
+  PerformingTrade: "Handel uit te voer",
   Period: "Tydperk",
   Permissions: "Toestemmings: sien adres, rekeningsaldo, aktiwiteit en stel transaksies voor om goed te keur",
   PersonalQRDescription1: "Hierdie QR-kode moet gestoor en veilig in jou toestel gestoor word.",
