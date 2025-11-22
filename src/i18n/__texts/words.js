@@ -470,6 +470,14 @@ const words = [
     OtherTokens: 'Other Tokens',
     SetupBiometric: 'Setup Biometric',
     TransactionMetadata: 'Transaction Metadata',
+  },
+  {
+    Change: 'Change',
+    Buy: 'Buy',
+    Sell: 'Sell',
+    Token: 'Token',
+    Unknown: 'Unknown',
+    Swap: 'Swap',
   }
 ]
 

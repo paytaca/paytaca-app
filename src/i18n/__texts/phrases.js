@@ -251,6 +251,17 @@ const phrases = {
       // Learn App
       'See All': 'See All',
       'Loading content...': 'Loading content...',
+      
+      // Cauldron App
+      TradeSuccessful: 'Trade Successful',
+      UpdatingLiquidity: 'Updating liquidity',
+      NewSwap: 'New Swap',
+      YouNeed: 'You need',
+      TradeFee: 'Trade Fee',
+      TransactionFee: 'Transaction Fee',
+      SearchTokens: 'Search tokens',
+      TransactionIdCopied: 'Transaction ID copied',
+      InvalidTradeResult: 'Invalid trade result. Please try again.',
     },
     {
       TotalHedgeValue: "Total hedge value",
