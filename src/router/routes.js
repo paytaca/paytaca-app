@@ -152,7 +152,39 @@ const routes = [
           { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } }
         ]
       },
-      { path: 'ramp/crypto', component: () => import('src/pages/apps/ramp-crypto.vue'), name: 'ramp-crypto' },
+      {
+        path: 'crypto-swap/',
+        name: 'crypto-swap',
+        component: () => import('layouts/Transaction.vue'),
+        children: [
+          {
+            path: '', 
+            component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue'), 
+            name: 'crypto-swap-form'
+          },
+          {
+            path: 'history/',
+            name: 'crypto-swap-history',
+            component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history.vue'),
+          },
+          {
+            path: 'history/tx/:id',
+            name: 'crypto-swap-history-details',
+            props: route => Object.assign({}, route.params, route.query),
+            component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history-details.vue'),
+          }
+        ]
+      },
+      // { 
+      //   path: 'ramp/crypto', 
+      //   name: 'ramp-crypto',
+      //   component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue')      
+      // },
+      // {
+      //   path: 'ramp/crypto/history/',
+      //   name: 'crypto-swap-history',
+      //   component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history.vue'),
+      // },
       {
         path: 'exchange/',
         name: 'exchange',
@@ -300,7 +332,7 @@ const routes = [
         component: () => import('src/pages/transactions/TransactionDetail.vue')
       }
     ]
-  },
+  },  
   // Always leave this as last one,
   // but you can also remove it
   {

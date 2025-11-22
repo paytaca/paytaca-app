@@ -166,14 +166,14 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: true
         },
-        // {
-        //   name: this.$t('CryptoSwap'),
-        //   iconName: 'mdi-swap-horizontal-bold',
-        //   path: '/apps/ramp/crypto',
-        //   active: true,
-        //   iconStyle: 'font-size: 4.7em',
-        //   smartBCHOnly: false
-        // },
+        {
+          name: this.$t('CryptoSwap'),
+          iconName: 'mdi-swap-horizontal-bold',
+          path: '/apps/crypto-swap',
+          active: true,
+          iconStyle: 'font-size: 4.7em',
+          smartBCHOnly: false
+        },
         {
           name: 'Multisig Wallet',
           iconName: 'mdi-account-group',

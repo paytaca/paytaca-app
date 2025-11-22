@@ -69,31 +69,94 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
+  // Extract walletHash with better error handling
+  const newWalletHash = details?.wallet?.bch?.walletHash
+  
+  let targetIndex = -1 // Track which index was actually modified
+  
   // Simple approach: if vault is empty, create first entry, otherwise push new entry
   if (!state.vault || state.vault.length === 0) {
     state.vault = [details]
+    targetIndex = 0 // First entry is at index 0
   } else {
-    // Check for duplicate entries
-    const existingIndex = state.vault.findIndex(v => {
-      return v.wallet?.bch?.walletHash === details.wallet?.bch?.walletHash
+    // Check for duplicate walletHashes in existing vault
+    const existingHashes = state.vault.map((v, idx) => ({
+      index: idx,
+      walletHash: v?.wallet?.bch?.walletHash
+    }))
+    
+    const duplicateHashes = existingHashes.filter((e, idx) => {
+      if (!e.walletHash) return false
+      return existingHashes.some((other, otherIdx) => 
+        otherIdx !== idx && other.walletHash === e.walletHash
+      )
     })
+    if (duplicateHashes.length > 0) {
+      console.error('[updateVault] ERROR: Found duplicate walletHashes in vault!', duplicateHashes)
+    }
+    
+    // Improved duplicate check with better comparison
+    const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
+    const existingIndex = state.vault.findIndex((v, idx) => {
+      const existingHash = v?.wallet?.bch?.walletHash
+      const normalizedExisting = existingHash ? String(existingHash).trim() : null
+      // Compare directly - this handles null/undefined cases correctly
+      // Returns true when both are null (preventing duplicates with missing walletHash)
+      // Returns true when both are the same non-null string
+      // Returns false when they differ
+      return normalizedExisting === normalizedNew
+    })
+    
     if (existingIndex !== -1) {
       // Update existing entry, but preserve settings if they exist
       const existingSettings = state.vault[existingIndex].settings
-      state.vault[existingIndex] = details
-      // Preserve existing settings if they were set
-      if (existingSettings && Object.keys(existingSettings).length > 0) {
-        state.vault[existingIndex].settings = existingSettings
+      const existingName = state.vault[existingIndex].name
+      const existingDeleted = state.vault[existingIndex].deleted
+      
+      // Merge details while preserving important fields
+      state.vault[existingIndex] = {
+        ...details,
+        settings: existingSettings && Object.keys(existingSettings).length > 0 ? existingSettings : details.settings,
+        name: existingName || details.name || '',
+        deleted: existingDeleted || false
       }
+      targetIndex = existingIndex // Track the index that was updated
     } else {
-      // Add new entry
-      state.vault.push(details)
+      // Double-check: Sometimes the walletHash might not match due to structure differences
+      // Check if any entry has the same walletHash but wasn't found (edge case)
+      const doubleCheckIndex = state.vault.findIndex((v, idx) => {
+        const hash = v?.wallet?.bch?.walletHash
+        const normalizedDoubleCheckHash = hash ? String(hash).trim() : null
+        // Use same comparison logic as main check for consistency
+        return normalizedDoubleCheckHash === normalizedNew
+      })
+      
+      if (doubleCheckIndex !== -1) {
+        console.warn('[updateVault] Double-check found match at index', doubleCheckIndex, '- updating instead of creating')
+        const existingSettings = state.vault[doubleCheckIndex].settings
+        const existingName = state.vault[doubleCheckIndex].name
+        const existingDeleted = state.vault[doubleCheckIndex].deleted
+        
+        state.vault[doubleCheckIndex] = {
+          ...details,
+          settings: existingSettings && Object.keys(existingSettings).length > 0 ? existingSettings : details.settings,
+          name: existingName || details.name || '',
+          deleted: existingDeleted || false
+        }
+        targetIndex = doubleCheckIndex // Track the index that was updated
+      } else {
+        console.warn('[updateVault] No matching walletHash found, adding NEW entry. This may indicate a duplicate!')
+        // Add new entry
+        state.vault.push(details)
+        targetIndex = state.vault.length - 1 // New entry is at the end
+      }
     }
   }
   
   // Ensure the entry has a name and settings
-  const targetIndex = state.vault.length - 1
-  if (state.vault[targetIndex]) {
+  // Use the tracked targetIndex instead of always using the last entry
+  // This applies to both empty vault (targetIndex = 0) and non-empty vault cases
+  if (targetIndex !== -1 && state.vault[targetIndex]) {
     if (!state.vault[targetIndex].name) {
       state.vault[targetIndex].name = ''
     }
