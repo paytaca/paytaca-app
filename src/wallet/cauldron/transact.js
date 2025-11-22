@@ -1,6 +1,6 @@
 import { ExchangeLab } from "@cashlab/cauldron";
 import { NATIVE_BCH_TOKEN_ID, PayoutAmountRuleType } from '@cashlab/common';
-import { privateKeyToP2pkhLockingBytecode } from "@cashlab/common/libauth.js";
+import { cashAddressToLockingBytecode, privateKeyToP2pkhLockingBytecode } from "@cashlab/common/libauth.js";
 import { buildPoolV0UnlockingBytecode } from '@cashlab/cauldron';
 import { getInputSize, getOutputSize } from 'cashscript/dist/utils.js';
 
@@ -42,6 +42,7 @@ const P2PKH_INPUT_SIZE = 141n;
 
 /**
  * @param {Object} opts
+ * @param {{ to:String, amount:BigInt }} opts.platformFee
  * @param {import("@cashlab/cauldron").TradeResult} opts.tradeResult
  * @param {import('@cashlab/common').SpendableCoin[]} opts.spendableCoins
  */
@@ -63,6 +64,9 @@ export function createInputAndOutput(opts) {
   let satoshisToSupply = isBuyingToken ? tradeResult.summary.supply : 0n
 
   satoshisToSupply += totalPoolTxFee
+  if (opts?.platformFee) {
+    satoshisToSupply += opts.platformFee.amount;
+  }
 
   /** @type {import("@cashlab/common").SpendableCoin[]} */
   const inputCoins = []
@@ -99,6 +103,14 @@ export function createInputAndOutput(opts) {
     if (remainingSats <= 0) break
     inputCoins.push(spendableCoin)
     remainingSats -= spendableCoin.output.amount;
+  }
+
+  if (opts?.platformFee) {
+    payouts.push({
+      type: PayoutAmountRuleType.FIXED,
+      locking_bytecode: cashAddressToLockingBytecode(opts?.platformFee?.to)?.bytecode,
+      amount: opts.platformFee.amount,
+    })
   }
 
   if (remainingSats < 0 || remainingTokens < 0) {

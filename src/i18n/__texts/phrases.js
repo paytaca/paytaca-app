@@ -262,6 +262,8 @@ const phrases = {
       SearchTokens: 'Search tokens',
       TransactionIdCopied: 'Transaction ID copied',
       InvalidTradeResult: 'Invalid trade result. Please try again.',
+      PlatformFee: 'Platform Fee',
+      VerifyingTransaction: 'Verifying transaction',
     },
     {
       TotalHedgeValue: "Total hedge value",

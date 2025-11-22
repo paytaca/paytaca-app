@@ -169,6 +169,7 @@
                 <q-input
                   filled
                   type="number"
+                  :disable="isSwapping || updatingPool"
                   v-model.number="demandInput"
                   :label="isBuyingToken ? `${$t('EnterAmount')} (${tokenSymbol || $t('Token')})` : `${$t('EnterAmount')} (BCH)`"
                   :dark="darkMode"
@@ -198,6 +199,10 @@
                 <div class="row items-center justify-between text-caption text-grey">
                   <div>{{ $t('TradeFee') }} (0.03%)</div>
                   <div>{{ tradeFee }} BCH</div>
+                </div>
+                <div class="row items-center justify-between text-caption text-grey">
+                  <div>{{ $t('PlatformFee') }} (0.03%)</div>
+                  <div>{{ platformFeeBch }} BCH</div>
                 </div>
                 <div class="row items-center justify-between text-caption text-grey">
                   <div>{{ $t('TransactionFee') }}</div>
@@ -480,6 +485,22 @@ export default defineComponent({
       return tradeFeeBch.toFixed(8);
     });
 
+    const platformFee = computed(() => {
+      if (!tradeResult.value) return;
+      const recipient = process.env.CAULDRON_PLATFORM_FEE_ADDRESS;
+      if (!recipient) return;
+
+      const summary = tradeResult.value.summary
+      const tradeSizeSats = (isBuyingToken.value ? summary.supply : summary.demand) - summary.trade_fee;
+      const platformFeeSats = tradeSizeSats * 3n / 1000n;
+      if (platformFeeSats < 546n) return;
+      return { amount: platformFeeSats, to: recipient };
+    })
+    const platformFeeBch = computed(() => {
+      if (!platformFee.value) return 0;
+      return Number(platformFee.value.amount) / 10 ** 8;
+    });
+    
     const estimateTransactionFee = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return '0';
       let feeSats = 10; // base fee
@@ -558,6 +579,7 @@ export default defineComponent({
         const _tokenData = selectedToken.value
         const _isBuyingToken = isBuyingToken.value
         const _tradeResult = tradeResult.value
+        const _platformFee = platformFee.value
         
         // Validate trade result
         if (!_tradeResult || !_tradeResult.summary || !_tradeResult.entries || _tradeResult.entries.length === 0) {
@@ -591,7 +613,11 @@ export default defineComponent({
         const utxos = [...bchUtxos, ...tokenUtxos]
         const spendableCoins = watchtowerUtxosToSpendableCoins({ utxos, wallet: libuathWallet })
 
-        const { inputCoins, payouts } = createInputAndOutput({ tradeResult: _tradeResult,  spendableCoins })
+        const { inputCoins, payouts } = createInputAndOutput({
+          tradeResult: _tradeResult, 
+          spendableCoins,
+          platformFee: _platformFee
+        })
         const exlab = new ExchangeLab()
         const txFeePerByte = 1n;
         const tradeTxBuildResult = exlab.createTradeTx(
@@ -610,7 +636,16 @@ export default defineComponent({
 
         dialog.update({ message: $t('BroadcastingTransaction') })
   
-        // console.log('Transaction hex', txHex);
+        // const userInputs = tradeTxBuildResult.libauth_source_outputs.slice(_tradeResult.entries.length);
+        // const totalUserInputs = userInputs.reduce((acc, input) => {
+        //   acc += input.valueSatoshis;
+        //   return acc;
+        // }, 0n);
+        // console.log('Total user inputs', totalUserInputs);
+        // console.log('Tx size', tradeTxBuildResult.txbin.byteLength);
+        // console.log('User inputs', userInputs);
+        // console.log('Payouts', tradeTxBuildResult.payouts_info);
+
         const broadcastResult = await bchWallet.watchtower.BCH.broadcastTransaction(txHex)
         if (broadcastResult.data?.error) throw new Error(broadcastResult?.data?.error)
         // const broadcastResult = {
@@ -695,6 +730,7 @@ export default defineComponent({
       formattedPrice,
       formattedOutputAmount,
       tradeFee,
+      platformFeeBch,
       estimateTransactionFee,
       explorerLink,
       
