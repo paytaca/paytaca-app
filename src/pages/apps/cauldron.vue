@@ -211,17 +211,14 @@
               </div>
   
               <!-- Swap Button -->
-              <div>
-                <q-btn
-                  :label="$t('Swap')"
-                  no-caps
-                  unelevated
-                  class="full-width button"
-                  :disable="!tradeResult || !tradeResult.summary || demandInput <= 0 || !selectedToken"
-                  :loading="isSwapping"
-                  @click="commitTrade"
+              <q-slide-transition>
+                <DragSlide
+                  v-if="tradeResult && tradeResult.summary && demandInput > 0 && selectedToken"
+                  disable-absolute-bottom
+                  :text="$t('Swap')"
+                  @swiped="securityCheck"
                 />
-              </div>
+              </q-slide-transition>
             </template>
           </q-card-section>
         </q-card>
@@ -308,6 +305,8 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex'
 import { reactive, ref, computed, defineComponent, watch, onMounted, onUnmounted } from "vue";
 import HeaderNav from 'src/components/header-nav'
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
+import DragSlide from 'src/components/drag-slide.vue';
 
 /**
  * Typedefs
@@ -319,7 +318,8 @@ import HeaderNav from 'src/components/header-nav'
 export default defineComponent({
   name: 'cauldron',
   components: {
-    HeaderNav
+    HeaderNav,
+    DragSlide,
   },
   setup() {
     const { t: $t } = useI18n()
@@ -572,6 +572,18 @@ export default defineComponent({
       event.target.style.display = 'none';
     }
 
+    const showSlider = computed(() => {
+      return Boolean(tradeResult.value)
+    });
+
+    function securityCheck(resetSwipe=() => {}) {
+      $q.dialog({
+        component: SecurityCheckDialog,
+      })
+        .onOk(() => commitTrade())
+        .onCancel(() => resetSwipe?.())
+    }
+
     async function commitTrade() {
       isSwapping.value = true;
       let dialog
@@ -733,6 +745,9 @@ export default defineComponent({
       platformFeeBch,
       estimateTransactionFee,
       explorerLink,
+
+      showSlider,
+      securityCheck,
       
       selectToken,
       formatAmount,
