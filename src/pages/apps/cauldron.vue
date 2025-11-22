@@ -514,8 +514,8 @@ export default defineComponent({
       if (!isBuyingToken.value) feeSats += 141; // input for BCH if selling token
 
       feeSats += 34; // output for bch change
+      if (platformFee.value?.to) feeSats += 34; // output for platform fee
       if (isBuyingToken.value) {
-        feeSats += 1000; // output for token if buying token
         feeSats += 70; // output size for token output
       }
 
@@ -599,7 +599,6 @@ export default defineComponent({
         }
         
         dialog = $q.dialog({
-          // TODO: add translation text
           title: $t('PerformingTrade'),
           persistent: true,
           progress: true,
@@ -640,7 +639,6 @@ export default defineComponent({
           txFeePerByte,
         );
 
-        // TODO: add translation text
         dialog.update({ message: $t('VerifyingTransaction') })
         exlab.verifyTradeTx(tradeTxBuildResult);
 

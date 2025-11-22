@@ -73,11 +73,11 @@ export function createInputAndOutput(opts) {
   /** @type {import("@cashlab/common").PayoutRule[]} */
   const payouts = []
 
-  let remainingTokens = 0
+  let remainingTokens = 0n
   if (!isBuyingToken) {
     remainingTokens = tokensToSupply
     for(const spendableCoin of tokenCoins) {
-      if (remainingTokens <= 0) break
+      if (remainingTokens <= 0n) break
       inputCoins.push(spendableCoin)
       remainingTokens -= spendableCoin.output.token.amount
       satoshisToSupply += P2PKH_INPUT_SIZE
@@ -100,7 +100,7 @@ export function createInputAndOutput(opts) {
 
   let remainingSats = satoshisToSupply
   for(const spendableCoin of bchCoins) {
-    if (remainingSats <= 0) break
+    if (remainingSats <= 0n) break
     inputCoins.push(spendableCoin)
     remainingSats -= spendableCoin.output.amount;
   }
@@ -113,7 +113,7 @@ export function createInputAndOutput(opts) {
     })
   }
 
-  if (remainingSats < 0 || remainingTokens < 0) {
+  if (remainingSats < 0n || remainingTokens < 0n) {
     payouts.push({
       type: PayoutAmountRuleType.CHANGE,
       locking_bytecode: lockingBytecode,
