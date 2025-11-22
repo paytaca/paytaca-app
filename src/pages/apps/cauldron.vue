@@ -170,18 +170,28 @@
                   filled
                   type="number"
                   :disable="isSwapping || updatingPool"
-                  v-model.number="demandInput"
-                  :label="isBuyingToken ? `${$t('EnterAmount')} (${tokenSymbol || $t('Token')})` : `${$t('EnterAmount')} (BCH)`"
+                  v-model.number="amountInput"
+                  :label="isSupplyMode ? $t('AmountToSupply') : $t('AmountToReceive')"
                   :dark="darkMode"
                   :min="0"
                   step="any"
                 >
                   <template v-slot:append>
                     <div class="text-weight-bold">
-                      {{ isBuyingToken ? (tokenSymbol) : 'BCH' }}
+                      {{ amountInputSymbol }}
                     </div>
                   </template>
                 </q-input>
+              </div>
+
+              <div class="q-mb-md row justify-center">
+                <q-btn
+                  icon="swap_vert"
+                  round
+                  unelevated
+                  color="primary"
+                  @click="toggleSupplyMode"
+                />
               </div>
   
               <div v-if="tradeResultError" class="q-mb-md">
@@ -191,10 +201,13 @@
               </div>
   
               <!-- Output Display -->
-              <div v-if="tradeResult && tradeResult.summary && demandInput > 0" class="q-mb-md">
-                <div class="text-center text-caption text-grey q-mb-xs">{{ $t('YouNeed') }}</div>
+              <div v-if="tradeResult && tradeResult.summary && amountInput > 0" class="q-mb-md">
+                <div class="text-center text-caption text-grey q-mb-xs">
+                  <template v-if="isSupplyMode">{{ $t('YouNeed') }}</template>
+                  <template v-else>{{ $t('YouProvide') }}</template>
+                </div>
                 <div class="text-center text-h6">
-                  {{ formattedOutputAmount }} {{ isBuyingToken ? 'BCH' : (tokenSymbol) }}
+                  {{ formattedOutputAmount }} {{ formattedOutputSymbol }}
                 </div>
                 <div class="row items-center justify-between text-caption text-grey">
                   <div>{{ $t('TradeFee') }} (0.03%)</div>
@@ -213,7 +226,7 @@
               <!-- Swap Button -->
               <q-slide-transition>
                 <DragSlide
-                  v-if="tradeResult && tradeResult.summary && demandInput > 0 && selectedToken"
+                  v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
                   disable-absolute-bottom
                   :text="$t('Swap')"
                   @swiped="securityCheck"
@@ -327,7 +340,7 @@ export default defineComponent({
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
 
-    // const poolTracker = getMockPoolTracker();
+    // const poolTracker = reactive(getMockPoolTracker());
     const poolTracker = reactive(new CauldronPoolTracker());
     const updatingPool = ref(false);
     poolTracker.on('pool-updated', () => updateTradeResult())
@@ -392,22 +405,53 @@ export default defineComponent({
     // true => converting BCH to tokens
     // false => converting tokens to BCH
     const isBuyingToken = ref(true);
-    const demandInput = ref(0);
+    const isSupplyMode = ref(false);
+    const amountInput = ref(0);
     const isSwapping = ref(false);
     const showTokenDialog = ref(false);
-    
-    const demandInUnits = computed(() => {
-      if (!demandInput.value || !selectedToken.value) return 0n;
-      const decimals = isBuyingToken.value ? parseInt(selectedToken.value?.bcmr?.token?.decimals || 0) : 8
-      return BigInt(Math.floor(demandInput.value * 10 ** decimals))
+
+    /** 
+     * What is the unit in input field:
+     * |                     | isSupplyMode=True | isSupplyMode=False |
+     * | isBuyingToken=True  | BCH               | Token              |
+     * | isBuyingToken=False | Token             | BCH                |
+    */
+    const amountInputSymbol = computed(() => {
+      if (Boolean(isSupplyMode.value) === Boolean(isBuyingToken.value)) {
+        return 'BCH';
+      } else {
+        return tokenSymbol.value || 'Token';
+      }
+    });
+
+    const amountInputDecimals = computed(() => {
+      if (!selectedToken.value) return 0;
+      if (Boolean(isSupplyMode.value) === Boolean(isBuyingToken.value)) {
+        return 8;
+      } else {
+        return parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
+      }
     })
 
-    watch(demandInUnits, () => updateTradeResult())
+    const amountInUnits = computed(() => {
+      if (!amountInput.value || !selectedToken.value) return 0n;
+      const decimals = amountInputDecimals.value;
+      return BigInt(Math.floor(amountInput.value * 10 ** decimals))
+    })
+
+    watch(amountInUnits, () => updateTradeResult())
     watch([selectedToken, isBuyingToken], () => {
-      if (demandInput.value > 0) {
+      if (amountInput.value > 0) {
         updateTradeResult()
       }
     }, { deep: true })
+
+    function toggleSupplyMode() {
+      if (Number(amountInput.value) && Number(formattedOutputAmount.value)) {
+        amountInput.value = Number(formattedOutputAmount.value);
+      }
+      isSupplyMode.value = !isSupplyMode.value;
+    }
 
     /** @type {import("vue").Ref<TradeResult | null>} */
     const tradeResult = ref()
@@ -415,7 +459,7 @@ export default defineComponent({
     const updateTradeResult = debounce(() => {
       const poolV0List = poolTracker.microPools
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
-      if (!demandInUnits.value || !selectedToken.value || !arePoolsCorrect) {
+      if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
         return;
       }
@@ -428,7 +472,8 @@ export default defineComponent({
         const result = attemptTrade({
           pools: poolV0List,
           isBuyingToken: isBuyingToken.value,
-          demand: demandInUnits.value,
+          demand: isSupplyMode.value ? 0n : amountInUnits.value,
+          supply: isSupplyMode.value ? amountInUnits.value : 0n,
         })
         tradeResult.value = result;
         tradeResultError.value = '';
@@ -469,13 +514,30 @@ export default defineComponent({
       }
     });
 
+    const formattedOutputDecimals = computed(() => {
+      if (!selectedToken.value) return 0;
+      if (Boolean(isSupplyMode.value) === Boolean(isBuyingToken.value)) {
+        return parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
+      } else {
+        return 8;
+      }
+    })
+    const formattedOutputSymbol = computed(() => {
+      if (Boolean(isSupplyMode.value) === Boolean(isBuyingToken.value)) {
+        return tokenSymbol.value || 'Token';
+      } else {
+        return 'BCH';
+      }
+    })
+
     const formattedOutputAmount = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return '0';
-      const output = tradeResult.value.summary.supply;
+      const output = isSupplyMode.value
+        ? tradeResult.value.summary.demand
+        : tradeResult.value.summary.supply;
+      
       if (!output) return '0';
-      const decimals = isBuyingToken.value 
-        ? 8
-        : parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
+      const decimals = formattedOutputDecimals.value;
       return (Number(output) / (10 ** decimals)).toFixed(decimals > 8 ? 8 : decimals);
     });
 
@@ -533,7 +595,7 @@ export default defineComponent({
       selectedToken.value = token;
       showTokenDialog.value = false;
       tokensFilterOpts.value.q = '';
-      demandInput.value = 0;
+      amountInput.value = 0;
       tradeResult.value = null;
       tradeResultError.value = '';
     }
@@ -564,7 +626,7 @@ export default defineComponent({
         unitsBought: 0n,
         tokenData: { category: '', name: '', decimals: 0, symbol: '', imageUrl: '' },
       };
-      demandInput.value = 0;
+      amountInput.value = 0;
       tradeResult.value = null;
     }
 
@@ -751,13 +813,17 @@ export default defineComponent({
       debouncedFetchTokens,
       getTokenImage,
       isBuyingToken,
-      demandInput,
+      isSupplyMode,
+      amountInput,
+      amountInputSymbol,
+      toggleSupplyMode,
       tradeResult,
       tradeResultError,
       completedTradeData,
       isSwapping,
       showTokenDialog,
       formattedPrice,
+      formattedOutputSymbol,
       formattedOutputAmount,
       tradeFee,
       platformFeeBch,
