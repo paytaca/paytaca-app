@@ -64,6 +64,7 @@ export class CauldronPoolTracker extends EventEmitter {
 
     // https://github.com/radarsu/rpc-websocket-client
     this.rpcClient = new RpcWebSocketClient();
+    this.rpcClient.configure({ responseTimeout: 90_000 }) // 1 minute & 30 seconds
     
     // Setup connection event handlers
     this.rpcClient.onOpen(() => {
