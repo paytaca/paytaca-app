@@ -16,7 +16,7 @@
         
         <!-- Key Stats Card -->
         <q-card
-          flat
+          bordered
           class="stats-card q-pa-md q-mb-md"
           :class="getDarkModeClass(darkMode)"
         >
@@ -317,7 +317,11 @@
       </div>
       
       <!-- Bottom CTA -->
-      <div class="bottom-cta q-mt-xl q-mb-lg text-center" :class="getDarkModeClass(darkMode)">
+      <q-card
+        bordered
+        class="bottom-cta q-mt-xl q-mb-lg text-center"
+        :class="getDarkModeClass(darkMode)"
+      >
         <div class="text-h6 q-mb-md">{{ $t('ReadyToGetStarted') }}?</div>
         <q-btn
           :label="$t('BuyLIFTTokens')"
@@ -329,7 +333,7 @@
           class="cta-button button"
           @click="showBuyDialog = true"
         />
-      </div>
+      </q-card>
     </div>
 
     <!-- Buy LIFT Dialog -->
