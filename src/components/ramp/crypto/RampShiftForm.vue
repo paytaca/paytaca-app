@@ -8,19 +8,6 @@
     :class="getDarkModeClass(darkMode)"
     v-if="isloaded && state === 'form' && !error"
   >
-    <div class="row items-center justify-end q-mr-lg">
-      <q-btn
-        unelevated
-        ripple
-        dense    
-        icon="sym_o_receipt_long"
-        class="button button-text-primary"
-        size="18px"
-        :class="getDarkModeClass(darkMode)"
-        @click="openHistory"
-      />    
-    </div>
-
     <div class="q-mx-md">
       <!-- Swap Setting Card -->
       <div class="pt-card q-pa-md q-my-sm br-15" :class="darkMode ? 'dark' : 'light'">
@@ -180,10 +167,7 @@
     </div>
   </div>
   <div class="q-mx-sm" v-if="!isloaded && !error">
-    <!-- <ProgressLoader /> -->
-    <div class="row justify-end q-mr-lg q-mb-md">
-      <q-skeleton type="circle" height="30px" width="30px"/>
-    </div>
+
     <!-- Swap Info -->
     <div class="q-mx-md q-mb-sm">
       <q-skeleton type="rect" height="300px" style="border-radius: 15px;" />
@@ -231,7 +215,6 @@
 import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampDisplayConfirmation from './RampDisplayConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
-import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
@@ -250,7 +233,6 @@ export default {
     ProgressLoader,
     RampDisplayConfirmation,
     RampDepositInfo,
-    RampHistoryDialog,
     QrScanner
   },
   data () {
@@ -343,17 +325,6 @@ export default {
           })
       }
       this.setBCHAddress()
-    },
-    openHistory () {
-      // this.$q.dialog({
-      //   component: RampHistoryDialog
-      // })
-      //   .onOk(data => {
-      //     this.depositInfoState = 'history'
-      //     this.shiftData = data
-      //     this.state = 'deposit'
-      //   })
-      this.$router.push({ name: 'crypto-swap-history' })
     },
     displayScanner (type = '') {
       const vm = this

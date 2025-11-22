@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps/crypto-swap/history/" class="header-nav" />
+    <HeaderNav :title="$t('CryptoSwap')" backnavpath="/apps/crypto-swap/" class="header-nav" />
 
     <div v-if="isloaded && !isDetailsEmpty">
       <div v-if="historyInfo.shift_status === 'waiting'">

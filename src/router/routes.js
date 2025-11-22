@@ -163,11 +163,6 @@ const routes = [
             name: 'crypto-swap-form'
           },
           {
-            path: 'history/',
-            name: 'crypto-swap-history',
-            component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history.vue'),
-          },
-          {
             path: 'history/tx/:id',
             name: 'crypto-swap-history-details',
             props: route => Object.assign({}, route.params, route.query),
