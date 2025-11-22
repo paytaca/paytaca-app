@@ -334,7 +334,10 @@ export default defineComponent({
     HeaderNav,
     DragSlide,
   },
-  setup() {
+  props: {
+    selectTokenId: String,
+  },
+  setup(props) {
     const { t: $t } = useI18n()
     const $q = useQuasar();
     const $store = useStore();
@@ -791,7 +794,28 @@ export default defineComponent({
 
     // Initialize on mount
     onMounted(() => {
+      if (props.selectTokenId) {
+        fetchTokensList({ token_id: props.selectTokenId }).then(tokens => {
+          if (tokens.length > 0) {
+            selectedToken.value = tokens[0];
+          } else {
+            $q.dialog({
+              title: $t('NotFound'),
+              message: $t('NoTokensFound'),
+              color: 'primary',
+            })
+          }
+        })
+      }
       refreshPage()
+        .finally(() => {
+          if (selectedToken.value) {
+            const index = tokensList.value.findIndex(token => token.token_id === selectedToken.value.token_id);
+            if (index < 0) {
+              tokensList.value.unshift(selectedToken.value);
+            }
+          }
+        })
     })
     onUnmounted(() => {
       poolTracker.cleanup()
