@@ -443,7 +443,7 @@ export default defineComponent({
     })
 
     watch(amountInUnits, () => updateTradeResult())
-    watch([selectedToken, isBuyingToken], () => {
+    watch([selectedToken, isBuyingToken, isSupplyMode], () => {
       if (amountInput.value > 0) {
         updateTradeResult()
       }
