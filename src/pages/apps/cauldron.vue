@@ -677,6 +677,26 @@ export default defineComponent({
             imageUrl: _tokenData?.bcmr?.uris?.icon || '',
           }
         }
+
+        const attributeData = {
+          tradeType: _isBuyingToken ? 'token-buy' : 'token-sell',
+          unitsSold: String(_tradeResult?.summary?.supply),
+          unitsBought: String(_tradeResult?.summary?.demand),
+          tokenData: {
+            category: _tokenData?.bcmr?.token?.category || '',
+            name: _tokenData?.bcmr?.name || '',
+            symbol: _tokenData?.bcmr?.token?.symbol || '',
+            decimals: _tokenData?.bcmr?.token?.decimals || 0,
+          }
+        }
+        const data = {
+          txid: broadcastResult?.data?.txid,
+          wallet_hash: bchWallet.walletHash,
+          key: 'cauldron-swap',
+          value: JSON.stringify(attributeData),
+        }
+
+        bchWallet.watchtower.BCH._api.post("transactions/attributes/", data).catch(console.error)
         dialog.hide()
       } catch(error) {
         console.error('Error committing trade:', error);

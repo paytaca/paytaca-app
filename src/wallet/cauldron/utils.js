@@ -2,6 +2,9 @@ import { ExchangeLab } from '@cashlab/cauldron';
 import { SpendableCoinType } from '@cashlab/common';
 import { privateKeyToP2pkhLockingBytecode } from '@cashlab/common/libauth.js';
 import { decodePrivateKeyWif, hexToBin } from '@bitauth/libauth';
+import { i18n } from 'src/boot/i18n';
+
+const { t: $t } = i18n.global
 
 const exlab = new ExchangeLab();
 
@@ -62,4 +65,33 @@ export function watchtowerUtxosToSpendableCoins(opts) {
       },
     }
   })
+}
+
+export function parseCauldronSwapAttribute(value='') {
+  const jsonValue = JSON.parse(value)
+  const tradeType = jsonValue?.tradeType
+  const unitsSold = jsonValue?.unitsSold
+  const unitsBought = jsonValue?.unitsBought
+  const tokenData = jsonValue?.tokenData
+  return { tradeType, unitsSold, unitsBought, tokenData }
+}
+
+export function formatCauldronSwapAttribute(value) {
+  const { tradeType, unitsSold, unitsBought, tokenData } = parseCauldronSwapAttribute(value)
+
+  if (tradeType === 'token-buy') {
+    const _unitsBought = Number(unitsBought) / 10 ** (tokenData?.decimals || 0)
+    return $t(
+      'BoughtAmount',
+      { amount: _unitsBought, symbol: tokenData?.symbol },
+      `Bought ${_unitsBought} ${tokenData?.symbol}`
+    )
+  } else {
+    const _unitsSold = Number(unitsSold) / 10 ** (tokenData?.decimals || 0)
+    return $t(
+      'SoldAmount',
+      { amount: _unitsSold, symbol: tokenData?.symbol },
+      `Sold ${_unitsSold} ${tokenData?.symbol}`
+    )
+  }
 }
