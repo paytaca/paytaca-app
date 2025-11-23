@@ -57,7 +57,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Cauldron',
+          name: 'Cauldron DEX',
           iconName: 'img:cauldron-logo.svg',
           path: '/apps/cauldron',
           iconStyle: 'width:45%; height: 45%;',

@@ -139,9 +139,9 @@ export function parseAttributeToBadge(attribute) {
     return {
       key,
       custom: true,
-      text: 'Cauldron',
+      text: 'Cauldron DEX',
       icon: icons.cauldron,
-      description: description || _description || 'Cauldron Swap',
+      description: description || _description || 'Cauldron DEX Swap',
     }
   }
 
@@ -269,8 +269,8 @@ export function parseAttributeToDetails(attribute) {
     let description = formatCauldronSwapAttribute(value)
     return {
       key,
-      groupName: 'Cauldron',
-      label: 'Cauldron Swap',
+      groupName: 'Cauldron DEX',
+      label: 'Cauldron DEX Swap',
       tooltip: description,
       text: description,
     }

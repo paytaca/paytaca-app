@@ -5,7 +5,7 @@
     @refresh="refreshPage"
   >
     <HeaderNav
-      title="Cauldron"
+      title="Cauldron DEX"
       backnavpath="/apps"
       class="apps-header"
     />
@@ -42,12 +42,12 @@
 
             <!-- Transaction ID -->
             <div class="q-mt-md">
-              <div class="text-grey text-weight-medium text-caption q-mb-sm">{{ $t('TransactionId') }}</div>
+              <div class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('TransactionId') }}</div>
               <div 
                 class="txid-container q-mx-auto"
                 :class="getDarkModeClass(darkMode)"
                 @click="copyTxid"
-                style="cursor: pointer; max-width: 300px; padding: 8px 16px; border-radius: 8px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between;"
+                style="cursor: pointer; max-width: 300px; padding: 8px 16px; border-radius: 8px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; gap: 8px;"
               >
                 <span class="txid-text">
                   {{ completedTradeData.txid.slice(0, 8) }}...{{ completedTradeData.txid.slice(-8) }}
@@ -71,12 +71,13 @@
             </div>
 
             <!-- New Swap Button -->
-            <div class="q-mt-md">
+            <div class="q-mt-md text-center">
               <q-btn
                 :label="$t('NewSwap')"
                 no-caps
                 unelevated
-                class="button"
+                class="button glassmorphic-button"
+                :class="getDarkModeClass(darkMode)"
                 @click="resetTrade"
               />
             </div>
@@ -150,7 +151,7 @@
                     :color="isBuyingToken ? 'primary' : null"
                     class="col"
                     :class="(!darkMode && !isBuyingToken) ? 'text-grey' : 'text-white'"
-                    @click="isBuyingToken = true"
+                    @click="handleBuyClick"
                   />
                   <q-btn
                     :label="`${$t('Sell')} ${tokenSymbol || $t('Token')}`"
@@ -159,29 +160,22 @@
                     :color="!isBuyingToken ? 'primary' : null"
                     class="col"
                     :class="(!darkMode && isBuyingToken) ? 'text-grey' : 'text-white'"
-                    @click="isBuyingToken = false"
+                    @click="handleSellClick"
                   />
                 </div>
               </div>
   
               <!-- Amount Input -->
               <div class="q-mb-md">
-                <q-input
-                  filled
-                  type="number"
+                <CustomInput
+                  :model-value="amountInputString"
+                  @update:model-value="updateAmountInput($event)"
+                  :input-symbol="amountInputSymbol"
+                  :label="isBuyingToken ? $t('AmountToReceive') : $t('AmountToSupply')"
+                  :decimal-obj="amountInputDecimalObj"
+                  :asset="amountInputAsset"
                   :disable="isSwapping || updatingPool"
-                  v-model.number="amountInput"
-                  :label="isSupplyMode ? $t('AmountToSupply') : $t('AmountToReceive')"
-                  :dark="darkMode"
-                  :min="0"
-                  step="any"
-                >
-                  <template v-slot:append>
-                    <div class="text-weight-bold">
-                      {{ amountInputSymbol }}
-                    </div>
-                  </template>
-                </q-input>
+                />
               </div>
 
               <div class="q-mb-md row justify-center">
@@ -194,43 +188,81 @@
                 />
               </div>
   
-              <div v-if="tradeResultError" class="q-mb-md">
-                <div class="text-center text-caption text-red">
-                  {{ tradeResultError }}
-                </div>
+              <div
+                v-if="tradeResultError"
+                class="insufficient-balance-alert q-mb-md"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-icon name="info" size="16px" class="q-mr-xs" />
+                <span class="insufficient-balance-text">{{ tradeResultError }}</span>
               </div>
   
               <!-- Output Display -->
-              <div v-if="tradeResult && tradeResult.summary && amountInput > 0" class="q-mb-md">
-                <div class="text-center text-caption text-grey q-mb-xs">
-                  <template v-if="isSupplyMode">{{ $t('YouNeed') }}</template>
-                  <template v-else>{{ $t('YouProvide') }}</template>
-                </div>
-                <div class="text-center text-h6">
-                  {{ formattedOutputAmount }} {{ formattedOutputSymbol }}
-                </div>
-                <div class="row items-center justify-between text-caption text-grey">
-                  <div>{{ $t('TradeFee') }} (0.03%)</div>
-                  <div>{{ tradeFee }} BCH</div>
-                </div>
-                <div class="row items-center justify-between text-caption text-grey">
-                  <div>{{ $t('PlatformFee') }} (0.03%)</div>
-                  <div>{{ platformFeeBch }} BCH</div>
-                </div>
-                <div class="row items-center justify-between text-caption text-grey">
-                  <div>{{ $t('TransactionFee') }}</div>
-                  <div>{{ estimateTransactionFee }} BCH</div>
-                </div>
+              <div v-if="amountInput > 0 && selectedToken" class="q-mb-md">
+                <!-- Skeleton loader while computing -->
+                <template v-if="updatingPool || isRecomputingTrade || !tradeResult || !tradeResult.summary">
+                  <div class="text-center text-caption text-grey q-mb-xs">
+                    <template v-if="isBuyingToken">{{ $t('YouNeed') }}</template>
+                    <template v-else>{{ $t('YouWillReceive') }}</template>
+                  </div>
+                  <div class="text-center text-h6 q-mb-md">
+                    <q-skeleton type="text" width="150px" class="q-mx-auto" style="height: 1.5em;" />
+                  </div>
+                  <div class="row items-center justify-between text-caption text-grey">
+                    <div>{{ $t('TradeFee') }} (0.03%)</div>
+                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
+                  </div>
+                  <div class="row items-center justify-between text-caption text-grey">
+                    <div>{{ $t('PlatformFee') }} (0.03%)</div>
+                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
+                  </div>
+                  <div class="row items-center justify-between text-caption text-grey">
+                    <div>{{ $t('TransactionFee') }}</div>
+                    <q-skeleton type="text" width="80px" style="height: 1.5em;" />
+                  </div>
+                </template>
+                <!-- Actual values when computed -->
+                <template v-else>
+                  <div class="text-center text-caption text-grey q-mb-xs">
+                    <template v-if="isBuyingToken">{{ $t('YouNeed') }}</template>
+                    <template v-else>{{ $t('YouWillReceive') }}</template>
+                  </div>
+                  <div class="text-center text-h6 q-mb-md">
+                    {{ formattedOutputAmount }} {{ formattedOutputSymbol }}
+                  </div>
+                  <div class="row items-center justify-between text-caption text-grey">
+                    <div>{{ $t('TradeFee') }} (0.03%)</div>
+                    <div>{{ tradeFee }} BCH</div>
+                  </div>
+                  <div class="row items-center justify-between text-caption text-grey">
+                    <div>{{ $t('PlatformFee') }} (0.03%)</div>
+                    <div>{{ platformFeeBch }} BCH</div>
+                  </div>
+                  <div class="row items-center justify-between text-caption text-grey">
+                    <div>{{ $t('TransactionFee') }}</div>
+                    <div>{{ estimateTransactionFee }} BCH</div>
+                  </div>
+                </template>
               </div>
   
               <!-- Swap Button -->
               <q-slide-transition>
-                <DragSlide
-                  v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
-                  disable-absolute-bottom
-                  :text="$t('Swap')"
-                  @swiped="securityCheck"
-                />
+                <div v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken">
+                  <DragSlide
+                    disable-absolute-bottom
+                    :text="$t('Swap')"
+                    :disable="!hasSufficientBalance"
+                    @swiped="securityCheck"
+                  />
+                  <div
+                    v-if="showInsufficientBalance"
+                    class="insufficient-balance-alert q-mt-md"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <q-icon name="info" size="16px" class="q-mr-xs" />
+                    <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
+                  </div>
+                </div>
               </q-slide-transition>
             </template>
           </q-card-section>
@@ -320,6 +352,7 @@ import { reactive, ref, computed, defineComponent, watch, onMounted, onUnmounted
 import HeaderNav from 'src/components/header-nav'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
+import CustomInput from 'src/components/CustomInput.vue';
 
 /**
  * Typedefs
@@ -333,6 +366,7 @@ export default defineComponent({
   components: {
     HeaderNav,
     DragSlide,
+    CustomInput,
   },
   props: {
     selectTokenId: String,
@@ -410,30 +444,47 @@ export default defineComponent({
     const isBuyingToken = ref(true);
     const isSupplyMode = ref(false);
     const amountInput = ref(0);
+    const amountInputString = ref('');
     const isSwapping = ref(false);
     const showTokenDialog = ref(false);
+    const isRecomputingTrade = ref(false);
+
+    function updateAmountInput(value) {
+      amountInputString.value = value || '';
+      // Convert to number for calculations, but preserve string for display
+      const numValue = value === '' || value === null ? 0 : Number(value);
+      if (!isNaN(numValue)) {
+        amountInput.value = numValue;
+      }
+    }
 
     /** 
-     * What is the unit in input field:
-     * |                     | isSupplyMode=True | isSupplyMode=False |
-     * | isBuyingToken=True  | BCH               | Token              |
-     * | isBuyingToken=False | Token             | BCH                |
-    */
+     * Input field always shows tokens (consistent UX)
+     * - Buy mode: tokens to receive
+     * - Sell mode: tokens to sell
+     */
     const amountInputSymbol = computed(() => {
-      if (Boolean(isSupplyMode.value) === Boolean(isBuyingToken.value)) {
-        return 'BCH';
-      } else {
-        return tokenSymbol.value || 'Token';
-      }
+      return tokenSymbol.value || 'Token';
     });
 
     const amountInputDecimals = computed(() => {
       if (!selectedToken.value) return 0;
-      if (Boolean(isSupplyMode.value) === Boolean(isBuyingToken.value)) {
-        return 8;
-      } else {
-        return parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
-      }
+      // Input always uses token decimals
+      return parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
+    })
+
+    const amountInputDecimalObj = computed(() => {
+      const decimals = amountInputDecimals.value;
+      return { min: 0, max: decimals };
+    })
+
+    const amountInputAsset = computed(() => {
+      if (!selectedToken.value) return {};
+      // Input always uses token asset
+      return {
+        id: selectedToken.value.token_id ? `ct/${selectedToken.value.token_id}` : '',
+        decimals: parseInt(selectedToken.value?.bcmr?.token?.decimals || 0)
+      };
     })
 
     const amountInUnits = computed(() => {
@@ -442,18 +493,49 @@ export default defineComponent({
       return BigInt(Math.floor(amountInput.value * 10 ** decimals))
     })
 
-    watch(amountInUnits, () => updateTradeResult())
+    watch(amountInUnits, () => {
+      if (amountInput.value > 0 && selectedToken.value) {
+        isRecomputingTrade.value = true;
+      }
+      updateTradeResult()
+    })
     watch([selectedToken, isBuyingToken, isSupplyMode], () => {
-      if (amountInput.value > 0) {
+      if (amountInput.value > 0 && selectedToken.value) {
+        isRecomputingTrade.value = true;
         updateTradeResult()
       }
     }, { deep: true })
+    
+    function handleBuyClick() {
+      if (!isBuyingToken.value) {
+        isBuyingToken.value = true;
+        isSupplyMode.value = false;
+        if (amountInput.value > 0 && selectedToken.value) {
+          isRecomputingTrade.value = true;
+        }
+      }
+    }
+    
+    function handleSellClick() {
+      if (isBuyingToken.value) {
+        isBuyingToken.value = false;
+        isSupplyMode.value = true;
+        if (amountInput.value > 0 && selectedToken.value) {
+          isRecomputingTrade.value = true;
+        }
+      }
+    }
 
     function toggleSupplyMode() {
-      if (Number(amountInput.value) && Number(formattedOutputAmount.value)) {
-        amountInput.value = Number(formattedOutputAmount.value);
+      // Toggle between buy and sell
+      // Buy: isBuyingToken=true, isSupplyMode=false (input=tokens to receive, output=BCH to pay)
+      // Sell: isBuyingToken=false, isSupplyMode=true (input=tokens to sell, output=BCH to receive)
+      isBuyingToken.value = !isBuyingToken.value;
+      isSupplyMode.value = !isBuyingToken.value; // false for buy, true for sell
+      // Mark as recomputing when switching modes
+      if (amountInput.value > 0 && selectedToken.value) {
+        isRecomputingTrade.value = true;
       }
-      isSupplyMode.value = !isSupplyMode.value;
     }
 
     /** @type {import("vue").Ref<TradeResult | null>} */
@@ -464,12 +546,14 @@ export default defineComponent({
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
       if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
+        isRecomputingTrade.value = false;
         return;
       }
       
       try {
         if (!poolV0List || poolV0List.length === 0) {
           tradeResult.value = null;
+          isRecomputingTrade.value = false;
           return;
         }
         const result = attemptTrade({
@@ -480,10 +564,12 @@ export default defineComponent({
         })
         tradeResult.value = result;
         tradeResultError.value = '';
+        isRecomputingTrade.value = false;
       } catch (error) {
         console.error('Error updating trade result:', error);
         tradeResultError.value = String(error);
         tradeResult.value = null;
+        isRecomputingTrade.value = false;
       }
     }, 500)
 
@@ -518,19 +604,12 @@ export default defineComponent({
     });
 
     const formattedOutputDecimals = computed(() => {
-      if (!selectedToken.value) return 0;
-      if (Boolean(isSupplyMode.value) === Boolean(isBuyingToken.value)) {
-        return parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
-      } else {
-        return 8;
-      }
+      // Output always shows BCH (8 decimals)
+      return 8;
     })
     const formattedOutputSymbol = computed(() => {
-      if (Boolean(isSupplyMode.value) === Boolean(isBuyingToken.value)) {
-        return tokenSymbol.value || 'Token';
-      } else {
-        return 'BCH';
-      }
+      // Output always shows BCH
+      return 'BCH';
     })
 
     const formattedOutputAmount = computed(() => {
@@ -587,6 +666,100 @@ export default defineComponent({
       return (feeSats / 10 ** 8).toFixed(8);
     })
 
+    // Calculate total BCH fees needed
+    const totalBchFees = computed(() => {
+      if (!tradeResult.value || !selectedToken.value) return 0n;
+      const tradeFeeSats = BigInt(Math.floor(Number(tradeFee.value) * 10 ** 8));
+      const platformFeeSats = platformFee.value ? platformFee.value.amount : 0n;
+      const txFeeSats = BigInt(Math.floor(Number(estimateTransactionFee.value) * 10 ** 8));
+      return tradeFeeSats + platformFeeSats + txFeeSats;
+    })
+
+    // Calculate required supply amount in units
+    const requiredSupplyAmount = computed(() => {
+      if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return 0n;
+      return isSupplyMode.value ? amountInUnits.value : tradeResult.value.summary.supply;
+    })
+
+    // Check if there's sufficient balance
+    const hasSufficientBalance = computed(() => {
+      if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary || !requiredSupplyAmount.value) {
+        return false;
+      }
+
+      try {
+        const assets = $store.getters['assets/getAssets'];
+        
+        if (isBuyingToken.value) {
+          // Need BCH: supply amount + all fees
+          const requiredBchSats = requiredSupplyAmount.value + totalBchFees.value;
+          const bchAsset = assets?.find(asset => asset?.id === 'bch');
+          // Convert BCH balance to satoshis (balance is in BCH units, multiply by 10^8)
+          const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
+          return bchBalanceSats >= requiredBchSats;
+        } else {
+          // Need Token: supply amount
+          // Need BCH: only fees (not the supply amount since supply is token)
+          const tokenAssetId = `ct/${selectedToken.value.token_id}`;
+          const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
+          const tokenBalance = BigInt(tokenAsset?.balance || 0);
+          
+          // Check token balance
+          if (tokenBalance < requiredSupplyAmount.value) {
+            return false;
+          }
+          
+          // Check BCH balance for fees
+          const bchAsset = assets?.find(asset => asset?.id === 'bch');
+          // Convert BCH balance to satoshis (balance is in BCH units, multiply by 10^8)
+          const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
+          return bchBalanceSats >= totalBchFees.value;
+        }
+      } catch (error) {
+        console.error('Error checking balance:', error);
+        return false;
+      }
+    })
+
+    // Check if should show insufficient balance message
+    const showInsufficientBalance = computed(() => {
+      return tradeResult.value && 
+             tradeResult.value.summary && 
+             amountInput.value > 0 && 
+             selectedToken.value && 
+             requiredSupplyAmount.value > 0n &&
+             !hasSufficientBalance.value;
+    })
+
+    // Get the insufficient balance message with the asset name
+    const insufficientBalanceMessage = computed(() => {
+      if (!showInsufficientBalance.value) return '';
+      
+      try {
+        const assets = $store.getters['assets/getAssets'];
+        
+        if (isBuyingToken.value) {
+          // Need BCH: supply amount + all fees
+          return `Insufficient BCH ${$t('Balance')}`;
+        } else {
+          // Need Token: supply amount OR BCH for fees
+          const tokenAssetId = `ct/${selectedToken.value.token_id}`;
+          const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
+          const tokenBalance = BigInt(tokenAsset?.balance || 0);
+          
+          // Check which one is insufficient
+          if (tokenBalance < requiredSupplyAmount.value) {
+            return `Insufficient ${tokenSymbol.value || $t('Token')} ${$t('Balance')}`;
+          } else {
+            // Token balance is sufficient, but BCH for fees is not
+            return `Insufficient BCH ${$t('Balance')}`;
+          }
+        }
+      } catch (error) {
+        return $t('InsufficientBalance');
+      }
+    })
+
 
     const explorerLink = computed(() => {
       if (!completedTradeData.value.txid) return '';
@@ -599,6 +772,7 @@ export default defineComponent({
       showTokenDialog.value = false;
       tokensFilterOpts.value.q = '';
       amountInput.value = 0;
+      amountInputString.value = '';
       tradeResult.value = null;
       tradeResultError.value = '';
     }
@@ -630,6 +804,7 @@ export default defineComponent({
         tokenData: { category: '', name: '', decimals: 0, symbol: '', imageUrl: '' },
       };
       amountInput.value = 0;
+      amountInputString.value = '';
       tradeResult.value = null;
     }
 
@@ -835,6 +1010,7 @@ export default defineComponent({
 
       poolTracker,
       updatingPool,
+      isRecomputingTrade,
       tokenData,
       tokenSymbol,
       selectedToken,
@@ -847,7 +1023,11 @@ export default defineComponent({
       isBuyingToken,
       isSupplyMode,
       amountInput,
+      amountInputString,
+      updateAmountInput,
       amountInputSymbol,
+      amountInputDecimalObj,
+      amountInputAsset,
       toggleSupplyMode,
       tradeResult,
       tradeResultError,
@@ -860,6 +1040,9 @@ export default defineComponent({
       tradeFee,
       platformFeeBch,
       estimateTransactionFee,
+      hasSufficientBalance,
+      showInsufficientBalance,
+      insufficientBalanceMessage,
       explorerLink,
 
       showSlider,
@@ -872,7 +1055,82 @@ export default defineComponent({
       onImgError,
       commitTrade,
       refreshPage,
+      handleBuyClick,
+      handleSellClick,
     }
   }
 })
 </script>
+
+<style lang="scss" scoped>
+.insufficient-balance-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(237, 94, 89, 0.08);
+  border: 1px solid rgba(237, 94, 89, 0.2);
+  transition: all 0.2s ease;
+  
+  .insufficient-balance-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ed5e59;
+    text-align: center;
+  }
+  
+  .q-icon {
+    color: #ed5e59;
+    opacity: 0.8;
+  }
+  
+  &.dark {
+    background: rgba(237, 94, 89, 0.12);
+    border-color: rgba(237, 94, 89, 0.3);
+    
+    .insufficient-balance-text {
+      color: #ff6b6b;
+    }
+    
+    .q-icon {
+      color: #ff6b6b;
+    }
+  }
+}
+
+/* Glassmorphic Button Styles */
+.glassmorphic-button {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.15) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.7) !important;
+    color: var(--q-primary) !important;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.85) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
+    }
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+</style>
