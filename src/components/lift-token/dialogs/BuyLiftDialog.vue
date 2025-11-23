@@ -249,17 +249,17 @@ export default {
     },
     inputValidationRules() {
       return [
-        val => {
-          const amount = Number(val)
+        _val => {
+          const amount = Number(this.amountTkn)
           // Allow 0 or empty initially
           if (!amount || amount === 0) return true
           // Check if amount meets minimum requirement
           if (amount >= this.selectedRoundMinPurchase) return true
           // Return error message if below minimum
-          return this.$t('MinimumPurchase') + ': ' + this.formatNumber(this.selectedRoundMinPurchase) + ' LIFT'
+          return `${this.$t('MinimumPurchase')}: ${this.formatNumber(this.selectedRoundMinPurchase)} LIFT`
         },
-        val => {
-          const amount = Number(val)
+        _val => {
+          const amount = Number(this.amountTkn)
           // Allow 0 or empty initially
           if (!amount || amount === 0) return true
           // Check if BCH amount is within wallet balance
@@ -620,7 +620,7 @@ export default {
     border-radius: 12px;
     border: 2px solid transparent;
     transition: all 0.3s ease;
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: rgba(0, 0, 0, 0.05);
     
     &.dark {
       background-color: rgba(255, 255, 255, 0.05);
@@ -632,7 +632,7 @@ export default {
     }
     
     &.selected {
-      border-color: #42a5f5;
+      border-color: #42a5f5 !important;
       background-color: rgba(66, 165, 245, 0.1);
       
       &.dark {
@@ -743,22 +743,18 @@ export default {
     
     &.theme-glassmorphic-blue {
       background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
-      color: white;
     }
     
     &.theme-glassmorphic-gold {
       background: linear-gradient(135deg, #ffa726 0%, #f57c00 100%);
-      color: white;
     }
     
     &.theme-glassmorphic-green {
       background: linear-gradient(135deg, #66bb6a 0%, #388e3c 100%);
-      color: white;
     }
     
     &.theme-glassmorphic-red {
       background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
-      color: white;
     }
     
     &:hover:not(:disabled) {
