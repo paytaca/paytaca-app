@@ -54,11 +54,6 @@
                 :outline="isChipOutline(SaleGroup.PRIVATE)"
                 @click="applyFilter(SaleGroup.PRIVATE)"
               />
-              <sale-group-chip
-                :saleGroup="SaleGroup.PUBLIC"
-                :outline="isChipOutline(SaleGroup.PUBLIC)"
-                @click="applyFilter(SaleGroup.PUBLIC)"
-              />
             </div>
           </div>
           
@@ -108,17 +103,15 @@
           >
             <div class="row col-12 justify-between q-mb-sm items-start">
               <div class="row col-7 justify-start">
-                <q-badge
-                  :color="getStatusBadgeColor(parseLockupStatusChip(purchase))"
-                  :label="getStatusLabel(parseLockupStatusChip(purchase))"
-                  class="status-badge"
+                <sale-group-badge
+                  type="status"
+                  :purchase="purchase"
                 />
               </div>
               <div class="row col-5 justify-end">
-                <q-badge
-                  :color="getRoundBadgeColor(purchase.purchase_more_details.sale_group)"
-                  :label="parseSaleGroup(purchase.purchase_more_details.sale_group)"
-                  class="round-badge"
+                <sale-group-badge
+                  type="round"
+                  :saleGroup="purchase.purchase_more_details.sale_group"
                 />
               </div>
             </div>
@@ -255,6 +248,7 @@ import {
 } from "src/utils/denomination-utils";
 
 import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
+import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 import PurchaseInfoDialog from "./dialogs/PurchaseInfoDialog.vue";
 
 export default {
@@ -267,6 +261,7 @@ export default {
 
   components: {
     SaleGroupChip,
+    SaleGroupBadge,
   },
 
   data() {
@@ -343,49 +338,6 @@ export default {
         'glassmorphic-red': '#f54270'
       }
       return themeColors[this.theme] || '#42a5f5'
-    },
-    parseLockupStatusChip(purchase) {
-      if (
-        purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC ||
-        purchase.is_done_vesting
-      ) {
-        return "comp";
-      }
-      if (purchase.purchase_vesting_details.some(detail => detail.vested_date))
-        return 'vest'
-      return 'lock'
-    },
-    parseSaleGroup(saleGroup) {
-      const labels = {
-        'seed': this.$t('SeedRound'),
-        'priv': this.$t('PrivateRound'),
-        'pblc': this.$t('PublicRound'),
-      }
-      return labels[saleGroup] || saleGroup
-    },
-    getRoundBadgeColor(saleGroup) {
-      const colors = {
-        'seed': 'amber-8',
-        'priv': 'blue-6',
-        'pblc': 'green-6',
-      }
-      return colors[saleGroup] || 'grey-6'
-    },
-    getStatusLabel(status) {
-      const labels = {
-        'lock': this.$t('Lockup'),
-        'vest': this.$t('Vesting'),
-        'comp': this.$t('Complete'),
-      }
-      return labels[status] || status
-    },
-    getStatusBadgeColor(status) {
-      const colors = {
-        'lock': 'orange-7',
-        'vest': 'light-blue-6',
-        'comp': 'teal-6',
-      }
-      return colors[status] || 'grey-6'
     },
     parseNextVestingDate(txDetails, lockupDate) {
       let vestingDate = ''
@@ -525,14 +477,6 @@ export default {
 .info-section {
   font-size: 0.875rem;
   line-height: 1.3;
-}
-
-.round-badge, .status-badge {
-  font-size: 11px;
-  padding: 4px 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
 .vesting-complete {

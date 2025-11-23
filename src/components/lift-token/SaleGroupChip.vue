@@ -17,9 +17,8 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils"
 
 const SALE_GROUP_CHIP = {
   all: { label: "All", color: "purple-6", isSquare: false, category: "all" },
-  seed: { label: "SeedRound", color: "amber-8", isSquare: false, category: "round" },
+  seed: { label: "SeedRound", color: "green-6", isSquare: false, category: "round" },
   priv: { label: "PrivateRound", color: "blue-6", isSquare: false, category: "round" },
-  pblc: { label: "PublicRound", color: "green-6", isSquare: false, category: "round" },
   lock: { label: "Lockup", color: "orange-7", isSquare: true, category: "status" },
   vest: { label: "Vesting", color: "light-blue-6", isSquare: true, category: "status" },
   comp: { label: "Complete", color: "teal-6", isSquare: true, category: "status" },
@@ -53,8 +52,11 @@ export default {
     parseSquare(saleGroup) {
       return SALE_GROUP_CHIP[saleGroup].isSquare;
     },
-    getChipTextColor(saleGroup) {
-      return this.outline ? (this.darkMode ? 'white' : 'grey-8') : 'white'
+    getChipTextColor() {
+      if (this.outline) {
+        return this.darkMode ? 'white' : 'grey-8'
+      }
+      return 'white'
     },
     getChipClass(saleGroup) {
       const category = SALE_GROUP_CHIP[saleGroup]?.category

@@ -3,15 +3,13 @@
     <q-card v-if="purchase" class="pt-card-2 purchase-info-dialog-card text-bow full-width" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
       <div class="pt-card row justify-between items-center q-px-lg q-pt-lg q-pb-md sticky-title" :class="getDarkModeClass(darkMode)">
         <div class="col-10 q-gutter-sm">
-          <q-badge
-            :color="getStatusBadgeColor(parseStatus())"
-            :label="getStatusLabel(parseStatus())"
-            class="status-badge"
+          <sale-group-badge
+            type="status"
+            :purchase="purchase"
           />
-          <q-badge
-            :color="getRoundBadgeColor(purchase.purchase_more_details.sale_group)"
-            :label="parseSaleGroup(purchase.purchase_more_details.sale_group)"
-            class="round-badge"
+          <sale-group-badge
+            type="round"
+            :saleGroup="purchase.purchase_more_details.sale_group"
           />
         </div>
 
@@ -218,6 +216,7 @@ import {
 import { SaleGroup } from "src/utils/engagementhub-utils/lift-token";
 
 import StatusChip from "src/components/rewards/StatusChip.vue";
+import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 
 export default {
   name: "PurchaseInfoDialog",
@@ -228,6 +227,7 @@ export default {
 
   components: {
     StatusChip,
+    SaleGroupBadge,
   },
 
   data() {
@@ -273,49 +273,6 @@ export default {
         addLen - 7,
         addLen
       )}`;
-    },
-    parseStatus() {
-      if (
-        this.purchase.purchase_more_details.sale_group === SaleGroup.PUBLIC ||
-        this.purchase.is_done_vesting
-      ) {
-        return "comp";
-      }
-      if (this.purchase.purchase_vesting_details.some(detail => detail.vested_date))
-        return 'vest'
-      return 'lock'
-    },
-    parseSaleGroup(saleGroup) {
-      const labels = {
-        'seed': this.$t('SeedRound'),
-        'priv': this.$t('PrivateRound'),
-        'pblc': this.$t('PublicRound'),
-      }
-      return labels[saleGroup] || saleGroup
-    },
-    getRoundBadgeColor(saleGroup) {
-      const colors = {
-        'seed': 'amber-8',
-        'priv': 'blue-6',
-        'pblc': 'green-6',
-      }
-      return colors[saleGroup] || 'grey-6'
-    },
-    getStatusLabel(status) {
-      const labels = {
-        'lock': this.$t('Lockup'),
-        'vest': this.$t('Vesting'),
-        'comp': this.$t('Complete'),
-      }
-      return labels[status] || status
-    },
-    getStatusBadgeColor(status) {
-      const colors = {
-        'lock': 'orange-7',
-        'vest': 'light-blue-6',
-        'comp': 'teal-6',
-      }
-      return colors[status] || 'grey-6'
     },
     parseTxid(txId) {
       const txIdLen = txId.length
@@ -371,14 +328,6 @@ export default {
 
 .dialog-content {
   padding-top: 16px;
-}
-
-.round-badge, .status-badge {
-  font-size: 11px;
-  padding: 4px 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
 .info-card {
