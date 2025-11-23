@@ -167,7 +167,11 @@
   
               <!-- Amount Input -->
               <div class="q-mb-md">
+                <template v-if="updatingPool || (selectedToken && !isLiquidityAvailable)">
+                  <q-skeleton type="rect" height="56px" class="br-4" />
+                </template>
                 <CustomInput
+                  v-else
                   :model-value="amountInputString"
                   @update:model-value="updateAmountInput($event)"
                   :input-symbol="amountInputSymbol"
@@ -178,7 +182,7 @@
                 />
               </div>
 
-              <div class="q-mb-md row justify-center">
+              <div v-if="amountInput > 0" class="q-mb-md row justify-center">
                 <q-btn
                   icon="swap_vert"
                   round
@@ -266,6 +270,9 @@
               </q-slide-transition>
             </template>
           </q-card-section>
+          <div class="row justify-center q-mb-md text-grey-6">
+            <span>{{ $t('PoweredBy') }} Cauldron.quest</span>
+          </div>
         </q-card>
 
         <!-- Token Selection Dialog -->
@@ -584,6 +591,14 @@ export default defineComponent({
     // Computed properties
     const tokenData = computed(() => selectedToken.value);
     const tokenSymbol = computed(() => selectedToken.value?.bcmr?.token?.symbol || '');
+    
+    const isLiquidityAvailable = computed(() => {
+      if (!selectedToken.value) return false;
+      const poolV0List = poolTracker.microPools;
+      if (!poolV0List || poolV0List.length === 0) return false;
+      const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id);
+      return arePoolsCorrect;
+    });
     
     const formattedPrice = computed(() => {
       if (!selectedToken.value) return '0.00';
@@ -1011,6 +1026,7 @@ export default defineComponent({
       poolTracker,
       updatingPool,
       isRecomputingTrade,
+      isLiquidityAvailable,
       tokenData,
       tokenSymbol,
       selectedToken,

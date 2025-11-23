@@ -35,6 +35,20 @@
             <q-skeleton type="rect" width="100px" height="16px" class="q-mx-auto" />
           </div>
         </div>
+
+        <!-- Swap Button for Tokens (below balance) -->
+        <div v-if="asset.id?.startsWith?.('ct/')" class="swap-button-section q-mb-md">
+          <q-btn 
+            @click="cauldronSwap" 
+            outline
+            class="swap-btn"
+            color="primary"
+            no-caps
+          >
+            <q-icon name="img:cauldron-logo.svg" size="18px" class="q-mr-sm" />
+            <span>{{ $t('Swap') }}</span>
+          </q-btn>
+        </div>
         
         <!-- Price Chart for BCH -->
         <div v-if="asset.id === 'bch'" class="price-chart-section q-mb-md">
@@ -145,19 +159,6 @@
         <!-- Action Buttons -->
         <div class="action-buttons q-mt-lg">
           <div class="action-buttons-container">
-            <q-btn 
-              v-if="asset.id?.startsWith?.('ct/')"
-              @click="cauldronSwap" 
-              unelevated
-              class="action-btn"
-              color="primary"
-              text-color="white"
-              no-caps
-            >
-              <q-icon name="img:cauldron-logo.svg" size="18px" class="action-icon" />
-              <span class="action-label">{{ $t('Swap') }}</span>
-            </q-btn>
-
             <q-btn 
               @click="send" 
               unelevated
@@ -688,7 +689,34 @@ export default {
   }
 }
 
-// Action Buttons
+// Swap Button Section (below balance for tokens)
+.swap-button-section {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+  
+  .swap-btn {
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 20px;
+    border-width: 1.5px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      background: rgba(59, 123, 246, 0.08);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(59, 123, 246, 0.15);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// Action Buttons (Send and Receive only)
 .action-buttons {
   padding-top: 8px;
   
@@ -696,7 +724,6 @@ export default {
     display: flex;
     gap: 10px;
     justify-content: center;
-    flex-wrap: wrap;
   }
   
   .action-btn {
@@ -754,7 +781,6 @@ export default {
     }
     
     .action-btn {
-      min-width: calc(33.333% - 6px);
       min-height: 52px;
       padding: 8px 10px;
       gap: 3px;
@@ -769,8 +795,7 @@ export default {
     }
   }
   
-  // When only 2 buttons (no Swap button)
-  .action-btn:only-child,
+  // When only 2 buttons
   .action-btn:nth-last-child(2):first-child {
     min-width: calc(50% - 5px);
   }
