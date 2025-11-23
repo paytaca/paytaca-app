@@ -1444,12 +1444,6 @@ const phrases = {
       Decimals: 'Decimals',
       CategoryID: 'Category ID',
       TokenSaleRounds: 'Token Sale Rounds',
-      SeedRound: 'Seed Round',
-      EarlySupporter: 'Early Supporters',
-      PrivateRound: 'Private Round',
-      StrategyPartners: 'Strategic Partners',
-      PublicRound: 'Public Round',
-      OpenToCommunity: 'Open to Community',
       Recommended: 'Recommended',
       PricePerToken: 'Price per Token',
       PerToken: 'per token',
@@ -1458,7 +1452,6 @@ const phrases = {
       ProceedToPurchase: 'Proceed to Purchase',
       PurchaseInitiated: 'Purchase initiated. Please complete the payment in the Reservations tab.',
       WhitelistRequired: 'Whitelist Required',
-      ReserveNow: 'Reserve Now',
       Tokenomics: 'Tokenomics',
       TokenDistribution: 'Token Distribution',
       TokenSale: 'Token Sale',
@@ -1468,7 +1461,7 @@ const phrases = {
       Partnerships: 'Partnerships',
       LiquidityPool: 'Liquidity Pool',
       ReserveFund: 'Reserve Fund',
-      SeedPrivatePublicRounds: 'Seed, Private & Public rounds',
+      EarlySupporterStrategicPartnerRounds: 'Early Supporter & Strategic Partner rounds',
       CampaignBasedDistribution: 'Campaign-based distribution',
       OneYearCliffVesting: '1-year cliff, then linear vesting',
       MilestoneBasedUnlocks: 'Milestone-based unlocks',
@@ -1481,6 +1474,9 @@ const phrases = {
       GovernanceRights: 'Governance Rights',
       FrequentlyAskedQuestions: 'Frequently Asked Questions',
       ReadyToGetStarted: 'Ready to Get Started',
+      BuyNow: 'Buy Now',
+      EarlySupporterRound: 'Early Supporter Round',
+      StrategicPartnerRound: 'Strategic Partner Round',
       
       // LIFT Token - Buy Tab
       YourBCHBalance: 'Your BCH Balance',
@@ -1536,11 +1532,11 @@ const phrases = {
       FAQ1Question: 'What is the LIFT Token?',
       FAQ1Answer: 'The LIFT token is a utility token that powers the Paytaca ecosystem. It embodies the Filipino concept of Bayanihan, representing community-driven cooperation to advance Bitcoin Cash adoption. The token provides access to various ecosystem benefits and features within the Paytaca platform.',
       FAQ2Question: 'How can I participate in the token sale?',
-      FAQ2Answer: 'To participate in the token sale, you can purchase LIFT tokens directly through the Buy tab in this app. The Public round is open to everyone with no whitelist required, making it easy to get started.',
+      FAQ2Answer: 'To participate in the token sale, you can purchase LIFT tokens directly through the Buy tab in this app.',
       FAQ3Question: 'What are the benefits of holding LIFT tokens?',
       FAQ3Answer: 'LIFT token holders gain access to exclusive app features, reduced fees on platform services, and the ability to participate in ecosystem governance. The token is designed to incentivize active participation in the Paytaca ecosystem and contribute to the growth of Bitcoin Cash adoption.',
       FAQ4Question: 'What is the vesting schedule?',
-      FAQ4Answer: 'The vesting schedule varies by round. Seed round participants have a 2-year lockup followed by quarterly releases. Private round participants have a 1-year lockup followed by quarterly releases. Public round tokens are released immediately with no lockup period.',
+      FAQ4Answer: 'The vesting schedule varies by round. Early Supporter round participants have a 2-year lockup followed by quarterly releases. Strategic Partner round participants have a 1-year lockup followed by quarterly releases.',
       FAQ5Question: 'How are the tokens distributed?',
       FAQ5Answer: 'The total supply of 1 billion LIFT tokens is distributed across various categories: 20% for token sale, 30% for community incentives, 15% for ecosystem growth, 15% for team and advisors, and smaller allocations for partnerships, liquidity pool, and reserve fund. This distribution supports long-term ecosystem development and community engagement.',
 
@@ -1554,6 +1550,11 @@ const phrases = {
 
       DisplayRawData: 'Display Raw Data',
       DisplayRefinedData: 'Display Refined Data',
+
+      HideDebugApp: 'Hide Debug App',
+      AreYouSureYouWantToHideTheDebugApp: 'Are you sure you want to hide the Debug app? You can show it again by long pressing the Apps header.',
+      ShowDebugApp: 'Show Debug App',
+      DoYouWantToShowTheDebugApp: 'Do you want to show the Debug app? This will provide access to debugging tools and utilities.',
     }
   ],
   dynamic: [
