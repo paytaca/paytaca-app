@@ -793,9 +793,10 @@ export default defineComponent({
     }
 
     // Initialize on mount
-    onMounted(() => {
+    onMounted(async () => {
       if (props.selectTokenId) {
-        fetchTokensList({ token_id: props.selectTokenId }).then(tokens => {
+        try {
+          const tokens = await fetchTokensList({ token_id: props.selectTokenId });
           if (tokens.length > 0) {
             selectedToken.value = tokens[0];
           } else {
@@ -805,7 +806,14 @@ export default defineComponent({
               color: 'primary',
             })
           }
-        })
+        } catch (error) {
+          console.error('Error fetching token:', error);
+          $q.dialog({
+            title: $t('EncounteredError'),
+            message: $t('NetworkError'),
+            color: 'negative',
+          })
+        }
       }
       refreshPage()
         .finally(() => {
