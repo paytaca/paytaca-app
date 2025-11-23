@@ -119,11 +119,11 @@
       <!-- Conversion Display -->
       <div class="conversion-display q-mb-md q-pa-md" :class="getDarkModeClass(darkMode)">
         <div class="row justify-between q-mb-xs">
-          <span class="text-caption text-grey-7">{{ $t('TotalCost') }}:</span>
+          <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('TotalCost') }}:</span>
           <span class="text-body2 text-weight-medium">{{ formatWithLocale(amountUsd) }} USD</span>
         </div>
         <div class="row justify-between">
-          <span class="text-caption text-grey-7">{{ $t('InBCH') }}:</span>
+          <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('InBCH') }}:</span>
           <span class="text-body2 text-weight-medium">{{ amountBch.toFixed(8) }} BCH</span>
         </div>
       </div>
@@ -131,7 +131,7 @@
       <!-- Wallet Balance Info -->
       <div class="balance-info q-mb-md">
         <div class="row justify-between items-center">
-          <span class="text-caption text-grey-7">{{ $t('YourBCHBalance') }}:</span>
+          <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('YourBCHBalance') }}:</span>
           <span class="text-body2">{{ walletBalance.toFixed(8) }} BCH</span>
         </div>
       </div>
