@@ -10,6 +10,7 @@ import { getInputSize, getOutputSize } from 'cashscript/dist/utils.js';
  * @param {ExchangeLab} opts.exlab
  * @param {import("@cashlab/cauldron").PoolV0[]} opts.pools
  * @param {Boolean} opts.isBuyingToken
+ * @param {BigInt} opts.supply
  * @param {BigInt} opts.demand
  * @param {BigInt} [opts.txFeePerByte = 1n]
  */
@@ -18,6 +19,7 @@ export function attemptTrade(opts) {
   const pools = opts?.pools
   const txFeePerByte = opts?.txFeePerByte || 1n
   const demand = opts?.demand
+  const supply = opts?.supply
   const isBuyingToken = opts?.isBuyingToken
 
   let supply_token_id = pools[0].output.token.token_id;
@@ -27,14 +29,23 @@ export function attemptTrade(opts) {
     demand_token_id = pools[0].output.token.token_id;
   }
 
-  const tradeResult = exlab.constructTradeBestRateForTargetDemand(
-    supply_token_id,
-    demand_token_id,
-    demand,
-    pools,
-    txFeePerByte,
-  );
-  return tradeResult
+  if (demand) {
+    return exlab.constructTradeBestRateForTargetDemand(
+      supply_token_id,
+      demand_token_id,
+      demand,
+      pools,
+      txFeePerByte,
+    );
+  } else {
+    return exlab.constructTradeBestRateForTargetSupply(
+      supply_token_id,
+      demand_token_id,
+      supply,
+      pools,
+      txFeePerByte
+    )
+  }
 }
 
 

@@ -145,6 +145,22 @@
         <!-- Action Buttons -->
         <div class="action-buttons q-mt-md row q-gutter-sm justify-center">
           <q-btn 
+            v-if="asset.id?.startsWith?.('ct/')"
+            @click="cauldronSwap" 
+            rounded 
+            unelevated
+            class="action-btn"
+            color="primary"
+            text-color="white"
+            no-caps
+            padding="8px 24px"
+            style="min-width: 110px; font-size: 13px; font-weight: 600;"
+          >
+            <q-icon name="img:cauldron-logo.svg" size="16px" class="q-mr-xs" />
+            {{ $t('Swap') }}
+          </q-btn>
+
+          <q-btn 
             @click="send" 
             rounded 
             unelevated
@@ -406,7 +422,15 @@ export default {
         }
       })
     },
-    
+    cauldronSwap() {
+      this.$router.push({
+        name: 'app-cauldron',
+        query: {
+          selectTokenId: this.asset.id?.replace('ct/', '')
+        }
+      })
+    },
+
     // Price chart methods
     async loadPriceData () {
       try {

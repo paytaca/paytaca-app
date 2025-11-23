@@ -36,6 +36,7 @@ import axios from 'axios';
 
 /**
  * @param {Object} opts 
+ * @property {String} opts.token_id The token ids to filter by
  * @property {Number} opts.limit The number of tokens to return
  * @property {Number} opts.offset The offset of the tokens to return
  * @property {String} opts.by The field to sort by
@@ -54,6 +55,9 @@ export async function fetchTokensList(opts) {
   let path = 'cauldron/tokens/list_cached'
   if (opts?.q) {
     path = 'cauldron/tokens/search_cached'
+  } else if (opts?.token_id) {
+    params.ids = opts?.token_id
+    path = 'cauldron/tokens/list_cached_by_ids'
   }
   const response = await axios.get('https://indexer2.cauldron.quest/' + path, { params })
   return response.data
