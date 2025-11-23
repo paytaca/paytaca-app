@@ -48,7 +48,6 @@
                 />
                 <div class="col q-ml-sm">
                   <div class="text-weight-medium">{{ round.name }}</div>
-                  <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">{{ round.subtitle }}</div>
                 </div>
               </div>
             </q-card>
@@ -144,10 +143,10 @@
         no-caps
         class="full-width purchase-button"
         :class="`theme-${theme}`"
-        :disable="!canPurchase || isProcessing"
         :loading="isProcessing"
         @click="proceedToPurchase"
       />
+      <!-- :disable="!canPurchase || isProcessing" -->
     </q-card>
   </q-dialog>
 </template>
@@ -186,7 +185,7 @@ export default {
     return {
       innerVal: this.modelValue,
       contractAddress: this.liftSwapContractAddress || '',
-      selectedRound: 'public',
+      selectedRound: 'seed',
       amountTkn: 0,
       amountUsd: 0,
       amountBch: 0,
@@ -203,27 +202,17 @@ export default {
       saleRounds: [
         {
           id: 'seed',
-          name: this.$t('SeedRound'),
-          subtitle: this.$t('EarlySupporter'),
+          name: this.$t('EarlySupporterRound'),
           price: 0.015,
-          minPurchase: 1000000,
+          minPurchase: 6667,
           vesting: this.$t('SeedVesting', {}, '2-year lockup, then 25% released per quarter')
         },
         {
           id: 'private',
-          name: this.$t('PrivateRound'),
-          subtitle: this.$t('StrategyPartners'),
-          price: 0.025,
-          minPurchase: 100000,
+          name: this.$t('StrategicPartnerRound'),
+          price: 0.03,
+          minPurchase: 3333334,
           vesting: this.$t('PrivateVesting', {}, '1-year lockup, then 25% released per quarter')
-        },
-        {
-          id: 'public',
-          name: this.$t('PublicRound'),
-          subtitle: this.$t('OpenToCommunity'),
-          price: 0.05,
-          minPurchase: 1000,
-          vesting: this.$t('PublicVesting', {}, 'No lockup, released immediately')
         }
       ]
     }
@@ -444,6 +433,7 @@ export default {
       this.computeUsdBch()
     },
     async proceedToPurchase() {
+      /**
       if (this.isProcessing) return
       if (!this.canPurchase) return
 
@@ -580,6 +570,12 @@ export default {
         this.$emit('purchase', { success: false, errorMessage: message })
       } finally {
         this.isProcessing = false
+      }
+      */
+
+      const isSuccessful = await processPurchaseApi(null)
+      if (!isSuccessful) {
+        throw new Error(this.$t('PurchasePaymentError', {}, 'Failed to record the purchase.'))
       }
     }
   },

@@ -23,7 +23,6 @@
       <q-icon :name="roundIcon" size="32px" :color="roundColor" class="q-mr-sm" />
       <div>
         <div class="text-h6 text-weight-bold">{{ roundName }}</div>
-        <div class="text-caption text-grey-6">{{ roundSubtitle }}</div>
       </div>
     </div>
     
@@ -59,24 +58,14 @@
       </div>
     </q-expansion-item>
     
-    <!-- Eligibility Status -->
-    <div v-if="eligibilityStatus" class="q-mt-md">
-      <q-banner dense rounded class="eligibility-banner" :class="eligibilityClass">
-        <template v-slot:avatar>
-          <q-icon :name="eligibilityIcon" />
-        </template>
-        {{ eligibilityStatus }}
-      </q-banner>
-    </div>
-    
     <!-- CTA Button -->
     <q-btn
-      :label="ctaLabel"
-      :color="getThemeColor()"
+      :label="$t('BuyNow')"
+      rounded
       unelevated
       no-caps
-      class="full-width q-mt-md"
-      :disable="!isEligible"
+      class="full-width q-mt-md text-bow button"
+      :class="getDarkModeClass(darkMode)"
       @click.stop="$emit('reserve')"
     />
   </q-card>
@@ -89,7 +78,6 @@ export default {
   name: 'SaleRoundCard',
   props: {
     roundName: String,
-    roundSubtitle: String,
     roundIcon: {
       type: String,
       default: 'token'
@@ -104,17 +92,7 @@ export default {
     vestingSchedule: String,
     isSelected: Boolean,
     isRecommended: Boolean,
-    isEligible: {
-      type: Boolean,
-      default: true
-    },
-    eligibilityStatus: String,
     badge: String,
-    ctaLabel: {
-      type: String,
-      default: 'Reserve Now'
-    },
-    darkMode: Boolean,
     theme: String
   },
   emits: ['select', 'reserve'],
@@ -127,12 +105,9 @@ export default {
       if (this.isRecommended) return 'positive'
       return 'primary'
     },
-    eligibilityClass() {
-      return this.isEligible ? 'bg-positive' : 'bg-warning'
+    darkMode() {
+      return this.$store.getters["darkmode/getStatus"]
     },
-    eligibilityIcon() {
-      return this.isEligible ? 'check_circle' : 'info'
-    }
   },
   methods: {
     getDarkModeClass,
@@ -190,10 +165,6 @@ export default {
       min-height: 32px;
       padding: 4px 0;
     }
-  }
-  
-  .eligibility-banner {
-    font-size: 12px;
   }
 }
 </style>
