@@ -54,11 +54,6 @@
                 :outline="isChipOutline(SaleGroup.PRIVATE)"
                 @click="applyFilter(SaleGroup.PRIVATE)"
               />
-              <sale-group-chip
-                :saleGroup="SaleGroup.PUBLIC"
-                :outline="isChipOutline(SaleGroup.PUBLIC)"
-                @click="applyFilter(SaleGroup.PUBLIC)"
-              />
             </div>
           </div>
         </q-card-section>

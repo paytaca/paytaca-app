@@ -17,8 +17,8 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils"
 
 const SALE_GROUP_CHIP = {
   all: { label: "All", color: "purple-6", isSquare: false, category: "all" },
-  seed: { label: "SeedRound", color: "green-6", isSquare: false, category: "round" },
-  priv: { label: "PrivateRound", color: "blue-6", isSquare: false, category: "round" },
+  seed: { label: "EarlySupporterRound", color: "green-6", isSquare: false, category: "round" },
+  priv: { label: "StrategicPartnerRound", color: "blue-6", isSquare: false, category: "round" },
   lock: { label: "Lockup", color: "orange-7", isSquare: true, category: "status" },
   vest: { label: "Vesting", color: "light-blue-6", isSquare: true, category: "status" },
   comp: { label: "Complete", color: "teal-6", isSquare: true, category: "status" },

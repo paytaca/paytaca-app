@@ -60,8 +60,8 @@ export default {
     },
     parseSaleGroup(saleGroup) {
       const labels = {
-        'seed': this.$t('SeedRound'),
-        'priv': this.$t('PrivateRound'),
+        'seed': this.$t('EarlySupporterRound'),
+        'priv': this.$t('StrategicPartnerRound'),
       }
       return labels[saleGroup] || saleGroup
     },
