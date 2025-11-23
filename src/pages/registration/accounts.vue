@@ -91,15 +91,16 @@
       </div>
     </div>
     <!-- Step 1: Seed Phrase Generation with Animation -->
+    <!-- Also show during wallet restoration -->
     <div
       class="wallet-creation-view"
       :class="getDarkModeClass(darkMode)"
-      v-if="currentStep === 1"
+      v-if="currentStep === 1 || walletRestoreInProgress"
     >
       <transition name="fade" mode="out-in">
         <!-- Paytaca Logo with Circle Container Animation -->
         <div
-          v-if="!walletCreationError"
+          v-if="!walletCreationError && !walletRestoreError"
           key="creating"
           class="wallet-animation-container"
         >
@@ -118,8 +119,23 @@
             <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
           </div>
           <div class="q-mt-md text-center">
-            <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ walletCreationError }}</p>
-            <q-btn flat no-caps color="primary" :label="$t('Retry') || 'Retry'" @click="generateSeedPhrase" />
+            <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ walletCreationError || walletRestoreError }}</p>
+            <q-btn 
+              v-if="currentStep === 1"
+              flat 
+              no-caps 
+              color="primary" 
+              :label="$t('Retry') || 'Retry'" 
+              @click="generateSeedPhrase" 
+            />
+            <q-btn 
+              v-else-if="walletRestoreError"
+              flat 
+              no-caps 
+              color="primary" 
+              :label="$t('Back') || 'Back'" 
+              @click="walletRestoreError = ''; walletRestoreInProgress = false" 
+            />
           </div>
         </div>
       </transition>
@@ -303,7 +319,7 @@
                 type="textarea" 
                 v-model="seedPhraseBackup" 
                 :placeholder="$t('PasteSeedPhrase')"
-                class="q-mt-xs glass-textarea"
+                class="q-mt-xs glass-textarea bg-white"
                 :class="getDarkModeClass(darkMode)"
                 outlined
                 rows="4"
@@ -587,6 +603,8 @@ export default {
       totalSteps: 4,
       walletCreationInProgress: false,
       walletCreationComplete: false,
+      walletRestoreInProgress: false,
+      walletRestoreError: '',
       mnemonicVerified: false,
       pinDialogAction: '',
       pin: '',
@@ -1128,10 +1146,24 @@ export default {
         if (!this.validateSeedPhrase() && this.authenticationPhase === 'backup-phrase') {
           return
         }
-        // Create wallet from seed phrase and navigate to step-3
-        await this.createWallets()
-        // Navigate to settings step (step-3)
-        this.$router.push('/accounts/restore/step-3')
+        // Show loading animation during restore
+        this.walletRestoreInProgress = true
+        this.walletRestoreError = ''
+        try {
+          // Create wallet from seed phrase
+          await this.createWallets()
+          // Initialize vault entry so settings can be saved during step 3
+          // This must be done before navigation to ensure vault entry exists
+          this.initializeVaultEntryForRestore()
+          // Navigate to settings step (step-3)
+          await this.$router.push('/accounts/restore/step-3')
+          // Hide loading animation after navigation
+          this.walletRestoreInProgress = false
+        } catch (error) {
+          console.error('Error restoring wallet:', error)
+          this.walletRestoreError = this.$t('ErrorRestoringWallet') || 'Failed to restore wallet. Please try again.'
+          this.walletRestoreInProgress = false
+        }
         return
       }
       
@@ -1262,6 +1294,301 @@ export default {
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash
     },
+    initializeVaultEntryForRestore () {
+      // Create vault entry for restore flow using wallet data from createWallets()
+      // This allows settings to be saved during step 3
+      const wallet = new Wallet(this.mnemonic)
+      const walletHash = wallet.BCH.walletHash
+      
+      // Build wallet structure from newWalletSnapshot
+      const walletStructure = {
+        bch: null,
+        slp: null,
+        sbch: null
+      }
+      
+      const chipnetStructure = {
+        bch: null,
+        slp: null
+      }
+      
+      // Populate wallet structure from newWalletSnapshot
+      this.newWalletSnapshot.walletInfo.forEach(walletInfo => {
+        if (walletInfo.type === 'bch') {
+          if (walletInfo.isChipnet) {
+            chipnetStructure.bch = {
+              walletHash: walletInfo.walletHash,
+              derivationPath: walletInfo.derivationPath,
+              xPubKey: '',
+              lastAddress: walletInfo.lastAddress,
+              lastChangeAddress: walletInfo.lastChangeAddress,
+              lastAddressIndex: walletInfo.lastAddressIndex
+            }
+          } else {
+            walletStructure.bch = {
+              walletHash: walletInfo.walletHash,
+              derivationPath: walletInfo.derivationPath,
+              xPubKey: '',
+              lastAddress: walletInfo.lastAddress,
+              lastChangeAddress: walletInfo.lastChangeAddress,
+              lastAddressIndex: walletInfo.lastAddressIndex
+            }
+          }
+        } else if (walletInfo.type === 'slp') {
+          if (walletInfo.isChipnet) {
+            chipnetStructure.slp = {
+              walletHash: walletInfo.walletHash,
+              derivationPath: walletInfo.derivationPath,
+              xPubKey: '',
+              lastAddress: walletInfo.lastAddress,
+              lastChangeAddress: walletInfo.lastChangeAddress,
+              lastAddressIndex: walletInfo.lastAddressIndex
+            }
+          } else {
+            walletStructure.slp = {
+              walletHash: walletInfo.walletHash,
+              derivationPath: walletInfo.derivationPath,
+              xPubKey: '',
+              lastAddress: walletInfo.lastAddress,
+              lastChangeAddress: walletInfo.lastChangeAddress,
+              lastAddressIndex: walletInfo.lastAddressIndex
+            }
+          }
+        } else if (walletInfo.type === 'sbch') {
+          walletStructure.sbch = {
+            walletHash: walletInfo.walletHash,
+            derivationPath: walletInfo.derivationPath,
+            lastAddress: walletInfo.lastAddress,
+            subscribed: false
+          }
+        }
+      })
+      
+      // Populate xPubKeys from newWalletSnapshot
+      this.newWalletSnapshot.xpubKeysInfo.forEach(xPubInfo => {
+        if (xPubInfo.type === 'bch') {
+          if (xPubInfo.isChipnet && chipnetStructure.bch) {
+            chipnetStructure.bch.xPubKey = xPubInfo.xPubKey
+          } else if (walletStructure.bch) {
+            walletStructure.bch.xPubKey = xPubInfo.xPubKey
+          }
+        } else if (xPubInfo.type === 'slp') {
+          if (xPubInfo.isChipnet && chipnetStructure.slp) {
+            chipnetStructure.slp.xPubKey = xPubInfo.xPubKey
+          } else if (walletStructure.slp) {
+            walletStructure.slp.xPubKey = xPubInfo.xPubKey
+          }
+        }
+      })
+      
+      // Ensure all required structures exist (fallback to minimal if missing)
+      if (!walletStructure.bch) {
+        walletStructure.bch = {
+          walletHash: wallet.BCH.walletHash,
+          derivationPath: wallet.BCH.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      if (!walletStructure.slp) {
+        walletStructure.slp = {
+          walletHash: wallet.SLP.walletHash,
+          derivationPath: wallet.SLP.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      if (!walletStructure.sbch) {
+        walletStructure.sbch = {
+          walletHash: wallet.sBCH.walletHash,
+          derivationPath: wallet.sBCH.derivationPath,
+          lastAddress: '',
+          subscribed: false
+        }
+      }
+      if (!chipnetStructure.bch) {
+        chipnetStructure.bch = {
+          walletHash: wallet.BCH_CHIP.walletHash,
+          derivationPath: wallet.BCH_CHIP.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      if (!chipnetStructure.slp) {
+        chipnetStructure.slp = {
+          walletHash: wallet.SLP_TEST.walletHash,
+          derivationPath: wallet.SLP_TEST.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      
+      const vaultEntry = {
+        wallet: walletStructure,
+        chipnet: chipnetStructure,
+        name: ''
+      }
+      
+      // Check if this walletHash already exists in the vault
+      const existingVault = this.$store.getters['global/getVault']
+      const newWalletHash = walletStructure.bch.walletHash
+      
+      // First, check for exact walletHash match across the ENTIRE vault
+      let existingIndex = existingVault.findIndex((v, idx) => {
+        const existingHash = v?.wallet?.bch?.walletHash
+        const normalizedExisting = existingHash ? String(existingHash).trim() : null
+        const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
+        return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
+      })
+      
+      // If no exact match, check for incomplete entries (empty walletHash) in recent entries
+      // that we can reuse instead of creating a new one
+      if (existingIndex === -1) {
+        const checkCount = Math.min(20, existingVault.length)
+        const recentEntries = existingVault.slice(-checkCount)
+        
+        const incompleteIndex = recentEntries.findIndex((v, idx) => {
+          const walletHash = v?.wallet?.bch?.walletHash
+          const hasWallet = !!v?.wallet
+          const hasBch = !!v?.wallet?.bch
+          const isEmptyHash = !walletHash || (typeof walletHash === 'string' && walletHash.trim() === '')
+          const isDeleted = v?.deleted === true
+          
+          // Found an incomplete entry that we can reuse
+          return hasWallet && hasBch && isEmptyHash && !isDeleted
+        })
+        
+        if (incompleteIndex !== -1) {
+          existingIndex = existingVault.length - checkCount + incompleteIndex
+        }
+      }
+      
+      if (existingIndex !== -1) {
+        // Update existing entry
+        this.walletIndex = existingIndex
+        this.$store.commit('global/updateWalletIndex', existingIndex)
+        const existingEntry = existingVault[existingIndex]
+        this.$store.commit('global/updateWalletSnapshot', {
+          index: existingIndex,
+          walletSnapshot: vaultEntry.wallet,
+          chipnetSnapshot: vaultEntry.chipnet,
+          name: existingEntry?.name || '',
+          deleted: false // Ensure it's not deleted
+        })
+        this.$store.commit('global/updateCurrentWallet', existingIndex)
+        
+        // Initialize assets vault entry if needed
+        const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
+        if (!assetsVault[existingIndex]) {
+          const emptyAssets = getAllAssets(initialAssetState())
+          emptyAssets.removedAssetIds = []
+          this.$store.commit('assets/updateVault', {
+            index: existingIndex,
+            asset: emptyAssets
+          })
+          this.$store.commit('assets/updatedCurrentAssets', existingIndex)
+        }
+        } else {
+          // Final safeguard: Double-check for duplicates right before creating
+          // Re-fetch vault to ensure we have the latest state
+          const latestVault = this.$store.getters['global/getVault']
+          const finalCheck = latestVault.findIndex((v, idx) => {
+            if (!v || v.deleted) return false
+            const existingHash = v?.wallet?.bch?.walletHash
+            const normalizedExisting = existingHash ? String(existingHash).trim() : null
+            const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
+            return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
+          })
+          
+          if (finalCheck !== -1) {
+            console.warn('[initializeVaultEntryForRestore] Final safeguard: Found duplicate at index', finalCheck, '- reusing instead of creating')
+            existingIndex = finalCheck
+            this.walletIndex = existingIndex
+            this.$store.commit('global/updateWalletIndex', existingIndex)
+            
+            const existingEntry = latestVault[existingIndex]
+            this.$store.commit('global/updateWalletSnapshot', {
+              index: existingIndex,
+              walletSnapshot: vaultEntry.wallet,
+              chipnetSnapshot: vaultEntry.chipnet,
+              name: existingEntry?.name || '',
+              deleted: false
+            })
+            
+            this.$store.commit('global/updateCurrentWallet', existingIndex)
+            
+            // Initialize assets vault entry if needed
+            const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
+            if (!assetsVault[existingIndex]) {
+              const emptyAssets = getAllAssets(initialAssetState())
+              emptyAssets.removedAssetIds = []
+              this.$store.commit('assets/updateVault', {
+                index: existingIndex,
+                asset: emptyAssets
+              })
+              this.$store.commit('assets/updatedCurrentAssets', existingIndex)
+            }
+          } else {
+            // Only create new entry if we're absolutely sure there's no duplicate
+            // Use updateVault which has its own duplicate detection
+            try {
+              this.$store.commit('global/updateVault', vaultEntry)
+              const vaultLengthAfter = this.$store.getters['global/getVault'].length
+              const newWalletIndex = vaultLengthAfter - 1
+              this.walletIndex = newWalletIndex
+              this.$store.commit('global/updateWalletIndex', newWalletIndex)
+              this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+              
+              // Initialize assets vault entry
+              const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
+              if (!assetsVault[newWalletIndex]) {
+                const emptyAssets = getAllAssets(initialAssetState())
+                emptyAssets.removedAssetIds = []
+                this.$store.commit('assets/updateVault', {
+                  index: newWalletIndex,
+                  asset: emptyAssets
+                })
+                this.$store.commit('assets/updatedCurrentAssets', newWalletIndex)
+              }
+            } catch (error) {
+              // If updateVault fails due to duplicate, try to find and update existing entry
+              console.warn('[initializeVaultEntryForRestore] updateVault failed, attempting to find existing entry:', error)
+              const errorVault = this.$store.getters['global/getVault']
+              const errorCheck = errorVault.findIndex((v, idx) => {
+                if (!v || v.deleted) return false
+                const existingHash = v?.wallet?.bch?.walletHash
+                const normalizedExisting = existingHash ? String(existingHash).trim() : null
+                const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
+                return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
+              })
+              
+              if (errorCheck !== -1) {
+                this.walletIndex = errorCheck
+                this.$store.commit('global/updateWalletIndex', errorCheck)
+                const existingEntry = errorVault[errorCheck]
+                this.$store.commit('global/updateWalletSnapshot', {
+                  index: errorCheck,
+                  walletSnapshot: vaultEntry.wallet,
+                  chipnetSnapshot: vaultEntry.chipnet,
+                  name: existingEntry?.name || '',
+                  deleted: false
+                })
+                this.$store.commit('global/updateCurrentWallet', errorCheck)
+              } else {
+                throw error // Re-throw if we can't handle it
+              }
+            }
+          }
+        }
+    },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
     },
@@ -1348,6 +1675,32 @@ export default {
       await this.$store.dispatch('global/saveWalletPreferences').catch(() => {
         // Silently fail if wallet hash doesn't exist yet
       })
+      
+      // Also save settings to vault for restore flow
+      if (this.importSeedPhrase && this.restoreStep === 3) {
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        if (walletIndex >= 0) {
+          const currentSettings = {
+            language: this.$store.getters['global/language'],
+            theme: this.$store.getters['global/theme'],
+            country: this.$store.getters['global/country'],
+            denomination: this.$store.getters['global/denomination'],
+            preferredSecurity: this.$store.getters['global/preferredSecurity'],
+            isChipnet: this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+            enableSLP: this.$store.getters['global/enableSLP'],
+            darkMode: this.$store.getters['darkmode/getStatus'],
+            currency: this.$store.getters['market/selectedCurrency']
+          }
+          this.$store.commit('global/updateWalletSettings', {
+            index: walletIndex,
+            settings: currentSettings
+          })
+        }
+      }
+      
       // Handle restore flow navigation
       if (this.importSeedPhrase && this.restoreStep === 3) {
         this.$router.push('/accounts/restore/step-4')
@@ -2276,26 +2629,52 @@ export default {
   }
 }
 
-/* Glassmorphic textarea styling */
+/* Glassmorphic textarea styling - white background like inputs */
 .glass-textarea {
-  :deep(.q-field__control) {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  &.q-field--outlined :deep(.q-field__control) {
     border-radius: 12px;
-    
-    &.dark {
-      background: rgba(255, 255, 255, 0.05) !important;
-      border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-    
-    &.light {
-      background: rgba(255, 255, 255, 0.3) !important;
-      border-color: rgba(0, 0, 0, 0.1) !important;
-    }
+    background: #ffffff !important;
   }
   
-  :deep(.q-field__native) {
+  &.q-field--outlined :deep(.q-field__control-container) {
+    background: #ffffff !important;
+  }
+  
+  &.q-field--outlined :deep(.q-field__native) {
+    background: #ffffff !important;
     color: inherit;
+  }
+  
+  &.q-field--outlined :deep(textarea) {
+    background: #ffffff !important;
+  }
+  
+  &.q-field--outlined :deep(.q-field__inner) {
+    background: #ffffff !important;
+  }
+  
+  &.q-field--dark.q-field--outlined :deep(.q-field__control),
+  &.q-field--dark.q-field--outlined :deep(.q-field__control-container),
+  &.q-field--dark.q-field--outlined :deep(.q-field__native),
+  &.q-field--dark.q-field--outlined :deep(textarea),
+  &.q-field--dark.q-field--outlined :deep(.q-field__inner) {
+    background: #ffffff !important;
+  }
+  
+  &.dark.q-field--outlined :deep(.q-field__control),
+  &.dark.q-field--outlined :deep(.q-field__control-container),
+  &.dark.q-field--outlined :deep(.q-field__native),
+  &.dark.q-field--outlined :deep(textarea),
+  &.dark.q-field--outlined :deep(.q-field__inner) {
+    background: #ffffff !important;
+  }
+  
+  &.light.q-field--outlined :deep(.q-field__control),
+  &.light.q-field--outlined :deep(.q-field__control-container),
+  &.light.q-field--outlined :deep(.q-field__native),
+  &.light.q-field--outlined :deep(textarea),
+  &.light.q-field--outlined :deep(.q-field__inner) {
+    background: #ffffff !important;
   }
 }
 
