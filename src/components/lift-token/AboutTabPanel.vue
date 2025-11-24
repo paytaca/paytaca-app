@@ -400,8 +400,6 @@ export default {
       ]
     }
   },
-  computed: {
-  },
   methods: {
     getDarkModeClass,
     getThemeColor() {
