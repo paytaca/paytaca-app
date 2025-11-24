@@ -412,8 +412,15 @@ export class CauldronPoolTracker extends EventEmitter {
       .map(pool => isBuyingToken ? pool.output.token.amount : pool.output.amount)
       .reduce((subtotal, supply) => subtotal + supply, 0n);
     
-    const demand = total_supply * 1n / 100n;
-    // const demand = isBuyingToken ? 200n : 200_000n;
+    let demand = total_supply * 1n / 100n;
+    if (isBuyingToken && demand < 1n * BigInt(10 ** tokenDecimals)) {
+      demand = 1n * BigInt(10 ** tokenDecimals);
+    } else if (!isBuyingToken && demand < 1_00_000_000n) {
+      demand = 1_00_000_000n;
+    }
+  
+    if (demand > total_supply) demand = total_supply * 50n / 100n;
+
     const tradeResult = attemptTrade({
       pools: this.microPools,
       isBuyingToken: isBuyingToken,
