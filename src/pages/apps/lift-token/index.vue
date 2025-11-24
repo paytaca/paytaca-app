@@ -206,7 +206,8 @@
               :dark-mode="darkMode"
               :theme="theme"
               :user-lift-balance="userLiftBalance"
-              @navigate-to-buy="sectionTab = 'reserves'"
+              :liftSwapContractAddress="liftSwapContractAddress"
+              @navigate-to-buy="retrieveData().then(() => sectionTab = 'purchases')"
             />
           </q-tab-panel>
 
