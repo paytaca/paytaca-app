@@ -169,7 +169,7 @@
                 </template>
 
                 <template v-else>
-                  <span class="col-6 text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+                  <span class="col-6 text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
                     <template v-if="purchase.purchase_vesting_details.every(detail => !detail.vested_date)">
                       {{ $t("LockupPeriodOver") }}
                     </template>
@@ -189,7 +189,7 @@
                       }}
                     </template>
                   </span>
-                  <span class="col-6 text-right text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+                  <span class="col-6 text-right text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
                     {{
                       $t(
                         "NextVestingDate",
@@ -208,7 +208,7 @@
               </template>
 
               <template v-else>
-                <span class="col-6 text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
+                <span class="col-6 text-caption " :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
                   {{
                     $t(
                       "PurchasedOnDate",
