@@ -400,12 +400,12 @@ export class CauldronPoolTracker extends EventEmitter {
   /**
    * @param {Object} opts
    * @param {Boolean} opts.isBuyingToken
-   * @param {Number} opts.decimals 
+   * @param {Number} opts.tokenDecimals 
    * @returns 
    */
   getPriceFromPools(opts) {
     const isBuyingToken = opts?.isBuyingToken;
-    const decimals = opts?.decimals || 8;
+    const tokenDecimals = opts?.tokenDecimals || 0;
 
     if (!this.microPools?.length) return null;
     const total_supply = this.microPools
@@ -419,16 +419,27 @@ export class CauldronPoolTracker extends EventEmitter {
       isBuyingToken: isBuyingToken,
       demand: demand,
     })
-    return this.parseRate(tradeResult.summary.rate, decimals);
+    return this.parseRate(tradeResult.summary.rate, tokenDecimals, isBuyingToken);
   }
 
   /**
    * @param {import("@cashlab/common").Fraction} rate
-   * @param {Number} decimals
+   * @param {Number} tokenDecimals
+   * @param {Boolean} isBuyingToken
    */
-  parseRate(rate, decimals) {
-    const multiplier = 10n ** BigInt(decimals);
-    const price = (rate.numerator * multiplier) / rate.denominator;
-    return Number(price) / 10 ** decimals;
+  parseRate(rate, tokenDecimals, isBuyingToken) {
+    let multiplerDecimals = 8
+    let divisorDecimals = tokenDecimals
+    if (isBuyingToken) {
+      multiplerDecimals = tokenDecimals
+      divisorDecimals = 8
+    }
+
+    const multiplier = 10n ** BigInt(multiplerDecimals);
+    const _price = rate.numerator * multiplier / rate.denominator;
+
+    const divisor = 10 ** divisorDecimals;
+    const price = Number(_price) / divisor;
+    return Number(price.toFixed(divisorDecimals));
   }
 }

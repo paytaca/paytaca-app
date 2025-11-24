@@ -130,10 +130,10 @@
               <!-- Price Display -->
               <div v-if="!updatingPool" class="q-mb-md text-center text-caption text-grey">
                 <template v-if="isBuyingToken">
-                  1 BCH ≈ {{ formattedPrice }} {{ tokenSymbol }}
+                  1 {{ tokenSymbol }} ≈ {{ formattedPrice }} BCH
                 </template>
                 <template v-else>
-                  1 {{ tokenSymbol }} ≈ {{ formattedPrice }} BCH
+                  1 BCH ≈ {{ formattedPrice }} {{ tokenSymbol }}
                 </template>
               </div>
               <div v-else class="q-mb-md text-center text-caption text-grey">
@@ -602,13 +602,26 @@ export default defineComponent({
     
     const formattedPrice = computed(() => {
       if (!selectedToken.value) return '0.00';
+      if (tradeResult.value) {
+        const demandTokenId = tradeResult.value.entries?.[0]?.demand_token_id;
+        const supplyTokenId = tradeResult.value.entries?.[0]?.supply_token_id;
+        if (isBuyingToken.value && demandTokenId !== selectedToken.value?.token_id) {
+          return '0.00';
+        } else if (!isBuyingToken.value && supplyTokenId !== selectedToken.value?.token_id) {
+          return '0.00';
+        }
+      }
+
       try {
-        const decimals = parseInt(selectedToken.value?.bcmr?.token?.decimals || 0) + 8;
+        const tokenDecimals = parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
         let price
         if (tradeResult.value) {
-          price = poolTracker.parseRate(tradeResult.value.summary.rate, decimals);
+          price = poolTracker.parseRate(tradeResult.value.summary.rate, tokenDecimals, isBuyingToken.value);
         } else {
-          price = poolTracker.getPriceFromPools({ isBuyingToken: isBuyingToken.value, decimals: decimals });
+          price = poolTracker.getPriceFromPools({
+            isBuyingToken: isBuyingToken.value,
+            tokenDecimals: tokenDecimals,
+          });
         }
         if (price == null || isNaN(price)) return '0.00';
         return price;
