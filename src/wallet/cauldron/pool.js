@@ -400,35 +400,53 @@ export class CauldronPoolTracker extends EventEmitter {
   /**
    * @param {Object} opts
    * @param {Boolean} opts.isBuyingToken
-   * @param {Number} opts.decimals 
+   * @param {Number} opts.tokenDecimals 
    * @returns 
    */
   getPriceFromPools(opts) {
     const isBuyingToken = opts?.isBuyingToken;
-    const decimals = opts?.decimals || 8;
+    const tokenDecimals = opts?.tokenDecimals || 0;
 
     if (!this.microPools?.length) return null;
     const total_supply = this.microPools
       .map(pool => isBuyingToken ? pool.output.token.amount : pool.output.amount)
       .reduce((subtotal, supply) => subtotal + supply, 0n);
     
-    const demand = total_supply * 1n / 100n;
-    // const demand = isBuyingToken ? 200n : 200_000n;
+    let demand = total_supply * 1n / 100n;
+    if (isBuyingToken && demand < 1n * BigInt(10 ** tokenDecimals)) {
+      demand = 1n * BigInt(10 ** tokenDecimals);
+    } else if (!isBuyingToken && demand < 1_00_000_000n) {
+      demand = 1_00_000_000n;
+    }
+  
+    if (demand > total_supply) demand = total_supply * 50n / 100n;
+
     const tradeResult = attemptTrade({
       pools: this.microPools,
       isBuyingToken: isBuyingToken,
       demand: demand,
     })
-    return this.parseRate(tradeResult.summary.rate, decimals);
+    return this.parseRate(tradeResult.summary.rate, tokenDecimals, isBuyingToken);
   }
 
   /**
    * @param {import("@cashlab/common").Fraction} rate
-   * @param {Number} decimals
+   * @param {Number} tokenDecimals
+   * @param {Boolean} isBuyingToken
    */
-  parseRate(rate, decimals) {
-    const multiplier = 10n ** BigInt(decimals);
-    const price = (rate.numerator * multiplier) / rate.denominator;
-    return Number(price) / 10 ** decimals;
+  parseRate(rate, tokenDecimals, isBuyingToken) {
+    let multiplerDecimals = 8
+    let divisorDecimals = tokenDecimals
+    if (isBuyingToken) {
+      multiplerDecimals = tokenDecimals
+      divisorDecimals = 8
+    }
+
+    const multiplier = 10n ** BigInt(multiplerDecimals);
+    const _price = rate.numerator * multiplier / rate.denominator;
+
+    const divisor = 10 ** divisorDecimals;
+    const price = Number(_price) / divisor;
+    return price.toFixed(divisorDecimals);
   }
 }
