@@ -440,6 +440,6 @@ export class CauldronPoolTracker extends EventEmitter {
 
     const divisor = 10 ** divisorDecimals;
     const price = Number(_price) / divisor;
-    return Number(price.toFixed(divisorDecimals));
+    return price.toFixed(divisorDecimals);
   }
 }
