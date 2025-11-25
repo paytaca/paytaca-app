@@ -17,6 +17,7 @@
           padding="sm"
           icon="close"
           class="close-button"
+          :disable="isProcessing"
           v-close-popup
         />
       </div>
@@ -146,9 +147,9 @@
           class="full-width purchase-button"
           :class="`theme-${theme}`"
           :loading="isProcessing"
+          :disable="!canPurchase || isProcessing"
           @click="proceedToPurchase"
         />
-        <!-- :disable="!canPurchase || isProcessing" -->
       </div>
     </q-card>
   </q-dialog>
@@ -436,7 +437,6 @@ export default {
       this.computeUsdBch()
     },
     async proceedToPurchase() {
-      /**
       if (this.isProcessing) return
       if (!this.canPurchase) return
 
@@ -503,7 +503,6 @@ export default {
         // The 7th parameter is priceId (for BIP21 price tracking), not fee.
         // Get change address for BCH transaction
         const changeAddress = await getChangeAddress('bch')
-        
         const result = await getWalletByNetwork(wallet, 'bch').sendBch(
           undefined,
           '',
@@ -543,6 +542,7 @@ export default {
         const signature = await generateSignature(result.txid, wif)
         const satsWithFee = Math.floor(purchase.bch * 10 ** 8)
         const tokenAddress = await getWalletTokenAddress()
+        const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
 
         const data = {
           purchased_amount_usd: purchase.usd,
@@ -556,6 +556,7 @@ export default {
           reservation: -1,
           partial_purchase: -1,
           sale_group: this.getSaleGroupCode(this.selectedRound),
+          public_key: pubkeyHex,
           message_timestamp: this.messageTimestamp
         }
 
@@ -573,12 +574,6 @@ export default {
         this.$emit('purchase', { success: false, errorMessage: message })
       } finally {
         this.isProcessing = false
-      }
-      */
-
-      const isSuccessful = await processPurchaseApi(null)
-      if (!isSuccessful) {
-        throw new Error(this.$t('PurchasePaymentError', {}, 'Failed to record the purchase.'))
       }
     }
   },
