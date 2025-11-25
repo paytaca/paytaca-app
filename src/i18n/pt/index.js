@@ -961,6 +961,7 @@ export default {
   NewCampaign: "Nova campanha",
   NewDevice: "Novo dispositivo",
   NewSession: "Nova sessão",
+  NewSwap: "Nova troca",
   NewUnlisted: "Novo/Não listado",
   Next: "Próximo",
   NextRelease: "Próximo lançamento",
