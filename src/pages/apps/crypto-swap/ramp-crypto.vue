@@ -6,7 +6,7 @@
     
     <div class="crypto-swap-content" :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
       <!-- Tabs Section -->
-      <div class="tabs-wrapper q-mb-md q-mx-md">
+      <div class="tabs-wrapper q-mx-md" :class="activeTab === 'swap' ? 'q-mb-md' : ''" v-if="hideTab">
         <div 
           class="crypto-swap-tabs" 
           :class="getDarkModeClass(darkMode)"
@@ -67,7 +67,6 @@
           v-if="isAllowed" 
           ref="shiftForm" 
           @deposit="handleDeposit"
-          @open-history="activeTab = 'history'"
         />
         <div class="col q-mt-sm pt-internet-required" v-if="!isAllowed">
             <div>{{ $t('FeatureBlockedInYourCountry') }} &#128533;</div>
@@ -232,6 +231,15 @@ export default {
   computed: {
     theme () {
       return this.$store.getters['global/theme']
+    },
+    hideTab () {
+      return this.state === 'form' || this.state === 'history'
+    }
+  },
+  props: {
+    type: {
+      type: String,
+      default: null
     }
   },
   watch: {
@@ -251,6 +259,16 @@ export default {
   },
   async mounted () {
     const vm = this
+    
+    // set active tab to history on back
+    const preloaded = (window && window.history && window.history.state && window.history.state.type) || null
+    if (preloaded) {      
+      if (preloaded === 'history') {
+        this.activeTab = 'history'
+      }
+    }
+
+
     // check permission first
     const permission = await vm.$axios.get('https://sideshift.ai/api/v2/permissions').catch(function () { vm.error = true })
     if (permission && !permission.data.createShift) {
@@ -260,7 +278,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    updateState (state) {
+    updateState (state) {      
       this.state = state
     },
     clickBack () {
