@@ -297,11 +297,11 @@ export default {
   }
   .receive-icon-asset {
     position: absolute;
-    margin-top: 90px;
+    margin-top: 120px;
     border-radius: 50%;
     padding: 4px;
-    height: 45px;
-    width: 45px;
+    height: 50px;
+    width: 50px;
     border-radius: 50%;
     z-index: 1000;
   }

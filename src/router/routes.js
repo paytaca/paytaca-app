@@ -111,6 +111,7 @@ const routes = [
     component: () => import('layouts/Apps.vue'),
     children: [
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
+      { path: 'cauldron', component: () => import('src/pages/apps/cauldron.vue'), name: 'app-cauldron', props: route => route.query },
       { path: 'stablehedge', component: () => import('src/pages/apps/stablehedge/StablehedgePage.vue'), name: 'app-stablehedge', props: route => route.query },
       { path: 'stablehedge/wallet', component: () => import('src/pages/apps/stablehedge/StablehedgeWalletPage.vue'), name: 'app-stablehedge-wallet', props: route => route.query },
       { path: 'map', component: () => import('src/pages/apps/map.vue'), name: 'app-map', props: route => route.query },
@@ -161,11 +162,6 @@ const routes = [
             path: '', 
             component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue'), 
             name: 'crypto-swap-form'
-          },
-          {
-            path: 'history/',
-            name: 'crypto-swap-history',
-            component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history.vue'),
           },
           {
             path: 'history/tx/:id',

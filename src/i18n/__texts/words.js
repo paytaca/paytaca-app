@@ -473,6 +473,14 @@ const words = [
     Hide: 'Hide',
     Debug: 'Debug',
     ConnectedAddresses: 'Connected Addresses',
+  },
+  {
+    Change: 'Change',
+    Buy: 'Buy',
+    Sell: 'Sell',
+    Token: 'Token',
+    Unknown: 'Unknown',
+    Swap: 'Swap',
   }
 ]
 

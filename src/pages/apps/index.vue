@@ -57,6 +57,14 @@ export default {
           smartBCHOnly: false
         },
         {
+          name: 'Cauldron DEX',
+          iconName: 'img:cauldron-logo.svg',
+          path: '/apps/cauldron',
+          iconStyle: 'width:45%; height: 45%;',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('Marketplace'),
           iconName: 'img:marketplace.png',
           path: '/apps/marketplace',

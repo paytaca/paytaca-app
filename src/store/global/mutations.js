@@ -79,32 +79,14 @@ export function updateVault (state, details) {
     state.vault = [details]
     targetIndex = 0 // First entry is at index 0
   } else {
-    // Check for duplicate walletHashes in existing vault
-    const existingHashes = state.vault.map((v, idx) => ({
-      index: idx,
-      walletHash: v?.wallet?.bch?.walletHash
-    }))
-    
-    const duplicateHashes = existingHashes.filter((e, idx) => {
-      if (!e.walletHash) return false
-      return existingHashes.some((other, otherIdx) => 
-        otherIdx !== idx && other.walletHash === e.walletHash
-      )
-    })
-    if (duplicateHashes.length > 0) {
-      console.error('[updateVault] ERROR: Found duplicate walletHashes in vault!', duplicateHashes)
-    }
-    
-    // Improved duplicate check with better comparison
+    // Check for duplicate walletHash - only match when both are non-null and equal
+    // This prevents new wallets from replacing incomplete entries (null walletHash)
     const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
     const existingIndex = state.vault.findIndex((v, idx) => {
+      if (!v || v.deleted) return false
       const existingHash = v?.wallet?.bch?.walletHash
       const normalizedExisting = existingHash ? String(existingHash).trim() : null
-      // Compare directly - this handles null/undefined cases correctly
-      // Returns true when both are null (preventing duplicates with missing walletHash)
-      // Returns true when both are the same non-null string
-      // Returns false when they differ
-      return normalizedExisting === normalizedNew
+      return normalizedExisting !== null && normalizedNew !== null && normalizedExisting === normalizedNew
     })
     
     if (existingIndex !== -1) {
@@ -122,34 +104,9 @@ export function updateVault (state, details) {
       }
       targetIndex = existingIndex // Track the index that was updated
     } else {
-      // Double-check: Sometimes the walletHash might not match due to structure differences
-      // Check if any entry has the same walletHash but wasn't found (edge case)
-      const doubleCheckIndex = state.vault.findIndex((v, idx) => {
-        const hash = v?.wallet?.bch?.walletHash
-        const normalizedDoubleCheckHash = hash ? String(hash).trim() : null
-        // Use same comparison logic as main check for consistency
-        return normalizedDoubleCheckHash === normalizedNew
-      })
-      
-      if (doubleCheckIndex !== -1) {
-        console.warn('[updateVault] Double-check found match at index', doubleCheckIndex, '- updating instead of creating')
-        const existingSettings = state.vault[doubleCheckIndex].settings
-        const existingName = state.vault[doubleCheckIndex].name
-        const existingDeleted = state.vault[doubleCheckIndex].deleted
-        
-        state.vault[doubleCheckIndex] = {
-          ...details,
-          settings: existingSettings && Object.keys(existingSettings).length > 0 ? existingSettings : details.settings,
-          name: existingName || details.name || '',
-          deleted: existingDeleted || false
-        }
-        targetIndex = doubleCheckIndex // Track the index that was updated
-      } else {
-        console.warn('[updateVault] No matching walletHash found, adding NEW entry. This may indicate a duplicate!')
-        // Add new entry
-        state.vault.push(details)
-        targetIndex = state.vault.length - 1 // New entry is at the end
-      }
+      // No matching walletHash found - create new entry
+      state.vault.push(details)
+      targetIndex = state.vault.length - 1 // New entry is at the end
     }
   }
   

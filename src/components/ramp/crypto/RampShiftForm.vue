@@ -8,19 +8,6 @@
     :class="getDarkModeClass(darkMode)"
     v-if="isloaded && state === 'form' && !error"
   >
-    <div class="row items-center justify-end q-mr-lg">
-      <q-btn
-        unelevated
-        ripple
-        dense    
-        icon="sym_o_receipt_long"
-        class="button button-text-primary"
-        size="18px"
-        :class="getDarkModeClass(darkMode)"
-        @click="openHistory"
-      />    
-    </div>
-
     <div class="q-mx-md">
       <!-- Swap Setting Card -->
       <div class="pt-card q-pa-md q-my-sm br-15" :class="darkMode ? 'dark' : 'light'">
@@ -45,6 +32,8 @@
               filled
               :dark="darkMode"
               v-model="shiftAmount"
+              :readonly="readonlyState"
+              @focus="openCustomKeyboard(true)"
               @update:modelValue="function(){
                   updateConvertionRate()
                 }"
@@ -180,10 +169,7 @@
     </div>
   </div>
   <div class="q-mx-sm" v-if="!isloaded && !error">
-    <!-- <ProgressLoader /> -->
-    <div class="row justify-end q-mr-lg q-mb-md">
-      <q-skeleton type="circle" height="30px" width="30px"/>
-    </div>
+
     <!-- Swap Info -->
     <div class="q-mx-md q-mb-sm">
       <q-skeleton type="rect" height="300px" style="border-radius: 15px;" />
@@ -208,7 +194,7 @@
       :info="settleInfo"
       type="confirmation"
       v-on:close="updateState('form')"
-      v-on:confirmed="openDepositInfo"
+      v-on:confirmed="shiftCreated"
       v-on:retry="updateState('form')"
     />
   </div>
@@ -220,19 +206,26 @@
     <RampDepositInfo
       :shiftData="shiftData"
       :refundAddress="refundAddress"
-      :type="depositInfoState"
+      :type="depositInfoState"      
       v-on:retry="updateState('form')"
       v-on:done="reset()"
     />
   </div>
+  <div style="position: fixed; z-index: 10;">
+    <customKeyboard
+      :custom-keyboard-state="customKeyboardState"
+      v-on:addKey="setAmount"
+      v-on:makeKeyAction="makeKeyAction"
+    />
+    </div>
 </template>
 
 <script>
 import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampDisplayConfirmation from './RampDisplayConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
-import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -250,7 +243,7 @@ export default {
     ProgressLoader,
     RampDisplayConfirmation,
     RampDepositInfo,
-    RampHistoryDialog,
+    CustomKeyboard,
     QrScanner
   },
   data () {
@@ -287,7 +280,9 @@ export default {
       convertionRate: '',
       addrType: '',
       depositInfoState: 'created',
-      prefix: ['ethereum']
+      prefix: ['ethereum'],
+      readonlyState: false,
+      customKeyboardState: 'dismiss'      
     }
   },
   watch: {
@@ -298,6 +293,69 @@ export default {
   emits: ['deposit'],
   methods: {
     getDarkModeClass,
+    shiftCreated (data) {
+      const vm = this
+      vm.updateState('deposit')
+      vm.shiftData = data
+      // const jsonString = JSON.stringify(data)
+      // vm.$router.push({
+      //   name: 'crypto-swap-history-details',
+      //   params: { id: data.shift_id },
+      //   state: { details: jsonString}
+      // })
+    },
+    openCustomKeyboard (state) {
+      this.readonlyState = state
+
+      if (state) {
+        this.customKeyboardState = 'show'
+      } else {
+        this.customKeyboardState = 'dismiss'
+      }
+    },
+    setAmount (key) {      
+      let receiveAmount, finalAmount, tempAmountFormatted = ''
+      let proceed = false
+      receiveAmount = this.shiftAmount
+
+      receiveAmount = receiveAmount === null ? '' : receiveAmount
+        if (key === '.' && receiveAmount === '') {
+          finalAmount = '0.'
+        } else {
+          finalAmount = receiveAmount.toString()
+          const hasPeriod = finalAmount.indexOf('.')
+          if (hasPeriod < 1) {
+            if (Number(finalAmount) === 0 && Number(key) > 0) {
+              finalAmount = key
+            } else {
+              // Check amount if still zero
+              if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
+                finalAmount = 0
+              } else {
+                finalAmount += key.toString()
+              }
+            }
+          } else {
+            finalAmount += key !== '.' ? key.toString() : ''
+          }
+        }
+        this.shiftAmount = finalAmount
+        this.updateConvertionRate()        
+    },
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        // Backspace
+        this.shiftAmount = String(this.shiftAmount).slice(0, -1)
+        this.updateConvertionRate()        
+      } else if (action === 'delete') {
+        // Delete
+        this.shiftAmount = '0'
+        this.updateConvertionRate()        
+      } else {
+        this.customKeyboardState = 'dismiss'
+        this.readonlyState = false
+      }
+    },
     selectSourceToken () {
       if (!this.isFromBCH) {
         this.$q.dialog({
@@ -343,17 +401,6 @@ export default {
           })
       }
       this.setBCHAddress()
-    },
-    openHistory () {
-      // this.$q.dialog({
-      //   component: RampHistoryDialog
-      // })
-      //   .onOk(data => {
-      //     this.depositInfoState = 'history'
-      //     this.shiftData = data
-      //     this.state = 'deposit'
-      //   })
-      this.$router.push({ name: 'crypto-swap-history' })
     },
     displayScanner (type = '') {
       const vm = this
@@ -439,7 +486,7 @@ export default {
       this.state = state
 
       if (this.state === 'deposit') {
-        this.$emit('deposit')
+        // this.$emit('deposit')
       }
     },
     openDepositInfo (info) {
@@ -536,7 +583,7 @@ export default {
       // vm.errorMsg = ''
 
       //check if valid amount
-      if (vm.shiftAmount) {
+      if (vm.shiftAmount) {        
         if (vm.isAmountValid(vm.shiftAmount)) {
           vm.invalidAmount = false
           vm.convertionRate = 0.0

@@ -98,7 +98,11 @@ export function updateConnectivityStatus (context, online) {
 
 export async function refetchWalletPreferences (context) {
   const walletHash = context.getters.getWallet('bch')?.walletHash
-  if (!walletHash) return Promise.reject(new Error('wallet hash not found'))
+  if (!walletHash) {
+    // No wallet exists yet (e.g., during initial app load before wallet creation)
+    // Return early instead of rejecting to avoid uncaught errors
+    return
+  }
   try {
     const preferencesResponse = await watchtower.BCH._api.get(`wallet/preferences/${walletHash}/`)
     context.dispatch('updateWalletPreferences', preferencesResponse?.data)
@@ -195,7 +199,11 @@ export async function updateWalletPreferences (context, data) {
 
 export async function saveWalletPreferences (context) {
   const walletHash = context.getters.getWallet('bch')?.walletHash
-  if (!walletHash) return Promise.reject(new Error('wallet hash not found'))
+  if (!walletHash) {
+    // No wallet exists yet (e.g., during initial app load before wallet creation)
+    // Return early instead of rejecting to avoid uncaught errors
+    return
+  }
   const data = {}
 
   const selectedCurrency = context.rootGetters['market/selectedCurrency']
