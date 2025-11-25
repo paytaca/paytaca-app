@@ -340,29 +340,20 @@ export default {
           }
         }
         this.shiftAmount = finalAmount
-        this.debounceFunc(this.updateConvertionRate(),500)
+        this.updateConvertionRate()        
     },
     makeKeyAction (action) {
       if (action === 'backspace') {
         // Backspace
         this.shiftAmount = String(this.shiftAmount).slice(0, -1)
-        this.debounceFunc(this.updateConvertionRate(),500)
+        this.updateConvertionRate()        
       } else if (action === 'delete') {
         // Delete
         this.shiftAmount = '0'
-        this.debounceFunc(this.updateConvertionRate(),500)
+        this.updateConvertionRate()        
       } else {
         this.customKeyboardState = 'dismiss'
         this.readonlyState = false
-      }
-    },
-    debounceFunc(fn, delay) {
-      let timeoutId
-      return function (...args) {
-        clearTimeout(timeoutId)
-        timeoutId = setTimeout(() => {
-          fn.apply(this, args)
-        }, delay)
       }
     },
     selectSourceToken () {
