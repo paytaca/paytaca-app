@@ -796,53 +796,29 @@ export default {
 
       const info = { wallet, chipnet, name: '' }
       
-      // Final safeguard: Check for duplicates before calling updateVault
+      // Check if currentWalletIndex is valid and entry exists
       const vault = this.$store.getters['global/getVault']
       const walletHashToCheck = wallet?.bch?.walletHash
       
-      if (walletHashToCheck) {
-        const duplicateIndex = vault.findIndex((v, idx) => {
-          const existingHash = v?.wallet?.bch?.walletHash
-          if (!existingHash) return false
-          return String(existingHash).trim() === String(walletHashToCheck).trim()
-        })
+      // If we have a valid currentWalletIndex and the entry exists, update it directly
+      // This is the normal case for new wallet creation - we already created the entry in initializeVaultEntry
+      if (currentWalletIndex >= 0 && currentWalletIndex < vault.length && vault[currentWalletIndex]) {
+        const currentEntry = vault[currentWalletIndex]
+        const currentEntryHash = currentEntry?.wallet?.bch?.walletHash
         
-        if (duplicateIndex !== -1 && duplicateIndex !== currentWalletIndex) {
-          console.warn('[saveToVault] Found duplicate walletHash at index', duplicateIndex, '- updating that entry instead')
-          
-          // Mark the current wallet index as deleted if it's different from the duplicate
-          // This handles the case where initializeVaultEntry created a new entry, but we found an older one
-          if (currentWalletIndex !== duplicateIndex && currentWalletIndex >= 0 && currentWalletIndex < vault.length) {
-            const currentEntry = vault[currentWalletIndex]
-            const currentEntryHash = currentEntry?.wallet?.bch?.walletHash
-            // Only mark as deleted if it has the same walletHash (it's a duplicate)
-            if (currentEntryHash && String(currentEntryHash).trim() === String(walletHashToCheck).trim()) {
-              this.$store.commit('global/updateWalletSnapshot', {
-                index: currentWalletIndex,
-                walletSnapshot: currentEntry.wallet,
-                chipnetSnapshot: currentEntry.chipnet,
-                name: currentEntry.name || '',
-                deleted: true
-              })
-            }
-          }
-          
-          // Update the duplicate entry directly (the one we want to keep)
-          const existingEntry = vault[duplicateIndex]
+        // If the walletHash matches (or current entry has no hash yet), update it directly
+        // This handles the normal flow where initializeVaultEntry created the entry
+        if (!currentEntryHash || (walletHashToCheck && String(currentEntryHash).trim() === String(walletHashToCheck).trim())) {
+          // Update the entry at currentWalletIndex directly
           this.$store.commit('global/updateWalletSnapshot', {
-            index: duplicateIndex,
+            index: currentWalletIndex,
             walletSnapshot: wallet,
             chipnetSnapshot: chipnet,
-            name: existingEntry?.name || '',
-            deleted: false // Ensure it's not deleted
+            name: currentEntry?.name || '',
+            deleted: false
           })
           
-          // Update wallet index to the existing entry
-          this.$store.commit('global/updateWalletIndex', duplicateIndex)
-          this.$store.commit('global/updateCurrentWallet', duplicateIndex)
-          
-          // Continue with settings update using the correct index
-          const finalWalletIndex = duplicateIndex
+          const finalWalletIndex = currentWalletIndex
           
           // Update settings
           const currentSettings = {
@@ -879,19 +855,90 @@ export default {
           this.$store.commit('assets/updateVault', { index: finalWalletIndex, asset: asset })
           this.$store.commit('assets/updatedCurrentAssets', finalWalletIndex)
           
-          // Cleanup: Remove any incomplete entries that were created but not used
-          this.cleanupIncompleteEntries(finalWalletIndex)
+          return
+        }
+      }
+      
+      // Fallback: Check for duplicate walletHash at a different index (restoring existing wallet)
+      if (walletHashToCheck) {
+        const duplicateIndex = vault.findIndex((v, idx) => {
+          if (idx === currentWalletIndex) return false // Skip current index
+          if (!v || v.deleted) return false
+          const existingHash = v?.wallet?.bch?.walletHash
+          if (!existingHash) return false
+          return String(existingHash).trim() === String(walletHashToCheck).trim()
+        })
+        
+        if (duplicateIndex !== -1) {
+          // Found existing wallet - update that entry instead
+          const existingEntry = vault[duplicateIndex]
+          this.$store.commit('global/updateWalletSnapshot', {
+            index: duplicateIndex,
+            walletSnapshot: wallet,
+            chipnetSnapshot: chipnet,
+            name: existingEntry?.name || '',
+            deleted: false
+          })
+          
+          // Mark current entry as deleted if it's different
+          if (currentWalletIndex >= 0 && currentWalletIndex < vault.length && currentWalletIndex !== duplicateIndex) {
+            const currentEntry = vault[currentWalletIndex]
+            this.$store.commit('global/updateWalletSnapshot', {
+              index: currentWalletIndex,
+              walletSnapshot: currentEntry.wallet,
+              chipnetSnapshot: currentEntry.chipnet,
+              name: currentEntry.name || '',
+              deleted: true
+            })
+          }
+          
+          const finalWalletIndex = duplicateIndex
+          
+          // Update settings and continue as above...
+          const currentSettings = {
+            language: this.$store.getters['global/language'],
+            theme: this.$store.getters['global/theme'],
+            country: this.$store.getters['global/country'],
+            denomination: this.$store.getters['global/denomination'],
+            preferredSecurity: this.$store.getters['global/preferredSecurity'],
+            isChipnet: this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+            enableSLP: this.$store.getters['global/enableSLP'],
+            darkMode: this.$store.getters['darkmode/getStatus'],
+            currency: this.$store.getters['market/selectedCurrency']
+          }
+          this.$store.commit('global/updateWalletSettings', {
+            index: finalWalletIndex,
+            settings: currentSettings
+          })
+          
+          this.$store.commit('global/updateWalletIndex', finalWalletIndex)
+          this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+          this.$store.dispatch('global/syncSettingsToModules')
+          
+          let asset = this.$store.getters['assets/getAllAssets']
+          asset = JSON.stringify(asset)
+          asset = JSON.parse(asset)
+          const adjustedAssets = asset.asset.filter((a) => a?.id === 'bch')
+          const adjustedChipnetAssets = asset.chipnet_assets.filter((a) => a?.id === 'bch')
+          asset.asset = adjustedAssets
+          asset.chipnet_assets = adjustedChipnetAssets
+          this.$store.commit('assets/updateVault', { index: finalWalletIndex, asset: asset })
+          this.$store.commit('assets/updatedCurrentAssets', finalWalletIndex)
           
           return
         }
       }
       
+      // Last resort: Use updateVault (shouldn't happen for new wallets, but handle it)
       this.$store.commit('global/updateVault', info)
       
-      // Get the actual index of the wallet (may be updated if it was a new entry)
+      // Get the actual index of the wallet
       const vaultAfterUpdate = this.$store.getters['global/getVault']
       const walletIndex = vaultAfterUpdate.findIndex(v => {
-        if (!v.wallet?.bch?.walletHash || !wallet?.bch?.walletHash) return false
+        if (!v || !v.wallet?.bch?.walletHash || !wallet?.bch?.walletHash) return false
         return String(v.wallet.bch.walletHash).trim() === String(wallet.bch.walletHash).trim()
       })
       const finalWalletIndex = walletIndex !== -1 ? walletIndex : vaultAfterUpdate.length - 1
@@ -908,8 +955,6 @@ export default {
         .filter(idx => idx !== -1)
       
       if (allMatchingIndices.length > 1) {
-        console.warn('[saveToVault] Found', allMatchingIndices.length, 'entries with same walletHash. Keeping index', finalWalletIndex, 'and marking others as deleted')
-        
         // Mark all duplicates except the finalWalletIndex as deleted
         allMatchingIndices.forEach(idx => {
           if (idx !== finalWalletIndex) {
@@ -1437,42 +1482,22 @@ export default {
         name: ''
       }
       
-      // Check if this walletHash already exists in the vault
+      // Check if this walletHash already exists in the vault (exact match only)
+      // Only reuse entry if it's the exact same wallet, never reuse incomplete entries
       const existingVault = this.$store.getters['global/getVault']
       const newWalletHash = walletStructure.bch.walletHash
       
-      // First, check for exact walletHash match across the ENTIRE vault
-      let existingIndex = existingVault.findIndex((v, idx) => {
+      // Check for exact walletHash match across the ENTIRE vault
+      const existingIndex = existingVault.findIndex((v, idx) => {
+        if (!v || v.deleted) return false
         const existingHash = v?.wallet?.bch?.walletHash
         const normalizedExisting = existingHash ? String(existingHash).trim() : null
         const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
         return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
       })
       
-      // If no exact match, check for incomplete entries (empty walletHash) in recent entries
-      // that we can reuse instead of creating a new one
-      if (existingIndex === -1) {
-        const checkCount = Math.min(20, existingVault.length)
-        const recentEntries = existingVault.slice(-checkCount)
-        
-        const incompleteIndex = recentEntries.findIndex((v, idx) => {
-          const walletHash = v?.wallet?.bch?.walletHash
-          const hasWallet = !!v?.wallet
-          const hasBch = !!v?.wallet?.bch
-          const isEmptyHash = !walletHash || (typeof walletHash === 'string' && walletHash.trim() === '')
-          const isDeleted = v?.deleted === true
-          
-          // Found an incomplete entry that we can reuse
-          return hasWallet && hasBch && isEmptyHash && !isDeleted
-        })
-        
-        if (incompleteIndex !== -1) {
-          existingIndex = existingVault.length - checkCount + incompleteIndex
-        }
-      }
-      
       if (existingIndex !== -1) {
-        // Update existing entry
+        // Found exact match - this is the same wallet, reuse the entry
         this.walletIndex = existingIndex
         this.$store.commit('global/updateWalletIndex', existingIndex)
         const existingEntry = existingVault[existingIndex]
@@ -1496,98 +1521,28 @@ export default {
           })
           this.$store.commit('assets/updatedCurrentAssets', existingIndex)
         }
-        } else {
-          // Final safeguard: Double-check for duplicates right before creating
-          // Re-fetch vault to ensure we have the latest state
-          const latestVault = this.$store.getters['global/getVault']
-          const finalCheck = latestVault.findIndex((v, idx) => {
-            if (!v || v.deleted) return false
-            const existingHash = v?.wallet?.bch?.walletHash
-            const normalizedExisting = existingHash ? String(existingHash).trim() : null
-            const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
-            return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
-          })
-          
-          if (finalCheck !== -1) {
-            console.warn('[initializeVaultEntryForRestore] Final safeguard: Found duplicate at index', finalCheck, '- reusing instead of creating')
-            existingIndex = finalCheck
-            this.walletIndex = existingIndex
-            this.$store.commit('global/updateWalletIndex', existingIndex)
-            
-            const existingEntry = latestVault[existingIndex]
-            this.$store.commit('global/updateWalletSnapshot', {
-              index: existingIndex,
-              walletSnapshot: vaultEntry.wallet,
-              chipnetSnapshot: vaultEntry.chipnet,
-              name: existingEntry?.name || '',
-              deleted: false
-            })
-            
-            this.$store.commit('global/updateCurrentWallet', existingIndex)
-            
-            // Initialize assets vault entry if needed
-            const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
-            if (!assetsVault[existingIndex]) {
-              const emptyAssets = getAllAssets(initialAssetState())
-              emptyAssets.removedAssetIds = []
-              this.$store.commit('assets/updateVault', {
-                index: existingIndex,
-                asset: emptyAssets
-              })
-              this.$store.commit('assets/updatedCurrentAssets', existingIndex)
-            }
-          } else {
-            // Only create new entry if we're absolutely sure there's no duplicate
-            // Use updateVault which has its own duplicate detection
-            try {
-              this.$store.commit('global/updateVault', vaultEntry)
-              const vaultLengthAfter = this.$store.getters['global/getVault'].length
-              const newWalletIndex = vaultLengthAfter - 1
-              this.walletIndex = newWalletIndex
-              this.$store.commit('global/updateWalletIndex', newWalletIndex)
-              this.$store.commit('global/updateCurrentWallet', newWalletIndex)
-              
-              // Initialize assets vault entry
-              const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
-              if (!assetsVault[newWalletIndex]) {
-                const emptyAssets = getAllAssets(initialAssetState())
-                emptyAssets.removedAssetIds = []
-                this.$store.commit('assets/updateVault', {
-                  index: newWalletIndex,
-                  asset: emptyAssets
-                })
-                this.$store.commit('assets/updatedCurrentAssets', newWalletIndex)
-              }
-            } catch (error) {
-              // If updateVault fails due to duplicate, try to find and update existing entry
-              console.warn('[initializeVaultEntryForRestore] updateVault failed, attempting to find existing entry:', error)
-              const errorVault = this.$store.getters['global/getVault']
-              const errorCheck = errorVault.findIndex((v, idx) => {
-                if (!v || v.deleted) return false
-                const existingHash = v?.wallet?.bch?.walletHash
-                const normalizedExisting = existingHash ? String(existingHash).trim() : null
-                const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
-                return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
-              })
-              
-              if (errorCheck !== -1) {
-                this.walletIndex = errorCheck
-                this.$store.commit('global/updateWalletIndex', errorCheck)
-                const existingEntry = errorVault[errorCheck]
-                this.$store.commit('global/updateWalletSnapshot', {
-                  index: errorCheck,
-                  walletSnapshot: vaultEntry.wallet,
-                  chipnetSnapshot: vaultEntry.chipnet,
-                  name: existingEntry?.name || '',
-                  deleted: false
-                })
-                this.$store.commit('global/updateCurrentWallet', errorCheck)
-              } else {
-                throw error // Re-throw if we can't handle it
-              }
-            }
-          }
-        }
+        return
+      }
+      
+      // No existing match found - create new entry
+      this.$store.commit('global/updateVault', vaultEntry)
+      const vaultLengthAfter = this.$store.getters['global/getVault'].length
+      const newWalletIndex = vaultLengthAfter - 1
+      this.walletIndex = newWalletIndex
+      this.$store.commit('global/updateWalletIndex', newWalletIndex)
+      this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+      
+      // Initialize assets vault entry
+      const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
+      if (!assetsVault[newWalletIndex]) {
+        const emptyAssets = getAllAssets(initialAssetState())
+        emptyAssets.removedAssetIds = []
+        this.$store.commit('assets/updateVault', {
+          index: newWalletIndex,
+          asset: emptyAssets
+        })
+        this.$store.commit('assets/updatedCurrentAssets', newWalletIndex)
+      }
     },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
@@ -1953,92 +1908,38 @@ export default {
         // Don't set settings here - let updateVault initialize it with defaults
       }
       
-      // Check if this walletHash already exists in the vault
+      // Check if this walletHash already exists in the vault (exact match only)
+      // Only reuse entry if it's the exact same wallet, never reuse incomplete entries
       const existingVault = this.$store.getters['global/getVault']
       const newWalletHash = minimalWallet.bch.walletHash
       
-      // First, check for exact walletHash match across the ENTIRE vault
-      let existingIndex = existingVault.findIndex((v, idx) => {
+      // Check for exact walletHash match across the ENTIRE vault
+      const existingIndex = existingVault.findIndex((v, idx) => {
+        if (!v || v.deleted) return false
         const existingHash = v?.wallet?.bch?.walletHash
         const normalizedExisting = existingHash ? String(existingHash).trim() : null
         const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
         return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
       })
       
-      // If no exact match, check for incomplete entries (empty walletHash) in recent entries
-      // that we can reuse instead of creating a new one
-      if (existingIndex === -1) {
-        // Look for incomplete entries in the last 20 entries (recent wallet creation attempts)
-        // This covers cases where multiple attempts were made in quick succession
-        const checkCount = Math.min(20, existingVault.length)
-        const recentEntries = existingVault.slice(-checkCount)
-        
-        const incompleteIndex = recentEntries.findIndex((v, idx) => {
-          const walletHash = v?.wallet?.bch?.walletHash
-          const hasWallet = !!v?.wallet
-          const hasBch = !!v?.wallet?.bch
-          const isEmptyHash = !walletHash || (typeof walletHash === 'string' && walletHash.trim() === '')
-          const isDeleted = v?.deleted === true
-          
-          // Found an incomplete entry that we can reuse
-          return hasWallet && hasBch && isEmptyHash && !isDeleted
-        })
-        
-        if (incompleteIndex !== -1) {
-          existingIndex = existingVault.length - checkCount + incompleteIndex
-        }
-      }
-      
       if (existingIndex !== -1) {
-        // Use existing index instead of creating a new one
+        // Found exact match - this is the same wallet, reuse the entry
         this.walletIndex = existingIndex
         this.$store.commit('global/updateWalletIndex', existingIndex)
         
         // Update the existing entry with the new wallet data using updateWalletSnapshot
-        // This ensures we update the entry at the specific index rather than searching by walletHash
         const existingEntry = existingVault[existingIndex]
         this.$store.commit('global/updateWalletSnapshot', {
           index: existingIndex,
           walletSnapshot: vaultEntry.wallet,
           chipnetSnapshot: vaultEntry.chipnet,
           name: existingEntry?.name || '',
-          deleted: existingEntry?.deleted || false
+          deleted: false // Ensure it's not deleted
         })
         
         // Update current wallet to load the updated data
         this.$store.commit('global/updateCurrentWallet', existingIndex)
         return
-      }
-      
-      // Final safeguard: Double-check for duplicates right before creating
-      // This catches any edge cases where the walletHash might have been set between checks
-      if (existingIndex === -1) {
-        const finalCheck = existingVault.findIndex((v, idx) => {
-          const existingHash = v?.wallet?.bch?.walletHash
-          const normalizedExisting = existingHash ? String(existingHash).trim() : null
-          const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
-          return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
-        })
-        
-        if (finalCheck !== -1) {
-          console.warn('[initializeVaultEntry] Final safeguard: Found duplicate at index', finalCheck, '- reusing instead of creating')
-          existingIndex = finalCheck
-          this.walletIndex = existingIndex
-          this.$store.commit('global/updateWalletIndex', existingIndex)
-          
-          // Update the existing entry with the new wallet data
-          const existingEntry = existingVault[existingIndex]
-          this.$store.commit('global/updateWalletSnapshot', {
-            index: existingIndex,
-            walletSnapshot: vaultEntry.wallet,
-            chipnetSnapshot: vaultEntry.chipnet,
-            name: existingEntry?.name || '',
-            deleted: existingEntry?.deleted || false
-          })
-          
-          this.$store.commit('global/updateCurrentWallet', existingIndex)
-          return
-        }
       }
       
       // Add to vault (this will initialize settings with defaults)

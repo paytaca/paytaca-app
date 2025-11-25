@@ -7,6 +7,62 @@ import { getAllAssets } from 'src/store/assets/getters';
 import initialGlobalState from 'src/store/global/state'
 
 const WALLET_RECOVERY2_FLAG_KEY = 'v2-wallet-recovery-done'
+const WALLET_RECOVERY_PROCESSED_INDICES_KEY = 'wallet-recovery-processed-indices'
+
+/**
+ * Get the set of wallet indices that have already been processed for recovery
+ * @returns {Set<number>} Set of processed indices
+ */
+function getProcessedRecoveryIndices() {
+    try {
+        const stored = localStorage.getItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY)
+        if (!stored) return new Set()
+        const indices = JSON.parse(stored)
+        return new Set(Array.isArray(indices) ? indices : [])
+    } catch (error) {
+        console.warn('[Wallet Recovery] Error reading processed indices:', error)
+        return new Set()
+    }
+}
+
+/**
+ * Mark a wallet index as processed for recovery
+ * @param {number} index - Wallet index to mark as processed
+ */
+function markIndexAsProcessed(index) {
+    try {
+        const processed = getProcessedRecoveryIndices()
+        processed.add(index)
+        localStorage.setItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY, JSON.stringify(Array.from(processed)))
+    } catch (error) {
+        console.warn('[Wallet Recovery] Error marking index as processed:', error)
+    }
+}
+
+/**
+ * Mark multiple wallet indices as processed for recovery
+ * @param {number[]} indices - Array of wallet indices to mark as processed
+ */
+function markIndicesAsProcessed(indices) {
+    try {
+        const processed = getProcessedRecoveryIndices()
+        indices.forEach(index => processed.add(index))
+        localStorage.setItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY, JSON.stringify(Array.from(processed)))
+    } catch (error) {
+        console.warn('[Wallet Recovery] Error marking indices as processed:', error)
+    }
+}
+
+/**
+ * Clear all processed recovery indices (useful for testing or reset scenarios)
+ */
+export function clearProcessedRecoveryIndices() {
+    try {
+        localStorage.removeItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY)
+    } catch (error) {
+        console.warn('[Wallet Recovery] Error clearing processed indices:', error)
+    }
+}
 
 /**
  * Finds unique wallet indices by scanning localStorage for keys like `cap_sec_mn1`, `cap_sec_mn2`, etc.
@@ -56,16 +112,35 @@ function emptyAssetsList() {
 
 export async function populateMissingVaults() {
     console.log('[Wallet Recovery] Populating null vaults')
-    // this will autofill of earlier indices since indices might skip due to previously deleted wallets
-    // skipped indices give a null element which breaks stuff in the app
+    // Get processed indices to skip already-handled wallets
+    const processedIndices = getProcessedRecoveryIndices()
+    
+    // Only check indices that have mnemonics, not all possible indices
+    const walletIndices = await getWalletIndicesFromStorage()
     const walletVaults = Store.getters['global/getVault'];
-    for (var i = 0; i < walletVaults.length; i++) {
-        const mnemonic = await getMnemonic(i)
-        if (walletVaults[i] && mnemonic) continue
-        console.log(`[Wallet Recovery] Adding empty wallet snapshot for ${i}`)
+    
+    // Only process indices that have mnemonics and haven't been processed yet
+    // This avoids checking every index from 0 to vault.length
+    for (const index of walletIndices) {
+        // Skip if already processed (already has valid vault entry) - no need to check mnemonic
+        if (processedIndices.has(index)) {
+            const vaultEntry = walletVaults[index]
+            const hasWalletHash = vaultEntry?.wallet?.bch?.walletHash || vaultEntry?.wallet?.BCH?.walletHash
+            if (hasWalletHash) {
+                continue // Already processed and has valid entry - skip entirely
+            }
+        }
+        
+        // Only check mnemonic for unprocessed indices
+        // If vault entry already exists, skip it
+        if (walletVaults[index]) continue
+        
+        // Vault entry is missing - create empty snapshot
+        // Note: We don't need to check mnemonic here since we're only iterating indices that have mnemonics
+        console.log(`[Wallet Recovery] Adding empty wallet snapshot for ${index}`)
         const emptyWalletSnapshot = getEmptyWalletSnapshot()
         Store.commit('global/updateWalletSnapshot', {
-            index: i,
+            index: index,
             name: emptyWalletSnapshot.name,
             walletSnapshot: emptyWalletSnapshot.wallet,
             chipnetSnapshot: emptyWalletSnapshot.chipnet,
@@ -73,11 +148,12 @@ export async function populateMissingVaults() {
         })
     }
 
+    // For assets, only populate for indices that have mnemonics
     const assetVaults = Store.getters['assets/getVault'];
-    for(var i = 0; i < assetVaults.length; i++) {
-        if (assetVaults[i]) continue
-        console.log(`[Wallet Recovery] Adding base assets list for ${i}`)
-        Store.commit('assets/updateVault', { index: i, asset: emptyAssetsList() })
+    for (const index of walletIndices) {
+        if (assetVaults[index]) continue
+        console.log(`[Wallet Recovery] Adding base assets list for ${index}`)
+        Store.commit('assets/updateVault', { index: index, asset: emptyAssetsList() })
     }
 }
 
@@ -282,22 +358,68 @@ export async function recoverWalletsFromStorage() {
     const isVaultEmpty = Store.getters['global/isVaultEmpty']
     const vault = Store.state.global.vault
 
+    // Get processed indices to skip already-processed wallets
+    const processedIndices = getProcessedRecoveryIndices()
+    console.log('[Wallet Recovery] Processed indices:', Array.from(processedIndices))
+
     // Find mnemonic wallet indices
     const walletIndices = await getWalletIndicesFromStorage()
     console.log('[Wallet Recovery] walletIndices found:', walletIndices);
 
-    // Filter out wallets that already exist in the vault
-    // A wallet exists if the vault entry at that index has a wallet hash
-    const recoverableIndices = walletIndices.filter(index => {
-        const vaultEntry = vault[index]
-        // Skip if vault entry doesn't exist or doesn't have a wallet hash
-        if (!vaultEntry || !vaultEntry.wallet) {
-            return true // Needs recovery
+    // Filter indices: skip processed ones UNLESS their vault entry is missing/invalid (allows re-recovery)
+    const unprocessedIndices = walletIndices.filter(index => {
+        // If not processed, include it
+        if (!processedIndices.has(index)) {
+            return true
         }
-        // Check if wallet has a BCH wallet hash (indicates it's a real wallet, not just an empty entry)
+        // If processed, check if vault entry still exists and is valid
+        // If vault entry is missing or invalid, allow re-recovery
+        const vaultEntry = vault[index]
+        if (!vaultEntry || !vaultEntry.wallet) {
+            // Vault entry missing - allow re-recovery and remove from processed list
+            const processed = getProcessedRecoveryIndices()
+            processed.delete(index)
+            localStorage.setItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY, JSON.stringify(Array.from(processed)))
+            return true
+        }
+        // Check if wallet has a valid BCH wallet hash
         const hasWalletHash = vaultEntry.wallet?.bch?.walletHash || vaultEntry.wallet?.BCH?.walletHash
-        return !hasWalletHash // Only recover if no wallet hash exists
+        if (!hasWalletHash) {
+            // Vault entry exists but invalid - allow re-recovery and remove from processed list
+            const processed = getProcessedRecoveryIndices()
+            processed.delete(index)
+            localStorage.setItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY, JSON.stringify(Array.from(processed)))
+            return true
+        }
+        // Processed and has valid vault entry - skip it
+        return false
     })
+    console.log('[Wallet Recovery] Unprocessed indices (after filtering processed):', unprocessedIndices)
+
+    // Filter out wallets that already exist in the vault with valid wallet hash
+    // Also mark indices with valid vault entries as processed (they don't need recovery)
+    const recoverableIndices = []
+    const indicesToMarkAsProcessed = []
+    
+    unprocessedIndices.forEach(index => {
+        const vaultEntry = vault[index]
+        // Check if vault entry exists and has a valid wallet hash
+        const hasWalletHash = vaultEntry?.wallet?.bch?.walletHash || vaultEntry?.wallet?.BCH?.walletHash
+        
+        if (hasWalletHash) {
+            // Wallet already exists in vault with valid hash - mark as processed (no recovery needed)
+            indicesToMarkAsProcessed.push(index)
+        } else {
+            // Wallet doesn't exist or is invalid - needs recovery
+            recoverableIndices.push(index)
+        }
+    })
+    
+    // Mark all indices with valid vault entries as processed (they don't need recovery)
+    if (indicesToMarkAsProcessed.length > 0) {
+        markIndicesAsProcessed(indicesToMarkAsProcessed)
+        console.log('[Wallet Recovery] Marked', indicesToMarkAsProcessed.length, 'indices as processed (already in vault)')
+    }
 
     console.log('[Wallet Recovery] Recoverable indices (after filtering existing wallets):', recoverableIndices);
 
@@ -335,12 +457,16 @@ export async function recoverWalletsFromStorage() {
         Store.commit('global/setWalletRecoveryMessage', String(error))
         return Promise.reject(error)
     })
+    // Mark first index as processed after successful recovery
+    markIndexAsProcessed(firstIndex)
     Store.commit('global/updateWalletIndex', firstIndex)
     recoverableIndices.shift()
 
     // Start the recovery process for remaining wallets in parallel so it wont block boot
     const promises = recoverableIndices.map(index => recoverWallet(index))
     Promise.all(promises).then(() => {
+        // Mark all recovered indices as processed
+        markIndicesAsProcessed(recoverableIndices)
         Store.commit('global/setWalletsRecovered', true)
         localStorage.setItem(WALLET_RECOVERY2_FLAG_KEY, true)
         console.log('[Wallet Recovery] All wallets recovered successfully.')
