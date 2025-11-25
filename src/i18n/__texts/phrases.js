@@ -1555,6 +1555,18 @@ const phrases = {
       AreYouSureYouWantToHideTheDebugApp: 'Are you sure you want to hide the Debug app? You can show it again by long pressing the Apps header.',
       ShowDebugApp: 'Show Debug App',
       DoYouWantToShowTheDebugApp: 'Do you want to show the Debug app? This will provide access to debugging tools and utilities.',
+
+      ContractAddressUnavailable: 'Unable to resolve the contract address. Please try again later.',
+      WalletUnavailable: 'Wallet is not ready. Please try again.',
+      InvalidPurchaseAmount: 'Purchase amount is not valid.',
+      PurchasePaymentError: 'Failed to record the purchase.',
+      PurchaseCompleted: 'Purchase completed successfully.',
+      PurchaseFailed: 'Purchase failed. Please try again.',
+      PurchaseProcessing: 'Processing purchase...',
+      PurchaseProcessingMessage: 'This may take a few moments.',
+      PurchaseProcessingMessage2: 'Please wait for the purchase to be processed.',
+      PurchaseSuccessful: 'Purchase successful. View details in the Purchases tab.',
+      PurchaseInitiated: 'Purchase initiated. Please complete the payment in the Reservations tab.',
     }
   ],
   dynamic: [
