@@ -31,12 +31,13 @@
               dense
               filled
               :dark="darkMode"
+              inputmode="none"
               v-model="shiftAmount"
               :readonly="readonlyState"
               @focus="openCustomKeyboard(true)"
               @update:modelValue="function(){
                   updateConvertionRate()
-                }"
+                }"              
             />
             <q-item-label
               class="text-right q-mt-sm"
