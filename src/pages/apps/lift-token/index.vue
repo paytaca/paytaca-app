@@ -1,235 +1,233 @@
 <template>
-  <q-layout>
-    <q-page-container>
-      <q-page class="lift-token-page">
-        <header-nav
-          class="apps-header"
-          backnavpath="/apps"
-          :title="`LIFT ${this.$t('Token')}`"
-          id="header-nav"
-        />
-        <div id="app-container" class="sticky-header-container lift-token-main" :class="getDarkModeClass(darkMode)">
-      
-          <!-- Loading state with skeletons -->
-          <template v-if="isLoading">
-            <!-- Skeleton Tabs -->
-            <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
-              <div
-                class="lift-token-tabs q-px-sm q-py-xs"
-                :class="getDarkModeClass(darkMode)"
-              >
-                <q-skeleton
-                  type="rect"
-                  width="100px"
-                  height="40px"
-                  class="skeleton-tab"
-                  :class="getDarkModeClass(darkMode)"
-                />
-                <q-skeleton
-                  type="rect"
-                  width="130px"
-                  height="40px"
-                  class="skeleton-tab"
-                  :class="getDarkModeClass(darkMode)"
-                />
-                <q-skeleton
-                  type="rect"
-                  width="110px"
-                  height="40px"
-                  class="skeleton-tab"
-                  :class="getDarkModeClass(darkMode)"
-                />
-              </div>
-            </div>
-      
-            <!-- Skeleton Content - About Tab Style -->
-            <div style="display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding: 16px;">
-              <!-- Logo Circle -->
-              <div class="text-center q-mb-md">
-                <q-skeleton
-                  type="circle"
-                  size="160px"
-                  style="margin: 0 auto;"
-                  :class="getDarkModeClass(darkMode)"
-                />
-              </div>
-      
-              <!-- Title -->
-              <div class="text-center q-mb-xs">
-                <q-skeleton
-                  type="text"
-                  width="160px"
-                  height="32px"
-                  style="margin: 0 auto;"
-                  :class="getDarkModeClass(darkMode)"
-                />
-              </div>
-      
-              <!-- Tagline -->
-              <div class="text-center q-mb-md">
-                <q-skeleton
-                  type="text"
-                  width="280px"
-                  height="20px"
-                  style="margin: 0 auto;"
-                  :class="getDarkModeClass(darkMode)"
-                />
-              </div>
-      
-              <!-- Stats Card -->
-              <q-card
-                class="skeleton-card q-pa-md q-mb-lg"
-                :class="getDarkModeClass(darkMode)"
-              >
-                <div class="row q-col-gutter-md">
-                  <div class="col-4 text-center">
-                    <q-skeleton type="text" width="80%" height="14px" style="margin: 0 auto 8px;" :class="getDarkModeClass(darkMode)" />
-                    <q-skeleton type="text" width="60%" height="24px" style="margin: 0 auto;" :class="getDarkModeClass(darkMode)" />
-                  </div>
-                  <div class="col-4 text-center">
-                    <q-skeleton type="text" width="80%" height="14px" style="margin: 0 auto 8px;" :class="getDarkModeClass(darkMode)" />
-                    <q-skeleton type="text" width="60%" height="24px" style="margin: 0 auto;" :class="getDarkModeClass(darkMode)" />
-                  </div>
-                  <div class="col-4 text-center">
-                    <q-skeleton type="text" width="80%" height="14px" style="margin: 0 auto 8px;" :class="getDarkModeClass(darkMode)" />
-                    <q-skeleton type="text" width="60%" height="24px" style="margin: 0 auto;" :class="getDarkModeClass(darkMode)" />
-                  </div>
-                </div>
-              </q-card>
-      
-              <!-- CTA Buttons -->
-              <div class="text-center q-mb-lg">
-                <q-skeleton
-                  type="rect"
-                  width="320px"
-                  height="56px"
-                  class="skeleton-btn q-mb-sm"
-                  style="margin: 0 auto 12px;"
-                  :class="getDarkModeClass(darkMode)"
-                />
-                <q-skeleton
-                  type="rect"
-                  width="320px"
-                  height="48px"
-                  class="skeleton-btn"
-                  style="margin: 0 auto;"
-                  :class="getDarkModeClass(darkMode)"
-                />
-              </div>
-      
-              <!-- Section Headers & Content -->
-              <div class="q-mb-md">
-                <q-skeleton type="text" width="180px" height="24px" class="q-mb-sm" :class="getDarkModeClass(darkMode)" />
-                <q-skeleton type="text" width="100%" height="16px" class="q-mb-xs" :class="getDarkModeClass(darkMode)" />
-                <q-skeleton type="text" width="95%" height="16px" class="q-mb-xs" :class="getDarkModeClass(darkMode)" />
-                <q-skeleton type="text" width="90%" height="16px" :class="getDarkModeClass(darkMode)" />
-              </div>
-      
-              <div class="q-mb-md">
-                <q-skeleton type="text" width="150px" height="24px" class="q-mb-sm" :class="getDarkModeClass(darkMode)" />
-                <div class="row q-col-gutter-sm q-mb-xs">
-                  <div class="col-6">
-                    <q-skeleton type="rect" width="100%" height="60px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
-                  </div>
-                  <div class="col-6">
-                    <q-skeleton type="rect" width="100%" height="60px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
-                  </div>
-                </div>
-                <div class="row q-col-gutter-sm">
-                  <div class="col-6">
-                    <q-skeleton type="rect" width="100%" height="60px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
-                  </div>
-                  <div class="col-6">
-                    <q-skeleton type="rect" width="100%" height="60px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-      
-          <template v-else>
-            <!-- Fixed Tabs -->
-            <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
-              <div
-                class="lift-token-tabs q-px-sm q-py-xs"
-                :class="getDarkModeClass(darkMode)"
-              >
-                <button
-                  class="lift-token-tab"
-                  :class="[
-                    darkMode ? 'dark' : '',
-                    sectionTabButtonClass('about'),
-                    `theme-${theme}`
-                  ]"
-                  :style="sectionTab === 'about' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-                  @click="sectionTab = 'about'"
-                >
-                  {{ $t('About') }}
-                </button>
-                <button
-                  class="lift-token-tab"
-                  :class="[
-                    darkMode ? 'dark' : '',
-                    sectionTabButtonClass('reserves'),
-                    `theme-${theme}`
-                  ]"
-                  :style="sectionTab === 'reserves' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-                  @click="sectionTab = 'reserves'"
-                >
-                  {{ $t('Reservations') }}
-                </button>
-                <button
-                  class="lift-token-tab"
-                  :class="[
-                    darkMode ? 'dark' : '',
-                    sectionTabButtonClass('purchases'),
-                    `theme-${theme}`
-                  ]"
-                  :style="sectionTab === 'purchases' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-                  @click="sectionTab = 'purchases'"
-                >
-                  {{ $t('Purchases') }}
-                </button>
-              </div>
-            </div>
-      
-            <!-- Content Panels -->
-              <q-tab-panels
-                animated
-                v-model="sectionTab"
-              class="text-bow tab-panels-wrapper"
-                :class="getDarkModeClass(darkMode)"
-              >
-              <q-tab-panel name="about" class="q-pa-none tab-panel-content">
-                  <about-tab-panel
-                    :dark-mode="darkMode"
-                    :theme="theme"
-                    :user-lift-balance="userLiftBalance"
-                    :lift-swap-contract-address="liftSwapContractAddress"
-                    @navigate-to-buy="sectionTab = 'reserves'"
-                  />
-                </q-tab-panel>
-      
-              <q-tab-panel name="reserves" class="q-pa-none tab-panel-content">
-                  <reservations-tab-panel
-                    :reservationsList="reservationsList"
-                    :liftSwapContractAddress="liftSwapContractAddress"
-                    @on-successful-purchase="retrieveData"
-                  />
-                </q-tab-panel>
-      
-              <q-tab-panel name="purchases" class="q-pa-none tab-panel-content">
-                  <purchases-tab-panel
-                    :purchasesList="purchasesList"
-                    :liftSwapContractAddress="liftSwapContractAddress"
-                  />
-                </q-tab-panel>
-              </q-tab-panels>
-          </template>
+  <div id="app-container" class="sticky-header-container lift-token-main" :class="getDarkModeClass(darkMode)">
+    <header-nav
+      class="apps-header header-nav"
+      backnavpath="/apps"
+      :title="`LIFT ${this.$t('Token')}`"
+      id="header-nav"
+    />
+
+    <!-- Loading state with skeletons -->
+    <template v-if="isLoading">
+      <!-- Skeleton Tabs -->
+      <div class="tabs-wrapper q-mt-sm q-mb-sm">
+        <div
+          class="lift-token-tabs q-pa-xs"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <q-skeleton
+            type="rect"
+            width="100px"
+            height="40px"
+            class="skeleton-tab"
+            :class="getDarkModeClass(darkMode)"
+          />
+          <q-skeleton
+            type="rect"
+            width="130px"
+            height="40px"
+            class="skeleton-tab"
+            :class="getDarkModeClass(darkMode)"
+          />
+          <q-skeleton
+            type="rect"
+            width="110px"
+            height="40px"
+            class="skeleton-tab"
+            :class="getDarkModeClass(darkMode)"
+          />
         </div>
-      </q-page>
-    </q-page-container>
-  </q-layout>
+      </div>
+
+      <!-- Skeleton Content - About Tab Style -->
+      <div style="display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding: 16px;">
+        <!-- Logo Circle -->
+        <div class="text-center q-mb-md">
+          <q-skeleton
+            type="circle"
+            size="160px"
+            style="margin: 0 auto;"
+            :class="getDarkModeClass(darkMode)"
+          />
+        </div>
+
+        <!-- Title -->
+        <div class="text-center q-mb-xs">
+          <q-skeleton
+            type="text"
+            width="160px"
+            height="32px"
+            style="margin: 0 auto;"
+            :class="getDarkModeClass(darkMode)"
+          />
+        </div>
+
+        <!-- Tagline -->
+        <div class="text-center q-mb-md">
+          <q-skeleton
+            type="text"
+            width="280px"
+            height="20px"
+            style="margin: 0 auto;"
+            :class="getDarkModeClass(darkMode)"
+          />
+        </div>
+
+        <!-- Stats Card -->
+        <q-card
+          class="skeleton-card q-pa-md q-mb-lg"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <div class="row q-col-gutter-md">
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="80%" height="14px" style="margin: 0 auto 8px;" :class="getDarkModeClass(darkMode)" />
+              <q-skeleton type="text" width="60%" height="24px" style="margin: 0 auto;" :class="getDarkModeClass(darkMode)" />
+            </div>
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="80%" height="14px" style="margin: 0 auto 8px;" :class="getDarkModeClass(darkMode)" />
+              <q-skeleton type="text" width="60%" height="24px" style="margin: 0 auto;" :class="getDarkModeClass(darkMode)" />
+            </div>
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="80%" height="14px" style="margin: 0 auto 8px;" :class="getDarkModeClass(darkMode)" />
+              <q-skeleton type="text" width="60%" height="24px" style="margin: 0 auto;" :class="getDarkModeClass(darkMode)" />
+            </div>
+          </div>
+        </q-card>
+
+        <!-- CTA Buttons -->
+        <div class="text-center q-mb-lg">
+          <q-skeleton
+            type="rect"
+            width="320px"
+            height="56px"
+            class="skeleton-btn q-mb-sm"
+            style="margin: 0 auto 12px;"
+            :class="getDarkModeClass(darkMode)"
+          />
+          <q-skeleton
+            type="rect"
+            width="320px"
+            height="48px"
+            class="skeleton-btn"
+            style="margin: 0 auto;"
+            :class="getDarkModeClass(darkMode)"
+          />
+        </div>
+
+        <!-- Section Headers & Content -->
+        <div class="q-mb-md">
+          <q-skeleton type="text" width="180px" height="24px" class="q-mb-sm" :class="getDarkModeClass(darkMode)" />
+          <q-skeleton type="text" width="100%" height="16px" class="q-mb-xs" :class="getDarkModeClass(darkMode)" />
+          <q-skeleton type="text" width="95%" height="16px" class="q-mb-xs" :class="getDarkModeClass(darkMode)" />
+          <q-skeleton type="text" width="90%" height="16px" :class="getDarkModeClass(darkMode)" />
+        </div>
+
+        <div class="q-mb-md">
+          <q-skeleton type="text" width="150px" height="24px" class="q-mb-sm" :class="getDarkModeClass(darkMode)" />
+          <div class="row q-col-gutter-sm q-mb-xs">
+            <div class="col-6">
+              <q-skeleton type="rect" width="100%" height="60px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
+            </div>
+            <div class="col-6">
+              <q-skeleton type="rect" width="100%" height="60px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
+            </div>
+          </div>
+          <div class="row q-col-gutter-sm">
+            <div class="col-6">
+              <q-skeleton type="rect" width="100%" height="60px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
+            </div>
+            <div class="col-6">
+              <q-skeleton type="rect" width="100%" height="60px" class="rounded-badge" :class="getDarkModeClass(darkMode)" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template v-else>
+      <!-- Fixed Tabs -->
+      <div
+        class="tabs-wrapper q-mt-sm q-mb-sm pt-header"
+        :class="getDarkModeClass(darkMode)"
+        id="fixed-tabs-wrapper"
+      >
+        <div
+          class="lift-token-tabs q-pa-xs"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <button
+            class="lift-token-tab"
+            :class="[
+              darkMode ? 'dark' : '',
+              sectionTabButtonClass('about'),
+              `theme-${theme}`
+            ]"
+            :style="sectionTab === 'about' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="sectionTab = 'about'"
+          >
+            {{ $t('About') }}
+          </button>
+          <button
+            class="lift-token-tab"
+            :class="[
+              darkMode ? 'dark' : '',
+              sectionTabButtonClass('reserves'),
+              `theme-${theme}`
+            ]"
+            :style="sectionTab === 'reserves' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="sectionTab = 'reserves'"
+          >
+            {{ $t('Reservations') }}
+          </button>
+          <button
+            class="lift-token-tab"
+            :class="[
+              darkMode ? 'dark' : '',
+              sectionTabButtonClass('purchases'),
+              `theme-${theme}`
+            ]"
+            :style="sectionTab === 'purchases' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="sectionTab = 'purchases'"
+          >
+            {{ $t('Purchases') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Content Panels -->
+        <q-tab-panels
+          animated
+          v-model="sectionTab"
+        class="text-bow tab-panels-wrapper"
+          :class="getDarkModeClass(darkMode)"
+        >
+        <q-tab-panel name="about" class="q-pa-none tab-panel-content">
+            <about-tab-panel
+              :dark-mode="darkMode"
+              :theme="theme"
+              :user-lift-balance="userLiftBalance"
+              :liftSwapContractAddress="liftSwapContractAddress"
+              @navigate-to-buy="retrieveData().then(() => sectionTab = 'purchases')"
+            />
+          </q-tab-panel>
+
+        <q-tab-panel name="reserves" class="q-pa-none tab-panel-content">
+            <reservations-tab-panel
+              :reservationsList="reservationsList"
+              :liftSwapContractAddress="liftSwapContractAddress"
+              @on-successful-purchase="retrieveData"
+            />
+          </q-tab-panel>
+
+        <q-tab-panel name="purchases" class="q-pa-none tab-panel-content">
+            <purchases-tab-panel
+              :purchasesList="purchasesList"
+              :liftSwapContractAddress="liftSwapContractAddress"
+            />
+          </q-tab-panel>
+        </q-tab-panels>
+    </template>
+  </div>
 </template>
 
 <script>
@@ -351,48 +349,24 @@ export default {
   async mounted() {
     this.$store.dispatch("market/updateAssetPrices", { customCurrency: "USD" });
     await this.retrieveData();
+
+    const headerNav = document.getElementById('header-nav')
+    const fixedTabsWrapper = document.getElementById('fixed-tabs-wrapper')
+    fixedTabsWrapper.style.top = `${headerNav.clientHeight}px`
   },
 };
 </script>
 
 <style lang="scss" scoped>
-.lift-token-page {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.lift-token-main {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-#app-container {
-  overflow: hidden !important;
-  flex: 1;
-  min-height: 0;
-}
-
-.apps-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: inherit;
-  flex-shrink: 0;
-  
-  ::v-deep .pt-header {
-    background: inherit;
-  }
-}
-
 .tabs-wrapper {
   display: flex;
   justify-content: center;
-  padding: 0 8px;
+  padding: 0 clamp(20px, 5vw, 32px);
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  position: sticky;
+  z-index: 100;
 }
 
 .tab-panels-wrapper {
@@ -413,10 +387,12 @@ export default {
 
 .lift-token-tabs {
   display: inline-flex;
-  gap: 8px;
+  gap: clamp(4px, 1.5vw, 8px);
   background-color: rgb(242, 243, 252);
   border-radius: 24px;
   padding: 4px;
+  max-width: 100%;
+  box-sizing: border-box;
   
   &.dark {
     background-color: rgba(255, 255, 255, 0.1);
@@ -424,7 +400,7 @@ export default {
 }
 
 .lift-token-tab {
-  min-width: 120px;
+  min-width: clamp(90px, 25vw, 120px);
   height: 40px;
   border-radius: 20px;
   border: none;
@@ -434,8 +410,9 @@ export default {
   cursor: pointer;
   transition: all 0.3s;
   font-weight: 500;
-  font-size: 14px;
-  padding: 0 20px;
+  font-size: clamp(12px, 3vw, 14px);
+  padding: 0 clamp(12px, 4vw, 20px);
+  flex: 1 1 auto;
   
   &:hover:not(.active-theme-btn) {
     background-color: rgba(0, 0, 0, 0.05);

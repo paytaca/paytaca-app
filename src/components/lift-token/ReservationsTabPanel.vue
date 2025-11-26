@@ -54,11 +54,6 @@
                 :outline="isChipOutline(SaleGroup.PRIVATE)"
                 @click="applyFilter(SaleGroup.PRIVATE)"
               />
-              <sale-group-chip
-                :saleGroup="SaleGroup.PUBLIC"
-                :outline="isChipOutline(SaleGroup.PUBLIC)"
-                @click="applyFilter(SaleGroup.PUBLIC)"
-              />
             </div>
           </div>
         </q-card-section>
@@ -134,10 +129,9 @@
                 </div>
               </div>
               <div class="col-5 row justify-end">
-                <q-badge
-                  :color="getRoundBadgeColor(rsvp.sale_group)"
-                  :label="parseSaleGroup(rsvp.sale_group)"
-                  class="round-badge"
+                <sale-group-badge
+                  type="round"
+                  :saleGroup="rsvp.sale_group"
                 />
               </div>
             </div>
@@ -241,6 +235,7 @@ import { SaleGroup } from "src/utils/engagementhub-utils/lift-token";
 import { getMnemonic, Wallet } from "src/wallet";
 
 import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
+import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 import PayReservationDialog from "src/components/lift-token/dialogs/PayReservationDialog.vue";
 
 export default {
@@ -255,6 +250,7 @@ export default {
 
   components: {
     SaleGroupChip,
+    SaleGroupBadge,
   },
 
   data() {
@@ -322,37 +318,12 @@ export default {
       this.filterRsvpList(saleGroup);
       this.showFilterDialog = false;
     },
-    getThemeColor() {
-      const themeColors = {
-        'glassmorphic-blue': '#42a5f5',
-        'glassmorphic-gold': '#ffa726',
-        'glassmorphic-green': '#4caf50',
-        'glassmorphic-red': '#f54270'
-      }
-      return themeColors[this.theme] || '#42a5f5'
-    },
     parseBchAddress(address) {
       const addLen = address.length;
       return `${address.substring(0, 17)}...${address.substring(
         addLen - 7,
         addLen
       )}`;
-    },
-    parseSaleGroup(saleGroup) {
-      const labels = {
-        'seed': this.$t('SeedRound'),
-        'priv': this.$t('PrivateRound'),
-        'pblc': this.$t('PublicRound'),
-      }
-      return labels[saleGroup] || saleGroup
-    },
-    getRoundBadgeColor(saleGroup) {
-      const colors = {
-        'seed': 'amber-8',
-        'priv': 'blue-6',
-        'pblc': 'green-6',
-      }
-      return colors[saleGroup] || 'grey-6'
     },
     isChipOutline(saleGroup) {
       if (this.selectedFilter === "all") return false;
@@ -531,14 +502,6 @@ export default {
     background: rgba(251, 191, 36, 0.15);
     border: 1px solid rgba(251, 191, 36, 0.4);
   }
-}
-
-.round-badge {
-  font-size: 11px;
-  padding: 4px 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
 .paid-badge {

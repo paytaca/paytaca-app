@@ -16,7 +16,7 @@
         
         <!-- Key Stats Card -->
         <q-card
-          flat
+          bordered
           class="stats-card q-pa-md q-mb-md"
           :class="getDarkModeClass(darkMode)"
         >
@@ -178,48 +178,25 @@
           <div class="row q-col-gutter-md">
             <div class="col-12">
               <sale-round-card
-                :round-name="$t('SeedRound')"
-                :round-subtitle="$t('EarlySupporter')"
+                :round-name="$t('EarlySupporterRound')"
                 round-icon="mdi-seed"
                 round-color="positive"
                 :price="0.015"
-                :min-purchase="1000000"
+                :min-purchase="6667"
                 :vesting-schedule="$t('SeedVesting', {}, '2-year lockup, then 25% released per quarter the following year')"
-                :is-eligible="false"
-                :eligibility-status="$t('WhitelistRequired')"
-                :dark-mode="darkMode"
+                :is-recommended="true"
                 :theme="theme"
-                @reserve="() => $emit('navigate-to-buy', 'seed')"
+                @reserve="showBuyDialog = true"
               />
             </div>
             <div class="col-12">
               <sale-round-card
-                :round-name="$t('PrivateRound')"
-                :round-subtitle="$t('StrategyPartners')"
+                :round-name="$t('StrategicPartnerRound')"
                 round-icon="mdi-lock"
                 round-color="secondary"
-                :price="0.025"
-                :min-purchase="100000"
+                :price="0.03"
+                :min-purchase="3333334"
                 :vesting-schedule="$t('PrivateVesting', {}, '1-year lockup, then 25% released per quarter the following year')"
-                :is-eligible="false"
-                :eligibility-status="$t('WhitelistRequired')"
-                :dark-mode="darkMode"
-                :theme="theme"
-                @reserve="() => $emit('navigate-to-buy', 'private')"
-              />
-            </div>
-            <div class="col-12">
-              <sale-round-card
-                :round-name="$t('PublicRound')"
-                :round-subtitle="$t('OpenToCommunity')"
-                round-icon="mdi-earth"
-                round-color="primary"
-                :price="0.05"
-                :min-purchase="1000"
-                :vesting-schedule="$t('PublicVesting', {}, 'No lockup, released immediately')"
-                :is-recommended="true"
-                :is-eligible="true"
-                :dark-mode="darkMode"
                 :theme="theme"
                 @reserve="showBuyDialog = true"
               />
@@ -317,7 +294,11 @@
       </div>
       
       <!-- Bottom CTA -->
-      <div class="bottom-cta q-mt-xl q-mb-lg text-center">
+      <q-card
+        bordered
+        class="bottom-cta q-mt-xl q-mb-lg text-center"
+        :class="getDarkModeClass(darkMode)"
+      >
         <div class="text-h6 q-mb-md">{{ $t('ReadyToGetStarted') }}?</div>
         <q-btn
           :label="$t('BuyLIFTTokens')"
@@ -329,7 +310,7 @@
           class="cta-button button"
           @click="showBuyDialog = true"
         />
-      </div>
+      </q-card>
     </div>
 
     <!-- Buy LIFT Dialog -->
@@ -377,7 +358,7 @@ export default {
       tokenCategoryId: '5932b2fd4915d6a75d3ec53282cd49118149a2176ee67ed68b1111ff0786f7fc',
       seedRoundPrice: 0.015,
       tokenomicsData: [
-        { category: this.$t('TokenSale'), percentage: 20, tokens: 200000000, description: this.$t('SeedPrivatePublicRounds') },
+        { category: this.$t('TokenSale'), percentage: 20, tokens: 200000000, description: this.$t('EarlySupporterStrategicPartnerRounds') },
         { category: this.$t('CommunityIncentives'), percentage: 30, tokens: 300000000, description: this.$t('CampaignBasedDistribution') },
         { category: this.$t('TeamAndAdvisors'), percentage: 15, tokens: 150000000, description: this.$t('OneYearCliffVesting') },
         { category: this.$t('EcosystemGrowth'), percentage: 15, tokens: 150000000, description: this.$t('MilestoneBasedUnlocks') },
@@ -388,38 +369,36 @@ export default {
       faqData: [
         {
           question: this.$t('FAQ1Question', {}, 'What is the LIFT Token?'),
-          answer: this.$t('FAQ1Answer', {}, 'The LIFT token is a utility token that powers the Paytaca ecosystem. It embodies the Filipino concept of Bayanihan, representing community-driven cooperation to advance Bitcoin Cash adoption. The token provides access to various ecosystem benefits and features within the Paytaca platform.'),
+          answer: this.$t('FAQ1Answer'),
           ctaLabel: '',
           ctaAction: ''
         },
         {
           question: this.$t('FAQ2Question', {}, 'How can I participate in the token sale?'),
-          answer: this.$t('FAQ2Answer', {}, 'To participate in the token sale, you can purchase LIFT tokens directly through the Buy tab in this app. The Public round is open to everyone with no whitelist required, making it easy to get started.'),
+          answer: this.$t('FAQ2Answer'),
           ctaLabel: this.$t('GoToBuyTab'),
           ctaAction: 'navigate-to-buy'
         },
         {
           question: this.$t('FAQ3Question', {}, 'What are the benefits of holding LIFT tokens?'),
-          answer: this.$t('FAQ3Answer', {}, 'LIFT token holders gain access to exclusive app features, reduced fees on platform services, and the ability to participate in ecosystem governance. The token is designed to incentivize active participation in the Paytaca ecosystem and contribute to the growth of Bitcoin Cash adoption.'),
+          answer: this.$t('FAQ3Answer'),
           ctaLabel: '',
           ctaAction: ''
         },
         {
           question: this.$t('FAQ4Question', {}, 'What is the vesting schedule?'),
-          answer: this.$t('FAQ4Answer', {}, 'The vesting schedule varies by round. Seed round participants have a 2-year lockup followed by quarterly releases. Private round participants have a 1-year lockup followed by quarterly releases. Public round tokens are released immediately with no lockup period.'),
+          answer: this.$t('FAQ4Answer'),
           ctaLabel: '',
           ctaAction: ''
         },
         {
           question: this.$t('FAQ5Question', {}, 'How are the tokens distributed?'),
-          answer: this.$t('FAQ5Answer', {}, 'The total supply of 1 billion LIFT tokens is distributed across various categories: 20% for token sale, 30% for community incentives, 15% for ecosystem growth, 15% for team and advisors, and smaller allocations for partnerships, liquidity pool, and reserve fund. This distribution supports long-term ecosystem development and community engagement.'),
+          answer: this.$t('FAQ5Answer'),
           ctaLabel: '',
           ctaAction: ''
         }
       ]
     }
-  },
-  computed: {
   },
   methods: {
     getDarkModeClass,
@@ -640,7 +619,14 @@ export default {
   .bottom-cta {
     padding: 24px;
     border-radius: 16px;
-    background: linear-gradient(135deg, rgba(66, 165, 245, 0.1), rgba(66, 165, 245, 0.05));
+    
+    &.dark {
+      background: linear-gradient(135deg, rgba(66, 165, 245, 0.15), rgba(66, 165, 245, 0.08));
+    }
+    
+    &.light {
+      background: linear-gradient(135deg, rgba(66, 165, 245, 0.1), rgba(66, 165, 245, 0.05));
+    }
     
     .cta-button {
       border-radius: 24px;

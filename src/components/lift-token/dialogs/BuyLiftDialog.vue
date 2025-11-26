@@ -6,10 +6,10 @@
     class="no-click-outside"
   >
     <q-card
-      class="buy-lift-dialog-card pt-card full-width q-pa-lg text-body1 text-bow"
+      class="buy-lift-dialog-card pt-card full-width text-body1 text-bow"
       :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
-      <div class="row justify-between items-center q-mb-lg">
+      <div class="pt-card row justify-between items-center q-px-lg q-py-md sticky-title" :class="getDarkModeClass(darkMode)">
         <span class="text-h5 text-weight-bold">{{ $t("BuyLIFTTokens") }}</span>
         <q-btn
           flat
@@ -17,137 +17,140 @@
           padding="sm"
           icon="close"
           class="close-button"
+          :disable="isProcessing"
           v-close-popup
         />
       </div>
 
-      <!-- Sale Round Selection -->
-      <div class="q-mb-md">
-        <div class="text-subtitle2 q-mb-sm">{{ $t('SelectRound') }}</div>
-        <div class="row q-col-gutter-sm">
-          <div 
-            v-for="round in saleRounds" 
-            :key="round.id"
-            class="col-12"
-          >
-            <q-card
-              flat
-              :class="[
-                'round-option-card q-pa-md cursor-pointer',
-                selectedRound === round.id ? 'selected' : '',
-                getDarkModeClass(darkMode)
-              ]"
-              @click="selectRound(round.id)"
+      <div class="q-pa-lg">
+        <!-- Sale Round Selection -->
+        <div class="q-mb-md">
+          <div class="text-subtitle2 q-mb-sm">{{ $t('SelectRound') }}</div>
+          <div class="row q-col-gutter-sm">
+            <div 
+              v-for="round in saleRounds" 
+              :key="round.id"
+              class="col-12"
             >
-              <div class="row items-center">
-                <q-radio 
-                  :model-value="selectedRound" 
-                  :val="round.id"
-                  :color="getThemeColor()"
-                  @click="selectRound(round.id)"
-                />
-                <div class="col q-ml-sm">
-                  <div class="text-weight-medium">{{ round.name }}</div>
-                  <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">{{ round.subtitle }}</div>
+              <q-card
+                flat
+                :class="[
+                  'round-option-card q-pa-md cursor-pointer',
+                  selectedRound === round.id ? 'selected' : '',
+                  getDarkModeClass(darkMode)
+                ]"
+                @click="selectRound(round.id)"
+              >
+                <div class="row items-center">
+                  <q-radio 
+                    :model-value="selectedRound" 
+                    :val="round.id"
+                    :color="getThemeColor()"
+                    @click="selectRound(round.id)"
+                  />
+                  <div class="col q-ml-sm">
+                    <div class="text-weight-medium">{{ round.name }}</div>
+                  </div>
                 </div>
-              </div>
-            </q-card>
+              </q-card>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Price & Vesting Info - Prominent Display -->
-      <div 
-        :key="roundChangeKey"
-        class="price-vesting-card q-pa-lg q-mb-lg"
-        :class="[getDarkModeClass(darkMode), { 'glow-animation': isGlowing }]"
-      >
-        <!-- Price -->
-        <div class="text-center q-mb-md">
-          <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-            {{ $t('PricePerToken') }}
+  
+        <!-- Price & Vesting Info - Prominent Display -->
+        <div 
+          :key="roundChangeKey"
+          class="price-vesting-card q-pa-lg q-mb-lg"
+          :class="[getDarkModeClass(darkMode), { 'glow-animation': isGlowing }]"
+        >
+          <!-- Price -->
+          <div class="text-center q-mb-md">
+            <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+              {{ $t('PricePerToken') }}
+            </div>
+            <div class="price-display text-h4 text-weight-bold" :style="`color: ${getThemeColor()}`">
+              ${{ formatPriceDisplay(displayedPrice) }}
+            </div>
+            <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+              USD {{ $t('PerToken') }}
+            </div>
           </div>
-          <div class="price-display text-h4 text-weight-bold" :style="`color: ${getThemeColor()}`">
-            ${{ formatPriceDisplay(displayedPrice) }}
+  
+          <q-separator :dark="darkMode" class="q-my-md" />
+  
+          <!-- Minimum Purchase -->
+          <div class="text-center q-mb-md">
+            <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+              {{ $t('MinimumPurchase') }}
+            </div>
+            <div class="text-h6 text-weight-bold q-mt-xs">
+              {{ formatNumber(displayedMinPurchase) }} LIFT
+            </div>
           </div>
-          <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-            USD {{ $t('PerToken') }}
+  
+          <q-separator :dark="darkMode" class="q-my-md" />
+  
+          <!-- Vesting Schedule -->
+          <div class="text-center">
+            <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+              {{ $t('VestingSchedule') }}
+            </div>
+            <div 
+              class="vesting-display text-body1 text-weight-medium q-mt-sm"
+              :class="{ 'vesting-pulse': isGlowing }"
+            >
+              {{ selectedRoundVesting }}
+            </div>
           </div>
         </div>
-
-        <q-separator :dark="darkMode" class="q-my-md" />
-
-        <!-- Minimum Purchase -->
-        <div class="text-center q-mb-md">
-          <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-            {{ $t('MinimumPurchase') }}
+  
+        <!-- Amount Input -->
+        <div class="col q-mb-md">
+          <custom-input
+            v-model="amountTkn"
+            :inputSymbol="'LIFT'"
+            :inputRules="inputValidationRules"
+            :asset="null"
+            :decimalObj="{ min: 0, max: 2 }"
+            @on-amount-click="onKeyAction"
+            @on-backspace-click="onKeyAction"
+            @on-delete-click="onKeyAction"
+          />
+        </div>
+  
+        <!-- Conversion Display -->
+        <div class="conversion-display q-mb-md q-pa-md" :class="getDarkModeClass(darkMode)">
+          <div class="row justify-between q-mb-xs">
+            <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('TotalCost') }}:</span>
+            <span class="text-body2 text-weight-medium">{{ formatWithLocale(amountUsd) }} USD</span>
           </div>
-          <div class="text-h6 text-weight-bold q-mt-xs">
-            {{ formatNumber(displayedMinPurchase) }} LIFT
+          <div class="row justify-between">
+            <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('InBCH') }}:</span>
+            <span class="text-body2 text-weight-medium">{{ amountBch.toFixed(8) }} BCH</span>
           </div>
         </div>
-
-        <q-separator :dark="darkMode" class="q-my-md" />
-
-        <!-- Vesting Schedule -->
-        <div class="text-center">
-          <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-            {{ $t('VestingSchedule') }}
-          </div>
-          <div 
-            class="vesting-display text-body1 text-weight-medium q-mt-sm"
-            :class="{ 'vesting-pulse': isGlowing }"
-          >
-            {{ selectedRoundVesting }}
+  
+        <!-- Wallet Balance Info -->
+        <div class="balance-info q-mb-md">
+          <div class="row justify-between items-center">
+            <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('YourBCHBalance') }}:</span>
+            <span class="text-body2">{{ walletBalance.toFixed(8) }} BCH</span>
           </div>
         </div>
-      </div>
-
-      <!-- Amount Input -->
-      <div class="col q-mb-md">
-        <custom-input
-          v-model="amountTkn"
-          :inputSymbol="'LIFT'"
-          :inputRules="inputValidationRules"
-          :asset="null"
-          :decimalObj="{ min: 0, max: 2 }"
-          @on-amount-click="onKeyAction"
-          @on-backspace-click="onKeyAction"
-          @on-delete-click="onKeyAction"
+  
+        <!-- Purchase Button -->
+        <q-btn
+          :label="$t('ProceedToPurchase')"
+          text-color="white"
+          unelevated
+          no-caps
+          class="full-width purchase-button"
+          :class="`theme-${theme}`"
+          :loading="isProcessing"
+          :disable="!canPurchase || isProcessing"
+          @click="proceedToPurchase"
         />
       </div>
-
-      <!-- Conversion Display -->
-      <div class="conversion-display q-mb-md q-pa-md" :class="getDarkModeClass(darkMode)">
-        <div class="row justify-between q-mb-xs">
-          <span class="text-caption text-grey-7">{{ $t('TotalCost') }}:</span>
-          <span class="text-body2 text-weight-medium">{{ formatWithLocale(amountUsd) }} USD</span>
-        </div>
-        <div class="row justify-between">
-          <span class="text-caption text-grey-7">{{ $t('InBCH') }}:</span>
-          <span class="text-body2 text-weight-medium">{{ amountBch.toFixed(8) }} BCH</span>
-        </div>
-      </div>
-
-      <!-- Wallet Balance Info -->
-      <div class="balance-info q-mb-md">
-        <div class="row justify-between items-center">
-          <span class="text-caption text-grey-7">{{ $t('YourBCHBalance') }}:</span>
-          <span class="text-body2">{{ walletBalance.toFixed(8) }} BCH</span>
-        </div>
-      </div>
-
-      <!-- Purchase Button -->
-      <q-btn
-        :label="$t('ProceedToPurchase')"
-        unelevated
-        no-caps
-        class="full-width purchase-button"
-        :class="`theme-${theme}`"
-        :disable="!canPurchase || isProcessing"
-        :loading="isProcessing"
-        @click="proceedToPurchase"
-      />
     </q-card>
   </q-dialog>
 </template>
@@ -186,7 +189,7 @@ export default {
     return {
       innerVal: this.modelValue,
       contractAddress: this.liftSwapContractAddress || '',
-      selectedRound: 'public',
+      selectedRound: 'seed',
       amountTkn: 0,
       amountUsd: 0,
       amountBch: 0,
@@ -203,27 +206,17 @@ export default {
       saleRounds: [
         {
           id: 'seed',
-          name: this.$t('SeedRound'),
-          subtitle: this.$t('EarlySupporter'),
+          name: this.$t('EarlySupporterRound'),
           price: 0.015,
-          minPurchase: 1000000,
+          minPurchase: 6667,
           vesting: this.$t('SeedVesting', {}, '2-year lockup, then 25% released per quarter')
         },
         {
           id: 'private',
-          name: this.$t('PrivateRound'),
-          subtitle: this.$t('StrategyPartners'),
-          price: 0.025,
-          minPurchase: 100000,
+          name: this.$t('StrategicPartnerRound'),
+          price: 0.03,
+          minPurchase: 3333334,
           vesting: this.$t('PrivateVesting', {}, '1-year lockup, then 25% released per quarter')
-        },
-        {
-          id: 'public',
-          name: this.$t('PublicRound'),
-          subtitle: this.$t('OpenToCommunity'),
-          price: 0.05,
-          minPurchase: 1000,
-          vesting: this.$t('PublicVesting', {}, 'No lockup, released immediately')
         }
       ]
     }
@@ -260,17 +253,17 @@ export default {
     },
     inputValidationRules() {
       return [
-        val => {
-          const amount = Number(val)
+        _val => {
+          const amount = Number(this.amountTkn)
           // Allow 0 or empty initially
           if (!amount || amount === 0) return true
           // Check if amount meets minimum requirement
           if (amount >= this.selectedRoundMinPurchase) return true
           // Return error message if below minimum
-          return this.$t('MinimumPurchase') + ': ' + this.formatNumber(this.selectedRoundMinPurchase) + ' LIFT'
+          return `${this.$t('MinimumPurchase')}: ${this.formatNumber(this.selectedRoundMinPurchase)} LIFT`
         },
-        val => {
-          const amount = Number(val)
+        _val => {
+          const amount = Number(this.amountTkn)
           // Allow 0 or empty initially
           if (!amount || amount === 0) return true
           // Check if BCH amount is within wallet balance
@@ -510,7 +503,6 @@ export default {
         // The 7th parameter is priceId (for BIP21 price tracking), not fee.
         // Get change address for BCH transaction
         const changeAddress = await getChangeAddress('bch')
-        
         const result = await getWalletByNetwork(wallet, 'bch').sendBch(
           undefined,
           '',
@@ -550,6 +542,7 @@ export default {
         const signature = await generateSignature(result.txid, wif)
         const satsWithFee = Math.floor(purchase.bch * 10 ** 8)
         const tokenAddress = await getWalletTokenAddress()
+        const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
 
         const data = {
           purchased_amount_usd: purchase.usd,
@@ -563,6 +556,7 @@ export default {
           reservation: -1,
           partial_purchase: -1,
           sale_group: this.getSaleGroupCode(this.selectedRound),
+          public_key: pubkeyHex,
           message_timestamp: this.messageTimestamp
         }
 
@@ -624,7 +618,7 @@ export default {
     border-radius: 12px;
     border: 2px solid transparent;
     transition: all 0.3s ease;
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: rgba(0, 0, 0, 0.05);
     
     &.dark {
       background-color: rgba(255, 255, 255, 0.05);
@@ -636,7 +630,7 @@ export default {
     }
     
     &.selected {
-      border-color: #42a5f5;
+      border-color: #42a5f5 !important;
       background-color: rgba(66, 165, 245, 0.1);
       
       &.dark {
@@ -747,28 +741,38 @@ export default {
     
     &.theme-glassmorphic-blue {
       background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
-      color: white;
     }
     
     &.theme-glassmorphic-gold {
       background: linear-gradient(135deg, #ffa726 0%, #f57c00 100%);
-      color: white;
     }
     
     &.theme-glassmorphic-green {
       background: linear-gradient(135deg, #66bb6a 0%, #388e3c 100%);
-      color: white;
     }
     
     &.theme-glassmorphic-red {
       background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
-      color: white;
     }
     
     &:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
     }
+  }
+}
+.sticky-title {
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 100;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  
+  &.dark {
+    background: rgba(30, 30, 30, 0.98);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
 </style>
