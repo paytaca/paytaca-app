@@ -128,6 +128,18 @@ export function clearVault (state) {
   state.vault = []
 }
 
+/**
+ * Remove a vault entry at the specified index
+ * This actually removes it from the array (unlike deleteWallet which just marks it as deleted)
+ * @param {Object} state
+ * @param {number} index - Index of the vault entry to remove
+ */
+export function removeVaultEntry (state, index) {
+  if (index >= 0 && index < state.vault.length) {
+    state.vault.splice(index, 1)
+  }
+}
+
 export function updateWalletIndex (state, index) {
   state.walletIndex = index
   // Note: Settings sync to modules is handled by syncSettingsToModules action

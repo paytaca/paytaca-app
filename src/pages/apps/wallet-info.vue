@@ -688,21 +688,18 @@ export default {
       }
       const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
       vm.$store.dispatch('global/deleteWallet', currentWalletIndex).then(() => {
-      }).then(function () {
+        // Check if there are any wallets left after deletion
         const vault = vm.$store.state.global.vault
-        const undeletedWallets = []
-        const vaultCheck = vault.filter(function (wallet, index) {
-          if (wallet.deleted !== true) {
-            undeletedWallets.push(index)
-            return wallet
-          }
-        })
-        if (vaultCheck.length === 0) {
-          vm.$store.commit('global/clearVault')
+        const hasUndeletedWallets = vault.some(wallet => wallet.deleted !== true)
+        
+        if (!hasUndeletedWallets) {
+          // No wallets left - route to account creation
           vm.$router.push('/accounts')
           setTimeout(() => { location.reload() }, 500)
         } else {
-          vm.switchWallet(undeletedWallets[0])
+          // Store action already switched to first undeleted wallet, just reload
+          vm.$router.push('/')
+          setTimeout(() => { location.reload() }, 500)
         }
       })
     }

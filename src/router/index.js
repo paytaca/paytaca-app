@@ -35,8 +35,27 @@ export default function () {
   Router.beforeEach(async (to, from, next) => {
     if (to.path === '/') {
       try {
-        // Check if first mnemonic exists
-        const currentWalletIndex = store.getters['global/getWalletIndex']        
+        // Ensure current wallet index is valid (points to undeleted wallet)
+        // This will switch to the first valid wallet if current is null/deleted
+        await store.dispatch('global/ensureValidWalletIndex')
+        
+        // Get the current wallet index (may have changed after ensureValidWalletIndex)
+        const currentWalletIndex = store.getters['global/getWalletIndex']
+        const vault = store.getters['global/getVault']
+        const currentWallet = vault[currentWalletIndex]
+        
+        // Check if we have a valid wallet structure
+        const hasValidWallet = currentWallet && 
+          currentWallet.deleted !== true && 
+          currentWallet.wallet?.bch?.walletHash
+        
+        if (!hasValidWallet) {
+          // No valid wallets - go to account creation
+          next('/accounts')
+          return
+        }
+        
+        // Check if mnemonic exists for this wallet index
         const mnemonic = await getMnemonic(currentWalletIndex)
 
         // if mnemonic does not exist but not first wallet,
@@ -52,6 +71,7 @@ export default function () {
         if (_mnemonic && walletIndex !== currentWalletIndex) {
           await store.dispatch(`global/switchWallet`, walletIndex).catch(console.error)
           location.reload()
+          return
         }
 
         if (mnemonic) {
@@ -60,6 +80,7 @@ export default function () {
           next('/accounts')
         }
       } catch (err) {
+        console.error('Router error:', err)
         next('/accounts')
       }
     } else {

@@ -4,8 +4,8 @@ import { decodePrivateKeyWif } from '@bitauth/libauth'
 import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
-import { saveWalletName, getWalletName } from 'src/utils/wallet-name-cache'
-import { loadLibauthHdWallet, loadWallet } from '../../wallet'
+import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/wallet-name-cache'
+import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic } from '../../wallet'
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
 import { backend } from 'src/exchange/backend'
@@ -371,10 +371,277 @@ export async function switchWallet (context, index) {
 export async function deleteWallet (context, index) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
+      const currentWalletIndex = context.getters.getWalletIndex
+      const isDeletingCurrentWallet = index === currentWalletIndex
+      
+      // Mark wallet as deleted
       context.commit('deleteWallet', index)
+      
+      // If we're deleting the current wallet, switch to the first undeleted wallet
+      if (isDeletingCurrentWallet) {
+        const vault = context.getters.getVault
+        const undeletedWallets = []
+        
+        vault.forEach((wallet, idx) => {
+          if (wallet.deleted !== true) {
+            undeletedWallets.push(idx)
+          }
+        })
+        
+        if (undeletedWallets.length > 0) {
+          // Switch to the first undeleted wallet
+          context.dispatch('switchWallet', undeletedWallets[0]).catch(console.error)
+        } else {
+          // No wallets left - clear vault (caller should handle routing)
+          context.commit('clearVault')
+        }
+      }
+      
       resolve()
     }, 1000)
   })
+}
+
+/**
+ * Ensure the current wallet index points to an undeleted wallet
+ * If the current wallet is deleted, null, or invalid, switch to the first valid wallet
+ * Returns a promise that resolves when the wallet switch is complete (if needed)
+ */
+export async function ensureValidWalletIndex (context) {
+  const vault = context.getters.getVault
+  if (!vault || vault.length === 0) return
+
+  const currentWalletIndex = context.getters.getWalletIndex
+  const currentWallet = vault[currentWalletIndex]
+
+  // Check if current wallet is valid (not null, not deleted, and has a walletHash)
+  const isCurrentWalletValid = currentWallet && 
+    currentWallet.deleted !== true && 
+    currentWallet.wallet?.bch?.walletHash
+
+  if (!isCurrentWalletValid) {
+    // Find first valid (non-null, non-deleted, with walletHash) wallet
+    const validWallets = []
+    vault.forEach((wallet, index) => {
+      // Skip null entries, deleted wallets, and wallets without walletHash
+      if (wallet && 
+          wallet.deleted !== true && 
+          wallet.wallet?.bch?.walletHash) {
+        validWallets.push(index)
+      }
+    })
+
+    if (validWallets.length > 0) {
+      // Switch to the first valid wallet
+      const firstValidIndex = validWallets[0]
+      // Only switch if it's different from current index to avoid unnecessary reloads
+      if (firstValidIndex !== currentWalletIndex) {
+        // Wait for the switch to complete before returning
+        await context.dispatch('switchWallet', firstValidIndex).catch(console.error)
+      }
+    } else {
+      // No valid wallets left - clear vault
+      context.commit('clearVault')
+    }
+  }
+}
+
+/**
+ * Clean up null and deleted vault entries on app startup
+ * Removes entries that are null, marked as deleted, or don't have mnemonics
+ */
+export async function cleanupNullAndDeletedWallets (context) {
+  const vault = context.getters.getVault
+  if (!vault || vault.length === 0) return
+
+  const currentWalletIndex = context.getters.getWalletIndex
+  const indicesToRemove = []
+  let currentWalletRemoved = false
+  let newCurrentIndex = -1
+
+  // Check each vault entry for validity
+  for (let i = vault.length - 1; i >= 0; i--) {
+    const wallet = vault[i]
+    
+    // Check if entry is null or deleted
+    if (wallet === null || wallet === undefined || wallet.deleted === true) {
+      indicesToRemove.push(i)
+      
+      // If this is the current wallet, mark it for removal
+      if (i === currentWalletIndex) {
+        currentWalletRemoved = true
+      }
+      
+      // Delete mnemonic for this index
+      const walletHash = wallet?.wallet?.bch?.walletHash
+      if (walletHash) {
+        removeWalletName(walletHash)
+      }
+      
+      // Delete mnemonic from secure storage
+      deleteMnemonic(i).catch(console.error)
+      continue
+    }
+    
+    // Check if mnemonic exists for this wallet index
+    const mnemonic = await getMnemonic(i).catch(() => null)
+    if (!mnemonic) {
+      // No mnemonic exists - this is an orphaned vault entry, remove it
+      indicesToRemove.push(i)
+      
+      // If this is the current wallet, mark it for removal
+      if (i === currentWalletIndex) {
+        currentWalletRemoved = true
+      }
+      
+      // Delete wallet name cache if it exists
+      const walletHash = wallet?.wallet?.bch?.walletHash
+      if (walletHash) {
+        removeWalletName(walletHash)
+      }
+      
+      console.log(`[Wallet Cleanup] Removing vault entry at index ${i} - no mnemonic found`)
+    }
+  }
+
+  // Remove entries in reverse order (to maintain indices)
+  indicesToRemove.forEach(index => {
+    context.commit('removeVaultEntry', index)
+  })
+
+  // If we removed the current wallet, find the first valid wallet and switch to it
+  if (currentWalletRemoved) {
+    const updatedVault = context.getters.getVault
+    
+    // Find first valid wallet
+    for (let i = 0; i < updatedVault.length; i++) {
+      const wallet = updatedVault[i]
+      if (wallet && 
+          wallet.deleted !== true && 
+          wallet.wallet?.bch?.walletHash) {
+        newCurrentIndex = i
+        break
+      }
+    }
+    
+    if (newCurrentIndex !== -1) {
+      // Switch to the first valid wallet
+      context.dispatch('switchWallet', newCurrentIndex).catch(console.error)
+    } else {
+      // No valid wallets left - clear vault
+      context.commit('clearVault')
+    }
+  } else if (indicesToRemove.length > 0) {
+    // If we removed entries but not the current wallet, we need to adjust the current index
+    // Count how many entries were removed before the current index
+    const removedBeforeCurrent = indicesToRemove.filter(idx => idx < currentWalletIndex).length
+    if (removedBeforeCurrent > 0) {
+      const newIndex = currentWalletIndex - removedBeforeCurrent
+      context.commit('updateWalletIndex', newIndex)
+    }
+  }
+  
+  if (indicesToRemove.length > 0) {
+    console.log(`[Wallet Cleanup] Removed ${indicesToRemove.length} null/deleted vault entries`)
+  }
+}
+
+/**
+ * Clean up duplicate wallets in the vault based on walletHash
+ * Keeps the wallet with a custom name (not "Personal Wallet #X") or the first one if both have generic names
+ */
+export function cleanupDuplicateWallets (context) {
+  const vault = context.getters.getVault
+  if (!vault || vault.length === 0) return
+
+  const walletHashMap = new Map()
+  const walletsToKeep = []
+  const indicesToDelete = []
+  const currentWalletIndex = context.getters.getWalletIndex
+  let currentWalletDeleted = false
+  let walletToSwitchTo = null
+
+  vault.forEach((wallet, index) => {
+    // Skip already deleted wallets
+    if (wallet.deleted === true) {
+      return
+    }
+
+    const walletHash = wallet?.wallet?.bch?.walletHash
+    if (!walletHash) {
+      // If no walletHash, keep it (might be incomplete wallet)
+      walletsToKeep.push({ wallet, index })
+      return
+    }
+
+    const normalizedHash = String(walletHash).trim()
+    const existingEntry = walletHashMap.get(normalizedHash)
+
+    if (!existingEntry) {
+      // First occurrence of this walletHash
+      walletsToKeep.push({ wallet, index })
+      walletHashMap.set(normalizedHash, {
+        index,
+        wallet,
+        hasCustomName: hasCustomWalletName(wallet.name)
+      })
+    } else {
+      // Duplicate found - decide which one to keep
+      const currentHasCustomName = hasCustomWalletName(wallet.name)
+
+      // Prefer wallet with custom name, or if both have generic names, keep the first one
+      if (currentHasCustomName && !existingEntry.hasCustomName) {
+        // Current wallet has custom name, replace the existing one
+        const existingKeepIndex = walletsToKeep.findIndex(w => w.index === existingEntry.index)
+        if (existingKeepIndex !== -1) {
+          walletsToKeep[existingKeepIndex] = { wallet, index }
+          indicesToDelete.push(existingEntry.index)
+          
+          // If we're deleting the current wallet, remember which wallet to switch to
+          if (existingEntry.index === currentWalletIndex) {
+            currentWalletDeleted = true
+            walletToSwitchTo = index
+          }
+        }
+        walletHashMap.set(normalizedHash, {
+          index,
+          wallet,
+          hasCustomName: true
+        })
+      } else {
+        // Keep the existing entry, mark current as duplicate
+        indicesToDelete.push(index)
+        
+        // If we're deleting the current wallet, remember which wallet to switch to
+        if (index === currentWalletIndex) {
+          currentWalletDeleted = true
+          walletToSwitchTo = existingEntry.index
+        }
+      }
+    }
+  })
+
+  // Mark duplicates as deleted (in reverse order to maintain indices)
+  indicesToDelete.sort((a, b) => b - a).forEach(index => {
+    context.commit('deleteWallet', index)
+  })
+  
+  // If we deleted the current wallet, switch to the kept duplicate
+  if (currentWalletDeleted && walletToSwitchTo !== null) {
+    context.dispatch('switchWallet', walletToSwitchTo).catch(console.error)
+  }
+  
+  // Ensure wallet index is still valid after cleanup (safety check)
+  context.dispatch('ensureValidWalletIndex')
+}
+
+/**
+ * Check if a wallet name is custom (not "Personal Wallet #X")
+ */
+function hasCustomWalletName (name) {
+  if (!name || name === '') return false
+  const genericNamePattern = /^Personal Wallet #\d+$/
+  return !genericNamePattern.test(name)
 }
 
 /**

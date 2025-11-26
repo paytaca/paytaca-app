@@ -112,6 +112,7 @@ export default {
       currentIndex: this.$store.getters['global/getWalletIndex'],
       isChipnet: this.$store.getters['global/isChipnet'],
       vault: [],
+      vaultIndexMap: new Map(), // Maps displayed index to actual vault index
       isloading: false,
       secondDialog: false
     }
@@ -128,7 +129,7 @@ export default {
       handler (newVault) {
         if (newVault && newVault.length > 0 && this.isWalletsRecovered) {
           // Update vault data when store vault changes
-          this.arrangeVaultData()
+          this.arrangeVaultData().catch(console.error)
         }
       },
       deep: true,
@@ -189,7 +190,7 @@ export default {
       })
       await Promise.allSettled(vaultNameUpdatePromises)
 
-      vm.arrangeVaultData()
+      await vm.arrangeVaultData()
       vm.isloading = false
     },
     processDefaultVaultName () {
@@ -211,24 +212,32 @@ export default {
         }
       })
     },
-    switchWallet (index) {
+    switchWallet (displayIndex) {
       const vm = this
-      if (index === this.currentIndex) return
+      // Map displayed index to actual vault index
+      const actualIndex = vm.vaultIndexMap.get(displayIndex) ?? displayIndex
+      
+      // Also check if the current index matches the actual index
+      const currentActualIndex = vm.vaultIndexMap.get(vm.currentIndex) ?? vm.currentIndex
+      if (actualIndex === currentActualIndex) return
 
       vm.hide()
       const loadingDialog = this.$q.dialog({
         component: LoadingWalletDialog
       })
 
-      vm.$store.dispatch('global/switchWallet', index).then(function () {
+      vm.$store.dispatch('global/switchWallet', actualIndex).then(function () {
         vm.$router.push('/')
         setTimeout(() => { location.reload() }, 500)
       })
 
       loadingDialog.hide()
     },
-    isActive (index) {
-      return index === this.currentIndex
+    isActive (displayIndex) {
+      // Map displayed index to actual vault index and compare with current index
+      const actualIndex = this.vaultIndexMap.get(displayIndex) ?? displayIndex
+      // currentIndex is the actual vault index from the store
+      return actualIndex === this.currentIndex
     },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
@@ -240,12 +249,92 @@ export default {
 
       return computedBalance.toFixed(2)
     },
-    arrangeVaultData () {
+    async arrangeVaultData () {
       const vm = this
       let tempVault = vm.$store.getters['global/getVault']
       tempVault = JSON.stringify(tempVault)
       tempVault = JSON.parse(tempVault)
-      vm.vault = tempVault
+      
+      // Deduplicate wallets by walletHash
+      // Keep the wallet with a custom name (not "Personal Wallet #X") or the first one if both have generic names
+      const walletHashMap = new Map()
+      const deduplicatedVault = []
+      const indexMap = new Map() // Maps displayed index to actual vault index
+      
+      // Import getMnemonic for checking mnemonic existence
+      const { getMnemonic } = await import('src/wallet')
+      
+      // Check mnemonics in parallel for better performance
+      const mnemonicChecks = tempVault.map((wallet, index) => 
+        wallet && wallet.deleted !== true 
+          ? getMnemonic(index).catch(() => null)
+          : Promise.resolve(null)
+      )
+      const mnemonics = await Promise.all(mnemonicChecks)
+      
+      tempVault.forEach((wallet, originalIndex) => {
+        // Skip deleted wallets
+        if (wallet.deleted === true) {
+          return
+        }
+        
+        // Skip wallets without mnemonics (orphaned entries)
+        if (!mnemonics[originalIndex]) {
+          return
+        }
+        
+        const walletHash = wallet?.wallet?.bch?.walletHash
+        if (!walletHash) {
+          // If no walletHash, include it (might be incomplete wallet)
+          const displayIndex = deduplicatedVault.length
+          deduplicatedVault.push(wallet)
+          indexMap.set(displayIndex, originalIndex)
+          return
+        }
+        
+        const normalizedHash = String(walletHash).trim()
+        const existingEntry = walletHashMap.get(normalizedHash)
+        
+        if (!existingEntry) {
+          // First occurrence of this walletHash
+          const displayIndex = deduplicatedVault.length
+          deduplicatedVault.push(wallet)
+          indexMap.set(displayIndex, originalIndex)
+          walletHashMap.set(normalizedHash, {
+            displayIndex,
+            originalIndex,
+            wallet,
+            hasCustomName: this.hasCustomName(wallet.name)
+          })
+        } else {
+          // Duplicate found - decide which one to keep
+          const currentHasCustomName = this.hasCustomName(wallet.name)
+          
+          // Prefer wallet with custom name, or if both have generic names, keep the first one
+          if (currentHasCustomName && !existingEntry.hasCustomName) {
+            // Current wallet has custom name, replace the existing one
+            deduplicatedVault[existingEntry.displayIndex] = wallet
+            indexMap.set(existingEntry.displayIndex, originalIndex)
+            walletHashMap.set(normalizedHash, {
+              displayIndex: existingEntry.displayIndex,
+              originalIndex,
+              wallet,
+              hasCustomName: true
+            })
+          }
+          // Otherwise, keep the existing entry (first occurrence or already has custom name)
+        }
+      })
+      
+      // Store the index mapping for switchWallet
+      vm.vaultIndexMap = indexMap
+      vm.vault = deduplicatedVault
+    },
+    hasCustomName (name) {
+      // Check if the name is a custom name (not "Personal Wallet #X")
+      if (!name || name === '') return false
+      const genericNamePattern = /^Personal Wallet #\d+$/
+      return !genericNamePattern.test(name)
     },
     getAssetData (index) {
       if (this.currentIndex === index) {
@@ -263,7 +352,7 @@ export default {
       this.currentIndex = this.$store.getters['global/getWalletIndex']
       
       // Immediately update vault data from store
-      this.arrangeVaultData()
+      this.arrangeVaultData().catch(console.error)
       
       // Then load full data if wallets are recovered
       if (this.isWalletsRecovered) {
@@ -272,6 +361,10 @@ export default {
     },
     async loadData () {
       const vm = this
+      
+      // Clean up duplicate wallets in the vault
+      vm.$store.dispatch('global/cleanupDuplicateWallets')
+      
       vm.$store.dispatch('assets/updateVaultBchBalances', {
         chipnet: vm.isChipnet,
         excludeCurrentIndex: true,

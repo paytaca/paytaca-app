@@ -86,6 +86,9 @@
             <div class="text-h6 text-weight-bold q-mt-xs">
               {{ formatNumber(displayedMinPurchase) }} LIFT
             </div>
+            <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+              {{ formatWithLocale(displayedMinPurchase * selectedRoundPrice) }} USD
+            </div>
           </div>
   
           <q-separator :dark="darkMode" class="q-my-md" />
@@ -208,14 +211,14 @@ export default {
           id: 'seed',
           name: this.$t('EarlySupporterRound'),
           price: 0.015,
-          minPurchase: 6667,
+          minPurchase: 10000,
           vesting: this.$t('SeedVesting', {}, '2-year lockup, then 25% released per quarter')
         },
         {
           id: 'private',
           name: this.$t('StrategicPartnerRound'),
           price: 0.03,
-          minPurchase: 3333334,
+          minPurchase: 500000,
           vesting: this.$t('PrivateVesting', {}, '1-year lockup, then 25% released per quarter')
         }
       ]
