@@ -289,7 +289,6 @@ const words = [
     Limits: 'Limits',
     Funded: 'Funded',
     Released: 'Released',
-    Canceled: 'Canceled',
     Ongoing: 'Ongoing',
     Completed: 'Completed',
     Cancelled: 'Cancelled',
@@ -465,6 +464,23 @@ const words = [
     WalletManagement: 'Wallet Management',
     SaveQR: 'Save QR',
     ViewAll: 'View All'
+  },
+  {
+    Favorites: 'Favorites',
+    OtherTokens: 'Other Tokens',
+    SetupBiometric: 'Setup Biometric',
+    TransactionMetadata: 'Transaction Metadata',
+    Hide: 'Hide',
+    Debug: 'Debug',
+    ConnectedAddresses: 'Connected Addresses',
+  },
+  {
+    Change: 'Change',
+    Buy: 'Buy',
+    Sell: 'Sell',
+    Token: 'Token',
+    Unknown: 'Unknown',
+    Swap: 'Swap',
   }
 ]
 

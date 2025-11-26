@@ -7,7 +7,7 @@
  */
 
 import BCHJS from '@psf/bch-js'
-import Watchtower from 'watchtower-cash-js'
+import Watchtower from 'src/lib/watchtower'
 import sha256 from 'js-sha256'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getMnemonic } from 'src/wallet'
@@ -50,8 +50,11 @@ export async function generateAddressSetFromMnemonic(opts) {
     return { success: false, error: 'Derivation path is required' }
   }
 
-  if (typeof addressIndex !== 'number' || addressIndex < 0) {
-    return { success: false, error: 'Valid address index is required' }
+  // Validate addressIndex - must be a non-negative integer
+  // Default to 0 if invalid (new wallets start with -1)
+  let validAddressIndex = addressIndex
+  if (typeof addressIndex !== 'number' || addressIndex < 0 || !Number.isInteger(addressIndex)) {
+    validAddressIndex = 0
   }
 
   try {
@@ -69,8 +72,8 @@ export async function generateAddressSetFromMnemonic(opts) {
     const childNode = masterHDNode.derivePath(derivationPath)
     
     // Generate receiving address (0/index) and change address (1/index)
-    const receivingAddressNode = childNode.derivePath('0/' + addressIndex)
-    const changeAddressNode = childNode.derivePath('1/' + addressIndex)
+    const receivingAddressNode = childNode.derivePath('0/' + validAddressIndex)
+    const changeAddressNode = childNode.derivePath('1/' + validAddressIndex)
 
     let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
     let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
@@ -95,16 +98,25 @@ export async function generateAddressSetFromMnemonic(opts) {
       addresses: addressSet,
       projectId: projId,
       walletHash: walletHash,
-      addressIndex: addressIndex
+      addressIndex: validAddressIndex
     }
 
-    const subscriptionResult = await watchtower.subscribe(subscriptionData)
+    let subscriptionResult
+    try {
+      subscriptionResult = await watchtower.subscribe(subscriptionData)
+    } catch (error) {
+      console.error('[generateAddressSetFromMnemonic] Watchtower subscribe threw an error:', error)
+      return {
+        success: false,
+        error: `Watchtower subscription error: ${error.message || 'Unknown error'}`
+      }
+    }
     
-    if (!subscriptionResult.success) {
-      console.error('Failed to subscribe addresses to watchtower:', subscriptionResult)
+    if (!subscriptionResult || !subscriptionResult.success) {
+      console.error('[generateAddressSetFromMnemonic] Failed to subscribe addresses to watchtower:', subscriptionResult)
       return { 
         success: false, 
-        error: 'Failed to subscribe addresses to watchtower. Addresses not returned for safety.' 
+        error: subscriptionResult?.error || subscriptionResult?.message || 'Failed to subscribe addresses to watchtower. Addresses not returned for safety.' 
       }
     }
 

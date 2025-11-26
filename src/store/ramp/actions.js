@@ -1,13 +1,25 @@
 import { Store } from '..'
 import { backend } from 'src/exchange/backend'
 import { toRaw } from 'vue'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
-export function loadWallet (context) {
+export async function loadWallet (context) {
   const wallet = Store.getters['global/getWallet']('bch')
+  const addressIndex = Store.getters['global/getLastAddressIndex']('bch')
+  const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+  const address = await generateReceivingAddress({
+    walletIndex: Store.getters['global/getWalletIndex'],
+    derivationPath: getDerivationPathForWalletType('bch'),
+    addressIndex: validAddressIndex,
+    isChipnet: Store.getters['global/isChipnet']
+  })
   const walletInfo = {
     walletHash: wallet.walletHash,
     connectedAddressIndex: wallet.connectedAddressIndex,
-    address: Store.getters['global/getAddress']('bch')
+    address: address || ''
   }
   context.commit('updateWallet', walletInfo)
   return walletInfo
@@ -15,32 +27,37 @@ export function loadWallet (context) {
 
 export function fetchAds (context, { component = null, params = null, overwrite = false }) {
   return new Promise((resolve, reject) => {
-    // Setup pagination parameters
+    // Setup pagination parameters using getters (which access wallet-specific state)
+    const getStorePageNumber = context.getters.getStorePageNumber
+    const getStoreTotalPages = context.getters.getStoreTotalPages
+    const getAdsPageNumber = context.getters.getAdsPageNumber
+    const getAdsTotalPages = context.getters.getAdsTotalPages
     const state = context.state
+    
     let pageNumber = null
     let totalPages = null
     switch (component) {
       case 'store':
         switch (params.trade_type) {
           case 'BUY':
-            pageNumber = state.storeBuyPageNumber
-            totalPages = state.storeBuyTotalPages
+            pageNumber = getStorePageNumber('BUY')
+            totalPages = getStoreTotalPages('BUY')
             break
           case 'SELL':
-            pageNumber = state.storeSellPageNumber
-            totalPages = state.storeSellTotalPages
+            pageNumber = getStorePageNumber('SELL')
+            totalPages = getStoreTotalPages('SELL')
             break
         }
         break
       case 'ads':
         switch (params.trade_type) {
           case 'BUY':
-            pageNumber = state.adsBuyPageNumber
-            totalPages = state.adsBuyTotalPages
+            pageNumber = getAdsPageNumber('BUY')
+            totalPages = getAdsTotalPages('BUY')
             break
           case 'SELL':
-            pageNumber = state.adsSellPageNumber
-            totalPages = state.adsSellTotalPages
+            pageNumber = getAdsPageNumber('SELL')
+            totalPages = getAdsTotalPages('SELL')
         }
         break
       default:
@@ -125,47 +142,11 @@ export function fetchAds (context, { component = null, params = null, overwrite 
   })
 }
 
-export async function fetchCashinOrders (context, { params = null, overwrite = false }) {
-  return new Promise((resolve, reject) => {
-    const state = context.state
-
-    // Setup pagination parameters
-    let pageNumber = state.cashinOrdersPageNumber
-    const totalPages = state.cashinOrdersTotalPages
-    if (pageNumber <= totalPages || (!pageNumber && !totalPages)) {
-      // Increment page by 1 if not fetching data for the first time
-      if (pageNumber !== null) pageNumber++
-
-      const parameters = {
-        wallet_hash: params.wallet_hash,
-        page: pageNumber,
-        limit: state.itemsPerPage,
-        status_type: 'ONGOING',
-        owned: params.owned
-      }
-
-      const apiURL = '/ramp-p2p/order/cash-in/'
-      backend.get(apiURL, { params: parameters })
-        .then((response) => {
-          context.commit('updateCashinOrders', { overwrite: overwrite, data: response.data })
-          context.commit('incCashinOrdersPage')
-          resolve(response.data)
-        })
-        .catch(error => {
-          reject(error)
-        })
-    } else {
-      resolve()
-    }
-  })
-}
 
 export async function fetchCashinOrderList (context, { params = null }) {
-  const state = context.state
-
-  // Setup pagination parameters
-  const pageNumber = state.cashinOrderListPage
-  const totalPages = state.cashinOrderListTotalPage
+  // Setup pagination parameters using getters
+  const pageNumber = context.getters.cashinOrderListPage
+  const totalPages = context.getters.cashinOrderListTotalPage
   if (pageNumber <= totalPages) {
     const parameters = {
       wallet_hash: params.wallet_hash,
@@ -190,17 +171,20 @@ export async function fetchCashinOrderList (context, { params = null }) {
 export async function fetchOrders (context, { statusType = null, params = null, overwrite = false }) {
   return new Promise((resolve, reject) => {
     const state = context.state
+    const getOrdersPageNumber = context.getters.getOrdersPageNumber
+    const getOrdersTotalPages = context.getters.getOrdersTotalPages
+    
     // Setup pagination parameters based on component & transaction type
     let pageNumber = null
     let totalPages = null
     switch (statusType) {
       case 'ONGOING':
-        pageNumber = state.ongoingOrdersPageNumber
-        totalPages = state.ongoingOrdersTotalPages
+        pageNumber = getOrdersPageNumber('ONGOING')
+        totalPages = getOrdersTotalPages('ONGOING')
         break
       case 'COMPLETED':
-        pageNumber = state.completedOrdersPageNumber
-        totalPages = state.completedOrdersTotalPages
+        pageNumber = getOrdersPageNumber('COMPLETED')
+        totalPages = getOrdersTotalPages('COMPLETED')
         break
       default:
         reject(`Unsupported status type: ${statusType}`)
@@ -282,17 +266,20 @@ export async function fetchOrders (context, { statusType = null, params = null, 
 export function fetchAppeals (context, { appealState = null, params = null, overwrite = false }) {
   return new Promise((resolve, reject) => {
     const state = context.state
+    const appealsPageNumber = context.getters.appealsPageNumber
+    const appealsTotalPages = context.getters.appealsTotalPages
+    
     // Setup pagination parameters based on component & transaction type
     let pageNumber = null
     let totalPages = null
     switch (appealState) {
       case 'PENDING':
-        pageNumber = state.pendingAppealsPageNumber
-        totalPages = state.pendingAppealsTotalPages
+        pageNumber = appealsPageNumber('PENDING')
+        totalPages = appealsTotalPages('PENDING')
         break
       case 'RESOLVED':
-        pageNumber = state.resolvedAppealsPageNumber
-        totalPages = state.resolvedAppealsTotalPages
+        pageNumber = appealsPageNumber('RESOLVED')
+        totalPages = appealsTotalPages('RESOLVED')
         break
       default:
         reject(`Unsupported appeal state: ${appealState}`)
@@ -333,7 +320,8 @@ export function fetchAppeals (context, { appealState = null, params = null, over
 export function fetchPaymentTypes (context, { currency = null }) {
   const currencyFormat = currency
   currency = currency !== 'All' ? currency : null
-  const previousPT = toRaw(context.state?.paymentTypes[currency === null ? 'All' : currency])
+  const paymentTypesGetter = context.getters.paymentTypes
+  const previousPT = toRaw(paymentTypesGetter(currency === null ? 'All' : currency))
 
   return new Promise((resolve, reject) => {
     backend.get('/ramp-p2p/payment-type', { params: { currency: currency } })
@@ -347,67 +335,68 @@ export function fetchPaymentTypes (context, { currency = null }) {
             diff.forEach((x) => {
               let temp = null
 
-              // store filter
-              if (context.state?.storeBuyFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
-                temp = toRaw(context?.state?.storeBuyFilters[currencyFormat])
+              // store filter - use getters to access wallet-specific state
+              const storeBuyFilters = context.getters.storeBuyFilters(currencyFormat)
+              const storeSellFilters = context.getters.storeSellFilters(currencyFormat)
+              const ongoingOrderFilters = context.getters.ongoingOrderFilters(currencyFormat)
+              const completedOrderFilters = context.getters.completedOrderFilters(currencyFormat)
+              
+              if (storeBuyFilters?.payment_types?.length === previousPT.length) {
+                temp = toRaw(storeBuyFilters)
                 temp.payment_types?.push(x.id)
-
-                context.commit('updateStoreBuyFilters', { filter: temp, currency: currencyFormat })
+                context.commit('updateStoreBuyFilters', { filters: temp, currency: currencyFormat })
               }
-              if (context.state?.storeSellFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
-                temp = toRaw(context?.state?.storeSellFilters[currencyFormat])
+              if (storeSellFilters?.payment_types?.length === previousPT.length) {
+                temp = toRaw(storeSellFilters)
                 temp.payment_types?.push(x.id)
-
-                context.commit('updateStoreSellFilters', { filter: temp, currency: currencyFormat })
+                context.commit('updateStoreSellFilters', { filters: temp, currency: currencyFormat })
               }
 
               // order filter
-              if (context?.state?.ongoingOrderFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
-                temp = toRaw(context?.state?.ongoingOrderFilters)
-                temp[currencyFormat]?.payment_types?.push(x.id)
-
-                context.commit('updateOngoingOrderFilters', { filter: temp, currency: currencyFormat })
+              if (ongoingOrderFilters?.payment_types?.length === previousPT.length) {
+                temp = toRaw(ongoingOrderFilters)
+                temp.payment_types?.push(x.id)
+                context.commit('updateOngoingOrderFilters', { filters: temp, currency: currencyFormat })
               }
-              if (context?.state?.completedOrderFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
-                temp = toRaw(context?.state?.completedOrderFilters)
-                temp[currencyFormat]?.payment_types?.push(x.id)
-
-                context.commit('updateCompletedOrderFilters', { filter: temp, currency: currencyFormat })
+              if (completedOrderFilters?.payment_types?.length === previousPT.length) {
+                temp = toRaw(completedOrderFilters)
+                temp.payment_types?.push(x.id)
+                context.commit('updateCompletedOrderFilters', { filters: temp, currency: currencyFormat })
               }
             })
           } else if (paymentTypes.length < previousPT.length) {
             const diff = previousPT.filter(x => !paymentTypes.some(y => x.id === y.id))
 
             diff.forEach((x) => {
-              // remove item from filter
+              // remove item from filter - use getters to access wallet-specific state
               let temp = null
+              const storeBuyFilters = context.getters.storeBuyFilters(currencyFormat)
+              const storeSellFilters = context.getters.storeSellFilters(currencyFormat)
+              const ongoingOrderFilters = context.getters.ongoingOrderFilters(currencyFormat)
+              const completedOrderFilters = context.getters.completedOrderFilters(currencyFormat)
 
               // store filter
-              if (context?.state?.storeBuyFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
-                temp = toRaw(context?.state?.storeBuyFilters[currencyFormat])
+              if (storeBuyFilters?.payment_types?.length === previousPT.length) {
+                temp = toRaw(storeBuyFilters)
                 temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
-
-                context.commit('updateStoreBuyFilters', { filter: temp, currency: currencyFormat })
+                context.commit('updateStoreBuyFilters', { filters: temp, currency: currencyFormat })
               }
-              if (context?.state?.storeSellFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
-                temp = toRaw(context?.state?.storeSellFilters[currencyFormat])
+              if (storeSellFilters?.payment_types?.length === previousPT.length) {
+                temp = toRaw(storeSellFilters)
                 temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
-
-                context.commit('updateStoreSellFilters', { filter: temp, currency: currencyFormat })
+                context.commit('updateStoreSellFilters', { filters: temp, currency: currencyFormat })
               }
 
               // order filters
-              if (context?.state?.ongoingOrderFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
-                temp = toRaw(context?.state?.ongoingOrderFilters)
-                temp[currencyFormat].payment_types = temp[currencyFormat]?.payment_types.filter(y => y !== x.id)
-
-                context.commit('updateOngoingOrderFilters', { filter: temp, currency: currencyFormat })
+              if (ongoingOrderFilters?.payment_types?.length === previousPT.length) {
+                temp = toRaw(ongoingOrderFilters)
+                temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
+                context.commit('updateOngoingOrderFilters', { filters: temp, currency: currencyFormat })
               }
-              if (context?.state?.completedOrderFilters[currencyFormat]?.payment_types?.length === previousPT.length) {
-                temp = toRaw(context?.state?.completedOrderFilters)
-                temp[currencyFormat].payment_types = temp[currencyFormat]?.payment_types.filter(y => y !== x.id)
-
-                context.commit('updateCompletedOrderFilters', { filter: temp, currency: currencyFormat })
+              if (completedOrderFilters?.payment_types?.length === previousPT.length) {
+                temp = toRaw(completedOrderFilters)
+                temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
+                context.commit('updateCompletedOrderFilters', { filters: temp, currency: currencyFormat })
               }
             })
           }
@@ -437,7 +426,9 @@ export async function resetOrderFilters (context, { currency = null, migrate = f
 }
 
 export async function migrateStoreOrderFilters (context) {
-  if (context.state.migrateStoreOrderFilters) {
+  // Access wallet-specific state via getter
+  const walletState = context.getters.getWalletStateByHash?.() || {}
+  if (walletState.migrateStoreOrderFilters) {
     console.log('Migrating store and order filters')
     await resetStoreFilters(context, { currency: null, migrate: true })
     await resetOrderFilters(context, { currency: null, migrate: true })

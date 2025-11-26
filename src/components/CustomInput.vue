@@ -5,10 +5,12 @@
     inputmode="none"
     ref="inputRef"
     v-model="valFormatted"
-    @focus="keyboardState = 'show'"
-    :label="$t('Amount')"
+    @focus="!disable && (keyboardState = 'show')"
+    :label="label || $t('Amount')"
     :dark="darkMode"
     :rules="inputRules"
+    :disable="disable"
+    :readonly="disable"
   >
     <template v-slot:append>
       <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
@@ -17,11 +19,13 @@
     </template>
   </q-input>
 
-  <custom-keyboard
-    :custom-keyboard-state="keyboardState"
-    v-on:addKey="setAmount"
-    v-on:makeKeyAction="makeKeyAction"
-  />
+  <teleport to="body">
+    <custom-keyboard
+      :custom-keyboard-state="keyboardState"
+      v-on:addKey="setAmount"
+      v-on:makeKeyAction="makeKeyAction"
+    />
+  </teleport>
 </template>
 
 <script>
@@ -40,7 +44,8 @@ export default {
   props: {
     modelValue: { type: [String, Number], default: '' },
     inputSymbol: { type: String, default: '' },
-
+    disable: { type: Boolean, default: false },
+    label: { type: String, default: '' },
     inputRules: { type: Array, default: new Array(() => {}) },
     asset: { type: Object, default: {} },
     decimalObj: {
@@ -65,7 +70,7 @@ export default {
 
   data () {
     return {
-      val: this.modelValue,
+      val: this.modelValue != null ? String(this.modelValue) : '',
       valFormatted: '',
       keyboardState: '',
       keyPressed: ''
@@ -79,7 +84,7 @@ export default {
   },
 
   created () {
-    this.valFormatted = formatWithLocale(this.modelValue, this.decimalObj)
+    this.valFormatted = formatWithLocale(this.modelValue != null ? String(this.modelValue) : '', this.decimalObj)
   },
 
   watch: {
@@ -87,7 +92,9 @@ export default {
       this.$emit('update:model-value', this.val)
     },
     modelValue (value) {
-      this.val = this.modelValue
+      // Ensure val is always a string for consistent handling
+      // Handle 0 as a valid value (not falsy)
+      this.val = value != null ? String(value) : ''
 
       if (this.keyPressed === '.' || this.keyPressed === '0') {
         this.valFormatted = formatWithLocaleSelective(

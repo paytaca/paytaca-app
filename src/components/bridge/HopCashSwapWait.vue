@@ -193,7 +193,7 @@ export default {
       })
     },
     blockChairUrl (txid) {
-      return `https://blockchair.com/bitcoin-cash/transaction/${txid}`
+      return `https://explorer.paytaca.com/tx/${txid}`
     },
     sonarUrl (txid) {
       return `https://sonar.cash/tx/${txid}`

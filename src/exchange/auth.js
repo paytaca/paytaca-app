@@ -1,9 +1,25 @@
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { backend } from './backend'
-import { wallet as rampWallet } from './wallet'
+import { wallet as rampWallet, loadRampWallet } from './wallet'
 import { loadChatIdentity } from './chat'
 import { bus } from 'src/wallet/event-bus'
-const TOKEN_STORAGE_KEY = 'ramp-p2p-auth-key'
+
+const TOKEN_STORAGE_KEY_PREFIX = 'ramp-p2p-auth-key'
+
+/**
+ * Get wallet-specific storage key for authentication token
+ * @returns {string} Storage key with wallet hash
+ */
+function getTokenStorageKey() {
+  // Get wallet hash from rampWallet if available
+  const walletHash = rampWallet?.walletHash
+  if (!walletHash) {
+    // If wallet not loaded yet, return a temporary key
+    // This should only happen during initial load before wallet is set
+    return `${TOKEN_STORAGE_KEY_PREFIX}-temp`
+  }
+  return `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}`
+}
 
 export class ExchangeUser {
   constructor (data) {
@@ -133,7 +149,31 @@ export async function loadAuthenticatedUser (forceLogin = false) {
     user.emitSignal(null, { signal: 'logging-in', data: true })
 
     await user.login(!user.is_authenticated || forceLogin)
-    await Promise.all([user.fetchChatIdentity(), user.savePubkeyAndAddress()])
+    
+    // Fetch chat identity and save pubkey/address in parallel
+    // Handle errors gracefully - chat identity might fail if not ready yet
+    await Promise.allSettled([
+      user.fetchChatIdentity().catch(error => {
+        // Chat identity errors are expected if identity not ready yet
+        // Don't log as error - it will be created/loaded when needed
+        // Handle both Error objects and string errors
+        const is403 = error?.response?.status === 403 || 
+                     (typeof error === 'string' && error.includes('chat identity'))
+        if (!is403) {
+          console.error('Error fetching chat identity:', error)
+        }
+      }),
+      user.savePubkeyAndAddress().catch(error => {
+        // Pubkey/address update errors are non-critical
+        // Only log if it's not a 403 (which means not authenticated, handled by login)
+        // Handle both Error objects and string errors
+        const is403 = error?.response?.status === 403 || 
+                     (typeof error === 'string' && error.includes('pubkey'))
+        if (!is403) {
+          console.error('Error saving pubkey and address:', error)
+        }
+      })
+    ])
 
     user.emitSignal(null, { signal: 'logging-in', data: false })
 
@@ -146,25 +186,81 @@ export async function loadAuthenticatedUser (forceLogin = false) {
 }
 
 export function saveAuthToken (value) {
-  SecureStoragePlugin.set({ TOKEN_STORAGE_KEY, value }).then(success => { return success.value })
+  const key = getTokenStorageKey()
+  return SecureStoragePlugin.set({ key, value }).then(success => { return success.value })
 }
 
 export function getAuthToken () {
-  return new Promise((resolve, reject) => {
-    SecureStoragePlugin.get({ TOKEN_STORAGE_KEY })
-      .then(token => {
-        resolve(token.value)
-      })
-      .catch(error => {
-        console.error('Item with specified key does not exist:', error)
-        resolve(null)
-      })
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Ensure wallet is loaded to get walletHash for wallet-specific key
+      if (!rampWallet?.walletHash) {
+        try {
+          await loadRampWallet()
+        } catch (error) {
+          // If wallet can't be loaded, try old global key as fallback
+          try {
+            const oldToken = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY_PREFIX })
+            resolve(oldToken.value)
+            return
+          } catch (e) {
+            resolve(null)
+            return
+          }
+        }
+      }
+      
+      const key = getTokenStorageKey()
+      SecureStoragePlugin.get({ key })
+        .then(token => {
+          resolve(token.value)
+        })
+        .catch(async error => {
+          // Fallback: try old global key for backward compatibility with existing users
+          try {
+            const oldToken = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY_PREFIX })
+            // If found, trigger migration (async, non-blocking)
+            if (oldToken?.value && rampWallet?.walletHash) {
+              const newKey = getTokenStorageKey()
+              SecureStoragePlugin.set({ key: newKey, value: oldToken.value })
+                .catch(e => console.warn('Failed to migrate token:', e))
+            }
+            resolve(oldToken.value)
+          } catch (e) {
+            // No token found in either location
+            resolve(null)
+          }
+        })
+    } catch (error) {
+      resolve(null)
+    }
   })
 }
 
+/**
+ * Delete authentication token for the current wallet
+ * This is used for explicit logout scenarios
+ */
 export function deleteAuthToken () {
-  SecureStoragePlugin.remove({ TOKEN_STORAGE_KEY })
-  console.log('P2P Exchange auth token deleted')
+  // Only delete if wallet is loaded (has walletHash)
+  if (rampWallet?.walletHash) {
+    const key = getTokenStorageKey()
+    SecureStoragePlugin.remove({ key })
+    console.log('P2P Exchange auth token deleted for wallet:', rampWallet.walletHash)
+  }
+}
+
+/**
+ * Delete authentication token for a specific wallet hash
+ * Useful for cleanup or explicit wallet logout
+ * @param {string} walletHash - The wallet hash to delete token for
+ */
+export function deleteAuthTokenForWallet(walletHash) {
+  if (walletHash) {
+    const key = `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}`
+    SecureStoragePlugin.remove({ key })
+    console.log('P2P Exchange auth token deleted for wallet:', walletHash)
+  }
 }
 
 let authController = null

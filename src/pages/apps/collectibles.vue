@@ -7,7 +7,7 @@
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     
     <!-- Main Tabs -->
-    <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm" :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '8px'}">
+    <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
       <div class="collectibles-tabs q-px-sm q-py-xs" :class="getDarkModeClass(darkMode)">
         <button
           class="collectibles-tab"
@@ -455,18 +455,25 @@ export default {
           this.receivingAddress = address
         } catch (error) {
           console.error('Error generating sBCH address:', error)
-          // Fallback to store if generation fails
-          this.receivingAddress = this.$store.getters['global/getAddress']('sbch')
+          this.$q.notify({
+            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+            color: 'negative',
+            icon: 'warning'
+          })
+          // Don't fallback to store - address generation must succeed
+          this.receivingAddress = null
         }
       } else {
         // For BCH/SLP/CashTokens, generate dynamically
         const walletType = this.bchNftType === 'ct' ? 'bch' : 'slp'
         try {
           const addressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
+          // Ensure addressIndex is a valid number (default to 0 if undefined/null)
+          const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
           let address = await generateReceivingAddress({
             walletIndex: this.$store.getters['global/getWalletIndex'],
             derivationPath: getDerivationPathForWalletType(walletType),
-            addressIndex: addressIndex,
+            addressIndex: validAddressIndex,
             isChipnet: this.isChipnet
           })
           
@@ -483,13 +490,13 @@ export default {
           this.receivingAddress = address
         } catch (error) {
           console.error('Error generating address:', error)
-          // Fallback to store if generation fails
-          if (this.bchNftType === 'ct') {
-            const bchAddress = this.$store.getters['global/getAddress']('bch')
-            this.receivingAddress = convertCashAddress(bchAddress, false, true)
-          } else {
-            this.receivingAddress = this.$store.getters['global/getAddress']('slp')
-          }
+          this.$q.notify({
+            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+            color: 'negative',
+            icon: 'warning'
+          })
+          // Don't fallback to store - address generation must succeed
+          this.receivingAddress = null
         }
       }
     }

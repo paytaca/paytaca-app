@@ -298,7 +298,7 @@ function copyToClipboard(value, message) {
 }
 
 function txLink(txid) {
-  return `https://blockchair.com/bitcoin-cash/transaction/${txid}/`
+  return `https://explorer.paytaca.com/tx/${txid}`
 }
 
 

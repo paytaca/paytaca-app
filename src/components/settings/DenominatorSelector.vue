@@ -56,10 +56,29 @@ export default {
     denominationDisplayOptions () {
       let options = [...this.denominationOptions]
       // Handle Hong Kong specific DEEM option
-      if (this.currentCountry === 'HK' && !options.some((a) => a.value === this.$t('DEEM'))) {
-        options.push({ value: this.$t('DEEM'), label: this.$t('DEEM') })
-      } else if (this.currentCountry !== 'HK' && options.some((a) => a.value === this.$t('DEEM'))) {
-        options = options.filter(a => a.value !== this.$t('DEEM'))
+      // Only add DEEM if i18n is available and country is HK
+      if (this.currentCountry === 'HK' && this.$i18n && this.$i18n.global) {
+        try {
+          const deemValue = this.$t('DEEM')
+          if (deemValue && deemValue !== 'DEEM' && !options.some((a) => a.value === deemValue)) {
+            options.push({ value: deemValue, label: deemValue })
+          }
+        } catch (error) {
+          // i18n might not be initialized yet, skip DEEM option
+          console.warn('Could not translate DEEM:', error)
+        }
+      } else if (this.currentCountry !== 'HK') {
+        // Remove DEEM option if country is not HK
+        try {
+          if (this.$i18n && this.$i18n.global) {
+            const deemValue = this.$t('DEEM')
+            if (deemValue) {
+              options = options.filter(a => a.value !== deemValue)
+            }
+          }
+        } catch (error) {
+          // Ignore if i18n not available
+        }
       }
       return options
     },
@@ -78,16 +97,27 @@ export default {
   },
   watch: {
     language () {
-      const currentDenomValue = this.denomination.value
-      if (this.currentCountry === 'HK' &&
-          this.language !== 'zh-tw' &&
-          currentDenomValue !== this.$t('DEEM') &&
-          !['BCH', 'mBCH', 'Satoshis'].includes(currentDenomValue)
-      ) {
-        this.$store.commit('global/setDenomination', 'DEEM')
-      } else {
-        const translatedDenom = this.$t(currentDenomValue)
-        this.$store.commit('global/setDenomination', translatedDenom)
+      try {
+        const currentDenomValue = this.denomination.value
+        const deemValue = this.$t('DEEM')
+        if (this.currentCountry === 'HK' &&
+            this.language !== 'zh-tw' &&
+            currentDenomValue !== deemValue &&
+            !['BCH', 'mBCH', 'Satoshis'].includes(currentDenomValue)
+        ) {
+          this.$store.commit('global/setDenomination', 'DEEM')
+        } else if (!['BCH', 'mBCH', 'Satoshis', 'DEEM'].includes(currentDenomValue)) {
+          // Only translate if it's not a standard denomination
+          try {
+            const translatedDenom = this.$t(currentDenomValue)
+            this.$store.commit('global/setDenomination', translatedDenom)
+          } catch (error) {
+            // If translation fails, keep current denomination
+            console.warn('Could not translate denomination:', currentDenomValue, error)
+          }
+        }
+      } catch (error) {
+        console.warn('Error in language watcher:', error)
       }
     }
   }

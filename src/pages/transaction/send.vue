@@ -8,7 +8,7 @@
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav
         :title="$t('Send') + ' ' + (asset.symbol || name || '')"
-        :backnavpath="!backPath ? '/' : backPath"
+        :backnavpath="backNavigationPath"
         class="header-nav"
       />
       <q-banner
@@ -83,7 +83,11 @@
                   class="q-mt-md"
                 >
                   <template v-slot:prepend>
-                    <q-icon name="mdi-content-paste" />
+                    <q-icon 
+                      name="mdi-content-paste" 
+                      class="cursor-pointer"
+                      @click="pasteFromClipboard"
+                    />
                   </template>
                   <template v-slot:append>
                     <q-icon
@@ -151,7 +155,7 @@
                       @click="showQrScanner = true"
                     >
                       <div class="column items-center q-py-sm">
-                        <q-icon name="mdi-camera" size="32px"/>
+                        <q-icon name="mdi-qrcode-scan" size="32px"/>
                         <div class="text-caption q-mt-xs">{{ $t('Camera', {}, 'Camera') }}</div>
                       </div>
                     </q-btn>
@@ -346,18 +350,27 @@
         </div>
       </template>
     </div>
+
+    <Pin
+      v-model:pin-dialog-action="pinDialogAction"
+      @nextAction="pinDialogNextAction"
+    />
+    <BiometricWarningAttempt
+      :warning-attempts="warningAttemptsStatus"
+      @closeBiometricWarningAttempts="verifyBiometric()"
+    />
   </div>
 </template>
 
 <script>
 import { markRaw } from '@vue/reactivity'
-import { NativeAudio } from '@capacitor-community/native-audio'
 import { pushNotificationsManager } from 'src/boot/push-notifications'
 import { getMnemonic, Wallet, Address } from 'src/wallet'
 import { getNetworkTimeDiff } from 'src/utils/time'
 import { getCashbackAmount } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
+import Watchtower from 'watchtower-cash-js'
 import {
   getWalletByNetwork,
   convertTokenAmount
@@ -382,8 +395,10 @@ import {
   processOnetimePoints
 } from 'src/utils/engagementhub-utils/rewards'
 
-import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import DragSlide from 'src/components/drag-slide.vue'
+import Pin from 'src/components/pin/index.vue'
+import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
+import { NativeBiometric } from 'capacitor-native-biometric'
 import JppPaymentPanel from 'src/components/JppPaymentPanel.vue'
 import ProgressLoader from 'src/components/ProgressLoader'
 import HeaderNav from 'src/components/header-nav'
@@ -409,7 +424,11 @@ export default {
     QrScanner,
     SendPageForm,
     QRUploader,
-    SendSuccessBlock
+    SendSuccessBlock,
+    PointsReceivedDialog,
+    LoadingWalletDialog,
+    Pin,
+    BiometricWarningAttempt
   },
 
   props: {
@@ -511,6 +530,8 @@ export default {
         incorrectAddress: false
       }],
       expandedItems: {},
+      pinDialogAction: '',
+      warningAttemptsStatus: 'dismiss',
 
       /** @type {Wallet} */
       wallet: null,
@@ -543,7 +564,9 @@ export default {
       isWalletAddress: false,
       userSelectedChangeAddress: '',
       focusedInputField: '',
-      isScrolledToBottom: false
+      isScrolledToBottom: false,
+      priceId: null,
+      priceIdPrice: null
     }
   },
 
@@ -554,6 +577,17 @@ export default {
     denomination () {
       if (this.isSLP || this.isCashToken) return 'BCH'
       return this.$store.getters['global/denomination']
+    },
+    backNavigationPath () {
+      if (this.backPath) return this.backPath
+      if (this.sent && this.assetId) {
+        // After sending, navigate to transaction list for this asset
+        return {
+          name: 'transaction-list',
+          query: { assetID: this.assetId }
+        }
+      }
+      return '/'
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -634,7 +668,7 @@ export default {
     selectedAssetMarketPrice () {
       if (!this.bip21Expires) {
         if (!this.selectedAssetMarketPrice) {
-          this.$store.dispatch('market/updateAssetPrices', { customCurrency: this.paymentCurrency })
+          this.$store.dispatch('market/updateAssetPrices', { assetId: this.assetId, customCurrency: this.paymentCurrency })
         }
 
         for (let i = 0; i < this.recipients.length; i++) {
@@ -675,6 +709,32 @@ export default {
     customNumberFormatting,
     getDarkModeClass,
 
+    // ========== clipboard methods ==========
+    async pasteFromClipboard() {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const text = await navigator.clipboard.readText()
+          if (text) {
+            this.manualAddress = text.trim()
+          }
+        } else {
+          // Fallback for older browsers or environments without Clipboard API
+          this.$q.notify({
+            message: this.$t('ClipboardNotSupported', {}, 'Clipboard access not supported'),
+            color: 'warning',
+            icon: 'warning'
+          })
+        }
+      } catch (error) {
+        console.error('Error pasting from clipboard:', error)
+        this.$q.notify({
+          message: this.$t('PasteFailed', {}, 'Failed to paste from clipboard'),
+          color: 'negative',
+          icon: 'error'
+        })
+      }
+    },
+
     // ========== navigation methods ==========
     navigateToCreateGift() {
       this.$router.push({ name: 'create-gift' })
@@ -707,6 +767,21 @@ export default {
       // Check if scrolled to bottom (with small threshold)
       const threshold = 10
       this.isScrolledToBottom = (scrollTop + clientHeight >= scrollHeight - threshold)
+    },
+
+    // Fetch price by price_id
+    async fetchPriceById(priceId) {
+      if (!priceId) return null
+      try {
+        const watchtower = new Watchtower(this.isChipnet)
+        const response = await watchtower.BCH._api.get(`asset-price-log/${priceId}/`)
+        if (response?.data?.price_value) {
+          return parseFloat(response.data.price_value)
+        }
+      } catch (error) {
+        console.error('Error fetching price by price_id:', error)
+      }
+      return null
     },
 
     // ========== main methods ==========
@@ -780,7 +855,19 @@ export default {
         if (typeof currency === 'string') {
           const newSelectedCurrency = vm.currencyOptions.find(_currency => _currency?.symbol === currency)
           if (newSelectedCurrency?.symbol) {
-            amount = (amountValue / vm.selectedAssetMarketPrice).toFixed(8)
+            // Use priceIdPrice if available, otherwise use selectedAssetMarketPrice
+            const priceToUse = vm.priceIdPrice || vm.selectedAssetMarketPrice
+            
+            // Validate price exists and is a valid number before division
+            if (!priceToUse || typeof priceToUse !== 'number' || priceToUse <= 0 || !isFinite(priceToUse)) {
+              sendPageUtils.raiseNotifyError(
+                vm.$t('NoPriceDataFound', 'No price data found for currency conversion')
+              )
+              currentRecipient.recipientAddress = ''
+              return
+            }
+            
+            amount = (amountValue / priceToUse).toFixed(8)
 
             currentRecipient.amount = amount
             currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
@@ -839,14 +926,18 @@ export default {
       let fungibleTokenAmount = null
       let paymentUriData = null
 
-      const prefixlessAddressValidation = sendPageUtils.parseAddressWithoutPrefix(content)
-      if (prefixlessAddressValidation.valid) {
-        return [
-          prefixlessAddressValidation.address,
-          null,
-          null,
-          null,
-        ]
+      // Only parse as prefixless address if content doesn't have query params
+      // Query params indicate BIP21 URI that needs full parsing
+      if (!content.includes('?')) {
+        const prefixlessAddressValidation = sendPageUtils.parseAddressWithoutPrefix(content)
+        if (prefixlessAddressValidation.valid) {
+          return [
+            prefixlessAddressValidation.address,
+            null,
+            null,
+            null,
+          ]
+        }
       }
 
       try {
@@ -886,11 +977,18 @@ export default {
 
         currency = paymentUriData.outputs[0].amount?.currency
         vm.paymentCurrency = currency
-        vm.$store.dispatch('market/updateAssetPrices', { customCurrency: currency })
+        vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId, customCurrency: currency })
 
         amountValue = paymentUriData.outputs[0].amount?.value
         vm.payloadAmount = paymentUriData.outputs[0].amount?.value
         address = paymentUriData.outputs[0].address
+      }
+
+      // Extract price_id from payment URI if present
+      if (paymentUriData?.otherParams?.price_id) {
+        vm.priceId = paymentUriData.otherParams.price_id
+        // Fetch price using price_id
+        vm.priceIdPrice = await vm.fetchPriceById(vm.priceId)
       }
 
       // skip the usual route when found a valid JSON payment protocol url
@@ -913,7 +1011,6 @@ export default {
       this.recipients[0].recipientAddress = this.jpp.parsed.outputs
         .slice(0, 10).map(output => output.address).join(', ')
       this.recipients[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
-      this.playSound(true)
       this.txTimestamp = Date.now()
       this.sending = false
       this.sent = true
@@ -1175,12 +1272,65 @@ export default {
         }
       }
 
-      vm.$q.dialog({ component: SecurityCheckDialog })
-        .onOk(() => {
+      // Directly execute security checking without intermediate dialog
+      console.log('[SendPage] slideToSubmit: Calling executeSecurityChecking directly (no SecurityCheckDialog)')
+      vm.executeSecurityChecking(reset)
+    },
+    executeSecurityChecking (reset = () => {}) {
+      const vm = this
+      console.log('[SendPage] executeSecurityChecking: Starting authentication (no SecurityCheckDialog)')
+      setTimeout(() => {
+        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+        console.log('[SendPage] executeSecurityChecking: preferredSecurity =', preferredSecurity)
+        if (preferredSecurity === 'pin') {
+          console.log('[SendPage] executeSecurityChecking: Setting pinDialogAction to VERIFY')
+          // Reset first to ensure watcher is triggered
+          vm.pinDialogAction = ''
+          vm.$nextTick(() => {
+            vm.pinDialogAction = 'VERIFY'
+            console.log('[SendPage] executeSecurityChecking: pinDialogAction set to VERIFY')
+          })
+        } else {
+          console.log('[SendPage] executeSecurityChecking: Calling verifyBiometric')
+          vm.verifyBiometric(reset)
+        }
+      }, 300)
+    },
+    verifyBiometric (reset = () => {}) {
+      const vm = this
+      NativeBiometric.verifyIdentity({
+        reason: vm.$t('NativeBiometricReason2'),
+        title: vm.$t('SecurityAuthentication'),
+        subtitle: vm.$t('NativeBiometricSubtitle'),
+        description: ''
+      }).then(
+        () => {
+          // Authentication successful
           vm.customKeyboardState = 'dismiss'
           vm.handleSubmit()
-        })
-        .onDismiss(() => reset?.())
+        },
+        (error) => {
+          // Failed to authenticate
+          vm.warningAttemptsStatus = 'dismiss'
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+            reset?.()
+          } else if (error.message.includes('Too many attempts. Try again later.')) {
+            vm.warningAttemptsStatus = 'show'
+          } else {
+            vm.verifyBiometric(reset)
+          }
+        }
+      )
+    },
+    pinDialogNextAction (action) {
+      const vm = this
+      if (action === 'proceed') {
+        vm.pinDialogAction = ''
+        vm.customKeyboardState = 'dismiss'
+        vm.handleSubmit()
+      } else {
+        vm.pinDialogAction = ''
+      }
     },
     async handleSubmit () {
       const vm = this
@@ -1235,7 +1385,7 @@ export default {
             changeAddress = this.userSelectedChangeAddress
           }
           getWalletByNetwork(vm.wallet, 'bch')
-            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients)
+            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, vm.priceId)
             .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
         } else if (toSendSlpRecipients.length > 0) {
           const tokenId = vm.assetId.split('slp/')[1]
@@ -1364,7 +1514,6 @@ export default {
             vm.txid = txId
             vm.sent = true
             vm.txTimestamp = Date.now()
-            vm.playSound(true)
           } catch (e) {
             sendPageUtils.raiseNotifyError(e.message)
           }
@@ -1506,7 +1655,6 @@ export default {
       if (result.success) {
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
-        vm.playSound(true)
         vm.sending = false
         vm.sent = true
 
@@ -1540,9 +1688,6 @@ export default {
       this.isWalletAddress = isWalletAddress
       this.inputExtras[this.currentRecipientIndex].isLegacyAddress = isLegacy
       this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
-    },
-    playSound (success) {
-      if (success) NativeAudio.play({ assetId: 'send-success' })
     },
     decimalObj (isFiat) {
       return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
@@ -1586,15 +1731,8 @@ export default {
       vm.walletType = 'bch'
     }
 
-    let path = 'send-success.mp3'
-    if (this.$q.platform.is.ios) path = 'public/assets/send-success.mp3'
-    NativeAudio.preload({
-      assetId: 'send-success',
-      assetPath: path,
-      audioChannelNum: 1,
-      volume: 1.0,
-      isUrl: false
-    })
+    // Fetch latest price for the selected asset
+    vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId })
 
     vm.selectedDenomination = vm.denomination
     // Load wallets
@@ -1621,7 +1759,6 @@ export default {
   },
 
   unmounted () {
-    NativeAudio.unload({ assetId: 'send-success' })
     
     // Remove scroll listener
     const container = document.querySelector('.send-form-container')

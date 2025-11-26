@@ -1,10 +1,13 @@
-export default function () {
+/**
+ * Get initial wallet-specific state
+ * @returns {Object} Initial state for a wallet
+ */
+export function getInitialWalletState() {
   return {
     wallet: null,
     user: null,
     chatIdentity: {},
     arbiter: null,
-    itemsPerPage: 20,
 
     // store pagination
     storeBuyPageNumber: null,
@@ -35,11 +38,6 @@ export default function () {
     completedOrdersTotalPages: null,
     completedOrders: [],
 
-    // cashin orders
-    cashinOrdersPageNumber: null,
-    cashinOrdersTotalPages: null,
-    cashinOrders: [],
-
     // appeals pagination
     pendingAppealsPageNumber: null,
     pendingAppealsTotalPages: null,
@@ -56,7 +54,7 @@ export default function () {
     storeSellFilters: {},
     paymentTypes: {},
     ongoingOrderFilters: {
-      sort_type: 'ascending',
+      sort_type: 'descending',
       sort_by: 'created_at',
       status: ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'],
       appealable: true,
@@ -101,7 +99,17 @@ export default function () {
     cashinOrderListPage: 1,
     cashinOrderListTotalPage: 1,
 
-    showAdLimitMessage: true,
+    showAdLimitMessage: true
+  }
+}
+
+export default function () {
+  return {
+    // Wallet-specific state organized by wallet hash
+    byWallet: {},
+    
+    // Global state (not wallet-specific)
+    itemsPerPage: 20,
     featureToggles: null
   }
 }

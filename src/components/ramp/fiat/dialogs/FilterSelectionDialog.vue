@@ -1,7 +1,7 @@
 <!-- Individual Filtering in Store Page -->
 <template>
   <q-dialog ref="dialog" full-width position="top" transition-show="slide-down" @before-hide="customKeyboard = 'dismiss'" no-shake>
-    <q-card class="br-15 pt-card-2 text-bow">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-right q-pr-lg q-pt-md">
         <q-icon size="sm" color="red" name="close" @click="closeDialog()"/>
       </div>

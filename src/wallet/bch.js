@@ -261,7 +261,7 @@ export class BchWallet {
     } 
   }
 
-  async _sendBch (changeAddress, token, recipients, broadcast = true) {
+  async _sendBch (changeAddress, token, recipients, broadcast = true, priceId) {
     const data = {
       sender: {
         walletHash: this.walletHash,
@@ -277,11 +277,24 @@ export class BchWallet {
       token,
       broadcast
     }
+    if (priceId) {
+      data.price_id = priceId
+    }
     const result = await this.watchtower.BCH.send(data)
     return result
   }
 
-  async sendBch (amount, address, changeAddress, token, tokenAmount, recipients = []) {
+  /**
+   * 
+   * @param {Number|String} amount
+   * @param {String} address
+   * @param {String} changeAddress
+   * @param {Object} token
+   * @param {Number} tokenAmount
+   * @param {Array} recipients
+   * @param {String|Number} priceId - Optional price ID from BIP21 URI
+   */
+  async sendBch (amount, address, changeAddress, token, tokenAmount, recipients = [], priceId) {
     const finalRecipients = []
     if (recipients.length > 0) {
       finalRecipients.push(...recipients)
@@ -289,7 +302,7 @@ export class BchWallet {
       finalRecipients.push({ address, amount, tokenAmount })
     }
 
-    return this._sendBch(changeAddress, token, finalRecipients)
+    return this._sendBch(changeAddress, token, finalRecipients, true, priceId)
   }
 
   /**
@@ -299,7 +312,7 @@ export class BchWallet {
    * @param {String} changeAddress
    * @param {{ posId: Number, paymentTimestamp: Number }} posDevice
    */
-  async sendBchToPOS(amount, recipient, changeAddress, posDevice, recipients = []) {
+  async sendBchToPOS(amount, recipient, changeAddress, posDevice, recipients = [], priceId) {
     const response = { success: false, txid: '', otp: '', otpTimestamp: -1, error: undefined }
     const finalRecipients = []
     if (recipients.length > 0) {
@@ -327,6 +340,9 @@ export class BchWallet {
         receiving_address: recipient,
         posid: posDevice?.posId,
       }
+    }
+    if (priceId) {
+      broadcastData.price_id = priceId
     }
 
     if (isNaN(parseInt(broadcastData?.pos_device?.posid))) {
@@ -425,11 +441,19 @@ export function decodeBIP0021URI(paymentUri, opts) {
     parameters: null,
   }
   const urlObject = new URL(paymentUri)
-  if (!urlObject?.protocol || !urlObject?.pathname) return
+  if (!urlObject?.protocol || !urlObject?.pathname) {
+    return
+  }
 
-  if (!isTokenAddress(`${urlObject.protocol}${urlObject.pathname}`)) {
+  const fullAddress = `${urlObject.protocol}${urlObject.pathname}`
+  const isTokenAddr = isTokenAddress(fullAddress)
+  
+  if (!isTokenAddr) {
     // only check if not token address, bchjs is not cashtoken aware?
-    if (!bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)) return
+    const isCashAddr = bchjs.Address.isCashAddress(urlObject.protocol + urlObject.pathname)
+    if (!isCashAddr) {
+      return
+    }
   }
 
   response.address = urlObject.protocol + urlObject.pathname

@@ -47,6 +47,29 @@
       </div>
       <div v-else>
         <div class="q-mx-lg q-mb-md">
+          <!-- Currency (required before selecting payment type) -->
+          <q-select
+            v-if="action === 'createPaymentMethod'"
+            dense
+            borderless
+            filled
+            v-model="selectedCurrency"
+            :label="$t('Currency')"
+            option-label="symbol"
+            class="q-py-xs"
+            :dark="darkMode"
+            :options="fiatCurrencies"
+            @update:model-value="async () => { await fetchPaymentTypes(); await fetchPaymentMethods(); }">
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section>
+                  <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+                    {{ scope.opt.symbol }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
           <!-- Payment Type -->
           <q-select
             dense
@@ -128,6 +151,8 @@ export default {
       showDialog: true,
       paymentTypeOpts: [],
       currentPaymentMethods: [],
+      fiatCurrencies: [],
+      selectedCurrency: null,
       paymentMethod: {
         id: null,
         payment_type: null,
@@ -160,7 +185,7 @@ export default {
         this.onUpdatePaymentType(this.paymentType)
         break
       case 'createPaymentMethod':
-        await this.fetchPaymentTypes()
+        await this.prepareCreateFlow()
         break
     }
     await this.fetchPaymentMethods()
@@ -168,6 +193,25 @@ export default {
     this.loading = false
   },
   methods: {
+    async prepareCreateFlow () {
+      await this.fetchFiatCurrencies()
+      // if parent passed currency use it; else wait for user to select
+      if (this.currency) {
+        this.selectedCurrency = { symbol: this.currency }
+        await this.fetchPaymentTypes()
+      }
+    },
+    async fetchFiatCurrencies () {
+      await backend.get('/ramp-p2p/currency/fiat')
+        .then(response => {
+          this.fiatCurrencies = response.data
+          if (!this.selectedCurrency && this.currency) {
+            const match = this.fiatCurrencies.find(c => c.symbol === this.currency)
+            if (match) this.selectedCurrency = match
+          }
+        })
+        .catch(() => {})
+    },
     getDarkModeClass,
     onUpdateFieldValue () {
       // Checks if value is valid
@@ -242,7 +286,9 @@ export default {
     },
     async fetchPaymentTypes () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-type', { params: { currency: this.currency } })
+      const symbol = this.selectedCurrency?.symbol || this.currency
+      if (!symbol) { this.paymentTypeOpts = []; return }
+      await backend.get('/ramp-p2p/payment-type', { params: { currency: symbol } })
         .then(response => {
           vm.paymentTypeOpts = response.data
         })
@@ -310,7 +356,9 @@ export default {
     },
     async fetchPaymentMethods () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-method/', { params: { currency: this.currency }, authorize: true })
+      const symbol = this.selectedCurrency?.symbol || this.currency
+      if (!symbol) { vm.currentPaymentMethods = []; return }
+      await backend.get('/ramp-p2p/payment-method/', { params: { currency: symbol }, authorize: true })
         .then(response => {
           vm.currentPaymentMethods = response.data
         })

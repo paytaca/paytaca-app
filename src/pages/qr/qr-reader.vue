@@ -256,7 +256,9 @@ export default {
 
       if (content) {
         const _value = content[0].rawValue
-        const addressValidation = parseAddressWithoutPrefix(_value)
+        // Only parse as prefixless address if content doesn't have query params
+        // Query params indicate BIP21 URI that needs full parsing
+        const addressValidation = !_value.includes('?') ? parseAddressWithoutPrefix(_value) : { valid: false }
         const value = addressValidation?.valid ? addressValidation.address : _value
 
         vm.paused = true
@@ -332,14 +334,16 @@ export default {
       let query
 
       if (prefixArray.findIndex(s => value.includes(s)) > -1) {
-        let fallback = vm.processPayProData(payProData)
+        let fallback = vm.processPayProData(payProData, value)
 
         // Fallback to BCH
         if (fallback) {
           if (isTokenAddress(value)) {
+            // If value contains query params, pass as paymentUrl to preserve all parameters
+            const queryParams = value.includes('?')
             vm.$router.push({
               name: 'transaction-send-select-asset',
-              query: { address: value }
+              query: queryParams ? { paymentUrl: value } : { address: value }
             })
           } else {
             query = {
@@ -372,7 +376,7 @@ export default {
         })
       }
     },
-    processPayProData (payProData) {
+    processPayProData (payProData, originalValue) {
       let query
 
       if (payProData.valid) {
@@ -388,9 +392,11 @@ export default {
           const hasToken = walletAssets.some(asset => asset.id === `ct/${tokenCategory}`)
 
           if (!hasToken) {
+            // If originalValue has query params, pass as paymentUrl to preserve all parameters
+            const queryParams = originalValue?.includes('?')
             this.$router.push({
               name: 'transaction-send-select-asset',
-              query: { error: 'token-not-found' }
+              query: queryParams ? { paymentUrl: originalValue } : { error: 'token-not-found' }
             })
             return false
           }
@@ -400,6 +406,13 @@ export default {
           if (payProData.paypro.fungible) {
             query.fungible = payProData.paypro.fungible
           }
+          
+          // If originalValue has query params, pass as paymentUrl to preserve all parameters
+          const queryParams = originalValue?.includes('?')
+          if (queryParams) {
+            query.paymentUrl = originalValue
+          }
+          
           this.$router.push({
             name: 'transaction-send',
             query

@@ -1,6 +1,6 @@
 <template>
   <div v-if="$route.name === 'p2p-store'">
-    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps" class="header-nav p2p-header" />
+    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps" class="header-nav" />
     <StoreListings :key="storeListingsKey"/>
   </div>
   <div v-else>
@@ -39,32 +39,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.p2p-header {
-  position: relative;
-  z-index: 1000;
-  
-  ::v-deep .pt-header {
-    opacity: 1 !important;
-    visibility: visible !important;
-  }
-  
-  ::v-deep .text-h5 {
-    -webkit-text-fill-color: #fff !important;
-    background: none !important;
-    color: #fff !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    font-weight: 600 !important;
-  }
-  
-  ::v-deep .pt-arrow-left-link {
-    .material-icons {
-      color: #fff !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-    }
-  }
-}
-</style>

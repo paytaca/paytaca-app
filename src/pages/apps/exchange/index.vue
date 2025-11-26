@@ -5,7 +5,7 @@
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">
       <!-- Header (visible during loading) -->
-      <HeaderNav title="P2P Exchange" backnavpath="/apps" class="header-nav p2p-exchange-header" />
+      <HeaderNav title="P2P Exchange" backnavpath="/apps" class="header-nav" />
       
       <!-- Content Skeletons -->
       <div class="q-px-md">
@@ -93,9 +93,32 @@ export default {
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled
     } else {
-      await this.checkVersionUpdate()
-      await loadRampWallet()
-      await this.getUser()
+      // Ensure wallet state is initialized before accessing getters
+      const wallet = this.$store.getters['global/getWallet']('bch')
+      const walletHash = wallet?.walletHash
+      if (walletHash) {
+        // Initialize wallet-specific state if not already initialized
+        this.$store.commit('ramp/initializeWalletState', walletHash)
+        this.$store.commit('paytacapos/initializeWalletState', walletHash)
+      }
+      
+      // Parallelize independent operations
+      const [versionCheckResult, rampWallet, userResult] = await Promise.allSettled([
+        this.checkVersionUpdate(),
+        loadRampWallet(),
+        this.getUser()
+      ])
+      
+      // Store wallet instance in Vuex to avoid duplicate loading
+      if (rampWallet.status === 'fulfilled') {
+        this.$store.commit('ramp/updateWallet', rampWallet.value)
+      }
+      
+      // Handle version check errors gracefully (non-blocking)
+      if (versionCheckResult.status === 'rejected') {
+        console.error('Version check failed:', versionCheckResult.reason)
+      }
+      
       if (this.$route.name === 'exchange') {
         this.goToMainPage()
       }
@@ -107,22 +130,30 @@ export default {
       await backend.get('auth')
         .then(async (response) => {
           this.user = response.data
+          // Store user in Vuex for use by other components
+          this.$store.commit('ramp/updateUser', response.data)
           this.continue = true
+          // Set isloaded earlier - don't wait for version check
           this.isloaded = true
         })
         .catch(error => {
-          if (error.response.data.error === 'user does not exist') {
+          if (error.response?.data?.error === 'user does not exist') {
             this.continue = true
           } else {
             console.error(error.response || error)
           }
+          // Set isloaded even on error so UI can render
           this.isloaded = true
         })
     },
     goToMainPage () {
       this.$store.commit('ramp/updateUser', this.user)
       if (this.user?.is_arbiter) {
-        this.$router?.push({ name: 'arbiter-appeals' })
+        if ('appeal_id' in this.$route.query) {
+          this.$router?.push({ name: 'arbiter-appeals', query: this.$route.query})
+        } else {
+          this.$router?.push({ name: 'arbiter-appeals' })
+        }        
       } else {
         if ('ad_id' in this.$route.query) {
           this.$router?.push({ name: 'p2p-store', query: this.$route.query })
@@ -155,8 +186,8 @@ export default {
       }
 
       if (platform) {
-        // fetching version check
-        await backend.get(`ramp-p2p/version/check/${platform}/`)
+        // fetching version check - non-blocking, don't prevent UI from showing
+        backend.get(`ramp-p2p/version/check/${platform}/`)
           .then(response => {
             if (!('error' in response.data)) {
               const latestVer = response.data?.latest_version
@@ -197,27 +228,11 @@ export default {
             }
           })
           .catch(error => {
-            console.error(error)
-            this.appDisabled = true
-            this.isloaded = true
+            console.error('Version check failed:', error)
+            // Don't set appDisabled or isloaded here - version check is non-critical
           })
       }
     }
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.p2p-exchange-header {
-  ::v-deep .text-h5 {
-    -webkit-text-fill-color: #fff !important;
-    background: none !important;
-    color: #fff !important;
-    font-weight: 600 !important;
-  }
-  
-  ::v-deep .pt-arrow-left-link .material-icons {
-    color: #fff !important;
-  }
-}
-</style>

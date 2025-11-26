@@ -1,10 +1,36 @@
 <template>
   <div class="text-bow"
     :class="getDarkModeClass(darkMode)">
-    <div v-if="loading">
-      <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader/>
+    <!-- Skeleton Loading State -->
+    <div v-if="loading" class="q-pa-md">
+      <!-- Contract Info Skeleton -->
+      <div class="q-px-sm q-pt-sm q-mb-md">
+        <q-skeleton type="text" width="40%" height="14px" class="q-mb-xs" />
+        <q-skeleton type="rect" height="40px" class="q-mb-md" style="border-radius: 8px;" />
+        <q-skeleton type="text" width="40%" height="14px" class="q-mb-xs" />
+        <q-skeleton type="rect" height="40px" class="q-mb-md" style="border-radius: 8px;" />
       </div>
+      
+      <div class="row justify-end q-mb-md q-px-md">
+        <q-skeleton type="text" width="120px" height="14px" class="q-mr-sm" />
+        <q-skeleton type="text" width="120px" height="14px" />
+      </div>
+      
+      <!-- Payment Methods Skeleton -->
+      <q-card class="br-15 q-ma-sm q-pa-md" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+        <q-skeleton type="text" width="50%" height="18px" class="q-mb-sm" style="margin: 0 auto;" />
+        <q-skeleton type="text" width="70%" height="14px" class="q-mb-md" style="margin: 0 auto;" />
+        <q-skeleton type="rect" height="120px" style="border-radius: 12px;" />
+      </q-card>
+      
+      <!-- Action Buttons Skeleton -->
+      <q-card class="br-15 q-pa-sm q-mx-md q-my-md" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+        <q-skeleton type="text" width="40%" height="18px" class="q-mb-sm" style="margin: 0 auto;" />
+        <div class="row q-gutter-sm q-px-sm">
+          <q-skeleton type="QBtn" class="col" height="40px" style="border-radius: 20px;" />
+          <q-skeleton type="QBtn" class="col" height="40px" style="border-radius: 20px;" />
+        </div>
+      </q-card>
     </div>
     <div v-else>
       <!-- Contract info -->
@@ -95,8 +121,8 @@
           </div>
         </div>
       </div>
-      <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm">
-        <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-sm q-mx-md q-my-sm" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
+      <div v-if="state === 'form' || state === 'form-sending'" class="q-my-sm" style="margin-bottom: 40px;">
+        <q-card v-if="appeal?.resolved_at === null" class="br-15 q-pa-sm q-mx-md q-mb-lg" bordered flat :class="[darkMode ? 'pt-card-2 dark' : '']">
           <div class="text-center q-py-xs text-weight-bold text-uppercase">
             {{ $t('SelectAction') }}
           </div>
@@ -167,15 +193,8 @@
   <RampDragSlide
     v-touch-swipe.mouse="checkDragslideStatus"
     :key="dragSlideKey"
-    v-if="showDragSlide && state === 'form'"
+    v-if="showDragSlide && state === 'form' && !chatOpen"
     :locked="!selectedAction"
-    :style="{
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1500,
-    }"
     @click="checkDragslideStatus()"
     @ok="onSubmit"
     @cancel="onSecurityCancel"
@@ -189,7 +208,6 @@
 <script>
 import TransactionHistoryDialog from 'src/components/ramp/appeal/dialogs/TransactionHistoryDialog.vue'
 import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDialog.vue'
-import ProgressLoader from '../../ProgressLoader.vue'
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
@@ -203,7 +221,6 @@ import NoticeBoardDialog from '../fiat/dialogs/NoticeBoardDialog.vue'
 export default {
   components: {
     RampDragSlide,
-    ProgressLoader,
     OrderStatusDialog,
     TransactionHistoryDialog,
     AttachmentDialog,
@@ -243,7 +260,8 @@ export default {
   props: {
     data: Object,
     escrowContract: Object,
-    state: String
+    state: String,
+    chatOpen: Boolean
   },
   emits: ['back', 'refresh', 'success', 'sending-bch', 'updatePageName'],
   watch: {
@@ -273,7 +291,7 @@ export default {
       if (this.isChipnet) {
         url = `${process.env.TESTNET_EXPLORER_URL}/address/`
       } else {
-        url = 'https://blockchair.com/bitcoin-cash/address/'
+        url = 'https://explorer.paytaca.com/address/'
       }
       return `${url}${this.contractAddress}`
     },

@@ -7,9 +7,9 @@
           flat
           round
           dense
-          icon="arrow_back"
+          icon="home"
           color="white"
-          @click="$router.back()"
+          @click="goToHome"
         />
         <div class="col text-center">
           <div class="text-subtitle1 text-weight-medium text-white">
@@ -113,6 +113,14 @@ export default {
       // Reload iframe with updated parameters
       if (this.$refs.mapIframe) {
         this.loading = true
+        this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
+      }
+    },
+    goToHome() {
+      // Navigate to the home page of the Map site in the iframe
+      if (this.$refs.mapIframe) {
+        this.loading = true
+        this.mapUrl = this.mapUrlWithTheme
         this.$refs.mapIframe.src = this.mapUrlWithTheme + '&t=' + Date.now()
       }
     },

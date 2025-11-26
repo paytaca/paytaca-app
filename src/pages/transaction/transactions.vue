@@ -68,11 +68,16 @@
 		                <q-input
 		                  ref="tx-search"
 		                  style="margin: 0px 30px 0px; padding-bottom: 3px;"
-		                  maxlength="6"
+		                  maxlength="8"
 		                  label="Search by Reference ID"
 		                  v-model="txSearchReference"
 		                  debounce="200"
-		                  @update:model-value="(val) => { txSearchReference = val.toUpperCase().slice(0, 6); executeTxSearch(val) }"
+		                  placeholder="00000000"
+		                  @update:model-value="(val) => { 
+		                    const cleaned = val.replace(/[^0-9]/g, '').slice(0, 8);
+		                    txSearchReference = cleaned;
+		                    executeTxSearch(txSearchReference);
+		                  }"
 		                >
 		                  <template v-slot:prepend>
 		                    <q-icon name="search" />
@@ -187,6 +192,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { registerMemoUser, authMemo } from 'src/utils/transaction-memos'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
+import { refToHex } from 'src/utils/reference-id-utils'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
@@ -363,6 +369,49 @@ export default {
 	methods: {
 		parseAssetDenomination,
 		getDarkModeClass,
+		serializeTransaction (tx) {
+			if (!tx) return null
+			
+			// Create a serializable copy of the transaction
+			// Remove functions, circular references, and non-serializable objects
+			try {
+				const serialized = JSON.parse(JSON.stringify(tx, (key, value) => {
+					// Skip functions
+					if (typeof value === 'function') {
+						return undefined
+					}
+					// Skip symbols
+					if (typeof value === 'symbol') {
+						return undefined
+					}
+					// Convert BigNumber-like objects to strings if they have toString
+					if (value && typeof value === 'object' && 'toString' in value && typeof value.toString === 'function') {
+						try {
+							return value.toString()
+						} catch (e) {
+							return undefined
+						}
+					}
+					return value
+				}))
+				return serialized
+			} catch (error) {
+				console.error('Error serializing transaction:', error)
+				// Fallback: return only essential properties
+				return {
+					txid: tx.txid || tx.tx_hash || tx.hash,
+					asset: tx.asset,
+					record_type: tx.record_type,
+					amount: tx.amount,
+					date_created: tx.date_created,
+					block: tx.block,
+					from: tx.from,
+					to: tx.to,
+					senders: tx.senders,
+					recipients: tx.recipients
+				}
+			}
+		},
 		calculateTransactionRowHeight() {
 			this.$nextTick(() => {
 				try {
@@ -448,6 +497,8 @@ export default {
 	        console.log('INCONSISTENCY DETECTED!')
 	        console.log('Wallet index:', walletIndex)
 	        this.$store.commit('global/updateCurrentWallet', walletIndex)
+	        // Sync settings to darkmode and market modules
+	        this.$store.dispatch('global/syncSettingsToModules')
 	        // location.reload()
 	      }	      
 	    },
@@ -471,8 +522,12 @@ export default {
 	      this.hideBalances = !this.hideBalances
 	    },
 	    executeTxSearch (value) {
-	      if (String(value).length == 0 || String(value).length >= 6) {
-	        const opts = {txSearchReference: value}
+	      const valueStr = String(value || '')
+	      // Allow empty or 8-digit decimal
+	      if (valueStr.length === 0 || valueStr.length === 8) {
+	        // Convert decimal reference to hex before API call
+	        const hexRef = valueStr && valueStr.length === 8 ? refToHex(valueStr) : valueStr
+	        const opts = {txSearchReference: hexRef}
 	        this.$refs['tx-search'].blur()
 	        this.$refs['transaction-list-component'].getTransactions(1, opts)
 	      }
@@ -541,16 +596,32 @@ export default {
 	    },
 	    showTransactionDetails (transaction) {
 	      const vm = this
-	      // vm.hideMultiWalletDialog()
 	      vm.hideAssetInfo()
-	      const txCheck = setInterval(function () {
-	        if (transaction) {
-	          if (!transaction?.asset) transaction.asset = vm.selectedAsset
-	          vm.$refs.transaction.show(transaction)
-	          vm.hideBalances = true
-	          clearInterval(txCheck)
+	      const txid = transaction?.txid
+	      if (!txid) return
+	      if (!transaction?.asset) transaction.asset = vm.selectedAsset
+	      const assetId = String(transaction?.asset?.id || vm.selectedAsset?.id || '')
+	      const query = (() => {
+	        // BCH: asset id is 'bch' or starts with 'bch' without a slash
+	        if (assetId === 'bch' || (assetId.startsWith('bch') && !assetId.includes('/'))) {
+	          return {}
 	        }
-	      }, 100)
+	        // Token: extract category from ct/{category} or slp/{category}
+	        const parts = assetId.split('/')
+	        if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+	          return { category: parts[1] }
+	        }
+	        return {}
+	      })()
+      // Serialize transaction object to avoid DataCloneError
+      const serializedTx = vm.serializeTransaction(transaction)
+
+      vm.$router.push({
+        name: 'transaction-detail',
+        params: { txid },
+        query,
+        state: { tx: serializedTx }
+      })
 	    },
 	    hideAssetInfo () {
 	      try {

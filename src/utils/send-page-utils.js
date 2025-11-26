@@ -96,9 +96,15 @@ export function getWallet (type) {
  */
 export async function getChangeAddress (walletType) {
   try {
-    const addressIndex = Store.getters['global/getLastAddressIndex'](walletType)
+    let addressIndex = Store.getters['global/getLastAddressIndex'](walletType)
     const walletIndex = Store.getters['global/getWalletIndex']
     const isChipnetVal = isChipnet()
+    
+    // Validate and fix addressIndex - it should never be negative
+    // New wallets start with -1, so default to 0 for the first change address
+    if (addressIndex === undefined || addressIndex === null || addressIndex < 0) {
+      addressIndex = 0
+    }
     
     // Generate change address dynamically from mnemonic (includes watchtower subscription)
     const changeAddr = await generateChangeAddress({
@@ -110,25 +116,38 @@ export async function getChangeAddress (walletType) {
     
     // Check if subscription failed (returns null)
     if (!changeAddr) {
-      throw new Error('Failed to subscribe change address to watchtower')
+      // Try to get the address from the store as fallback
+      const fallbackAddr = Store.getters['global/getChangeAddress'](walletType)
+      if (fallbackAddr) {
+        return fallbackAddr
+      }
+      throw new Error('Failed to subscribe change address to watchtower. Please check your internet connection and try again.')
     }
     
     return changeAddr
   } catch (error) {
-    console.error('Error generating change address dynamically:', error)
+    console.error('[getChangeAddress] Error generating change address dynamically:', error)
+    
     // Fallback to store-retrieved change address if dynamic generation fails
     // Note: This is only for backward compatibility and shouldn't normally be used
-    const fallbackAddr = Store.getters['global/getChangeAddress'](walletType)
-    if (!fallbackAddr) {
-      throw new Error('Failed to get change address: ' + error.message)
+    try {
+      const fallbackAddr = Store.getters['global/getChangeAddress'](walletType)
+      if (fallbackAddr) {
+        return fallbackAddr
+      }
+    } catch (fallbackError) {
+      console.error('[getChangeAddress] Fallback also failed:', fallbackError)
     }
-    return fallbackAddr
+    
+    // Provide a more helpful error message
+    const errorMessage = error.message || 'Unknown error'
+    throw new Error(`Failed to get change address: ${errorMessage}`)
   }
 }
 
 export function getExplorerLink (txid, isCashToken) {
-  let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-  if (isCashToken) url = 'https://explorer.bitcoinunlimited.info/tx/'
+  let url = 'https://explorer.paytaca.com/tx/'
+  if (isCashToken) url = 'https://explorer.paytaca.com/tx/'
   if (isChipnet()) url = 'https://chipnet.chaingraph.cash/tx/'
   return `${url}${txid}`
 }
@@ -212,7 +231,9 @@ export function parseAddressWithoutPrefix(prefixlessAddress) {
   if (typeof prefixlessAddress !== 'string') return {valid: false, error: 'Invalid address' }
 
   const resultWPrefix = decodeCashAddress(prefixlessAddress)
-  if (typeof resultWPrefix !== 'string') return { valid: true, address: prefixlessAddress }
+  if (typeof resultWPrefix !== 'string') {
+    return { valid: true, address: prefixlessAddress }
+  }
 
   const result = decodeCashAddressFormatWithoutPrefix(prefixlessAddress)
   if (typeof result === 'string') return { valid: false, error: result }

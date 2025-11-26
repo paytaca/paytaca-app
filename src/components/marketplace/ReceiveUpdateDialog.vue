@@ -40,7 +40,7 @@
               padding="xs"
               icon="open_in_new"
               class="button"
-              :href="`https://blockchair.com/bitcoin-cash/transaction/${txid}/`"
+              :href="`https://explorer.paytaca.com/tx/${txid}`"
               target="_blank"
             />
           </div>

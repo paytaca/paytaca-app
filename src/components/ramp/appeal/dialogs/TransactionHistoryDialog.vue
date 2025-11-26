@@ -156,7 +156,7 @@ export default {
       })
     },
     explorerLink (txid) {
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
+      let url = 'https://explorer.paytaca.com/tx/'
 
       if (this.isChipnet) {
         url = `${process.env.TESTNET_EXPLORER_URL}/tx/`

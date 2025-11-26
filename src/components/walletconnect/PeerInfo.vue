@@ -28,7 +28,7 @@ defineProps({
     /**
      * Session peer's metadata.
      * Example: {
-     *      "name": "Cauldron",
+     *      "name": "Cauldron DEX",
      *      "description": "Cauldron DEX",
      *       "url": "https://cauldron.quest/",
      *       "icons": [

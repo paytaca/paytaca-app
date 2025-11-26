@@ -76,6 +76,7 @@ export async function sendUtxos (params) {
   const recipient = params?.recipient
   const parsedUtxos = parseResponseToUtxo(params?.utxos)
   const broadcast = params?.broadcast
+  const priceId = params?.priceId
 
   const template = importAuthenticationTemplate(
     authenticationTemplateP2pkhNonHd
@@ -185,7 +186,11 @@ export async function sendUtxos (params) {
 
   if (broadcast) {
     try {
-      const response = await watchtower.BCH._api.post('broadcast/', { transaction: hex })
+      const broadcastData = { transaction: hex }
+      if (priceId) {
+        broadcastData.price_id = priceId
+      }
+      const response = await watchtower.BCH._api.post('broadcast/', broadcastData)
       console.log('broadcast: ', response.data)
       return response.data
     } catch (error) {

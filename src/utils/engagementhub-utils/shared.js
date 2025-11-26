@@ -21,17 +21,14 @@ export function getBchWallet () {
 
 export function parseLocaleDate (date, isDayIncluded = true) {
   const d = new Date(date)
-  const options = {
-    year: 'numeric',
-    month: 'long'
-  }
+  const options = {}
+  const langs = [Store.getters['global/language'], 'en-US']
 
-  if (isDayIncluded) 
-    return new Intl.DateTimeFormat("en-US", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(d);
-  else return d.toLocaleDateString(undefined, options);
+  if (isDayIncluded) {
+    options.dateStyle = "medium"
+    options.timeStyle = "short"
+  }
+  return new Intl.DateTimeFormat(langs, options).format(d)
 }
 
 export function parseLiftToken (amount) {

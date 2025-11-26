@@ -70,7 +70,7 @@ export default {
   methods: {
     getDarkModeClass,
     verify () {
-      const url = 'https://blockchair.com/bitcoin-cash/transaction/' + this.collectible.token_id
+      const url = 'https://explorer.paytaca.com/tx/' + this.collectible.token_id
       openURL(url)
     },
     send () {

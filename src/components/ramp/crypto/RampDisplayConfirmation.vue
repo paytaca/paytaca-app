@@ -11,8 +11,13 @@
       />
     </div>
   </div>
-  <div class="row justify-center q-py-lg" style="margin-top: 100px" v-if="!isloaded">
-    <ProgressLoader />
+  <div class="row justify-center q-py-lg text-center" style="margin-top: 100px" v-if="!isloaded">
+    <div>
+      <div v-if="creatingShift" class="text-h6 text-grad text-center">
+        Processing Order...   
+      </div>
+      <ProgressLoader />
+    </div>    
   </div>
   <div class="col q-mt-sm pt-internet-required" v-if="networkError">
     <div class="q-px-lg">{{error_msg }} &#128533;</div>
@@ -39,6 +44,10 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import RampShiftInfo from './RampShiftInfo.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 export default {
   data () {
@@ -51,7 +60,8 @@ export default {
       },
       state: '',
       baseUrl: process.env.ANYHEDGE_BACKEND_BASE_URL,
-      error_msg: this.$t('BackendDown')
+      error_msg: this.$t('BackendDown'),
+      creatingShift: false
     }
   },
   emits: ['close', 'confirmed', 'retry'],
@@ -87,8 +97,9 @@ export default {
       const IPurl = 'https://api.ipify.org?format=json'
       const test = await vm.$axios.get(IPurl).catch(function () {
         vm.networkError = true
+        return null
       })
-      if (test.status !== 500) {
+      if (test && test.status !== 500) {
         return test.data.ip
       } else {
         return null
@@ -97,11 +108,28 @@ export default {
     async createShift () {
       const vm = this
       vm.isloaded = false
+      vm.creatingShift = true
       const ip = await this.getIPAddr()
       const mnemonic = await getMnemonic(vm.$store.getters['global/getWalletIndex'])
       const wallet = new Wallet(mnemonic)
 
       const walletHash = wallet.BCH.getWalletHash()
+
+      // Generate BCH address dynamically
+      const addressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+      const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+      const bchAddress = await generateReceivingAddress({
+        walletIndex: vm.$store.getters['global/getWalletIndex'],
+        derivationPath: getDerivationPathForWalletType('bch'),
+        addressIndex: validAddressIndex,
+        isChipnet: vm.$store.getters['global/isChipnet']
+      })
+
+      if (!bchAddress) {
+        vm.networkError = true
+        vm.isloaded = true
+        return
+      }
 
       let info = {
         deposit: vm.rampData.deposit,
@@ -113,7 +141,7 @@ export default {
           type: vm.rampType(),
           user_ip: ip,
           wallet_hash: walletHash,
-          bch_address: vm.$store.getters['global/getAddress']('bch')
+          bch_address: bchAddress
         }
       }
 
@@ -123,8 +151,9 @@ export default {
       ).catch(function () {
         vm.networkError = true
         vm.isloaded = true
+        return null
       })
-      if (response.status === 200) {
+      if (response && response.status === 200) {
         // Invalid Address Errors
         if ('error' in response.data) {
           const errorMsg = response.data.error.message.toLowerCase()
@@ -147,6 +176,7 @@ export default {
       const vm = this
       await vm.createShift()
       vm.isloaded = true
+      vm.creatingShift = false
 
       if (!vm.networkError) {
         vm.$emit('confirmed', vm.shiftData)
@@ -175,5 +205,8 @@ export default {
   font-size: 24px;
   padding: 30px;
   color: gray;
+}
+.md-font-size {
+  font-size: medium;
 }
 </style>

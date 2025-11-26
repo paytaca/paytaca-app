@@ -50,8 +50,14 @@
             </div>
             <q-slide-transition>
               <div v-show="expandedShard === 0" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
-                <div class="qr-container" :id="`qr-shard-0`">
-                  <qr-code :qr-id="1" :text="shards[0]" :size="280" />
+                <div class="qr-code-container" :id="`qr-shard-0`">
+                  <div class="col q-pl-sm q-pr-sm">
+                    <div class="row text-center">
+                      <div class="col row justify-center q-pt-md">
+                        <qr-code :qr-id="1" :text="shards[0]" :size="220" class="q-mb-sm" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 <!-- Action Buttons Below QR -->
@@ -119,8 +125,14 @@
             </div>
             <q-slide-transition>
               <div v-show="expandedShard === 1" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
-                <div class="qr-container" :id="`qr-shard-1`">
-                  <qr-code :qr-id="2" :text="shards[1]" :size="280" />
+                <div class="qr-code-container" :id="`qr-shard-1`">
+                  <div class="col q-pl-sm q-pr-sm">
+                    <div class="row text-center">
+                      <div class="col row justify-center q-pt-md">
+                        <qr-code :qr-id="2" :text="shards[1]" :size="220" class="q-mb-sm" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 <!-- Action Buttons Below QR -->
@@ -188,8 +200,14 @@
             </div>
             <q-slide-transition>
               <div v-show="expandedShard === 2" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
-                <div class="qr-container" :id="`qr-shard-2`">
-                  <qr-code :qr-id="3" :text="shards[2]" :size="280" />
+                <div class="qr-code-container" :id="`qr-shard-2`">
+                  <div class="col q-pl-sm q-pr-sm">
+                    <div class="row text-center">
+                      <div class="col row justify-center q-pt-md">
+                        <qr-code :qr-id="3" :text="shards[2]" :size="220" class="q-mb-sm" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 <!-- Action Buttons Below QR -->
@@ -338,11 +356,6 @@ export default {
           box-sizing: border-box;
         `
 
-        // Truncate wallet hash for display
-        const truncatedHash = vm.walletHash.length > 12 
-          ? `${vm.walletHash.substring(0, 6)}...${vm.walletHash.substring(vm.walletHash.length - 6)}`
-          : vm.walletHash
-
         // Header with wallet info
         const header = document.createElement('div')
         header.style.cssText = `
@@ -352,11 +365,14 @@ export default {
           border-bottom: 3px solid #e0e0e0;
         `
         header.innerHTML = `
-          <div style="font-size: 36px; font-weight: 700; color: #1a1a1a; margin-bottom: 16px;">
+          <div style="font-size: 36px; font-weight: 700; color: #1a1a1a; margin-bottom: 20px;">
             ${vm.walletName || 'Paytaca Wallet'}
           </div>
-          <div style="font-size: 18px; color: #666; font-family: monospace; margin-bottom: 12px;">
-            ${truncatedHash}
+          <div style="font-size: 14px; font-weight: 600; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Wallet Hash
+          </div>
+          <div style="font-size: 20px; color: #333; font-family: monospace; margin-bottom: 20px; word-break: break-all; line-height: 1.4;">
+            ${vm.walletHash}
           </div>
           <div style="font-size: 22px; font-weight: 600; color: #0d47a1; margin-top: 16px;">
             Seed Phrase Shard ${shardIndex + 1}
@@ -400,9 +416,9 @@ export default {
         `
         footer.innerHTML = `
           <div style="margin-bottom: 12px; font-weight: 600; color: #1a1a1a; font-size: 18px;">
-            Shamir's Secret Sharing
+            Generated using Shamir's Secret Sharing Algorithm
           </div>
-          <div style="line-height: 1.7; font-size: 15px;">
+          <div style="line-height: 1.7; font-size: 18px;">
             Any 2 of 3 shards can recover your seed phrase.<br>
             Store securely in separate locations.
           </div>
@@ -539,10 +555,19 @@ export default {
     
     executeSecurityChecking () {
       const vm = this
+      console.log('[WalletBackup-Shards] executeSecurityChecking called')
+      console.log('[WalletBackup-Shards] $store available:', !!vm.$store)
+      console.log('[WalletBackup-Shards] preferredSecurity:', vm.$store?.getters?.['global/preferredSecurity'])
+      
       setTimeout(() => {
-        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+        console.log('[WalletBackup-Shards] Setting security check, preferredSecurity:', preferredSecurity)
+        if (preferredSecurity === 'pin') {
+          console.log('[WalletBackup-Shards] Setting pinDialogAction to VERIFY')
           vm.pinDialogAction = 'VERIFY'
+          console.log('[WalletBackup-Shards] pinDialogAction after set:', vm.pinDialogAction)
         } else {
+          console.log('[WalletBackup-Shards] Calling verifyBiometric')
           vm.verifyBiometric()
         }
       }, 300)
@@ -625,7 +650,13 @@ export default {
   },
 
   mounted () {
+    console.log('[WalletBackup-Shards] Component mounted, calling executeSecurityChecking')
     this.executeSecurityChecking()
+  },
+  watch: {
+    pinDialogAction (newVal, oldVal) {
+      console.log('[WalletBackup-Shards] pinDialogAction changed from', oldVal, 'to', newVal)
+    }
   }
 }
 </script>
@@ -668,6 +699,10 @@ export default {
 
   // Accordion Shards
   .shards-section {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    
     .shard-accordion-item {
       .shard-header {
         padding: 20px 24px;
@@ -719,14 +754,29 @@ export default {
         border-bottom-left-radius: 16px;
         border-bottom-right-radius: 16px;
         margin-top: -8px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: visible;
 
-        .qr-container {
-          display: flex;
-          justify-content: center;
-          padding: 12px;
-          background: white;
-          border-radius: 12px;
-          margin-bottom: 20px;
+        .qr-code-container {
+          margin-top: 20px;
+          padding-left: 28px;
+          padding-right: 28px;
+        }
+        
+        /* iPhone 5/SE */
+        @media (min-width: 280px) and (max-width: 320px) {
+          .qr-code-container {
+            margin-top: 30px;
+          }
+        }
+        
+        /* Galaxy Fold */
+        @media (min-width: 200px) and (max-width: 280px) {
+          .qr-code-container {
+            margin-top: 66px;
+          }
         }
 
         .qr-action-buttons {
@@ -734,6 +784,7 @@ export default {
           gap: 12px;
           justify-content: center;
           margin-bottom: 16px;
+          width: 100%;
 
           .action-btn {
             flex: 1;
@@ -812,9 +863,27 @@ export default {
 
         .shard-content {
           padding: 20px;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
 
           .qr-container {
             padding: 10px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            height: auto;
+            
+            // Override QR code component's fixed width on mobile
+            :deep(.qr-wrap) {
+              max-width: 100% !important;
+              width: 100% !important;
+              box-sizing: border-box !important;
+            }
+            
+            :deep(.qr) {
+              max-width: 100%;
+            }
           }
 
           .qr-action-buttons {

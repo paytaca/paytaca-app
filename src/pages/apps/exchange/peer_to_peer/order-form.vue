@@ -3,6 +3,39 @@
   <q-pull-to-refresh @refresh="loadData">
     <div v-if="state !== 'order-process'">
       <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
+        <!-- Skeleton Loader -->
+        <div v-if="!isloaded" class="skeleton-form-container q-pa-md">
+          <!-- Title Skeleton -->
+          <div class="text-center q-py-md">
+            <q-skeleton type="text" width="200px" height="28px" style="margin: 0 auto;" />
+          </div>
+          
+          <!-- Trade Info Card Skeleton -->
+          <div class="q-mx-md q-mb-sm">
+            <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Ad Info Card Skeleton -->
+          <div class="q-mx-md q-mt-md q-mb-md">
+            <q-skeleton type="rect" height="200px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Input Card Skeleton -->
+          <div class="q-mx-md q-mb-md">
+            <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Action Button Skeleton -->
+          <div class="q-mx-md q-py-md">
+            <q-skeleton type="rect" height="50px" style="border-radius: 25px;" />
+          </div>
+
+          <!-- Warning Card Skeleton (if applicable) -->
+          <div class="q-mx-md">
+            <q-skeleton type="rect" height="80px" style="border-radius: 15px;" />
+          </div>
+        </div>
+        
         <!-- Form Body -->
         <div v-if="isloaded">
           <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
@@ -10,7 +43,7 @@
           </div>
           <q-btn v-if="adShareLinkEnabled !== false" :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
           <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
-            <div class="q-mx-lg q-px-xs q-mb-sm">
+            <div class="q-mx-md q-mb-sm">
               <TradeInfoCard
                 :order="order"
                 :ad="ad"
@@ -18,48 +51,48 @@
                 @view-peer="onViewPeer"
                 @view-reviews="showReviews=true"/>
             </div>
-            <div class="q-mx-md">
+            <div class="q-mx-md q-mt-md">
               <!-- Ad Info Card -->
               <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
-              <div class="q-pt-xs sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('PriceType') }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ ad.price_type }}
-                  </span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('MinTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs"> {{ tradeFloor }} {{ tradeLimitsCurrency(ad) }}</span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('MaxTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs">{{ tradeCeiling }} {{ tradeLimitsCurrency(ad) }}</span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>
-                    {{
-                      $t(
-                        'AppealableAfterCooldown',
-                        { cooldown: appealCooldown.label },
-                        `Appealable after ${ appealCooldown.label }`
-                      )
-                    }}
-                  </span>
-                </div>
-                <div class="q-mx-lg">
-                  <div class="row">Payment types</div>
-                  <q-badge outline :color="themeColor" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
-                </div>
-                <!-- Display Description on Order Form -->
-                <div v-if="ad?.description" class="q-mx-lg q-mt-md q-mb-sm">
-                  <q-separator class="q-my-sm"/>
-                  <div class="row">{{ $t('Description') }}</div>
-                  <div class="description sm-font-size" :class="darkMode ? 'text-white' : 'text-grey-8'">
-                    {{ ad?.description }}
+                <div class="sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('PriceType') }}</span>
+                    <span class="text-nowrap q-ml-xs">
+                      {{ ad.price_type }}
+                    </span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('MinTradeLimit') }}</span>
+                    <span class="text-nowrap q-ml-xs"> {{ tradeFloor }} {{ tradeLimitsCurrency(ad) }}</span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('MaxTradeLimit') }}</span>
+                    <span class="text-nowrap q-ml-xs">{{ tradeCeiling }} {{ tradeLimitsCurrency(ad) }}</span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>
+                      {{
+                        $t(
+                          'AppealableAfterCooldown',
+                          { cooldown: appealCooldown.label },
+                          `Appealable after ${ appealCooldown.label }`
+                        )
+                      }}
+                    </span>
+                  </div>
+                  <div class="q-mb-sm">
+                    <div class="row q-mb-xs">Payment types</div>
+                    <q-badge outline :color="themeColor" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
+                  </div>
+                  <!-- Display Description on Order Form -->
+                  <div v-if="ad?.description" class="q-mt-md q-mb-sm">
+                    <q-separator class="q-my-sm"/>
+                    <div class="row q-mb-xs">{{ $t('Description') }}</div>
+                    <div class="description sm-font-size" :class="darkMode ? 'text-white' : 'text-grey-8'">
+                      {{ ad?.description }}
+                    </div>
                   </div>
                 </div>
-              </div>
               </div>
 
               <!-- Input Card -->
@@ -195,12 +228,6 @@
             </div>
           </q-scroll-area>
         </div>
-        <!-- Progress Loader -->
-        <div v-else>
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader />
-          </div>
-        </div>
         <!-- Dialogs -->
         <div v-if="openDialog">
           <MiscDialogs
@@ -238,7 +265,6 @@
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
@@ -270,7 +296,6 @@ export default {
   },
   components: {
     CustomKeyboard,
-    ProgressLoader,
     AddPaymentMethods,
     MiscDialogs,
     TradeInfoCard,
@@ -323,7 +348,7 @@ export default {
       vm.previousRoute = from.path
     })
   },
-  emits: ['back', 'orderCanceled', 'updatePageName'],
+  emits: ['back', 'orderCancelled', 'updatePageName'],
   computed: {
     themeColor () {
       const themeMap = {
@@ -456,7 +481,10 @@ export default {
       const vm = this
       vm.isloaded = false
       await vm.fetchAd()
-      await vm.fetchArbiters()
+      // Only fetch arbiters if ad was successfully loaded with fiat_currency
+      if (vm.ad && vm.ad.fiat_currency) {
+        await vm.fetchArbiters()
+      }
       vm.setupWebSocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
@@ -612,6 +640,11 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
+        if (!orderId) {
+          console.warn('Order ID is missing, skipping fetchOrderMembers')
+          resolve([])
+          return
+        }
         backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
@@ -624,6 +657,12 @@ export default {
     },
     async fetchArbiters () {
       const vm = this
+      // Check if ad and fiat_currency are available before making the request
+      if (!vm.ad || !vm.ad.fiat_currency || !vm.ad.fiat_currency.symbol) {
+        console.warn('Cannot fetch arbiters: ad or fiat_currency is not available')
+        vm.arbitersAvailable = []
+        return
+      }
       await backend.get('ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
         .then(response => {
           vm.arbitersAvailable = response.data
@@ -658,8 +697,23 @@ export default {
       const _members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
       const chatRef = generateChatRef(vm.order.id, vm.order.created_at, _members)
       createChatSession(orderId, chatRef)
-        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
-        .catch(console.error)
+        .then(chatRef => {
+          if (chatRef) {
+            // Only update members if session was created successfully
+            updateChatMembers(chatRef, chatMembers).catch(error => {
+              // Silently handle errors - chat identity might not be ready
+              if (error.response?.status !== 403) {
+                console.error('Failed to update chat members:', error)
+              }
+            })
+          }
+        })
+        .catch(error => {
+          // Silently handle 403 errors - chat identity not ready yet
+          if (error.response?.status !== 403) {
+            console.error('Failed to create chat session:', error)
+          }
+        })
     },
     isValidInputAmount (value = this.amount) {
       let valid = true
@@ -847,8 +901,8 @@ export default {
     onBack () {
       this.$emit('back')
     },
-    onOrderCanceled () {
-      this.$emit('orderCanceled')
+    onOrderCancelled () {
+      this.$emit('orderCancelled')
     },
     recievePaymentMethods (item) {
       this.$refs.addPaymentMethodsRef.loadSubmitButton = true
@@ -1002,25 +1056,109 @@ export default {
 
   .warning-card {
     border-left: 4px solid #ff9800 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-warning 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
     
     &.dark {
-      background: rgba(255, 152, 0, 0.1) !important;
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.15) 40%,
+          rgba(255, 255, 255, 0.35) 50%,
+          rgba(255, 255, 255, 0.15) 60%,
+          transparent 70%
+        );
+      }
     }
     
     &.light {
-      background: rgba(255, 152, 0, 0.05) !important;
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%) !important;
     }
   }
 
   .info-card {
     border-left: 4px solid #2196f3 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-info 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
     
     &.dark {
-      background: rgba(33, 150, 243, 0.1) !important;
+      background: rgba(33, 150, 243, 0.12) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.1) 40%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0.1) 60%,
+          transparent 70%
+        );
+      }
     }
     
     &.light {
-      background: rgba(33, 150, 243, 0.05) !important;
+      background: rgba(33, 150, 243, 0.08) !important;
     }
   }
 
@@ -1036,12 +1174,81 @@ export default {
     }
   }
 
+  @keyframes sparkle-card {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+  }
+
+  @keyframes pulse-warning {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes pulse-info {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.015);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.25);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
   /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
   @media (max-width: 599px) {
     .pt-card {
       &:hover {
         transform: none;
       }
+    }
+  }
+
+  /* ==================== SKELETON LOADER STYLES ==================== */
+  .skeleton-form-container {
+    animation: fadeIn 0.3s ease-out;
+    
+    .q-skeleton {
+      animation: shimmer 1.5s infinite;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
 </style>

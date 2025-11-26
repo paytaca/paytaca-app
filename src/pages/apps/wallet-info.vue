@@ -576,7 +576,10 @@ export default {
         })
     },
     updateSbchLnsName () {
-      const { lastAddress: address } = this.getWallet('sbch')
+      const sbchWallet = this.getWallet('sbch')
+      if (!sbchWallet) return
+      
+      const { lastAddress: address } = sbchWallet
       if (!address) return
 
       return this.$store.dispatch('lns/resolveAddress', { address: address })
@@ -594,7 +597,21 @@ export default {
         })
     },
     getWallet (type) {
-      return this.$store.getters['global/getWallet'](type)
+      const wallet = this.$store.getters['global/getWallet'](type)
+      // Return wallet if it exists, otherwise return a safe default object
+      if (!wallet) {
+        // Return a minimal wallet object to prevent errors
+        return {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          subscribed: false
+        }
+      }
+      return wallet
     },
     copyToClipboard (value) {
       this.$copyText(value)

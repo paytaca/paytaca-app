@@ -16,21 +16,36 @@
          </button>
        </div>
      </q-pull-to-refresh>
-     <!-- Empty list display -->
-     <div v-if="!appeals || appeals.length == 0" class="relative text-center" style="margin-top: 50px;">
-        <div v-if="displayEmptyList">
-          <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
-          <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
-        </div>
-        <div v-else class="row justify-center">
-         <q-spinner-dots color="primary" size="40px" />
+     <!-- Skeleton Loading State -->
+     <div v-if="loading && (!appeals || appeals.length === 0)" class="q-pa-md">
+       <div v-for="n in 5" :key="n" class="q-mb-md">
+         <q-item class="q-pa-md">
+           <q-item-section>
+             <div class="row items-center q-mb-sm">
+               <q-skeleton type="QBadge" width="80px" height="20px" class="q-mr-sm" />
+               <q-skeleton type="QBadge" width="60px" height="20px" />
+             </div>
+             <q-skeleton type="text" width="50%" height="20px" class="q-mb-xs" />
+             <q-skeleton type="text" width="40%" height="16px" class="q-mb-xs" />
+             <q-skeleton type="text" width="35%" height="14px" class="q-mb-sm" />
+             <div class="row q-gutter-xs">
+               <q-skeleton type="QBadge" width="70px" height="18px" />
+               <q-skeleton type="QBadge" width="80px" height="18px" />
+             </div>
+           </q-item-section>
+         </q-item>
+         <q-separator class="q-mx-lg" :dark="darkMode"/>
        </div>
      </div>
+     
+     <!-- Empty list display -->
+     <div v-else-if="displayEmptyList && (!appeals || appeals.length == 0)" class="relative text-center" style="margin-top: 50px;">
+       <q-img src="empty-wallet.svg" class="vertical-top q-my-md" style="width: 75px; fill: gray;" />
+       <p :class="{ 'text-black': !darkMode }">{{ $t('NothingToDisplay') }}</p>
+     </div>
+     
      <!-- List -->
      <div v-else>
-        <div class="row justify-center" v-if="loading">
-          <q-spinner-dots color="primary" size="40px" />
-        </div>
         <q-pull-to-refresh @refresh="refreshData">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 105}px`" style="overflow:auto;">
             <div v-for="(appeal, index) in appeals" :key="index" class="q-px-md">
@@ -81,9 +96,18 @@
               </q-item>
               <q-separator class="q-mx-lg" :dark="darkMode"/>
             </div>
-            <div class="row justify-center">
-              <q-spinner-dots v-if="loadingMoreData" color="primary" size="40px" />
-              <q-btn v-else-if="!loading && hasMoreData" flat @click="loadMoreData">view more</q-btn>
+            <!-- Load More Section -->
+            <div v-if="loadingMoreData" class="q-pa-md">
+              <q-item class="q-pa-md">
+                <q-item-section>
+                  <q-skeleton type="text" width="50%" height="20px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="40%" height="16px" class="q-mb-xs" />
+                  <q-skeleton type="text" width="35%" height="14px" />
+                </q-item-section>
+              </q-item>
+            </div>
+            <div v-else-if="!loading && hasMoreData" class="row justify-center">
+              <q-btn flat @click="loadMoreData">view more</q-btn>
             </div>
           </q-list>
         </q-pull-to-refresh>
@@ -118,7 +142,11 @@ export default {
         unreadOrdersCount: 0
       },
       loadingMoreData: false,
-      displayEmptyList: false
+      displayEmptyList: false,
+      fetchAbortController: null,
+      lastFetchTime: null,
+      minFetchInterval: 500, // Minimum time between fetches in ms
+      tabSwitchTimeout: null
     }
   },
   emits: ['selectAppeal'],
@@ -130,10 +158,24 @@ export default {
   },
   watch: {
     async statusType (value) {
+      // Cancel any pending request when switching tabs
+      if (this.fetchAbortController) {
+        this.fetchAbortController.abort()
+      }
+      
       this.displayEmptyList = false
+      this.loading = true
       this.scrollToTop()
-      this.refreshData()
-      this.$store.commit('ramp/updateAppealListingTab', value)
+      
+      // Use a small delay to debounce rapid tab switching
+      if (this.tabSwitchTimeout) {
+        clearTimeout(this.tabSwitchTimeout)
+      }
+      
+      this.tabSwitchTimeout = setTimeout(async () => {
+        await this.refreshData()
+        this.$store.commit('ramp/updateAppealListingTab', value)
+      }, 150)
     }
   },
   computed: {
@@ -172,6 +214,19 @@ export default {
     this.loading = true
     this.loadState()
   },
+  beforeUnmount () {
+    // Cancel any pending requests
+    if (this.fetchAbortController) {
+      this.fetchAbortController.abort()
+    }
+    
+    // Clear any pending timeouts
+    if (this.tabSwitchTimeout) {
+      clearTimeout(this.tabSwitchTimeout)
+    }
+    
+    bus.off('update-unread-count', this.updateUnreadCount)
+  },
   methods: {
     getDarkModeClass,
     loadState () {
@@ -192,21 +247,43 @@ export default {
     },
     async fetchAppeals (overwrite = false) {
       const vm = this
+      
+      // Prevent duplicate rapid requests
+      const now = Date.now()
+      if (vm.lastFetchTime && (now - vm.lastFetchTime) < vm.minFetchInterval) {
+        console.log('Skipping fetch - too soon after last request')
+        return
+      }
+      
+      // Cancel any pending request
+      if (vm.fetchAbortController) {
+        vm.fetchAbortController.abort()
+      }
+      vm.fetchAbortController = new AbortController()
+      
       vm.loading = true
+      vm.lastFetchTime = now
+      
       const params = { state: vm.statusType?.toUpperCase() }
-      await vm.$store.dispatch('ramp/fetchAppeals',
-        {
+      
+      try {
+        const data = await vm.$store.dispatch('ramp/fetchAppeals', {
           appealState: vm.statusType?.toUpperCase(),
           params: params,
           overwrite: overwrite
         })
-        .then((data) => {
+        
+        if (data) {
           vm.footerData.unreadOrdersCount = data.unread_count
-          vm.loading = false
-        })
-        .catch(error => {
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') {
           this.handleRequestError(error)
-        })
+        }
+      } finally {
+        vm.loading = false
+        vm.fetchAbortController = null
+      }
     },
     async loadMoreData () {
       const vm = this
@@ -228,13 +305,18 @@ export default {
       const vm = this
       vm.$store.commit('ramp/resetAppealsPagination')
       vm.loading = true
+      vm.displayEmptyList = false
+      
       await vm.fetchAppeals(true)
-
-      setTimeout(() => {
-        this.displayEmptyList = true
-      }, 150)
-
-      vm.loading = false
+      
+      // Only show empty list after a brief delay to avoid flickering
+      if (!vm.appeals || vm.appeals.length === 0) {
+        setTimeout(() => {
+          if (!vm.appeals || vm.appeals.length === 0) {
+            vm.displayEmptyList = true
+          }
+        }, 100)
+      }
     },
     updatePaginationValues () {
       const vm = this

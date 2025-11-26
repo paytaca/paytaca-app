@@ -70,7 +70,7 @@
       </div>
     </q-pull-to-refresh>
     <div class="q-mt-sm">
-      <div v-if="localListings.length == 0 && localCashinOrders.length == 0" class="relative text-center" style="margin-top: 50px;">
+      <div v-if="localListings.length == 0" class="relative text-center" style="margin-top: 50px;">
         <div v-if="displayEmptyList">
           <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
           <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
@@ -99,70 +99,6 @@
       <div v-else class="q-mb-none">
         <q-pull-to-refresh @refresh="refreshData">
           <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-            <q-card bordered flat v-if="showCashInList" class="q-mx-xs q-my-xs text-bow" :class="getDarkModeClass(darkMode)">
-              <div v-for="(listing, index) in localCashinOrders" :key="index">
-                <q-item clickable @click="selectOrder(listing)">
-                  <q-item-section>
-                    <div class="q-pt-sm q-pb-sm" :style="index < localCashinOrders.length-1 ? darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7' : ''">
-                      <div class="row q-mx-md">
-                        <div class="col ib-text">
-                          <div
-                            class="q-mb-none pt-label sm-font-size"
-                            :class="getDarkModeClass(darkMode)">
-                            {{
-                              $t(
-                                'OrderIdNo',
-                                { ID: listing?.id },
-                                `ORDER #${ listing?.id }`
-                              )
-                            }}
-                            <q-badge v-if="listing.is_cash_in" class="q-mr-xs text-weight-bold" outline rounded size="sm" color="warning" label="Cash In" />
-                            <q-badge v-if="!listing.read_at" outline rounded size="sm" color="red" label="New"/>
-                          </div>
-                          <div class="pt-label text-weight-bold" style="font-size: x-small; opacity: .7;">{{ tradeTypeLabel(listing) }}</div>
-                          <span
-                            class=" pt-label md-font-size text-weight-bold"
-                            :class="getDarkModeClass(darkMode)">
-                            {{ userNameView(counterparty(listing)) }}
-                          </span>
-                          <div
-                            class="col-transaction text-uppercase pt-label lg-font-size"
-                            :class="[getDarkModeClass(darkMode), amountColor(listing)]">
-                            {{ listing.ad?.fiat_currency?.symbol }} {{ formatCurrency(orderFiatAmount(listing.price, satoshiToBch(listing.trade_amount)), listing.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
-                          </div>
-                          <div class="sm-font-size">
-                            {{ formatCurrency(satoshiToBch(listing.trade_amount)) }} BCH</div>
-                          <div v-if="listing.created_at" class="sm-font-size subtext">{{ formatDate(listing.created_at, true) }}</div>
-                        </div>
-                        <div class="text-right">
-                          <div
-                            v-if="isAppealable(listing.appealable_at, listing.status?.value) && statusType === 'ONGOING'"
-                            class="text-weight-bold subtext sm-font-size text-blue">
-                            {{ $t('Appealable') }}
-                          </div>
-                          <div v-if="['RLS', 'RFN'].includes(listing.status?.value)">
-                            <q-rating
-                              readonly
-                              :model-value = "listing?.feedback?.rating || 0"
-                              size="1em"
-                              color="yellow-9"
-                              icon="star"
-                            />
-                          </div>
-                          <div class="text-weight-bold subtext sm-font-size text-red" v-if="listing.status?.value === 'APL'">
-                            {{ listing.status?.label }}
-                          </div>
-                          <div class="text-weight-bold subtext sm-font-size" v-else>
-                            {{ listing.status?.label }}
-                          </div>
-                          <!-- <q-icon color="blue-5" class="q-mt-xs" v-if="statusType === 'ONGOING' && listing.has_unread_status" size="sm" name="notifications_active"/> -->
-                        </div>
-                      </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </div>
-            </q-card>
             <div v-for="(listing, index) in localListings" :key="index">
               <q-item clickable @click="selectOrder(listing)">
                 <q-item-section>
@@ -279,8 +215,7 @@ export default {
       loadingMoreData: false,
       displayEmptyList: false,
       ongoingSearch: false,
-      localListings: [],
-      localCashinOrders: []
+      localListings: []
     }
   },
   watch: {
@@ -337,9 +272,6 @@ export default {
     completedOrders () {
       return this.$store.getters['ramp/getCompletedOrders']
     },
-    cashinOrders () {
-      return this.$store.getters['ramp/getCashinOrders']
-    },
     hasMoreData () {
       const vm = this
       vm.updatePaginationValues()
@@ -347,9 +279,6 @@ export default {
     },
     userInfo () {
       return this.$store.getters['ramp/getUser']
-    },
-    showCashInList () {
-      return this.statusType === 'ONGOING' && this.localCashinOrders?.length > 0 && !this.ongoingSearch
     }
   },
   async mounted () {
@@ -510,22 +439,6 @@ export default {
           this.handleRequestError(error)
         })
     },
-    async fetchCashinOrders (overwrite = false) {
-      const vm = this
-      const params = {
-        wallet_hash: wallet.walletHash,
-        owned: false
-      }
-      await vm.$store.dispatch('ramp/fetchCashinOrders', { params: params, overwrite: overwrite })
-        .then(response => {
-          // vm.updatePaginationValues()
-          return Promise.resolve(response)
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-          return Promise.reject(error)
-        })
-    },
     async fetchOrders (overwrite = false) {
       const vm = this
       const params = vm.filters
@@ -567,7 +480,17 @@ export default {
       const currency = this.selectedCurrency?.symbol
       vm.$store.commit('ramp/setOrdersCurrency', currency || vm.$t('All'))
       const filters = vm.$store.getters[getterName](currency || vm.$t('All'))
-      if (filters) vm.filters = JSON.parse(JSON.stringify(filters))
+      if (filters) {
+        vm.filters = JSON.parse(JSON.stringify(filters))
+        
+        // Migration: Update old ongoing filters to new default (descending/newest first)
+        if (vm.statusType === 'ONGOING' && vm.filters.sort_type === 'ascending') {
+          vm.filters.sort_type = 'descending'
+          // Update the store with the new sort order
+          const mutationName = 'ramp/updateOngoingOrderFilters'
+          vm.$store.commit(mutationName, { filter: vm.filters, currency: currency || vm.$t('All') })
+        }
+      }
     },
     async loadMoreData () {
       const vm = this
@@ -587,14 +510,12 @@ export default {
     },
     async resetAndRefetchListings () {
       this.$store.commit('ramp/resetOrdersPagination')
-      this.$store.commit('ramp/resetCashinOrdersPagination')
       
       // Reset displayEmptyList to show skeleton
       this.displayEmptyList = false
       
       // Clear local listings immediately to show skeleton
       this.localListings = []
-      this.localCashinOrders = []
       
       this.loading = true
       
@@ -602,12 +523,10 @@ export default {
       const startTime = Date.now()
       const minLoadingTime = 500 // 500ms minimum
       
-      await this.fetchCashinOrders(true)
       await this.fetchOrders(true)
       
-      // Update local listings from store
+      // Update local listings from store (now includes cash-in orders from backend)
       this.localListings = [...this.listings]
-      this.localCashinOrders = [...this.cashinOrders]
       
       // Calculate remaining time to reach minimum loading time
       const elapsedTime = Date.now() - startTime
@@ -692,7 +611,7 @@ export default {
       return appealable
     },
     isCompleted (status) {
-      if (status === 'Released' || status === 'Refunded' || status === 'Canceled') return true
+      if (status === 'Released' || status === 'Refunded' || status === 'Cancelled') return true
       return false
     },
     orderFiatAmount (lockedPrice, cryptoAmount) {

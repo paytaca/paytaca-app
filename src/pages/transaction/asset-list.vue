@@ -115,7 +115,7 @@
 			    </q-list>
 			    <div v-else class="text-center" style="margin-top: 50px;">
 		            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
-		            <p :class="{ 'text-black': !darkMode }">{{ $t('No Assets To Display') }}</p>
+		            <p :class="darkmode ? 'text-white' : 'text-black'">{{ $t('NoTokensToDisplay') }}</p>
 		          </div>
 		      <div class="banner" v-if="networkError">
 		      	<q-banner class="bg-primary text-white">
@@ -299,6 +299,10 @@ export default {
 		    // fetching unlisted tokens // skip if reloading from readding unlisted token
 		    if (!this.addUnlistedToken) {
 		    	this.unlistedToken = await assetSettings.fetchUnlistedTokens()
+		    	// Ensure unlistedToken is always an array
+		    	if (!Array.isArray(this.unlistedToken)) {
+		    		this.unlistedToken = []
+		    	}
 		    	await this.getUnlistedTokens()
 		    }		    		    
 		    this.addUnlistedToken = false
@@ -343,7 +347,7 @@ export default {
 			    }
 
 			    // remove from asset list
-			    const temp = this.unlistedToken.map(token => token.id)
+			    const temp = Array.isArray(this.unlistedToken) ? this.unlistedToken.map(token => token.id) : []
 			    
 			    this.assetList = this.assetList.filter(asset => {
 			    	if (asset) { 
@@ -459,19 +463,18 @@ export default {
 	      })
 	    },
 	    async fetchAssetInfo (list) {
-	    	let temp = []
-	    	
-	    	for (const id of list) {	    		
+	    	const ids = Array.isArray(list) ? list : []
+	    	const temp = []
+	    	for (const id of ids) {
 	    		const asset = await this.$store.getters['assets/getAsset'](id)
-	    		
-	    		if (asset.length > 0) {	    			
+	    		if (Array.isArray(asset) && asset.length > 0) {
 	    			temp.push(asset[0])
-	    		}	    		
-	    	}	    	
+	    		}
+	    	}
 	    	return temp
 	    },
 	    async getUnlistedTokens (opts = { includeIgnored: false }) {
-	    	if (!this.unlistedToken) { return }
+	    	if (!this.unlistedToken || !Array.isArray(this.unlistedToken)) { return }
 	    		
 	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]	      
 
@@ -493,12 +496,19 @@ export default {
 
 	      const diff = tokenIDs.filter(asset => !this.unlistedToken.includes(asset))	      
 
-	      this.unlistedToken.push(...diff)
-
-	     	this.unlistedToken = await assetSettings.saveUnlistedTokens(this.unlistedToken)		      
+	      // Only save if there are new tokens to add
+	      if (diff.length > 0) {
+	        this.unlistedToken.push(...diff)
+	        this.unlistedToken = await assetSettings.saveUnlistedTokens(this.unlistedToken)
+	      }
 	    },
 	    async checkUpdatedAssets () {
 	    	this.isloaded = false
+
+	    	// Ensure unlistedToken is an array before filtering
+	    	if (!Array.isArray(this.unlistedToken)) {
+	    		this.unlistedToken = []
+	    	}
 
 	    	const assetIDs = this.assets.map(asset => asset.id)
 	    	const diff = this.unlistedToken.filter(asset => assetIDs.includes(asset))	

@@ -87,7 +87,19 @@ export default {
   },  
   async mounted () {    
     await this.loadWallet()
+    
+    // Ensure wallet state is initialized before accessing getters
+    const wallet = this.$store.getters['global/getWallet']('bch')
+    const walletHash = wallet?.walletHash
+    if (walletHash) {
+      // Initialize wallet-specific state if not already initialized
+      this.$store.commit('ramp/initializeWalletState', walletHash)
+      this.$store.commit('paytacapos/initializeWalletState', walletHash)
+    }
+    
+    // Fetch user non-blocking - check store first
     this.fetchUser()
+    // Setup WebSocket non-blocking - don't await it
     this.setupWebsocket()
   },
   beforeUnmount () {    
@@ -95,6 +107,14 @@ export default {
   },
   methods: {
     async loadWallet () {
+      // Check Vuex store first for existing wallet to avoid duplicate loading
+      const storedWallet = this.$store.getters['ramp/wallet']
+      if (storedWallet && storedWallet.wallet) {
+        // Use the libauth wallet from the stored RampWallet instance
+        this.wallet = storedWallet.wallet
+        return
+      }
+      // If not in store, load it
       const isChipnet = this.$store.getters['global/isChipnet']
       const walletIndex = this.$store.getters['global/getWalletIndex']
       this.wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
@@ -115,17 +135,62 @@ export default {
       this.showLogin = true
     },
     fetchUser () {
+      // Check Vuex store first for existing user to avoid duplicate fetch
+      const storedUser = this.$store.getters['ramp/getUser']
+      if (storedUser) {
+        // User already loaded, just fetch unread count non-blocking
+        this.fetchUnreadCount()
+        return
+      }
+      // If user not in store, fetch it (non-blocking)
+      // Note: This endpoint doesn't require authorization - it's a public endpoint
       backend.get('ramp-p2p/user').then(response => {
         this.updateUnreadCount(response?.data?.user?.unread_orders_count)
+        // Store user in Vuex if not already stored
+        if (response?.data?.user) {
+          this.$store.commit('ramp/updateUser', response.data.user)
+        }
       })
         .catch(error => {
           if (error.response) {
             if (error.response.status === 403) {
               this.handleSessionEvent()
+            } else if (error.response.status === 401) {
+              // 401 means not authenticated - this is expected if user hasn't logged in yet
+              // Silently ignore - user will be prompted to login when needed
+            } else if (error.response.status === 404) {
+              // 404 means user doesn't exist yet, which is fine - silently ignore
+            } else {
+              // Only log other errors, don't show to user
+              console.error('Error fetching user:', error.response.status)
             }
           } else {
-            bus.emit('network-error')
+            // Network error - only emit if it's a real network issue
+            if (error.code !== 'ECONNABORTED') {
+              bus.emit('network-error')
+            }
           }
+        })
+    },
+    fetchUnreadCount () {
+      // Non-blocking fetch of unread count only
+      // Note: This endpoint doesn't require authorization - it's a public endpoint
+      backend.get('ramp-p2p/user').then(response => {
+        this.updateUnreadCount(response?.data?.user?.unread_orders_count)
+      })
+        .catch(error => {
+          // Silently fail - unread count is not critical for initial load
+          if (error.response) {
+            if (error.response.status === 403) {
+              this.handleSessionEvent()
+            } else if (error.response.status === 401) {
+              // 401 means not authenticated - silently ignore
+            } else if (error.response.status === 404) {
+              // 404 means user doesn't exist yet, which is fine - silently ignore
+            }
+            // Don't log or show other errors for unread count - it's non-critical
+          }
+          // Silently ignore network errors for unread count
         })
     },
     hideMenu () {
@@ -167,23 +232,35 @@ export default {
       }
       // NB: this does not filter by payment types
       if (addToList) {
-        if (order.is_cash_in) {
-          const cashinOrders = [...this.$store.getters['ramp/getCashinOrders']]
-          cashinOrders.unshift(order)
-          this.$store.commit('ramp/updateCashinOrders', { overwrite: true, data: { orders: cashinOrders } })
+        // All orders (including cash-in) now go into the main orders list
+        const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
+        if (filters.sort_type === 'descending') {
+          ongoingOrders.unshift(order)
         } else {
-          const ongoingOrders = [...this.$store.getters['ramp/getOngoingOrders']]
-          if (filters.sort_type === 'descending') {
-            ongoingOrders.unshift(order)
-          } else {
-            ongoingOrders.push(order)
-          }
-          this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
+          ongoingOrders.push(order)
         }
+        this.$store.commit('ramp/updateOngoingOrders', { overwrite: true, data: { orders: ongoingOrders } })
       }
     },
     setupWebsocket () {
-      const wsUrl = `${getBackendWsUrl()}general/${this.wallet?.walletHash}/`
+      // Non-blocking WebSocket setup - don't delay UI rendering
+      // Get walletHash from stored RampWallet or global wallet
+      const storedWallet = this.$store.getters['ramp/wallet']
+      let walletHash = storedWallet?.walletHash
+      
+      // If not in ramp store, get from global wallet
+      if (!walletHash) {
+        const globalWallet = this.$store.getters['global/getWallet']('bch')
+        walletHash = globalWallet?.walletHash
+      }
+      
+      if (!walletHash) {
+        // If wallet not ready yet, wait a bit and retry
+        setTimeout(() => this.setupWebsocket(), 500)
+        return
+      }
+      
+      const wsUrl = `${getBackendWsUrl()}general/${walletHash}/`
       webSocketManager.setWebSocketUrl(wsUrl)
       webSocketManager?.subscribeToMessages((message) => {
         bus.emit('update-unread-count', message?.extra?.unread_count)
@@ -193,6 +270,26 @@ export default {
       })
     },
     handleRequestError (error) {
+      // Don't log or show 404/401 errors - they're often expected
+      // 404: resource doesn't exist (e.g., user not registered yet)
+      // 401: not authenticated (user will be prompted to login when needed)
+      // 403: For chat-related errors, this often means chat identity not ready yet
+      if (error?.response?.status === 404 || error?.response?.status === 401) {
+        return // Silently ignore 404s and 401s
+      }
+      
+      // Check if it's a chat-related 403 error (chat identity not found)
+      if (error?.response?.status === 403) {
+        const errorDetail = error?.response?.data?.detail || ''
+        if (errorDetail.includes('Chat identity') || errorDetail.includes('chat identity')) {
+          // Chat identity not ready - silently ignore
+          return
+        }
+        // Other 403 errors - session expired
+        bus.emit('session-expired')
+        return
+      }
+      
       console.error('Handling error:', error?.response || error)
       if (error?.code === 'ECONNABORTED') {
         // Request timeout
@@ -203,9 +300,6 @@ export default {
       } else {
         // HTTP status code error
         switch (error.response.status) {
-          case 403:
-            bus.emit('session-expired')
-            break
           case 400:
             this.showErrorDialog('Bad Request. Please check the request parameters.')
             break

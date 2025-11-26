@@ -2,35 +2,120 @@ import axios from 'axios'
 import { Store } from 'src/store'
 import crypto from 'crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+import { getCurrentWalletStorageKey, getWalletStorageKey, getWalletHash } from 'src/utils/wallet-storage'
 
 export const backend = axios.create()
 const baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
-const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
-const TOKEN_STORAGE_KEY = 'asset-auth-key'
+const TOKEN_STORAGE_KEY_PREFIX = 'asset-auth-key'
+
+// Request cache to prevent duplicate simultaneous requests
+const requestCache = new Map()
+const CACHE_DURATION = 5000 // 5 seconds
+
+/**
+ * Get current wallet hash dynamically
+ * @returns {string|null} Current wallet hash or null if not available
+ */
+function getCurrentWalletHash() {
+  return Store.getters['global/getWallet']('bch')?.walletHash
+}
+
+/**
+ * Get cache key for a request
+ * @param {string} endpoint - API endpoint
+ * @param {string} walletHash - Wallet hash
+ * @returns {string} Cache key
+ */
+function getCacheKey(endpoint, walletHash) {
+  return `${endpoint}:${walletHash}`
+}
+
+/**
+ * Get cached request if available and not expired
+ * @param {string} cacheKey - Cache key
+ * @returns {Promise|null} Cached promise or null
+ */
+function getCachedRequest(cacheKey) {
+  const cached = requestCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.promise
+  }
+  return null
+}
+
+/**
+ * Cache a request promise
+ * @param {string} cacheKey - Cache key
+ * @param {Promise} promise - Request promise
+ */
+function setCachedRequest(cacheKey, promise) {
+  requestCache.set(cacheKey, {
+    promise,
+    timestamp: Date.now()
+  })
+  // Clean up after promise resolves
+  promise.finally(() => {
+    setTimeout(() => requestCache.delete(cacheKey), CACHE_DURATION)
+  })
+}
+
+/**
+ * Get wallet-specific storage key for asset auth token
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {string} Storage key with wallet hash
+ */
+function getTokenStorageKey(walletHash = null) {
+  if (walletHash) {
+    return getWalletStorageKey(TOKEN_STORAGE_KEY_PREFIX, walletHash)
+  }
+  return getCurrentWalletStorageKey(TOKEN_STORAGE_KEY_PREFIX)
+}
 
 export async function fetchCustomList ()  {
-	let customList = null
+	const walletHash = getCurrentWalletHash()
+	if (!walletHash) {
+		console.warn('No wallet hash available for fetchCustomList')
+		return null
+	}
 
-	await backend.get(baseURL + '/app-setting/custom-list/', { headers: { 'wallet-hash': walletHash } })
-		.then(response => {			
-			customList = response.data
-			// console.log('response: ', customList)
-		})
-		.catch(error => {
-			console.error(error.response)
-			if (error.response) {
-				if (error.response.status === 404) {
-					customList = ['error']
-				}					
-			}			
-		})
+	const cacheKey = getCacheKey('custom-list', walletHash)
+	const cached = getCachedRequest(cacheKey)
+	if (cached) {
+		return cached
+	}
 
-		// console.log('memoData: ', memoData)
+	const promise = (async () => {
+		let customList = null
+		await backend.get(baseURL + '/app-setting/custom-list/', { headers: { 'wallet-hash': walletHash } })
+			.then(response => {			
+				customList = response.data
+			})
+			.catch(error => {
+				// Only log non-404 errors (404 is expected when data doesn't exist yet)
+				if (error.response?.status !== 404) {
+					console.error(error.response)
+				}
+				if (error.response) {
+					if (error.response.status === 404) {
+						customList = ['error']
+					}					
+				}			
+			})
 		return customList
+	})()
+
+	setCachedRequest(cacheKey, promise)
+	return promise
 }
 
 export async function saveCustomList (list) {	
+	const walletHash = getCurrentWalletHash()
+	if (!walletHash) {
+		console.warn('No wallet hash available for saveCustomList')
+		return null
+	}
+
 	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 
 	let customList = null
@@ -40,19 +125,15 @@ export async function saveCustomList (list) {
 	await backend.post(baseURL + '/app-setting/custom-list/', data, { headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER }})
 		.then(response => {			
 			customList = response.data
-			// console.log(customList)
 		})
 		.catch(error => {
 			console.error(error)
 			if (error.response) {
-				// if (error.response.status === 404) {
-					customList = error.response.data
-				// }
+				customList = error.response.data
 			}			
 		})
 
-		return customList
-
+	return customList
 }
 
 export async function addNewAsset (asset, network) {
@@ -72,26 +153,49 @@ export async function addNewAsset (asset, network) {
 }
 
 export async function fetchFavorites () {
-	let favorites = null
+	const walletHash = getCurrentWalletHash()
+	if (!walletHash) {
+		console.warn('No wallet hash available for fetchFavorites')
+		return null
+	}
 
-	await backend.get(baseURL + '/app-setting/favorites/', { headers: { 'wallet-hash': walletHash } })
-		.then(response => {			
-			favorites = response.data
-		})
-		.catch(error => {
-			console.error(error.response)
-			if (error.response) {
-				if (error.response.status === 404) {
-					favorites = error.response.data
-				}					
-			}			
-		})
+	const cacheKey = getCacheKey('favorites', walletHash)
+	const cached = getCachedRequest(cacheKey)
+	if (cached) {
+		return cached
+	}
 
-		// console.log('memoData: ', memoData)
+	const promise = (async () => {
+		let favorites = null
+		await backend.get(baseURL + '/app-setting/favorites/', { headers: { 'wallet-hash': walletHash } })
+			.then(response => {			
+				favorites = response.data
+			})
+			.catch(error => {
+				// Only log non-404 errors (404 is expected when data doesn't exist yet)
+				if (error.response?.status !== 404) {
+					console.error(error.response)
+				}
+				if (error.response) {
+					if (error.response.status === 404) {
+						favorites = error.response.data
+					}					
+				}			
+			})
 		return favorites
+	})()
+
+	setCachedRequest(cacheKey, promise)
+	return promise
 }
 
 export async function saveFavorites (list) {
+	const walletHash = getCurrentWalletHash()
+	if (!walletHash) {
+		console.warn('No wallet hash available for saveFavorites')
+		return null
+	}
+
 	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 
 	let favorites = null
@@ -105,37 +209,57 @@ export async function saveFavorites (list) {
 		.catch(error => {
 			console.error(error)
 			if (error.response) {
-				// if (error.response.status === 404) {
-					favorites = error.response.data
-				// }
+				favorites = error.response.data
 			}			
 		})
 
-		return favorites
+	return favorites
 }
 
 export async function fetchUnlistedTokens () {
-	let unlisted_token = null
+	const walletHash = getCurrentWalletHash()
+	if (!walletHash) {
+		console.warn('No wallet hash available for fetchUnlistedTokens')
+		return null
+	}
 
-	await backend.get(baseURL + '/app-setting/unlisted-list/', { headers: { 'wallet-hash': walletHash } })
-		.then(response => {			
-			unlisted_token = response.data
-			// console.log('HERE: ', unlisted_token)
-		})
-		.catch(error => {
-			console.error(error.response)
-			if (error.response) {
-				if (error.response.status === 404) {
-					unlisted_token = error.response.data
-				}					
-			}			
-		})
+	const cacheKey = getCacheKey('unlisted-list', walletHash)
+	const cached = getCachedRequest(cacheKey)
+	if (cached) {
+		return cached
+	}
 
-		// console.log('memoData: ', memoData)
+	const promise = (async () => {
+		let unlisted_token = null
+		await backend.get(baseURL + '/app-setting/unlisted-list/', { headers: { 'wallet-hash': walletHash } })
+			.then(response => {			
+				unlisted_token = response.data
+			})
+			.catch(error => {
+				// Only log non-404 errors (404 is expected when data doesn't exist yet)
+				if (error.response?.status !== 404) {
+					console.error(error.response)
+				}
+				if (error.response) {
+					if (error.response.status === 404) {
+						unlisted_token = error.response.data
+					}					
+				}			
+			})
 		return unlisted_token
+	})()
+
+	setCachedRequest(cacheKey, promise)
+	return promise
 }
 
 export async function saveUnlistedTokens (list) {
+	const walletHash = getCurrentWalletHash()
+	if (!walletHash) {
+		console.warn('No wallet hash available for saveUnlistedTokens')
+		return null
+	}
+
 	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 
 	let unlisted_token = null
@@ -149,13 +273,11 @@ export async function saveUnlistedTokens (list) {
 		.catch(error => {
 			console.error(error)
 			if (error.response) {
-				// if (error.response.status === 404) {
-					unlisted_token = error.response.data
-				// }
+				unlisted_token = error.response.data
 			}			
 		})
 
-		return unlisted_token
+	return unlisted_token
 }
 
 export async function initializeCustomList (bch = [], sbch = []) {
@@ -183,18 +305,24 @@ export async function initializeFavorites (list) {
 }
 
 export async function registerUser () {	
+	const walletHash = getCurrentWalletHash()
+	if (!walletHash) {
+		console.warn('No wallet hash available for registerUser')
+		return
+	}
+
 	const user = 'ASSET_' + walletHash
 	const assetHash = await generateAssetHash(walletHash)
 
 	await backend.post(baseURL + '/app-setting/register/', {}, { headers: { 'x-auth-asset-wallethash': user, 'x-auth-asset-pass': assetHash}})
 		.then(async (response) => {
-			// console.log('response: ', response)
-			// memoData = response.data
 			await authToken()
 		})
 		.catch(async (error) => {
-			console.error(error.response)
-			// memoData = error.response.data
+			// Only log non-404 errors
+			if (error.response?.status !== 404) {
+				console.error(error.response)
+			}
 			if (error.response) {				
 				if (error.response.status === 400) {
 					await authToken()
@@ -204,23 +332,30 @@ export async function registerUser () {
 }
 
 export async function authToken () {
+	const walletHash = getCurrentWalletHash()
+	if (!walletHash) {
+		console.warn('No wallet hash available for authToken')
+		return
+	}
+
 	const user = 'ASSET_' + walletHash
 	const assetHash = await generateAssetHash(walletHash)
 
 	await backend.post(baseURL + '/app-setting/auth/', { 'username': user, 'password': assetHash })
 		.then(async (response) => {			
-			// memoData = response.data
 			await saveAuthToken(response.data.access)
 		})
 		.catch(error => {
-			console.error(error)
+			// Only log non-404 errors
+			if (error.response?.status !== 404) {
+				console.error(error)
+			}
 			registerUser()
-			// memoData = error.response.data
 		})
 }
 
 export async function generateAssetHash (wallethash) {
- 	const hashVal = 'ASSET_' + walletHash
+ 	const hashVal = 'ASSET_' + wallethash
 
  	sha256(hashVal)
 
@@ -237,25 +372,57 @@ export function sha256 (data) {
   return _sha256.digest().toString('hex')
 }
 
-export function saveAuthToken (value) {
-	SecureStoragePlugin.set({TOKEN_STORAGE_KEY, value}).then(success => { return success.value })
+export function saveAuthToken (value, walletHash = null) {
+	const key = getTokenStorageKey(walletHash)
+	return SecureStoragePlugin.set({ key, value }).then(success => { return success.value })
 }
 
-export function getAuthToken () {
-	return new Promise((resolve, reject) => {
-		SecureStoragePlugin.get({ TOKEN_STORAGE_KEY })
-			.then(token => {
-				// console.log('token: ', token)
-				resolve(token.value)
-			})
-			.catch(error => {
-				console.error('Item with specified key does not exist:', error)
-        		resolve(null)	
-			})
+export function getAuthToken (walletHash = null) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const key = getTokenStorageKey(walletHash)
+			SecureStoragePlugin.get({ key })
+				.then(token => {
+					resolve(token.value)
+				})
+				.catch(async error => {
+					// Fallback: try old global key for backward compatibility with existing users
+					try {
+						const oldToken = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY_PREFIX })
+						// If found, trigger migration (async, non-blocking)
+						// Get walletHash from parameter or from store
+						const targetWalletHash = walletHash || getWalletHash()
+						if (oldToken?.value && targetWalletHash) {
+							const newKey = getTokenStorageKey(targetWalletHash)
+							SecureStoragePlugin.set({ key: newKey, value: oldToken.value })
+								.catch(e => console.warn('Failed to migrate asset token:', e))
+						}
+						resolve(oldToken.value)
+					} catch (e) {
+						// No token found in either location
+						resolve(null)
+					}
+				})
+		} catch (error) {
+			resolve(null)
+		}
 	})
 }
 
-export function deleteAuthToken () {
-	SecureStoragePlugin.remove({ TOKEN_STORAGE_KEY })
-	console.log('Asset auth token deleted')
+export function deleteAuthToken (walletHash = null) {
+	const key = getTokenStorageKey(walletHash)
+	SecureStoragePlugin.remove({ key })
+	console.log('Asset auth token deleted for wallet:', walletHash || 'current')
+}
+
+/**
+ * Delete authentication token for a specific wallet hash
+ * @param {string} walletHash - The wallet hash to delete token for
+ */
+export function deleteAuthTokenForWallet(walletHash) {
+	if (walletHash) {
+		const key = getTokenStorageKey(walletHash)
+		SecureStoragePlugin.remove({ key })
+		console.log('Asset auth token deleted for wallet:', walletHash)
+	}
 }

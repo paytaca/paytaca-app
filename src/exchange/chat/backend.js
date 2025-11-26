@@ -3,6 +3,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import axios from 'axios'
 import { generateChatIdentityRef } from '.'
+import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage'
 
 const bchjs = new BCHJS()
 
@@ -36,44 +37,58 @@ chatBackend.interceptors.request.use(async (config) => {
   return config
 })
 
-const SIGNER_STORAGE_KEY = 'ramp-api-customer-signer-data'
+const SIGNER_STORAGE_KEY_PREFIX = 'ramp-api-customer-signer-data'
 
-export async function signRequestData (data) {
+/**
+ * Get wallet-specific storage key for chat signer data
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {string} Storage key with wallet hash
+ */
+function getSignerDataStorageKey(walletHash = null) {
+  if (walletHash) {
+    return getWalletStorageKey(SIGNER_STORAGE_KEY_PREFIX, walletHash)
+  }
+  return getCurrentWalletStorageKey(SIGNER_STORAGE_KEY_PREFIX)
+}
+
+export async function signRequestData (data, walletHash = null) {
   const response = { walletHash: '', signature: '' }
-  const { value } = await getSignerData()
+  const { value } = await getSignerData(walletHash)
   if (!value) {
     console.error('signRequestData value undefined')
     return response
   }
 
-  const [walletHash, privkey] = value.split(':')
-  if (!walletHash || !privkey) {
+  const [storedWalletHash, privkey] = value.split(':')
+  if (!storedWalletHash || !privkey) {
     console.error('signRequestData undefined walletHash || privkey')
     return response
   }
-  response.walletHash = walletHash
+  response.walletHash = storedWalletHash
 
   response.signature = bchjs.BitcoinCash.signMessageWithPrivKey(privkey, data)
   return response
 }
 
-export async function getSignerData () {
+export async function getSignerData (walletHash = null) {
   try {
-    const data = await SecureStoragePlugin.get({ key: SIGNER_STORAGE_KEY })
+    const key = getSignerDataStorageKey(walletHash)
+    const data = await SecureStoragePlugin.get({ key })
     return { success: true, value: data.value }
   } catch (error) {
     return { success: false, error: error }
   }
 }
 
-export async function setSignerData (value = '') {
+export async function setSignerData (value = '', walletHash = null) {
   try {
+    const key = getSignerDataStorageKey(walletHash)
     if (!value) {
-      const removeResp = await SecureStoragePlugin.remove({ key: SIGNER_STORAGE_KEY })
+      const removeResp = await SecureStoragePlugin.remove({ key })
       return { success: removeResp.value }
     }
 
-    const setResponse = await SecureStoragePlugin.set({ key: SIGNER_STORAGE_KEY, value: value })
+    const setResponse = await SecureStoragePlugin.set({ key, value: value })
     return { success: setResponse.value }
   } catch (error) {
     console.error(error)
@@ -92,8 +107,13 @@ export async function updateSignerData () {
   const verifyingPubkey = wallet.pubkey(addressPath)
   const walletHash = wallet?.walletHash
 
+  if (!walletHash) {
+    console.error('Wallet hash not available for updating signer data')
+    return Promise.reject('Wallet hash not available')
+  }
+
   // return if no need to update signer data
-  const signerData = await getSignerData()
+  const signerData = await getSignerData(walletHash)
   const storedWalletHash = signerData?.value?.split(':')[0]
   const storedPrivKey = signerData?.value?.split(':')[1]
   if (storedWalletHash === walletHash && storedPrivKey === privkey) {
@@ -110,7 +130,7 @@ export async function updateSignerData () {
   if (!valid) return Promise.reject('Invalid signature on updateSignerData')
 
   // store this walletHash:privkey pair as current chat signer
-  await setSignerData(`${walletHash}:${privkey}`)
+  await setSignerData(`${walletHash}:${privkey}`, walletHash)
   console.log('Chat signer data updated')
 }
 

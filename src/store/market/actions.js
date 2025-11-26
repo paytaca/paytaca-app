@@ -59,17 +59,112 @@ export function getAllAssetList (context) {
   return { mainchain, smartchain }
 }
 
-export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null }) {
-  const selectedCurrency = context.state.selectedCurrency?.symbol
+export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null, assetId = null }) {
+  // Use getter to get selected currency (checks vault settings first, then module state)
+  const selectedCurrency = context.getters.selectedCurrency
+  const currencySymbol = selectedCurrency?.symbol
+  
+  // If assetId is provided, use the unified endpoint to fetch price for that specific asset
+  // This works for tokens (ct/..., slp/...) as well as BCH
+  if (assetId) {
+    // Request only the user's currency - the API should return prices in the requested currency
+    const vsCurrencies = [currencySymbol, customCurrency]
+      .filter(Boolean)
+      .filter((element, index, array) => array.indexOf(element) === array.lastIndexOf(element))
+    
+    if (!vsCurrencies.length) return
+    
+    // Normalize asset ID for API (uppercase for BCH, keep as-is for tokens)
+    const normalizedAssetId = assetId === 'bch' ? 'BCH' : assetId
+    
+    try {
+      const { data } = await axios.get(
+        'https://watchtower.cash/api/asset-prices/',
+        {
+          params: {
+            assets: normalizedAssetId,
+            vs_currencies: vsCurrencies.join(',')
+          }
+        }
+      )
+      
+      if (!data?.prices || !Array.isArray(data.prices)) return
+      
+      // Build prices object from response
+      // Filter by asset to ensure we get the correct price for this specific asset
+      // Note: For tokens, API returns tokens/currency (e.g., tokens per PHP), but we need currency/token (e.g., PHP per token)
+      // For BCH, API returns currency/BCH (e.g., PHP per BCH) which is already in the correct format
+      const prices = {}
+      const isToken = assetId && assetId !== 'bch' && assetId.includes('/')
+      
+      data.prices.forEach(priceData => {
+        // Since we're requesting a single asset, all prices in the response should be for that asset
+        // However, if the API includes an asset field, we should verify it matches
+        if (priceData?.asset) {
+          // Match the asset to ensure we're getting the right price
+          // Handle both normalized and original asset ID formats
+          const responseAsset = String(priceData.asset).toLowerCase().trim()
+          const expectedAsset = normalizedAssetId.toLowerCase().trim()
+          const originalAssetIdLower = assetId.toLowerCase().trim()
+          
+          // Match if response asset matches either normalized or original asset ID
+          if (responseAsset !== expectedAsset && responseAsset !== originalAssetIdLower) {
+            return
+          }
+        }
+        // If no asset field exists, assume it's for the requested asset (since we only requested one)
+        
+        // Check for price data - handle different possible field names
+        const currency = priceData?.currency || priceData?.vs_currency || priceData?.currency_symbol
+        const priceValue = priceData?.price_value || priceData?.price || priceData?.value
+        
+        if (!currency || priceValue === undefined || priceValue === null) return
+        
+        const currencyLower = String(currency).toLowerCase()
+        const rawPrice = parseFloat(priceValue)
+        if (!isFinite(rawPrice)) return
+        
+        // For tokens, convert from tokens/currency to currency/token (take reciprocal)
+        // For BCH, use the price directly as it's already currency/BCH
+        // Only take reciprocal if rawPrice is not zero to avoid division by zero
+        const price = isToken && rawPrice !== 0 ? 1 / rawPrice : rawPrice
+        
+        prices[currencyLower] = price
+      })
+      
+      // Only commit prices if we actually have at least one price
+      // This prevents committing empty prices object when API succeeds but no prices match
+      const hasPrices = Object.keys(prices).length > 0
+      if (!hasPrices) return
+      
+      const newAssetPrices = [{
+        assetId: assetId,
+        prices: prices
+      }]
+      
+      if (clearExisting) context.commit('clearAssetPrices')
+      context.commit('updateAssetPrices', newAssetPrices)
+      
+      return
+    } catch (error) {
+      console.error('Error fetching asset price:', error)
+      return
+    }
+  }
+  
+  // For bulk updates, still use the old method with getAllAssetList for backwards compatibility
   const assetList = await context.dispatch('getAllAssetList')
-  const coinIds = [...assetList.mainchain, ...assetList.smartchain]
+  
+  let assetsToFetch = [...assetList.mainchain, ...assetList.smartchain]
+  
+  const coinIds = assetsToFetch
     .map(({ coin }) => coin && coin.id)
     .filter(Boolean)
     .filter((e, i, s) => s.indexOf(e) === i)
 
-  const vsCurrencies = [selectedCurrency, customCurrency]
+  const vsCurrencies = [currencySymbol, customCurrency]
     .filter(Boolean)
-    .filter((element, index, array) => array.indexOf(element) === index)
+    .filter((element, index, array) => array.indexOf(element) === array.lastIndexOf(element))
 
   const { data: priceDataList } = await axios.get(
     'https://watchtower.cash/api/market-prices/',
@@ -95,12 +190,12 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
   })
 
   let fetchUsdRate = false
-  if (selectedCurrency) {
-    const loweredSelectedCurrency = String(selectedCurrency).toLowerCase()
+  if (currencySymbol) {
+    const loweredSelectedCurrency = String(currencySymbol).toLowerCase()
     fetchUsdRate = !coinIds.map(coinId => prices?.[coinId]?.[loweredSelectedCurrency]).every(Boolean)
   }
 
-  const newAssetPrices = [...assetList.mainchain, ...assetList.smartchain]
+  const newAssetPrices = assetsToFetch
     .filter(({ coin, asset }) => coin?.id && asset?.id)
     .map(({ asset, coin }) => {
       return {
@@ -110,9 +205,17 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
       }
     })
 
-  if (clearExisting) context.commit('clearAssetPrices')
-  context.commit('updateAssetPrices', newAssetPrices)
-  if (fetchUsdRate) context.dispatch('updateUsdRates', { currency: selectedCurrency })
+  if (clearExisting) {
+    context.commit('clearAssetPrices')
+    // When clearing, pass as full update to ensure clean state
+    context.commit('updateAssetPrices', { assetPrices: newAssetPrices, isFullUpdate: true })
+  } else {
+    // For bulk updates without explicit clear, don't treat as full update
+    // to preserve existing token prices that aren't included in this update
+    // (getAllAssetList only returns assets without '/' in ID, excluding tokens)
+    context.commit('updateAssetPrices', { assetPrices: newAssetPrices, isFullUpdate: false })
+  }
+  if (fetchUsdRate) context.dispatch('updateUsdRates', { currency: currencySymbol })
 }
 
 /**
@@ -134,19 +237,32 @@ export async function updateUsdRates (context, { currency, priceDataAge }) {
         return [{ symbol: String(currency), rate: usdRate, timestamp: lastUpdate }]
       }
     }
-    const { data } = await axios.get(`https://api.yadio.io/rate/${currency}/USD`)
-    if (!data.rate) return Promise.reject()
-    rates = [
-      { symbol: String(currency), rate: data.rate, timestamp: data?.timestamp }
-    ]
+    try {
+      const { data } = await axios.get(`https://api.yadio.io/rate/${currency}/USD`)
+      if (!data.rate) {
+        return Promise.reject(new Error(`No rate data returned for currency: ${currency}`))
+      }
+      // API returns rate from currency to USD (e.g., 1 PHP = 0.018 USD)
+      // But we need rate from USD to currency (e.g., 1 USD = 55.56 PHP)
+      // So we need to take the reciprocal
+      const rateFromUsdToCurrency = 1 / parseFloat(data.rate)
+      rates = [
+        { symbol: String(currency), rate: rateFromUsdToCurrency, timestamp: data?.timestamp }
+      ]
+    } catch (error) {
+      console.error('Error fetching USD rate from API:', error)
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)))
+    }
   } else {
     const { data } = await axios.get('https://api.yadio.io/exrates/USD')
-    if (!data.USD) return Promise.reject()
+    if (!data.USD) return Promise.reject(new Error('No USD rate data returned from API'))
 
     rates = Object.getOwnPropertyNames(data)
       .map(symbol => {
         if (typeof data[symbol] !== 'string') return
-        return { symbol, rate: data[symbol], timestamp: data?.timestamp }
+        // API returns rates from currency to USD, we need USD to currency
+        const rateFromUsdToCurrency = 1 / parseFloat(data[symbol])
+        return { symbol, rate: rateFromUsdToCurrency, timestamp: data?.timestamp }
       })
       .filter(Boolean)
   }

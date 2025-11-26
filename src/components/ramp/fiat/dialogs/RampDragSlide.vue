@@ -1,6 +1,6 @@
 <template>
   <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom">
-    <div style="margin-bottom: 25px; margin-left: 10%; margin-right: 10%; background: transparent;">
+    <div class="drag-slide-inner">
       <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: 40px;">
         <template v-if="!locked" v-slot:left>
           <div style="font-size: 15px" class="text-body1">
@@ -20,18 +20,23 @@
       </q-slide-item>
     </div>
   </div>
+  <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
 </template>
 <script>
-import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
-import { Dialog } from 'quasar'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import pinDialog from 'src/components/pin/index.vue'
 
 export default {
   name: 'drag-slide',
+  components: {
+    pinDialog
+  },
   data () {
     return {
       swiped: false,
       sliderText: this.$t('SwipeToSend'),
-      theme: this.$store.getters['global/theme']
+      theme: this.$store.getters['global/theme'],
+      pinDialogAction: ''
     }
   },
   computed: {
@@ -64,18 +69,59 @@ export default {
         } catch {}
       }, 2000)
       this.swiped = true
-      this.showSecurityDialog()
+      this.executeSecurityChecking(reset)
     },
-    showSecurityDialog () {
-      Dialog.create({
-        component: SecurityCheckDialog
-      })
-        .onOk(() => {
-          this.$emit('ok')
-        })
-        .onCancel(() => {
-          this.$emit('cancel')
-        })
+    executeSecurityChecking (reset = () => {}) {
+      const vm = this
+      setTimeout(() => {
+        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+        if (preferredSecurity === 'pin') {
+          // Reset first to ensure watcher is triggered
+          vm.pinDialogAction = ''
+          vm.$nextTick(() => {
+            vm.pinDialogAction = 'VERIFY'
+          })
+        } else {
+          vm.verifyBiometric(reset)
+        }
+      }, 300)
+    },
+    verifyBiometric (reset = () => {}) {
+      const vm = this
+      NativeBiometric.verifyIdentity({
+        reason: vm.$t('NativeBiometricReason2'),
+        title: vm.$t('SecurityAuthentication'),
+        subtitle: vm.$t('NativeBiometricSubtitle'),
+        description: ''
+      }).then(
+        () => {
+          // Authentication successful
+          vm.$emit('ok')
+        },
+        (error) => {
+          // Failed to authenticate
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+            reset?.()
+            vm.swiped = false
+            vm.$emit('cancel')
+          } else if (error.message.includes('Too many attempts. Try again later.')) {
+            // Retry after delay
+            setTimeout(() => {
+              vm.verifyBiometric(reset)
+            }, 2000)
+          } else {
+            vm.verifyBiometric(reset)
+          }
+        }
+      )
+    },
+    pinDialogNextAction (action) {
+      if (action === 'proceed') {
+        this.$emit('ok')
+      } else {
+        this.swiped = false
+        this.$emit('cancel')
+      }
     }
   },
   async mounted () {
@@ -95,9 +141,11 @@ export default {
     left: 0;
     right: 0;
     width: 100%;
-    z-index: 1500;
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 9999 !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    padding-top: 20px;
     background: transparent !important;
+    pointer-events: auto;
     
     /* Ensure the element stays attached to viewport on iOS */
     -webkit-backface-visibility: hidden;
@@ -123,6 +171,27 @@ export default {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
     }
+  }
+}
+
+.drag-slide-inner {
+  margin-bottom: 16px;
+  margin-left: 10%;
+  margin-right: 10%;
+  background: transparent;
+  position: relative;
+  z-index: 10000;
+  
+  /* iOS specific - add more bottom margin */
+  @supports (-webkit-touch-callout: none) {
+    margin-bottom: 20px;
+  }
+  
+  /* Ensure all child elements have proper z-index */
+  :deep(.q-slide-item),
+  :deep(.q-item) {
+    position: relative;
+    z-index: 10001;
   }
 }
 </style>

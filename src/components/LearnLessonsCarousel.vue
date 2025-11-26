@@ -1,10 +1,11 @@
 <template>
-  <div v-if="lessons.length > 0" class="learn-carousel-container text-bow" :class="getDarkModeClass(darkMode)">
+  <div v-if="loading || lessons.length > 0" class="learn-carousel-container text-bow" :class="getDarkModeClass(darkMode)">
     <div class="row items-center justify-between q-mb-sm">
       <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
         {{ $t('Learn') }}
       </div>
       <q-btn
+        v-if="!loading && lessons.length > 0"
         flat
         dense
         no-caps
@@ -16,7 +17,31 @@
       />
     </div>
     
-    <div class="row no-wrap q-pl-lg q-mb-lg no-scrollbar lessons-container">
+    <!-- Skeleton Loading State -->
+    <div v-if="loading" class="row no-wrap q-pl-lg q-mb-lg no-scrollbar lessons-container">
+      <div
+        v-for="n in 5"
+        :key="`skeleton-${n}`"
+        class="lesson-card pt-card"
+        :class="darkMode ? 'dark' : 'light'"
+        :style="{ 'margin-left': n === 1 ? '0px' : '12px' }"
+      >
+        <q-skeleton
+          type="rect"
+          height="128px"
+          width="128px"
+          class="lesson-media-skeleton"
+          :class="darkMode ? 'dark' : 'light'"
+        />
+        <q-skeleton type="text" width="90%" height="18px" class="q-mt-sm" />
+        <q-skeleton type="text" width="100%" height="14px" class="q-mt-xs" />
+        <q-skeleton type="text" width="80%" height="14px" class="q-mt-xs" />
+        <q-skeleton type="text" width="60%" height="12px" class="q-mt-sm" />
+      </div>
+    </div>
+
+    <!-- Actual Lessons -->
+    <div v-else-if="lessons.length > 0" class="row no-wrap q-pl-lg q-mb-lg no-scrollbar lessons-container">
       <div
         v-for="(lesson, index) in lessons"
         :key="lesson.id"
@@ -25,8 +50,17 @@
         :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
         @click="openLesson(lesson)"
       >
-        <div class="lesson-icon-wrapper" :style="{ background: lesson.gradient }">
-          <div class="lesson-icon">{{ lesson.icon }}</div>
+        <div class="lesson-media" :class="darkMode ? 'dark' : 'light'">
+          <img
+            v-if="getLessonImage(lesson)"
+            :src="getLessonImage(lesson)"
+            alt="lesson image"
+            class="lesson-img"
+            loading="lazy"
+          />
+          <div v-else class="lesson-fallback" :style="{ background: lesson.gradient }">
+            <div class="lesson-icon">{{ lesson.icon }}</div>
+          </div>
         </div>
         <div class="lesson-title">{{ lesson.title }}</div>
         <div class="lesson-description" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
@@ -53,7 +87,7 @@ export default {
   data() {
     return {
       lessons: [],
-      loading: false
+      loading: true // Start with loading true to show skeletons on initial mount
     }
   },
   computed: {
@@ -63,20 +97,19 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    async fetchLessons() {
-      if (this.loading) return
+    getLessonImage(lesson) {
+      // Prefer explicit image fields; fallback to thumbnail or cover
+      return lesson?.image || lesson?.thumbnail || lesson?.cover || ''
+    },
+    async fetchLessons(forceRefresh = false) {
+      // If not forcing refresh and we already have lessons, this is a background refresh
+      const isBackgroundRefresh = !forceRefresh && this.lessons.length > 0
       
-      this.loading = true
+      if (!isBackgroundRefresh) {
+        this.loading = true
+      }
       
       try {
-        // Check cache first
-        const cached = this.getCachedLessons()
-        if (cached) {
-          this.lessons = cached
-          this.loading = false
-          return
-        }
-
         // Fetch from API
         const response = await axios.get(LEARN_API_URL, {
           timeout: 10000
@@ -89,17 +122,22 @@ export default {
       } catch (error) {
         console.error('Error fetching learn lessons:', error)
         
-        // Try cached data even if expired
-        const cached = this.getCachedLessons(true)
-        if (cached) {
-          this.lessons = cached
-        } else {
-          // If CORS error or network error, silently hide the section
-          // The component will be hidden via v-if when lessons.length === 0
-          this.lessons = []
+        // On error, fall back to cache if available (only if we don't have lessons)
+        if (this.lessons.length === 0) {
+          const cached = this.getCachedLessons(true) // Allow expired cache as fallback
+          if (cached && cached.length > 0) {
+            this.lessons = cached
+          } else {
+            // If no cache available, hide the section
+            // The component will be hidden via v-if when lessons.length === 0
+            this.lessons = []
+          }
         }
+        // If we already have lessons (background refresh failed), just keep existing lessons
       } finally {
-        this.loading = false
+        if (!isBackgroundRefresh) {
+          this.loading = false
+        }
       }
     },
     getCachedLessons(ignoreExpiry = false) {
@@ -144,10 +182,12 @@ export default {
     }
   },
   mounted() {
-    // Fetch lessons with a slight delay to not block critical page loading
-    setTimeout(() => {
-      this.fetchLessons()
-    }, 500)
+    // Always show skeletons and fetch fresh data on mount (initial load or pull-to-refresh)
+    this.loading = true
+    this.lessons = [] // Clear any previous lessons to show skeletons
+    
+    // Fetch fresh data from API
+    this.fetchLessons(true) // Force refresh to get latest data
   }
 }
 </script>
@@ -190,18 +230,32 @@ export default {
   }
 }
 
-.lesson-icon-wrapper {
-  width: 48px;
-  height: 48px;
+.lesson-media {
+  width: 128px;
+  height: 128px;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   margin-bottom: 12px;
+}
+.lesson-media.dark { background: rgba(255,255,255,0.06); }
+.lesson-media.light { background: rgba(0,0,0,0.04); }
+
+.lesson-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.lesson-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
 }
 
 .lesson-icon {
-  font-size: 24px;
+  font-size: 36px;
   line-height: 1;
 }
 
@@ -233,5 +287,12 @@ export default {
   letter-spacing: 0.5px;
   font-weight: 500;
 }
+
+.lesson-media-skeleton {
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+.lesson-media-skeleton.dark { background: rgba(255,255,255,0.06); }
+.lesson-media-skeleton.light { background: rgba(0,0,0,0.04); }
 </style>
 

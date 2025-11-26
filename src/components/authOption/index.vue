@@ -84,7 +84,8 @@ export default {
     }
   },
   created () {
-    this.preferredSecurity = this.$q.localStorage.getItem('preferredSecurity') ? this.$q.localStorage.getItem('preferredSecurity') === 'pin' ? 'pin' : 'biometric' : 'pin'
+    const storedPref = this.$store.getters['global/preferredSecurity']
+    this.preferredSecurity = storedPref === 'pin' ? 'pin' : 'biometric'
   }
 }
 </script>

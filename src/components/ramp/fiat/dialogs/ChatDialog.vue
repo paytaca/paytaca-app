@@ -566,6 +566,9 @@ export default {
           if (error.response) {
             if (error.response?.status === 404) {
               createSession = true
+            } else if (error.response?.status === 403) {
+              // 403 means chat identity not ready - silently ignore
+              createSession = false
             }
           } else {
             bus.emit('network-error')
@@ -583,8 +586,18 @@ export default {
 
         // Create session if necessary
         if (createSession) {
-          await createChatSession(vm.order?.id, vm.chatRef).catch(error => { console.error(error) })
-          await updateChatMembers(vm.chatRef, chatMembers).catch(error => { console.error(error) })
+          await createChatSession(vm.order?.id, vm.chatRef).catch(error => {
+            // Silently handle 403 errors - chat identity not ready yet
+            if (error.response?.status !== 403) {
+              console.error('Failed to create chat session:', error)
+            }
+          })
+          await updateChatMembers(vm.chatRef, chatMembers).catch(error => {
+            // Silently handle 403 errors - chat identity not ready yet
+            if (error.response?.status !== 403) {
+              console.error('Failed to update chat members:', error)
+            }
+          })
         } else {
           // Fetch current chat members and compare with provided members
           fetchChatMembers(vm.chatRef).then(async currentChatMembers => {
@@ -654,6 +667,11 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
+        if (!orderId) {
+          console.warn('Order ID is missing, skipping fetchOrderMembers')
+          resolve([])
+          return
+        }
         backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)

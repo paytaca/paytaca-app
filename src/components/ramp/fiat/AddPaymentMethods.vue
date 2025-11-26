@@ -1,5 +1,8 @@
 <template>
-  <HeaderNav v-if="type === 'Profile'" :title="`P2P Exchange`" @click="onBack" />
+  <div v-if="type === 'Profile'" class="sticky-header" :class="getDarkModeClass(darkMode)">
+    <HeaderNav :title="`P2P Exchange`" @click="onBack" />
+  </div>
+  <div v-if="type === 'Profile'" :style="{ height: headerOffset + 'px' }"></div>
   <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
@@ -9,22 +12,23 @@
         {{ type === 'Profile' ? $t('YourPaymentMethods') : $t('SelectPaymentMethods') }}
       </div>
 
-      <div v-if="type === 'Profile'" class="q-ml-md text-h5" style="font-size: medium;" @click="showCurrencySelect">
-        <span>{{ selectedCurrency.symbol }}</span> <q-icon size="sm" name='mdi-menu-down'/>
-      </div>
-
-      <q-separator :dark="darkMode" class="q-mx-md"/>
+      <q-separator v-if="type !== 'Profile'" :dark="darkMode" class="q-mx-md"/>
 
       <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mt-sm">{{ instructionMessage }}</div>
-      <q-card-section class="q-mt-sm" :style="`height: ${minHeight}px;`" style="overflow-y:auto;">
-        <div v-if="paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
+      <!-- Single Add Method button for Profile view -->
+      <div v-if="type === 'Profile'" class="row q-mx-md q-mt-sm">
+        <q-btn outline rounded no-caps :label="$t('AddMethod')" class="q-space button button-text-primary" :class="getDarkModeClass(darkMode)" @click="createMethod()"/>
+      </div>
+      <q-card-section class="q-mt-sm" :style="cardSectionStyle">
+        <div v-if="type !== 'Profile' && paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
           <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>
           <p class="q-pt-sm" :class="{ 'text-black': !darkMode }">{{ $t('NoPaymentMethodAdded') }}</p>
         </div>
-        <q-item class="q-my-none q-py-none" v-for="(method, index) in paymentMethods" :key="index">
+        <!-- Non-profile listing (e.g., Ads/General flows) -->
+        <q-item v-if="type !== 'Profile'" class="q-my-none q-py-none" v-for="(method, index) in paymentMethods" :key="index">
           <q-item-section>
-            <div class="row no-wrap">
-              <div class="col-grow">
+            <div class="row no-wrap items-start">
+              <div class="col">
                 <div class="md-font-size">
                   {{ method.payment_type?.short_name || method.payment_type?.full_name }}
                 </div>
@@ -35,7 +39,7 @@
                 </div>
                 <div v-if="method.alien" class="xs-font-size" style="color: red">{{ currency }} does not support this payment type</div>
               </div>
-              <div class="text-right" v-if="type === 'Profile'">
+              <div class="col-auto text-right self-start" v-if="type === 'Profile'">
                 <q-btn
                   outline
                   rounded
@@ -57,7 +61,7 @@
                   @click="deleteMethod(method)"
                   />
               </div>
-              <div class="col justify-end text-right"  v-if="type === 'General'">
+              <div class="col-auto justify-end text-right self-start"  v-if="type === 'General'">
                 <q-btn
                   :outline="!isPaymentSelected(method)"
                   rounded
@@ -73,6 +77,86 @@
             <q-separator :dark="darkMode" class="q-my-sm"/>
           </q-item-section>
         </q-item>
+
+        <!-- Profile view grouped by currency -->
+        <div v-if="type === 'Profile' && groupedPaymentMethods.length > 0">
+          <q-card
+            v-for="(group, gi) in groupedPaymentMethods"
+            :key="group.currency"
+            class="q-mb-md group-card"
+            flat
+            bordered>
+            <q-card-section class="q-pb-none">
+              <div class="currency-header">
+                {{ group.currency }}
+              </div>
+            </q-card-section>
+            <q-separator :dark="darkMode" />
+            <q-card-section class="q-pt-sm q-pb-sm">
+              <div v-if="group.methods.length === 0" class="empty-state">
+                <q-icon class="q-mr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="md" name="mdi-delete-empty"/>
+                <span :class="{ 'text-black': !darkMode }">{{ $t('NoPaymentMethodAdded') }}</span>
+              </div>
+              <div v-else>
+                <q-item v-for="(method, mi) in group.methods" :key="mi" class="q-px-none">
+                  <q-item-section>
+                    <div class="row no-wrap items-start">
+                      <div class="col">
+                        <div class="method-title">
+                          <q-icon name="o_payments" size="18px" class="q-mr-sm" />
+                          <span>{{ method.payment_type?.short_name || method.payment_type?.full_name }}</span>
+                        </div>
+                        <div v-for="(field, index) in method.values" :key="index" class="method-value">
+                          {{ field.value }}
+                        </div>
+                      </div>
+                      <div class="col-auto text-right self-start">
+                        <q-btn dense flat round icon="edit" :class="getDarkModeClass(darkMode)" @click="editMethod(method, group.currency)" />
+                        <q-btn dense flat round icon="delete" color="red-6" class="q-ml-xs" @click="deleteMethod(method, group.currency)" />
+                      </div>
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </div>
+            </q-card-section>
+            <q-separator :dark="darkMode" />
+          </q-card>
+        </div>
+        <!-- Fallback for Profile view if grouping has no data -->
+        <div v-else-if="type === 'Profile'">
+          <div class="q-ml-md text-h5" style="font-size: medium;">
+            <span>{{ selectedCurrency.symbol }}</span>
+          </div>
+          <q-separator :dark="darkMode" class="q-mx-md"/>
+          <div v-if="paymentMethods.length === 0" class="relative text-center" style="margin-top: 20px;">
+            <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="md" name="mdi-delete-empty"/>
+            <p class="q-pt-sm q-mb-none" :class="{ 'text-black': !darkMode }">{{ $t('NoPaymentMethodAdded') }}</p>
+          </div>
+          <q-item class="q-my-none q-py-none" v-for="(method, index) in paymentMethods" :key="index">
+            <q-item-section>
+              <div class="row no-wrap items-start">
+                <div class="col">
+                  <div class="md-font-size">
+                    {{ method.payment_type?.short_name || method.payment_type?.full_name }}
+                  </div>
+                  <div v-for="(field, i) in method.values" :key="i">
+                    <div class="subtext">
+                      {{ field.value }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-auto text-right self-start">
+                  <q-btn outline rounded padding="sm" icon="edit" size="sm" class="button button-icon" :class="getDarkModeClass(darkMode)" @click="editMethod(method, selectedCurrency.symbol)" />
+                  <q-btn outline rounded padding="sm" size="sm" icon="delete" color="red-6" class="q-ml-xs" @click="deleteMethod(method, selectedCurrency.symbol)" />
+                </div>
+              </div>
+              <q-separator :dark="darkMode" class="q-my-sm"/>
+            </q-item-section>
+          </q-item>
+          <div class="row q-mx-md q-py-sm">
+            <q-btn outline rounded no-caps :label="$t('AddMethod')" class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod(selectedCurrency.symbol)"/>
+          </div>
+        </div>
         <div v-if="type === 'General' && emptyPaymentMethods.length !== 0">
           <q-item v-for="(method, index) in emptyPaymentMethods" :key="index">
             <q-item-section>
@@ -94,9 +178,7 @@
         <div class="row q-pt-xs q-mx-md" v-if="type !== 'Profile'">
           <q-btn :loading="loadSubmitButton" :disable="disableSubmit" rounded no-caps :label="confirmLabel" class="q-space text-white button" :class="getDarkModeClass(darkMode)" color="blue-6" @click="submitPaymentMethod()" />
         </div>
-        <div class="row q-mx-md q-py-md" v-if="type === 'Profile'">
-          <q-btn v-if="paymentMethods.length - paymentTypeOpts.length !== 0" outline rounded no-caps :label="$t('AddMethod')" class="q-space button button-icon" :class="getDarkModeClass(darkMode)" @click="createMethod"/>
-        </div>
+        <!-- In Profile view, Add Method buttons are per currency group -->
       </div>
     </div>
   </div>
@@ -121,12 +203,33 @@
     :action="dialogType"
     :payment-method-id="selectedMethodIndex"
     :payment-type="info"
-    :currency="currency"
+    :currency="currencyContext || currency"
     @success="fetchPaymentMethods"
     @back="onPaymentMethodBack"/>
-  <div v-if="!isloaded">
-    <div class="row justify-center q-py-lg" style="margin-top: 50px">
-      <ProgressLoader/>
+  <div v-if="!isloaded" class="q-mx-md">
+    <!-- Title skeleton -->
+    <div class="q-mx-sm q-mt-sm q-mb-sm">
+      <q-skeleton type="text" class="q-mx-auto" style="width: 60%; height: 28px;" />
+    </div>
+    <!-- Add button skeleton -->
+    <div class="q-mx-md q-mt-sm q-mb-md">
+      <q-skeleton type="rect" style="height: 40px; border-radius: 24px;" />
+    </div>
+    <!-- Currency cards skeleton -->
+    <div class="q-gutter-lg q-mt-sm">
+      <q-card v-for="i in 3" :key="i" flat bordered class="group-card">
+        <q-card-section class="q-pb-none">
+          <q-skeleton type="text" style="width: 80px; height: 18px;" />
+        </q-card-section>
+        <q-separator :dark="darkMode" />
+        <q-card-section>
+          <div class="q-gutter-sm">
+            <q-skeleton type="text" style="width: 50%; height: 16px;" />
+            <q-skeleton type="text" style="width: 90%; height: 14px;" />
+            <q-skeleton type="text" style="width: 70%; height: 14px;" />
+          </div>
+        </q-card-section>
+      </q-card>
     </div>
   </div>
 </template>
@@ -169,6 +272,7 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       paymentMethods: [],
+      groupedPaymentMethods: [],
       paymentTypeOpts: [],
       paymentMethodOpts: [],
       selectedMethods: [],
@@ -191,7 +295,8 @@ export default {
       showMiscDialogs: false,
       fiatOption: null,
       selectedCurrency: this.$store.getters['market/selectedCurrency'],
-      loadSubmitButton: false
+      loadSubmitButton: false,
+      currencyContext: null
     }
   },
   emits: ['submit', 'back'],
@@ -206,7 +311,11 @@ export default {
       await vm.fetchFiatCurrency()
     }
     await vm.fetchPaymentTypes()
-    await vm.fetchPaymentMethods()
+    if (vm.type === 'Profile') {
+      await vm.fetchAllPaymentMethodsProfile()
+    } else {
+      await vm.fetchPaymentMethods()
+    }
     switch (vm.type) {
       case 'General':
         vm.validatePaymentMethods()
@@ -239,6 +348,16 @@ export default {
         height = height - 170
       }
       return height
+    },
+    cardSectionStyle () {
+      if (this.type === 'Profile') {
+        return {}
+      }
+      return { height: `${this.minHeight}px`, overflowY: 'auto' }
+    },
+    headerOffset () {
+      // mirror header-nav default height values
+      return this.$q.platform.is.ios ? 95 : 70
     },
     hasAlienPaymentsSelected () {
       const alienPaymentMethods = this.paymentMethods.filter(element => {
@@ -275,6 +394,11 @@ export default {
   watch: {
     selectedCurrency () {
       this.fetchPaymentMethods()
+    },
+    fiatOption (val) {
+      if (this.type === 'Profile' && Array.isArray(val) && val.length > 0) {
+        this.fetchAllPaymentMethodsProfile()
+      }
     }
   },
   methods: {
@@ -335,7 +459,8 @@ export default {
       this.title = 'Create Order?'
       this.openDialog = true
     },
-    createMethod () {
+    createMethod (currency) {
+      this.currencyContext = currency || null
       this.info = this.paymentMethods.map(p => p.payment_type)
       this.showPaymentMethodForm = true
       this.dialogType = 'createPaymentMethod'
@@ -353,14 +478,16 @@ export default {
       this.dialogType = 'addPaymentMethod'
       this.openDialog = true
     },
-    editMethod (data) {
+    editMethod (data, currency) {
+      this.currencyContext = currency || null
       this.info = { ...data }
       this.selectedMethodIndex = data.id
       this.showPaymentMethodForm = true
       this.dialogType = 'editPaymentMethod'
       this.openDialog = true
     },
-    deleteMethod (data) {
+    deleteMethod (data, currency) {
+      this.currencyContext = currency || null
       this.info = data
       this.selectedMethodIndex = data.id
       this.showPaymentMethodForm = true
@@ -408,13 +535,12 @@ export default {
       return match
     },
     async fetchFiatCurrency () {
-      backend.get('/ramp-p2p/currency/fiat')
-        .then(response => {
-          this.fiatOption = response.data
-        })
-        .catch(error => {
-          console.error(error)
-        })
+      try {
+        const response = await backend.get('/ramp-p2p/currency/fiat')
+        this.fiatOption = response.data
+      } catch (error) {
+        console.error(error)
+      }
     },
     async fetchPaymentTypes () {
       const vm = this
@@ -459,6 +585,21 @@ export default {
           }
         })
     },
+    async fetchAllPaymentMethodsProfile () {
+      // Build grouped list of payment methods for each fiat currency
+      if (!this.fiatOption || !Array.isArray(this.fiatOption)) {
+        this.groupedPaymentMethods = []
+        return
+      }
+      const symbols = this.fiatOption.map(c => c.symbol)
+      const requests = symbols.map(symbol =>
+        backend.get('/ramp-p2p/payment-method', { params: { currency: symbol }, authorize: true })
+          .then(resp => ({ currency: symbol, methods: resp.data || [] }))
+          .catch(() => ({ currency: symbol, methods: [] }))
+      )
+      const results = await Promise.all(requests)
+      this.groupedPaymentMethods = results.filter(g => (g.methods && g.methods.length > 0))
+    },
     validatePaymentMethods () {
       const vm = this
       vm.paymentMethods = vm.paymentMethods.map((element) => {
@@ -488,7 +629,11 @@ export default {
             bus.emit('network-error')
           }
         })
-      await vm.fetchPaymentMethods()
+      if (vm.type === 'Profile') {
+        await vm.fetchAllPaymentMethodsProfile()
+      } else {
+        await vm.fetchPaymentMethods()
+      }
       this.openDialog = false
       vm.isloaded = true
     },
@@ -514,9 +659,6 @@ export default {
           // posting new payment method
           backend.post(url, body, { authorize: true })
             .then(response => {
-              if (vm.paymentMethods.length < 5) {
-                vm.paymentMethods.push(response.data)
-              }
               vm.openDialog = false
             })
             .catch(error => {
@@ -557,7 +699,11 @@ export default {
         }
       }
 
-      this.fetchPaymentMethods()
+      if (this.type === 'Profile') {
+        await this.fetchAllPaymentMethodsProfile()
+      } else {
+        this.fetchPaymentMethods()
+      }
 
       // if (this.dialogType === 'addMethodFromAd') {
       //   this.fetchPaymentMethods()
@@ -589,5 +735,54 @@ export default {
 
 .subtext {
   opacity: .5;
+}
+
+/* Ensure very long identifiers (e.g., IBAN, wallet addresses) wrap gracefully */
+.md-font-size,
+.subtext {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Grouped profile layout polish */
+.group-card {
+  border-radius: 14px;
+}
+
+.currency-header {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+.method-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.method-value {
+  opacity: .7;
+  margin-top: 2px;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0 10px;
+}
+
+.sticky-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
 }
 </style>
