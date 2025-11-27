@@ -594,6 +594,22 @@ function hasValidWalletHash(wallet) {
   )
 }
 
+/**
+ * Helper to extract wallet hash from wallet object
+ * Checks all possible locations where wallet hash might be stored
+ * @param {Object} wallet - The wallet object
+ * @returns {string|null} The wallet hash or null if not found
+ */
+function getWalletHashFromWallet(wallet) {
+  if (!wallet) return null
+  return wallet.wallet?.bch?.walletHash ||
+         wallet.wallet?.BCH?.walletHash ||
+         wallet.BCH?.walletHash ||
+         wallet.bch?.walletHash ||
+         wallet.walletHash ||
+         null
+}
+
 export async function ensureValidWalletIndex (context) {
   console.log('[ensureValidWalletIndex] ===== Starting wallet index validation =====')
   const vault = context.getters.getVault
@@ -876,7 +892,7 @@ export async function cleanupDuplicateWallets (context) {
       return
     }
 
-    const walletHash = wallet?.wallet?.bch?.walletHash
+    const walletHash = getWalletHashFromWallet(wallet)
     if (!walletHash) {
       // If no walletHash, keep it (might be incomplete wallet)
       walletsToKeep.push({ wallet, index })
@@ -936,7 +952,7 @@ export async function cleanupDuplicateWallets (context) {
   
   for (const index of sortedIndices) {
     const wallet = vault[index]
-    const walletHash = wallet?.wallet?.bch?.walletHash
+    const walletHash = getWalletHashFromWallet(wallet)
     
     // Get mnemonic for complete cleanup
     let mnemonic = null
