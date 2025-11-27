@@ -53,6 +53,7 @@ contract TapToPay(
         // the rest of the byte is stored in expectedTerminalHash
         bytes spendLimit, bytes expectedTerminalHash = rest2.split(8);
         
+        // checks if payment is enabled
         require(flag == 0x01, 'Access denied: Terminal is not authorized');
         // Only continue if the terminal hash matches what the contract expects (the authorized device)
         require(terminalHash == expectedTerminalHash, 'Access denied: Invalid terminal id');

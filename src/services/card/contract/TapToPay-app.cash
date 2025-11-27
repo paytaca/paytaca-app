@@ -30,48 +30,69 @@ contract TapToPay(
       // verify app acting as terminal
       require(checkSig(terminalSig, terminalPk), 'Invalid app (terminal) signature');
 
-      // must have 2 or 3 outputs only
+      // must have min 2 and max 3 outputs only
        require(tx.outputs.length >= 2 && tx.outputs.length <= 3, 'Unexpected number of outputs');
       
       /*
-          check that the auth NFT input has the right category
-          - ensures it's working with the correct TapToPay NFT.
+        Auth NFT presented must have correct category
+        Take the first 32 bytes (base tokenID) of the token category from the first input and save it as tokenCategory.
+        Specified 32 bytes just in case it's longer (e.g. 64 bytes) - the rest of the bytes may just be commitment data
       */
       bytes tokenCategory = (tx.inputs[0].tokenCategory).split(32)[0];
       require(tokenCategory == category, 'Invalid token category');
 
       /*
         Verify that the app instance is authorized:
-        - Generate a hash from terminalId + terminalPk
-        - Compare with the expected value stored in the NFT commitment
+        terminalHash now binds the Paytaca app's ID + pubkey of the wallet as the authorized 'terminal'
       */
       bytes fullHash = sha256(terminalId + terminalPk);
       bytes terminalHash = fullHash.split(27)[0];
 
-      // Break down the NFT commitment into fields
+      /*
+        Break down the NFT commitment into fields:
+        stores the commitment of the first input to commitment;
+        splits commitment into 2 parts: first byte (flag) - payment enabled?, the rest of the byte - commitment data;
+        splits rest into 2 parts: first 4 bytes stored in expirationBlock
+        the rest of the byte is stored in rest2;
+        splits rest2 into two parts: first 8 bytes stored in spendLimit
+        the rest of the byte is stored in expectedTerminalHash
+       */ 
       bytes commitment = tx.inputs[0].nftCommitment;
-      bytes flag, bytes rest = commitment.split(1);       // flag = auth enabled?
+      bytes flag, bytes rest = commitment.split(1);       // flag 0x01 means payment enabled
       bytes expirationBlock, bytes rest2 = rest.split(4); // when does this expire?
       bytes spendLimit, bytes expectedTerminalHash = rest2.split(8); // limit + authorized terminal
 
       require(flag == 0x01, 'Access denied: App is not authorized');
+      // Only continue if the terminal hash matches what the contract expects (the authorized device)
       require(terminalHash == expectedTerminalHash, 'Access denied: Invalid app/terminal id');
       require(tx.locktime <= int(expirationBlock), 'Authentication expired');
 
       /*
         Ensure NFT commitment cannot be tampered with.
         It must stay exactly the same after the transaction.
+        require that auth NFT commitment is not tampered with after spending
       */
       require(commitment == tx.outputs[0].nftCommitment, 'NFT commitment must not change');
 
-      // Auth NFT must always return back to this contract (self-locking)
+      /*
+        Auth NFT must always return back to this contract (self-locking):
+        retrieves the locking script or bytecode of the input the contract is currently spending
+        it takes the contract's own code and conditions that locked the funds being spent now
+      */
       bytes contractLock = tx.inputs[this.activeInputIndex].lockingBytecode;
+
+      /*
+        if the locking script of output 0 is equal to the contract's locking script, result is true
+        meaning NFTs are being sent back to contract
+      */
       bool nftSendsToContract = tx.outputs[0].lockingBytecode == contractLock;
       require(nftSendsToContract, 'Auth NFT must return to contract');
 
       /*
         Output[1] must send funds to the Paytaca app’s public key.
         - ensures the "recipient" is really the app acting as terminal.
+        creates a lock, and insert terminalPk to the locking script or
+        creates a lock that only the authorized terminalPk can open
       */
       bytes25 recipientLock = new LockingBytecodeP2PKH(hash160(terminalPk));
       bool sendsToRecipient = tx.outputs[1].lockingBytecode == recipientLock;
