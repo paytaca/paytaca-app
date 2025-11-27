@@ -136,7 +136,21 @@ export default {
 
       if (this.customList) { 
         return this.customList.filter(asset => asset && this.favorites.includes(asset.id))
-      } 
+      }
+      
+      // Fallback: show assets from props when customList is not yet initialized
+      // This ensures tokens show up immediately for newly imported wallets
+      // If favorites are already loaded, filter by them; otherwise show all assets
+      if (this.assets && this.assets.length > 0) {
+        if (this.favorites && this.favorites.length > 0) {
+          // Filter by favorites if available
+          return this.assets.filter(asset => asset && this.favorites.includes(asset.id))
+        }
+        // Show all assets if favorites not yet loaded (for newly imported wallets)
+        return this.assets.slice(0, 10)
+      }
+      
+      return []
     },
     denomination () {
       return this.$store.getters['global/denomination']
@@ -150,13 +164,58 @@ export default {
       return false
     }
   },
-  // watch: {
-  //   customListIDs(val) {
-  //     if (val) {
-        
-  //     }
-  //   }
-  // },
+  watch: {
+    // Watch for changes in assets prop to refresh customList when new tokens are added
+    async assets (newAssets, oldAssets) {
+      // Only process if we have customListIDs initialized and new assets
+      if (!this.customListIDs || !newAssets || newAssets.length === 0) {
+        return
+      }
+      
+      const newAssetIds = newAssets.map(a => a.id)
+      const oldAssetIds = oldAssets ? oldAssets.map(a => a.id) : []
+      
+      // Check if there are new assets that aren't in the old list
+      const hasNewAssets = newAssetIds.some(id => !oldAssetIds.includes(id))
+      
+      if (!hasNewAssets) {
+        return
+      }
+      
+      // Refresh customList to include new tokens
+      // If customList is null, try to build it first
+      await this.getCustomAssetList()
+      
+      // Check for unsaved assets and save them
+      const assetIDs = newAssets.map(asset => asset.id)
+      const unsavedAsset = assetIDs.filter(asset => !this.customListIDs[this.network]?.includes(asset))
+      
+      if (unsavedAsset.length > 0) {
+        try {
+          await assetSettings.authToken()
+          
+          const tempList = this.customListIDs
+          const tempFav = this.favResult || []
+          
+          const unsavedAssetFavFormat = unsavedAsset.map(asset => ({ id: asset, favorite: 0 }))
+          
+          if (!tempList[this.network]) {
+            tempList[this.network] = []
+          }
+          tempList[this.network].push(...unsavedAsset)
+          tempFav.push(...unsavedAssetFavFormat)
+          
+          assetSettings.saveCustomList(tempList)
+          assetSettings.saveFavorites(tempFav)
+          
+          // Refresh customList after saving
+          await this.getCustomAssetList()
+        } catch (error) {
+          console.error('Error saving new assets:', error)
+        }
+      }
+    }
+  },
   async mounted() {        
     this.customListIDs = await assetSettings.fetchCustomList()      
 
@@ -203,6 +262,18 @@ export default {
 
             assetSettings.saveCustomList(tempList)
             assetSettings.saveFavorites(tempFav)
+            
+            // Refresh customList after saving new assets
+            await this.getCustomAssetList()
+          }
+        } else {
+          // If customList is null but we have assets, try to build it from assets
+          // This handles the case where tokens are loaded before customList is initialized
+          if (this.assets && this.assets.length > 0) {
+            // Wait a bit for assets to be fully loaded, then refresh
+            this.$nextTick(async () => {
+              await this.getCustomAssetList()
+            })
           }
         }   
       }      
