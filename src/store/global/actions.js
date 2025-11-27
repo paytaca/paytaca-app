@@ -725,7 +725,12 @@ export async function cleanupNullAndDeletedWallets (context) {
       }
       
       // Perform complete cleanup for deleted/null wallets
-      const walletHash = wallet?.wallet?.bch?.walletHash
+      // Check all possible wallet hash locations (post-migration pattern)
+      const walletHash = wallet?.wallet?.bch?.walletHash || 
+                         wallet?.wallet?.BCH?.walletHash ||
+                         wallet?.BCH?.walletHash || 
+                         wallet?.bch?.walletHash ||
+                         wallet?.walletHash
       if (walletHash) {
         // Try to get mnemonic for complete cleanup (including PIN)
         let mnemonic = null
@@ -756,7 +761,12 @@ export async function cleanupNullAndDeletedWallets (context) {
       // Flag doesn't exist, migration not completed
     }
     
-    const walletHash = wallet?.wallet?.bch?.walletHash
+    // Check all possible wallet hash locations (post-migration pattern)
+    const walletHash = wallet?.wallet?.bch?.walletHash || 
+                       wallet?.wallet?.BCH?.walletHash ||
+                       wallet?.BCH?.walletHash || 
+                       wallet?.bch?.walletHash ||
+                       wallet?.walletHash
     let mnemonic = null
     
     if (migrationCompleted) {

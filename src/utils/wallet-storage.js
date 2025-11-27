@@ -48,7 +48,12 @@ export function getWalletHashFromIndex(index) {
   try {
     const vault = Store.getters['global/getVault']
     const wallet = vault?.[index]
-    return wallet?.wallet?.bch?.walletHash || wallet?.BCH?.walletHash || null
+    return wallet?.wallet?.bch?.walletHash || 
+           wallet?.wallet?.BCH?.walletHash ||
+           wallet?.BCH?.walletHash || 
+           wallet?.bch?.walletHash ||
+           wallet?.walletHash ||
+           null
   } catch (error) {
     console.error('Error getting wallet hash from index:', error)
     return null
@@ -66,7 +71,12 @@ export async function getWalletHashFromIndexAsync(index) {
     const store = useStore()
     const vault = store.getters['global/getVault']
     const wallet = vault?.[index]
-    return wallet?.wallet?.bch?.walletHash || wallet?.BCH?.walletHash || null
+    return wallet?.wallet?.bch?.walletHash || 
+           wallet?.wallet?.BCH?.walletHash ||
+           wallet?.BCH?.walletHash || 
+           wallet?.bch?.walletHash ||
+           wallet?.walletHash ||
+           null
   } catch (error) {
     console.error('Error getting wallet hash from index:', error)
     return null
