@@ -136,7 +136,7 @@ export default {
 
       if (this.customList) { 
         return this.customList.filter(asset => asset && this.favorites.includes(asset.id))
-      }
+      } 
       
       // Fallback: show assets from props when customList is not yet initialized
       // This ensures tokens show up immediately for newly imported wallets

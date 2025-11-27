@@ -686,8 +686,13 @@ export default {
         }
         await Promise.all(promises)
       }
+      // Use wallet hash for deletion when available (more reliable than index)
       const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
-      vm.$store.dispatch('global/deleteWallet', currentWalletIndex).then(() => {
+      const walletHash = vm.wallet?.BCH?.walletHash || vm.wallet?.bch?.walletHash
+      
+      // Prefer wallet hash for deletion (post-migration pattern)
+      const deleteIdentifier = walletHash || currentWalletIndex
+      vm.$store.dispatch('global/deleteWallet', deleteIdentifier).then(() => {
         // Check if there are any wallets left after deletion
         const vault = vm.$store.state.global.vault
         const hasUndeletedWallets = vault.some(wallet => wallet.deleted !== true)
