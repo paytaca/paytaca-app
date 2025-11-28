@@ -344,7 +344,11 @@ import { migrateGlobalToWalletSpecific } from 'src/utils/wallet-migration'
 export async function switchWallet (context, walletHashOrIndex) {
   console.log('[switchWallet] ===== Starting wallet switch =====')
   console.log('[switchWallet] Input (walletHashOrIndex):', walletHashOrIndex, typeof walletHashOrIndex)
-  console.log('[switchWallet] Current wallet index before switch:', context.getters.getWalletIndex)
+  
+  // Save the OLD wallet index BEFORE any changes
+  // This is critical: we need to sync the old wallet before switching
+  const oldWalletIndex = context.getters.getWalletIndex
+  console.log('[switchWallet] Current (old) wallet index before switch:', oldWalletIndex)
   
   // Determine target index/hash SYNCHRONOUSLY before the async setTimeout
   // This allows immediate index update so router guard sees correct index
@@ -380,6 +384,7 @@ export async function switchWallet (context, walletHashOrIndex) {
     console.log('[switchWallet] Extracted wallet hash:', walletHash || 'none')
     
     // Update wallet index IMMEDIATELY (synchronously) so router guard sees correct index
+    // NOTE: We still need to sync the OLD wallet in the setTimeout block below
     console.log('[switchWallet] Updating wallet index IMMEDIATELY to:', index)
     context.commit('updateWalletIndex', index)
     context.commit('updateCurrentWallet', index)
@@ -389,6 +394,34 @@ export async function switchWallet (context, walletHashOrIndex) {
   return new Promise((resolve, reject) => {
     setTimeout(async () => {
       try {
+        // CRITICAL: Sync the OLD wallet to vault BEFORE switching to the new wallet
+        // This ensures we save the current wallet's state to the correct vault slot
+        // For index-based switching: index was already updated synchronously, so we temporarily restore old index
+        // For hash-based switching: index is still the old one, so we can sync directly
+        if (oldWalletIndex !== null && oldWalletIndex !== undefined && oldWalletIndex !== index) {
+          const currentIndexBeforeSync = context.getters.getWalletIndex
+          console.log('[switchWallet] Syncing OLD wallet (index:', oldWalletIndex, ') to vault BEFORE switching...')
+          console.log('[switchWallet] Current index before sync:', currentIndexBeforeSync)
+          
+          // Temporarily restore old index to sync the old wallet (only if it's different)
+          if (currentIndexBeforeSync !== oldWalletIndex) {
+            context.commit('updateWalletIndex', oldWalletIndex)
+            context.commit('updateCurrentWallet', oldWalletIndex)
+          }
+          
+          // Sync the old wallet to its vault slot
+          await context.dispatch('syncCurrentWalletToVault')
+          console.log('[switchWallet] Old wallet sync completed')
+          
+          // Restore to target index (for index-based switching) or keep old index (for hash-based, will update below)
+          if (index !== null) {
+            // Index-based switching: restore to the target index that was set synchronously
+            context.commit('updateWalletIndex', index)
+            context.commit('updateCurrentWallet', index)
+          }
+          // For hash-based switching (index === null), we keep the old index for now and update it below
+        }
+        
         // If wallet hash was provided, find index now
         if (walletHash && index === null) {
           console.log('[switchWallet] Finding index for wallet hash...')
@@ -410,11 +443,6 @@ export async function switchWallet (context, walletHashOrIndex) {
         console.log('[switchWallet] Target wallet index:', index)
         console.log('[switchWallet] Target wallet hash:', walletHash || 'none')
         console.log('[switchWallet] Target wallet name:', newWallet?.name || 'none')
-        
-        // Sync current wallet to vault BEFORE switching (saves current wallet state)
-        console.log('[switchWallet] Syncing current wallet to vault...')
-        await context.dispatch('syncCurrentWalletToVault')
-        console.log('[switchWallet] Sync completed')
         
         // Index was already updated synchronously above, but ensure it's still correct
         if (context.getters.getWalletIndex !== index) {
