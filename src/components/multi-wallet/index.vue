@@ -217,21 +217,39 @@ export default {
       // Map displayed index to actual vault index
       const actualIndex = vm.vaultIndexMap.get(displayIndex) ?? displayIndex
       
+      console.log('[MultiWallet] switchWallet called with displayIndex:', displayIndex)
+      console.log('[MultiWallet] Mapped to actualIndex:', actualIndex)
+      console.log('[MultiWallet] Current index:', vm.currentIndex)
+      
       // Also check if the current index matches the actual index
       const currentActualIndex = vm.vaultIndexMap.get(vm.currentIndex) ?? vm.currentIndex
-      if (actualIndex === currentActualIndex) return
+      console.log('[MultiWallet] Current actual index:', currentActualIndex)
+      if (actualIndex === currentActualIndex) {
+        console.log('[MultiWallet] Already on this wallet, skipping switch')
+        return
+      }
 
       vm.hide()
       const loadingDialog = this.$q.dialog({
         component: LoadingWalletDialog
       })
 
+      console.log('[MultiWallet] Dispatching switchWallet action with index:', actualIndex)
       vm.$store.dispatch('global/switchWallet', actualIndex).then(function () {
+        console.log('[MultiWallet] switchWallet action completed, navigating to home...')
         vm.$router.push('/')
-        setTimeout(() => { location.reload() }, 500)
+        console.log('[MultiWallet] Navigation pushed, reloading in 500ms...')
+        setTimeout(() => { 
+          console.log('[MultiWallet] Reloading page...')
+          location.reload() 
+        }, 500)
+      }).catch(function (error) {
+        console.error('[MultiWallet] Error switching wallet:', error)
+        loadingDialog.hide()
       })
 
-      loadingDialog.hide()
+      // Don't hide loading dialog immediately - wait for switch to complete
+      // loadingDialog.hide()
     },
     isActive (displayIndex) {
       // Map displayed index to actual vault index and compare with current index
@@ -265,11 +283,21 @@ export default {
       const { getMnemonic } = await import('src/wallet')
       
       // Check mnemonics in parallel for better performance
-      const mnemonicChecks = tempVault.map((wallet, index) => 
-        wallet && wallet.deleted !== true 
-          ? getMnemonic(index).catch(() => null)
-          : Promise.resolve(null)
-      )
+      // Use wallet hash when available for more reliable lookup
+      const mnemonicChecks = tempVault.map((wallet, index) => {
+        if (!wallet || wallet.deleted === true) {
+          return Promise.resolve(null)
+        }
+        
+        // Prefer wallet hash if available (post-migration pattern)
+        const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.BCH?.walletHash
+        if (walletHash) {
+          return getMnemonic(walletHash).catch(() => null)
+        }
+        
+        // Fallback to index-based lookup (pre-migration or missing wallet hash)
+        return getMnemonic(index).catch(() => null)
+      })
       const mnemonics = await Promise.all(mnemonicChecks)
       
       tempVault.forEach((wallet, originalIndex) => {

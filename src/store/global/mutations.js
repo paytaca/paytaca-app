@@ -1,4 +1,4 @@
-import { deleteMnemonic } from './../../wallet'
+import { deleteMnemonic, deleteMnemonicByHash } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 import { removeWalletName } from 'src/utils/wallet-name-cache'
 
@@ -335,19 +335,27 @@ export function migrateWalletSettings (state, payload) {
   }
 }
 
+/**
+ * @deprecated This mutation is kept for backward compatibility but is no longer used.
+ * Wallet deletion is now handled entirely in the deleteWallet action which performs
+ * complete cleanup and removes the wallet from vault.
+ * 
+ * The action now:
+ * 1. Retrieves wallet data (walletHash, mnemonic)
+ * 2. Calls deleteAllWalletData() to remove all traces (mnemonic, PIN, auth tokens)
+ * 3. Removes wallet name from cache
+ * 4. Removes wallet from vault using removeVaultEntry()
+ * 5. Handles wallet switching if needed
+ */
 export function deleteWallet (state, index) {
-  // Mark wallet as deleted
-  const wallet = state.vault[index]
-  const walletHash = wallet?.wallet?.bch?.walletHash
+  // This mutation is deprecated - deletion is now handled in the action
+  // Keeping for backward compatibility but it should not be called directly
+  console.warn('[Wallet Deletion] deleteWallet mutation called directly - this should be handled by the action')
   
-  // Remove cached wallet name
-  if (walletHash) {
-    removeWalletName(walletHash)
+  // Mark wallet as deleted (legacy behavior)
+  if (state.vault[index]) {
+    state.vault[index].deleted = true
   }
-  
-  state.vault[index].deleted = true
-  // Delete the mnemonic seed phrase for this wallet
-  deleteMnemonic(index)
 }
 
 export function toggleIsChipnet (state) {

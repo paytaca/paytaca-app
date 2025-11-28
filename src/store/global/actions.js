@@ -5,7 +5,11 @@ import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/wallet-name-cache'
-import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic } from '../../wallet'
+import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash } from '../../wallet'
+import { getVaultIndexByWalletHashAsync } from 'src/utils/wallet-storage'
+import { Plugins } from '@capacitor/core'
+
+const { SecureStoragePlugin } = Plugins
 import { privateKeyToCashAddress } from '../../wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
 import { backend } from 'src/exchange/backend'
@@ -297,10 +301,21 @@ export function syncSettingsToModules (context) {
 
 export async function syncCurrentWalletToVault(context) {
   const currentIndex = context.getters.getWalletIndex
+  const vault = context.getters.getVault
+  
+  // Safety check: ensure vault entry exists at current index
+  // This can happen after wallet deletion when indices shift
+  if (!vault || !vault[currentIndex]) {
+    console.warn(`[syncCurrentWalletToVault] Vault entry does not exist at index ${currentIndex}. Vault length: ${vault?.length || 0}`)
+    // Don't switch wallets here - just return early
+    // The caller (switchWallet or ensureValidWalletIndex) should handle wallet switching
+    return
+  }
+  
   const wallet = context.getters.getAllWalletTypes
   const chipnet = context.getters.getAllChipnetTypes
 
-  const walletName = context.getters.getVault[currentIndex].name
+  const walletName = vault[currentIndex].name || ''
 
   const info = {
     index: currentIndex,
@@ -321,17 +336,122 @@ export async function syncCurrentWalletToVault(context) {
 
 import { migrateGlobalToWalletSpecific } from 'src/utils/wallet-migration'
 
-export async function switchWallet (context, index) {
+/**
+ * Switch wallet by wallet hash or index
+ * @param {Object} context - Vuex context
+ * @param {string|number} walletHashOrIndex - Wallet hash (string) or vault index (number)
+ */
+export async function switchWallet (context, walletHashOrIndex) {
+  console.log('[switchWallet] ===== Starting wallet switch =====')
+  console.log('[switchWallet] Input (walletHashOrIndex):', walletHashOrIndex, typeof walletHashOrIndex)
+  
+  // Save the OLD wallet index BEFORE any changes
+  // This is critical: we need to sync the old wallet before switching
+  const oldWalletIndex = context.getters.getWalletIndex
+  console.log('[switchWallet] Current (old) wallet index before switch:', oldWalletIndex)
+  
+  // Determine target index/hash SYNCHRONOUSLY before the async setTimeout
+  // This allows immediate index update so router guard sees correct index
+  let walletHash = null
+  let index = null
+  let newWallet = null
+  const vault = context.state.vault
+  console.log('[switchWallet] Vault length:', vault?.length || 0)
+  
+  // Determine if input is wallet hash or index (synchronously for index, async for hash lookup)
+  if (typeof walletHashOrIndex === 'string' && walletHashOrIndex.length >= 32) {
+    // Wallet hash provided - need to find index (async, but we'll do it in the setTimeout)
+    walletHash = walletHashOrIndex
+    console.log('[switchWallet] Wallet hash provided, will find index in async block...')
+  } else {
+    // Index provided (backward compatibility) - can validate synchronously
+    index = walletHashOrIndex
+    console.log('[switchWallet] Index provided:', index)
+    newWallet = vault[index]
+    console.log('[switchWallet] Wallet at index exists:', !!newWallet, 'deleted:', newWallet?.deleted)
+    
+    if (!newWallet || newWallet.deleted === true) {
+      console.error(`[switchWallet] Cannot switch to wallet at index ${index}: wallet does not exist or is deleted`)
+      return Promise.reject(new Error(`Wallet at index ${index} does not exist`))
+    }
+    
+    // Extract wallet hash from wallet
+    walletHash = newWallet?.wallet?.bch?.walletHash || 
+                newWallet?.wallet?.BCH?.walletHash ||
+                newWallet?.BCH?.walletHash || 
+                newWallet?.bch?.walletHash ||
+                newWallet?.walletHash
+    console.log('[switchWallet] Extracted wallet hash:', walletHash || 'none')
+    
+    // Update wallet index IMMEDIATELY (synchronously) so router guard sees correct index
+    // NOTE: We still need to sync the OLD wallet in the setTimeout block below
+    console.log('[switchWallet] Updating wallet index IMMEDIATELY to:', index)
+    context.commit('updateWalletIndex', index)
+    context.commit('updateCurrentWallet', index)
+    console.log('[switchWallet] Wallet index updated synchronously, new index:', context.getters.getWalletIndex)
+  }
+  
   return new Promise((resolve, reject) => {
     setTimeout(async () => {
       try {
-        context.dispatch('syncCurrentWalletToVault', )
-        context.commit('assets/updatedCurrentAssets', index, { root: true })
+        // CRITICAL: Sync the OLD wallet to vault BEFORE switching to the new wallet
+        // This ensures we save the current wallet's state to the correct vault slot
+        // For index-based switching: index was already updated synchronously, so we temporarily restore old index
+        // For hash-based switching: index is still the old one, so we can sync directly
+        if (oldWalletIndex !== null && oldWalletIndex !== undefined && oldWalletIndex !== index) {
+          const currentIndexBeforeSync = context.getters.getWalletIndex
+          console.log('[switchWallet] Syncing OLD wallet (index:', oldWalletIndex, ') to vault BEFORE switching...')
+          console.log('[switchWallet] Current index before sync:', currentIndexBeforeSync)
+          
+          // Temporarily restore old index to sync the old wallet (only if it's different)
+          if (currentIndexBeforeSync !== oldWalletIndex) {
+            context.commit('updateWalletIndex', oldWalletIndex)
+            context.commit('updateCurrentWallet', oldWalletIndex)
+          }
+          
+          // Sync the old wallet to its vault slot
+          await context.dispatch('syncCurrentWalletToVault')
+          console.log('[switchWallet] Old wallet sync completed')
+          
+          // Restore to target index (for index-based switching) or keep old index (for hash-based, will update below)
+          if (index !== null) {
+            // Index-based switching: restore to the target index that was set synchronously
+            context.commit('updateWalletIndex', index)
+            context.commit('updateCurrentWallet', index)
+          }
+          // For hash-based switching (index === null), we keep the old index for now and update it below
+        }
         
-        // Get wallet hash for the new wallet to initialize state
-        const vault = context.state.vault
-        const newWallet = vault[index]
-        const walletHash = newWallet?.BCH?.walletHash || newWallet?.walletHash
+        // If wallet hash was provided, find index now
+        if (walletHash && index === null) {
+          console.log('[switchWallet] Finding index for wallet hash...')
+          index = await getVaultIndexByWalletHashAsync(walletHash)
+          console.log('[switchWallet] Found index for wallet hash:', index)
+          
+          if (index === null || index === -1) {
+            console.error(`[switchWallet] Wallet hash ${walletHash} not found in vault`)
+            reject(new Error(`Wallet hash ${walletHash} not found in vault`))
+            return
+          }
+          
+          newWallet = vault[index]
+          // Update index now that we found it
+          context.commit('updateWalletIndex', index)
+          context.commit('updateCurrentWallet', index)
+        }
+        
+        console.log('[switchWallet] Target wallet index:', index)
+        console.log('[switchWallet] Target wallet hash:', walletHash || 'none')
+        console.log('[switchWallet] Target wallet name:', newWallet?.name || 'none')
+        
+        // Index was already updated synchronously above, but ensure it's still correct
+        if (context.getters.getWalletIndex !== index) {
+          console.log('[switchWallet] Re-updating wallet index to:', index, '(was:', context.getters.getWalletIndex, ')')
+          context.commit('updateWalletIndex', index)
+          context.commit('updateCurrentWallet', index)
+        }
+        
+        context.commit('assets/updatedCurrentAssets', index, { root: true })
         
         // Initialize wallet-specific state if hash is available
         if (walletHash) {
@@ -354,52 +474,132 @@ export async function switchWallet (context, index) {
         
         // Removed all reset/clear commits - data is now wallet-specific and persists
         // No need to clear data when switching wallets since each wallet has its own state
+        // Note: wallet index was already updated above
         
-        context.commit('updateWalletIndex', index)
-        context.commit('updateCurrentWallet', index)
         // Sync settings to darkmode and market modules
+        console.log('[switchWallet] Syncing settings to modules...')
         context.dispatch('syncSettingsToModules')
+        console.log('[switchWallet] Settings synced')
 
+        console.log('[switchWallet] Final wallet index:', context.getters.getWalletIndex)
+        console.log('[switchWallet] ===== Wallet switch completed successfully =====')
         resolve()
       } catch (error) {
+        console.error('[switchWallet] Error during wallet switch:', error)
+        console.error('[switchWallet] Error stack:', error.stack)
         reject(error)
       }
     }, 1000)
   })
 }
 
-export async function deleteWallet (context, index) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const currentWalletIndex = context.getters.getWalletIndex
-      const isDeletingCurrentWallet = index === currentWalletIndex
-      
-      // Mark wallet as deleted
-      context.commit('deleteWallet', index)
-      
-      // If we're deleting the current wallet, switch to the first undeleted wallet
-      if (isDeletingCurrentWallet) {
-        const vault = context.getters.getVault
-        const undeletedWallets = []
-        
-        vault.forEach((wallet, idx) => {
-          if (wallet.deleted !== true) {
-            undeletedWallets.push(idx)
-          }
-        })
-        
-        if (undeletedWallets.length > 0) {
-          // Switch to the first undeleted wallet
-          context.dispatch('switchWallet', undeletedWallets[0]).catch(console.error)
-        } else {
-          // No wallets left - clear vault (caller should handle routing)
-          context.commit('clearVault')
-        }
+/**
+ * Delete wallet by wallet hash or index
+ * @param {Object} context - Vuex context
+ * @param {string|number} walletHashOrIndex - Wallet hash (string) or vault index (number)
+ */
+export async function deleteWallet (context, walletHashOrIndex) {
+  // Accept either wallet hash or index for backward compatibility
+  let walletHash = null
+  let index = null
+  let wallet = null
+  const vault = context.getters.getVault
+  
+  // Determine if input is wallet hash or index
+  if (typeof walletHashOrIndex === 'string' && walletHashOrIndex.length >= 32) {
+    // Wallet hash provided - find index
+    walletHash = walletHashOrIndex
+    index = await getVaultIndexByWalletHashAsync(walletHash)
+    
+    if (index === null || index === -1) {
+      console.warn(`[Wallet Deletion] Wallet hash ${walletHash} not found in vault`)
+      return
+    }
+    
+    wallet = vault[index]
+  } else {
+    // Index provided (backward compatibility)
+    index = walletHashOrIndex
+    wallet = vault[index]
+    
+    if (!wallet) {
+      console.warn(`[Wallet Deletion] No wallet found at index ${index}`)
+      return
+    }
+    
+    // Extract wallet hash from wallet
+    walletHash = wallet?.wallet?.bch?.walletHash || 
+                 wallet?.wallet?.BCH?.walletHash ||
+                 wallet?.BCH?.walletHash ||
+                 wallet?.bch?.walletHash ||
+                 wallet?.walletHash
+  }
+
+  const currentWalletIndex = context.getters.getWalletIndex
+  const isDeletingCurrentWallet = index === currentWalletIndex
+  
+  // Get wallet data before deletion for cleanup
+  let mnemonic = null
+  
+  // Try to get mnemonic for PIN code deletion
+  if (walletHash) {
+    try {
+      mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+    } catch (err) {
+      console.warn(`[Wallet Deletion] Could not retrieve mnemonic for cleanup:`, err)
+    }
+  }
+  
+  // Perform complete cleanup of all wallet data
+  if (walletHash) {
+    console.log(`[Wallet Deletion] Performing complete cleanup for wallet hash: ${walletHash}`)
+    await deleteAllWalletData(walletHash, mnemonic, index).catch(err => {
+      console.error(`[Wallet Deletion] Error during cleanup:`, err)
+    })
+  } else {
+    // Fallback: try to delete using index if no wallet hash
+    console.warn(`[Wallet Deletion] No wallet hash found, using index-based cleanup`)
+    await deleteMnemonic(index).catch(err => {
+      console.error(`[Wallet Deletion] Error deleting mnemonic:`, err)
+    })
+  }
+  
+  // Remove wallet name from cache
+  if (walletHash) {
+    removeWalletName(walletHash)
+  }
+  
+  // Actually remove from vault (not just mark as deleted)
+  context.commit('removeVaultEntry', index)
+  
+  // Adjust current wallet index BEFORE switching wallets
+  // This ensures indices are correct after the array shift
+  if (!isDeletingCurrentWallet && index < currentWalletIndex) {
+    const newIndex = currentWalletIndex - 1
+    context.commit('updateWalletIndex', newIndex)
+  }
+  
+  // If we're deleting the current wallet, switch to the first undeleted wallet
+  if (isDeletingCurrentWallet) {
+    const updatedVault = context.getters.getVault
+    const undeletedWallets = []
+    
+    updatedVault.forEach((wallet, idx) => {
+      if (wallet && wallet.deleted !== true) {
+        undeletedWallets.push(idx)
       }
-      
-      resolve()
-    }, 1000)
-  })
+    })
+    
+    if (undeletedWallets.length > 0) {
+      // Switch to the first undeleted wallet
+      // This will call syncCurrentWalletToVault, which now has safety checks
+      await context.dispatch('switchWallet', undeletedWallets[0]).catch(console.error)
+    } else {
+      // No wallets left - clear vault (caller should handle routing)
+      context.commit('clearVault')
+      context.commit('updateWalletIndex', -1)
+    }
+  }
 }
 
 /**
@@ -407,43 +607,139 @@ export async function deleteWallet (context, index) {
  * If the current wallet is deleted, null, or invalid, switch to the first valid wallet
  * Returns a promise that resolves when the wallet switch is complete (if needed)
  */
+/**
+ * Helper to check if wallet has a valid wallet hash
+ * Checks all possible locations where wallet hash might be stored
+ */
+function hasValidWalletHash(wallet) {
+  if (!wallet) return false
+  return !!(
+    wallet.wallet?.bch?.walletHash ||
+    wallet.wallet?.BCH?.walletHash ||
+    wallet.BCH?.walletHash ||
+    wallet.bch?.walletHash ||
+    wallet.walletHash
+  )
+}
+
+/**
+ * Helper to extract wallet hash from wallet object
+ * Checks all possible locations where wallet hash might be stored
+ * @param {Object} wallet - The wallet object
+ * @returns {string|null} The wallet hash or null if not found
+ */
+function getWalletHashFromWallet(wallet) {
+  if (!wallet) return null
+  return wallet.wallet?.bch?.walletHash ||
+         wallet.wallet?.BCH?.walletHash ||
+         wallet.BCH?.walletHash ||
+         wallet.bch?.walletHash ||
+         wallet.walletHash ||
+         null
+}
+
 export async function ensureValidWalletIndex (context) {
+  console.log('[ensureValidWalletIndex] ===== Starting wallet index validation =====')
   const vault = context.getters.getVault
-  if (!vault || vault.length === 0) return
+  console.log('[ensureValidWalletIndex] Vault length:', vault?.length || 0)
+  
+  if (!vault || vault.length === 0) {
+    console.log('[ensureValidWalletIndex] Vault is empty, returning early')
+    return
+  }
 
   const currentWalletIndex = context.getters.getWalletIndex
+  console.log('[ensureValidWalletIndex] Current wallet index:', currentWalletIndex)
+  
+  // Skip validation if index is invalid (might be during wallet switching)
+  if (currentWalletIndex < 0 || currentWalletIndex >= vault.length) {
+    console.warn('[ensureValidWalletIndex] Current wallet index is out of bounds:', currentWalletIndex, 'vault length:', vault.length)
+    return
+  }
+  
   const currentWallet = vault[currentWalletIndex]
+  console.log('[ensureValidWalletIndex] Current wallet at index', currentWalletIndex, ':', currentWallet ? 'exists' : 'MISSING')
+  
+  if (currentWallet) {
+    console.log('[ensureValidWalletIndex] Current wallet details:', {
+      deleted: currentWallet.deleted,
+      hasWallet: !!currentWallet.wallet,
+      hasChipnet: !!currentWallet.chipnet,
+      name: currentWallet.name,
+      walletHash: currentWallet.wallet?.bch?.walletHash || currentWallet.wallet?.BCH?.walletHash || currentWallet.BCH?.walletHash || currentWallet.bch?.walletHash || currentWallet.walletHash || 'none'
+    })
+  }
 
   // Check if current wallet is valid (not null, not deleted, and has a walletHash)
   const isCurrentWalletValid = currentWallet && 
     currentWallet.deleted !== true && 
-    currentWallet.wallet?.bch?.walletHash
+    hasValidWalletHash(currentWallet)
+  
+  console.log('[ensureValidWalletIndex] Is current wallet valid?', isCurrentWalletValid)
 
   if (!isCurrentWalletValid) {
+    console.log('[ensureValidWalletIndex] Current wallet is invalid, searching for valid wallets...')
     // Find first valid (non-null, non-deleted, with walletHash) wallet
     const validWallets = []
     vault.forEach((wallet, index) => {
-      // Skip null entries, deleted wallets, and wallets without walletHash
-      if (wallet && 
+      const isValid = wallet && 
           wallet.deleted !== true && 
-          wallet.wallet?.bch?.walletHash) {
+          hasValidWalletHash(wallet)
+      if (isValid) {
         validWallets.push(index)
+        console.log('[ensureValidWalletIndex] Found valid wallet at index:', index, {
+          name: wallet.name,
+          walletHash: wallet.wallet?.bch?.walletHash || wallet.wallet?.BCH?.walletHash || wallet.BCH?.walletHash || wallet.bch?.walletHash || wallet.walletHash || 'none'
+        })
+      } else {
+        console.log('[ensureValidWalletIndex] Wallet at index', index, 'is invalid:', {
+          exists: !!wallet,
+          deleted: wallet?.deleted,
+          hasWalletHash: hasValidWalletHash(wallet)
+        })
       }
     })
+
+    console.log('[ensureValidWalletIndex] Found', validWallets.length, 'valid wallets:', validWallets)
 
     if (validWallets.length > 0) {
       // Switch to the first valid wallet
       const firstValidIndex = validWallets[0]
+      console.log('[ensureValidWalletIndex] Switching to first valid wallet at index:', firstValidIndex)
       // Only switch if it's different from current index to avoid unnecessary reloads
       if (firstValidIndex !== currentWalletIndex) {
-        // Wait for the switch to complete before returning
-        await context.dispatch('switchWallet', firstValidIndex).catch(console.error)
+        // Update wallet index IMMEDIATELY (synchronously) before async switchWallet
+        // This ensures the router guard sees the correct index
+        context.commit('updateWalletIndex', firstValidIndex)
+        context.commit('updateCurrentWallet', firstValidIndex)
+        console.log('[ensureValidWalletIndex] Updated wallet index to:', firstValidIndex, '(synchronously)')
+        
+        // Then perform the full switch asynchronously (for state initialization, etc.)
+        context.dispatch('switchWallet', firstValidIndex).catch((err) => {
+          console.error('[ensureValidWalletIndex] Error switching to valid wallet:', err)
+        })
+        console.log('[ensureValidWalletIndex] Initiated async switch to wallet at index:', firstValidIndex)
+      } else {
+        console.log('[ensureValidWalletIndex] First valid wallet is already the current wallet, no switch needed')
       }
     } else {
-      // No valid wallets left - clear vault
+      // No valid wallets left - log for debugging before clearing
+      console.warn('[ensureValidWalletIndex] No valid wallets found in vault. Vault length:', vault.length)
+      console.warn('[ensureValidWalletIndex] Vault contents:', vault.map((w, i) => ({
+        index: i,
+        deleted: w?.deleted,
+        hasWallet: !!w?.wallet,
+        walletHash: w?.wallet?.bch?.walletHash || w?.wallet?.BCH?.walletHash || w?.BCH?.walletHash || w?.bch?.walletHash || w?.walletHash || 'none'
+      })))
+      // Clear vault only if truly no valid wallets
+      console.warn('[ensureValidWalletIndex] Clearing vault - no valid wallets found')
       context.commit('clearVault')
     }
+  } else {
+    console.log('[ensureValidWalletIndex] Current wallet is valid, no action needed')
   }
+  
+  console.log('[ensureValidWalletIndex] ===== Validation complete =====')
 }
 
 /**
@@ -472,19 +768,70 @@ export async function cleanupNullAndDeletedWallets (context) {
         currentWalletRemoved = true
       }
       
-      // Delete mnemonic for this index
-      const walletHash = wallet?.wallet?.bch?.walletHash
+      // Perform complete cleanup for deleted/null wallets
+      // Check all possible wallet hash locations (post-migration pattern)
+      const walletHash = wallet?.wallet?.bch?.walletHash || 
+                         wallet?.wallet?.BCH?.walletHash ||
+                         wallet?.BCH?.walletHash || 
+                         wallet?.bch?.walletHash ||
+                         wallet?.walletHash
       if (walletHash) {
-        removeWalletName(walletHash)
+        // Try to get mnemonic for complete cleanup (including PIN)
+        let mnemonic = null
+        try {
+          mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+        } catch (err) {
+          // Couldn't get mnemonic, continue with cleanup without it
+        }
+        
+        // Perform complete cleanup
+        await deleteAllWalletData(walletHash, mnemonic, i).catch(err => {
+          console.error(`[Wallet Cleanup] Error cleaning up wallet at index ${i}:`, err)
+        })
+      } else {
+        // Fall back to index-based deletion if no wallet hash
+        await deleteMnemonic(i).catch(console.error)
       }
-      
-      // Delete mnemonic from secure storage
-      deleteMnemonic(i).catch(console.error)
       continue
     }
     
-    // Check if mnemonic exists for this wallet index
-    const mnemonic = await getMnemonic(i).catch(() => null)
+    // Check if mnemonic exists for this wallet
+    // Check migration status first
+    let migrationCompleted = false
+    try {
+      const migrationFlag = await SecureStoragePlugin.get({ key: 'mnemonic_migration_completed' })
+      migrationCompleted = migrationFlag?.value === 'true'
+    } catch (err) {
+      // Flag doesn't exist, migration not completed
+    }
+    
+    // Check all possible wallet hash locations (post-migration pattern)
+    const walletHash = wallet?.wallet?.bch?.walletHash || 
+                       wallet?.wallet?.BCH?.walletHash ||
+                       wallet?.BCH?.walletHash || 
+                       wallet?.bch?.walletHash ||
+                       wallet?.walletHash
+    let mnemonic = null
+    
+    if (migrationCompleted) {
+      // Migration completed - only use new scheme with wallet hash
+      if (walletHash) {
+        mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+      }
+      // If no wallet hash, cannot retrieve mnemonic (old scheme ignored)
+    } else {
+      // Migration not completed - use backward compatible logic
+      if (walletHash) {
+        // Check using wallet hash (new scheme) first
+        mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
+      }
+      
+      // Fall back to index-based check if wallet hash check failed or doesn't exist
+      if (!mnemonic) {
+        mnemonic = await getMnemonic(i).catch(() => null)
+      }
+    }
+    
     if (!mnemonic) {
       // No mnemonic exists - this is an orphaned vault entry, remove it
       indicesToRemove.push(i)
@@ -494,10 +841,15 @@ export async function cleanupNullAndDeletedWallets (context) {
         currentWalletRemoved = true
       }
       
-      // Delete wallet name cache if it exists
-      const walletHash = wallet?.wallet?.bch?.walletHash
+      // Perform cleanup for orphaned entry (we don't have mnemonic, so can't delete PIN)
       if (walletHash) {
-        removeWalletName(walletHash)
+        // Clean up what we can without mnemonic
+        await deleteAllWalletData(walletHash, null, i).catch(err => {
+          console.error(`[Wallet Cleanup] Error cleaning up orphaned wallet at index ${i}:`, err)
+        })
+      } else {
+        // Fall back to index-based deletion if no wallet hash
+        await deleteMnemonic(i).catch(console.error)
       }
       
       console.log(`[Wallet Cleanup] Removing vault entry at index ${i} - no mnemonic found`)
@@ -516,9 +868,11 @@ export async function cleanupNullAndDeletedWallets (context) {
     // Find first valid wallet
     for (let i = 0; i < updatedVault.length; i++) {
       const wallet = updatedVault[i]
+      // Check all possible wallet hash locations (post-migration pattern)
+      const walletHash = getWalletHashFromWallet(wallet)
       if (wallet && 
           wallet.deleted !== true && 
-          wallet.wallet?.bch?.walletHash) {
+          walletHash) {
         newCurrentIndex = i
         break
       }
@@ -549,8 +903,9 @@ export async function cleanupNullAndDeletedWallets (context) {
 /**
  * Clean up duplicate wallets in the vault based on walletHash
  * Keeps the wallet with a custom name (not "Personal Wallet #X") or the first one if both have generic names
+ * Performs complete cleanup of deleted duplicates (removes all traces)
  */
-export function cleanupDuplicateWallets (context) {
+export async function cleanupDuplicateWallets (context) {
   const vault = context.getters.getVault
   if (!vault || vault.length === 0) return
 
@@ -567,7 +922,9 @@ export function cleanupDuplicateWallets (context) {
       return
     }
 
-    const walletHash = wallet?.wallet?.bch?.walletHash
+    // Use helper function to check all possible wallet hash locations
+    // (wallet.wallet.bch.walletHash, wallet.wallet.BCH.walletHash, wallet.BCH.walletHash, wallet.bch.walletHash, wallet.walletHash)
+    const walletHash = getWalletHashFromWallet(wallet)
     if (!walletHash) {
       // If no walletHash, keep it (might be incomplete wallet)
       walletsToKeep.push({ wallet, index })
@@ -621,14 +978,49 @@ export function cleanupDuplicateWallets (context) {
     }
   })
 
-  // Mark duplicates as deleted (in reverse order to maintain indices)
-  indicesToDelete.sort((a, b) => b - a).forEach(index => {
-    context.commit('deleteWallet', index)
-  })
+  // Delete duplicates with specialized cleanup (in reverse order to maintain indices)
+  // We need to process them in reverse order and handle index adjustments
+  // IMPORTANT: Use deleteDuplicateWalletData instead of deleteAllWalletData because
+  // duplicate wallets share the same walletHash and mnemonic. Deleting the mnemonic
+  // would make the kept wallet inaccessible.
+  const sortedIndices = indicesToDelete.sort((a, b) => b - a)
+  
+  for (const index of sortedIndices) {
+    const wallet = vault[index]
+    const walletHash = getWalletHashFromWallet(wallet)
+    
+    // Perform specialized cleanup for duplicates
+    // This does NOT delete the mnemonic or PIN (shared with kept wallet)
+    if (walletHash) {
+      await deleteDuplicateWalletData(walletHash, index).catch(err => {
+        console.error(`[Duplicate Cleanup] Error cleaning up duplicate wallet at index ${index}:`, err)
+      })
+    } else {
+      // If no wallet hash, fall back to index-based deletion
+      // This is safe because it's index-specific
+      await deleteMnemonic(index).catch(console.error)
+    }
+    
+    // Remove from vault
+    context.commit('removeVaultEntry', index)
+  }
+  
+  // Adjust current wallet index if we removed entries before it
+  if (sortedIndices.length > 0) {
+    const removedBeforeCurrent = sortedIndices.filter(idx => idx < currentWalletIndex).length
+    if (removedBeforeCurrent > 0) {
+      const newIndex = currentWalletIndex - removedBeforeCurrent
+      context.commit('updateWalletIndex', newIndex)
+    }
+  }
   
   // If we deleted the current wallet, switch to the kept duplicate
   if (currentWalletDeleted && walletToSwitchTo !== null) {
-    context.dispatch('switchWallet', walletToSwitchTo).catch(console.error)
+    // Adjust walletToSwitchTo if entries were removed before it
+    const adjustedIndex = sortedIndices.reduce((idx, deletedIdx) => {
+      return deletedIdx < idx ? idx - 1 : idx
+    }, walletToSwitchTo)
+    context.dispatch('switchWallet', adjustedIndex).catch(console.error)
   }
   
   // Ensure wallet index is still valid after cleanup (safety check)

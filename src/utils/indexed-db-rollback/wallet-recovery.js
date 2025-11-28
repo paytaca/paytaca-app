@@ -308,7 +308,22 @@ export function resetAssetsList(index) {
 
 async function recoverWallet(index, save=false) {
     const store = Store
-    const mnemonic = await getMnemonic(index)
+    const walletVault = store.getters['global/getVault']
+    const existingVaultEntry = walletVault?.[index]
+    
+    // Use wallet hash from vault if available (post-migration pattern)
+    // This provides more reliable mnemonic lookup
+    let mnemonic = null
+    const walletHash = existingVaultEntry?.wallet?.bch?.walletHash || existingVaultEntry?.wallet?.BCH?.walletHash
+    if (walletHash) {
+        mnemonic = await getMnemonic(walletHash).catch(() => null)
+    }
+    
+    // Fallback to index-based lookup if wallet hash not available
+    if (!mnemonic) {
+        mnemonic = await getMnemonic(index)
+    }
+    
     console.log('[Wallet Recovery] Initializing wallet for index:', index)
 
     if (!mnemonic) {
