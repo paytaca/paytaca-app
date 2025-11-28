@@ -235,6 +235,60 @@ export async function deleteAllWalletData(walletHash, mnemonic = null, index = n
   }
 }
 
+/**
+ * Delete duplicate wallet data from secure storage
+ * This is a specialized version for duplicate cleanup that does NOT delete:
+ * - Mnemonic (wallet-hash-based key) - kept wallet needs it
+ * - PIN code - shared with kept wallet if mnemonic is shared
+ * 
+ * It only deletes:
+ * - Old index-based mnemonic (if migration not completed) - index-specific
+ * - Wallet-specific auth tokens - these are hash-based but safe to delete for duplicate
+ * 
+ * @param {string} walletHash - The wallet hash (shared with kept wallet)
+ * @param {number} index - The vault index of the duplicate entry
+ * @returns {Promise<void>}
+ */
+export async function deleteDuplicateWalletData(walletHash, index) {
+  if (!walletHash) {
+    console.warn('[Duplicate Cleanup] No wallet hash provided, skipping cleanup')
+    return
+  }
+
+  // Check migration status
+  let migrationCompleted = false
+  try {
+    const migrationFlag = await SecureStoragePlugin.get({ key: 'mnemonic_migration_completed' })
+    migrationCompleted = migrationFlag?.value === 'true'
+  } catch (err) {
+    // Flag doesn't exist, migration not completed
+  }
+
+  // IMPORTANT: Do NOT delete mnemonic (new scheme) - kept wallet needs it!
+  // The mnemonic is stored with key `mn_${walletHash}`, which is shared by all
+  // wallets with the same hash. Deleting it would make the kept wallet inaccessible.
+
+  // Only delete old index-based mnemonic if migration not completed
+  // This is safe because each index has its own key (mn0, mn1, etc.)
+  if (!migrationCompleted && index !== null) {
+    try {
+      const oldKey = index === 0 ? 'mn' : `mn${index}`
+      await SecureStoragePlugin.remove({ key: oldKey })
+    } catch (err) {
+      console.warn(`[Duplicate Cleanup] Error deleting mnemonic with OLD key:`, err)
+    }
+  }
+
+  // IMPORTANT: Do NOT delete PIN code - it's shared with the kept wallet
+  // If wallets share the same mnemonic, they share the same PIN.
+  // Deleting it would lock out the kept wallet.
+
+  // IMPORTANT: Do NOT delete wallet-specific auth tokens - they're shared with the kept wallet
+  // Auth tokens are stored with keys like `${prefix}-${walletHash}`, so duplicates
+  // share the same tokens. Deleting them would remove tokens that the kept wallet needs.
+  // The kept wallet can regenerate tokens if needed, but it's safer to preserve them.
+}
+
 export async function generateMnemonic (index = 0) {
   const mnemonic = bchjs.Mnemonic.generate(128)
   

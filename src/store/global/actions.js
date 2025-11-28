@@ -5,7 +5,7 @@ import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/wallet-name-cache'
-import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, computeWalletHash } from '../../wallet'
+import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash } from '../../wallet'
 import { getVaultIndexByWalletHashAsync } from 'src/utils/wallet-storage'
 import { Plugins } from '@capacitor/core'
 
@@ -840,9 +840,11 @@ export async function cleanupNullAndDeletedWallets (context) {
     // Find first valid wallet
     for (let i = 0; i < updatedVault.length; i++) {
       const wallet = updatedVault[i]
+      // Check all possible wallet hash locations (post-migration pattern)
+      const walletHash = getWalletHashFromWallet(wallet)
       if (wallet && 
           wallet.deleted !== true && 
-          wallet.wallet?.bch?.walletHash) {
+          walletHash) {
         newCurrentIndex = i
         break
       }
@@ -892,6 +894,8 @@ export async function cleanupDuplicateWallets (context) {
       return
     }
 
+    // Use helper function to check all possible wallet hash locations
+    // (wallet.wallet.bch.walletHash, wallet.wallet.BCH.walletHash, wallet.BCH.walletHash, wallet.bch.walletHash, wallet.walletHash)
     const walletHash = getWalletHashFromWallet(wallet)
     if (!walletHash) {
       // If no walletHash, keep it (might be incomplete wallet)
@@ -946,30 +950,26 @@ export async function cleanupDuplicateWallets (context) {
     }
   })
 
-  // Delete duplicates with full cleanup (in reverse order to maintain indices)
+  // Delete duplicates with specialized cleanup (in reverse order to maintain indices)
   // We need to process them in reverse order and handle index adjustments
+  // IMPORTANT: Use deleteDuplicateWalletData instead of deleteAllWalletData because
+  // duplicate wallets share the same walletHash and mnemonic. Deleting the mnemonic
+  // would make the kept wallet inaccessible.
   const sortedIndices = indicesToDelete.sort((a, b) => b - a)
   
   for (const index of sortedIndices) {
     const wallet = vault[index]
     const walletHash = getWalletHashFromWallet(wallet)
     
-    // Get mnemonic for complete cleanup
-    let mnemonic = null
+    // Perform specialized cleanup for duplicates
+    // This does NOT delete the mnemonic or PIN (shared with kept wallet)
     if (walletHash) {
-      try {
-        mnemonic = await getMnemonicByHash(walletHash).catch(() => null)
-      } catch (err) {
-        // Couldn't get mnemonic, continue with cleanup without it
-      }
-    }
-    
-    // Perform complete cleanup
-    if (walletHash) {
-      await deleteAllWalletData(walletHash, mnemonic, index).catch(err => {
+      await deleteDuplicateWalletData(walletHash, index).catch(err => {
         console.error(`[Duplicate Cleanup] Error cleaning up duplicate wallet at index ${index}:`, err)
       })
     } else {
+      // If no wallet hash, fall back to index-based deletion
+      // This is safe because it's index-specific
       await deleteMnemonic(index).catch(console.error)
     }
     
