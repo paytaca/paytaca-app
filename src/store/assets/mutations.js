@@ -232,6 +232,10 @@ export function moveAssetToBeginning (state) {
   }
 }
 
+// DEPRECATED: Do not use this mutation - favorites should never be stored in Vuex state
+// Favorites must only be stored in the backend API to avoid displaying outdated data
+// Components should fetch favorites from the API using assetSettings.fetchFavorites()
+// and save favorites using assetSettings.saveFavorites()
 export function updateAssetFavorite (state, data) {
   const index = state.assets.findIndex(a => a && a.id === data.id)
 
@@ -241,6 +245,8 @@ export function updateAssetFavorite (state, data) {
   }
 }
 
+// DEPRECATED: Do not use this mutation - favorites should never be stored in Vuex state
+// Favorites must only be stored in the backend API to avoid displaying outdated data
 export function initializeFavorites (state, data) {
   state.initializedFavorites = data
 }

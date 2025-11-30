@@ -413,19 +413,21 @@ export default {
         this.scrollContainerClientX = evt.evt.clientX
       }
     },
-    checkEmptyFavorites () {
-        const vm = this
-
-        vm.assets.forEach((asset) => {                
-          if (!('favorite' in asset)) {
-            let temp = {
-              id: asset.id,
-              favorite: 0
-            }           
-            vm.$store.commit('assets/updateAssetFavorite',  temp)
-          }
-        })      
-      }
+    // REMOVED: checkEmptyFavorites - Never update favorites in Vuex state
+    // Favorites should only be stored in the backend API, not in Vuex
+    // Components should fetch favorites from the API using assetSettings.fetchFavorites()
+    // checkEmptyFavorites () {
+    //     const vm = this
+    //     vm.assets.forEach((asset) => {                
+    //       if (!('favorite' in asset)) {
+    //         let temp = {
+    //           id: asset.id,
+    //           favorite: 0
+    //         }           
+    //         vm.$store.commit('assets/updateAssetFavorite',  temp)
+    //       }
+    //     })      
+    // }
   }
 }
 </script>
