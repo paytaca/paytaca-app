@@ -1,9 +1,9 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
-      <header-nav :title="$t('Settings')" backnavpath="/apps" class="header-nav header-nav apps-header" />
+      <header-nav :title="$t('Settings')" backnavpath="/" class="header-nav header-nav apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Security') }}</p>
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Authentication', {}, 'Authentication') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
                   <q-item-section>
@@ -23,6 +23,38 @@
                   </q-item-section>
                   <q-item-section avatar>
                       <q-icon name="mdi-pin" class="q-pr-sm pin-icon"></q-icon>
+                  </q-item-section>
+              </q-item>
+            </q-list>
+        </div>
+
+        <div class="col-12 q-px-lg q-mt-md">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Backup') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+              <q-item clickable v-ripple @click="$router.push('/apps/wallet-backup/seed-phrase')">
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('SeedPhrase', {}, 'Seed Phrase') }}
+                      </q-item-label>
+                      <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                        {{ $t('ViewYour12WordPhrase', {}, 'View your 12-word recovery phrase') }}
+                      </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                      <q-icon name="vpn_key" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+                  </q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="$router.push('/apps/wallet-backup/shards')">
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('SeedPhraseShards') }}
+                      </q-item-label>
+                      <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                        {{ $t('SplitYourPhraseInto3Shards', {}, 'Split your phrase into 3 shards - only 2 needed to recover') }}
+                      </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                      <q-icon name="workspaces" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
                   </q-item-section>
               </q-item>
             </q-list>

@@ -197,22 +197,6 @@ export default {
           active: true,
           iconStyle: 'font-size: 4em',
           smartBCHOnly: false
-        },
-        {
-          name: this.$t('WalletBackup'),
-          iconName: 'img:wallet-backup.png',
-          path: '/apps/wallet-backup',
-          active: true,
-          iconStyle: 'width:45%; height: 45%;',
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('Settings'),
-          iconName: 'settings',
-          path: '/apps/settings',
-          active: true,
-          iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
         }
       ],
       debugApp: {
