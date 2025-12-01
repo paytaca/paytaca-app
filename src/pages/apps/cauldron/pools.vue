@@ -6,7 +6,6 @@
   >
     <HeaderNav
       title="Cauldron"
-      backnavpath="/apps"
       class="apps-header"
     >
       <template v-slot:top-right-menu>

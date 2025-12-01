@@ -1,6 +1,10 @@
 <template>
   <div>
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <keep-alive :include="['cauldron-pool']">
+        <component :is="Component"/>
+      </keep-alive>
+    </router-view>
   </div>
 </template>
 
