@@ -4,7 +4,6 @@ import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "./utils"
 import { MultisigTransactionBuilder } from "./transaction-builder"
 export const PSBT_MAGIC = '70736274ff'
 
-// export const PSBT_KEY_TYPES = {
   // ---------- Global map ----------
 const PSBT_GLOBAL_UNSIGNED_TX= '00'         // The unsigned transaction (no witnesses)                
 const PSBT_GLOBAL_XPUB= '01'                // Extended public keys and their derivation paths
@@ -67,7 +66,6 @@ const PSBT_OUT_SP_V0_LABEL= '0a'
 const PSBT_OUT_DNSSEC_PROOF= '35'
 const PSBT_OUT_CASHTOKEN= '36'               // Version(145) token prefix encoded
 const PSBT_OUT_PROPRIETARY= 'fc'
-// }
 
 
 export const ProprietaryFields = Object.freeze({
@@ -282,10 +280,13 @@ export class ProprietaryField {
       }
 
       const subTypeReadResult = readCompactUint(identifierReadResult.position)
-      const subKeyDataReadResult = readRemainingBytes(subTypeReadResult.position)
-      proprietaryField.subType = subTypeReadResult.result 
-      proprietaryField.subKeyData = subKeyDataReadResult.result
-      
+
+      if (subTypeReadResult.result !== undefined) {
+        const subKeyDataReadResult = readRemainingBytes(subTypeReadResult.position)
+        proprietaryField.subType = subTypeReadResult.result 
+        proprietaryField.subKeyData = subKeyDataReadResult.result  
+      }
+    
       proprietaryField.value = readRemainingBytes({
         bin: keypair?.value?.value || Uint8Array.from([]),
         index: 0
@@ -295,6 +296,74 @@ export class ProprietaryField {
 
     return proprietaryFields
   }
+}
+
+
+export class XPubField {
+
+  constructor({ serializedXpub, derivationPath, masterFingerprint }){
+      this.xpub = serializedXpub
+      this.path = derivationPath
+      this.masterFingerprint = masterFingerprint
+  }
+
+  /**
+   * @returns {Uint8Array}
+   */
+  getXPub(decoder){
+      return decoder ? decoder(this.xpub) : this.xpub   
+  }
+
+
+  /**
+   * @returns {Uint8Array}
+   */
+  getPath(decoder) {
+     return decoder ? decoder(this.path): this.path 
+  }
+
+
+  /**
+   * @returns {Uint8Array} Uint8Array or the result of decoding with decoder 
+   */
+  getMasterFingerprint(decoder){
+     return decoder ? decoder(this.masterFingerprint): this.masterFingerprint
+  }
+
+  /**
+   * Extract XPubFields from KeyPairs
+   * @param {KeyPair[]} keypairs
+   * @returns {XPubField[]}
+   */
+  static extractXPubFields(keypairs) {
+
+      if (!keypairs[WALLET_GLOBAL_XPUB]) return
+      
+      const xpubFields = []
+      
+      const _keypairs = keypairs[WALLET_GLOBAL_XPUB] instanceof KeyPair ? 
+        [ keypairs[WALLET_GLOBAL_XPUB] ] : 
+        keypairs[WALLET_GLOBAL_XPUB]
+  
+      for (const keypair of _keypairs) {
+        const keyData = keypair.key?.keyData
+        if (!keyData) return xpubFields
+      
+        const serializedXpub = keypair.key.keyData
+        const masterFingerprintReader = readBytes(4)
+        const masterFingerprintReadResult = masterFingerprintReader({bin: keypair.value.value, index: 0})
+        const derivationPathReadResult = readRemainingBytes(masterFingerprintReadResult.position)
+
+        xpubFields.push(
+          new XPubField({ 
+              serializedXpub: serializedXpub,
+              masterFingerprint: masterFingerprintReadResult.result,
+              derivationPath: derivationPathReadResult.result
+          })
+        )
+      }
+      return xpubFields
+    }
 }
 
 export class GlobalMap {
@@ -364,6 +433,10 @@ export class GlobalMap {
     return this
   }
 
+  getXPubs() {
+    return XPubField.extractXPubFields(this.keypairs)
+  }
+  
   /**
    * 
    * @param {number} [version = 2] 
@@ -1304,6 +1377,14 @@ export class Psbt {
     this.inputMap = new InputMap()
     this.outputMap = new OutputMap()
     const txVersionReadResult = readCompactUint({ bin: hexToBin(decoded.unsignedTransactionHex), index: 0})
+
+    if (decoded.wallet?.signers) {
+      for (const i in decoded.wallet.signers) {
+        const s = decoded.wallet.signers[i]
+        this.globalMap.addXPub(s.xpub, s.masterFingerprint, s.path)
+      }
+    }
+
     this.globalMap.setUnsignedTx(decoded.unsignedTransactionHex)
     this.globalMap.setTxVersion(Number(txVersionReadResult.result))
     this.globalMap.setInputCount(decoded.inputs.length)
@@ -1396,6 +1477,7 @@ export class Psbt {
     this.deserialize(base64ToBin(base64))
     decodeResult.version = this.globalMap.getTxVersion()
     decodeResult.locktime = this.globalMap.getFallbackLocktime()
+
     this.globalMap.getProprietaryFields(ProprietaryFields.paytaca.identifier)?.forEach(pf => {
       if (pf.subKeyData && pf.value) {
         let valueDecoder = binToUtf8
