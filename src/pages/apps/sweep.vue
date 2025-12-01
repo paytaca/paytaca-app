@@ -112,7 +112,7 @@
                   :label="$t('Sweep')"
                   class="button"
                   :class="getDarkModeClass(darkMode)"
-                  :disabled="(totalTokensCount - skippedTokens.length) > 0"
+                  :disabled="(totalTokensCount - skippedTokens.length) > 0 || !hasEnoughWalletBalance"
                 />
                 <span v-if="(totalTokensCount - skippedTokens.length) > 0" class="text-red" style="margin-left: 10px;">
                   <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
@@ -127,6 +127,7 @@
               </span>
             </div>
           </div>
+
           <div v-if="totalTokensCount > 0" class="q-my-md">
             <q-select
               filled
@@ -135,7 +136,11 @@
               behavior="menu"
               :label="$t('PayTransactionFeeFrom')"
             />
+            <p v-if="!hasEnoughWalletBalance" class="text-red q-mt-sm">
+              {{ $t('NotEnoughWalletBalance', {}, 'Not enough balance in wallet') }}
+            </p>
           </div>
+
           <div v-if="fungibleCashTokens?.length || nonFungibleCashTokens?.length" class="q-mt-md">
             <div class="row items-center q-mb-sm relative-position" v-ripple @click="() => expandCashTokens = !expandCashTokens">
               <div class="q-space">
@@ -180,7 +185,7 @@
                       color="primary"
                       :label="$t('Sweep')"
                       @click.prevent="sweepCashTokenFungible(fungibleToken)"
-                      :disabled="sweeping || skippedTokens.includes(fungibleToken.category)"
+                      :disabled="sweeping || skippedTokens.includes(fungibleToken.category) || !hasEnoughWalletBalance"
                     />
                     <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
                     <q-checkbox
@@ -220,7 +225,7 @@
                       color="primary"
                       :label="$t('Sweep')"
                       @click.prevent="sweepCashTokenNonFungible(nft)"
-                      :disabled="sweeping || skippedTokens.includes(`${nft.category}|${nft.commitment}`)"
+                      :disabled="sweeping || skippedTokens.includes(`${nft.category}|${nft.commitment}`) || !hasEnoughWalletBalance"
                     />
                     <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
                     <q-checkbox
@@ -345,6 +350,7 @@ export default {
       error: null,
       passPhrase: '',
       isDecrypting: false,
+      hasEnoughWalletBalance: false,
 
       sweepTxidMap: {
         'bch': '',
@@ -367,6 +373,11 @@ export default {
       if (this.wif || this.sweeper) return
       this.wif = extractWifFromUrl(this.w) || this.w
       this.getTokens(true)
+    },
+    payFeeFrom() {
+      if (this.payFeeFrom.value === 'wallet') {
+        this.hasEnoughWalletBalance = this.wallet.BCH.balance > 0
+      } else this.hasEnoughWalletBalance = true
     }
   },
   computed: {
