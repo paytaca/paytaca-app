@@ -5,7 +5,7 @@
       @decode="onScannerDecode"
     />
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
-      <header-nav :title="$t('Sweep')" backnavpath="/apps" />
+      <header-nav :title="$t('Sweep')" backnavpath="/" />
       <div
         id="app"
         ref="app"
@@ -155,13 +155,17 @@
             <q-slide-transition>
               <div v-if="expandCashTokens">
                 <div v-for="(fungibleToken, index) in fungibleCashTokens" :key="index" class="token-details">
-                  <img
-                    v-if="fungibleToken?.parsedMetadata?.fungible && fungibleToken?.parsedMetadata?.imageUrl"
-                    :src="fungibleToken?.parsedMetadata?.imageUrl"
-                    height="35px"
-                    class="float-right"
-                  />
-                  <p>{{ fungibleToken?.parsedMetadata?.name }}</p>
+                  <div class="row items-center justify-between">
+                    <span class="text-subtitle1 text-weight-bold">
+                      {{ fungibleToken?.parsedMetadata?.name }}
+                    </span>
+                    <img
+                      v-if="fungibleToken?.parsedMetadata?.fungible && fungibleToken?.parsedMetadata?.imageUrl"
+                      :src="fungibleToken?.parsedMetadata?.imageUrl"
+                      height="35px"
+                      alt="CT"
+                    />
+                  </div>
                   <p>
                     {{ $t('Category') }}:
                     {{ ellipsisText(fungibleToken?.category) }}
@@ -188,8 +192,9 @@
                     <progress-loader />
                   </div>
                 </div>
+
                 <div v-for="(nft, index) in nonFungibleCashTokens" :key="index" class="token-details">
-                  <p>{{ nft?.parsedMetadata?.name }}</p>
+                  <p class="text-subtitle1 text-weight-bold">{{ nft?.parsedMetadata?.name }}</p>
                   <p>
                     {{ $t('Category') }}:
                     {{ ellipsisText(nft?.category) }}
@@ -205,6 +210,7 @@
                       :src="nft?.parsedMetadata?.imageUrl || generateFallbackImage(nft)"
                       style="width: min(100%, 200px);"
                       class="rounded-borders"
+                      alt="NFT"
                     />
                   </div>
 
@@ -797,12 +803,6 @@ export default {
     }
   }
 
-  .text-subtitle1 {
-    font-size: 1.125rem;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.87);
-  }
-
   .q-select {
     border-radius: 12px;
     
@@ -823,7 +823,6 @@ export default {
   :deep(.dark) {
     .sweep-input {
       background: rgba(255, 255, 255, 0.05);
-      color: white;
       border-color: rgba(255, 255, 255, 0.1);
 
       &::placeholder {
@@ -843,10 +842,6 @@ export default {
       p {
         color: rgba(255, 255, 255, 0.87);
       }
-    }
-
-    .text-subtitle1 {
-      color: rgba(255, 255, 255, 0.87);
     }
 
     .text-red {
