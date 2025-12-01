@@ -376,7 +376,9 @@ export default {
     },
     payFeeFrom() {
       if (this.payFeeFrom.value === 'wallet') {
-        this.hasEnoughWalletBalance = this.wallet.BCH.balance > 0
+        // total dust of all tokens + 1 for BCH fee
+        const totalDust = 546 / 10 ** 8 * (this.totalTokensCount + 1)
+        this.hasEnoughWalletBalance = this.wallet.BCH.balance > totalDust
       } else this.hasEnoughWalletBalance = true
     }
   },
