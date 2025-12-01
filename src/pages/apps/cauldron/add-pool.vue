@@ -122,7 +122,7 @@
             </div>
             <div v-if="selectedToken">
               <div class="row items-center q-mb-sm">
-                <div class="text-h6">Pool Pricing</div>
+                <div class="text-h6">{{ $t('PoolPricing') }}</div>
                 <q-space/>
                 <q-toggle v-model="usePoolPricing" :label="$t('UsePoolPricing')"/>
               </div>
@@ -135,7 +135,7 @@
     
         <q-card v-if="selectedToken" class="br-15 pt-card-2 q-mb-md" :class="getDarkModeClass(darkMode)">
           <q-card-section>
-            <div class="text-h5 q-mb-md">Deposit amount</div>
+            <div class="text-h5 q-mb-md">{{ $t('DepositAmount') }}</div>
             <q-input
               outlined
               :label="$t('Token') + ' ' + $t('Amount')"
@@ -146,7 +146,7 @@
             />
             <q-input
               outlined
-              :label="'BCH ' + $t('Amount')"
+              :label="$t('BCHAmount')"
               v-model="bchAmount"
               suffix="BCH"
               bottom-slots
