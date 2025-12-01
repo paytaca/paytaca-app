@@ -174,7 +174,7 @@ export function generateWithdrawPoolTx(pool, wif) {
   const txSize = 10 + inputSize + 34 + getOutputSize(tokenOutput);
   builder.addOutput({
     to: address,
-    amount: BigInt(pool.sats - txSize),
+    amount: BigInt(pool.sats - txSize) - 1000n,
   })
 
   return builder.build()
