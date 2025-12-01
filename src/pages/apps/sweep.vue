@@ -112,7 +112,7 @@
                   :label="$t('Sweep')"
                   class="button"
                   :class="getDarkModeClass(darkMode)"
-                  :disabled="(totalTokensCount - skippedTokens.length) > 0 || !hasEnoughWalletBalance"
+                  :disabled="(totalTokensCount - skippedTokens.length) > 0"
                 />
                 <span v-if="(totalTokensCount - skippedTokens.length) > 0" class="text-red" style="margin-left: 10px;">
                   <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
@@ -238,6 +238,7 @@
               </div>
             </q-slide-transition>
           </div>
+
           <div v-if="tokens.length > 0" class="q-mt-md">
             <div class="row items-center q-mb-sm relative-position" v-ripple @click="() => expandSlpTokens = !expandSlpTokens">
               <div class="q-space">
@@ -266,7 +267,7 @@
                   <img v-if="token.image_url.length > 0" :src="token.image_url" height="50" alt="" />
                   <p>{{ $t('Amount') }}: {{ token.spendable }}</p>
                   <template v-if="selectedToken !== token.token_id">
-                    <q-btn color="primary" @click.prevent="sweepToken(token)" :disabled="sweeping || skippedTokens.includes(token.token_id)">
+                    <q-btn color="primary" @click.prevent="sweepToken(token)" :disabled="sweeping || skippedTokens.includes(token.token_id) || !hasEnoughWalletBalance">
                       {{ $t('Sweep') }}
                     </q-btn>
                     <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
@@ -379,7 +380,11 @@ export default {
         // total dust of all tokens + 1 for BCH fee
         const totalDust = 546 / 10 ** 8 * (this.totalTokensCount + 1)
         this.hasEnoughWalletBalance = this.wallet.BCH.balance > totalDust
-      } else this.hasEnoughWalletBalance = true
+        this.skipTokens()
+      } else {
+        this.hasEnoughWalletBalance = true
+        this.skippedTokens = [] // reset skipped tokens
+      }
     }
   },
   computed: {
@@ -498,6 +503,10 @@ export default {
         }),
       ])
 
+      const totalDust = 546 / 10 ** 8 * (this.totalTokensCount + 1)
+      if (this.payFeeFrom.value === 'wallet' && this.bchBalance > totalDust) {
+        this.skipTokens()
+      }
       this.fetching = false
       this.sweeping = false
     },
@@ -537,6 +546,9 @@ export default {
       })
     },
     async sweepCashTokenFungible(token) {
+      this.sweeping = true
+      this.selectedToken = token?.category
+
       const bchAddress = await this.getRecipientAddress('bch')
       if (!bchAddress) {
         this.$q.notify({
@@ -546,10 +558,8 @@ export default {
         })
         return
       }
-      
       const tokenAddress = convertCashAddress(bchAddress, false, true)
-      this.sweeping = true
-      this.selectedToken = token?.category
+
       return this.sweeper.sweepCashToken({
         tokenAddress: this.sweeper.tokenAddress,
         bchWif: this.sweeper.wif,
@@ -671,6 +681,18 @@ export default {
         }
       }, 1000);
     },
+    skipTokens() {
+      this.skippedTokens = []
+      this.fungibleCashTokens.forEach(token => {
+        this.skippedTokens.push(token.category)
+      })
+      this.nonFungibleCashTokens.forEach(token => {
+        this.skippedTokens.push(`${token.category}|${token.commitment}`)
+      })
+      this.tokens.forEach(token => {
+        this.skippedTokens.push(token.token_id)
+      })
+    }
   },
   mounted () {
     getMnemonic(this.$store.getters['global/getWalletIndex']).then((mnemonic) => {
