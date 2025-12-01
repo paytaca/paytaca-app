@@ -216,7 +216,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
-              :is-loading-initial="isLoadingAssets"
+              :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -238,7 +238,7 @@
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
-              :is-loading-initial="isLoadingAssets"
+              :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -262,9 +262,33 @@
             </div>
           </div>
 
+          <div v-if="hasTokensButNoFavorites" class="q-px-lg q-py-md" :class="darkMode ? 'text-light' : 'text-dark'">
+            <div class="text-center q-pa-md" :class="getDarkModeClass(darkMode)">
+              <q-icon name="star_outline" size="48px" :color="darkMode ? 'grey-6' : 'grey-7'" class="q-mb-sm"/>
+              <p class="text-body1 q-mb-md" :class="getDarkModeClass(darkMode)">
+                {{ $t('MarkTokensAsFavorites', {}, 'Mark tokens as favorites to show them here') }}
+              </p>
+              <q-btn
+                flat
+                no-caps
+                :color="darkMode ? 'blue-4' : 'blue-6'"
+                :label="$t('Manage')"
+                icon-right="arrow_forward"
+                @click="goToAssetList"
+                padding="xs md"
+                class="br-15"
+              />
+            </div>
+          </div>
+
           <PendingTransactions :key="pendingTransactionsKey"/>
-          
-          <LearnLessonsCarousel :key="learnCarouselKey" />
+
+          <LatestTransactions 
+            v-if="wallet"
+            ref="latest-transactions"
+            :wallet="wallet"
+            :denominationTabSelected="denominationTabSelected"
+          />
         </div>
       <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
@@ -390,7 +414,7 @@ import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
 import AssetOptions from 'src/components/asset-options.vue'
 import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
-import LearnLessonsCarousel from 'src/components/LearnLessonsCarousel.vue'
+import LatestTransactions from 'src/components/transactions/LatestTransactions.vue'
 import * as assetSettings from 'src/utils/asset-settings'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
@@ -413,7 +437,7 @@ export default {
     NotificationButton,
     AssetOptions,
     PendingTransactions,
-    LearnLessonsCarousel,
+    LatestTransactions,
     AddNewAsset
   },
   directives: {
@@ -463,7 +487,6 @@ export default {
       assetClickTimer: null,
       assetClickCounter: 0 ,
       pendingTransactionsKey: 0,
-      learnCarouselKey: 0,
       loadingBchPrice: false,
       bchBalanceMode: localStorage.getItem('bchBalanceMode') || 'bch-only',
       favoriteTokenIds: [] // Store favorite token IDs for synchronous access
@@ -611,6 +634,33 @@ export default {
           !vm.isCashToken && assetId === 'slp'
         )
       })
+    },
+    hasTokensButNoFavorites () {
+      // Check if there are tokens (excluding BCH) but no favorites
+      // Only show this message when:
+      // 1. There are tokens available (assets exist and have data)
+      // 2. No favorites are set (favoriteTokenIds is empty array)
+      // 3. Balance is loaded (indicates assets have been processed)
+      const hasTokens = this.assets && this.assets.length > 0
+      const favoriteTokenIds = this.favoriteTokenIds
+      const hasNoFavorites = Array.isArray(favoriteTokenIds) && favoriteTokenIds.length === 0
+      const assetsLoaded = this.balanceLoaded // Use balanceLoaded as indicator that assets are ready
+      const result = hasTokens && hasNoFavorites && assetsLoaded
+      
+      console.log('[hasTokensButNoFavorites] Debug:', {
+        isLoadingAssets: this.isLoadingAssets,
+        balanceLoaded: assetsLoaded,
+        assetsLength: this.assets?.length || 0,
+        assets: this.assets?.map(a => a.id) || [],
+        favoriteTokenIds: favoriteTokenIds,
+        favoriteTokenIdsType: typeof favoriteTokenIds,
+        favoriteTokenIdsIsArray: Array.isArray(favoriteTokenIds),
+        hasTokens,
+        hasNoFavorites,
+        result
+      })
+      
+      return result
     },
     selectedAssetMarketPrice () {
       if (!this.selectedAsset || !this.selectedAsset.id) return
@@ -838,9 +888,6 @@ export default {
     },
     async onRefresh (done) {
       try {
-        // Refresh Learn carousel immediately to show skeletons right away
-        this.learnCarouselKey++
-        
         // Refresh wallet balances and token icons
         await this.onConnectivityChange(true)
         
@@ -857,6 +904,11 @@ export default {
         
         // Refresh pending transactions
         this.pendingTransactionsKey++
+        
+        // Refresh latest transactions
+        if (this.$refs['latest-transactions']) {
+          await this.$refs['latest-transactions'].refresh()
+        }
       } catch (error) {
         console.error('Error refreshing:', error)
       } finally {

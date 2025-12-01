@@ -1,17 +1,61 @@
 <template>
   <div
-    style="border-bottom:1px solid grey;"
-    class="q-pb-sm q-mx-lg q-mt-md"
+    class="transaction-item q-mx-lg q-px-sm q-py-sm compact"
+    style="border-bottom: 1px solid rgba(0, 0, 0, 0.06);"
   >
-    <div class="row">
-      <div class="q-space">
-        <q-skeleton height="15px" width="6em"/>
-        <q-skeleton height="12px" :width="(Math.random() * 3 + 3) + 'em'" class="q-mt-sm"/>
-      </div>
-      <div class="column items-end">
-        <q-skeleton height="1em" :width="(Math.random() * 4 + 4) + 'em'"/>
-        <q-skeleton height="0.9em" :width="(Math.random() * 3 + 3) + 'em'" class="q-mt-sm"/>
+    <div class="transaction-content">
+      <div class="transaction-header">
+        <div class="transaction-type">
+          <q-skeleton height="15px" width="6em"/>
+          <q-skeleton height="14px" width="5em" style="margin-top: 2px;"/>
+        </div>
+        <div class="transaction-amount">
+          <q-skeleton height="16px" width="5em"/>
+          <q-skeleton height="13px" width="4em" style="margin-top: 2px;"/>
+        </div>
       </div>
     </div>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.transaction-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  
+  &.dark {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.transaction-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.transaction-type {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transaction-amount {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+</style>

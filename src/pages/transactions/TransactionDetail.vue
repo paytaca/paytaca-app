@@ -1,7 +1,7 @@
 <template>
   <div class="transaction-detail-wrapper" :class="getDarkModeClass(darkMode)" :style="wrapperBackgroundStyle">
     <div class="transaction-detail-header-wrapper">
-      <header-nav :title="$t('Transaction', {}, 'Transaction')" :backnavpath="'/'" class="header-nav apps-header" @click:left="goBack" />
+      <header-nav :title="$t('Transaction', {}, 'Transaction')" :backnavpath="backNavPath" class="header-nav apps-header" @click:left="goBack" />
     </div>
     
     <div class="transaction-detail-content-wrapper" :class="getDarkModeClass(darkMode)">
@@ -484,6 +484,26 @@ export default {
     attributeDetails () {
       if (!Array.isArray(this.tx?.attributes)) return []
       return parseAttributesToGroups({ attributes: this.tx?.attributes })
+    },
+    backNavPath () {
+      // Return the appropriate back path based on where we came from
+      const fromParam = this.$route?.query?.from
+      if (fromParam === 'transactions') {
+        // Reconstruct the exact URL with preserved query parameters
+        // Remove 'from' and transaction-specific query params (category, new) to get back to transactions page state
+        const preservedQuery = { ...this.$route.query }
+        delete preservedQuery.from
+        delete preservedQuery.category // This is for the transaction detail, not the transactions list
+        delete preservedQuery.new // This is for new transaction indicator
+        
+        // Build the query string
+        const queryString = Object.keys(preservedQuery).length > 0
+          ? '?' + new URLSearchParams(preservedQuery).toString()
+          : ''
+        
+        return `/transaction/list${queryString}`
+      }
+      return '/'
     }
   },
   async mounted () {
@@ -1190,8 +1210,25 @@ export default {
       tx.asset = bchAsset
     },
     goBack () {
-      // Navigate to wallet home page
-      this.$router.push('/')
+      // Check if we came from transactions page
+      const fromParam = this.$route?.query?.from
+      if (fromParam === 'transactions') {
+        // Reconstruct the exact URL with preserved query parameters
+        // Remove 'from' and transaction-specific query params (category, new) to get back to transactions page state
+        const preservedQuery = { ...this.$route.query }
+        delete preservedQuery.from
+        delete preservedQuery.category // This is for the transaction detail, not the transactions list
+        delete preservedQuery.new // This is for new transaction indicator
+        
+        // Navigate back to transactions page with preserved query parameters
+        this.$router.push({
+          path: '/transaction/list',
+          query: preservedQuery
+        })
+      } else {
+        // Navigate to wallet home page (default behavior)
+        this.$router.push('/')
+      }
     },
     formatDate (date) {
       const dateObj = new Date(date)

@@ -2,15 +2,27 @@
   <div 
     class="transaction-item" 
     :class="[
-      'q-mx-lg q-py-md q-px-sm',
+      'q-mx-lg q-px-sm',
+      compact ? 'q-py-sm compact' : 'q-py-md',
       getDarkModeClass(darkMode)
     ]"
   >
     <div class="transaction-content">
       <div class="transaction-header">
         <div class="transaction-type">
+          <div class="type-with-asset" v-if="showAssetInfo">
+            <q-avatar size="20px" class="q-mr-xs">
+              <img v-if="assetImageUrl" :src="assetImageUrl" />
+              <q-icon v-else name="apps" size="14px" />
+            </q-avatar>
+            <span class="asset-symbol" :class="getDarkModeClass(darkMode)">{{ assetSymbol }}</span>
+          </div>
           <span class="type-text text-uppercase" :class="getDarkModeClass(darkMode)">
             {{ recordTypeText }}
+          </span>
+          <span class="transaction-date" :class="getDarkModeClass(darkMode)">
+            <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
+            <template v-else>{{ formatDate(transaction.date_created) }}</template>
           </span>
         </div>
         <div class="transaction-amount" :class="getDarkModeClass(darkMode)">
@@ -54,12 +66,8 @@
           </template>
         </div>
       </div>
-      <div class="transaction-footer">
-        <span class="transaction-date" :class="getDarkModeClass(darkMode)">
-          <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
-          <template v-else>{{ formatDate(transaction.date_created) }}</template>
-        </span>
-        <span v-if="decryptedMemo" class="transaction-memo" :class="getDarkModeClass(darkMode)">
+      <div v-if="decryptedMemo" class="transaction-footer">
+        <span class="transaction-memo" :class="getDarkModeClass(darkMode)">
           <q-icon name="mdi-note-text" size="14px" class="q-mr-xs" />
           {{ decryptedMemo }}
         </span>
@@ -110,11 +118,82 @@ const decryptedMemo = ref('')
 const props = defineProps({
   transaction: Object,
   selectedAsset: Object,
-  denominationTabSelected: String
+  denominationTabSelected: String,
+  hideAssetInfo: {
+    type: Boolean,
+    default: false
+  },
+  compact: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const asset = computed(() => {
+  // When "All" is selected, always use the transaction's specific asset
+  // Never fall back to "All" asset - if transaction asset is missing, use BCH as fallback
+  if (props?.selectedAsset?.id === 'all') {
+    // Force use of transaction asset when "All" is selected
+    // If transaction asset is missing, fallback to BCH (not "All")
+    const txAsset = props?.transaction?.asset
+    if (!txAsset) {
+      console.warn('Transaction missing asset when "All" selected:', props?.transaction)
+      return {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        decimals: 8
+      }
+    }
+    // Ensure we never use "All" as the symbol
+    if (txAsset.symbol === 'All' || txAsset.id === 'all') {
+      console.warn('Transaction asset has "All" symbol, using BCH fallback:', txAsset)
+      return {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        decimals: 8
+      }
+    }
+    return txAsset
+  }
+  // For specific asset selection, use transaction asset if available, otherwise selected asset
   return props?.transaction?.asset || props?.selectedAsset
+})
+
+const showAssetInfo = computed(() => {
+  // Hide asset info if explicitly requested
+  if (props.hideAssetInfo) return false
+  // Show asset info when "All" is selected
+  return props?.selectedAsset?.id === 'all' && asset.value?.id !== 'all'
+})
+
+const assetSymbol = computed(() => {
+  if (!asset.value) return ''
+  return asset.value.symbol || 'TOKEN'
+})
+
+const assetImageUrl = computed(() => {
+  if (!asset.value) return null
+  
+  // Handle DEEM logo for BCH
+  if (denomination.value === $t('DEEM') && asset.value.symbol === 'BCH') {
+    return 'assets/img/theme/payhero/deem-logo.png'
+  }
+  
+  if (asset.value.logo) {
+    if (asset.value.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+      return asset.value.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+    } else {
+      return asset.value.logo
+    }
+  }
+  
+  // Fallback to default logo generator
+  const logoGenerator = $store.getters['global/getDefaultAssetLogo']
+  return logoGenerator ? logoGenerator(String(asset.value.id)) : null
 })
 
 const selectedMarketCurrency = computed(() => {
@@ -162,9 +241,11 @@ const marketValueData = computed(() => {
 
   if (data.marketAssetPrice) {
     data.marketValue = (Number(props.transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
-    if (asset?.value?.id !== 'bch') {
-      const decimals = parseInt(asset?.value?.decimals) || 0; 
-      data.marketValue /= 10 ** decimals; 
+    if (asset.value?.id !== 'bch') {
+      const decimals = parseInt(asset.value?.decimals) || 0; 
+      if (decimals > 0) {
+        data.marketValue = (Number(data.marketValue) / (10 ** decimals)).toFixed(5)
+      }
     }
   }
   return data
@@ -236,6 +317,11 @@ watch(
   transition: all 0.2s ease;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: pan-y;
   
   &:hover {
     background-color: rgba(0, 0, 0, 0.02);
@@ -268,6 +354,18 @@ watch(
   gap: 8px;
 }
 
+.transaction-item.compact .transaction-content {
+  gap: 4px;
+}
+
+.transaction-item.compact .transaction-header {
+  gap: 12px;
+}
+
+.transaction-item.compact .transaction-footer {
+  gap: 6px;
+}
+
 .transaction-header {
   display: flex;
   justify-content: space-between;
@@ -277,6 +375,33 @@ watch(
 
 .transaction-type {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transaction-type .transaction-date {
+  margin-top: 2px;
+}
+
+.type-with-asset {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.asset-symbol {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+  
+  &.dark {
+    color: #b8bfc4;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.7);
+  }
 }
 
 .type-text {
