@@ -109,7 +109,7 @@
                 <q-btn
                   v-if="selectedToken !== 'bch'"
                   @click.prevent="sweepBch"
-                  :label="$t('Sweep')"
+                  :label="totalTokensCount > 0 ? $t('SweepAll') : $t('Sweep')"
                   class="button"
                   :class="getDarkModeClass(darkMode)"
                   :disabled="(totalTokensCount - skippedTokens.length) > 0"
@@ -129,24 +129,33 @@
           </div>
 
           <div v-if="fungibleCashTokens?.length || nonFungibleCashTokens?.length" class="q-mt-md">
-            <div class="row items-center q-mb-sm relative-position" v-ripple @click="() => expandCashTokens = !expandCashTokens">
+            <div class="row items-center q-mb-sm relative-position">
               <div class="q-space">
                 <div class="text-subtitle1 text-weight-medium">
-                  {{ $t('CashTokens') }} ({{ cashTokensCount }})
+                    {{ $t('CashTokens') }} ({{ cashTokensCount }})
                 </div>
                 <div>
                   {{ ellipsisText(sweeper.tokenAddress) }}
                   <q-icon name="mdi-content-copy" @click.stop="copyToClipboard(sweeper.tokenAddress)" />
                 </div>
               </div>
-              <q-icon
-                size="1.75rem"
-                name="expand_less"
-                :class="['toggle-expand', expandCashTokens ? '' : 'flipped']"
+            </div>
+
+            <div class="row justify-center q-my-sm">
+              <q-btn
+                outline
+                color="primary"
+                :label="$t('ManualCashTokensSweep')"
+                @click.prevent="expandCashTokens = !expandCashTokens"
               />
             </div>
+
             <q-slide-transition>
               <div v-if="expandCashTokens">
+                <span class="row justify-center text-subtitle1 q-mb-sm">
+                  {{ $t('SelectTokensToSweep') }}
+                </span>
+
                 <div v-for="(fungibleToken, index) in fungibleCashTokens" :key="index" class="token-details">
                   <div class="row items-center justify-between">
                     <span class="text-subtitle1 text-weight-bold">
@@ -331,13 +340,14 @@ export default {
       fetching: false,
       sweeping: false,
       selectedToken: null,
-      expandCashTokens: true,
+      expandCashTokens: false,
       expandSlpTokens: true,
       showSuccess: false,
       showQrScanner: false,
       error: null,
       passPhrase: '',
       isDecrypting: false,
+      hasEnoughBalance: true,
 
       sweepTxidMap: {
         'bch': '',
