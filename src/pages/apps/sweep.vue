@@ -89,8 +89,9 @@
             to="/"
           />
         </div>
+
         <div
-          v-else
+          v-else-if="!fetching"
           :class="totalTokensCount <= 0 ? 'wide-margin-top' : ''"
         >
           <div v-if="sweeper && Number.isFinite(bchBalance)">
@@ -382,12 +383,12 @@ export default {
       return this.$store.getters['global/theme']
     },
     cashTokensCount() {
-      const ctFts = parseInt(this.fungibleCashTokens?.length) || 0
-      const ctNfts = parseInt(this.nonFungibleCashTokens?.length) || 0
+      const ctFts = Number.parseInt(this.fungibleCashTokens?.length) || 0
+      const ctNfts = Number.parseInt(this.nonFungibleCashTokens?.length) || 0
       return ctFts + ctNfts
     },
     totalTokensCount() {
-      const slpTokens = parseInt(this.tokens?.length) || 0
+      const slpTokens = Number.parseInt(this.tokens?.length) || 0
       return slpTokens + this.cashTokensCount
     },
     emptyAssets() {
@@ -415,7 +416,7 @@ export default {
       }
     },
     round(value, decimals=0) {
-      decimals = parseInt(decimals)
+      decimals = Number.parseInt(decimals)
       if (!decimals) return value
 
       const multiplier = 10 ** decimals
@@ -479,47 +480,47 @@ export default {
         this.sweeper.getTokensList().then((tokens) => {
           this.tokens = tokens.filter(token => token.spendable)
         }),
+        this.sweeper.getBchBalance().then(resp => {
+          this.bchBalance = resp.spendable || 0
+        }),
       ])
 
-      const resp = await this.sweeper.getBchBalance()
-      this.bchBalance = resp.spendable || 0
       this.fetching = false
       this.sweeping = false
     },
     async sweepToken (token) {
-      const vm = this
-      vm.sweeping = true
-      vm.selectedToken = token.token_id
+      this.sweeping = true
+      this.selectedToken = token.token_id
       
-      const recipientAddress = await vm.getRecipientAddress('slp')
+      const recipientAddress = await this.getRecipientAddress('slp')
       if (!recipientAddress) {
-        vm.$q.notify({
-          message: vm.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+        this.$q.notify({
+          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
           icon: 'mdi-close-circle',
           color: 'red-5'
         })
-        vm.sweeping = false
-        vm.selectedToken = null
+        this.sweeping = false
+        this.selectedToken = null
         return
       }
       
-      vm.sweeper.sweepToken(
+      this.sweeper.sweepToken(
         token.address,
-        vm.wif,
+        this.wif,
         token.token_id,
         token.spendable,
-        vm.getFeeFunder(),
+        this.getFeeFunder(),
         recipientAddress
       ).then(function (result) {
         if (!result.success) {
-          vm.$q.notify({
+          this.$q.notify({
             message: result.error,
             icon: 'mdi-close-circle',
             color: 'red-5'
           })
-          vm.selectedToken = null
+          this.selectedToken = null
         }
-        vm.getTokens()
+        this.getTokens()
       })
     },
     async sweepCashTokenFungible(token) {
@@ -659,17 +660,13 @@ export default {
     },
   },
   mounted () {
-    const vm = this
-    // const divHeight = screen.availHeight - 120
-    // vm.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
-
-    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
-      vm.wallet = markRaw(new Wallet(mnemonic))
+    getMnemonic(this.$store.getters['global/getWalletIndex']).then((mnemonic) => {
+      this.wallet = markRaw(new Wallet(mnemonic))
     })
 
-    if (vm.w) {
-      vm.wif =  extractWifFromUrl(vm.w) || vm.w
-      vm.getTokens(true)
+    if (this.w) {
+      this.wif =  extractWifFromUrl(this.w) || this.w
+      this.getTokens(true)
     }
   }
 }
