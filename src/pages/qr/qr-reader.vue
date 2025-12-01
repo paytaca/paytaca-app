@@ -299,7 +299,7 @@ export default {
             name: 'app-sweep',
             query: { w: '', bip38String: value }
           })
-        } else if(content[0].rawValue.startsWith('ur:crypto-mofnwallet')) {
+        } else if(_value?.startsWith('ur:crypto-mofnwallet')) {
           vm.urDecoder.receivePart(content[0].rawValue);
           if (vm.urDecoder.isComplete()) {
             const ur = vm.urDecoder.resultUR()
