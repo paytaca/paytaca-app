@@ -902,7 +902,7 @@ export async function cleanupNullAndDeletedWallets (context) {
 
 /**
  * Clean up duplicate wallets in the vault based on walletHash
- * Keeps the wallet with a custom name (not "Personal Wallet #X") or the first one if both have generic names
+ * Keeps the wallet with a custom name (not "Personal Wallet") or the first one if both have generic names
  * Performs complete cleanup of deleted duplicates (removes all traces)
  */
 export async function cleanupDuplicateWallets (context) {
@@ -1028,12 +1028,11 @@ export async function cleanupDuplicateWallets (context) {
 }
 
 /**
- * Check if a wallet name is custom (not "Personal Wallet #X")
+ * Check if a wallet name is custom (not "Personal Wallet")
  */
 function hasCustomWalletName (name) {
   if (!name || name === '') return false
-  const genericNamePattern = /^Personal Wallet #\d+$/
-  return !genericNamePattern.test(name)
+  return name !== 'Personal Wallet'
 }
 
 /**

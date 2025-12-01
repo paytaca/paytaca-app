@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" class="wallet-backup-container sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('WalletBackup')" backnavpath="/apps" class="header-nav apps-header" />
+    <header-nav :title="$t('WalletBackup')" backnavpath="/apps/settings" class="header-nav apps-header" />
 
     <div class="content-wrapper" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <!-- Security Banner -->

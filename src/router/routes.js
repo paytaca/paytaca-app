@@ -122,7 +122,7 @@ const routes = [
       { path: 'merchant-admin/merchant/cashout', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/index.vue'), name: 'app-pos-cashout', props: route => route.query },
       { path: 'merchant-admin/merchant/cashout/order', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/order-form.vue'), name: 'app-pos-cashout-form', props: route => route.query },
       { path: 'wallet-connect', component: () => import('src/pages/apps/wallet-connect2.vue'), name: 'app-wallet-connect', props: route => route.query },
-      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
+      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-support' },
       { path: 'bridge', component: () => import('src/pages/apps/bridge.vue'), name: 'app-bridge' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },

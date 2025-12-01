@@ -62,8 +62,7 @@ export default {
     },
     walletNameLabel () {
       if (this.walletName) return this.walletName
-      const walletIndex = this.$store.getters['global/getWalletIndex']
-      return `Personal Wallet #${walletIndex + 1}`
+      return 'Personal Wallet'
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios

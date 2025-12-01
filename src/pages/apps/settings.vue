@@ -3,6 +3,74 @@
       <header-nav :title="$t('Settings')" backnavpath="/" class="header-nav header-nav apps-header" />
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
         <div class="col-12 q-px-lg q-mt-md">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('WalletInfo', {}, 'Wallet Info') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+              <q-item clickable v-ripple @click="openRenameDialog()">
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletName') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ currentWalletName }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section avatar>
+                  <q-icon name="edit" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+                </q-item-section>
+              </q-item>
+              <q-item clickable v-ripple @click="showSensitiveInfo = !showSensitiveInfo">
+                <q-item-section>
+                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                    {{ showSensitiveInfo ? $t('HideWalletDetails', {}, 'Hide Wallet Details') : $t('ShowWalletDetails', {}, 'Show Wallet Details') }}
+                  </q-item-label>
+                  <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                    {{ showSensitiveInfo ? $t('HideWalletDetailsTooltip', {}, 'Hide Derivation Path, xPub Key and Wallet Hash') : $t('ShowWalletDetailsTooltip', {}, 'Reveal Derivation Path, xPub Key and Wallet Hash') }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section avatar>
+                  <q-icon :name="showSensitiveInfo ? 'visibility_off' : 'visibility'" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+                </q-item-section>
+              </q-item>
+              <q-item v-if="showSensitiveInfo" :clickable="!!bchWallet.derivationPath" v-ripple @click="bchWallet.derivationPath && copyToClipboard(bchWallet.derivationPath)">
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ bchWallet.derivationPath || $t('NotAvailable', {}, 'Not available') }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item v-if="showSensitiveInfo" :clickable="!!bchWallet.xPubKey" v-ripple @click="bchWallet.xPubKey && copyToClipboard(bchWallet.xPubKey)">
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                    {{ bchWallet.xPubKey || $t('NotAvailable', {}, 'Not available') }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item v-if="showSensitiveInfo" :clickable="!!bchWallet.walletHash" v-ripple @click="bchWallet.walletHash && copyToClipboard(bchWallet.walletHash)">
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                    {{ bchWallet.walletHash || $t('NotAvailable', {}, 'Not available') }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('EnableSmartBCH') }}
+                      </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-toggle
+                      v-model="enableSmartBCH"
+                      color="blue-9"
+                      keep-color
+                    />
+                  </q-item-section>
+              </q-item> -->
+            </q-list>
+        </div>
+
+        <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Authentication', {}, 'Authentication') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item clickable v-ripple v-if="securityAuth" @click="securityOptionDialogStatus='show in settings'">
@@ -22,7 +90,7 @@
                       </q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
-                      <q-icon name="mdi-pin" class="q-pr-sm pin-icon"></q-icon>
+                      <q-icon name="lock" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
                   </q-item-section>
               </q-item>
             </q-list>
@@ -56,81 +124,6 @@
                   <q-item-section avatar>
                       <q-icon name="workspaces" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
                   </q-item-section>
-              </q-item>
-            </q-list>
-        </div>
-
-        <div class="col-12 q-px-lg q-mt-md">
-            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Wallet') }}</p>
-            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-              <q-item clickable v-ripple @click="isChipnet = !isChipnet">
-                  <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('UseChipnetNetwork') }}
-                      </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle
-                      v-model="isChipnet"
-                      :color="toggleColor"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item>
-              <q-item clickable v-ripple @click="autoGenerateAddress = !autoGenerateAddress">
-                  <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
-                      </q-item-label>
-                      <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                        {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
-                      </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle
-                      v-model="autoGenerateAddress"
-                      :color="toggleColor"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item>
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                    {{ $t('EnableSlp') }}
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section avatar>
-                    <q-toggle
-                      v-model="enableSLP"
-                      :color="toggleColor"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item>
-              <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
-                  <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableSmartBCH') }}
-                      </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle
-                      v-model="enableSmartBCH"
-                      color="blue-9"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item> -->
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                    {{ $t('SelectBCHDenomination') }}
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <DenominatorSelector :darkMode="darkMode" />
-                </q-item-section>
               </q-item>
             </q-list>
         </div>
@@ -193,6 +186,26 @@
           <PushNotifsSettings />
         </template>
 
+        <div class="col-12 q-px-lg q-mt-md">
+          <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Developer', {}, 'Developer') }}</p>
+          <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+            <q-item clickable v-ripple @click="isChipnet = !isChipnet">
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                  {{ $t('UseChipnetNetwork') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  v-model="isChipnet"
+                  :color="toggleColor"
+                  keep-color
+                />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
           <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('AppInfo') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
@@ -236,10 +249,12 @@ import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
-import DenominatorSelector from 'src/components/settings/DenominatorSelector'
 import PushNotifsSettings from 'src/components/settings/PushNotifsSettings.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
+import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { loadWallet } from 'src/wallet'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
 
 export default {
   data () {
@@ -253,13 +268,12 @@ export default {
       appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
-      autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
       enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
-      enableSLP: this.$store.getters['global/enableSLP'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
-      enablePushNotifs: false
+      enablePushNotifs: false,
+      showSensitiveInfo: false
     }
   },
   components: {
@@ -269,9 +283,9 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
-    DenominatorSelector,
     ThemeSelector,
-    PushNotifsSettings
+    PushNotifsSettings,
+    RenameDialog
   },
   computed: {
     isMobile () {
@@ -283,20 +297,35 @@ export default {
       if (theme === 'glassmorphic-green') return 'green-6'
       if (theme === 'glassmorphic-gold') return 'amber-7'
       return 'blue-6'
+    },
+    currentWalletName () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const vault = this.$store.getters['global/getVault']
+      return vault[walletIndex]?.name || 'Personal Wallet'
+    },
+    bchWallet () {
+      const wallet = this.$store.getters['global/getWallet']('bch')
+      // Return wallet if it exists, otherwise return a safe default object
+      if (!wallet) {
+        return {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          subscribed: false
+        }
+      }
+      return wallet
     }
   },
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
     },
-    autoGenerateAddress (n, o) {
-      this.$store.commit('global/toggleAutoGenerateAddress')
-    },
     enableSmartBCH (n, o) {
       this.$store.commit('global/enableSmartBCH')
-    },
-    enableSLP (n, o) {
-      this.$store.commit('global/enableSLP')
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
@@ -307,6 +336,42 @@ export default {
   methods: {
     getDarkModeClass,
     isHongKong,
+    getWallet (type) {
+      const wallet = this.$store.getters['global/getWallet'](type)
+      // Return wallet if it exists, otherwise return a safe default object
+      if (!wallet) {
+        // Return a minimal wallet object to prevent errors
+        return {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          subscribed: false
+        }
+      }
+      return wallet
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 200,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
+    openRenameDialog () {
+      const vm = this
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      vm.$q.dialog({
+        component: RenameDialog,
+        componentProps: {
+          index: walletIndex
+        }
+      })
+    },
     setNewPin () {
       this.securityChange = 'change-pin'
       this.pinDialogAction = 'VERIFY'
@@ -363,6 +428,25 @@ export default {
       if (currentPref === auth) {
         vm.securityOptionDialogStatus = 'dismiss'
       }
+    },
+    async ensureXPubKeyLoaded () {
+      const walletData = this.bchWallet
+      if (!walletData.xPubKey && walletData.walletHash) {
+        try {
+          const wallet = await loadWallet('BCH', this.$store.getters['global/getWalletIndex'])
+          const isChipnet = this.$store.getters['global/isChipnet']
+          const bchWallet = getWalletByNetwork(wallet, 'bch')
+          const xPubKey = await bchWallet.getXPubKey()
+          
+          this.$store.commit('global/updateXPubKey', {
+            isChipnet,
+            type: 'bch',
+            xPubKey: xPubKey
+          })
+        } catch (error) {
+          console.error('Error loading xPubKey:', error)
+        }
+      }
     }
   },
   created () {
@@ -398,6 +482,7 @@ export default {
 
     this.$store.dispatch('market/updateSupportedCurrencies', {})
     this.$store.dispatch('global/refetchWalletPreferences')
+    this.ensureXPubKeyLoaded()
   }
 }
 </script>

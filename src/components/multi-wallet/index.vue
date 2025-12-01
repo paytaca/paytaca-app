@@ -165,7 +165,7 @@ export default {
           if (cachedName) {
             tempName = cachedName
           } else {
-            tempName = `Personal Wallet #${index + 1}`
+            tempName = 'Personal Wallet'
           }
         } else {
           const walletName = await vm.$store.dispatch(
@@ -181,7 +181,7 @@ export default {
             if (cachedName) {
               tempName = cachedName
             } else {
-              tempName = `Personal Wallet #${index + 1}`
+              tempName = 'Personal Wallet'
             }
           }
         }
@@ -207,7 +207,7 @@ export default {
           // Check cache before using generic name
           const walletHash = wallet?.wallet?.bch?.walletHash
           const cachedName = walletHash ? getWalletName(walletHash) : null
-          const newName = cachedName || `Personal Wallet #${index + 1}`
+          const newName = cachedName || 'Personal Wallet'
           vm.$store.commit('global/updateWalletName', { index, name: newName })
         }
       })
@@ -274,7 +274,7 @@ export default {
       tempVault = JSON.parse(tempVault)
       
       // Deduplicate wallets by walletHash
-      // Keep the wallet with a custom name (not "Personal Wallet #X") or the first one if both have generic names
+      // Keep the wallet with a custom name (not "Personal Wallet") or the first one if both have generic names
       const walletHashMap = new Map()
       const deduplicatedVault = []
       const indexMap = new Map() // Maps displayed index to actual vault index
@@ -359,10 +359,9 @@ export default {
       vm.vault = deduplicatedVault
     },
     hasCustomName (name) {
-      // Check if the name is a custom name (not "Personal Wallet #X")
+      // Check if the name is a custom name (not "Personal Wallet")
       if (!name || name === '') return false
-      const genericNamePattern = /^Personal Wallet #\d+$/
-      return !genericNamePattern.test(name)
+      return name !== 'Personal Wallet'
     },
     getAssetData (index) {
       if (this.currentIndex === index) {

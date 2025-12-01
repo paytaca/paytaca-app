@@ -93,15 +93,6 @@ export default {
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
-        {
-          name: this.$t('Learn'),
-          iconName: 'lightbulb',
-          path: '/apps/learn',
-          iconStyle: 'font-size: 4em',
-          description: this.$t('LearnDescription'),
-          active: true,
-          smartBCHOnly: false
-        },
         // {
         //   name: 'Rewards',
         //   iconName: 'workspace_premium',
@@ -143,7 +134,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('Map'),
+          name: this.$t('MerchantMap', {}, 'Merchant Map'),
           iconName: 'public',
           path: '/apps/map/',
           iconStyle: 'font-size: 4.2em',
@@ -183,7 +174,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Multisig Wallet',
+          name: 'Multisig Wallets',
           iconName: 'mdi-account-group',
           path: '/apps/multisig',
           active: true,
@@ -191,8 +182,8 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('WalletInfo'),
-          iconName: 'info',
+          name: this.$t('Support', {}, 'Support'),
+          iconName: 'support',
           path: '/apps/wallet-info',
           active: true,
           iconStyle: 'font-size: 4em',
