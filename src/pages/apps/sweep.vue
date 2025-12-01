@@ -109,21 +109,17 @@
                 <q-btn
                   v-if="selectedToken !== 'bch'"
                   @click.prevent="sweepBch"
-                  :label="totalTokensCount > 0 ? $t('SweepAll') : $t('Sweep')"
+                  :label="(totalTokensCount - skippedTokens.length) > 0 ? $t('SweepAll') : $t('Sweep')"
                   class="button"
                   :class="getDarkModeClass(darkMode)"
-                  :disabled="(totalTokensCount - skippedTokens.length) > 0"
                 />
-                <span v-if="(totalTokensCount - skippedTokens.length) > 0" class="text-red" style="margin-left: 10px;">
-                  <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
-                </span>
                 <div v-if="sweeping && selectedToken === 'bch'">
                   <progress-loader />
                 </div>
               </template>
               <span v-else class="text-red">
                 <template v-if="totalTokensCount == 0">{{ $t('SweepErrMsg1') }}</template>
-                <i v-else>{{ $t('SweepErrMsg2') }}</i>
+                <i v-else>{{ $t('EmptyBalancesError', '', 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below') }}</i>
               </span>
             </div>
           </div>
