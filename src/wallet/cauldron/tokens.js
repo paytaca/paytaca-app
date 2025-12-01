@@ -62,3 +62,10 @@ export async function fetchTokensList(opts) {
   const response = await axios.get('https://indexer2.cauldron.quest/' + path, { params })
   return response.data
 }
+
+export async function fetchTokenLatestPrice(tokenId) {
+  return axios.get(`https://indexer2.cauldron.quest/cauldron/price/${tokenId}/current/`)
+    .then(response => {
+      return response?.data?.price
+    })
+}

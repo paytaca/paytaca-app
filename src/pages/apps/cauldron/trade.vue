@@ -8,7 +8,11 @@
       title="Cauldron DEX"
       backnavpath="/apps"
       class="apps-header"
-    />
+    >
+      <template v-slot:top-right-menu>
+        <CauldronHeaderMenu />
+      </template>
+    </HeaderNav>
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <!-- Success Display -->
@@ -360,6 +364,7 @@ import HeaderNav from 'src/components/header-nav'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
 import CustomInput from 'src/components/CustomInput.vue';
+import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 
 /**
  * Typedefs
@@ -374,6 +379,7 @@ export default defineComponent({
     HeaderNav,
     DragSlide,
     CustomInput,
+    CauldronHeaderMenu,
   },
   props: {
     selectTokenId: String,

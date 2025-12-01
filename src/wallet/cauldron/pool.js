@@ -435,18 +435,27 @@ export class CauldronPoolTracker extends EventEmitter {
    * @param {Boolean} isBuyingToken
    */
   parseRate(rate, tokenDecimals, isBuyingToken) {
-    let multiplerDecimals = 8
-    let divisorDecimals = tokenDecimals
-    if (isBuyingToken) {
-      multiplerDecimals = tokenDecimals
-      divisorDecimals = 8
-    }
-
-    const multiplier = 10n ** BigInt(multiplerDecimals);
-    const _price = rate.numerator * multiplier / rate.denominator;
-
-    const divisor = 10 ** divisorDecimals;
-    const price = Number(_price) / divisor;
-    return price.toFixed(divisorDecimals);
+    return parseRate(rate, tokenDecimals, isBuyingToken)
   }
+}
+
+/**
+ * @param {import("@cashlab/common").Fraction} rate
+ * @param {Number} tokenDecimals
+ * @param {Boolean} isBuyingToken
+ */
+export function parseRate(rate, tokenDecimals, isBuyingToken) {
+  let multiplerDecimals = 8
+  let divisorDecimals = tokenDecimals
+  if (isBuyingToken) {
+    multiplerDecimals = tokenDecimals
+    divisorDecimals = 8
+  }
+
+  const multiplier = 10n ** BigInt(multiplerDecimals);
+  const _price = rate.numerator * multiplier / rate.denominator;
+
+  const divisor = 10 ** divisorDecimals;
+  const price = Number(_price) / divisor;
+  return price.toFixed(divisorDecimals);
 }
