@@ -75,8 +75,21 @@
           </div>
         </template>
         
+        <!-- Empty state message -->
+        <template v-else-if="initialized && !fetchingStorefronts && storefronts.length === 0 && customerCoordinatesValid">
+          <div class="col-12 q-pa-lg text-center" style="min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <q-icon name="storefront" size="64px" :class="darkMode ? 'text-grey-6' : 'text-grey-4'" class="q-mb-md" />
+            <div class="text-h6 q-mb-sm" :class="getDarkModeClass(darkMode)">
+              {{ $t('NoShopsInArea', {}, 'No shops in your area yet') }}
+            </div>
+            <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              {{ $t('NoShopsInAreaDescription', {}, 'We\'re working on expanding our network. Check back soon!') }}
+            </div>
+          </div>
+        </template>
+        
         <!-- Actual storefronts -->
-        <template v-else>
+        <template v-else-if="storefronts.length > 0">
           <div v-for="storefront in storefronts" :key="storefront?.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow"
@@ -87,7 +100,11 @@
                 : undefined
             "
           >
-            <q-img :src="storefront?.imageUrl || noImage" ratio="1.75">
+            <q-img 
+              :src="storefront?.imageUrl || noImage" 
+              ratio="1.75"
+              :class="{ 'closed-shop-image': !storefront?.isOpen && !storefront?.inPrelaunch }"
+            >
               <template v-slot:loading>
                 <q-skeleton height="100%" width="100%" square />
               </template>
@@ -513,6 +530,10 @@ table.orders-table td {
   position: sticky;
   top: 70px;
   z-index: 10 !important;
+}
+
+.closed-shop-image {
+  opacity: 0.5;
 }
 .sticky-below-header.sticky-below-header--ios {
   top: 110px;
