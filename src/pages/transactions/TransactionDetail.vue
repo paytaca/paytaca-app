@@ -75,6 +75,24 @@
           <div v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss">
             {{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}
           </div>
+          <div v-if="gainLossAmount !== null && gainLossAmount !== undefined && isBchTransaction" class="amount-gain-loss-ss" :class="gainLossClass">
+            <q-icon :name="gainLossAmount >= 0 ? 'trending_up' : 'trending_down'" size="16px" class="q-mr-xs" />
+            {{ gainLossText }}
+          </div>
+        </div>
+
+        <!-- Add to Favorites button for tokens not in favorites -->
+        <div v-if="showAddToFavoritesButton" class="q-mt-md q-mb-lg text-center">
+          <q-btn
+            no-caps
+            rounded
+            color="pt-primary1"
+            :label="$t('AddToFavorites', {}, 'Add this token to Favorites')"
+            icon="star_border"
+            @click="addTokenToFavorites"
+            :loading="addingToFavorites"
+            class="add-to-favorites-btn"
+          />
         </div>
 
         <!-- Reference ID (big, spaced, with separator) -->
@@ -278,6 +296,7 @@ import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import JppDetailDialog from 'src/components/JppDetailDialog.vue'
+import * as assetSettings from 'src/utils/asset-settings'
 
 export default {
   name: 'TransactionDetailPage',
@@ -306,6 +325,8 @@ export default {
       usingWebsocketData: false, // Track if we're using websocket data as fallback
       backgroundFetchActive: false, // Track if background fetch is active
       displayRawAttributes: false,
+      favorites: [],
+      addingToFavorites: false,
     }
   },
   computed: {
@@ -354,6 +375,69 @@ export default {
         if (decimals > 0) base = base / (10 ** decimals)
       }
       return base
+    },
+    currentFiatAmount () {
+      if (!this.tx || !this.displayFiatAmount) return null
+      const code = this.selectedMarketCurrency
+      if (!code) return null
+      
+      // Get current price
+      const currentPrice = this.$store.getters['market/getAssetPrice'](this.tx?.asset?.id || 'bch', code)
+      if (!currentPrice || currentPrice === 0) return null
+      
+      // Calculate current fiat value
+      let base = Math.abs(Number(this.tx.amount)) * Number(currentPrice)
+      // Adjust for token decimals
+      const assetId = String(this.tx?.asset?.id || '')
+      if (assetId && assetId !== 'bch') {
+        const decimals = parseInt(this.tx?.asset?.decimals) || 0
+        if (decimals > 0) base = base / (10 ** decimals)
+      }
+      return base
+    },
+    gainLossAmount () {
+      if (!this.displayFiatAmount || !this.currentFiatAmount) return null
+      return this.currentFiatAmount - this.displayFiatAmount
+    },
+    gainLossText () {
+      if (this.gainLossAmount === null || this.gainLossAmount === undefined) return ''
+      const code = this.selectedMarketCurrency
+      if (!code) return ''
+      
+      const absAmount = Math.abs(this.gainLossAmount)
+      const formatted = this.parseFiatCurrency(absAmount, code)
+      const sign = this.gainLossAmount >= 0 ? '+' : '-'
+      const label = this.gainLossAmount >= 0 
+        ? this.$t('Gain', {}, 'Gain')
+        : this.$t('Loss', {}, 'Loss')
+      
+      return `${sign}${formatted} (${label})`
+    },
+    gainLossClass () {
+      if (this.gainLossAmount === null || this.gainLossAmount === undefined) return ''
+      return this.gainLossAmount >= 0 ? 'text-green' : 'text-red'
+    },
+    isBchTransaction () {
+      if (!this.tx || !this.tx.asset) return false
+      const assetId = String(this.tx.asset.id || '')
+      return assetId === 'bch' || assetId === ''
+    },
+    isTokenTransaction () {
+      if (!this.tx || !this.tx.asset) return false
+      const assetId = String(this.tx.asset.id || '')
+      return assetId !== 'bch' && assetId !== ''
+    },
+    tokenAssetId () {
+      if (!this.isTokenTransaction) return null
+      return this.tx.asset.id
+    },
+    showAddToFavoritesButton () {
+      if (!this.isTokenTransaction || !this.tokenAssetId) return false
+      // Check if token is not in favorites
+      const favoriteIds = this.favorites
+        .filter(fav => fav.favorite === 1)
+        .map(fav => fav.id)
+      return !favoriteIds.includes(this.tokenAssetId)
     },
     txFeeMarketValue () {
       if (!this.tx) return ''
@@ -455,6 +539,7 @@ export default {
       this.tx = mutableTx
       this.$nextTick(() => {
         this.loadMemo()
+        this.loadFavorites()
         // Launch confetti if this is a new transaction
         // Wait for DOM to be fully rendered before triggering
         if (isNewTransaction) {
@@ -633,6 +718,7 @@ export default {
           
           this.$nextTick(() => {
             this.loadMemo()
+            this.loadFavorites()
             // Launch confetti if this is a new transaction
             // Wait for DOM to be fully rendered before triggering
             if (isNewTransaction) {
@@ -662,6 +748,7 @@ export default {
             
             this.$nextTick(() => {
               this.loadMemo()
+              this.loadFavorites()
               if (isNewTransaction) {
                 this.waitForRenderAndLaunchConfetti()
               }
@@ -734,6 +821,7 @@ export default {
           
           this.$nextTick(() => {
             this.loadMemo()
+            this.loadFavorites()
             if (isNewTransaction) {
               this.waitForRenderAndLaunchConfetti()
             }
@@ -855,6 +943,7 @@ export default {
             // Reload memo with real transaction data
             this.$nextTick(() => {
               this.loadMemo()
+              this.loadFavorites()
             })
           } else {
             // Not found yet, retry with exponential backoff
@@ -1005,6 +1094,63 @@ export default {
       // Load BCH wallet (consistent with transactions page)
       const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
       this.wallet = wallet
+    },
+    async loadFavorites () {
+      try {
+        const favorites = await assetSettings.fetchFavorites()
+        if (favorites && Array.isArray(favorites)) {
+          this.favorites = favorites
+        } else {
+          this.favorites = []
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error)
+        this.favorites = []
+      }
+    },
+    async addTokenToFavorites () {
+      if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
+      
+      this.addingToFavorites = true
+      try {
+        // Determine network: 'sBCH' for smartchain tokens, 'BCH' for mainchain tokens
+        const isSmartchain = this.tokenAssetId.startsWith('sep20/')
+        const network = isSmartchain ? 'sBCH' : 'BCH'
+        
+        // Get the asset from store
+        const asset = isSmartchain
+          ? this.$store.getters['sep20/getAsset'](this.tokenAssetId)
+          : this.$store.getters['assets/getAsset'](this.tokenAssetId)
+        
+        if (!asset) {
+          throw new Error('Asset not found in store')
+        }
+        
+        // Add to favorites using asset-settings
+        await assetSettings.addNewAsset(asset, network)
+        
+        // Reload favorites to update the UI
+        await this.loadFavorites()
+        
+        this.$q.notify({
+          message: this.$t('TokenAddedToFavorites', {}, 'Token added to favorites'),
+          color: 'positive',
+          icon: 'star',
+          position: 'top',
+          timeout: 2000
+        })
+      } catch (error) {
+        console.error('Error adding token to favorites:', error)
+        this.$q.notify({
+          message: this.$t('ErrorAddingToFavorites', {}, 'Error adding token to favorites'),
+          color: 'negative',
+          icon: 'error',
+          position: 'top',
+          timeout: 2000
+        })
+      } finally {
+        this.addingToFavorites = false
+      }
     },
     attachAssetIfMissing (tx, categoryParam) {
       if (!tx) return
@@ -1360,6 +1506,14 @@ export default {
 .amount-primary { font-size: 20px; }
 .amount-label-ss { font-size: 28px; font-weight: 600; margin-top: -4px; margin-bottom: 4px; }
 .amount-fiat-label-ss { font-size: 20px; opacity: 0.85; margin-top: 0; }
+.amount-gain-loss-ss { 
+  font-size: 16px; 
+  margin-top: 8px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-weight: 500;
+}
 .amount-big { font-size: 30px; }
 .amount-secondary { font-size: 13px; opacity: 0.9; }
 .amount-row-ss { align-items: center !important; }
