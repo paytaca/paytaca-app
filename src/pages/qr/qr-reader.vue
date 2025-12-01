@@ -6,7 +6,7 @@
 
     <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
       <q-icon name="error" left/>
-      {{ error }}
+      {{ error }} 
     </div>
     <template v-else>
       <qrcode-stream
@@ -70,6 +70,7 @@
 
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
+import { UR, URDecoder } from "@ngraveio/bc-ur";
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { extractWifFromUrl } from 'src/wallet/sweep'
 import { parsePayPro } from 'src/utils/pay-pro'
@@ -81,6 +82,7 @@ import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
 import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
 import base58 from 'bs58'
+import { binToBase64 } from 'bitauth-libauth-v3';
 
 export default {
   name: 'QRReader',
@@ -102,7 +104,8 @@ export default {
       paused: false,
       error: '',
       frontCamera: false,
-      clWidth: '0px'
+      clWidth: '0px',
+      urDecoder: null
     }
   },
 
@@ -227,7 +230,6 @@ export default {
       document.body.classList.add('transparent-body')
 
       const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
-
       if (res.content) {
         BarcodeScanner.showBackground()
         BarcodeScanner.stopScan()
@@ -297,6 +299,16 @@ export default {
             name: 'app-sweep',
             query: { w: '', bip38String: value }
           })
+        } else if(content[0].rawValue.startsWith('ur:crypto-mofnwallet')) {
+          vm.urDecoder.receivePart(content[0].rawValue);
+          if (vm.urDecoder.isComplete()) {
+            const ur = vm.urDecoder.resultUR()
+            const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
+            vm.$router.push({
+              name: 'app-multisig-wallet-import',
+              query: { data: encodeURIComponent(base64) }
+            })
+          }
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
@@ -446,7 +458,7 @@ export default {
 
   mounted () {
     const vm = this
-
+    vm.urDecoder = new URDecoder()
     if (vm.decode) {
       vm.onQRDecode([{ rawValue: vm.decode }])
     } else if (vm.isMobile) {
