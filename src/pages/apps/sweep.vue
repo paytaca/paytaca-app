@@ -460,22 +460,6 @@ export default {
     validatePrivateKey (value) {
       return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(String(value))
     },
-    getFeeFunder () {
-      let funder
-      if (this.payFeeFrom.value === 'address') {
-        funder = {
-          address: this.sweeper.bchAddress,
-          wif: this.wif
-        }
-      } else if (this.payFeeFrom.value === 'wallet') {
-        funder = {
-          walletHash: this.wallet.BCH.walletHash,
-          mnemonic: this.wallet.mnemonic,
-          derivationPath: this.wallet.BCH.derivationPath
-        }
-      }
-      return funder
-    },
     async getTokens (signalFetch) {
       if (!this.validatePrivateKey(this.wif)) {
         this.error = this.$t('InvalidPrivateKey')
@@ -531,7 +515,6 @@ export default {
         this.wif,
         token.token_id,
         token.spendable,
-        this.getFeeFunder(),
         recipientAddress
       ).then(function (result) {
         if (!result.success) {
@@ -567,7 +550,6 @@ export default {
           tokenId: token?.category,
         },
         tokenAmount: token.balance,
-        feeFunder: this.getFeeFunder(),
         recipient: tokenAddress,
       }).then(result => {
         if (!result.success) {
@@ -609,7 +591,6 @@ export default {
           txid: token?.currentTxid,
           vout: token?.currentIndex,
         },
-        feeFunder: this.getFeeFunder(),
         recipient: tokenAddress,
       }).then(result => {
         if (!result.success) {
