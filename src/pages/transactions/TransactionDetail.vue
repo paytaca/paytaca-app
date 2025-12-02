@@ -1190,7 +1190,7 @@ export default {
           await assetSettings.saveCustomList(customList)
         }
         
-        // Fetch current favorites to get existing favorite statuses
+        // Fetch current favorites to preserve favorites from all networks
         let currentFavorites = await assetSettings.fetchFavorites()
         if (!Array.isArray(currentFavorites)) {
           currentFavorites = []
@@ -1202,28 +1202,24 @@ export default {
           favoritesMap.set(fav.id, fav.favorite)
         })
         
-        // Build asset list with favorite statuses (fetch asset info like asset list page does)
-        const assetList = []
-        for (const id of assetIds) {
-          const asset = this.$store.getters[selectedNetwork === 'sBCH' ? 'sep20/getAsset' : 'assets/getAsset'](id)
-          if (Array.isArray(asset) && asset.length > 0) {
-            const assetObj = asset[0]
-            // Set favorite: 1 for the token we're adding, otherwise use existing or 0
-            assetList.push({
-              ...assetObj,
-              favorite: id === this.tokenAssetId ? 1 : (favoritesMap.get(id) || 0)
-            })
+        // Update or add the token to favorites (preserving all existing favorites)
+        // This matches the pattern in addNewAsset which preserves all favorites
+        if (favoritesMap.has(this.tokenAssetId)) {
+          // Update existing favorite status
+          const index = currentFavorites.findIndex(fav => fav.id === this.tokenAssetId)
+          if (index !== -1) {
+            currentFavorites[index].favorite = 1
           }
+        } else {
+          // Add new favorite at the beginning (matching addNewAsset pattern)
+          currentFavorites.unshift({ id: this.tokenAssetId, favorite: 1 })
         }
         
-        // Build the full favorites array (exact same pattern as asset list page updateFavorite)
-        const tempFavorites = assetList.map(({id, favorite}) => ({ id, favorite }))
-        
-        // Save favorites (exact same API call as asset list page)
-        await assetSettings.saveFavorites(tempFavorites)
+        // Save the full favorites list (preserving favorites from all networks)
+        await assetSettings.saveFavorites(currentFavorites)
         
         // Update local favorites array immediately so button disappears right away
-        this.favorites = tempFavorites
+        this.favorites = currentFavorites
         
         // Reload favorites from server to ensure consistency
         await this.loadFavorites()
