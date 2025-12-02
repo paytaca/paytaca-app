@@ -123,11 +123,27 @@
               <div class="row items-center q-mb-sm">
                 <div class="text-h6">{{ $t('PoolPricing') }}</div>
                 <q-space/>
-                <q-toggle v-model="usePoolPricing" :label="$t('UsePoolPricing')"/>
+                <q-toggle
+                  v-model="usePoolPricing"
+                  :label="$t('UsePoolPricing')"
+                  @update:model-value="syncBchAmountFromTokenAmount"
+                />
               </div>
-              <div class="text-h5">
+              <div class="text-h5" :class="usePoolPricing ? '' : 'text-grey'">
                 {{ parsedPoolPricing }} BCH / {{ tokenSymbol }}
               </div>
+              <q-slide-transition>
+                <q-banner v-if="!usePoolPricing" class="q-mt-sm q-mb-md rounded-borders shadow-2">
+                  <template v-slot:avatar>
+                    <q-icon name="warning"/>
+                  </template>
+                  <div class="text-body1">Warning:</div>
+                  <div class="text-subtitle">
+                    Submitting liquidity at a price that differs from the market can lead to instant arbitrage opportunities, potentially resulting in financial losses for you.
+                    Please proceed with caution.
+                  </div>
+                </q-banner>
+              </q-slide-transition>
             </div>
           </q-card-section>
         </q-card>
@@ -135,6 +151,32 @@
         <q-card v-if="selectedToken" class="br-15 pt-card-2 q-mb-md" :class="getDarkModeClass(darkMode)">
           <q-card-section>
             <div class="text-h5 q-mb-md">{{ $t('DepositAmount') }}</div>
+            <div class="value-bar-container q-mt-md q-mb-md">
+              <div class="row items-center no-wrap q-gutter-x-sm justify-between q-mb-sm">
+                <div class="text-body2">
+                  <div>{{ tokenSymbol }}</div>
+                  <div>{{ formatAmount(tokenValueInFiat, 2) }} {{ selectedMarketCurrency }}</div>
+                </div>
+                <div class="text-right text-body2">
+                  <div>BCH</div>
+                  <div>{{ formatAmount(bchValueInFiat, 2) }} {{ selectedMarketCurrency }}</div>
+                </div>
+              </div>
+              <div class="value-bar shadow-2">
+                <div
+                  class="bar-segment token-segment"
+                  :style="{
+                    width: tokenValueInFiat > 0 ? `${(tokenValueInFiat / totalValueInFiat) * 100}%`: '0%'
+                  }"
+                />
+                <div
+                  class="bar-segment bch-segment"
+                  :style="{
+                    width: bchValueInFiat > 0 ? `${(bchValueInFiat / totalValueInFiat) * 100}%` : '0%'
+                  }"
+                />
+              </div>
+            </div>
             <q-input
               outlined
               :label="$t('Token') + ' ' + $t('Amount')"
@@ -242,6 +284,9 @@ export default defineComponent({
       poolPricing.value = await fetchTokenLatestPrice(selectedToken.value?.token_id)
     }
 
+    const selectedMarketCurrency  = computed(() => $store.getters['market/selectedCurrency']?.symbol)
+    const bchPriceInFiat = computed(() => $store.getters['market/getAssetPrice']('bch', selectedMarketCurrency.value))
+
     const showTokenSelectDialog = ref(false)
     function onTokenSelect(tokenData) {
       selectedToken.value = tokenData
@@ -259,14 +304,16 @@ export default defineComponent({
     const tokenAmount = ref()
     const bchAmount = ref()
     const tokenUnits = computed(() => {
+      if (!tokenAmount.value) return 0n
       const tokenUnits = tokenAmount.value * 10 ** tokenDecimals.value
       return BigInt(Math.floor(tokenUnits))
     })
     const satoshis = computed(() => {
-      return BigInt(bchAmount.value * 10 ** 8)
+      if (!bchAmount.value) return 0n
+      return BigInt(Math.round(bchAmount.value * 10 ** 8))
     })
     function syncTokenAmountFromBch() {
-      if (!poolPricing.value) return
+      if (!poolPricing.value || !usePoolPricing.value) return
       const MULT = 10_000_000_000n
       const _poolPricing = BigInt(Math.round(poolPricing.value * Number(MULT)))
 
@@ -274,11 +321,33 @@ export default defineComponent({
     }
 
     function syncBchAmountFromTokenAmount() {
+      if(!poolPricing.value || !usePoolPricing.value) return
       const MULT = 10_000_000_000n
       const _poolPricing = BigInt(Math.round(poolPricing.value * Number(MULT)))
       const satoshis = (tokenUnits.value * _poolPricing) / MULT
       bchAmount.value = Number(satoshis) / 10 ** 8
     }
+
+    const tokenValueInBch = computed(() => {
+      if (!tokenUnits.value) return
+      const MULT = 10_000_000_000n
+      const _poolPricing = BigInt(Math.round(poolPricing.value * Number(MULT)))
+      const satoshis = (tokenUnits.value * _poolPricing) / MULT
+      return Number(satoshis) / 10 ** 8
+    })
+    const tokenValueInFiat = computed(() => {
+      if (!tokenValueInBch.value || !bchPriceInFiat.value) return
+      const mult = 10 ** tokenDecimals.value
+      return tokenValueInBch.value * bchPriceInFiat.value * mult
+    })
+    const bchValueInFiat = computed(() => {
+      if (!satoshis.value || !bchPriceInFiat.value) return
+      const mult = 10 ** tokenDecimals.value
+      return (Number(satoshis.value) * bchPriceInFiat.value / 10 ** 8) * mult
+    })
+    const totalValueInFiat = computed(() => {
+      return bchValueInFiat.value + tokenValueInFiat.value
+    })
 
     function securityCheck(resetSwipe=() => {}) {
       $q.dialog({
@@ -434,6 +503,7 @@ export default defineComponent({
       tokenSymbol,
       parsedPoolPricing,
       usePoolPricing,
+      selectedMarketCurrency,
       showTokenSelectDialog,
       onTokenSelect,
       getTokenImage,
@@ -442,6 +512,9 @@ export default defineComponent({
       bchAmount,
       syncBchAmountFromTokenAmount,
       syncTokenAmountFromBch,
+      tokenValueInFiat,
+      bchValueInFiat,
+      totalValueInFiat,
 
       securityCheck,
       addLiquidityPool,
@@ -492,6 +565,29 @@ export default defineComponent({
   
   &:active {
     transform: translateY(0);
+  }
+}
+
+.value-bar {
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  background: rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: center;
+
+  .bar-segment {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  .bar-segment.token-segment {
+    background-color: var(--q-primary);
+  }
+
+  .bar-segment.bch-segment {
+    background-color: var(--q-secondary);
   }
 }
 </style>
