@@ -108,10 +108,9 @@
               <template v-if="bchBalance > 0">
                 <q-btn
                   v-if="selectedToken !== 'bch'"
-                  @click.prevent="sweepBch"
+                  color="primary"
                   :label="(totalTokensCount - skippedTokens.length) > 0 ? $t('SweepAll') : $t('Sweep')"
-                  class="button"
-                  :class="getDarkModeClass(darkMode)"
+                  @click.prevent="sweepAll"
                 />
                 <div v-if="sweeping && selectedToken === 'bch'">
                   <progress-loader />
@@ -119,7 +118,7 @@
               </template>
               <span v-else class="text-red">
                 <template v-if="totalTokensCount == 0">{{ $t('SweepErrMsg1') }}</template>
-                <i v-else>{{ $t('EmptyBalancesError', '', 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below') }}</i>
+                <i v-if="!hasEnoughBalances">{{ $t('EmptyBalancesError', '', 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below') }}</i>
               </span>
             </div>
           </div>
@@ -149,7 +148,7 @@
             <q-slide-transition>
               <div v-if="expandCashTokens">
                 <span class="row justify-center text-subtitle1 q-mb-sm">
-                  {{ $t('SelectTokensToSweep') }}
+                  {{ isHongKong(currentCountry) ? $t('SelectPointsToSweep') : $t('SelectTokensToSweep') }}
                 </span>
 
                 <div v-for="(fungibleToken, index) in fungibleCashTokens" :key="index" class="token-details">
@@ -232,24 +231,33 @@
           </div>
 
           <div v-if="tokens.length > 0" class="q-mt-md">
-            <div class="row items-center q-mb-sm relative-position" v-ripple @click="() => expandSlpTokens = !expandSlpTokens">
+            <div class="row items-center q-mb-sm relative-position">
               <div class="q-space">
                 <div class="text-subtitle1 text-weight-medium">
-                  {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }} ({{ tokens.length }})
+                  SLP {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }} ({{ tokens.length }})
                 </div>
                 <div>
                   {{ ellipsisText(sweeper.slpAddress) }}
                   <q-icon name="mdi-content-copy" @click.stop="copyToClipboard(sweeper.slpAddress)" />
                 </div>
               </div>
-              <q-icon
-                size="1.75rem"
-                name="expand_less"
-                :class="['toggle-expand', expandSlpTokens ? '' : 'flipped']"
+            </div>
+
+            <div class="row justify-center q-my-sm">
+              <q-btn
+                outline
+                color="primary"
+                :label="isHongKong(currentCountry) ? $t('ManualSLPPointsSweep') : $t('ManualSLPTokensSweep')"
+                @click.prevent="expandSlpTokens = !expandSlpTokens"
               />
             </div>
+
             <q-slide-transition>
               <div v-if="expandSlpTokens">
+                <span class="row justify-center text-subtitle1 q-mb-sm">
+                  {{ isHongKong(currentCountry) ? $t('SelectPointsToSweep') : $t('SelectTokensToSweep') }}
+                </span>
+
                 <div v-for="(token, index) in tokens" :key="index" class="token-details">
                   <p>
                     {{ $t(isHongKong(currentCountry) ? 'PointId' : 'TokenId') }}: {{ ellipsisText(token.token_id) }}
@@ -343,7 +351,7 @@ export default {
       error: null,
       passPhrase: '',
       isDecrypting: false,
-      hasEnoughBalance: true,
+      hasEnoughBalances: true,
 
       sweepTxidMap: {
         'bch': '',
@@ -388,6 +396,9 @@ export default {
     emptyAssets() {
       const DUST = 546 / 10 ** 8
       return this.bchBalance < DUST && this.totalTokensCount == 0
+    },
+    async getWalletBchBalance() {
+      return await this.wallet.BCH.getBalance().then(resp => resp.balance)
     }
   },
   methods: {
@@ -463,6 +474,7 @@ export default {
         }),
       ])
 
+      this.hasEnoughBalances = this.bchBalance > 0 && await this.getWalletBchBalance > 0
       this.fetching = false
       this.sweeping = false
     },
@@ -598,11 +610,20 @@ export default {
         this.bchBalance,
         recipientAddress
       )
-      this.getTokens(false)
-          .then(() => {
-            if (this.emptyAssets) this.showSuccess = true
-          })
+
+      this.getTokens(false).then(() => {
+        if (this.emptyAssets) this.showSuccess = true
+      })
     },
+    async sweepAll() {
+      if ((this.totalTokensCount - this.skippedTokens.length) > 0) {
+        // BCH + unskipped tokens
+      } else {
+        // BCH only
+        await this.sweepBch()
+      }
+    },
+
     onScannerDecode (content) {
       this.showQrScanner = false
       this.wif = content
