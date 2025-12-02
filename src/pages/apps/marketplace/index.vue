@@ -11,16 +11,18 @@
       </template>
     </HeaderNav>
 
-    <div class="q-mx-sm q-my-sm">
-      <SessionLocationWidget ref="sessionLocationWidget" />
-    </div>
+    <div class="pt-card br-15 q-mt-md q-mx-md q-pa-sm" :class="getDarkModeClass(darkMode)">
+      <div class="q-mx-sm q-my-sm">
+        <SessionLocationWidget ref="sessionLocationWidget" />
+      </div>  
 
-    <div
-      class="q-px-md q-pt-xs q-pb-md sticky-below-header"
-      :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
-    >
-      <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
-    </div>
+      <div
+        class="q-px-md q-pt-xs q-pb-md sticky-below-header"
+        :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
+      >
+        <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
+      </div>
+    </div>    
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pa-sm">
@@ -63,7 +65,7 @@
       </div>
       <div class="row items-start justify-start q-mb-md" ref="storefrontsContainer">
         <!-- Skeleton loaders -->
-        <template v-if="(!initialized || !storefronts.length) && fetchingStorefronts">
+        <template v-if="(!initialized || !storefronts.length)">
           <div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <q-skeleton height="200px" />
@@ -201,6 +203,7 @@ import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const loaded = false
 
 const initialized = ref(false)
 function resetPage() {
@@ -539,4 +542,20 @@ table.orders-table td {
   top: 110px;
 }
 
+.pt-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInUp 0.4s ease-out;
+}
+
+/* ==================== ANIMATIONS ==================== */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 </style>
