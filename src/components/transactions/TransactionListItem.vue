@@ -116,6 +116,7 @@ const denomination = computed(() => $store.getters['global/denomination'])
 
 const decryptedMemo = ref('')
 const currentTime = ref(Date.now())
+let updateTimer = null
 
 const props = defineProps({
   transaction: Object,
@@ -324,14 +325,17 @@ onMounted(() => {
   loadMemo()
   
   // Update current time every second to keep shine effect reactive
-  const updateTimer = setInterval(() => {
+  updateTimer = setInterval(() => {
     currentTime.value = Date.now()
   }, 1000)
-  
-  // Clean up timer on unmount
-  onUnmounted(() => {
+})
+
+// Clean up timer on unmount
+onUnmounted(() => {
+  if (updateTimer) {
     clearInterval(updateTimer)
-  })
+    updateTimer = null
+  }
 })
 
 // Watch for changes to encrypted_memo and reload
