@@ -495,6 +495,14 @@ export default {
     const bchAssets = vm.$store.getters['assets/getAssets']
     bchAssets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
+    // Fetch and update lastAddressIndex from backend
+    try {
+      await vm.$store.dispatch('global/loadWalletLastAddressIndex')
+    } catch (error) {
+      console.error('Error loading last address index:', error)
+      // Continue even if this fails
+    }
+
     // Fetch custom list and favorites for sorting (do this early so it's available for initial render)
     try {
       const [customList, favorites] = await Promise.all([

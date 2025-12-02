@@ -369,17 +369,47 @@ export default {
         : this.$store.getters['global/denomination']
       return `${parseAssetDenomination(denom, { ...this.tx.asset, balance: Math.abs(Number(this.tx.amount)) })}`
     },
+    hasHistoricalPrice () {
+      if (!this.tx) return false
+      const code = this.selectedMarketCurrency
+      if (!code) return false
+      
+      // Check if we have fiat_amounts (historical data)
+      if (code && this.tx?.fiat_amounts && this.tx.fiat_amounts[code] !== undefined) {
+        return true
+      }
+      
+      // Check if we have historical prices
+      if (this.tx.usd_price && code === 'USD') {
+        return true
+      }
+      
+      if (this.tx.market_prices && this.tx.market_prices[code]) {
+        return true
+      }
+      
+      return false
+    },
     displayFiatAmount () {
       if (!this.tx) return null
       const code = this.selectedMarketCurrency
+      if (!code) return null
+      
+      // First, try to use provided fiat_amounts
       const provided = code && this.tx?.fiat_amounts ? this.tx.fiat_amounts[code] : undefined
       const numeric = Number(provided)
       if (Number.isFinite(numeric)) return Math.abs(numeric)
+      
+      // Second, try historical prices (usd_price or market_prices)
       const price = (this.tx.usd_price && code === 'USD')
         ? this.tx.usd_price
         : (this.tx.market_prices && this.tx.market_prices[code])
-      if (!price) return null
-      let base = Math.abs(Number(this.tx.amount)) * Number(price)
+      
+      // Third, fallback to current market price from store if historical price is not available
+      const currentPrice = price || this.$store.getters['market/getAssetPrice'](this.tx?.asset?.id || 'bch', code)
+      if (!currentPrice || currentPrice === 0) return null
+      
+      let base = Math.abs(Number(this.tx.amount)) * Number(currentPrice)
       // Adjust for token decimals similar to list item computation
       const assetId = String(this.tx?.asset?.id || '')
       if (assetId && assetId !== 'bch') {
@@ -408,6 +438,9 @@ export default {
       return base
     },
     gainLossAmount () {
+      // Only calculate gain/loss if we have historical price data
+      // If we're using current price as fallback, don't show gain/loss
+      if (!this.hasHistoricalPrice) return null
       if (!this.displayFiatAmount || !this.currentFiatAmount) return null
       return this.currentFiatAmount - this.displayFiatAmount
     },

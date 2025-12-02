@@ -995,10 +995,21 @@ export async function loadWalletLastAddressIndex (context) {
     ? context.state.chipnet__wallets.bch
     : context.state.wallets.bch
 
+  // Check if wallet hash exists
+  if (!wallet || !wallet.walletHash) {
+    console.warn('Cannot load last address index: wallet hash not available')
+    return
+  }
+
   try {
     const lastAddressAndIndex = await w.getLastExternalAddressIndex(wallet.walletHash)
-    context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
+    } else {
+      console.warn('Invalid response from getLastExternalAddressIndex:', lastAddressAndIndex)
+    }
   } catch (error) {
+    console.error('Error loading last address index from watchtower:', error)
     // on error just use the existing
     context.commit('setWalletLastAddressAndIndex', {
       address: wallet.lastAddress,
@@ -1074,7 +1085,8 @@ export async function autoGenerateAddress(context, opts) {
 
   const walletType = opts?.walletType || 'bch'
 
-  const address = context.getters['getAddress'](walletType)
+  // Use provided address if available (for dynamically generated addresses), otherwise fallback to store
+  const address = opts?.address || context.getters['getAddress'](walletType)
   const lastAddressIndex = context.getters['getLastAddressIndex'](walletType)
 
   const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'

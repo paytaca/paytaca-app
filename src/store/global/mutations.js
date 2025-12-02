@@ -8,7 +8,7 @@ import { removeWalletName } from 'src/utils/wallet-name-cache'
 function getDefaultWalletSettings() {
   return {
     isChipnet: false,
-    autoGenerateAddress: false,
+    autoGenerateAddress: true,
     enableStablhedge: false,
     enableSmartBCH: false,
     enableSLP: false,
@@ -628,8 +628,22 @@ export function setTheme (state, theme) {
 export function setWalletLastAddressAndIndex(state, lastAddressAndIndex) {
   if (state.isChipnet) {
     state.chipnet__wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+    // Also update lastAddressIndex if address_index is provided
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      state.chipnet__wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+      if (lastAddressAndIndex.address) {
+        state.chipnet__wallets.bch.lastAddress = lastAddressAndIndex.address
+      }
+    }
   } else {
     state.wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+    // Also update lastAddressIndex if address_index is provided
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      state.wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+      if (lastAddressAndIndex.address) {
+        state.wallets.bch.lastAddress = lastAddressAndIndex.address
+      }
+    }
   }
 }
 
