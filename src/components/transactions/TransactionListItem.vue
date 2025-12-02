@@ -4,7 +4,8 @@
     :class="[
       'q-mx-lg q-px-sm',
       compact ? 'q-py-sm compact' : 'q-py-md',
-      getDarkModeClass(darkMode)
+      getDarkModeClass(darkMode),
+      { 'new-transaction-shine': isNewTransaction }
     ]"
   >
     <div class="transaction-content">
@@ -98,7 +99,7 @@
 </template>
 <script setup>
 import ago from 's-ago'
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
@@ -114,6 +115,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
 
 const decryptedMemo = ref('')
+const currentTime = ref(Date.now())
 
 const props = defineProps({
   transaction: Object,
@@ -278,6 +280,25 @@ function formatDate (date) {
   return ago(new Date(date))
 }
 
+const isNewTransaction = computed(() => {
+  const timestamp = props.transaction?.tx_timestamp || props.transaction?.date_created
+  if (!timestamp) return false
+  
+  const txDate = new Date(timestamp)
+  const now = new Date(currentTime.value)
+  const diffMs = now - txDate
+  const diffSeconds = Math.floor(diffMs / 1000)
+  
+  // Check if formatted date shows "Just now" (less than 60 seconds old)
+  // Also check the formatted string to match "just now" (case-insensitive)
+  const formattedDate = formatDate(timestamp)
+  const isJustNow = diffSeconds < 60 || 
+                    /just\s+now/i.test(formattedDate) ||
+                    formattedDate.toLowerCase().includes('just now')
+  
+  return isJustNow
+})
+
 async function loadMemo() {
   if (!props.transaction?.encrypted_memo) {
     decryptedMemo.value = ''
@@ -301,6 +322,16 @@ async function loadMemo() {
 
 onMounted(() => {
   loadMemo()
+  
+  // Update current time every second to keep shine effect reactive
+  const updateTimer = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 1000)
+  
+  // Clean up timer on unmount
+  onUnmounted(() => {
+    clearInterval(updateTimer)
+  })
 })
 
 // Watch for changes to encrypted_memo and reload
@@ -519,5 +550,54 @@ watch(
   padding: 8px 12px;
   word-break: break-all;
   max-width: 280px;
+}
+
+// Shine effect for new transactions (similar to pending cards)
+.transaction-item.new-transaction-shine {
+  position: relative;
+  overflow: hidden;
+  
+  // Shimmer effect overlay
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    animation: shimmer-sweep 3s ease-in-out infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+  
+  &.dark::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      transparent
+    );
+  }
+  
+  // Ensure content is above shimmer
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  50%, 100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
 }
 </style>

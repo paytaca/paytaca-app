@@ -48,20 +48,12 @@ export default {
     return {
       showDebugApp: localStorage.getItem('debugAppVisible') === 'true',
       apps: [
-      {
+        {
           name: 'P2P Exchange',
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
           iconStyle: 'width:45%; height: 45%;',
           active: true, // !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        {
-          name: 'Cauldron DEX',
-          iconName: 'img:cauldron-logo.svg',
-          path: '/apps/cauldron',
-          iconStyle: 'width:45%; height: 45%;',
-          active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
         {
@@ -78,30 +70,6 @@ export default {
           }
         },
         {
-          name: this.$t('WalletConnect'),
-          iconName: 'mdi-connection',
-          path: '/apps/wallet-connect',
-          iconStyle: 'font-size: 4.2em',
-          active: true,
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('Gifts'),
-          iconName: 'mdi-gift',
-          path: '/apps/gifts/',
-          iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
-        },
-        // {
-        //   name: 'Rewards',
-        //   iconName: 'workspace_premium',
-        //   path: '/apps/rewards',
-        //   iconStyle: 'font-size: 4em',
-        //   active: !this.$store.getters['global/isChipnet'],
-        //   smartBCHOnly: false
-        // },
-        {
           name: this.$t('Collectibles'),
           iconName: 'burst_mode',
           path: '/apps/collectibles',
@@ -110,18 +78,10 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Stablehedge',
-          iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
-          path: '/apps/stablehedge/wallet',
-          iconStyle: 'width:55%; height: 55%;',
-          active: true,
-          smartBCHOnly: false
-        },
-        {
-          name: 'AnyHedge',
-          iconName: 'img:anyhedge-logo.png',
-          path: '/apps/anyhedge',
-          iconStyle: 'width:55%; height: 55%;',
+          name: this.$t('Gifts'),
+          iconName: 'mdi-gift',
+          path: '/apps/gifts/',
+          iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
@@ -134,11 +94,51 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('MerchantMap', {}, 'Merchant Map'),
-          iconName: 'public',
-          path: '/apps/map/',
-          iconStyle: 'font-size: 4.2em',
+          name: 'Multisig Wallets',
+          iconName: 'mdi-account-group',
+          path: '/apps/multisig',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          smartBCHOnly: false
+        },
+        {
+          name: 'Cauldron DEX',
+          iconName: 'img:cauldron-logo.svg',
+          path: '/apps/cauldron',
+          iconStyle: 'width:45%; height: 45%;',
           active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('CryptoSwap'),
+          iconName: 'mdi-swap-horizontal-bold',
+          path: '/apps/crypto-swap',
+          active: true,
+          iconStyle: 'font-size: 4.7em',
+          smartBCHOnly: false
+        },
+        {
+          name: 'AnyHedge',
+          iconName: 'img:anyhedge-logo.png',
+          path: '/apps/anyhedge',
+          iconStyle: 'width:55%; height: 55%;',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: 'Stablehedge',
+          iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
+          path: '/apps/stablehedge/wallet',
+          iconStyle: 'width:55%; height: 55%;',
+          active: true,
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('WalletConnect'),
+          iconName: 'mdi-connection',
+          path: '/apps/wallet-connect',
+          iconStyle: 'font-size: 4.2em',
+          active: true,
           smartBCHOnly: false
         },
         {
@@ -147,6 +147,22 @@ export default {
           path: '/apps/merchant-admin',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('MerchantMap', {}, 'Merchant Map'),
+          iconName: 'public',
+          path: '/apps/map/',
+          iconStyle: 'font-size: 4.2em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Support', {}, 'Support'),
+          iconName: 'support',
+          path: '/apps/wallet-info',
+          active: true,
+          iconStyle: 'font-size: 4em',
           smartBCHOnly: false
         },
         {
@@ -164,30 +180,6 @@ export default {
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: true
-        },
-        {
-          name: this.$t('CryptoSwap'),
-          iconName: 'mdi-swap-horizontal-bold',
-          path: '/apps/crypto-swap',
-          active: true,
-          iconStyle: 'font-size: 4.7em',
-          smartBCHOnly: false
-        },
-        {
-          name: 'Multisig Wallets',
-          iconName: 'mdi-account-group',
-          path: '/apps/multisig',
-          active: true,
-          iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('Support', {}, 'Support'),
-          iconName: 'support',
-          path: '/apps/wallet-info',
-          active: true,
-          iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
         }
       ],
       debugApp: {

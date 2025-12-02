@@ -19,7 +19,7 @@
           @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'transaction-list' }">
+        <router-link :to="{ name: 'transaction-list', query: { assetID: 'all' } }">
           <q-icon name="receipt_long" class="default-text-color mb-2" size="30px">
             <!-- <svg>
               <use xlink:href="app-send.svg#icon"></use>
@@ -29,7 +29,7 @@
         <br>
         <span 
           id="send-button"
-          @click="$router.push({ name: 'transaction-list' })">TX</span>
+          @click="$router.push({ name: 'transaction-list', query: { assetID: 'all' } })">TX</span>
       </button>
       <div style="width: 50px;"></div>
       <button class="footer-icon-btn" :class="getDarkModeClass()">

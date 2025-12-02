@@ -216,11 +216,10 @@ export default {
 			stablehedgeView: false,
 			isCashToken: true,
 			selectedAsset: {
-		        id: 'bch',
-		        symbol: 'BCH',
-		        name: 'Bitcoin Cash',
-		        logo: 'bch-logo.png',
-		        balance: 0
+		        id: 'all',
+		        symbol: 'All',
+		        name: 'All Assets',
+		        logo: null
 		      },
 		    assetInfoShown: false,
 		    balanceLoaded: false,
@@ -336,8 +335,8 @@ export default {
 		const assetID = this.$route.query.assetID
 		let asset = []
 		
-		// Handle "all" asset selection
-		if (assetID === 'all') {
+		// Handle "all" asset selection or default to "all" if no assetID provided
+		if (assetID === 'all' || !assetID) {
 			this.selectedAsset = {
 				id: 'all',
 				symbol: 'All',
@@ -348,6 +347,14 @@ export default {
 			asset = this.$store.getters['assets/getAsset'](assetID)
 			if (asset.length > 0) {
 				this.selectedAsset = asset[0]			
+			} else {
+				// If asset not found, default to "all"
+				this.selectedAsset = {
+					id: 'all',
+					symbol: 'All',
+					name: 'All Assets',
+					logo: null
+				}
 			}
 		}
 		
@@ -359,7 +366,7 @@ export default {
 
 		await this.loadWallets()
 		this.$nextTick(() => {
-	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, assetID === 'all' || asset.length > 0 ? this.selectedAsset : null )
+	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
 	        this.$refs['transaction-list-component'].getTransactions()
 	        
 	        // Calculate transaction row height
