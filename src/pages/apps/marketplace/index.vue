@@ -24,9 +24,9 @@
       </div>
     </div>    
 
-    <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+    <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pa-sm">
-        <div class="text-h5 q-px-xs">Shops</div>
+        <div class="text-h5 q-px-xs text-weight-bold">Shops</div>
         <q-btn
           flat
           rounded
@@ -39,8 +39,47 @@
         />
         <q-space/>
       </div>
-      <div v-if="initialized" class="q-mx-xs q-mb-md row items-center justify-around">
-        <q-btn
+      <div class="q-mx-xs q-mb-md row items-center justify-around">
+        <!-- Tabs Section -->
+        <div class="tabs-wrapper q-mx-md">
+          <div 
+            class="crypto-swap-tabs" 
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-btn
+              class="crypto-swap-tab"
+              flat
+              no-caps
+              :disable="(!initialized || !storefronts.length)"
+              :class="[
+                darkMode ? 'dark' : '',
+                `theme-${theme}`
+              ]"
+              icon="storefront"
+              :style="shopDeliveryTypeFilter === Checkout.DeliveryTypes.STORE_PICKUP ? `background-color: ${getThemeColor} !important; color: #fff !important;` : ''"
+              @click="() => toggleDeliveryType(Checkout.DeliveryTypes.STORE_PICKUP)"
+            >
+              {{ $t('Pickup') }}
+            </q-btn>
+            <q-btn
+              class="crypto-swap-tab"
+              flat
+              no-caps
+              :disable="(!initialized || !storefronts.length)"
+              :class="[
+                darkMode ? 'dark' : '',
+                `theme-${theme}`
+              ]"
+              icon="delivery_dining"
+              :style="shopDeliveryTypeFilter === Checkout.DeliveryTypes.LOCAL_DELIVERY ? `background-color: ${getThemeColor} !important; color: #fff !important;` : ''"
+              @click="() => toggleDeliveryType(Checkout.DeliveryTypes.LOCAL_DELIVERY)"
+            >
+              {{ $t('Delivery') }}
+            </q-btn>
+          </div>
+        </div>
+
+        <!-- <q-btn
           rounded
           :outline="shopDeliveryTypeFilter != Checkout.DeliveryTypes.STORE_PICKUP"
           :color="shopDeliveryTypeFilter == Checkout.DeliveryTypes.STORE_PICKUP ? 'pt-primary1' : ''"
@@ -61,7 +100,7 @@
           icon="delivery_dining"
           style="min-width:150px;"
           @click="() => toggleDeliveryType(Checkout.DeliveryTypes.LOCAL_DELIVERY)"
-        />
+        /> -->
       </div>
       <div class="row items-start justify-start q-mb-md" ref="storefrontsContainer">
         <!-- Skeleton loaders -->
@@ -203,7 +242,18 @@ import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const loaded = false
+
+const getThemeColor =  computed(() => {
+  const themeMap = {
+    'glassmorphic-blue': '#42a5f5',
+    'glassmorphic-green': '#4caf50',
+    'glassmorphic-gold': '#ffa726',
+    'glassmorphic-red': '#f54270'
+  }
+  
+  return themeMap[theme.value] || '#42a5f5'
+})
+const theme = computed(() => $store.getters['global/theme'])
 
 const initialized = ref(false)
 function resetPage() {
@@ -545,6 +595,98 @@ table.orders-table td {
 .pt-card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: slideInUp 0.4s ease-out;
+}
+
+/* Tab button styles */
+.tabs-wrapper {
+  display: flex;
+  justify-content: center;
+}
+.crypto-swap-tabs {
+  display: inline-flex;
+  gap: 8px;
+  background-color: rgb(242, 243, 252);
+  border-radius: 28px;
+  padding: 6px;
+  
+  &.dark {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.crypto-swap-tab {
+  min-width: 110px;
+  height: 44px;
+  border-radius: 22px;
+  border: none;
+  color: #4C4F4F;
+  background-color: transparent;
+  outline: 0;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover:not(.active-theme-btn) {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  &.dark {
+    color: rgba(255, 255, 255, 0.7);
+    
+    &:hover:not(.active-theme-btn) {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+}
+
+// Theme-based active tab styles
+.crypto-swap-tab.active-theme-btn {
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.crypto-swap-tab.active-theme-btn.theme-glassmorphic-blue {
+  background-color: #42a5f5 !important;
+}
+
+.crypto-swap-tab.active-theme-btn.theme-glassmorphic-gold {
+  background-color: #ffa726 !important;
+}
+
+.crypto-swap-tab.active-theme-btn.theme-glassmorphic-green {
+  background-color: #4caf50 !important;
+}
+
+.crypto-swap-tab.active-theme-btn.theme-glassmorphic-red {
+  background-color: #f54270 !important;
+}
+
+// Dark mode active tab
+.crypto-swap-tab.active-theme-btn.dark {
+  color: #fff !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+// Active tab hover effects
+.crypto-swap-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+  background-color: #1e88e5 !important;
+}
+
+.crypto-swap-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+  background-color: #fb8c00 !important;
+}
+
+.crypto-swap-tab.active-theme-btn.theme-glassmorphic-green:hover {
+  background-color: #43a047 !important;
+}
+
+.crypto-swap-tab.active-theme-btn.theme-glassmorphic-red:hover {
+  background-color: #e91e63 !important;
 }
 
 /* ==================== ANIMATIONS ==================== */
