@@ -3,10 +3,22 @@ import { SpendableCoinType } from '@cashlab/common';
 import { privateKeyToP2pkhLockingBytecode } from '@cashlab/common/libauth.js';
 import { decodePrivateKeyWif, hexToBin } from '@bitauth/libauth';
 import { i18n } from 'src/boot/i18n';
+import cauldronManagePoolArtifact from './artifacts/manage_artifact.json'
 
 const { t: $t } = i18n.global
 
 const exlab = new ExchangeLab();
+
+// https://github.com/mr-zwets/Cauldron_Swap_Test/blob/main/src/utils.ts#L10
+export function cauldronManageArtifactWithPkh(pkhHex, ){
+  const cauldronArtifact = cauldronManagePoolArtifact;
+  const strigifiedCauldronArtifact = JSON.stringify(cauldronArtifact);
+  const constructedArtifact = JSON.parse(strigifiedCauldronArtifact.replace('<withdraw_pkh>', pkhHex))
+  // different contracts should have unique names
+  constructedArtifact.contractName = `CauldronManagePool ${pkhHex}`;
+  return constructedArtifact
+}
+
 
 /**
  * @param {import('./pool').MicroPool} pool
@@ -93,5 +105,35 @@ export function formatCauldronSwapAttribute(value) {
       { amount: _unitsSold, symbol: tokenData?.symbol },
       `Sold ${_unitsSold} ${tokenData?.symbol}`
     )
+  }
+}
+
+export function parseCauldronPoolAttribute(value) {
+  const jsonValue = JSON.parse(value)
+  const action = jsonValue?.action
+  const satoshis = jsonValue?.satoshis
+  const tokenUnits = jsonValue?.tokenUnits
+  const tokenData = jsonValue?.tokenData
+  return { action, satoshis, tokenUnits, tokenData }
+}
+
+export function formatCauldronPoolAttribute(value) {
+  const { action, satoshis, tokenUnits, tokenData } = parseCauldronPoolAttribute(value)
+  const tokenSymbol = tokenData?.symbol
+  const bchAmount = satoshis / 10 ** 8
+  const tokenAmount = Number(tokenUnits) / 10 ** (tokenData?.decimals || 0)
+
+  if (action == 'add-liquidity') {
+    return $t(
+      'CauldronAddLiquidity',
+      { tokenAmount, tokenSymbol, bchAmount },
+      `Added liquidity: ${tokenAmount} ${tokenSymbol} / ${bchAmount} BCH `
+    ) 
+  } else if (action == 'withdraw-liquidity') {
+    return $t(
+      'CauldronRemoveLiquidity',
+      { tokenAmount, tokenSymbol, bchAmount },
+      `Pool withdraw: ${tokenAmount} ${tokenSymbol} / ${bchAmount} BCH `
+    ) 
   }
 }

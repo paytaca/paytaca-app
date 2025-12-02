@@ -8,7 +8,11 @@
       title="Cauldron DEX"
       backnavpath="/apps"
       class="apps-header"
-    />
+    >
+      <template v-slot:top-right-menu>
+        <CauldronHeaderMenu />
+      </template>
+    </HeaderNav>
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <!-- Success Display -->
@@ -271,7 +275,7 @@
             </template>
           </q-card-section>
           <div class="row justify-center q-mb-md text-grey-6">
-            <span>{{ $t('PoweredBy') }} Cauldron.quest</span>
+            <span>{{ $t('PoweredBy') }} {{ $t('Cauldron') }}.quest</span>
           </div>
         </q-card>
 
@@ -360,6 +364,7 @@ import HeaderNav from 'src/components/header-nav'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
 import CustomInput from 'src/components/CustomInput.vue';
+import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 
 /**
  * Typedefs
@@ -374,6 +379,7 @@ export default defineComponent({
     HeaderNav,
     DragSlide,
     CustomInput,
+    CauldronHeaderMenu,
   },
   props: {
     selectTokenId: String,
@@ -768,7 +774,7 @@ export default defineComponent({
         
         if (isBuyingToken.value) {
           // Need BCH: supply amount + all fees
-          return `Insufficient BCH ${$t('Balance')}`;
+          return $t('InsufficientBCHBalance');
         } else {
           // Need Token: supply amount OR BCH for fees
           const tokenAssetId = `ct/${selectedToken.value.token_id}`;
@@ -777,10 +783,10 @@ export default defineComponent({
           
           // Check which one is insufficient
           if (tokenBalance < requiredSupplyAmount.value) {
-            return `Insufficient ${tokenSymbol.value || $t('Token')} ${$t('Balance')}`;
+            return $t('InsufficientTokenBalance', { token: tokenSymbol.value || $t('Token') });
           } else {
             // Token balance is sufficient, but BCH for fees is not
-            return `Insufficient BCH ${$t('Balance')}`;
+            return $t('InsufficientBCHBalance');
           }
         }
       } catch (error) {
