@@ -9,12 +9,20 @@
     <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
       <div class="row q-px-xs">
         <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
-          <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
-            <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
-            <q-tooltip v-if="app.description" :delay="500" class="text-body2" :class="getDarkModeClass(darkMode)">
-              {{ app.description }}
-            </q-tooltip>                              
-          </q-btn>
+          <div class="relative-position" style="display: inline-block;">
+            <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
+              <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
+              <q-tooltip v-if="app.description" :delay="500" class="text-body2" :class="getDarkModeClass(darkMode)">
+                {{ app.description }}
+              </q-tooltip>                              
+            </q-btn>
+            <q-badge 
+              v-if="app.beta" 
+              color="red" 
+              class="beta-badge"
+              :label="$t('BETA', {}, 'BETA')"
+            />
+          </div>
           <p
             class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label"
             :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
@@ -33,13 +41,15 @@
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
+import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
   name: 'apps',
   components: {
-    HeaderNav
+    HeaderNav,
+    BetaAppDialog
   },
   directives: {
     'on-long-press': vOnLongPress,
@@ -99,7 +109,9 @@ export default {
           path: '/apps/multisig',
           active: true,
           iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          beta: true,
+          betaMessage: this.$t('MultisigWalletsBetaMessage', {}, 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.')
         },
         {
           name: 'Cauldron DEX',
@@ -131,7 +143,9 @@ export default {
           path: '/apps/stablehedge/wallet',
           iconStyle: 'width:55%; height: 55%;',
           active: true,
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          beta: true,
+          betaMessage: this.$t('StablehedgeBetaMessage', {}, 'Stablehedge is currently in beta. This feature allows you to create stablecoin positions backed by Bitcoin Cash. Please note that this is an experimental feature and may have limitations or risks.')
         },
         {
           name: this.$t('WalletConnect'),
@@ -216,7 +230,22 @@ export default {
       return active ? '' : 'disabled'
     },
     openApp (app) {
-      if (app.active) {
+      if (!app.active) return
+      
+      // If app is beta, show dialog first
+      if (app.beta) {
+        this.$q.dialog({
+          component: BetaAppDialog,
+          componentProps: {
+            appName: app.name,
+            betaMessage: app.betaMessage
+          }
+        }).onOk(() => {
+          // Only navigate if user clicks Proceed
+          this.$router.push(app.path)
+        })
+      } else {
+        // Non-beta apps open directly
         this.$router.push(app.path)
       }
     },
@@ -323,5 +352,21 @@ export default {
     display: flex;
     justify-content: center;
     align-items: center;
+  }
+  
+  .beta-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .relative-position {
+    position: relative;
   }
 </style>
