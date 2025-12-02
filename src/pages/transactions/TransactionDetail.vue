@@ -77,10 +77,11 @@
             <q-icon 
               name="info" 
               size="16px" 
-              class="q-ml-xs cursor-pointer"
+              class="q-ml-xs cursor-pointer info-icon-clickable"
               :class="getDarkModeClass(darkMode)"
+              @click="showConversionInfo"
             >
-              <q-tooltip :delay="300" class="text-body2" :class="getDarkModeClass(darkMode)">
+              <q-tooltip v-if="!isMobile" :delay="300" class="text-body2" :class="getDarkModeClass(darkMode)">
                 {{ fiatConversionTooltip }}
               </q-tooltip>
             </q-icon>
@@ -445,6 +446,9 @@ export default {
     fiatConversionTooltip () {
       const currency = this.selectedMarketCurrency || 'USD'
       return this.$t('ConversionInfo', {}, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
+    },
+    isMobile () {
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
     showAddToFavoritesButton () {
       // Hide by default until favorites are evaluated
@@ -1566,6 +1570,16 @@ export default {
           console.error(error)
           dialog.update({ message: 'Unable to fetch data' })
         })
+    },
+    showConversionInfo () {
+      if (this.isMobile) {
+        this.$q.dialog({
+          title: this.$t('ConversionInfo', {}, 'Conversion Information'),
+          message: this.fiatConversionTooltip,
+          ok: true,
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        })
+      }
     }
   }
 }
@@ -1616,6 +1630,15 @@ export default {
 .amount-primary { font-size: 20px; }
 .amount-label-ss { font-size: 28px; font-weight: 600; margin-top: -4px; margin-bottom: 4px; }
 .amount-fiat-label-ss { font-size: 20px; opacity: 0.85; margin-top: 0; }
+.info-icon-clickable {
+  padding: 4px;
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
 .amount-gain-loss-ss { 
   font-size: 16px; 
   margin-top: 8px; 
