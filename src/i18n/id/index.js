@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "Untuk terus menggunakan fitur ini, perbarui aplikasi Anda ke versi terbaru.Terima kasih!",
   Category: "Kategori",
   CategoryID: "ID Kategori",
+  CauldronTokenSelectSearchSuggestion: "Temukan lebih banyak token dengan mencari nama atau simbol token",
+  CauldronUsePoolPricingWarning: "Menyerahkan likuiditas pada harga yang berbeda dari pasar dapat menimbulkan peluang arbitrase instan, yang berpotensi mengakibatkan kerugian finansial bagi Anda.Silakan lanjutkan dengan hati-hati.",
   Chain: "Rantai",
   ChainNotSupported: "Rantai tidak didukung",
   Change: "Perubahan",

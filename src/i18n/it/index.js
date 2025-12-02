@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "Per continuare a utilizzare questa funzione, aggiorna la tua app alla versione più recente.Grazie!",
   Category: "Categoria",
   CategoryID: "Identificativo della categoria",
+  CauldronTokenSelectSearchSuggestion: "Trova più token cercando il nome o il simbolo del token",
+  CauldronUsePoolPricingWarning: "L'offerta di liquidità a un prezzo diverso da quello di mercato può portare a opportunità di arbitraggio istantanee, con conseguenti potenziali perdite finanziarie per te.Si prega di procedere con cautela.",
   Chain: "Catena",
   ChainNotSupported: "Catena non supportata",
   Change: "Cambiare",

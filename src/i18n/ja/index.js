@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "この機能を引き続き使用するには、アプリを最新バージョンに更新してください。ありがとう！",
   Category: "カテゴリ",
   CategoryID: "カテゴリID",
+  CauldronTokenSelectSearchSuggestion: "トークン名またはシンボルを検索して、さらにトークンを検索します",
+  CauldronUsePoolPricingWarning: "市場とは異なる価格で流動性を送信すると、即座に裁定取引の機会が生じ、経済的損失が生じる可能性があります。慎重に進めてください。",
   Chain: "チェーン",
   ChainNotSupported: "チェーンはサポートされていません",
   Change: "変更",

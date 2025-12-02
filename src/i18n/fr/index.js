@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "Pour continuer à utiliser cette fonctionnalité, veuillez mettre à jour votre application avec la dernière version.Merci!",
   Category: "Catégorie",
   CategoryID: "Identifiant de catégorie",
+  CauldronTokenSelectSearchSuggestion: "Trouvez plus de jetons en recherchant le nom ou le symbole du jeton",
+  CauldronUsePoolPricingWarning: "Soumettre des liquidités à un prix différent de celui du marché peut conduire à des opportunités d'arbitrage instantanées, entraînant potentiellement des pertes financières pour vous.Veuillez procéder avec prudence.",
   Chain: "Chaîne",
   ChainNotSupported: "Chaîne non prise en charge",
   Change: "Changement",

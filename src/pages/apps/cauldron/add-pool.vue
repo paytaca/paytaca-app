@@ -137,10 +137,9 @@
                   <template v-slot:avatar>
                     <q-icon name="warning"/>
                   </template>
-                  <div class="text-body1">Warning:</div>
+                  <div class="text-body1">{{ $t('Warning') }}:</div>
                   <div class="text-subtitle">
-                    Submitting liquidity at a price that differs from the market can lead to instant arbitrage opportunities, potentially resulting in financial losses for you.
-                    Please proceed with caution.
+                    {{ $t('CauldronUsePoolPricingWarning') }}
                   </div>
                 </q-banner>
               </q-slide-transition>
@@ -281,6 +280,10 @@ export default defineComponent({
     const usePoolPricing = ref(true)
     async function fetchPoolPrice() {
       // poolPricing.value = 1924.6657649710726
+      if (!selectedToken.value?.token_id) {
+        poolPricing.value = 0
+        return
+      }
       poolPricing.value = await fetchTokenLatestPrice(selectedToken.value?.token_id)
     }
 
@@ -290,6 +293,10 @@ export default defineComponent({
     const showTokenSelectDialog = ref(false)
     function onTokenSelect(tokenData) {
       selectedToken.value = tokenData
+      fetchPoolPrice().then(() => {
+        if (tokenAmount.value) syncBchAmountFromTokenAmount()
+        else if (bchAmount.value) syncTokenAmountFromBch()
+      })
     }
 
     function getTokenImage(url) {
@@ -337,12 +344,12 @@ export default defineComponent({
     })
     const tokenValueInFiat = computed(() => {
       if (!tokenValueInBch.value || !bchPriceInFiat.value) return
-      const mult = 10 ** tokenDecimals.value
+      const mult = 10 ** 2
       return tokenValueInBch.value * bchPriceInFiat.value * mult
     })
     const bchValueInFiat = computed(() => {
       if (!satoshis.value || !bchPriceInFiat.value) return
-      const mult = 10 ** tokenDecimals.value
+      const mult = 10 ** 2
       return (Number(satoshis.value) * bchPriceInFiat.value / 10 ** 8) * mult
     })
     const totalValueInFiat = computed(() => {

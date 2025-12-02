@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "Als u deze functie wilt blijven gebruiken, moet u uw app updaten naar de nieuwste versie.Bedankt!",
   Category: "Categorie",
   CategoryID: "Categorie-ID",
+  CauldronTokenSelectSearchSuggestion: "Vind meer tokens door naar de tokennaam of het symbool te zoeken",
+  CauldronUsePoolPricingWarning: "Het aanbieden van liquiditeit tegen een prijs die afwijkt van de markt kan leiden tot onmiddellijke arbitragemogelijkheden, wat mogelijk tot financiële verliezen voor u kan leiden.Ga alstublieft voorzichtig te werk.",
   Chain: "Ketting",
   ChainNotSupported: "Ketting niet ondersteund",
   Change: "Verandering",

@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "Upang ipagpatuloy ang paggamit ng tampok na ito, mangyaring i -update ang iyong app sa pinakabagong bersyon.Salamat!",
   Category: "Kategorya",
   CategoryID: "Category ID",
+  CauldronTokenSelectSearchSuggestion: "Maghanap ng higit pang mga token sa pamamagitan ng paghahanap ng pangalan ng token o simbolo",
+  CauldronUsePoolPricingWarning: "Ang pagsusumite ng pagkatubig sa isang presyo na naiiba sa merkado ay maaaring humantong sa mga instant na mga pagkakataon sa arbitrasyon, na potensyal na nagreresulta sa mga pagkalugi sa pananalapi para sa iyo.Mangyaring magpatuloy sa pag -iingat.",
   Chain: "Chain",
   ChainNotSupported: "Hindi suportado ang chain",
   Change: "Palitan",

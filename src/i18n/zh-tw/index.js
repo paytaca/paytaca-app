@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "要繼續使用此功能，請將您的應用程序更新到最新版本。謝謝你！",
   Category: "類別",
   CategoryID: "類別ID",
+  CauldronTokenSelectSearchSuggestion: "通過搜索代幣名稱或符號查找更多代幣",
+  CauldronUsePoolPricingWarning: "以不同於市場的價格提供流動性可能會帶來即時套利機會，可能會給您帶來財務損失。請謹慎行事。",
   Chain: "鏈條",
   ChainNotSupported: "不支持鏈",
   Change: "改變",

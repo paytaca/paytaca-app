@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "Don ci gaba da amfani da wannan fasalin, da fatan za a sabunta ka'idar zuwa sabon sigar.Na gode!",
   Category: "Jinsi",
   CategoryID: "Kungiyoyin ID",
+  CauldronTokenSelectSearchSuggestion: "Nemi karin alamu ta hanyar bincika sunan alamar ko alama",
+  CauldronUsePoolPricingWarning: "Submitaddamar da ruwa a farashin da ya bambanta daga kasuwa zai iya haifar da damar yin amfani da shi nan take, mai yiwuwa haifar da asarar kuɗi a gare ku.Da fatan za a ci gaba da taka tsantsan.",
   Chain: "Sarƙa",
   ChainNotSupported: "Sarkar ba ta tallafawa",
   Change: "Canji",

@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "이 기능을 계속 사용하려면 앱을 최신 버전으로 업데이트하세요.감사합니다!",
   Category: "카테고리",
   CategoryID: "카테고리 ID",
+  CauldronTokenSelectSearchSuggestion: "토큰 이름이나 기호를 검색하여 더 많은 토큰을 찾으세요.",
+  CauldronUsePoolPricingWarning: "시장과 다른 가격으로 유동성을 제출하면 즉각적인 차익 거래 기회가 생길 수 있으며 잠재적으로 금전적 손실을 초래할 수 있습니다.주의해서 진행하시기 바랍니다.",
   Chain: "체인",
   ChainNotSupported: "체인은 지원되지 않습니다",
   Change: "변경",

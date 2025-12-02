@@ -262,6 +262,8 @@ export default {
   CashinOutdated: "Om voort te gaan om hierdie kenmerk te gebruik, dateer asseblief jou program op na die nuutste weergawe.Dankie!",
   Category: "Kategorie",
   CategoryID: "Kategorie ID",
+  CauldronTokenSelectSearchSuggestion: "Soek meer tekens deur te soek na naam of simbool",
+  CauldronUsePoolPricingWarning: "Die indiening van likiditeit teen 'n prys wat van die mark verskil, kan lei tot onmiddellike arbitrage-geleenthede, wat moontlik finansiële verliese vir jou tot gevolg kan hê.Gaan asseblief met omsigtigheid voort.",
   Chain: "Ketting",
   ChainNotSupported: "Ketting word nie ondersteun nie",
   Change: "Verander",
