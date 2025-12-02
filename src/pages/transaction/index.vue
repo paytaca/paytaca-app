@@ -2107,6 +2107,8 @@ export default {
 <style lang="scss" scoped>
   /* Hide scrollbar completely on all platforms */
   #app-container {
+    padding-bottom: 30px; // Increased bottom padding to ensure clickable elements near the bottom are visible and clickable
+    
     &::-webkit-scrollbar {
       display: none !important;
       width: 0 !important;

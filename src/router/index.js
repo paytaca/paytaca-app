@@ -39,14 +39,11 @@ export default function () {
         
         // Ensure current wallet index is valid (points to undeleted wallet)
         // This will switch to the first valid wallet if current is null/deleted
-        console.log('[Router] Calling ensureValidWalletIndex...')
         await store.dispatch('global/ensureValidWalletIndex')
-        console.log('[Router] ensureValidWalletIndex completed')
         
         // Get the current wallet index (may have changed after ensureValidWalletIndex)
         const currentWalletIndex = store.getters['global/getWalletIndex']
         const vault = store.getters['global/getVault']
-        console.log('[Router] Current wallet index:', currentWalletIndex)
         console.log('[Router] Vault length:', vault?.length || 0)
         console.log('[Router] Vault contents:', vault?.map((w, i) => ({
           index: i,

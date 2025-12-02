@@ -241,9 +241,7 @@ export default {
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run before any wallet operations
     // Skip if we just switched wallets (check for a flag or recent switch)
-    console.log('[App] mounted: Ensuring valid wallet index...')
     await vm.$store.dispatch('global/ensureValidWalletIndex')
-    console.log('[App] mounted: ensureValidWalletIndex completed')
 
     this.$store.dispatch('global/autoGenerateAddress', { walletType: 'bch' })
       .then((...results) => console.log('Auto gen address bch', ...results))

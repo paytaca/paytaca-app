@@ -143,11 +143,11 @@ export async function addNewAsset (asset, network) {
 
 	// set asset
 	custom_list[network].unshift(asset.id)
-	favorites.unshift({id: asset.id, favorite: 0})
+	favorites.unshift({id: asset.id, favorite: 1})
 	
 	// save to server
-	saveCustomList(custom_list)
-	saveFavorites(favorites)	
+	await saveCustomList(custom_list)
+	await saveFavorites(favorites)	
 
 
 }

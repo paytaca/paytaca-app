@@ -72,10 +72,20 @@
             <q-avatar size="40px" class="amount-avatar-ss"><img :src="getImageUrl(tx.asset)" alt="asset-logo" /></q-avatar>
             <div class="amount-label-ss">{{ displayAmountText }}</div>
           </div>
-          <div v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss">
-            {{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}
+          <div v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
+            <span>{{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}</span>
+            <q-icon 
+              name="info" 
+              size="16px" 
+              class="q-ml-xs cursor-pointer"
+              :class="getDarkModeClass(darkMode)"
+            >
+              <q-tooltip :delay="300" class="text-body2" :class="getDarkModeClass(darkMode)">
+                {{ fiatConversionTooltip }}
+              </q-tooltip>
+            </q-icon>
           </div>
-          <div v-if="gainLossAmount !== null && gainLossAmount !== undefined && isBchTransaction" class="amount-gain-loss-ss" :class="gainLossClass">
+          <div v-if="gainLossAmount !== null && gainLossAmount !== undefined && isBchTransaction && Math.abs(gainLossAmount) > 0.01" class="amount-gain-loss-ss" :class="gainLossClass">
             <q-icon :name="gainLossAmount >= 0 ? 'trending_up' : 'trending_down'" size="16px" class="q-mr-xs" />
             {{ gainLossText }}
           </div>
@@ -327,6 +337,7 @@ export default {
       displayRawAttributes: false,
       favorites: [],
       addingToFavorites: false,
+      favoritesEvaluated: false, // Track if favorites have been evaluated in background
     }
   },
   computed: {
@@ -431,7 +442,13 @@ export default {
       if (!this.isTokenTransaction) return null
       return this.tx.asset.id
     },
+    fiatConversionTooltip () {
+      const currency = this.selectedMarketCurrency || 'USD'
+      return this.$t('ConversionInfo', {}, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
+    },
     showAddToFavoritesButton () {
+      // Hide by default until favorites are evaluated
+      if (!this.favoritesEvaluated) return false
       if (!this.isTokenTransaction || !this.tokenAssetId) return false
       // Check if token is not in favorites
       const favoriteIds = this.favorites
@@ -489,19 +506,19 @@ export default {
       // Return the appropriate back path based on where we came from
       const fromParam = this.$route?.query?.from
       if (fromParam === 'transactions') {
-        // Reconstruct the exact URL with preserved query parameters
-        // Remove 'from' and transaction-specific query params (category, new) to get back to transactions page state
-        const preservedQuery = { ...this.$route.query }
-        delete preservedQuery.from
-        delete preservedQuery.category // This is for the transaction detail, not the transactions list
-        delete preservedQuery.new // This is for new transaction indicator
+        // Preserve the original assetID from query params if it exists
+        // This ensures we return to the same filter (e.g., "all" or specific asset)
+        // Check both the route query and the transaction asset to ensure we have the correct assetID
+        const routeAssetID = this.$route?.query?.assetID
+        const txAssetID = this.tx?.asset?.id
+        const assetId = routeAssetID || txAssetID || 'bch'
         
-        // Build the query string
-        const queryString = Object.keys(preservedQuery).length > 0
-          ? '?' + new URLSearchParams(preservedQuery).toString()
-          : ''
-        
-        return `/transaction/list${queryString}`
+        // Return a route object (not a string) so Vue Router handles query params correctly
+        // The header-nav component will use this object directly for navigation
+        return {
+          path: '/transaction/list',
+          query: { assetID: assetId }
+        }
       }
       return '/'
     }
@@ -1123,9 +1140,13 @@ export default {
         } else {
           this.favorites = []
         }
+        // Mark favorites as evaluated after successful load
+        this.favoritesEvaluated = true
       } catch (error) {
         console.error('Error loading favorites:', error)
         this.favorites = []
+        // Still mark as evaluated even on error to prevent infinite waiting
+        this.favoritesEvaluated = true
       }
     },
     async addTokenToFavorites () {
@@ -1135,21 +1156,72 @@ export default {
       try {
         // Determine network: 'sBCH' for smartchain tokens, 'BCH' for mainchain tokens
         const isSmartchain = this.tokenAssetId.startsWith('sep20/')
-        const network = isSmartchain ? 'sBCH' : 'BCH'
+        const selectedNetwork = isSmartchain ? 'sBCH' : 'BCH'
         
-        // Get the asset from store
-        const asset = isSmartchain
-          ? this.$store.getters['sep20/getAsset'](this.tokenAssetId)
-          : this.$store.getters['assets/getAsset'](this.tokenAssetId)
+        // Fetch custom list (same as asset list page)
+        let customList = await assetSettings.fetchCustomList()
         
-        if (!asset) {
-          throw new Error('Asset not found in store')
+        // Get all assets from store based on network
+        const allAssets = selectedNetwork === 'sBCH'
+          ? this.$store.getters['sep20/getAssets']
+          : this.$store.getters['assets/getAssets']
+        
+        // Filter out BCH from the list
+        const assets = allAssets.filter(asset => asset && asset.id !== 'bch')
+        
+        // Initialize custom list if needed (same as asset list page)
+        if (!customList || 'error' in customList || Object.keys(customList).length === 0) {
+          const assetIDs = assets.map((asset) => asset.id)
+          if (selectedNetwork === 'BCH') {
+            await assetSettings.initializeCustomList(assetIDs, [])
+          } else {
+            await assetSettings.initializeCustomList([], assetIDs)
+          }
+          customList = await assetSettings.fetchCustomList()
         }
         
-        // Add to favorites using asset-settings
-        await assetSettings.addNewAsset(asset, network)
+        // Get asset IDs from custom list for the current network
+        let assetIds = customList[selectedNetwork] || []
         
-        // Reload favorites to update the UI
+        // Ensure the token is in the custom list (add to beginning if not present)
+        if (!assetIds.includes(this.tokenAssetId)) {
+          assetIds.unshift(this.tokenAssetId)
+          customList[selectedNetwork] = assetIds
+          await assetSettings.saveCustomList(customList)
+        }
+        
+        // Fetch current favorites to preserve favorites from all networks
+        let currentFavorites = await assetSettings.fetchFavorites()
+        if (!Array.isArray(currentFavorites)) {
+          currentFavorites = []
+        }
+        
+        // Create a map of existing favorites for quick lookup
+        const favoritesMap = new Map()
+        currentFavorites.forEach(fav => {
+          favoritesMap.set(fav.id, fav.favorite)
+        })
+        
+        // Update or add the token to favorites (preserving all existing favorites)
+        // This matches the pattern in addNewAsset which preserves all favorites
+        if (favoritesMap.has(this.tokenAssetId)) {
+          // Update existing favorite status
+          const index = currentFavorites.findIndex(fav => fav.id === this.tokenAssetId)
+          if (index !== -1) {
+            currentFavorites[index].favorite = 1
+          }
+        } else {
+          // Add new favorite at the beginning (matching addNewAsset pattern)
+          currentFavorites.unshift({ id: this.tokenAssetId, favorite: 1 })
+        }
+        
+        // Save the full favorites list (preserving favorites from all networks)
+        await assetSettings.saveFavorites(currentFavorites)
+        
+        // Update local favorites array immediately so button disappears right away
+        this.favorites = currentFavorites
+        
+        // Reload favorites from server to ensure consistency
         await this.loadFavorites()
         
         this.$q.notify({
@@ -1213,20 +1285,21 @@ export default {
       // Check if we came from transactions page
       const fromParam = this.$route?.query?.from
       if (fromParam === 'transactions') {
-        // Reconstruct the exact URL with preserved query parameters
-        // Remove 'from' and transaction-specific query params (category, new) to get back to transactions page state
-        const preservedQuery = { ...this.$route.query }
-        delete preservedQuery.from
-        delete preservedQuery.category // This is for the transaction detail, not the transactions list
-        delete preservedQuery.new // This is for new transaction indicator
+        // Preserve the original assetID from query params if it exists
+        // This ensures we return to the same filter (e.g., "all" or specific asset)
+        // Priority: route query assetID (most reliable) > transaction asset ID
+        // The route query assetID is the exact filter the user was viewing
+        const routeAssetID = this.$route?.query?.assetID
+        const txAssetID = this.tx?.asset?.id
+        const assetId = routeAssetID || txAssetID || 'bch'
         
-        // Navigate back to transactions page with preserved query parameters
+        // Navigate back to transactions page with the corresponding asset filter
         this.$router.push({
           path: '/transaction/list',
-          query: preservedQuery
+          query: { assetID: assetId }
         })
       } else {
-        // Navigate to wallet home page (default behavior)
+        // If not from transactions page, navigate to home page
         this.$router.push('/')
       }
     },

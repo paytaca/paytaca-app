@@ -140,6 +140,46 @@ export function removeVaultEntry (state, index) {
   }
 }
 
+/**
+ * Reorder vault entries by moving an item from one index to another
+ * @param {Object} state - Global state
+ * @param {Object} payload - Reorder payload
+ * @param {number} payload.fromIndex - Source index in vault array
+ * @param {number} payload.toIndex - Destination index in vault array
+ */
+export function reorderVault (state, { fromIndex, toIndex }) {
+  if (fromIndex === toIndex) {
+    return // No change needed
+  }
+
+  if (fromIndex < 0 || fromIndex >= state.vault.length || toIndex < 0 || toIndex >= state.vault.length) {
+    console.warn('[reorderVault] Invalid indices:', { fromIndex, toIndex, vaultLength: state.vault.length })
+    return
+  }
+
+  // Get the wallet being moved
+  const walletToMove = state.vault[fromIndex]
+  
+  // Remove from original position
+  state.vault.splice(fromIndex, 1)
+  
+  // Insert at new position
+  state.vault.splice(toIndex, 0, walletToMove)
+
+  // Update walletIndex if the currently active wallet was moved
+  const currentWalletIndex = state.walletIndex
+  if (currentWalletIndex === fromIndex) {
+    // The active wallet was moved, update walletIndex to its new position
+    state.walletIndex = toIndex
+  } else if (currentWalletIndex > fromIndex && currentWalletIndex <= toIndex) {
+    // A wallet before the active one was moved forward, shift walletIndex back
+    state.walletIndex = currentWalletIndex - 1
+  } else if (currentWalletIndex < fromIndex && currentWalletIndex >= toIndex) {
+    // A wallet after the active one was moved backward, shift walletIndex forward
+    state.walletIndex = currentWalletIndex + 1
+  }
+}
+
 export function updateWalletIndex (state, index) {
   state.walletIndex = index
   // Note: Settings sync to modules is handled by syncSettingsToModules action
