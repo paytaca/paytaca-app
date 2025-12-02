@@ -332,31 +332,8 @@ export default {
 		// assetList
 	},
 	async mounted () {				
-		const assetID = this.$route.query.assetID
-		let asset = []
-		
-		// Handle "all" asset selection or default to "all" if no assetID provided
-		if (assetID === 'all' || !assetID) {
-			this.selectedAsset = {
-				id: 'all',
-				symbol: 'All',
-				name: 'All Assets',
-				logo: null
-			}
-		} else {
-			asset = this.$store.getters['assets/getAsset'](assetID)
-			if (asset.length > 0) {
-				this.selectedAsset = asset[0]			
-			} else {
-				// If asset not found, default to "all"
-				this.selectedAsset = {
-					id: 'all',
-					symbol: 'All',
-					name: 'All Assets',
-					logo: null
-				}
-			}
-		}
+		// Update selected asset from query parameter
+		this.updateSelectedAssetFromQuery()
 		
 		const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
 
@@ -385,11 +362,57 @@ export default {
 	      this.$nextTick(() => {
 	        this.calculateTransactionRowHeight()
 	      })
+	    },
+	    '$route.query.assetID' (newAssetID) {
+	      // Update selected asset when route query changes (e.g., when navigating back)
+	      this.updateSelectedAssetFromQuery()
 	    }
 	},
 	methods: {
 		parseAssetDenomination,
 		getDarkModeClass,
+		updateSelectedAssetFromQuery () {
+			const assetID = this.$route.query.assetID
+			let asset = []
+			
+			// Handle "all" asset selection or default to "all" if no assetID provided
+			if (assetID === 'all' || !assetID) {
+				this.selectedAsset = {
+					id: 'all',
+					symbol: 'All',
+					name: 'All Assets',
+					logo: null
+				}
+			} else {
+				asset = this.$store.getters['assets/getAsset'](assetID)
+				if (asset.length > 0) {
+					this.selectedAsset = asset[0]
+				} else {
+					// If asset not found in store, create a basic asset object with the assetID
+					// This preserves the filter even if the asset metadata isn't loaded yet
+					// The transaction list component will use selectedAsset.id to filter transactions
+					const assetIdParts = assetID.split('/')
+					const isToken = assetIdParts.length === 2 && (assetIdParts[0] === 'ct' || assetIdParts[0] === 'slp' || assetIdParts[0] === 'sep20')
+					
+					this.selectedAsset = {
+						id: assetID,
+						symbol: isToken ? (assetIdParts[0] === 'ct' ? 'CT' : assetIdParts[0] === 'slp' ? 'SLP' : 'SEP20') : 'BCH',
+						name: isToken ? `${assetIdParts[0].toUpperCase()} Token` : 'Bitcoin Cash',
+						logo: null
+					}
+				}
+			}
+			
+			// Only update transaction list component if wallet is loaded
+			// This prevents errors when called before wallets are loaded in mounted()
+			if (this.wallet && this.$refs['transaction-list-component']) {
+				this.$nextTick(() => {
+					this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
+					this.$refs['transaction-list-component'].getTransactions()
+					this.calculateTransactionRowHeight()
+				})
+			}
+		},
 		serializeTransaction (tx) {
 			if (!tx) return null
 			
@@ -654,8 +677,19 @@ export default {
       // This includes assetID and any other filters/parameters
       const currentQuery = { ...vm.$route.query }
       
-      // Add 'from' query parameter and preserve current query params
-      const queryWithFrom = { ...query, from: 'transactions', ...currentQuery }
+      // Ensure assetID is explicitly included in the query (use full assetId from transaction or selectedAsset)
+      // This ensures the full assetID (e.g., "ct/5932b2fd...") is preserved for back navigation
+      // Priority: current route assetID (most reliable) > transaction asset ID > selectedAsset ID
+      // The route query assetID is most reliable because it's the exact filter the user is viewing
+      const assetIDToPreserve = currentQuery.assetID || assetId || vm.selectedAsset?.id
+      
+      // Add 'from' query parameter and preserve current query params, explicitly including assetID
+      const queryWithFrom = { 
+        ...query, 
+        from: 'transactions', 
+        ...currentQuery,
+        assetID: assetIDToPreserve // Explicitly set assetID to ensure it's preserved
+      }
 
       vm.$router.push({
         name: 'transaction-detail',

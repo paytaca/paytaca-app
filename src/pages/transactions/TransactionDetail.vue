@@ -506,16 +506,19 @@ export default {
       // Return the appropriate back path based on where we came from
       const fromParam = this.$route?.query?.from
       if (fromParam === 'transactions') {
-        // Get the asset ID from the current transaction
-        const assetId = this.tx?.asset?.id || 'bch'
+        // Preserve the original assetID from query params if it exists
+        // This ensures we return to the same filter (e.g., "all" or specific asset)
+        // Check both the route query and the transaction asset to ensure we have the correct assetID
+        const routeAssetID = this.$route?.query?.assetID
+        const txAssetID = this.tx?.asset?.id
+        const assetId = routeAssetID || txAssetID || 'bch'
         
-        // Build query with assetID parameter
-        const query = { assetID: assetId }
-        
-        // Build the query string
-        const queryString = '?' + new URLSearchParams(query).toString()
-        
-        return `/transaction/list${queryString}`
+        // Return a route object (not a string) so Vue Router handles query params correctly
+        // The header-nav component will use this object directly for navigation
+        return {
+          path: '/transaction/list',
+          query: { assetID: assetId }
+        }
       }
       return '/'
     }
@@ -1286,8 +1289,13 @@ export default {
       // Check if we came from transactions page
       const fromParam = this.$route?.query?.from
       if (fromParam === 'transactions') {
-        // Get the asset ID from the current transaction
-        const assetId = this.tx?.asset?.id || 'bch'
+        // Preserve the original assetID from query params if it exists
+        // This ensures we return to the same filter (e.g., "all" or specific asset)
+        // Priority: route query assetID (most reliable) > transaction asset ID
+        // The route query assetID is the exact filter the user was viewing
+        const routeAssetID = this.$route?.query?.assetID
+        const txAssetID = this.tx?.asset?.id
+        const assetId = routeAssetID || txAssetID || 'bch'
         
         // Navigate back to transactions page with the corresponding asset filter
         this.$router.push({
