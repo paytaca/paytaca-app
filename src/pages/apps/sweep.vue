@@ -610,18 +610,30 @@ export default {
         this.bchBalance,
         recipientAddress
       )
+    },
+    async sweepAll() {
+      if ((this.totalTokensCount - this.skippedTokens.length) > 0) {
+        const unskippedCashTokens = this.fungibleCashTokens.filter(
+          token => !this.skippedTokens.includes(token.category)
+        )
+        const unskippedNonFungibleCashTokens = this.nonFungibleCashTokens.filter(
+          token => !this.skippedTokens.includes(`${token.category}|${token.commitment}`)
+        )
+        const unskippedSlpTokens = this.tokens.filter(
+          token => !this.skippedTokens.includes(token.token_id) && token.spendable > 0
+        )
+
+        await Promise.all([
+          ...unskippedCashTokens.map(token => this.sweepCashTokenFungible(token)),
+          ...unskippedNonFungibleCashTokens.map(token => this.sweepCashTokenNonFungible(token)),
+          ...unskippedSlpTokens.map(token => this.sweepToken(token))
+        ])
+      }
+      await this.sweepBch()
 
       this.getTokens(false).then(() => {
         if (this.emptyAssets) this.showSuccess = true
       })
-    },
-    async sweepAll() {
-      if ((this.totalTokensCount - this.skippedTokens.length) > 0) {
-        // BCH + unskipped tokens
-      } else {
-        // BCH only
-        await this.sweepBch()
-      }
     },
 
     onScannerDecode (content) {
