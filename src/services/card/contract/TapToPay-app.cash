@@ -4,30 +4,20 @@ contract TapToPay(
   bytes20 ownerPkh, 
   bytes20 backendPkh, 
   bytes category,
-  int newBCV
+  bytes currentBCV
   ) {
 
-    /*
-      MAIN spend function.
-      In the app version, the Paytaca app:
-      - Reads the NFC card
-      - Writes data to it
-      - Provides its own public key + signature acting as the "terminal"
-
-      instead of an external terminal, the phone app (POS) itself plays that role.
-    */
+    /** terminalId and terminalPk now refer to POS app */
     function spend(
-      bytes TerminalId, // app generated terminal ID
-      sig terminalSig, // signature from the Paytaca app
-      pubkey terminalPk, // public key from paytaca app
-      sig backendSig, // backend service signature
-      pubkey backendPk // backend public key
+      bytes TerminalId,
+      sig terminalSig, 
+      pubkey terminalPk, 
+      sig backendSig, 
+      pubkey backendPk 
     ){
-      // verify backend/server (another layer of security)
+      // --- Signature verifications ---
       require(hash160(backendPk) == backendPkh, 'Invalid backend public key hash');
       require(checkSig(backendSig, backendPk), 'Invalid backend signature');
-
-      // verify app acting as terminal
       require(checkSig(terminalSig, terminalPk), 'Invalid app (terminal) signature');
 
       // must have min 2 and max 3 outputs only
@@ -46,7 +36,7 @@ contract TapToPay(
         terminalHash now binds the Paytaca app's ID + pubkey of the wallet as the authorized 'terminal'
       */
       bytes fullHash = sha256(terminalId + terminalPk);
-      bytes terminalHash = fullHash.split(27)[0];
+      bytes terminalHash = fullHash.split(20)[0];
 
       /*
         Break down the NFT commitment into fields:
@@ -58,21 +48,36 @@ contract TapToPay(
         the rest of the byte is stored in expectedTerminalHash
        */ 
       bytes commitment = tx.inputs[0].nftCommitment;
-      bytes flag, bytes rest = commitment.split(1);       // flag 0x01 means payment enabled
-      bytes expirationBlock, bytes rest2 = rest.split(4); // when does this expire?
-      bytes spendLimit, bytes expectedTerminalHash = rest2.split(8); // limit + authorized terminal
 
-      require(flag == 0x01, 'Access denied: App is not authorized');
-      // Only continue if the terminal hash matches what the contract expects (the authorized device)
+      // Commitment decoding and validation
+      // [flag (1)] + expirationBlock (4) + spendLimit (4) + BCV (11) + expectedTerminalHash (20)
+
+      // splits commitment into 2 parts: first byte (flag) // flag 0x01 means payment enabled / authorized
+      bytes flag, bytes rest = commitment.split(1); 
+      
+      // splits rest into 2 parts: first 4 bytes stored in expirationBlock
+      bytes expirationBlock, bytes rest2 = rest.split(4);
+
+      // splits rest2 into two parts: first 8 bytes stored in spendLimit
+      bytes spendLimit, bytes rest3 = rest2.split(4);
+
+      // splits rest3 into two parts: first 16 bytes stored in bcv
+      bytes receivedBCV, bytes expectedTerminalHash = rest3.split(11);
+
+      // The BCV received in the NFT must match the contract's state BCV
+      require(receivedBCV == currentBCV, 'Access denied: Invalid BCV');
+
+      require(flag == 0x01, 'Access denied: Terminal is not authorized');
+      // Only continue if the terminal hash matches what the contract expects
       require(terminalHash == expectedTerminalHash, 'Access denied: Invalid app/terminal id');
-      require(tx.locktime <= int(expirationBlock), 'Authentication expired');
+      require(tx.locktime <= int(expirationBlock), 'Authentication has expired');
 
       /*
         Ensure NFT commitment cannot be tampered with.
         It must stay exactly the same after the transaction.
         require that auth NFT commitment is not tampered with after spending
       */
-      require(commitment == tx.outputs[0].nftCommitment, 'NFT commitment must not change');
+      require(commitment != tx.outputs[0].nftCommitment, 'Auth NFT commitment should change (new BCV required)');
 
       /*
         Auth NFT must always return back to this contract (self-locking):
@@ -96,7 +101,7 @@ contract TapToPay(
       */
       bytes25 recipientLock = new LockingBytecodeP2PKH(hash160(terminalPk));
       bool sendsToRecipient = tx.outputs[1].lockingBytecode == recipientLock;
-      require(sendsToRecipient, 'Send must go to app (recipient)');
+      require(sendsToRecipient, 'Send amount must be sent to the recipient');
 
       // Enforce spend limit
       int actualSendAmount = tx.outputs[1].value;
@@ -120,27 +125,8 @@ contract TapToPay(
       Owner can "mutate" — update contract rules or migrate state.  
     */
     function mutate(pubkey ownerPk, sig ownerSig, sig terminalSig, bytes newContractLockingBytecode) {
-        // verify owner
         require(hash160(ownerPk) == ownerPkh, 'Invalid owner public key hash');
         require(checkSig(ownerSig, ownerPk), 'Invalid owner signature');
-
-        // verify terminal signed authorization for this transaction
-        require(checkSig(terminalSig, terminalPk), 'Invalid terminal signature');
-
-        // newContractLockingBytecode must not be empty
-        require(newContractLockingBytecode.length > 0, 'Missing new contract locking bytecode');
-
-        // assume new BCV is written in output[1]
-        // assuming output[0] is payment/fee, index 1 is the new contract state
-        require(tx.outputs[1].lockingBytecode == newContractLockingBytecode, 'New contract state must be in output[1]');
-        
-        // new BCV is embedded inside the new locking bytecode 
-        // new locking bytecode must differ from current locking bytecode
-        // compute current contract locking bytecode
-        bytes currentLocking = tx.outputs[0].lockingBytecode; 
-        require(newContractLockingBytecode != currentLocking, 'New contract locking bytecode must be different');
-
-      
     }
 }
 
