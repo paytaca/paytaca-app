@@ -206,7 +206,7 @@
                 <DragSlide
                   disable-absolute-bottom
                   :text="$t('AddLiquidity')"
-                  :disable="!insufficientBalanceMessage"
+                  :disable="Boolean(insufficientBalanceMessage)"
                   @swiped="securityCheck"
                 />
               </div>
