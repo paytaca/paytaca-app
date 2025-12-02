@@ -1295,13 +1295,8 @@ export default {
           query: { assetID: assetId }
         })
       } else {
-        // If not from transactions page, navigate to transactions page with the asset filter
-        // This ensures the back button always goes to the correct asset's transaction list
-        const assetId = this.tx?.asset?.id || 'bch'
-        this.$router.push({
-          path: '/transaction/list',
-          query: { assetID: assetId }
-        })
+        // If not from transactions page, navigate to home page
+        this.$router.push('/')
       }
     },
     formatDate (date) {
