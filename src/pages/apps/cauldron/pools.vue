@@ -24,6 +24,13 @@
       <div v-else-if="pools.length === 0" class="text-center q-pa-lg">
         <q-icon name="water_drop" size="80px" color="grey-5" />
         <div class="text-h6 q-mt-md q-mb-sm">{{ $t('NoPoolsFound') }}</div>
+        <q-btn
+          no-caps
+          :label="$t('AddPool')"
+          color="primary"
+          rounded
+          :to="{ name: 'app-cauldron-add-pool' }"
+        />
       </div>
 
       <!-- Pools List -->
@@ -119,6 +126,7 @@
 </template>
 <script>
 import { fetchWalletPools, generateWithdrawPoolTx } from "src/wallet/cauldron/wallet-pool";
+import { asyncSleep } from "src/wallet/transaction-listener";
 import { fetchTokensList } from "src/wallet/cauldron/tokens";
 import { convertIpfsUrl } from 'src/wallet/cashtokens';
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
@@ -262,6 +270,31 @@ export default defineComponent({
         if (broadcastResult.data?.error) {
           throw new Error(broadcastResult.data.error)
         }
+
+        const _tokenData = pool.tokenData
+        const attributeData = {
+          action: 'withdraw-liquidity',
+          tokenUnits: String(pool.token_amount),
+          satoshis: String(pool.sats),
+          tokenData: {
+            category: _tokenData?.bcmr?.token?.category || '',
+            name: _tokenData?.bcmr?.name || '',
+            symbol: _tokenData?.bcmr?.token?.symbol || '',
+            decimals: _tokenData?.bcmr?.token?.decimals || 0,
+          }
+        }
+        const data = {
+          txid: broadcastResult?.data?.txid,
+          wallet_hash: bchWallet.walletHash,
+          key: 'cauldron-pool',
+          value: JSON.stringify(attributeData),
+        }
+
+        bchWallet.watchtower.BCH._api.post("transactions/attributes/", data).catch(console.error)
+
+        dialog.update({ message: $t('PleaseWait') })
+        // Added delay for cauldron to be updated
+        await asyncSleep(5_000)
 
         dialog.update({ 
           title: $t('Success'),

@@ -286,6 +286,7 @@ const phrases = {
       PerformingTrade: 'Performing trade',
       CauldronUsePoolPricingWarning: 'Submitting liquidity at a price that differs from the market can lead to instant arbitrage opportunities, potentially resulting in financial losses for you. Please proceed with caution.',
       CauldronTokenSelectSearchSuggestion: 'Find more tokens by searching token name or symbol',
+      AddLiquidity: 'Add Liquidity',
     },
     {
       TotalHedgeValue: "Total hedge value",

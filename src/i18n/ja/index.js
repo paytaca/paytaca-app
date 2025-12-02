@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "ここにコメントを追加...",
   AddFungibleCashPoint: "代替可能なキャッシュポイントを追加",
   AddFungibleCashToken: "代替可能な CashToken を追加する",
+  AddLiquidity: "流動性の追加",
   AddMemo: "メモを追加する",
   AddMethod: "メソッドの追加",
   AddMoreLiquidity: "流動性をさらに高める",

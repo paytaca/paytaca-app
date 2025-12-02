@@ -52,9 +52,9 @@
               <q-item-label caption>{{ token?.bcmr?.name || '' }}</q-item-label>
             </q-item-section>
           </q-item>
-          <q-label v-if="!searchQuery && tokensList?.length" class="text-caption text-center text-grey">
+          <q-item-label v-if="!searchQuery && tokensList?.length" class="text-caption text-center text-grey">
             {{ $t('CauldronTokenSelectSearchSuggestion') }}
-          </q-label>
+          </q-item-label>
         </q-list>
       </q-card-section>
     </q-card>

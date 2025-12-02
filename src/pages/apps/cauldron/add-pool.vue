@@ -153,11 +153,11 @@
             <div class="value-bar-container q-mt-md q-mb-md">
               <div class="row items-center no-wrap q-gutter-x-sm justify-between q-mb-sm">
                 <div class="text-body2">
-                  <div>{{ tokenSymbol }}</div>
+                  <div class="text-grey text-caption">{{ tokenSymbol }}</div>
                   <div>{{ formatAmount(tokenValueInFiat, 2) }} {{ selectedMarketCurrency }}</div>
                 </div>
                 <div class="text-right text-body2">
-                  <div>BCH</div>
+                  <div class="text-grey text-caption">BCH</div>
                   <div>{{ formatAmount(bchValueInFiat, 2) }} {{ selectedMarketCurrency }}</div>
                 </div>
               </div>
@@ -195,9 +195,18 @@
 
             <q-slide-transition>
               <div v-if="bchAmount && tokenAmount">
+                <div
+                  v-if="insufficientBalanceMessage"
+                  class="insufficient-balance-alert q-mb-md"
+                  :class="getDarkModeClass(darkMode)"
+                >
+                  <q-icon name="info" size="16px" class="q-mr-xs" />
+                  <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
+                </div>
                 <DragSlide
                   disable-absolute-bottom
                   :text="$t('AddLiquidity')"
+                  :disable="!insufficientBalanceMessage"
                   @swiped="securityCheck"
                 />
               </div>
@@ -292,7 +301,9 @@ export default defineComponent({
 
     const showTokenSelectDialog = ref(false)
     function onTokenSelect(tokenData) {
+      const prevTokenId = selectedToken.value?.token_id
       selectedToken.value = tokenData
+      if (selectedToken.value?.token_id !== prevTokenId) poolPricing.value = 0
       fetchPoolPrice().then(() => {
         if (tokenAmount.value) syncBchAmountFromTokenAmount()
         else if (bchAmount.value) syncTokenAmountFromBch()
@@ -354,6 +365,35 @@ export default defineComponent({
     })
     const totalValueInFiat = computed(() => {
       return bchValueInFiat.value + tokenValueInFiat.value
+    })
+
+    const tokenBalance = computed(() => {
+      if (!selectedToken.value) return
+      const assets = $store.getters['assets/getAssets'];
+      const tokenAssetId = `ct/${selectedToken.value.token_id}`;
+      const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
+      const tokenBalance = BigInt(tokenAsset?.balance || 0);
+      return tokenBalance
+    })
+
+    const satoshisBalance = computed(() => {
+      const assets = $store.getters['assets/getAssets'];
+      const bchAsset = assets?.find(asset => asset?.id === 'bch');
+      const balance = bchAsset?.spendable || bchAsset?.balance
+      const bchBalanceSats = BigInt(Math.floor(Number(balance || 0) * 10 ** 8));
+      return bchBalanceSats;
+    })
+
+    const insufficientBalanceMessage = computed(() => {
+      if (!tokenUnits.value || !satoshis.value) return ''
+      // Check which one is insufficient
+      if (tokenUnits.value > tokenBalance.value) {
+        return $t('InsufficientTokenBalance', { token: tokenSymbol.value || $t('Token') });
+      } else if(satoshis.value >= satoshisBalance.value) {
+        // Token balance is sufficient, but BCH for fees is not
+        return $t('InsufficientBCHBalance');
+      }
+      return ''
     })
 
     function securityCheck(resetSwipe=() => {}) {
@@ -522,6 +562,7 @@ export default defineComponent({
       tokenValueInFiat,
       bchValueInFiat,
       totalValueInFiat,
+      insufficientBalanceMessage,
 
       securityCheck,
       addLiquidityPool,
@@ -540,6 +581,43 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+.insufficient-balance-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(237, 94, 89, 0.08);
+  border: 1px solid rgba(237, 94, 89, 0.2);
+  transition: all 0.2s ease;
+  
+  .insufficient-balance-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ed5e59;
+    text-align: center;
+  }
+  
+  .q-icon {
+    color: #ed5e59;
+    opacity: 0.8;
+  }
+  
+  &.dark {
+    background: rgba(237, 94, 89, 0.12);
+    border-color: rgba(237, 94, 89, 0.3);
+    
+    .insufficient-balance-text {
+      color: #ff6b6b;
+    }
+    
+    .q-icon {
+      color: #ff6b6b;
+    }
+  }
+}
+
+
 /* Glassmorphic Button Styles */
 .glassmorphic-button {
   backdrop-filter: blur(12px);

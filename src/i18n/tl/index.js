@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "Magdagdag ng komento dito ...",
   AddFungibleCashPoint: "Magdagdag ng fungible cashpoint",
   AddFungibleCashToken: "Magdagdag ng fungible cashToken",
+  AddLiquidity: "Magdagdag ng pagkatubig",
   AddMemo: "Magdagdag ng memo",
   AddMethod: "Magdagdag ng pamamaraan",
   AddMoreLiquidity: "Magdagdag ng higit na pagkatubig",

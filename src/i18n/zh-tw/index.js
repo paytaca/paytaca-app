@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "在此添加評論...",
   AddFungibleCashPoint: "添加可替代現金點",
   AddFungibleCashToken: "添加可替代的 CashToken",
+  AddLiquidity: "增加流動性",
   AddMemo: "添加備註",
   AddMethod: "添加方法",
   AddMoreLiquidity: "添加更多流動性",

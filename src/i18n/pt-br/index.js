@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "Adicione um comentário aqui...",
   AddFungibleCashPoint: "Adicionar CashPoint Fungível",
   AddFungibleCashToken: "Adicionar CashToken Fungível",
+  AddLiquidity: "Adicionar Liquidez",
   AddMemo: "Adicionar memorando",
   AddMethod: "Adicionar método",
   AddMoreLiquidity: "Adicione mais liquidez",

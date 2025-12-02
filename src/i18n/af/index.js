@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "Voeg kommentaar hier...",
   AddFungibleCashPoint: "Voeg Fungible CashPoint by",
   AddFungibleCashToken: "Voeg Fungible CashToken by",
+  AddLiquidity: "Voeg likiditeit by",
   AddMemo: "Voeg memo by",
   AddMethod: "Voeg metode by",
   AddMoreLiquidity: "Voeg meer likiditeit by",

@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "여기에 댓글 추가...",
   AddFungibleCashPoint: "대체 가능한 CashPoint 추가",
   AddFungibleCashToken: "대체 가능한 CashToken 추가",
+  AddLiquidity: "유동성 추가",
   AddMemo: "메모 추가",
   AddMethod: "메소드 추가",
   AddMoreLiquidity: "더 많은 유동성 추가",

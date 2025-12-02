@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "أضف تعليق هنا...",
   AddFungibleCashPoint: "إضافة CashPoint القابلة للاستبدال",
   AddFungibleCashToken: "إضافة CashToken القابل للاستبدال",
+  AddLiquidity: "أضف السيولة",
   AddMemo: "أضف مذكرة",
   AddMethod: "إضافة طريقة",
   AddMoreLiquidity: "أضف المزيد من السيولة",

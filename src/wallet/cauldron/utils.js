@@ -107,3 +107,33 @@ export function formatCauldronSwapAttribute(value) {
     )
   }
 }
+
+export function parseCauldronPoolAttribute(value) {
+  const jsonValue = JSON.parse(value)
+  const action = jsonValue?.action
+  const satoshis = jsonValue?.satoshis
+  const tokenUnits = jsonValue?.tokenUnits
+  const tokenData = jsonValue?.tokenData
+  return { action, satoshis, tokenUnits, tokenData }
+}
+
+export function formatCauldronPoolAttribute(value) {
+  const { action, satoshis, tokenUnits, tokenData } = parseCauldronPoolAttribute(value)
+  const tokenSymbol = tokenData?.symbol
+  const bchAmount = satoshis / 10 ** 8
+  const tokenAmount = Number(tokenUnits) / 10 ** (tokenData?.decimals || 0)
+
+  if (action == 'add-liquidity') {
+    return $t(
+      'CauldronAddLiquidity',
+      { tokenAmount, tokenSymbol, bchAmount },
+      `Added liquidity: ${tokenAmount} ${tokenSymbol} / ${bchAmount} BCH `
+    ) 
+  } else if (action == 'withdraw-liquidity') {
+    return $t(
+      'CauldronRemoveLiquidity',
+      { tokenAmount, tokenSymbol, bchAmount },
+      `Pool withdraw: ${tokenAmount} ${tokenSymbol} / ${bchAmount} BCH `
+    ) 
+  }
+}

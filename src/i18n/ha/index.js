@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "Addara bayani anan ...",
   AddFungibleCashPoint: "Ƙara cargible centPoint",
   AddFungibleCashToken: "Ƙara cashtobend",
+  AddLiquidity: "Ƙara ruwa",
   AddMemo: "Sanya Memo",
   AddMethod: "Sanya Hanyar",
   AddMoreLiquidity: "Ƙara ƙarin ruwa",

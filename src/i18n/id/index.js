@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "Tambahkan komentar di sini...",
   AddFungibleCashPoint: "Tambahkan CashPoint yang Sepadan",
   AddFungibleCashToken: "Tambahkan CashToken yang Sepadan",
+  AddLiquidity: "Tambahkan Likuiditas",
   AddMemo: "Tambahkan memo",
   AddMethod: "Tambahkan Metode",
   AddMoreLiquidity: "Tambahkan Lebih Banyak Likuiditas",

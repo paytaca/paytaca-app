@@ -27,6 +27,7 @@ export default {
   AddCommentHere: "Добавить комментарий здесь...",
   AddFungibleCashPoint: "Добавить взаимозаменяемый CashPoint",
   AddFungibleCashToken: "Добавить взаимозаменяемый CashToken",
+  AddLiquidity: "Добавить ликвидность",
   AddMemo: "Добавить заметку",
   AddMethod: "Добавить метод",
   AddMoreLiquidity: "Добавьте больше ликвидности",
