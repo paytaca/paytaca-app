@@ -4,6 +4,7 @@ import { populateMissingVaults, recoverWalletsFromStorage } from 'src/utils/inde
 import { updatePreferences } from 'src/utils/indexed-db-rollback/update-preferences'
 import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asset-list'
 import { getAllWalletNames } from 'src/utils/wallet-name-cache'
+import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
 import useStore from 'src/store'
 
 /**
@@ -63,12 +64,27 @@ export default boot(async (obj) => {
     updatePreferences()
     populateMissingVaults()
     
+    // Migrate mnemonics to wallet-hash-based keys
+    // This should run after wallet recovery but before cleanup
+    await migrateMnemonicsToWalletHash().catch(error => {
+      console.error('[Boot] Error migrating mnemonics:', error)
+    })
+    
     // Migrate existing wallets to have wallet-specific settings
     // This applies current global settings to all existing wallets for smooth migration
     store.dispatch('global/migrateWalletSettings')
     
     // Load cached wallet names on startup to populate vault names if empty
     loadCachedWalletNames(store)
+    
+    // Clean up null and deleted vault entries on startup
+    store.dispatch('global/cleanupNullAndDeletedWallets')
+    
+    // Ensure current wallet index is valid (points to undeleted wallet)
+    // This should run after wallets are recovered
+    // Note: This is async but we don't await it here to avoid blocking boot
+    // The router and App.vue will also call it and await it
+    store.dispatch('global/ensureValidWalletIndex').catch(console.error)
   } catch (err) {
     console.error('Error initializing Vuex store:', err)
     // Initialize store with default state if hydration fails

@@ -19,7 +19,23 @@ function getProcessedRecoveryIndices() {
         const stored = localStorage.getItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY)
         if (!stored) return new Set()
         const indices = JSON.parse(stored)
-        return new Set(Array.isArray(indices) ? indices : [])
+        // Filter out invalid indices (null, undefined, NaN, or non-numbers) when reading
+        const validIndices = Array.isArray(indices) 
+            ? indices.filter(index => 
+                index !== null && 
+                index !== undefined && 
+                !isNaN(index) && 
+                typeof index === 'number'
+            )
+            : []
+        
+        // If we filtered out invalid indices, save the cleaned version back
+        if (validIndices.length !== (Array.isArray(indices) ? indices.length : 0)) {
+            localStorage.setItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY, JSON.stringify(validIndices))
+            console.log('[Wallet Recovery] Cleaned invalid indices from processed list')
+        }
+        
+        return new Set(validIndices)
     } catch (error) {
         console.warn('[Wallet Recovery] Error reading processed indices:', error)
         return new Set()
@@ -32,6 +48,11 @@ function getProcessedRecoveryIndices() {
  */
 function markIndexAsProcessed(index) {
     try {
+        // Validate that index is a valid number (not null, undefined, or NaN)
+        if (index === null || index === undefined || isNaN(index) || typeof index !== 'number') {
+            console.warn('[Wallet Recovery] Attempted to mark invalid index as processed:', index)
+            return
+        }
         const processed = getProcessedRecoveryIndices()
         processed.add(index)
         localStorage.setItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY, JSON.stringify(Array.from(processed)))
@@ -46,8 +67,26 @@ function markIndexAsProcessed(index) {
  */
 function markIndicesAsProcessed(indices) {
     try {
+        // Filter out invalid indices (null, undefined, NaN, or non-numbers)
+        const validIndices = indices.filter(index => 
+            index !== null && 
+            index !== undefined && 
+            !isNaN(index) && 
+            typeof index === 'number'
+        )
+        
+        if (validIndices.length !== indices.length) {
+            const invalidIndices = indices.filter(index => 
+                index === null || 
+                index === undefined || 
+                isNaN(index) || 
+                typeof index !== 'number'
+            )
+            console.warn('[Wallet Recovery] Filtered out invalid indices:', invalidIndices)
+        }
+        
         const processed = getProcessedRecoveryIndices()
-        indices.forEach(index => processed.add(index))
+        validIndices.forEach(index => processed.add(index))
         localStorage.setItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY, JSON.stringify(Array.from(processed)))
     } catch (error) {
         console.warn('[Wallet Recovery] Error marking indices as processed:', error)
@@ -174,6 +213,12 @@ export async function populateMissingVaults() {
     // Only process indices that have mnemonics and haven't been processed yet
     // This avoids checking every index from 0 to vault.length
     for (const index of walletIndices) {
+        // Skip invalid indices (null, undefined, NaN, or non-numbers)
+        if (index === null || index === undefined || isNaN(index) || typeof index !== 'number') {
+            console.warn('[Wallet Recovery] Skipping invalid wallet index in populateMissingVaults:', index)
+            continue
+        }
+        
         // Skip if already processed (already has valid vault entry) - but verify walletHash matches
         if (processedIndices.has(index)) {
             const vaultEntry = walletVaults[index]
@@ -263,7 +308,22 @@ export function resetAssetsList(index) {
 
 async function recoverWallet(index, save=false) {
     const store = Store
-    const mnemonic = await getMnemonic(index)
+    const walletVault = store.getters['global/getVault']
+    const existingVaultEntry = walletVault?.[index]
+    
+    // Use wallet hash from vault if available (post-migration pattern)
+    // This provides more reliable mnemonic lookup
+    let mnemonic = null
+    const walletHash = existingVaultEntry?.wallet?.bch?.walletHash || existingVaultEntry?.wallet?.BCH?.walletHash
+    if (walletHash) {
+        mnemonic = await getMnemonic(walletHash).catch(() => null)
+    }
+    
+    // Fallback to index-based lookup if wallet hash not available
+    if (!mnemonic) {
+        mnemonic = await getMnemonic(index)
+    }
+    
     console.log('[Wallet Recovery] Initializing wallet for index:', index)
 
     if (!mnemonic) {
@@ -449,6 +509,12 @@ export async function recoverWalletsFromStorage() {
     // Note: This needs to be async to verify walletHash matches mnemonic
     const unprocessedIndices = []
     for (const index of walletIndices) {
+        // Skip invalid indices (null, undefined, NaN, or non-numbers)
+        if (index === null || index === undefined || isNaN(index) || typeof index !== 'number') {
+            console.warn('[Wallet Recovery] Skipping invalid wallet index:', index)
+            continue
+        }
+        
         // If not processed, include it
         if (!processedIndices.has(index)) {
             unprocessedIndices.push(index)

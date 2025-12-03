@@ -43,7 +43,6 @@ export default {
   ShowTokens: "إظهار المصكوكات",
   StablehedgeFreezeShortDesc2: "تبادل BCH وتلقي المصكوكات المستقرة من القيمة المتساوية",
   StablehedgeUnfreezeShortDesc2: "استبدل مصكوكات مستقرة المصكوكات وتلقي BCH ذات قيمة متساوية",
-  SweepTheTokensFirst: "اسحب المصكوكات أولاً",
   ThemePreferenceSubtitle: "اضبط السمة لتناسب مزاجك",
   ThemePreferenceTitle: "اختر سمتك المفضلة",
   Tokens: "المصكوكات",

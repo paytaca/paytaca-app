@@ -5,7 +5,7 @@
     <!-- Minimal Glassmorphic Layout -->
     <div 
       class="minimal-wallet-container"
-      :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}"
+      :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}"
       v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
     >
       <div v-if="serverOnline === true" v-cloak>
@@ -512,7 +512,7 @@
 </template>
 
 <script>
-import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
+import { Wallet, storeMnemonic, generateMnemonic, computeWalletHash } from '../../wallet'
 import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
@@ -1235,8 +1235,12 @@ export default {
       if (!vm.mnemonic) {
         if (vm.importSeedPhrase) {
           vm.mnemonicVerified = true
-          vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
+          const cleanedMnemonic = this.cleanUpSeedPhrase(this.seedPhraseBackup)
+          // Compute wallet hash from mnemonic for new storage scheme
+          const walletHash = computeWalletHash(cleanedMnemonic)
+          vm.mnemonic = await storeMnemonic(cleanedMnemonic, walletHash)
         } else {
+          // generateMnemonic now stores using both old and new schemes
           vm.mnemonic = await generateMnemonic(vm.walletIndex)
         }
       }

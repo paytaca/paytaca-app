@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" class="shards-view-container sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('SeedPhraseShards')" backnavpath="/apps/wallet-backup" class="header-nav apps-header" />
+    <header-nav :title="$t('SeedPhraseShards')" backnavpath="/apps/settings" class="header-nav apps-header" />
 
     <div class="content-wrapper" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
       <!-- Loading/Authentication State -->

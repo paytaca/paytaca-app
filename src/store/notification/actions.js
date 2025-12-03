@@ -1,6 +1,7 @@
 import { bus } from 'src/wallet/event-bus'
 import { types } from './getters'
 import Router from 'src/router'
+import { getCurrentWalletHash } from 'src/utils/wallet-storage'
 
 const NotificationTypes = types()
 
@@ -9,17 +10,39 @@ export async function handleOpenedNotification(context) {
   const openedNotification = context.getters['openedNotification']
   const route = await context.dispatch('getOpenedNotificationRoute')
 
-  const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index)
-  const currentWalletIndex = context.rootGetters['global/getWalletIndex']
+  // Check for wallet_hash first (newer wallets)
+  const notificationWalletHash = openedNotification?.data?.wallet_hash
+  const currentWalletHash = getCurrentWalletHash()
 
-  if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
-    console.log(
-      'current wallet index:', currentWalletIndex,
-      'push notification wallet index:', multiWalletIndex,
-      'redirecting to push notification page',
-    )
-    $router.push($router.resolve({ name: 'push-notification-router' }))
-    return
+  if (notificationWalletHash && typeof notificationWalletHash === 'string') {
+    // Compare wallet hashes (normalize by trimming)
+    const normalizedNotificationHash = notificationWalletHash.trim()
+    const normalizedCurrentHash = currentWalletHash ? currentWalletHash.trim() : null
+
+    if (normalizedCurrentHash && normalizedNotificationHash !== normalizedCurrentHash) {
+      console.log(
+        'current wallet hash:', normalizedCurrentHash,
+        'push notification wallet hash:', normalizedNotificationHash,
+        'redirecting to push notification page',
+      )
+      $router.push($router.resolve({ name: 'push-notification-router' }))
+      return
+    }
+    // If wallet hashes match, continue with routing
+  } else {
+    // Fall back to multi_wallet_index for backward compatibility (old wallets)
+    const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index)
+    const currentWalletIndex = context.rootGetters['global/getWalletIndex']
+
+    if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
+      console.log(
+        'current wallet index:', currentWalletIndex,
+        'push notification wallet index:', multiWalletIndex,
+        'redirecting to push notification page',
+      )
+      $router.push($router.resolve({ name: 'push-notification-router' }))
+      return
+    }
   }
 
   if (route) await $router.push(route)

@@ -134,6 +134,67 @@ export async function generateAddressSetFromMnemonic(opts) {
 }
 
 /**
+ * Generates an address set without subscribing (for checking balance, etc.)
+ * @param {Object} opts - Same as generateAddressSetFromMnemonic
+ * @returns {Promise<{success: boolean, addresses?: {receiving: string, change: string}, error?: string}>}
+ */
+export async function generateAddressSetWithoutSubscription(opts) {
+  const { walletIndex = 0, derivationPath, addressIndex, isChipnet = false } = opts
+
+  if (!derivationPath) {
+    return { success: false, error: 'Derivation path is required' }
+  }
+
+  // Validate addressIndex - must be a non-negative integer
+  let validAddressIndex = addressIndex
+  if (typeof addressIndex !== 'number' || addressIndex < 0 || !Number.isInteger(addressIndex)) {
+    validAddressIndex = 0
+  }
+
+  try {
+    // Get mnemonic from secure storage
+    const mnemonic = await getMnemonic(walletIndex)
+    if (!mnemonic) {
+      return { success: false, error: 'Mnemonic not found' }
+    }
+
+    // Generate master HD node from mnemonic
+    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic)
+    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    
+    // Derive child node for the given derivation path
+    const childNode = masterHDNode.derivePath(derivationPath)
+    
+    // Generate receiving address (0/index) and change address (1/index)
+    const receivingAddressNode = childNode.derivePath('0/' + validAddressIndex)
+    const changeAddressNode = childNode.derivePath('1/' + validAddressIndex)
+
+    let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
+    let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+
+    // Convert to chipnet format if needed
+    if (isChipnet) {
+      receivingAddress = convertCashAddress(receivingAddress, isChipnet, false)
+      changeAddress = convertCashAddress(changeAddress, isChipnet, false)
+    }
+
+    return {
+      success: true,
+      addresses: {
+        receiving: receivingAddress,
+        change: changeAddress
+      }
+    }
+  } catch (error) {
+    console.error('Error generating address set:', error)
+    return { 
+      success: false, 
+      error: error.message || 'Failed to generate address set' 
+    }
+  }
+}
+
+/**
  * Generates just the receiving address (with watchtower subscription)
  * @param {Object} opts - Same as generateAddressSetFromMnemonic
  * @returns {Promise<string|null>} Returns address if successful, null if subscription failed

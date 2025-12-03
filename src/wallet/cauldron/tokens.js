@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { cauldronApiAxios } from './api';
 
 
 /**
@@ -59,6 +59,13 @@ export async function fetchTokensList(opts) {
     params.ids = opts?.token_id
     path = 'cauldron/tokens/list_cached_by_ids'
   }
-  const response = await axios.get('https://indexer2.cauldron.quest/' + path, { params })
+  const response = await cauldronApiAxios.get(path, { params })
   return response.data
+}
+
+export async function fetchTokenLatestPrice(tokenId) {
+  return cauldronApiAxios.get(`cauldron/price/${tokenId}/current/`)
+    .then(response => {
+      return response?.data?.price
+    })
 }

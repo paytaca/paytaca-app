@@ -313,8 +313,10 @@ export default {
 				if (!this.customList) {
 					this.networkError = true
 
-					this.checkEmptyFavorites()
-					this.$store.dispatch('assets/initializeFavorites', this.assets)
+					// REMOVED: Never update favorites in Vuex state
+					// Favorites should only be stored in the backend API
+					// this.checkEmptyFavorites()
+					// this.$store.dispatch('assets/initializeFavorites', this.assets)
 					
 					this.assetList = this.assets
 					this.isloaded = true
@@ -374,19 +376,21 @@ export default {
 	    	this.customList[this.selectedNetwork] = this.assetList.map((asset) => asset.id)
 	    	assetSettings.saveCustomList(this.customList)
 	    },
-	    checkEmptyFavorites () {
-	    	const vm = this
-
-	    	vm.assets.forEach((asset) => {	    		    	
-	    		if (!('favorite' in asset)) {
-	    			let temp = {
-	    				id: asset.id,
-	    				favorite: 0
-	    			}	    			
-	    			vm.$store.commit('assets/updateAssetFavorite',  temp)
-	    		}
-	    	})	    
-	    },
+	    // REMOVED: checkEmptyFavorites - Never update favorites in Vuex state
+	    // Favorites should only be stored in the backend API, not in Vuex
+	    // Components should fetch favorites from the API using assetSettings.fetchFavorites()
+	    // checkEmptyFavorites () {
+	    // 	const vm = this
+	    // 	vm.assets.forEach((asset) => {	    		    	
+	    // 		if (!('favorite' in asset)) {
+	    // 			let temp = {
+	    // 				id: asset.id,
+	    // 				favorite: 0
+	    // 			}	    			
+	    // 			vm.$store.commit('assets/updateAssetFavorite',  temp)
+	    // 		}
+	    // 	})	    
+	    // },
 	    updateFavorite (favAsset) {
 	    	// Toggle favorite status
 	    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: favAsset.favorite === 0 ? 1 : 0} : asset)

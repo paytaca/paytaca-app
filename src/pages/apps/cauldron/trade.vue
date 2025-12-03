@@ -8,7 +8,11 @@
       title="Cauldron DEX"
       backnavpath="/apps"
       class="apps-header"
-    />
+    >
+      <template v-slot:top-right-menu>
+        <CauldronHeaderMenu />
+      </template>
+    </HeaderNav>
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <!-- Success Display -->
@@ -46,7 +50,7 @@
               <div 
                 class="txid-container q-mx-auto"
                 :class="getDarkModeClass(darkMode)"
-                @click="copyTxid"
+                @click="copyTxid(completedTradeData?.txid)"
                 style="cursor: pointer; max-width: 300px; padding: 8px 16px; border-radius: 8px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; gap: 8px;"
               >
                 <span class="txid-text">
@@ -271,68 +275,16 @@
             </template>
           </q-card-section>
           <div class="row justify-center q-mb-md text-grey-6">
-            <span>{{ $t('PoweredBy') }} Cauldron.quest</span>
+            <span>{{ $t('PoweredBy') }} cauldron.quest</span>
           </div>
         </q-card>
 
         <!-- Token Selection Dialog -->
-        <q-dialog v-model="showTokenDialog" full-width seamless>
-          <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-            <div class="row no-wrap items-center justify-center q-pl-md q-pt-sm">
-              <div class="text-subtitle1 q-space">{{ $t('SelectToken') }}</div>
-              <q-btn
-                flat
-                padding="sm"
-                icon="close"
-                class="close-button"
-                v-close-popup
-              />
-            </div>
-            <q-card-section>
-              <q-input
-                dense
-                outlined
-                v-model="tokensFilterOpts.q"
-                rounded
-                :placeholder="$t('SearchTokens')"
-                @update:model-value="debouncedFetchTokens"
-              >
-                <template v-slot:append>
-                  <q-icon name="search" color="grey-5" />
-                </template>
-              </q-input>
-            </q-card-section>
-            <q-card-section class="q-pt-none" style="max-height:50vh;overflow-y:auto;">
-              <q-slide-transition>
-                <div v-if="fetchingTokens" class="text-center q-mb-md">
-                  {{ $t('FetchingTokens') }}
-                  <q-spinner size="1.5em" color="primary"/>
-                </div>
-              </q-slide-transition>
-              <q-list>
-                <q-item
-                  v-for="token in tokensList"
-                  :key="token.token_id"
-                  clickable
-                  @click="selectToken(token)"
-                >
-                  <q-item-section avatar>
-                    <img
-                      v-if="token?.bcmr?.uris?.icon"
-                      :src="getTokenImage(token.bcmr.uris.icon)"
-                      height="30"
-                      @error="onImgError"
-                    />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>{{ token?.bcmr?.token?.symbol || $t('Unknown') }}</q-item-label>
-                    <q-item-label caption>{{ token?.bcmr?.name || '' }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card-section>
-          </q-card>
-        </q-dialog>
+        <TokenSelectDialog
+          ref="tokenSelectDialog"
+          v-model="showTokenDialog"
+          @select-token="selectToken"
+        />
       </div>
     </div>
   </q-pull-to-refresh>
@@ -344,12 +296,9 @@ import { fetchTokensList } from 'src/wallet/cauldron/tokens';
 import { attemptTrade, createInputAndOutput, getEntriesSize } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
-import { getWalletByNetwork } from 'src/wallet/chipnet';
-import { convertIpfsUrl } from 'src/wallet/cashtokens';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
-import { LibauthHDWallet } from 'src/wallet/bch-libauth';
-import { loadWallet } from 'src/wallet';
+import { useCauldronValueFormatters } from 'src/composables/cauldron/ui-helpers';
 import { ExchangeLab } from '@cashlab/cauldron';
 import { binToHex } from '@bitauth/libauth';
 import { debounce, useQuasar } from 'quasar';
@@ -360,6 +309,8 @@ import HeaderNav from 'src/components/header-nav'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
 import CustomInput from 'src/components/CustomInput.vue';
+import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
+import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
 
 /**
  * Typedefs
@@ -374,6 +325,8 @@ export default defineComponent({
     HeaderNav,
     DragSlide,
     CustomInput,
+    CauldronHeaderMenu,
+    TokenSelectDialog,
   },
   props: {
     selectTokenId: String,
@@ -401,42 +354,6 @@ export default defineComponent({
     }
     const debouncedTokenUpdate = debounce(onSelectedTokenUpdate, 500);
 
-    /** @type {import("vue").Ref<CauldronTokenData[]>} */
-    const tokensList = ref([])
-
-    const fetchingTokens = ref(false)
-    const tokensFilterOpts = ref({
-      by: 'score',
-      order: 'desc',
-      q: '',
-    })
-    async function fetchTokens(opts={ limit: 20, offset: 0 }) {
-      fetchingTokens.value = true
-      const filterOpts = Object.assign({}, tokensFilterOpts.value, {
-        limit: opts?.limit || 20,
-        offset: opts?.offset || undefined,
-      })
-
-      // return mockFetchTokensList(filterOpts).then(tokens => {
-      return fetchTokensList(filterOpts).then(tokens => {
-        tokensList.value = tokens
-
-        tokensFilterOpts.value.q = filterOpts.q;
-      }).finally(() => {
-        fetchingTokens.value = false
-      })
-    }
-    const debouncedFetchTokens = debounce(fetchTokens, 500)
-    
-    function getTokenImage(url) {
-      const ipfsUrl = convertIpfsUrl(url)
-      if (ipfsUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-        return ipfsUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-      } else {
-        return ipfsUrl
-      }
-    }
-
 
     /** @type {import("vue").Ref<CauldronTokenData>} */
     const selectedToken = ref()
@@ -455,6 +372,7 @@ export default defineComponent({
     const isSwapping = ref(false);
     const showTokenDialog = ref(false);
     const isRecomputingTrade = ref(false);
+    const tokenSelectDialog = ref();
 
     function updateAmountInput(value) {
       amountInputString.value = value || '';
@@ -768,7 +686,7 @@ export default defineComponent({
         
         if (isBuyingToken.value) {
           // Need BCH: supply amount + all fees
-          return `Insufficient BCH ${$t('Balance')}`;
+          return $t('InsufficientBCHBalance');
         } else {
           // Need Token: supply amount OR BCH for fees
           const tokenAssetId = `ct/${selectedToken.value.token_id}`;
@@ -777,10 +695,10 @@ export default defineComponent({
           
           // Check which one is insufficient
           if (tokenBalance < requiredSupplyAmount.value) {
-            return `Insufficient ${tokenSymbol.value || $t('Token')} ${$t('Balance')}`;
+            return $t('InsufficientTokenBalance', { token: tokenSymbol.value || $t('Token') });
           } else {
             // Token balance is sufficient, but BCH for fees is not
-            return `Insufficient BCH ${$t('Balance')}`;
+            return $t('InsufficientBCHBalance');
           }
         }
       } catch (error) {
@@ -798,29 +716,10 @@ export default defineComponent({
     function selectToken(token) {
       selectedToken.value = token;
       showTokenDialog.value = false;
-      tokensFilterOpts.value.q = '';
       amountInput.value = 0;
       amountInputString.value = '';
       tradeResult.value = null;
       tradeResultError.value = '';
-    }
-
-    function formatAmount(amount, decimals) {
-      if (!amount) return '0';
-      const num = Number(amount) / (10 ** decimals);
-      return num.toFixed(decimals > 8 ? 8 : decimals);
-    }
-
-    function copyTxid() {
-      if (!completedTradeData.value.txid) return;
-      navigator.clipboard.writeText(completedTradeData.value.txid).then(() => {
-        $q.notify({
-          color: 'blue-9',
-          message: $t('TransactionIdCopied'),
-          icon: 'mdi-clipboard-check',
-          timeout: 2000
-        });
-      });
     }
 
     function resetTrade() {
@@ -834,10 +733,6 @@ export default defineComponent({
       amountInput.value = 0;
       amountInputString.value = '';
       tradeResult.value = null;
-    }
-
-    function onImgError(event) {
-      event.target.style.display = 'none';
     }
 
     const showSlider = computed(() => {
@@ -973,23 +868,23 @@ export default defineComponent({
       }
     }
 
-    async function loadWalletForTrade() {
-      const walletIndex = $store.getters['global/getWalletIndex']
-      const isChipnet = $store.getters['global/isChipnet']
-      const wallet = await loadWallet(isChipnet ? 'chipnet' : 'mainnet', walletIndex)
-      /** @type {import("src/wallet/bch").BchWallet} */
-      const bchWallet = getWalletByNetwork(wallet, 'bch');
-
-      const libuathWallet = new LibauthHDWallet(bchWallet.mnemonic, bchWallet.derivationPath)
-      return {bchWallet, libuathWallet}
-    }
+    const {
+      formatAmount,
+      getTokenImage,
+      onImgError,
+      copyTxid,
+      loadWalletForTrade,
+    } = useCauldronValueFormatters()
 
     async function refreshPage(done=() => {}) {
       try {
-        await Promise.all([
-          fetchTokens({ limit: 20, offset: 0 }),
-          // poolTracker.subscribeToken('b38a33f750f84c5c169a6f23cb873e6e79605021585d4f3408789689ed87f366'),
-        ])
+        // Token fetching is now handled by TokenSelectDialog
+        // Only refresh pool if a token is selected
+        if (selectedToken.value?.token_id) {
+          await poolTracker.subscribeToken(selectedToken.value.token_id);
+        } else {
+          await tokenSelectDialog.value?.fetchTokens?.()
+        }
       } finally {
         done()
       }
@@ -1019,14 +914,6 @@ export default defineComponent({
         }
       }
       refreshPage()
-        .finally(() => {
-          if (selectedToken.value) {
-            const index = tokensList.value.findIndex(token => token.token_id === selectedToken.value.token_id);
-            if (index < 0) {
-              tokensList.value.unshift(selectedToken.value);
-            }
-          }
-        })
     })
     onUnmounted(() => {
       poolTracker.cleanup()
@@ -1043,11 +930,6 @@ export default defineComponent({
       tokenData,
       tokenSymbol,
       selectedToken,
-      tokensList,
-      tokensFilterOpts,
-      fetchingTokens,
-      fetchTokens,
-      debouncedFetchTokens,
       getTokenImage,
       isBuyingToken,
       isSupplyMode,
@@ -1063,6 +945,7 @@ export default defineComponent({
       completedTradeData,
       isSwapping,
       showTokenDialog,
+      tokenSelectDialog,
       formattedPrice,
       formattedOutputSymbol,
       formattedOutputAmount,

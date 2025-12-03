@@ -238,6 +238,11 @@ export default {
   async mounted () {
     const vm = this
 
+    // Ensure current wallet index is valid (points to undeleted wallet)
+    // This should run before any wallet operations
+    // Skip if we just switched wallets (check for a flag or recent switch)
+    await vm.$store.dispatch('global/ensureValidWalletIndex')
+
     this.$store.dispatch('global/autoGenerateAddress', { walletType: 'bch' })
       .then((...results) => console.log('Auto gen address bch', ...results))
     this.$store.dispatch('global/autoGenerateAddress', { walletType: 'slp' })
