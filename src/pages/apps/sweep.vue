@@ -691,14 +691,13 @@ export default {
       return undefined
     }
   },
-  mounted () {
-    getMnemonic(this.$store.getters['global/getWalletIndex']).then((mnemonic) => {
-      this.wallet = markRaw(new Wallet(mnemonic))
-    })
+  async mounted () {
+    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+    this.wallet = markRaw(new Wallet(mnemonic))
 
     if (this.w) {
       this.wif =  extractWifFromUrl(this.w) || this.w
-      this.getTokens(true)
+      await this.getTokens(true)
     }
   }
 }
