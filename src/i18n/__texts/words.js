@@ -482,6 +482,7 @@ const words = [
     Unknown: 'Unknown',
     Swap: 'Swap',
     Withdraw: 'Withdraw',
+    Initial: 'Initial',
   }
 ]
 

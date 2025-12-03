@@ -1,28 +1,39 @@
-import axios from "axios";
 import { addressToPkHash, pubkeyToAddress, toTokenAddress, wifToPubkey } from "src/utils/crypto";
-import { ExchangeLab } from "@cashlab/cauldron";
+import { buildPoolV0UnlockingBytecode, ExchangeLab } from "@cashlab/cauldron";
 import { Contract, ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from "cashscript";
 import { getOutputSize } from "cashscript/dist/utils";
 import { hexToBin } from "bitauth-libauth-v3";
-import { binToHex } from "@bitauth/libauth";
-import { cauldronManageArtifactWithPkh } from "./utils";
+import { binToHex, lockingBytecodeToCashAddress } from "@bitauth/libauth";
 import { calculateInputSize } from "src/utils/cashscript-utils";
+import { cauldronManageArtifactWithPkh } from "./utils";
+import { cauldronApiAxios } from "./api";
 
+const exlab = new ExchangeLab()
+export function pkhashToPoolAddress(pkh) {
+  const poolV0Parameters = { withdraw_pubkey_hash: hexToBin(pkh) }
+  const lockingBytecode = exlab.generatePoolV0LockingBytecode(poolV0Parameters)
+  const result = lockingBytecodeToCashAddress(lockingBytecode, 'bitcoincash', { tokenSupport: false })
+  if (result?.error) throw result?.error
+  return result
+}
 
 /**
  * @param {String} address 
- * @returns {import("./pool").MicroPool[]}
+ * @param {String} [tokenId]
+ * @returns {Promise<import("./pool").MicroPool[]>}
  */
-export async function fetchWalletPools(address) {
+export async function fetchWalletPools(address, tokenId) {
   const pkhash = addressToPkHash(address)
   const params = { pkh: pkhash }
+  if (tokenId) params.token = tokenId
   const path = 'cauldron/pool/active'
-  const response = await axios.get('https://indexer2.cauldron.quest/' + path, { params })
+  const response = await cauldronApiAxios.get(path, { params })
   const activePools = response.data?.active
   if (!Array.isArray(activePools)) return Promise.reject({ response })
   
   return activePools.map(pool => {
     return {
+      pool_id: pool.pool_id,
       pkh: pool.owner_pkh,
       is_withdrawn: false,
       spent_utxo_hash: '',
@@ -37,20 +48,21 @@ export async function fetchWalletPools(address) {
 }
 
 
+
 /**
  * @param {Object} opts 
  * @param {String} opts.tokenId
  * @param {BigInt} opts.tokens
  * @param {BigInt} opts.satoshis
  * @param {String} opts.ownerAddress
+ * @param {import("./pool").MicroPool} [opts.existingPool]
  * @param {import('@cashlab/common').SpendableCoin[]} opts.spendableCoins
  */
 export function createPoolTransaction(opts) {
   const exlab = new ExchangeLab()
   const ownerPkHash = addressToPkHash(opts.ownerAddress)
-  const lockingBytecode = exlab.generatePoolV0LockingBytecode({
-    withdraw_pubkey_hash: hexToBin(ownerPkHash)
-  })
+  const poolV0Parameters = { withdraw_pubkey_hash: hexToBin(ownerPkHash) }
+  const lockingBytecode = exlab.generatePoolV0LockingBytecode(poolV0Parameters)
   const provider = new ElectrumNetworkProvider('mainnet')
 
   const balancer = { inputSats: 0n, outputSats: 0n, txSize: 10n }
@@ -61,6 +73,30 @@ export function createPoolTransaction(opts) {
     amount: opts?.satoshis,
     token: { category: opts?.tokenId, amount: opts?.tokens }
   }
+  if(opts?.existingPool) {
+    const existingPool = opts?.existingPool
+    const unlockingBytecode = buildPoolV0UnlockingBytecode(poolV0Parameters)
+    const unlocker = {
+      generateLockingBytecode: () => lockingBytecode,
+      generateUnlockingBytecode: () => unlockingBytecode,
+    }
+
+    builder.addInput({
+      txid: existingPool.new_utxo_txid,
+      vout: existingPool.new_utxo_n,
+      satoshis: BigInt(existingPool.sats),
+      token: {
+        category: existingPool.token_id,
+        amount: BigInt(existingPool.token_amount),
+      }
+    }, unlocker)
+    balancer.inputSats += BigInt(existingPool.sats)
+    balancer.txSize += 41n + BigInt(unlockingBytecode.byteLength);
+
+    poolOutput.amount += BigInt(existingPool.sats)
+    poolOutput.token.amount += BigInt(existingPool.token_amount)
+  }
+
   balancer.outputSats += poolOutput.amount
   balancer.txSize += BigInt(getOutputSize(poolOutput))
   builder.addOutput(poolOutput)
@@ -74,7 +110,7 @@ export function createPoolTransaction(opts) {
   })
   const bchCoins = opts.spendableCoins.filter(coin => !coin.output?.token?.token_id)
 
-  let tokensToFund = poolOutput.token.amount
+  let tokensToFund = opts?.tokens
   for(const tokenCoin of tokenCoins) {
     if (tokensToFund <= 0n) break
     
@@ -178,4 +214,64 @@ export function generateWithdrawPoolTx(pool, wif) {
   })
 
   return builder.build()
+}
+
+/**
+ * @typedef {Object} PoolHistoryTransaction
+ * @property {String} k
+ * @property {Number} sats
+ * @property {Number} token_amount
+ * @property {Number} timestamp
+ * @property {String} txid
+ * 
+ * 
+ * @typedef {Object} PoolHistory
+ * @property {String} owner_pkh
+ * @property {String} token_id
+ * @property {PoolHistoryTransaction[]} history
+ * 
+ * @param {String} poolId 
+ * @param {Number} [startTimestamp]
+ * @returns {Promise<PoolHistory>}
+ */
+export async function fetchPoolHistory(poolId, startTimestamp) {
+  const params = {
+    start: startTimestamp || undefined,
+  }
+  return cauldronApiAxios.get(`cauldron/pool/history/${poolId}`, { params })
+    .then(response => response.data)
+}
+
+/**
+ * @param {PoolHistoryTransaction} record 
+ * @param {PoolHistoryTransaction} [prevRecord]
+ */
+export function parsePoolHistoryTransaction(record, prevRecord) {
+  let type
+  if (!prevRecord) type = 'initial'
+
+  const k = BigInt(record.k)
+
+  let satsChange
+  let tokenChange
+  let prevK
+  if (prevRecord) {
+    prevK = BigInt(prevRecord.k)
+    satsChange = record.sats - prevRecord.sats
+    tokenChange = record.token_amount - prevRecord.token_amount
+  
+    if (satsChange >= 0 && tokenChange >= 0) type = 'add-liquidity'
+    if (satsChange < 0 && tokenChange < 0) type = 'withdraw-liquidity'
+    if (satsChange >= 0 && tokenChange < 0 ) type = 'token-sell'
+    if (satsChange < 0 && tokenChange >= 0) type = 'token-buy'
+  }
+
+  return {
+    ...record,
+    type,
+    satsChange,
+    tokenChange,
+    prevK,
+    k,
+  }
 }
