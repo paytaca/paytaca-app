@@ -1712,7 +1712,7 @@ export default {
 
     const dialog = this.$q.dialog({
       component: LoadingWalletDialog,
-      componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
+      componentProps: { loadingText: 'ProcessingNecessaryDetails' }
     })
 
     await Promise.allSettled(loadTasks)

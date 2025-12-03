@@ -32,41 +32,8 @@ export class SweepPrivateKey {
     }
   }
 
-  async getTokensList () {
-    const respSlp = await axios.post('https://watchtower.cash/api/subscription/', {
-      address: this.slpAddress
-    })
-
-    if (respSlp.data.success) {
-      const tokens = []
-      let retries = 0
-
-      while (retries < 3) {
-        const url = `https://watchtower.cash/api/tokens/?address=${this.slpAddress}&has_balance=true&token_type=1&limit=20`
-        const resp = await axios.get(url)
-        const _tokens = resp.data.results
-
-        if (_tokens.length > 0) {
-          for (let i = 0; i < _tokens.length; i++) {
-            const item = _tokens[i]
-            const tokenId = item.id.split('/')[1]
-            const resp = await axios.get(`https://watchtower.cash/api/balance/slp/${this.slpAddress}/${tokenId}/`)
-            const data = resp.data
-            resp.data.token_id = tokenId
-            resp.data.symbol = item.symbol
-            resp.data.image_url = item.image_url
-            tokens.push(data)
-          }
-          break
-        } else retries++
-        setTimeout(() => {}, 250)
-      }
-      return tokens
-    }
-  }
-
-  async getFungibleCashTokens(opts={ subscribe: true }) {
-    if (opts?.subscribe) {
+  async getFungibleCashTokens(subscribe=true) {
+    if (subscribe) {
       const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
         address: this.bchAddress,
       })
@@ -117,8 +84,8 @@ export class SweepPrivateKey {
     return result
   }
 
-  async getNftCashTokens(opts={ subscribe: true }) {
-    if (opts?.subscribe) {
+  async getNftCashTokens(subscribe=true) {
+    if (subscribe) {
       const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
         address: this.bchAddress,
       })
@@ -146,27 +113,6 @@ export class SweepPrivateKey {
     return results
   }
 
-  sweepToken (slpAddress, slpWif, tokenId, balance, feeFunder, recipient) {
-    const watchtower = new Watchtower()
-    const data = {
-      sender: {
-        address: slpAddress,
-        wif: slpWif
-      },
-      tokenId: tokenId,
-      recipients: [
-        {
-          address: recipient,
-          amount: balance
-        }
-      ],
-      feeFunder: feeFunder,
-      broadcast: true
-    }
-
-    return watchtower.SLP.Type1.send(data)
-  }
-
   /**
    * @param {Object} param0
    * @param {String} param0.tokenAddress 
@@ -188,13 +134,13 @@ export class SweepPrivateKey {
         { address: recipient, tokenAmount: tokenAmount },
       ],
       token,
-      feeFunder: feeFunder,
+      feeFunder,
       broadcast: true,
     }
     return watchtower.BCH.send(data)
   }
 
-  sweepBch (bchAddress, bchWif, spendableBalance, recipient) {
+  sweepBch (bchAddress, bchWif, spendableBalance, feeFunder, recipient) {
     const watchtower = new Watchtower()
     const data = {
       sender: {
@@ -207,6 +153,7 @@ export class SweepPrivateKey {
           amount: spendableBalance
         }
       ],
+      feeFunder,
       broadcast: true
     }
 
