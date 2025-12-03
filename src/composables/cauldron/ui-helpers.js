@@ -112,7 +112,11 @@ export function useCauldronValueFormatters() {
     /** @type {import("src/wallet/bch").BchWallet} */
     const bchWallet = getWalletByNetwork(wallet, 'bch');
 
-    const libuathWallet = new LibauthHDWallet(bchWallet.mnemonic, bchWallet.derivationPath)
+    const libuathWallet = new LibauthHDWallet(
+      bchWallet.mnemonic,
+      bchWallet.derivationPath,
+      isChipnet.value ? 'chipnet' : 'mainnet',
+    )
     return {bchWallet, libuathWallet}
   }
 
