@@ -334,7 +334,8 @@ export default {
       return this.bchBalance < DUST && this.cashTokensCount === 0
     },
     async getWalletBchBalance() {
-      return await this.wallet.BCH.getBalance().then(resp => resp.balance)
+      const resp = await this.wallet.BCH.getBalance()
+      return resp.balance
     }
   },
   methods: {
