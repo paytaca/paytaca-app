@@ -106,7 +106,7 @@
             <div class="bch-balance">
               <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
               <q-btn
-                v-if="!sweeping"
+                v-if="!sweeping && (cashTokensCount > 0 || bchBalance > 0)"
                 color="primary"
                 :disabled="!hasEnoughBalances"
                 :label="(cashTokensCount - skippedTokens.length) > 0 ? $t('SweepAll') : $t('Sweep')"
@@ -409,6 +409,11 @@ export default {
       ])
 
       this.hasEnoughBalances = this.bchBalance > 0 || (await this.getWalletBchBalance) > 0
+
+      if (this.sweeping && this.emptyAssets) {
+        this.showSuccess = true
+      }
+
       this.fetching = false
       this.sweeping = false
     },
@@ -433,8 +438,7 @@ export default {
 
       for (const token of tokens) {
         this.selectedToken = token?.category
-
-        await this.sweeper.sweepCashToken({
+        const fungiblePayload = {
           tokenAddress: this.sweeper.tokenAddress,
           bchWif: this.sweeper.wif,
           token: {
@@ -443,7 +447,9 @@ export default {
           tokenAmount: token.balance,
           feeFunder: this.parseFeeFunder(tokenIndex),
           recipient: tokenAddress,
-        }).then(result => {
+        }
+
+        await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
           if (!result.success) {
             if (isSingleSweep) {
               this.$q.notify({
@@ -454,10 +460,25 @@ export default {
             }
             hasSweepingError = true
           }
-          this.getTokens(false).then(() => {
-            if (this.emptyAssets) this.showSuccess = true
-          })
+          this.getTokens(false)
         })
+
+        if (hasSweepingError) {
+          fungiblePayload.feeFunder = this.parseFeeFunder(tokenIndex, true)
+          await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
+            if (!result.success) {
+              if (isSingleSweep) {
+                this.$q.notify({
+                  message: result.error,
+                  icon: 'mdi-close-circle',
+                  color: 'red-5'
+                })
+              }
+              hasSweepingError = true
+            } else hasSweepingError = false
+            this.getTokens(false)
+          })
+        }
 
         tokenIndex++
       }
@@ -484,8 +505,7 @@ export default {
 
       for (const token of tokens) {
         this.selectedToken = token?.category
-  
-        await this.sweeper.sweepCashToken({
+        const nftPayload = {
           tokenAddress: this.sweeper.tokenAddress,
           bchWif: this.sweeper.wif,
           token: {
@@ -497,7 +517,9 @@ export default {
           },
           recipient: tokenAddress,
           feeFunder: this.parseFeeFunder(tokenIndex),
-        }).then(result => {
+        }
+  
+        await this.sweeper.sweepCashToken(nftPayload).then(result => {
           if (!result.success) {
             if (isSingleSweep) {
               this.$q.notify({
@@ -508,10 +530,26 @@ export default {
             }
             hasSweepingError = true
           }
-          this.getTokens(false).then(() => {
-            if (this.emptyAssets) this.showSuccess = true
-          })
+          this.getTokens(false)
         })
+
+        if (hasSweepingError) {
+          nftPayload.feeFunder = this.parseFeeFunder(tokenIndex, true)
+          await this.sweeper.sweepCashToken(nftPayload).then(result => {
+            if (!result.success) {
+              if (isSingleSweep) {
+                this.$q.notify({
+                  message: result.error,
+                  icon: 'mdi-close-circle',
+                  color: 'red-5'
+                })
+              }
+              hasSweepingError = true
+            } else hasSweepingError = false
+            this.getTokens(false)
+          })
+        }
+
         tokenIndex++
       }
 
@@ -520,17 +558,32 @@ export default {
     async sweepBch (recipientAddress) {
       this.sweeping = true
       this.selectedToken = 'bch'
+      let bchSweepError = false
 
       await this.sweeper.sweepBch(
         this.sweeper.bchAddress,
         this.wif,
         this.bchBalance,
+        undefined,
         recipientAddress
       ).then(result => {
-        this.getTokens(false).then(() => {
-          if (this.emptyAssets) this.showSuccess = true
-        })
+        if (!result.success) {
+          bchSweepError = true
+        }
+        this.getTokens(false)
       })
+
+      if (bchSweepError) {
+        await this.sweeper.sweepBch(
+          this.sweeper.bchAddress,
+          this.wif,
+          this.bchBalance,
+          this.parseFeeFunder(0, true),
+          recipientAddress
+        ).then(result => {
+          this.getTokens(false)
+        })
+      }
     },
 
     async sweepAll() {
@@ -572,17 +625,16 @@ export default {
           return
         }
       }
-      if (this.bchBalance > 0) await this.sweepBch(bchAddress)
 
+      await this.getTokens(false)
+
+      setTimeout(() => {}, 1000)
+      if (this.bchBalance > 0) await this.sweepBch(bchAddress)
       setTimeout(() => {}, 1000)
 
       let retries = 0
       while (retries < 3) {
         await this.getTokens(false)
-        if (this.emptyAssets) {
-          this.showSuccess = true
-          break
-        }
         retries++
       }
     },
@@ -618,14 +670,18 @@ export default {
         }
       }, 1000);
     },
-    parseFeeFunder(tokenIndex) {
+    parseFeeFunder(tokenIndex, isForceWallet=false) {
       const fee = (546 / (10 ** 8)) * (tokenIndex + 1)
-      if (this.bchBalance > fee) return undefined
-      return {
-        walletHash: this.wallet.BCH.walletHash,
-        mnemonic: this.wallet.mnemonic,
-        derivationPath: this.wallet.BCH.derivationPath
+
+      if (this.bchBalance < fee || isForceWallet) {
+        return {
+          walletHash: this.wallet.BCH.walletHash,
+          mnemonic: this.wallet.mnemonic,
+          derivationPath: this.wallet.BCH.derivationPath
+        }
       }
+
+      return undefined
     }
   },
   mounted () {
