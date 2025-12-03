@@ -81,7 +81,7 @@
                     @click="securityCheckWithdrawPool(pool)"
                   />
                   <!-- To add later to view pool history -->
-                  <!-- <q-btn
+                  <q-btn
                     flat
                     round
                     dense
@@ -93,7 +93,8 @@
                         <q-item
                           clickable
                           v-close-popup
-                          @click="getAddressExplorerLink(pool.poolAddress)"
+                          :href="getAddressExplorerLink(pool.poolAddress)"
+                          target="_blank"
                         >
                           <q-item-section avatar>
                             <q-icon name="open_in_new" />
@@ -105,6 +106,10 @@
                         <q-item
                           clickable
                           v-close-popup
+                          :to="{
+                            name: 'app-cauldron-pool',
+                            query: { poolId: pool.pool_id }
+                          }"
                         >
                           <q-item-section avatar>
                             <q-icon name="history" />
@@ -115,7 +120,7 @@
                         </q-item>
                       </q-list>
                     </q-menu>
-                  </q-btn> -->
+                  </q-btn>
                 </div>
 
                 <q-separator class="q-my-md" />
@@ -397,7 +402,7 @@ export default defineComponent({
       if (isChipnet.value) {
         url = `${process.env.TESTNET_EXPLORER_URL}/address/`
       }
-      return url
+      return url + address
     }
 
     onMounted(() => {

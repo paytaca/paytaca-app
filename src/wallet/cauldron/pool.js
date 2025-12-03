@@ -10,6 +10,7 @@ const SERVER_URL = 'wss://rostrum.moria.money:443'
 
 /**
  * @typedef {Object} MicroPool
+ * @property {String} poolData.pool_id ID of the pool, not sure yet how it's generated
  * @property {String} poolData.pkh The public key hash of the contract owner in hex format
  * @property {Boolean} poolData.is_withdrawn Whether the contract has been withdrawn
  * @property {String} poolData.spent_utxo_hash Hash of the UTXO that was spent to create this contract (all zeros for new contracts)

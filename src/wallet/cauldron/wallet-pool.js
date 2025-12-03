@@ -1,13 +1,21 @@
-import axios from "axios";
 import { addressToPkHash, pubkeyToAddress, toTokenAddress, wifToPubkey } from "src/utils/crypto";
 import { buildPoolV0UnlockingBytecode, ExchangeLab } from "@cashlab/cauldron";
 import { Contract, ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from "cashscript";
 import { getOutputSize } from "cashscript/dist/utils";
 import { hexToBin } from "bitauth-libauth-v3";
-import { binToHex } from "@bitauth/libauth";
-import { cauldronManageArtifactWithPkh } from "./utils";
+import { binToHex, lockingBytecodeToCashAddress } from "@bitauth/libauth";
 import { calculateInputSize } from "src/utils/cashscript-utils";
+import { cauldronManageArtifactWithPkh } from "./utils";
+import { cauldronApiAxios } from "./api";
 
+const exlab = new ExchangeLab()
+export function pkhashToPoolAddress(pkh) {
+  const poolV0Parameters = { withdraw_pubkey_hash: hexToBin(pkh) }
+  const lockingBytecode = exlab.generatePoolV0LockingBytecode(poolV0Parameters)
+  const result = lockingBytecodeToCashAddress(lockingBytecode, 'bitcoincash', { tokenSupport: false })
+  if (result?.error) throw result?.error
+  return result
+}
 
 /**
  * @param {String} address 
@@ -19,12 +27,13 @@ export async function fetchWalletPools(address, tokenId) {
   const params = { pkh: pkhash }
   if (tokenId) params.token = tokenId
   const path = 'cauldron/pool/active'
-  const response = await axios.get('https://indexer2.cauldron.quest/' + path, { params })
+  const response = await cauldronApiAxios.get(path, { params })
   const activePools = response.data?.active
   if (!Array.isArray(activePools)) return Promise.reject({ response })
   
   return activePools.map(pool => {
     return {
+      pool_id: pool.pool_id,
       pkh: pool.owner_pkh,
       is_withdrawn: false,
       spent_utxo_hash: '',
@@ -205,4 +214,58 @@ export function generateWithdrawPoolTx(pool, wif) {
   })
 
   return builder.build()
+}
+
+/**
+ * @typedef {Object} PoolHistoryTransaction
+ * @property {String} k
+ * @property {Number} sats
+ * @property {Number} token_amount
+ * @property {Number} timestamp
+ * @property {String} txid
+ * 
+ * 
+ * @typedef {Object} PoolHistory
+ * @property {String} owner_pkh
+ * @property {String} token_id
+ * @property {PoolHistoryTransaction[]} history
+ * 
+ * @param {String} poolId 
+ * @param {Number} [startTimestamp]
+ * @returns {Promise<PoolHistory>}
+ */
+export async function fetchPoolHistory(poolId, startTimestamp) {
+  const params = {
+    start: startTimestamp || undefined,
+  }
+  return cauldronApiAxios.get(`cauldron/pool/history/${poolId}`, { params })
+    .then(response => response.data)
+}
+
+/**
+ * @param {PoolHistoryTransaction} record 
+ * @param {PoolHistoryTransaction} [prevRecord]
+ */
+export function parsePoolHistoryTransaction(record, prevRecord) {
+  let type
+  if (!prevRecord) type = 'initial'
+
+  let satsChange
+  let tokenChange
+  if (prevRecord) {
+    satsChange = record.sats - prevRecord.sats
+    tokenChange = record.token_amount - prevRecord.token_amount
+  
+    if (satsChange >= 0 && tokenChange >= 0) type = 'add-liquidity'
+    if (satsChange < 0 && tokenChange < 0) type = 'withdraw-liquidity'
+    if (satsChange >= 0 && tokenChange < 0 ) type = 'token-sell'
+    if (satsChange < 0 && tokenChange >= 0) type = 'token-buy'
+  }
+
+  return {
+    type,
+    satsChange,
+    tokenChange,
+    ...record,
+  }
 }
