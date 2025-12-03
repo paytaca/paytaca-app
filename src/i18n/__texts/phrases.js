@@ -366,7 +366,6 @@ const phrases = {
       SelectCustomPoint: "Select custom point",
       SelectPoint: "Select point",
       SmartSwapBchSoonPoints: "We will integrate a DEX soon!",
-      SweepErrMsg2: "You will need sufficient BCH balance to be able to sweep the point(s) below",
       PointApproved: "Point approved",
       PointId: "Point ID",
       PointAdded: "Point added",
@@ -1580,6 +1579,15 @@ const phrases = {
       PurchaseProcessingMessage2: 'Please wait for the purchase to be processed.',
       PurchaseSuccessful: 'Purchase successful. View details in the Purchases tab.',
       PurchaseInitiated: 'Purchase initiated. Please complete the payment in the Reservations tab.',
+    },
+    {
+      FailedToSweepSomeTokens: 'Failed to sweep some tokens',
+      FailedToGetAddress: 'Failed to get address',
+      EmptyBalancesError: 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below',
+      UseWalletBalance: 'Balance from your wallet will be used to sweep the token(s) below',
+      ManualCashTokensSweep: 'Manual CashTokens Sweep',
+      SelectTokensToSweep: 'Select Tokens to Sweep',
+      SelectPointsToSweep: 'Select Points to Sweep',
     }
   ],
   dynamic: [

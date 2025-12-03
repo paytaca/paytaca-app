@@ -81,7 +81,7 @@
             color="green"
           />
           <div class="text-h5">{{ $t('Success') }}</div>
-          <div class="text-body1">{{ $t('SweepSuccessMessage', {}, 'Assets claimed successfully') }}</div>
+          <div class="text-body1">{{ $t('SweepSuccessMessage') }}</div>
           <q-btn
             flat
             no-caps :label="$t('Home')"
@@ -117,8 +117,8 @@
               </div>
               <span v-else class="row q-mt-xs text-red">
                 <template v-if="cashTokensCount === 0 && bchBalance === 0">{{ $t('SweepErrMsg1') }}</template>
-                <i v-else-if="!hasEnoughBalances">{{ $t('EmptyBalancesError', {}, 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below') }}</i>
-                <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance', {}, 'Balance from your wallet will be used to sweep the token(s) below') }}</i>
+                <i v-else-if="!hasEnoughBalances">{{ $t('EmptyBalancesError') }}</i>
+                <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance') }}</i>
               </span>
             </div>
           </div>
@@ -421,7 +421,7 @@ export default {
         const bchAddress = await this.getRecipientAddress('bch')
         if (!bchAddress) {
           this.$q.notify({
-            message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+            message: this.$t('FailedToGetAddress'),
             icon: 'mdi-close-circle',
             color: 'red-5'
           })
@@ -461,7 +461,7 @@ export default {
         const bchAddress = await this.getRecipientAddress('bch')
         if (!bchAddress) {
           this.$q.notify({
-            message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+            message: this.$t('FailedToGetAddress'),
             icon: 'mdi-close-circle',
             color: 'red-5'
           })
@@ -517,7 +517,7 @@ export default {
       const bchAddress = await this.getRecipientAddress('bch')
       if (!bchAddress) {
         this.$q.notify({
-          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+          message: this.$t('FailedToGetAddress'),
           icon: 'mdi-close-circle',
           color: 'red-5'
         })
@@ -543,7 +543,7 @@ export default {
 
         if (fungibleError || nonFungibleError) {
           this.$q.notify({
-            message: this.$t('FailedToSweepSomeTokens', {}, 'Failed to sweep some tokens'),
+            message: this.$t('FailedToSweepSomeTokens'),
             icon: 'warning',
             color: 'warning'
           })

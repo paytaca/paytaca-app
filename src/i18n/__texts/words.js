@@ -481,6 +481,7 @@ const words = [
     Token: 'Token',
     Unknown: 'Unknown',
     Swap: 'Swap',
+    SweepAll: 'Sweep All',
   }
 ]
 
