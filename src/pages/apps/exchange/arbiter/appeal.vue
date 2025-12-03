@@ -115,7 +115,7 @@
                       outline
                       :label="reason"
                       :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-                      v-for="(reason, index) in appeal.reasons"
+                      v-for="(reason, index) in appeal?.reasons || []"
                       :key="index"/>
                   </div>
                   <q-space/>
@@ -292,8 +292,11 @@ export default {
   },
   async mounted () {
     await this.loadData()
-    this.updateOrderReadAt()
-    this.setupWebsocket()
+    // Only call these if appeal was successfully loaded
+    if (this.appeal) {
+      this.updateOrderReadAt()
+      this.setupWebsocket()
+    }
     if (this.notifType === 'new_message') { this.openChat = true }
   },
   beforeUnmount () {
@@ -360,6 +363,11 @@ export default {
     },
     updateOrderReadAt () {
       const vm = this
+      // Check if appeal exists before accessing its properties
+      if (!vm.appeal) {
+        console.warn('Appeal is not loaded, skipping updateOrderReadAt')
+        return Promise.resolve()
+      }
       if (vm.appeal.read_at) return
       const orderId = vm.appeal?.order?.id
       if (!orderId) {
@@ -511,11 +519,15 @@ export default {
           break
         case 'RLS':
           vm.state = 'completed'
-          vm.$store.commit('ramp/clearOrderTxids', vm.appeal.order.id)
+          if (vm.appeal?.order?.id) {
+            vm.$store.commit('ramp/clearOrderTxids', vm.appeal.order.id)
+          }
           break
         case 'RFN':
           vm.state = 'completed'
-          vm.$store.commit('ramp/clearOrderTxids', vm.appeal.order.id)
+          if (vm.appeal?.order?.id) {
+            vm.$store.commit('ramp/clearOrderTxids', vm.appeal.order.id)
+          }
           break
         default:
           vm.state = 'form'
@@ -541,6 +553,11 @@ export default {
     },
     setupWebsocket () {
       this.closeWSConnection()
+      // Check if appeal and order exist before setting up websocket
+      if (!this.appeal || !this.appeal.order || !this.appeal.order.id) {
+        console.warn('Appeal or order is not loaded, skipping websocket setup')
+        return
+      }
       const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
       this.websocketManager.watchtower = new WebSocketManager()
       this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
