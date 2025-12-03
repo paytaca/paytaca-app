@@ -416,6 +416,7 @@ export default {
     async sweepCashTokenFungible(tokens, tokenIndex=0, tokenAddress=null) {
       this.sweeping = true
       let hasSweepingError = false
+      const isSingleSweep = tokenAddress === null
 
       if (!tokenAddress) {
         const bchAddress = await this.getRecipientAddress('bch')
@@ -443,7 +444,16 @@ export default {
           feeFunder: this.parseFeeFunder(tokenIndex),
           recipient: tokenAddress,
         }).then(result => {
-          if (!result.success) hasSweepingError = true
+          if (!result.success) {
+            if (isSingleSweep) {
+              this.$q.notify({
+                message: result.error,
+                icon: 'mdi-close-circle',
+                color: 'red-5'
+              })
+            }
+            hasSweepingError = true
+          }
           this.getTokens(false).then(() => {
             if (this.emptyAssets) this.showSuccess = true
           })
@@ -455,7 +465,9 @@ export default {
       return hasSweepingError
     },
     async sweepCashTokenNonFungible(tokens, tokenIndex=0, tokenAddress=null) {
+      this.sweeping = true
       let hasSweepingError = false
+      const isSingleSweep = tokenAddress === null
 
       if (!tokenAddress) {
         const bchAddress = await this.getRecipientAddress('bch')
@@ -486,7 +498,16 @@ export default {
           recipient: tokenAddress,
           feeFunder: this.parseFeeFunder(tokenIndex),
         }).then(result => {
-          if (!result.success) hasSweepingError = true
+          if (!result.success) {
+            if (isSingleSweep) {
+              this.$q.notify({
+                message: result.error,
+                icon: 'mdi-close-circle',
+                color: 'red-5'
+              })
+            }
+            hasSweepingError = true
+          }
           this.getTokens(false).then(() => {
             if (this.emptyAssets) this.showSuccess = true
           })
@@ -589,7 +610,6 @@ export default {
     },
     parseFeeFunder(tokenIndex) {
       const fee = (546 / (10 ** 8)) * (tokenIndex + 1)
-      console.log(tokenIndex + 1, this.bchBalance > fee)
       if (this.bchBalance > fee) return undefined
       return {
         walletHash: this.wallet.BCH.walletHash,
