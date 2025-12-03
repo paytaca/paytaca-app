@@ -568,6 +568,7 @@ export default {
             icon: 'warning',
             color: 'warning'
           })
+          return
         }
       }
       if (this.bchBalance > 0) await this.sweepBch(bchAddress)
