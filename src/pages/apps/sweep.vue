@@ -105,17 +105,15 @@
 
             <div class="bch-balance">
               <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
-              <template v-if="bchBalance > 0">
-                <q-btn
-                  v-if="selectedToken !== 'bch'"
-                  color="primary"
-                  :label="(totalTokensCount - skippedTokens.length) > 0 ? $t('SweepAll') : $t('Sweep')"
-                  @click.prevent="sweepAll"
-                />
-                <div v-if="sweeping && selectedToken === 'bch'">
-                  <progress-loader />
-                </div>
-              </template>
+              <q-btn
+                v-if="!sweeping"
+                color="primary"
+                :label="(totalTokensCount - skippedTokens.length) > 0 ? $t('SweepAll') : $t('Sweep')"
+                @click.prevent="sweepAll"
+              />
+              <div v-if="sweeping">
+                <progress-loader />
+              </div>
               <span v-else class="text-red">
                 <template v-if="totalTokensCount == 0">{{ $t('SweepErrMsg1') }}</template>
                 <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance', {}, 'Balance from your wallet will be used to sweep the token(s) below') }}</i>
