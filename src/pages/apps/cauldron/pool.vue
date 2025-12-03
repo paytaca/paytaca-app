@@ -96,8 +96,7 @@
             style="max-height:50vh;"
             :items="filteredTransactions"
             virtual-scroll-item-size="300"
-            separator
-            v-slot="{ item: transaction, index }"
+            v-slot="{ item: transaction }"
           >
             <q-card class="br-15 pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
               <q-card-section>
@@ -307,42 +306,26 @@ export default defineComponent({
         return null
       }
 
-      // Get swap transactions (token-buy and token-sell)
-      const swapTransactions = filteredTransactions.value.filter(
-        tx => tx.type === 'token-buy' || tx.type === 'token-sell'
-      )
+      const ignoredK = filteredTransactions.value
+        .filter(transaction => ['add-liquidity', 'withdraw-liquidity'].includes(transaction.type))
+        .map(transaction => transaction.k - transaction.prevK)
+        .reduce((subtotal, K_diff) => subtotal + K_diff, 0n)
 
-      if (swapTransactions.length === 0) {
-        return null
-      }
+      const currentPool = filteredTransactions.value.at(0)
+      const initialPool = filteredTransactions.value.at(-1)
 
-      // Calculate total fees earned
-      // The satsChange already includes the 0.3% fee, so fees = absolute satsChange * 0.003
-      const feeRate = 0.003
-      const estimatedFees = swapTransactions.reduce((sum, tx) => {
-        // Fee is 0.3% of the absolute satsChange (which already includes the fee)
-        return sum + (Math.abs(tx.satsChange) * feeRate)
-      }, 0)
-
-      // Get time period in days
-      const now = Date.now()
-      const filterTimestamp = getFilterTimestamp(selectedTimeFilter.value)
+      const K_current = currentPool?.k - ignoredK
+      const K_intial = initialPool?.k
       
-      // Get the oldest transaction timestamp in the filtered set
-      const oldestTx = filteredTransactions.value[filteredTransactions.value.length - 1]
-      const periodStart = filterTimestamp || (oldestTx ? oldestTx.timestamp * 1000 : now)
-      const periodDays = (now - periodStart) / (1000 * 60 * 60 * 24)
-      
-      // Minimum period of 1 hour for calculation
-      if (periodDays <= (1 / 24) || currentLiquidity.value.sats === 0) {
-        return null
-      }
+      const K_current_sqrt = Math.sqrt(Number(K_current));
+      const K_initial_sqrt = Math.sqrt(Number(K_intial));
 
-      // Calculate APY: (fees / liquidity) * (365 / period_days) * 100
-      const liquidityInBCH = currentLiquidity.value.sats / 10 ** 8
-      const feesInBCH = estimatedFees / 10 ** 8
-      const apy = (feesInBCH / liquidityInBCH) * (365 / periodDays) * 100
+      const poolYield = (K_current_sqrt - K_initial_sqrt) * 100 / K_initial_sqrt
 
+      const daysElapsed = (currentPool.timestamp - initialPool.timestamp) / 86_400
+      const annualizationFactor = 365.25 / daysElapsed
+
+      const apy = ((((poolYield / 100) + 1) ** annualizationFactor) - 1) * 100
       return apy
     })
 
