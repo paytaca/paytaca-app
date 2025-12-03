@@ -452,7 +452,8 @@ export default {
         }
 
         await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
-          if (!result.success) {
+          if (result.success) hasSweepingError = false
+          else {
             if (isSingleSweep) {
               this.$q.notify({
                 message: result.error,
@@ -468,7 +469,8 @@ export default {
         if (hasSweepingError) {
           fungiblePayload.feeFunder = this.parseFeeFunder(tokenIndex, true)
           await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
-            if (!result.success) {
+            if (result.success) hasSweepingError = false
+            else {
               if (isSingleSweep) {
                 this.$q.notify({
                   message: result.error,
@@ -477,7 +479,7 @@ export default {
                 })
               }
               hasSweepingError = true
-            } else hasSweepingError = false
+            }
             this.getTokens(false)
           })
         }
@@ -523,7 +525,8 @@ export default {
         }
   
         await this.sweeper.sweepCashToken(nftPayload).then(result => {
-          if (!result.success) {
+          if (result.success) hasSweepingError = false
+          else {
             if (isSingleSweep) {
               this.$q.notify({
                 message: result.error,
@@ -539,7 +542,8 @@ export default {
         if (hasSweepingError) {
           nftPayload.feeFunder = this.parseFeeFunder(tokenIndex, true)
           await this.sweeper.sweepCashToken(nftPayload).then(result => {
-            if (!result.success) {
+            if (result.success) hasSweepingError = false
+            else {
               if (isSingleSweep) {
                 this.$q.notify({
                   message: result.error,
@@ -548,7 +552,7 @@ export default {
                 })
               }
               hasSweepingError = true
-            } else hasSweepingError = false
+            }
             this.getTokens(false)
           })
         }
