@@ -250,9 +250,13 @@ export function parsePoolHistoryTransaction(record, prevRecord) {
   let type
   if (!prevRecord) type = 'initial'
 
+  const k = BigInt(record.k)
+
   let satsChange
   let tokenChange
+  let prevK
   if (prevRecord) {
+    prevK = BigInt(prevRecord.k)
     satsChange = record.sats - prevRecord.sats
     tokenChange = record.token_amount - prevRecord.token_amount
   
@@ -263,9 +267,11 @@ export function parsePoolHistoryTransaction(record, prevRecord) {
   }
 
   return {
+    ...record,
     type,
     satsChange,
     tokenChange,
-    ...record,
+    prevK,
+    k,
   }
 }

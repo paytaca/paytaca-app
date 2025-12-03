@@ -50,7 +50,7 @@
               <div 
                 class="txid-container q-mx-auto"
                 :class="getDarkModeClass(darkMode)"
-                @click="copyTxid"
+                @click="copyTxid(completedTradeData?.txid)"
                 style="cursor: pointer; max-width: 300px; padding: 8px 16px; border-radius: 8px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; gap: 8px;"
               >
                 <span class="txid-text">
@@ -348,12 +348,9 @@ import { fetchTokensList } from 'src/wallet/cauldron/tokens';
 import { attemptTrade, createInputAndOutput, getEntriesSize } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
-import { getWalletByNetwork } from 'src/wallet/chipnet';
-import { convertIpfsUrl } from 'src/wallet/cashtokens';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
-import { LibauthHDWallet } from 'src/wallet/bch-libauth';
-import { loadWallet } from 'src/wallet';
+import { useCauldronValueFormatters } from 'src/composables/cauldron/ui-helpers';
 import { ExchangeLab } from '@cashlab/cauldron';
 import { binToHex } from '@bitauth/libauth';
 import { debounce, useQuasar } from 'quasar';
@@ -433,16 +430,6 @@ export default defineComponent({
       })
     }
     const debouncedFetchTokens = debounce(fetchTokens, 500)
-    
-    function getTokenImage(url) {
-      const ipfsUrl = convertIpfsUrl(url)
-      if (ipfsUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-        return ipfsUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-      } else {
-        return ipfsUrl
-      }
-    }
-
 
     /** @type {import("vue").Ref<CauldronTokenData>} */
     const selectedToken = ref()
@@ -811,24 +798,6 @@ export default defineComponent({
       tradeResultError.value = '';
     }
 
-    function formatAmount(amount, decimals) {
-      if (!amount) return '0';
-      const num = Number(amount) / (10 ** decimals);
-      return num.toFixed(decimals > 8 ? 8 : decimals);
-    }
-
-    function copyTxid() {
-      if (!completedTradeData.value.txid) return;
-      navigator.clipboard.writeText(completedTradeData.value.txid).then(() => {
-        $q.notify({
-          color: 'blue-9',
-          message: $t('TransactionIdCopied'),
-          icon: 'mdi-clipboard-check',
-          timeout: 2000
-        });
-      });
-    }
-
     function resetTrade() {
       completedTradeData.value = {
         txid: '',
@@ -840,10 +809,6 @@ export default defineComponent({
       amountInput.value = 0;
       amountInputString.value = '';
       tradeResult.value = null;
-    }
-
-    function onImgError(event) {
-      event.target.style.display = 'none';
     }
 
     const showSlider = computed(() => {
@@ -979,16 +944,13 @@ export default defineComponent({
       }
     }
 
-    async function loadWalletForTrade() {
-      const walletIndex = $store.getters['global/getWalletIndex']
-      const isChipnet = $store.getters['global/isChipnet']
-      const wallet = await loadWallet(isChipnet ? 'chipnet' : 'mainnet', walletIndex)
-      /** @type {import("src/wallet/bch").BchWallet} */
-      const bchWallet = getWalletByNetwork(wallet, 'bch');
-
-      const libuathWallet = new LibauthHDWallet(bchWallet.mnemonic, bchWallet.derivationPath)
-      return {bchWallet, libuathWallet}
-    }
+    const {
+      formatAmount,
+      getTokenImage,
+      onImgError,
+      copyTxid,
+      loadWalletForTrade,
+    } = useCauldronValueFormatters()
 
     async function refreshPage(done=() => {}) {
       try {

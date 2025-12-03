@@ -119,7 +119,8 @@
                     dense
                     icon="open_in_new"
                     size="sm"
-                    @click="openExplorer(transaction.txid)"
+                    :href="getExplorerLink(transaction.txid)"
+                    target="_blank"
                   />
                 </div>
 
@@ -139,7 +140,7 @@
                   <div class="col-6 column">
                     <div class="text-caption text-grey q-mb-xs">{{ $t('TokenAmount') }}</div>
                     <div class="text-h6 text-weight-bold">
-                      {{ formatTokenAmountChange(transaction.tokenChange) }} {{ tokenData?.bcmr?.token?.symbol || '' }}
+                      {{ formatTokenAmountChange(transaction.tokenChange, tokenData) }} {{ tokenData?.bcmr?.token?.symbol || '' }}
                     </div>
                     <q-space/>
                     <div class="text-caption text-grey">
@@ -160,6 +161,7 @@ import { fetchPoolHistory, parsePoolHistoryTransaction } from "src/wallet/cauldr
 import { fetchTokensList } from "src/wallet/cauldron/tokens";
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { getExplorerLink } from 'src/utils/send-page-utils';
+import { useCauldronValueFormatters } from "src/composables/cauldron/ui-helpers";
 import { useStore } from "vuex";
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -302,7 +304,7 @@ export default defineComponent({
 
     // Calculate APY based on trading volume and fees
     const calculatedAPY = computed(() => {
-      if (!filteredTransactions.value || filteredTransactions.value.length === 0) {
+      if (!filteredTransactions.value || filteredTransactions.value.length <= 1) {
         return null
       }
 
@@ -315,14 +317,16 @@ export default defineComponent({
       const initialPool = filteredTransactions.value.at(-1)
 
       const K_current = currentPool?.k - ignoredK
-      const K_intial = initialPool?.k
+      const K_initial = initialPool?.k
       
       const K_current_sqrt = Math.sqrt(Number(K_current));
-      const K_initial_sqrt = Math.sqrt(Number(K_intial));
+      const K_initial_sqrt = Math.sqrt(Number(K_initial));
 
       const poolYield = (K_current_sqrt - K_initial_sqrt) * 100 / K_initial_sqrt
 
       const daysElapsed = (currentPool.timestamp - initialPool.timestamp) / 86_400
+      if (!daysElapsed) return 0
+
       const annualizationFactor = 365.25 / daysElapsed
 
       const apy = ((((poolYield / 100) + 1) ** annualizationFactor) - 1) * 100
@@ -332,33 +336,6 @@ export default defineComponent({
     function onTimeFilterChange() {
       // Re-fetch if needed, or just filter client-side
       // Since we're filtering client-side, we don't need to re-fetch
-    }
-
-    function formatAmount(amount, decimals) {
-      if (!amount) return '0'
-      const num = Number(amount) / (10 ** decimals)
-      return num.toFixed(decimals > 8 ? 8 : decimals)
-    }
-
-    function formatTokenAmount(amount, tokenData) {
-      if (!amount || !tokenData) return '0'
-      const decimals = parseInt(tokenData?.bcmr?.token?.decimals || 0)
-      return formatAmount(amount, decimals)
-    }
-
-    function formatAmountChange(change) {
-      if (!change) return '0'
-      const num = Number(change) / (10 ** 8)
-      const sign = num >= 0 ? '+' : ''
-      return `${sign}${num.toFixed(8)}`
-    }
-
-    function formatTokenAmountChange(change) {
-      if (!change || !tokenData.value) return '0'
-      const decimals = parseInt(tokenData.value?.bcmr?.token?.decimals || 0)
-      const num = Number(change) / (10 ** decimals)
-      const sign = num >= 0 ? '+' : ''
-      return `${sign}${num.toFixed(decimals > 8 ? 8 : decimals)}`
     }
 
     function getTransactionTypeColor(type) {
@@ -395,30 +372,14 @@ export default defineComponent({
       }
     }
 
-    function formatDate(timestamp) {
-      if (!timestamp) return ''
-      const dateObj = new Date(timestamp * 1000)
-      return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(dateObj)
-    }
-
-    function formatAPY(apy) {
-      if (apy === null || apy === undefined || isNaN(apy)) {
-        return 'N/A'
-      }
-      if (apy < 0.01) {
-        return '< 0.01%'
-      }
-      if (apy > 10000) {
-        return '> 10,000%'
-      }
-      return `${apy.toFixed(2)}%`
-    }
-
-    function openExplorer(txid) {
-      if (!txid) return
-      const url = getExplorerLink(txid, false)
-      window.open(url, '_blank')
-    }
+    const {
+      formatAmount,
+      formatTokenAmount,
+      formatDate,
+      formatAPY,
+      formatAmountChange,
+      formatTokenAmountChange,
+    } = useCauldronValueFormatters();
 
     async function refreshPage(done = () => {}) {
       try {
@@ -463,7 +424,7 @@ export default defineComponent({
       getTransactionTypeLabel,
       formatDate,
       formatAPY,
-      openExplorer,
+      getExplorerLink,
       refreshPage,
     }
   }

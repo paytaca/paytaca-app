@@ -40,7 +40,7 @@
               <div 
                 class="txid-container q-mx-auto"
                 :class="getDarkModeClass(darkMode)"
-                @click="copyTxid"
+                @click="copyTxid(completedPoolData?.txid)"
                 style="cursor: pointer; max-width: 300px; padding: 8px 16px; border-radius: 8px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; gap: 8px;"
               >
                 <span class="txid-text">
@@ -224,13 +224,10 @@
 import { fetchTokenLatestPrice, fetchTokensList } from "src/wallet/cauldron/tokens";
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 import { createPoolTransaction, fetchWalletPools } from 'src/wallet/cauldron/wallet-pool';
+import { useCauldronValueFormatters } from "src/composables/cauldron/ui-helpers";
 
-import { getWalletByNetwork } from 'src/wallet/chipnet';
-import { LibauthHDWallet } from 'src/wallet/bch-libauth';
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { getExplorerLink } from "src/utils/send-page-utils";
-import { convertIpfsUrl } from "src/wallet/cashtokens";
-import { loadWallet } from 'src/wallet';
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from "vuex";
@@ -259,17 +256,6 @@ export default defineComponent({
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
-
-    async function loadWalletForTrade() {
-      const walletIndex = $store.getters['global/getWalletIndex']
-      const isChipnet = $store.getters['global/isChipnet']
-      const wallet = await loadWallet(isChipnet ? 'chipnet' : 'mainnet', walletIndex)
-      /** @type {import("src/wallet/bch").BchWallet} */
-      const bchWallet = getWalletByNetwork(wallet, 'bch');
-
-      const libuathWallet = new LibauthHDWallet(bchWallet.mnemonic, bchWallet.derivationPath)
-      return {bchWallet, libuathWallet}
-    }
 
     /** @type {import('vue').Ref<import('src/wallet/cauldron/tokens').CauldronTokenData>} */
     const selectedToken = ref()
@@ -336,15 +322,6 @@ export default defineComponent({
         if (tokenAmount.value) syncBchAmountFromTokenAmount()
         else if (bchAmount.value) syncTokenAmountFromBch()
       })
-    }
-
-    function getTokenImage(url) {
-      const ipfsUrl = convertIpfsUrl(url)
-      if (ipfsUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-        return ipfsUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-      } else {
-        return ipfsUrl
-      }
     }
 
     const tokenAmount = ref()
@@ -547,24 +524,6 @@ export default defineComponent({
       return getExplorerLink(completedPoolData.value.txid, false);
     });
 
-    function formatAmount(amount, decimals) {
-      if (!amount) return '0';
-      const num = Number(amount) / (10 ** decimals);
-      return num.toFixed(decimals > 8 ? 8 : decimals);
-    }
-
-    function copyTxid() {
-      if (!completedPoolData.value.txid) return;
-      navigator.clipboard.writeText(completedPoolData.value.txid).then(() => {
-        $q.notify({
-          color: 'blue-9',
-          message: $t('TransactionIdCopied'),
-          icon: 'mdi-clipboard-check',
-          timeout: 2000
-        });
-      });
-    }
-
     function resetPool() {
       completedPoolData.value = {
         txid: '',
@@ -574,10 +533,6 @@ export default defineComponent({
       };
       tokenAmount.value = '';
       bchAmount.value = '';
-    }
-
-    function onImgError(event) {
-      event.target.style.display = 'none';
     }
 
     async function refreshPage(done=() => {}) {
@@ -592,6 +547,14 @@ export default defineComponent({
       if (!props.tokenId) return
       selectedToken.value = (await fetchTokensList({ token_id: props.tokenId }))[0]
     })
+
+    const {
+      formatAmount,
+      getTokenImage,
+      onImgError,
+      copyTxid,
+      loadWalletForTrade,
+    } = useCauldronValueFormatters();
 
     return {
       darkMode,

@@ -186,11 +186,11 @@
 import { fetchWalletPools, generateWithdrawPoolTx, pkhashToPoolAddress } from "src/wallet/cauldron/wallet-pool";
 import { asyncSleep } from "src/wallet/transaction-listener";
 import { fetchTokensList } from "src/wallet/cauldron/tokens";
-import { convertIpfsUrl } from 'src/wallet/cashtokens';
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { getExplorerLink } from 'src/utils/send-page-utils';
 import { loadWallet } from "src/wallet";
 import { getWalletByNetwork } from 'src/wallet/chipnet';
+import { useCauldronValueFormatters } from "src/composables/cauldron/ui-helpers";
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from "vuex";
@@ -198,7 +198,6 @@ import { defineComponent, computed, ref, onMounted } from "vue";
 import HeaderNav from 'src/components/header-nav';
 import CauldronHeaderMenu from "src/components/cauldron/CauldronHeaderMenu.vue";
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
-
 
 
 export default defineComponent({
@@ -223,7 +222,6 @@ export default defineComponent({
       addressWif.value = await wallet.value.BCH.getPrivateKey('0/0')
       address.value = addressSet.receiving
     }
-    
 
     /** @type {import('vue').Ref<import('src/wallet/cauldron/pool').MicroPool[]>} */
     const pools = ref([])
@@ -268,31 +266,6 @@ export default defineComponent({
         }
       })
     })
-
-    function getTokenImage(url) {
-      const ipfsUrl = convertIpfsUrl(url)
-      if (ipfsUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-        return ipfsUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-      } else {
-        return ipfsUrl
-      }
-    }
-
-    function onImgError(event) {
-      event.target.style.display = 'none';
-    }
-
-    function formatAmount(amount, decimals) {
-      if (!amount) return '0';
-      const num = Number(amount) / (10 ** decimals);
-      return num.toFixed(decimals > 8 ? 8 : decimals);
-    }
-
-    function formatTokenAmount(amount, tokenData) {
-      if (!amount || !tokenData) return '0';
-      const decimals = parseInt(tokenData?.bcmr?.token?.decimals || 0);
-      return formatAmount(amount, decimals);
-    }
 
     function securityCheckWithdrawPool(pool) {
       $q.dialog({ component: SecurityCheckDialog }).onOk(() => withdrawPool(pool))
@@ -385,6 +358,14 @@ export default defineComponent({
       }
     }
 
+    const {
+      formatAmount,
+      formatTokenAmount,
+      getTokenImage,
+      onImgError,
+      getAddressExplorerLink,
+    } = useCauldronValueFormatters()
+
     async function refreshPage(done=() => {}) {
       try {
         await Promise.all([
@@ -393,16 +374,6 @@ export default defineComponent({
       } finally {
         done()
       }
-    }
-
-    const isChipnet = computed(() => $store.getters['global/isChipnet'])
-    function getAddressExplorerLink(address) {
-      if (!address) return
-      let url = 'https://explorer.paytaca.com/address/'
-      if (isChipnet.value) {
-        url = `${process.env.TESTNET_EXPLORER_URL}/address/`
-      }
-      return url + address
     }
 
     onMounted(() => {
