@@ -164,6 +164,7 @@ export default defineComponent({
       handleSelectToken,
       tokensList,
       fetchingTokens,
+      fetchTokens,
       searchQuery,
       debouncedFetchTokens,
       getDarkModeClass,
