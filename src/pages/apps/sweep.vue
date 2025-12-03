@@ -118,7 +118,8 @@
               </template>
               <span v-else class="text-red">
                 <template v-if="totalTokensCount == 0">{{ $t('SweepErrMsg1') }}</template>
-                <i v-if="!hasEnoughBalances">{{ $t('EmptyBalancesError', '', 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below') }}</i>
+                <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance', {}, 'Balance from your wallet will be used to sweep the token(s) below') }}</i>
+                <i v-else-if="!hasEnoughBalances">{{ $t('EmptyBalancesError', {}, 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below') }}</i>
               </span>
             </div>
           </div>
@@ -175,7 +176,7 @@
                     <q-btn
                       color="primary"
                       :label="$t('Sweep')"
-                      @click.prevent="sweepCashTokenFungible(fungibleToken)"
+                      @click.prevent="sweepCashTokenFungible([fungibleToken])"
                       :disabled="sweeping || skippedTokens.includes(fungibleToken.category)"
                     />
                     <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
@@ -215,7 +216,7 @@
                     <q-btn
                       color="primary"
                       :label="$t('Sweep')"
-                      @click.prevent="sweepCashTokenNonFungible(nft)"
+                      @click.prevent="sweepCashTokenNonFungible([nft])"
                       :disabled="sweeping || skippedTokens.includes(`${nft.category}|${nft.commitment}`)"
                     />
                     <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
@@ -447,6 +448,7 @@ export default {
     validatePrivateKey (value) {
       return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(String(value))
     },
+
     async getTokens (signalFetch) {
       if (!this.validatePrivateKey(this.wif)) {
         this.error = this.$t('InvalidPrivateKey')
@@ -474,10 +476,11 @@ export default {
         }),
       ])
 
-      this.hasEnoughBalances = this.bchBalance > 0 && await this.getWalletBchBalance > 0
+      this.hasEnoughBalances = this.bchBalance > 0 || (await this.getWalletBchBalance) > 0
       this.fetching = false
       this.sweeping = false
     },
+
     async sweepToken (token) {
       this.sweeping = true
       this.selectedToken = token.token_id
@@ -512,106 +515,104 @@ export default {
         this.getTokens()
       })
     },
-    async sweepCashTokenFungible(token) {
+    async sweepCashTokenFungible(tokens, tokenIndex=0, tokenAddress=null) {
       this.sweeping = true
-      this.selectedToken = token?.category
+      let hasSweepingError = false
 
-      const bchAddress = await this.getRecipientAddress('bch')
-      if (!bchAddress) {
-        this.$q.notify({
-          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
-          icon: 'mdi-close-circle',
-          color: 'red-5'
-        })
-        return
-      }
-      const tokenAddress = convertCashAddress(bchAddress, false, true)
-
-      return this.sweeper.sweepCashToken({
-        tokenAddress: this.sweeper.tokenAddress,
-        bchWif: this.sweeper.wif,
-        token: {
-          tokenId: token?.category,
-        },
-        tokenAmount: token.balance,
-        recipient: tokenAddress,
-      }).then(result => {
-        if (!result.success) {
+      if (!tokenAddress) {
+        const bchAddress = await this.getRecipientAddress('bch')
+        if (!bchAddress) {
           this.$q.notify({
-            message: result.error,
+            message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
             icon: 'mdi-close-circle',
             color: 'red-5'
           })
-          this.selectedToken = null
+          return
         }
-        this.getTokens()
-          .then(() => {
-            if (this.emptyAssets) this.showSuccess = true
-          })
-      })
-    },
-    async sweepCashTokenNonFungible(token=CashNonFungibleToken.parse()) {
-      const bchAddress = await this.getRecipientAddress('bch')
-      if (!bchAddress) {
-        this.$q.notify({
-          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
-          icon: 'mdi-close-circle',
-          color: 'red-5'
-        })
-        return
+        tokenAddress = convertCashAddress(bchAddress, false, true)
       }
-      
-      const tokenAddress = convertCashAddress(bchAddress, false, true)
-      this.sweeping = true
-      this.selectedToken = token?.category
 
-      return this.sweeper.sweepCashToken({
-        tokenAddress: this.sweeper.tokenAddress,
-        bchWif: this.sweeper.wif,
-        token: {
-          tokenId: token?.category,
-          capability: token?.capability,
-          commitment: token?.commitment,
-          txid: token?.currentTxid,
-          vout: token?.currentIndex,
-        },
-        recipient: tokenAddress,
-      }).then(result => {
-        if (!result.success) {
+      for (const token of tokens) {
+        this.selectedToken = token?.category
+
+        const result = await this.sweeper.sweepCashToken({
+          tokenAddress: this.sweeper.tokenAddress,
+          bchWif: this.sweeper.wif,
+          token: {
+            tokenId: token?.category,
+          },
+          tokenAmount: token.balance,
+          feeFunder: this.parseFeeFunder(tokenIndex),
+          recipient: tokenAddress,
+        })
+
+        if (!result.success) hasSweepingError = true
+        tokenIndex++
+      }
+
+      return hasSweepingError
+    },
+    async sweepCashTokenNonFungible(tokens, tokenIndex=0, tokenAddress=null) {
+      let hasSweepingError = false
+
+      if (!tokenAddress) {
+        const bchAddress = await this.getRecipientAddress('bch')
+        if (!bchAddress) {
           this.$q.notify({
-            message: result.error,
+            message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
             icon: 'mdi-close-circle',
             color: 'red-5'
           })
-          this.selectedToken = null
+          return
         }
-        this.getTokens()
-          .then(() => {
-            if (this.emptyAssets) this.showSuccess = true
-          })
-      })
-    },
-    async sweepBch () {
-      const recipientAddress = await this.getRecipientAddress('bch')
-      if (!recipientAddress) {
-        this.$q.notify({
-          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
-          icon: 'mdi-close-circle',
-          color: 'red-5'
-        })
-        return
+        tokenAddress = convertCashAddress(bchAddress, false, true)
       }
-      
+
+      for (const token of tokens) {
+        this.selectedToken = token?.category
+  
+        const result = await this.sweeper.sweepCashToken({
+          tokenAddress: this.sweeper.tokenAddress,
+          bchWif: this.sweeper.wif,
+          token: {
+            tokenId: token?.category,
+            capability: token?.capability,
+            commitment: token?.commitment,
+            txid: token?.currentTxid,
+            vout: token?.currentIndex,
+          },
+          recipient: tokenAddress,
+          feeFunder: this.parseFeeFunder(tokenIndex),
+        })
+
+        if (!result.success) hasSweepingError = true
+      }
+
+      return hasSweepingError
+    },
+    async sweepBch (recipientAddress) {
       this.sweeping = true
       this.selectedToken = 'bch'
-      this.sweeper.sweepBch(
+      await this.sweeper.sweepBch(
         this.sweeper.bchAddress,
         this.wif,
         this.bchBalance,
         recipientAddress
       )
     },
+
     async sweepAll() {
+      const bchAddress = await this.getRecipientAddress('bch')
+      if (!bchAddress) {
+        this.$q.notify({
+          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
+          icon: 'mdi-close-circle',
+          color: 'red-5'
+        })
+        return
+      }
+      const tokenAddress = convertCashAddress(bchAddress, false, true)
+
       if ((this.totalTokensCount - this.skippedTokens.length) > 0) {
         const unskippedCashTokens = this.fungibleCashTokens.filter(
           token => !this.skippedTokens.includes(token.category)
@@ -619,17 +620,23 @@ export default {
         const unskippedNonFungibleCashTokens = this.nonFungibleCashTokens.filter(
           token => !this.skippedTokens.includes(`${token.category}|${token.commitment}`)
         )
-        const unskippedSlpTokens = this.tokens.filter(
-          token => !this.skippedTokens.includes(token.token_id) && token.spendable > 0
-        )
+        let tokenIndex = 0
 
-        await Promise.all([
-          ...unskippedCashTokens.map(token => this.sweepCashTokenFungible(token)),
-          ...unskippedNonFungibleCashTokens.map(token => this.sweepCashTokenNonFungible(token)),
-          ...unskippedSlpTokens.map(token => this.sweepToken(token))
+        const [fungibleError, nonFungibleError] = await Promise.all([
+          this.sweepCashTokenFungible(unskippedCashTokens, tokenIndex, tokenAddress),
+          this.sweepCashTokenNonFungible(unskippedNonFungibleCashTokens, tokenIndex, tokenAddress)
         ])
+
+        if (fungibleError || nonFungibleError) {
+          this.$q.notify({
+            message: this.$t('FailedToSweepSomeTokens', {}, 'Failed to sweep some tokens'),
+            icon: 'warning',
+            color: 'warning'
+          })
+          return
+        }
       }
-      await this.sweepBch()
+      await this.sweepBch(bchAddress)
 
       this.getTokens(false).then(() => {
         if (this.emptyAssets) this.showSuccess = true
@@ -666,6 +673,16 @@ export default {
           })
         }
       }, 1000);
+    },
+    parseFeeFunder(tokenIndex) {
+      const fee = (546 / (10 ** 8)) * (tokenIndex + 1)
+      console.log(tokenIndex + 1, this.bchBalance > fee)
+      if (this.bchBalance > fee) return undefined
+      return {
+        walletHash: this.wallet.BCH.walletHash,
+        mnemonic: this.wallet.mnemonic,
+        derivationPath: this.wallet.BCH.derivationPath
+      }
     }
   },
   mounted () {
