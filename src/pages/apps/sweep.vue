@@ -108,16 +108,17 @@
               <q-btn
                 v-if="!sweeping"
                 color="primary"
+                :disabled="!hasEnoughBalances"
                 :label="(cashTokensCount - skippedTokens.length) > 0 ? $t('SweepAll') : $t('Sweep')"
                 @click.prevent="sweepAll"
               />
               <div v-if="sweeping">
                 <progress-loader />
               </div>
-              <span v-else class="text-red">
-                <template v-if="cashTokensCount == 0">{{ $t('SweepErrMsg1') }}</template>
-                <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance', {}, 'Balance from your wallet will be used to sweep the token(s) below') }}</i>
+              <span v-else class="row q-mt-xs text-red">
+                <template v-if="cashTokensCount === 0 && bchBalance === 0">{{ $t('SweepErrMsg1') }}</template>
                 <i v-else-if="!hasEnoughBalances">{{ $t('EmptyBalancesError', {}, 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below') }}</i>
+                <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance', {}, 'Balance from your wallet will be used to sweep the token(s) below') }}</i>
               </span>
             </div>
           </div>
@@ -140,6 +141,7 @@
                 outline
                 color="primary"
                 :label="$t('ManualCashTokensSweep')"
+                :disabled="!hasEnoughBalances"
                 @click.prevent="expandCashTokens = !expandCashTokens"
               />
             </div>
@@ -329,7 +331,7 @@ export default {
     },
     emptyAssets() {
       const DUST = 546 / 10 ** 8
-      return this.bchBalance < DUST && this.cashTokensCount == 0
+      return this.bchBalance < DUST && this.cashTokensCount === 0
     },
     async getWalletBchBalance() {
       return await this.wallet.BCH.getBalance().then(resp => resp.balance)
@@ -395,10 +397,10 @@ export default {
       this.sweeper = new SweepPrivateKey(this.wif)
 
       await Promise.allSettled([
-        this.sweeper.getNftCashTokens().then(results => {
+        this.sweeper.getNftCashTokens(signalFetch).then(results => {
           this.nonFungibleCashTokens = results
         }),
-        this.sweeper.getFungibleCashTokens().then(results => {
+        this.sweeper.getFungibleCashTokens(signalFetch).then(results => {
           this.fungibleCashTokens = results
         }),
         this.sweeper.getBchBalance().then(resp => {
@@ -431,7 +433,7 @@ export default {
       for (const token of tokens) {
         this.selectedToken = token?.category
 
-        const result = await this.sweeper.sweepCashToken({
+        await this.sweeper.sweepCashToken({
           tokenAddress: this.sweeper.tokenAddress,
           bchWif: this.sweeper.wif,
           token: {
@@ -440,9 +442,13 @@ export default {
           tokenAmount: token.balance,
           feeFunder: this.parseFeeFunder(tokenIndex),
           recipient: tokenAddress,
+        }).then(result => {
+          if (!result.success) hasSweepingError = true
+          this.getTokens(false).then(() => {
+            if (this.emptyAssets) this.showSuccess = true
+          })
         })
 
-        if (!result.success) hasSweepingError = true
         tokenIndex++
       }
 
@@ -467,7 +473,7 @@ export default {
       for (const token of tokens) {
         this.selectedToken = token?.category
   
-        const result = await this.sweeper.sweepCashToken({
+        await this.sweeper.sweepCashToken({
           tokenAddress: this.sweeper.tokenAddress,
           bchWif: this.sweeper.wif,
           token: {
@@ -479,9 +485,13 @@ export default {
           },
           recipient: tokenAddress,
           feeFunder: this.parseFeeFunder(tokenIndex),
+        }).then(result => {
+          if (!result.success) hasSweepingError = true
+          this.getTokens(false).then(() => {
+            if (this.emptyAssets) this.showSuccess = true
+          })
         })
-
-        if (!result.success) hasSweepingError = true
+        tokenIndex++
       }
 
       return hasSweepingError
@@ -489,12 +499,18 @@ export default {
     async sweepBch (recipientAddress) {
       this.sweeping = true
       this.selectedToken = 'bch'
-      await this.sweeper.sweepBch(
-        this.sweeper.bchAddress,
-        this.wif,
-        this.bchBalance,
-        recipientAddress
-      )
+
+      await Promise.all([
+        this.sweeper.sweepBch(
+          this.sweeper.bchAddress,
+          this.wif,
+          this.bchBalance,
+          recipientAddress
+        ),
+        this.getTokens(false).then(() => {
+          if (this.emptyAssets) this.showSuccess = true
+        })
+      ])
     },
 
     async sweepAll() {
@@ -518,10 +534,12 @@ export default {
         )
         let tokenIndex = 0
 
-        const [fungibleError, nonFungibleError] = await Promise.all([
-          this.sweepCashTokenFungible(unskippedCashTokens, tokenIndex, tokenAddress),
-          this.sweepCashTokenNonFungible(unskippedNonFungibleCashTokens, tokenIndex, tokenAddress)
-        ])
+        const fungibleError = await this.sweepCashTokenFungible(
+          unskippedCashTokens, tokenIndex, tokenAddress
+        )
+        const nonFungibleError = await this.sweepCashTokenNonFungible(
+          unskippedNonFungibleCashTokens, tokenIndex, tokenAddress
+        )
 
         if (fungibleError || nonFungibleError) {
           this.$q.notify({
@@ -529,10 +547,9 @@ export default {
             icon: 'warning',
             color: 'warning'
           })
-          return
         }
       }
-      await this.sweepBch(bchAddress)
+      if (this.bchBalance > 0) await this.sweepBch(bchAddress)
 
       await this.getTokens(false).then(() => {
         if (this.emptyAssets) this.showSuccess = true
