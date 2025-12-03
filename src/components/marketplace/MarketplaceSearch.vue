@@ -1,16 +1,17 @@
 <template>
   <div>
     <q-input
-      outlined
+      standout
       dense
+      rounded
+      dark
       :loading="loading"
       clearable
       v-model="inputVal"
       autocomplete="off"
       placeholder="Search product / shop"
       color="pt-primary1"
-      debounce="500"
-      :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+      debounce="500"            
       @update:model-value="() => search()"
     >
       <template v-slot:append>

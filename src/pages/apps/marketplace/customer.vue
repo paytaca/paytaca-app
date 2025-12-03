@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Marketplace')" class="header-nav" />
+    <HeaderNav :title="$t('Marketplace')" backnavpath="/apps/marketplace" class="header-nav" />
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-px-sm">

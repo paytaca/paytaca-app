@@ -11,11 +11,10 @@
       </template>
     </HeaderNav>
 
-    <div class="pt-card br-15 q-mt-md q-mx-md q-pa-sm" :class="getDarkModeClass(darkMode)">
+    <div id="bch-card" class="pt-card br-15 q-mt-md q-mx-md q-pa-sm">
       <div class="q-mx-sm q-my-sm">
         <SessionLocationWidget ref="sessionLocationWidget" />
       </div>  
-
       <div
         class="q-px-md q-pt-xs q-pb-md sticky-below-header"
         :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
@@ -26,7 +25,7 @@
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pa-sm">
-        <div class="text-h5 q-px-xs text-weight-bold">Shops</div>
+        <div class="text-h5 q-px-xs text-primary">Shops</div>
         <q-btn
           flat
           rounded
@@ -102,9 +101,156 @@
           @click="() => toggleDeliveryType(Checkout.DeliveryTypes.LOCAL_DELIVERY)"
         /> -->
       </div>
+
+      <div class="" ref="storefrontsContainer">
+       <!-- Skeleton loaders -->
+        <template v-if="(!initialized || !storefronts.length)">
+          <div v-for="n in 6" :key="`skeleton-${n}`" class="q-pa-xs">
+            <q-card class="pt-card br-15 text-bow" :class="getDarkModeClass(darkMode)">
+              <q-card-section horizontal>                
+                <q-skeleton type="rect" height="120px" width="120px"/>                          
+                <div class="q-py-sm">
+                  <q-skeleton type="text" height="12px" width="60%" />
+                  <q-skeleton type="text" height="12px" width="40%" class="q-mt-xs" />
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </template>
+
+         <!-- Empty state message -->
+          <template v-else-if="initialized && !fetchingStorefronts && storefronts.length === 0 && customerCoordinatesValid">
+            <div class="col-12 q-pa-lg text-center" style="min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+              <q-icon name="storefront" size="64px" :class="darkMode ? 'text-grey-6' : 'text-grey-4'" class="q-mb-md" />
+              <div class="text-h6 q-mb-sm" :class="getDarkModeClass(darkMode)">
+                {{ $t('NoShopsInArea', {}, 'No shops in your area yet') }}
+              </div>
+              <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('NoShopsInAreaDescription', {}, 'We\'re working on expanding our network. Check back soon!') }}
+              </div>
+            </div>
+          </template>
+
+
+          <!-- Actual storefront new -->
+          <template v-else-if="storefronts.length > 0">
+            <div v-for="storefront in storefronts" :key="storefront?.id">              
+              <q-card class="pt-card br-15 text-bow q-my-sm" 
+                :class="getDarkModeClass(darkMode)"
+                @click="
+                !storefront?.inPrelaunch
+                  ? $router.push({ name: 'app-marketplace-storefront', params: { storefrontId: storefront?.id }})
+                  : undefined
+                "
+              >
+                <q-card-section horizontal>
+                  <q-img
+                    class="shop-image"
+                    :src="storefront?.imageUrl || noImage"                     
+                    :class="{ 'closed-shop-image': !storefront?.isOpen && !storefront?.inPrelaunch }"
+                  />
+
+                  <q-card-section class="q-py-sm">
+                    <div
+                      v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
+                      class="float-right row items-center no-wrap"
+                      @click.stop
+                    >
+                      <q-rating :model-value="1" readonly max="1" size="1em" color="pt-primary1"/>
+                      {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+                      <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                        <div class="row items-center no-wrap">
+                          <q-rating
+                            readonly
+                            max="5"
+                            :model-value="roundRating(storefront?.ordersReviewSummary?.averageRating, { forceDecimals: false})"
+                            size="1em"
+                            color="pt-primary1"
+                            class="no-wrap"
+                            icon-half="star_half"
+                          />
+                          <div>
+                            {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+                          </div>
+                        </div>
+                        <div>
+                          ({{ storefront?.ordersReviewSummary?.count }}
+                          {{ storefront?.ordersReviewSummary?.count === 1 ? 'review' : 'reviews' }})
+                        </div>
+                      </q-menu>
+                    </div>
+                    <q-badge v-if="!storefront?.inPrelaunch && !storefront?.isOpen" color="grey" class="q-mr-xs">
+                      Closed
+                    </q-badge>
+                    <q-badge v-if="!storefront?.inPrelaunch && storefront?.isStorepickupOnly" color="info" class="q-mr-xs">
+                      Store pickup
+                    </q-badge>
+                    <div class="ellipsis-3-lines">{{ storefront.name }}</div>
+                    <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="text-caption bottom">
+                      {{ storefront?.openingTimeText }}
+                    </div>
+                    <div v-if="storefront?.location?.formattedCityAddress" class="row items-start text-caption no-wrap">
+                      <div><q-icon name="location_on" style="line-height: 90%;"/></div>
+                      <div>
+                        {{ storefront?.location?.formattedCityAddress }}
+                        <span v-if="storefront?.distance" class="text-grey">
+                          (~{{ round(storefront?.distance/1000, 2) }} km)
+                        </span>
+                      </div>
+                    </div>
+                    <q-badge v-if="storefront?.inPrelaunch" color="pt-primary1">
+                      <div>Will be live soon!</div>
+                      <template v-if="storefront?.launchDate">
+                        <!-- <div>{{ formatDateRelative(storefront?.launchDate) }}</div> -->
+                        <q-menu class="q-pa-sm text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
+                          Live on: {{ formatTimestampToText(storefront?.launchDate) }}
+                        </q-menu>
+                      </template>
+                    </q-badge>
+                  </q-card-section>
+
+                  <!-- <div class="q-pa-md">
+                    <div class="row justify-between">
+                      <div class="col-8 text-weight-bold">{{ storefront.name }}</div>
+                      <div
+                        v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
+                        class="float-right row items-center no-wrap"
+                        @click.stop
+                      >
+                        <q-rating :model-value="1" readonly max="1" size="1em" color="pt-primary1"/>
+                        {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+                        <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                          <div class="row items-center no-wrap">
+                            <q-rating
+                              readonly
+                              max="5"
+                              :model-value="roundRating(storefront?.ordersReviewSummary?.averageRating, { forceDecimals: false})"
+                              size="1em"
+                              color="pt-primary1"
+                              class="no-wrap"
+                              icon-half="star_half"
+                            />
+                            <div>
+                              {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+                            </div>
+                          </div>
+                          <div>
+                            ({{ storefront?.ordersReviewSummary?.count }}
+                            {{ storefront?.ordersReviewSummary?.count === 1 ? 'review' : 'reviews' }})
+                          </div>
+                        </q-menu>
+                      </div>
+                    </div>                    
+                  </div> -->
+                </q-card-section>                                
+              </q-card>
+            </div>
+          </template>
+      </div>
+
       <div class="row items-start justify-start q-mb-md" ref="storefrontsContainer">
         <!-- Skeleton loaders -->
-        <template v-if="(!initialized || !storefronts.length)">
+        <!-- <template v-if="(!initialized || !storefronts.length)">
           <div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <q-skeleton height="200px" />
@@ -114,10 +260,10 @@
               </q-card-section>
             </q-card>
           </div>
-        </template>
+        </template> -->
         
         <!-- Empty state message -->
-        <template v-else-if="initialized && !fetchingStorefronts && storefronts.length === 0 && customerCoordinatesValid">
+        <template v-if="initialized && !fetchingStorefronts && storefronts.length === 0 && customerCoordinatesValid">
           <div class="col-12 q-pa-lg text-center" style="min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <q-icon name="storefront" size="64px" :class="darkMode ? 'text-grey-6' : 'text-grey-4'" class="q-mb-md" />
             <div class="text-h6 q-mb-sm" :class="getDarkModeClass(darkMode)">
@@ -128,89 +274,89 @@
             </div>
           </div>
         </template>
-        
+
         <!-- Actual storefronts -->
-        <template v-else-if="storefronts.length > 0">
+        <!-- <template v-else-if="storefronts.length > 0">          
           <div v-for="storefront in storefronts" :key="storefront?.id" class="col-6 col-sm-4 q-pa-xs">
-          <q-card
-            class="pt-card text-bow"
-            :class="getDarkModeClass(darkMode)"
-            @click="
-              !storefront?.inPrelaunch
-                ? $router.push({ name: 'app-marketplace-storefront', params: { storefrontId: storefront?.id }})
-                : undefined
-            "
-          >
-            <q-img 
-              :src="storefront?.imageUrl || noImage" 
-              ratio="1.75"
-              :class="{ 'closed-shop-image': !storefront?.isOpen && !storefront?.inPrelaunch }"
+            <q-card
+              class="pt-card text-bow"
+              :class="getDarkModeClass(darkMode)"
+              @click="
+                !storefront?.inPrelaunch
+                  ? $router.push({ name: 'app-marketplace-storefront', params: { storefrontId: storefront?.id }})
+                  : undefined
+              "
             >
-              <template v-slot:loading>
-                <q-skeleton height="100%" width="100%" square />
-              </template>
-            </q-img>
-            <q-card-section class="q-py-sm">
-              <div
-                v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
-                class="float-right row items-center no-wrap"
-                @click.stop
+              <q-img 
+                :src="storefront?.imageUrl || noImage" 
+                ratio="1.75"
+                :class="{ 'closed-shop-image': !storefront?.isOpen && !storefront?.inPrelaunch }"
               >
-                <q-rating :model-value="1" readonly max="1" size="1em" color="pt-primary1"/>
-                {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
-                <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
-                  <div class="row items-center no-wrap">
-                    <q-rating
-                      readonly
-                      max="5"
-                      :model-value="roundRating(storefront?.ordersReviewSummary?.averageRating, { forceDecimals: false})"
-                      size="1em"
-                      color="pt-primary1"
-                      class="no-wrap"
-                      icon-half="star_half"
-                    />
-                    <div>
-                      {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
-                    </div>
-                  </div>
-                  <div>
-                    ({{ storefront?.ordersReviewSummary?.count }}
-                    {{ storefront?.ordersReviewSummary?.count === 1 ? 'review' : 'reviews' }})
-                  </div>
-                </q-menu>
-              </div>
-              <q-badge v-if="!storefront?.inPrelaunch && !storefront?.isOpen" color="grey" class="q-mr-xs">
-                Closed
-              </q-badge>
-              <q-badge v-if="!storefront?.inPrelaunch && storefront?.isStorepickupOnly" color="info" class="q-mr-xs">
-                Store pickup
-              </q-badge>
-              <div class="ellipsis-3-lines">{{ storefront.name }}</div>
-              <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="text-caption bottom">
-                {{ storefront?.openingTimeText }}
-              </div>
-              <div v-if="storefront?.location?.formattedCityAddress" class="row items-start text-caption no-wrap">
-                <div><q-icon name="location_on" style="line-height: 90%;"/></div>
-                <div>
-                  {{ storefront?.location?.formattedCityAddress }}
-                  <span v-if="storefront?.distance" class="text-grey">
-                    (~{{ round(storefront?.distance/1000, 2) }} km)
-                  </span>
-                </div>
-              </div>
-              <q-badge v-if="storefront?.inPrelaunch" color="pt-primary1">
-                <div>Will be live soon!</div>
-                <template v-if="storefront?.launchDate">
-                  <!-- <div>{{ formatDateRelative(storefront?.launchDate) }}</div> -->
-                  <q-menu class="q-pa-sm text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
-                    Live on: {{ formatTimestampToText(storefront?.launchDate) }}
-                  </q-menu>
+                <template v-slot:loading>
+                  <q-skeleton height="100%" width="100%" square />
                 </template>
-              </q-badge>
-            </q-card-section>
-          </q-card>
+              </q-img>
+              <q-card-section class="q-py-sm">
+                <div
+                  v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
+                  class="float-right row items-center no-wrap"
+                  @click.stop
+                >
+                  <q-rating :model-value="1" readonly max="1" size="1em" color="pt-primary1"/>
+                  {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+                  <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                    <div class="row items-center no-wrap">
+                      <q-rating
+                        readonly
+                        max="5"
+                        :model-value="roundRating(storefront?.ordersReviewSummary?.averageRating, { forceDecimals: false})"
+                        size="1em"
+                        color="pt-primary1"
+                        class="no-wrap"
+                        icon-half="star_half"
+                      />
+                      <div>
+                        {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
+                      </div>
+                    </div>
+                    <div>
+                      ({{ storefront?.ordersReviewSummary?.count }}
+                      {{ storefront?.ordersReviewSummary?.count === 1 ? 'review' : 'reviews' }})
+                    </div>
+                  </q-menu>
+                </div>
+                <q-badge v-if="!storefront?.inPrelaunch && !storefront?.isOpen" color="grey" class="q-mr-xs">
+                  Closed
+                </q-badge>
+                <q-badge v-if="!storefront?.inPrelaunch && storefront?.isStorepickupOnly" color="info" class="q-mr-xs">
+                  Store pickup
+                </q-badge>
+                <div class="ellipsis-3-lines">{{ storefront.name }}</div>
+                <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="text-caption bottom">
+                  {{ storefront?.openingTimeText }}
+                </div>
+                <div v-if="storefront?.location?.formattedCityAddress" class="row items-start text-caption no-wrap">
+                  <div><q-icon name="location_on" style="line-height: 90%;"/></div>
+                  <div>
+                    {{ storefront?.location?.formattedCityAddress }}
+                    <span v-if="storefront?.distance" class="text-grey">
+                      (~{{ round(storefront?.distance/1000, 2) }} km)
+                    </span>
+                  </div>
+                </div>
+                <q-badge v-if="storefront?.inPrelaunch" color="pt-primary1">
+                  <div>Will be live soon!</div>
+                  <template v-if="storefront?.launchDate">
+                    <-- <div>{{ formatDateRelative(storefront?.launchDate) }}</div> --
+                    <q-menu class="q-pa-sm text-bow pt-card-2" :class="getDarkModeClass(darkMode)">
+                      Live on: {{ formatTimestampToText(storefront?.launchDate) }}
+                    </q-menu>
+                  </template>
+                </q-badge>
+              </q-card-section>
+            </q-card>
           </div>
-        </template>
+        </template> -->
       </div>
       
       <!-- Infinite scroll loading indicator -->
@@ -455,7 +601,8 @@ const shopDeliveryTypeFilter = computed({
 })
 
 function toggleDeliveryType(value) {
-  shopDeliveryTypeFilter.value = shopDeliveryTypeFilter.value == value ? '' : value
+  shopDeliveryTypeFilter.value = value
+  // shopDeliveryTypeFilter.value = shopDeliveryTypeFilter.value == value ? '' : value
 }
 const storefrontListOpts = computed(() => {
   const data = {
@@ -590,6 +737,11 @@ table.orders-table td {
 }
 .sticky-below-header.sticky-below-header--ios {
   top: 110px;
+}
+
+.shop-image {
+  height: 120px;
+  max-width: 120px;
 }
 
 .pt-card {

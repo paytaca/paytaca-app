@@ -6,15 +6,15 @@
       :class="darkMode ? '' : 'text-black'"
       @click="() => openLocationSelector = true"
     >
-      <q-item-section side class="q-pr-xs button button-text-primary" :class="getDarkModeClass(darkMode)">
-        <q-icon name="location_on" size="1.5rem"/>
+      <q-item-section side class="q-pr-xs" :class="getDarkModeClass(darkMode)">
+        <q-icon name="edit_location_alt" size="1.5rem" color="white"/>
       </q-item-section>
-      <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+      <q-item-section class="text-bow text-white" :class="getDarkModeClass(darkMode)">
         <q-item-label v-if="sessionLocation?.name" caption>{{ sessionLocation?.name }}</q-item-label>
         <q-item-label v-if="sessionLocation?.formatted && sessionLocation?.validCoordinates">
           {{ sessionLocation?.formatted }}
         </q-item-label>
-        <q-item-label v-else class="text-grey">Set delivery location</q-item-label>
+        <q-item-label v-else class="text-white">Set delivery location</q-item-label>
       </q-item-section>
     </q-item>
     <q-dialog v-model="openLocationSelector" position="bottom">
