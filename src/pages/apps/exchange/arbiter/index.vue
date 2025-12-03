@@ -142,7 +142,9 @@ export default {
       } else {
         // HTTP status code error
         switch (error.response.status) {
+          case 401:
           case 403:
+            // Authentication errors - trigger re-authentication
             bus.emit('session-expired')
             break
           case 400:
