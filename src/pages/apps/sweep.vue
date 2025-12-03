@@ -610,11 +610,11 @@ export default {
         const fungibleError = await this.sweepCashTokenFungible(
           unskippedCashTokens, tokenIndex, tokenAddress
         )
-        setTimeout(() => {}, 1000)
+        await new Promise(resolve => setTimeout(resolve, 1000))
         const nonFungibleError = await this.sweepCashTokenNonFungible(
           unskippedNonFungibleCashTokens, tokenIndex, tokenAddress
         )
-        setTimeout(() => {}, 1000)
+        await new Promise(resolve => setTimeout(resolve, 1000))
 
         if (fungibleError || nonFungibleError) {
           this.$q.notify({
@@ -628,9 +628,9 @@ export default {
 
       await this.getTokens(false)
 
-      setTimeout(() => {}, 1000)
+      await new Promise(resolve => setTimeout(resolve, 1000))
       if (this.bchBalance > 0) await this.sweepBch(bchAddress)
-      setTimeout(() => {}, 1000)
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       let retries = 0
       while (retries < 3) {
