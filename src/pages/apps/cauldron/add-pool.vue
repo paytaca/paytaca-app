@@ -176,21 +176,22 @@
                 />
               </div>
             </div>
-            <q-input
-              outlined
-              :label="$t('Token') + ' ' + $t('Amount')"
+            <CustomInput
               v-model="tokenAmount"
-              :suffix="tokenSymbol"
-              bottom-slots
-              @update:model-value="() => syncBchAmountFromTokenAmount()"
+              @update:model-value="syncBchAmountFromTokenAmount"
+              :input-symbol="tokenSymbol"
+              :label="$t('Token') + ' ' + $t('Amount')"
+              :asset="selectedTokenAsAsset"
+              :decimal-obj="{ min: 0, max: tokenDecimals }"
             />
-            <q-input
-              outlined
-              :label="$t('BCHAmount')"
+
+            <CustomInput
               v-model="bchAmount"
-              suffix="BCH"
-              bottom-slots
-              @update:model-value="() => syncTokenAmountFromBch()"
+              @update:model-value="syncTokenAmountFromBch"
+              input-symbol="BCH"
+              :label="$t('BCHAmount')"
+              :asset="bchAsset"
+              :decimal-obj="{ min: 0, max: 8 }"
             />
 
             <q-slide-transition>
@@ -222,7 +223,7 @@
 // import { mockFetchTokensList } from 'src/wallet/cauldron/mock';
 import { fetchTokenLatestPrice, fetchTokensList } from "src/wallet/cauldron/tokens";
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
-import { createPoolTransaction } from 'src/wallet/cauldron/wallet-pool';
+import { createPoolTransaction, fetchWalletPools } from 'src/wallet/cauldron/wallet-pool';
 
 import { getWalletByNetwork } from 'src/wallet/chipnet';
 import { LibauthHDWallet } from 'src/wallet/bch-libauth';
@@ -238,6 +239,7 @@ import HeaderNav from 'src/components/header-nav';
 import CauldronHeaderMenu from "src/components/cauldron/CauldronHeaderMenu.vue";
 import TokenSelectDialog from "src/components/cauldron/TokenSelectDialog.vue";
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
+import CustomInput from 'src/components/CustomInput.vue';
 import DragSlide from 'src/components/drag-slide.vue';
 
 export default defineComponent({
@@ -246,6 +248,7 @@ export default defineComponent({
     HeaderNav,
     CauldronHeaderMenu,
     TokenSelectDialog,
+    CustomInput,
     DragSlide,
   },
   props: {
@@ -272,6 +275,31 @@ export default defineComponent({
     const selectedToken = ref()
     const tokenSymbol = computed(() => selectedToken.value?.bcmr?.token?.symbol || '');
     const tokenDecimals = computed(() => selectedToken.value?.bcmr?.token?.decimals || 0);
+    const selectedTokenAsAsset = computed(() => {
+      if (!selectedToken.value?.token_id) return
+      const assetId = `ct/${selectedToken.value?.token_id}`;
+      const asset = $store.getters['assets/getAsset'](assetId)
+      if (asset) return asset
+      return {
+        id: assetId,
+        symbol: selectedToken.value?.bcmr?.token?.symbol,
+        name: selectedToken.value?.bcmr?.name,
+        logo: selectedToken.value?.bcmr?.uris?.icon 
+          ? getTokenImage(selectedToken.value?.bcmr?.uris?.icon)
+          : '',
+      }
+    })
+
+    const bchAsset = computed(() => {
+      const asset = $store.getters['assets/getAsset']('bch')
+      if (asset) return asset
+      return {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+      }
+    })
 
     // remove later
     // onMounted(() => {
@@ -330,20 +358,33 @@ export default defineComponent({
       if (!bchAmount.value) return 0n
       return BigInt(Math.round(bchAmount.value * 10 ** 8))
     })
+
+    const suppressSync = ref(false)
     function syncTokenAmountFromBch() {
+      if (suppressSync.value) return
       if (!poolPricing.value || !usePoolPricing.value) return
       const MULT = 10_000_000_000n
       const _poolPricing = BigInt(Math.round(poolPricing.value * Number(MULT)))
 
+      suppressSync.value = true
       tokenAmount.value = Number((satoshis.value * MULT) / _poolPricing) / 10 ** tokenDecimals.value
+      setTimeout(() => {
+        suppressSync.value = false
+      }, 100)
     }
 
     function syncBchAmountFromTokenAmount() {
+      if (suppressSync.value) return
       if(!poolPricing.value || !usePoolPricing.value) return
       const MULT = 10_000_000_000n
       const _poolPricing = BigInt(Math.round(poolPricing.value * Number(MULT)))
       const satoshis = (tokenUnits.value * _poolPricing) / MULT
+
+      suppressSync.value = true
       bchAmount.value = Number(satoshis) / 10 ** 8
+      setTimeout(() => {
+        suppressSync.value = false
+      }, 100)
     }
 
     const tokenValueInBch = computed(() => {
@@ -437,20 +478,28 @@ export default defineComponent({
         const utxos = [...bchUtxos, ...tokenUtxos]
         const spendableCoins = watchtowerUtxosToSpendableCoins({ utxos, wallet: libuathWallet })
 
-        dialog.update({ message: $t('BuildingTransaction' )})
+        dialog.update({ message: $t('CheckingForExistingPools', 'Checking for existing pools') })
         const addressSet = await bchWallet.getAddressSetAt(0);
+        const _ownerAddress = addressSet.receiving
+        const walletPools = await fetchWalletPools(_ownerAddress, _tokenData.token_id)
+        let existingPool = undefined
+        if (walletPools.length) existingPool = walletPools[0]
+
+        dialog.update({ message: $t('BuildingTransaction' )})
         const txHex = createPoolTransaction({
-          tokenId: selectedToken.value.token_id,
+          tokenId: _tokenData.token_id,
           tokens: tokenUnits.value,
           satoshis: satoshis.value,
-          ownerAddress: addressSet.receiving,
+          ownerAddress: _ownerAddress,
           spendableCoins: spendableCoins,
+          existingPool: existingPool,
         })
 
         dialog.update({ message: $t('BroadcastingTransaction') })
         const broadcastResult = await bchWallet.watchtower.BCH.broadcastTransaction(txHex)
         if (broadcastResult.data?.error) throw new Error(broadcastResult?.data?.error)
         // const broadcastResult = { data: {txid: 'text' } }
+        // console.log(txHex)
 
         completedPoolData.value = {
           txid: broadcastResult?.data?.txid,
@@ -548,6 +597,9 @@ export default defineComponent({
       darkMode,
       selectedToken,
       tokenSymbol,
+      tokenDecimals,
+      selectedTokenAsAsset,
+      bchAsset,
       parsedPoolPricing,
       usePoolPricing,
       selectedMarketCurrency,
@@ -581,6 +633,10 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+#app-container {
+  padding-bottom: 50vh;
+}
+
 .insufficient-balance-alert {
   display: flex;
   align-items: center;

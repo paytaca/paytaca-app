@@ -1,6 +1,6 @@
 import axios from "axios";
 import { addressToPkHash, pubkeyToAddress, toTokenAddress, wifToPubkey } from "src/utils/crypto";
-import { ExchangeLab } from "@cashlab/cauldron";
+import { buildPoolV0UnlockingBytecode, ExchangeLab } from "@cashlab/cauldron";
 import { Contract, ElectrumNetworkProvider, SignatureTemplate, TransactionBuilder } from "cashscript";
 import { getOutputSize } from "cashscript/dist/utils";
 import { hexToBin } from "bitauth-libauth-v3";
@@ -11,11 +11,13 @@ import { calculateInputSize } from "src/utils/cashscript-utils";
 
 /**
  * @param {String} address 
- * @returns {import("./pool").MicroPool[]}
+ * @param {String} [tokenId]
+ * @returns {Promise<import("./pool").MicroPool[]>}
  */
-export async function fetchWalletPools(address) {
+export async function fetchWalletPools(address, tokenId) {
   const pkhash = addressToPkHash(address)
   const params = { pkh: pkhash }
+  if (tokenId) params.token = tokenId
   const path = 'cauldron/pool/active'
   const response = await axios.get('https://indexer2.cauldron.quest/' + path, { params })
   const activePools = response.data?.active
@@ -37,20 +39,21 @@ export async function fetchWalletPools(address) {
 }
 
 
+
 /**
  * @param {Object} opts 
  * @param {String} opts.tokenId
  * @param {BigInt} opts.tokens
  * @param {BigInt} opts.satoshis
  * @param {String} opts.ownerAddress
+ * @param {import("./pool").MicroPool} [opts.existingPool]
  * @param {import('@cashlab/common').SpendableCoin[]} opts.spendableCoins
  */
 export function createPoolTransaction(opts) {
   const exlab = new ExchangeLab()
   const ownerPkHash = addressToPkHash(opts.ownerAddress)
-  const lockingBytecode = exlab.generatePoolV0LockingBytecode({
-    withdraw_pubkey_hash: hexToBin(ownerPkHash)
-  })
+  const poolV0Parameters = { withdraw_pubkey_hash: hexToBin(ownerPkHash) }
+  const lockingBytecode = exlab.generatePoolV0LockingBytecode(poolV0Parameters)
   const provider = new ElectrumNetworkProvider('mainnet')
 
   const balancer = { inputSats: 0n, outputSats: 0n, txSize: 10n }
@@ -61,6 +64,30 @@ export function createPoolTransaction(opts) {
     amount: opts?.satoshis,
     token: { category: opts?.tokenId, amount: opts?.tokens }
   }
+  if(opts?.existingPool) {
+    const existingPool = opts?.existingPool
+    const unlockingBytecode = buildPoolV0UnlockingBytecode(poolV0Parameters)
+    const unlocker = {
+      generateLockingBytecode: () => lockingBytecode,
+      generateUnlockingBytecode: () => unlockingBytecode,
+    }
+
+    builder.addInput({
+      txid: existingPool.new_utxo_txid,
+      vout: existingPool.new_utxo_n,
+      satoshis: BigInt(existingPool.sats),
+      token: {
+        category: existingPool.token_id,
+        amount: BigInt(existingPool.token_amount),
+      }
+    }, unlocker)
+    balancer.inputSats += BigInt(existingPool.sats)
+    balancer.txSize += 41n + BigInt(unlockingBytecode.byteLength);
+
+    poolOutput.amount += BigInt(existingPool.sats)
+    poolOutput.token.amount += BigInt(existingPool.token_amount)
+  }
+
   balancer.outputSats += poolOutput.amount
   balancer.txSize += BigInt(getOutputSize(poolOutput))
   builder.addOutput(poolOutput)
@@ -74,7 +101,7 @@ export function createPoolTransaction(opts) {
   })
   const bchCoins = opts.spendableCoins.filter(coin => !coin.output?.token?.token_id)
 
-  let tokensToFund = poolOutput.token.amount
+  let tokensToFund = opts?.tokens
   for(const tokenCoin of tokenCoins) {
     if (tokensToFund <= 0n) break
     
