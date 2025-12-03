@@ -292,6 +292,7 @@ export default {
       passPhrase: '',
       isDecrypting: false,
       hasEnoughBalances: true,
+      tokenIndex: 0,
 
       sweepTxidMap: {
         'bch': '',
@@ -419,7 +420,7 @@ export default {
       this.sweeping = false
     },
 
-    async sweepCashTokenFungible(tokens, tokenIndex=0, tokenAddress=null) {
+    async sweepCashTokenFungible(tokens, tokenAddress=null) {
       this.sweeping = true
       let hasSweepingError = false
       const isSingleSweep = tokenAddress === null
@@ -447,7 +448,7 @@ export default {
             tokenId: token?.category,
           },
           tokenAmount: token.balance,
-          feeFunder: this.parseFeeFunder(tokenIndex),
+          feeFunder: this.parseFeeFunder(),
           recipient: tokenAddress,
         }
 
@@ -467,7 +468,7 @@ export default {
         })
 
         if (hasSweepingError) {
-          fungiblePayload.feeFunder = this.parseFeeFunder(tokenIndex, true)
+          fungiblePayload.feeFunder = this.parseFeeFunder(true)
           await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
             if (result.success) hasSweepingError = false
             else {
@@ -484,12 +485,12 @@ export default {
           })
         }
 
-        tokenIndex++
+        this.tokenIndex++
       }
 
       return hasSweepingError
     },
-    async sweepCashTokenNonFungible(tokens, tokenIndex=0, tokenAddress=null) {
+    async sweepCashTokenNonFungible(tokens, tokenAddress=null) {
       this.sweeping = true
       let hasSweepingError = false
       const isSingleSweep = tokenAddress === null
@@ -521,7 +522,7 @@ export default {
             vout: token?.currentIndex,
           },
           recipient: tokenAddress,
-          feeFunder: this.parseFeeFunder(tokenIndex),
+          feeFunder: this.parseFeeFunder(),
         }
   
         await this.sweeper.sweepCashToken(nftPayload).then(result => {
@@ -540,7 +541,7 @@ export default {
         })
 
         if (hasSweepingError) {
-          nftPayload.feeFunder = this.parseFeeFunder(tokenIndex, true)
+          nftPayload.feeFunder = this.parseFeeFunder(true)
           await this.sweeper.sweepCashToken(nftPayload).then(result => {
             if (result.success) hasSweepingError = false
             else {
@@ -557,7 +558,7 @@ export default {
           })
         }
 
-        tokenIndex++
+        this.tokenIndex++
       }
 
       return hasSweepingError
@@ -612,14 +613,14 @@ export default {
         const unskippedNonFungibleCashTokens = this.nonFungibleCashTokens.filter(
           token => !this.skippedTokens.includes(`${token.category}|${token.commitment}`)
         )
-        let tokenIndex = 0
+        this.tokenIndex = 0
 
         const fungibleError = await this.sweepCashTokenFungible(
-          unskippedCashTokens, tokenIndex, tokenAddress
+          unskippedCashTokens, tokenAddress
         )
         await new Promise(resolve => setTimeout(resolve, 1000))
         const nonFungibleError = await this.sweepCashTokenNonFungible(
-          unskippedNonFungibleCashTokens, tokenIndex, tokenAddress
+          unskippedNonFungibleCashTokens, tokenAddress
         )
         await new Promise(resolve => setTimeout(resolve, 1000))
 
@@ -677,8 +678,8 @@ export default {
         }
       }, 1000);
     },
-    parseFeeFunder(tokenIndex, isForceWallet=false) {
-      const fee = (546 / (10 ** 8)) * (tokenIndex + 1)
+    parseFeeFunder(isForceWallet=false) {
+      const fee = (546 / (10 ** 8)) * (this.tokenIndex + 1)
 
       if (this.bchBalance < fee || isForceWallet) {
         return {
