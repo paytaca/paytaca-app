@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "View Details",
   ViewEscrow: "View escrow",
   ViewEscrowContracts: "View escrow contracts",
+  ViewHistory: "View History",
   ViewIgnoredPoints: "View ignored points",
   ViewIgnoredTokens: "View ignored tokens",
   ViewInExplorer: "View in explorer",

@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Duba cikakkun bayanai",
   ViewEscrow: "Duba",
   ViewEscrowContracts: "Duba kwangila na Escrow",
+  ViewHistory: "Duba Tarihi",
   ViewIgnoredPoints: "Duba abubuwan da aka yi watsi da su",
   ViewIgnoredTokens: "Duba alamu mara kyau",
   ViewInExplorer: "Duba cikin bincike",

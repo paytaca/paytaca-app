@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Bekyk besonderhede",
   ViewEscrow: "Bekyk borg",
   ViewEscrowContracts: "Sien borgkontrakte",
+  ViewHistory: "Bekyk geskiedenis",
   ViewIgnoredPoints: "Bekyk geïgnoreer punte",
   ViewIgnoredTokens: "Bekyk geïgnoreer tekens",
   ViewInExplorer: "Kyk in Explorer",

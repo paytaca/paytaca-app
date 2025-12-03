@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Afficher les détails",
   ViewEscrow: "Voir le dépôt",
   ViewEscrowContracts: "Afficher les contrats de dépôt",
+  ViewHistory: "Afficher l'historique",
   ViewIgnoredPoints: "Afficher les points ignorés",
   ViewIgnoredTokens: "Afficher les jetons ignorés",
   ViewInExplorer: "Afficher dans l'explorateur",

@@ -275,7 +275,7 @@
             </template>
           </q-card-section>
           <div class="row justify-center q-mb-md text-grey-6">
-            <span>{{ $t('PoweredBy') }} {{ $t('Cauldron') }}.quest</span>
+            <span>{{ $t('PoweredBy') }} cauldron.quest</span>
           </div>
         </q-card>
 

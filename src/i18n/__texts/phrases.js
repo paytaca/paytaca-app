@@ -303,6 +303,7 @@ const phrases = {
       LastMonth: 'Last Month',
       LastYear: 'Last Year',
       AllTime: 'All Time',
+      ViewHistory: 'View History',
     },
     {
       TotalHedgeValue: "Total hedge value",

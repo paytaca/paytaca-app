@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Details bekijken",
   ViewEscrow: "Bekijk borg",
   ViewEscrowContracts: "Bekijk escrow-contracten",
+  ViewHistory: "Geschiedenis bekijken",
   ViewIgnoredPoints: "Bekijk genegeerde punten",
   ViewIgnoredTokens: "Bekijk genegeerde tokens",
   ViewInExplorer: "Bekijk in verkenner",

@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Посмотреть детали",
   ViewEscrow: "Посмотреть условное депонирование",
   ViewEscrowContracts: "Посмотреть договоры условного депонирования",
+  ViewHistory: "Просмотреть историю",
   ViewIgnoredPoints: "Просмотр игнорируемых баллов",
   ViewIgnoredTokens: "Просмотр игнорируемых токенов",
   ViewInExplorer: "Посмотреть в проводнике",

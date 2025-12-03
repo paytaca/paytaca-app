@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Details anzeigen",
   ViewEscrow: "Treuhandkonto anzeigen",
   ViewEscrowContracts: "Treuhandverträge ansehen",
+  ViewHistory: "Verlauf anzeigen",
   ViewIgnoredPoints: "Ignorierte Punkte anzeigen",
   ViewIgnoredTokens: "Ignorierte Token anzeigen",
   ViewInExplorer: "Im Explorer anzeigen",

@@ -15,7 +15,7 @@
     
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <!-- Loading State -->
-      <div v-if="fetchingPools" class="text-center q-pa-lg">
+      <div v-if="fetchingPools && pools.length === 0" class="text-center q-pa-lg">
         <q-spinner size="3em" color="primary" />
         <div class="q-mt-md text-grey">{{ $t('LoadingPools') }}</div>
       </div>
@@ -46,6 +46,12 @@
             :to="{ name: 'app-cauldron-add-pool' }"
           />
         </div>
+        <q-slide-transition>
+          <div v-if="fetchingPools" class="q-my-md text-grey text-center">
+            {{ $t('LoadingPools') }}
+            <q-spinner color="primary" />
+          </div>
+        </q-slide-transition>
         <div class="row q-col-gutter-md">
           <div
             v-for="pool in poolsWithTokenData"
@@ -194,7 +200,7 @@ import { useCauldronValueFormatters } from "src/composables/cauldron/ui-helpers"
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from "vuex";
-import { defineComponent, computed, ref, onMounted } from "vue";
+import { defineComponent, computed, ref, onMounted, onActivated } from "vue";
 import HeaderNav from 'src/components/header-nav';
 import CauldronHeaderMenu from "src/components/cauldron/CauldronHeaderMenu.vue";
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
@@ -377,6 +383,9 @@ export default defineComponent({
     }
 
     onMounted(() => {
+      fetchMicroPools()
+    })
+    onActivated(() => {
       fetchMicroPools()
     })
 

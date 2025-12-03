@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Tingnan ang mga detalye",
   ViewEscrow: "Tingnan ang Escrow",
   ViewEscrowContracts: "Tingnan ang mga kontrata ng escrow",
+  ViewHistory: "Tingnan ang Kasaysayan",
   ViewIgnoredPoints: "Hindi pinansin ang mga puntos",
   ViewIgnoredTokens: "Hindi pinansin ng mga token ang view",
   ViewInExplorer: "Tingnan sa Explorer",

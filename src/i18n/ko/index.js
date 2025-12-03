@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "세부정보 보기",
   ViewEscrow: "에스크로 보기",
   ViewEscrowContracts: "에스크로 계약 보기",
+  ViewHistory: "기록 보기",
   ViewIgnoredPoints: "무시된 포인트 보기",
   ViewIgnoredTokens: "무시된 토큰 보기",
   ViewInExplorer: "탐색기에서 보기",

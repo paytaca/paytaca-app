@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "عرض التفاصيل",
   ViewEscrow: "عرض الضمان",
   ViewEscrowContracts: "عرض عقود الضمان",
+  ViewHistory: "عرض التاريخ",
   ViewIgnoredPoints: "عرض النقاط التي تم تجاهلها",
   ViewIgnoredTokens: "عرض المصكوكات المهملة",
   ViewInExplorer: "عرض في المستكشف",

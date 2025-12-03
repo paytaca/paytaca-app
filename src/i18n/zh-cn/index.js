@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "查看详情",
   ViewEscrow: "查看托管",
   ViewEscrowContracts: "查看托管合同",
+  ViewHistory: "查看历史记录",
   ViewIgnoredPoints: "查看忽略的点",
   ViewIgnoredTokens: "查看忽略的标记",
   ViewInExplorer: "在资源管理器中查看",

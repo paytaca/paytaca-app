@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Visualizza dettagli",
   ViewEscrow: "Visualizza il deposito a garanzia",
   ViewEscrowContracts: "Visualizza i contratti di deposito a garanzia",
+  ViewHistory: "Visualizza cronologia",
   ViewIgnoredPoints: "Visualizza i punti ignorati",
   ViewIgnoredTokens: "Visualizza i token ignorati",
   ViewInExplorer: "Visualizza in Esplora risorse",

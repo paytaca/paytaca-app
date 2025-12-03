@@ -1963,6 +1963,7 @@ export default {
   ViewDetails: "Lihat Detail",
   ViewEscrow: "Lihat eskrow",
   ViewEscrowContracts: "Lihat kontrak escrow",
+  ViewHistory: "Lihat Riwayat",
   ViewIgnoredPoints: "Lihat poin yang diabaikan",
   ViewIgnoredTokens: "Lihat token yang diabaikan",
   ViewInExplorer: "Lihat di penjelajah",
