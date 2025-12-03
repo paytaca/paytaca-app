@@ -12,24 +12,39 @@ export class SweepPrivateKey {
     this.bchAddress = bchjs.ECPair.toCashAddress(ecpair)
     this.slpAddress = bchjs.SLP.Address.toSLPAddress(this.bchAddress)
     this.tokenAddress = convertCashAddress(this.bchAddress, false, true)
+    this.subscribed = false
   }
 
-  async getBchBalance () {
-    const respBch = await axios.post('https://watchtower.cash/api/subscription/', {
+  async subscribe() {
+    if (this.subscribed) return true
+    const resp = await axios.post('https://watchtower.cash/api/subscription/', {
       address: this.bchAddress
     })
-    if (respBch.data.success) {
-      let retries = 0
-      let resp
-
-      while (retries < 3) {
-        resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
-        if (resp.data.balance > 0) break
-        else retries++
-        setTimeout(() => {}, 250)
-      }
-      return resp.data
+    if (resp.data.success) {
+      this.subscribed = true
+      return true
     }
+    return false
+  }
+
+  async getBchBalance (subscribe=true) {
+    if (subscribe) {
+      const respBch = await axios.post('https://watchtower.cash/api/subscription/', {
+        address: this.bchAddress
+      })
+      if (!respBch.data.success) return
+    }
+
+    let retries = 0
+    let resp
+
+    while (retries < 3) {
+      resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
+      if (resp.data.balance > 0) break
+      else retries++
+      setTimeout(() => {}, 250)
+    }
+    return resp.data
   }
 
   async getFungibleCashTokens(subscribe=true) {
@@ -102,10 +117,20 @@ export class SweepPrivateKey {
     let resp
 
     while (retries < 3) {
-      resp = await axios.get(url, { params })
-      if (resp?.data?.results?.length > 0) break
-      else retries++
-      setTimeout(() => {}, 250)
+      try {
+        resp = await axios.get(url, { params })
+        // If we get a valid response (even with empty results), that's the final answer
+        // Only retry if response is invalid/malformed
+        if (resp?.data && Array.isArray(resp.data.results)) {
+          break
+        }
+      } catch (error) {
+        // On error, retry
+      }
+      retries++
+      if (retries < 3) {
+        await new Promise(resolve => setTimeout(resolve, 250))
+      }
     }
 
     const results = resp?.data?.results.map(CashNonFungibleToken.parse)
