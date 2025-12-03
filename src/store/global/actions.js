@@ -639,46 +639,27 @@ function getWalletHashFromWallet(wallet) {
 }
 
 export async function ensureValidWalletIndex (context) {
-  console.log('[ensureValidWalletIndex] ===== Starting wallet index validation =====')
   const vault = context.getters.getVault
-  console.log('[ensureValidWalletIndex] Vault length:', vault?.length || 0)
   
   if (!vault || vault.length === 0) {
-    console.log('[ensureValidWalletIndex] Vault is empty, returning early')
     return
   }
 
   const currentWalletIndex = context.getters.getWalletIndex
-  console.log('[ensureValidWalletIndex] Current wallet index:', currentWalletIndex)
   
   // Skip validation if index is invalid (might be during wallet switching)
   if (currentWalletIndex < 0 || currentWalletIndex >= vault.length) {
-    console.warn('[ensureValidWalletIndex] Current wallet index is out of bounds:', currentWalletIndex, 'vault length:', vault.length)
     return
   }
   
   const currentWallet = vault[currentWalletIndex]
-  console.log('[ensureValidWalletIndex] Current wallet at index', currentWalletIndex, ':', currentWallet ? 'exists' : 'MISSING')
-  
-  if (currentWallet) {
-    console.log('[ensureValidWalletIndex] Current wallet details:', {
-      deleted: currentWallet.deleted,
-      hasWallet: !!currentWallet.wallet,
-      hasChipnet: !!currentWallet.chipnet,
-      name: currentWallet.name,
-      walletHash: currentWallet.wallet?.bch?.walletHash || currentWallet.wallet?.BCH?.walletHash || currentWallet.BCH?.walletHash || currentWallet.bch?.walletHash || currentWallet.walletHash || 'none'
-    })
-  }
 
   // Check if current wallet is valid (not null, not deleted, and has a walletHash)
   const isCurrentWalletValid = currentWallet && 
     currentWallet.deleted !== true && 
     hasValidWalletHash(currentWallet)
-  
-  console.log('[ensureValidWalletIndex] Is current wallet valid?', isCurrentWalletValid)
 
   if (!isCurrentWalletValid) {
-    console.log('[ensureValidWalletIndex] Current wallet is invalid, searching for valid wallets...')
     // Find first valid (non-null, non-deleted, with walletHash) wallet
     const validWallets = []
     vault.forEach((wallet, index) => {
@@ -687,59 +668,29 @@ export async function ensureValidWalletIndex (context) {
           hasValidWalletHash(wallet)
       if (isValid) {
         validWallets.push(index)
-        console.log('[ensureValidWalletIndex] Found valid wallet at index:', index, {
-          name: wallet.name,
-          walletHash: wallet.wallet?.bch?.walletHash || wallet.wallet?.BCH?.walletHash || wallet.BCH?.walletHash || wallet.bch?.walletHash || wallet.walletHash || 'none'
-        })
-      } else {
-        console.log('[ensureValidWalletIndex] Wallet at index', index, 'is invalid:', {
-          exists: !!wallet,
-          deleted: wallet?.deleted,
-          hasWalletHash: hasValidWalletHash(wallet)
-        })
       }
     })
-
-    console.log('[ensureValidWalletIndex] Found', validWallets.length, 'valid wallets:', validWallets)
 
     if (validWallets.length > 0) {
       // Switch to the first valid wallet
       const firstValidIndex = validWallets[0]
-      console.log('[ensureValidWalletIndex] Switching to first valid wallet at index:', firstValidIndex)
       // Only switch if it's different from current index to avoid unnecessary reloads
       if (firstValidIndex !== currentWalletIndex) {
         // Update wallet index IMMEDIATELY (synchronously) before async switchWallet
         // This ensures the router guard sees the correct index
         context.commit('updateWalletIndex', firstValidIndex)
         context.commit('updateCurrentWallet', firstValidIndex)
-        console.log('[ensureValidWalletIndex] Updated wallet index to:', firstValidIndex, '(synchronously)')
         
         // Then perform the full switch asynchronously (for state initialization, etc.)
-        context.dispatch('switchWallet', firstValidIndex).catch((err) => {
-          console.error('[ensureValidWalletIndex] Error switching to valid wallet:', err)
+        context.dispatch('switchWallet', firstValidIndex).catch(() => {
+          // Silently handle errors - wallet switching errors are handled elsewhere
         })
-        console.log('[ensureValidWalletIndex] Initiated async switch to wallet at index:', firstValidIndex)
-      } else {
-        console.log('[ensureValidWalletIndex] First valid wallet is already the current wallet, no switch needed')
       }
     } else {
-      // No valid wallets left - log for debugging before clearing
-      console.warn('[ensureValidWalletIndex] No valid wallets found in vault. Vault length:', vault.length)
-      console.warn('[ensureValidWalletIndex] Vault contents:', vault.map((w, i) => ({
-        index: i,
-        deleted: w?.deleted,
-        hasWallet: !!w?.wallet,
-        walletHash: w?.wallet?.bch?.walletHash || w?.wallet?.BCH?.walletHash || w?.BCH?.walletHash || w?.bch?.walletHash || w?.walletHash || 'none'
-      })))
-      // Clear vault only if truly no valid wallets
-      console.warn('[ensureValidWalletIndex] Clearing vault - no valid wallets found')
+      // No valid wallets left - clear vault
       context.commit('clearVault')
     }
-  } else {
-    console.log('[ensureValidWalletIndex] Current wallet is valid, no action needed')
   }
-  
-  console.log('[ensureValidWalletIndex] ===== Validation complete =====')
 }
 
 /**
@@ -902,7 +853,7 @@ export async function cleanupNullAndDeletedWallets (context) {
 
 /**
  * Clean up duplicate wallets in the vault based on walletHash
- * Keeps the wallet with a custom name (not "Personal Wallet #X") or the first one if both have generic names
+ * Keeps the wallet with a custom name (not "Personal Wallet") or the first one if both have generic names
  * Performs complete cleanup of deleted duplicates (removes all traces)
  */
 export async function cleanupDuplicateWallets (context) {
@@ -1028,12 +979,11 @@ export async function cleanupDuplicateWallets (context) {
 }
 
 /**
- * Check if a wallet name is custom (not "Personal Wallet #X")
+ * Check if a wallet name is custom (not "Personal Wallet")
  */
 function hasCustomWalletName (name) {
   if (!name || name === '') return false
-  const genericNamePattern = /^Personal Wallet #\d+$/
-  return !genericNamePattern.test(name)
+  return name !== 'Personal Wallet'
 }
 
 /**
@@ -1045,10 +995,21 @@ export async function loadWalletLastAddressIndex (context) {
     ? context.state.chipnet__wallets.bch
     : context.state.wallets.bch
 
+  // Check if wallet hash exists
+  if (!wallet || !wallet.walletHash) {
+    console.warn('Cannot load last address index: wallet hash not available')
+    return
+  }
+
   try {
     const lastAddressAndIndex = await w.getLastExternalAddressIndex(wallet.walletHash)
-    context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
+    } else {
+      console.warn('Invalid response from getLastExternalAddressIndex:', lastAddressAndIndex)
+    }
   } catch (error) {
+    console.error('Error loading last address index from watchtower:', error)
     // on error just use the existing
     context.commit('setWalletLastAddressAndIndex', {
       address: wallet.lastAddress,
@@ -1124,7 +1085,8 @@ export async function autoGenerateAddress(context, opts) {
 
   const walletType = opts?.walletType || 'bch'
 
-  const address = context.getters['getAddress'](walletType)
+  // Use provided address if available (for dynamically generated addresses), otherwise fallback to store
+  const address = opts?.address || context.getters['getAddress'](walletType)
   const lastAddressIndex = context.getters['getLastAddressIndex'](walletType)
 
   const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'

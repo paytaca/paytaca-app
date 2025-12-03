@@ -8,7 +8,7 @@ import { removeWalletName } from 'src/utils/wallet-name-cache'
 function getDefaultWalletSettings() {
   return {
     isChipnet: false,
-    autoGenerateAddress: false,
+    autoGenerateAddress: true,
     enableStablhedge: false,
     enableSmartBCH: false,
     enableSLP: false,
@@ -137,6 +137,46 @@ export function clearVault (state) {
 export function removeVaultEntry (state, index) {
   if (index >= 0 && index < state.vault.length) {
     state.vault.splice(index, 1)
+  }
+}
+
+/**
+ * Reorder vault entries by moving an item from one index to another
+ * @param {Object} state - Global state
+ * @param {Object} payload - Reorder payload
+ * @param {number} payload.fromIndex - Source index in vault array
+ * @param {number} payload.toIndex - Destination index in vault array
+ */
+export function reorderVault (state, { fromIndex, toIndex }) {
+  if (fromIndex === toIndex) {
+    return // No change needed
+  }
+
+  if (fromIndex < 0 || fromIndex >= state.vault.length || toIndex < 0 || toIndex >= state.vault.length) {
+    console.warn('[reorderVault] Invalid indices:', { fromIndex, toIndex, vaultLength: state.vault.length })
+    return
+  }
+
+  // Get the wallet being moved
+  const walletToMove = state.vault[fromIndex]
+  
+  // Remove from original position
+  state.vault.splice(fromIndex, 1)
+  
+  // Insert at new position
+  state.vault.splice(toIndex, 0, walletToMove)
+
+  // Update walletIndex if the currently active wallet was moved
+  const currentWalletIndex = state.walletIndex
+  if (currentWalletIndex === fromIndex) {
+    // The active wallet was moved, update walletIndex to its new position
+    state.walletIndex = toIndex
+  } else if (currentWalletIndex > fromIndex && currentWalletIndex <= toIndex) {
+    // A wallet before the active one was moved forward, shift walletIndex back
+    state.walletIndex = currentWalletIndex - 1
+  } else if (currentWalletIndex < fromIndex && currentWalletIndex >= toIndex) {
+    // A wallet after the active one was moved backward, shift walletIndex forward
+    state.walletIndex = currentWalletIndex + 1
   }
 }
 
@@ -588,8 +628,22 @@ export function setTheme (state, theme) {
 export function setWalletLastAddressAndIndex(state, lastAddressAndIndex) {
   if (state.isChipnet) {
     state.chipnet__wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+    // Also update lastAddressIndex if address_index is provided
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      state.chipnet__wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+      if (lastAddressAndIndex.address) {
+        state.chipnet__wallets.bch.lastAddress = lastAddressAndIndex.address
+      }
+    }
   } else {
     state.wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+    // Also update lastAddressIndex if address_index is provided
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      state.wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+      if (lastAddressAndIndex.address) {
+        state.wallets.bch.lastAddress = lastAddressAndIndex.address
+      }
+    }
   }
 }
 

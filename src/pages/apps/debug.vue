@@ -19,6 +19,73 @@
     </header-nav>
 
     <div class="debug-content q-pa-md">
+      <!-- Enable SLP Toggle -->
+      <div class="q-mb-md">
+        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
+          <q-card-section>
+            <div class="row items-center justify-between">
+              <div class="col">
+                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                  {{ $t('EnableSlp') }}
+                </div>
+                <div class="text-caption text-grey-7" :class="getDarkModeClass(darkMode)">
+                  Enable SLP token support
+                </div>
+              </div>
+              <q-toggle
+                v-model="enableSLP"
+                :color="toggleColor"
+                keep-color
+              />
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <!-- BCH Denomination Selector -->
+      <div class="q-mb-md">
+        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
+          <q-card-section>
+            <div class="row items-center justify-between">
+              <div class="col">
+                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                  {{ $t('SelectBCHDenomination') }}
+                </div>
+                <div class="text-caption text-grey-7" :class="getDarkModeClass(darkMode)">
+                  Choose how BCH amounts are displayed
+                </div>
+              </div>
+              <div class="q-ml-md">
+                <DenominatorSelector :darkMode="darkMode" />
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <!-- Auto Generate Address Toggle -->
+      <div class="q-mb-md">
+        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
+          <q-card-section>
+            <div class="row items-center justify-between">
+              <div class="col">
+                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                  {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
+                </div>
+                <div class="text-caption text-grey-7" :class="getDarkModeClass(darkMode)">
+                  {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
+                </div>
+              </div>
+              <q-toggle
+                v-model="autoGenerateAddress"
+                :color="toggleColor"
+                keep-color
+              />
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
       <!-- Sound Test Button -->
       <div class="q-mb-md">
         <q-btn
@@ -72,11 +139,13 @@ import headerNav from 'src/components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
+import DenominatorSelector from 'src/components/settings/DenominatorSelector'
 
 export default {
   name: 'DebugApp',
   components: {
-    headerNav
+    headerNav,
+    DenominatorSelector
   },
   data () {
     return {
@@ -89,12 +158,29 @@ export default {
         warn: null,
         debug: null,
         info: null
-      }
+      },
+      enableSLP: this.$store.getters['global/enableSLP'],
+      autoGenerateAddress: this.$store.getters['global/autoGenerateAddress']
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    toggleColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return 'pink-6'
+      if (theme === 'glassmorphic-green') return 'green-6'
+      if (theme === 'glassmorphic-gold') return 'amber-7'
+      return 'blue-6'
+    }
+  },
+  watch: {
+    enableSLP (n, o) {
+      this.$store.commit('global/enableSLP')
+    },
+    autoGenerateAddress (n, o) {
+      this.$store.commit('global/toggleAutoGenerateAddress')
     }
   },
   methods: {
@@ -341,8 +427,49 @@ export default {
   background-color: #ECF3F3;
 }
 
+/* Match Settings page background - inherits from #app-container.dark */
+body.theme-glassmorphic-blue .debug-page.dark {
+  background-color: #273746;
+}
+
+body.theme-glassmorphic-red .debug-page.dark {
+  background-color: #462733;
+}
+
+body.theme-glassmorphic-green .debug-page.dark {
+  background-color: #263d32;
+}
+
+body.theme-glassmorphic-gold .debug-page.dark {
+  background-color: #3d3224;
+}
+
+body.theme-payhero .debug-page.dark {
+  background-color: #012121;
+}
+
+/* Fallback for default theme or if theme class is not present */
+.debug-page.dark {
+  background-color: #273746;
+}
+
 .debug-content {
   margin-top: 20px;
+}
+
+.debug-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.debug-card.dark {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.debug-card.light {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .terminal-container {

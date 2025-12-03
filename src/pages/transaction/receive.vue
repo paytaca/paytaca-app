@@ -60,7 +60,21 @@
             <div class="col q-pl-sm q-pr-sm">
               <div class="row text-center" @click="copyToClipboard(isCt ? address : addressAmountFormat)">
                 <div class="col row justify-center q-pt-md">
+                  <div
+                    v-if="generating || !address"
+                    class="q-mb-sm"
+                    style="width: 220px; height: 220px; min-width: 220px; min-height: 220px; display: flex; align-items: center; justify-content: center;"
+                  >
+                    <q-skeleton
+                      type="rect"
+                      width="220px"
+                      height="220px"
+                      style="border-radius: 8px;"
+                      animation="fade"
+                    />
+                  </div>
                   <qr-code
+                    v-else
                     :text="isCt ? address : addressAmountFormat"
                     :generating="generating"
                     border-width="3px"
@@ -90,7 +104,7 @@
             :label="$t('LegacyAddressFormat')"
           />
         </div>
-        <div class="row" v-if="!generating">
+        <div class="row" v-if="!generating && address">
           <div class="col copy-container">
             <div class="qr-code-text text-weight-light text-center">
               <div
@@ -194,8 +208,11 @@ import { formatWithLocale } from 'src/utils/denomination-utils.js'
 import {
   generateReceivingAddress,
   generateSbchAddress,
-  getDerivationPathForWalletType
+  getDerivationPathForWalletType,
+  generateAddressSetWithoutSubscription
 } from 'src/utils/address-generation-utils.js'
+import { toTokenAddress } from 'src/utils/crypto.js'
+import axios from 'axios'
 
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
@@ -230,7 +247,9 @@ export default {
       amountDialog: false,
       setAmountInFiat: true,
       tokens: [],
-      dynamicAddress: '' // Store dynamically generated address
+      dynamicAddress: '', // Store dynamically generated address (for display, may be token format)
+      dynamicAddressRegular: '', // Store regular format address (for API calls, subscriptions, listeners)
+      isInitializing: true // Flag to prevent watcher from triggering during initial load
     }
   },
   props: {
@@ -478,6 +497,30 @@ export default {
       }
     },
     async getAddress (forListener = false) {
+      // Use the already-generated address from refreshDynamicAddress instead of regenerating
+      // For listeners and API calls, always use regular format
+      if (this.dynamicAddressRegular) {
+        return this.dynamicAddressRegular
+      }
+      
+      // Fallback to dynamicAddress if regular format not set (shouldn't happen in normal flow)
+      if (this.dynamicAddress) {
+        // If it's a token address and we need regular format, convert it back
+        if (forListener && this.assetId.indexOf('ct/') > -1) {
+          // Convert token address back to regular format using Address utility
+          try {
+            const addressObj = new Address(this.dynamicAddress)
+            return addressObj.toCashAddress()
+          } catch (e) {
+            console.error('Error converting token address to regular format:', e)
+            return this.dynamicAddress
+          }
+        }
+        return this.dynamicAddress
+      }
+      
+      // Fallback: if dynamicAddress is not set yet, wait for it or generate
+      // This should rarely happen, but provides a safety net
       if (this.isSep20) {
         this.walletType = 'sbch'
         // For sBCH, generate dynamically
@@ -496,7 +539,6 @@ export default {
             color: 'negative',
             icon: 'warning'
           })
-          // Don't fallback to store - address generation must succeed
           return null
         }
       } else if (this.assetId.indexOf('slp/') > -1) {
@@ -505,10 +547,10 @@ export default {
         this.walletType = 'bch'
       }
 
-      // Generate address dynamically from mnemonic instead of using stored address
+      // Fallback: generate address if dynamicAddress is not available
+      // This should not happen in normal flow since refreshDynamicAddress is called first
       try {
         const addressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        // Ensure addressIndex is a valid number (default to 0 if undefined/null)
         const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
         
         let address = await generateReceivingAddress({
@@ -518,7 +560,6 @@ export default {
           isChipnet: this.isChipnet
         })
         
-        // Check if subscription failed (returns null)
         if (!address) {
           throw new Error('Failed to subscribe address to watchtower')
         }
@@ -534,19 +575,156 @@ export default {
           color: 'negative',
           icon: 'warning'
         })
-        // Don't fallback to store - address generation must succeed
         return null
       }
     },
-    async refreshDynamicAddress() {
-      // Regenerate the dynamic address when needed
+    async checkAddressBalance(address, walletType) {
+      // Check if address has balance (including token sats)
       try {
-        const address = await this.getAddress()
-        this.dynamicAddress = address
-        this.generating = false // Address loaded successfully
+        const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+        
+        if (walletType === 'slp') {
+          // For SLP, check BCH balance
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          const balance = response?.data?.balance || 0
+          return balance > 0
+        } else {
+          // For BCH, check balance including token sats
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => ({ data: { balance: 0 } }))
+          const balance = response?.data?.balance || 0
+          return balance > 0
+        }
+      } catch (error) {
+        console.error('Error checking address balance:', error)
+        // If check fails, assume no balance to be safe
+        return false
+      }
+    },
+    async refreshDynamicAddress() {
+      // Step 1: Generate address from saved lastAddressIndex
+      try {
+        this.generating = true
+        
+        // Determine wallet type
+        if (this.assetId.indexOf('slp/') > -1) {
+          this.walletType = 'slp'
+        } else if (this.isSep20) {
+          this.walletType = 'sbch'
+        } else {
+          this.walletType = 'bch'
+        }
+        
+        // Get lastAddressIndex
+        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        const validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 0
+        
+        // Generate address from lastAddressIndex
+        let address
+        if (this.isSep20) {
+          // For sBCH, use existing logic
+          address = await generateSbchAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex']
+          })
+          if (!address) {
+            throw new Error('Failed to generate and subscribe sBCH address')
+          }
+          this.dynamicAddress = address
+          this.dynamicAddressRegular = address // sBCH uses same format
+          this.generating = false
+          return
+        } else {
+          // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+          const addressResult = await generateAddressSetWithoutSubscription({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType(this.walletType),
+            addressIndex: validAddressIndex,
+            isChipnet: this.isChipnet
+          })
+          
+          if (!addressResult.success) {
+            throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
+          }
+          
+          address = addressResult.addresses.receiving
+          
+          // Step 2: Check if that address has balance (including token sats)
+          const hasBalance = await this.checkAddressBalance(address, this.walletType)
+          
+          if (!hasBalance) {
+            // Step 3: If balance is zero, subscribe and render that address
+            // Now subscribe the address since we're using it
+            const subscribeResult = await generateReceivingAddress({
+              walletIndex: this.$store.getters['global/getWalletIndex'],
+              derivationPath: getDerivationPathForWalletType(this.walletType),
+              addressIndex: validAddressIndex,
+              isChipnet: this.isChipnet
+            })
+            
+            if (!subscribeResult) {
+              throw new Error('Failed to subscribe address to watchtower')
+            }
+            
+            // Store regular format for API calls and listeners
+            this.dynamicAddressRegular = subscribeResult
+            
+            // Store display format (token format for CashToken, regular for others)
+            if (this.assetId.indexOf('ct/') > -1) {
+              this.dynamicAddress = convertCashAddress(subscribeResult, this.isChipnet, true)
+            } else {
+              this.dynamicAddress = subscribeResult
+            }
+            this.generating = false
+            return
+          }
+          
+          // Step 4: Else, generate a new address by incrementing the lastAddressIndex by 1
+          const newAddressIndex = validAddressIndex + 1
+          
+          // Step 5: Generate and subscribe the new address (only subscribe when creating new address)
+          const newAddress = await generateReceivingAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType(this.walletType),
+            addressIndex: newAddressIndex,
+            isChipnet: this.isChipnet
+          })
+          
+          if (!newAddress) {
+            throw new Error('Failed to generate and subscribe new address')
+          }
+          
+          // Update store with new address index
+          const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+          const wallet = new Wallet(mnemonic, this.network)
+          const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
+          const addresses = result.addresses
+          
+          this.$store.commit('global/generateNewAddressSet', {
+            type: this.walletType,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: newAddressIndex
+          })
+          
+          // Step 6: Render that new address in the page
+          // Store regular format for API calls and listeners
+          this.dynamicAddressRegular = newAddress
+          
+          // Store display format (token format for CashToken, regular for others)
+          if (this.assetId.indexOf('ct/') > -1) {
+            this.dynamicAddress = convertCashAddress(newAddress, this.isChipnet, true)
+          } else {
+            this.dynamicAddress = newAddress
+          }
+          this.generating = false
+        }
       } catch (error) {
         console.error('Error refreshing dynamic address:', error)
         this.generating = false // Stop generating even on error
+        this.$q.notify({
+          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
       }
     },
     getLastAddressIndex () {
@@ -828,9 +1006,11 @@ export default {
 
   watch: {
     address () {},
-    walletType () {
-      // Refresh dynamic address when wallet type changes
-      this.refreshDynamicAddress()
+    walletType (newVal, oldVal) {
+      // Only refresh if wallet type actually changed (not during initial load)
+      if (!this.isInitializing && oldVal && newVal !== oldVal) {
+        this.refreshDynamicAddress()
+      }
     },
     setAmountInFiat(newVal, oldVal) {
       const amount = parseFloat(this.amount)
@@ -868,26 +1048,26 @@ export default {
     await self.wakeLock.release()
   },
 
-  async beforeMount() {
-    const result = await this.$store.dispatch('global/autoGenerateAddress', {
-      walletType: this.walletType,
-      tokenId: this.assetId.replace('ct/', '').replace('slp/', '')
-    })
-    console.log('Auto generate address', result)
-  },
-
   async mounted () {
     const vm = this
     
-    // Generate the dynamic address first
+    // Generate the dynamic address first (this handles balance check and subscription)
     await vm.refreshDynamicAddress()
+    
+    // Mark initialization as complete so watchers can trigger
+    vm.isInitializing = false
     
     // Setup websocket listener (async, needs to await address)
     await vm.setupListener()
 
-
-    self.wakeLock = useWakeLock()
-    await wakeLock.request('screen')
+    // Request wake lock with error handling
+    try {
+      self.wakeLock = useWakeLock()
+      await self.wakeLock.request('screen')
+    } catch (error) {
+      // Wake lock permission may be denied - this is not critical, just log it
+      console.warn('Wake lock permission denied or not available:', error)
+    }
 
     vm.tokens = vm.$store.getters['global/network'] === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
   },

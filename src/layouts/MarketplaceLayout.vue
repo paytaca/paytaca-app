@@ -297,16 +297,52 @@ export default {
       })
     }
 
-    function promptUserDetails() {
+    async function promptUserDetails() {
       if (customer.value?.defaultLocation?.validCoordinates) return Promise.resolve('valid_coordinates')
       if ($route.name === 'app-marketplace-customer') return Promise.reject('already in customer page')
+
+      // Check if we're on the marketplace index page and if there are any storefronts
+      // Only skip if coordinates are valid (meaning storefronts could have been fetched)
+      // and there are no storefronts after waiting for them to load
+      if ($route.name === 'app-marketplace') {
+        const customerCoordinates = $store.getters['marketplace/customerCoordinates']
+        const hasValidCoordinates = customerCoordinates?.validCoordinates
+        
+        // Only check for storefronts if coordinates are valid (storefronts are only fetched with valid coordinates)
+        if (hasValidCoordinates) {
+          // Poll for storefronts to be loaded (they're fetched when index page loads)
+          // Wait up to 3 seconds, checking every 200ms
+          let attempts = 0
+          const maxAttempts = 15 // 15 * 200ms = 3 seconds
+          
+          while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 200))
+            const storefronts = $store.getters['marketplace/storefronts']
+            
+            // If storefronts are found, show the dialog
+            if (storefronts && storefronts.length > 0) {
+              break // Exit loop and show dialog
+            }
+            
+            attempts++
+          }
+          
+          // After waiting, check one more time
+          const storefronts = $store.getters['marketplace/storefronts']
+          // If there are no storefronts after waiting, don't show the dialog
+          if (!storefronts || storefronts.length === 0) {
+            return Promise.resolve('no_storefronts')
+          }
+        }
+        // If coordinates are not valid yet, show the dialog anyway (user needs to set location)
+      }
 
       return new Promise((resolve, reject) => {
         $q.dialog({
           title: 'Setup customer info',
           message: 'Update address and other info for faster checkout',
           ok: { noCaps: true, label: 'Go', color: 'brandblue', class: 'button' },
-          cancel: { noCaps: true, flat: true, label: 'Skip', color: 'grey' },
+          cancel: { noCaps: true, flat: true, label: 'Skip for now', color: 'grey' },
           class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
         }).onOk(() => {
           $router.push({

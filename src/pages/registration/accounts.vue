@@ -5,7 +5,7 @@
     <!-- Minimal Glassmorphic Layout -->
     <div 
       class="minimal-wallet-container"
-      :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}"
+      :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}"
       v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
     >
       <div v-if="serverOnline === true" v-cloak>

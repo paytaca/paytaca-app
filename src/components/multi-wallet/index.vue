@@ -52,8 +52,14 @@
           </span>
         </div>
         <div v-else class="q-py-md">
-          <q-virtual-scroll :items="vault" virtual-scroll-slice-size="10">
-            <template v-slot="{ item: wallet, index }">
+          <draggable
+            :list="vault"
+            @end="onDragEnd"
+            :item-key="getWalletItemKey"
+            :animation="200"
+            class="wallet-list-draggable"
+          >
+            <template #item="{ element: wallet, index }">
               <template v-if="wallet.deleted !== true">
                 <q-item
                   clickable
@@ -74,7 +80,7 @@
                 </q-item>
               </template>
             </template>
-          </q-virtual-scroll>
+          </draggable>
         </div>
       </div>
 
@@ -102,6 +108,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getWalletName } from 'src/utils/wallet-name-cache'
 
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
+import draggable from 'vuedraggable'
 
 export default {
   emits: [
@@ -118,7 +125,8 @@ export default {
     }
   },
   components: {
-    LoadingWalletDialog
+    LoadingWalletDialog,
+    draggable
   },
   watch: {
     isWalletsRecovered (val) {
@@ -165,7 +173,7 @@ export default {
           if (cachedName) {
             tempName = cachedName
           } else {
-            tempName = `Personal Wallet #${index + 1}`
+            tempName = 'Personal Wallet'
           }
         } else {
           const walletName = await vm.$store.dispatch(
@@ -181,7 +189,7 @@ export default {
             if (cachedName) {
               tempName = cachedName
             } else {
-              tempName = `Personal Wallet #${index + 1}`
+              tempName = 'Personal Wallet'
             }
           }
         }
@@ -207,7 +215,7 @@ export default {
           // Check cache before using generic name
           const walletHash = wallet?.wallet?.bch?.walletHash
           const cachedName = walletHash ? getWalletName(walletHash) : null
-          const newName = cachedName || `Personal Wallet #${index + 1}`
+          const newName = cachedName || 'Personal Wallet'
           vm.$store.commit('global/updateWalletName', { index, name: newName })
         }
       })
@@ -257,6 +265,42 @@ export default {
       // currentIndex is the actual vault index from the store
       return actualIndex === this.currentIndex
     },
+    getWalletItemKey (wallet) {
+      // Use wallet hash as unique key, fallback to index if hash not available
+      return wallet?.wallet?.bch?.walletHash || wallet?.BCH?.walletHash || wallet?.walletHash || JSON.stringify(wallet)
+    },
+    onDragEnd (event) {
+      const vm = this
+      const { oldIndex, newIndex } = event
+      
+      // If indices are the same, no reordering occurred
+      if (oldIndex === newIndex) {
+        return
+      }
+
+      // Get the actual vault indices from the mapping
+      // The vaultIndexMap maps display index -> actual vault index
+      const oldActualIndex = vm.vaultIndexMap.get(oldIndex)
+      const newActualIndex = vm.vaultIndexMap.get(newIndex)
+      
+      // If we can't find the actual indices in the map, something went wrong
+      if (oldActualIndex === undefined || newActualIndex === undefined) {
+        console.warn('[MultiWallet] Could not find actual vault indices for reordering', { oldIndex, newIndex, vaultIndexMap: Array.from(vm.vaultIndexMap.entries()) })
+        // Rebuild the display and return
+        vm.arrangeVaultData().catch(console.error)
+        return
+      }
+
+      // Reorder the vault in the store using actual vault indices
+      vm.$store.commit('global/reorderVault', { fromIndex: oldActualIndex, toIndex: newActualIndex })
+      
+      // Update current index if it changed
+      vm.currentIndex = vm.$store.getters['global/getWalletIndex']
+      
+      // Rebuild the display to reflect the new order
+      // This will rebuild vaultIndexMap with the new positions
+      vm.arrangeVaultData().catch(console.error)
+    },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
 
@@ -274,7 +318,7 @@ export default {
       tempVault = JSON.parse(tempVault)
       
       // Deduplicate wallets by walletHash
-      // Keep the wallet with a custom name (not "Personal Wallet #X") or the first one if both have generic names
+      // Keep the wallet with a custom name (not "Personal Wallet") or the first one if both have generic names
       const walletHashMap = new Map()
       const deduplicatedVault = []
       const indexMap = new Map() // Maps displayed index to actual vault index
@@ -359,10 +403,9 @@ export default {
       vm.vault = deduplicatedVault
     },
     hasCustomName (name) {
-      // Check if the name is a custom name (not "Personal Wallet #X")
+      // Check if the name is a custom name (not "Personal Wallet")
       if (!name || name === '') return false
-      const genericNamePattern = /^Personal Wallet #\d+$/
-      return !genericNamePattern.test(name)
+      return name !== 'Personal Wallet'
     },
     getAssetData (index) {
       if (this.currentIndex === index) {
@@ -525,10 +568,15 @@ export default {
   min-height: 48px;
   border: none;
   background: transparent;
+  cursor: grab;
   
   &:hover {
     background: rgba(255, 255, 255, 0.05);
     transform: translateX(2px);
+  }
+  
+  &:active {
+    cursor: grabbing;
   }
   
   &.active-wallet {
@@ -542,6 +590,18 @@ export default {
     &.light {
       background: rgba(0, 0, 0, 0.05);
     }
+  }
+}
+
+.wallet-list-draggable {
+  .sortable-ghost {
+    opacity: 0.4;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .sortable-drag {
+    opacity: 0.8;
+    transform: rotate(2deg);
   }
 }
 

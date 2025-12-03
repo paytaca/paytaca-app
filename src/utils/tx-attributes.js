@@ -2,7 +2,7 @@ import { ellipsisText } from "src/wallet/anyhedge/formatters"
 import { capitalize } from "vue"
 import { i18n } from 'src/boot/i18n'
 import { parseFiatCurrency } from "./denomination-utils"
-import { formatCauldronSwapAttribute } from "src/wallet/cauldron/utils"
+import { formatCauldronPoolAttribute, formatCauldronSwapAttribute } from "src/wallet/cauldron/utils"
 
 const { t: $t } = i18n.global
 
@@ -18,6 +18,7 @@ const TxAttribute = Object.freeze({
   StablehedgeTransaction: 'stablehedge_transaction',
   MerchantCashout: 'merchant_cashout',
   CauldronSwap: 'cauldron-swap',
+  CauldronPool: 'cauldron-pool',
 
   /**
    * @param {String} key the key in the attribute
@@ -142,6 +143,15 @@ export function parseAttributeToBadge(attribute) {
       text: 'Cauldron DEX',
       icon: icons.cauldron,
       description: description || _description || 'Cauldron DEX Swap',
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.CauldronPool)) {
+    const _description = formatCauldronPoolAttribute(value)
+    return {
+      key,
+      custom: true,
+      text: 'Cauldron Pool',
+      icon: icons.cauldron,
+      description: description || _description,
     }
   }
 
@@ -271,6 +281,15 @@ export function parseAttributeToDetails(attribute) {
       key,
       groupName: 'Cauldron DEX',
       label: 'Cauldron DEX Swap',
+      tooltip: description,
+      text: description,
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.CauldronPool)) {
+    let description = formatCauldronPoolAttribute(value)
+    return {
+      key,
+      groupName: 'Cauldron',
+      label: 'Cauldron Pool',
       tooltip: description,
       text: description,
     }

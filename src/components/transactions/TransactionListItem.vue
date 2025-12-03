@@ -2,15 +2,28 @@
   <div 
     class="transaction-item" 
     :class="[
-      'q-mx-lg q-py-md q-px-sm',
-      getDarkModeClass(darkMode)
+      'q-mx-lg q-px-sm',
+      compact ? 'q-py-sm compact' : 'q-py-md',
+      getDarkModeClass(darkMode),
+      { 'new-transaction-shine': isNewTransaction }
     ]"
   >
     <div class="transaction-content">
       <div class="transaction-header">
         <div class="transaction-type">
+          <div class="type-with-asset" v-if="showAssetInfo">
+            <q-avatar size="20px" class="q-mr-xs">
+              <img v-if="assetImageUrl" :src="assetImageUrl" />
+              <q-icon v-else name="apps" size="14px" />
+            </q-avatar>
+            <span class="asset-symbol" :class="getDarkModeClass(darkMode)">{{ assetSymbol }}</span>
+          </div>
           <span class="type-text text-uppercase" :class="getDarkModeClass(darkMode)">
             {{ recordTypeText }}
+          </span>
+          <span class="transaction-date" :class="getDarkModeClass(darkMode)">
+            <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
+            <template v-else>{{ formatDate(transaction.date_created) }}</template>
           </span>
         </div>
         <div class="transaction-amount" :class="getDarkModeClass(darkMode)">
@@ -54,12 +67,8 @@
           </template>
         </div>
       </div>
-      <div class="transaction-footer">
-        <span class="transaction-date" :class="getDarkModeClass(darkMode)">
-          <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
-          <template v-else>{{ formatDate(transaction.date_created) }}</template>
-        </span>
-        <span v-if="decryptedMemo" class="transaction-memo" :class="getDarkModeClass(darkMode)">
+      <div v-if="decryptedMemo" class="transaction-footer">
+        <span class="transaction-memo" :class="getDarkModeClass(darkMode)">
           <q-icon name="mdi-note-text" size="14px" class="q-mr-xs" />
           {{ decryptedMemo }}
         </span>
@@ -90,7 +99,7 @@
 </template>
 <script setup>
 import ago from 's-ago'
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
@@ -106,15 +115,88 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
 
 const decryptedMemo = ref('')
+const currentTime = ref(Date.now())
+let updateTimer = null
 
 const props = defineProps({
   transaction: Object,
   selectedAsset: Object,
-  denominationTabSelected: String
+  denominationTabSelected: String,
+  hideAssetInfo: {
+    type: Boolean,
+    default: false
+  },
+  compact: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const asset = computed(() => {
+  // When "All" is selected, always use the transaction's specific asset
+  // Never fall back to "All" asset - if transaction asset is missing, use BCH as fallback
+  if (props?.selectedAsset?.id === 'all') {
+    // Force use of transaction asset when "All" is selected
+    // If transaction asset is missing, fallback to BCH (not "All")
+    const txAsset = props?.transaction?.asset
+    if (!txAsset) {
+      console.warn('Transaction missing asset when "All" selected:', props?.transaction)
+      return {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        decimals: 8
+      }
+    }
+    // Ensure we never use "All" as the symbol
+    if (txAsset.symbol === 'All' || txAsset.id === 'all') {
+      console.warn('Transaction asset has "All" symbol, using BCH fallback:', txAsset)
+      return {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        decimals: 8
+      }
+    }
+    return txAsset
+  }
+  // For specific asset selection, use transaction asset if available, otherwise selected asset
   return props?.transaction?.asset || props?.selectedAsset
+})
+
+const showAssetInfo = computed(() => {
+  // Hide asset info if explicitly requested
+  if (props.hideAssetInfo) return false
+  // Show asset info when "All" is selected
+  return props?.selectedAsset?.id === 'all' && asset.value?.id !== 'all'
+})
+
+const assetSymbol = computed(() => {
+  if (!asset.value) return ''
+  return asset.value.symbol || 'TOKEN'
+})
+
+const assetImageUrl = computed(() => {
+  if (!asset.value) return null
+  
+  // Handle DEEM logo for BCH
+  if (denomination.value === $t('DEEM') && asset.value.symbol === 'BCH') {
+    return 'assets/img/theme/payhero/deem-logo.png'
+  }
+  
+  if (asset.value.logo) {
+    if (asset.value.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+      return asset.value.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+    } else {
+      return asset.value.logo
+    }
+  }
+  
+  // Fallback to default logo generator
+  const logoGenerator = $store.getters['global/getDefaultAssetLogo']
+  return logoGenerator ? logoGenerator(String(asset.value.id)) : null
 })
 
 const selectedMarketCurrency = computed(() => {
@@ -162,9 +244,11 @@ const marketValueData = computed(() => {
 
   if (data.marketAssetPrice) {
     data.marketValue = (Number(props.transaction?.amount) * Number(data.marketAssetPrice)).toFixed(5)
-    if (asset?.value?.id !== 'bch') {
-      const decimals = parseInt(asset?.value?.decimals) || 0; 
-      data.marketValue /= 10 ** decimals; 
+    if (asset.value?.id !== 'bch') {
+      const decimals = parseInt(asset.value?.decimals) || 0; 
+      if (decimals > 0) {
+        data.marketValue = (Number(data.marketValue) / (10 ** decimals)).toFixed(5)
+      }
     }
   }
   return data
@@ -197,6 +281,25 @@ function formatDate (date) {
   return ago(new Date(date))
 }
 
+const isNewTransaction = computed(() => {
+  const timestamp = props.transaction?.tx_timestamp || props.transaction?.date_created
+  if (!timestamp) return false
+  
+  const txDate = new Date(timestamp)
+  const now = new Date(currentTime.value)
+  const diffMs = now - txDate
+  const diffSeconds = Math.floor(diffMs / 1000)
+  
+  // Check if formatted date shows "Just now" (less than 60 seconds old)
+  // Also check the formatted string to match "just now" (case-insensitive)
+  const formattedDate = formatDate(timestamp)
+  const isJustNow = diffSeconds < 60 || 
+                    /just\s+now/i.test(formattedDate) ||
+                    formattedDate.toLowerCase().includes('just now')
+  
+  return isJustNow
+})
+
 async function loadMemo() {
   if (!props.transaction?.encrypted_memo) {
     decryptedMemo.value = ''
@@ -220,6 +323,19 @@ async function loadMemo() {
 
 onMounted(() => {
   loadMemo()
+  
+  // Update current time every second to keep shine effect reactive
+  updateTimer = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 1000)
+})
+
+// Clean up timer on unmount
+onUnmounted(() => {
+  if (updateTimer) {
+    clearInterval(updateTimer)
+    updateTimer = null
+  }
 })
 
 // Watch for changes to encrypted_memo and reload
@@ -236,6 +352,11 @@ watch(
   transition: all 0.2s ease;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: pan-y;
   
   &:hover {
     background-color: rgba(0, 0, 0, 0.02);
@@ -268,6 +389,18 @@ watch(
   gap: 8px;
 }
 
+.transaction-item.compact .transaction-content {
+  gap: 4px;
+}
+
+.transaction-item.compact .transaction-header {
+  gap: 12px;
+}
+
+.transaction-item.compact .transaction-footer {
+  gap: 6px;
+}
+
 .transaction-header {
   display: flex;
   justify-content: space-between;
@@ -277,6 +410,33 @@ watch(
 
 .transaction-type {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transaction-type .transaction-date {
+  margin-top: 2px;
+}
+
+.type-with-asset {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.asset-symbol {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+  
+  &.dark {
+    color: #b8bfc4;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.7);
+  }
 }
 
 .type-text {
@@ -394,5 +554,54 @@ watch(
   padding: 8px 12px;
   word-break: break-all;
   max-width: 280px;
+}
+
+// Shine effect for new transactions (similar to pending cards)
+.transaction-item.new-transaction-shine {
+  position: relative;
+  overflow: hidden;
+  
+  // Shimmer effect overlay
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    animation: shimmer-sweep 3s ease-in-out infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+  
+  &.dark::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      transparent
+    );
+  }
+  
+  // Ensure content is above shimmer
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  50%, 100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
 }
 </style>

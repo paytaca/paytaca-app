@@ -48,10 +48,11 @@
 import TransactionListItem from 'src/components/transactions/TransactionListItem'
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton'
 
-import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { refToHex } from 'src/utils/reference-id-utils'
 import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
+import axios from 'axios'
 
 const sep20IdRegexp = /sep20\/(.*)/
 const recordTypeMap = {
@@ -286,6 +287,64 @@ export default {
         txSearchReference = refToHex(txSearchReference)
       }
 
+      // Handle "All" selection - use special endpoint
+      if (id === 'all') {
+        const walletHash = getWalletByNetwork(vm.wallet, 'bch').getWalletHash()
+        const baseUrl = getWatchtowerApiUrl(vm.$store.getters['global/isChipnet'])
+        const url = `${baseUrl}/history/wallet/${walletHash}/`
+        
+        const params = {
+          all: true,
+          page: page,
+          type: recordType
+        }
+        
+        if (txSearchReference) {
+          params.txSearchReference = txSearchReference
+        }
+
+        vm.transactionsAppending = true
+        return axios.get(url, { params })
+          .then(async function (response) {
+            const transactions = response.data.history || response.data
+            const pageNum = Number(response.data?.page || page)
+            const hasNext = response.data?.has_next
+
+            if (!Array.isArray(transactions)) return
+
+            // Enrich transactions with asset information
+            const enrichedTransactions = await vm.enrichTransactionsWithAssetInfo(transactions)
+
+            if (shouldAppend) {
+              // Append new transactions to existing list
+              enrichedTransactions.forEach(function (item) {
+                vm.transactions.push(item)
+              })
+            } else {
+              // Replace transactions list
+              vm.transactions = []
+              enrichedTransactions.forEach(function (item) {
+                vm.transactions.push(item)
+              })
+            }
+
+            vm.transactionsPage = pageNum
+            vm.transactionsMaxPage = response.data?.num_pages || 1
+            vm.transactionsLoaded = true
+
+            setTimeout(() => {
+              vm.transactionsPageHasNext = hasNext
+            }, 250)
+          })
+          .catch(error => {
+            console.error('error:', error.response)
+          })
+          .finally(() => {
+            vm.transactionsAppending = false
+          })
+      }
+
+      // Existing code for specific asset selection
       let requestPromise
       if (id.indexOf('slp/') > -1) {
         const tokenId = id.split('/')[1]
@@ -300,27 +359,28 @@ export default {
       if (!requestPromise) return Promise.reject()
       vm.transactionsAppending = true
       return requestPromise
-        .then(function (response) {
+          .then(async function (response) {
           const transactions = response.history || response
           const page = Number(response?.page)
           const hasNext = response?.has_next
 
-          if (!Array.isArray(transactions)) return
+            if (!Array.isArray(transactions)) return
 
-          if (shouldAppend) {
-            // Append new transactions to existing list
-            transactions.forEach(function (item) {
-              item.asset = asset
-              vm.transactions.push(item)
-            })
-          } else {
-            // Replace transactions list
-            vm.transactions = []
-            transactions.forEach(function (item) {
-              item.asset = asset
-              vm.transactions.push(item)
-            })
-          }
+            // Enrich transactions with asset information
+            const enrichedTransactions = await vm.enrichTransactionsWithAssetInfo(transactions)
+
+            if (shouldAppend) {
+              // Append new transactions to existing list
+              enrichedTransactions.forEach(function (item) {
+                vm.transactions.push(item)
+              })
+            } else {
+              // Replace transactions list
+              vm.transactions = []
+              enrichedTransactions.forEach(function (item) {
+                vm.transactions.push(item)
+              })
+            }
 
           vm.transactionsPage = page
           vm.transactionsMaxPage = response?.num_pages
@@ -336,6 +396,124 @@ export default {
         .finally(() => {
           vm.transactionsAppending = false
         })
+    },
+    async enrichTransactionsWithAssetInfo (transactions) {
+      const vm = this
+      const bchAsset = {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        decimals: 8
+      }
+
+      // Process transactions in parallel batches to avoid overwhelming the API
+      const batchSize = 5
+      const enrichedTransactions = []
+
+      for (let i = 0; i < transactions.length; i += batchSize) {
+        const batch = transactions.slice(i, i + batchSize)
+        const batchPromises = batch.map(async (transaction) => {
+          const enrichedTx = { ...transaction }
+          
+          // Check if transaction has token.asset_id
+          // Try multiple possible paths for asset_id
+          const assetId = transaction?.token?.asset_id || 
+                         transaction?.asset_id || 
+                         transaction?.token_id ||
+                         null
+          
+          // Debug logging
+          if (vm.selectedAsset?.id === 'all') {
+            console.log('Transaction asset_id:', assetId, 'Transaction:', transaction)
+          }
+          
+          // If assetId is null, undefined, empty string, or 'bch', it's a BCH transaction
+          if (!assetId || assetId === null || assetId === '' || assetId === 'bch') {
+            // BCH transaction
+            enrichedTx.asset = bchAsset
+            if (vm.selectedAsset?.id === 'all') {
+              console.log('Set BCH asset for transaction:', enrichedTx.asset)
+            }
+          } else if (typeof assetId === 'string' && assetId.startsWith('ct/')) {
+            // CashToken transaction - fetch metadata
+            const tokenId = assetId.split('/')[1]
+            
+            // Check if asset already exists in store
+            const existingAssets = vm.$store.getters['assets/getAssets']
+            let asset = existingAssets.find(a => a?.id === assetId)
+            
+            if (asset && asset.logo && asset.symbol && asset.decimals !== undefined) {
+              // Use existing asset from store
+              enrichedTx.asset = asset
+            } else {
+              // Fetch token details
+              try {
+                const bchWallet = getWalletByNetwork(vm.wallet, 'bch')
+                const tokenDetails = await bchWallet.getTokenDetails(tokenId)
+                
+                if (tokenDetails) {
+                  enrichedTx.asset = {
+                    id: assetId,
+                    symbol: tokenDetails.symbol,
+                    name: tokenDetails.name,
+                    logo: tokenDetails.logo,
+                    decimals: parseInt(tokenDetails.decimals) || 0
+                  }
+                  
+                  // Update store with metadata for future use
+                  await vm.$store.dispatch('assets/getAssetMetadata', assetId)
+                } else {
+                  // Fallback if token details not found
+                  enrichedTx.asset = {
+                    id: assetId,
+                    symbol: 'CT',
+                    name: 'CashToken',
+                    logo: null,
+                    decimals: 0
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching token details for', assetId, error)
+                // Fallback asset
+                enrichedTx.asset = {
+                  id: assetId,
+                  symbol: 'CT',
+                  name: 'CashToken',
+                  logo: null,
+                  decimals: 0
+                }
+              }
+            }
+          } else {
+            // SLP or other token type - for now, use basic info
+            enrichedTx.asset = {
+              id: assetId,
+              symbol: 'TOKEN',
+              name: 'Token',
+              logo: null,
+              decimals: 0
+            }
+          }
+          
+          return enrichedTx
+        })
+        
+        const batchResults = await Promise.allSettled(batchPromises)
+        batchResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            enrichedTransactions.push(result.value)
+          } else {
+            console.error('Error enriching transaction:', result.reason)
+            // Add transaction with fallback asset
+            const tx = { ...batch[index] }
+            tx.asset = bchAsset
+            enrichedTransactions.push(tx)
+          }
+        })
+      }
+      
+      return enrichedTransactions
     },
     resetValues (filter = null, network = null, asset = null) {
       if (filter) this.transactionsFilter = filter
