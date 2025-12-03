@@ -32,8 +32,8 @@ export class SweepPrivateKey {
     }
   }
 
-  async getFungibleCashTokens(opts={ subscribe: true }) {
-    if (opts?.subscribe) {
+  async getFungibleCashTokens(subscribe=true) {
+    if (subscribe) {
       const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
         address: this.bchAddress,
       })
@@ -84,8 +84,8 @@ export class SweepPrivateKey {
     return result
   }
 
-  async getNftCashTokens(opts={ subscribe: true }) {
-    if (opts?.subscribe) {
+  async getNftCashTokens(subscribe=true) {
+    if (subscribe) {
       const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
         address: this.bchAddress,
       })
