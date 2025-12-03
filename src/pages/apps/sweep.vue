@@ -521,17 +521,16 @@ export default {
       this.sweeping = true
       this.selectedToken = 'bch'
 
-      await Promise.all([
-        this.sweeper.sweepBch(
-          this.sweeper.bchAddress,
-          this.wif,
-          this.bchBalance,
-          recipientAddress
-        ),
+      await this.sweeper.sweepBch(
+        this.sweeper.bchAddress,
+        this.wif,
+        this.bchBalance,
+        recipientAddress
+      ).then(result => {
         this.getTokens(false).then(() => {
           if (this.emptyAssets) this.showSuccess = true
         })
-      ])
+      })
     },
 
     async sweepAll() {
@@ -558,9 +557,11 @@ export default {
         const fungibleError = await this.sweepCashTokenFungible(
           unskippedCashTokens, tokenIndex, tokenAddress
         )
+        setTimeout(() => {}, 1000)
         const nonFungibleError = await this.sweepCashTokenNonFungible(
           unskippedNonFungibleCashTokens, tokenIndex, tokenAddress
         )
+        setTimeout(() => {}, 1000)
 
         if (fungibleError || nonFungibleError) {
           this.$q.notify({
@@ -572,6 +573,8 @@ export default {
         }
       }
       if (this.bchBalance > 0) await this.sweepBch(bchAddress)
+
+      setTimeout(() => {}, 1000)
 
       await this.getTokens(false).then(() => {
         if (this.emptyAssets) this.showSuccess = true
