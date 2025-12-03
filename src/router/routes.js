@@ -114,6 +114,7 @@ const routes = [
       { path: 'cauldron', component: () => import('src/pages/apps/cauldron/trade.vue'), name: 'app-cauldron', props: route => route.query },
       { path: 'cauldron/pools', component: () => import('src/pages/apps/cauldron/pools.vue'), name: 'app-cauldron-pools', props: route => route.query },
       { path: 'cauldron/add-pool', component: () => import('src/pages/apps/cauldron/add-pool.vue'), name: 'app-cauldron-add-pool', props: route => route.query },
+      { path: 'cauldron/pool', component: () => import('src/pages/apps/cauldron/pool.vue'), name: 'app-cauldron-pool', props: route => route.query },
       { path: 'stablehedge', component: () => import('src/pages/apps/stablehedge/StablehedgePage.vue'), name: 'app-stablehedge', props: route => route.query },
       { path: 'stablehedge/wallet', component: () => import('src/pages/apps/stablehedge/StablehedgeWalletPage.vue'), name: 'app-stablehedge-wallet', props: route => route.query },
       { path: 'map', component: () => import('src/pages/apps/map.vue'), name: 'app-map', props: route => route.query },

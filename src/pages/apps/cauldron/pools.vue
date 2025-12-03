@@ -15,7 +15,7 @@
     
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <!-- Loading State -->
-      <div v-if="fetchingPools" class="text-center q-pa-lg">
+      <div v-if="fetchingPools && pools.length === 0" class="text-center q-pa-lg">
         <q-spinner size="3em" color="primary" />
         <div class="q-mt-md text-grey">{{ $t('LoadingPools') }}</div>
       </div>
@@ -46,6 +46,12 @@
             :to="{ name: 'app-cauldron-add-pool' }"
           />
         </div>
+        <q-slide-transition>
+          <div v-if="fetchingPools" class="q-my-md text-grey text-center">
+            {{ $t('LoadingPools') }}
+            <q-spinner color="primary" />
+          </div>
+        </q-slide-transition>
         <div class="row q-col-gutter-md">
           <div
             v-for="pool in poolsWithTokenData"
@@ -77,8 +83,50 @@
                     :label="$t('Withdraw')"
                     rounded
                     color="primary"
+                    class="q-mr-sm"
                     @click="securityCheckWithdrawPool(pool)"
                   />
+                  <!-- To add later to view pool history -->
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="more_vert"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                      <q-list>
+                        <q-item
+                          clickable
+                          v-close-popup
+                          :href="getAddressExplorerLink(pool.poolAddress)"
+                          target="_blank"
+                        >
+                          <q-item-section avatar>
+                            <q-icon name="open_in_new" />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label>{{ $t('ViewInExplorer') }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                        <q-item
+                          clickable
+                          v-close-popup
+                          :to="{
+                            name: 'app-cauldron-pool',
+                            query: { poolId: pool.pool_id }
+                          }"
+                        >
+                          <q-item-section avatar>
+                            <q-icon name="history" />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label>{{ $t('ViewHistory') }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-menu>
+                  </q-btn>
                 </div>
 
                 <q-separator class="q-my-md" />
@@ -100,6 +148,22 @@
                 </div>
 
                 <q-separator class="q-my-md" />
+
+                <div class="row items-center justify-between q-mb-sm">
+                  <div class="text-caption text-grey">
+                    {{ $t('Address') }}
+                  </div>
+
+                  <a
+                    :href="getAddressExplorerLink(pool.poolAddress)"
+                    target="_blank"
+                    class="text-primary text-caption"
+                    style="text-decoration: none;"
+                  >
+                    {{ pool.poolAddress?.slice(0, 12) }}...{{ pool.poolAddress?.slice(-10) }}
+                    <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+                  </a>
+                </div>
 
                 <div class="row items-center justify-between">
                   <div class="text-caption text-grey">
@@ -125,22 +189,21 @@
   </q-pull-to-refresh>
 </template>
 <script>
-import { fetchWalletPools, generateWithdrawPoolTx } from "src/wallet/cauldron/wallet-pool";
+import { fetchWalletPools, generateWithdrawPoolTx, pkhashToPoolAddress } from "src/wallet/cauldron/wallet-pool";
 import { asyncSleep } from "src/wallet/transaction-listener";
 import { fetchTokensList } from "src/wallet/cauldron/tokens";
-import { convertIpfsUrl } from 'src/wallet/cashtokens';
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { getExplorerLink } from 'src/utils/send-page-utils';
 import { loadWallet } from "src/wallet";
 import { getWalletByNetwork } from 'src/wallet/chipnet';
+import { useCauldronValueFormatters } from "src/composables/cauldron/ui-helpers";
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from "vuex";
-import { defineComponent, computed, ref, onMounted } from "vue";
+import { defineComponent, computed, ref, onMounted, onActivated } from "vue";
 import HeaderNav from 'src/components/header-nav';
 import CauldronHeaderMenu from "src/components/cauldron/CauldronHeaderMenu.vue";
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
-
 
 
 export default defineComponent({
@@ -165,7 +228,6 @@ export default defineComponent({
       addressWif.value = await wallet.value.BCH.getPrivateKey('0/0')
       address.value = addressSet.receiving
     }
-    
 
     /** @type {import('vue').Ref<import('src/wallet/cauldron/pool').MicroPool[]>} */
     const pools = ref([])
@@ -205,35 +267,11 @@ export default defineComponent({
         const tokenInfo = tokenData.value.find(token => token.token_id === pool.token_id)
         return {
           ...pool,
+          poolAddress: pkhashToPoolAddress(pool.pkh),
           tokenData: tokenInfo || null
         }
       })
     })
-
-    function getTokenImage(url) {
-      const ipfsUrl = convertIpfsUrl(url)
-      if (ipfsUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-        return ipfsUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-      } else {
-        return ipfsUrl
-      }
-    }
-
-    function onImgError(event) {
-      event.target.style.display = 'none';
-    }
-
-    function formatAmount(amount, decimals) {
-      if (!amount) return '0';
-      const num = Number(amount) / (10 ** decimals);
-      return num.toFixed(decimals > 8 ? 8 : decimals);
-    }
-
-    function formatTokenAmount(amount, tokenData) {
-      if (!amount || !tokenData) return '0';
-      const decimals = parseInt(tokenData?.bcmr?.token?.decimals || 0);
-      return formatAmount(amount, decimals);
-    }
 
     function securityCheckWithdrawPool(pool) {
       $q.dialog({ component: SecurityCheckDialog }).onOk(() => withdrawPool(pool))
@@ -326,6 +364,14 @@ export default defineComponent({
       }
     }
 
+    const {
+      formatAmount,
+      formatTokenAmount,
+      getTokenImage,
+      onImgError,
+      getAddressExplorerLink,
+    } = useCauldronValueFormatters()
+
     async function refreshPage(done=() => {}) {
       try {
         await Promise.all([
@@ -337,6 +383,9 @@ export default defineComponent({
     }
 
     onMounted(() => {
+      fetchMicroPools()
+    })
+    onActivated(() => {
       fetchMicroPools()
     })
 
@@ -353,6 +402,7 @@ export default defineComponent({
       getExplorerLink,
       securityCheckWithdrawPool,
       refreshPage,
+      getAddressExplorerLink,
     }
   },
 })
