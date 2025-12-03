@@ -453,8 +453,7 @@ export default {
         }
 
         await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
-          if (result.success) hasSweepingError = false
-          else {
+          if (!result.success) {
             if (isSingleSweep) {
               this.$q.notify({
                 message: result.error,
@@ -526,8 +525,7 @@ export default {
         }
   
         await this.sweeper.sweepCashToken(nftPayload).then(result => {
-          if (result.success) hasSweepingError = false
-          else {
+          if (!result.success) {
             if (isSingleSweep) {
               this.$q.notify({
                 message: result.error,
@@ -586,7 +584,7 @@ export default {
           this.sweeper.bchAddress,
           this.wif,
           this.bchBalance,
-          this.parseFeeFunder(0, true),
+          this.parseFeeFunder(true),
           recipientAddress
         ).then(result => {
           this.getTokens(false)
