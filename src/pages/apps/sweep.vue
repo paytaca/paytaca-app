@@ -576,9 +576,15 @@ export default {
 
       setTimeout(() => {}, 1000)
 
-      await this.getTokens(false).then(() => {
-        if (this.emptyAssets) this.showSuccess = true
-      })
+      let retries = 0
+      while (retries < 3) {
+        await this.getTokens(false)
+        if (this.emptyAssets) {
+          this.showSuccess = true
+          break
+        }
+        retries++
+      }
     },
 
     onScannerDecode (content) {
