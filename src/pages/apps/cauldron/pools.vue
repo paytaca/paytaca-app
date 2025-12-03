@@ -77,8 +77,45 @@
                     :label="$t('Withdraw')"
                     rounded
                     color="primary"
+                    class="q-mr-sm"
                     @click="securityCheckWithdrawPool(pool)"
                   />
+                  <!-- To add later to view pool history -->
+                  <!-- <q-btn
+                    flat
+                    round
+                    dense
+                    icon="more_vert"
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                      <q-list>
+                        <q-item
+                          clickable
+                          v-close-popup
+                          @click="getAddressExplorerLink(pool.poolAddress)"
+                        >
+                          <q-item-section avatar>
+                            <q-icon name="open_in_new" />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label>{{ $t('ViewInExplorer') }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                        <q-item
+                          clickable
+                          v-close-popup
+                        >
+                          <q-item-section avatar>
+                            <q-icon name="history" />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label>{{ $t('ViewHistory') }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-menu>
+                  </q-btn> -->
                 </div>
 
                 <q-separator class="q-my-md" />
@@ -100,6 +137,22 @@
                 </div>
 
                 <q-separator class="q-my-md" />
+
+                <div class="row items-center justify-between q-mb-sm">
+                  <div class="text-caption text-grey">
+                    {{ $t('Address') }}
+                  </div>
+
+                  <a
+                    :href="getAddressExplorerLink(pool.poolAddress)"
+                    target="_blank"
+                    class="text-primary text-caption"
+                    style="text-decoration: none;"
+                  >
+                    {{ pool.poolAddress?.slice(0, 12) }}...{{ pool.poolAddress?.slice(-10) }}
+                    <q-icon name="open_in_new" size="14px" class="q-ml-xs" />
+                  </a>
+                </div>
 
                 <div class="row items-center justify-between">
                   <div class="text-caption text-grey">
@@ -125,7 +178,7 @@
   </q-pull-to-refresh>
 </template>
 <script>
-import { fetchWalletPools, generateWithdrawPoolTx } from "src/wallet/cauldron/wallet-pool";
+import { fetchWalletPools, generateWithdrawPoolTx, pkhashToPoolAddress } from "src/wallet/cauldron/wallet-pool";
 import { asyncSleep } from "src/wallet/transaction-listener";
 import { fetchTokensList } from "src/wallet/cauldron/tokens";
 import { convertIpfsUrl } from 'src/wallet/cashtokens';
@@ -205,6 +258,7 @@ export default defineComponent({
         const tokenInfo = tokenData.value.find(token => token.token_id === pool.token_id)
         return {
           ...pool,
+          poolAddress: pkhashToPoolAddress(pool.pkh),
           tokenData: tokenInfo || null
         }
       })
@@ -336,6 +390,16 @@ export default defineComponent({
       }
     }
 
+    const isChipnet = computed(() => $store.getters['global/isChipnet'])
+    function getAddressExplorerLink(address) {
+      if (!address) return
+      let url = 'https://explorer.paytaca.com/address/'
+      if (isChipnet.value) {
+        url = `${process.env.TESTNET_EXPLORER_URL}/address/`
+      }
+      return url
+    }
+
     onMounted(() => {
       fetchMicroPools()
     })
@@ -353,6 +417,7 @@ export default defineComponent({
       getExplorerLink,
       securityCheckWithdrawPool,
       refreshPage,
+      getAddressExplorerLink,
     }
   },
 })
