@@ -431,6 +431,7 @@ export default {
             icon: 'mdi-close-circle',
             color: 'red-5'
           })
+          this.sweeping = false
           return
         }
         tokenAddress = convertCashAddress(bchAddress, false, true)
@@ -498,6 +499,7 @@ export default {
             icon: 'mdi-close-circle',
             color: 'red-5'
           })
+          this.sweeping = false
           return
         }
         tokenAddress = convertCashAddress(bchAddress, false, true)
