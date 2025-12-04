@@ -185,7 +185,7 @@
                     <q-badge v-if="!storefront?.inPrelaunch && storefront?.isStorepickupOnly" color="info" class="q-mr-xs">
                       Store pickup
                     </q-badge>
-                    <div class="ellipsis-3-lines">{{ storefront.name }}</div>
+                    <div class="ellipsis-3-lines text-weight-bold md-font-size">{{ storefront.name }}</div>
                     <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="text-caption bottom">
                       {{ storefront?.openingTimeText }}
                     </div>
@@ -743,6 +743,16 @@ table.orders-table td {
   height: 120px;
   max-width: 120px;
 }
+  /* ==================== FONT SIZES ==================== */
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
 
 .pt-card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

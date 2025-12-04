@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Marketplace')" class="header-nav" />
+    <HeaderNav :title="$t('Marketplace')" :backnavpath="`/apps/marketplace/storefront/${storefrontId}`" class="header-nav" />
     <div class="q-pa-sm q-pt-md" :class="{'text-black': !darkMode }">
       <div class="row items-center no-wrap q-px-sm">
         <div class="text-h5">{{ product?.name }}</div>
