@@ -20,7 +20,7 @@
               v-if="app.beta" 
               color="red" 
               class="beta-badge"
-              :label="$t('BETA', {}, 'BETA')"
+              :label="$t('Beta').toLocaleUpperCase()"
             />
           </div>
           <p
