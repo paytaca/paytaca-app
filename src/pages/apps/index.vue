@@ -264,8 +264,9 @@ export default {
           class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
           title: this.$t('ShowDebugApp'),
           message: this.$t('DoYouWantToShowTheDebugApp'),
-          cancel: true,
-          persistent: true
+          cancel: { label: this.$t('Cancel'), },
+          ok: { label: this.$t('OK'), },
+          persistent: true,
         }).onOk(() => {
           this.showDebugApp = true
           localStorage.setItem('debugAppVisible', 'true')
