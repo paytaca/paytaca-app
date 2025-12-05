@@ -1,18 +1,18 @@
 <template>
   <q-dialog persistent ref="dialogRef" seamless class="no-click-outside">
-    <q-card class="pt-card br-15" :class="getDarkModeClass(darkMode)">
+    <q-card class="pt-card br-15 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="text-h6 text-weight-bold q-pb-sm">
         <div class="row items-center q-gutter-sm">
           <q-icon name="science" color="primary" size="md" />
-          <span>{{ appName }} - Beta</span>
+          <span>{{ appName }} - {{ $t('Beta') }}</span>
         </div>
       </q-card-section>
       <q-card-section class="text-body1 q-pt-sm">
         <div class="q-mb-md">
           {{ betaMessage }}
         </div>
-        <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-          {{ $t('BetaAppDisclaimer', {}, 'This feature is in beta and may have limitations or issues. Use at your own discretion.') }}
+        <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+          {{ $t('BetaAppDisclaimer') }}
         </div>
       </q-card-section>
       <q-card-actions align="right" class="q-pa-md">
@@ -79,7 +79,4 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-</style>
 

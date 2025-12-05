@@ -3,7 +3,9 @@
     <header-nav :title="$t('Support', {}, 'Support')" backnavpath="/apps" class="header-nav header-nav apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
       <div class="col-12 q-px-lg q-mt-md">
-        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('ScanTools', {}, 'Scan Tools') }}</p>
+        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
+          {{ $t('ScanTools') }}
+        </p>
         <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
           <q-item>
             <q-item-section>
@@ -11,7 +13,7 @@
                 {{ $t('UtxoScan') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('UtxoScanDescription', {}, 'Scan for unspent transaction outputs to fix balance issues') }}
+                {{ $t('UtxoScanDescription') }}
               </q-item-label>
               <q-banner
                 v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
@@ -56,7 +58,7 @@
                 {{ $t('AddressScan') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('AddressScanDescription', {}, 'Scan for untracked addresses to fix transaction issues') }}
+                {{ $t('AddressScanDescription') }}
               </q-item-label>
               <div v-if="scanningBchAddresses" class="text-center text-grey q-mt-sm">
                 {{ $t('ScanningForUntrackedAddr') }}
@@ -77,15 +79,17 @@
       </div>
 
       <div class="col-12 q-px-lg q-mt-md">
-        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('GetHelp', {}, 'Get Help') }}</p>
+        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
+          {{ $t('GetHelp') }}
+        </p>
         <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
           <q-item clickable v-ripple @click="openUrl('https://paytaca.com/support')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('HelpCenter', {}, 'Help Center') }}
+                {{ $t('HelpCenter') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('HelpCenterDescription', {}, 'Browse articles and guides') }}
+                {{ $t('HelpCenterDescription') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -95,10 +99,10 @@
           <q-item clickable v-ripple @click="openUrl('https://paytaca.com/faq')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('FAQ', {}, 'FAQ') }}
+                {{ $t('FAQ') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('FAQDescription', {}, 'Frequently asked questions') }}
+                {{ $t('FAQDescription') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -108,10 +112,10 @@
           <q-item clickable v-ripple @click="openUrl('mailto:support@paytaca.com')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('ContactSupport', {}, 'Contact Support') }}
+                {{ $t('ContactSupport') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('ContactSupportDescription', {}, 'Email us at support@paytaca.com') }}
+                {{ $t('ContactSupportDescription', { supportEmail: 'support@paytaca.com' }, `Email us at support@paytaca.com`) }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -127,10 +131,10 @@
           <q-item clickable v-ripple @click="openUrl('https://t.me/PaytacaWalletApp')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('Telegram', {}, 'Telegram') }}
+                {{ $t('Telegram') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('TelegramDescription', {}, 'Join our Telegram community') }}
+                {{ $t('TelegramDescription') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -140,10 +144,10 @@
           <q-item clickable v-ripple @click="openUrl('https://github.com/paytaca/paytaca-app')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('GitHub', {}, 'GitHub') }}
+                {{ $t('GitHub') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('GitHubDescription', {}, 'View source code and report issues') }}
+                {{ $t('GitHubDescription') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -159,10 +163,10 @@
           <q-item clickable v-ripple @click="openUrl('https://paytaca.com')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('Website', {}, 'Website') }}
+                {{ $t('Website') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('WebsiteDescription', {}, 'Visit paytaca.com') }}
+                {{ $t('WebsiteDescription', { website: 'paytaca.com' }, 'Visit paytaca.com') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -172,10 +176,10 @@
           <q-item clickable v-ripple @click="openUrl('https://paytaca.com/docs')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('Documentation', {}, 'Documentation') }}
+                {{ $t('Documentation') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('DocumentationDescription', {}, 'Read our documentation') }}
+                {{ $t('DocumentationDescription') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>

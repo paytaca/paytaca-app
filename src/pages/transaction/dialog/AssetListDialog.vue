@@ -23,7 +23,7 @@
 		          outlined
 		          rounded
 		          v-model="searchText"
-		          :placeholder="$t('Search Asset')"
+		          :placeholder="$t('SearchAsset')"
 		        >
 		          <template v-slot:append>
 		            <q-icon name="search" color="grey-5" />

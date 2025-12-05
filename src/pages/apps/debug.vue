@@ -1,9 +1,9 @@
 <template>
-  <div class="debug-page" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="debug-page sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="$t('Debug')"
       backnavpath="/apps"
-      class="header-nav"
+      class="header-nav q-px-sm apps-header"
     >
       <template #top-right-menu>
         <q-btn
@@ -18,18 +18,18 @@
       </template>
     </header-nav>
 
-    <div class="debug-content q-pa-md">
+    <div class="q-pa-md q-mt-sm">
       <!-- Enable SLP Toggle -->
       <div class="q-mb-md">
         <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
           <q-card-section>
             <div class="row items-center justify-between">
               <div class="col">
-                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
                   {{ $t('EnableSlp') }}
                 </div>
-                <div class="text-caption text-grey-7" :class="getDarkModeClass(darkMode)">
-                  Enable SLP token support
+                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                  {{ $t('EnableSlpToolTip', {}, 'Enable SLP token support') }}
                 </div>
               </div>
               <q-toggle
@@ -48,11 +48,11 @@
           <q-card-section>
             <div class="row items-center justify-between">
               <div class="col">
-                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
                   {{ $t('SelectBCHDenomination') }}
                 </div>
-                <div class="text-caption text-grey-7" :class="getDarkModeClass(darkMode)">
-                  Choose how BCH amounts are displayed
+                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                  {{ $t('SelectBCHDenominationToolTip', {}, 'Choose how BCH amounts are displayed') }}
                 </div>
               </div>
               <div class="q-ml-md">
@@ -69,10 +69,10 @@
           <q-card-section>
             <div class="row items-center justify-between">
               <div class="col">
-                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
                   {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
                 </div>
-                <div class="text-caption text-grey-7" :class="getDarkModeClass(darkMode)">
+                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
                   {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
                 </div>
               </div>
@@ -90,7 +90,7 @@
       <div class="q-mb-md">
         <q-btn
           color="primary"
-          label="Test Sound"
+          :label="$t('TestSound', {}, 'Test Sound')"
           icon="volume_up"
           @click="testSound"
           :loading="testingSound"
@@ -101,7 +101,7 @@
       <!-- Terminal Display -->
       <div class="terminal-container" :class="getDarkModeClass(darkMode)">
         <div class="terminal-header">
-          <span class="terminal-title">Console Logs</span>
+          <span class="terminal-title">{{ $t('ConsoleLogs', {}, 'Console Logs') }}</span>
           <q-btn
             flat
             dense
@@ -111,7 +111,7 @@
             @click="clearLogs"
             class="q-mr-xs"
           >
-            <q-tooltip>Clear</q-tooltip>
+            <q-tooltip>{{ $t('Clear') }}</q-tooltip>
           </q-btn>
         </div>
         <div class="terminal-body" ref="terminalBody">
@@ -126,7 +126,7 @@
             <span class="log-message">{{ log.message }}</span>
           </div>
           <div v-if="logs.length === 0" class="log-empty">
-            No logs yet. Console output will appear here.
+            {{ $t('NoLogsYet', {}, 'No logs yet. Console output will appear here.') }}
           </div>
         </div>
       </div>
@@ -369,7 +369,8 @@ export default {
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
         title: this.$t('HideDebugApp'),
         message: this.$t('AreYouSureYouWantToHideTheDebugApp'),
-        cancel: true,
+        cancel: { label: this.$t('Cancel'), },
+        ok: { label: this.$t('OK'), },
         persistent: true
       }).onOk(async () => {
         // Clean up before hiding
@@ -451,10 +452,6 @@ body.theme-payhero .debug-page.dark {
 /* Fallback for default theme or if theme class is not present */
 .debug-page.dark {
   background-color: #273746;
-}
-
-.debug-content {
-  margin-top: 20px;
 }
 
 .debug-card {
