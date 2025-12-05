@@ -1,9 +1,9 @@
 <template>
-  <div id="apps-page-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('Apps')"
       backnavpath="/"
-      class="q-px-sm apps-header"
+      class="header-nav q-px-sm apps-header"
       @long-press-title="onLongPressAppsTitle"
     />
     <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
