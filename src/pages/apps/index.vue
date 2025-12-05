@@ -104,7 +104,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Multisig Wallets',
+          name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
           iconName: 'mdi-account-group',
           path: '/apps/multisig',
           active: true,
@@ -197,7 +197,7 @@ export default {
         }
       ],
       debugApp: {
-        name: 'Debug',
+        name: this.$t('Debug', {}, 'Debug'),
         iconName: 'bug_report',
         path: '/apps/debug',
         active: true,
