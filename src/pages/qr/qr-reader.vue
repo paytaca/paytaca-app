@@ -83,6 +83,7 @@ import { isTokenAddress } from 'src/utils/address-utils';
 import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
 import base58 from 'bs58'
 import { binToBase64 } from 'bitauth-libauth-v3';
+import { extractMValue, getWalletHash, Pst } from 'src/lib/multisig';
 
 export default {
   name: 'QRReader',
@@ -308,6 +309,45 @@ export default {
               name: 'app-multisig-wallet-import',
               query: { data: encodeURIComponent(base64) }
             })
+          }
+        } else if(_value?.startsWith('ur:crypto-psbt')) {
+          vm.urDecoder.receivePart(content[0].rawValue);
+          if (vm.urDecoder.isComplete()) {
+            const ur = vm.urDecoder.resultUR()
+            const decodedData = Buffer.from(ur.cbor, 'base64')
+            const pst = Pst.import(binToBase64(decodedData))
+            const mValues = [...new Set(pst.inputs?.map(i => {
+              if (!i.redeemScript) return null;
+              return extractMValue(i.redeemScript)
+            }).filter(m => m))]
+
+            for (const m of mValues) {
+              const wallet = {
+                m,
+                signers: pst.wallet.signers
+              }
+              const walletHash = getWalletHash(wallet)
+              const foundWallet = vm.$store.getters['multisig/getWalletByHash'](walletHash)
+              if (foundWallet) {
+                pst.setStore(vm.$store)
+                await pst.save()
+                vm.$router.push({
+                  name: 'app-multisig-wallet-pst-view',
+                  params: { 
+                    wallethash: walletHash,
+                    unsignedtransactionhash: pst.unsignedTransactionHash 
+                  }
+                })
+                return
+              }
+
+              vm.$q.notify({
+                message: vm.$t('WalletNotFound'),
+                timeout: 800,
+                color: 'red-9',
+                icon: 'mdi-qrcode-remove'
+              })
+            }
           }
         } else {
           vm.$q.notify({
