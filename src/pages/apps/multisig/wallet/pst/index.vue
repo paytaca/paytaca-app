@@ -46,13 +46,6 @@
               </q-card-section>
             </q-card>
         </div>
-        <q-file
-          ref="pstFileElementRef"
-          v-model="pstFileModel"
-          :multiple="false"
-          style="visibility: hidden"
-          @update:model-value="onUpdateTransactionFile">
-        </q-file>
     </div>
   </div>
   
@@ -78,8 +71,6 @@ const {
   multisigNetworkProvider,
   multisigCoordinationServer
 } = useMultisigHelpers() 
-const pstFileElementRef = ref()
-const pstFileModel = ref()  
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -87,7 +78,6 @@ const darkMode = computed(() => {
 
 const wallet = computed(() => {
   const walletObject = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-  console.log('wallet object', walletObject)
   if (walletObject) {
     return MultisigWallet.fromObject(walletObject, {
         store: $store,
@@ -113,42 +103,11 @@ const importPsbt = () => {
     params: {
       wallethash: route.params.wallethash,
       unsignedtransactionhash: 'unknown'
+    },
+    query: {
+      description: 'You can import an unsigned or partially signed transaction proposal by scanning a QR code or loading from file.',
     }
   })
-  // $q.dialog({
-  //   component: ImportWalletDialog,
-  //   componentProps: {
-  //     darkMode: darkMode.value,
-  //     onImportFromFile: () => walletFileElementRef.value.pickFiles(),
-  //     onImportFromServer: async () => {
-  //       router.push({ name: 'app-multisig-wallets-synced' })
-  //     }
-  //   }
-  // })
-}
-
-// const importPsbt = () => {
-//   pstFileElementRef.value.pickFiles()
-// }
-
-const onUpdateTransactionFile = (file) => {
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const pst = Pst.import(reader.result)
-      pst.setStore($store)
-      pst.setWallet(wallet.value)
-      pst.save()
-      router.push({ 
-        name: 'app-multisig-wallet-pst-view', 
-        params: { unsignedtransactionhash: pst.unsignedTransactionHash }
-      })
-    }
-    reader.onerror = (err) => {
-      console.err(err)
-    }
-    reader.readAsText(file)
-  }
 }
 
 onMounted(() => {
