@@ -1,7 +1,7 @@
 <template>
   <div class="latest-transactions-section" :class="getDarkModeClass(darkMode)">
     <div class="row items-center justify-between q-mb-sm q-mt-sm">
-      <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
+      <div class="q-ml-lg button button-text-primary" :class="getDarkModeClass(darkMode)" style="font-size: 20px;">
         {{ $t('Transactions', {}, 'Transactions') }}
       </div>
     </div>

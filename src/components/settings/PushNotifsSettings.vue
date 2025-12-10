@@ -1,11 +1,14 @@
 <template>
   <div class="col-12 q-px-lg q-mt-md text-bow" :class="getDarkModeClass(darkMode)">
-    <p class="q-px-sm q-my-sm section-title text-subtitle1">{{ $t('PushNotifications') }}</p>
+    <p class="q-px-sm q-my-sm section-title text-subtitle1">{{ $t('Notifications') }}</p>
     <q-list bordered separator class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
       <q-item>
         <q-item-section>
           <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-            {{ $t('EnablePushNotifications') }}
+            {{ $t('EnableNotifications') }}
+          </q-item-label>
+          <q-item-label caption class="pt-setting-caption" :class="getDarkModeClass(darkMode)">
+            {{ $t('EnableNotificationsDescription') }}
           </q-item-label>
         </q-item-section>
         <q-item-section avatar>
@@ -381,6 +384,21 @@ export default {
   
   &.dark {
     color: rgba(255, 255, 255, 0.8);
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.pt-setting-caption {
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.7;
+  margin-top: 4px;
+  
+  &.dark {
+    color: rgba(255, 255, 255, 0.65);
   }
   &.light {
     color: rgba(0, 0, 0, 0.6);
