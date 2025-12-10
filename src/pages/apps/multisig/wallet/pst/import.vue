@@ -3,7 +3,7 @@
       <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
         <HeaderNav
           :title="$t(route.query.title || 'Import Tx')"
-          backnavpath="/apps"
+          :backnavpath="`/apps/multisig/wallet/${route.params.wallethash}`"
           class="q-px-sm apps-header gift-app-header"
         />
           <div class="text-caption text-center text-bow-muted">
@@ -30,6 +30,50 @@
                 </q-btn>
                 <div class="q-pt-xs text-center text-capitalize">Load From File</div>
               </div>
+              <!-- <div class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="send-option-header">
+                  <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
+                  <div class="send-option-title">
+                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                      {{ $t('ScanQRCode', {}, 'Scan QR Code') }}
+                    </div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('ScanOrUploadQR', {}, 'Scan with camera or upload QR image') }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row q-gutter-sm q-mt-md">
+                  <div class="col">
+                    <q-btn
+                      unelevated
+                      no-caps
+                      class="full-width scan-option-btn"
+                      :style="`border: 2px solid ${getThemeColor('primary')}; color: ${getThemeColor('primary')};`"
+                      @click="showQrScanner = true"
+                    >
+                      <div class="column items-center q-py-sm">
+                        <q-icon name="mdi-qrcode-scan" size="32px"/>
+                        <div class="text-caption q-mt-xs">{{ $t('Camera', {}, 'Camera') }}</div>
+                      </div>
+                    </q-btn>
+                  </div>
+                  <div class="col">
+                    <q-btn
+                      unelevated
+                      no-caps
+                      class="full-width scan-option-btn"
+                      :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                      @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
+                    >
+                      <div class="column items-center q-py-sm">
+                        <q-icon name="mdi-upload" size="32px"/>
+                        <div class="text-caption q-mt-xs">{{ $t('Upload', {}, 'Upload') }}</div>
+                      </div>
+                    </q-btn>
+                  </div>
+                </div>
+              </div> -->
               <div>
                 <q-btn label="Cancel" @click="router.back()" color="red" v-close-popup></q-btn>
               </div>
@@ -53,10 +97,7 @@ import { computed, onMounted, ref } from 'vue'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRoute, useRouter } from 'vue-router'
-import { constants } from 'buffer'
-import { MultisigWallet, Pst } from 'src/lib/multisig'
-import { cborDecode } from '@ngraveio/bc-ur/dist/cbor'
-import { base64ToBin } from 'bitauth-libauth-v3'
+import { Pst } from 'src/lib/multisig'
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
