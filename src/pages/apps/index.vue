@@ -180,6 +180,14 @@ export default {
           smartBCHOnly: false
         },
         {
+          name: this.$t('Settings'),
+          iconName: 'settings',
+          path: '/apps/settings',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('Bridge'),
           iconName: 'mdi-bridge',
           path: '/apps/bridge',

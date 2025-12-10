@@ -1,29 +1,29 @@
 <template>
   <div class="col-12 q-px-lg q-mt-md text-bow" :class="getDarkModeClass(darkMode)">
-    <p class="q-px-sm q-my-sm section-title text-subtitle1">{{ $t('PushNotifications') }}</p>
+    <p class="q-px-sm q-my-sm section-title text-subtitle1">{{ $t('Advertisements') }}</p>
     <q-list bordered separator class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
       <q-item>
         <q-item-section>
           <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-            {{ $t('EnablePushNotifications') }}
+            {{ $t('EnableAdvertisements') }}
           </q-item-label>
         </q-item-section>
         <q-item-section avatar>
-          <template v-if="isEnablePushNotifsLoading">
+          <template v-if="isEnableAdvertisementsLoading">
             <ProgressLoader />
           </template>
           <template v-else>
             <q-toggle
-              v-model="enablePushNotifs"
+              v-model="enableAdvertisements"
               :color="toggleColor"
               keep-color
-              @click="handleNotifsSubscription"
+              @update:model-value="handleAdvertisementsSubscription"
             />
           </template>
         </q-item-section>
       </q-item>
 
-      <template v-if="enablePushNotifs && !isEnablePushNotifsLoading">
+      <template v-if="enableAdvertisements && !isEnableAdvertisementsLoading">
         <q-item>
           <q-item-section>
             <q-item-label class="q-pl-sm pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -36,15 +36,15 @@
               <ProgressLoader />
             </template>
             <template v-else>
-              <q-toggle
-                v-model="isEnableEventsAndPromos"
-                :color="toggleColor"
-                keep-color
-                @click="handleNotifTypesSubscription({
-                  db_col: 'is_events_promotions_enabled',
-                  value: isEnableEventsAndPromos
-                })"
-              />
+            <q-toggle
+              v-model="isEnableEventsAndPromos"
+              :color="toggleColor"
+              keep-color
+              @update:model-value="(value) => handleAdvertisementTypesSubscription({
+                db_col: 'is_events_promotions_enabled',
+                value: value
+              })"
+            />
             </template>
           </q-item-section>
         </q-item>
@@ -88,10 +88,10 @@
                   v-model="item.isEnabled"
                   :color="toggleColor"
                   keep-color
-                  @click="() => {
-                    handleNotifTypesSubscription({
+                  @update:model-value="(value) => {
+                    handleAdvertisementTypesSubscription({
                       db_col: item.dbCol,
-                      value: item.isEnabled
+                      value: value
                     })
                   }"
                 />
@@ -105,11 +105,7 @@
 </template>
 
 <script>
-import Watchtower from 'watchtower-cash-js'
-
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { loadWallet } from 'src/wallet'
-import { getWalletByNetwork } from 'src/wallet/chipnet'
 import {
   getPushNotifConfigs,
   updateDeviceNotifType,
@@ -117,12 +113,15 @@ import {
   deleteDeviceNotifType,
   getCountryCityData
 } from 'src/utils/engagementhub-utils/engagementhub-utils'
+import { loadWallet } from 'src/wallet'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import Watchtower from 'watchtower-cash-js'
 
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import EnterCountryCityDialog from 'src/components/settings/EnterCountryCityDialog.vue'
 
 export default {
-  name: 'PushNotifsSettings',
+  name: 'AdvertisementsSettings',
 
   components: {
     ProgressLoader
@@ -130,8 +129,8 @@ export default {
 
   data () {
     return {
-      enablePushNotifs: true,
-      isEnablePushNotifsLoading: false,
+      enableAdvertisements: true,
+      isEnableAdvertisementsLoading: false,
       isEnableEventsAndPromos: false,
       isEnableEventsAndPromosIsLoading: false,
 
@@ -179,29 +178,36 @@ export default {
 
   async mounted () {
     const vm = this
-    vm.isEnablePushNotifsLoading = true
+    vm.isEnableAdvertisementsLoading = true
 
-    // check if push notifs are enabled
-    // if enabled, turn on enable push notifications by default
+    // check if advertisements are enabled
+    // if enabled, turn on enable advertisements by default
     // else turn it off
 
     await vm.$pushNotifications.isPushNotificationEnabled().catch(console.log)
     if (!vm.$pushNotifications.isEnabled && !vm.promptedPushNotifications) {
-      vm.enablePushNotifs = false
+      vm.enableAdvertisements = false
     } else {
       const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
       await getPushNotifConfigs(deviceId)
         .then(async data => {
-          vm.enablePushNotifs = data.is_enabled
-          const configs = data.push_notif_configs
-          if (Object.keys(configs).length > 0) {
-            vm.deviceNotifTypesId = configs.id
-            vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
-            vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
-            vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
-            vm.eventsAndPromosSubList[0].value = configs.country
-            vm.eventsAndPromosSubList[1].value = configs.city
-          } else await vm.handleNotifTypesSubscription(null)
+          if (data) {
+            vm.enableAdvertisements = data.is_enabled
+            const configs = data.push_notif_configs
+            if (Object.keys(configs).length > 0) {
+              vm.deviceNotifTypesId = configs.id
+              vm.isEnableEventsAndPromos = configs.is_events_promotions_enabled
+              vm.eventsAndPromosSubList[0].isEnabled = configs.is_by_country_enabled
+              vm.eventsAndPromosSubList[1].isEnabled = configs.is_by_city_enabled
+              vm.eventsAndPromosSubList[0].value = configs.country
+              vm.eventsAndPromosSubList[1].value = configs.city
+            } else await vm.handleAdvertisementTypesSubscription(null)
+          } else {
+            vm.enableAdvertisements = false
+          }
+        })
+        .catch(() => {
+          vm.enableAdvertisements = false
         })
     }
 
@@ -236,64 +242,101 @@ export default {
     vm.eventsAndPromosSubList[0].inputLabel = countryLabel
     vm.eventsAndPromosSubList[1].inputLabel = cityLabel
 
-    this.isEnablePushNotifsLoading = false
+    this.isEnableAdvertisementsLoading = false
   },
 
   methods: {
     getDarkModeClass,
-    async handleNotifsSubscription () {
+    async handleAdvertisementsSubscription (newValue) {
       const vm = this
-      vm.isEnablePushNotifsLoading = true
-      const multiWalletIndex = vm.$store.getters['global/getWalletIndex']
-      const wallet = await loadWallet('BCH', multiWalletIndex)
-      const walletHashes = [
-        getWalletByNetwork(wallet, 'bch').getWalletHash(),
-        getWalletByNetwork(wallet, 'slp').getWalletHash(),
-        wallet.sBCH.getWalletHash()
-      ]
+      // Use the new value from the event, or fall back to the current model value
+      const shouldEnable = newValue !== undefined ? newValue : vm.enableAdvertisements
+      const previousValue = vm.enableAdvertisements
+      vm.isEnableAdvertisementsLoading = true
+      
+      try {
+        const multiWalletIndex = vm.$store.getters['global/getWalletIndex']
+        const wallet = await loadWallet('BCH', multiWalletIndex)
+        const walletHashes = [
+          getWalletByNetwork(wallet, 'bch').getWalletHash(),
+          getWalletByNetwork(wallet, 'slp').getWalletHash(),
+          wallet.sBCH.getWalletHash()
+        ]
 
-      if (vm.enablePushNotifs) {
-        await vm.$pushNotifications.isPushNotificationEnabled().catch(console.log)
-        if (!vm.$pushNotifications.isEnabled && !vm.promptedPushNotifications) {
-          await vm.$pushNotifications.openPushNotificationsSettingsPrompt({
-            message: 'Enable push notifications to receive updates from the app'
-          }).catch(console.log)
-        } else {
+        if (shouldEnable) {
+          await vm.$pushNotifications.isPushNotificationEnabled().catch(console.log)
+          if (!vm.$pushNotifications.isEnabled && !vm.promptedPushNotifications) {
+            await vm.$pushNotifications.openPushNotificationsSettingsPrompt({
+              message: 'Enable push notifications to receive updates from the app'
+            }).catch(console.log)
+            // If user cancels permission, revert the toggle
+            if (!vm.$pushNotifications.isEnabled) {
+              vm.enableAdvertisements = previousValue
+              vm.isEnableAdvertisementsLoading = false
+              return
+            }
+          }
           vm.$pushNotifications.watchtower = new Watchtower(vm.$store.state.global.isChipnet)
           await vm.$pushNotifications.subscribe(walletHashes, multiWalletIndex)
-          await vm.handleNotifTypesSubscription(null)
+          await vm.handleAdvertisementTypesSubscription(null)
+        } else {
+          await vm.$pushNotifications.unsubscribe(walletHashes)
+          await deleteDeviceNotifType(this.deviceNotifTypesId)
+          this.deviceNotifTypesId = -1
+          // Reset sub-options when disabling
+          vm.isEnableEventsAndPromos = false
+          vm.eventsAndPromosSubList[0].isEnabled = false
+          vm.eventsAndPromosSubList[1].isEnabled = false
         }
-      } else {
-        await vm.$pushNotifications.unsubscribe(walletHashes)
-        await deleteDeviceNotifType(this.deviceNotifTypesId)
-        this.deviceNotifTypesId = -1
+      } catch (error) {
+        console.error('Error updating advertisement settings:', error)
+        // Revert toggle on error
+        vm.enableAdvertisements = previousValue
+      } finally {
+        vm.isEnableAdvertisementsLoading = false
       }
-
-      vm.isEnablePushNotifsLoading = false
     },
-    async handleNotifTypesSubscription (type) {
+    async handleAdvertisementTypesSubscription (type) {
       const vm = this
+      
+      // Store previous values for rollback on error
+      let previousValue = null
+      let previousItemIndex = null
 
       if (type?.dbCol === 'is_events_promotions_enabled') {
         vm.isEnableEventsAndPromosIsLoading = true
+        previousValue = vm.isEnableEventsAndPromos
       } else if (type?.dbCol === 'is_by_country_enabled') {
         vm.eventsAndPromosSubList[0].isLoading = true
+        previousValue = vm.eventsAndPromosSubList[0].isEnabled
+        previousItemIndex = 0
       } else if (type?.dbCol === 'is_by_city_enabled') {
         vm.eventsAndPromosSubList[1].isLoading = true
+        previousValue = vm.eventsAndPromosSubList[1].isEnabled
+        previousItemIndex = 1
       }
 
-      const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
-      await updateDeviceNotifType(vm.deviceNotifTypesId, type, deviceId)
-        .then(resp => {
-          vm.deviceNotifTypesId = resp
-          if (type?.dbCol === 'is_events_promotions_enabled') {
-            vm.isEnableEventsAndPromosIsLoading = false
-          } else if (type?.dbCol === 'is_by_country_enabled') {
-            vm.eventsAndPromosSubList[0].isLoading = false
-          } else if (type?.dbCol === 'is_by_city_enabled') {
-            vm.eventsAndPromosSubList[1].isLoading = false
-          }
-        })
+      try {
+        const deviceId = parseDeviceId(vm.$pushNotifications.deviceId)
+        const resp = await updateDeviceNotifType(vm.deviceNotifTypesId, type, deviceId)
+        vm.deviceNotifTypesId = resp
+      } catch (error) {
+        console.error('Error updating advertisement type settings:', error)
+        // Revert toggle on error
+        if (type?.dbCol === 'is_events_promotions_enabled') {
+          vm.isEnableEventsAndPromos = previousValue
+        } else if (previousItemIndex !== null) {
+          vm.eventsAndPromosSubList[previousItemIndex].isEnabled = previousValue
+        }
+      } finally {
+        if (type?.dbCol === 'is_events_promotions_enabled') {
+          vm.isEnableEventsAndPromosIsLoading = false
+        } else if (type?.dbCol === 'is_by_country_enabled') {
+          vm.eventsAndPromosSubList[0].isLoading = false
+        } else if (type?.dbCol === 'is_by_city_enabled') {
+          vm.eventsAndPromosSubList[1].isLoading = false
+        }
+      }
     },
     openEnterCountryCityDialog (enterType) {
       const vm = this
@@ -381,6 +424,21 @@ export default {
   
   &.dark {
     color: rgba(255, 255, 255, 0.8);
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.pt-setting-caption {
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.7;
+  margin-top: 4px;
+  
+  &.dark {
+    color: rgba(255, 255, 255, 0.65);
   }
   &.light {
     color: rgba(0, 0, 0, 0.6);

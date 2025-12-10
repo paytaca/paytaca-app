@@ -183,7 +183,7 @@
         </div>
 
         <template v-if="isMobile">
-          <PushNotifsSettings />
+          <AdvertisementsSettings />
         </template>
 
         <div class="col-12 q-px-lg q-mt-md">
@@ -267,7 +267,7 @@ import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
-import PushNotifsSettings from 'src/components/settings/PushNotifsSettings.vue'
+import AdvertisementsSettings from 'src/components/settings/AdvertisementsSettings.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
@@ -302,7 +302,7 @@ export default {
     CountrySelector,
     CurrencySelector,
     ThemeSelector,
-    PushNotifsSettings,
+    AdvertisementsSettings,
     RenameDialog
   },
   computed: {

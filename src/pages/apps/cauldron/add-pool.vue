@@ -210,6 +210,7 @@
                   :disable="Boolean(insufficientBalanceMessage)"
                   @swiped="securityCheck"
                 />
+                <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
               </div>
             </q-slide-transition>
           </q-card-section>
@@ -235,7 +236,8 @@ import { ref, computed, defineComponent, onMounted, watch } from "vue";
 import HeaderNav from 'src/components/header-nav';
 import CauldronHeaderMenu from "src/components/cauldron/CauldronHeaderMenu.vue";
 import TokenSelectDialog from "src/components/cauldron/TokenSelectDialog.vue";
-import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
+import pinDialog from 'src/components/pin/index.vue';
+import { NativeBiometric } from 'capacitor-native-biometric';
 import CustomInput from 'src/components/CustomInput.vue';
 import DragSlide from 'src/components/drag-slide.vue';
 
@@ -247,6 +249,7 @@ export default defineComponent({
     TokenSelectDialog,
     CustomInput,
     DragSlide,
+    pinDialog,
   },
   props: {
     tokenId: String,
@@ -337,6 +340,7 @@ export default defineComponent({
     })
 
     const suppressSync = ref(false)
+    const pinDialogAction = ref('')
     function syncTokenAmountFromBch() {
       if (suppressSync.value) return
       if (!poolPricing.value || !usePoolPricing.value) return
@@ -415,11 +419,52 @@ export default defineComponent({
     })
 
     function securityCheck(resetSwipe=() => {}) {
-      $q.dialog({
-        component: SecurityCheckDialog,
-      })
-        .onOk(() => addLiquidityPool())
-        .onCancel(() => resetSwipe?.())
+      executeSecurityChecking(resetSwipe)
+    }
+    function executeSecurityChecking(reset = () => {}) {
+      setTimeout(() => {
+        const preferredSecurity = $store?.getters?.['global/preferredSecurity']
+        if (preferredSecurity === 'pin') {
+          // Reset first to ensure watcher is triggered
+          pinDialogAction.value = ''
+          setTimeout(() => {
+            pinDialogAction.value = 'VERIFY'
+          }, 0)
+        } else {
+          verifyBiometric(reset)
+        }
+      }, 300)
+    }
+    function verifyBiometric(reset = () => {}) {
+      NativeBiometric.verifyIdentity({
+        reason: $t('NativeBiometricReason2'),
+        title: $t('SecurityAuthentication'),
+        subtitle: $t('NativeBiometricSubtitle'),
+        description: ''
+      }).then(
+        () => {
+          // Authentication successful
+          addLiquidityPool()
+        },
+        (error) => {
+          // Failed to authenticate
+          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+            reset?.()
+          } else if (error.message.includes('Too many attempts. Try again later.')) {
+            // Retry after delay
+            setTimeout(() => {
+              verifyBiometric(reset)
+            }, 2000)
+          } else {
+            verifyBiometric(reset)
+          }
+        }
+      )
+    }
+    function pinDialogNextAction(action) {
+      if (action === 'proceed') {
+        addLiquidityPool()
+      }
     }
 
     const completedPoolData = ref({

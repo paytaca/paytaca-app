@@ -152,7 +152,7 @@ export async function getWalletUnreadNotifs (walletHash) {
   return count
 }
 
-// ========== PUSH NOTIFICATIONS SETTINGS ========== //
+// ========== ADVERTISEMENTS SETTINGS ========== //
 
 export function parseDeviceId (deviceId) {
   const platform = Capacitor.getPlatform()
@@ -201,7 +201,7 @@ export async function updateDeviceNotifType (deviceNotifTypesId, type, deviceId)
         `devicenotiftype/${respId}/`,
         data
       ).then(response => {
-        console.log('Device notif type updated successfully.')
+        console.log('Device advertisement settings updated successfully.')
       }).catch(error => {
         console.log(error)
       })
