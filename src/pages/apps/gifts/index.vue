@@ -834,10 +834,12 @@ export default {
 
 .gifts-tabs {
   display: inline-flex;
-  gap: 8px;
+  gap: clamp(4px, 1.5vw, 8px);
   background-color: rgb(242, 243, 252);
-  border-radius: 28px;
-  padding: 6px;
+  border-radius: 24px;
+  padding: 4px;
+  max-width: 100%;
+  box-sizing: border-box;
   
   &.dark {
     background-color: rgba(255, 255, 255, 0.1);
@@ -845,9 +847,9 @@ export default {
 }
 
 .gifts-tab {
-  min-width: 110px;
-  height: 44px;
-  border-radius: 22px;
+  min-width: clamp(90px, 25vw, 120px);
+  height: 40px;
+  border-radius: 20px;
   border: none;
   color: #4C4F4F;
   background-color: transparent;
@@ -855,8 +857,9 @@ export default {
   cursor: pointer;
   transition: all 0.3s;
   font-weight: 500;
-  font-size: 14px;
-  padding: 0 16px;
+  font-size: clamp(12px, 3vw, 14px);
+  padding: 0 clamp(12px, 4vw, 20px);
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;

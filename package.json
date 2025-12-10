@@ -25,6 +25,7 @@
     "@capacitor/keyboard": "^5.0.9",
     "@capacitor/preferences": "^5.0.0",
     "@capacitor/push-notifications": "^5.0.0",
+    "@cashlab/cauldron": "^1.0.2",
     "@cashscript/utils": "^0.11.5",
     "@electron/remote": "^1.2.0",
     "@generalprotocols/anyhedge": "^2.0.2",

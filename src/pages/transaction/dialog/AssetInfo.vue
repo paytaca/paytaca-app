@@ -35,6 +35,20 @@
             <q-skeleton type="rect" width="100px" height="16px" class="q-mx-auto" />
           </div>
         </div>
+
+        <!-- Swap Button for Tokens (below balance) -->
+        <div v-if="asset.id?.startsWith?.('ct/')" class="swap-button-section q-mb-md">
+          <q-btn 
+            @click="cauldronSwap" 
+            outline
+            class="swap-btn"
+            color="primary"
+            no-caps
+          >
+            <q-icon name="img:cauldron-logo.svg" size="18px" class="q-mr-sm" />
+            <span>{{ $t('Swap') }}</span>
+          </q-btn>
+        </div>
         
         <!-- Price Chart for BCH -->
         <div v-if="asset.id === 'bch'" class="price-chart-section q-mb-md">
@@ -143,35 +157,32 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="action-buttons q-mt-md row q-gutter-sm justify-center">
-          <q-btn 
-            @click="send" 
-            rounded 
-            unelevated
-            class="action-btn"
-            color="primary"
-            text-color="white"
-            no-caps
-            padding="8px 24px"
-            style="min-width: 110px; font-size: 13px; font-weight: 600;"
-          >
-            <q-icon name="send" size="16px" class="q-mr-xs" />
-            {{ $t('Send') }}
-          </q-btn>
-          <q-btn 
-            @click="receive" 
-            rounded 
-            unelevated
-            class="action-btn"
-            color="primary"
-            text-color="white"
-            no-caps
-            padding="8px 24px"
-            style="min-width: 110px; font-size: 13px; font-weight: 600;"
-          >
-            <q-icon name="qr_code_2" size="16px" class="q-mr-xs" />
-            {{ $t('Receive') }}
-          </q-btn>
+        <div class="action-buttons q-mt-lg">
+          <div class="action-buttons-container">
+            <q-btn 
+              @click="send" 
+              unelevated
+              class="action-btn"
+              color="primary"
+              text-color="white"
+              no-caps
+            >
+              <q-icon name="send" size="18px" class="action-icon" />
+              <span class="action-label">{{ $t('Send') }}</span>
+            </q-btn>
+            
+            <q-btn 
+              @click="receive" 
+              unelevated
+              class="action-btn"
+              color="primary"
+              text-color="white"
+              no-caps
+            >
+              <q-icon name="qr_code_2" size="18px" class="action-icon" />
+              <span class="action-label">{{ $t('Receive') }}</span>
+            </q-btn>
+          </div>
         </div>
       </q-card-section>
     </q-card>
@@ -406,7 +417,15 @@ export default {
         }
       })
     },
-    
+    cauldronSwap() {
+      this.$router.push({
+        name: 'app-cauldron',
+        query: {
+          selectTokenId: this.asset.id?.replace('ct/', '')
+        }
+      })
+    },
+
     // Price chart methods
     async loadPriceData () {
       try {
@@ -670,24 +689,115 @@ export default {
   }
 }
 
-// Action Buttons
-.action-buttons {
-  padding-top: 4px;
+// Swap Button Section (below balance for tokens)
+.swap-button-section {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
   
-  .action-btn {
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    box-shadow: 0 2px 6px rgba(59, 123, 246, 0.25);
-    transition: all 0.3s ease;
+  .swap-btn {
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 20px;
+    border-width: 1.5px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     
     &:hover {
-      box-shadow: 0 3px 10px rgba(59, 123, 246, 0.35);
+      background: rgba(59, 123, 246, 0.08);
       transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(59, 123, 246, 0.15);
     }
     
     &:active {
       transform: translateY(0);
     }
+  }
+}
+
+// Action Buttons (Send and Receive only)
+.action-buttons {
+  padding-top: 8px;
+  
+  .action-buttons-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  
+  .action-btn {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 2px 8px rgba(59, 123, 246, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 56px;
+    
+    .action-icon {
+      opacity: 0.95;
+      transition: transform 0.2s ease;
+      font-size: 18px;
+    }
+    
+    .action-label {
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    
+    &:hover {
+      box-shadow: 0 4px 14px rgba(59, 123, 246, 0.3);
+      transform: translateY(-2px);
+      
+      .action-icon {
+        transform: scale(1.1);
+      }
+    }
+    
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(59, 123, 246, 0.25);
+      
+      .action-icon {
+        transform: scale(1);
+      }
+    }
+  }
+  
+  // Responsive adjustments for smaller screens
+  @media (max-width: 480px) {
+    .action-buttons-container {
+      gap: 8px;
+    }
+    
+    .action-btn {
+      min-height: 52px;
+      padding: 8px 10px;
+      gap: 3px;
+      
+      .action-icon {
+        font-size: 16px;
+      }
+      
+      .action-label {
+        font-size: 11px;
+      }
+    }
+  }
+  
+  // When only 2 buttons
+  .action-btn:nth-last-child(2):first-child {
+    min-width: calc(50% - 5px);
   }
 }
 

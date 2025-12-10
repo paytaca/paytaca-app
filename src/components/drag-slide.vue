@@ -1,8 +1,13 @@
 <template>
   <q-list v-if="!swiped" :class="{ 'absolute-bottom': !disableAbsoluteBottom, 'br-15': true, 'drag-slide-container': true }">
     <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
-      <q-slide-item left-color="blue" @left="slide" style="background-color: transparent; border-radius: 40px;">
-        <template v-slot:left>
+      <q-slide-item 
+        left-color="blue" 
+        @left="slide" 
+        :disable="disable"
+        style="background-color: transparent; border-radius: 40px;"
+      >
+        <template v-if="!disable" v-slot:left>
           <div style="font-size: 15px" class="text-body1">
           <q-icon class="material-icons q-mr-md" size="lg">
             task_alt
@@ -13,7 +18,8 @@
 
         <q-item class="bg-grad text-white q-py-md">
           <q-item-section avatar>
-            <q-icon name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+            <q-icon v-if="disable" name="lock" size="sm" class="bg-blue q-pa-sm" style="border-radius: 50%" />
+            <q-icon v-else name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
           </q-item-section>
           <q-item-section class="text-right">
             <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ sliderText }}</h5>
@@ -35,6 +41,10 @@ export default {
   },
   props: {
     disableAbsoluteBottom: Boolean,
+    disable: {
+      type: Boolean,
+      default: false
+    },
     text: {
       type: String,
       default: ''
@@ -42,6 +52,10 @@ export default {
   },
   methods: {
     slide ({ reset }) {
+      if (this.disable) {
+        reset()
+        return
+      }
       setTimeout(() => {
         try {
           reset()

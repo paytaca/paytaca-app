@@ -23,7 +23,7 @@
 		          outlined
 		          rounded
 		          v-model="searchText"
-		          :placeholder="$t('Search Asset')"
+		          :placeholder="$t('SearchAsset')"
 		        >
 		          <template v-slot:append>
 		            <q-icon name="search" color="grey-5" />
@@ -32,6 +32,16 @@
 		      </q-card-section>
 			<div :class="darkMode ? 'text-white' : 'text-black'">
 				<q-list separator class="q-px-lg">
+					<!-- Add "All" option at the top -->
+					<q-item class="q-py-md" clickable v-ripple @click="onOKClick({ id: 'all', symbol: 'All', name: 'All Assets', logo: null })" :key="'all'">
+						<q-item-section avatar>
+							<q-avatar>
+								<q-icon name="list" size="md" />
+							</q-avatar>
+						</q-item-section>
+						<q-item-section class="text-bold">{{ $t('All') }}</q-item-section>
+					</q-item>
+					
 					<q-item class="q-py-md" clickable v-ripple v-for="asset in filteredList" @click="onOKClick(asset)" :key="asset.id">
 						<q-item-section avatar>
 		          <q-avatar>

@@ -15,13 +15,11 @@ const btcGenesisBlock = 1231006505;
 export const SaleGroup = {
   SEED: 'seed',
   PRIVATE: 'priv',
-  PUBLIC: 'pblc'
 }
 
 export const SaleGroupPrice = {
   seed: 0.015,
-  priv: 0.025,
-  pblc: 0.05
+  priv: 0.03
 }
 
 const ENGAGEMENT_HUB_URL =

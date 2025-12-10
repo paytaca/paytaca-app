@@ -14,6 +14,14 @@ export function parseKey (key, inputText, caret, asset) {
 
   if (key === '.' && (inputText === '' || Number(amount) === 0)) {
     amount = '0.'
+  } else if (key === '.') {
+    // Handle decimal point insertion
+    const hasPeriod = amount.indexOf('.')
+    if (hasPeriod === -1) {
+      // No decimal point yet, append it to the end
+      amount = amount + '.'
+    }
+    // If decimal already exists, do nothing (prevent multiple decimals)
   } else {
     const hasPeriod = amount.indexOf('.')
     if (hasPeriod < 1) {
@@ -42,8 +50,10 @@ export function parseKey (key, inputText, caret, asset) {
  * @returns the adjusted string if asset is a cashtoken; the unchanged string otherwise
  */
 function parseCtKey (amount, asset) {
-  if (asset?.id?.startsWith('ct/')) {
+  // Validate decimals for both tokens and BCH
+  if (asset?.decimals !== undefined && asset.decimals !== null) {
     if (asset.decimals === 0) {
+      // Remove decimal point for tokens with 0 decimals
       amount = amount.toString().replace('.', '')
     } else {
       const parts = amount.toString().split('.')
@@ -87,26 +97,28 @@ export function adjustSplicedAmount (text, caretPosition, addedItem = null) {
  */
 export function formatWithLocaleSelective (amount, formattedAmount, key, decimalObj) {
   const decimalSeparator = getLocaleSeparators().decimal
-  let parsedAmount = amount
+  // Ensure amount is a string
+  const amountStr = String(amount || '')
+  let parsedAmount = amountStr
 
   // if clicked decimal
   if (key === '.') {
     // check if decimal is already present in formattedAmount
     if (!formattedAmount.includes(decimalSeparator)) {
       // if not present, format amount and append decimal
-      parsedAmount = formatWithLocale(amount, decimalObj) + decimalSeparator
+      parsedAmount = formatWithLocale(amountStr, decimalObj) + decimalSeparator
     }
   }
   //  else if clicked zero
   else if (key === '0') {
     // check if decimal is already present in amount
-    if (amount.includes('.')) {
+    if (amountStr.includes('.')) {
       // if present, format amount and append zero (already appended from parseKey)
       // split decimal numbers for possible zeros
-      const amountSplit = String(amount).split('.')
+      const amountSplit = amountStr.split('.')
       const combinedDecimal = `${decimalSeparator}${amountSplit[1]}`
       parsedAmount = `${formatWithLocale(amountSplit[0], decimalObj)}${combinedDecimal}`
-    } else parsedAmount = formatWithLocale(amount, decimalObj)
+    } else parsedAmount = formatWithLocale(amountStr, decimalObj)
   }
 
   return parsedAmount

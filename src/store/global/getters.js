@@ -125,6 +125,68 @@ export function getWalletIndex (state) {
   return state.walletIndex
 }
 
+/**
+ * Get wallet hash for a specific vault index
+ * @param {Object} state
+ * @param {number} index - The vault index
+ * @returns {string|null} The wallet hash or null if not found
+ */
+export function getWalletHashByIndex (state) {
+  return (index) => {
+    const wallet = state.vault?.[index]
+    return wallet?.wallet?.bch?.walletHash || 
+           wallet?.wallet?.BCH?.walletHash ||
+           wallet?.BCH?.walletHash || 
+           wallet?.bch?.walletHash ||
+           wallet?.walletHash ||
+           null
+  }
+}
+
+/**
+ * Get vault index by wallet hash
+ * @param {Object} state
+ * @param {string} walletHash - The wallet hash
+ * @returns {number|null} The vault index or null if not found
+ */
+export function getVaultIndexByWalletHash (state) {
+  return (walletHash) => {
+    if (!walletHash || !state.vault || state.vault.length === 0) return null
+    
+    const normalizedHash = String(walletHash).trim()
+    
+    const index = state.vault.findIndex(wallet => {
+      if (!wallet || wallet.deleted) return false
+      
+      const hash = wallet?.wallet?.bch?.walletHash || 
+                   wallet?.wallet?.BCH?.walletHash ||
+                   wallet?.BCH?.walletHash ||
+                   wallet?.bch?.walletHash ||
+                   wallet?.walletHash
+      
+      if (!hash) return false
+      
+      return String(hash).trim() === normalizedHash
+    })
+    
+    return index !== -1 ? index : null
+  }
+}
+
+/**
+ * Get wallet from vault by wallet hash
+ * @param {Object} state
+ * @param {string} walletHash - The wallet hash
+ * @returns {Object|null} The wallet object or null if not found
+ */
+export function getWalletByHash (state) {
+  return (walletHash) => {
+    const index = getVaultIndexByWalletHash(state)(walletHash)
+    if (index === null) return null
+    return state.vault?.[index] || null
+  }
+}
+
 export function getDefaultAssetLogo () {
   return function (val = '') {
     const string = sha256(String(val))

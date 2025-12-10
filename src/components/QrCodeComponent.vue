@@ -85,8 +85,12 @@ export default {
   },
   computed: {
     wrapperSize () {
-      const divisor = this.$q.platform.is.mobile ? 1.3 : 1;
-      return this.padding + 30 + this.size / divisor;
+      // Calculate border width in pixels (remove 'px' suffix if present)
+      const borderWidth = parseFloat(this.borderWidth) || 0;
+      // CSS padding is 30px on all sides, so we need 60px total (30px * 2)
+      const cssPadding = 30 * 2;
+      // Total wrapper size needed: QR size + CSS padding + border on both sides
+      return this.size + cssPadding + (borderWidth * 2);
     }
   },
   mounted() {
@@ -147,6 +151,10 @@ export default {
           const svgDoc = parser.parseFromString(qrcode.svg(), "image/svg+xml")
           const svgElement = svgDoc.documentElement
 
+          // Set explicit size to prevent overflow on mobile
+          svgElement.setAttribute('width', vm.size)
+          svgElement.setAttribute('height', vm.size)
+
           // Prepare fade-in to avoid flicker
           svgElement.style.opacity = '0'
           svgElement.style.willChange = 'opacity'
@@ -206,8 +214,10 @@ export default {
 
 .qr svg {
   display: block;
-  width: 100%;
+  width: auto;
   height: auto;
+  max-width: 100%;
+  max-height: 100%;
   padding: 30px;
   background-color: white;
   border-radius: 10px;

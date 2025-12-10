@@ -1,9 +1,9 @@
 <template>
-  <div class="debug-page" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="debug-page sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="$t('Debug')"
       backnavpath="/apps"
-      class="header-nav"
+      class="header-nav q-px-sm apps-header"
     >
       <template #top-right-menu>
         <q-btn
@@ -18,12 +18,79 @@
       </template>
     </header-nav>
 
-    <div class="debug-content q-pa-md">
+    <div class="q-pa-md q-mt-sm">
+      <!-- Enable SLP Toggle -->
+      <div class="q-mb-md">
+        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
+          <q-card-section>
+            <div class="row items-center justify-between">
+              <div class="col">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
+                  {{ $t('EnableSlp') }}
+                </div>
+                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                  {{ $t('EnableSlpToolTip', {}, 'Enable SLP token support') }}
+                </div>
+              </div>
+              <q-toggle
+                v-model="enableSLP"
+                :color="toggleColor"
+                keep-color
+              />
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <!-- BCH Denomination Selector -->
+      <div class="q-mb-md">
+        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
+          <q-card-section>
+            <div class="row items-center justify-between">
+              <div class="col">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
+                  {{ $t('SelectBCHDenomination') }}
+                </div>
+                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                  {{ $t('SelectBCHDenominationToolTip', {}, 'Choose how BCH amounts are displayed') }}
+                </div>
+              </div>
+              <div class="q-ml-md">
+                <DenominatorSelector :darkMode="darkMode" />
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <!-- Auto Generate Address Toggle -->
+      <div class="q-mb-md">
+        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
+          <q-card-section>
+            <div class="row items-center justify-between">
+              <div class="col">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
+                  {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
+                </div>
+                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                  {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
+                </div>
+              </div>
+              <q-toggle
+                v-model="autoGenerateAddress"
+                :color="toggleColor"
+                keep-color
+              />
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
       <!-- Sound Test Button -->
       <div class="q-mb-md">
         <q-btn
           color="primary"
-          label="Test Sound"
+          :label="$t('TestSound', {}, 'Test Sound')"
           icon="volume_up"
           @click="testSound"
           :loading="testingSound"
@@ -34,7 +101,7 @@
       <!-- Terminal Display -->
       <div class="terminal-container" :class="getDarkModeClass(darkMode)">
         <div class="terminal-header">
-          <span class="terminal-title">Console Logs</span>
+          <span class="terminal-title">{{ $t('ConsoleLogs', {}, 'Console Logs') }}</span>
           <q-btn
             flat
             dense
@@ -44,7 +111,7 @@
             @click="clearLogs"
             class="q-mr-xs"
           >
-            <q-tooltip>Clear</q-tooltip>
+            <q-tooltip>{{ $t('Clear') }}</q-tooltip>
           </q-btn>
         </div>
         <div class="terminal-body" ref="terminalBody">
@@ -59,7 +126,7 @@
             <span class="log-message">{{ log.message }}</span>
           </div>
           <div v-if="logs.length === 0" class="log-empty">
-            No logs yet. Console output will appear here.
+            {{ $t('NoLogsYet', {}, 'No logs yet. Console output will appear here.') }}
           </div>
         </div>
       </div>
@@ -72,11 +139,13 @@ import headerNav from 'src/components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
+import DenominatorSelector from 'src/components/settings/DenominatorSelector'
 
 export default {
   name: 'DebugApp',
   components: {
-    headerNav
+    headerNav,
+    DenominatorSelector
   },
   data () {
     return {
@@ -89,12 +158,29 @@ export default {
         warn: null,
         debug: null,
         info: null
-      }
+      },
+      enableSLP: this.$store.getters['global/enableSLP'],
+      autoGenerateAddress: this.$store.getters['global/autoGenerateAddress']
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    toggleColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return 'pink-6'
+      if (theme === 'glassmorphic-green') return 'green-6'
+      if (theme === 'glassmorphic-gold') return 'amber-7'
+      return 'blue-6'
+    }
+  },
+  watch: {
+    enableSLP (n, o) {
+      this.$store.commit('global/enableSLP')
+    },
+    autoGenerateAddress (n, o) {
+      this.$store.commit('global/toggleAutoGenerateAddress')
     }
   },
   methods: {
@@ -281,9 +367,10 @@ export default {
     async hideDebugApp () {
       this.$q.dialog({
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
-        title: this.$t('Hide Debug App'),
-        message: this.$t('Are you sure you want to hide the Debug app? You can show it again by long pressing the Apps header.'),
-        cancel: true,
+        title: this.$t('HideDebugApp'),
+        message: this.$t('AreYouSureYouWantToHideTheDebugApp'),
+        cancel: { label: this.$t('Cancel'), },
+        ok: { label: this.$t('OK'), },
         persistent: true
       }).onOk(async () => {
         // Clean up before hiding
@@ -341,8 +428,45 @@ export default {
   background-color: #ECF3F3;
 }
 
-.debug-content {
-  margin-top: 20px;
+/* Match Settings page background - inherits from #app-container.dark */
+body.theme-glassmorphic-blue .debug-page.dark {
+  background-color: #273746;
+}
+
+body.theme-glassmorphic-red .debug-page.dark {
+  background-color: #462733;
+}
+
+body.theme-glassmorphic-green .debug-page.dark {
+  background-color: #263d32;
+}
+
+body.theme-glassmorphic-gold .debug-page.dark {
+  background-color: #3d3224;
+}
+
+body.theme-payhero .debug-page.dark {
+  background-color: #012121;
+}
+
+/* Fallback for default theme or if theme class is not present */
+.debug-page.dark {
+  background-color: #273746;
+}
+
+.debug-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.debug-card.dark {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.debug-card.light {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .terminal-container {

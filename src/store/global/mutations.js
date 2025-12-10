@@ -1,4 +1,4 @@
-import { deleteMnemonic } from './../../wallet'
+import { deleteMnemonic, deleteMnemonicByHash } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 import { removeWalletName } from 'src/utils/wallet-name-cache'
 
@@ -8,7 +8,7 @@ import { removeWalletName } from 'src/utils/wallet-name-cache'
 function getDefaultWalletSettings() {
   return {
     isChipnet: false,
-    autoGenerateAddress: false,
+    autoGenerateAddress: true,
     enableStablhedge: false,
     enableSmartBCH: false,
     enableSLP: false,
@@ -69,31 +69,51 @@ export function setNetwork (state, network) {
 }
 
 export function updateVault (state, details) {
+  // Extract walletHash with better error handling
+  const newWalletHash = details?.wallet?.bch?.walletHash
+  
+  let targetIndex = -1 // Track which index was actually modified
+  
   // Simple approach: if vault is empty, create first entry, otherwise push new entry
   if (!state.vault || state.vault.length === 0) {
     state.vault = [details]
+    targetIndex = 0 // First entry is at index 0
   } else {
-    // Check for duplicate entries
-    const existingIndex = state.vault.findIndex(v => {
-      return v.wallet?.bch?.walletHash === details.wallet?.bch?.walletHash
+    // Check for duplicate walletHash - only match when both are non-null and equal
+    // This prevents new wallets from replacing incomplete entries (null walletHash)
+    const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
+    const existingIndex = state.vault.findIndex((v, idx) => {
+      if (!v || v.deleted) return false
+      const existingHash = v?.wallet?.bch?.walletHash
+      const normalizedExisting = existingHash ? String(existingHash).trim() : null
+      return normalizedExisting !== null && normalizedNew !== null && normalizedExisting === normalizedNew
     })
+    
     if (existingIndex !== -1) {
       // Update existing entry, but preserve settings if they exist
       const existingSettings = state.vault[existingIndex].settings
-      state.vault[existingIndex] = details
-      // Preserve existing settings if they were set
-      if (existingSettings && Object.keys(existingSettings).length > 0) {
-        state.vault[existingIndex].settings = existingSettings
+      const existingName = state.vault[existingIndex].name
+      const existingDeleted = state.vault[existingIndex].deleted
+      
+      // Merge details while preserving important fields
+      state.vault[existingIndex] = {
+        ...details,
+        settings: existingSettings && Object.keys(existingSettings).length > 0 ? existingSettings : details.settings,
+        name: existingName || details.name || '',
+        deleted: existingDeleted || false
       }
+      targetIndex = existingIndex // Track the index that was updated
     } else {
-      // Add new entry
+      // No matching walletHash found - create new entry
       state.vault.push(details)
+      targetIndex = state.vault.length - 1 // New entry is at the end
     }
   }
   
   // Ensure the entry has a name and settings
-  const targetIndex = state.vault.length - 1
-  if (state.vault[targetIndex]) {
+  // Use the tracked targetIndex instead of always using the last entry
+  // This applies to both empty vault (targetIndex = 0) and non-empty vault cases
+  if (targetIndex !== -1 && state.vault[targetIndex]) {
     if (!state.vault[targetIndex].name) {
       state.vault[targetIndex].name = ''
     }
@@ -106,6 +126,58 @@ export function updateVault (state, details) {
 
 export function clearVault (state) {
   state.vault = []
+}
+
+/**
+ * Remove a vault entry at the specified index
+ * This actually removes it from the array (unlike deleteWallet which just marks it as deleted)
+ * @param {Object} state
+ * @param {number} index - Index of the vault entry to remove
+ */
+export function removeVaultEntry (state, index) {
+  if (index >= 0 && index < state.vault.length) {
+    state.vault.splice(index, 1)
+  }
+}
+
+/**
+ * Reorder vault entries by moving an item from one index to another
+ * @param {Object} state - Global state
+ * @param {Object} payload - Reorder payload
+ * @param {number} payload.fromIndex - Source index in vault array
+ * @param {number} payload.toIndex - Destination index in vault array
+ */
+export function reorderVault (state, { fromIndex, toIndex }) {
+  if (fromIndex === toIndex) {
+    return // No change needed
+  }
+
+  if (fromIndex < 0 || fromIndex >= state.vault.length || toIndex < 0 || toIndex >= state.vault.length) {
+    console.warn('[reorderVault] Invalid indices:', { fromIndex, toIndex, vaultLength: state.vault.length })
+    return
+  }
+
+  // Get the wallet being moved
+  const walletToMove = state.vault[fromIndex]
+  
+  // Remove from original position
+  state.vault.splice(fromIndex, 1)
+  
+  // Insert at new position
+  state.vault.splice(toIndex, 0, walletToMove)
+
+  // Update walletIndex if the currently active wallet was moved
+  const currentWalletIndex = state.walletIndex
+  if (currentWalletIndex === fromIndex) {
+    // The active wallet was moved, update walletIndex to its new position
+    state.walletIndex = toIndex
+  } else if (currentWalletIndex > fromIndex && currentWalletIndex <= toIndex) {
+    // A wallet before the active one was moved forward, shift walletIndex back
+    state.walletIndex = currentWalletIndex - 1
+  } else if (currentWalletIndex < fromIndex && currentWalletIndex >= toIndex) {
+    // A wallet after the active one was moved backward, shift walletIndex forward
+    state.walletIndex = currentWalletIndex + 1
+  }
 }
 
 export function updateWalletIndex (state, index) {
@@ -303,19 +375,27 @@ export function migrateWalletSettings (state, payload) {
   }
 }
 
+/**
+ * @deprecated This mutation is kept for backward compatibility but is no longer used.
+ * Wallet deletion is now handled entirely in the deleteWallet action which performs
+ * complete cleanup and removes the wallet from vault.
+ * 
+ * The action now:
+ * 1. Retrieves wallet data (walletHash, mnemonic)
+ * 2. Calls deleteAllWalletData() to remove all traces (mnemonic, PIN, auth tokens)
+ * 3. Removes wallet name from cache
+ * 4. Removes wallet from vault using removeVaultEntry()
+ * 5. Handles wallet switching if needed
+ */
 export function deleteWallet (state, index) {
-  // Mark wallet as deleted
-  const wallet = state.vault[index]
-  const walletHash = wallet?.wallet?.bch?.walletHash
+  // This mutation is deprecated - deletion is now handled in the action
+  // Keeping for backward compatibility but it should not be called directly
+  console.warn('[Wallet Deletion] deleteWallet mutation called directly - this should be handled by the action')
   
-  // Remove cached wallet name
-  if (walletHash) {
-    removeWalletName(walletHash)
+  // Mark wallet as deleted (legacy behavior)
+  if (state.vault[index]) {
+    state.vault[index].deleted = true
   }
-  
-  state.vault[index].deleted = true
-  // Delete the mnemonic seed phrase for this wallet
-  deleteMnemonic(index)
 }
 
 export function toggleIsChipnet (state) {
@@ -548,8 +628,22 @@ export function setTheme (state, theme) {
 export function setWalletLastAddressAndIndex(state, lastAddressAndIndex) {
   if (state.isChipnet) {
     state.chipnet__wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+    // Also update lastAddressIndex if address_index is provided
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      state.chipnet__wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+      if (lastAddressAndIndex.address) {
+        state.chipnet__wallets.bch.lastAddress = lastAddressAndIndex.address
+      }
+    }
   } else {
     state.wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+    // Also update lastAddressIndex if address_index is provided
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      state.wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+      if (lastAddressAndIndex.address) {
+        state.wallets.bch.lastAddress = lastAddressAndIndex.address
+      }
+    }
   }
 }
 

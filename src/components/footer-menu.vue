@@ -19,7 +19,7 @@
           @click="$router.push('/')">{{ $t('Home') }}</span>
       </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'transaction-list' }">
+        <router-link :to="{ name: 'transaction-list', query: { assetID: 'all' } }">
           <q-icon name="receipt_long" class="default-text-color mb-2" size="30px">
             <!-- <svg>
               <use xlink:href="app-send.svg#icon"></use>
@@ -29,22 +29,9 @@
         <br>
         <span 
           id="send-button"
-          @click="$router.push({ name: 'transaction-list' })">TX</span>
+          @click="$router.push({ name: 'transaction-list', query: { assetID: 'all' } })">TX</span>
       </button>
       <div style="width: 50px;"></div>
-      <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'app-marketplace' }">
-          <q-icon name="img:marketplace.svg" class="default-text-color-2 mb-2" size="30px">
-            <!-- <svg>
-              <use xlink:href="marketplace.svg#icon"></use>
-            </svg> -->
-          </q-icon>
-        </router-link>
-        <br>
-        <span
-          id="receive-button" 
-          @click="$router.push({ name: 'app-marketplace' })">{{ $t('Market') }}</span>
-      </button>
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'apps-dashboard' }">
           <q-icon class="default-text-color mb-2" size="30px">
@@ -57,6 +44,16 @@
         <span 
           id="apps-button"
           @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
+      </button>
+      <button class="footer-icon-btn" :class="getDarkModeClass()">
+        <router-link :to="{ name: 'app-settings' }">
+          <q-icon name="settings" class="default-text-color mb-2" size="30px">
+          </q-icon>
+        </router-link>
+        <br>
+        <span 
+          id="settings-button"
+          @click="$router.push({ name: 'app-settings' })">{{ $t('Settings') }}</span>
       </button>
     </div>
 

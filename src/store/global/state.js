@@ -27,7 +27,7 @@ export default function () {
     },
     theme: 'glassmorphic-blue', // [glassmorphic-blue, payhero]
     isChipnet: false,
-    autoGenerateAddress: false,
+    autoGenerateAddress: true,
     enableStablhedge: false,
     enableSmartBCH: false,
     enableSLP: false,

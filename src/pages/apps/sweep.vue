@@ -5,7 +5,7 @@
       @decode="onScannerDecode"
     />
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
-      <header-nav :title="$t('Sweep')" backnavpath="/apps" />
+      <header-nav :title="$t('Sweep')" backnavpath="/" />
       <div
         id="app"
         ref="app"
@@ -13,7 +13,7 @@
         :class="getDarkModeClass(darkMode)"
         :style="{ 'padding-top': $q.platform.is.ios ? '30px' : '0px'}"
       >
-        <div class="text-center text-h6" v-if="fetching && tokens.length === 0" style="margin-top: 25px;">
+        <div class="text-center text-h6" v-if="fetching" style="margin-top: 25px;">
           <p>{{ $t('Scanning') }}...</p>
           <progress-loader />
         </div>
@@ -26,7 +26,7 @@
         <template v-if="!submitted">
           <q-form v-if="bip38String === ''" class="text-center wide-margin-top">
             <textarea
-              v-if="tokens.length === 0"
+              v-if="cashTokensCount === 0"
               v-model="wif"
               class="sweep-input"
               rows="2"
@@ -44,7 +44,7 @@
               <q-btn
                 class="button"
                 color="primary"
-                v-if="tokens.length === 0 && wif"
+                v-if="cashTokensCount === 0 && wif"
                 @click.prevent="getTokens"
               >
                 {{ $t('Scan') }}
@@ -81,7 +81,7 @@
             color="green"
           />
           <div class="text-h5">{{ $t('Success') }}</div>
-          <div class="text-body1">{{ $t('SweepSuccessMessage', {}, 'Assets claimed successfully') }}</div>
+          <div class="text-body1">{{ $t('SweepSuccessMessage') }}</div>
           <q-btn
             flat
             no-caps :label="$t('Home')"
@@ -89,9 +89,10 @@
             to="/"
           />
         </div>
+
         <div
-          v-else
-          :class="totalTokensCount <= 0 ? 'wide-margin-top' : ''"
+          v-else-if="!fetching"
+          :class="cashTokensCount <= 0 ? 'wide-margin-top' : ''"
         >
           <div v-if="sweeper && Number.isFinite(bchBalance)">
             <div class="q-mb-sm">
@@ -104,64 +105,65 @@
 
             <div class="bch-balance">
               <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
-              <template v-if="bchBalance > 0">
-                <q-btn
-                  v-if="selectedToken !== 'bch'"
-                  @click.prevent="sweepBch"
-                  :label="$t('Sweep')"
-                  class="button"
-                  :class="getDarkModeClass(darkMode)"
-                  :disabled="(totalTokensCount - skippedTokens.length) > 0"
-                />
-                <span v-if="(totalTokensCount - skippedTokens.length) > 0" class="text-red" style="margin-left: 10px;">
-                  <i>{{ $t(isHongKong(currentCountry) ? 'SweepThePointsFirst' : 'SweepTheTokensFirst') }}</i>
-                </span>
-                <div v-if="sweeping && selectedToken === 'bch'">
-                  <progress-loader />
-                </div>
-              </template>
-              <span v-else class="text-red">
-                <template v-if="totalTokensCount == 0">{{ $t('SweepErrMsg1') }}</template>
-                <i v-else>{{ $t('SweepErrMsg2') }}</i>
+              <q-btn
+                v-if="!sweeping && (cashTokensCount > 0 || bchBalance > 0)"
+                color="primary"
+                :disabled="!hasEnoughBalances"
+                :label="(cashTokensCount - skippedTokens.length) > 0 ? $t('SweepAll') : $t('Sweep')"
+                @click.prevent="sweepAll"
+              />
+              <div v-if="sweeping">
+                <progress-loader />
+              </div>
+              <span v-else class="row q-mt-xs text-red">
+                <template v-if="cashTokensCount === 0 && bchBalance === 0">{{ $t('SweepErrMsg1') }}</template>
+                <i v-else-if="!hasEnoughBalances">{{ $t('EmptyBalancesError') }}</i>
+                <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance') }}</i>
               </span>
             </div>
           </div>
-          <div v-if="totalTokensCount > 0" class="q-my-md">
-            <q-select
-              filled
-              v-model="payFeeFrom"
-              :options="feeOptions"
-              behavior="menu"
-              :label="$t('PayTransactionFeeFrom')"
-            />
-          </div>
+
           <div v-if="fungibleCashTokens?.length || nonFungibleCashTokens?.length" class="q-mt-md">
-            <div class="row items-center q-mb-sm relative-position" v-ripple @click="() => expandCashTokens = !expandCashTokens">
+            <div class="row items-center q-mb-sm relative-position">
               <div class="q-space">
                 <div class="text-subtitle1 text-weight-medium">
-                  {{ $t('CashTokens') }} ({{ cashTokensCount }})
+                    {{ $t('CashTokens') }} ({{ cashTokensCount }})
                 </div>
                 <div>
                   {{ ellipsisText(sweeper.tokenAddress) }}
                   <q-icon name="mdi-content-copy" @click.stop="copyToClipboard(sweeper.tokenAddress)" />
                 </div>
               </div>
-              <q-icon
-                size="1.75rem"
-                name="expand_less"
-                :class="['toggle-expand', expandCashTokens ? '' : 'flipped']"
+            </div>
+
+            <div class="row justify-center q-my-sm">
+              <q-btn
+                outline
+                color="primary"
+                :label="$t('ManualCashTokensSweep')"
+                :disabled="!hasEnoughBalances"
+                @click.prevent="expandCashTokens = !expandCashTokens"
               />
             </div>
+
             <q-slide-transition>
               <div v-if="expandCashTokens">
+                <span class="row justify-center text-subtitle1 q-mb-sm">
+                  {{ isHongKong(currentCountry) ? $t('SelectPointsToSweep') : $t('SelectTokensToSweep') }}
+                </span>
+
                 <div v-for="(fungibleToken, index) in fungibleCashTokens" :key="index" class="token-details">
-                  <img
-                    v-if="fungibleToken?.parsedMetadata?.fungible && fungibleToken?.parsedMetadata?.imageUrl"
-                    :src="fungibleToken?.parsedMetadata?.imageUrl"
-                    height="35px"
-                    class="float-right"
-                  />
-                  <p>{{ fungibleToken?.parsedMetadata?.name }}</p>
+                  <div class="row items-center justify-between">
+                    <span class="text-subtitle1 text-weight-bold">
+                      {{ fungibleToken?.parsedMetadata?.name }}
+                    </span>
+                    <img
+                      v-if="fungibleToken?.parsedMetadata?.fungible && fungibleToken?.parsedMetadata?.imageUrl"
+                      :src="fungibleToken?.parsedMetadata?.imageUrl"
+                      height="35px"
+                      alt="CT"
+                    />
+                  </div>
                   <p>
                     {{ $t('Category') }}:
                     {{ ellipsisText(fungibleToken?.category) }}
@@ -174,7 +176,7 @@
                     <q-btn
                       color="primary"
                       :label="$t('Sweep')"
-                      @click.prevent="sweepCashTokenFungible(fungibleToken)"
+                      @click.prevent="sweepCashTokenFungible([fungibleToken])"
                       :disabled="sweeping || skippedTokens.includes(fungibleToken.category)"
                     />
                     <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
@@ -188,8 +190,9 @@
                     <progress-loader />
                   </div>
                 </div>
+
                 <div v-for="(nft, index) in nonFungibleCashTokens" :key="index" class="token-details">
-                  <p>{{ nft?.parsedMetadata?.name }}</p>
+                  <p class="text-subtitle1 text-weight-bold">{{ nft?.parsedMetadata?.name }}</p>
                   <p>
                     {{ $t('Category') }}:
                     {{ ellipsisText(nft?.category) }}
@@ -205,6 +208,7 @@
                       :src="nft?.parsedMetadata?.imageUrl || generateFallbackImage(nft)"
                       style="width: min(100%, 200px);"
                       class="rounded-borders"
+                      alt="NFT"
                     />
                   </div>
 
@@ -212,7 +216,7 @@
                     <q-btn
                       color="primary"
                       :label="$t('Sweep')"
-                      @click.prevent="sweepCashTokenNonFungible(nft)"
+                      @click.prevent="sweepCashTokenNonFungible([nft])"
                       :disabled="sweeping || skippedTokens.includes(`${nft.category}|${nft.commitment}`)"
                     />
                     <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
@@ -221,47 +225,6 @@
                       v-model="skippedTokens"
                       v-bind:val="`${nft.category}|${nft.commitment}`"
                     />
-                  </div>
-                </div>
-              </div>
-            </q-slide-transition>
-          </div>
-          <div v-if="tokens.length > 0" class="q-mt-md">
-            <div class="row items-center q-mb-sm relative-position" v-ripple @click="() => expandSlpTokens = !expandSlpTokens">
-              <div class="q-space">
-                <div class="text-subtitle1 text-weight-medium">
-                  {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }} ({{ tokens.length }})
-                </div>
-                <div>
-                  {{ ellipsisText(sweeper.slpAddress) }}
-                  <q-icon name="mdi-content-copy" @click.stop="copyToClipboard(sweeper.slpAddress)" />
-                </div>
-              </div>
-              <q-icon
-                size="1.75rem"
-                name="expand_less"
-                :class="['toggle-expand', expandSlpTokens ? '' : 'flipped']"
-              />
-            </div>
-            <q-slide-transition>
-              <div v-if="expandSlpTokens">
-                <div v-for="(token, index) in tokens" :key="index" class="token-details">
-                  <p>
-                    {{ $t(isHongKong(currentCountry) ? 'PointId' : 'TokenId') }}: {{ ellipsisText(token.token_id) }}
-                    <q-icon name="mdi-content-copy" @click="copyToClipboard(token.token_id)" />
-                  </p>
-                  <p>{{ $t('Symbol') }}: {{ token.symbol }}</p>
-                  <img v-if="token.image_url.length > 0" :src="token.image_url" height="50" alt="" />
-                  <p>{{ $t('Amount') }}: {{ token.spendable }}</p>
-                  <template v-if="selectedToken !== token.token_id">
-                    <q-btn color="primary" @click.prevent="sweepToken(token)" :disabled="sweeping || skippedTokens.includes(token.token_id)">
-                      {{ $t('Sweep') }}
-                    </q-btn>
-                    <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
-                    <q-checkbox v-model="skippedTokens" v-bind:val="token.token_id" :label="$t('Skip')" />
-                  </template>
-                  <div v-if="sweeping && selectedToken === token.token_id">
-                    <progress-loader />
                   </div>
                 </div>
               </div>
@@ -301,15 +264,6 @@ export default {
     return {
       wallet: null,
       wif: '',
-      tokens: [].map(() => {
-        return {
-          token_id: '',
-          symbol: '',
-          image_url: '',
-          spendable: 0,
-          // also some other fields
-        }
-      }),
       nonFungibleCashTokens: [].map(CashNonFungibleToken.parse),
       fungibleCashTokens: [].map(() => {
         return {
@@ -326,28 +280,25 @@ export default {
       }),
       skippedTokens: [],
       bchBalance: null,
-      sweeper: [].map(() => new SweepPrivateKey())[0],
+      sweeper: null,
       submitted: false,
       fetching: false,
       sweeping: false,
+      fetchingTokens: false,
       selectedToken: null,
-      expandCashTokens: true,
-      expandSlpTokens: true,
+      expandCashTokens: false,
       showSuccess: false,
       showQrScanner: false,
       error: null,
       passPhrase: '',
       isDecrypting: false,
+      hasEnoughBalances: true,
+      tokenIndex: 0,
 
       sweepTxidMap: {
         'bch': '',
         /** 'token-id-and-commitment': '', */
-      },
-      feeOptions: [
-        { label: this.$t('Wallet'), value: 'wallet' },
-        { label: this.$t('Address'), value: 'address' }
-      ],
-      payFeeFrom: { label: this.$t('Wallet'), value: 'wallet' }
+      }
     }
   },
   watch: {
@@ -360,7 +311,7 @@ export default {
       if (this.wif || this.sweeper) return
       this.wif = extractWifFromUrl(this.w) || this.w
       this.getTokens(true)
-    }
+    },
   },
   computed: {
     darkMode () {
@@ -376,17 +327,17 @@ export default {
       return this.$store.getters['global/theme']
     },
     cashTokensCount() {
-      const ctFts = parseInt(this.fungibleCashTokens?.length) || 0
-      const ctNfts = parseInt(this.nonFungibleCashTokens?.length) || 0
+      const ctFts = Number.parseInt(this.fungibleCashTokens?.length) || 0
+      const ctNfts = Number.parseInt(this.nonFungibleCashTokens?.length) || 0
       return ctFts + ctNfts
-    },
-    totalTokensCount() {
-      const slpTokens = parseInt(this.tokens?.length) || 0
-      return slpTokens + this.cashTokensCount
     },
     emptyAssets() {
       const DUST = 546 / 10 ** 8
-      return this.bchBalance < DUST && this.totalTokensCount == 0
+      return this.bchBalance < DUST && this.cashTokensCount === 0
+    },
+    async getWalletBchBalance() {
+      const resp = await this.wallet.BCH.getBalance()
+      return resp.balance
     }
   },
   methods: {
@@ -409,7 +360,7 @@ export default {
       }
     },
     round(value, decimals=0) {
-      decimals = parseInt(decimals)
+      decimals = Number.parseInt(decimals)
       if (!decimals) return value
 
       const multiplier = 10 ** decimals
@@ -435,191 +386,283 @@ export default {
     validatePrivateKey (value) {
       return /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(String(value))
     },
-    getFeeFunder () {
-      let funder
-      if (this.payFeeFrom.value === 'address') {
-        funder = {
-          address: this.sweeper.bchAddress,
-          wif: this.wif
-        }
-      } else if (this.payFeeFrom.value === 'wallet') {
-        funder = {
-          walletHash: this.wallet.BCH.walletHash,
-          mnemonic: this.wallet.mnemonic,
-          derivationPath: this.wallet.BCH.derivationPath
-        }
-      }
-      return funder
-    },
+
     async getTokens (signalFetch) {
       if (!this.validatePrivateKey(this.wif)) {
         this.error = this.$t('InvalidPrivateKey')
         return
       }
 
+      // Prevent concurrent initial fetches (but allow refreshes)
+      if (signalFetch && this.fetchingTokens) return
+      if (signalFetch) this.fetchingTokens = true
+
       this.submitted = true
       if (signalFetch) this.fetching = true
 
-      if (this.wif.length <= 0) return
-      this.sweeper = new SweepPrivateKey(this.wif)
+      if (this.wif.length <= 0) {
+        if (signalFetch) this.fetchingTokens = false
+        return
+      }
+      
+      // Only create new sweeper instance if WIF changed or doesn't exist
+      if (!this.sweeper || !this.sweeper.wif || this.sweeper.wif !== this.wif) {
+        this.sweeper = new SweepPrivateKey(this.wif)
+      }
+
+      // Subscribe once if needed, then fetch all data in parallel without redundant subscriptions
+      if (signalFetch) {
+        await this.sweeper.subscribe()
+      }
 
       await Promise.allSettled([
-        this.sweeper.getNftCashTokens().then(results => {
+        this.sweeper.getNftCashTokens(false).then(results => {
           this.nonFungibleCashTokens = results
         }),
-        this.sweeper.getFungibleCashTokens().then(results => {
+        this.sweeper.getFungibleCashTokens(false).then(results => {
           this.fungibleCashTokens = results
         }),
-        this.sweeper.getTokensList().then((tokens) => {
-          this.tokens = tokens.filter(token => token.spendable)
+        this.sweeper.getBchBalance(false).then(resp => {
+          this.bchBalance = resp?.spendable || 0
         }),
       ])
 
-      const resp = await this.sweeper.getBchBalance()
-      this.bchBalance = resp.spendable || 0
+      this.hasEnoughBalances = this.bchBalance > 0 || (await this.getWalletBchBalance) > 0
+
+      if (this.sweeping && this.emptyAssets) {
+        this.showSuccess = true
+      }
+
       this.fetching = false
       this.sweeping = false
+      if (signalFetch) this.fetchingTokens = false
     },
-    async sweepToken (token) {
-      const vm = this
-      vm.sweeping = true
-      vm.selectedToken = token.token_id
-      
-      const recipientAddress = await vm.getRecipientAddress('slp')
-      if (!recipientAddress) {
-        vm.$q.notify({
-          message: vm.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
-          icon: 'mdi-close-circle',
-          color: 'red-5'
-        })
-        vm.sweeping = false
-        vm.selectedToken = null
-        return
-      }
-      
-      vm.sweeper.sweepToken(
-        token.address,
-        vm.wif,
-        token.token_id,
-        token.spendable,
-        vm.getFeeFunder(),
-        recipientAddress
-      ).then(function (result) {
-        if (!result.success) {
-          vm.$q.notify({
-            message: result.error,
-            icon: 'mdi-close-circle',
-            color: 'red-5'
-          })
-          vm.selectedToken = null
-        }
-        vm.getTokens()
-      })
-    },
-    async sweepCashTokenFungible(token) {
-      const bchAddress = await this.getRecipientAddress('bch')
-      if (!bchAddress) {
-        this.$q.notify({
-          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
-          icon: 'mdi-close-circle',
-          color: 'red-5'
-        })
-        return
-      }
-      
-      const tokenAddress = convertCashAddress(bchAddress, false, true)
-      this.sweeping = true
-      this.selectedToken = token?.category
-      return this.sweeper.sweepCashToken({
-        tokenAddress: this.sweeper.tokenAddress,
-        bchWif: this.sweeper.wif,
-        token: {
-          tokenId: token?.category,
-        },
-        tokenAmount: token.balance,
-        feeFunder: this.getFeeFunder(),
-        recipient: tokenAddress,
-      }).then(result => {
-        if (!result.success) {
-          this.$q.notify({
-            message: result.error,
-            icon: 'mdi-close-circle',
-            color: 'red-5'
-          })
-          this.selectedToken = null
-        }
-        this.getTokens()
-          .then(() => {
-            if (this.emptyAssets) this.showSuccess = true
-          })
-      })
-    },
-    async sweepCashTokenNonFungible(token=CashNonFungibleToken.parse()) {
-      const bchAddress = await this.getRecipientAddress('bch')
-      if (!bchAddress) {
-        this.$q.notify({
-          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
-          icon: 'mdi-close-circle',
-          color: 'red-5'
-        })
-        return
-      }
-      
-      const tokenAddress = convertCashAddress(bchAddress, false, true)
-      this.sweeping = true
-      this.selectedToken = token?.category
 
-      return this.sweeper.sweepCashToken({
-        tokenAddress: this.sweeper.tokenAddress,
-        bchWif: this.sweeper.wif,
-        token: {
-          tokenId: token?.category,
-          capability: token?.capability,
-          commitment: token?.commitment,
-          txid: token?.currentTxid,
-          vout: token?.currentIndex,
-        },
-        feeFunder: this.getFeeFunder(),
-        recipient: tokenAddress,
-      }).then(result => {
-        if (!result.success) {
+    async sweepCashTokenFungible(tokens, tokenAddress=null) {
+      this.sweeping = true
+      let hasSweepingError = false
+      const isSingleSweep = tokenAddress === null
+
+      if (!tokenAddress) {
+        const bchAddress = await this.getRecipientAddress('bch')
+        if (!bchAddress) {
           this.$q.notify({
-            message: result.error,
+            message: this.$t('FailedToGetAddress'),
             icon: 'mdi-close-circle',
             color: 'red-5'
           })
-          this.selectedToken = null
+          this.sweeping = false
+          return
         }
-        this.getTokens()
-          .then(() => {
-            if (this.emptyAssets) this.showSuccess = true
-          })
-      })
-    },
-    async sweepBch () {
-      const recipientAddress = await this.getRecipientAddress('bch')
-      if (!recipientAddress) {
-        this.$q.notify({
-          message: this.$t('FailedToGetAddress', {}, 'Failed to get recipient address'),
-          icon: 'mdi-close-circle',
-          color: 'red-5'
-        })
-        return
+        tokenAddress = convertCashAddress(bchAddress, false, true)
       }
-      
+
+      for (const token of tokens) {
+        this.selectedToken = token?.category
+        const fungiblePayload = {
+          tokenAddress: this.sweeper.tokenAddress,
+          bchWif: this.sweeper.wif,
+          token: {
+            tokenId: token?.category,
+          },
+          tokenAmount: token.balance,
+          feeFunder: this.parseFeeFunder(),
+          recipient: tokenAddress,
+        }
+
+        await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
+          if (!result.success) {
+            if (isSingleSweep) {
+              this.$q.notify({
+                message: result.error,
+                icon: 'mdi-close-circle',
+                color: 'red-5'
+              })
+            }
+            hasSweepingError = true
+          }
+          this.getTokens(false)
+        })
+
+        if (hasSweepingError) {
+          fungiblePayload.feeFunder = this.parseFeeFunder(true)
+          await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
+            if (result.success) hasSweepingError = false
+            else {
+              if (isSingleSweep) {
+                this.$q.notify({
+                  message: result.error,
+                  icon: 'mdi-close-circle',
+                  color: 'red-5'
+                })
+              }
+              hasSweepingError = true
+            }
+            this.getTokens(false)
+          })
+        }
+
+        this.tokenIndex++
+      }
+
+      return hasSweepingError
+    },
+    async sweepCashTokenNonFungible(tokens, tokenAddress=null) {
+      this.sweeping = true
+      let hasSweepingError = false
+      const isSingleSweep = tokenAddress === null
+
+      if (!tokenAddress) {
+        const bchAddress = await this.getRecipientAddress('bch')
+        if (!bchAddress) {
+          this.$q.notify({
+            message: this.$t('FailedToGetAddress'),
+            icon: 'mdi-close-circle',
+            color: 'red-5'
+          })
+          this.sweeping = false
+          return
+        }
+        tokenAddress = convertCashAddress(bchAddress, false, true)
+      }
+
+      for (const token of tokens) {
+        this.selectedToken = token?.category
+        const nftPayload = {
+          tokenAddress: this.sweeper.tokenAddress,
+          bchWif: this.sweeper.wif,
+          token: {
+            tokenId: token?.category,
+            capability: token?.capability,
+            commitment: token?.commitment,
+            txid: token?.currentTxid,
+            vout: token?.currentIndex,
+          },
+          recipient: tokenAddress,
+          feeFunder: this.parseFeeFunder(),
+        }
+  
+        await this.sweeper.sweepCashToken(nftPayload).then(result => {
+          if (!result.success) {
+            if (isSingleSweep) {
+              this.$q.notify({
+                message: result.error,
+                icon: 'mdi-close-circle',
+                color: 'red-5'
+              })
+            }
+            hasSweepingError = true
+          }
+          this.getTokens(false)
+        })
+
+        if (hasSweepingError) {
+          nftPayload.feeFunder = this.parseFeeFunder(true)
+          await this.sweeper.sweepCashToken(nftPayload).then(result => {
+            if (result.success) hasSweepingError = false
+            else {
+              if (isSingleSweep) {
+                this.$q.notify({
+                  message: result.error,
+                  icon: 'mdi-close-circle',
+                  color: 'red-5'
+                })
+              }
+              hasSweepingError = true
+            }
+            this.getTokens(false)
+          })
+        }
+
+        this.tokenIndex++
+      }
+
+      return hasSweepingError
+    },
+    async sweepBch (recipientAddress) {
       this.sweeping = true
       this.selectedToken = 'bch'
-      this.sweeper.sweepBch(
+      let bchSweepError = false
+
+      await this.sweeper.sweepBch(
         this.sweeper.bchAddress,
         this.wif,
         this.bchBalance,
+        undefined,
         recipientAddress
-      )
-      this.getTokens(false)
-          .then(() => {
-            if (this.emptyAssets) this.showSuccess = true
-          })
+      ).then(result => {
+        if (!result.success) {
+          bchSweepError = true
+        }
+        this.getTokens(false)
+      })
+
+      if (bchSweepError) {
+        await this.sweeper.sweepBch(
+          this.sweeper.bchAddress,
+          this.wif,
+          this.bchBalance,
+          this.parseFeeFunder(true),
+          recipientAddress
+        ).then(result => {
+          this.getTokens(false)
+        })
+      }
     },
+
+    async sweepAll() {
+      const bchAddress = await this.getRecipientAddress('bch')
+      if (!bchAddress) {
+        this.$q.notify({
+          message: this.$t('FailedToGetAddress'),
+          icon: 'mdi-close-circle',
+          color: 'red-5'
+        })
+        return
+      }
+      const tokenAddress = convertCashAddress(bchAddress, false, true)
+
+      if ((this.cashTokensCount - this.skippedTokens.length) > 0) {
+        const unskippedCashTokens = this.fungibleCashTokens.filter(
+          token => !this.skippedTokens.includes(token.category)
+        )
+        const unskippedNonFungibleCashTokens = this.nonFungibleCashTokens.filter(
+          token => !this.skippedTokens.includes(`${token.category}|${token.commitment}`)
+        )
+        this.tokenIndex = 0
+
+        const fungibleError = await this.sweepCashTokenFungible(
+          unskippedCashTokens, tokenAddress
+        )
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        const nonFungibleError = await this.sweepCashTokenNonFungible(
+          unskippedNonFungibleCashTokens, tokenAddress
+        )
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        if (fungibleError || nonFungibleError) {
+          this.$q.notify({
+            message: this.$t('FailedToSweepSomeTokens'),
+            icon: 'warning',
+            color: 'warning'
+          })
+          return
+        }
+      }
+
+      await this.getTokens(false)
+
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (this.bchBalance > 0) await this.sweepBch(bchAddress)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      let retries = 0
+      while (retries < 3) {
+        await this.getTokens(false)
+        retries++
+      }
+    },
+
     onScannerDecode (content) {
       this.showQrScanner = false
       this.wif = content
@@ -651,19 +694,27 @@ export default {
         }
       }, 1000);
     },
+    parseFeeFunder(isForceWallet=false) {
+      const fee = (546 / (10 ** 8)) * (this.tokenIndex + 1)
+
+      if (this.bchBalance < fee || isForceWallet) {
+        return {
+          walletHash: this.wallet.BCH.walletHash,
+          mnemonic: this.wallet.mnemonic,
+          derivationPath: this.wallet.BCH.derivationPath
+        }
+      }
+
+      return undefined
+    }
   },
-  mounted () {
-    const vm = this
-    // const divHeight = screen.availHeight - 120
-    // vm.$refs.app.setAttribute('style', 'height:' + divHeight + 'px;')
+  async mounted () {
+    const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+    this.wallet = markRaw(new Wallet(mnemonic))
 
-    getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
-      vm.wallet = markRaw(new Wallet(mnemonic))
-    })
-
-    if (vm.w) {
-      vm.wif =  extractWifFromUrl(vm.w) || vm.w
-      vm.getTokens(true)
+    if (this.w) {
+      this.wif =  extractWifFromUrl(this.w) || this.w
+      await this.getTokens(true)
     }
   }
 }
@@ -797,12 +848,6 @@ export default {
     }
   }
 
-  .text-subtitle1 {
-    font-size: 1.125rem;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.87);
-  }
-
   .q-select {
     border-radius: 12px;
     
@@ -823,7 +868,6 @@ export default {
   :deep(.dark) {
     .sweep-input {
       background: rgba(255, 255, 255, 0.05);
-      color: white;
       border-color: rgba(255, 255, 255, 0.1);
 
       &::placeholder {
@@ -843,10 +887,6 @@ export default {
       p {
         color: rgba(255, 255, 255, 0.87);
       }
-    }
-
-    .text-subtitle1 {
-      color: rgba(255, 255, 255, 0.87);
     }
 
     .text-red {

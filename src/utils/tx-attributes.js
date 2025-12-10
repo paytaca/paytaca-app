@@ -2,6 +2,7 @@ import { ellipsisText } from "src/wallet/anyhedge/formatters"
 import { capitalize } from "vue"
 import { i18n } from 'src/boot/i18n'
 import { parseFiatCurrency } from "./denomination-utils"
+import { formatCauldronPoolAttribute, formatCauldronSwapAttribute } from "src/wallet/cauldron/utils"
 
 const { t: $t } = i18n.global
 
@@ -16,6 +17,8 @@ const TxAttribute = Object.freeze({
   Cashback: 'cashback',
   StablehedgeTransaction: 'stablehedge_transaction',
   MerchantCashout: 'merchant_cashout',
+  CauldronSwap: 'cauldron-swap',
+  CauldronPool: 'cauldron-pool',
 
   /**
    * @param {String} key the key in the attribute
@@ -42,7 +45,8 @@ export function parseAttributeToBadge(attribute) {
   const icons = {
     anyhedge: 'img:anyhedge-logo.png',
     vault_payment: 'mdi-ticket-confirmation',
-    cashback: 'img:marketplace.png'
+    cashback: 'img:marketplace.png',
+    cauldron: 'img:cauldron-logo.svg',
   }
 
   const key = attribute?.key
@@ -130,6 +134,24 @@ export function parseAttributeToBadge(attribute) {
       text: 'Cash out',
       icon: icons.cashback,
       description: description || `Merchant cash-out for ${value}`
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.CauldronSwap)) {
+    const _description = formatCauldronSwapAttribute(value)
+    return {
+      key,
+      custom: true,
+      text: 'Cauldron DEX',
+      icon: icons.cauldron,
+      description: description || _description || 'Cauldron DEX Swap',
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.CauldronPool)) {
+    const _description = formatCauldronPoolAttribute(value)
+    return {
+      key,
+      custom: true,
+      text: 'Cauldron Pool',
+      icon: icons.cauldron,
+      description: description || _description,
     }
   }
 
@@ -252,6 +274,24 @@ export function parseAttributeToDetails(attribute) {
       tooltip: description,
       text: description, 
       actions: [{ icon: 'content_copy', type: 'copy_to_clipboard', args: [value] }],
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.CauldronSwap)) {
+    let description = formatCauldronSwapAttribute(value)
+    return {
+      key,
+      groupName: 'Cauldron DEX',
+      label: 'Cauldron DEX Swap',
+      tooltip: description,
+      text: description,
+    }
+  } else if (TxAttribute.isMatch(key, TxAttribute.CauldronPool)) {
+    let description = formatCauldronPoolAttribute(value)
+    return {
+      key,
+      groupName: 'Cauldron',
+      label: 'Cauldron Pool',
+      tooltip: description,
+      text: description,
     }
   }
 

@@ -274,28 +274,28 @@ export async function getAssetMetadata (context, assetId) {
   }
 }
 
-export function filterFavoriteAssets (context, assets) {
-  let temp = []
+// REMOVED: filterFavoriteAssets - Never use Vuex state for displaying favorites
+// Favorites should always be fetched from the backend API to avoid showing outdated data
+// export function filterFavoriteAssets (context, assets) {
+//   let temp = []
+//   console.log('here: ', assets)
+//   return assets.filter(asset => asset.favorite === 1)
+// }
 
-  console.log('here: ', assets)
-  return assets.filter(asset => asset.favorite === 1)
-
-}
-
-
-export async function initializeFavorites (context, assets) {  
-  let iterate = assets.length > 10 ? 10 : assets.length
-
-  const isInitialized = context.getters.initializedFavorites  
-
-  if (!isInitialized) {    
-    for (let i = 0; i < iterate; i++) {
-      let temp = {
-        id: assets[i].id,
-        favorite: 1
-      }  
-     context.commit('updateAssetFavorite', temp)
-    }
-    context.commit('initializeFavorites', true)    
-  }  
-}
+// REMOVED: initializeFavorites - Never update favorites in Vuex state
+// Favorites should only be stored in the backend API, not in Vuex
+// Components should fetch favorites from the API using assetSettings.fetchFavorites()
+// export async function initializeFavorites (context, assets) {  
+//   let iterate = assets.length > 10 ? 10 : assets.length
+//   const isInitialized = context.getters.initializedFavorites  
+//   if (!isInitialized) {    
+//     for (let i = 0; i < iterate; i++) {
+//       let temp = {
+//         id: assets[i].id,
+//         favorite: 1
+//       }  
+//      context.commit('updateAssetFavorite', temp)
+//     }
+//     context.commit('initializeFavorites', true)    
+//   }  
+// }

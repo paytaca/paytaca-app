@@ -111,6 +111,10 @@ const routes = [
     component: () => import('layouts/Apps.vue'),
     children: [
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
+      { path: 'cauldron', component: () => import('src/pages/apps/cauldron/trade.vue'), name: 'app-cauldron', props: route => route.query },
+      { path: 'cauldron/pools', component: () => import('src/pages/apps/cauldron/pools.vue'), name: 'app-cauldron-pools', props: route => route.query },
+      { path: 'cauldron/add-pool', component: () => import('src/pages/apps/cauldron/add-pool.vue'), name: 'app-cauldron-add-pool', props: route => route.query },
+      { path: 'cauldron/pool', component: () => import('src/pages/apps/cauldron/pool.vue'), name: 'app-cauldron-pool', props: route => route.query },
       { path: 'stablehedge', component: () => import('src/pages/apps/stablehedge/StablehedgePage.vue'), name: 'app-stablehedge', props: route => route.query },
       { path: 'stablehedge/wallet', component: () => import('src/pages/apps/stablehedge/StablehedgeWalletPage.vue'), name: 'app-stablehedge-wallet', props: route => route.query },
       { path: 'map', component: () => import('src/pages/apps/map.vue'), name: 'app-map', props: route => route.query },
@@ -121,7 +125,7 @@ const routes = [
       { path: 'merchant-admin/merchant/cashout', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/index.vue'), name: 'app-pos-cashout', props: route => route.query },
       { path: 'merchant-admin/merchant/cashout/order', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/order-form.vue'), name: 'app-pos-cashout-form', props: route => route.query },
       { path: 'wallet-connect', component: () => import('src/pages/apps/wallet-connect2.vue'), name: 'app-wallet-connect', props: route => route.query },
-      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
+      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-support' },
       { path: 'bridge', component: () => import('src/pages/apps/bridge.vue'), name: 'app-bridge' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },
@@ -152,7 +156,34 @@ const routes = [
           { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } }
         ]
       },
-      { path: 'ramp/crypto', component: () => import('src/pages/apps/ramp-crypto.vue'), name: 'ramp-crypto' },
+      {
+        path: 'crypto-swap/',
+        name: 'crypto-swap',
+        component: () => import('layouts/Transaction.vue'),
+        children: [
+          {
+            path: '', 
+            component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue'), 
+            name: 'crypto-swap-form'
+          },
+          {
+            path: 'history/tx/:id',
+            name: 'crypto-swap-history-details',
+            props: route => Object.assign({}, route.params, route.query),
+            component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history-details.vue'),
+          }
+        ]
+      },
+      // { 
+      //   path: 'ramp/crypto', 
+      //   name: 'ramp-crypto',
+      //   component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue')      
+      // },
+      // {
+      //   path: 'ramp/crypto/history/',
+      //   name: 'crypto-swap-history',
+      //   component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history.vue'),
+      // },
       {
         path: 'exchange/',
         name: 'exchange',
@@ -338,7 +369,7 @@ const routes = [
         component: () => import('src/pages/transactions/TransactionDetail.vue')
       }
     ]
-  },
+  },  
   // Always leave this as last one,
   // but you can also remove it
   {

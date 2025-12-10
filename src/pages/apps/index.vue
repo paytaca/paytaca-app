@@ -1,20 +1,28 @@
 <template>
-  <div id="apps-page-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('Apps')"
       backnavpath="/"
-      class="q-px-sm apps-header"
+      class="header-nav q-px-sm apps-header"
       @long-press-title="onLongPressAppsTitle"
     />
     <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
       <div class="row q-px-xs">
         <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
-          <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
-            <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
-            <q-tooltip v-if="app.description" :delay="500" class="text-body2" :class="getDarkModeClass(darkMode)">
-              {{ app.description }}
-            </q-tooltip>                              
-          </q-btn>
+          <div class="relative-position" style="display: inline-block;">
+            <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
+              <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
+              <q-tooltip v-if="app.description" :delay="500" class="text-body2" :class="getDarkModeClass(darkMode)">
+                {{ app.description }}
+              </q-tooltip>                              
+            </q-btn>
+            <q-badge 
+              v-if="app.beta" 
+              color="red" 
+              class="beta-badge"
+              :label="$t('Beta').toLocaleUpperCase()"
+            />
+          </div>
           <p
             class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label"
             :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
@@ -33,13 +41,15 @@
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
+import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
   name: 'apps',
   components: {
-    HeaderNav
+    HeaderNav,
+    BetaAppDialog
   },
   directives: {
     'on-long-press': vOnLongPress,
@@ -48,7 +58,7 @@ export default {
     return {
       showDebugApp: localStorage.getItem('debugAppVisible') === 'true',
       apps: [
-      {
+        {
           name: 'P2P Exchange',
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
@@ -70,10 +80,10 @@ export default {
           }
         },
         {
-          name: this.$t('WalletConnect'),
-          iconName: 'mdi-connection',
-          path: '/apps/wallet-connect',
-          iconStyle: 'font-size: 4.2em',
+          name: this.$t('Collectibles'),
+          iconName: 'burst_mode',
+          path: '/apps/collectibles',
+          iconStyle: 'font-size: 4.5em',
           active: true,
           smartBCHOnly: false
         },
@@ -86,36 +96,37 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('Learn'),
-          iconName: 'lightbulb',
-          path: '/apps/learn',
+          name: `LIFT ${this.$t('Token')}`,
+          iconName: 'img:lift-token.png',
+          path: '/apps/lift-token',
+          iconStyle: 'width: 50%; height: 60%;',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
+          iconName: 'mdi-account-group',
+          path: '/apps/multisig',
+          active: true,
           iconStyle: 'font-size: 4em',
-          description: this.$t('LearnDescription'),
-          active: true,
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          beta: true,
+          betaMessage: this.$t('MultisigWalletsBetaMessage', {}, 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.')
         },
-        // {
-        //   name: 'Rewards',
-        //   iconName: 'workspace_premium',
-        //   path: '/apps/rewards',
-        //   iconStyle: 'font-size: 4em',
-        //   active: !this.$store.getters['global/isChipnet'],
-        //   smartBCHOnly: false
-        // },
         {
-          name: this.$t('Collectibles'),
-          iconName: 'burst_mode',
-          path: '/apps/collectibles',
-          iconStyle: 'font-size: 4.5em',
-          active: true,
+          name: 'Cauldron DEX',
+          iconName: 'img:cauldron-logo.svg',
+          path: '/apps/cauldron',
+          iconStyle: 'width:45%; height: 45%;',
+          active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
         {
-          name: 'Stablehedge',
-          iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
-          path: '/apps/stablehedge/wallet',
-          iconStyle: 'width:55%; height: 55%;',
+          name: this.$t('CryptoSwap'),
+          iconName: 'mdi-swap-horizontal-bold',
+          path: '/apps/crypto-swap',
           active: true,
+          iconStyle: 'font-size: 4.7em',
           smartBCHOnly: false
         },
         {
@@ -127,19 +138,21 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: `LIFT ${this.$t('Token')}`,
-          iconName: 'img:lift-token.png',
-          path: '/apps/lift-token',
-          iconStyle: 'width: 50%; height: 60%;',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          name: 'Stablehedge',
+          iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
+          path: '/apps/stablehedge/wallet',
+          iconStyle: 'width:55%; height: 55%;',
+          active: true,
+          smartBCHOnly: false,
+          beta: true,
+          betaMessage: this.$t('StablehedgeBetaMessage', {}, 'Stablehedge is currently in beta. This feature allows you to create stablecoin positions backed by Bitcoin Cash. Please note that this is an experimental feature and may have limitations or risks.')
         },
         {
-          name: this.$t('Map'),
-          iconName: 'public',
-          path: '/apps/map/',
+          name: this.$t('WalletConnect'),
+          iconName: 'mdi-connection',
+          path: '/apps/wallet-connect',
           iconStyle: 'font-size: 4.2em',
-          active: !this.$store.getters['global/isChipnet'],
+          active: true,
           smartBCHOnly: false
         },
         {
@@ -148,6 +161,30 @@ export default {
           path: '/apps/merchant-admin',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('MerchantMap', {}, 'Merchant Map'),
+          iconName: 'public',
+          path: '/apps/map/',
+          iconStyle: 'font-size: 4.2em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Support', {}, 'Support'),
+          iconName: 'support',
+          path: '/apps/wallet-info',
+          active: true,
+          iconStyle: 'font-size: 4em',
+          smartBCHOnly: false
+        },
+        {
+          name: this.$t('Settings'),
+          iconName: 'settings',
+          path: '/apps/settings',
+          active: true,
+          iconStyle: 'font-size: 4em',
           smartBCHOnly: false
         },
         {
@@ -165,50 +202,10 @@ export default {
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: true
-        },
-        // {
-        //   name: this.$t('CryptoSwap'),
-        //   iconName: 'mdi-swap-horizontal-bold',
-        //   path: '/apps/ramp/crypto',
-        //   active: true,
-        //   iconStyle: 'font-size: 4.7em',
-        //   smartBCHOnly: false
-        // },
-        {
-          name: 'Multisig Wallet',
-          iconName: 'mdi-account-group',
-          path: '/apps/multisig',
-          active: true,
-          iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('WalletInfo'),
-          iconName: 'info',
-          path: '/apps/wallet-info',
-          active: true,
-          iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('WalletBackup'),
-          iconName: 'img:wallet-backup.png',
-          path: '/apps/wallet-backup',
-          active: true,
-          iconStyle: 'width:45%; height: 45%;',
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('Settings'),
-          iconName: 'settings',
-          path: '/apps/settings',
-          active: true,
-          iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
         }
       ],
       debugApp: {
-        name: 'Debug',
+        name: this.$t('Debug', {}, 'Debug'),
         iconName: 'bug_report',
         path: '/apps/debug',
         active: true,
@@ -241,7 +238,22 @@ export default {
       return active ? '' : 'disabled'
     },
     openApp (app) {
-      if (app.active) {
+      if (!app.active) return
+      
+      // If app is beta, show dialog first
+      if (app.beta) {
+        this.$q.dialog({
+          component: BetaAppDialog,
+          componentProps: {
+            appName: app.name,
+            betaMessage: app.betaMessage
+          }
+        }).onOk(() => {
+          // Only navigate if user clicks Proceed
+          this.$router.push(app.path)
+        })
+      } else {
+        // Non-beta apps open directly
         this.$router.push(app.path)
       }
     },
@@ -258,10 +270,11 @@ export default {
       if (!this.showDebugApp) {
         this.$q.dialog({
           class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
-          title: this.$t('Show Debug App'),
-          message: this.$t('Do you want to show the Debug app? This will provide access to debugging tools and utilities.'),
-          cancel: true,
-          persistent: true
+          title: this.$t('ShowDebugApp'),
+          message: this.$t('DoYouWantToShowTheDebugApp'),
+          cancel: { label: this.$t('Cancel'), },
+          ok: { label: this.$t('OK'), },
+          persistent: true,
         }).onOk(() => {
           this.showDebugApp = true
           localStorage.setItem('debugAppVisible', 'true')
@@ -348,5 +361,21 @@ export default {
     display: flex;
     justify-content: center;
     align-items: center;
+  }
+  
+  .beta-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .relative-position {
+    position: relative;
   }
 </style>

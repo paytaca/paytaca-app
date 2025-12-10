@@ -5,7 +5,7 @@
     <!-- Minimal Glassmorphic Layout -->
     <div 
       class="minimal-wallet-container"
-      :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}"
+      :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}"
       v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
     >
       <div v-if="serverOnline === true" v-cloak>
@@ -91,15 +91,16 @@
       </div>
     </div>
     <!-- Step 1: Seed Phrase Generation with Animation -->
+    <!-- Also show during wallet restoration -->
     <div
       class="wallet-creation-view"
       :class="getDarkModeClass(darkMode)"
-      v-if="currentStep === 1"
+      v-if="currentStep === 1 || walletRestoreInProgress"
     >
       <transition name="fade" mode="out-in">
         <!-- Paytaca Logo with Circle Container Animation -->
         <div
-          v-if="!walletCreationError"
+          v-if="!walletCreationError && !walletRestoreError"
           key="creating"
           class="wallet-animation-container"
         >
@@ -118,8 +119,23 @@
             <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
           </div>
           <div class="q-mt-md text-center">
-            <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ walletCreationError }}</p>
-            <q-btn flat no-caps color="primary" :label="$t('Retry') || 'Retry'" @click="generateSeedPhrase" />
+            <p class="text-bow" :class="getDarkModeClass(darkMode)">{{ walletCreationError || walletRestoreError }}</p>
+            <q-btn 
+              v-if="currentStep === 1"
+              flat 
+              no-caps 
+              color="primary" 
+              :label="$t('Retry') || 'Retry'" 
+              @click="generateSeedPhrase" 
+            />
+            <q-btn 
+              v-else-if="walletRestoreError"
+              flat 
+              no-caps 
+              color="primary" 
+              :label="$t('Back') || 'Back'" 
+              @click="walletRestoreError = ''; walletRestoreInProgress = false" 
+            />
           </div>
         </div>
       </transition>
@@ -303,7 +319,7 @@
                 type="textarea" 
                 v-model="seedPhraseBackup" 
                 :placeholder="$t('PasteSeedPhrase')"
-                class="q-mt-xs glass-textarea"
+                class="q-mt-xs glass-textarea bg-white"
                 :class="getDarkModeClass(darkMode)"
                 outlined
                 rows="4"
@@ -496,7 +512,7 @@
 </template>
 
 <script>
-import { Wallet, storeMnemonic, generateMnemonic } from '../../wallet'
+import { Wallet, storeMnemonic, generateMnemonic, computeWalletHash } from '../../wallet'
 import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
@@ -587,6 +603,8 @@ export default {
       totalSteps: 4,
       walletCreationInProgress: false,
       walletCreationComplete: false,
+      walletRestoreInProgress: false,
+      walletRestoreError: '',
       mnemonicVerified: false,
       pinDialogAction: '',
       pin: '',
@@ -777,13 +795,180 @@ export default {
       chipnet = JSON.parse(chipnet)
 
       const info = { wallet, chipnet, name: '' }
+      
+      // Check if currentWalletIndex is valid and entry exists
+      const vault = this.$store.getters['global/getVault']
+      const walletHashToCheck = wallet?.bch?.walletHash
+      
+      // If we have a valid currentWalletIndex and the entry exists, update it directly
+      // This is the normal case for new wallet creation - we already created the entry in initializeVaultEntry
+      if (currentWalletIndex >= 0 && currentWalletIndex < vault.length && vault[currentWalletIndex]) {
+        const currentEntry = vault[currentWalletIndex]
+        const currentEntryHash = currentEntry?.wallet?.bch?.walletHash
+        
+        // If the walletHash matches (or current entry has no hash yet), update it directly
+        // This handles the normal flow where initializeVaultEntry created the entry
+        if (!currentEntryHash || (walletHashToCheck && String(currentEntryHash).trim() === String(walletHashToCheck).trim())) {
+          // Update the entry at currentWalletIndex directly
+          this.$store.commit('global/updateWalletSnapshot', {
+            index: currentWalletIndex,
+            walletSnapshot: wallet,
+            chipnetSnapshot: chipnet,
+            name: currentEntry?.name || '',
+            deleted: false
+          })
+          
+          const finalWalletIndex = currentWalletIndex
+          
+          // Update settings
+          const currentSettings = {
+            language: this.$store.getters['global/language'],
+            theme: this.$store.getters['global/theme'],
+            country: this.$store.getters['global/country'],
+            denomination: this.$store.getters['global/denomination'],
+            preferredSecurity: this.$store.getters['global/preferredSecurity'],
+            isChipnet: this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+            enableSLP: this.$store.getters['global/enableSLP'],
+            darkMode: this.$store.getters['darkmode/getStatus'],
+            currency: this.$store.getters['market/selectedCurrency']
+          }
+          this.$store.commit('global/updateWalletSettings', {
+            index: finalWalletIndex,
+            settings: currentSettings
+          })
+          
+          this.$store.commit('global/updateWalletIndex', finalWalletIndex)
+          this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+          this.$store.dispatch('global/syncSettingsToModules')
+          
+          // Handle asset vault update
+          let asset = this.$store.getters['assets/getAllAssets']
+          asset = JSON.stringify(asset)
+          asset = JSON.parse(asset)
+          const adjustedAssets = asset.asset.filter((a) => a?.id === 'bch')
+          const adjustedChipnetAssets = asset.chipnet_assets.filter((a) => a?.id === 'bch')
+          asset.asset = adjustedAssets
+          asset.chipnet_assets = adjustedChipnetAssets
+          this.$store.commit('assets/updateVault', { index: finalWalletIndex, asset: asset })
+          this.$store.commit('assets/updatedCurrentAssets', finalWalletIndex)
+          
+          return
+        }
+      }
+      
+      // Fallback: Check for duplicate walletHash at a different index (restoring existing wallet)
+      if (walletHashToCheck) {
+        const duplicateIndex = vault.findIndex((v, idx) => {
+          if (idx === currentWalletIndex) return false // Skip current index
+          if (!v || v.deleted) return false
+          const existingHash = v?.wallet?.bch?.walletHash
+          if (!existingHash) return false
+          return String(existingHash).trim() === String(walletHashToCheck).trim()
+        })
+        
+        if (duplicateIndex !== -1) {
+          // Found existing wallet - update that entry instead
+          const existingEntry = vault[duplicateIndex]
+          this.$store.commit('global/updateWalletSnapshot', {
+            index: duplicateIndex,
+            walletSnapshot: wallet,
+            chipnetSnapshot: chipnet,
+            name: existingEntry?.name || '',
+            deleted: false
+          })
+          
+          // Mark current entry as deleted if it's different
+          if (currentWalletIndex >= 0 && currentWalletIndex < vault.length && currentWalletIndex !== duplicateIndex) {
+            const currentEntry = vault[currentWalletIndex]
+            this.$store.commit('global/updateWalletSnapshot', {
+              index: currentWalletIndex,
+              walletSnapshot: currentEntry.wallet,
+              chipnetSnapshot: currentEntry.chipnet,
+              name: currentEntry.name || '',
+              deleted: true
+            })
+          }
+          
+          const finalWalletIndex = duplicateIndex
+          
+          // Update settings and continue as above...
+          const currentSettings = {
+            language: this.$store.getters['global/language'],
+            theme: this.$store.getters['global/theme'],
+            country: this.$store.getters['global/country'],
+            denomination: this.$store.getters['global/denomination'],
+            preferredSecurity: this.$store.getters['global/preferredSecurity'],
+            isChipnet: this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+            enableSLP: this.$store.getters['global/enableSLP'],
+            darkMode: this.$store.getters['darkmode/getStatus'],
+            currency: this.$store.getters['market/selectedCurrency']
+          }
+          this.$store.commit('global/updateWalletSettings', {
+            index: finalWalletIndex,
+            settings: currentSettings
+          })
+          
+          this.$store.commit('global/updateWalletIndex', finalWalletIndex)
+          this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+          this.$store.dispatch('global/syncSettingsToModules')
+          
+          let asset = this.$store.getters['assets/getAllAssets']
+          asset = JSON.stringify(asset)
+          asset = JSON.parse(asset)
+          const adjustedAssets = asset.asset.filter((a) => a?.id === 'bch')
+          const adjustedChipnetAssets = asset.chipnet_assets.filter((a) => a?.id === 'bch')
+          asset.asset = adjustedAssets
+          asset.chipnet_assets = adjustedChipnetAssets
+          this.$store.commit('assets/updateVault', { index: finalWalletIndex, asset: asset })
+          this.$store.commit('assets/updatedCurrentAssets', finalWalletIndex)
+          
+          return
+        }
+      }
+      
+      // Last resort: Use updateVault (shouldn't happen for new wallets, but handle it)
       this.$store.commit('global/updateVault', info)
       
-      // Get the actual index of the wallet (may be updated if it was a new entry)
-      const walletIndex = this.$store.getters['global/getVault'].findIndex(v => {
-        return v.wallet?.bch?.walletHash === wallet?.bch?.walletHash
+      // Get the actual index of the wallet
+      const vaultAfterUpdate = this.$store.getters['global/getVault']
+      const walletIndex = vaultAfterUpdate.findIndex(v => {
+        if (!v || !v.wallet?.bch?.walletHash || !wallet?.bch?.walletHash) return false
+        return String(v.wallet.bch.walletHash).trim() === String(wallet.bch.walletHash).trim()
       })
-      const finalWalletIndex = walletIndex !== -1 ? walletIndex : this.$store.getters['global/getVault'].length - 1
+      const finalWalletIndex = walletIndex !== -1 ? walletIndex : vaultAfterUpdate.length - 1
+      
+      // Final check: If there are multiple entries with the same walletHash, mark extras as deleted
+      const allMatchingIndices = vaultAfterUpdate
+        .map((v, idx) => {
+          if (!v.wallet?.bch?.walletHash || !wallet?.bch?.walletHash) return -1
+          if (String(v.wallet.bch.walletHash).trim() === String(wallet.bch.walletHash).trim()) {
+            return idx
+          }
+          return -1
+        })
+        .filter(idx => idx !== -1)
+      
+      if (allMatchingIndices.length > 1) {
+        // Mark all duplicates except the finalWalletIndex as deleted
+        allMatchingIndices.forEach(idx => {
+          if (idx !== finalWalletIndex) {
+            const entry = vaultAfterUpdate[idx]
+            this.$store.commit('global/updateWalletSnapshot', {
+              index: idx,
+              walletSnapshot: entry.wallet,
+              chipnetSnapshot: entry.chipnet,
+              name: entry.name || '',
+              deleted: true
+            })
+          }
+        })
+      }
       
       // Settings should already be saved during steps 2-4 since vault entry exists
       // But ensure they're up to date with current state
@@ -867,12 +1052,81 @@ export default {
       this.$store.commit('assets/updateVault', { index: finalWalletIndex, asset: asset })
       this.$store.commit('assets/updatedCurrentAssets', finalWalletIndex)
 
+      // Cleanup: Remove any incomplete entries that were created but not used
+      this.cleanupIncompleteEntries(finalWalletIndex)
+
       // ramp reset
       this.$store.commit('ramp/resetUser')
       this.$store.commit('ramp/resetData')
       this.$store.commit('ramp/resetChatIdentity')
       this.$store.commit('ramp/resetPagination')
       // this.$store.commit('ramp/resetStoreFilters')
+    },
+    cleanupIncompleteEntries (activeWalletIndex) {
+      // Remove incomplete entries (empty walletHash) and duplicates that are not the active wallet
+      // This prevents accumulation of orphaned entries from failed creation attempts
+      const vault = this.$store.getters['global/getVault']
+      const entriesToRemove = []
+      const activeWalletHash = vault[activeWalletIndex]?.wallet?.bch?.walletHash
+      const normalizedActiveHash = activeWalletHash ? String(activeWalletHash).trim() : null
+      
+      // Track walletHashes we've seen to detect duplicates
+      const seenHashes = new Map()
+      
+      vault.forEach((entry, index) => {
+        if (index === activeWalletIndex) {
+          // Track the active wallet's hash
+          if (normalizedActiveHash) {
+            seenHashes.set(normalizedActiveHash, index)
+          }
+          return // Don't remove the active wallet
+        }
+        
+        const walletHash = entry?.wallet?.bch?.walletHash
+        const normalizedHash = walletHash ? String(walletHash).trim() : null
+        const isEmptyHash = !normalizedHash || normalizedHash === ''
+        const isDeleted = entry?.deleted === true
+        const hasWallet = !!entry?.wallet
+        const hasBch = !!entry?.wallet?.bch
+        
+        // Check for duplicates: if this walletHash matches the active wallet or another entry we've seen
+        const isDuplicate = normalizedHash && (
+          (normalizedActiveHash && normalizedHash === normalizedActiveHash) ||
+          seenHashes.has(normalizedHash)
+        )
+        
+        // Mark incomplete entries for deletion (but only recent ones to avoid deleting old valid entries)
+        // Only remove entries that are in the last 20 entries and are incomplete
+        if (index >= vault.length - 20 && hasWallet && hasBch && isEmptyHash && !isDeleted) {
+          entriesToRemove.push({ index, reason: 'incomplete' })
+        }
+        
+        // Mark duplicates for deletion (any duplicate, not just recent ones)
+        if (isDuplicate && !isDeleted) {
+          entriesToRemove.push({ index, reason: 'duplicate', walletHash: normalizedHash })
+        }
+        
+        // Track this hash if it's valid
+        if (normalizedHash && !isEmptyHash) {
+          if (!seenHashes.has(normalizedHash)) {
+            seenHashes.set(normalizedHash, index)
+          }
+        }
+      })
+      
+      if (entriesToRemove.length > 0) {
+        // Mark entries as deleted (don't actually remove to preserve indices)
+        entriesToRemove.forEach(({ index }) => {
+          const entry = vault[index]
+          this.$store.commit('global/updateWalletSnapshot', {
+            index: index,
+            walletSnapshot: entry.wallet,
+            chipnetSnapshot: entry.chipnet,
+            name: entry.name || '',
+            deleted: true
+          })
+        })
+      }
     },
     continueToDashboard () {
       const vm = this
@@ -937,10 +1191,24 @@ export default {
         if (!this.validateSeedPhrase() && this.authenticationPhase === 'backup-phrase') {
           return
         }
-        // Create wallet from seed phrase and navigate to step-3
-        await this.createWallets()
-        // Navigate to settings step (step-3)
-        this.$router.push('/accounts/restore/step-3')
+        // Show loading animation during restore
+        this.walletRestoreInProgress = true
+        this.walletRestoreError = ''
+        try {
+          // Create wallet from seed phrase
+          await this.createWallets()
+          // Initialize vault entry so settings can be saved during step 3
+          // This must be done before navigation to ensure vault entry exists
+          this.initializeVaultEntryForRestore()
+          // Navigate to settings step (step-3)
+          await this.$router.push('/accounts/restore/step-3')
+          // Hide loading animation after navigation
+          this.walletRestoreInProgress = false
+        } catch (error) {
+          console.error('Error restoring wallet:', error)
+          this.walletRestoreError = this.$t('ErrorRestoringWallet') || 'Failed to restore wallet. Please try again.'
+          this.walletRestoreInProgress = false
+        }
         return
       }
       
@@ -967,8 +1235,12 @@ export default {
       if (!vm.mnemonic) {
         if (vm.importSeedPhrase) {
           vm.mnemonicVerified = true
-          vm.mnemonic = await storeMnemonic(this.cleanUpSeedPhrase(this.seedPhraseBackup), vm.walletIndex)
+          const cleanedMnemonic = this.cleanUpSeedPhrase(this.seedPhraseBackup)
+          // Compute wallet hash from mnemonic for new storage scheme
+          const walletHash = computeWalletHash(cleanedMnemonic)
+          vm.mnemonic = await storeMnemonic(cleanedMnemonic, walletHash)
         } else {
+          // generateMnemonic now stores using both old and new schemes
           vm.mnemonic = await generateMnemonic(vm.walletIndex)
         }
       }
@@ -1071,6 +1343,211 @@ export default {
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash
     },
+    initializeVaultEntryForRestore () {
+      // Create vault entry for restore flow using wallet data from createWallets()
+      // This allows settings to be saved during step 3
+      const wallet = new Wallet(this.mnemonic)
+      const walletHash = wallet.BCH.walletHash
+      
+      // Build wallet structure from newWalletSnapshot
+      const walletStructure = {
+        bch: null,
+        slp: null,
+        sbch: null
+      }
+      
+      const chipnetStructure = {
+        bch: null,
+        slp: null
+      }
+      
+      // Populate wallet structure from newWalletSnapshot
+      this.newWalletSnapshot.walletInfo.forEach(walletInfo => {
+        if (walletInfo.type === 'bch') {
+          if (walletInfo.isChipnet) {
+            chipnetStructure.bch = {
+              walletHash: walletInfo.walletHash,
+              derivationPath: walletInfo.derivationPath,
+              xPubKey: '',
+              lastAddress: walletInfo.lastAddress,
+              lastChangeAddress: walletInfo.lastChangeAddress,
+              lastAddressIndex: walletInfo.lastAddressIndex
+            }
+          } else {
+            walletStructure.bch = {
+              walletHash: walletInfo.walletHash,
+              derivationPath: walletInfo.derivationPath,
+              xPubKey: '',
+              lastAddress: walletInfo.lastAddress,
+              lastChangeAddress: walletInfo.lastChangeAddress,
+              lastAddressIndex: walletInfo.lastAddressIndex
+            }
+          }
+        } else if (walletInfo.type === 'slp') {
+          if (walletInfo.isChipnet) {
+            chipnetStructure.slp = {
+              walletHash: walletInfo.walletHash,
+              derivationPath: walletInfo.derivationPath,
+              xPubKey: '',
+              lastAddress: walletInfo.lastAddress,
+              lastChangeAddress: walletInfo.lastChangeAddress,
+              lastAddressIndex: walletInfo.lastAddressIndex
+            }
+          } else {
+            walletStructure.slp = {
+              walletHash: walletInfo.walletHash,
+              derivationPath: walletInfo.derivationPath,
+              xPubKey: '',
+              lastAddress: walletInfo.lastAddress,
+              lastChangeAddress: walletInfo.lastChangeAddress,
+              lastAddressIndex: walletInfo.lastAddressIndex
+            }
+          }
+        } else if (walletInfo.type === 'sbch') {
+          walletStructure.sbch = {
+            walletHash: walletInfo.walletHash,
+            derivationPath: walletInfo.derivationPath,
+            lastAddress: walletInfo.lastAddress,
+            subscribed: false
+          }
+        }
+      })
+      
+      // Populate xPubKeys from newWalletSnapshot
+      this.newWalletSnapshot.xpubKeysInfo.forEach(xPubInfo => {
+        if (xPubInfo.type === 'bch') {
+          if (xPubInfo.isChipnet && chipnetStructure.bch) {
+            chipnetStructure.bch.xPubKey = xPubInfo.xPubKey
+          } else if (walletStructure.bch) {
+            walletStructure.bch.xPubKey = xPubInfo.xPubKey
+          }
+        } else if (xPubInfo.type === 'slp') {
+          if (xPubInfo.isChipnet && chipnetStructure.slp) {
+            chipnetStructure.slp.xPubKey = xPubInfo.xPubKey
+          } else if (walletStructure.slp) {
+            walletStructure.slp.xPubKey = xPubInfo.xPubKey
+          }
+        }
+      })
+      
+      // Ensure all required structures exist (fallback to minimal if missing)
+      if (!walletStructure.bch) {
+        walletStructure.bch = {
+          walletHash: wallet.BCH.walletHash,
+          derivationPath: wallet.BCH.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      if (!walletStructure.slp) {
+        walletStructure.slp = {
+          walletHash: wallet.SLP.walletHash,
+          derivationPath: wallet.SLP.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      if (!walletStructure.sbch) {
+        walletStructure.sbch = {
+          walletHash: wallet.sBCH.walletHash,
+          derivationPath: wallet.sBCH.derivationPath,
+          lastAddress: '',
+          subscribed: false
+        }
+      }
+      if (!chipnetStructure.bch) {
+        chipnetStructure.bch = {
+          walletHash: wallet.BCH_CHIP.walletHash,
+          derivationPath: wallet.BCH_CHIP.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      if (!chipnetStructure.slp) {
+        chipnetStructure.slp = {
+          walletHash: wallet.SLP_TEST.walletHash,
+          derivationPath: wallet.SLP_TEST.derivationPath,
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: -1
+        }
+      }
+      
+      const vaultEntry = {
+        wallet: walletStructure,
+        chipnet: chipnetStructure,
+        name: ''
+      }
+      
+      // Check if this walletHash already exists in the vault (exact match only)
+      // Only reuse entry if it's the exact same wallet, never reuse incomplete entries
+      const existingVault = this.$store.getters['global/getVault']
+      const newWalletHash = walletStructure.bch.walletHash
+      
+      // Check for exact walletHash match across the ENTIRE vault
+      const existingIndex = existingVault.findIndex((v, idx) => {
+        if (!v || v.deleted) return false
+        const existingHash = v?.wallet?.bch?.walletHash
+        const normalizedExisting = existingHash ? String(existingHash).trim() : null
+        const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
+        return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
+      })
+      
+      if (existingIndex !== -1) {
+        // Found exact match - this is the same wallet, reuse the entry
+        this.walletIndex = existingIndex
+        this.$store.commit('global/updateWalletIndex', existingIndex)
+        const existingEntry = existingVault[existingIndex]
+        this.$store.commit('global/updateWalletSnapshot', {
+          index: existingIndex,
+          walletSnapshot: vaultEntry.wallet,
+          chipnetSnapshot: vaultEntry.chipnet,
+          name: existingEntry?.name || '',
+          deleted: false // Ensure it's not deleted
+        })
+        this.$store.commit('global/updateCurrentWallet', existingIndex)
+        
+        // Initialize assets vault entry if needed
+        const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
+        if (!assetsVault[existingIndex]) {
+          const emptyAssets = getAllAssets(initialAssetState())
+          emptyAssets.removedAssetIds = []
+          this.$store.commit('assets/updateVault', {
+            index: existingIndex,
+            asset: emptyAssets
+          })
+          this.$store.commit('assets/updatedCurrentAssets', existingIndex)
+        }
+        return
+      }
+      
+      // No existing match found - create new entry
+      this.$store.commit('global/updateVault', vaultEntry)
+      const vaultLengthAfter = this.$store.getters['global/getVault'].length
+      const newWalletIndex = vaultLengthAfter - 1
+      this.walletIndex = newWalletIndex
+      this.$store.commit('global/updateWalletIndex', newWalletIndex)
+      this.$store.commit('global/updateCurrentWallet', newWalletIndex)
+      
+      // Initialize assets vault entry
+      const assetsVault = this.$store.getters['assets/getRemovedAssetIds']
+      if (!assetsVault[newWalletIndex]) {
+        const emptyAssets = getAllAssets(initialAssetState())
+        emptyAssets.removedAssetIds = []
+        this.$store.commit('assets/updateVault', {
+          index: newWalletIndex,
+          asset: emptyAssets
+        })
+        this.$store.commit('assets/updatedCurrentAssets', newWalletIndex)
+      }
+    },
     choosePreferedSecurity () {
       this.checkFingerprintAuthEnabled()
     },
@@ -1157,6 +1634,32 @@ export default {
       await this.$store.dispatch('global/saveWalletPreferences').catch(() => {
         // Silently fail if wallet hash doesn't exist yet
       })
+      
+      // Also save settings to vault for restore flow
+      if (this.importSeedPhrase && this.restoreStep === 3) {
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        if (walletIndex >= 0) {
+          const currentSettings = {
+            language: this.$store.getters['global/language'],
+            theme: this.$store.getters['global/theme'],
+            country: this.$store.getters['global/country'],
+            denomination: this.$store.getters['global/denomination'],
+            preferredSecurity: this.$store.getters['global/preferredSecurity'],
+            isChipnet: this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
+            enableSLP: this.$store.getters['global/enableSLP'],
+            darkMode: this.$store.getters['darkmode/getStatus'],
+            currency: this.$store.getters['market/selectedCurrency']
+          }
+          this.$store.commit('global/updateWalletSettings', {
+            index: walletIndex,
+            settings: currentSettings
+          })
+        }
+      }
+      
       // Handle restore flow navigation
       if (this.importSeedPhrase && this.restoreStep === 3) {
         this.$router.push('/accounts/restore/step-4')
@@ -1409,11 +1912,46 @@ export default {
         // Don't set settings here - let updateVault initialize it with defaults
       }
       
+      // Check if this walletHash already exists in the vault (exact match only)
+      // Only reuse entry if it's the exact same wallet, never reuse incomplete entries
+      const existingVault = this.$store.getters['global/getVault']
+      const newWalletHash = minimalWallet.bch.walletHash
+      
+      // Check for exact walletHash match across the ENTIRE vault
+      const existingIndex = existingVault.findIndex((v, idx) => {
+        if (!v || v.deleted) return false
+        const existingHash = v?.wallet?.bch?.walletHash
+        const normalizedExisting = existingHash ? String(existingHash).trim() : null
+        const normalizedNew = newWalletHash ? String(newWalletHash).trim() : null
+        return normalizedExisting && normalizedNew && normalizedExisting === normalizedNew
+      })
+      
+      if (existingIndex !== -1) {
+        // Found exact match - this is the same wallet, reuse the entry
+        this.walletIndex = existingIndex
+        this.$store.commit('global/updateWalletIndex', existingIndex)
+        
+        // Update the existing entry with the new wallet data using updateWalletSnapshot
+        const existingEntry = existingVault[existingIndex]
+        this.$store.commit('global/updateWalletSnapshot', {
+          index: existingIndex,
+          walletSnapshot: vaultEntry.wallet,
+          chipnetSnapshot: vaultEntry.chipnet,
+          name: existingEntry?.name || '',
+          deleted: false // Ensure it's not deleted
+        })
+        
+        // Update current wallet to load the updated data
+        this.$store.commit('global/updateCurrentWallet', existingIndex)
+        return
+      }
+      
       // Add to vault (this will initialize settings with defaults)
       this.$store.commit('global/updateVault', vaultEntry)
       
       // Get the index of the newly created wallet
-      const newWalletIndex = this.$store.getters['global/getVault'].length - 1
+      const vaultLengthAfter = this.$store.getters['global/getVault'].length
+      const newWalletIndex = vaultLengthAfter - 1
       
       // Initialize assets vault entry for this wallet index to prevent errors
       // This ensures getRemovedAssetIds getter doesn't fail
@@ -1996,26 +2534,52 @@ export default {
   }
 }
 
-/* Glassmorphic textarea styling */
+/* Glassmorphic textarea styling - white background like inputs */
 .glass-textarea {
-  :deep(.q-field__control) {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  &.q-field--outlined :deep(.q-field__control) {
     border-radius: 12px;
-    
-    &.dark {
-      background: rgba(255, 255, 255, 0.05) !important;
-      border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-    
-    &.light {
-      background: rgba(255, 255, 255, 0.3) !important;
-      border-color: rgba(0, 0, 0, 0.1) !important;
-    }
+    background: #ffffff !important;
   }
   
-  :deep(.q-field__native) {
+  &.q-field--outlined :deep(.q-field__control-container) {
+    background: #ffffff !important;
+  }
+  
+  &.q-field--outlined :deep(.q-field__native) {
+    background: #ffffff !important;
     color: inherit;
+  }
+  
+  &.q-field--outlined :deep(textarea) {
+    background: #ffffff !important;
+  }
+  
+  &.q-field--outlined :deep(.q-field__inner) {
+    background: #ffffff !important;
+  }
+  
+  &.q-field--dark.q-field--outlined :deep(.q-field__control),
+  &.q-field--dark.q-field--outlined :deep(.q-field__control-container),
+  &.q-field--dark.q-field--outlined :deep(.q-field__native),
+  &.q-field--dark.q-field--outlined :deep(textarea),
+  &.q-field--dark.q-field--outlined :deep(.q-field__inner) {
+    background: #ffffff !important;
+  }
+  
+  &.dark.q-field--outlined :deep(.q-field__control),
+  &.dark.q-field--outlined :deep(.q-field__control-container),
+  &.dark.q-field--outlined :deep(.q-field__native),
+  &.dark.q-field--outlined :deep(textarea),
+  &.dark.q-field--outlined :deep(.q-field__inner) {
+    background: #ffffff !important;
+  }
+  
+  &.light.q-field--outlined :deep(.q-field__control),
+  &.light.q-field--outlined :deep(.q-field__control-container),
+  &.light.q-field--outlined :deep(.q-field__native),
+  &.light.q-field--outlined :deep(textarea),
+  &.light.q-field--outlined :deep(.q-field__inner) {
+    background: #ffffff !important;
   }
 }
 
