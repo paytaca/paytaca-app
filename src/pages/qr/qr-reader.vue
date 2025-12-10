@@ -347,8 +347,18 @@ export default {
               const walletHash = getWalletHash(wallet)
               const foundWallet = vm.$store.getters['multisig/getWalletByHash'](walletHash)
               if (foundWallet) {
-                pst.setStore(vm.$store)
-                await pst.save()
+                const canonicalPsbt =vm.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
+                if (canonicalPsbt) {
+                  const canonicalPst = Pst.import(canonicalPsbt)
+                  console.log('Canonical PST before', canonicalPst)
+                  canonicalPst.combine([pst])
+                  console.log('Canonical PST', canonicalPst)
+                  canonicalPst.setStore(vm.$store)
+                  canonicalPst.save()
+                } else {
+                  pst.setStore(vm.$store)
+                  pst.save()
+                }                
                 vm.$router.push({
                   name: 'app-multisig-wallet-pst-view',
                   params: { 
