@@ -6,6 +6,7 @@
     @refresh="refreshPage"
   >
     <HeaderNav
+      :title="$t('Wallet')"
       backnavpath="/apps/multisig"
       class="header-nav"
     />
@@ -15,15 +16,6 @@
             <div class="row q-mb-lg justify-center">
               <div class="col-xs-12 flex items-center justify-center q-mb-lg">
                 <div class="text-h6 q-mr-md">{{wallet.name}}</div>
-                <q-btn 
-                  size="md"
-                  :icon="isMultisigWalletSynced(wallet)? 'mdi-cloud-check': 'mdi-cloud-upload'" 
-                  :color="isMultisigWalletSynced(wallet)? 'green': 'grey'"
-                  flat 
-                  dense
-                  @click="syncWallet"
-                >
-                </q-btn>
               </div>
               <div class="col-xs-12 q-mb-lg">
                 <div class="items-center justify-center q-gutter-y-md">
@@ -44,7 +36,7 @@
                 </div>
               </div>
               <div class="col-xs-12 flex justify-between">
-                <q-btn flat dense no-caps @click="showWalletReceiveDialog" class="tile" v-close-popup>
+                <q-btn flat dense no-caps @click="showWalletDepositDialog" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
@@ -52,7 +44,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-proposals-view', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
+                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-psts', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box" class="col-12" color="primary" style="position:relative">
@@ -95,17 +87,7 @@
                  </q-item-label>
                 </q-item-section>
               </q-item>
-              <q-item>
-                <q-item-section>
-                  <!-- <q-item-label>Address - {{ wallet.lockingData?.hdKeys?.addressIndex}}</q-item-label> -->
-                  <q-item-label>Address - 0 </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-item-label >
-                    {{ shortenString(wallet.getDepositAddress(0).address, 32) }} <CopyButton :text="wallet.getDepositAddress(0).address"/>
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
+              
               <q-item>
                 <q-item-section>
                   <q-item-label>Required Signatures</q-item-label>
@@ -195,14 +177,13 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useQuasar, QSpinnerDots } from 'quasar'
+import { useQuasar } from 'quasar'
 import Big from 'big.js'
+import { binToBase64, sortObjectKeys } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
-import { withTimeout } from 'src/utils/async-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
-  isMultisigWalletSynced,
   generateFilename,
   MultisigWallet,
   Pst,
@@ -211,7 +192,9 @@ import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
-import { sortObjectKeys } from 'bitauth-libauth-v3'
+import WalletExportOptionsDialog from 'components/multisig/WalletExportOptionsDialog.vue'
+import WalletQrDialog from 'components/multisig/WalletQrDialog.vue'
+import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -255,17 +238,6 @@ const psts = computed(() => {
   })
 })
 
-const exportWallet = () => {
-  const data = wallet.value.exportToBase64()
-  const blob = new Blob([data], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = generateFilename(wallet.value)
-  document.body.appendChild(a)
-  a.click()
-}
-
 const uploadWallet = () => {
   $q.dialog({
     component: UploadWalletDialog,
@@ -278,35 +250,7 @@ const uploadWallet = () => {
   })
 }
 
-const syncWallet = async () => {
-
-  try {
-
-    $q.loading.show({
-      spinner: QSpinnerDots,
-      spinnerColor: 'primary',
-      messageColor: 'primary',
-      message: 'Syncing...'
-    })
-
-    await withTimeout(wallet.value.sync(), 8000, 'Request timed-out!')
-    
-  } catch (error) {
-
-    $q.notify({
-        type: 'Warning',
-        message: error,
-        position: 'bottom',
-        timeout: 3000,
-        color: 'dark'
-    })
-
-  } finally {
-    $q.loading.hide()
-  }
-}
-
-const showWalletReceiveDialog = () => {
+const showWalletDepositDialog = () => {
   $q.dialog({
     component: WalletReceiveDialog,
     componentProps: {
@@ -318,6 +262,53 @@ const showWalletReceiveDialog = () => {
     openWalletActionsDialog()
   })
 }
+
+const showWalletExportOptionsDialog = () => {
+  $q.dialog({
+    component: WalletExportOptionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      wallet: wallet.value,
+      cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+    }
+  }).onOk((payload) => {
+    if (payload?.action === 'display-qr') {
+      showWalletQrDialog()
+    } else if (payload?.action === 'download-wallet') {
+      downloadWalletFile(payload.wallet || wallet.value)
+    } else {
+      openWalletActionsDialog()
+    }
+  }).onCancel(() => {
+    // Dialog was closed without action
+  })
+}
+
+const showWalletQrDialog = () => {
+  $q.dialog({
+    component: WalletQrDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      wallet: wallet.value,
+    }
+  }).onOk(() => {
+    openWalletActionsDialog()
+  })
+}
+
+const downloadWalletFile = (walletToExport) => {
+  const cborEncoded = cborEncode(walletToExport.export())
+  const blob = new Blob([binToBase64(cborEncoded)], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = generateFilename(walletToExport)
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 
 const openWalletActionsDialog = () => {
   const disableActions = []
@@ -369,42 +360,10 @@ const openWalletActionsDialog = () => {
       uploadWallet()
     }
     if (action.value === 'export-wallet') {
-      exportWallet()
+      showWalletExportOptionsDialog()
     }
   })
-
-  // // $q.dialog({
-  // //   component: WalletActionsDialog,
-  // //   componentProps: {
-  // //     darkMode: darkMode.value,
-  // //     txProposals: transactions?.value,
-  // //     isMultisigWalletSynced: isMultisigWalletSynced(wallet.value),
-  // //     disable: disableActions,
-  // //     onUploadWallet: () => {
-  // //       uploadWallet()
-  // //     },
-  // //     onExportWallet: () => {
-  // //       exportWallet()
-  // //     },
-  // //     onDeleteWallet: () => {
-  // //       $q.dialog({
-  // //         message: 'Are you sure you want to delete wallet?',
-  // //         ok: { label: 'Yes' },
-  // //         cancel: { label: 'No' },
-  // //         class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-  // //       }).onOk(() => {
-  // //         deleteWallet(route.params.address)
-  // //       }).onCancel(() => {
-  // //         openWalletActionsDialog()
-  // //       })
-  // //     },
-  // //     onViewTxProposals: () => {
-  // //       router.push({ name: 'app-multisig-wallet-transactions', params: { address: route.params.address } })
-  // //     }
-  // //   }
-  // })
 }
-
 
 const loadHdPrivateKeys = async (signers) => {
   if (!hdPrivateKeys.value) {
@@ -460,7 +419,7 @@ onMounted(async () => {
     await loadHdPrivateKeys(wallet.value?.signers)
 
     balancesRefreshing.value = true
-    // balances.value = await wallet.value.getWalletBalances()
+    balances.value = await wallet.value.getWalletBalances()
     await refreshBalance()
 
     if (balances.value) {
