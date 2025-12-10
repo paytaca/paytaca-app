@@ -459,6 +459,26 @@ watch(
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  
+  &.dark {
+    .amount-primary {
+      color: #e0e2e5;
+    }
+    
+    .amount-secondary {
+      color: #a6acaf;
+    }
+  }
+  
+  &.light {
+    .amount-primary {
+      color: rgba(0, 0, 0, 0.87);
+    }
+    
+    .amount-secondary {
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
 }
 
 .amount-primary {

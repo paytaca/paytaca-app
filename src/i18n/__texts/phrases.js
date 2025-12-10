@@ -1245,6 +1245,8 @@ const phrases = {
     },
     {
       PushNotifications: 'Push Notifications',
+      Notifications: 'Notifications',
+      NotificationsDescription: 'Manage notifications for events and promotions. Push notifications are always enabled and cannot be disabled.',
       EnablePushNotifications: 'Enable Push Notifications',
       EventsAndPromotions: 'Events and Promotions',
       ByCountry: 'By Country',

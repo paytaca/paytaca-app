@@ -1069,6 +1069,7 @@ export default {
   NotYetSubmitted: "Not yet submitted",
   NothingToDisplay: "Nothing to display",
   Notifications: "Notifications",
+  NotificationsDescription: "Manage notifications for events and promotions. Push notifications are always enabled and cannot be disabled.",
   NotifyPOSDeviceToConfirmUnlinking: "Notify POS device to confirm unlinking",
   OK: "OK",
   OfValue: "of position's value",
