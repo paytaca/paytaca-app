@@ -646,7 +646,7 @@ export class Pst {
   set network(n) {
     this.options = {
       ...this.options,
-      networkProvider: new WatchtowerNetworkProvider({ network: n })
+      provider: new WatchtowerNetworkProvider({ network: n })
     }
   }
 
