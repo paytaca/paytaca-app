@@ -40,6 +40,14 @@
       <span class="scanner-text text-center full-width">{{ $t('ScanQrCode') }}</span>
     </div>
 
+    <div v-if="progress" class="q-mt-xl row items-center justify-center q-px-lg">
+      <q-linear-progress rounded size="30px" :value="progress" color="primary" class="q-mt-sm q-mx-xl" >
+        <div class="absolute-full flex flex-center items-center">
+          <span class="text-caption text-bold text-white">{{ progressLabel }}</span>
+        </div>
+      </q-linear-progress>
+    </div>
+
     <div class="q-mt-xl row items-center justify-around">
       <div class="column flex flex-center">
         <q-btn
@@ -47,6 +55,7 @@
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="add"
+          :disabled="progress"
           @click="$router.push({ name: 'generate-qr' })"
         />
         <span class="q-mt-sm">{{ $t('GenerateQR') }}</span>
@@ -58,6 +67,7 @@
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="upload"
+          :disabled="progress"
           @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
         />
         <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
@@ -106,7 +116,8 @@ export default {
       error: '',
       frontCamera: false,
       clWidth: '0px',
-      urDecoder: null
+      urDecoder: null,
+      progress: 0
     }
   },
 
@@ -116,6 +127,9 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    progressLabel () {
+      return (Math.floor(this.progress * 100)) + '% of Data Fragments Received'
     }
   },
 
@@ -301,7 +315,9 @@ export default {
             query: { w: '', bip38String: value }
           })
         } else if(_value?.startsWith('ur:crypto-mofnwallet')) {
-          vm.urDecoder.receivePart(content[0].rawValue);
+          const part = content[0].rawValue;
+          vm.urDecoder.receivePart(part);
+          vm.progress = vm.urDecoder.estimatedPercentComplete()
           if (vm.urDecoder.isComplete()) {
             const ur = vm.urDecoder.resultUR()
             const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
@@ -311,7 +327,9 @@ export default {
             })
           }
         } else if(_value?.startsWith('ur:crypto-psbt')) {
-          vm.urDecoder.receivePart(content[0].rawValue);
+          const part = content[0].rawValue;
+          vm.urDecoder.receivePart(part);
+          vm.progress = vm.urDecoder.estimatedPercentComplete()
           if (vm.urDecoder.isComplete()) {
             const ur = vm.urDecoder.resultUR()
             const decodedData = Buffer.from(ur.cbor, 'base64')
