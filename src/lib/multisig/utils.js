@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import { hexToBin, cashAddressToLockingBytecode, binToHex } from 'bitauth-libauth-v3'
+import { hexToBin, cashAddressToLockingBytecode, binToHex, binsAreEqual, binToBigIntUintBE } from 'bitauth-libauth-v3'
 
 export const shortenString = (str, maxLength) => {
   // If the string is shorter than or equal to the maxLength, return it as is.
@@ -347,6 +347,7 @@ export function bip32DecodeDerivationPath(bytes) {
  * Decode a binary HD public key payload back to its components
  * 
  * Reverse of import('@bitauth/libauth').encodeHdPublicKeyPayload
+ * 
  * @param {Uint8Array} payload - 78 bytes
  * @returns {import('@bitauth/libauth').DecodedHdKey<HdPublicNodeValid>} 
  */
@@ -358,7 +359,7 @@ export function decodeHdPublicKeyPayload(payload) {
       version: payload.slice(0, 4),                     // Uint8Array(4)
       depth: payload[4],                                // number
       parentFingerprint: payload.slice(5, 9),          // Uint8Array(4)
-      childIndex: binToBigIntUintBE(payload.slice(9, 13)), // Uint8Array(4)
+      childIndex: Number(binToBigIntUintBE(payload.slice(9, 13))), // Uint8Array(4)
       chainCode: payload.slice(13, 45),                // Uint8Array(32)
       publicKey: payload.slice(45, 78)
     }
