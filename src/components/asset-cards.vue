@@ -138,16 +138,10 @@ export default {
         return this.customList.filter(asset => asset && this.favorites.includes(asset.id))
       } 
       
-      // Fallback: show assets from props when customList is not yet initialized
-      // This ensures tokens show up immediately for newly imported wallets
-      // If favorites are already loaded, filter by them; otherwise show all assets
-      if (this.assets && this.assets.length > 0) {
-        if (this.favorites && this.favorites.length > 0) {
-          // Filter by favorites if available
-          return this.assets.filter(asset => asset && this.favorites.includes(asset.id))
-        }
-        // Show all assets if favorites not yet loaded (for newly imported wallets)
-        return this.assets.slice(0, 10)
+      // Always filter by favorites - only show favorited tokens
+      // If favorites is empty, return empty array (no tokens to show)
+      if (this.assets && this.assets.length > 0 && Array.isArray(this.favorites)) {
+        return this.assets.filter(asset => asset && this.favorites.includes(asset.id))
       }
       
       return []

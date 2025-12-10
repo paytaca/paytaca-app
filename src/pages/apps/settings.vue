@@ -232,6 +232,24 @@
               </q-item>
             </q-list>
           </div>
+
+        <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
+          <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+            <q-item clickable v-ripple @click="confirmDeleteWallet">
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" style="color: #f44336;">
+                  {{ $t('DeleteWallet') }}
+                </q-item-label>
+                <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('DeleteWalletWarning', {}, 'Permanently remove this wallet and all its data. This action cannot be undone.') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-icon name="delete_forever" color="red"></q-icon>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
@@ -447,6 +465,66 @@ export default {
           console.error('Error loading xPubKey:', error)
         }
       }
+    },
+    confirmDeleteWallet () {
+      const vm = this
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const vault = vm.$store.getters['global/getVault']
+      const walletCount = vault.filter(w => w && !w.deleted).length
+
+      // Prevent deletion if it's the last wallet
+      if (walletCount <= 1) {
+        vm.$q.dialog({
+          title: vm.$t('DeleteWallet'),
+          message: vm.$t('CannotDeleteLastWallet', {}, 'You cannot delete your last wallet. Please create another wallet first.'),
+          seamless: true,
+          ok: true,
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        })
+        return
+      }
+
+      vm.$q.dialog({
+        title: vm.$t('DeleteWallet'),
+        message: vm.$t('DeleteWalletDescription'),
+        seamless: true,
+        cancel: true,
+        ok: {
+          label: vm.$t('DeleteWalletNow'),
+          color: 'red',
+          flat: true
+        },
+        cancel: {
+          label: vm.$t('Cancel'),
+          flat: true
+        },
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      }).onOk(async () => {
+        try {
+          await vm.$store.dispatch('global/deleteWallet', walletIndex)
+          
+          // Check if there are any wallets left
+          const updatedVault = vm.$store.getters['global/getVault']
+          const remainingWallets = updatedVault.filter(w => w && !w.deleted).length
+          
+          if (remainingWallets === 0) {
+            // No wallets left, redirect to wallet creation
+            vm.$router.push('/wallet/create')
+          } else {
+            // Redirect to home page of the wallet the app switched to
+            vm.$router.push('/')
+          }
+        } catch (error) {
+          console.error('Error deleting wallet:', error)
+          vm.$q.dialog({
+            title: vm.$t('Error'),
+            message: vm.$t('ErrorDeletingWallet', {}, 'Failed to delete wallet. Please try again.'),
+            seamless: true,
+            ok: true,
+            class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+          })
+        }
+      })
     }
   },
   created () {

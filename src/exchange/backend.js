@@ -25,21 +25,27 @@ backend.interceptors.request.use(async (config) => {
 backend.interceptors.response.use(
   response => response,
   error => {
-    // Handle 403 Forbidden errors - typically means session expired or not authenticated
+    // Handle 401 Unauthorized and 403 Forbidden errors - typically means session expired or not authenticated
     // Check if this was an authorized request (requires authentication)
     const wasAuthorizedRequest = error?.config?.authorize === true
-    if (error?.response?.status === 403 && wasAuthorizedRequest) {
-      // Check if it's a chat-related 403 (chat identity not ready)
-      const errorDetail = error?.response?.data?.detail || ''
-      const errorMessage = error?.response?.data?.error || ''
-      const fullErrorText = `${errorDetail} ${errorMessage}`.toLowerCase()
-      
-      // Skip chat-related 403 errors
-      if (!fullErrorText.includes('chat identity') && !fullErrorText.includes('chat_identity')) {
-        // Emit session-expired event to trigger authentication
-        // This will show the login dialog in P2P Exchange
-        bus.emit('session-expired')
+    const status = error?.response?.status
+    
+    if ((status === 401 || status === 403) && wasAuthorizedRequest) {
+      // For 403 errors, check if it's a chat-related error (chat identity not ready)
+      if (status === 403) {
+        const errorDetail = error?.response?.data?.detail || ''
+        const errorMessage = error?.response?.data?.error || ''
+        const fullErrorText = `${errorDetail} ${errorMessage}`.toLowerCase()
+        
+        // Skip chat-related 403 errors
+        if (fullErrorText.includes('chat identity') || fullErrorText.includes('chat_identity')) {
+          return Promise.reject(error)
+        }
       }
+      
+      // Emit session-expired event to trigger authentication
+      // This will show the login dialog in P2P Exchange
+      bus.emit('session-expired')
     }
     return Promise.reject(error)
   }

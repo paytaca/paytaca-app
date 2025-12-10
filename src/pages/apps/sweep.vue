@@ -280,10 +280,11 @@ export default {
       }),
       skippedTokens: [],
       bchBalance: null,
-      sweeper: [].map(() => new SweepPrivateKey())[0],
+      sweeper: null,
       submitted: false,
       fetching: false,
       sweeping: false,
+      fetchingTokens: false,
       selectedToken: null,
       expandCashTokens: false,
       showSuccess: false,
@@ -392,21 +393,37 @@ export default {
         return
       }
 
+      // Prevent concurrent initial fetches (but allow refreshes)
+      if (signalFetch && this.fetchingTokens) return
+      if (signalFetch) this.fetchingTokens = true
+
       this.submitted = true
       if (signalFetch) this.fetching = true
 
-      if (this.wif.length <= 0) return
-      this.sweeper = new SweepPrivateKey(this.wif)
+      if (this.wif.length <= 0) {
+        if (signalFetch) this.fetchingTokens = false
+        return
+      }
+      
+      // Only create new sweeper instance if WIF changed or doesn't exist
+      if (!this.sweeper || !this.sweeper.wif || this.sweeper.wif !== this.wif) {
+        this.sweeper = new SweepPrivateKey(this.wif)
+      }
+
+      // Subscribe once if needed, then fetch all data in parallel without redundant subscriptions
+      if (signalFetch) {
+        await this.sweeper.subscribe()
+      }
 
       await Promise.allSettled([
-        this.sweeper.getNftCashTokens(signalFetch).then(results => {
+        this.sweeper.getNftCashTokens(false).then(results => {
           this.nonFungibleCashTokens = results
         }),
-        this.sweeper.getFungibleCashTokens(signalFetch).then(results => {
+        this.sweeper.getFungibleCashTokens(false).then(results => {
           this.fungibleCashTokens = results
         }),
-        this.sweeper.getBchBalance().then(resp => {
-          this.bchBalance = resp.spendable || 0
+        this.sweeper.getBchBalance(false).then(resp => {
+          this.bchBalance = resp?.spendable || 0
         }),
       ])
 
@@ -418,6 +435,7 @@ export default {
 
       this.fetching = false
       this.sweeping = false
+      if (signalFetch) this.fetchingTokens = false
     },
 
     async sweepCashTokenFungible(tokens, tokenAddress=null) {
