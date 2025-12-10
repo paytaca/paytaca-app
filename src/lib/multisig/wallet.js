@@ -141,12 +141,16 @@ import {
   hash160,
   bigIntToVmNumber,
   SigningSerializationTypeBch,
+  readBytes,
+  binsAreEqual,
+  encodeHdPublicKeyPayload,
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 import { createTemplate } from './template.js'
 import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from './utxo.js'
 import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
+import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from 'src/utils/async-utils.js'
 
 export const getLockingData = ({ signers, addressDerivationPath }) => {
@@ -363,18 +367,6 @@ export const getChangeAddress = ({ multisigWallet, addressIndex = 0, prefix = Ca
     return getAddress({ lockingData, compiler, prefix })
 }
 
-export const importFromBase64 = (multisigWalletBase64) => {
-  const bin = base64ToBin(multisigWalletBase64)
-  const multisigWallet = JSON.parse(binToUtf8(bin))
-  return multisigWallet 
-}
-
-export const exportToBase64 = (multisigWallet) => {
-  const bin = utf8ToBin(stringify(multisigWallet))
-  return binToBase64(bin)
-}
-
-
 export const isValidAddress = (address) => {
   let lockingBytecodeOrError = cashAddressToLockingBytecode(address)
   if (typeof(lockingBytecodeOrError) !== 'string' && lockingBytecodeOrError.bytecode) {
@@ -481,19 +473,28 @@ export class MultisigWallet {
    * @param {MultisigWalletOptions} options - Wallet options.
    */
   constructor (config, options) {
-    this.id = config.id
-    this.name = config.name
-    this.m = config.m
-    this.signers = config.signers
-    this.networks = config.networks || {
+    this.id = config?.id
+    this.name = config?.name
+    this.m = config?.m
+    this.signers = config?.signers
+    this.networks = config?.networks || {
       mainnet: {},
       chipnet: {}
     }
-    this.enabled = config.enabled
-    if (!config.id) {
+
+    if (config?.enabled) {
+      this.enabled = config.enabled
+    }
+    if (!config?.id && this.signers) {
       this.id = getWalletHash(this)
     }
-    this.options = options
+    
+    this.options = options || {}
+    
+  }
+
+  setStore(store) {
+    this.options.store = store
   }
 
   set utxos(utxos) {
@@ -1256,9 +1257,127 @@ async issueDepositAddress(addressIndex) {
     }
   }
 
-  exportToBase64() {
-    return exportToBase64(this)
+  toString() {
+    return utf8ToBin(this.toJSON())
   }
+
+  export() {
+    const j = structuredClone(this.toJSON())
+
+    if (Object.keys(j.networks || {}).length === 0) {
+      delete j.networks
+    }
+
+    if (Object.keys(j.networks?.chipnet || {}).length === 0) {
+      delete j.networks?.chipnet
+    }
+
+    if (Object.keys(j.networks?.mainnet || {}).length === 0) {
+      delete j.networks?.mainnet
+    }
+
+    if (j.networks?.chipnet?.lastUsedDepositAddressIndex !== undefined) {
+      j.networks.chipnet.di = j.networks?.chipnet?.lastUsedDepositAddressIndex
+      delete j.networks?.chipnet?.lastUsedDepositAddressIndex
+    }
+    if (j.networks?.chipnet?.lastUsedChangeAddressIndex !== undefined) {
+      j.networks.chipnet.ci = j.networks?.chipnet?.lastUsedChangeAddressIndex
+      delete j.networks?.chipnet?.lastUsedChangeAddressIndex
+    }
+
+    if (j.networks?.mainnet?.lastUsedDepositAddressIndex !== undefined) {
+      j.networks.mainnet.di = j.networks?.mainnet?.lastUsedDepositAddressIndex
+      delete j.networks?.mainnet?.lastUsedDepositAddressIndex
+    }
+
+    if (j.networks?.mainnet?.lastUsedChangeAddressIndex !== undefined) {
+      j.networks.mainnet.ci = j.networks?.mainnet?.lastUsedChangeAddressIndex
+      delete j.networks?.mainnet?.lastUsedChangeAddressIndex
+    }
+    
+    return j
+  }
+
+  static import(wallet) {
+    // Clone the wallet to avoid mutating the input
+    const imported = structuredClone(wallet)
+    
+    // Restore network property names from shortened versions
+    // export() converts: lastUsedDepositAddressIndex → di, lastUsedChangeAddressIndex → ci
+    if (imported.networks) {
+      if (imported.networks.chipnet) {
+        if (imported.networks.chipnet.di !== undefined) {
+          imported.networks.chipnet.lastUsedDepositAddressIndex = imported.networks.chipnet.di
+          delete imported.networks.chipnet.di
+        }
+        if (imported.networks.chipnet.ci !== undefined) {
+          imported.networks.chipnet.lastUsedChangeAddressIndex = imported.networks.chipnet.ci
+          delete imported.networks.chipnet.ci
+        }
+      }
+      
+      // Handle mainnet
+      if (imported.networks.mainnet) {
+        if (imported.networks.mainnet.di !== undefined) {
+          imported.networks.mainnet.lastUsedDepositAddressIndex = imported.networks.mainnet.di
+          delete imported.networks.mainnet.di
+        }
+        if (imported.networks.mainnet.ci !== undefined) {
+          imported.networks.mainnet.lastUsedChangeAddressIndex = imported.networks.mainnet.ci
+          delete imported.networks.mainnet.ci
+        }
+      }
+    }
+    
+    // Create MultisigWallet instance with restored data
+    const mofn = new MultisigWallet({
+      id: imported.id,
+      name: imported.name,
+      m: imported.m,
+      signers: imported.signers,
+      networks: imported.networks || {
+        mainnet: {},
+        chipnet: {}
+      }
+    })
+    
+    return mofn
+  }
+
+
+  toPsbtWallet() {
+    const psbtWallet = new PsbtWallet()
+    psbtWallet.encode(this.export())
+    return psbtWallet.toString()
+  }
+
+  static fromPsbtWallet(psbtWalletBase64) {
+    const psbtWallet = new PsbtWallet()
+    const wallet = new MultisigWallet()
+    psbtWallet.decode(psbtWalletBase64, wallet)
+    return wallet
+  }
+
+  /**
+   * @param {string} [encoding='psbt'] - The encoding to use. Either 'psbt' or 'json'
+   */
+  toBase64(encoding='psbt') {
+
+    if (encoding === 'psbt') {
+      const psbtWallet = new PsbtWallet()
+      psbtWallet.encode(this.toJSON())
+      return psbtWallet.toString()
+    }
+    return utf8ToBin(this.toString())
+  }
+
+  // /**
+  //  * @deprecated
+  //  */
+  // exportToBase64() {
+  //   const bin = utf8ToBin(this.toJSON())
+  //   return binToBase64(bin)
+  // }
 
 /**
  * Asynchronously generates authentication credentials for a signer.
@@ -1293,9 +1412,21 @@ async generateAuthCredentials(xpub) {
     })
   }
 
-  static importFromBase64(base64MultisigWallet, options) {
-    const object = importFromBase64(base64MultisigWallet)
-    return MultisigWallet.importFromObject(object, options)
+  static fromBase64(base64) {
+    
+    const bin = base64ToBin(base64)
+    const psbtWalletMagicMarker = readBytes(4)
+    const psbtWalletMagicMarkerReadResult = psbtWalletMagicMarker({ bin, index: 0 })
+    console.log('psbtWalletMagicMarkerReadResult', psbtWalletMagicMarkerReadResult)
+    console.log('WALLET_MAGIC', hexToBin(WALLET_MAGIC))
+    if (binsAreEqual(psbtWalletMagicMarkerReadResult.result, hexToBin(WALLET_MAGIC))) {
+      const wallet = new MultisigWallet()
+      const psbtWallet = new PsbtWallet()
+      psbtWallet.decode(base64, wallet)
+      return wallet
+    }
+
+    return new MultisigWallet(JSON.parse(binToUtf8(bin)))
   }
 
   static importFromObject(multisigWalletObject, options) {
