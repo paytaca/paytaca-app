@@ -1,5 +1,5 @@
 import { hashTransaction, binToHex, cashAddressToLockingBytecode } from 'bitauth-libauth-v3'
-import { getLockingBytecode, getWalletHash } from 'src/lib/multisig'
+import { extractMValue, getLockingBytecode, getWalletHash, Pst } from 'src/lib/multisig'
 import { ProprietaryFields, Psbt } from 'src/lib/multisig/psbt'
 
 export function getSettings (state) {
@@ -72,14 +72,23 @@ export function getPsbtByUnsignedTransactionHash (state) {
 export function getPsbtsByWalletHash (state) {
   return (hash) => {
     return state.psbts.filter(p => {
-      const psbt = new Psbt()
-      psbt.deserialize(p)
-      const walletHashField = psbt.globalMap.getProprietaryFieldBySubType(
-        ProprietaryFields.paytaca.identifier,
-        ProprietaryFields.paytaca.subKey.walletHash.subType
-      )
-      if (!walletHashField) return
-      return binToHex(walletHashField.value) === hash
+      const pst = Pst.import(p)
+      const mValues = [...new Set(pst.inputs?.map(i => {
+        if (!i.redeemScript) return null;
+        return extractMValue(i.redeemScript)
+      }).filter(m => m))]
+
+      for (const m of mValues) {
+        const wallet = {
+          m,
+          signers: pst.wallet.signers
+        }
+        const walletHash = getWalletHash(wallet)
+        if (walletHash === hash) {
+          return true
+        }
+      }
+      return false
     })
   }
 }
