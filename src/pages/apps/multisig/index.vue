@@ -159,12 +159,6 @@ const onUpdateWalletFileModelValue = (file) => {
       walletInstance.value = MultisigWallet.fromBase64(reader.result, {
         store: $store
       })
-      // const defaultAddress = getMultisigCashAddress({
-      //   lockingData: walletInstance.value.lockingData,
-      //   template: walletInstance.value.template,
-      //   cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
-      // })
-
       walletInstance.value.save({ sync: false })
       // $store.dispatch('multisig/createWallet', walletInstance.value)
       router.push({

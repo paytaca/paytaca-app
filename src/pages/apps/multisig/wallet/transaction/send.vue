@@ -147,6 +147,7 @@ import darkmode from 'src/store/darkmode'
 import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
 import { binToHex, decodeCashAddress } from 'bitauth-libauth-v3'
 
+const $q = useQuasar()
 const $store = useStore()
 const route = useRoute()
 const router = useRouter()
@@ -313,9 +314,13 @@ const createProposal = async () => {
 
     await pst.save()
     
-    router.push({ name: 'app-multisig-wallet-pst-view', params: { unsignedtransactionhash: pst.unsignedTransactionHash }})
+    router.push({ 
+      name: 'app-multisig-wallet-pst-view', 
+      params: { unsignedtransactionhash: pst.unsignedTransactionHash }
+    })
 
   } catch (error) {
+    console.error('error', error)
     $q.dialog({
       message: error,
       class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
