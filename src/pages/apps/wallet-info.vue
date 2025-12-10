@@ -444,9 +444,6 @@ export default {
     },
     getWalletMasterFingerprint(type) {
       const w = this.$store.getters['global/getWallet'](type)
-
-      console.log('w', w)
-      console.log('w', this.wallet)
       if (!this.wallet?.mnemonic) return 
       return binToHex(
           hash160(
@@ -519,7 +516,6 @@ export default {
     clearTimeout(this.prevUtxoStatusUpdateTimeout)
   },
   mounted () {
-    console.log('getWalletMasterFingerprint', this.getWalletMasterFingerprint('bch'))
     this.loadWallet().then(() => this.updateUtxoScanTasksStatus())
   }
 }
