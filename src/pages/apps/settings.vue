@@ -45,6 +45,14 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item v-if="showSensitiveInfo" clickable v-ripple @click="copyToClipboard(walletMasterFingerprint)">
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('MasterFingerprint') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                    {{ walletMasterFingerprint }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
               <q-item v-if="showSensitiveInfo" :clickable="!!bchWallet.walletHash" v-ripple @click="bchWallet.walletHash && copyToClipboard(bchWallet.walletHash)">
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
@@ -258,6 +266,7 @@
 </template>
 
 <script>
+import { deriveSeedFromBip39Mnemonic, binToHex, deriveHdPrivateNodeFromSeed, deriveHdPublicNode, hash160 } from 'bitauth-libauth-v3'
 import pinDialog from '../../components/pin'
 import securityOptionDialog from '../../components/authOption'
 import HeaderNav from '../../components/header-nav'
@@ -271,7 +280,7 @@ import AdvertisementsSettings from 'src/components/settings/AdvertisementsSettin
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { loadWallet } from 'src/wallet'
+import { loadWallet, getMnemonic } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 
 export default {
@@ -291,7 +300,8 @@ export default {
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
       enablePushNotifs: false,
-      showSensitiveInfo: false
+      showSensitiveInfo: false,
+      walletMasterFingerprint: ''
     }
   },
   components: {
@@ -525,6 +535,18 @@ export default {
           })
         }
       })
+    },
+    async loadWalletMasterFingerprint(type) {
+      const m = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+      if (!m) return ''
+      this.walletMasterFingerprint = binToHex(
+          hash160(
+          deriveHdPublicNode(
+            deriveHdPrivateNodeFromSeed(
+              deriveSeedFromBip39Mnemonic(m)
+            )).publicKey
+          ).slice(0, 4)
+      )
     }
   },
   created () {
@@ -561,6 +583,7 @@ export default {
     this.$store.dispatch('market/updateSupportedCurrencies', {})
     this.$store.dispatch('global/refetchWalletPreferences')
     this.ensureXPubKeyLoaded()
+    this.loadWalletMasterFingerprint('bch')
   }
 }
 </script>
