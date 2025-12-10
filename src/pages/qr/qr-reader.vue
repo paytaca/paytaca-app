@@ -49,7 +49,7 @@
     </div>
 
     <div class="q-mt-xl row items-center justify-around">
-      <div class="column flex flex-center">
+      <div v-if="!hideGenerateQR" class="column flex flex-center">
         <q-btn
           round
           size="lg"
@@ -61,7 +61,7 @@
         <span class="q-mt-sm">{{ $t('GenerateQR') }}</span>
       </div>
 
-      <div class="column flex flex-center">
+      <div v-if="!hideUploadQR" class="column flex flex-center">
         <q-btn
           round
           size="lg"
@@ -73,8 +73,12 @@
         <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
       </div>
     </div>
-
-    <footer-menu />
+    <div class="row justify-center">
+      <div>
+        <q-btn label="Cancel" @click="$router.back()" color="red" v-close-popup></q-btn>
+      </div>
+    </div>
+    <footer-menu v-if="!hideFooter" />
   </div>
 </template>
 
@@ -117,7 +121,10 @@ export default {
       frontCamera: false,
       clWidth: '0px',
       urDecoder: null,
-      progress: 0
+      progress: 0,
+      hideFooter: false,
+      hideGenerateQR: false,
+      hideUploadQR: false
     }
   },
 
@@ -350,9 +357,7 @@ export default {
                 const canonicalPsbt =vm.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
                 if (canonicalPsbt) {
                   const canonicalPst = Pst.import(canonicalPsbt)
-                  console.log('Canonical PST before', canonicalPst)
                   canonicalPst.combine([pst])
-                  console.log('Canonical PST', canonicalPst)
                   canonicalPst.setStore(vm.$store)
                   canonicalPst.save()
                 } else {
@@ -534,6 +539,9 @@ export default {
     }
 
     vm.clWidth = `${document.body.clientWidth}px`
+    vm.hideFooter = vm.$route.query.hideFooter
+    vm.hideGenerateQR = vm.$route.query.hideGenerateQR
+    vm.hideUploadQR = vm.$route.query.hideUploadQR
   },
 
   deactivated () {
