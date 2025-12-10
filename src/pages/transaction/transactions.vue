@@ -70,7 +70,7 @@
 		                  ref="tx-search"
 		                  style="margin: 0px 30px 0px; padding-bottom: 3px;"
 		                  maxlength="8"
-		                  label="Search by Reference ID"
+		                  :label="$t('SearchByReferenceID')"
 		                  v-model="txSearchReference"
 		                  debounce="200"
 		                  placeholder="00000000"
@@ -842,5 +842,8 @@ export default {
     cursor: pointer;
     transition: .2s;
     font-weight: 500;
+    white-space: nowrap;
+    font-size: clamp(13px, 2.5vw, 16px);
+    overflow: hidden;
 }
 </style>

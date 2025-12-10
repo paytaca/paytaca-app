@@ -1,9 +1,9 @@
 <template>
-  <div id="apps-page-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav
       :title="$t('Apps')"
       backnavpath="/"
-      class="q-px-sm apps-header"
+      class="header-nav q-px-sm apps-header"
       @long-press-title="onLongPressAppsTitle"
     />
     <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
@@ -20,7 +20,7 @@
               v-if="app.beta" 
               color="red" 
               class="beta-badge"
-              :label="$t('BETA', {}, 'BETA')"
+              :label="$t('Beta').toLocaleUpperCase()"
             />
           </div>
           <p
@@ -104,7 +104,7 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Multisig Wallets',
+          name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
           iconName: 'mdi-account-group',
           path: '/apps/multisig',
           active: true,
@@ -197,7 +197,7 @@ export default {
         }
       ],
       debugApp: {
-        name: 'Debug',
+        name: this.$t('Debug', {}, 'Debug'),
         iconName: 'bug_report',
         path: '/apps/debug',
         active: true,
@@ -264,8 +264,9 @@ export default {
           class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
           title: this.$t('ShowDebugApp'),
           message: this.$t('DoYouWantToShowTheDebugApp'),
-          cancel: true,
-          persistent: true
+          cancel: { label: this.$t('Cancel'), },
+          ok: { label: this.$t('OK'), },
+          persistent: true,
         }).onOk(() => {
           this.showDebugApp = true
           localStorage.setItem('debugAppVisible', 'true')
