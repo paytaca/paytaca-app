@@ -12,20 +12,6 @@
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="pst">
           <q-list>
-            <!-- <q-item>
-              <q-item-section></q-item-section>
-              <q-item-section side>
-                <q-btn @click="syncPst" flat dense :loading="isSyncing">
-                  <template v-slot="icon">
-                    <q-icon v-if="!pst.syncing && pst.id" name="mdi-cloud-check"></q-icon>
-                    <q-icon v-if="!pst.syncing && !pst.id" name="mdi-cloud-upload"></q-icon>
-                  </template>
-                  <template v-slot:loading>
-                    <q-spinner ></q-spinner>
-                  </template>
-                </q-btn>
-              </q-item-section>
-            </q-item> -->
             <q-item>
               <q-item-section>
                 <q-item-label class="text-h5 text-bold">
@@ -156,11 +142,11 @@
             <q-item class="q-mt-lg">
               <q-item-section>
                 <div class="row justify-between q-gutter-x-md">
-                  <q-btn :disabled="signingProgress.signingProgress === 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="loadCosignerPst" v-close-popup>
+                  <q-btn :disabled="signingProgress.signingProgress === 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="combinePst" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center">
                         <q-icon name="mdi-file-upload" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="col-12 tile-label">Load Cosigner PST</div>
+                        <div class="col-12 tile-label">Combine</div>
                       </div>
                     </template>
                   </q-btn>
@@ -203,13 +189,6 @@
           class="absolute-bottom"
         />
     </div>
-    <q-file
-      ref="pstFileElementRef"
-      v-model="pstFileModel"
-      :multiple="false"
-      style="visibility: hidden"
-      @update:model-value="onUpdatePstFile">
-    </q-file>
   </q-pull-to-refresh>
 </template>
 
@@ -217,24 +196,23 @@
 
 import { useStore } from 'vuex'
 import { QSpinnerDots, useQuasar } from 'quasar'
-import { computed, ref, onMounted, nextTick, reactive, watchEffect } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { binToHex, decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getSigningProgress, MultisigWallet, Pst, shortenString } from 'src/lib/multisig'
+import { MultisigWallet, Pst, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
 import Big from 'big.js'
-import { WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDialog.vue'
 import { withTimeout } from 'src/utils/async-utils'
-import { Psbt, psbtToLibauthTemplate } from 'src/lib/multisig/psbt'
+import PstExportOptionsDialog from 'components/multisig/PstExportOptionsDialog.vue'
+import PstQrDialog from 'components/multisig/PstQrDialog.vue'
 
 const {
   getSignerXPrv,
-  isChipnet,
   multisigNetworkProvider,
   multisigCoordinationServer,
   resolveXprvOfXpub
@@ -250,8 +228,6 @@ const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const signingProgress = ref({})
 const isBroadcasting = ref(false)
-const pstFileElementRef = ref()
-const pstFileModel = ref()
 const pst = ref()
 
 const darkMode = computed(() => {
@@ -313,6 +289,65 @@ const syncPst = async () => {
   }
 }
 
+const showPstExportOptionsDialog = () => {
+  $q.dialog({
+    component: PstExportOptionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      pst: pst.value
+    }
+  }).onOk((payload) => {
+    if (payload?.action === 'display-qr') {
+      showPstQrDialog()
+    } else if (payload?.action === 'download-pst') {
+      const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
+      $q.dialog({
+        title: 'Enter Filename',
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+        prompt: {
+          type: 'text',
+          model: defaultFilename
+        }
+      }).onOk(async (filename) => {
+        
+        if (!filename) return
+
+        const base64Psbt = await pst.value.export()
+        const blob = new Blob(
+          [base64Psbt], 
+          { type: 'text/plain' }
+        )
+
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${filename}.psbt`
+        document.body.appendChild(a)
+        a.click()
+    }).onCancel(() => {})
+      // downloadWalletFile(payload.pst || pst.value)
+    } else {
+      // openWalletActionsDialog()
+    }
+  }).onCancel(() => {
+    // Dialog was closed without action
+  })
+}
+
+const showPstQrDialog = () => {
+  $q.dialog({
+    component: PstQrDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      pst: pst.value,
+    }
+  }).onOk(() => {
+    // openWalletActionsDialog()
+  })
+}
+
+
+
 const openBottomsMenu = () => {
   $q.bottomSheet({
     title: 'More Actions',
@@ -350,31 +385,7 @@ const openBottomsMenu = () => {
     }
 
     if (action.value === 'export-psbt') {
-      const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
-      $q.dialog({
-        title: 'Enter Filename',
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
-        prompt: {
-          type: 'text',
-          model: defaultFilename
-        }
-      }).onOk(async (filename) => {
-        
-        if (!filename) return
-
-        const base64Psbt = await pst.value.export()
-        const blob = new Blob(
-          [base64Psbt], 
-          { type: 'text/plain' }
-        )
-
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${filename}.psbt`
-        document.body.appendChild(a)
-        a.click()
-      }).onCancel(() => {})
+      showPstExportOptionsDialog()
     }
   })
 }
@@ -433,6 +444,7 @@ const broadcastTransaction = async () => {
       await showBroadcastSuccessDialog(result.data.txid)
     }
   } catch (error) {
+    console.log('Error', error)
     $q.dialog({
       title: 'Error',
       message: error.message || 'An error occurred while broadcasting the transaction.',
@@ -458,48 +470,21 @@ const onConfirmSliderSwiped = async (reset) => {
       reset?.()
       resolve(false)
     })
-
   })
 }
 
-const loadCosignerPst = () => {
-  pstFileElementRef.value.pickFiles()
-}
-
-const onUpdatePstFile = (file) => {
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        const imported = Pst.import(reader.result)
-        const base64 = $store.getters['multisig/getPsbtByUnsignedTransactionHash'](imported.unsignedTransactionHash)
-        let combined = null
-        if (base64) {
-          const stored = Pst.fromPsbt(base64)
-          combined = stored.combine([imported])
-        } 
-        pst.value = combined || imported
-        pst.value
-          .setWallet(wallet.value)
-          .setStore($store)
-          .setProvider(multisigNetworkProvider)
-          .setCoordinationServer(multisigCoordinationServer)
-        pst.value.save()
-        signingProgress.value = pst.value.getSigningProgress()  
-      } catch (error) {
-        console.log('Error', error)
-        $q.dialog({
-          message: 'Error importing PSBT!',
-          class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-        })
-      }
-      
+const combinePst = () => {
+  router.push({ 
+    name: 'app-multisig-wallet-pst-import',
+    params: {
+      wallethash: route.params.wallethash,
+      unsignedtransactionhash: route.params.unsignedtransactionhash
+    },
+    query: {
+      title: 'Combine Tx',
+      description: 'Scan or Load a Partially Signed Transaction Proposal to combine with this one.',
     }
-    reader.onerror = (err) => {
-      console.err(err)
-    }
-    reader.readAsText(file)
-  }
+  })
 }
 
 onMounted(async () => {
