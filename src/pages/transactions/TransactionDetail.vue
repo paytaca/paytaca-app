@@ -584,6 +584,13 @@ export default {
                              (typeof query.category === 'string' && query.category.includes('?new=true')) ||
                              (window.location.search && window.location.search.includes('new=true'))
     
+    // Extract category parameter from query string
+    let categoryParam = query.category || ''
+    // Handle malformed URLs where category might include ?new=true
+    if (typeof categoryParam === 'string' && categoryParam.includes('?new=true')) {
+      categoryParam = categoryParam.split('?')[0]
+    }
+    
     const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
     if (preloaded) {
       // Check if preloaded is already corrupted (has numeric string keys like "0", "1", etc.)
@@ -609,7 +616,8 @@ export default {
       if (Object.isFrozen(mutableTx)) {
         mutableTx = { ...mutableTx }
       }
-      this.attachAssetIfMissing(mutableTx)
+      // Pass category parameter to ensure correct asset is attached
+      this.attachAssetIfMissing(mutableTx, categoryParam)
       this.tx = mutableTx
       this.$nextTick(() => {
         this.loadMemo()
@@ -745,6 +753,10 @@ export default {
         const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
         // Prefer explicit query param; fallback to preloaded tx.asset.id (ct/{cat} | slp/{cat})
         let categoryParam = this.$route?.query?.category || ''
+        // Handle malformed URLs where category might include ?new=true
+        if (typeof categoryParam === 'string' && categoryParam.includes('?new=true')) {
+          categoryParam = categoryParam.split('?')[0]
+        }
         if (!categoryParam) {
           const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
           const assetId = String(preloaded?.asset?.id || '')
@@ -982,6 +994,10 @@ export default {
           
           const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
           let categoryParam = this.$route?.query?.category || ''
+          // Handle malformed URLs where category might include ?new=true
+          if (typeof categoryParam === 'string' && categoryParam.includes('?new=true')) {
+            categoryParam = categoryParam.split('?')[0]
+          }
           if (!categoryParam && this.tx?.asset?.id) {
             const assetId = String(this.tx.asset.id)
             const parts = assetId.split('/')
@@ -1283,40 +1299,78 @@ export default {
     },
     attachAssetIfMissing (tx, categoryParam) {
       if (!tx) return
-      if (tx.asset && tx.asset.id) return
-
-      // Try to resolve token asset from category
+      
+      // If category parameter is provided, check if current asset matches it
       if (categoryParam) {
-        try {
-          const assets = this.$store.getters['assets/getAssets'] || []
-          const match = assets.find(a => String(a?.id || '').endsWith(`/${categoryParam}`))
-          if (match) {
-            // Create a mutable copy of the asset to avoid readonly issues
-            let assetCopy = this.createMutableCopy(match)
-            // Ensure the asset object itself is not frozen
-            if (Object.isFrozen(assetCopy)) {
-              assetCopy = { ...assetCopy }
+        const currentAssetId = String(tx.asset?.id || '')
+        const expectedAssetId = `ct/${categoryParam}`
+        const expectedSlpAssetId = `slp/${categoryParam}`
+        
+        // If current asset doesn't match the category, replace it
+        if (currentAssetId !== expectedAssetId && currentAssetId !== expectedSlpAssetId) {
+          try {
+            const assets = this.$store.getters['assets/getAssets'] || []
+            const match = assets.find(a => {
+              const assetId = String(a?.id || '')
+              return assetId.endsWith(`/${categoryParam}`) && 
+                     (assetId.startsWith('ct/') || assetId.startsWith('slp/'))
+            })
+            if (match) {
+              // Create a mutable copy of the asset to avoid readonly issues
+              let assetCopy = this.createMutableCopy(match)
+              // Ensure the asset object itself is not frozen
+              if (Object.isFrozen(assetCopy)) {
+                assetCopy = { ...assetCopy }
+              }
+              tx.asset = assetCopy
+              return
             }
-            tx.asset = assetCopy
-            return
-          }
-        } catch {}
-      }
-
-      // Fallback to BCH
-      let bchAsset = this.$store.getters['assets/getAsset'] && this.$store.getters['assets/getAsset']('bch')
-      if (Array.isArray(bchAsset)) bchAsset = bchAsset[0]
-      if (!bchAsset) {
-        bchAsset = { id: 'bch', symbol: 'BCH', name: 'Bitcoin Cash', logo: 'bch-logo.png', balance: 0 }
-      } else {
-        // Create a mutable copy of the asset to avoid readonly issues
-        bchAsset = this.createMutableCopy(bchAsset)
-        // Ensure the asset object itself is not frozen
-        if (Object.isFrozen(bchAsset)) {
-          bchAsset = { ...bchAsset }
+          } catch {}
+        } else if (currentAssetId === expectedAssetId || currentAssetId === expectedSlpAssetId) {
+          // Asset already matches, no need to change
+          return
         }
       }
-      tx.asset = bchAsset
+      
+      // If no asset exists, try to resolve from category
+      if (!tx.asset || !tx.asset.id) {
+        // Try to resolve token asset from category
+        if (categoryParam) {
+          try {
+            const assets = this.$store.getters['assets/getAssets'] || []
+            const match = assets.find(a => {
+              const assetId = String(a?.id || '')
+              return assetId.endsWith(`/${categoryParam}`) && 
+                     (assetId.startsWith('ct/') || assetId.startsWith('slp/'))
+            })
+            if (match) {
+              // Create a mutable copy of the asset to avoid readonly issues
+              let assetCopy = this.createMutableCopy(match)
+              // Ensure the asset object itself is not frozen
+              if (Object.isFrozen(assetCopy)) {
+                assetCopy = { ...assetCopy }
+              }
+              tx.asset = assetCopy
+              return
+            }
+          } catch {}
+        }
+
+        // Fallback to BCH
+        let bchAsset = this.$store.getters['assets/getAsset'] && this.$store.getters['assets/getAsset']('bch')
+        if (Array.isArray(bchAsset)) bchAsset = bchAsset[0]
+        if (!bchAsset) {
+          bchAsset = { id: 'bch', symbol: 'BCH', name: 'Bitcoin Cash', logo: 'bch-logo.png', balance: 0 }
+        } else {
+          // Create a mutable copy of the asset to avoid readonly issues
+          bchAsset = this.createMutableCopy(bchAsset)
+          // Ensure the asset object itself is not frozen
+          if (Object.isFrozen(bchAsset)) {
+            bchAsset = { ...bchAsset }
+          }
+        }
+        tx.asset = bchAsset
+      }
     },
     goBack () {
       // Check if we came from transactions page
