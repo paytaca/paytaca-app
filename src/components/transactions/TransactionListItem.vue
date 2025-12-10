@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="transaction-item" 
+    class="transaction-item text-bow"
     :class="[
       'q-mx-lg q-px-sm',
       compact ? 'q-py-sm compact' : 'q-py-md',

@@ -1628,6 +1628,26 @@ const phrases = {
       ManualCashTokensSweep: 'Manual CashTokens Sweep',
       SelectTokensToSweep: 'Select Tokens to Sweep',
       SelectPointsToSweep: 'Select Points to Sweep',
+      HideWalletDetails: 'Hide Wallet Details',
+      ShowWalletDetails: 'Show Wallet Details',
+      HideWalletDetailsTooltip: 'Hide Derivation Path, xPub Key and Wallet Hash',
+      ShowWalletDetailsTooltip: 'Reveal Derivation Path, xPub Key and Wallet Hash',
+      DeleteWalletWarning: 'Permanently remove this wallet and all its data. This action cannot be undone.',
+      MultisigWalletsBetaMessage: 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.',
+      StablehedgeBetaMessage: 'Stablehedge is currently in beta. This feature allows you to create stablecoin positions backed by Bitcoin Cash. Please note that this is an experimental feature and may have limitations or risks.',
+      EnableSlpToolTip: 'Enable SLP token support',
+      SelectBCHDenominationToolTip: 'Select how BCH amounts are displayed',
+      NoLogsYet: 'No logs yet. Console output will appear here.',
+      BetaAppDisclaimer: 'This feature is in beta and may have limitations or issues. Use at your own discretion.',
+      UtxoScanDescription: 'Scan for unspent transaction outputs to fix balance issues',
+      AddressScanDescription: 'Scan for untracked addresses to fix transaction issues',
+      HelpCenterDescription: 'Browse articles and guides',
+      FAQDescription: 'Frequently asked questions',
+      DocumentationDescription: 'Read our documentation',
+      CommunityDescription: 'Join our community',
+      TelegramDescription: 'Join our Telegram community',
+      GitHubDescription: 'View source code and report issues',
+      SearchByReferenceID: 'Search by Reference ID',
     }
   ],
   dynamic: [
@@ -1740,6 +1760,10 @@ const phrases = {
       ChooseMethod: 'Choose a method to send your {symbol}',
       YouHaveUnpaidReservations: 'You have {count} pending reservation(s)'
     },
+    {
+      ContactSupportDescription: 'Email us at {supportEmail}',
+      WebsiteDescription: 'Visit {website}',
+    }
   ]
 }
 

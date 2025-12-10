@@ -2,7 +2,7 @@
   <div class="static-container">
       <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
       <HeaderNav
-        :title="$t('Multisig Wallets')"
+        :title="$t('MultisigWallets', {}, 'Multisig Wallets')"
         backnavpath="/apps"
         class="header-nav q-px-sm apps-header gift-app-header"
       >
