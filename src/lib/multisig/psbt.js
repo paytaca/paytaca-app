@@ -1,6 +1,6 @@
 import { bigIntToBinUint64LE, numberToBinInt32LE } from "@bitauth/libauth"
-import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
-import { bip32DecodeDerivationPath, bip32EncodeDerivationPath } from "./utils"
+import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { bip32DecodeDerivationPath, bip32EncodeDerivationPath, decodeHdPublicKeyPayload } from "./utils"
 import { MultisigTransactionBuilder } from "./transaction-builder"
 export const PSBT_MAGIC = '70736274ff'
 
@@ -337,13 +337,13 @@ export class XPubField {
    */
   static extractXPubFields(keypairs) {
 
-      if (!keypairs[WALLET_GLOBAL_XPUB]) return
+      if (!keypairs[PSBT_GLOBAL_XPUB]) return
       
       const xpubFields = []
       
-      const _keypairs = keypairs[WALLET_GLOBAL_XPUB] instanceof KeyPair ? 
-        [ keypairs[WALLET_GLOBAL_XPUB] ] : 
-        keypairs[WALLET_GLOBAL_XPUB]
+      const _keypairs = keypairs[PSBT_GLOBAL_XPUB] instanceof KeyPair ? 
+        [ keypairs[PSBT_GLOBAL_XPUB] ] : 
+        keypairs[PSBT_GLOBAL_XPUB]
   
       for (const keypair of _keypairs) {
         const keyData = keypair.key?.keyData
@@ -1381,7 +1381,7 @@ export class Psbt {
     if (decoded.wallet?.signers) {
       for (const i in decoded.wallet.signers) {
         const s = decoded.wallet.signers[i]
-        this.globalMap.addXPub(s.xpub, s.masterFingerprint, s.path)
+        this.globalMap.addXPub(s.xpub, s.masterFingerprint, s.path || `m/44'/145'/0'`)
       }
     }
 
@@ -1391,13 +1391,13 @@ export class Psbt {
     this.globalMap.setOutputCount(decoded.outputs.length)
     this.globalMap.setPsbtVersion(version)
     this.globalMap.setFallbackLocktime(decoded.locktime)
-
-    this.globalMap.addProprietaryField(
-      ProprietaryFields.paytaca.identifier, 
-      hexToBin(decoded.walletHash), 
-      ProprietaryFields.paytaca.subKey.walletHash.subType, 
-      ProprietaryFields.paytaca.subKey.walletHash.subKeyData
-    )
+    console.log('DECODED', decoded)
+    // this.globalMap.addProprietaryField(
+    //   ProprietaryFields.paytaca.identifier, 
+    //   hexToBin(decoded.walletHash), 
+    //   ProprietaryFields.paytaca.subKey.walletHash.subType, 
+    //   ProprietaryFields.paytaca.subKey.walletHash.subKeyData
+    // )
 
     decoded.origin && this.globalMap.addProprietaryField(
       ProprietaryFields.paytaca.identifier, 
@@ -1477,7 +1477,21 @@ export class Psbt {
     this.deserialize(base64ToBin(base64))
     decodeResult.version = this.globalMap.getTxVersion()
     decodeResult.locktime = this.globalMap.getFallbackLocktime()
+    
+    const xpubs = this.globalMap.getXPubs()
+    
+    xpubs?.forEach(xpub => {
+      xpub.masterFingerprint = binToHex(xpub.masterFingerprint)
+      xpub.path = bip32DecodeDerivationPath(xpub.path)
+      xpub.xpub = encodeHdPublicKey(decodeHdPublicKeyPayload(xpub.xpub)).hdPublicKey
+    })
 
+    if (!decodeResult.wallet) {
+      decodeResult.wallet = {
+        signers: xpubs
+      }
+    }
+    
     this.globalMap.getProprietaryFields(ProprietaryFields.paytaca.identifier)?.forEach(pf => {
       if (pf.subKeyData && pf.value) {
         let valueDecoder = binToUtf8
