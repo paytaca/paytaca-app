@@ -1043,7 +1043,6 @@ export class Pst {
 
 
     const psbt = new Psbt()
-    this.walletHash = this.wallet?.getWalletHash()
     psbt.encode(this, version)
     return psbt 
   }
