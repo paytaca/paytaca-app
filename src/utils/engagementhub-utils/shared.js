@@ -20,15 +20,18 @@ export function getBchWallet () {
 // ==============================
 
 export function parseLocaleDate (date, isDayIncluded = true) {
-  const d = new Date(date || null)
-  const options = {}
-  const langs = [Store.getters['global/language'], 'en-US']
-
-  if (isDayIncluded) {
-    options.dateStyle = "medium"
-    options.timeStyle = "short"
+  if (date) {
+    const d = new Date(date)
+    const options = {}
+    const langs = [Store.getters['global/language'], 'en-US']
+  
+    if (isDayIncluded) {
+      options.dateStyle = "medium"
+      options.timeStyle = "short"
+    }
+    return new Intl.DateTimeFormat(langs, options).format(d)
   }
-  return new Intl.DateTimeFormat(langs, options).format(d)
+  return '---'
 }
 
 export function parseLiftToken (amount) {
