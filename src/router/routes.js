@@ -269,7 +269,7 @@ const routes = [
           {
             path: '',
             name: 'app-card',
-            component: () => import('src/pages/apps/card/index.vue')
+            component: () => import('src/pages/apps/card/createCard.vue')
           },
           {
             path: 'auth-nfts',
