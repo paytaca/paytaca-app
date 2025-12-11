@@ -5,7 +5,7 @@
         <div class="static-container">
           <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
-              :title="$t('Create Wallet')"
+              :title="$t('Setup Wallet')"
               backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
@@ -149,7 +149,7 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { shortenString, MultisigWallet, getMasterFingerPrint } from 'src/lib/multisig'
+import { shortenString, MultisigWallet, getMasterFingerprint } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
@@ -170,7 +170,7 @@ const {
 const mOptions = ref()
 const nOptions = ref()
 const wallet = ref()
-const step = ref(3)
+const step = ref(1)
 
 const name = ref('')
 const m = ref(0)
@@ -202,7 +202,7 @@ const openLocalWalletsSelectionDialog = ({ signer, signerIndex }) => {
     signers.value[signerIndex].xpub = selectedWallet.wallet.bch.xPubKey
     const localWallet = getSignerWalletFromVault({ xpub: selectedWallet.wallet.bch.xPubKey })
     const { mnemonic } = await loadWallet('BCH', localWallet.vaultIndex)
-    signers.value[signerIndex].masterFingerprint = binToHex(getMasterFingerPrint(mnemonic))
+    signers.value[signerIndex].masterFingerprint = binToHex(getMasterFingerprint(mnemonic))
   })
 }
 
