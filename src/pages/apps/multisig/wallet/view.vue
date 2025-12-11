@@ -13,27 +13,32 @@
     <div class="row justify-center">
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="wallet">
+          
             <div class="row q-mb-lg justify-center">
-              <div class="col-xs-12 flex items-center justify-center q-mb-lg">
-                <div class="text-h6 q-mr-md">{{wallet.name}}</div>
-              </div>
-              <div class="col-xs-12 q-mb-lg">
-                <div class="items-center justify-center q-gutter-y-md">
-                  <div class="text-grey-6 text-center">BCH Balance</div>
-                  <div class="flex justify-center items-center q-gutter-x-sm">
-                    <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                    <span style="font-size: 1.5em" class="text-bold">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>
-                    <q-btn 
-                      @click="refreshBalance"
-                      :icon="!balancesRefreshing? 'refresh': ''"
-                      :loading="balancesRefreshing"
-                      flat dense>
-                      <template v-slot:loading>
-                        <q-spinner-facebook></q-spinner-facebook>
-                      </template>
-                    </q-btn>
+              <div class="col-xs-12">
+                <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px;">
+                  <div class="flex justify-between items-center q-ma-md">
+                    <div class="text-bold text-h5">{{wallet.name}}</div>
+                    <q-icon name="wallet" size="lg"></q-icon>
                   </div>
-                </div>
+                  <q-card-section class="row items-center justify-between">
+                    <div class="flex justify-start items-center q-gutter-x-sm">
+                      <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
+                      <span class="text-h5 text-bold">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>
+                      <q-btn 
+                        @click="refreshBalance"
+                        :icon="!balancesRefreshing? 'refresh': ''"
+                        :loading="balancesRefreshing"
+                        size="md"
+                        flat dense>
+                        <template v-slot:loading>
+                          <q-spinner-facebook></q-spinner-facebook>
+                        </template>
+                      </q-btn>
+                    </div>
+                    <div class="col-xs-12 q-mt-md text-subtitle2">{{ assetPrice? `=${assetPrice}` : '' }}</div>
+                  </q-card-section>
+                </q-card>
               </div>
               <div class="col-xs-12 flex justify-between">
                 <q-btn flat dense no-caps @click="showWalletDepositDialog" class="tile" v-close-popup>
@@ -213,7 +218,10 @@ const balances = ref()
 const balancesTokenIdentities = ref({})
 const balancesExpanded = ref(true)
 const balancesRefreshing = ref(false)
+const balanceConvertionRates = ref()
+
 const hdPrivateKeys = ref()
+
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
@@ -236,6 +244,15 @@ const psts = computed(() => {
   return psbts?.map(psbtBase64 => {
     return Pst.fromPsbt(psbtBase64)
   })
+})
+
+const assetPrice = computed(() => {
+  if (balanceConvertionRates.value?.length > 0) {
+    const b = balanceConvertionRates.value?.find(priceData => (
+       priceData.relative_currency?.toLowerCase() === 'bch'
+    ))
+    return b?.[`assetPriceIn${b?.currency}Text`] || ''
+  }
 })
 
 const uploadWallet = () => {
@@ -405,6 +422,12 @@ const refreshBalance = async () => {
     if (balances.value) {
       balances.value = sortObjectKeys(balances.value)
     }
+    balanceConvertionRates.value = 
+      await wallet.value.convertBalanceToCurrencies(
+        'bch',
+        (balances.value?.['bch'] || 0) / 1e8,
+        [$store.getters['market/selectedCurrency'].symbol]
+      )
   } catch (error) {} finally {
     balancesRefreshing.value = false
   }
@@ -429,6 +452,7 @@ onMounted(async () => {
     }
     
     await loadCashtokenIdentitiesToBalances()
+
   } 
   catch (error) {
     // ! Notify warning
