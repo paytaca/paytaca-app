@@ -95,26 +95,18 @@ import {
   SigningSerializationType,
   encodeTransactionInput,
   encodeTransactionOutput,
-  stringifyTestVector,
-  utf8ToBin,
-  binToBase64,
-  base64ToBin,
-  binToUtf8,
   readTransactionOutput,
   isHex,
-  hash256,
   hash160,
   encodeLockingBytecodeP2sh20,
   decodeHdPublicKey,
-  readCompactUint,
-  bigIntToCompactUint,
   decodeTransactionBch
 } from 'bitauth-libauth-v3'
 
-import { derivePublicKeys, getLockingBytecode, getCompiler, getLockingData, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
+import { getCompiler, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
 import { createTemplate } from './template.js'
 import { bip32ExtractRelativePath } from './utils.js'
-import { GlobalMap, Psbt, PsbtInput, PsbtOutput, ProprietaryFields } from './psbt.js'
+import { Psbt } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
 import { WatchtowerNetworkProvider } from './network.js'
 
@@ -527,30 +519,6 @@ export const publicKeySigned = ({ publicKey, pst }) => {
 }
 
 export class Pst {
-
-  // /**
-  //  * @param {PartiallySignedTransaction} instance
-  //  */
-  // constructor(instance, options) {
-  //   this.creator = instance?.creator
-  //   this.origin = instance?.origin
-  //   this.purpose = instance?.purpose
-  //   this.unsignedTransactionHex = instance?.unsignedTransactionHex
-  //   this.version = instance?.version || 2
-  //   this.locktime = instance?.locktime ?? 0
-  //   this.inputs = instance?.inputs || []
-  //   this.outputs = instance?.outputs || []
-  //   this.walletHash = instance?.walletHash
-  //   if (instance?.wallet) {
-  //     this.wallet = instance.wallet
-  //   }
-  //   if (instance?.isSynced) {
-  //     this.isSynced = instance.isSynced
-  //   }
-  //   if (options) {
-  //     this.options = options
-  //   }
-  // }
 
   constructor() {
     this.inputs = [] 
@@ -1276,6 +1244,23 @@ export class Pst {
     return v
   }
 
+  /**
+   * Extract the unsigned transaction from a signed or completed transaction
+   * 
+   * @param {string} signedTransactionHex - A signed transaction hex
+   * @returns {{unsignedTransactionHex: string, unsignedTransactionHash: string}} The unsigned transaction in hex and hash
+   */
+  static extractUnsignedTransaction(signedTransactionHex) {
+    const decoded = decodeTransactionCommon(hexToBin(signedTransactionHex))
+    decoded.inputs.forEach(input => {
+      input.unlockingBytecode = []
+    })
+    const encoded = encodeTransactionCommon(decoded)
+    return {
+      unsignedTransactionHex: binToHex(encoded),
+      unsignedTransactionHash: hashTransaction(encoded)
+    }
+  }
 }
 
 
