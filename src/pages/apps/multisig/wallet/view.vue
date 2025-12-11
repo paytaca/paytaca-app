@@ -258,8 +258,10 @@ const showWalletDepositDialog = () => {
       multisigWallet: wallet.value,
       cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
     }
-  }).onOk(() => {
-    openWalletActionsDialog()
+  }).onOk((payload) => {
+    if (payload?.addressIndex) {
+      wallet.value.issueDepositAddress(payload.addressIndex)
+    }
   })
 }
 
