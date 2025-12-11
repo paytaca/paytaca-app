@@ -3,6 +3,62 @@
     <header-nav :title="$t('Support', {}, 'Support')" backnavpath="/apps" class="header-nav header-nav apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
       <div class="col-12 q-px-lg q-mt-md">
+        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('WalletManagement', {}, 'Wallet Management') }}</p>
+        <q-list class="pt-card wallet-info-list" :class="getDarkModeClass(darkMode)">
+          <q-item>
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletName') }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                {{ currentWalletName }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-btn
+                no-caps
+                class="button"
+                :label="$t('Rename')"
+                @click="openRenameDialog()"
+              />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+      <div class="col-12 q-px-lg q-mt-md">
+        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('BchAddresses') }}</p>
+        <q-list class="pt-card wallet-info-list" :class="getDarkModeClass(darkMode)">
+          <q-item clickable v-ripple>
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                {{ getWallet('bch').derivationPath }}
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWallet('bch').xPubKey }}
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWalletMasterFingerprint('bch'))">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('MasterFingerprint') }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWalletMasterFingerprint('bch') }}
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
+            <q-item-section>
+              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
+              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                {{ getWallet('bch').walletHash }}
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
         <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
           {{ $t('ScanTools') }}
         </p>
@@ -199,7 +255,11 @@ import { getMnemonic, Wallet } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { markRaw } from '@vue/reactivity'
 import ago from 's-ago'
-
+import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
+import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
+import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
+import { binToHex, deriveHdPrivateNodeFromSeed, deriveHdPublicNode, hash160 } from '@bitauth/libauth'
+import { deriveSeedFromBip39Mnemonic } from 'bitauth-libauth-v3'
 export default {
   name: 'app-support',
   components: {
@@ -381,6 +441,68 @@ export default {
         }
       }
       return wallet
+    },
+    getWalletMasterFingerprint(type) {
+      const w = this.$store.getters['global/getWallet'](type)
+      if (!this.wallet?.mnemonic) return 
+      return binToHex(
+          hash160(
+          deriveHdPublicNode(
+            deriveHdPrivateNodeFromSeed(
+              deriveSeedFromBip39Mnemonic(this.wallet.mnemonic)
+            )).publicKey
+          ).slice(0, 4)
+      )
+    },
+    copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 200,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
+    openRenameDialog () {
+      const vm = this
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      vm.$q.dialog({
+        component: RenameDialog,
+        componentProps: {
+          index: walletIndex
+        }
+      })
+    },
+    showDeleteDialog () {
+      const vm = this
+      vm.disableDeleteButton = true
+      vm.$q.dialog({
+        title: this.$t('DeleteWallet'),
+        message: this.$t('DeleteWalletDescription'),
+        dark: true,
+        cancel: this.$t('Cancel'),
+        seamless: true,
+        ok: this.$t('Yes')
+      }).onOk(() => {
+        vm.deletingWalletDialog()
+        vm.deleteWallet(vm)
+      }).onCancel(() => {
+        vm.disableDeleteButton = false
+      })
+    },
+    switchWallet (index) {
+      const vm = this
+      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
+      if (index !== currentWalletIndex) {
+        const asset = this.$store.getters['assets/getAllAssets']
+        vm.$store.commit('assets/updateVaultSnapshot', { index: currentWalletIndex, snapshot: asset })
+        vm.$store.commit('assets/updatedCurrentAssets', index)
+
+        vm.$store.dispatch('global/switchWallet', index).then(function () {
+          vm.$router.push('/')
+          setTimeout(() => { location.reload() }, 500)
+        })
+      }
     },
     openUrl (url) {
       if (url.startsWith('mailto:')) {

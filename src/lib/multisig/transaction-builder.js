@@ -1,0 +1,231 @@
+import {
+  cashAddressToLockingBytecode,
+  encodeTransactionCommon,
+  hexToBin,
+  binToHex, 
+  getMinimumFee,
+  generateTransaction,
+  encodeTransactionOutput} from 'bitauth-libauth-v3'
+import Big from 'big.js'
+import { getCompiler } from './wallet.js'
+
+/**
+ * @typedef {object} Recipient
+ * @property {string} address - The recipient address
+ * @property {string} amount - The raw amount entered on the UI, Example: 0.0001
+ * @property {'bch'|string} asset - The asset identifier, if not 'bch' value is token category
+ * @property {number} decimals - The decimals spec of the asset 8 if 'bch'
+ * @property {string} [commitment] - The NFT commitment if sending a particular NFT 
+ * @property {string} [capability] - The NFT capability
+ */
+
+/**
+ * @typedef {object} TransactionProposal
+ * @property {string} [creator] - The xpub key of the proposal creator
+ * @property {string} origin - The origin of the transaction
+ * @property {string} purpose 
+ * @property {Recipient[]} recipients
+ */
+
+/**
+ * @param { CommonUtxo } utxo
+ * @returns { import("@bitauth/libauth").Output }
+ */
+export function commonUtxoToLibauthOutput (utxo, lockingBytecode) {
+  const output = {
+    lockingBytecode,
+    valueSatoshis: BigInt(utxo.satoshis)
+  }
+
+  if (typeof (lockingBytecode) === 'string') {
+    output.lockingBytecode = hexToBin(output.lockingBytecode)
+  }
+
+  if (utxo.token) {
+    output.token = {}
+    output.token.amount = BigInt(utxo.token.amount)
+    output.token.category = hexToBin(utxo.token.category)
+    if (utxo.token.nft) {
+      output.token.nft.capability = utxo.token.nft.capability
+      output.token.nft.commitment = hexToBin(utxo.token.nft.commitment)
+    }
+  }
+  return output
+}
+
+/**
+ * @param {Recipient[]} recipients
+ * @param {number} m - The number of signers that will be signing this output
+ * @param {number} n - Max number of signers 
+ */
+export function recipientsToLibauthTransactionOutputs(recipients, m, n) {
+  return recipients.map(r => {
+
+    let valueSatoshis = 0
+
+    if (r.asset === 'bch') {
+      valueSatoshis = BigInt(Big(r.amount).mul(1e8).toString()) 
+    }
+
+    const output = {
+      lockingBytecode: cashAddressToLockingBytecode(r.address).bytecode,
+      valueSatoshis: BigInt(valueSatoshis)
+    }
+
+    let tokenAmount = 0
+
+    if (r.asset !== 'bch') {
+      output.token = {
+        category: hexToBin(r.asset)
+      }
+    }
+
+    if (output.token && Number(r.amount) > 0) {
+      tokenAmount = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
+      output.token.amount = BigInt(tokenAmount)
+    }
+
+    if (output.token && r.capability) {
+      if (tokenAmount > 0) throw new Error('Semi fungible token not yet supported!')
+      output.token.nft.capability = r.capability
+      output.token.nft.commitment = hexToBin(r.commitment)
+    }
+
+    if (output.token) {
+      output.valueSatoshis = getMofNDustThreshold(m, n, output)
+    }
+
+    return output
+  })
+}
+
+
+export function getMofNDustThreshold (m, n, output, dustRelayFeeSatPerKb = 1000) {
+  const pubkeyLen = 33
+  const redeemScriptLen = 
+      1                                 // OP_m
+    + (n * (1 + pubkeyLen))             // Pubkey push
+    + 1                                 // OP_n
+    + 1                                 // OP_CHECKMULTISIG
+
+  let redeemScriptPushOverhead = 2
+  const inputSize =
+      32                                // prev txid
+    + 4                                 // prev index
+    + 1                                 // scriptSig length prefix
+    + 1                                 // OP_0 or check bits
+    + m * (1 + 72)                  // m signatures (each with 1-byte push + sigLen) assumes ecdsa (it covers schnorr)
+    + redeemScriptPushOverhead          // 1 byte if redeemScript ≤75 bytes, else 2 bytes
+    + redeemScriptLen                   // redeemScript: OP_m + n×<push+pubkey> + OP_n + OP_CHECKMULTISIG
+    + 4                                 // sequence
+
+  const encodedOutput = encodeTransactionOutput(output)
+  const dustThreshold = 3 * dustRelayFeeSatPerKb *  (encodedOutput.length + inputSize) / 1000
+  return BigInt(dustThreshold)
+}
+
+/**
+ * @param {import('bitauth-libauth-v3').WalletTemplate} template
+ * @param {import('bitauth-libauth-v3').Input[]} inputs - With attached sourceOutput
+ * @param {import('bitauth-libauth-v3').Output[]} outputs
+ * @param {bigint} dustRelayFeeSatPerKb - default 1500 sat/kb
+ */
+export function estimateFee (inputs, outputs, template, dustRelayFeeSatPerKb = 1500n) {
+    const compiler = getCompiler({ template })
+    const sampleEntityId = Object.keys(template.entities)[0]
+    const sampleScriptId = template.entities[sampleEntityId].scripts.find((scriptId) => scriptId !== 'lock')
+    const scenario = compiler.generateScenario({
+      unlockingScriptId: sampleScriptId
+    })
+
+    const unlockingBytecode = scenario.program.transaction.inputs[0].unlockingBytecode
+
+    
+    const satoshiChange = {
+      lockingBytecode: inputs[0].sourceOutput.lockingBytecode,
+      valueSatoshis: 1000n
+    }
+
+    let tokenChange = null
+
+    const sampleTokenInput = inputs?.find(i => i?.sourceOutput?.token)
+
+    if (sampleTokenInput) { // assume token change if there's any token input
+      tokenChange = {
+        lockingBytecode: inputs[0].sourceOutput.lockingBytecode,
+        valueSatoshis: 1000n,
+        token: sampleTokenInput.sourceOutput.token
+      }
+    }
+
+    inputs.forEach(u => {
+      u.unlockingBytecode = unlockingBytecode
+      return u
+    })
+
+    scenario.program.transaction.inputs = inputs
+
+    scenario.program.transaction.outputs = [...outputs, satoshiChange]
+    if (tokenChange) {
+      scenario.program.transaction.outputs.push(tokenChange)
+    }
+
+    const transactionForFeeEstimation = generateTransaction(scenario.program.transaction)
+    const estimatedTransactionSize = encodeTransactionCommon(transactionForFeeEstimation.transaction).length
+    const minimumFee = getMinimumFee(BigInt(estimatedTransactionSize), dustRelayFeeSatPerKb)
+    return minimumFee
+}
+
+
+export class MultisigTransactionBuilder {
+
+  constructor() {
+    this.inputs = []
+    this.outputs = []
+    this.locktime = 0
+    this.version = 2
+  }
+
+  setVersion(version) {
+    this.version = version
+  }
+  
+  setLocktime (locktime) {
+    this.locktime = locktime || 0
+    return this
+  }
+
+  /**
+   * 
+   * @param { import("@bitauth/libauth").Input[] } inputs
+   */
+  addInputs(inputs) {
+    this.inputs = this.inputs.concat(inputs.map(i => {
+      if (!i.sequenceNumber) {
+        i.sequenceNumber = parseInt('ffffffff', 16)
+      }
+      return i
+    }))
+    return this
+  }
+  
+  /**
+   * 
+   * @param { import("@bitauth/libauth").Output[] } outputs
+   */
+  addOutputs(outputs) {
+    this.outputs = this.outputs.concat(outputs)
+    return this
+  }
+
+  build() {
+    return binToHex(
+      encodeTransactionCommon({
+        inputs: this.inputs,
+        outputs: this.outputs,
+        version: this.version,
+        locktime: this.locktime
+      })
+    )
+  }
+}

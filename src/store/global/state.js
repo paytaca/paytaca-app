@@ -124,5 +124,28 @@ export default function () {
     },
     walletsRecovered: false, // Flag to check if wallets have been recovered from storage
     walletRecoveryMessage: '',
+    /**
+     * Clearable state, any apps storing state here should be able to recover if cache is cleared.
+     */
+    cache: {
+      /**
+       * Caches the basic cashtoken details.
+       * Using category as key, the value is a partial of BCMR's latest IdentitySnapshot.
+       * 
+       * @type {[category: string]: {
+       *   name: string
+       *   description?: string,
+       *   uris?: {
+       *     icon: string
+       *   },
+       *   token: {
+       *    category: string,
+       *    symbol: string,
+       *    decimals?: number
+       *  }
+       * }} - A partial BCMR IdentitySnapshot, other fields are omitted
+       */
+      cashtokenIdentities: {}
+    }
   }
 }
