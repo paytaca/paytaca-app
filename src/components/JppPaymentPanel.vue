@@ -254,6 +254,7 @@
       @swiped="onSwipe()"
       class="fixed-bottom drag-slide"
     />
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
   </div>
 </template>
 <script setup>
@@ -261,15 +262,18 @@ import { ellipsisText, formatTimestampToText } from "src/wallet/anyhedge/formatt
 import { computed, inject, ref, watch } from "vue"
 import { useStore } from "vuex"
 import { useQuasar } from "quasar";
+import { useI18n } from "vue-i18n";
 import { JSONPaymentProtocol } from "src/wallet/payment-uri"
 import { Wallet } from "src/wallet/index"
 import DragSlide from "./drag-slide.vue";
-import SecurityCheckDialog from "./SecurityCheckDialog.vue";
+import pinDialog from "./pin/index.vue";
+import { NativeBiometric } from 'capacitor-native-biometric';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const $copyText = inject('$copyText')
 const $q = useQuasar()
 const $store = useStore()
+const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const $emit = defineEmits([
@@ -305,15 +309,61 @@ function txLink(txid) {
 const showDetails = ref(false)
 const showRecipients = ref(false)
 const showDragSlide = ref(true)
+const pinDialogAction = ref('')
 
-function onSwipe() {
-  $q.dialog({
-    component: SecurityCheckDialog,
-  })
-    .onOk(() => completePayment())
-    .onDismiss(() => {
-      showDragSlide.value = false
-    })
+function onSwipe(reset = () => {}) {
+  executeSecurityChecking(reset)
+}
+
+function executeSecurityChecking(reset = () => {}) {
+  setTimeout(() => {
+    const preferredSecurity = $store?.getters?.['global/preferredSecurity']
+    if (preferredSecurity === 'pin') {
+      // Reset first to ensure watcher is triggered
+      pinDialogAction.value = ''
+      setTimeout(() => {
+        pinDialogAction.value = 'VERIFY'
+      }, 0)
+    } else {
+      verifyBiometric(reset)
+    }
+  }, 300)
+}
+
+function verifyBiometric(reset = () => {}) {
+  NativeBiometric.verifyIdentity({
+    reason: $t('NativeBiometricReason2'),
+    title: $t('SecurityAuthentication'),
+    subtitle: $t('NativeBiometricSubtitle'),
+    description: ''
+  }).then(
+    () => {
+      // Authentication successful
+      completePayment()
+    },
+    (error) => {
+      // Failed to authenticate
+      if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
+        reset?.()
+        showDragSlide.value = false
+      } else if (error.message.includes('Too many attempts. Try again later.')) {
+        // Retry after delay
+        setTimeout(() => {
+          verifyBiometric(reset)
+        }, 2000)
+      } else {
+        verifyBiometric(reset)
+      }
+    }
+  )
+}
+
+function pinDialogNextAction(action) {
+  if (action === 'proceed') {
+    completePayment()
+  } else {
+    showDragSlide.value = false
+  }
 }
 
 watch(() => [props.jpp?.parsed?.paymentId], () => {
