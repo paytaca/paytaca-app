@@ -4,7 +4,11 @@
       v-for="record in list"
       :key="record.letter_group"
     >
-      <q-item-label header class="text-weight-bold">
+      <q-item-label 
+        header 
+        class="text-weight-bold"
+        :id="`letter-group-${record.letter_group}`"
+      >
         {{ record.letter_group.toLocaleUpperCase() }}
       </q-item-label>
 

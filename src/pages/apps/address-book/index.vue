@@ -18,8 +18,7 @@
           <div class="q-px-md">
             <!-- loading skeletons animation -->
 
-            <!-- <template> -->
-              <!-- search bar -->
+            <!-- search bar -->
               <div
                 class="full-width q-mb-md"
                 id="search-filter-div"
@@ -61,7 +60,26 @@
                   </p>
                  </div>
               </div>
-            <!-- </template> -->
+
+              <!-- Alphabet index -->
+              <div 
+                id="alphabet-index" 
+                class="alphabet-index"
+                :class="darkMode ? 'dark' : ''"
+              >
+                <div
+                  v-for="letter in alphabetIndex"
+                  :key="letter"
+                  class="alphabet-letter"
+                  :class="{
+                    'enabled': isLetterEnabled(letter),
+                    'disabled': !isLetterEnabled(letter)
+                  }"
+                  @click="isLetterEnabled(letter) && scrollToLetter(letter)"
+                >
+                  {{ letter === '...' ? '...' : letter.toUpperCase() }}
+                </div>
+              </div>
           </div>
 
           <!-- add new record sticky button -->
@@ -196,11 +214,66 @@ export default {
   computed: {
     darkMode() {
       return this.$store.getters["darkmode/getStatus"];
+    },
+    
+    alphabetIndex() {
+      // Generate alphabet array with '...' at the beginning, then A-Z
+      const letters = ['...']
+      for (let i = 65; i <= 90; i++) {
+        letters.push(String.fromCodePoint(i).toLowerCase())
+      }
+      return letters
+    },
+    
+    availableLetterGroups() {
+      // Extract all unique letter_group values from both lists
+      const groups = new Set()
+      
+      this.favoritesList.forEach(item => {
+        if (item.letter_group) {
+          groups.add(item.letter_group.toLowerCase())
+        }
+      })
+      
+      this.recordsList.forEach(item => {
+        if (item.letter_group) {
+          groups.add(item.letter_group.toLowerCase())
+        }
+      })
+      
+      return Array.from(groups)
     }
   },
 
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    
+    isLetterEnabled(letter) {
+      // Check if the letter has corresponding data
+      return this.availableLetterGroups.includes(letter.toLowerCase())
+    },
+    
+    scrollToLetter(letter) {
+      // Find the target element within the scrollable container
+      const container = document.getElementById('lists-container')
+      if (!container) return
+      
+      const targetId = `letter-group-${letter.toLowerCase()}`
+      const targetElement = document.getElementById(targetId)
+      
+      if (targetElement) {
+        // Calculate the position relative to the container
+        const containerRect = container.getBoundingClientRect()
+        const targetRect = targetElement.getBoundingClientRect()
+        const scrollTop = container.scrollTop + (targetRect.top - containerRect.top)
+        
+        // Smooth scroll within the container
+        container.scrollTo({
+          top: scrollTop - 10, // Add small offset for better visibility
+          behavior: 'smooth'
+        })
+      }
+    }
   },
 
   mounted () {
@@ -245,5 +318,81 @@ export default {
 #lists-container {
   height: 100%;
   overflow-y: auto;
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+.alphabet-index {
+  position: fixed;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 2px;
+  pointer-events: none;
+  max-height: 90vh;
+  overflow: hidden;
+  
+  .alphabet-letter {
+    font-size: 12px;
+    line-height: 1.2;
+    padding: 2px 3px;
+    min-width: 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+    user-select: none;
+    
+    &.enabled {
+      cursor: pointer;
+      font-weight: 500;
+      
+      &:hover {
+        transform: scale(1.2);
+      }
+    }
+    
+    &.disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+  }
+  
+  &.dark {
+    .alphabet-letter.enabled {
+      color: rgba(255, 255, 255, 0.9);
+      
+      &:hover {
+        color: rgba(255, 255, 255, 1);
+      }
+    }
+    
+    .alphabet-letter.disabled {
+      color: rgba(255, 255, 255, 0.3);
+    }
+  }
+  
+  &:not(.dark) {
+    .alphabet-letter.enabled {
+      color: rgba(0, 0, 0, 0.7);
+      
+      &:hover {
+        color: rgba(0, 0, 0, 1);
+      }
+    }
+    
+    .alphabet-letter.disabled {
+      color: rgba(0, 0, 0, 0.3);
+    }
+  }
 }
 </style>
