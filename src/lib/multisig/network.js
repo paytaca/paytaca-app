@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3";
-import { MultisigWallet } from './wallet';
+import { MultisigWallet } from './wallet.js';
 import { ElectrumNetworkProvider } from 'cashscript';
 
 /**
@@ -79,6 +79,7 @@ export class WatchtowerNetworkProvider {
         this.network = config?.network || WatchtowerNetwork.mainnet
         if (this.network === WatchtowerNetwork.chipnet) {
             this.hostname = 'https://chipnet.watchtower.cash'
+            
             this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.testnet
         }
     }
@@ -181,9 +182,11 @@ export class WatchtowerCoordinationServer {
         switch (this.network) {
             case WatchtowerNetwork.chipnet:
                 this.hostname = 'https://chipnet.watchtower.cash'
+                // this.hostname = 'http://localhost:8000'
                 break
             case WatchtowerNetwork.mainnet:
                 this.hostname = 'https://watchtower.cash'    
+                // this.hostname = 'http://localhost:8000'
                 break
             case WatchtowerNetwork.local:
                 this.hostname = 'http://localhost:8000'

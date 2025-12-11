@@ -1,7 +1,6 @@
-import { bigIntToBinUint64LE, numberToBinInt32LE } from "@bitauth/libauth"
-import { base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
-import { bip32DecodeDerivationPath, bip32EncodeDerivationPath, decodeHdPublicKeyPayload } from "./utils"
-import { MultisigTransactionBuilder } from "./transaction-builder"
+import { numberToBinInt32LE, bigIntToBinUint64LE, base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
+import { bip32DecodeDerivationPath, bip32EncodeDerivationPath, decodeHdPublicKeyPayload } from "./utils.js"
+import { MultisigTransactionBuilder } from "./transaction-builder.js"
 export const PSBT_MAGIC = '70736274ff'
 
   // ---------- Global map ----------
