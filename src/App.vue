@@ -60,7 +60,6 @@ export default {
   },
   methods: {
     async onConnectivityChange (online) {
-      console.log("CONNECTIVITY CHANGE", online)
       const vm = this
       vm.$store.dispatch('global/updateConnectivityStatus', online)
       if (online) {
@@ -244,9 +243,7 @@ export default {
     await vm.$store.dispatch('global/ensureValidWalletIndex')
 
     this.$store.dispatch('global/autoGenerateAddress', { walletType: 'bch' })
-      .then((...results) => console.log('Auto gen address bch', ...results))
     this.$store.dispatch('global/autoGenerateAddress', { walletType: 'slp' })
-      .then((...results) => console.log('Auto gen address slp', ...results))
 
     // Forcibly disable SmartBCH, in preparation for future deprecation
     this.$store.commit('global/disableSmartBCH')

@@ -45,7 +45,6 @@ export default boot(async (obj) => {
       }
 
       store.replaceState(parsedState)
-      console.log('[Hydration] Vuex state manually hydrated.')
     }
 
     // Add error handler for store mutations

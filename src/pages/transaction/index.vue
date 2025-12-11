@@ -646,20 +646,7 @@ export default {
       const hasNoFavorites = Array.isArray(favoriteTokenIds) && favoriteTokenIds.length === 0
       const assetsLoaded = this.balanceLoaded // Use balanceLoaded as indicator that assets are ready
       const result = hasTokens && hasNoFavorites && assetsLoaded
-      
-      console.log('[hasTokensButNoFavorites] Debug:', {
-        isLoadingAssets: this.isLoadingAssets,
-        balanceLoaded: assetsLoaded,
-        assetsLength: this.assets?.length || 0,
-        assets: this.assets?.map(a => a.id) || [],
-        favoriteTokenIds: favoriteTokenIds,
-        favoriteTokenIdsType: typeof favoriteTokenIds,
-        favoriteTokenIdsIsArray: Array.isArray(favoriteTokenIds),
-        hasTokens,
-        hasNoFavorites,
-        result
-      })
-      
+
       return result
     },
     selectedAssetMarketPrice () {
