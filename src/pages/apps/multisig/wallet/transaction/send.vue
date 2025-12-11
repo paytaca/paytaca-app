@@ -139,13 +139,11 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
   MultisigWallet,
-  getUnsignedTransactionHash
 } from 'src/lib/multisig'
-import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import darkmode from 'src/store/darkmode'
 import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
-import { binToHex, decodeCashAddress } from 'bitauth-libauth-v3'
+import { decodeCashAddress } from 'bitauth-libauth-v3'
 
 const $q = useQuasar()
 const $store = useStore()
