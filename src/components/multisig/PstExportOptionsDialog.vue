@@ -2,8 +2,13 @@
   <q-dialog ref="dialogRef" full-width full-height maximized transition-show="slide-up" transition-hide="slide-down">
     <q-card class="q-dialog-plugin pt-card row items-center justify-center text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
-        <div class="text-grad text-center text-h6">{{$t('Export Tx')}}</div>
-        <div class="text-subtitle-2 text-center text-bow-muted">Export Transaction</div>
+        <div class="text-grad text-center text-h6">{{$t('Export Transaction')}}</div>
+        <div class="text-caption text-center text-bow-muted">
+            <q-banner class="q-ma-lg rounded" :class="getDarkModeClass(darkMode)">
+              <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>
+              Export the transaction proposal so you can share it with your cosigners.
+            </q-banner>
+          </div>
         <div class="flex column text-center q-gutter-y-xl" style="margin-top: 20px;">
           <div>
             <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">

@@ -96,13 +96,14 @@
             <q-expansion-item v-model="balancesExpanded">
               <template v-slot:header>
                 <q-item-section>
-                  Raw Tx Details
+                  Raw Tx
                 </q-item-section>
               </template>
               <q-item-label class="q-pa-md">
                 <code style="word-break: break-all; filter: brightness(80%)">
-                  {{ decodeTransactionCommon(hexToBin(pst.unsignedTransactionHex)) }}
+                  {{pst.unsignedTransactionHex}}
                 </code>
+                <q-btn icon="content_copy" @click="copyToClipboard(pst.unsignedTransactionHex)" flat dense/>
               </q-item-label>
             </q-expansion-item>
             <q-separator></q-separator>
@@ -146,7 +147,7 @@
                     <template v-slot:default>
                       <div class="row justify-center">
                         <q-icon name="mdi-file-upload" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="col-12 tile-label">Combine</div>
+                        <div class="col-12 tile-label">Merge</div>
                       </div>
                     </template>
                   </q-btn>
@@ -195,7 +196,7 @@
 <script setup>
 
 import { useStore } from 'vuex'
-import { QSpinnerDots, useQuasar } from 'quasar'
+import { copyToClipboard, QSpinnerDots, useQuasar } from 'quasar'
 import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { binToHex, decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
@@ -265,6 +266,14 @@ const syncPst = async () => {
 
   try {
 
+    $q.notify({
+      type: 'info',
+      message: 'Feature not yet supported...',
+      position: 'bottom',
+      timeout: 3000,
+      color: 'primary'
+    })
+    return
     $q.loading.show({
       spinner: QSpinnerDots,
       spinnerColor: 'primary',
@@ -350,7 +359,7 @@ const showPstQrDialog = () => {
 
 const openBottomsMenu = () => {
   $q.bottomSheet({
-    title: 'More Actions',
+    title: 'Transaction Options',
     grid: true,
     actions: [
       {
@@ -367,7 +376,7 @@ const openBottomsMenu = () => {
       },
       {
         icon: 'mdi-file-export',
-        label: 'Export PSBT',
+        label: 'Export Tx',
         value: 'export-psbt',
         color: 'primary'
       }
@@ -481,8 +490,8 @@ const combinePst = () => {
       unsignedtransactionhash: route.params.unsignedtransactionhash
     },
     query: {
-      title: 'Combine Tx',
-      description: 'Scan or Load a Partially Signed Transaction Proposal to combine with this one.',
+      title: 'Merge Transaction',
+      description: 'Scan or Load a Partially Signed Transaction Proposal from your cosigner to merge with this one.',
     }
   })
 }
@@ -508,6 +517,9 @@ onMounted(async () => {
     pst.value = storedPst
     signingProgress.value = pst.value.getSigningProgress()
   }
+
+  console.log('pst hex', pst.value.unsignedTransactionHex)
+  console.log('pst hash', pst.value.unsignedTransactionHash)
 })
 
 </script>
