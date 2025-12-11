@@ -24,50 +24,6 @@
                 </q-btn>
                 <div class="q-pt-xs text-center text-capitalize">Load From File</div>
               </div>
-              <!-- <div class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
-                <div class="send-option-header">
-                  <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
-                  <div class="send-option-title">
-                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
-                      {{ $t('ScanQRCode', {}, 'Scan QR Code') }}
-                    </div>
-                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
-                      {{ $t('ScanOrUploadQR', {}, 'Scan with camera or upload QR image') }}
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row q-gutter-sm q-mt-md">
-                  <div class="col">
-                    <q-btn
-                      unelevated
-                      no-caps
-                      class="full-width scan-option-btn"
-                      :style="`border: 2px solid ${getThemeColor('primary')}; color: ${getThemeColor('primary')};`"
-                      @click="showQrScanner = true"
-                    >
-                      <div class="column items-center q-py-sm">
-                        <q-icon name="mdi-qrcode-scan" size="32px"/>
-                        <div class="text-caption q-mt-xs">{{ $t('Camera', {}, 'Camera') }}</div>
-                      </div>
-                    </q-btn>
-                  </div>
-                  <div class="col">
-                    <q-btn
-                      unelevated
-                      no-caps
-                      class="full-width scan-option-btn"
-                      :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
-                      @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
-                    >
-                      <div class="column items-center q-py-sm">
-                        <q-icon name="mdi-upload" size="32px"/>
-                        <div class="text-caption q-mt-xs">{{ $t('Upload', {}, 'Upload') }}</div>
-                      </div>
-                    </q-btn>
-                  </div>
-                </div>
-              </div> -->
               <div>
                 <q-btn size="lg" label="Cancel" @click="router.back()" color="red" v-close-popup></q-btn>
               </div>

@@ -74,8 +74,8 @@
       </div>
     </div>
     <div class="row justify-center">
-      <div>
-        <q-btn label="Cancel" @click="$router.back()" color="red" v-close-popup></q-btn>
+      <div class="col-xs-12 text-center">
+        <q-btn size="lg" label="Cancel" @click="$router.back()" color="red" v-close-popup></q-btn>
       </div>
     </div>
     <footer-menu v-if="!hideFooter" />
