@@ -1,100 +1,97 @@
 <template>
-  <q-layout>
-    <q-page-container>
-      <q-page>
-        <div
-          id="app-container"
-          class="sticky-header-container text-bow"
-          :class="getDarkModeClass(darkMode)"
+  <div
+    id="app-container"
+    class="sticky-header-container text-bow"
+    :class="getDarkModeClass(darkMode)"
+  >
+    <header-nav
+      class="apps-header"
+      backnavpath="/apps"
+      :title="'Address Book'"
+      id="header-nav"
+    />
+
+    <div class="q-px-md">
+      <!-- loading skeletons animation -->
+
+      <!-- search bar -->
+      <div
+        class="full-width q-mb-md row items-center q-gutter-sm"
+        id="search-filter-div"
+      >
+        <q-input
+          class="col"
+          rounded
+          outlined
+          clearable
+          dense
+          label="Search name"
         >
-          <header-nav
-            class="apps-header"
-            backnavpath="/apps"
-            :title="'Address Book'"
-            id="header-nav"
-          />
+          <template v-slot:prepend>
+            <q-icon name="search"></q-icon>
+          </template>
+        </q-input>
 
-          
-          <div class="q-px-md">
-            <!-- loading skeletons animation -->
+        <q-btn
+          class="flex-shrink-0"
+          round
+          icon="mdi-account-plus"
+          color="primary"
+        />
+      </div>
 
-            <!-- search bar -->
-              <div
-                class="full-width q-mb-md"
-                id="search-filter-div"
-              >
-                <q-input
-                  rounded
-                  outlined
-                  clearable
-                  dense
-                  label="Search name"
-                >
-                  <template v-slot:prepend>
-                    <q-icon name="search"></q-icon>
-                  </template>
-                </q-input>
-              </div>
-  
-              <!-- lists container -->
-              <div id="lists-container">
-                <!-- favorites list -->
-                <div v-if="favoritesList.length > 0">
-                  <record-list :list="favoritesList" />
-                </div>
-    
-                <!-- contacts list -->
-                 <div v-if="recordsList.length > 0">
-                  <record-list :list="recordsList" />
-                 </div>
-    
-                 <div
-                  class="text-center text-h6 q-mt-md"
-                  :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-                  v-else
-                >
-                  <p>Empty address book</p>
-                  <p>
-                    Click on <q-icon name="mdi-account-plus" size="sm" />
-                    to add a new record
-                  </p>
-                 </div>
-              </div>
+      <!-- lists container -->
+      <div id="lists-container">
+        <!-- favorites list -->
+        <div v-if="favoritesList.length > 0">
+          <record-list :list="favoritesList" />
+        </div>
 
-              <!-- Alphabet index -->
-              <div 
-                id="alphabet-index" 
-                class="alphabet-index"
-                :class="darkMode ? 'dark' : ''"
-              >
-                <div
-                  v-for="letter in alphabetIndex"
-                  :key="letter"
-                  class="alphabet-letter"
-                  :class="{
-                    'enabled': isLetterEnabled(letter),
-                    'disabled': !isLetterEnabled(letter)
-                  }"
-                  @click="isLetterEnabled(letter) && scrollToLetter(letter)"
-                >
-                  {{ letter === '...' ? '...' : letter.toUpperCase() }}
-                </div>
-              </div>
+        <!-- contacts list -->
+          <div v-if="recordsList.length > 0">
+          <record-list :list="recordsList" />
           </div>
 
-          <!-- add new record sticky button -->
-          <add-record-sticky />
+          <div
+          class="text-center text-h6 q-mt-md"
+          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+          v-else
+        >
+          <p>Empty address book</p>
+          <p>
+            Click on <q-icon name="mdi-account-plus" size="sm" />
+            to add a new record
+          </p>
+          </div>
+      </div>
+
+      <!-- Alphabet index -->
+      <div 
+        id="alphabet-index" 
+        class="alphabet-index"
+        :class="darkMode ? 'dark' : ''"
+      >
+        <div
+          v-for="letter in alphabetIndex"
+          :key="letter"
+          class="alphabet-letter"
+          :class="{
+            'enabled': isLetterEnabled(letter),
+            'disabled': !isLetterEnabled(letter)
+          }"
+          @click="isLetterEnabled(letter) && scrollToLetter(letter)"
+        >
+          {{ letter === '...' ? '...' : letter.toUpperCase() }}
         </div>
-      </q-page>
-    </q-page-container>
-  </q-layout>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import HeaderNav from 'src/components/header-nav.vue'
-import AddRecordSticky from 'src/components/address-book/AddRecordSticky.vue'
 import RecordList from 'src/components/address-book/RecordList.vue'
 
 export default {
@@ -102,7 +99,6 @@ export default {
 
   components: {
     HeaderNav,
-    AddRecordSticky,
     RecordList
   },
 
@@ -330,7 +326,7 @@ export default {
 .alphabet-index {
   position: fixed;
   right: 4px;
-  top: 50%;
+  top: 55%;
   transform: translateY(-50%);
   z-index: 200;
   display: flex;
