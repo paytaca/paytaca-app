@@ -6,29 +6,26 @@
           backnavpath="/apps"
           class="q-px-sm apps-header gift-app-header"
         />
-          <div class="text-h6 text-center text-bow-muted">Import multisig wallet configuration</div>
+          <div class="text-caption text-center text-bow-muted">
+            <q-banner class="q-ma-lg rounded" :class="getDarkModeClass(darkMode)">
+              <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>Import multisig wallet configuration
+            </q-banner>
+          </div>
           <div class="flex column text-center q-gutter-y-xl" style="margin-top: 20px;">
               <div>
-                <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">
-                  <q-icon class="default-text-color"  size="24px" name="qr_code" />
+                <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
+                  <q-icon class="default-text-color"  size="lg" name="qr_code" />
                 </q-btn>
-                <div class="q-pt-xs text-center text-capitalize" >Scan Wallet QR Code</div>
+                <div class="q-pt-xs text-h6 text-center text-capitalize" >Scan Wallet QR Code</div>
               </div>
               <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">
-                  <q-icon class="default-text-color"  size="24px" name="upload_file" @click="importWalletFromFile"/>
+                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
+                  <q-icon class="default-text-color"  size="lg" name="upload_file" @click="importWalletFromFile"/>
                 </q-btn>
-                <div class="q-pt-xs text-center text-capitalize" >From File</div>
+                <div class="q-pt-xs text-h6 text-center text-capitalize" >From File</div>
               </div>
-              <!-- <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">
-                  <q-icon class="default-text-color"  size="24px" name="cloud_download" @click="handleDownloadWallet"/>
-                </q-btn>
-                <div class="q-pt-xs text-center text-capitalize" >From Server</div>
-              </div> -->
-              
               <div>
-                <q-btn label="Cancel" @click="router.back()" color="red" v-close-popup></q-btn>
+                <q-btn size="lg" label="Cancel" @click="router.back()" color="red" v-close-popup></q-btn>
               </div>
           </div>
        </div>

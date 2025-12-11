@@ -20,9 +20,12 @@
                   @click="openMainActionsDialog"
                 />
               </div> -->
+              
               <div class="row justify-end q-gutter-x-sm q-mb-md">
                 <q-btn color="primary" icon="add" @click="router.push({ name: 'app-multisig-wallet-create' })" round dense outline></q-btn>
                 <q-btn color="primary" icon="upload" @click="importWallet" round dense outline></q-btn>
+                
+              
               </div>
             </div>
             <q-card
@@ -52,29 +55,45 @@
           </div>
       </div>
       <div v-else class="row justify-center items-center" style="height: 80vh">
-        <div class="col-10 text-center q-gutter-lg">
-         <div class="text-h6 text-bow-muted">No Multisig Wallet Found</div>
+        <!-- <div class="col-10 text-center q-gutter-lg">
+          <div class="text-h6 text-bow-muted">No Multisig Wallet Found</div>
+          <div>
+          <q-btn
+            no-caps
+            icon="mdi-wallet-plus-outline"
+            :to="{ name: 'app-multisig-wallet-create'}"
+            dense
+            size="lg"
+            label="Create Wallet"
+            color="primary"
+          />
+          </div>
         <div>
-        <q-btn
-          no-caps
-          icon="mdi-wallet-plus-outline"
-          :to="{ name: 'app-multisig-wallet-create'}"
-          dense
-          size="lg"
-          label="Create Wallet"
-          color="primary"
-        />
+          <q-btn
+            no-caps
+            icon="mdi-wallet-plus"
+            dense
+            size="lg"
+            label="Import Wallet"
+            @click="importWallet"
+            color="primary"
+          />
         </div>
-       <div>
-        <q-btn
-          no-caps
-          icon="mdi-wallet-plus"
-          dense
-          size="lg"
-          label="Import Wallet"
-          @click="importWallet"
-          color="primary"
-        /></div></div>
+        </div> -->
+        <div class="col-xs-12 row justify-center q-gutter-y-xl">
+          <div class="col-xs-12 text-center">
+            <q-btn size="lg"  @click="router.push({ name: 'app-multisig-wallet-create' })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+              <q-icon class="default-text-color"  size="lg" name="qr_code" />
+            </q-btn>
+            <div class="q-pt-xs text-h6 text-center text-capitalize" >Create Wallet</div>
+          </div>
+          <div class="col-xs-12 text-center">
+            <q-btn color="primary" class="button-default" @click="importWallet" :class="darkMode ? 'dark' : 'light'" round size="lg">
+              <q-icon class="default-text-color"  size="lg" name="upload_file" @click="importWalletFromFile"/>
+            </q-btn>
+            <div class="q-pt-xs text-h6 text-center text-capitalize" >Import Wallet</div>
+          </div>
+        </div>
       </div>
       <q-file
         ref="walletFileElementRef"

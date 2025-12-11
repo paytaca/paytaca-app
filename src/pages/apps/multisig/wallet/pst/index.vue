@@ -12,7 +12,7 @@
         </div>
         <div v-if="psts?.length === 0" class="col-xs-12 text-center text-body1 q-mt-lg">
           No tx proposals found.
-          <q-btn color="primary" icon="upload" @click="importPsbt" dense rounded>
+          <q-btn color="primary" icon="upload" @click="importPsbt" rounded>
             Import
           </q-btn>
         </div>
