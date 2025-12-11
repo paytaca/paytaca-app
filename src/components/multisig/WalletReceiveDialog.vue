@@ -23,12 +23,17 @@
         </div>
         <qr-code :text="address.address" :size="220" :icon="isCashtoken ? 'ct-logo.png': 'bch-logo.png' "></qr-code>
         <div v-if="address" class="text-center text-caption flex flex-wrap justify-center items-center q-mt-sm q-gutter-x-sm">
-            Address-{{ addressIndex }}: {{shortenAddressForDisplay(address.address)}}
+            Address-{{ addressIndex }}: {{shortenAddressForDisplay(address.address)}} 
             <CopyButton :text="address.address"/>
         </div>
+        <div class="text-center">
+          <q-btn icon="rotate_right" color="primary" flat dense @click="prevAddress" :disable="addressIndex === 0">Prev Address</q-btn>
+          <q-btn icon="rotate_left" color="primary"flat dense @click="nextAddress">Next Address</q-btn>
+        </div>
+          
       </q-card-section>
       <q-card-actions>
-        <q-btn label="Close" @click="onDialogOK" color="red" v-close-popup></q-btn>
+        <q-btn label="Close" @click="onDialogOkWrapper" color="red" v-close-popup></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -65,6 +70,17 @@ const address = computed(() => {
   }
   return addr
 })
+
+const prevAddress = () => {
+  addressIndex.value--
+}
+const nextAddress = () => {
+  addressIndex.value++
+}
+
+const onDialogOkWrapper = () => {
+  onDialogOK({ addressIndex: addressIndex.value })
+}
 
 onMounted(() => {
   addressIndex.value = 0
