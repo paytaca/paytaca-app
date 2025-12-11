@@ -143,7 +143,7 @@ import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from
 import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
-import { retryWithBackoff } from 'src/utils/async-utils.js'
+import { retryWithBackoff } from './utils.js'
 
 export const getLockingData = ({ signers, addressDerivationPath }) => {
   const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
