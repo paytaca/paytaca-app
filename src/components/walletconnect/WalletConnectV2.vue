@@ -241,11 +241,11 @@ import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import {
-  createMultisigTransactionFromWCSessionRequest,
-  generateTransactionHash,
-  getRequiredSignatures,
-  getStatusUrl,
-  getTotalSigners,
+  // createMultisigTransactionFromWCSessionRequest,
+  // generateTransactionHash,
+  // getRequiredSignatures,
+  // getStatusUrl,
+  // getTotalSigners,
   isMultisigWalletSynced
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -740,49 +740,49 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
-      if (wallet.template) { // Account with active session is a multisig wallet
-        const multisigTransaction = createMultisigTransactionFromWCSessionRequest({
-          sessionRequest,
-          addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
-        })
-        const unsignedTransactionHash = generateTransactionHash(multisigTransaction)
-        await $store.dispatch('multisig/createTransaction', {
-          multisigWallet: wallet,
-          multisigTransaction
-        })
-        await web3Wallet.value.respondSessionRequest({
-          topic: sessionRequest.topic,
-          response: {
-            id: sessionRequest.id,
-            jsonrpc: '2.0',
-            result: {
-              status: 'accepted',
-              walletType: 'p2shMultisig',
-              walletLockingType: 'p2shMultisig',
-              walletSpec: {
-                m: getRequiredSignatures(wallet.template),
-                n: getTotalSigners(wallet.template),
-                sigAlgo: 'schnorr'
-              },
-              message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
-              statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value }),
-              txid: unsignedTransactionHash,
-              unsignedHash: unsignedTransactionHash,
-              txidIsUnsignedHash: true
-            }
-          }
-        })
-        return $router.push({
-          name: 'app-multisig-wallet-transaction-view',
-          params: {
-            address: wallet.address,
-            hash: unsignedTransactionHash
-          },
-          query: {
-            backnavpath: '/apps/wallet-connect'
-          }
-        })
-      }
+      // if (wallet.template) { // Account with active session is a multisig wallet
+      //   const multisigTransaction = createMultisigTransactionFromWCSessionRequest({
+      //     sessionRequest,
+      //     addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
+      //   })
+      //   const unsignedTransactionHash = generateTransactionHash(multisigTransaction)
+      //   await $store.dispatch('multisig/createTransaction', {
+      //     multisigWallet: wallet,
+      //     multisigTransaction
+      //   })
+      //   await web3Wallet.value.respondSessionRequest({
+      //     topic: sessionRequest.topic,
+      //     response: {
+      //       id: sessionRequest.id,
+      //       jsonrpc: '2.0',
+      //       result: {
+      //         status: 'accepted',
+      //         walletType: 'p2shMultisig',
+      //         walletLockingType: 'p2shMultisig',
+      //         walletSpec: {
+      //           m: getRequiredSignatures(wallet.template),
+      //           n: getTotalSigners(wallet.template),
+      //           sigAlgo: 'schnorr'
+      //         },
+      //         message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
+      //         statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value }),
+      //         txid: unsignedTransactionHash,
+      //         unsignedHash: unsignedTransactionHash,
+      //         txidIsUnsignedHash: true
+      //       }
+      //     }
+      //   })
+      //   return $router.push({
+      //     name: 'app-multisig-wallet-transaction-view',
+      //     params: {
+      //       address: wallet.address,
+      //       hash: unsignedTransactionHash
+      //     },
+      //     query: {
+      //       backnavpath: '/apps/wallet-connect'
+      //     }
+      //   })
+      // }
       if (!wallet?.wif) {
         return await new Promise((resolve, reject) => {
           $q.dialog({
