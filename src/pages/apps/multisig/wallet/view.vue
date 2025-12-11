@@ -13,7 +13,6 @@
     <div class="row justify-center">
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="wallet">
-          
             <div class="row q-mb-lg justify-center">
               <div class="col-xs-12">
                 <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px;">
