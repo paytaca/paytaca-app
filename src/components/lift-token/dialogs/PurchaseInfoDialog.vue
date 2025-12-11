@@ -131,10 +131,10 @@
                   <div class="vesting-indicator">
                     <div 
                       class="indicator-dot" 
-                      :class="details.tx_id !== '' ? 'completed' : 'pending'"
+                      :class="details.tx_id ? 'completed' : 'pending'"
                     >
                       <q-icon
-                        :name="details.tx_id !== '' ? 'mdi-check' : 'mdi-clock'"
+                        :name="details.tx_id ? 'mdi-check' : 'mdi-clock'"
                         size="14px" 
                         color="white"
                       />
@@ -142,7 +142,7 @@
                     <div 
                       v-if="index < vestingDetailsList.length - 1" 
                       class="indicator-line"
-                      :class="details.tx_id !== '' ? 'completed' : 'pending'"
+                      :class="details.tx_id ? 'completed' : 'pending'"
                     />
                   </div>
 
@@ -151,8 +151,8 @@
                       <span class="vesting-period">{{ $t('Period') }} {{ index + 1 }}</span>
                       <q-badge 
                         v-if="details" 
-                        :label="details.tx_id !== '' ? $t('Completed') : $t('Pending')"
-                        :color="details.tx_id !== '' ? 'teal-6' : 'light-blue-6'" 
+                        :label="details.tx_id ? $t('Completed') : $t('Pending')"
+                        :color="details.tx_id ? 'teal-6' : 'light-blue-6'" 
                         class="q-ml-sm"
                         style="font-size: 10px; padding: 2px 8px;"
                       />
@@ -164,7 +164,7 @@
                     </div>
                     <div class="vesting-amount q-mb-xs">
                       <q-icon name="mdi-cash" size="14px" class="q-mr-xs" />
-                      <template v-if="details.tx_id !== ''">
+                      <template v-if="details.tx_id">
                         {{
                           $t(
                             "VestedLift",
@@ -177,7 +177,7 @@
                         {{ parseLiftToken(details.vested_amount_tkn) }}
                       </template>
                     </div>
-                    <div v-if="details.tx_id !== ''" class="vesting-tx">
+                    <div v-if="details.tx_id" class="vesting-tx">
                       <q-icon name="mdi-receipt-text" size="14px" class="q-mr-xs" />
                       <a
                         :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
