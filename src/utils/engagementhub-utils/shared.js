@@ -20,7 +20,7 @@ export function getBchWallet () {
 // ==============================
 
 export function parseLocaleDate (date, isDayIncluded = true) {
-  const d = new Date(date)
+  const d = new Date(date || null)
   const options = {}
   const langs = [Store.getters['global/language'], 'en-US']
 
