@@ -5,14 +5,14 @@
     <div class="row items-center justify-center full-height">
         <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
           <div class="row justify-end q-gutter-x-sm q-mb-md">
-            <q-btn color="primary" icon="upload" @click="importPsbt" flat dense>
+            <q-btn color="primary" icon="upload" @click="importPsbt" rounded outline>
               Import
             </q-btn>
           </div>
         </div>
         <div v-if="psts?.length === 0" class="col-xs-12 text-center text-body1 q-mt-lg">
           No tx proposals found.
-          <q-btn color="primary" icon="upload" @click="importPsbt" flat dense>
+          <q-btn color="primary" icon="upload" @click="importPsbt" dense rounded>
             Import
           </q-btn>
         </div>

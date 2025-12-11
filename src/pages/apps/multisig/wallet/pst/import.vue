@@ -12,12 +12,6 @@
             </q-banner>
           </div>
           <div class="flex column text-center q-gutter-y-xl" style="margin-top: 20px;">
-              <!-- <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">
-                  <q-icon class="default-text-color"  size="24px" name="qr_code" @click="handleDisplayQr"/>
-                </q-btn>
-                <div class="q-pt-xs text-center text-capitalize" >Scan Qr Code</div>
-              </div> -->
               <div>
                 <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">
                   <q-icon class="default-text-color"  size="24px" name="qr_code" />

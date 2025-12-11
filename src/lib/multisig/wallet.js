@@ -35,9 +35,6 @@
  * @property {MultisigWalletSigner[]} signers - The allowed signers
  * @property {number|string} [id] - The unique identifier of the wallet. If value is string it's the locking bytecode of the first address (address 0). If number it's the synced wallet id
  * @property {number} [n] - The total number of signers
- * @property {number} [lastIssuedDepositAddressIndex=0] - The last generated external address index, shown to the user to receive coins, or derived and stored locally
- * @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
- * @property {number} [lastUsedChangeAddressIndex]  - The last used change address on-chain.
  * @property {{[Network]: MultisigWalletNetworkData }} [networks] - Network specific state
  * @property {MultisigWalletWcPeer} [wcPeers] - The wallet connect peers associated with particular address index of the MultisigWallet.
  * /
@@ -113,18 +110,14 @@ import {
   importWalletTemplate,
   lockingBytecodeToCashAddress,
   walletTemplateToCompilerBch,
-  assertSuccess,
   decodeHdPublicKey,
   decodeHdPrivateKey,
-  publicKeyToP2pkhCashAddress,
   deriveHdPathRelative,
   deriveHdPrivateNodeFromBip39Mnemonic,
   deriveHdPath,
   deriveHdPublicKey,
   encodeHdPrivateKey,
-  stringify,
   utf8ToBin,
-  binToBase64,
   base64ToBin,
   binToUtf8,
   CashAddressNetworkPrefix,
@@ -143,7 +136,6 @@ import {
   SigningSerializationTypeBch,
   readBytes,
   binsAreEqual,
-  encodeHdPublicKeyPayload,
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 import { createTemplate } from './template.js'
@@ -202,9 +194,9 @@ export const getMultisigCashAddress = ({
   return address
 }
 
-export const signerCanSign = ({ signerEntityKey, lockingData }) => {
-  return Boolean(lockingData.hdKeys.hdPrivateKeys?.[signerEntityKey])
-}
+// export const signerCanSign = ({ signerEntityKey, lockingData }) => {
+//   return Boolean(lockingData.hdKeys.hdPrivateKeys?.[signerEntityKey])
+// }
 
 export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
   const node = deriveHdPath(
@@ -379,34 +371,11 @@ export const isValidAddress = (address) => {
   return [false, lockingBytecodeOrError]
 }
 
-// passed should be public keys
 /**
  * @param {Object} wallet 
  * @param {number} m 
  * @param {Array<{ publicKey: string, name?: string }>} signers Signers with public keys 
  */
-// export const getRedeemScript = ({ m, signers }) => {
-//   // const sortedSignersWithPublicKeys = derivePublicKeys({ signers: signers, addressDerivationPath })
-//   if (signers.some(s => !s.publicKey)) throw new Error(`Missing public key`)
-//   const lockingData = {
-//     bytecode: {}
-//   }
-//   for (const index in signers) {
-//     let publicKey = signers[index].publicKey 
-//     if (typeof(publicKey) === 'string') {
-//       publicKey = hexToBin(publicKey)
-//     }
-//     lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
-//   }
-
-//   const template = createTemplate({ m, signers }) // Create template for public key set
-//   const compiler = getCompiler({ template })
-//   const script = compileScript('lock', lockingData, compiler.configuration)
-//   // const lockingScript = script.bytecode
-//   const redeemScript = script.reduce.bytecode
-//   return redeemScript
-// }
-
 export const generateRedeemScript = (m, publicKeys) => {
   const sortedPublicKeys = sortPublicKeysBip67(publicKeys)
   const lockingData = {
@@ -763,7 +732,7 @@ async scanAddresses() {
       (async () => {
           await this.options?.store?.dispatch(
             'multisig/subscribeWalletAddress',
-            this.getDepositAddress(cIndex, this.cashAddressNetworkPrefix).address
+            this.getChangeAddress(cIndex, this.cashAddressNetworkPrefix).address
           )
         })()
     )
@@ -843,11 +812,11 @@ async issueDepositAddress(addressIndex) {
     { wallet: this, lastIssuedDepositAddressIndex: addressIndex, network: this.options.provider.network }
   ) 
   
-  this.options
-      ?.coordinationServer
-      ?.updateWalletLastIssuedDepositAddressIndex(this, addressIndex, this.options.provider.network)
-      .catch(e => e)
-
+  // this.options
+  //     ?.coordinationServer
+  //     ?.updateWalletLastIssuedDepositAddressIndex(this, addressIndex, this.options.provider.network)
+  //     .catch(e => e)
+  
   retryWithBackoff(async () => {
     return await this.options?.store?.dispatch(
       'multisig/subscribeWalletAddress',

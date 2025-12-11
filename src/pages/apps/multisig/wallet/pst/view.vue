@@ -6,7 +6,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Transaction')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav">
+    <HeaderNav :title="$t('Transaction')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}/psts`" class="header-nav">
     </HeaderNav>
     <div class="row justify-center">
       <div class="col-xs-12 col-sm-8 q-px-xs">
@@ -119,8 +119,8 @@
             <q-item v-for="signer, i in wallet?.signers" :key="`signer-${i}`">
               <q-item-section >
                 <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
-                  <div>
-                    {{ signer.name || `Signer ${i}` }}
+                  <div class="flex items-center q-gutter-x-sm">
+                    <q-icon name="person" size="sm"></q-icon><span>{{ signer.name || `Signer ${i}` }}</span>
                   </div>
                 </div>
               </q-item-section>
