@@ -41,15 +41,17 @@
       <div class="q-mt-sm">
         <q-card id="record-details" class="q-pa-md q-mb-md record-card">
           <!-- name and date created -->
-          <div class="text-left">
-            <p class="text-h6 q-mb-none">{{ record.name }}</p>
-            <p class="text-caption q-mb-md">
+          <div class="text-left q-mb-md">
+            <p class="text-h6 q-mb-xs">{{ record.name }}</p>
+            <p class="text-caption q-mb-none">
               Created last {{ record.date_created }}
             </p>
           </div>
 
+          <q-separator class="q-mb-md" />
+
           <!-- buttons div -->
-          <div class="row justify-evenly items-center">
+          <div class="row justify-evenly items-center q-gutter-x-md">
             <q-btn
               round
               :outline="!record.is_favorite"
@@ -59,11 +61,13 @@
             />
             <q-btn
               round
+              outline
               icon="edit"
               color="primary"
             />
             <q-btn
               round
+              outline
               icon="delete"
               color="primary"
             />
@@ -74,29 +78,46 @@
         <div>
           <span
             id="addresses-list-label"
-            class="row text-subtitle1 text-weight-bold"
+            class="row text-subtitle1 text-weight-bold q-mb-sm"
           >
             Addresses List
           </span>
 
           <div id="addresses-list" v-if="record.address_list.length > 0">
-            <q-list>
-              <q-item v-for="address in record.address_list">
+            <q-card
+              v-for="(address, index) in record.address_list"
+              :key="index"
+              flat
+              bordered
+              class="q-mb-sm record-card address-card"
+            >
+              <q-item>
                 <q-item-section>
-                  <q-item-label style="line-break: anywhere;">
-                    {{ address.address }}
+                  <q-item-label 
+                    class="address-text"
+                    @click="copyToClipboard(address.address)"
+                    style="cursor: pointer;"
+                  >
+                    {{ formatAddress(address.address) }}
+                  </q-item-label>
+                  <q-item-label caption class="q-mt-xs">
+                    {{ formatAddressType(address.type) }}
                   </q-item-label>
                 </q-item-section>
 
                 <q-item-section side>
                   <q-btn
-                    icon-right="mdi-send"
+                    round
+                    flat
+                    icon="mdi-send"
                     color="primary"
                     size="sm"
-                  />
+                  >
+                    <q-tooltip>Send to this address</q-tooltip>
+                  </q-btn>
                 </q-item-section>
               </q-item>
-            </q-list>
+            </q-card>
           </div>
 
           <div
@@ -115,6 +136,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { formatAddress } from 'src/exchange/index.js'
 
 import HeaderNav from 'src/components/header-nav.vue'
 
@@ -193,7 +215,32 @@ export default {
   },
 
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    formatAddress,
+    formatAddressType(type) {
+      const typeMap = {
+        'bch': 'BCH',
+        'ct': 'CT (CashToken)'
+      }
+      return typeMap[type.toLowerCase()] || type.toUpperCase()
+    },
+    copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.$q.notify({
+          message: 'Address copied to clipboard',
+          color: 'positive',
+          position: 'top',
+          timeout: 2000
+        })
+      }).catch(() => {
+        this.$q.notify({
+          message: 'Failed to copy address',
+          color: 'negative',
+          position: 'top',
+          timeout: 2000
+        })
+      })
+    }
   },
 
   mounted () {
@@ -219,5 +266,32 @@ export default {
 #addresses-list {
   height: 100%;
   overflow-y: auto;
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+.address-card {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.address-text {
+  word-break: break-word;
+  font-family: monospace;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  
+  &:hover {
+    opacity: 0.8;
+  }
 }
 </style>
