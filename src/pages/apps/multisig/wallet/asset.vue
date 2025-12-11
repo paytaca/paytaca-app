@@ -39,7 +39,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-transaction-send', params: { wallethash: wallet.getWalletHash() }, query: route.query }" class="tile" v-close-popup>
+                <q-btn flat dense no-caps @click="send" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="send" class="col-12" color="primary" style="position:relative">
@@ -50,6 +50,7 @@
                       <div class="col-12 tile-label">Send</div>
                     </div>
                   </template>
+                  
                 </q-btn>
               </div>
             </div>
@@ -59,13 +60,25 @@
                 <q-item-section>
                   <q-item-label>
                     <div class="flex items-center">
-                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">Token ID</span>
+                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">
+                        <span v-if="route.query.asset === 'bch'">
+                          Asset ID
+                        </span>
+                        <span v-else>
+                          Token ID
+                        </span>
+                      </span>
                     </div>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                  <q-item-label class="flex flex-wrap items-center">
-                   <span>{{ shortenString(route.query.asset, 20)}}</span>
+                   <span v-if="route.query.asset === 'bch'">
+                    BCH
+                  </span>
+                   <span v-else>
+                    {{ shortenString(route.query.asset, 20)}}
+                   </span>
                  </q-item-label>
                 </q-item-section>
               </q-item>
@@ -161,6 +174,10 @@ const wallet = computed(() => {
   return null
 })
 
+const psbts = computed(() => {
+  return $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
+})
+
 const assetHeaderName = computed(() => {
   if (route.query.asset === 'bch') return 'BCH'
   if (assetTokenIdentity.value?.token?.symbol) return assetTokenIdentity.value?.token?.symbol
@@ -180,6 +197,28 @@ const assetPrice = computed(() => {
     return b?.[`assetPriceIn${b?.currency}Text`] || ''
   }
 })
+
+const send = () => {
+  if (psbts && psbts.value?.length > 0) {
+    $q.dialog({
+      title: 'Not Allowed',
+      message: `You have ${psbts.value?.length} transaction proposal pending. This feature doesn't support creating of tx proposal while there's atleast 1 pending! This will change in the future.`,
+      class: `pt-card br-15 text-bow ${getDarkModeClass(darkMode.value)}`,
+      ok: {
+        rounded: true,
+        color: 'primary',
+        noCaps: true,
+        class: 'text-caption',
+        padding: 'xs md',
+        label: 'OK'
+      },
+      cancel: false
+    })
+    return
+  }
+  router.push({ name: 'app-multisig-wallet-transaction-send', params: { wallethash: wallet.value.getWalletHash() }, query: route.query })
+  
+}
 
 const showWalletReceiveDialog = () => {
   const addressPrefix = $store.getters['global/isChipnet'] ? CashAddressNetworkPrefix.testnet : CashAddressNetworkPrefix.mainnet
