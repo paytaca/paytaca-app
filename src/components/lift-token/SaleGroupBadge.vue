@@ -38,8 +38,9 @@ export default {
       if (purchase.is_done_vesting) {
         return "comp";
       }
-      if (purchase.purchase_vesting_details.some(detail => detail.vested_date))
-        return 'vest'
+      if (purchase.purchase_vesting_details.some(detail => detail.vested_date) 
+          && !purchase.is_done_vesting
+      ) return 'vest'
       return 'lock'
     },
     getStatusLabel(status) {
