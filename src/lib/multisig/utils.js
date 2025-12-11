@@ -91,48 +91,6 @@ export const getTotalBchChangeAmount = (tx, senderAddress, unit = 'bch') => {
   return amount
 }
 
-/**
- * Revives special types formatted by the stringify function:
- * - `<Uint8Array: 0x...>` → Uint8Array
- * - `<bigint: ...n>` → bigint
- * - `<function: ...>` → string representation (cannot fully reconstruct)
- * - `<symbol: ...>` → string representation (cannot fully reconstruct)
- *
- * @param { string } _ - Key
- * @param { any } value
- * @returns The reconstructed JavaScript value with proper types
- */
-export const libauthStringifyReviver = (_, value) => {
-  if (typeof value !== 'string') return value
-
-  // Uint8Array pattern: "<Uint8Array: 0x...>"
-  const uint8ArrayMatch = value.match(/^<Uint8Array: 0x([0-9a-f]+)>$/i)
-  if (uint8ArrayMatch) {
-    return hexToBin(uint8ArrayMatch[1])
-  }
-
-  // Bigint pattern: "<bigint: ...n>"
-  const bigintMatch = value.match(/^<bigint: (-?\d+)n>$/)
-  if (bigintMatch) {
-    return BigInt(bigintMatch[1])
-  }
-
-  // Function pattern: "<function: ...>"
-  const functionMatch = value.match(/^<function: (.+)>$/)
-  if (functionMatch) {
-    // Note: We can't reconstruct actual functions, just return the string representation
-    return { type: 'function', value: functionMatch[1] }
-  }
-
-  // Symbol pattern: "<symbol: ...>"
-  const symbolMatch = value.match(/^<symbol: (.+)>$/)
-  if (symbolMatch) {
-    // Note: We can't reconstruct actual symbols, just return the string representation
-    return { type: 'symbol', value: symbolMatch[1] }
-  }
-
-  return value
-}
 
 /**
   * @typedef { Object } MultisigSpec
