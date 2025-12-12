@@ -71,7 +71,6 @@
         </div>
       </q-card-section>
       <DragSlide v-if="!loading" disable-absolute-bottom @swiped="securityCheck"/>
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
     </q-card>
   </q-dialog>
 </template>
@@ -88,8 +87,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { computed, defineComponent, ref, watch } from 'vue'
 import DragSlide from 'src/components/drag-slide.vue';
-import pinDialog from 'src/components/pin/index.vue';
-import { NativeBiometric } from 'capacitor-native-biometric';
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import ProgressLoader from 'src/components/ProgressLoader.vue';
 
 export default defineComponent({
@@ -97,7 +95,6 @@ export default defineComponent({
   components: {
     DragSlide,
     ProgressLoader,
-    pinDialog,
   },
   emits: [
     'update:modelValue',
@@ -195,57 +192,13 @@ export default defineComponent({
     })
 
     function securityCheck(resetSwipe=() => {}) {
-      executeSecurityChecking(resetSwipe)
-    }
-    function executeSecurityChecking(reset = () => {}) {
-      setTimeout(() => {
-        const preferredSecurity = $store?.getters?.['global/preferredSecurity']
-        if (preferredSecurity === 'pin') {
-          // Reset first to ensure watcher is triggered
-          pinDialogAction.value = ''
-          setTimeout(() => {
-            pinDialogAction.value = 'VERIFY'
-          }, 0)
-        } else {
-          verifyBiometric(reset)
-        }
-      }, 300)
-    }
-    function verifyBiometric(reset = () => {}) {
-      NativeBiometric.verifyIdentity({
-        reason: $t('NativeBiometricReason2'),
-        title: $t('SecurityAuthentication'),
-        subtitle: $t('NativeBiometricSubtitle'),
-        description: ''
-      }).then(
-        () => {
-          // Authentication successful
-          startDeposit()
-        },
-        (error) => {
-          // Failed to authenticate
-          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
-            reset?.()
-          } else if (error.message.includes('Too many attempts. Try again later.')) {
-            // Retry after delay
-            setTimeout(() => {
-              verifyBiometric(reset)
-            }, 2000)
-          } else {
-            verifyBiometric(reset)
-          }
-        }
-      )
-    }
-    function pinDialogNextAction(action) {
-      if (action === 'proceed') {
-        startDeposit()
-      }
+      $q.dialog({ component: SecurityCheckDialog })
+        .onOk(() => startDeposit())
+        .onCancel(() => resetSwipe?.())
     }
 
     const loading = ref(false)
     const loadingMsg = ref('')
-    const pinDialogAction = ref('')
     async function startDeposit() {
       try {
         loading.value = true
@@ -390,10 +343,6 @@ export default defineComponent({
       hasLiquidityForRedemption,
 
       securityCheck,
-      executeSecurityChecking,
-      verifyBiometric,
-      pinDialogNextAction,
-      pinDialogAction,
       loading,
       loadingMsg,
 

@@ -55,7 +55,6 @@
         disable-absolute-bottom
         @swiped="securityCheck"
       />
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
       <div v-if="isSliderLoading" class="row flex-center">
         <progress-loader />
         <span
@@ -93,8 +92,7 @@ import {
 } from 'src/utils/address-generation-utils.js'
 
 import DragSlide from "src/components/drag-slide.vue";
-import pinDialog from "src/components/pin/index.vue";
-import { NativeBiometric } from 'capacitor-native-biometric';
+import SecurityCheckDialog from "src/components/SecurityCheckDialog.vue";
 import ProgressLoader from "src/components/ProgressLoader.vue";
 
 export default {
@@ -111,14 +109,12 @@ export default {
   components: {
     DragSlide,
     ProgressLoader,
-    pinDialog,
   },
 
   data() {
     return {
       isSliderLoading: false,
       processingMessage: "",
-      pinDialogAction: '',
     };
   },
 
@@ -154,57 +150,13 @@ export default {
       return address
     },
     securityCheck(reset = () => {}) {
-      this.executeSecurityChecking(reset)
-    },
-    executeSecurityChecking(reset = () => {}) {
-      const vm = this
-      setTimeout(() => {
-        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
-        if (preferredSecurity === 'pin') {
-          // Reset first to ensure watcher is triggered
-          vm.pinDialogAction = ''
-          vm.$nextTick(() => {
-            vm.pinDialogAction = 'VERIFY'
-          })
-        } else {
-          vm.verifyBiometric(reset)
-        }
-      }, 300)
-    },
-    verifyBiometric(reset = () => {}) {
-      const vm = this
-      NativeBiometric.verifyIdentity({
-        reason: vm.$t('NativeBiometricReason2'),
-        title: vm.$t('SecurityAuthentication'),
-        subtitle: vm.$t('NativeBiometricSubtitle'),
-        description: ''
-      }).then(
-        () => {
-          // Authentication successful
-          vm.processPurchase()
-        },
-        (error) => {
-          // Failed to authenticate
-          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
-            reset?.()
-            vm.isSliderLoading = false
-          } else if (error.message.includes('Too many attempts. Try again later.')) {
-            // Retry after delay
-            setTimeout(() => {
-              vm.verifyBiometric(reset)
-            }, 2000)
-          } else {
-            vm.verifyBiometric(reset)
-          }
-        }
-      )
-    },
-    pinDialogNextAction(action) {
-      if (action === 'proceed') {
-        this.processPurchase()
-      } else {
-        this.isSliderLoading = false
-      }
+      this.isSliderLoading = true;
+      this.$q.dialog({ component: SecurityCheckDialog })
+        .onOk(() => this.processPurchase())
+        .onCancel(() => {
+          reset?.();
+          this.isSliderLoading = false;
+        });
     },
     async processPurchase() {
       this.isSliderLoading = true;

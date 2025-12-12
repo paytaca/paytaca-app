@@ -98,6 +98,11 @@
         />
       </div>
 
+      <div class="q-mb-md">
+        <div class="text-center">Check security test</div>
+        <DragSlide text="Test" disable-absolute-bottom @swiped="onSwipe"/>
+      </div>
+
       <!-- Terminal Display -->
       <div class="terminal-container" :class="getDarkModeClass(darkMode)">
         <div class="terminal-header">
@@ -140,12 +145,15 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
 import DenominatorSelector from 'src/components/settings/DenominatorSelector'
+import SecurityCheckDialog from "src/components/SecurityCheckDialog.vue";
+import DragSlide from "src/components/drag-slide.vue";
 
 export default {
   name: 'DebugApp',
   components: {
     headerNav,
-    DenominatorSelector
+    DenominatorSelector,
+    DragSlide,
   },
   data () {
     return {
@@ -185,6 +193,15 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    onSwipe(reset = () => {}) {
+      this.$q.dialog({
+        component: SecurityCheckDialog,
+      }).onOk(() => {
+        this.$q.notify({ type: 'positive', message: 'Success!' })
+      }).onCancel(() => {
+        this.$q.notify({ message: 'Cancelled' })
+      }).onDismiss(() => reset())
+    },
     addLog (type, message) {
       const time = new Date().toLocaleTimeString()
       this.logs.push({
