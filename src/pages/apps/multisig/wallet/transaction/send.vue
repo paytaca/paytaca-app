@@ -63,7 +63,7 @@
 
                     </q-item-section>
                     <q-item-section side>
-                      <q-item-label side>
+                      <q-item-label side :class="totalAmount && totalAmount > balance  ? 'text-red' : ''">
                         {{ $t('TotalAmount') }}: {{ totalAmount }}
                       </q-item-label>
                     </q-item-section>
@@ -162,7 +162,6 @@ const balance = ref()
 const balanceConvertionRates = ref()
 const recipients = ref([])
 const purpose = ref('')
-const amountRef = ref()
 const recipientRefs = ref([])
 const addressInputRefs = ref([])
 const amountInputRefs = ref([])
@@ -273,6 +272,9 @@ const assetPrice = computed(() => {
 })
 
 const sendable = computed(() => {
+  const hasAmountErrors = amountInputRefs.value.some(ref => ref?.hasError === true)
+  const hasAddressErrors = addressInputRefs.value.some(ref => ref?.hasError === true)
+  
   return (
     recipients.value?.every(r => Boolean(r.address)) && 
     recipients.value?.every(r => Boolean(r.amount)) &&
@@ -280,7 +282,8 @@ const sendable = computed(() => {
     totalAmount.value !== '!' &&
     totalAmount.value > 0 &&  
     balance.value > totalAmount.value &&
-    (amountRef.value?.hasError !== true || amountRef.value?.hasError === undefined)
+    !hasAmountErrors &&
+    !hasAddressErrors
   )
 })
 
