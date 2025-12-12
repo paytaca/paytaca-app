@@ -300,13 +300,13 @@ export default {
         this.finalPurchasesList = this.purchasesList;
       } else if (saleGroup === "lock") {
         this.finalPurchasesList = this.purchasesList.filter(
-          (a) => a.purchase_vesting_details.every(detail => !detail.vested_date) &&
+          (a) => a.purchase_vesting_details.every(detail => !detail.tx_id) &&
           !a.is_done_vesting
         );
       } else if (saleGroup === "vest") {
         this.finalPurchasesList = this.purchasesList.filter(
           (a) =>
-            a.purchase_vesting_details.some(detail => detail.vested_date)
+            a.purchase_vesting_details.some(detail => detail.tx_id)
             && !a.is_done_vesting
         );
       } else if (saleGroup === "comp") {
