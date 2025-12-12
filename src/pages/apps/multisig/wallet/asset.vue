@@ -24,7 +24,7 @@
                 <div class="text-bold" style="font-size: larger;">{{ assetHeaderName }}</div>                
               </div>
               <div class="col-xs-12 text-center">
-                <div class="text-grey-6">Balance</div>
+                <div class="text-grey-6">{{ $t('Balance') }}</div>
                 <div class="items-center justify-center q-gutter-x-sm">
                   <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
                   <div class="text-grey-6">{{ assetPrice? `=${assetPrice}` : '' }}</div>
@@ -35,7 +35,7 @@
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
-                      <div class="col-12 tile-label">Deposit</div>
+                      <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
                     </div>
                   </template>
                 </q-btn>
@@ -47,7 +47,7 @@
                         {{ transactions?.length }}
                         </q-badge>
                       </q-icon>
-                      <div class="col-12 tile-label">Send</div>
+                      <div class="col-12 tile-label">{{ $t('Send') }}</div>
                     </div>
                   </template>
                   
@@ -62,10 +62,10 @@
                     <div class="flex items-center">
                       <q-icon name="wallet"></q-icon><span class="q-ml-xs">
                         <span v-if="route.query.asset === 'bch'">
-                          Asset ID
+                          {{ $t('AssetId') }}
                         </span>
                         <span v-else>
-                          Token ID
+                          {{ $t('TokenId') }}
                         </span>
                       </span>
                     </div>
@@ -86,7 +86,7 @@
                 <q-item-section>
                   <q-item-label>
                     <div class="flex items-center">
-                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">Wallet</span>
+                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">{{ $t('Wallet') }}</span>
                     </div>
                   </q-item-label>
                 </q-item-section>
@@ -101,7 +101,7 @@
               <q-expansion-item v-model="historyExpanded">
                 <template v-slot:header>
                   <q-item-section>
-                    Transaction History
+                    {{ $t('TransactionHistory') }}
                   </q-item-section>
                 </template>
                 <q-item>
@@ -109,7 +109,7 @@
                     <div class="flex">
                       <div>
                         <code style="word-break: break-all; filter: brightness(80%)">
-                          No Data
+                          {{ $t('NoData') }}
                         </code>
                       </div>
                     </div>
@@ -201,8 +201,8 @@ const assetPrice = computed(() => {
 const send = () => {
   if (psbts && psbts.value?.length > 0) {
     $q.dialog({
-      title: 'Not Allowed',
-      message: `You have ${psbts.value?.length} transaction proposal pending. This feature doesn't support creating of tx proposal while there's atleast 1 pending! This will change in the future.`,
+      title: $t('NotAllowed'),
+      message: $t('TransactionProposalPending', { count: psbts.value?.length }, `You have ${psbts.value?.length} transaction proposal pending. This feature doesn't support creating of tx proposal while there's atleast 1 pending! This will change in the future.`),
       class: `pt-card br-15 text-bow ${getDarkModeClass(darkMode.value)}`,
       ok: {
         rounded: true,
@@ -210,7 +210,7 @@ const send = () => {
         noCaps: true,
         class: 'text-caption',
         padding: 'xs md',
-        label: 'OK'
+        label: $t('OK')
       },
       cancel: false
     })

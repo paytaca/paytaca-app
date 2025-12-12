@@ -1,19 +1,19 @@
 <template>
 <div class="static-container">
   <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="$t('Tx Proposals')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav" />
+    <HeaderNav :title="$t('TxProposals')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav" />
     <div class="row items-center justify-center full-height">
         <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
           <div class="row justify-end q-gutter-x-sm q-mb-md">
             <q-btn color="primary" icon="upload" @click="importPsbt" rounded outline>
-              Import
+              {{ $t('Import') }}
             </q-btn>
           </div>
         </div>
         <div v-if="psts?.length === 0" class="col-xs-12 text-center text-body1 q-mt-lg">
-          No tx proposals found.
+          {{ $t('NoTxProposalsFound') }}
           <q-btn color="primary" icon="upload" @click="importPsbt" rounded>
-            Import
+            {{ $t('Import') }}
           </q-btn>
         </div>
         <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
@@ -30,17 +30,17 @@
                 <div class="flex items-center q-mb-sm">
                   <q-icon name="info" color="grad" size="md" class="q-mr-sm"></q-icon>
                   <div class="text-weight-bold text-h6">
-                    <span>Purpose: {{ pst.purpose }}</span>
+                    <span>{{ $t('PurposeLabel') }}: {{ pst.purpose }}</span>
                   </div>
                 </div>
                 <div class="flex items-center">
                   <div class="text-body2">
-                    Origin: {{ pst.origin }}
+                    {{ $t('Origin') }}: {{ pst.origin }}
                   </div>
                 </div>
                 <div class="flex items-center">
                   <div class="text-body2">
-                    Signing Progress: {{ pst.getSigningProgress()?.signingProgress }}
+                    {{ $t('SigningProgress') }}: {{ pst.getSigningProgress()?.signingProgress }}
                   </div>
                 </div>
               </q-card-section>
