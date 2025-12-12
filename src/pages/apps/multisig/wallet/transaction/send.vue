@@ -14,10 +14,10 @@
             <template v-if="wallet">
                 <div class="row">
                   <div class="col-xs-12 flex items-center justify-center text-bold text-h6">
-                    Send {{ assetHeaderName }}
+                    {{ $t('Send') }} {{ assetHeaderName }}
                   </div>
                   <div class="col-xs-12 text-center q-mt-sm">
-                    <div class="text-grey-6">Available Balance</div>
+                    <div class="text-grey-6">{{ $t('AvailableBalance') }}</div>
                     <div class="flex items-center justify-center q-gutter-x-sm">
                       <q-avatar v-if="assetHeaderIcon?.startsWith('http')" size="sm">
                         <img :src="assetHeaderIcon">
@@ -36,7 +36,7 @@
                   <q-item>
                     <q-item-section>
                       <q-item-label class="q-gutter-y-md">
-                        <div class="text-bold">From</div>
+                        <div class="text-bold">{{ $t('From') }}</div>
                         <q-input :model-value="wallet.name" dense :hint="shortenString(`${wallet.getWalletHash()}`, 20)" disable>
                           <template v-slot:prepend>
                             <q-btn icon="wallet" flat dense></q-btn>
@@ -48,7 +48,7 @@
                   <q-item>
                     <q-item-section>
                       <q-item-label class="q-gutter-y-md">
-                        <div class="text-bold">Purpose</div>
+                        <div class="text-bold">{{ $t('Purpose') }}</div>
                         <q-input v-model="purpose" type="textarea" rows="2" outlined autogrow hint></q-input>
                       </q-item-label>
                     </q-item-section>
@@ -56,13 +56,13 @@
                   <q-item>
                     <q-item-section>
                       <q-item-label class="text-bold">
-                        Recipients
+                        {{ $t('Recipients') }}
                       </q-item-label>
 
                     </q-item-section>
                     <q-item-section side>
                       <q-item-label side>
-                        Total Amount: {{ totalAmount }}
+                        {{ $t('TotalAmount') }}: {{ totalAmount }}
                       </q-item-label>
                     </q-item-section>
                   </q-item>
@@ -70,11 +70,11 @@
                     <q-item-section>
                       <q-item-label class="q-gutter-y-md">
                         <div class="flex justify-between items-center">
-                            <span class="text-italic">Recipient {{ i + 1 }}</span>
+                            <span class="text-italic">{{ $t('RecipientLabel') }} {{ i + 1 }}</span>
                             <q-btn v-if="i > 0" @click="removeRecipient(i)" icon="remove" color="red" flat dense ></q-btn>
                         </div>
                         <q-input
-                          v-model="recipient.address" :label="`Paste address of recipient ${i + 1}`"
+                          v-model="recipient.address" :label="`${$t('PasteAddressOfRecipient')} ${i + 1}`"
                           :rules="recipientRules"
                           clearable
                           outlined dense>
@@ -84,16 +84,16 @@
                           </template>
                         </q-input>
                         <q-input
-                          v-model="recipient.amount" label="Amount"
+                          v-model="recipient.amount" :label="$t('Amount')"
                           outlined dense
                           :hint="assetDecimalsHint"
                           :rules="amountRules"
                           clearable
                           ref="amountRef"
                           >
-                          <template v-slot:append>
-                            <q-btn flat dense disable no-caps>Max</q-btn>
-                          </template>
+                          <!-- <template v-slot:append>
+                            <q-btn flat dense disable no-caps>{{ $t('Max') }}</q-btn>
+                          </template> -->
                         </q-input>
                       </q-item-label>
                     </q-item-section>
@@ -102,7 +102,7 @@
                     <q-item-section></q-item-section>
                     <q-item-section side>
                       <div class="text-right">
-                          <q-btn @click="addRecipient()" icon="add" color="primary" label="Add Recipient" flat dense no-caps></q-btn>
+                          <q-btn @click="addRecipient()" icon="add" color="primary" :label="$t('AddRecipient')" flat dense no-caps></q-btn>
                         </div>
                     </q-item-section>
                   </q-item>
@@ -120,7 +120,7 @@
           no-caps
           @click="createProposal"
           >
-          Create Proposal
+          {{ $t('CreateProposal') }}
         </q-btn>
     </q-footer>
   </q-layout>
@@ -147,6 +147,7 @@ import { decodeCashAddress } from 'bitauth-libauth-v3'
 
 const $q = useQuasar()
 const $store = useStore()
+const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const balance = ref()
@@ -196,9 +197,9 @@ const assetHeaderIcon = computed(() => {
 const assetDecimalsHint = computed(() => {
   if (route.query.asset === 'bch') return ''
   if (assetTokenIdentity.value?.token?.decimals === undefined) {
-    return 'Caution: Unable to get decimals spec of the token'
+    return $t('CautionUnableToGetDecimals')
   }
-  return `Decimal places: ${assetTokenIdentity.value.token.decimals}`
+  return `${$t('DecimalPlaces')}: ${assetTokenIdentity.value.token.decimals}`
 })
 
 const recipientRules = computed(() => {
@@ -210,11 +211,11 @@ const recipientRules = computed(() => {
     }
     if (route.query.asset === 'bch') {
       if (decoded.type?.toLowerCase().includes('withtokens')) {
-        return 'BCH address required.'
+        return $t('BCHAddressRequired')
       }
     } else {
       if (!decoded.type?.toLowerCase().includes('withtokens')) {
-        return 'Token address required.'
+        return $t('TokenAddressRequired')
       }
     }
     return true
@@ -225,14 +226,14 @@ const recipientRules = computed(() => {
 
 const amountRules = computed(() => {
   let rules = [
-    v => ( v?.length === 0 || /^(\d+)?\.?(\d+)?$/.test(v)) || 'Invalid value.',
-    v => Number(v) < balance.value || 'Value exceeds balance.'
+    v => ( v?.length === 0 || /^(\d+)?\.?(\d+)?$/.test(v)) || $t('InvalidValue'),
+    v => Number(v) < balance.value || $t('ValueExceedsBalance')
   ]
   if (route.query.asset !== 'bch') {
     if (assetTokenIdentity.value?.token?.decimals === undefined || assetTokenIdentity.value?.token?.decimals === 0) {
       rules = rules.concat([
-        v => (v==='' || Number(v) >= 1)  || 'Token has no decimals. Value should be greater or equal to 1.',
-        v => !v.includes('.') || 'Token has no decimals. Invalid value.'
+        v => (v==='' || Number(v) >= 1)  || $t('TokenHasNoDecimals'),
+        v => !v.includes('.') || $t('TokenNoDecimalsInvalid')
       ])
     }
   }
@@ -301,15 +302,15 @@ const createProposal = async () => {
     coordinationServer: multisigCoordinationServer
   }
 
-  const pst = await wallet.value.createPst({
-    creator: creator,
-    origin: 'paytaca-wallet',
-    purpose: purpose.value,
-    recipients: recipients.value
-  }, options)
- 
   try {
 
+    const pst = await wallet.value.createPst({
+      creator: creator,
+      origin: 'paytaca-wallet',
+      purpose: purpose.value,
+      recipients: recipients.value
+    }, options)
+    
     await pst.save()
     
     router.push({ 
@@ -318,10 +319,15 @@ const createProposal = async () => {
     })
 
   } catch (error) {
-    console.error('error', error)
     $q.dialog({
       message: error,
-      class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+      class: `q-my-mdpt-card text-bow br-15${getDarkModeClass(darkMode.value)}`,
+      ok: {
+        rounded: true,
+        padding: 'xs md',
+        color: 'primary',
+        label: $t('OK')
+      }
     })
 
   }
@@ -353,4 +359,4 @@ onMounted(async () => {
 .light {
   color: #141414;
 }
-</style>i
+</style>
