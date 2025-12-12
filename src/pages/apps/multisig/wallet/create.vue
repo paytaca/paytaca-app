@@ -5,7 +5,7 @@
         <div class="static-container">
           <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
             <HeaderNav
-              :title="$t('Setup Wallet')"
+              :title="$t('SetupWallet')"
               backnavpath="/apps/multisig"
               class="q-px-sm apps-header gift-app-header"
             />
@@ -26,13 +26,13 @@
                   >
                     <q-step
                       :name="1"
-                      title="Basic Config"
+                      :title="$t('BasicConfig')"
                       icon="settings"
                       :done="name"
                       :error="!name"
                     >
                       <div class="q-gutter-y-md">
-                        <q-input v-model="name" label="Enter wallet name" outlined dense></q-input>
+                        <q-input v-model="name" :label="$t('EnterWalletName')" outlined dense></q-input>
                         <q-select
                           :popup-content-class="darkMode ? '': 'text-black'"
                           v-model="m" :options="mOptionsComputed" :label="$t('Required number of signers')"
@@ -45,7 +45,7 @@
                         />
                       </div>
                       <q-stepper-navigation>
-                        <q-btn :disable="!name" @click="$refs.stepper.next()" color="primary" label="Continue" />
+                        <q-btn :disable="!name" @click="$refs.stepper.next()" color="primary" :label="$t('Continue')" />
                       </q-stepper-navigation>
                     </q-step>
                     <q-step
@@ -53,19 +53,19 @@
                       v-for="signer, i in signers"
                       :key="2 + i"
                       :name="2 + Number(i)"
-                      :title="`Signer ${1 + i}`"
+                      :title="`${$t('Signer')} ${1 + i}`"
                       :done="step > 2 + Number(i)"
                       icon="mdi-account-signerIndex"
                     >
                     <div class="q-gutter-y-md">
                       <q-input
-                        :label="`Signer ${1 + i}'s name`"
+                        :label="`${$t('SignerNamePlaceholder', {index: 1 + i }, `Signer ${1 + i}'s name`)}`"
                         v-model="signer.name"
                         outlined dense
                         >
                       </q-input>
                       <q-input
-                        label="Paste signer's xpub"
+                        :label="$t('PasteSignerXpub')"
                         v-model="signer.xpub"
                         outlined
                         dense
@@ -78,23 +78,23 @@
                           </q-btn>
                         </template>
                       </q-input>
-                      <q-input v-model="signer.masterFingerprint" label="Enter Master Fingerprint" outlined dense required></q-input>
+                      <q-input v-model="signer.masterFingerprint" :label="$t('EnterMasterFingerprint')" outlined dense required></q-input>
                     </div>
                     <q-stepper-navigation>
-                        <q-btn :disable="!signer.xpub || !signer.name" @click="$refs.stepper.next()" color="primary" label="Continue" />
-                        <q-btn flat @click="$refs.stepper.previous()" color="primary" label="Back" class="q-ml-sm" />
+                        <q-btn :disable="!signer.xpub || !signer.name" @click="$refs.stepper.next()" color="primary" :label="$t('Continue')" />
+                        <q-btn flat @click="$refs.stepper.previous()" color="primary" :label="$t('Back')" class="q-ml-sm" />
                       </q-stepper-navigation>
                     </q-step>
                     <q-step
                       :name="n + 2"
-                      title="Finish"
+                      :title="$t('Finish')"
                       done-icon="done_all"
                     >
                       <q-list separator class="text-left">
-                        <q-item-label header>Wallet Specs</q-item-label>
+                        <q-item-label header>{{ $t('WalletSpecs') }}</q-item-label>
                         <q-item>
                           <q-item-section>
-                            Wallet Name
+                            {{ $t('WalletName') }}
                           </q-item-section>
                           <q-item-section side>
                             {{ name }}
@@ -102,13 +102,13 @@
                         </q-item>
                         <q-item>
                           <q-item-section>
-                            Required Signatures
+                            {{ $t('RequiredSignatures') }}
                           </q-item-section>
                           <q-item-section side>
                             {{ m }} of {{ n }}
                           </q-item-section>
                         </q-item>
-                        <q-item-label header>Signers</q-item-label>
+                        <q-item-label header>{{ $t('Signers') }}</q-item-label>
                         <q-item
                           v-for="signer, ii in signers"
                           :key="`read-${ii}`"
@@ -120,13 +120,13 @@
                             </q-item-label>
                           </q-item-section>
                           <q-item-section side top>
-                            <q-item-label caption class="text-italic">Signer {{ ii }}</q-item-label>
+                            <q-item-label caption class="text-italic">{{ $t('Signer') }} {{ ii + 1 }}</q-item-label>
                           </q-item-section>
                         </q-item>
                       </q-list>
                       <q-stepper-navigation>
-                        <q-btn @click="()=> onCreateClicked()" color="primary" label="Save" />
-                        <q-btn flat color="primary" @click="$refs.stepper.previous()" label="Back" class="q-ml-sm" />
+                        <q-btn @click="()=> onCreateClicked()" color="primary" :label="$t('Save')" />
+                        <q-btn flat color="primary" @click="$refs.stepper.previous()" :label="$t('Back')" class="q-ml-sm" />
                       </q-stepper-navigation>
                     </q-step>
                   </q-stepper>

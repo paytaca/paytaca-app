@@ -17,7 +17,7 @@
         </div>
 
         <div class="text-subtitle-2 text-center text-bow-muted">
-          Scan the Animated QR from your device
+          {{ $t('ScanAnimatedQRFromDevice') }}
         </div>
         <div class="flex flex-center q-mt-md">
           <img v-if="currentQr" :src="currentQr" style="width: 350px; height: 350px" />
@@ -34,12 +34,12 @@
             <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">
               <q-icon class="default-text-color"  size="24px" name="file_download" @click="handleDownloadWallet"/>
             </q-btn>
-            <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">Download Wallet File</div>
+            <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ $t('DownloadWalletFile') }}</div>
           </div>
         </div>
       </q-card-section>
       <q-card-actions>
-        <q-btn label="Close" @click="onDialogOK" color="red" v-close-popup />
+        <q-btn :label="$t('Close')" @click="onDialogOK" color="red" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -48,7 +48,10 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 import { useDialogPluginComponent } from "quasar";
+import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
+
+const { t: $t } = useI18n()
 import { binToBase64, binToHex, utf8ToBin } from "bitauth-libauth-v3";
 import { UR, UREncoder, URDecoder } from "@ngraveio/bc-ur";
 import { cborEncode, cborDecode } from "@ngraveio/bc-ur/dist/cbor";

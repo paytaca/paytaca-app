@@ -197,6 +197,7 @@
 
 import { useStore } from 'vuex'
 import { copyToClipboard, QSpinnerDots, useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { binToHex, decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
@@ -222,6 +223,7 @@ const {
 
 const $q = useQuasar()
 const $store = useStore()
+const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const signersXPrv = ref({})
@@ -359,24 +361,24 @@ const showPstQrDialog = () => {
 
 const openBottomsMenu = () => {
   $q.bottomSheet({
-    title: 'Transaction Options',
+    title: $t('TransactionOptions'),
     grid: true,
     actions: [
       {
         icon: 'delete_forever',
-        label: 'Delete',
+        label: $t('Delete'),
         value: 'delete',
         color: 'red'
       },
       {
         icon: 'cloud_upload',
-        label: 'Sync',
+        label: $t('Sync'),
         value: 'sync-pst',
         color: 'primary'
       },
       {
         icon: 'mdi-file-export',
-        label: 'Export Tx',
+        label: $t('ExportTx'),
         value: 'export-psbt',
         color: 'primary'
       }

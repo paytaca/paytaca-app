@@ -11,7 +11,7 @@
         <div class="col-xs-12">
           <q-banner class="q-ma-lg rounded text-caption text-justify q-pa-md" :class="getDarkModeClass(darkMode)" style="word-break: auto-phrase; border-radius: 15px;">
             <q-icon name="warning" color="warning" size="sm" class="q-mr-sm"></q-icon>
-            The current version of Paytaca's multisig wallet app currently requires cosigners to manually exchange PSBTs (partially signed transactions). Coordination-server support is planned and currently under development.
+            {{ $t('MultisigWalletsBetaDisclaimerMessage') }}
           </q-banner>
         </div>
       </div>
@@ -80,13 +80,13 @@
               <q-btn size="lg"  @click="router.push({ name: 'app-multisig-wallet-create' })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
                 <q-icon class="default-text-color"  size="lg" name="qr_code" />
               </q-btn>
-              <div class="q-pt-xs text-h6 text-center text-capitalize" >Create Wallet</div>
+              <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('CreateNewWallet') }}</div>
             </div>
             <div class="col-xs-12 text-center">
               <q-btn color="primary" class="button-default" @click="importWallet" :class="darkMode ? 'dark' : 'light'" round size="lg">
                 <q-icon class="default-text-color"  size="lg" name="upload_file" @click="importWalletFromFile"/>
               </q-btn>
-              <div class="q-pt-xs text-h6 text-center text-capitalize" >Import Wallet</div>
+              <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('ImportWallet') }}</div>
             </div>
           </div>
       </div>
@@ -111,7 +111,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { MultisigWallet } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
-import ImportWalletDialog from 'components/multisig/ImportWalletDialog.vue'
 import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -137,7 +136,6 @@ const darkMode = computed(() => {
 // })
 
 const importWallet = () => {
-  console.log('Importing wallet')
   router.push({ name: 'app-multisig-wallet-import' })
   // $q.dialog({
   //   component: ImportWalletDialog,
@@ -215,7 +213,7 @@ onMounted(() => {
     } catch (error) {
       console.error('Error importing wallet from QR:', error)
       $q.notify({
-        message: 'Failed to import wallet from QR code',
+        message: $t('FailedToImportWalletFromQR'),
         color: 'negative'
       })
     }

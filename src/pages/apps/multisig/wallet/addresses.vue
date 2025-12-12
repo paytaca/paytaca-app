@@ -18,7 +18,7 @@
         <template v-if="wallet">
             <div class="row q-mb-lg">
               <div class="col-xs-12 flex items-center justify-center q-mb-lg">
-                <div class="text-h6 q-mr-md text-capitalize">{{wallet.name}} Addresses</div>
+                <div class="text-h6 q-mr-md text-capitalize">{{wallet.name}} {{ $t('Addresses') }}</div>
                 <q-icon
                   size="sm" name="mdi-text-box-multiple"
                 />
@@ -26,11 +26,11 @@
             </div>
             <q-list>
               <q-separator spaced inset />
-              <q-expansion-item v-model="depositAddressesExpanded"  label="Deposit Addresses">
+              <q-expansion-item v-model="depositAddressesExpanded"  :label="$t('DepositAddresses')">
                 <template v-slot:header>
                   <div class="row justify-between items-center">
                     <div class="text-bold">
-                      Deposit Addresses
+                      {{ $t('DepositAddresses') }}
                     </div>
                   </div>
                 </template>
@@ -42,7 +42,7 @@
                             <span>
                                 {{ index }} - {{ shortenString(wallet.getDepositAddress(index, cashAddressNetworkPrefix).address?.replace('bitcoincash:', ''), 30) }}
                                 <q-badge v-if="wallet.getLastUsedDepositAddressIndex(wallet.options.provider.network) !== undefined && index === wallet.getLastUsedDepositAddressIndex(wallet.options.provider.network) ">
-                                    Last Used
+                                    {{ $t('LastUsed') }}
                                 </q-badge>
                             </span>
                             <CopyButton :text="wallet.getDepositAddress(index).address"/>
@@ -54,7 +54,7 @@
                   </q-list>
                 </template>
               </q-expansion-item>
-              <q-expansion-item v-model="changeAddressesExpanded"  label="Change Addresses">
+              <q-expansion-item v-model="changeAddressesExpanded"  :label="$t('ChangeAddresses')">
                 <template v-slot:default>
                   <q-list>
                     <q-item v-for="i, index in ((wallet.getLastUsedChangeAddressIndex(wallet.options.provider.network)  ?? 0) + 20)" :key="'change-' + index">
@@ -63,7 +63,7 @@
                             <span>
                             {{ index }} - {{ shortenString(wallet.getChangeAddress(index, cashAddressNetworkPrefix).address?.replace('bitcoincash:', ''), 30) }}
                                 <q-badge v-if="wallet.getLastUsedChangeAddressIndex(wallet.options.provider.network)  !== undefined && index === wallet.getLastUsedChangeAddressIndex(wallet.options.provider.network) ">
-                                    Last Used
+                                    {{ $t('LastUsed') }}
                                 </q-badge>
                             </span>
                             <CopyButton :text="wallet.getChangeAddress(index).address"/>
