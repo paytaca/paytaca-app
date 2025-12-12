@@ -630,7 +630,7 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
           darkMode: darkMode.value,
           walletAddresses: walletAddresses.value,
           // multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
-          multisigWallets: [],
+          // multisigWallets: [],
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })

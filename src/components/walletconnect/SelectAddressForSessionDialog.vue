@@ -142,7 +142,7 @@ const props = defineProps({
   sessionProposal: Object,
   darkMode: Boolean,
   walletAddresses: Array, /* walletObject[] */
-  multisigWallets: Array, /* multisigWallets[] */
+  multisigWallets: { type: Array, default: () => [], required: false }, /* multisigWallets[] */
   lastUsedWalletAddress: null /* { wallet_address: string, app_url: string, app_icon: string } */
 })
 
