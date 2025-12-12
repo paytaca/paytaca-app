@@ -9,8 +9,10 @@
           :backnavpath="`/apps/multisig/wallet/${route?.params?.wallethash}`"
           class="apps-header"
         />
-        <div class="row justify-center">
-          <div class="col-xs-12 col-sm-8 q-px-xs q-mb-lg">
+        <q-page-container>
+          <q-page class="q-pa-none">
+            <div class="row justify-center">
+              <div class="col-xs-12 col-sm-8 q-px-xs q-mb-lg" style="padding-bottom: 100px;">
             <template v-if="wallet">
                 <div class="row">
                   <div class="col-xs-12 flex items-center justify-center text-bold text-h6">
@@ -61,12 +63,12 @@
 
                     </q-item-section>
                     <q-item-section side>
-                      <q-item-label side>
+                      <q-item-label side :class="totalAmount && totalAmount > balance  ? 'text-red' : ''">
                         {{ $t('TotalAmount') }}: {{ totalAmount }}
                       </q-item-label>
                     </q-item-section>
                   </q-item>
-                  <q-item v-for="recipient,i in recipients" :key="`recipient-${i}`">
+                  <q-item v-for="recipient,i in recipients" :key="`recipient-${i}`" :ref="el => { if (el) recipientRefs[i] = el.$el || el }">
                     <q-item-section>
                       <q-item-label class="q-gutter-y-md">
                         <div class="flex justify-between items-center">
@@ -77,7 +79,8 @@
                           v-model="recipient.address" :label="`${$t('PasteAddressOfRecipient')} ${i + 1}`"
                           :rules="recipientRules"
                           clearable
-                          outlined dense>
+                          outlined dense
+                          :ref="el => { if (el) addressInputRefs[i] = el }">
                           <template v-slot:append>
                             <q-btn icon="upload_file" flat dense disable></q-btn>
                             <q-btn icon="qr_code_scanner" flat dense disable></q-btn>
@@ -89,15 +92,18 @@
                           :hint="assetDecimalsHint"
                           :rules="amountRules"
                           clearable
-                          ref="amountRef"
+                          :ref="el => { if (el) amountInputRefs[i] = el }"
                           >
                           <!-- <template v-slot:append>
                             <q-btn flat dense disable no-caps>{{ $t('Max') }}</q-btn>
                           </template> -->
                         </q-input>
                       </q-item-label>
+                      <q-separator />
                     </q-item-section>
+                    
                   </q-item>
+                  
                   <q-item>
                     <q-item-section></q-item-section>
                     <q-item-section side>
@@ -109,7 +115,9 @@
                 </q-list>
             </template>
           </div>
-        </div>  
+            </div>
+          </q-page>
+        </q-page-container>
       </q-pull-to-refresh>
     <q-footer class="pt-card text-bow q-pa-md" :class="getDarkModeClass(darkmode)" style="filter:opacity(98%)" rev>
         <q-btn
@@ -130,7 +138,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -154,7 +162,9 @@ const balance = ref()
 const balanceConvertionRates = ref()
 const recipients = ref([])
 const purpose = ref('')
-const amountRef = ref()
+const recipientRefs = ref([])
+const addressInputRefs = ref([])
+const amountInputRefs = ref([])
 
 const {
   multisigNetworkProvider,
@@ -262,6 +272,9 @@ const assetPrice = computed(() => {
 })
 
 const sendable = computed(() => {
+  const hasAmountErrors = amountInputRefs.value.some(ref => ref?.hasError === true)
+  const hasAddressErrors = addressInputRefs.value.some(ref => ref?.hasError === true)
+  
   return (
     recipients.value?.every(r => Boolean(r.address)) && 
     recipients.value?.every(r => Boolean(r.amount)) &&
@@ -269,20 +282,46 @@ const sendable = computed(() => {
     totalAmount.value !== '!' &&
     totalAmount.value > 0 &&  
     balance.value > totalAmount.value &&
-    (amountRef.value?.hasError !== true || amountRef.value?.hasError === undefined)
+    !hasAmountErrors &&
+    !hasAddressErrors
   )
 })
 
 const removeRecipient = (index) => {
   recipients.value.splice(index, 1)
+  recipientRefs.value.splice(index, 1)
+  addressInputRefs.value.splice(index, 1)
+  amountInputRefs.value.splice(index, 1)
 }
 
-const addRecipient = () => {
+const addRecipient = async () => {
   recipients.value.push({
     address: '',
     amount: '',
     asset: route.query.asset
   })
+  
+  await nextTick()
+  const newIndex = recipients.value.length - 1
+  
+  if (recipientRefs.value[newIndex]) {
+    const element = recipientRefs.value[newIndex]
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    
+    setTimeout(() => {
+      const rect = element.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      if (rect.bottom > viewportHeight - 100) {
+        const scrollOffset = rect.bottom - viewportHeight + 150 // 150px padding for footer
+        window.scrollBy({ top: scrollOffset, behavior: 'smooth' })
+      }
+    }, 300)
+  }
+  
+  if (addressInputRefs.value[newIndex]) {
+    await nextTick() 
+    addressInputRefs.value[newIndex].focus()
+  }
 }
 
 const createProposal = async () => {
@@ -330,6 +369,24 @@ const createProposal = async () => {
       }
     })
 
+  }
+}
+
+const refreshPage = async (done) => {
+  try {
+    if (wallet.value) {
+      balance.value = await wallet.value.getWalletBalance(route.query.asset)
+      balanceConvertionRates.value = 
+        await wallet.value.convertBalanceToCurrencies(
+          route.query.asset,
+          balance.value,
+          [$store.getters['market/selectedCurrency'].symbol]
+        )
+    }
+  } catch (error) {
+    console.error('Error refreshing page:', error)
+  } finally {
+    if (done) done()
   }
 }
 
