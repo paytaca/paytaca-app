@@ -1,6 +1,6 @@
-import { get } from '@vueuse/core'
-import { CashAddressNetworkPrefix, hashTransaction, binToHex, cashAddressToLockingBytecode, encodeTransactionCommon } from 'bitauth-libauth-v3'
-import { getLockingBytecode, transactionBinObjectsToUint8Array } from 'src/lib/multisig'
+import { hashTransaction, binToHex, cashAddressToLockingBytecode } from 'bitauth-libauth-v3'
+import { extractMValue, getLockingBytecode, getWalletHash, Pst } from 'src/lib/multisig'
+import { ProprietaryFields, Psbt } from 'src/lib/multisig/psbt'
 
 export function getSettings (state) {
   return state.settings
@@ -8,10 +8,6 @@ export function getSettings (state) {
 
 export function getWallets (state) {
   return state.wallets
-}
-
-export function getTransactionsLastIndex (state) {
-  return state.transactions.length - 1
 }
 
 export function getWalletByLockingBytecode (state) {
@@ -28,56 +24,6 @@ export function getWalletByAddress (state) {
         const targetLockingBytecodeHex = binToHex(cashAddressToLockingBytecode(address).bytecode)
         return targetLockingBytecodeHex === getLockingBytecode({ ...w, hex: true }).bytecode
     })
-  }
-}
-
-export function getTransactionsByLockingBytecode (state) {
-  return ({ lockingBytecodeHex }) => {
-    return state.transactions?.filter((t) => {
-	const transaction = t.transaction.inputs.find((input) => {
-	   if (!input.sourceOutput) return false
-	   const targetLockingBytecodeHex = binToHex(Uint8Array.from(Object.values(input.sourceOutput.lockingBytecode)))
-           return targetLockingBytecodeHex === lockingBytecodeHex
-	})
-	if (!transaction) {
-          // Try from source outputs data if source outputs isn't attached to corresponding inputs yet.
-	  t.sourceOutputs?.find(sourceOutput => {
-	   const targetLockingBytecodeHex = binToHex(Uint8Array.from(Object.values(sourceOutput.lockingBytecode)))
-           return targetLockingBytecodeHex === lockingBytecodeHex
-	  })
-	}
-	return Boolean(transaction)
-    })
-  }
-}
-
-// export function getTransactionsByWalletAddress (state, getters) {
-//   return ({ address }) => {
-//     const lockingBytecodeHex = binToHex(cashAddressToLockingBytecode(address).bytecode)
-//     return getters.getTransactionsByLockingBytecode({ lockingBytecodeHex })
-//   }
-// }
-
-export function getTransactionsByWalletAddress (state, getters) {
-  return ({ address }) => {
-    return state.transactions?.filter(t => t.address === address)
-  }
-}
-/**
- * Returns transaction proposal with the same provided hash of the unsigned transaction.
- */
-export function getTransactionByHash (state) {
-  return ({ hash }) => {
-    return state.transactions.find(t => {
-	  const txUnsignedHash = hashTransaction(encodeTransactionCommon(transactionBinObjectsToUint8Array(t.transaction))) 
-	  return hash === txUnsignedHash
-    })
-  }
-}
-
-export function getTransactionIndexByHash (state) {
-  return ({ hash }) => {
-    return state.transactions.findIndex((t) => hash === hashTransaction(t.transaction))
   }
 }
 
@@ -105,3 +51,44 @@ export function getWalletById (state) {
   }
 }
 
+export function getWalletByHash (state) {
+  return (hash) => {
+    return state.wallets.find(savedWallet => {
+      return getWalletHash(savedWallet) === hash
+    })
+  }
+}
+
+export function getPsbtByUnsignedTransactionHash (state) {
+  return (hash) => {
+    return state.psbts?.find(p => {
+      const psbt = new Psbt()
+      psbt.deserialize(p)
+      return hashTransaction(psbt.getUnsignedTx()) === hash
+    })
+  }
+}
+
+export function getPsbtsByWalletHash (state) {
+  return (hash) => {
+    return state.psbts?.filter(p => {
+      const pst = Pst.import(p)
+      const mValues = [...new Set(pst.inputs?.map(i => {
+        if (!i.redeemScript) return null;
+        return extractMValue(i.redeemScript)
+      }).filter(m => m))]
+
+      for (const m of mValues) {
+        const wallet = {
+          m,
+          signers: pst.wallet.signers
+        }
+        const walletHash = getWalletHash(wallet)
+        if (walletHash === hash) {
+          return true
+        }
+      }
+      return false
+    })
+  }
+}

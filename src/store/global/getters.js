@@ -346,6 +346,7 @@ export function merchantActivity (state) {
 }
 
 export function getWatchtowerBaseUrl (state) {
+  
   if (state.isChipnet) {
     return 'https://chipnet.watchtower.cash'
   }

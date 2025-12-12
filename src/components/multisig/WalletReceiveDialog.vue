@@ -21,20 +21,25 @@
           <q-img @click="isCashtoken = true" src="ct-logo.png" height="35px" width="35px" />
           <span @click="isCashtoken = true">&nbsp;{{ $t('CashToken') }}</span>
         </div>
-        <qr-code :text="address" :size="220" :icon="isCashtoken ? 'ct-logo.png': 'bch-logo.png' "></qr-code>
+        <qr-code :text="address.address" :size="220" :icon="isCashtoken ? 'ct-logo.png': 'bch-logo.png' "></qr-code>
         <div v-if="address" class="text-center text-caption flex flex-wrap justify-center items-center q-mt-sm q-gutter-x-sm">
-            Address-{{ addressIndex }}: {{shortenAddressForDisplay(address)}}
-            <CopyButton :text="address"/>
+            Address-{{ addressIndex }}: {{shortenAddressForDisplay(address.address)}} 
+            <CopyButton :text="address.address"/>
         </div>
+        <div class="text-center">
+          <q-btn icon="rotate_right" color="primary" flat dense @click="prevAddress" :disable="addressIndex === 0">Prev Address</q-btn>
+          <q-btn icon="rotate_left" color="primary"flat dense @click="nextAddress">Next Address</q-btn>
+        </div>
+          
       </q-card-section>
       <q-card-actions>
-        <q-btn label="Close" @click="onDialogOK" color="red" v-close-popup></q-btn>
+        <q-btn label="Close" @click="onDialogOkWrapper" color="red" v-close-popup></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 <script setup>
-import { ref, onMounted, watch, inject } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getMultisigCashAddress } from 'src/lib/multisig'
@@ -49,37 +54,42 @@ const props = defineProps({
   cashAddressNetworkPrefix: String
 })
 const isCashtoken = ref(false)
-const address = ref()
 const addressIndex = ref(0)
 const { dialogRef, onDialogOK } = useDialogPluginComponent()
 
-watch(() => isCashtoken.value, (isTrue) => {
-  if (!address.value) return
-  const decoded = decodeCashAddress(address.value)
-  if (isTrue) {
+const address = computed(() => {
+  let addr = props.multisigWallet.getDepositAddress(addressIndex.value, props.cashAddressNetworkPrefix)
+  if (isCashtoken.value) {
+    const decoded = decodeCashAddress(addr.address)
     const encoded = encodeCashAddress({
       prefix: props.cashAddressNetworkPrefix,
       type: CashAddressType.p2shWithTokens,
       payload: decoded.payload
     })
-    address.value = encoded.address
-    return
+    addr = encoded
   }
-  const encoded = encodeCashAddress({
-    prefix: props.cashAddressNetworkPrefix,
-    type: CashAddressType.p2sh,
-    payload: decoded.payload
-  })
-  address.value = encoded.address
+  return addr
 })
 
+const prevAddress = () => {
+  addressIndex.value--
+}
+const nextAddress = () => {
+  addressIndex.value++
+}
+
+const onDialogOkWrapper = () => {
+  onDialogOK({ addressIndex: addressIndex.value })
+}
+
 onMounted(() => {
-  address.value = getMultisigCashAddress({
-    lockingData: props.multisigWallet.lockingData,
-    template: props.multisigWallet.template,
-    cashAddressNetworkPrefix: props.cashAddressNetworkPrefix
-  })
-  addressIndex.value = props.multisigWallet.lockingData.hdKeys.addressIndex
+  addressIndex.value = 0
+  console.log(props.multisigWallet)
+  // console.log(props.multisigWallet)
+  if (props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex === undefined || props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex === -1) {
+    return addressIndex.value = 0
+  }
+  addressIndex.value = Number(props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex )
 })
 
 </script>

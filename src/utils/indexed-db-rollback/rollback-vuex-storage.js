@@ -8,6 +8,8 @@ const forceInitMultisigLocalStorageState = () => {
     vuex.multisig = {
       wallets: [],
       transactions: [],
+      psts: [],
+      psbts: [],
       walletsUtxos: {},
       settings: {
         defaultSignerWalletIndex: 0 /* The index of the personal wallet that'll be used as signer */
@@ -21,14 +23,11 @@ export async function migrateVuexStorage() {
   // This function rolls back Vuex storage from IndexedDB to localStorage
   // IndexedDB data will not be deleted
 
-  console.log('[Migration] Initializing rollback of Vuex storage to localStorage')
-
   const key = 'vuex'
   
   try {  
     const alreadyRolledBack = window.localStorage.getItem(ROLLBACK_FLAG)
     if (Boolean(alreadyRolledBack) === true) {
-      console.log('[Migration] Already rolled back:', alreadyRolledBack)
       return
     }
     // Check if localStorage already has valid data

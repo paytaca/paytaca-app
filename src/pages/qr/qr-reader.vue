@@ -6,7 +6,7 @@
 
     <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
       <q-icon name="error" left/>
-      {{ error }}
+      {{ error }} 
     </div>
     <template v-else>
       <qrcode-stream
@@ -40,36 +40,51 @@
       <span class="scanner-text text-center full-width">{{ $t('ScanQrCode') }}</span>
     </div>
 
+    <div v-if="progress" class="q-mt-xl row items-center justify-center q-px-lg">
+      <q-linear-progress rounded size="30px" :value="progress" color="primary" class="q-mt-sm q-mx-xl" >
+        <div class="absolute-full flex flex-center items-center">
+          <span class="text-caption text-bold text-white">{{ progressLabel }}</span>
+        </div>
+      </q-linear-progress>
+    </div>
+
     <div class="q-mt-xl row items-center justify-around">
-      <div class="column flex flex-center">
+      <div v-if="!hideGenerateQR" class="column flex flex-center">
         <q-btn
           round
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="add"
+          :disabled="progress"
           @click="$router.push({ name: 'generate-qr' })"
         />
         <span class="q-mt-sm">{{ $t('GenerateQR') }}</span>
       </div>
 
-      <div class="column flex flex-center">
+      <div v-if="!hideUploadQR" class="column flex flex-center">
         <q-btn
           round
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="upload"
+          :disabled="progress"
           @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
         />
         <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
       </div>
     </div>
-
-    <footer-menu />
+    <div class="row justify-center">
+      <div class="col-xs-12 text-center">
+        <q-btn size="lg" label="Cancel" @click="$router.back()" color="red" v-close-popup></q-btn>
+      </div>
+    </div>
+    <footer-menu v-if="!hideFooter" />
   </div>
 </template>
 
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
+import { UR, URDecoder } from "@ngraveio/bc-ur";
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { extractWifFromUrl } from 'src/wallet/sweep'
 import { parsePayPro } from 'src/utils/pay-pro'
@@ -81,6 +96,8 @@ import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
 import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
 import base58 from 'bs58'
+import { binToBase64 } from 'bitauth-libauth-v3';
+import { extractMValue, getWalletHash, Pst } from 'src/lib/multisig';
 
 export default {
   name: 'QRReader',
@@ -102,7 +119,12 @@ export default {
       paused: false,
       error: '',
       frontCamera: false,
-      clWidth: '0px'
+      clWidth: '0px',
+      urDecoder: null,
+      progress: 0,
+      hideFooter: false,
+      hideGenerateQR: false,
+      hideUploadQR: false
     }
   },
 
@@ -112,6 +134,9 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    progressLabel () {
+      return (Math.floor(this.progress * 100)) + '% of Data Fragments Received'
     }
   },
 
@@ -227,7 +252,6 @@ export default {
       document.body.classList.add('transparent-body')
 
       const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
-
       if (res.content) {
         BarcodeScanner.showBackground()
         BarcodeScanner.stopScan()
@@ -297,6 +321,67 @@ export default {
             name: 'app-sweep',
             query: { w: '', bip38String: value }
           })
+        } else if(_value?.startsWith('ur:crypto-mofnwallet')) {
+          const part = content[0].rawValue;
+          vm.urDecoder.receivePart(part);
+          vm.progress = vm.urDecoder.estimatedPercentComplete()
+          if (vm.urDecoder.isComplete()) {
+            const ur = vm.urDecoder.resultUR()
+            const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
+            vm.$router.push({
+              name: 'app-multisig-wallet-import',
+              query: { data: encodeURIComponent(base64) }
+            })
+          }
+        } else if(_value?.startsWith('ur:crypto-psbt')) {
+          const part = content[0].rawValue;
+          vm.urDecoder.receivePart(part);
+          vm.progress = vm.urDecoder.estimatedPercentComplete()
+          if (vm.urDecoder.isComplete()) {
+            const ur = vm.urDecoder.resultUR()
+            const decodedData = Buffer.from(ur.cbor, 'base64')
+            const pst = Pst.import(binToBase64(decodedData))
+            const mValues = [...new Set(pst.inputs?.map(i => {
+              if (!i.redeemScript) return null;
+              return extractMValue(i.redeemScript)
+            }).filter(m => m))]
+
+            for (const m of mValues) {
+              const wallet = {
+                m,
+                signers: pst.wallet.signers
+              }
+              const walletHash = getWalletHash(wallet)
+              const foundWallet = vm.$store.getters['multisig/getWalletByHash'](walletHash)
+              if (foundWallet) {
+                const canonicalPsbt =vm.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
+                if (canonicalPsbt) {
+                  const canonicalPst = Pst.import(canonicalPsbt)
+                  canonicalPst.combine([pst])
+                  canonicalPst.setStore(vm.$store)
+                  canonicalPst.save()
+                } else {
+                  pst.setStore(vm.$store)
+                  pst.save()
+                }                
+                vm.$router.push({
+                  name: 'app-multisig-wallet-pst-view',
+                  params: { 
+                    wallethash: walletHash,
+                    unsignedtransactionhash: pst.unsignedTransactionHash 
+                  }
+                })
+                return
+              }
+
+              vm.$q.notify({
+                message: vm.$t('WalletNotFound'),
+                timeout: 800,
+                color: 'red-9',
+                icon: 'mdi-qrcode-remove'
+              })
+            }
+          }
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
@@ -446,7 +531,7 @@ export default {
 
   mounted () {
     const vm = this
-
+    vm.urDecoder = new URDecoder()
     if (vm.decode) {
       vm.onQRDecode([{ rawValue: vm.decode }])
     } else if (vm.isMobile) {
@@ -454,6 +539,9 @@ export default {
     }
 
     vm.clWidth = `${document.body.clientWidth}px`
+    vm.hideFooter = vm.$route.query.hideFooter
+    vm.hideGenerateQR = vm.$route.query.hideGenerateQR
+    vm.hideUploadQR = vm.$route.query.hideUploadQR
   },
 
   deactivated () {

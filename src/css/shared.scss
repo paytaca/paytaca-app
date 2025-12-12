@@ -188,7 +188,9 @@ div#q-app:has(.sticky-header-container) {
 .bottom-card-tall {
   @include bottom-card(90vh);
 }
-
+.q-btn.tile span.q-btn__content {
+  align-items: baseline !important;
+}
 .q-btn .tile-label {
   font-size: .8em;
 }

@@ -1,5 +1,6 @@
-import { getMultisigCashAddress, getLockingBytecode, findMultisigWalletByLockingData } from 'src/lib/multisig'
-import { hashTransaction, binToHex } from 'bitauth-libauth-v3'
+import { hashTransaction, binsAreEqual } from 'bitauth-libauth-v3'
+import { findMultisigWalletByLockingData, getWalletHash } from 'src/lib/multisig'
+import { Psbt } from 'src/lib/multisig/psbt'
 
 export function createWallet (state, multisigWallet) {
   state.wallets.push(multisigWallet)
@@ -21,21 +22,21 @@ export function updateWalletId(state, { oldId, newId }) {
   wallet.id = newId
 }
 
-export function saveWallet (state, multisigWallet) {
-  const lockingBytecode = getLockingBytecode({ template: multisigWallet.template, lockingData: multisigWallet.lockingData })
-  const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)	
-  const index = state.wallets.findIndex((wallet) => {
-    const existingLockingBytecode = getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData })
-    const existingLockingBytecodeHex = binToHex(existingLockingBytecode.bytecode)
-    return lockingBytecodeHex === existingLockingBytecodeHex
+export function saveWallet (state, wallet) {
+  const index = state.wallets.findIndex(savedWallet => {
+    return getWalletHash(savedWallet) === getWalletHash(wallet)
   })
+
   if (index === -1) {
-   return state.wallets.push(multisigWallet) 
+    return state.wallets.push(wallet) 
   }
+
   if (state.wallets[index].enabled) {
-    multisigWallet.enabled = true
+    wallet.enabled = true
   }
-  state.wallets.splice(index, 1, multisigWallet)
+
+  state.wallets.splice(index, 1, wallet)
+
 }
 
 export function deleteWallet (state, { multisigWallet }) {
@@ -60,108 +61,6 @@ export function deleteAllWallets (state) {
   state.wallets = []
 }
 
-export function newTransaction (state, { transaction, sourceOutputs, address, sessionRequest }) {
-  state.transactions.push({ transaction, sourceOutputs, address, sessionRequest: sessionRequest })
-}
-
-export function walletConnectSignTransactionRequest (state, { address, sessionRequest }) {
-  const transaction = sessionRequest.params.request.params.transaction
-  const sourceOutputs = sessionRequest.params.request.params.sourceOutputs
-  newTransaction(state, { transaction, sourceOutputs, address, sessionRequest })
-}
-
-export function saveTransaction (state, multisigTransaction) {
-  const index = state.transactions.findIndex((storedMultisigTransaction) => {
-    return (
-      hashTransaction(multisigTransaction.transaction) ===
-        hashTransaction(storedMultisigTransaction.transaction)
-    )
-  })
-  if (index !== -1) {
-    return state.transactions.splice(index, 1, multisigTransaction)
-  }
-  state.transactions.push(multisigTransaction)
-}
-
-export function updateTransaction (state, { id, multisigTransaction }) {
-  const index = state.transactions.find(t => t.id === id) 
-  if (index === -1) return
-  state.transactions.splice(index, 1, multisigTransaction)
-}
-
-export function updateTransactionBroadcastStatus(state, { id, broadcastStatus }) {
- const transaction = state.transactions.find(t => t.id === id)
- if (transaction) {
-   transaction.broadcastStatus = broadcastStatus
- } 
-}
-
-export function updateTransactionTxid(state, { id, txid }) {
- const multisigTransaction = state.transactions.find(t => t.id === id)
- if (multisigTransaction) {
-   multisigTransaction.txid = txid
- } 
-}
-
-export function addTransactionSignatures (state, { index, signerSignatures }) {
-    const { signer, signatures } = signerSignatures
-    if (!state.transactions?.[index]) return
-    signatures.forEach((signature) => {
-      const signatureIndex = state.transactions[index].signatures?.findIndex((sig) => {
-	 return sig.inputIndex == signature.inputIndex && sig.sigKey === signature.sigKey
-      })
-      
-      const sigDoesNotYetExist = signatureIndex === -1
-
-      if(sigDoesNotYetExist) {
-        return state.transactions[index].signatures.push(signatures)
-      }
-      state.transactions[index].signatures.splice(signatureIndex, 1, signature)
-    })
-}
-
-export function syncTransactionSignatures(state, { multisigTransaction, signatures }) {
-  const foundMultisigTransaction = state.transactions.find((m) => m.id === multisigTransaction.id)
-  if (!foundMultisigTransaction) return
-  signatures.forEach((signature) => {
-    const i = foundMultisigTransaction.signatures.findIndex((s) => {
-	    return Number(s.inputIndex) === Number(signature.inputIndex) && s.sigKey === signature.sigKey 
-    })
-    if (i === -1) {
-      return foundMultisigTransaction.signatures.push(signature)
-    }
-    foundMultisigTransaction.signatures[i] = { ...foundMultisigTransaction.signatures[i], ...signature}
-  })
-}
-
-export function finalizeTransaction(state, { multisigTransaction, finalCompilationResult }) {
-  const foundMultisigTransaction = state.transactions?.find(m => m.id == multisigTransaction.id)
-  if (!foundMultisigTransaction) return
-  foundMultisigTransaction.signedTransaction = finalCompilationResult.signedTransaction
-  foundMultisigTransaction.signedTransactionHash = finalCompilationResult.signedTransactionHash
-}
-
-export function updateBroadcastStatus(state, { multisigTransaction, broadcastStatus }) {
-  const foundMultisigTransaction = state.transactions?.find(m => m.id == multisigTransaction.id)
-  if (!foundMultisigTransaction) return
-  foundMultisigTransaction.broadcastStatus = broadcastStatus
-}
-
-export function deleteTransaction (state, { index }) {
-  state.transactions.splice(index, 1)
-}
-
-export function deleteTransactionById(state, { id }) {
-  const index = state.transactions.findIndex(t => t.id === id)
-  if (index !== -1 ) {
-    state.transactions.splice(index, 1)
-  }
-}
-
-export function deleteAllTransactions (state) {
-  state.transactions = []
-}
-
 export function clearWalletUtxos (state, { walletAddress }) {
   if (state.walletsUtxos[walletAddress]) {
     state.walletsUtxos[walletAddress] = { utxos: [], lastUpdate: Math.floor(Date.now() / 1000 )}
@@ -169,7 +68,6 @@ export function clearWalletUtxos (state, { walletAddress }) {
 }
 
 export function updateWalletUtxos (state, { walletAddress, utxos }) {
-  console.log('UPDATING UTXOS', utxos)
   if (!state.walletsUtxos[walletAddress]) {
     state.walletsUtxos[walletAddress] = {}
   }
@@ -177,4 +75,51 @@ export function updateWalletUtxos (state, { walletAddress, utxos }) {
     utxos,
     lastUpdate: Math.floor(Date.now() / 1000)
   }
+}
+
+export function updateWalletLastIssuedDepositAddressIndex(state, { wallet, lastIssuedDepositAddressIndex, network }) {
+  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
+  if (!storedWallet) return
+  storedWallet.networks[network].lastIssuedDepositAddressIndex = lastIssuedDepositAddressIndex
+}
+
+export function updateWalletLastUsedDepositAddressIndex(state, { wallet, lastUsedDepositAddressIndex, network }) {
+  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
+  if (!storedWallet) return
+  storedWallet.networks[network].lastUsedDepositAddressIndex = lastUsedDepositAddressIndex
+}
+
+export function updateWalletLastUsedChangeAddressIndex(state, { wallet, lastUsedChangeAddressIndex, network }) {
+  const storedWallet = state.wallets.find(w => getWalletHash(w) === getWalletHash(wallet))
+  if (!storedWallet) return
+  storedWallet.networks[network].lastUsedChangeAddressIndex = lastUsedChangeAddressIndex
+}
+
+
+export function savePsbt(state, psbt) {
+  if (!state.psbts) {
+    state.psbts = []
+  }
+  
+  const storedPstIndex = state.psbts.findIndex(base64 => {
+    const p = new Psbt()
+    p.deserialize(base64)
+    return binsAreEqual(psbt.getUnsignedTx(), p.getUnsignedTx())
+  })
+
+  if (storedPstIndex === -1) {
+    return state.psbts.push(psbt.toString())
+  }
+  state.psbts.splice(storedPstIndex, 1, psbt.toString())
+}
+
+export function deletePsbt(state, unsignedTransactionHash) {
+  const i = state.psbts.findIndex(base64 => {
+    const p = new Psbt()
+    p.deserialize(base64)
+    return unsignedTransactionHash === hashTransaction(p.getUnsignedTx())
+  })
+
+  if (i === -1) return
+  state.psbts.splice(i, 1)
 }

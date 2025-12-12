@@ -395,6 +395,9 @@ export default {
       const code = this.selectedMarketCurrency
       if (!code) return null
       
+      // Access assetPrices to ensure reactivity when prices are updated
+      const _ = this.$store.getters['market/assetPrices']
+      
       // First, try to use provided fiat_amounts
       const provided = code && this.tx?.fiat_amounts ? this.tx.fiat_amounts[code] : undefined
       const numeric = Number(provided)
@@ -406,13 +409,14 @@ export default {
         : (this.tx.market_prices && this.tx.market_prices[code])
       
       // Third, fallback to current market price from store if historical price is not available
-      const currentPrice = price || this.$store.getters['market/getAssetPrice'](this.tx?.asset?.id || 'bch', code)
+      const assetId = this.tx?.asset?.id || 'bch'
+      const currentPrice = price || this.$store.getters['market/getAssetPrice'](assetId, code)
       if (!currentPrice || currentPrice === 0) return null
       
       let base = Math.abs(Number(this.tx.amount)) * Number(currentPrice)
       // Adjust for token decimals similar to list item computation
-      const assetId = String(this.tx?.asset?.id || '')
-      if (assetId && assetId !== 'bch') {
+      const assetIdStr = String(assetId)
+      if (assetIdStr && assetIdStr !== 'bch') {
         const decimals = parseInt(this.tx?.asset?.decimals) || 0
         if (decimals > 0) base = base / (10 ** decimals)
       }
@@ -423,15 +427,19 @@ export default {
       const code = this.selectedMarketCurrency
       if (!code) return null
       
+      // Access assetPrices to ensure reactivity when prices are updated
+      const _ = this.$store.getters['market/assetPrices']
+      
       // Get current price
-      const currentPrice = this.$store.getters['market/getAssetPrice'](this.tx?.asset?.id || 'bch', code)
+      const assetId = this.tx?.asset?.id || 'bch'
+      const currentPrice = this.$store.getters['market/getAssetPrice'](assetId, code)
       if (!currentPrice || currentPrice === 0) return null
       
       // Calculate current fiat value
       let base = Math.abs(Number(this.tx.amount)) * Number(currentPrice)
       // Adjust for token decimals
-      const assetId = String(this.tx?.asset?.id || '')
-      if (assetId && assetId !== 'bch') {
+      const assetIdStr = String(assetId)
+      if (assetIdStr && assetIdStr !== 'bch') {
         const decimals = parseInt(this.tx?.asset?.decimals) || 0
         if (decimals > 0) base = base / (10 ** decimals)
       }
@@ -617,11 +625,12 @@ export default {
         mutableTx = { ...mutableTx }
       }
       // Pass category parameter to ensure correct asset is attached
-      this.attachAssetIfMissing(mutableTx, categoryParam)
+      await this.attachAssetIfMissing(mutableTx, categoryParam)
       this.tx = mutableTx
       this.$nextTick(() => {
         this.loadMemo()
         this.loadFavorites()
+        this.fetchTokenPrice()
         // Launch confetti if this is a new transaction
         // Wait for DOM to be fully rendered before triggering
         if (isNewTransaction) {
@@ -661,6 +670,10 @@ export default {
     },
     darkMode () {
       this.updateBackgroundColors()
+    },
+    'tx.asset.id' () {
+      // Fetch token price when asset changes
+      this.fetchTokenPrice()
     }
   },
   methods: {
@@ -789,7 +802,7 @@ export default {
             }
             mutableTx.asset = assetCopy
           }
-          this.attachAssetIfMissing(mutableTx, categoryParam)
+          await this.attachAssetIfMissing(mutableTx, categoryParam)
           this.tx = mutableTx
           this.isLoading = false
           this.retryCount = 0
@@ -805,6 +818,7 @@ export default {
           this.$nextTick(() => {
             this.loadMemo()
             this.loadFavorites()
+            this.fetchTokenPrice()
             // Launch confetti if this is a new transaction
             // Wait for DOM to be fully rendered before triggering
             if (isNewTransaction) {
@@ -817,7 +831,7 @@ export default {
           if (retryAttempt >= 2 && wsData && isFromWebsocket) {
             console.log('[TransactionDetail] Using websocket data as fallback after', retryAttempt, 'retries')
             const mutableTx = this.createMutableCopy(wsData)
-            this.attachAssetIfMissing(mutableTx, categoryParam)
+            await this.attachAssetIfMissing(mutableTx, categoryParam)
             this.tx = mutableTx
             this.isLoading = false
             this.retryCount = 0
@@ -835,6 +849,7 @@ export default {
             this.$nextTick(() => {
               this.loadMemo()
               this.loadFavorites()
+              this.fetchTokenPrice()
               if (isNewTransaction) {
                 this.waitForRenderAndLaunchConfetti()
               }
@@ -854,7 +869,7 @@ export default {
             if (wsData && isFromWebsocket) {
               console.log('[TransactionDetail] All retries exhausted, using websocket data as final fallback')
               const mutableTx = this.createMutableCopy(wsData)
-              this.attachAssetIfMissing(mutableTx, categoryParam)
+              await this.attachAssetIfMissing(mutableTx, categoryParam)
               this.tx = mutableTx
               this.isLoading = false
               this.retryCount = 0
@@ -891,7 +906,7 @@ export default {
           console.log('[TransactionDetail] Using websocket data as fallback after error on retry', retryAttempt)
           const categoryParam = this.$route?.query?.category || ''
           const mutableTx = this.createMutableCopy(wsData)
-          this.attachAssetIfMissing(mutableTx, categoryParam)
+          await this.attachAssetIfMissing(mutableTx, categoryParam)
           this.tx = mutableTx
           this.isLoading = false
           this.retryCount = 0
@@ -908,6 +923,7 @@ export default {
           this.$nextTick(() => {
             this.loadMemo()
             this.loadFavorites()
+            this.fetchTokenPrice()
             if (isNewTransaction) {
               this.waitForRenderAndLaunchConfetti()
             }
@@ -931,7 +947,7 @@ export default {
             console.log('[TransactionDetail] All retries exhausted after error, using websocket data as final fallback')
             const categoryParam = this.$route?.query?.category || ''
             const mutableTx = this.createMutableCopy(wsData)
-            this.attachAssetIfMissing(mutableTx, categoryParam)
+            await this.attachAssetIfMissing(mutableTx, categoryParam)
             this.tx = mutableTx
             this.isLoading = false
             this.retryCount = 0
@@ -1025,7 +1041,7 @@ export default {
               mutableTx.asset = this.tx.asset
             }
             
-            this.attachAssetIfMissing(mutableTx, categoryParam)
+            await this.attachAssetIfMissing(mutableTx, categoryParam)
             this.tx = mutableTx
             this.usingWebsocketData = false // Enable memo button now
             this.backgroundFetchActive = false
@@ -1034,6 +1050,7 @@ export default {
             this.$nextTick(() => {
               this.loadMemo()
               this.loadFavorites()
+              this.fetchTokenPrice()
             })
           } else {
             // Not found yet, retry with exponential backoff
@@ -1202,6 +1219,35 @@ export default {
         this.favoritesEvaluated = true
       }
     },
+    async fetchTokenPrice () {
+      // Only fetch price for tokens (not BCH)
+      if (!this.tx || !this.tx.asset || !this.tx.asset.id) return
+      
+      const assetId = String(this.tx.asset.id)
+      // Skip if it's BCH or if price already exists in store
+      if (assetId === 'bch' || assetId === '') return
+      
+      // Check if price already exists
+      const code = this.selectedMarketCurrency
+      if (!code) return
+      
+      const existingPrice = this.$store.getters['market/getAssetPrice'](assetId, code)
+      if (existingPrice && existingPrice !== 0) {
+        // Price already exists, no need to fetch
+        return
+      }
+      
+      // Fetch price for this token
+      try {
+        await this.$store.dispatch('market/updateAssetPrices', {
+          assetId: assetId,
+          clearExisting: false
+        })
+      } catch (error) {
+        // Price might not be available for this token
+        console.debug('[TransactionDetail] Price not available for token:', assetId, error)
+      }
+    },
     async addTokenToFavorites () {
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
       
@@ -1297,7 +1343,7 @@ export default {
         this.addingToFavorites = false
       }
     },
-    attachAssetIfMissing (tx, categoryParam) {
+    async attachAssetIfMissing (tx, categoryParam) {
       if (!tx) return
       
       // If category parameter is provided, check if current asset matches it
@@ -1306,30 +1352,62 @@ export default {
         const expectedAssetId = `ct/${categoryParam}`
         const expectedSlpAssetId = `slp/${categoryParam}`
         
-        // If current asset doesn't match the category, replace it
-        if (currentAssetId !== expectedAssetId && currentAssetId !== expectedSlpAssetId) {
-          try {
-            const assets = this.$store.getters['assets/getAssets'] || []
-            const match = assets.find(a => {
-              const assetId = String(a?.id || '')
-              return assetId.endsWith(`/${categoryParam}`) && 
-                     (assetId.startsWith('ct/') || assetId.startsWith('slp/'))
-            })
-            if (match) {
-              // Create a mutable copy of the asset to avoid readonly issues
-              let assetCopy = this.createMutableCopy(match)
-              // Ensure the asset object itself is not frozen
-              if (Object.isFrozen(assetCopy)) {
-                assetCopy = { ...assetCopy }
-              }
-              tx.asset = assetCopy
-              return
-            }
-          } catch {}
-        } else if (currentAssetId === expectedAssetId || currentAssetId === expectedSlpAssetId) {
-          // Asset already matches, no need to change
+        // If current asset already matches, no need to change
+        if (currentAssetId === expectedAssetId || currentAssetId === expectedSlpAssetId) {
           return
         }
+        
+        // Current asset doesn't match the category, try to find the correct asset
+        try {
+          const assets = this.$store.getters['assets/getAssets'] || []
+          const match = assets.find(a => {
+            const assetId = String(a?.id || '')
+            return assetId.endsWith(`/${categoryParam}`) && 
+                   (assetId.startsWith('ct/') || assetId.startsWith('slp/'))
+          })
+          if (match) {
+            // Create a mutable copy of the asset to avoid readonly issues
+            let assetCopy = this.createMutableCopy(match)
+            // Ensure the asset object itself is not frozen
+            if (Object.isFrozen(assetCopy)) {
+              assetCopy = { ...assetCopy }
+            }
+            tx.asset = assetCopy
+            return
+          }
+        } catch {}
+        
+        // Asset not found in store, but category is provided - try to fetch metadata
+        // Default to ct (CashToken) as it's more common
+        const assetId = `ct/${categoryParam}`
+        let basicAsset = {
+          id: assetId,
+          symbol: categoryParam.substring(0, 8).toUpperCase(), // Use first 8 chars as symbol
+          name: `Token ${categoryParam.substring(0, 8)}`,
+          logo: '',
+          decimals: 0,
+          balance: 0
+        }
+        
+        // Try to fetch asset metadata from BCMR
+        try {
+          const metadata = await this.$store.dispatch('assets/getAssetMetadata', assetId)
+          if (metadata) {
+            basicAsset = {
+              id: assetId,
+              symbol: metadata.symbol || basicAsset.symbol,
+              name: metadata.name || basicAsset.name,
+              logo: metadata.logo || '',
+              decimals: metadata.decimals || 0,
+              balance: 0
+            }
+          }
+        } catch (error) {
+          console.log('[TransactionDetail] Could not fetch asset metadata for', assetId, error)
+        }
+        
+        tx.asset = basicAsset
+        return
       }
       
       // If no asset exists, try to resolve from category
@@ -1354,6 +1432,37 @@ export default {
               return
             }
           } catch {}
+          
+          // Category provided but asset not found - try to fetch metadata
+          const assetId = `ct/${categoryParam}`
+          let basicAsset = {
+            id: assetId,
+            symbol: categoryParam.substring(0, 8).toUpperCase(),
+            name: `Token ${categoryParam.substring(0, 8)}`,
+            logo: '',
+            decimals: 0,
+            balance: 0
+          }
+          
+          // Try to fetch asset metadata from BCMR
+          try {
+            const metadata = await this.$store.dispatch('assets/getAssetMetadata', assetId)
+            if (metadata) {
+              basicAsset = {
+                id: assetId,
+                symbol: metadata.symbol || basicAsset.symbol,
+                name: metadata.name || basicAsset.name,
+                logo: metadata.logo || '',
+                decimals: metadata.decimals || 0,
+                balance: 0
+              }
+            }
+          } catch (error) {
+            console.log('[TransactionDetail] Could not fetch asset metadata for', assetId, error)
+          }
+          
+          tx.asset = basicAsset
+          return
         }
 
         // Fallback to BCH

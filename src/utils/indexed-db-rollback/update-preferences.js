@@ -48,7 +48,6 @@ export async function updatePreferences () {
 
     const alreadyUpdated = window.localStorage.getItem(UPDATE_PREFERENCES_FLAG)
     if (Boolean(alreadyUpdated) === true) {
-        console.log('Preferences already updated:', alreadyUpdated)
         return
     }
 

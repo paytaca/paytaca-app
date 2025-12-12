@@ -268,7 +268,8 @@ module.exports = defineConfig((ctx) => {
         'Loading',
         'LocalStorage',
         'Notify',
-        'Dialog'
+        'Dialog',
+        'BottomSheet'
       ],
       components: [
         'QBanner'

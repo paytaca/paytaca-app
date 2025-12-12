@@ -75,20 +75,23 @@ export default {
     generating: {
       type: Boolean,
       default: false
+    },
+    padding: {
+      type: Number,
+      default: 30
     }
   },
   data () {
     return {
-      loading: true,
-      padding: 35
+      loading: true
     }
   },
   computed: {
     wrapperSize () {
       // Calculate border width in pixels (remove 'px' suffix if present)
       const borderWidth = parseFloat(this.borderWidth) || 0;
-      // CSS padding is 30px on all sides, so we need 60px total (30px * 2)
-      const cssPadding = 30 * 2;
+      // CSS padding on all sides, so we need padding * 2 total
+      const cssPadding = this.padding * 2;
       // Total wrapper size needed: QR size + CSS padding + border on both sides
       return this.size + cssPadding + (borderWidth * 2);
     }
@@ -218,7 +221,7 @@ export default {
   height: auto;
   max-width: 100%;
   max-height: 100%;
-  padding: 30px;
+  padding: v-bind(padding + 'px');
   background-color: white;
   border-radius: 10px;
   border-style: solid;

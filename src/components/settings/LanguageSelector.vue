@@ -50,7 +50,6 @@ export default {
     },
     currentLanguageLabel () {
       const langCode = this.currentLanguage
-      console.log('[LanguageSelector] Current language code:', langCode)
       
       // Normalize to lowercase for lookup
       const normalizedLangCode = langCode ? langCode.toLowerCase() : 'en-us'
@@ -63,7 +62,6 @@ export default {
       
       // Get the translation key for this language code (e.g., "English" for "en-us")
       const translationKey = translationKeys[lookupCode] || translationKeys[normalizedLangCode]
-      console.log('[LanguageSelector] Translation key found:', translationKey, 'for code:', lookupCode)
       
       if (!translationKey) {
         // If no translation key found, try to find a reasonable display name
@@ -90,7 +88,6 @@ export default {
           }
           const mapped = shortCodeMap[langCode.toLowerCase()]
           if (mapped) {
-            console.log('[LanguageSelector] Using short code map:', mapped)
             // Translate the mapped key
             return this.$t(mapped)
           }
@@ -106,7 +103,6 @@ export default {
       // Translate the translation key to show the language name in the current language
       // For example, if current language is Spanish and selected language is English,
       // this will show "Inglés" instead of "English"
-      console.log('[LanguageSelector] Translating key:', translationKey)
       return this.$t(translationKey)
     }
   },

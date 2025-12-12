@@ -1690,27 +1690,21 @@ export default {
     async initializeStep2 () {
       // Prevent duplicate calls
       if (this.step2Initialized) {
-        console.log('[Step 2] Already initialized, skipping geoip call')
         return
       }
       this.step2Initialized = true
-      console.log('[Step 2] Initializing step 2 - making geoip call...')
       
       try {
         // Auto-detect language and currency for step 2
         await this.$store.dispatch('market/updateSupportedCurrencies', {})
 
         const ipGeoPreferences = await this.getIPGeolocationPreferences()
-        console.log('[Step 2] Geoip preferences received:', ipGeoPreferences)
 
         // set currency immediately (no timeout) and persist
         // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
         const currencyOptions = this.$store.getters['market/currencyOptions']
-        console.log('[Step 2] Available currency options:', currencyOptions.map(c => ({ symbol: c.symbol, name: c.name })))
-        console.log('[Step 2] Looking for currency code:', ipGeoPreferences.currency.symbol)
         // Match by symbol (which is the currency code like "PHP")
         let currency = currencyOptions.find(o => o.symbol === ipGeoPreferences.currency.symbol)
-        console.log('[Step 2] Selected currency:', currency)
         
         // If currency not found in options, create it from geoip data
         if (!currency && ipGeoPreferences.currency.symbol && ipGeoPreferences.currency.name) {
@@ -1723,7 +1717,6 @@ export default {
           if (!updatedOptions.some(c => c.symbol === newCurrency.symbol)) {
             updatedOptions.push(newCurrency)
             this.$store.commit('market/updateCurrencyOptions', updatedOptions)
-            console.log('[Step 2] Added currency to options:', newCurrency)
           }
           // Get the currency reference from the store after updating (must be same reference for indexOf to work)
           const updatedCurrencyOptions = this.$store.getters['market/currencyOptions']
@@ -1741,13 +1734,11 @@ export default {
             this.$store.commit('market/updateSelectedCurrency', currencyFromState)
             // Also save to vault settings for wallet-specific storage
             this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currencyFromState })
-            console.log('[Step 2] Currency set to:', currencyFromState.symbol, currencyFromState.name)
           } else {
             // Fallback: use mutation to set currency if not found in state options array
             console.warn('[Step 2] Currency not in state options array, using fallback mutation')
             this.$store.commit('market/setSelectedCurrency', currency)
             this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currency })
-            console.log('[Step 2] Currency set via fallback mutation to:', currency.symbol, currency.name)
           }
         } else {
           console.warn('[Step 2] Currency not found and could not be created for:', ipGeoPreferences.currency.symbol)
@@ -1768,13 +1759,10 @@ export default {
         // Find first matching supported language
         let selectedLangCode = 'en-us' // default fallback
         const supportedLanguageCodes = Object.keys(supportedLangsI18n)
-        console.log('[Step 2] Language codes from geoip:', languageCodes)
-        console.log('[Step 2] Supported language codes:', supportedLanguageCodes)
         for (let languageCode of languageCodes) {
           // Try exact match first
           if (supportedLanguageCodes.includes(languageCode)) {
             selectedLangCode = languageCode
-            console.log('[Step 2] Exact language match found:', languageCode)
             break
           }
           // Try matching general language code (e.g., 'en' from 'en-ph')
@@ -1785,11 +1773,9 @@ export default {
           })
           if (languageMatched) {
             selectedLangCode = languageMatched
-            console.log('[Step 2] General language match found:', languageCode, '->', languageMatched)
             break
           }
         }
-        console.log('[Step 2] Selected language code:', selectedLangCode)
         
         // Always set language during registration (step 2), regardless of vault state
         // The vault entry exists but settings should be updated
@@ -1797,18 +1783,15 @@ export default {
           this.setLanguage(selectedLangCode)
           // Also save to vault settings explicitly
           this.$store.commit('global/saveWalletSetting', { key: 'language', value: selectedLangCode })
-          console.log('[Step 2] Language set to:', selectedLangCode)
         } else {
           console.warn('[Step 2] Invalid language code or not supported:', selectedLangCode)
         }
         
         // set country
-        console.log('[Step 2] Setting country:', ipGeoPreferences.country)
         this.$store.commit('global/setCountry', {
           country: ipGeoPreferences.country,
           denomination: 'BCH' // Default denomination, can be changed by user later
         })
-        console.log('[Step 2] Country set to:', ipGeoPreferences.country)
 
         // persist preferences to avoid later overrides (e.g., refetchWalletPreferences)
         await this.$store.dispatch('global/saveWalletPreferences').catch(() => {})
@@ -2134,7 +2117,6 @@ export default {
       let response
       try {
         response = await this.$axios.get(url)
-        console.log('[GeoIP] Raw API response:', response?.data)
       } catch (error) {
         console.error('[GeoIP] Error fetching geoip data:', error)
         // Return default values if API call fails
@@ -2146,7 +2128,6 @@ export default {
           name: response.data.country_name,
           code: response.data.country_code2
         }
-        console.log('[GeoIP] Country parsed:', result.country)
       } else {
         console.warn('[GeoIP] No country_name in response')
       }
@@ -2156,7 +2137,6 @@ export default {
           symbol: response.data.currency.code, // Store code as symbol (e.g., "PHP")
           name: response.data.currency.name
         }
-        console.log('[GeoIP] Currency parsed:', result.currency)
       } else {
         console.warn('[GeoIP] No currency.code in response:', response?.data?.currency)
       }
@@ -2173,12 +2153,10 @@ export default {
         })
         
         result.langs = langs
-        console.log('[GeoIP] Languages parsed:', result.langs)
       } else {
         console.warn('[GeoIP] No languages in response:', response?.data?.languages)
       }
       
-      console.log('[GeoIP] Final result:', result)
       return result
     },
     resolveDeviceLangCode() {

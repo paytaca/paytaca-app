@@ -24,10 +24,9 @@ export default boot(async (obj) => {
 
     // Hydrate Vuex store from localStorage if available
     // This is a manual hydration step to ensure the store is populated
-    const persistedState = localStorage.getItem('vuex')
+    let persistedState = localStorage.getItem('vuex')
     if (persistedState) {
       const parsedState = JSON.parse(persistedState)
-      
       // Ensure new wallet-specific structure exists after hydration
       // Migrate old structure to new structure if needed
       if (parsedState.ramp && !parsedState.ramp.byWallet) {
@@ -39,8 +38,13 @@ export default boot(async (obj) => {
         parsedState.paytacapos.byWallet = {}
       }
       
+      if (parsedState.global && !parsedState.global.cache) {
+        parsedState.global.cache = {
+          cashtokenIdentities: {}
+        }
+      }
+
       store.replaceState(parsedState)
-      console.log('[Hydration] Vuex state manually hydrated.')
     }
 
     // Add error handler for store mutations
