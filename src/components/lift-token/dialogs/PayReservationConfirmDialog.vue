@@ -109,7 +109,6 @@ export default {
   components: {
     DragSlide,
     ProgressLoader,
-    pinDialog,
   },
 
   data() {
