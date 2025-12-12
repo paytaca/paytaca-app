@@ -382,6 +382,7 @@ const loadSessionProposals = async ({ showLoading } = { showLoading: true }) => 
   try {
     if (web3Wallet.value) {
       const proposals = await web3Wallet.value.getPendingSessionProposals()
+      console.log('proposals', proposals)
       const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
       invalidChainSessionProposals.value = [];
       sessionProposals.value = proposals.filter((p) => {
@@ -620,6 +621,22 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
   try {
     const lastUsedWalletAddress =
       $store.getters['global/lastUsedAddressAtAppUrl'](sessionProposal?.proposer?.metadata?.url)
+
+    let addressSelection = walletAddresses.value.filter((addressInfo, i) => {
+      if (i > 9) return false // limit to 10 addresses
+      return true
+    })
+
+    if (lastUsedWalletAddress?.wallet_address) {
+      let lastUsedIsNotInSelection = !addressSelection?.find((addressInfo) => addressInfo.address === lastUsedWalletAddress?.wallet_address)
+      if (lastUsedIsNotInSelection) {
+        const lastUsedWalletAddressInfo = walletAddresses.value?.find(addressInfo => addressInfo.address === lastUsedWalletAddress?.wallet_address)
+        if (lastUsedWalletAddressInfo) {
+          addressSelection.unshift(lastUsedWalletAddressInfo)
+        }
+      }
+    }    
+
     const { selectedWalletAddress, isMultisig } = await new Promise((resolve, reject) => {
       $q.dialog({
         component: SelectAddressForSessionDialog,
@@ -628,7 +645,7 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
           // peerMeta: sessionProposal?.proposer?.metadata,
           sessionProposal: sessionProposal,
           darkMode: darkMode.value,
-          walletAddresses: walletAddresses.value,
+          walletAddresses: addressSelection,
           // multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
           // multisigWallets: [],
           lastUsedWalletAddress: lastUsedWalletAddress
@@ -1070,15 +1087,16 @@ const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('session_request_expire', onSessionExpire)
 }
 
-const refreshComponent = async () => {
+const refreshComponent = async (showLoading = true) => {
+  console.log('refreshComponent', showLoading)
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
   await $store.dispatch('global/loadWalletConnectedApps')
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
   walletAddresses.value = $store.getters['global/walletAddresses']
-  await loadSessionRequests({ showLoading: true })
-  await loadSessionProposals({ showLoading: true })
-  await loadActiveSessions({ showLoading: true })
+  await loadSessionRequests({ showLoading })
+  await loadSessionProposals({ showLoading })
+  await loadActiveSessions({ showLoading })
 }
 
 watchEffect(() => {
@@ -1086,14 +1104,7 @@ watchEffect(() => {
 })
 
 onBeforeMount(async () => {
-  await $store.dispatch('global/loadWalletLastAddressIndex')
-  await $store.dispatch('global/loadWalletAddresses')
-  await $store.dispatch('global/loadWalletConnectedApps')
-  watchtower.value = new Watchtower($store.getters['global/isChipnet'])
-  walletAddresses.value = $store.getters['global/walletAddresses']
-  await loadSessionRequests()
-  await loadSessionProposals()
-  await loadActiveSessions()
+  refreshComponent(false)
 })
 
 onMounted(async () => {
@@ -1115,7 +1126,7 @@ onMounted(async () => {
     // multisigWallets.value = $store.getters['multisig/getWallets']
     // TODO: load multisig wallets from watchtower
     walletAddresses.value = $store.getters['global/walletAddresses']
-    console.log('multisigWallets', multisigWallets.value)
+    
   } catch (error) {} finally { loading.value = undefined }
 })
 onUnmounted(() => {
@@ -1126,10 +1137,7 @@ onUnmounted(() => {
 
 defineExpose({
   onScannerDecode,
-  // statusUpdate,
   refreshComponent,
-  // web3Wallet,
-  // web3WalletPromise,
   connectNewSession
 })
 </script>
