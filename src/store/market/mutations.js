@@ -71,10 +71,19 @@ export function updateAssetPrices (state, payload) {
             ...state.assetPrices[i].prices,
             ...assetPrice.prices
           }
+          // Merge priceIds if they exist
+          let mergedPriceIds = state.assetPrices[i].priceIds || {}
+          if (assetPrice.priceIds && Object.keys(assetPrice.priceIds).length > 0) {
+            mergedPriceIds = {
+              ...mergedPriceIds,
+              ...assetPrice.priceIds
+            }
+          }
           // Replace the entire entry to ensure reactivity is triggered
           state.assetPrices[i] = {
             ...state.assetPrices[i],
-            prices: mergedPrices
+            prices: mergedPrices,
+            priceIds: mergedPriceIds
           }
         } else if (assetPrice.prices) {
           // If new prices object exists but is empty, still update to ensure consistency

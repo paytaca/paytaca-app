@@ -154,10 +154,13 @@ class Watchtower extends WatchtowerSdk {
     }
   }
 
-  async broadcastTx (tx, priceId) {
+  async broadcastTx (tx, priceId, outputFiatAmounts) {
     const body = { transaction: tx }
     if (priceId) {
       body.price_id = priceId
+    }
+    if (outputFiatAmounts) {
+      body.output_fiat_amounts = outputFiatAmounts
     }
     const r = await fetch(`${this._baseUrl}broadcast/`, {
       method: 'POST',

@@ -95,6 +95,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
       // Note: For tokens, API returns tokens/currency (e.g., tokens per PHP), but we need currency/token (e.g., PHP per token)
       // For BCH, API returns currency/BCH (e.g., PHP per BCH) which is already in the correct format
       const prices = {}
+      const priceIds = {} // Store price_id per currency
       const isToken = assetId && assetId !== 'bch' && assetId.includes('/')
       
       data.prices.forEach(priceData => {
@@ -117,6 +118,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
         // Check for price data - handle different possible field names
         const currency = priceData?.currency || priceData?.vs_currency || priceData?.currency_symbol
         const priceValue = priceData?.price_value || priceData?.price || priceData?.value
+        const priceId = priceData?.id || priceData?.price_id
         
         if (!currency || priceValue === undefined || priceValue === null) return
         
@@ -130,6 +132,10 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
         const price = isToken && rawPrice !== 0 ? 1 / rawPrice : rawPrice
         
         prices[currencyLower] = price
+        // Store price_id if available
+        if (priceId) {
+          priceIds[currencyLower] = priceId
+        }
       })
       
       // Only commit prices if we actually have at least one price
@@ -139,7 +145,8 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
       
       const newAssetPrices = [{
         assetId: assetId,
-        prices: prices
+        prices: prices,
+        priceIds: priceIds // Store price_ids per currency
       }]
       
       if (clearExisting) context.commit('clearAssetPrices')
