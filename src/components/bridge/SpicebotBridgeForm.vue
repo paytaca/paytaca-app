@@ -301,9 +301,8 @@
           right: 0,
           zIndex: 1500,
         }"
-        @swiped="confirmSwiped()"
+        @swiped="confirmSwiped"
       />
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
     </q-card>
   </div>
 </template>
@@ -317,8 +316,7 @@ import {
 } from '../../wallet/spicebot-bridge'
 import DragSlide from '../drag-slide.vue'
 import ProgressLoader from '../ProgressLoader.vue'
-import pinDialog from '../pin/index.vue'
-import { NativeBiometric } from 'capacitor-native-biometric'
+import SecurityCheckDialog from '../SecurityCheckDialog.vue'
 import SpicebotBridgeTokenSelectDialog from './SpicebotBridgeTokenSelectDialog.vue'
 import SpicebotBridgeSwapListenerDialog from './SpicebotBridgeSwapListenerDialog.vue'
 import { isHongKong, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -333,7 +331,6 @@ export default {
   components: {
     DragSlide,
     ProgressLoader,
-    pinDialog
   },
   data () {
     return {
@@ -369,7 +366,6 @@ export default {
         sentTxid: ''
       },
       senderAddress: '',
-      pinDialogAction: ''
     }
   },
   computed: {
@@ -546,58 +542,9 @@ export default {
       // this.stagedSwapInfo.showConfirmSwipe = true
     },
     confirmSwiped (reset = () => {}) {
-      this.stagedSwapInfo.showConfirmSwipe = false
-      this.executeSecurityChecking(reset)
-    },
-    executeSecurityChecking (reset = () => {}) {
-      const vm = this
-      setTimeout(() => {
-        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
-        if (preferredSecurity === 'pin') {
-          // Reset first to ensure watcher is triggered
-          vm.pinDialogAction = ''
-          vm.$nextTick(() => {
-            vm.pinDialogAction = 'VERIFY'
-          })
-        } else {
-          vm.verifyBiometric(reset)
-        }
-      }, 300)
-    },
-    verifyBiometric (reset = () => {}) {
-      const vm = this
-      NativeBiometric.verifyIdentity({
-        reason: vm.$t('NativeBiometricReason2'),
-        title: vm.$t('SecurityAuthentication'),
-        subtitle: vm.$t('NativeBiometricSubtitle'),
-        description: ''
-      }).then(
-        () => {
-          // Authentication successful
-          vm.commitStagedSwapInfo()
-        },
-        (error) => {
-          // Failed to authenticate
-          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
-            reset?.()
-            vm.stagedSwapInfo.showConfirmSwipe = true
-          } else if (error.message.includes('Too many attempts. Try again later.')) {
-            // Retry after delay
-            setTimeout(() => {
-              vm.verifyBiometric(reset)
-            }, 2000)
-          } else {
-            vm.verifyBiometric(reset)
-          }
-        }
-      )
-    },
-    pinDialogNextAction (action) {
-      if (action === 'proceed') {
-        this.commitStagedSwapInfo()
-      } else {
-        this.stagedSwapInfo.showConfirmSwipe = true
-      }
+      this.$q.dialog({ component: SecurityCheckDialog })
+        .onOk(() => this.commitStagedSwapInfo())
+        .onCancel(() => reset())
     },
     updateStagedSwapRequest () {
       this.stagedSwapInfo.updatingSwapRequest = true

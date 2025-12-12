@@ -44,7 +44,7 @@
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
-                      <div class="col-12 tile-label">Deposit</div>
+                      <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
                     </div>
                   </template>
                 </q-btn>
@@ -56,7 +56,7 @@
                         {{ psts.length }}
                         </q-badge>
                       </q-icon>
-                      <div class="col-12 tile-label">Proposals</div>
+                      <div class="col-12 tile-label">{{ $t('Proposals') }}</div>
                     </div>
                   </template>
                 </q-btn>
@@ -65,7 +65,7 @@
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box-multiple" class="col-12" color="primary" style="position:relative">
                       </q-icon>
-                      <div class="col-12 tile-label">Addresses</div>
+                      <div class="col-12 tile-label">{{ $t('Addresses') }}</div>
                     </div>
                   </template>
                 </q-btn>
@@ -73,7 +73,7 @@
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="more_horiz" class="col-12" color="primary"></q-icon>
-                      <div class="col-12 tile-label">More</div>
+                      <div class="col-12 tile-label">{{ $t('More') }}</div>
                     </div>
                   </template>
                 </q-btn>
@@ -83,7 +83,7 @@
               <q-separator spaced inset />
               <q-item>
                 <q-item-section>
-                  <q-item-label>Id</q-item-label>
+                  <q-item-label>{{ $t('WalletId') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                  <q-item-label class="flex flex-wrap items-center">
@@ -94,7 +94,7 @@
               
               <q-item>
                 <q-item-section>
-                  <q-item-label>Required Signatures</q-item-label>
+                  <q-item-label>{{ $t('RequiredSignatures') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label caption>{{ wallet.m }} of {{ wallet.signers.length }}</q-item-label>
@@ -118,7 +118,7 @@
               <q-expansion-item v-model="balancesExpanded">
                 <template v-slot:header>
                   <q-item-section>
-                    Balances
+                    {{ $t('Balances') }}
                   </q-item-section>
                 </template>
                 <q-item clickable :to="{name: 'app-multisig-wallet-asset', params: {wallethash: wallet.getWalletHash()}, query: { asset: 'bch' } }">
@@ -336,24 +336,24 @@ const openWalletActionsDialog = () => {
   }
 
   $q.bottomSheet({
-    title: 'Wallet Options',
+    title: $t('WalletOptions'),
     grid: true,
     actions: [
       {
         icon: 'delete_forever',
-        label: 'Delete Wallet',
+        label: $t('DeleteWallet'),
         value: 'delete-wallet',
         color: 'red'
       },
       {
         icon: 'cloud_upload',
-        label: 'Sync Wallet',
+        label: $t('SyncWallet'),
         value: 'sync-wallet',
         color: 'primary'
       },
       {
         icon: 'mdi-file-export',
-        label: 'Export Wallet',
+        label: $t('ExportWallet'),
         value: 'export-wallet',
         color: 'primary'
       }
@@ -363,9 +363,9 @@ const openWalletActionsDialog = () => {
   }).onOk(async (action) => {
     if (action.value === 'delete-wallet') {
        $q.dialog({
-          message: 'Are you sure you want to delete wallet?',
-          ok: { label: 'Yes' },
-          cancel: { label: 'No' },
+          message: $t('AreYouSureDeleteWallet'),
+          ok: { label: $t('Yes') },
+          cancel: { label: $t('No') },
           class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         }).onOk(() => {
           wallet.value.delete({ sync: false })

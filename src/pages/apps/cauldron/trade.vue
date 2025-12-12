@@ -262,7 +262,6 @@
                     :disable="!hasSufficientBalance"
                     @swiped="securityCheck"
                   />
-                  <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
                   <div
                     v-if="showInsufficientBalance"
                     class="insufficient-balance-alert q-mt-md"
@@ -307,8 +306,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex'
 import { reactive, ref, computed, defineComponent, watch, onMounted, onUnmounted } from "vue";
 import HeaderNav from 'src/components/header-nav'
-import pinDialog from 'src/components/pin/index.vue';
-import { NativeBiometric } from 'capacitor-native-biometric';
+import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
 import CustomInput from 'src/components/CustomInput.vue';
 import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
@@ -324,7 +322,6 @@ import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
 export default defineComponent({
   name: 'cauldron',
   components: {
-    pinDialog,
     HeaderNav,
     DragSlide,
     CustomInput,
@@ -376,7 +373,6 @@ export default defineComponent({
     const showTokenDialog = ref(false);
     const isRecomputingTrade = ref(false);
     const tokenSelectDialog = ref();
-    const pinDialogAction = ref('');
 
     function updateAmountInput(value) {
       amountInputString.value = value || '';
@@ -744,52 +740,9 @@ export default defineComponent({
     });
 
     function securityCheck(resetSwipe=() => {}) {
-      executeSecurityChecking(resetSwipe)
-    }
-    function executeSecurityChecking(reset = () => {}) {
-      setTimeout(() => {
-        const preferredSecurity = $store?.getters?.['global/preferredSecurity']
-        if (preferredSecurity === 'pin') {
-          // Reset first to ensure watcher is triggered
-          pinDialogAction.value = ''
-          setTimeout(() => {
-            pinDialogAction.value = 'VERIFY'
-          }, 0)
-        } else {
-          verifyBiometric(reset)
-        }
-      }, 300)
-    }
-    function verifyBiometric(reset = () => {}) {
-      NativeBiometric.verifyIdentity({
-        reason: $t('NativeBiometricReason2'),
-        title: $t('SecurityAuthentication'),
-        subtitle: $t('NativeBiometricSubtitle'),
-        description: ''
-      }).then(
-        () => {
-          // Authentication successful
-          commitTrade()
-        },
-        (error) => {
-          // Failed to authenticate
-          if (error.message.includes('Cancel') || error.message.includes('Authentication cancelled') || error.message.includes('Fingerprint operation cancelled')) {
-            reset?.()
-          } else if (error.message.includes('Too many attempts. Try again later.')) {
-            // Retry after delay
-            setTimeout(() => {
-              verifyBiometric(reset)
-            }, 2000)
-          } else {
-            verifyBiometric(reset)
-          }
-        }
-      )
-    }
-    function pinDialogNextAction(action) {
-      if (action === 'proceed') {
-        commitTrade()
-      }
+      $q.dialog({ component: SecurityCheckDialog })
+        .onOk(() => commitTrade())
+        .onCancel(() => resetSwipe?.())
     }
 
     async function commitTrade() {

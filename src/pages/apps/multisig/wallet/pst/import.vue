@@ -16,16 +16,16 @@
                 <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
                   <q-icon class="default-text-color"  size="lg" name="qr_code" />
                 </q-btn>
-                <div class="q-pt-xs text-center text-capitalize">Scan Qr Code</div>
+                <div class="q-pt-xs text-center text-capitalize">{{ $t('ScanQrCode') }}</div>
               </div>
               <div>
                 <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
                   <q-icon class="default-text-color"  size="lg" name="upload_file" @click="importPsbt"/>
                 </q-btn>
-                <div class="q-pt-xs text-center text-capitalize">Load From File</div>
+                <div class="q-pt-xs text-center text-capitalize">{{ $t('LoadFromFile') }}</div>
               </div>
               <div>
-                <q-btn size="lg" label="Cancel" @click="router.back()" color="red" v-close-popup></q-btn>
+                <q-btn size="lg" :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup></q-btn>
               </div>
           </div>
        </div>

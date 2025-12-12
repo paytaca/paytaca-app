@@ -12,7 +12,7 @@
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-wallet-plus-outline" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Create Wallet</div>
+              <div class="col-12 tile-label">{{ $t('CreateWalletLabel') }}</div>
             </div>
           </template>
         </q-btn>
@@ -20,7 +20,7 @@
           <template v-slot:default>
             <div class="row justify-center">
               <q-icon name="mdi-wallet-plus" class="col-12" color="primary"></q-icon>
-              <div class="col-12 tile-label">Import Wallet</div>
+              <div class="col-12 tile-label">{{ $t('ImportWalletLabel') }}</div>
             </div>
           </template>
         </q-btn>

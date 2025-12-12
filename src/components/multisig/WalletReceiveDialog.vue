@@ -3,7 +3,7 @@
     <q-card class="q-dialog-plugin pt-card row items-center justify-center text-bow" style="margin-top: -20px" :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
         <div class="text-grad text-center text-h6">{{$t('Receive')}}</div>
-        <div class="text-subtitle-2 text-center text-bow-muted">Scan the QR Code from your device</div>
+        <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ScanQRCodeFromDevice') }}</div>
         <div class="text-center" style="margin-top: 20px;">
           <q-img @click="isCt = false" src="bitcoin-cash-circle.svg" height="35px" width="35px" />
           <span @click="isCt = false">&nbsp;BCH</span>
@@ -23,17 +23,17 @@
         </div>
         <qr-code :text="address.address" :size="220" :icon="isCashtoken ? 'ct-logo.png': 'bch-logo.png' "></qr-code>
         <div v-if="address" class="text-center text-caption flex flex-wrap justify-center items-center q-mt-sm q-gutter-x-sm">
-            Address-{{ addressIndex }}: {{shortenAddressForDisplay(address.address)}} 
+            {{ $t('AddressLabel') }}-{{ addressIndex }}: {{shortenAddressForDisplay(address.address)}} 
             <CopyButton :text="address.address"/>
         </div>
         <div class="text-center">
-          <q-btn icon="rotate_right" color="primary" flat dense @click="prevAddress" :disable="addressIndex === 0">Prev Address</q-btn>
-          <q-btn icon="rotate_left" color="primary"flat dense @click="nextAddress">Next Address</q-btn>
+          <q-btn icon="rotate_right" color="primary" flat dense @click="prevAddress" :disable="addressIndex === 0">{{ $t('PrevAddress') }}</q-btn>
+          <q-btn icon="rotate_left" color="primary"flat dense @click="nextAddress">{{ $t('NextAddress') }}</q-btn>
         </div>
           
       </q-card-section>
       <q-card-actions>
-        <q-btn label="Close" @click="onDialogOkWrapper" color="red" v-close-popup></q-btn>
+        <q-btn :label="$t('Close')" @click="onDialogOkWrapper" color="red" v-close-popup></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -41,7 +41,10 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
+const { t: $t } = useI18n()
 import { getMultisigCashAddress } from 'src/lib/multisig'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { CashAddressType, decodeCashAddress, encodeCashAddress } from 'bitauth-libauth-v3'
