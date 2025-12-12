@@ -382,7 +382,6 @@ const loadSessionProposals = async ({ showLoading } = { showLoading: true }) => 
   try {
     if (web3Wallet.value) {
       const proposals = await web3Wallet.value.getPendingSessionProposals()
-      console.log('proposals', proposals)
       const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
       invalidChainSessionProposals.value = [];
       sessionProposals.value = proposals.filter((p) => {
@@ -633,6 +632,9 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
         const lastUsedWalletAddressInfo = walletAddresses.value?.find(addressInfo => addressInfo.address === lastUsedWalletAddress?.wallet_address)
         if (lastUsedWalletAddressInfo) {
           addressSelection.unshift(lastUsedWalletAddressInfo)
+          if (addressSelection.length > 10) {
+            addressSelection.pop()
+          }
         }
       }
     }    
@@ -875,7 +877,6 @@ const respondToSignMessageRequest = async (sessionRequest) => {
   } finally {
     if (!response.result) delete response.result
     if (!response.error) delete response.error
-    console.log(sessionRequest?.params?.request?.method, 'response', response);
     await web3Wallet.value.respondSessionRequest({ topic: sessionRequest.topic, response })
     if (!sessionRequest.error) {
       sessionRequest.confirmed = true
@@ -972,7 +973,6 @@ const openSessionRequestDialog = (sessionRequest) => {
 }
 
 const rejectSessionRequest = async (sessionRequest) => {
-  console.log('🚀 ~ rejectSessionRequest ~ sessionRequest:', sessionRequest)
   const id = sessionRequest?.id
   const topic = sessionRequest?.topic
   try {
@@ -1017,12 +1017,6 @@ async function wcVersionUpgradeMigration() {
 }
 
 const loadWeb3Wallet = async () => {
-  // console.log('🚀 ~ loadWeb3Wal ~ chipnet:', chipnet)
-  // web3WalletPromise.value = initWeb3Wallet(chipnet)
-  // const _web3Wallet = await web3WalletPromise.value
-  // web3Wallet.value = _web3Wallet
-  // window.w3w = _web3Wallet
-
   web3Wallet.value = await initWeb3Wallet()
   window.w3w = web3Wallet.value
 }
@@ -1088,7 +1082,6 @@ const detachEventsListeners = (_web3Wallet) => {
 }
 
 const refreshComponent = async (showLoading = true) => {
-  console.log('refreshComponent', showLoading)
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
   await $store.dispatch('global/loadWalletConnectedApps')
@@ -1104,7 +1097,7 @@ watchEffect(() => {
 })
 
 onBeforeMount(async () => {
-  refreshComponent(false)
+  await refreshComponent(false)
 })
 
 onMounted(async () => {
