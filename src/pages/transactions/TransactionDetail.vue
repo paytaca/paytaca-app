@@ -1251,6 +1251,45 @@ export default {
     async addTokenToFavorites () {
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
       
+      // Check subscription limit before adding
+      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      
+      // Fetch current favorites to check count
+      let currentFavorites = await assetSettings.fetchFavorites()
+      if (!Array.isArray(currentFavorites)) {
+        currentFavorites = []
+      }
+      
+      // Count current favorites (where favorite === 1)
+      const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
+      
+      // Check if this token is already a favorite
+      const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && fav.favorite === 1)
+      
+      // If not already a favorite, check limit
+      if (!isAlreadyFavorite) {
+        const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+        if (currentFavoriteCount >= limit) {
+          this.$q.notify({
+            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus for more favorites.'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 3000,
+            actions: [
+              {
+                label: this.$t('LearnMore', {}, 'Learn More'),
+                color: 'white',
+                handler: () => {
+                  this.$router.push('/apps/lift-token')
+                }
+              }
+            ]
+          })
+          return
+        }
+      }
+      
       this.addingToFavorites = true
       try {
         // Determine network: 'sBCH' for smartchain tokens, 'BCH' for mainchain tokens
@@ -1287,12 +1326,6 @@ export default {
           assetIds.unshift(this.tokenAssetId)
           customList[selectedNetwork] = assetIds
           await assetSettings.saveCustomList(customList)
-        }
-        
-        // Fetch current favorites to preserve favorites from all networks
-        let currentFavorites = await assetSettings.fetchFavorites()
-        if (!Array.isArray(currentFavorites)) {
-          currentFavorites = []
         }
         
         // Create a map of existing favorites for quick lookup

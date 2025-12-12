@@ -237,6 +237,20 @@ const onResetClicked = () => {
 }
 
 const onCreateClicked = async () => {
+  // Check subscription limit before creating
+  await $store.dispatch('subscription/checkSubscriptionStatus')
+  const canCreate = $store.getters['subscription/canPerformAction']('multisigWallets')
+  
+  if (!canCreate) {
+    $q.dialog({
+      component: () => import('src/components/subscription/UpgradePromptDialog.vue'),
+      componentProps: {
+        darkMode: darkMode.value,
+        limitType: 'multisigWallets'
+      }
+    })
+    return
+  }
 
   const spec = {
     name: name.value,

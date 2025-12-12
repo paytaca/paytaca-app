@@ -454,6 +454,16 @@ export default {
         return new Date(b.date_created) - new Date(a.date_created)
       })
     },
+    unclaimedGiftsCount () {
+      if (this.activeTab !== 'unclaimed') return 0
+      return this.giftsList.filter(gift => gift.date_claimed === 'None' && !gift.recovered).length
+    },
+    unclaimedGiftsLimit () {
+      return this.$store.getters['subscription/getLimit']('unclaimedGifts')
+    },
+    isUnclaimedGiftsLimitReached () {
+      return this.unclaimedGiftsCount >= this.unclaimedGiftsLimit
+    },
     tableColumns () {
       const columns = [
         {

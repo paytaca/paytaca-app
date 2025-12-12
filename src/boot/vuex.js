@@ -43,6 +43,32 @@ export default boot(async (obj) => {
           cashtokenIdentities: {}
         }
       }
+      
+      // Ensure subscription module state is initialized
+      if (!parsedState.subscription) {
+        parsedState.subscription = {
+          isPlus: false,
+          liftTokenBalance: 0,
+          lastChecked: null,
+          limits: {
+            free: {
+              wallets: 3,
+              favoriteTokens: 7,
+              multisigWallets: 3,
+              unclaimedGifts: 7,
+              merchants: 3
+            },
+            plus: {
+              wallets: 12,
+              favoriteTokens: 24,
+              multisigWallets: 12,
+              unclaimedGifts: 24,
+              merchants: 12
+            }
+          },
+          minLiftTokens: 100
+        }
+      }
 
       store.replaceState(parsedState)
     }
