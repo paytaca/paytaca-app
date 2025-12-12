@@ -61,7 +61,7 @@ export function getWalletByHash (state) {
 
 export function getPsbtByUnsignedTransactionHash (state) {
   return (hash) => {
-    return state.psbts.find(p => {
+    return state.psbts?.find(p => {
       const psbt = new Psbt()
       psbt.deserialize(p)
       return hashTransaction(psbt.getUnsignedTx()) === hash
@@ -71,7 +71,7 @@ export function getPsbtByUnsignedTransactionHash (state) {
 
 export function getPsbtsByWalletHash (state) {
   return (hash) => {
-    return state.psbts.filter(p => {
+    return state.psbts?.filter(p => {
       const pst = Pst.import(p)
       const mValues = [...new Set(pst.inputs?.map(i => {
         if (!i.redeemScript) return null;

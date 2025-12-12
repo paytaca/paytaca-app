@@ -634,47 +634,44 @@ async getWalletUtxos() {
   }, -1)
 
 
-  const syncAddressIndicesPromises = []
+  // const syncAddressIndicesPromises = []
 
   if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
     this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
     this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
-    syncAddressIndicesPromises.push({
-      key: 'lastUsedDepositAddressIndex',
-      promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network)  
-    })
+    // syncAddressIndicesPromises.push({
+    //   key: 'lastUsedDepositAddressIndex',
+    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network)  
+    // })
   }
 
   if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
     this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
     this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
-    syncAddressIndicesPromises.push({
-      key: 'lastUsedChangeAddressIndex',
-      promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedChangeAddressIndex(this, highestUsedChangeAddressIndex, this.options.provider.network)  
-    })
+    // syncAddressIndicesPromises.push({
+    //   key: 'lastUsedChangeAddressIndex',
+    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedChangeAddressIndex(this, highestUsedChangeAddressIndex, this.options.provider.network)  
+    // })
   }
 
   if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
     this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
     this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
-    syncAddressIndicesPromises.push({
-      key: 'lastIssuedDepositAddressIndex',
-      promise: async () => await this.options?.coordinationServer?.updateWalletLastIssuedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network) 
-    })
-    
+    // syncAddressIndicesPromises.push({
+    //   key: 'lastIssuedDepositAddressIndex',
+    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastIssuedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network) 
+    // })    
   }
 
-  const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
-  results.forEach((res, i) => {
-      const key = syncAddressIndicesPromises[i].key;
-      if (res.status === 'fullfilled') {
-        // Replace with the actual value here
-        console.log(`${key.replace(/^l/,'L')} success:`, results.data);
-      } 
-      // rejected
-    });
-
-  
+  // const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
+  // results.forEach((res, i) => {
+  //     const key = syncAddressIndicesPromises[i].key;
+  //     if (res.status === 'fullfilled') {
+  //       // Replace with the actual value here
+  //       console.log(`${key.replace(/^l/,'L')} success:`, results.data);
+  //     } 
+  //     // rejected
+  //   });
 
   this._utxos = utxos?.flat()
   return this._utxos
@@ -842,10 +839,10 @@ async issueDepositAddress(addressIndex) {
       { wallet: this, lastUsedChangeAddressIndex: addressIndex, network: this.options.provider.network }
     ) 
     
-    this.options
-        ?.coordinationServer
-        ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
-        .catch(e => e)
+    // this.options
+    //     ?.coordinationServer
+    //     ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
+    //     .catch(e => e)
     
     retryWithBackoff(async () => {
       return await this.options?.store?.dispatch(

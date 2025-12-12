@@ -23,7 +23,7 @@
                   <q-card-section class="row items-center justify-between">
                     <div class="flex justify-start items-center q-gutter-x-sm">
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                      <span class="text-h5 text-bold">{{ balances?.['bch'] ? balances?.['bch'] / 1e8 : "..." }}</span>
+                      <span class="text-h5 text-bold">{{ balances?.['bch'] || balances?.['bch'] == 0 ? balances?.['bch'] / 1e8 : "..." }}</span>
                       <q-btn 
                         @click="refreshBalance"
                         :icon="!balancesRefreshing? 'refresh': ''"
