@@ -289,6 +289,9 @@ const sendable = computed(() => {
 
 const removeRecipient = (index) => {
   recipients.value.splice(index, 1)
+  recipientRefs.value.splice(index, 1)
+  addressInputRefs.value.splice(index, 1)
+  amountInputRefs.value.splice(index, 1)
 }
 
 const addRecipient = async () => {
