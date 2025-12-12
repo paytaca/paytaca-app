@@ -12,131 +12,365 @@
     />
 
     <div class="q-px-md">
-      <!-- loading skeletons animation -->
-
-      <!-- <template> -->
-      <!-- buttons div -->
-      <!-- <div id="buttons-div" class="row justify-end items-center q-gutter-x-sm">
-        <q-btn
-          round
-          flat
-          :icon="record.is_favorite ? 'mdi-star' : 'mdi-star-outline'"
-          color="primary"
-        />
-        <q-btn
-          round
-          flat
-          icon="edit"
-          color="primary"
-        />
-        <q-btn
-          round
-          flat
-          icon="delete"
-          color="primary"
-        />
-      </div> -->
-
-      <!-- record details -->
-      <div class="q-mt-sm">
-        <q-card id="record-details" class="q-pa-md q-mb-md record-card">
-          <!-- name and date created -->
-          <div class="text-left q-mb-md">
-            <p class="text-h6 q-mb-xs">{{ record.name }}</p>
-            <p class="text-caption q-mb-none">
-              Created last {{ record.date_created }}
-            </p>
+      <!-- Loading skeleton -->
+      <div v-if="loading" class="q-mt-sm">
+        <q-card class="q-pa-md q-mb-md record-card">
+          <q-skeleton type="text" width="60%" class="q-mb-md" />
+          <q-skeleton type="text" width="40%" />
+          <q-separator class="q-my-md" />
+          <div class="row justify-evenly">
+            <q-skeleton type="circle" size="40px" />
+            <q-skeleton type="circle" size="40px" />
+            <q-skeleton type="circle" size="40px" />
           </div>
+        </q-card>
+        <q-skeleton type="rect" height="200px" class="q-mb-sm" />
+      </div>
 
-          <q-separator class="q-mb-md" />
-
-          <!-- buttons div -->
-          <div class="row justify-evenly items-center q-gutter-x-md">
+      <!-- Error state -->
+      <div v-else-if="error" class="q-mt-sm">
+        <q-card class="q-pa-md record-card">
+          <div class="text-center">
+            <q-icon name="error_outline" size="48px" color="negative" class="q-mb-md" />
+            <p class="text-h6 q-mb-xs">{{ error }}</p>
             <q-btn
-              round
-              :outline="!record.is_favorite"
-              :icon="record.is_favorite ? 'mdi-star' : 'mdi-star-outline'"
-              color="primary"
-              @click="record.is_favorite = !record.is_favorite"
-            />
-            <q-btn
-              round
               outline
-              icon="edit"
               color="primary"
-            />
-            <q-btn
-              round
-              outline
-              icon="delete"
-              color="primary"
+              label="Retry"
+              @click="loadRecord"
+              class="q-mt-md"
             />
           </div>
         </q-card>
+      </div>
 
-        <!-- addresses list -->
-        <div>
-          <span
-            id="addresses-list-label"
-            class="row text-subtitle1 text-weight-bold q-mb-sm"
-          >
-            Addresses List
-          </span>
+      <!-- Main content -->
+      <template v-else>
+        <!-- record details -->
+        <div class="q-mt-sm">
+          <q-card id="record-details" class="q-pa-md q-mb-md record-card">
+            <!-- name and date created -->
+            <div class="text-left q-mb-md">
+              <p class="text-h6 q-mb-xs">{{ record.name }}</p>
+              <div class="text-caption q-mb-none">
+                <span>Created {{ formattedDate }}</span>
+                <span v-if="record.date_updated" class="q-ml-sm">
+                  • Updated {{ formatDate(record.date_updated, true) }}
+                </span>
+              </div>
+            </div>
 
-          <div id="addresses-list" v-if="record.address_list.length > 0">
+            <q-separator class="q-mb-md" />
+
+            <!-- buttons div -->
+            <div class="row justify-evenly items-center q-gutter-x-md">
+              <q-btn
+                round
+                :outline="!record.is_favorite"
+                :icon="record.is_favorite ? 'mdi-star' : 'mdi-star-outline'"
+                color="primary"
+                @click="toggleFavorite"
+                :aria-label="record.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
+              >
+                <q-tooltip>{{ record.is_favorite ? 'Remove from favorites' : 'Add to favorites' }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                outline
+                icon="edit"
+                color="primary"
+                @click="handleEdit"
+                aria-label="Edit contact"
+              >
+                <q-tooltip>Edit contact</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                outline
+                icon="delete"
+                color="primary"
+                @click="handleDelete"
+                aria-label="Delete contact"
+              >
+                <q-tooltip>Delete contact</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                outline
+                icon="share"
+                color="primary"
+                @click="handleShare"
+                aria-label="Share contact"
+              >
+                <q-tooltip>Share contact</q-tooltip>
+              </q-btn>
+            </div>
+          </q-card>
+
+          <!-- addresses list -->
+          <div>
+            <div class="row items-center justify-between q-mb-sm">
+              <span
+                id="addresses-list-label"
+                class="text-subtitle1 text-weight-bold"
+              >
+                Addresses List
+                <q-badge
+                  v-if="record.address_list.length > 0"
+                  color="primary"
+                  :label="record.address_list.length"
+                  class="q-ml-sm"
+                />
+              </span>
+              <q-btn
+                v-if="record.address_list.length > 0"
+                flat
+                dense
+                icon="search"
+                color="primary"
+                @click="showSearch = !showSearch"
+                aria-label="Search addresses"
+              >
+                <q-tooltip>Search addresses</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                dense
+                icon="add"
+                color="primary"
+                @click="handleAddAddress"
+                aria-label="Add address"
+              >
+                <q-tooltip>Add address</q-tooltip>
+              </q-btn>
+            </div>
+
+            <!-- Search input -->
+            <q-input
+              v-if="showSearch && record.address_list.length > 0"
+              v-model="searchQuery"
+              outlined
+              dense
+              clearable
+              placeholder="Search addresses..."
+              class="q-mb-md"
+              :class="getDarkModeClass(darkMode)"
+            >
+              <template v-slot:prepend>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+
+            <div id="addresses-list" v-if="filteredAddresses.length > 0">
+              <q-card
+                v-for="(address, index) in filteredAddresses"
+                :key="index"
+                flat
+                bordered
+                class="q-mb-sm record-card address-card"
+                :class="{ 'address-copied': copiedAddressIndex === index }"
+              >
+                <q-item>
+                  <q-item-section>
+                    <div class="row items-center q-gutter-xs">
+                      <q-item-label 
+                        class="address-text"
+                        @click="copyToClipboard(address.address, index)"
+                        style="cursor: pointer;"
+                      >
+                        {{ formatAddress(address.address) }}
+                      </q-item-label>
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        size="xs"
+                        icon="content_copy"
+                        color="primary"
+                        @click.stop="copyToClipboard(address.address, index)"
+                        aria-label="Copy address"
+                      >
+                        <q-tooltip>Copy address</q-tooltip>
+                      </q-btn>
+                    </div>
+                    <q-item-label caption class="q-mt-xs">
+                      <q-chip
+                        :color="getAddressTypeColor(address.type)"
+                        text-color="white"
+                        size="sm"
+                        :icon="getAddressTypeIcon(address.type)"
+                      >
+                        {{ formatAddressType(address.type) }}
+                      </q-chip>
+                    </q-item-label>
+                  </q-item-section>
+
+                  <q-item-section side>
+                    <q-btn
+                      round
+                      flat
+                      icon="more_vert"
+                      color="primary"
+                      size="sm"
+                      aria-label="Address actions"
+                    >
+                      <q-menu
+                        :class="getDarkModeClass(darkMode)"
+                        anchor="bottom right"
+                        self="top right"
+                      >
+                        <q-list style="min-width: 200px">
+                          <q-item
+                            clickable
+                            v-close-popup
+                            @click="handleSend(address.address, address.type)"
+                          >
+                            <q-item-section avatar>
+                              <q-icon name="mdi-send" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>Send to this address</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                          <q-item
+                            clickable
+                            v-close-popup
+                            @click="showQrCode(address)"
+                          >
+                            <q-item-section avatar>
+                              <q-icon name="qr_code" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>View QR Code</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                          <q-item
+                            clickable
+                            v-close-popup
+                            @click="handleShareAddress(address.address)"
+                          >
+                            <q-item-section avatar>
+                              <q-icon name="share" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>Share address</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                          <q-separator />
+                          <q-item
+                            clickable
+                            v-close-popup
+                            @click="handleRemoveAddress(index)"
+                          >
+                            <q-item-section avatar>
+                              <q-icon name="delete" color="negative" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label class="text-negative">Remove from contact</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-menu>
+                    </q-btn>
+                  </q-item-section>
+                </q-item>
+              </q-card>
+            </div>
+
+            <!-- Empty state -->
             <q-card
-              v-for="(address, index) in record.address_list"
-              :key="index"
+              v-else-if="!loading && !error"
               flat
               bordered
-              class="q-mb-sm record-card address-card"
+              class="record-card empty-state-card"
             >
-              <q-item>
-                <q-item-section>
-                  <q-item-label 
-                    class="address-text"
-                    @click="copyToClipboard(address.address)"
-                    style="cursor: pointer;"
-                  >
-                    {{ formatAddress(address.address) }}
-                  </q-item-label>
-                  <q-item-label caption class="q-mt-xs">
-                    {{ formatAddressType(address.type) }}
-                  </q-item-label>
-                </q-item-section>
-
-                <q-item-section side>
-                  <q-btn
-                    round
-                    flat
-                    icon="mdi-send"
-                    color="primary"
-                    size="sm"
-                  >
-                    <q-tooltip>Send to this address</q-tooltip>
-                  </q-btn>
-                </q-item-section>
-              </q-item>
+              <div class="text-center q-pa-xl">
+                <q-icon
+                  name="mdi-wallet-outline"
+                  size="64px"
+                  :color="darkMode ? 'grey-5' : 'grey-7'"
+                  class="q-mb-md"
+                />
+                <p
+                  class="text-h6 q-mb-xs"
+                  :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+                >
+                  No addresses added yet
+                </p>
+                <p
+                  class="text-body2 q-mb-md"
+                  :class="darkMode ? 'text-grey-6' : 'text-grey-6'"
+                >
+                  Add an address to get started
+                </p>
+                <q-btn
+                  outline
+                  color="primary"
+                  icon="add"
+                  label="Add Address"
+                  @click="handleAddAddress"
+                  class="q-mt-sm"
+                />
+              </div>
             </q-card>
           </div>
-
-          <div
-            class="text-body text-center q-mt-sm"
-            :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-            v-else
-          >
-            No addresses added yet
-          </div>
         </div>
-      </div>
-      <!-- </template> -->
+      </template>
     </div>
+
+    <!-- QR Code Dialog -->
+    <q-dialog v-model="showQrDialog" :class="getDarkModeClass(darkMode)">
+      <q-card class="q-pa-md" style="min-width: 300px">
+        <q-card-section>
+          <div class="text-h6 text-center q-mb-md">Address QR Code</div>
+          <div class="row justify-center q-mb-md">
+            <qr-code
+              :text="selectedAddressForQr"
+              :size="220"
+              :icon="selectedAddressType === 'ct' ? 'ct-logo.png' : 'bitcoin-cash-circle.svg'"
+              border-width="3px"
+              border-color="#ed5f59"
+              :qr-id="qrCodeId"
+            />
+          </div>
+          <div class="text-center">
+            <q-chip
+              :color="getAddressTypeColor(selectedAddressType)"
+              text-color="white"
+              size="sm"
+              :icon="getAddressTypeIcon(selectedAddressType)"
+              class="q-mb-sm"
+            >
+              {{ formatAddressType(selectedAddressType) }}
+            </q-chip>
+            <div
+              class="text-caption q-mt-sm"
+              :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+              style="word-break: break-all;"
+            >
+              {{ selectedAddressForQr }}
+            </div>
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            label="Copy"
+            color="primary"
+            icon="content_copy"
+            @click="copyToClipboard(selectedAddressForQr)"
+            v-close-popup
+          />
+          <q-btn flat label="Close" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { formatAddress } from 'src/exchange/index.js'
+import { formatAddress, formatDate } from 'src/exchange/index.js'
 
 import HeaderNav from 'src/components/header-nav.vue'
 
@@ -149,10 +383,20 @@ export default {
 
   data () {
     return {
+      loading: false,
+      error: null,
+      showSearch: false,
+      searchQuery: '',
+      showQrDialog: false,
+      selectedAddressForQr: '',
+      selectedAddressType: 'bch',
+      qrCodeId: 0,
+      copiedAddressIndex: null,
       record: {
         name: 'Name Name name_yey',
         is_favorite: false,
         date_created: new Date(),
+        date_updated: null,
         // address_list: []
         address_list: [
           {
@@ -211,12 +455,27 @@ export default {
   computed: {
     darkMode() {
       return this.$store.getters["darkmode/getStatus"];
+    },
+    formattedDate() {
+      if (!this.record.date_created) return ''
+      return formatDate(this.record.date_created, true)
+    },
+    filteredAddresses() {
+      if (!this.searchQuery) {
+        return this.record.address_list
+      }
+      const query = this.searchQuery.toLowerCase()
+      return this.record.address_list.filter(addr => 
+        addr.address.toLowerCase().includes(query) ||
+        this.formatAddressType(addr.type).toLowerCase().includes(query)
+      )
     }
   },
 
   methods: {
     getDarkModeClass,
     formatAddress,
+    formatDate,
     formatAddressType(type) {
       const typeMap = {
         'bch': 'BCH',
@@ -224,40 +483,206 @@ export default {
       }
       return typeMap[type.toLowerCase()] || type.toUpperCase()
     },
-    copyToClipboard(text) {
+    getAddressTypeColor(type) {
+      const colorMap = {
+        'bch': 'orange-7',
+        'ct': 'teal-6'
+      }
+      return colorMap[type.toLowerCase()] || 'grey-7'
+    },
+    getAddressTypeIcon(type) {
+      const iconMap = {
+        'bch': 'img:bitcoin-cash-circle.svg',
+        'ct': 'img:ct-logo.png'
+      }
+      return iconMap[type.toLowerCase()] || null
+    },
+    copyToClipboard(text, index = null) {
       navigator.clipboard.writeText(text).then(() => {
+        if (index !== null) {
+          this.copiedAddressIndex = index
+          setTimeout(() => {
+            this.copiedAddressIndex = null
+          }, 1000)
+        }
         this.$q.notify({
           message: 'Address copied to clipboard',
           color: 'positive',
           position: 'top',
-          timeout: 2000
+          timeout: 2000,
+          icon: 'check_circle'
         })
       }).catch(() => {
         this.$q.notify({
           message: 'Failed to copy address',
           color: 'negative',
           position: 'top',
+          timeout: 2000,
+          icon: 'error'
+        })
+      })
+    },
+    toggleFavorite() {
+      this.record.is_favorite = !this.record.is_favorite
+      // TODO: Persist favorite status via API/store
+      this.$q.notify({
+        message: this.record.is_favorite 
+          ? 'Added to favorites' 
+          : 'Removed from favorites',
+        color: 'positive',
+        position: 'top',
+        timeout: 2000,
+        icon: this.record.is_favorite ? 'star' : 'star_border'
+      })
+    },
+    handleEdit() {
+      // TODO: Navigate to edit page or open edit dialog
+      const recordId = this.$route.params.id
+      this.$router.push(`/apps/address-book/edit/${recordId}/`)
+    },
+    handleDelete() {
+      this.$q.dialog({
+        title: 'Delete Contact',
+        message: `Are you sure you want to delete "${this.record.name}"? This action cannot be undone.`,
+        seamless: true,
+        ok: {
+          label: 'Delete',
+          color: 'red',
+          flat: true
+        },
+        cancel: {
+          label: 'Cancel',
+          flat: true
+        },
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      }).onOk(() => {
+        // TODO: Implement delete API call
+        this.$q.notify({
+          message: 'Contact deleted',
+          color: 'positive',
+          position: 'top',
+          timeout: 2000
+        })
+        // Navigate back to address book list
+        this.$router.push('/apps/address-book/')
+      })
+    },
+    handleShare() {
+      // Share entire contact
+      const addressLines = this.record.address_list.map(a => {
+        const type = this.formatAddressType(a.type)
+        return `${type}: ${a.address}`
+      })
+      const contactText = `${this.record.name}\n\nAddresses:\n${addressLines.join('\n')}`
+      
+      if (navigator.share) {
+        navigator.share({
+          title: this.record.name,
+          text: contactText
+        }).catch(() => {
+          this.copyToClipboard(contactText)
+        })
+      } else {
+        this.copyToClipboard(contactText)
+        this.$q.notify({
+          message: 'Contact details copied to clipboard',
+          color: 'positive',
+          position: 'top',
+          timeout: 2000
+        })
+      }
+    },
+    handleAddAddress() {
+      // TODO: Navigate to add address page or open dialog
+      const recordId = this.$route.params.id
+      this.$router.push(`/apps/address-book/edit/${recordId}/?action=add-address`)
+    },
+    handleSend(address, type) {
+      // Navigate to send page with pre-filled address
+      this.$router.push({
+        name: 'transaction-send',
+        query: {
+          address: address
+        }
+      })
+    },
+    showQrCode(addressObj) {
+      this.selectedAddressForQr = addressObj.address
+      this.selectedAddressType = addressObj.type
+      this.qrCodeId = Date.now() // Unique ID for QR code
+      this.showQrDialog = true
+    },
+    handleShareAddress(address) {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Bitcoin Cash Address',
+          text: address
+        }).catch(() => {
+          this.copyToClipboard(address)
+        })
+      } else {
+        this.copyToClipboard(address)
+      }
+    },
+    handleRemoveAddress(index) {
+      this.$q.dialog({
+        title: 'Remove Address',
+        message: 'Are you sure you want to remove this address from the contact?',
+        seamless: true,
+        ok: {
+          label: 'Remove',
+          color: 'red',
+          flat: true
+        },
+        cancel: {
+          label: 'Cancel',
+          flat: true
+        },
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      }).onOk(() => {
+        // TODO: Implement remove address API call
+        this.record.address_list.splice(index, 1)
+        this.$q.notify({
+          message: 'Address removed',
+          color: 'positive',
+          position: 'top',
           timeout: 2000
         })
       })
+    },
+    loadRecord() {
+      this.loading = true
+      this.error = null
+      // TODO: Implement API call to fetch record
+      // For now, simulate loading
+      setTimeout(() => {
+        this.loading = false
+        // In real implementation, handle errors here
+      }, 500)
     }
   },
 
   mounted () {
     console.log(this.$route.params)
 
-    // retrieve details of params.id from watchtower
+    // Load record data
+    this.loadRecord()
 
-    // set height of addresses-list
-    if (this.record?.address_list.length > 0) {
-      const headerHeight = document.getElementById('header-nav').clientHeight
-      const recordDetailsHeight = document.getElementById('record-details').clientHeight
-      const addressesListLabel = document.getElementById('addresses-list-label').clientHeight
+    // Set height of addresses-list
+    this.$nextTick(() => {
+      if (this.record?.address_list.length > 0) {
+        const headerHeight = document.getElementById('header-nav')?.clientHeight || 0
+        const recordDetailsHeight = document.getElementById('record-details')?.clientHeight || 0
+        const addressesListLabel = document.getElementById('addresses-list-label')?.clientHeight || 0
   
-      const aboveDivsHeight = headerHeight + recordDetailsHeight + addressesListLabel
-      const overallHeight = this.$q.screen.height - aboveDivsHeight - 75
-      document.getElementById('addresses-list').style.height = `${overallHeight}px`
-    }
+        const aboveDivsHeight = headerHeight + recordDetailsHeight + addressesListLabel
+        const overallHeight = this.$q.screen.height - aboveDivsHeight - 75
+        const addressesList = document.getElementById('addresses-list')
+        if (addressesList) {
+          addressesList.style.height = `${overallHeight}px`
+        }
+      }
+    })
   }
 }
 </script>
@@ -282,6 +707,20 @@ export default {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
+
+  &.address-copied {
+    background-color: rgba(76, 175, 80, 0.1);
+    animation: copyFlash 0.5s ease;
+  }
+}
+
+@keyframes copyFlash {
+  0% {
+    background-color: rgba(76, 175, 80, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 .address-text {
@@ -289,9 +728,22 @@ export default {
   font-family: monospace;
   font-size: 0.9rem;
   line-height: 1.4;
+  transition: opacity 0.2s ease;
   
   &:hover {
     opacity: 0.8;
   }
+}
+
+.empty-state-card {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.record-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
 }
 </style>
