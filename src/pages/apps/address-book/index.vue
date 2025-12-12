@@ -12,57 +12,82 @@
     />
 
     <div class="q-px-md">
-      <!-- loading skeletons animation -->
-
       <!-- search bar -->
       <div
         class="full-width q-mb-md row items-center q-gutter-sm"
         id="search-filter-div"
       >
-        <q-input
-          class="col"
-          rounded
-          outlined
-          clearable
-          dense
-          label="Search name"
-        >
-          <template v-slot:prepend>
-            <q-icon name="search"></q-icon>
-          </template>
-        </q-input>
+        <!-- loading skeletons animation -->
+        <template v-if="isLoading">
+          <q-skeleton type="QInput" class="col" height="40px" style="border-radius: 50px;" />
+          <q-skeleton type="circle" height="40px" width="40px" style="border-radius: 50px;" />
+        </template>
 
-        <q-btn
-          class="flex-shrink-0"
-          round
-          icon="mdi-account-plus"
-          color="primary"
-        />
+        <template v-else>
+          <q-input
+            class="col"
+            rounded
+            outlined
+            clearable
+            dense
+            label="Search name"
+          >
+            <template v-slot:prepend>
+              <q-icon name="search"></q-icon>
+            </template>
+          </q-input>
+  
+          <q-btn
+            class="flex-shrink-0"
+            round
+            icon="mdi-account-plus"
+            color="primary"
+          />
+        </template>
       </div>
 
       <!-- lists container -->
       <div id="lists-container">
-        <!-- favorites list -->
-        <div v-if="favoritesList.length > 0">
-          <record-list :list="favoritesList" />
-        </div>
+        <template v-if="isLoading">
+          <!-- loading skeletons animation -->
+          <div class="q-pa-md q-gutter-y-sm">
+            <q-skeleton type="text" width="30%" />
+            <q-skeleton type="rect" height="50px" width="95%" style="border-radius: 16px;" />
+            <q-skeleton type="rect" height="50px" width="95%" style="border-radius: 16px;" />
+            <q-skeleton type="rect" height="50px" width="95%" style="border-radius: 16px;" />
+            <q-skeleton type="rect" height="50px" width="95%" style="border-radius: 16px;" />
 
-        <!-- contacts list -->
+            <q-skeleton type="text" width="30%" class="q-mt-sm" />
+            <q-skeleton type="rect" height="50px" width="95%" style="border-radius: 16px;" />
+            <q-skeleton type="rect" height="50px" width="95%" style="border-radius: 16px;" />
+            <q-skeleton type="rect" height="50px" width="95%" style="border-radius: 16px;" />
+            <q-skeleton type="rect" height="50px" width="95%" style="border-radius: 16px;" />
+          </div>
+        </template>
+
+        <template v-else>
+          <!-- favorites list -->
+          <div v-if="favoritesList.length > 0">
+            <record-list :list="favoritesList" />
+          </div>
+  
+          <!-- contacts list -->
           <div v-if="recordsList.length > 0">
-          <record-list :list="recordsList" />
+            <record-list :list="recordsList" />
           </div>
-
+  
           <div
-          class="text-center text-h6 q-mt-md"
-          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-          v-else
-        >
-          <p>Empty address book</p>
-          <p>
-            Click on <q-icon name="mdi-account-plus" size="sm" />
-            to add a new record
-          </p>
+            class="text-center text-h6 q-mt-md"
+            :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+            v-else
+          >
+            <p>Empty address book</p>
+            <p>
+              Click on <q-icon name="mdi-account-plus" size="sm" />
+              to add a new record
+            </p>
           </div>
+        </template>
       </div>
 
       <!-- Alphabet index -->
@@ -70,6 +95,7 @@
         id="alphabet-index" 
         class="alphabet-index"
         :class="darkMode ? 'dark' : ''"
+        v-if="!isLoading"
       >
         <div
           v-for="letter in alphabetIndex"
@@ -203,7 +229,9 @@ export default {
           }
         ]
       },
-     ]
+     ],
+
+     isLoading: false
     }
   },
 
@@ -272,7 +300,9 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
+    this.isLoading = true
+
     const headerHeight = document.getElementById('header-nav').clientHeight
     const searchFilterEl = document.getElementById('search-filter-div')
     searchFilterEl.style.top = `${headerHeight}px`
@@ -280,6 +310,9 @@ export default {
     const aboveDivsHeight = searchFilterEl.clientHeight + headerHeight
     const listsContainerHeight = this.$q.screen.height - aboveDivsHeight - 70
     document.getElementById('lists-container').style.height = `${listsContainerHeight}px`
+
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    this.isLoading = false
   }
 }
 </script>
