@@ -634,7 +634,7 @@ async getWalletUtxos() {
   }, -1)
 
 
-  const syncAddressIndicesPromises = []
+  // const syncAddressIndicesPromises = []
 
   if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
     this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
@@ -660,21 +660,18 @@ async getWalletUtxos() {
     // syncAddressIndicesPromises.push({
     //   key: 'lastIssuedDepositAddressIndex',
     //   promise: async () => await this.options?.coordinationServer?.updateWalletLastIssuedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network) 
-    // })
-    
+    // })    
   }
 
-  const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
-  results.forEach((res, i) => {
-      const key = syncAddressIndicesPromises[i].key;
-      if (res.status === 'fullfilled') {
-        // Replace with the actual value here
-        console.log(`${key.replace(/^l/,'L')} success:`, results.data);
-      } 
-      // rejected
-    });
-
-  
+  // const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
+  // results.forEach((res, i) => {
+  //     const key = syncAddressIndicesPromises[i].key;
+  //     if (res.status === 'fullfilled') {
+  //       // Replace with the actual value here
+  //       console.log(`${key.replace(/^l/,'L')} success:`, results.data);
+  //     } 
+  //     // rejected
+  //   });
 
   this._utxos = utxos?.flat()
   return this._utxos
