@@ -1647,7 +1647,6 @@ const phrases = {
       SearchByReferenceID: 'Search by Reference ID',
     },
     {
-      // HERE
       MultisigWalletsBetaMessage: 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.',
       MultisigWalletsBetaDisclaimerMessage: `The current version of Paytaca's multisig wallet app currently requires cosigners to manually exchange PSBTs (partially signed transactions). Coordination-server support is planned and currently under development.`,
       ImportWallet: 'Import Wallet',
@@ -1748,7 +1747,6 @@ const phrases = {
       WalletQrCode: 'Wallet Qr Code',
       ScanAnimatedQRFromDevice: 'Scan the Animated QR from your device',
       DownloadWalletFile: 'Download Wallet File',
-      ExportWallet: 'Export Wallet',
       ExportWalletDescription: 'Export wallet so you can share it with your cosigners',
       DisplayWalletQRCode: 'Display Wallet QR Code',
       DownloadTxFile: 'Download Tx File',
