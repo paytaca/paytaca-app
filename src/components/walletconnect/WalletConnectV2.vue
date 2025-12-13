@@ -616,29 +616,22 @@ const disconnectSession = async (activeSession) => {
   }
 }
 
+
 const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
   try {
     const lastUsedWalletAddress =
       $store.getters['global/lastUsedAddressAtAppUrl'](sessionProposal?.proposer?.metadata?.url)
-
-    let addressSelection = walletAddresses.value.filter((addressInfo, i) => {
-      if (i > 9) return false // limit to 10 addresses
-      return true
-    })
-
-    if (lastUsedWalletAddress?.wallet_address) {
-      let lastUsedIsNotInSelection = !addressSelection?.find((addressInfo) => addressInfo.address === lastUsedWalletAddress?.wallet_address)
-      if (lastUsedIsNotInSelection) {
-        const lastUsedWalletAddressInfo = walletAddresses.value?.find(addressInfo => addressInfo.address === lastUsedWalletAddress?.wallet_address)
-        if (lastUsedWalletAddressInfo) {
-          addressSelection.unshift(lastUsedWalletAddressInfo)
-          if (addressSelection.length > 10) {
-            addressSelection.pop()
-          }
-        }
-      }
-    }    
-
+    let addressSelection = walletAddresses.value
+      ?.map(a => a)
+      ?.filter((addressInfo, index, self) => 
+        index === self.findIndex((a) => a.address === addressInfo.address)
+      )
+      ?.sort((a, b) => b.address_index - a.address_index)
+    const arrayIndexOfLastUsedWalletAddress = addressSelection?.findIndex((addressInfo) => addressInfo.address === lastUsedWalletAddress?.wallet_address)
+    if (arrayIndexOfLastUsedWalletAddress !== -1) {
+      addressSelection.unshift(addressSelection[arrayIndexOfLastUsedWalletAddress])
+    }
+    addressSelection = addressSelection.slice(0, 5)
     const { selectedWalletAddress, isMultisig } = await new Promise((resolve, reject) => {
       $q.dialog({
         component: SelectAddressForSessionDialog,
@@ -653,8 +646,11 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })
-        .onOk(({ selectedWalletAddress, isMultisig }) => {
-          resolve({ selectedWalletAddress, isMultisig })
+        .onOk(async (payload) => {
+          resolve({ 
+            selectedWalletAddress: payload.selectedWalletAddress, 
+            isMultisig: payload.isMultisig
+          })
         })
         .onCancel(async () => {
           processingSession.value[sessionProposal.pairingTopic] = ''
