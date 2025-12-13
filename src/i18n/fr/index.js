@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Demande de signature",
   SimilarOffersError: "Aucune offre correspondante trouvée, mais j'ai trouvé des offres similaires.En sélectionner un à la place ?",
   SimilarOffersFound: "Offres similaires trouvées",
+  SingleSigAddressSelectionHeader: "Affiche la dernière adresse utilisée sur cette application homologue (le cas échéant) et au plus les 4 dernières adresses de réception de votre portefeuille.Le format est n-adresse où n est l'index de l'adresse.",
   SixMonthLockup: "Blocage de 6 mois, puis acquisition",
   SixtyMinutes: "60 minutes",
   Skip: "Sauter",

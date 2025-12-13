@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Neman Sa hannu",
   SimilarOffersError: "Babu tayin da suka dace amma sun samo irin wannan tayin.Zaɓi ɗaya maimakon?",
   SimilarOffersFound: "An samo irin wannan tayin",
+  SingleSigAddressSelectionHeader: "Yana nuna adireshin da aka yi amfani da shi na ƙarshe akan wannan ƙa'idodin peer (idan akwai) kuma a mafi yawan adiresoshin walat ɗinku na ƙarshe.Tsarin shine adireshin da n shine adireshin adireshin.",
   SixMonthLockup: "6-Az Lockup, to, gari",
   SixtyMinutes: "Minti 60",
   Skip: "Ƙetare",

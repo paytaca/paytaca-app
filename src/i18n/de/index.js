@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Signierungsanfrage",
   SimilarOffersError: "Keine passenden Angebote gefunden, aber ähnliche Angebote gefunden.Stattdessen eine auswählen?",
   SimilarOffersFound: "Ähnliche Angebote gefunden",
+  SingleSigAddressSelectionHeader: "Zeigt die zuletzt verwendete Adresse dieser Peer-App (falls vorhanden) und höchstens die letzten 4 Empfangsadressen Ihres Wallets an.Das Format ist n-Adresse, wobei n der Adressindex ist.",
   SixMonthLockup: "6-monatige Sperrfrist, dann unverfallbar",
   SixtyMinutes: "60 Minuten",
   Skip: "Überspringen",

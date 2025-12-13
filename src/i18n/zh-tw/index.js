@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "簽署請求",
   SimilarOffersError: "未找到匹配的優惠，但找到類似的優惠。選擇一個來代替？",
   SimilarOffersFound: "找到類似優惠",
+  SingleSigAddressSelectionHeader: "顯示此對等應用程序上最後使用的地址（如果有）以及您錢包的最後 4 個接收地址。格式為 n 地址，其中 n 是地址索引。",
   SixMonthLockup: "6個月鎖定，然後歸屬",
   SixtyMinutes: "60分鐘",
   Skip: "跳過",

@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Ondertekeningsverzoek",
   SimilarOffersError: "Er zijn geen overeenkomende aanbiedingen gevonden, maar er zijn vergelijkbare aanbiedingen gevonden.In plaats daarvan één selecteren?",
   SimilarOffersFound: "Soortgelijke aanbiedingen gevonden",
+  SingleSigAddressSelectionHeader: "Toont het laatst gebruikte adres op deze peer-app (indien aanwezig) en maximaal de laatste 4 ontvangstadressen van uw portemonnee.Het formaat is n-adres waarbij n de adresindex is.",
   SixMonthLockup: "Lock-up van zes maanden, daarna onvoorwaardelijk",
   SixtyMinutes: "60 minuten",
   Skip: "Overslaan",

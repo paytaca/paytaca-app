@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Solicitud de firma",
   SimilarOffersError: "No se encontraron ofertas coincidentes pero se encontraron ofertas similares.¿Seleccionar uno en su lugar?",
   SimilarOffersFound: "Ofertas similares encontradas",
+  SingleSigAddressSelectionHeader: "Muestra la última dirección utilizada en esta aplicación par (si corresponde) y como máximo las últimas 4 direcciones receptoras de su billetera.El formato es n-dirección donde n es el índice de direcciones.",
   SixMonthLockup: "Bloqueo de 6 meses, luego adquisición de derechos",
   SixtyMinutes: "60 minutos",
   Skip: "Saltar",

@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Solicitação de assinatura",
   SimilarOffersError: "Nenhuma oferta correspondente encontrada, mas foram encontradas ofertas semelhantes.Selecione um em vez disso?",
   SimilarOffersFound: "Ofertas semelhantes encontradas",
+  SingleSigAddressSelectionHeader: "Mostra o último endereço usado neste aplicativo peer (se houver) e no máximo os últimos 4 endereços de recebimento da sua carteira.O formato é endereço n, onde n é o índice de endereço.",
   SixMonthLockup: "Bloqueio de 6 meses e depois aquisição",
   SixtyMinutes: "60 minutos",
   Skip: "Pular",

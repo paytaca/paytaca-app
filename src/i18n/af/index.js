@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Ondertekening versoek",
   SimilarOffersError: "Geen ooreenstemmende aanbiedings gevind nie, maar soortgelyke aanbiedings gevind.Kies eerder een?",
   SimilarOffersFound: "Soortgelyke aanbiedinge gevind",
+  SingleSigAddressSelectionHeader: "Wys die laaste gebruikte adres op hierdie eweknie-toepassing (indien enige) en hoogstens die laaste 4 ontvangsadresse van jou beursie.Die formaat is n-adres waar n die adresindeks is.",
   SixMonthLockup: "6-maande toesluit, dan vestiging",
   SixtyMinutes: "60 minute",
   Skip: "Slaan oor",

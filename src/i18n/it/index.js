@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Richiesta di firma",
   SimilarOffersError: "Nessuna offerta corrispondente trovata ma sono state trovate offerte simili.Selezionarne uno invece?",
   SimilarOffersFound: "Trovate offerte simili",
+  SingleSigAddressSelectionHeader: "Mostra l'ultimo indirizzo utilizzato su questa app peer (se presente) e al massimo gli ultimi 4 indirizzi di ricezione del tuo portafoglio.Il formato è n-indirizzo dove n è l'indice dell'indirizzo.",
   SixMonthLockup: "Blocco per 6 mesi, poi maturazione",
   SixtyMinutes: "60 minuti",
   Skip: "Salta",

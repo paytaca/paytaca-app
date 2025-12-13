@@ -1756,6 +1756,10 @@ const phrases = {
       ExportTransactionDescription: 'Export the transaction proposal so you can share it with your cosigners.',
       DisplayTxQRCode: 'Display Tx QR Code',
     },
+    {
+      Connect: 'Connect',
+      SingleSigAddressSelectionHeader: 'Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.'
+    }
   ],
   dynamic: [
     {

@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "طلب التوقيع",
   SimilarOffersError: "لم يتم العثور على عروض مطابقة ولكن تم العثور على عروض مماثلة.هل تريد اختيار واحد بدلاً من ذلك؟",
   SimilarOffersFound: "تم العثور على عروض مماثلة",
+  SingleSigAddressSelectionHeader: "يعرض آخر عنوان مستخدم في تطبيق النظير هذا (إن وجد) وآخر 4 عناوين استلام في محفظتك على الأكثر.التنسيق هو n-address حيث n هو فهرس العنوان.",
   SixMonthLockup: "تأمين لمدة 6 أشهر، ثم الاستحقاق",
   SixtyMinutes: "60 دقيقة",
   Skip: "تخطي",

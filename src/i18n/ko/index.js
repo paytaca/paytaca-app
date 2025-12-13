@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "서명 요청",
   SimilarOffersError: "일치하는 쿠폰을 찾을 수 없지만 유사한 쿠폰을 찾았습니다.대신 하나를 선택하시겠습니까?",
   SimilarOffersFound: "유사한 제안이 발견되었습니다.",
+  SingleSigAddressSelectionHeader: "이 피어 앱에서 마지막으로 사용된 주소(있는 경우)와 지갑의 마지막 수신 주소 최대 4개를 표시합니다.형식은 n-address입니다. 여기서 n은 주소 인덱스입니다.",
   SixMonthLockup: "6개월 락업 후 베스팅",
   SixtyMinutes: "60분",
   Skip: "건너뛰기",

@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Kahilingan sa pag -sign",
   SimilarOffersError: "Walang mga alok sa pagtutugma na natagpuan ngunit natagpuan ang mga katulad na alok.Pumili ng isa sa halip?",
   SimilarOffersFound: "Ang mga katulad na alok na natagpuan",
+  SingleSigAddressSelectionHeader: "Ipinapakita ang huling ginamit na address sa peer app na ito (kung mayroon man) at karamihan sa huling 4 na pagtanggap ng mga address ng iyong pitaka.Ang format ay n-address kung saan n ang address index.",
   SixMonthLockup: "6-buwang pag-lock, pagkatapos ay vesting",
   SixtyMinutes: "60 minuto",
   Skip: "Laktawan",

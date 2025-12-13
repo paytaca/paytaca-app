@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "署名リクエスト",
   SimilarOffersError: "一致するオファーは見つかりませんでしたが、同様のオファーが見つかりました。代わりに 1 つ選択しますか?",
   SimilarOffersFound: "同様のオファーが見つかりました",
+  SingleSigAddressSelectionHeader: "このピア アプリで最後に使用されたアドレス (存在する場合) と、ウォレットの最大で最後の 4 つの受信アドレスが表示されます。形式は n-address で、n はアドレスのインデックスです。",
   SixMonthLockup: "6か月のロックアップ、その後権利確定",
   SixtyMinutes: "60分",
   Skip: "スキップ",

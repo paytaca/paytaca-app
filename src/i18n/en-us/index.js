@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Signing request",
   SimilarOffersError: "No matching offers found but found similar offers. Select one instead?",
   SimilarOffersFound: "Similar offers found",
+  SingleSigAddressSelectionHeader: "Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.",
   SixMonthLockup: "6-month lockup, then vesting",
   SixtyMinutes: "60 minutes",
   Skip: "Skip",

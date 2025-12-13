@@ -1765,6 +1765,7 @@ export default {
   SigningRequest: "Permintaan penandatanganan",
   SimilarOffersError: "Tidak ditemukan penawaran yang cocok tetapi ditemukan penawaran serupa.Pilih salah satu saja?",
   SimilarOffersFound: "Penawaran serupa ditemukan",
+  SingleSigAddressSelectionHeader: "Menampilkan alamat terakhir yang digunakan pada aplikasi rekan ini (jika ada) dan paling banyak 4 alamat penerima terakhir dompet Anda.Formatnya adalah n-alamat di mana n adalah indeks alamat.",
   SixMonthLockup: "Penguncian 6 bulan, lalu vesting",
   SixtyMinutes: "60 menit",
   Skip: "Lewati",
