@@ -674,6 +674,22 @@ export default {
     'tx.asset.id' () {
       // Fetch token price when asset changes
       this.fetchTokenPrice()
+    },
+    'tx.encrypted_memo' () {
+      // Reload memo when encrypted_memo changes
+      if (this.tx?.encrypted_memo) {
+        this.$nextTick(() => {
+          this.loadMemo()
+        })
+      }
+    },
+    tx (newTx, oldTx) {
+      // Reload memo when transaction object is first set or txid changes
+      if (newTx && newTx.txid && (!oldTx || oldTx.txid !== newTx.txid)) {
+        this.$nextTick(() => {
+          this.loadMemo()
+        })
+      }
     }
   },
   methods: {
@@ -813,10 +829,11 @@ export default {
                                    (typeof query.category === 'string' && query.category.includes('?new=true')) ||
                                    (window.location.search && window.location.search.includes('new=true'))
           
-          console.log('[TransactionDetail] Transaction loaded, isNewTransaction:', isNewTransaction, 'query:', query)
-          
           this.$nextTick(() => {
-            this.loadMemo()
+            // Ensure tx is set before loading memo
+            if (this.tx && this.tx.txid) {
+              this.loadMemo()
+            }
             this.loadFavorites()
             this.fetchTokenPrice()
             // Launch confetti if this is a new transaction
@@ -1088,25 +1105,71 @@ export default {
       try {
         const txid = this.transactionId
         if (!txid) return
+        
         // prepare keypair
         this.keypair = await getKeypair().catch(console.error)
-        let currentMemo = null
-        try {
-          currentMemo = await fetchMemo(txid)
-        } catch (err) {
-          this.networkError = true
+        // If keypair is null or invalid, try to regenerate it
+        if (!this.keypair || !this.keypair.privkey || !this.keypair.pubkey) {
+          try {
+            const { updateOrCreateKeypair } = await import('src/exchange/chat/index.js')
+            this.keypair = await updateOrCreateKeypair(false)
+          } catch (error) {
+            console.error('[TransactionDetail] loadMemo: Failed to regenerate keypair:', error)
+            this.hasMemo = false
+            this.editingMemo = false
+            return
+          }
         }
-        if (currentMemo && !('error' in currentMemo)) {
-          const decryptedNote = await decryptMemo(this.keypair?.privkey, currentMemo.note)
-          this.transactionMemo = decryptedNote
-          this.memoInput = decryptedNote
-          this.hasMemo = !!decryptedNote
+        
+        if (!this.keypair) {
+          console.error('[TransactionDetail] loadMemo: Failed to get keypair for memo decryption')
+          this.hasMemo = false
           this.editingMemo = false
+          return
+        }
+
+        // First, check if encrypted_memo is already in the transaction object
+        let encryptedMemo = null
+        if (this.tx?.encrypted_memo) {
+          encryptedMemo = this.tx.encrypted_memo
+        } else {
+          // Fall back to fetching from server
+          let currentMemo = null
+          try {
+            currentMemo = await fetchMemo(txid)
+          } catch (err) {
+            this.networkError = true
+          }
+          
+          if (currentMemo && !('error' in currentMemo)) {
+            encryptedMemo = currentMemo.note
+          }
+        }
+
+        if (encryptedMemo) {
+          try {
+            let decryptedNote = await decryptMemo(this.keypair.privkey, encryptedMemo, true)
+            
+            if (decryptedNote) {
+              this.transactionMemo = decryptedNote
+              this.memoInput = decryptedNote
+              this.hasMemo = true
+              this.editingMemo = false
+            } else {
+              this.hasMemo = false
+              this.editingMemo = false
+            }
+          } catch (decryptError) {
+            console.error('[TransactionDetail] loadMemo: Error decrypting memo:', decryptError)
+            this.hasMemo = false
+            this.editingMemo = false
+          }
         } else {
           this.hasMemo = false
           this.editingMemo = false
         }
       } catch (error) {
+        console.error('[TransactionDetail] loadMemo: Error loading memo:', error)
         this.networkError = true
         this.hasMemo = false
         this.editingMemo = false
@@ -1128,7 +1191,19 @@ export default {
         if (!txid) return
         await authMemo()
         // ensure keypair
-        if (!this.keypair) this.keypair = await getKeypair().catch(console.error)
+        if (!this.keypair) {
+          this.keypair = await getKeypair().catch(console.error)
+          // If keypair is null or invalid, try to regenerate it
+          if (!this.keypair || !this.keypair.privkey || !this.keypair.pubkey) {
+            try {
+              const { updateOrCreateKeypair } = await import('src/exchange/chat/index.js')
+              this.keypair = await updateOrCreateKeypair(false)
+            } catch (error) {
+              console.error('Failed to regenerate keypair:', error)
+              this.keypair = null
+            }
+          }
+        }
         const trimmedMemo = String(this.memoInput || '').trim()
         if (!trimmedMemo) return
         const encryptedMemo = await encryptMemo(this.keypair?.privkey, this.keypair?.pubkey, trimmedMemo)

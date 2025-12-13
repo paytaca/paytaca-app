@@ -403,6 +403,11 @@ async function getKeypairSeed () {
 export async function updateOrCreateKeypair (update = true) {
   console.log('Updating chat encryption keypair')
   const seed = await getKeypairSeed()
+  
+  if (!seed || typeof seed !== 'string' || seed.length === 0) {
+    throw new Error('Failed to get wallet private key from path 0 - cannot generate memo keypair. Memos require a deterministic keypair derived from the wallet.')
+  }
+  
   const keypair = generateKeypair({ seed: seed })
 
   try {

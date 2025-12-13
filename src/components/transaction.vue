@@ -710,7 +710,17 @@ export default {
         this.transaction = transaction
         let currentMemo = null
 
-        this.keypair = await getKeypair().catch(console.error)      
+        this.keypair = await getKeypair().catch(console.error)
+        // If keypair is null or invalid, try to regenerate it
+        if (!this.keypair || !this.keypair.privkey || !this.keypair.pubkey) {
+          try {
+            const { updateOrCreateKeypair } = await import('src/exchange/chat/index.js')
+            this.keypair = await updateOrCreateKeypair(false)
+          } catch (error) {
+            console.error('Failed to regenerate keypair:', error)
+            this.keypair = null
+          }
+        }      
 
         try {
           currentMemo = await fetchMemo(this.transaction.txid)

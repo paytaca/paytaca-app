@@ -6,6 +6,7 @@ import { getCurrentWalletStorageKey, getWalletStorageKey, getWalletHash } from '
 
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from 'src/marketplace/chat/encryption'
+import { privToPub } from 'src/exchange/chat/keys'
 
 const TOKEN_STORAGE_KEY_PREFIX = 'memo-auth-key'
 
@@ -143,13 +144,46 @@ export async function authMemo () {
 
 export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {		
     // if (!this.encrypted) return
-    const parsedEncryptedMessage = decompressEncryptedMessage(encryptedMemo)    
- 
-    const opts = { privkey, tryAllKeys, ...parsedEncryptedMessage }    
-    const decryptedMessage = await decryptMessage(opts)
+    if (!privkey || !encryptedMemo) {
+      console.error('[decryptMemo] Missing privkey or encryptedMemo')
+      return null
+    }
     
-    return decryptedMessage
-    // return this
+    try {
+      const parsedEncryptedMessage = decompressEncryptedMessage(encryptedMemo)
+      const opts = { privkey, tryAllKeys, ...parsedEncryptedMessage }
+      
+      // Check if we have the required data
+      if (!opts.data || !opts.iv || !opts.authorPubkey) {
+        console.error('[decryptMemo] Missing required decryption data')
+        return null
+      }
+      
+      // Check if we have pubkeys
+      if (!opts.pubkeys || opts.pubkeys.length === 0) {
+        console.error('[decryptMemo] No pubkeys found in encrypted message')
+        return null
+      }
+      
+      // Get the wallet's pubkey from the private key
+      const ourPubkey = privToPub(privkey)
+      const pubkeyMatches = opts.pubkeys.some(pk => {
+        const pubkey = pk.split('|', 2)[0]
+        return pubkey === ourPubkey
+      })
+      
+      if (!pubkeyMatches && !tryAllKeys) {
+        return null
+      }
+      
+      // decryptMessage is synchronous, not async
+      const decryptedMessage = decryptMessage(opts)
+      
+      return decryptedMessage || null
+    } catch (error) {
+      console.error('[decryptMemo] Error during decryption:', error)
+      return null
+    }
   }
 
  export async function encryptMemo (privkey, pubkey, memo) {
