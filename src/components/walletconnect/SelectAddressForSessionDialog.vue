@@ -1,15 +1,32 @@
 <template>
-  <q-dialog ref="dialogRef" persistent seamless full-width position="bottom">
-    <q-card class="q-dialog-plugin q-pb-xs pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
-      <q-card-section class="text-grey-10">
-        <div class="row items-start justify-start no-wrap q-gutter-x-sm">
-          <PeerInfo v-if="sessionProposal?.proposer?.metadata" 
-            :metadata="sessionProposal.proposer.metadata"
-            :session-id="sessionProposal.id" :session-topic="sessionProposal.pairingTopic"
-          />
+  <q-dialog ref="dialogRef" position="bottom" persistent seamless full-width rounded>
+    <q-card 
+      style="min-height: 90vh;" 
+      class="br-15 text-bow pt-card"
+      :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark' : 'bg-pt-light']"
+      >
+      <div class="row no-wrap items-start justify-center q-pl-md q-pr-sm q-pt-sm">
+        <div class="text-h6 q-space q-mt-sm">
+          {{ 
+            $t(
+              'WcSelectAddressHeader', 
+              { peerName: sessionProposal?.proposer?.metadata.name || 'the app'}, 
+              'Select the address you want to connect to {peerName}') 
+          }} 
+          <q-avatar v-if="sessionProposal?.proposer?.metadata?.icons?.[0]" rounded>
+            <img :src="sessionProposal?.proposer?.metadata?.icons?.[0].replace('http://', 'https://')">
+          </q-avatar>
         </div>
+        <q-btn
+          flat
+          padding="sm"
+          icon="close"
+          class="close-button"
+          v-close-popup
+        />
+      </div>
+      <q-card-section class="text-grey-10">
       </q-card-section>
-      <div class="text-grad text-center q-my-sm text-h6">{{$t('SelectAddress')}}</div>
       <div class="row justify-center q-mt-sm">
         <q-btn-group rounded>
           <q-btn 
@@ -33,7 +50,7 @@
         </q-btn-group>
       </div>
       <q-card-section>
-        <q-list bordered separator style="max-height:calc(80vh - 18rem);overflow-y: auto;">
+        <q-list bordered separator>
         <q-item-label header class="text-justify">
           <p>{{ $t('SingleSigAddressSelectionHeader', 'Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.') }}</p>
         </q-item-label>
@@ -94,24 +111,34 @@
               </div>
             </q-item-section>
           </q-item>
+          <q-item>
+            <q-item-section></q-item-section>
+            <q-item-section side>
+              <q-btn icon="content_paste_go" size="md" color="primary" @click="onIwantToProvideSpecificAddressClick" flat dense no-caps>
+                {{$t('IwantToProvideSpecificAddress', `I want to provide specific address`)}}
+              </q-btn>
+            </q-item-section>
+          </q-item>
         </q-list>
       </q-card-section>
-      <q-card-actions class="q-pa-md">
-        <q-space />
+      <q-card-actions class="row justify-around q-pa-md q-mt-lg">
         <q-btn
-          outline
-          :label="$t('Cancel')"
-          rounded
-          @click="onCancelClick"
-          no-caps
-        />
-        <q-btn
-          rounded
-          color="primary"
-          :label="$t('Connect', 'Connect')"
-          no-caps
-          @click="onConnectClick"
-        />
+            outline
+            color="grey"
+            :label="$t('Cancel')"
+            rounded
+            class="col-5 col-sm-3"
+            no-caps
+            @click="onCancelClick"
+          />
+          <q-btn
+            rounded
+            color="primary"
+            :label="$t('Connect')"
+            no-caps
+            class="col-5 col-sm-3"
+            @click="onConnectClick"
+          />        
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -184,6 +211,12 @@ const selectMultisigAddress = (address) => {
       addressSelectedIsMultisig.value = true
       addressOptions.value.forEach(ao => ao.selected = false)
     }
+  })
+}
+
+const onIwantToProvideSpecificAddressClick = () => {
+  onDialogOK({
+    iWantToProvideSpecificAddress: true
   })
 }
 
