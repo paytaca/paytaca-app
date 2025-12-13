@@ -34,7 +34,9 @@
       </div>
       <q-card-section>
         <q-list bordered separator style="max-height:calc(80vh - 18rem);overflow-y: auto;">
-        <q-item-label header>SingleSig Address</q-item-label>
+        <q-item-label header class="text-justify">
+          <p>{{ $t('SingleSigAddressSelectionHeader', 'Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.') }}</p>
+        </q-item-label>
         <q-item
           v-for="item in addressOptions"
             :key="item.address"
@@ -93,23 +95,20 @@
             </q-item-section>
           </q-item>
         </q-list>
-
       </q-card-section>
       <q-card-actions class="q-pa-md">
         <q-space />
         <q-btn
           outline
-          color="grey"
           :label="$t('Cancel')"
           rounded
-          flat
           @click="onCancelClick"
           no-caps
         />
-
         <q-btn
-          color="green"
-          :label="$t('Connect')"
+          rounded
+          color="primary"
+          :label="$t('Connect', 'Connect')"
           no-caps
           @click="onConnectClick"
         />
