@@ -106,8 +106,7 @@ import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
-import { decryptMemo, fetchMemo } from 'src/utils/transaction-memos.js'
-import { getKeypair } from 'src/exchange/chat/keys'
+import * as memoService from 'src/utils/memo-service'
 
 const $store = useStore()
 const $t = useI18n().t
@@ -308,60 +307,16 @@ async function loadMemo() {
   }
 
   try {
-    let keypair = await getKeypair().catch(console.error)
-    // If keypair is null or invalid, try to regenerate it
-    if (!keypair || !keypair.privkey || !keypair.pubkey) {
-      try {
-        const { updateOrCreateKeypair } = await import('src/exchange/chat/index.js')
-        keypair = await updateOrCreateKeypair(false)
-      } catch (error) {
-        console.error('Failed to regenerate keypair:', error)
-        decryptedMemo.value = ''
-        return
-      }
-    }
-    
-    if (!keypair) {
-      console.error('Failed to get keypair for memo decryption')
-      decryptedMemo.value = ''
-      return
-    }
+    // Use memo service to load and decrypt memo
+    const result = await memoService.loadMemo(txid, props.transaction?.encrypted_memo)
 
-    // First, check if encrypted_memo is already in the transaction object
-    let encryptedMemo = null
-    if (props.transaction?.encrypted_memo) {
-      // Use encrypted_memo from transaction object
-      encryptedMemo = props.transaction.encrypted_memo
-    } else {
-      // Fall back to fetching from server
-      let currentMemo = null
-      try {
-        currentMemo = await fetchMemo(txid)
-      } catch (err) {
-        // Memo not found or network error - silently fail
-        decryptedMemo.value = ''
-        return
-      }
-
-      if (currentMemo && !('error' in currentMemo)) {
-        encryptedMemo = currentMemo.note
-      }
-    }
-
-    if (encryptedMemo) {
-      try {
-        // Decrypt memo
-        const decrypted = await decryptMemo(keypair.privkey, encryptedMemo)
-        decryptedMemo.value = decrypted
-      } catch (decryptError) {
-        console.error('Error decrypting memo:', decryptError)
-        decryptedMemo.value = ''
-      }
+    if (result.success && result.memo) {
+      decryptedMemo.value = result.memo
     } else {
       decryptedMemo.value = ''
     }
   } catch (error) {
-    console.error('Error loading memo:', error)
+    console.error('[TransactionListItem] Error loading memo:', error)
     decryptedMemo.value = ''
   }
 }

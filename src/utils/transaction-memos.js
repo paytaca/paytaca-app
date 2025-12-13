@@ -27,119 +27,335 @@ export const backend = axios.create()
 const baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
+/**
+ * Fetch a memo for a transaction
+ * @param {string} txid - Transaction ID
+ * @returns {Promise<{success: boolean, data: any, error: string|null}>}
+ */
 export async function fetchMemo (txid) {
-	let memoData = null
-	await backend.get(baseURL + '/memos/', { params: { 'txid': txid }, headers: { 'wallet-hash': walletHash } })
-		.then(response => {			
-			memoData = response.data
-		})
-		.catch(error => {
-			if (error.response) {
-				if (error.response.status === 404) {
-					memoData = error.response.data
-				}					
-			}			
+	if (!txid || typeof txid !== 'string') {
+		return {
+			success: false,
+			data: null,
+			error: 'Invalid transaction ID'
+		}
+	}
+
+	if (!walletHash) {
+		return {
+			success: false,
+			data: null,
+			error: 'Wallet hash not available'
+		}
+	}
+
+	try {
+		const response = await backend.get(baseURL + '/memos/', {
+			params: { 'txid': txid },
+			headers: { 'wallet-hash': walletHash }
 		})
 		
-		return memoData
-
-}
-
-export async function createMemo (data) {	
-	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
-
-	let memoData = null	
-	await backend.post(baseURL + '/memos/', data, { headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER }})
-		.then(response => {			
-			memoData = response.data
-		})
-		.catch(error => {
-			// console.error(error)
-			if (error.response) {
-				// if (error.response.status === 404) {
-					memoData = error.response.data
-				// }
-			}			
-		})
-
-		return memoData
-}
-
-
-export async function updateMemo (data) {
-	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
-
-	let memoData = null
-	await backend.patch(baseURL + '/memos/', data, { headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER }})
-		.then(response => {			
-			memoData = response.data
-		})
-		.catch(error => {
-			// console.error(error)
-			if (error.response) {
-				if (error.response.status === 404) {
-					memoData = error.response.data
-				}
-			}			
-		})
-
-		return memoData
-}
-
-export async function deleteMemo (txid) {
-	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
-	let memoData = null
-	await backend.delete(baseURL + '/memos/', { params: { 'txid': txid }, headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER } })
-		.then(response => {			
-			memoData = response.data
-		})
-		.catch(error => {			
-			if (error.response) {
-				if (error.response.status === 404) {
-					memoData = error.response.data
-				}
-			}			
-		})
-
-		return memoData
-}
-
-export async function registerMemoUser () {	
-	const user = 'MEMO_' + walletHash
-	const memoHash = await generateMemoHash(walletHash)
-
-	await backend.post(baseURL + '/memos/register/', {}, { headers: { 'x-authmemo-wallethash': user, 'x-authmemo-pass': memoHash}})
-		.then(async (response) => {
-			// console.log('response: ', response)
-			// memoData = response.data
-			await authMemo()
-		})
-		.catch(async (error) => {
-			// console.error(error.response)
-			// memoData = error.response.data
-			if (error.response) {				
-				if (error.response.status === 400) {					
-					await authMemo()
-				}				
+		return {
+			success: true,
+			data: response.data,
+			error: null
+		}
+	} catch (error) {
+		// 404 is not an error - it just means no memo exists
+		if (error.response && error.response.status === 404) {
+			return {
+				success: true,
+				data: null,
+				error: null
 			}
-		})	
+		}
+		
+		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch memo'
+		console.error('[fetchMemo] Error:', errorMessage)
+		
+		return {
+			success: false,
+			data: null,
+			error: `Network error: ${errorMessage}`
+		}
+	}
 }
 
+/**
+ * Create a new memo for a transaction
+ * @param {Object} data - Memo data { txid, note }
+ * @returns {Promise<{success: boolean, data: any, error: string|null}>}
+ */
+export async function createMemo (data) {
+	if (!data || typeof data !== 'object' || !data.txid || !data.note) {
+		return {
+			success: false,
+			data: null,
+			error: 'Invalid memo data: must contain txid and note'
+		}
+	}
+
+	if (!walletHash) {
+		return {
+			success: false,
+			data: null,
+			error: 'Wallet hash not available'
+		}
+	}
+
+	try {
+		// Ensure we're authenticated
+		await authMemo()
+		const token = await getAuthToken()
+		
+		if (!token) {
+			return {
+				success: false,
+				data: null,
+				error: 'Failed to get authentication token'
+			}
+		}
+
+		const TOKEN_HEADER = 'Bearer ' + token
+		const response = await backend.post(baseURL + '/memos/', data, {
+			headers: {
+				'wallet-hash': walletHash,
+				'Authorization': TOKEN_HEADER
+			}
+		})
+		
+		return {
+			success: true,
+			data: response.data,
+			error: null
+		}
+	} catch (error) {
+		const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to create memo'
+		console.error('[createMemo] Error:', errorMessage)
+		
+		return {
+			success: false,
+			data: null,
+			error: errorMessage
+		}
+	}
+}
+
+
+/**
+ * Update an existing memo for a transaction
+ * @param {Object} data - Memo data { txid, note }
+ * @returns {Promise<{success: boolean, data: any, error: string|null}>}
+ */
+export async function updateMemo (data) {
+	if (!data || typeof data !== 'object' || !data.txid || !data.note) {
+		return {
+			success: false,
+			data: null,
+			error: 'Invalid memo data: must contain txid and note'
+		}
+	}
+
+	if (!walletHash) {
+		return {
+			success: false,
+			data: null,
+			error: 'Wallet hash not available'
+		}
+	}
+
+	try {
+		// Ensure we're authenticated
+		await authMemo()
+		const token = await getAuthToken()
+		
+		if (!token) {
+			return {
+				success: false,
+				data: null,
+				error: 'Failed to get authentication token'
+			}
+		}
+
+		const TOKEN_HEADER = 'Bearer ' + token
+		const response = await backend.patch(baseURL + '/memos/', data, {
+			headers: {
+				'wallet-hash': walletHash,
+				'Authorization': TOKEN_HEADER
+			}
+		})
+		
+		return {
+			success: true,
+			data: response.data,
+			error: null
+		}
+	} catch (error) {
+		// 404 means memo doesn't exist - treat as error for update
+		if (error.response && error.response.status === 404) {
+			return {
+				success: false,
+				data: null,
+				error: 'Memo not found'
+			}
+		}
+		
+		const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to update memo'
+		console.error('[updateMemo] Error:', errorMessage)
+		
+		return {
+			success: false,
+			data: null,
+			error: errorMessage
+		}
+	}
+}
+
+/**
+ * Delete a memo for a transaction
+ * @param {string} txid - Transaction ID
+ * @returns {Promise<{success: boolean, data: any, error: string|null}>}
+ */
+export async function deleteMemo (txid) {
+	if (!txid || typeof txid !== 'string') {
+		return {
+			success: false,
+			data: null,
+			error: 'Invalid transaction ID'
+		}
+	}
+
+	if (!walletHash) {
+		return {
+			success: false,
+			data: null,
+			error: 'Wallet hash not available'
+		}
+	}
+
+	try {
+		// Ensure we're authenticated
+		await authMemo()
+		const token = await getAuthToken()
+		
+		if (!token) {
+			return {
+				success: false,
+				data: null,
+				error: 'Failed to get authentication token'
+			}
+		}
+
+		const TOKEN_HEADER = 'Bearer ' + token
+		const response = await backend.delete(baseURL + '/memos/', {
+			params: { 'txid': txid },
+			headers: {
+				'wallet-hash': walletHash,
+				'Authorization': TOKEN_HEADER
+			}
+		})
+		
+		return {
+			success: true,
+			data: response.data,
+			error: null
+		}
+	} catch (error) {
+		// 404 means memo doesn't exist - treat as success for delete (idempotent)
+		if (error.response && error.response.status === 404) {
+			return {
+				success: true,
+				data: null,
+				error: null
+			}
+		}
+		
+		const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete memo'
+		console.error('[deleteMemo] Error:', errorMessage)
+		
+		return {
+			success: false,
+			data: null,
+			error: errorMessage
+		}
+	}
+}
+
+/**
+ * Register a new memo user
+ * @returns {Promise<boolean>} - Returns true if registration successful
+ */
+export async function registerMemoUser () {
+	if (!walletHash) {
+		console.error('[registerMemoUser] Wallet hash not available')
+		return false
+	}
+
+	try {
+		const user = 'MEMO_' + walletHash
+		const memoHash = await generateMemoHash(walletHash)
+
+		await backend.post(baseURL + '/memos/register/', {}, {
+			headers: {
+				'x-authmemo-wallethash': user,
+				'x-authmemo-pass': memoHash
+			}
+		})
+		
+		// After registration, authenticate
+		return await authMemo()
+	} catch (error) {
+		// 400 means user already exists, try to authenticate
+		if (error.response && error.response.status === 400) {
+			return await authMemo()
+		}
+		
+		console.error('[registerMemoUser] Registration error:', error.message)
+		return false
+	}
+}
+
+/**
+ * Authenticate and get auth token for memo operations
+ * Automatically registers user if not found
+ * @returns {Promise<boolean>} - Returns true if authentication successful
+ */
 export async function authMemo () {
-	const user = 'MEMO_' + walletHash
-	const memoHash = await generateMemoHash(walletHash)
+	if (!walletHash) {
+		console.error('[authMemo] Wallet hash not available')
+		return false
+	}
 
-	await backend.post(baseURL + '/memos/auth/', { 'username': user, 'password': memoHash })
-		.then(async (response) => {			
-			// memoData = response.data
+	try {
+		const user = 'MEMO_' + walletHash
+		const memoHash = await generateMemoHash(walletHash)
+
+		const response = await backend.post(baseURL + '/memos/auth/', {
+			'username': user,
+			'password': memoHash
+		})
+		
+		if (response.data && response.data.access) {
 			await saveAuthToken(response.data.access)
-		})
-		.catch(error => {
-			registerMemoUser()
-			// console.error(error.response.data)
-
-			// memoData = error.response.data
-		})
+			return true
+		}
+		
+		return false
+	} catch (error) {
+		// If auth fails, try to register the user
+		if (error.response && (error.response.status === 401 || error.response.status === 404)) {
+			try {
+				await registerMemoUser()
+				return true
+			} catch (registerError) {
+				console.error('[authMemo] Registration failed:', registerError)
+				return false
+			}
+		}
+		
+		console.error('[authMemo] Authentication error:', error.message)
+		return false
+	}
 }
 
 export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {		
@@ -188,11 +404,6 @@ export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
 
  export async function encryptMemo (privkey, pubkey, memo) {
  	try {
- 		// encrypt message
- 		console.log('encryptMemo - Input memo:', memo)
- 		console.log('encryptMemo - privkey exists:', !!privkey)
- 		console.log('encryptMemo - pubkey exists:', !!pubkey)
- 		
  		if (!memo || !privkey || !pubkey) {
  			console.error('encryptMemo - Missing required parameters')
  			return null
@@ -204,15 +415,12 @@ export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
       		pubkeys: pubkey
     	})
     	
-    	console.log('encryptMemo - Encrypted message:', encryptedMessage)
-    	
     	if (!encryptedMessage) {
     		console.error('encryptMemo - encryptMessage returned null/undefined')
     		return null
     	}
     	
    		const serializedEncryptedMessage = compressEncryptedMessage(encryptedMessage)
-   		console.log('encryptMemo - Serialized message:', serializedEncryptedMessage)
    		
    		if (!serializedEncryptedMessage) {
    			console.error('encryptMemo - compressEncryptedMessage returned null/undefined')
@@ -285,7 +493,6 @@ export function getAuthToken (walletHash = null) {
 export function deleteAuthToken (walletHash = null) {
 	const key = getTokenStorageKey(walletHash)
 	SecureStoragePlugin.remove({ key })
-	console.log('Memo auth token deleted for wallet:', walletHash || 'current')
 }
 
 /**
@@ -296,7 +503,6 @@ export function deleteAuthTokenForWallet(walletHash) {
 	if (walletHash) {
 		const key = getTokenStorageKey(walletHash)
 		SecureStoragePlugin.remove({ key })
-		console.log('Memo auth token deleted for wallet:', walletHash)
 	}
 }
 
