@@ -1758,7 +1758,15 @@ const phrases = {
     },
     {
       Connect: 'Connect',
-      SingleSigAddressSelectionHeader: 'Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.'
+      SpecifyAddressHeader: 'Specify the address for this wallet connection session',
+      SingleSigAddressSelectionHeader: 'Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.',
+      AddressNotFoundOnThisWallet: 'Address not found on this wallet',
+      AddressIndexHint: 'Example: Enter 1 if you\'re referring to address at path 0/1. If you don\'t know the index, leave this blank. The device will try to find the address index based from 0 to last used addressindex',
+      Address: 'Address',
+      AddressIndexLabel: 'Address Index',
+      IwantToProvideSpecificAddress: 'I want to provide specific address',
+      WcPasteSessionURLLabel: 'Paste session URL',
+      SessionURL: 'Session URL'
     }
   ],
   dynamic: [
@@ -1876,6 +1884,7 @@ const phrases = {
       WebsiteDescription: 'Visit {website}',
       TransactionProposalPending: 'You have {count} transaction proposal pending. This feature doesn\'t support creating of tx proposal while there\'s atleast 1 pending! This will change in the future.',
       SignerNamePlaceholder: 'Signer {index}\'s name',
+      WcSelectAddressHeader: 'Select the address you want to connect to {peerName}.',
     }
   ]
 }
