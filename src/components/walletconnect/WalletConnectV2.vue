@@ -107,19 +107,20 @@
                   <q-btn
                     :label="$t('Reject')" color="negative"
                     @click="() => rejectSessionRequest(sessionRequest)"
-                    class="action-button"
+                    class="action-button col-xs-5 col-sm-3"
                     :disable="Boolean(processingSession[sessionRequest.topic])"
-                    :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Reject'))">
+                    :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Reject'))" rounded outline>
                     <template v-slot:loading>
                       <q-spinner-facebook></q-spinner-facebook>
                     </template>
                   </q-btn>
                   <q-btn
-                    :label="$t('Accept')" color="green"
+                    :label="$t('Accept')" color="primary"
                     @click="() => respondToSessionRequest(sessionRequest)"
-                    class="action-button"
+                    class="action-button col-xs-5 col-sm-3"
                     :disable="Boolean(processingSession[sessionRequest.topic])"
                     :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Sign'))"
+                    rounded outline
                     >
                     <template v-slot:loading>
                       <q-spinner-facebook></q-spinner-facebook>
@@ -143,24 +144,25 @@
                 <q-icon name="notifications_active" size="sm" color="warning"></q-icon>
               </template>
               <template v-slot:actions>
-                <q-btn
-                  :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Rejecting'))"
-                  :label="$t('Reject')" color="negative" class="action-button"
-                  @click.stop="() => rejectSessionProposal(sessionProposal)"
-                  :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps>
-                  <template v-slot:loading>
-                    <q-spinner-facebook></q-spinner-facebook>
-                  </template>
-                </q-btn>
-                <q-btn
-                  :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Connecting'))"
-                  :label="$t('Connect')" color="green" class="action-button"
-                  @click.stop="() => approveSessionProposal(sessionProposal)"
-                  :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps >
-                  <template v-slot:loading>
-                    <q-spinner-facebook></q-spinner-facebook>
-                  </template>
-                </q-btn>
+                  <q-btn
+                    :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Rejecting'))"
+                    :label="$t('Reject')" color="negative" class="action-button col-xs-5 col-sm-3"
+                    @click.stop="() => rejectSessionProposal(sessionProposal)"
+                    :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps rounded outline>
+                    <template v-slot:loading>
+                      <q-spinner-facebook></q-spinner-facebook>
+                    </template>
+                  </q-btn>
+                  <q-btn
+                    color="primary"
+                    :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Connecting'))"
+                    :label="$t('Connect')" class="action-button col-xs-5 col-sm-3"
+                    @click.stop="() => approveSessionProposal(sessionProposal)"
+                    :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps rounded>
+                    <template v-slot:loading>
+                      <q-spinner-facebook></q-spinner-facebook>
+                    </template>
+                  </q-btn>
               </template>
             </SessionInfo>
           </div>
@@ -198,11 +200,12 @@
                   <q-btn
                     label="Disconnect"
                     color="negative"
-                    class="cursor-pointer action-button"
+                    class="cursor-pointer action-button col-xs-10"
                     no-caps
                     :loading="Boolean(processingSession[activeSession.topic]?.includes('Disconnect'))"
                     :disable="Boolean(processingSession[activeSession.topic])"
                     @click.stop="() => disconnectSession(activeSession)"
+                    rounded
                     >
                     <template v-slot:loading>
                       <q-spinner-facebook />
@@ -240,6 +243,8 @@ import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
+import NewSessionDialog from './NewSessionDialog.vue'
+import ManualAddressEntryDialog from './ManualAddressEntryDialog.vue'
 import {
   // createMultisigTransactionFromWCSessionRequest,
   // generateTransactionHash,
@@ -509,32 +514,13 @@ async function saveConnectedApp (session) {
 const connectNewSession = async (uri = '', prompt = true) => {
   if (prompt) {
     $q.dialog({
-      title: $t('NewSession'),
-      class: `q-pb-lg q-px-sm br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)} new-session`,
-      prompt: {
-        label: $t('SessionURL'),
-        placeholder: $t('PasteURL'),
-        model: uri,
-        outlined: true,
-        type: 'textarea',
-        autogrow: true,
-        inputStyle: 'word-break: break-all; padding: 2px;'
-      },
-      ok: {
-        noCaps: true,
-        label: $t('Proceed'),
-        class: `button q-mr-md ${getDarkModeClass(darkMode.value)}`
-      },
-      cancel: {
-        flat: true,
-        noCaps: true,
-        label: $t('Close'),
-        class: `${getDarkModeClass(darkMode.value)}`
-      },
-      position: 'bottom',
-      seamless: true
+      component: NewSessionDialog,
+      componentProps: {
+        darkMode: darkMode.value
+      }
     })
-      .onOk(async (_uri) => await pairURI(_uri))
+      .onOk(async (payload) => await pairURI(payload))
+      
   } else {
     setTimeout(async () => {
       await pairURI(uri)
@@ -590,11 +576,14 @@ const disconnectSession = async (activeSession) => {
         ok: {
           label: $t('Yes'),
           noCaps: true,
-          color: 'primary'
+          color: 'primary',
+          rounded: true
         },
         cancel: {
-          flat: true,
           noCaps: true,
+          rounded: true,
+          outline: true,
+          color: 'negative',
           label: $t('No')
         },
         class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
@@ -615,6 +604,47 @@ const disconnectSession = async (activeSession) => {
     processingSession.value[activeSession.topic] = ''
   }
 }
+
+const openManualAddressEntryDialog = async (sessionProposal) => {
+  try {
+    const addressAddressIndexAndWif = await new Promise((resolve, reject) => {
+      $q.dialog({
+        component: ManualAddressEntryDialog,
+        componentProps: {
+          darkMode: darkMode.value
+        }
+      })
+      .onOk(async(payload) => {
+        const { ok, addressIndex, address, wif } = 
+          await $store.dispatch('global/depositAddressIsFromWallet', { 
+            address: payload.address, addressIndex: payload.addressIndex
+          })
+          if (ok) {
+            return resolve({ address, addressIndex, wif }) 
+          }
+        reject(new Error($t('AddressNotFoundOnThisWallet', 'Could not find address on this wallet. Try providing an address index.')))
+      })
+      .onCancel(() => {
+        openAddressSelectionDialog(sessionProposal)
+      })
+    })
+    return addressAddressIndexAndWif
+  } catch (error) {
+    $q.dialog({
+      title: 'Error',
+      message: error.message,
+      ok: {
+        rounded: true,
+        label: $t('Ok'),
+        noCaps: true,
+        color: 'primary'
+      },
+      class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }   
+}
+
+  
 
 
 const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
@@ -647,6 +677,10 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
         }
       })
         .onOk(async (payload) => {
+          if (payload.iWantToProvideSpecificAddress) {
+            const selectedWalletAddress = await openManualAddressEntryDialog(sessionProposal)
+            return resolve({ selectedWalletAddress, isMultisig: false })
+          }
           resolve({ 
             selectedWalletAddress: payload.selectedWalletAddress, 
             isMultisig: payload.isMultisig
