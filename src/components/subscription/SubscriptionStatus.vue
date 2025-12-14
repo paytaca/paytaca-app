@@ -1,46 +1,46 @@
 <template>
-  <q-card class="subscription-status-card" :class="getDarkModeClass(darkMode)">
-    <q-card-section>
-      <div class="row items-center q-mb-sm">
+  <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+    <q-item>
+      <q-item-section avatar>
         <q-icon
           :name="isPlus ? 'workspace_premium' : 'account_circle'"
           :color="isPlus ? 'amber' : 'grey'"
           size="md"
-          class="q-mr-sm"
+          :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"
         />
-        <div class="col">
-          <div class="text-subtitle1 text-weight-medium">
-            {{ isPlus ? $t('PaytacaPlus', {}, 'Paytaca Plus') : $t('PaytacaFree', {}, 'Paytaca Free') }}
-          </div>
-          <div class="text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-            {{ $t('SubscriptionTier', {}, 'Subscription Tier') }}
-          </div>
-        </div>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+          {{ isPlus ? $t('PaytacaPlus', {}, 'Paytaca Plus') : $t('PaytacaFree', {}, 'Paytaca Free') }}
+        </q-item-label>
+        <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+          {{ $t('SubscriptionTier', {}, 'Subscription Tier') }}
+        </q-item-label>
+      </q-item-section>
+      <q-item-section side v-if="isPlus">
         <q-badge
-          v-if="isPlus"
           color="amber"
           text-color="black"
           :label="$t('Plus', {}, 'Plus')"
         />
-      </div>
-      
-      <q-separator class="q-my-md" />
-      
-      <div class="row items-center q-mb-sm">
-        <div class="col">
-          <div class="text-body2" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
-            {{ $t('LiftTokenBalance', {}, 'LIFT Token Balance') }}
-          </div>
-          <div class="text-h6 text-weight-medium">
-            {{ liftTokenBalance.toFixed(2) }} LIFT
-          </div>
-        </div>
-      </div>
-      
-      <div v-if="!isPlus" class="q-mt-md">
+      </q-item-section>
+    </q-item>
+    
+    <q-item>
+      <q-item-section>
+        <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('LiftTokenBalance', {}, 'LIFT Token Balance') }}</q-item-label>
+        <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+          {{ formattedLiftBalance }} LIFT
+        </q-item-label>
+      </q-item-section>
+    </q-item>
+    
+    <q-item v-if="!isPlus">
+      <q-item-section>
         <q-banner
           rounded
-          class="upgrade-banner"
+          dense
+          class="upgrade-banner q-mt-sm"
           :class="getDarkModeClass(darkMode)"
         >
           <template v-slot:avatar>
@@ -49,7 +49,7 @@
           <div class="text-body2 q-mb-xs">
             {{ $t('UpgradeToPlusMessage', {}, 'Upgrade to Paytaca Plus to unlock higher limits and special features.') }}
           </div>
-          <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+          <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
             {{ $t('RequiresMinimumLiftTokens', { count: minLiftTokens }, `Requires a minimum of ${minLiftTokens} LIFT tokens`) }}
           </div>
           <q-btn
@@ -60,20 +60,21 @@
             @click="showUpgradeDialog = true"
           />
         </q-banner>
-      </div>
-    </q-card-section>
+      </q-item-section>
+    </q-item>
     
     <UpgradePromptDialog
       v-model="showUpgradeDialog"
       :dark-mode="darkMode"
     />
-  </q-card>
+  </q-list>
 </template>
 
 <script>
 import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 import UpgradePromptDialog from './UpgradePromptDialog.vue'
 
 export default {
@@ -95,6 +96,10 @@ export default {
     const liftTokenBalance = computed(() => store.getters['subscription/getLiftTokenBalance'])
     const minLiftTokens = computed(() => store.getters['subscription/getMinLiftTokens'])
     
+    const formattedLiftBalance = computed(() => {
+      return formatWithLocale(liftTokenBalance.value, { min: 2, max: 2 })
+    })
+    
     // Check subscription status on mount
     onMounted(() => {
       store.dispatch('subscription/checkSubscriptionStatus')
@@ -103,6 +108,7 @@ export default {
     return {
       isPlus,
       liftTokenBalance,
+      formattedLiftBalance,
       minLiftTokens,
       showUpgradeDialog,
       getDarkModeClass
@@ -112,12 +118,21 @@ export default {
 </script>
 
 <style scoped>
-.subscription-status-card {
-  width: 100%;
-}
-
 .upgrade-banner {
   background-color: rgba(0, 0, 0, 0.02);
+  padding: 12px;
+}
+
+.settings-list :deep(.q-item) {
+  padding: 16px 20px;
+}
+
+.settings-list :deep(.q-item-section) {
+  padding: 0;
+}
+
+.settings-list :deep(.q-item-section.avatar) {
+  padding-right: 12px;
 }
 </style>
 

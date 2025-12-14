@@ -99,7 +99,7 @@
 </template>
 <script setup>
 import ago from 's-ago'
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
@@ -300,7 +300,8 @@ const isNewTransaction = computed(() => {
 })
 
 async function loadMemo() {
-  const txid = props.transaction?.txid
+  // Support both txid and tx_hash field names
+  const txid = props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash
   if (!txid) {
     decryptedMemo.value = ''
     return
@@ -322,7 +323,10 @@ async function loadMemo() {
 }
 
 onMounted(() => {
-  loadMemo()
+  // Load memo when component mounts - use nextTick to ensure transaction prop is set
+  nextTick(() => {
+    loadMemo()
+  })
   
   // Update current time every second to keep shine effect reactive
   updateTimer = setInterval(() => {
@@ -338,9 +342,14 @@ onUnmounted(() => {
   }
 })
 
-// Watch for changes to transaction txid or encrypted_memo and reload memo
+// Watch for changes to transaction txid and encrypted_memo
+// This ensures memos load when transactions are set asynchronously
+// Support multiple field names for transaction ID
 watch(
-  () => [props.transaction?.txid, props.transaction?.encrypted_memo],
+  () => [
+    props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash,
+    props.transaction?.encrypted_memo
+  ],
   () => {
     loadMemo()
   }
