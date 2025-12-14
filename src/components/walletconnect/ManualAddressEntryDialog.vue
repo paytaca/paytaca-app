@@ -32,7 +32,7 @@
           v-model="addressIndex"
           type="number"
           :label="$t('AddressIndexLabel', 'Address Index')" 
-          :hint="$t('AddressIndexHint')"
+          :hint="$t('AddressIndexHintLabel')"
           filled
           />
       </q-card-section>
