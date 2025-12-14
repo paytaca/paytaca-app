@@ -65,7 +65,7 @@
           </PeerInfo>
       </template>
     </q-card-section>
-    <q-card-actions align="right" class="q-gutter-x-md" style="padding-top: 0px">
+    <q-card-actions class="row justify-around q-gutter-x-md q-mt-lg" style="padding-top: 0px">
       <slot name="actions"></slot>
     </q-card-actions>
   </q-card>

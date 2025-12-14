@@ -1148,3 +1148,61 @@ export async function autoGenerateAddress(context, opts) {
   }
   return { success: true }
 }
+
+/**
+ * Check if the address is from the wallet
+ * @param {Object} context
+ * @param {Object} opts
+ * @param {String} opts.address
+ * @param {Number} [opts.addressIndex]
+ * @param {Number} [opts.walletIndex] 
+ * @return {Object} { ok: boolean, walletIndex: number, addressIndex: number, address: string, wif: string }
+ */
+export async function depositAddressIsFromWallet(context, {address, addressIndex, walletIndex}) {
+
+  const selectedWalletIndex = walletIndex ?? context.getters.getWalletIndex
+  
+  const libauthWallet = await loadLibauthHdWallet(selectedWalletIndex, Boolean(context.state.isChipnet))
+
+  if (addressIndex !== undefined && addressIndex !== null) {
+    const wif = libauthWallet.getPrivateKeyWifAt(`0/${addressIndex}`)
+    const decodedPrivkey = decodePrivateKeyWif(wif)
+    let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+    if (context.state.isChipnet) {
+      cashAddress = toP2pkhTestAddress(cashAddress)
+    }
+
+    if (cashAddress === address) {
+      return { ok: true, walletIndex: selectedWalletIndex, addressIndex, address, wif }
+    }
+    return { ok: false, walletIndex: selectedWalletIndex  }
+  }
+
+  let lastIndex = 
+    context.state.wallets.bch.lastAddressAndIndex?.address_index ||
+    context.state.wallets.bch.lastAddressIndex || 0
+
+  if (context.state.isChipnet) {
+    lastIndex =
+    context.state.chipnet__wallets.bch.lastAddressAndIndex?.address_index ||
+    context.state.chipnet__wallets.bch.lastAddressIndex || 0
+  }
+
+  const stopAtIndex = lastIndex + 50 // search within 50 addresses gap limit
+  for (let i = 0; i < stopAtIndex; i++) {
+    try {
+      const wif = libauthWallet.getPrivateKeyWifAt(`0/${i}`)
+      const decodedPrivkey = decodePrivateKeyWif(wif)
+      let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+
+      if (context.state.isChipnet) {
+        cashAddress = toP2pkhTestAddress(cashAddress)
+      }
+
+      if (cashAddress === address) {
+        return { ok: true, walletIndex: selectedWalletIndex, addressIndex: i, address, wif }
+      }
+    } catch (error) {}
+  }
+  return { ok: false, walletIndex: selectedWalletIndex }
+}
