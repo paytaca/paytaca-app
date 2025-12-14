@@ -19,6 +19,7 @@ import notification from './notification'
 import ramp from './ramp'
 import stablehedge from './stablehedge'
 import multisig from './multisig'
+import subscription from './subscription'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -265,7 +266,8 @@ export const Store = createStore({
     notification,
     ramp,
     stablehedge,
-    multisig
+    multisig,
+    subscription
   },
 
   // enable strict mode (adds overhead!)

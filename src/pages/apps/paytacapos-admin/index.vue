@@ -307,7 +307,25 @@ async function openMerchantPage(merchantData) {
 }
 
 const merchantInfoDialog = ref({ show: false, merchant: null })
-function openMerchantInfoDialog(merchantData) {
+async function openMerchantInfoDialog(merchantData) {
+  // If creating a new merchant (merchantData is null/undefined), check limit
+  if (!merchantData) {
+    await $store.dispatch('subscription/checkSubscriptionStatus')
+    const canCreate = $store.getters['subscription/canPerformAction']('merchants')
+    
+    if (!canCreate) {
+      $q.dialog({
+        component: () => import('src/components/subscription/UpgradePromptDialog.vue'),
+        componentProps: {
+          darkMode: darkMode.value,
+          limitType: 'merchants'
+        }
+      })
+      return
+    }
+  }
+  
+  // Continue with opening dialog
   merchantInfoDialog.value = { show: true, merchant: merchantData }
 }
 

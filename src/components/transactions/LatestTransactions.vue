@@ -58,7 +58,7 @@
       </div>
     </template>
     
-    <div v-else class="loading-state q-px-lg q-py-md">
+    <div v-else class="loading-state">
       <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
     </div>
   </div>

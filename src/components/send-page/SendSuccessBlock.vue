@@ -160,8 +160,7 @@ import {
   parseFiatCurrency,
   parseAssetDenomination
 } from 'src/utils/denomination-utils'
-import { fetchMemo, createMemo, updateMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
-import { getKeypair } from 'src/exchange/chat/keys'
+import * as memoService from 'src/utils/memo-service'
 import { hexToRef } from 'src/utils/reference-id-utils'
 
 import SendSuccessDetailsDialog from 'src/components/send-page/SendSuccessDetailsDialog.vue'
@@ -197,8 +196,7 @@ export default {
       memoInput: '',
       editingMemo: false,
       hasMemo: false,
-      networkError: false,
-      keypair: null
+      networkError: false
     }
   },
 
@@ -311,41 +309,30 @@ export default {
       if (!this.txid) return
       
       try {
-        // Get keypair for encryption/decryption
-        this.keypair = await getKeypair().catch(console.error)
-        if (!this.keypair) {
-          console.error('Failed to get keypair')
-          this.networkError = true
-          return
-        }
+        // Use memo service to load and decrypt memo
+        const result = await memoService.loadMemo(this.txid)
 
-        // Fetch memo from server
-        let currentMemo = null
-        try {
-          currentMemo = await fetchMemo(this.txid)
-        } catch (err) {
-          console.error('Error fetching memo:', err)
-          this.networkError = true
-        }
-
-        if (currentMemo) {
-          if ('error' in currentMemo) {
-            this.hasMemo = false
+        if (result.success) {
+          if (result.memo) {
+            // Memo successfully decrypted
+            this.transactionMemo = result.memo
+            this.memoInput = result.memo
+            this.hasMemo = true
             this.editingMemo = false
           } else {
-            // Decrypt memo
-            const decryptedNote = await decryptMemo(this.keypair.privkey, currentMemo.note)
-            this.transactionMemo = decryptedNote
-            this.memoInput = decryptedNote
-            this.hasMemo = true
+            // No memo found (not an error)
+            this.hasMemo = false
             this.editingMemo = false
           }
         } else {
+          // Error loading/decrypting memo
+          console.error('[SendSuccessBlock] loadMemo error:', result.error)
+          this.networkError = true
           this.hasMemo = false
           this.editingMemo = false
         }
       } catch (error) {
-        console.error('Error loading memo:', error)
+        console.error('[SendSuccessBlock] loadMemo: Unexpected error:', error)
         this.networkError = true
         this.hasMemo = false
         this.editingMemo = false
@@ -356,114 +343,31 @@ export default {
       const domInputValue = this.$refs.memoInputRef?.value || ''
       const memoToSave = domInputValue || this.memoInput
       
-      console.log('saveMemo called')
-      console.log('- this.memoInput:', this.memoInput)
-      console.log('- DOM input value:', domInputValue)
-      console.log('- memoToSave:', memoToSave)
-      
-      if (!this.txid) {
-        console.log('Early return - txid is empty')
-        return
-      }
+      if (!this.txid) return
       
       // Check if memo is empty or just whitespace
       const trimmedMemo = memoToSave.trim()
-      if (!trimmedMemo) {
-        console.log('Early return - memo is empty or just whitespace')
-        return
-      }
-      
-      if (!this.keypair) {
-        console.error('Keypair is missing')
-        this.$q.notify({
-          message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
-          color: 'negative',
-          icon: 'error',
-          position: 'top',
-          timeout: 2000
-        })
-        return
-      }
+      if (!trimmedMemo) return
 
       try {
-        // Ensure user is authenticated before saving
-        await authMemo()
+        // Use memo service to save memo
+        const result = await memoService.saveMemo(this.txid, trimmedMemo, this.hasMemo)
 
-        // Encrypt the memo before sending
-        const encryptedMemo = await encryptMemo(
-          this.keypair.privkey,
-          this.keypair.pubkey,
-          trimmedMemo
-        )
-
-        console.log('Encrypted memo:', encryptedMemo)
-        
-        if (!encryptedMemo) {
-          console.error('Encryption failed - encryptedMemo is empty')
+        if (result.success) {
+          this.transactionMemo = trimmedMemo
+          this.memoInput = trimmedMemo
+          this.hasMemo = true
+          this.editingMemo = false
+          
           this.$q.notify({
-            message: this.$t('ErrorEncryptingMemo', {}, 'Error encrypting memo'),
-            color: 'negative',
-            icon: 'error',
+            message: this.$t('MemoSaved', {}, 'Memo saved'),
+            color: 'positive',
+            icon: 'check_circle',
             position: 'top',
             timeout: 2000
           })
-          return
-        }
-
-        const data = {
-          txid: this.txid,
-          note: encryptedMemo
-        }
-        
-        console.log('Data being sent to server:', data)
-
-        let response = null
-        if (this.hasMemo) {
-          // Update existing memo
-          try {
-            response = await updateMemo(data)
-          } catch (err) {
-            console.error('Error updating memo:', err)
-            this.networkError = true
-          }
         } else {
-          // Create new memo
-          try {
-            response = await createMemo(data)
-          } catch (err) {
-            console.error('Error creating memo:', err)
-            this.networkError = true
-          }
-        }
-
-        if (response) {
-          if ('error' in response) {
-            this.hasMemo = false
-            this.$q.notify({
-              message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
-              color: 'negative',
-              icon: 'error',
-              position: 'top',
-              timeout: 2000
-            })
-          } else {
-            // Successfully saved
-            this.transactionMemo = trimmedMemo
-            this.memoInput = trimmedMemo
-            this.hasMemo = true
-            this.editingMemo = false
-            
-            console.log('Memo saved successfully:', trimmedMemo)
-            
-            this.$q.notify({
-              message: this.$t('MemoSaved', {}, 'Memo saved'),
-              color: 'positive',
-              icon: 'check_circle',
-              position: 'top',
-              timeout: 2000
-            })
-          }
-        } else {
+          this.networkError = true
           this.$q.notify({
             message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
             color: 'negative',
@@ -473,7 +377,8 @@ export default {
           })
         }
       } catch (error) {
-        console.error('Error saving memo:', error)
+        console.error('[SendSuccessBlock] saveMemo: Unexpected error:', error)
+        this.networkError = true
         this.$q.notify({
           message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
           color: 'negative',
@@ -492,8 +397,7 @@ export default {
       })
     },
     onMemoInputChange (event) {
-      console.log('Memo input changed:', event.target.value)
-      console.log('Current memoInput value:', this.memoInput)
+      // Memo input change handler
     },
     cancelEditMemo () {
       this.memoInput = this.transactionMemo
@@ -518,21 +422,33 @@ export default {
         class: this.darkMode ? 'text-white' : 'text-black'
       }).onOk(async () => {
         try {
-          const { deleteMemo } = await import('src/utils/transaction-memos.js')
-          await deleteMemo(this.txid)
-          this.hasMemo = false
-          this.transactionMemo = ''
-          this.memoInput = ''
-          
-          this.$q.notify({
-            message: this.$t('MemoDeleted', {}, 'Memo deleted'),
-            color: 'positive',
-            icon: 'check_circle',
-            position: 'top',
-            timeout: 2000
-          })
+          const result = await memoService.deleteMemo(this.txid)
+
+          if (result.success) {
+            this.hasMemo = false
+            this.transactionMemo = ''
+            this.memoInput = ''
+            
+            this.$q.notify({
+              message: this.$t('MemoDeleted', {}, 'Memo deleted'),
+              color: 'positive',
+              icon: 'check_circle',
+              position: 'top',
+              timeout: 2000
+            })
+          } else {
+            this.networkError = true
+            this.$q.notify({
+              message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+              color: 'negative',
+              icon: 'error',
+              position: 'top',
+              timeout: 2000
+            })
+          }
         } catch (error) {
-          console.error('Error deleting memo:', error)
+          console.error('[SendSuccessBlock] confirmDelete: Unexpected error:', error)
+          this.networkError = true
           this.$q.notify({
             message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
             color: 'negative',

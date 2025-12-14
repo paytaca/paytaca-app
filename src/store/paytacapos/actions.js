@@ -74,6 +74,16 @@ export async function refetchMerchantInfo(context, data) {
 export async function updateMerchantInfo(context, data) {
   if (!data?.walletHash) return Promise.reject(new Error('wallet hash required'))
 
+  // Check limit before creating new merchant (when data.id is not present)
+  if (!data?.id) {
+    await context.dispatch('subscription/checkSubscriptionStatus', null, { root: true })
+    const canCreate = context.rootGetters['subscription/canPerformAction']('merchants')
+    
+    if (!canCreate) {
+      return Promise.reject(new Error('Merchant limit reached. Upgrade to Paytaca Plus for more merchants.'))
+    }
+  }
+
   const payload = {
     wallet_hash: data?.walletHash,
     primary_contact_number: data?.primaryContactNumber,

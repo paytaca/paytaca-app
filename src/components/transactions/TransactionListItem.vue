@@ -99,15 +99,14 @@
 </template>
 <script setup>
 import ago from 's-ago'
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
-import { decryptMemo } from 'src/utils/transaction-memos.js'
-import { getKeypair } from 'src/exchange/chat/keys'
+import * as memoService from 'src/utils/memo-service'
 
 const $store = useStore()
 const $t = useI18n().t
@@ -301,28 +300,33 @@ const isNewTransaction = computed(() => {
 })
 
 async function loadMemo() {
-  if (!props.transaction?.encrypted_memo) {
+  // Support both txid and tx_hash field names
+  const txid = props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash
+  if (!txid) {
     decryptedMemo.value = ''
     return
   }
 
   try {
-    const keypair = await getKeypair().catch(console.error)
-    if (!keypair) {
-      console.error('Failed to get keypair for memo decryption')
-      return
-    }
+    // Use memo service to load and decrypt memo
+    const result = await memoService.loadMemo(txid, props.transaction?.encrypted_memo)
 
-    const decrypted = await decryptMemo(keypair.privkey, props.transaction.encrypted_memo)
-    decryptedMemo.value = decrypted
+    if (result.success && result.memo) {
+      decryptedMemo.value = result.memo
+    } else {
+      decryptedMemo.value = ''
+    }
   } catch (error) {
-    console.error('Error decrypting memo:', error)
+    console.error('[TransactionListItem] Error loading memo:', error)
     decryptedMemo.value = ''
   }
 }
 
 onMounted(() => {
-  loadMemo()
+  // Load memo when component mounts - use nextTick to ensure transaction prop is set
+  nextTick(() => {
+    loadMemo()
+  })
   
   // Update current time every second to keep shine effect reactive
   updateTimer = setInterval(() => {
@@ -338,9 +342,14 @@ onUnmounted(() => {
   }
 })
 
-// Watch for changes to encrypted_memo and reload
+// Watch for changes to transaction txid and encrypted_memo
+// This ensures memos load when transactions are set asynchronously
+// Support multiple field names for transaction ID
 watch(
-  () => props.transaction?.encrypted_memo,
+  () => [
+    props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash,
+    props.transaction?.encrypted_memo
+  ],
   () => {
     loadMemo()
   }

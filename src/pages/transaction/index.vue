@@ -1104,7 +1104,7 @@ export default {
         // vm.hideAssetInfo()
         vm.assetClickTimer = setTimeout(() => {          
           if (vm.assetClickCounter === 1) {
-            this.$router.push({ name: 'transaction-list'}) 
+            this.$router.push({ name: 'transaction-list', query: { assetID: 'bch' }}) 
           }            
           clearTimeout(vm.assetClickTimer)
           vm.assetClickTimer = null

@@ -43,6 +43,38 @@ export default boot(async (obj) => {
           cashtokenIdentities: {}
         }
       }
+      
+      // Ensure subscription module state is initialized
+      if (!parsedState.subscription) {
+        parsedState.subscription = {
+          isPlus: false,
+          liftTokenBalance: 0,
+          lastChecked: null,
+          limits: {
+            free: {
+              wallets: 3,
+              favoriteTokens: 12,
+              multisigWallets: 3,
+              unclaimedGifts: 12,
+              merchants: 3
+            },
+            plus: {
+              wallets: 12,
+              favoriteTokens: 24,
+              multisigWallets: 12,
+              unclaimedGifts: 24,
+              merchants: 12
+            }
+          },
+          minLiftTokens: 100
+        }
+      } else if (parsedState.subscription.limits) {
+        // Migrate existing subscription limits to new values
+        if (parsedState.subscription.limits.free) {
+          parsedState.subscription.limits.free.favoriteTokens = 12
+          parsedState.subscription.limits.free.unclaimedGifts = 12
+        }
+      }
 
       store.replaceState(parsedState)
     }

@@ -45,7 +45,7 @@
         <div class="text-center q-mb-md">
           <q-skeleton
             type="circle"
-            size="160px"
+            size="200px"
             style="margin: 0 auto;"
             :class="getDarkModeClass(darkMode)"
           />

@@ -131,6 +131,7 @@ const routes = [
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
+      { path: 'subscription-details', component: () => import('src/pages/apps/subscription-details.vue'), name: 'app-subscription-details' },
       { path: 'debug', component: () => import('src/pages/apps/debug.vue'), name: 'app-debug' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
