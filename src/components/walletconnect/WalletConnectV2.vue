@@ -64,20 +64,50 @@
         </q-btn>
       </div>
       <div class="col-xs-12">
-        <q-btn-group spread push>
-          <q-btn
-            class="button"
-            icon="mdi-qrcode"
-            no-caps
-            :label="$t('Scan')"
-            @click="() => $emit('request-scanner')" :disable="Boolean(loading) || sessionProposals?.length > 0"/>
-          <q-btn
-            class="button"
-            icon="link"
-            no-caps
-            :label="$t('PasteURL')"
-            @click="() => connectNewSession()" :disable="Boolean(loading) || sessionProposals?.length > 0"/>
-        </q-btn-group>
+        <div class="send-option-card pt-card q-mb-md q-pa-lg br-15" :class="getDarkModeClass(darkMode)">
+            <div class="send-option-header">
+              <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
+              <div class="send-option-title">
+                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                  {{ $t('InitiateNewSession') }}
+                </div>
+                <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                  {{ $t('WcScanOrPasteURL') }}
+                </div>
+              </div>
+            </div>
+
+            <div class="row q-gutter-sm q-mt-md">
+              <div class="col">
+                <q-btn
+                  unelevated
+                  no-caps
+                  class="full-width scan-option-btn"
+                  :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                  @click="() => $emit('request-scanner')" :disable="Boolean(loading) || sessionProposals?.length > 0"
+                >
+                  <div class="column items-center q-py-sm">
+                    <q-icon name="mdi-qrcode-scan" size="32px"/>
+                    <div class="text-caption q-mt-xs">{{ $t('ScanQRCode', {}, 'Scan QR Code') }}</div>
+                  </div>
+                </q-btn>
+              </div>
+              <div class="col">
+                <q-btn
+                  unelevated
+                  no-caps
+                  class="full-width scan-option-btn"
+                  :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                  @click="() => connectNewSession()" :disable="Boolean(loading) || sessionProposals?.length > 0"
+                >
+                  <div class="column items-center q-py-sm">
+                    <q-icon name="content_paste_go" size="32px"/>
+                    <div class="text-caption q-mt-xs">{{ $t('PasteURL', {}, 'Paste URL') }}</div>
+                  </div>
+                </q-btn>
+              </div>
+            </div>
+        </div>
       </div>
     </div>
     <div class="row">
@@ -310,6 +340,16 @@ const delay = async (seconds) => {
   await new Promise((resolve, reject) => {
     setTimeout(() => { resolve() }, seconds * 1000)
   })
+}
+
+const getThemeColor = () => {
+  const themeColors = {
+    'glassmorphic-blue': '#42a5f5',
+    'glassmorphic-gold': '#ffa726',
+    'glassmorphic-green': '#4caf50',
+    'glassmorphic-red': '#f54270'
+  }
+  return themeColors[$store.getters['global/theme']] || '#42a5f5'
 }
 
 const formatAddressForDisplay = (address, lockingBytecode = null) => {
