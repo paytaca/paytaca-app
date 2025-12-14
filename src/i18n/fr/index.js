@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "Format d'adresse",
   AddressIndex: "Adresse",
   AddressIndexHint: "Exemple : saisissez 1 si vous faites référence à l'adresse située sur le chemin 0/1.Si vous ne connaissez pas l'index, laissez ce champ vide.L'appareil essaiera de trouver l'index d'adresse en fonction de 0 jusqu'au dernier index d'adresse utilisé.",
+  AddressIndexHintLabel: "Exemple : saisissez 1 si vous faites référence à l'adresse située sur le chemin 0/1.Si vous ne connaissez pas l'index, laissez ce champ vide.L'appareil essaiera de trouver l'adresse en scannant l'adresse définie de 0 jusqu'au dernier index d'adresse utilisé.",
   AddressIndexLabel: "Index des adresses",
   AddressLabel: "Adresse",
   AddressLocationId: "Adresse n° {locationId}",

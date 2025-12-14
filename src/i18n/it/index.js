@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "Formato dell'indirizzo",
   AddressIndex: "Indirizzo",
   AddressIndexHint: "Esempio: inserisci 1 se ti riferisci all'indirizzo nel percorso 0/1.Se non conosci l'indice, lascia vuoto questo campo.Il dispositivo proverà a trovare l'indice dell'indirizzo in base a 0 fino all'ultimo indice indirizzo utilizzato",
+  AddressIndexHintLabel: "Esempio: inserisci 1 se ti riferisci all'indirizzo nel percorso 0/1.Se non conosci l'indice, lascia vuoto questo campo.Il dispositivo proverà a trovare l'indirizzo eseguendo la scansione dell'indirizzo impostato da 0 all'ultimo indice di indirizzo utilizzato",
   AddressIndexLabel: "Indice degli indirizzi",
   AddressLabel: "Indirizzo",
   AddressLocationId: "Indirizzo #{locationId}",

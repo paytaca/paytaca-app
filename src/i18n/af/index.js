@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "Adresformaat",
   AddressIndex: "Adres",
   AddressIndexHint: "Voorbeeld: Voer 1 in as jy na adres by pad 0/1 verwys.As jy nie die indeks ken nie, laat dit leeg.Die toestel sal probeer om die adresindeks te vind gebaseer van 0 tot laasgebruikte adresindeks",
+  AddressIndexHintLabel: "Voorbeeld: Voer 1 in as jy na adres by pad 0/1 verwys.As jy nie die indeks ken nie, laat dit leeg.Die toestel sal probeer om die adres te vind deur die adresstel van 0 na laasgebruikte adresindeks te skandeer",
   AddressIndexLabel: "Adres Indeks",
   AddressLabel: "Adres",
   AddressLocationId: "Adres #{locationId}",

@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "地址格式",
   AddressIndex: "地址",
   AddressIndexHint: "示例：如果您引用路徑 0/1 處的地址，請輸入 1。如果您不知道索引，請將此項留空。設備將嘗試根據從 0 到最後使用的地址索引來查找地址索引",
+  AddressIndexHintLabel: "示例：如果您引用路徑 0/1 處的地址，請輸入 1。如果您不知道索引，請將此項留空。設備將嘗試通過掃描從 0 到最後使用的地址索引設置的地址來查找地址",
   AddressIndexLabel: "地址索引",
   AddressLabel: "地址",
   AddressLocationId: "地址#{locationId}",

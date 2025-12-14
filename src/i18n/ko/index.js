@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "주소 형식",
   AddressIndex: "주소",
   AddressIndexHint: "예: 경로 0/1의 주소를 참조하는 경우 1을 입력합니다.색인을 모르는 경우에는 공백으로 두십시오.장치는 0부터 마지막으로 사용된 주소 인덱스까지 주소 인덱스를 찾으려고 시도합니다.",
+  AddressIndexHintLabel: "예: 경로 0/1의 주소를 참조하는 경우 1을 입력합니다.색인을 모르는 경우에는 공백으로 두십시오.장치는 0부터 마지막으로 사용된 주소 인덱스까지 설정된 주소를 스캔하여 주소를 찾으려고 시도합니다.",
   AddressIndexLabel: "주소 색인",
   AddressLabel: "주소",
   AddressLocationId: "주소 #{locationId}",

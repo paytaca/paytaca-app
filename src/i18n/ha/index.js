@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "Tsarin adireshi",
   AddressIndex: "Yi jawabi",
   AddressIndexHint: "Misali: Shigar da 1 idan kana nufin adireshin 0/1.Idan baku san ƙayyarku ba, ku bar wannan blank.Na'urar za ta yi kokarin nemo ƙayyadadden adireshin da ke dogara da 0 zuwa Last AREINDELEX",
+  AddressIndexHintLabel: "Misali: Shigar da 1 idan kana nufin adireshin 0/1.Idan baku san ƙayyarku ba, ku bar wannan blank.Na'urar za ta yi kokarin nemo adireshin ta hanyar bincika adireshin daga 0 zuwa adireshin adireshin da aka yi amfani da shi na ƙarshe",
   AddressIndexLabel: "Adireshin Adireshin",
   AddressLabel: "Yi jawabi",
   AddressLocationId: "Adireshin # {locationId}",

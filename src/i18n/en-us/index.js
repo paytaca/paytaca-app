@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "Address format",
   AddressIndex: "Address",
   AddressIndexHint: "Example: Enter 1 if you're referring to address at path 0/1. If you don't know the index, leave this blank. The device will try to find the address index based from 0 to last used addressindex",
+  AddressIndexHintLabel: "Example: Enter 1 if you're referring to address at path 0/1. If you don't know the index, leave this blank. The device will try to find the address by scanning the address set from 0 to last used address index",
   AddressIndexLabel: "Address Index",
   AddressLabel: "Address",
   AddressLocationId: "Address #{locationId}",

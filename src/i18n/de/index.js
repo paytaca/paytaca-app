@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "Adressformat",
   AddressIndex: "Adresse",
   AddressIndexHint: "Beispiel: Geben Sie 1 ein, wenn Sie sich auf die Adresse im Pfad 0/1 beziehen.Wenn Sie den Index nicht kennen, lassen Sie dieses Feld leer.Das Gerät versucht, den Adressindex basierend auf 0 bis zum zuletzt verwendeten Adressindex zu finden",
+  AddressIndexHintLabel: "Beispiel: Geben Sie 1 ein, wenn Sie sich auf die Adresse im Pfad 0/1 beziehen.Wenn Sie den Index nicht kennen, lassen Sie dieses Feld leer.Das Gerät versucht, die Adresse zu finden, indem es den Adresssatz von 0 bis zum zuletzt verwendeten Adressindex durchsucht",
   AddressIndexLabel: "Adressindex",
   AddressLabel: "Adresse",
   AddressLocationId: "Adresse #{locationId}",

@@ -1762,7 +1762,7 @@ const phrases = {
       SingleSigAddressSelectionHeader: 'Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.',
       AddressNotFoundOnThisWallet: 'Address not found on this wallet',
       EnterAddressIndex: 'Enter the address index (optional)',
-      AddressIndexHint: 'Example: Enter 1 if you\'re referring to address at path 0/1. If you don\'t know the index, leave this blank. The device will try to find the address by scanning the address set from 0 to last used address index',
+      AddressIndexHintLabel: 'Example: Enter 1 if you\'re referring to address at path 0/1. If you don\'t know the index, leave this blank. The device will try to find the address by scanning the address set from 0 to last used address index',
       Address: 'Address',
       AddressIndexLabel: 'Address Index',
       IwantToProvideSpecificAddress: 'I want to provide specific address',

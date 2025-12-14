@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "アドレス形式",
   AddressIndex: "住所",
   AddressIndexHint: "例: パス 0/1 のアドレスを参照する場合は、1 を入力します。インデックスがわからない場合は、空白のままにしてください。デバイスは、0 から最後に使用されたアドレスインデックスに基づいてアドレスインデックスを見つけようとします。",
+  AddressIndexHintLabel: "例: パス 0/1 のアドレスを参照する場合は、1 を入力します。インデックスがわからない場合は、空白のままにしてください。デバイスは、0 から最後に使用されたアドレス インデックスまでのアドレス セットをスキャンして、アドレスを見つけようとします。",
   AddressIndexLabel: "アドレスインデックス",
   AddressLabel: "住所",
   AddressLocationId: "住所 #{locationId}",

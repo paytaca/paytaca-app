@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "Format alamat",
   AddressIndex: "Alamat",
   AddressIndexHint: "Contoh: Masukkan 1 jika Anda mengacu pada alamat di jalur 0/1.Jika Anda tidak mengetahui indeksnya, biarkan kosong.Perangkat akan mencoba mencari indeks alamat berdasarkan dari 0 hingga indeks alamat yang terakhir digunakan",
+  AddressIndexHintLabel: "Contoh: Masukkan 1 jika Anda mengacu pada alamat di jalur 0/1.Jika Anda tidak mengetahui indeksnya, biarkan kosong.Perangkat akan mencoba menemukan alamat dengan memindai kumpulan alamat dari 0 hingga indeks alamat yang terakhir digunakan",
   AddressIndexLabel: "Indeks Alamat",
   AddressLabel: "Alamat",
   AddressLocationId: "Alamat #{locationId}",

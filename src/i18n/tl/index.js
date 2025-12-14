@@ -54,6 +54,7 @@ export default {
   AddressDisplayFormat: "Format ng Address",
   AddressIndex: "Address",
   AddressIndexHint: "Halimbawa: Ipasok ang 1 kung tinutukoy mo ang address sa landas 0/1.Kung hindi mo alam ang index, iwanan ang blangko na ito.Susubukan ng aparato na hanapin ang address index batay mula 0 hanggang huling ginamit na addressIndex",
+  AddressIndexHintLabel: "Halimbawa: Ipasok ang 1 kung tinutukoy mo ang address sa landas 0/1.Kung hindi mo alam ang index, iwanan ang blangko na ito.Susubukan ng aparato na hanapin ang address sa pamamagitan ng pag -scan sa set ng address mula 0 hanggang sa huling ginamit na index ng address",
   AddressIndexLabel: "Address Index",
   AddressLabel: "Address",
   AddressLocationId: "Address #{locationId}",
