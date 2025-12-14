@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "消息是端到端加密的。聊天室之外的任何人（甚至 Paytaca）都无法阅读它们。",
   English: "英语",
   EnhancedSecurity: "增强安全方法",
+  EnterAddressIndex: "输入地址索引（可选）",
   EnterAmount: "输入金额",
   EnterCampaignName: "输入活动名称",
   EnterCashPointCategoryID: "输入 CashPoint 类别 ID",

@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "Boodskappe is end-tot-end geïnkripteer.Niemand buite hierdie klets nie, nie eers Paytaca, kan hulle lees nie.",
   English: "Engels",
   EnhancedSecurity: "Verbeterde sekuriteit metode",
+  EnterAddressIndex: "Voer die adresindeks in (opsioneel)",
   EnterAmount: "Voer bedrag in",
   EnterCampaignName: "Voer veldtognaam in",
   EnterCashPointCategoryID: "Voer CashPoint-kategorie-ID in",

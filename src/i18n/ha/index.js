@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "Saƙonni suna ƙarewa-zuwa ƙarshen rufaffen.Babu wanda ke waje da wannan hira, ba ko da Paytaca ba, na iya karanta su.",
   English: "Na turanci",
   EnhancedSecurity: "Ingantacciyar hanyar tsaro",
+  EnterAddressIndex: "Shigar da adireshin adreshin (na zabi ne)",
   EnterAmount: "Shigar da adadin",
   EnterCampaignName: "Shigar da sunan kamfen",
   EnterCashPointCategoryID: "Shigar ID na CASH",

@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "يتم تشفير الرسائل من طرف إلى طرف.لا أحد خارج هذه الدردشة، ولا حتى بايتاكا، يمكنه قراءتها.",
   English: "الإنجليزية",
   EnhancedSecurity: "طريقة أمنية محسنة",
+  EnterAddressIndex: "أدخل فهرس العناوين (اختياري)",
   EnterAmount: "أدخل المبلغ",
   EnterCampaignName: "أدخل اسم الحملة",
   EnterCashPointCategoryID: "أدخل معرف فئة CashPoint",

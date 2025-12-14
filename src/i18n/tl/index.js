@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "Ang mga mensahe ay end-to-end na naka-encrypt.Walang sinuman sa labas ng chat na ito, kahit na paytaca, ang maaaring basahin ang mga ito.",
   English: "Ingles",
   EnhancedSecurity: "Pinahusay na paraan ng seguridad",
+  EnterAddressIndex: "Ipasok ang Address Index (Opsyonal)",
   EnterAmount: "Ipasok ang Halaga",
   EnterCampaignName: "Ipasok ang Pangalan ng Kampanya",
   EnterCashPointCategoryID: "Ipasok ang kategorya ng cashpoint",

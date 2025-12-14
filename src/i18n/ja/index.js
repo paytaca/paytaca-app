@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "メッセージはエンドツーエンドで暗号化されます。このチャットの外部にいる人は、たとえ Paytaca であっても読むことができません。",
   English: "英語",
   EnhancedSecurity: "強化されたセキュリティ方式",
+  EnterAddressIndex: "アドレスインデックスを入力します（オプション）",
   EnterAmount: "金額を入力してください",
   EnterCampaignName: "キャンペーン名を入力してください",
   EnterCashPointCategoryID: "CashPoint カテゴリ ID を入力してください",

@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "Pesan dienkripsi ujung ke ujung.Tak seorang pun di luar obrolan ini, bahkan Paytaca, dapat membacanya.",
   English: "bahasa Inggris",
   EnhancedSecurity: "Metode keamanan yang ditingkatkan",
+  EnterAddressIndex: "Masukkan indeks alamat (opsional)",
   EnterAmount: "Masukkan jumlah",
   EnterCampaignName: "Masukkan nama kampanye",
   EnterCashPointCategoryID: "Masukkan ID kategori CashPoint",

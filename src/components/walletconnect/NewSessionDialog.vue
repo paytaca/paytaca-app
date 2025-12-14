@@ -46,16 +46,11 @@
   </q-dialog>
 </template>
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { useStore } from 'vuex'
-import { shortenAddressForDisplay } from 'src/utils/address-utils'
-import { convertCashAddress } from 'src/wallet/chipnet'
-import PeerInfo from './PeerInfo.vue'
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
-const $store = useStore()
 const sessionURL = ref()
 
 const props = defineProps({

@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "Сообщения подвергаются сквозному шифрованию.Никто за пределами этого чата, даже Пэйтака, не может их прочитать.",
   English: "английский",
   EnhancedSecurity: "Повышенный метод безопасности",
+  EnterAddressIndex: "Введите индекс адреса (необязательно)",
   EnterAmount: "Введите сумму",
   EnterCampaignName: "Введите название кампании",
   EnterCashPointCategoryID: "Введите идентификатор категории CashPoint",

@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "메시지는 종단 간 암호화됩니다.이 채팅 외부의 누구도, 심지어 Paytaca도 읽을 수 없습니다.",
   English: "영어",
   EnhancedSecurity: "강화된 보안 방식",
+  EnterAddressIndex: "주소 색인을 입력하세요(선택사항).",
   EnterAmount: "금액 입력",
   EnterCampaignName: "캠페인 이름을 입력하세요.",
   EnterCashPointCategoryID: "CashPoint 카테고리 ID를 입력하세요.",

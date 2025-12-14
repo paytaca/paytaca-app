@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "I messaggi sono crittografati end-to-end.Nessuno al di fuori di questa chat, nemmeno Paytaca, può leggerli.",
   English: "Inglese",
   EnhancedSecurity: "Metodo di sicurezza avanzata",
+  EnterAddressIndex: "Inserisci l'indice dell'indirizzo (facoltativo)",
   EnterAmount: "Inserisci l'importo",
   EnterCampaignName: "Inserisci il nome della campagna",
   EnterCashPointCategoryID: "Inserisci l'ID della categoria CashPoint",

@@ -562,6 +562,7 @@ export default {
   EncryptedChatMsg: "Berichten zijn end-to-end gecodeerd.Niemand buiten deze chat, zelfs Paytaca niet, kan ze lezen.",
   English: "Engels",
   EnhancedSecurity: "Verbeterde beveiligingsmethode",
+  EnterAddressIndex: "Voer de adresindex in (optioneel)",
   EnterAmount: "Voer bedrag in",
   EnterCampaignName: "Voer de campagnenaam in",
   EnterCashPointCategoryID: "Voer de CashPoint-categorie-ID in",

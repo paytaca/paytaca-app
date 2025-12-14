@@ -20,12 +20,19 @@
       </div>
       <q-card-section>
         <div class="text-body1 q-my-sm">{{ $t('PasteAddress', 'Paste the address') }}</div>
-        <q-input v-model="address" :label="$t('Address')" filled/>
-        <div class="text-body1 q-my-sm">{{ $t('EnterAddressIndex', 'Enter the address index (optional).') }}</div>
         <q-input 
-          v-model="addressIndex" 
+          v-model="address" 
+          :label="$t('Address')" 
+          type="text"
+          required
+          :rules="addressRules"
+          filled/>
+        <div class="text-body1 q-my-sm">{{ $t('EnterAddressIndex') }}</div>
+        <q-input 
+          v-model="addressIndex"
+          type="number"
           :label="$t('AddressIndexLabel', 'Address Index')" 
-          :hint="$t('AddressIndexHint', `Example: Enter 1 if you\'re referring to address at path 0/1. If you don\'t know the index, leave this blank. The device will try to find the address index based from 0 to last used addressindex`)"
+          :hint="$t('AddressIndexHint')"
           filled
           />
       </q-card-section>
@@ -52,21 +59,28 @@
   </q-dialog>
 </template>
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { useStore } from 'vuex'
-import { shortenAddressForDisplay } from 'src/utils/address-utils'
-import { convertCashAddress } from 'src/wallet/chipnet'
-import PeerInfo from './PeerInfo.vue'
+import { decodeCashAddress } from '@bitauth/libauth'
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
-const $store = useStore()
 const address = ref()
 const addressIndex = ref()
 
 const props = defineProps({
   darkMode: Boolean,
+})
+
+const addressRules = computed(() => {
+  const correctAddressFormat = (v) => {
+    const decoded = decodeCashAddress(v)
+    if (typeof decoded === 'string') {
+      return decoded
+    }
+    return true
+  }
+  return [correctAddressFormat]
 })
 
 const onOkClick = () => {
