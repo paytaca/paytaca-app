@@ -74,6 +74,7 @@ const props = defineProps({
 
 const addressRules = computed(() => {
   const correctAddressFormat = (v) => {
+    if (!v) return true
     const decoded = decodeCashAddress(v)
     if (typeof decoded === 'string') {
       return decoded
