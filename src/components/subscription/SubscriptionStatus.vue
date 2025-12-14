@@ -35,6 +35,20 @@
       </q-item-section>
     </q-item>
     
+    <q-item clickable v-ripple @click="goToSubscriptionDetails">
+      <q-item-section>
+        <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+          {{ $t('ViewSubscriptionDetails', {}, 'View Subscription Details') }}
+        </q-item-label>
+        <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+          {{ $t('ViewSubscriptionDetailsDescription', {}, 'Learn more about subscription tiers and limits') }}
+        </q-item-label>
+      </q-item-section>
+      <q-item-section avatar>
+        <q-icon name="info" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+      </q-item-section>
+    </q-item>
+    
     <q-item v-if="!isPlus">
       <q-item-section>
         <q-banner
@@ -73,6 +87,7 @@
 <script>
 import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatWithLocale } from 'src/utils/denomination-utils'
 import UpgradePromptDialog from './UpgradePromptDialog.vue'
@@ -90,6 +105,7 @@ export default {
   },
   setup () {
     const store = useStore()
+    const router = useRouter()
     const showUpgradeDialog = ref(false)
     
     const isPlus = computed(() => store.getters['subscription/isPlusSubscriber'])
@@ -99,6 +115,10 @@ export default {
     const formattedLiftBalance = computed(() => {
       return formatWithLocale(liftTokenBalance.value, { min: 2, max: 2 })
     })
+    
+    const goToSubscriptionDetails = () => {
+      router.push({ name: 'app-subscription-details' })
+    }
     
     // Check subscription status on mount
     onMounted(() => {
@@ -111,6 +131,7 @@ export default {
       formattedLiftBalance,
       minLiftTokens,
       showUpgradeDialog,
+      goToSubscriptionDetails,
       getDarkModeClass
     }
   }

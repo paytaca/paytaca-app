@@ -53,9 +53,9 @@ export default boot(async (obj) => {
           limits: {
             free: {
               wallets: 3,
-              favoriteTokens: 7,
+              favoriteTokens: 12,
               multisigWallets: 3,
-              unclaimedGifts: 7,
+              unclaimedGifts: 12,
               merchants: 3
             },
             plus: {
@@ -67,6 +67,12 @@ export default boot(async (obj) => {
             }
           },
           minLiftTokens: 100
+        }
+      } else if (parsedState.subscription.limits) {
+        // Migrate existing subscription limits to new values
+        if (parsedState.subscription.limits.free) {
+          parsedState.subscription.limits.free.favoriteTokens = 12
+          parsedState.subscription.limits.free.unclaimedGifts = 12
         }
       }
 

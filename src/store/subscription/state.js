@@ -9,9 +9,9 @@ export default function () {
     limits: {
       free: {
         wallets: 3,
-        favoriteTokens: 7,
+        favoriteTokens: 12,
         multisigWallets: 3,
-        unclaimedGifts: 7,
+        unclaimedGifts: 12,
         merchants: 3
       },
       plus: {
