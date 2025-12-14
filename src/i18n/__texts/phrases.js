@@ -1754,7 +1754,7 @@ const phrases = {
       ImportTxProposal: 'Import Tx Proposal',
       ExportTransaction: 'Export Transaction',
       ExportTransactionDescription: 'Export the transaction proposal so you can share it with your cosigners.',
-      DisplayTxQRCode: 'Display Tx QR Code',
+      DisplayTxQRCode: 'Display Tx QR Code'
     },
     {
       Connect: 'Connect',
@@ -1766,7 +1766,11 @@ const phrases = {
       AddressIndexLabel: 'Address Index',
       IwantToProvideSpecificAddress: 'I want to provide specific address',
       WcPasteSessionURLLabel: 'Paste session URL',
-      SessionURL: 'Session URL'
+      SessionURL: 'Session URL',
+      WcScanOrPasteURL: 'In the app you want to connect to, open the wallet-connect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new wallet connect session.',
+      InitiateNewSession: 'Initiate new wallet connect session',
+      Sign: 'Sign',
+      Reject: 'Reject'
     }
   ],
   dynamic: [
