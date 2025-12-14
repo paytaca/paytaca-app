@@ -665,11 +665,17 @@ const openManualAddressEntryDialog = async (sessionProposal) => {
         reject(new Error($t('AddressNotFoundOnThisWallet', 'Could not find address on this wallet. Try providing an address index.')))
       })
       .onCancel(() => {
-        openAddressSelectionDialog(sessionProposal)
+        // Just close the dialog and return control to SelectAddressForSessionDialog
+        reject(new Error('MANUAL_ADDRESS_ENTRY_CANCELLED'))
       })
     })
     return addressAddressIndexAndWif
   } catch (error) {
+    if (error.message === 'MANUAL_ADDRESS_ENTRY_CANCELLED') {
+      // Just return undefined to give control back to SelectAddressForSessionDialog
+      openAddressSelectionDialog(sessionProposal)
+      return
+    }
     $q.dialog({
       title: 'Error',
       message: error.message,
@@ -684,9 +690,6 @@ const openManualAddressEntryDialog = async (sessionProposal) => {
   }   
 }
 
-  
-
-
 const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
   try {
     const lastUsedWalletAddress =
@@ -700,6 +703,7 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
     const arrayIndexOfLastUsedWalletAddress = addressSelection?.findIndex((addressInfo) => addressInfo.address === lastUsedWalletAddress?.wallet_address)
     if (arrayIndexOfLastUsedWalletAddress !== -1) {
       addressSelection.unshift(addressSelection[arrayIndexOfLastUsedWalletAddress])
+      addressSelection.splice(arrayIndexOfLastUsedWalletAddress, 1)
     }
     addressSelection = addressSelection.slice(0, 5)
     const { selectedWalletAddress, isMultisig } = await new Promise((resolve, reject) => {
