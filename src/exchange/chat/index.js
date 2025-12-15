@@ -412,9 +412,9 @@ export async function updateOrCreateKeypair (update = true) {
 
   try {
     const storedKeypair = await getKeypair()
-    if (storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
+    if (storedKeypair && storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
       console.log('Chat encryption keypair still updated')
-      return
+      return keypair // Return the keypair, not undefined
     }
 
   } catch (error) {

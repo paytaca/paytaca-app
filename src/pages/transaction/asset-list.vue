@@ -5,18 +5,27 @@
 	      backnavpath=""
 	    ></header-nav>
 	    
+	    <!-- Instructional Text -->
+	    <div v-if="isloaded" class="q-px-lg text-center" style="padding-top: 4px; padding-bottom: 8px;">
+	    	<p :class="darkmode ? 'text-grey-4' : 'text-grey-6'" class="text-body2" style="font-size: 14px; line-height: 1.5; letter-spacing: 0.2px; margin: 0;">
+	    		Click on star button to mark token as favorite. You may also customize the ordering of your favorite tokens.
+	    	</p>
+	    </div>
+	    
 	    <!-- Skeleton Loading State -->
 	    <div v-if="!isloaded" class="q-pa-md">
-	    	<div class="row q-mb-md">
-	    		<div class="col">
-	    			<q-skeleton type="QBtn" width="40px" height="40px" />
-	    		</div>
+	    	<!-- Skeleton for instructional text -->
+	    	<div class="q-px-lg text-center" style="padding-top: 4px; padding-bottom: 8px;">
+	    		<q-skeleton type="text" width="85%" class="q-mx-auto" height="20px" />
+	    	</div>
+	    	
+	    	<div class="row q-mb-md" v-if="enableSLP">
 	    		<div class="col text-right">
-	    			<q-skeleton type="QBtn" width="40px" height="40px" class="float-right" />
+	    			<q-skeleton type="QBtn" width="80px" height="40px" class="float-right" />
 	    		</div>
 	    	</div>
 	    	
-	    	<q-list class="q-ma-md">
+	    	<q-list class="q-ma-md" style="margin-top: 12px;">
 	    		<q-card v-for="i in 8" :key="i" class="q-py-sm q-my-sm br-15">
 	    			<q-item>
 	    				<q-item-section avatar>
@@ -38,11 +47,7 @@
 
 			<div class="row"> 
 				<div class="col">
-					<div class="row q-px-lg">						
-						<q-btn round flat padding="3px" @click="checkMissingAssets({autoOpen: true})">
-							<q-icon class="primary-filter" size="25px" name="img:scan.svg"/>
-						</q-btn>
-					</div>					
+					<!-- Left side empty - can be used for future features -->
 				</div>
 
 				<div class="col text-right">
@@ -50,16 +55,11 @@
 						<div v-if="enableSLP" class="col">
 							<AssetFilter :float="false" @filterTokens="isCT => isCashToken = isCT" />
 						</div>
-						<div class="col">
-							<q-btn round flat padding="3px" @click="addNewAsset()">
-								<q-icon size="30px" name="add" class="q-pr-lg primary-filter"/>
-							</q-btn>							
-						</div>						
 					</div>					
 				</div>				
 			</div>
 
-			<div class="full-width" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 20px ; margin-bottom: 40px;">
+			<div class="full-width" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 12px ; margin-bottom: 40px;">
 			    <q-list v-if="assetList.length > 0" :key="assetListKey" class="q-ma-md">
 			      	<draggable			      		
 			      		:list="assetList" 
@@ -134,48 +134,33 @@
 		</div>
 
 		<footer-menu ref="footerMenu" />
-		<TokenSuggestionsDialog
-	      ref="tokenSuggestionsDialog"
-	      v-model="showTokenSuggestionsDialog"
-	      :bch-wallet-hash="getWallet('bch').walletHash"
-	      :slp-wallet-hash="getWallet('slp').walletHash"
-	      :sbch-address="getWallet('sbch').lastAddress"
-	      @added="addUnlistedToken = true"
-	      @update:modelValue="() => { 	      	
-	      	     	   
-	      }"
-	    />
 
 	</div>
 </template>
 <script>
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import * as assetSettings from 'src/utils/asset-settings'
-import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
+import { convertToTokenAmountWithDecimals, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from '../../wallet'
 import { markRaw } from '@vue/reactivity'
 import draggable from 'vuedraggable'
+import axios from 'axios'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
 
 import headerNav from 'src/components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
-import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
-import AddNewAsset from 'src/pages/transaction/dialog/AddNewAsset'
 import RemoveAsset from 'src/pages/transaction/dialog/RemoveAsset'
 
 export default {
 	data () {
 		return {
 			isCashToken: true,
-			customList: [],
 			assetList: [],
 			assetListKey: 0,			
-			unlistedToken: [],
-			showTokenSuggestionsDialog: false,
 			wallet: null,	
 			drag: false,	
 			isloaded: false,
-			networkError: false,
-			addUnlistedToken: false	
+			networkError: false
 		}
 	},
 	computed: {
@@ -202,55 +187,24 @@ export default {
 	        return this.$store.commit('global/setNetwork', value)
 	      }
 	    },
-	    assets () {
-	      const vm = this	      
-	      if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
-	      
-	      // if (vm.stablehedgeView) {
-	      //   return vm.$store.getters['stablehedge/tokenBalancesAsAssets']
-	      // }
-
-	      return vm.mainchainAssets.filter(token => {
-	        const assetId = token.id?.split?.('/')?.[0]
-	        return (
-	          vm.isCashToken && assetId === 'ct' ||
-	          !vm.isCashToken && assetId === 'slp'
-	        )
-	      })
-	    },
 	    isChipnet () {
 	      return this.$store.getters['global/isChipnet']
-	    },
-	    mainchainAssets() {
-	      return this.$store.getters['assets/getAssets'].filter(function (item) {
-	        if (item && item.id !== 'bch') return item
-	      })
-	    },
-	    smartchainAssets() {
-	      return this.$store.getters['sep20/getAssets'].filter(function (item) {
-	        if (item && item.id !== 'bch') return item
-	      })
 	    },
 	},
 	components: {
 		headerNav,
 		AssetFilter,
-		TokenSuggestionsDialog,
-		AddNewAsset,
 		RemoveAsset,
 		draggable
 	},
 	watch: {
 		isCashToken () {
-			this.assetList = this.assets
+			// Reload data from API when filter changes instead of using store assets
+			// This prevents triggering balance API calls from store assets
+			this.loadData()
 		},
 		isloaded (val) {
 			// Skeleton loaders handle loading state
-		},
-		addUnlistedToken (val) {
-			if (val) {				
-				this.checkUpdatedAssets()
-			}
 		}
 	},
 	unmount() {
@@ -296,96 +250,31 @@ export default {
 	    	// register / get auth 
 		    await assetSettings.authToken()
 
-		    // fetching unlisted tokens // skip if reloading from readding unlisted token
-		    if (!this.addUnlistedToken) {
-		    	this.unlistedToken = await assetSettings.fetchUnlistedTokens()
-		    	// Ensure unlistedToken is always an array
-		    	if (!Array.isArray(this.unlistedToken)) {
-		    		this.unlistedToken = []
+		    // Always fetch tokens directly from API - completely ignore Vuex store
+		    // Only CashTokens on BCH network are supported by the fungible API
+		    if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
+		    	try {
+		    		const directTokens = await this.fetchTokensDirectlyFromAPI()
+		    		// Use API data only - no fallback to store
+		    		this.assetList = directTokens
+		    	} catch (error) {
+		    		console.error('Error fetching tokens from API:', error)
+		    		this.networkError = true
+		    		// On error, show empty list - do not fall back to store
+		    		this.assetList = []
 		    	}
-		    	await this.getUnlistedTokens()
-		    }		    		    
-		    this.addUnlistedToken = false
-
-		    // fetching custom order list
-				this.customList = await assetSettings.fetchCustomList()
-				
-				if (!this.customList) {
-					this.networkError = true
-
-					// REMOVED: Never update favorites in Vuex state
-					// Favorites should only be stored in the backend API
-					// this.checkEmptyFavorites()
-					// this.$store.dispatch('assets/initializeFavorites', this.assets)
-					
-					this.assetList = this.assets
-					this.isloaded = true
-				} else {
-					// Initialize Asset Custom List // Saving initial asset list (BCH/sBCH) to server
-			    if ('error' in this.customList || Object.keys(this.customList).length === 0) {     	
-			    	const assetIDs = this.assets.map((asset) => asset.id)
-			    	if (this.selectedNetwork === 'BCH') {
-			    		assetSettings.initializeCustomList(assetIDs, [])    		
-			    	} else {    		
-			    		assetSettings.initializeCustomList([], assetIDs)
-			    	}
-
-
-			    	await assetSettings.initializeFavorites(this.assets)  
-			    } else {
-			    	// Update Here to checking Favorites from server. Currently using Local storage    	
-			    	// this.checkEmptyFavorites()
-						// this.$store.dispatch('assets/initializeFavorites', this.assets)
-
-					let fav = await assetSettings.fetchFavorites()
-					try { // temporary error handling to resolve fav being null
-						fav =  fav.filter(asset => asset.favorite === 1).map(asset => asset.id)
-					} catch {
-						fav = []
-					} finally {
-						// Get tokens from customList (maintains order)
-						const customListIds = this.customList[this.selectedNetwork] || []
-						this.assetList = await this.fetchAssetInfo(customListIds)
-						this.assetList = this.assetList.map(asset => ({...asset, favorite: fav.includes(asset.id) ? 1 : 0}))
-						
-						// Get all tokens from Vuex store that aren't in customList yet
-						// These are newly received tokens that haven't been added to customList
-						const customListAssetIds = this.assetList.map(asset => asset.id)
-						const assetsNotInCustomList = this.assets.filter(asset => 
-							asset && 
-							asset.id && 
-							!customListAssetIds.includes(asset.id)
-						)
-						
-						// Add tokens from Vuex store that aren't in customList to the end of the list
-						// These will be newly received tokens
-						if (assetsNotInCustomList.length > 0) {
-							const newTokens = assetsNotInCustomList.map(asset => ({
-								...asset,
-								favorite: fav.includes(asset.id) ? 1 : 0
-							}))
-							this.assetList = [...this.assetList, ...newTokens]
-						}
-					}
-			    }
-
-			    // remove from asset list
-			    const temp = Array.isArray(this.unlistedToken) ? this.unlistedToken.map(token => token.id) : []
-			    
-			    this.assetList = this.assetList.filter(asset => {
-			    	if (asset) { 
-			    			return !temp.includes(asset.id) 
-			    	}
-			    })
-				}
-		    
+		    } else {
+		    	// For SLP and sBCH, the fungible API doesn't support them yet
+		    	// Show empty list instead of using store data
+		    	this.assetList = []
+		    }
 
 		    this.isloaded = true
 	    },
 	    refreshList() {
 	    	this.assetListKey++
 	    },
-	    onDragEnd() {
+	    async onDragEnd() {
 	    	this.drag = false
 	    	
 	    	// Ensure favorites remain grouped at the top after manual reordering
@@ -393,9 +282,31 @@ export default {
 	    	const nonFavorites = this.assetList.filter(asset => asset.favorite === 0)
 	    	this.assetList = [...favorites, ...nonFavorites]
 	    	
-	    	// Save the manually reordered custom list
-	    	this.customList[this.selectedNetwork] = this.assetList.map((asset) => asset.id)
-	    	assetSettings.saveCustomList(this.customList)
+	    	// Update favorite_order based on new position and save to backend
+	    	if (favorites.length > 0) {
+	    		// Map favorites with their new favorite_order (index + 1, starting from 1)
+	    		const favoritesWithOrder = favorites.map((asset, index) => ({
+	    			id: asset.id,
+	    			favorite: asset.favorite,
+	    			favorite_order: index + 1 // favorite_order starts from 1
+	    		}))
+	    		
+	    		// Also include non-favorites with favorite: 0 and favorite_order: null
+	    		const nonFavoritesData = nonFavorites.map(asset => ({
+	    			id: asset.id,
+	    			favorite: 0,
+	    			favorite_order: null
+	    		}))
+	    		
+	    		// Combine all assets and save to backend
+	    		const allFavoritesData = [...favoritesWithOrder, ...nonFavoritesData]
+	    		
+	    		try {
+	    			await assetSettings.saveFavorites(allFavoritesData)
+	    		} catch (error) {
+	    			console.error('Error saving favorite order:', error)
+	    		}
+	    	}
 	    },
 	    // REMOVED: checkEmptyFavorites - Never update favorites in Vuex state
 	    // Favorites should only be stored in the backend API, not in Vuex
@@ -427,37 +338,15 @@ export default {
 		    		return 0
 		    	})
 		    	
-		    	const tempFavorites = this.assetList.map(({id, favorite}) =>({ id, favorite }))
-		    	assetSettings.saveFavorites(tempFavorites)
-		    	
-		    	// Save the reordered custom list
-		    	this.customList[this.selectedNetwork] = this.assetList.map((asset) => asset.id)
-		    	assetSettings.saveCustomList(this.customList)
+	    	const tempFavorites = this.assetList.map(({id, favorite}) =>({ id, favorite }))
+	    	assetSettings.saveFavorites(tempFavorites)
+	    	
+	    	// Note: Ordering is now handled by the API, so we don't need to save custom list
+	    	// The API will maintain the order based on favorites and favorite_order
 	    	}, 100)
 	    },
 	    getWallet (type) {
 	      return this.$store.getters['global/getWallet'](type)
-	    },
-	    async checkMissingAssets (opts = { autoOpen: false }) {
-	      if (!this.$refs.tokenSuggestionsDialog) return Promise.reject()
-	      this.showTokenSuggestionsDialog = Boolean(opts && opts.autoOpen)
-	      return this.$refs.tokenSuggestionsDialog.updateList(opts)
-	    },
-	    addNewAsset () {
-	      const vm = this
-	      vm.$q.dialog({
-	        // need both in passing props for now for backwards compatibility
-	        componentProps: {
-	          network: vm.selectedNetwork,
-	          darkMode: vm.darkmode,
-	          isCashToken: vm.isCashToken,
-	          wallet: vm.wallet,
-	          currentCountry: vm.currentCountry
-	        },
-	        component: AddNewAsset
-	      }).onOk((asset) => {	  
-	      	 this.loadData()	      	
-	      })
 	    },
 	    onSwipeRight(asset) {
 	      this.removeAsset(asset)
@@ -465,87 +354,97 @@ export default {
 	    removeAsset (asset) {
 	      const vm = this
 	      const assetName = asset.name
-	      const walletIndex = vm.$store.getters['global/getWalletIndex']
 	      vm.$q.dialog({
 	        component: RemoveAsset,
 	        componentProps: {
 	          assetName
 	        }
 	      }).onOk(() => {
-	        if (this.isSep20) {
-	          vm.$store.commit('sep20/addRemovedAssetIds', asset.id)
-	          const commitName = 'sep20/removeAsset'
-	          return vm.$store.commit(commitName, asset.id)
-	        }
-	        vm.$store.commit('assets/removeAsset', asset.id)
-	        vm.$store.commit('assets/addRemovedAssetIds', {
-	          vaultIndex: walletIndex,
-	          id: asset.id
-	        })
-
+	        // Note: Asset removal is handled by the backend API
+	        // The removed asset will not appear in future API responses
+	        // We don't need to update Vuex store since we only use API data
+	        
+	        // Reload data from API - the removed asset will no longer appear
 	        vm.loadData()
 	        vm.$emit('removed-asset', asset)
 	      })
 	    },
-	    async fetchAssetInfo (list) {
-	    	const ids = Array.isArray(list) ? list : []
-	    	const temp = []
-	    	for (const id of ids) {
-	    		const asset = await this.$store.getters['assets/getAsset'](id)
-	    		if (Array.isArray(asset) && asset.length > 0) {
-	    			temp.push(asset[0])
-	    		}
+	    async fetchTokensDirectlyFromAPI () {
+	    	if (this.selectedNetwork === 'sBCH' || !this.isCashToken) {
+	    		return []
 	    	}
-	    	return temp
-	    },
-	    async getUnlistedTokens (opts = { includeIgnored: false }) {
-	    	if (!this.unlistedToken || !Array.isArray(this.unlistedToken)) { return }
-	    		
-	      const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]	      
-
-	      let tokenIDs = []
-	      for (const tokenWalletHash of tokenWalletHashes) {
-	        const isCashToken = tokenWalletHashes.indexOf(tokenWalletHash) === 0
-
-	        const tokens = await this.$store.dispatch(
-	          'assets/getMissingAssets',
-	          {
-	            isCashToken,
-	            walletHash: tokenWalletHash,
-	            includeIgnoredTokens: opts.includeIgnored,
-	          }
-	        )
-
-	        tokenIDs.push(...tokens.map(asset => asset.id))
-	      }
-
-	      const diff = tokenIDs.filter(asset => !this.unlistedToken.includes(asset))	      
-
-	      // Only save if there are new tokens to add
-	      if (diff.length > 0) {
-	        this.unlistedToken.push(...diff)
-	        this.unlistedToken = await assetSettings.saveUnlistedTokens(this.unlistedToken)
-	      }
-	    },
-	    async checkUpdatedAssets () {
-	    	this.isloaded = false
-
-	    	// Ensure unlistedToken is an array before filtering
-	    	if (!Array.isArray(this.unlistedToken)) {
-	    		this.unlistedToken = []
-	    	}
-
-	    	const assetIDs = this.assets.map(asset => asset.id)
-	    	const diff = this.unlistedToken.filter(asset => assetIDs.includes(asset))	
-
-	    	// removing readded tokens from unlisted token list    	
-	    	const temp = this.unlistedToken.filter(asset => !diff.includes(asset))
 	    	
-	    	this.unlistedToken = await assetSettings.saveUnlistedTokens(temp)
-				this.showTokenSuggestionsDialog = false
-
-				await this.loadData()
-	    }
+	    	// Use wallet from component data instead of calling getWallet (which might trigger balance API calls)
+	    	if (!this.wallet) {
+	    		console.warn('Wallet not loaded, cannot fetch tokens')
+	    		return []
+	    	}
+	    	
+	    	const walletHash = this.wallet.BCH.walletHash || this.wallet.bch?.walletHash
+	    	if (!walletHash) {
+	    		console.warn('Wallet hash not available')
+	    		return []
+	    	}
+	    	
+	    	const isChipnet = this.$store.getters['global/isChipnet']
+	    	const baseUrl = getWatchtowerApiUrl(isChipnet)
+	    	
+	    	const filterParams = {
+	    		has_balance: true,
+	    		token_type: 1,
+	    		wallet_hash: walletHash,
+	    		limit: 100 // Fetch more tokens per page
+	    	}
+	    	
+	    	try {
+	    		const url = `${baseUrl}/cashtokens/fungible/`
+	    		let allTokens = []
+	    		let nextUrl = url
+	    		let params = filterParams
+	    		
+	    		// Fetch all pages if there are more results
+	    		while (nextUrl) {
+	    			const { data } = await axios.get(nextUrl, { params })
+	    			
+	    			if (!Array.isArray(data.results)) {
+	    				break
+	    			}
+	    			
+	    			// Map API response to asset format expected by the component
+	    			// API already returns tokens ordered by favorites and favorite_order
+	    			const tokens = data.results.map(result => {
+	    				// Convert IPFS URLs if needed
+	    				const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
+	    				
+	    				return {
+	    					id: result.id,
+	    					name: result.name || 'Unknown Token',
+	    					symbol: result.symbol || '',
+	    					decimals: result.decimals || 0,
+	    					logo: logo,
+	    					balance: result.balance !== undefined ? result.balance : 0,
+	    					favorite: result.favorite === true ? 1 : 0, // Convert boolean to 1/0 format
+	    					favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
+	    				}
+	    			})
+	    			
+	    			allTokens = [...allTokens, ...tokens]
+	    			
+	    			// Check if there's a next page
+	    			if (data.next) {
+	    				nextUrl = data.next
+	    				params = {} // Don't send params again, URL already has them
+	    			} else {
+	    				nextUrl = null
+	    			}
+	    		}
+	    		
+	    		return allTokens
+	    	} catch (error) {
+	    		console.error('Error fetching tokens from API:', error)
+	    		return []
+	    	}
+	    },
 	}	
 }
 </script>

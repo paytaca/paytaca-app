@@ -1,7 +1,7 @@
 import { getKeypair } from 'src/exchange/chat/keys'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
-import { decompressEncryptedMessage, decryptMessage } from 'src/marketplace/chat/encryption'
-import { encryptMessage, compressEncryptedMessage } from 'src/marketplace/chat/encryption'
+import { decompressEncryptedMessage, decryptMessage as decryptMessageCore } from 'src/marketplace/chat/encryption'
+import { encryptMessage as encryptMessageCore, compressEncryptedMessage } from 'src/marketplace/chat/encryption'
 import { privToPub } from 'src/exchange/chat/keys'
 import * as fetchMemoAPI from './transaction-memos'
 
@@ -16,13 +16,11 @@ let keypairCache = null
 export async function ensureKeypair() {
   // Check cache first
   if (keypairCache && keypairCache.privkey && keypairCache.pubkey) {
-    // Validate cache - check if keys are valid hex strings
     const privkeyValid = /^[0-9a-f]{64}$/i.test(keypairCache.privkey)
     const pubkeyValid = /^[0-9a-f]{66}$/i.test(keypairCache.pubkey)
     if (privkeyValid && pubkeyValid) {
       return keypairCache
     }
-    // Cache invalid, clear it
     keypairCache = null
   }
 
@@ -41,7 +39,7 @@ export async function ensureKeypair() {
       }
     }
     
-    // Keypair missing or invalid, regenerate it
+    // Keypair missing or invalid, regenerate it deterministically
     keypair = await updateOrCreateKeypair(false)
     
     if (!keypair || !keypair.privkey || !keypair.pubkey) {
@@ -65,35 +63,19 @@ export async function ensureKeypair() {
 }
 
 /**
- * Decrypts encrypted memo data with robust error handling
+ * Simplified and robust memo decryption
  * @param {string} encryptedMemo - Base64 encoded encrypted memo
  * @param {string} privkey - Private key for decryption
  * @returns {Promise<{success: boolean, memo: string|null, error: string|null}>}
  */
 export async function decryptMemoData(encryptedMemo, privkey) {
-  if (!encryptedMemo || typeof encryptedMemo !== 'string') {
-    return {
-      success: false,
-      memo: null,
-      error: 'Invalid encrypted memo: must be a non-empty string'
-    }
+  // Input validation
+  if (!encryptedMemo || typeof encryptedMemo !== 'string' || encryptedMemo.trim() === '') {
+    return { success: false, memo: null, error: 'Invalid encrypted memo: must be a non-empty string' }
   }
 
-  if (!privkey || typeof privkey !== 'string') {
-    return {
-      success: false,
-      memo: null,
-      error: 'Invalid private key: must be a non-empty string'
-    }
-  }
-
-  // Validate privkey format
-  if (!/^[0-9a-f]{64}$/i.test(privkey)) {
-    return {
-      success: false,
-      memo: null,
-      error: 'Invalid private key format: must be 64-character hex string'
-    }
+  if (!privkey || typeof privkey !== 'string' || !/^[0-9a-f]{64}$/i.test(privkey)) {
+    return { success: false, memo: null, error: 'Invalid private key: must be 64-character hex string' }
   }
 
   try {
@@ -102,84 +84,53 @@ export async function decryptMemoData(encryptedMemo, privkey) {
     try {
       parsedEncryptedMessage = decompressEncryptedMessage(encryptedMemo)
     } catch (decompressError) {
-      console.error('[memoService] decompressEncryptedMessage error:', decompressError)
-      return {
-        success: false,
-        memo: null,
-        error: `Failed to decompress encrypted memo: ${decompressError.message}`
+      return { 
+        success: false, 
+        memo: null, 
+        error: `Failed to decompress encrypted memo: ${decompressError.message}` 
       }
     }
 
-    // Step 2: Validate decompressed data structure
-    if (!parsedEncryptedMessage) {
-      return {
-        success: false,
-        memo: null,
-        error: 'Decompressed message is null or undefined'
-      }
+    if (!parsedEncryptedMessage || typeof parsedEncryptedMessage !== 'object') {
+      return { success: false, memo: null, error: 'Invalid decompressed message format' }
     }
 
     const { data, iv, authorPubkey, pubkeys } = parsedEncryptedMessage
 
+    // Step 2: Validate required fields
     if (!data || typeof data !== 'string') {
-      return {
-        success: false,
-        memo: null,
-        error: 'Missing or invalid encrypted data in memo'
-      }
+      return { success: false, memo: null, error: 'Missing or invalid encrypted data' }
     }
 
     if (!iv || typeof iv !== 'string') {
-      return {
-        success: false,
-        memo: null,
-        error: 'Missing or invalid IV in memo'
-      }
+      return { success: false, memo: null, error: 'Missing or invalid IV' }
     }
 
     if (!authorPubkey || typeof authorPubkey !== 'string') {
-      return {
-        success: false,
-        memo: null,
-        error: 'Missing or invalid author pubkey in memo'
-      }
+      return { success: false, memo: null, error: 'Missing or invalid author pubkey' }
     }
 
-    if (!pubkeys || !Array.isArray(pubkeys) || pubkeys.length === 0) {
-      return {
-        success: false,
-        memo: null,
-        error: 'Missing or empty pubkeys array in memo'
-      }
+    if (!Array.isArray(pubkeys) || pubkeys.length === 0) {
+      return { success: false, memo: null, error: 'Missing or empty pubkeys array' }
     }
 
-    // Step 3: Get our pubkey and check if we're in the pubkeys list
+    // Step 3: Get our pubkey
     let ourPubkey
     try {
       ourPubkey = privToPub(privkey)
     } catch (pubkeyError) {
-      console.error('[memoService] privToPub error:', pubkeyError)
-      return {
-        success: false,
-        memo: null,
-        error: `Failed to derive pubkey from private key: ${pubkeyError.message}`
+      return { 
+        success: false, 
+        memo: null, 
+        error: `Failed to derive pubkey: ${pubkeyError.message}` 
       }
     }
 
-    // Step 4: Check if our pubkey matches any in the list
-    const pubkeyMatches = pubkeys.some(pk => {
-      const pubkey = pk.split('|', 2)[0]
-      return pubkey === ourPubkey
-    })
-
-    if (!pubkeyMatches) {
-      // Try all keys anyway as a fallback
-    }
-
-    // Step 5: Attempt decryption
-    const opts = {
+    // Step 4: Attempt decryption with all pubkeys (tryAllKeys: true for robustness)
+    // This handles cases where the keypair might have been regenerated or memos from different wallets
+    const decryptionOpts = {
       privkey,
-      tryAllKeys: true, // Always try all keys for robustness
+      tryAllKeys: true, // Always try all keys
       data,
       iv,
       authorPubkey,
@@ -188,21 +139,23 @@ export async function decryptMemoData(encryptedMemo, privkey) {
 
     let decryptedMessage
     try {
-      decryptedMessage = decryptMessage(opts)
+      decryptedMessage = decryptMessageCore(decryptionOpts)
     } catch (decryptError) {
-      console.error('[memoService] decryptMessage error:', decryptError)
-      return {
-        success: false,
-        memo: null,
-        error: `Decryption failed: ${decryptError.message}`
+      // Decryption failure is not necessarily an error - memo might be from different keypair/wallet
+      // Return success with null memo to indicate "no memo found" rather than an error
+      return { 
+        success: true, 
+        memo: null, 
+        error: null 
       }
     }
 
+    // Step 5: Validate decrypted result
     if (!decryptedMessage || typeof decryptedMessage !== 'string') {
-      return {
-        success: false,
-        memo: null,
-        error: 'Decryption returned null or invalid result'
+      return { 
+        success: true, 
+        memo: null, 
+        error: null 
       }
     }
 
@@ -212,11 +165,12 @@ export async function decryptMemoData(encryptedMemo, privkey) {
       error: null
     }
   } catch (error) {
+    // Unexpected errors should still return gracefully
     console.error('[memoService] decryptMemoData unexpected error:', error)
-    return {
-      success: false,
-      memo: null,
-      error: `Unexpected error during decryption: ${error.message}`
+    return { 
+      success: true, 
+      memo: null, 
+      error: null 
     }
   }
 }
@@ -229,22 +183,14 @@ export async function decryptMemoData(encryptedMemo, privkey) {
  */
 export async function loadMemo(txid, encryptedMemoFromTx = null) {
   if (!txid || typeof txid !== 'string') {
-    return {
-      success: false,
-      memo: null,
-      error: 'Invalid transaction ID'
-    }
+    return { success: false, memo: null, error: 'Invalid transaction ID' }
   }
 
   try {
     // Ensure keypair is available
     const keypair = await ensureKeypair()
     if (!keypair || !keypair.privkey) {
-      return {
-        success: false,
-        memo: null,
-        error: 'Failed to get keypair for memo decryption'
-      }
+      return { success: false, memo: null, error: 'Failed to get keypair for memo decryption' }
     }
 
     // Try to get encrypted memo from transaction object first
@@ -255,51 +201,36 @@ export async function loadMemo(txid, encryptedMemoFromTx = null) {
       const fetchResult = await fetchMemoAPI.fetchMemo(txid)
       
       if (!fetchResult.success) {
-        // 404 is not an error - just means no memo exists
+        // 404 means no memo exists - not an error
         if (fetchResult.error && typeof fetchResult.error === 'string' && fetchResult.error.includes('404')) {
-          return {
-            success: true,
-            memo: null,
-            error: null
-          }
+          return { success: true, memo: null, error: null }
         }
-        return {
-          success: false,
-          memo: null,
-          error: fetchResult.error || 'Failed to fetch memo from server'
+        return { 
+          success: false, 
+          memo: null, 
+          error: fetchResult.error || 'Failed to fetch memo from server' 
         }
       }
 
       if (fetchResult.data && !('error' in fetchResult.data) && fetchResult.data.note) {
         encryptedMemo = fetchResult.data.note
       } else {
-        // No memo found
-        return {
-          success: true,
-          memo: null,
-          error: null
-        }
+        return { success: true, memo: null, error: null }
       }
     }
 
     // If we have an encrypted memo, decrypt it
     if (encryptedMemo) {
-      const decryptResult = await decryptMemoData(encryptedMemo, keypair.privkey)
-      return decryptResult
+      return await decryptMemoData(encryptedMemo, keypair.privkey)
     }
 
-    // No memo found
-    return {
-      success: true,
-      memo: null,
-      error: null
-    }
+    return { success: true, memo: null, error: null }
   } catch (error) {
     console.error('[memoService] loadMemo error:', error)
-    return {
-      success: false,
-      memo: null,
-      error: `Failed to load memo: ${error.message}`
+    return { 
+      success: false, 
+      memo: null, 
+      error: `Failed to load memo: ${error.message}` 
     }
   }
 }
@@ -313,51 +244,39 @@ export async function loadMemo(txid, encryptedMemoFromTx = null) {
  */
 export async function saveMemo(txid, memoText, isUpdate = false) {
   if (!txid || typeof txid !== 'string') {
-    return {
-      success: false,
-      error: 'Invalid transaction ID'
-    }
+    return { success: false, error: 'Invalid transaction ID' }
   }
 
   const trimmedMemo = String(memoText || '').trim()
   if (!trimmedMemo) {
-    return {
-      success: false,
-      error: 'Memo text cannot be empty'
-    }
+    return { success: false, error: 'Memo text cannot be empty' }
   }
 
   try {
     // Ensure keypair is available
     const keypair = await ensureKeypair()
     if (!keypair || !keypair.privkey || !keypair.pubkey) {
-      return {
-        success: false,
-        error: 'Failed to get keypair for memo encryption'
-      }
+      return { success: false, error: 'Failed to get keypair for memo encryption' }
     }
 
     // Encrypt the memo
     let encryptedMessage
     try {
-      encryptedMessage = encryptMessage({
+      encryptedMessage = encryptMessageCore({
         data: trimmedMemo,
         privkey: keypair.privkey,
         pubkeys: keypair.pubkey
       })
     } catch (encryptError) {
       console.error('[memoService] encryptMessage error:', encryptError)
-      return {
-        success: false,
-        error: `Failed to encrypt memo: ${encryptError.message}`
+      return { 
+        success: false, 
+        error: `Failed to encrypt memo: ${encryptError.message}` 
       }
     }
 
-    if (!encryptedMessage) {
-      return {
-        success: false,
-        error: 'Encryption returned null or undefined'
-      }
+    if (!encryptedMessage || typeof encryptedMessage !== 'object') {
+      return { success: false, error: 'Encryption returned invalid result' }
     }
 
     // Compress the encrypted message
@@ -366,17 +285,14 @@ export async function saveMemo(txid, memoText, isUpdate = false) {
       serializedEncryptedMessage = compressEncryptedMessage(encryptedMessage)
     } catch (compressError) {
       console.error('[memoService] compressEncryptedMessage error:', compressError)
-      return {
-        success: false,
-        error: `Failed to compress encrypted memo: ${compressError.message}`
+      return { 
+        success: false, 
+        error: `Failed to compress encrypted memo: ${compressError.message}` 
       }
     }
 
-    if (!serializedEncryptedMessage) {
-      return {
-        success: false,
-        error: 'Compression returned null or undefined'
-      }
+    if (!serializedEncryptedMessage || typeof serializedEncryptedMessage !== 'string') {
+      return { success: false, error: 'Compression returned invalid result' }
     }
 
     // Save to server
@@ -386,21 +302,18 @@ export async function saveMemo(txid, memoText, isUpdate = false) {
       : await fetchMemoAPI.createMemo(data)
 
     if (!apiResult.success) {
-      return {
-        success: false,
-        error: apiResult.error || 'Failed to save memo to server'
+      return { 
+        success: false, 
+        error: apiResult.error || 'Failed to save memo to server' 
       }
     }
 
-    return {
-      success: true,
-      error: null
-    }
+    return { success: true, error: null }
   } catch (error) {
     console.error('[memoService] saveMemo error:', error)
-    return {
-      success: false,
-      error: `Failed to save memo: ${error.message}`
+    return { 
+      success: false, 
+      error: `Failed to save memo: ${error.message}` 
     }
   }
 }
@@ -412,31 +325,25 @@ export async function saveMemo(txid, memoText, isUpdate = false) {
  */
 export async function deleteMemo(txid) {
   if (!txid || typeof txid !== 'string') {
-    return {
-      success: false,
-      error: 'Invalid transaction ID'
-    }
+    return { success: false, error: 'Invalid transaction ID' }
   }
 
   try {
     const apiResult = await fetchMemoAPI.deleteMemo(txid)
     
     if (!apiResult.success) {
-      return {
-        success: false,
-        error: apiResult.error || 'Failed to delete memo from server'
+      return { 
+        success: false, 
+        error: apiResult.error || 'Failed to delete memo from server' 
       }
     }
 
-    return {
-      success: true,
-      error: null
-    }
+    return { success: true, error: null }
   } catch (error) {
     console.error('[memoService] deleteMemo error:', error)
-    return {
-      success: false,
-      error: `Failed to delete memo: ${error.message}`
+    return { 
+      success: false, 
+      error: `Failed to delete memo: ${error.message}` 
     }
   }
 }

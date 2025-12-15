@@ -135,7 +135,6 @@ export async function getMissingAssets (
   }
 
   let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
-  const balanceUrl = `${url}/balance/wallet/${walletHash}`
 
   if (isCashToken) {
     url += '/cashtokens/fungible/'
@@ -158,9 +157,9 @@ export async function getMissingAssets (
       
       // exclude tokens without metadata
       if (tokenDetails !== null) {
-        const finalBalUrl = `${balanceUrl}/${tokenId}/`
-        const response = await axiosInstance.get(finalBalUrl)
-        tokenDetails.balance = response.data.balance
+        // Use balance directly from API response instead of making separate API call
+        // The API now includes balance field in the response
+        tokenDetails.balance = result.balance !== undefined ? result.balance : 0
         finalData.push(tokenDetails)
       }
     }
