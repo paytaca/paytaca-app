@@ -887,15 +887,14 @@ export default {
       this.bchBalanceMode = value
     },
     async fetchAllTokensFromAPI () {
-      // Fetch all tokens directly from API with balances included (not just favorites)
-      // This is used to determine if wallet has tokens for the favorites note display logic
+      // Fetch favorite tokens directly from API for the home page tokens section
       if (this.selectedNetwork === 'sBCH' || !this.isCashToken) {
-        // For sBCH or SLP, API doesn't support fetching all tokens yet
+        // For sBCH or SLP, API doesn't support favorites_only yet
         return []
       }
 
       if (!this.wallet) {
-        console.warn('Wallet not loaded, cannot fetch all tokens')
+        console.warn('Wallet not loaded, cannot fetch tokens')
         return []
       }
 
@@ -912,6 +911,7 @@ export default {
         has_balance: true,
         token_type: 1,
         wallet_hash: walletHash,
+        favorites_only: true,
         limit: 100 // Fetch more tokens per page
       }
 

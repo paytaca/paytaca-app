@@ -6,7 +6,8 @@
       </div>
 
       <div class="q-mx-lg q-px-sm q-pt-sm text-center" :class="darkMode ? 'text-white' : 'text-black'">
-        {{ message }}
+        To enhance your experience and access the latest features and improvements, please update to the newest version of the app.
+        <span v-if="isRequired" class="q-mt-sm block">You must update to continue using the app.</span>
       </div>
 
       <div class="row justify-center q-py-sm">
@@ -59,13 +60,6 @@ export default {
   computed: {
     isRequired () {
       return this.upgradeType === 'required'
-    },
-    message () {
-      if (this.isRequired) {
-        return 'You must upgrade to continue using the app.'
-      } else {
-        return 'You may upgrade to enjoy the latest updates.'
-      }
     }
   },
   emits: [...useDialogPluginComponent.emits],

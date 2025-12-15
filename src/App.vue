@@ -57,7 +57,8 @@ export default {
       promptedPushNotifications: false,
       subscribedPushNotifications: false,
       assetPricesUpdateIntervalId: null,
-      offlineNotif: null
+      offlineNotif: null,
+      versionUpdateDialogOpen: false
     }
   },
   methods: {
@@ -260,16 +261,31 @@ export default {
         console.log('Watchtower status: up')
       }
       
-      // Check for app version update
+      // Check for app version update (check regardless of status being 'up')
       if (response.data?.app_version_check === 'outdated' && response.data?.app_upgrade) {
         const upgradeType = response.data.app_upgrade
         if (upgradeType === 'optional' || upgradeType === 'required') {
-          vm.$q.dialog({
-            component: AppVersionUpdate,
-            componentProps: {
-              upgradeType: upgradeType
-            }
-          })
+          // Show dialog if not already open (prevent duplicates)
+          // No need to track if optional dialog was shown - user can dismiss it
+          if (!vm.versionUpdateDialogOpen) {
+            vm.versionUpdateDialogOpen = true
+            
+            const dialog = vm.$q.dialog({
+              component: AppVersionUpdate,
+              componentProps: {
+                upgradeType: upgradeType
+              }
+            })
+            
+            // Reset flag when dialog is closed
+            dialog.onOk(() => {
+              vm.versionUpdateDialogOpen = false
+            }).onCancel(() => {
+              vm.versionUpdateDialogOpen = false
+            }).onDismiss(() => {
+              vm.versionUpdateDialogOpen = false
+            })
+          }
         }
       }
     }).catch(error => {
