@@ -22,9 +22,9 @@ export function getLimit (state) {
       // Return free tier limits as default
       const defaultLimits = {
         wallets: 3,
-        favoriteTokens: 7,
+        favoriteTokens: 12,
         multisigWallets: 3,
-        unclaimedGifts: 7,
+        unclaimedGifts: 12,
         merchants: 3
       }
       return defaultLimits[limitType] || 0
