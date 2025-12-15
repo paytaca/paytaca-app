@@ -53,26 +53,86 @@ export default boot(async (obj) => {
           limits: {
             free: {
               wallets: 3,
-              favoriteTokens: 12,
-              multisigWallets: 3,
-              unclaimedGifts: 12,
-              merchants: 3
+              favoriteTokens: 7,
+              multisigWallets: 1,
+              unclaimedGifts: 3,
+              merchants: 1
             },
             plus: {
               wallets: 12,
               favoriteTokens: 24,
-              multisigWallets: 12,
-              unclaimedGifts: 24,
-              merchants: 12
+              multisigWallets: 5,
+              unclaimedGifts: 10,
+              merchants: 3
             }
           },
           minLiftTokens: 100
         }
-      } else if (parsedState.subscription.limits) {
-        // Migrate existing subscription limits to new values
-        if (parsedState.subscription.limits.free) {
-          parsedState.subscription.limits.free.favoriteTokens = 12
-          parsedState.subscription.limits.free.unclaimedGifts = 12
+      } else {
+        // Ensure limits object exists (handles case where subscription exists but limits is undefined)
+        if (!parsedState.subscription.limits) {
+          parsedState.subscription.limits = {
+            free: {
+              wallets: 3,
+              favoriteTokens: 7,
+              multisigWallets: 1,
+              unclaimedGifts: 3,
+              merchants: 1
+            },
+            plus: {
+              wallets: 12,
+              favoriteTokens: 24,
+              multisigWallets: 5,
+              unclaimedGifts: 10,
+              merchants: 3
+            }
+          }
+        } else {
+          // Migrate existing subscription limits to new values
+          if (parsedState.subscription.limits.free) {
+            parsedState.subscription.limits.free.favoriteTokens = 7
+            parsedState.subscription.limits.free.multisigWallets = 1
+            parsedState.subscription.limits.free.unclaimedGifts = 3
+            parsedState.subscription.limits.free.merchants = 1
+          }
+          // Ensure plus limits exist
+          if (!parsedState.subscription.limits.plus) {
+            parsedState.subscription.limits.plus = {
+              wallets: 12,
+              favoriteTokens: 24,
+              multisigWallets: 5,
+              unclaimedGifts: 10,
+              merchants: 3
+            }
+          } else {
+            // Migrate existing plus limits to new values
+            parsedState.subscription.limits.plus.multisigWallets = 5
+            parsedState.subscription.limits.plus.unclaimedGifts = 10
+            parsedState.subscription.limits.plus.merchants = 3
+          }
+          // Ensure free limits exist
+          if (!parsedState.subscription.limits.free) {
+            parsedState.subscription.limits.free = {
+              wallets: 3,
+              favoriteTokens: 7,
+              multisigWallets: 1,
+              unclaimedGifts: 3,
+              merchants: 1
+            }
+          }
+        }
+        // Ensure other required properties exist
+        if (typeof parsedState.subscription.isPlus === 'undefined') {
+          parsedState.subscription.isPlus = false
+        }
+        if (typeof parsedState.subscription.liftTokenBalance === 'undefined') {
+          parsedState.subscription.liftTokenBalance = 0
+        }
+        if (typeof parsedState.subscription.lastChecked === 'undefined') {
+          parsedState.subscription.lastChecked = null
+        }
+        if (typeof parsedState.subscription.minLiftTokens === 'undefined') {
+          parsedState.subscription.minLiftTokens = 100
         }
       }
 
