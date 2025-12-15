@@ -525,9 +525,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
-import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
+import * as memoService from 'src/utils/memo-service'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
-import { getKeypair } from 'src/exchange/chat/keys'
 import { ref } from 'vue'
 import { hexToRef } from 'src/utils/reference-id-utils'
 
@@ -560,8 +559,7 @@ export default {
         note: ''
       },
       hasMemo: false,
-      networkError: false,
-      keypair: {}
+      networkError: false
     }
   },
   computed: {
@@ -708,32 +706,35 @@ export default {
       }
       try {
         this.transaction = transaction
-        let currentMemo = null
 
-        this.keypair = await getKeypair().catch(console.error)      
+        // Use memo service to load and decrypt memo
+        const result = await memoService.loadMemo(this.transaction.txid)
 
-        try {
-          currentMemo = await fetchMemo(this.transaction.txid)
-        } catch (err) {          
-          this.networkError = true
-        }
-
-        if (currentMemo) {          
-          if ('error' in currentMemo) {            
-            this.hasMemo = false
-          } else {
-            // decryptMemo
-            currentMemo.note = await decryptMemo(this.keypair.privkey, currentMemo.note)
-            
-            this.memo = currentMemo
+        if (result.success) {
+          if (result.memo) {
+            // Memo successfully decrypted
+            this.memo = {
+              note: result.memo
+            }
             this.hasMemo = true
+            this.networkError = false
+          } else {
+            // No memo found (not an error)
+            this.hasMemo = false
+            this.networkError = false
           }
-        } else {          
+        } else {
+          // Error loading/decrypting memo
+          console.error('[transaction] show error:', result.error)
+          this.hasMemo = false
           this.networkError = true
         }
 
         this.$refs.dialog.show()
-      } catch (err) {}
+      } catch (err) {
+        console.error('[transaction] show: Unexpected error:', err)
+        this.networkError = true
+      }
     },
     hide () {
       this.$refs.dialog.hide()
@@ -758,54 +759,35 @@ export default {
     },
     async saveMemo() {
       try {
-        // Ensure user is authenticated before saving
-        await authMemo()
-
-        //encrypt memo
-        const encryptedMemo = await encryptMemo(this.keypair.privkey, this.keypair.pubkey, this.memo.note)
-
-        const data = {
-          txid: this.transaction.txid,
-          note: encryptedMemo
+        const trimmedMemo = String(this.memo.note || '').trim()
+        if (!trimmedMemo) {
+          this.showMemo = false
+          return
         }
 
-        let response = null
-        if (this.hasMemo) {
-          try {
-            response = await updateMemo(data)
-          } catch (error) {
-            console.error('Error updating memo:', error)
-            this.networkError = true
-          }
-        } else {
-          try {
-            response = await createMemo(data)
-          } catch (error) {
-            console.error('Error creating memo:', error)
-            this.networkError = true
-          }
-        } 
+        // Use memo service to save memo
+        const result = await memoService.saveMemo(this.transaction.txid, trimmedMemo, this.hasMemo)
 
-        if (response) {
-          if ('error' in response) { 
-            this.hasMemo = false
-          } else {     
-            this.memo = response
-            const encryptedNote = this.memo.note
-            this.memo.note = await decryptMemo(this.keypair.privkey, this.memo.note)
-            this.hasMemo = true
-            
-            // Emit memo updated event with encrypted memo
-            this.$emit('memo-updated', {
-              txid: this.transaction.txid,
-              encrypted_memo: encryptedNote
-            })
+        if (result.success) {
+          this.memo = {
+            note: trimmedMemo
           }
+          this.hasMemo = true
+          this.networkError = false
+          
+          // Emit memo updated event with the actual encrypted memo
+          this.$emit('memo-updated', {
+            txid: this.transaction.txid,
+            encrypted_memo: result.encrypted_memo || null
+          })
+        } else {
+          this.hasMemo = false
+          this.networkError = true
         }
 
         this.showMemo = false
       } catch (error) {
-        console.error('Error saving memo:', error)
+        console.error('[transaction] saveMemo: Unexpected error:', error)
         this.networkError = true
         this.showMemo = false
       }
@@ -828,19 +810,30 @@ export default {
 
         persistent: true,
         class: this.darkMode ? 'text-white' : 'text-black'
-      }).onOk(async () => {        
-        await deleteMemo(this.transaction.txid)
-        this.showMemo = false
-        this.hasMemo = false
-        this.memo = {
-          note: ''
+      }).onOk(async () => {
+        try {
+          const result = await memoService.deleteMemo(this.transaction.txid)
+
+          if (result.success) {
+            this.showMemo = false
+            this.hasMemo = false
+            this.memo = {
+              note: ''
+            }
+            
+            // Emit memo updated event (with null to indicate deletion)
+            this.$emit('memo-updated', {
+              txid: this.transaction.txid,
+              encrypted_memo: null
+            })
+          } else {
+            console.error('[transaction] confirmDelete error:', result.error)
+            this.networkError = true
+          }
+        } catch (error) {
+          console.error('[transaction] confirmDelete: Unexpected error:', error)
+          this.networkError = true
         }
-        
-        // Emit memo updated event (with null to indicate deletion)
-        this.$emit('memo-updated', {
-          txid: this.transaction.txid,
-          encrypted_memo: null
-        })
       }).onCancel(() => {        
       })
     },

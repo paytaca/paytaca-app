@@ -60,48 +60,127 @@ export function encryptMessage(opts={ data: '', privkey: '', pubkeys: '' }) {
  * @param {String[]} opts.pubkeys combined pubkey & sharedSecret delimited by a bar '|'. Use pubkey directly if no sharedSecret is provided
  * @param {Boolean} opts.tryAllKeys will attempt to decrypt using other pubkeys instead of using only matching pubkey
  */
+/**
+ * Robust memo decryption function
+ * Tries all pubkeys when tryAllKeys is true, otherwise only tries matching pubkey
+ */
 export function decryptMessage(opts={data: '', iv: '', privkey: '', authorPubkey: '', pubkeys: [], tryAllKeys: false }) {
-  const data = opts?.data
-  const iv = opts?.iv
-  const privkey = opts?.privkey
-  const authorPubkey =  opts?.authorPubkey
-  const pubkeys = opts?.pubkeys
-  const tryAllKeys = opts?.tryAllKeys
+  // Input validation
+  if (!opts.data || typeof opts.data !== 'string') {
+    throw new Error('Invalid encrypted data')
+  }
+  if (!opts.iv || typeof opts.iv !== 'string') {
+    throw new Error('Invalid IV')
+  }
+  if (!opts.privkey || typeof opts.privkey !== 'string' || !/^[0-9a-f]{64}$/i.test(opts.privkey)) {
+    throw new Error('Invalid private key')
+  }
+  if (!opts.authorPubkey || typeof opts.authorPubkey !== 'string') {
+    throw new Error('Invalid author pubkey')
+  }
+  if (!Array.isArray(opts.pubkeys) || opts.pubkeys.length === 0) {
+    throw new Error('Invalid or empty pubkeys array')
+  }
 
-  const ourPubkey = privToPub(privkey)
-  const ivBytes = Buffer.from(iv, 'base64')
-  const sortedPubkeys = pubkeys.sort(pkData => {
-    const pubkey = pkData.split('|', 2)[0]
-    return pubkey == ourPubkey ? -1 : 0
-  }).filter(pkData => {
-    if (tryAllKeys) return true
-    const pubkey = pkData.split('|', 2)[0]
-    return pubkey == ourPubkey ? -1 : 0
+  const { data, iv, privkey, authorPubkey, pubkeys, tryAllKeys } = opts
+
+  // Get our pubkey from private key
+  let ourPubkey
+  try {
+    ourPubkey = privToPub(privkey)
+  } catch (error) {
+    throw new Error(`Failed to derive pubkey: ${error.message}`)
+  }
+
+  // Prepare IV bytes
+  let ivBytes
+  try {
+    ivBytes = Buffer.from(iv, 'base64')
+  } catch (error) {
+    throw new Error(`Invalid IV format: ${error.message}`)
+  }
+
+  // Filter and sort pubkeys: prioritize our pubkey, include all if tryAllKeys
+  const validPubkeys = pubkeys.filter(pk => pk && typeof pk === 'string')
+  
+  if (validPubkeys.length === 0) {
+    throw new Error('No valid pubkeys found')
+  }
+
+  // Sort: our pubkey first, then others
+  const sortedPubkeys = validPubkeys.sort((a, b) => {
+    const pubkeyA = a.split('|', 2)[0]
+    const pubkeyB = b.split('|', 2)[0]
+    const matchesA = pubkeyA === ourPubkey
+    const matchesB = pubkeyB === ourPubkey
+    if (matchesA && !matchesB) return -1
+    if (!matchesA && matchesB) return 1
+    return 0
   })
 
-  for(var i = 0; i < sortedPubkeys.length; i++) {
+  // Filter based on tryAllKeys
+  const pubkeysToTry = tryAllKeys 
+    ? sortedPubkeys 
+    : sortedPubkeys.filter(pk => {
+        const pubkey = pk.split('|', 2)[0]
+        return pubkey === ourPubkey
+      })
+
+  if (pubkeysToTry.length === 0) {
+    throw new Error('No matching pubkeys found for decryption')
+  }
+
+  // Try decryption with each pubkey
+  const errors = []
+  for (let i = 0; i < pubkeysToTry.length; i++) {
     try {
-      const pubkeyData = sortedPubkeys[i]
-      let [pubkey, sharedSecret, ..._] = pubkeyData.split('|', 2)
-      if (pubkey == ourPubkey) pubkey = authorPubkey
+      const pubkeyData = pubkeysToTry[i]
+      const parts = pubkeyData.split('|', 2)
+      let targetPubkey = parts[0]
+      const sharedSecret = parts[1] // May be undefined for single-recipient memos
+
+      // If this is our pubkey, use authorPubkey for shared secret calculation
+      if (targetPubkey === ourPubkey) {
+        targetPubkey = authorPubkey
+      }
+
+      // Validate pubkey format
+      if (!targetPubkey || typeof targetPubkey !== 'string' || targetPubkey.length !== 66) {
+        throw new Error(`Invalid target pubkey format: ${targetPubkey}`)
+      }
+
+      // Calculate shared secret
       const ourPriv = secp.etc.hexToBytes(privkey)
-      const otherPub = secp.etc.hexToBytes(pubkey)
+      const otherPub = secp.etc.hexToBytes(targetPubkey)
       const sharedPoint = secp.getSharedSecret(ourPriv, otherPub)
       const sharedX = sharedPoint.slice(1, 33)
-    
+
+      // Derive decryption key
       let key
       if (sharedSecret) {
-        const globalKey = decryptData(sharedSecret, Buffer.from(sharedX), ivBytes)
-        key = Buffer.from(globalKey, 'hex')
+        // Multi-recipient: decrypt the global key first
+        const globalKeyHex = decryptData(sharedSecret, Buffer.from(sharedX), ivBytes)
+        key = Buffer.from(globalKeyHex, 'hex')
       } else {
+        // Single-recipient: use shared secret directly
         key = Buffer.from(sharedX)
       }
-      return decryptData(data, key, ivBytes)
+
+      // Attempt decryption
+      const decrypted = decryptData(data, key, ivBytes)
+      
+      // If we got here, decryption succeeded
+      return decrypted
     } catch (error) {
-      console.error(error)
+      // Log error but continue to next pubkey
+      errors.push(`Pubkey ${i}: ${error.message}`)
+      // Continue to next pubkey
       continue
     }
   }
+
+  // All attempts failed
+  throw new Error(`Unable to decrypt data with any available pubkey. Attempted ${pubkeysToTry.length} pubkey(s). Errors: ${errors.join('; ')}`)
 }
 
 function privToPub(priv) {

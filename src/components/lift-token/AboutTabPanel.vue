@@ -478,7 +478,7 @@ export default {
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.1);
       border: 2px solid rgba(255, 255, 255, 0.2);
-      padding: 30px;
+      padding: 0;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
       display: flex;
       align-items: center;

@@ -242,8 +242,8 @@ export default {
     // Skip if we just switched wallets (check for a flag or recent switch)
     await vm.$store.dispatch('global/ensureValidWalletIndex')
 
-    this.$store.dispatch('global/autoGenerateAddress', { walletType: 'bch' })
-    this.$store.dispatch('global/autoGenerateAddress', { walletType: 'slp' })
+    // Note: Removed autoGenerateAddress calls - no longer needed since balances
+    // are fetched via wallet hash API (cashtokens/fungible) instead of individual addresses
 
     // Forcibly disable SmartBCH, in preparation for future deprecation
     this.$store.commit('global/disableSmartBCH')

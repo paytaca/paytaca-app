@@ -33,9 +33,12 @@
             <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.4s' }">
               <div 
                 id="create-new-wallet"
-                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
-                :class="getDarkModeClass(darkMode)"
-                @click="initCreateWallet()"
+                class="action-glass-card pt-card bg-grad text-bow"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  canCreateOrImportWallet ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                ]"
+                @click="initCreateWallet"
               >
                 <div class="action-icon-wrapper">
                   <div class="row justify-center">
@@ -51,9 +54,12 @@
 
             <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.5s' }">
               <div 
-                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
-                :class="getDarkModeClass(darkMode)"
-                @click="initRestoreWallet()"
+                class="action-glass-card pt-card bg-grad text-bow"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  canCreateOrImportWallet ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                ]"
+                @click="initRestoreWallet"
               >
                 <div class="action-icon-wrapper">
                   <div class="row justify-center">
@@ -507,6 +513,13 @@
       v-on:nextAction="executeActionTaken"
       :new-wallet-mnemonic="mnemonic"
     />
+    
+    <!-- Upgrade Prompt Dialog -->
+    <UpgradePromptDialog
+      v-model="showUpgradeDialog"
+      :dark-mode="darkMode"
+      limit-type="wallets"
+    />
 
   </div>
 </template>
@@ -536,6 +549,7 @@ import MnemonicProcessContainer from 'src/components/registration/MnemonicProces
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 // import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 function countWords(str) {
@@ -568,7 +582,8 @@ export default {
     MnemonicProcessContainer,
     SeedPhraseContainer,
     Onboarding,
-    Login
+    Login,
+    UpgradePromptDialog
     // RewardsStep
   },
   data () {
@@ -619,11 +634,20 @@ export default {
       pageLoaded: false,
       walletCreationError: '',
       isRedirecting: false,
-      step2Initialized: false
+      step2Initialized: false,
+      showUpgradeDialog: false,
+      subscriptionChecked: false
       // moveToReferral: false,
     }
   },
   watch: {
+    // Watch subscription state to update button state reactively
+    '$store.state.subscription.liftTokenBalance' () {
+      this.$forceUpdate()
+    },
+    '$store.state.subscription.isPlus' () {
+      this.$forceUpdate()
+    },
     currentStep (val, oldVal) {
       // Reset step2Initialized when leaving step 2
       if (oldVal === 2 && val !== 2) {
@@ -651,13 +675,25 @@ export default {
     seedPhraseBackup (val) {
       this.seedPhraseBackup = this.cleanUpSeedPhrase(val)
     },
-    $route (to) {
+    async $route (to) {
       // Reset restore flow state when navigating back to /accounts
       if (to.path === '/accounts' || to.path === '/accounts/') {
         this.importSeedPhrase = false
         this.authenticationPhase = 'options'
         this.seedPhraseBackup = null
         this.useTextArea = false
+        
+        // Check subscription status and show upgrade dialog if limits are exceeded
+        // This handles the case when user navigates back to /accounts page
+        try {
+          await this.$store.dispatch('subscription/checkSubscriptionStatus')
+          const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
+          if (isOnMainView && this.checkIfLimitsExceeded()) {
+            this.showUpgradeDialog = true
+          }
+        } catch (error) {
+          console.error('Error checking subscription status in route watcher:', error)
+        }
       }
       
       // Handle route changes for create flow
@@ -708,6 +744,42 @@ export default {
     }
   },
   computed: {
+    canCreateOrImportWallet () {
+      // Check if vault is initialized
+      const vault = this.$store.getters['global/getVault']
+      if (!vault || !Array.isArray(vault)) {
+        return true // Allow if vault is not initialized yet
+      }
+      
+      // Check subscription state exists
+      const subscriptionState = this.$store.state.subscription
+      if (!subscriptionState) {
+        return false // Block if subscription state doesn't exist
+      }
+      
+      // First, check subscription tier limit (3 for free, 12 for plus)
+      // This is the primary restriction that matches initCreateWallet logic
+      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
+      if (!canCreate) {
+        return false // Block if wallet limit is reached for current subscription tier
+      }
+      
+      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
+      const nonDeletedWallets = vault.filter(w => !w?.deleted)
+      const walletCount = nonDeletedWallets.length
+      
+      if (walletCount >= 3) {
+        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
+        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance'] || 0
+        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens'] || 100
+        
+        if (liftBalance < minLiftTokens) {
+          return false // Block if LIFT token requirement not met
+        }
+      }
+      
+      return true // All checks passed
+    },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
@@ -1184,7 +1256,43 @@ export default {
       }
       throw new Error('mnemonic not ready')
     },
+    checkIfLimitsExceeded () {
+      // Check wallet limit first - this is the primary restriction
+      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
+      
+      if (!canCreate) {
+        // Show upgrade dialog when wallet limit is reached
+        return true
+      }
+      
+      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
+      const vault = this.$store.getters['global/getVault']
+      const nonDeletedWallets = vault ? vault.filter(w => !w?.deleted) : []
+      const walletCount = nonDeletedWallets.length
+      
+      if (walletCount >= 3) {
+        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
+        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance']
+        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens']
+        
+        if (liftBalance < minLiftTokens) {
+          // Show upgrade dialog instead of generic LIFT token dialog
+          // This provides better context about Paytaca Plus
+          return true
+        }
+      }
+      
+      return false
+    },
     async initCreateWallet () {
+      // First, check subscription status to get current limits
+      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      
+      if (this.checkIfLimitsExceeded()) {
+        this.showUpgradeDialog = true
+        return
+      }
+      
       // Handle restore flow
       if (this.importSeedPhrase && this.restoreStep === 2) {
         // Validate seed phrase before proceeding
@@ -1221,7 +1329,15 @@ export default {
       }
       this.$forceUpdate()
     },
-    initRestoreWallet () {
+    async initRestoreWallet () {
+      // First, check subscription status to get current limits
+      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      
+      if (this.checkIfLimitsExceeded()) {
+        this.showUpgradeDialog = true
+        return
+      }
+      
       // Set importSeedPhrase flag and navigate to restore step-1
       this.importSeedPhrase = true
       this.$router.push('/accounts/restore/step-1').then(() => {
@@ -2265,6 +2381,29 @@ export default {
   },
   async mounted () {
     this.isOnboarding = this.isVaultEmpty
+    
+    // Check subscription status on mount to enable/disable buttons
+    // This ensures the computed property has the correct values
+    try {
+      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      this.subscriptionChecked = true
+      // Force reactivity update to refresh computed property
+      this.$nextTick(() => {
+        this.$forceUpdate()
+      })
+      
+      // Check if user is on the base /accounts page and has exceeded limits
+      // Show upgrade dialog immediately if limits are exceeded
+      const isOnBaseAccountsPage = this.$route.path === '/accounts' || this.$route.path === '/accounts/'
+      const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
+      
+      if (isOnBaseAccountsPage && isOnMainView && this.checkIfLimitsExceeded()) {
+        this.showUpgradeDialog = true
+      }
+    } catch (error) {
+      console.error('Error checking subscription status:', error)
+      this.subscriptionChecked = true // Set to true even on error to prevent blocking
+    }
 
     // Check if we're on a step route and initialize wallet creation if needed
     if (this.$route.path.startsWith('/accounts/create/step-') && this.steps === -1 && !this.importSeedPhrase) {

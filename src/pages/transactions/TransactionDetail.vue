@@ -295,8 +295,7 @@ import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
-import { getKeypair } from 'src/exchange/chat/keys'
+import * as memoService from 'src/utils/memo-service'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
@@ -674,6 +673,21 @@ export default {
     'tx.asset.id' () {
       // Fetch token price when asset changes
       this.fetchTokenPrice()
+    },
+    'tx.encrypted_memo' () {
+      // Reload memo when encrypted_memo changes (including when it becomes null/empty)
+      // loadMemo() handles null/empty memos correctly by clearing the displayed memo
+      this.$nextTick(() => {
+        this.loadMemo()
+      })
+    },
+    tx (newTx, oldTx) {
+      // Reload memo when transaction object is first set or txid changes
+      if (newTx && newTx.txid && (!oldTx || oldTx.txid !== newTx.txid)) {
+        this.$nextTick(() => {
+          this.loadMemo()
+        })
+      }
     }
   },
   methods: {
@@ -750,7 +764,6 @@ export default {
         const effectiveWalletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
         // Get txid from prop first, then fallback to route params (for redirects from receive page)
         const effectiveTxid = this.txid || this.$route?.params?.txid
-        console.log('[TransactionDetail] fetchAndShow:', { effectiveWalletHash, effectiveTxid, retryAttempt, propTxid: this.txid, routeTxid: this.$route?.params?.txid })
         
         if (!effectiveWalletHash || !effectiveTxid) {
           console.error('[TransactionDetail] Missing walletHash or txid:', { effectiveWalletHash, effectiveTxid, propTxid: this.txid, routeParams: this.$route?.params })
@@ -780,10 +793,8 @@ export default {
         }
         const categoryPath = categoryParam ? `/${categoryParam}` : ''
         const url = `${baseUrl}/history/wallet/${encodeURIComponent(effectiveWalletHash)}${categoryPath}/`
-        console.log('[TransactionDetail] Fetching from URL:', url, 'txid:', effectiveTxid)
         const { data } = await axios.get(url, { params: { txids: effectiveTxid } })
         const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
-        console.log('[TransactionDetail] API response:', { hasTx: !!tx, dataKeys: Object.keys(data || {}), retryAttempt })
 
         if (tx) {
           // Prefer preloaded asset metadata (logo, symbol) if available
@@ -813,10 +824,11 @@ export default {
                                    (typeof query.category === 'string' && query.category.includes('?new=true')) ||
                                    (window.location.search && window.location.search.includes('new=true'))
           
-          console.log('[TransactionDetail] Transaction loaded, isNewTransaction:', isNewTransaction, 'query:', query)
-          
           this.$nextTick(() => {
-            this.loadMemo()
+            // Ensure tx is set before loading memo
+            if (this.tx && this.tx.txid) {
+              this.loadMemo()
+            }
             this.loadFavorites()
             this.fetchTokenPrice()
             // Launch confetti if this is a new transaction
@@ -829,7 +841,6 @@ export default {
           // Transaction not found, retry with exponential backoff
           // After 2 retries, if we have websocket data, use it as fallback
           if (retryAttempt >= 2 && wsData && isFromWebsocket) {
-            console.log('[TransactionDetail] Using websocket data as fallback after', retryAttempt, 'retries')
             const mutableTx = this.createMutableCopy(wsData)
             await this.attachAssetIfMissing(mutableTx, categoryParam)
             this.tx = mutableTx
@@ -867,7 +878,6 @@ export default {
             // All retries exhausted
             // If we have websocket data, use it as final fallback
             if (wsData && isFromWebsocket) {
-              console.log('[TransactionDetail] All retries exhausted, using websocket data as final fallback')
               const mutableTx = this.createMutableCopy(wsData)
               await this.attachAssetIfMissing(mutableTx, categoryParam)
               this.tx = mutableTx
@@ -903,7 +913,6 @@ export default {
         const isFromWebsocket = window?.history?.state?.fromWebsocket || false
         
         if (retryAttempt >= 2 && wsData && isFromWebsocket) {
-          console.log('[TransactionDetail] Using websocket data as fallback after error on retry', retryAttempt)
           const categoryParam = this.$route?.query?.category || ''
           const mutableTx = this.createMutableCopy(wsData)
           await this.attachAssetIfMissing(mutableTx, categoryParam)
@@ -944,7 +953,6 @@ export default {
           const isFromWebsocket = window?.history?.state?.fromWebsocket || false
           
           if (wsData && isFromWebsocket) {
-            console.log('[TransactionDetail] All retries exhausted after error, using websocket data as final fallback')
             const categoryParam = this.$route?.query?.category || ''
             const mutableTx = this.createMutableCopy(wsData)
             await this.attachAssetIfMissing(mutableTx, categoryParam)
@@ -985,7 +993,6 @@ export default {
      */
     async startBackgroundFetch (retryAttempt = 0) {
       if (this.backgroundFetchActive) {
-        console.log('[TransactionDetail] Background fetch already active, skipping')
         return
       }
       
@@ -995,7 +1002,6 @@ export default {
       const fetchInBackground = async (attempt = 0) => {
         // Check if component is still mounted and background fetch should continue
         if (!this.backgroundFetchActive) {
-          console.log('[TransactionDetail] Background fetch stopped')
           return
         }
         
@@ -1024,13 +1030,11 @@ export default {
           const categoryPath = categoryParam ? `/${categoryParam}` : ''
           const url = `${baseUrl}/history/wallet/${encodeURIComponent(effectiveWalletHash)}${categoryPath}/`
           
-          console.log('[TransactionDetail] Background fetch attempt', attempt, 'for txid:', effectiveTxid)
           const { data } = await axios.get(url, { params: { txids: effectiveTxid } })
           const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
           
           if (tx) {
             // Transaction found! Update with real API data
-            console.log('[TransactionDetail] Background fetch successful, updating transaction data')
             const mutableTx = this.createMutableCopy(tx)
             if (Object.isFrozen(mutableTx)) {
               mutableTx = { ...mutableTx }
@@ -1056,12 +1060,10 @@ export default {
             // Not found yet, retry with exponential backoff
             if (attempt < maxBackgroundRetries) {
               const delay = Math.min(1000 * Math.pow(2, attempt), 30000) // Cap at 30 seconds
-              console.log('[TransactionDetail] Background fetch: transaction not found, retrying in', delay, 'ms')
               setTimeout(() => {
                 fetchInBackground(attempt + 1)
               }, delay)
             } else {
-              console.log('[TransactionDetail] Background fetch: max retries reached, stopping')
               this.backgroundFetchActive = false
             }
           }
@@ -1088,25 +1090,31 @@ export default {
       try {
         const txid = this.transactionId
         if (!txid) return
-        // prepare keypair
-        this.keypair = await getKeypair().catch(console.error)
-        let currentMemo = null
-        try {
-          currentMemo = await fetchMemo(txid)
-        } catch (err) {
-          this.networkError = true
-        }
-        if (currentMemo && !('error' in currentMemo)) {
-          const decryptedNote = await decryptMemo(this.keypair?.privkey, currentMemo.note)
-          this.transactionMemo = decryptedNote
-          this.memoInput = decryptedNote
-          this.hasMemo = !!decryptedNote
-          this.editingMemo = false
+
+        // Use memo service to load and decrypt memo
+        const result = await memoService.loadMemo(txid, this.tx?.encrypted_memo)
+
+        if (result.success) {
+          if (result.memo) {
+            // Memo successfully decrypted
+            this.transactionMemo = result.memo
+            this.memoInput = result.memo
+            this.hasMemo = true
+            this.editingMemo = false
+          } else {
+            // No memo found (not an error)
+            this.hasMemo = false
+            this.editingMemo = false
+          }
         } else {
+          // Error loading/decrypting memo
+          console.error('[TransactionDetail] loadMemo error:', result.error)
+          this.networkError = true
           this.hasMemo = false
           this.editingMemo = false
         }
       } catch (error) {
+        console.error('[TransactionDetail] loadMemo: Unexpected error:', error)
         this.networkError = true
         this.hasMemo = false
         this.editingMemo = false
@@ -1126,17 +1134,14 @@ export default {
       try {
         const txid = this.transactionId
         if (!txid) return
-        await authMemo()
-        // ensure keypair
-        if (!this.keypair) this.keypair = await getKeypair().catch(console.error)
+
         const trimmedMemo = String(this.memoInput || '').trim()
         if (!trimmedMemo) return
-        const encryptedMemo = await encryptMemo(this.keypair?.privkey, this.keypair?.pubkey, trimmedMemo)
-        const data = { txid: txid, note: encryptedMemo }
-        let response = null
-        if (this.hasMemo) response = await updateMemo(data).catch(err => { this.networkError = true })
-        else response = await createMemo(data).catch(err => { this.networkError = true })
-        if (response && !('error' in response)) {
+
+        // Use memo service to save memo
+        const result = await memoService.saveMemo(txid, trimmedMemo, this.hasMemo)
+
+        if (result.success) {
           this.transactionMemo = trimmedMemo
           this.memoInput = trimmedMemo
           this.hasMemo = true
@@ -1150,6 +1155,7 @@ export default {
             timeout: 2000
           })
         } else {
+          this.networkError = true
           this.$q.notify({
             message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
             color: 'negative',
@@ -1159,6 +1165,7 @@ export default {
           })
         }
       } catch (error) {
+        console.error('[TransactionDetail] saveMemo: Unexpected error:', error)
         this.networkError = true
         this.$q.notify({
           message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
@@ -1170,32 +1177,65 @@ export default {
       }
     },
     async confirmDelete () {
-      try {
-        const txid = this.transactionId
-        if (!txid) return
-        await deleteMemo(txid)
-        this.hasMemo = false
-        this.transactionMemo = ''
-        this.memoInput = ''
-        this.editingMemo = false
-        
-        this.$q.notify({
-          message: this.$t('MemoDeleted', {}, 'Memo deleted'),
-          color: 'positive',
-          icon: 'check_circle',
-          position: 'top',
-          timeout: 2000
-        })
-      } catch (error) {
-        this.networkError = true
-        this.$q.notify({
-          message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+      // Show confirmation dialog before deleting
+      this.$q.dialog({
+        title: this.$t('DeleteMemo', {}, 'Delete Memo'),
+        message: this.$t('ConfirmDeleteMemo', {}, 'Are you sure you want to delete this memo? This action cannot be undone.'),
+        ok: {
+          push: true,
           color: 'negative',
-          icon: 'error',
-          position: 'top',
-          timeout: 2000
-        })
-      }
+          label: this.$t('Delete', {}, 'Delete')
+        },
+        cancel: {
+          push: true,
+          color: 'grey',
+          label: this.$t('Cancel', {}, 'Cancel')
+        },
+        persistent: true,
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      }).onOk(async () => {
+        // User confirmed deletion
+        try {
+          const txid = this.transactionId
+          if (!txid) return
+
+          const result = await memoService.deleteMemo(txid)
+
+          if (result.success) {
+            this.hasMemo = false
+            this.transactionMemo = ''
+            this.memoInput = ''
+            this.editingMemo = false
+            
+            this.$q.notify({
+              message: this.$t('MemoDeleted', {}, 'Memo deleted'),
+              color: 'positive',
+              icon: 'check_circle',
+              position: 'top',
+              timeout: 2000
+            })
+          } else {
+            this.networkError = true
+            this.$q.notify({
+              message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+              color: 'negative',
+              icon: 'error',
+              position: 'top',
+              timeout: 2000
+            })
+          }
+        } catch (error) {
+          console.error('[TransactionDetail] confirmDelete: Unexpected error:', error)
+          this.networkError = true
+          this.$q.notify({
+            message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 2000
+          })
+        }
+      })
     },
     async initWallet () {
       // Load BCH wallet (consistent with transactions page)
@@ -1251,6 +1291,45 @@ export default {
     async addTokenToFavorites () {
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
       
+      // Check subscription limit before adding
+      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      
+      // Fetch current favorites to check count
+      let currentFavorites = await assetSettings.fetchFavorites()
+      if (!Array.isArray(currentFavorites)) {
+        currentFavorites = []
+      }
+      
+      // Count current favorites (where favorite === 1)
+      const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
+      
+      // Check if this token is already a favorite
+      const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && fav.favorite === 1)
+      
+      // If not already a favorite, check limit
+      if (!isAlreadyFavorite) {
+        const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+        if (currentFavoriteCount >= limit) {
+          this.$q.notify({
+            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus for more favorites.'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 3000,
+            actions: [
+              {
+                label: this.$t('LearnMore', {}, 'Learn More'),
+                color: 'white',
+                handler: () => {
+                  this.$router.push('/apps/lift-token')
+                }
+              }
+            ]
+          })
+          return
+        }
+      }
+      
       this.addingToFavorites = true
       try {
         // Determine network: 'sBCH' for smartchain tokens, 'BCH' for mainchain tokens
@@ -1289,32 +1368,49 @@ export default {
           await assetSettings.saveCustomList(customList)
         }
         
-        // Fetch current favorites to preserve favorites from all networks
-        let currentFavorites = await assetSettings.fetchFavorites()
-        if (!Array.isArray(currentFavorites)) {
-          currentFavorites = []
-        }
-        
         // Create a map of existing favorites for quick lookup
         const favoritesMap = new Map()
         currentFavorites.forEach(fav => {
-          favoritesMap.set(fav.id, fav.favorite)
+          favoritesMap.set(fav.id, { favorite: fav.favorite, favorite_order: fav.favorite_order || null })
         })
         
-        // Update or add the token to favorites (preserving all existing favorites)
-        // This matches the pattern in addNewAsset which preserves all favorites
+        // Update or add the token to favorites (preserving all existing favorites and favorite_order)
         if (favoritesMap.has(this.tokenAssetId)) {
-          // Update existing favorite status
+          // Update existing favorite status, preserve favorite_order if it exists
           const index = currentFavorites.findIndex(fav => fav.id === this.tokenAssetId)
           if (index !== -1) {
+            const existingOrder = currentFavorites[index].favorite_order
             currentFavorites[index].favorite = 1
+            // If favorite_order doesn't exist, assign it position 1 and shift others
+            if (existingOrder === null || existingOrder === undefined) {
+              // Get all existing favorites with order
+              const existingFavorites = currentFavorites.filter(fav => fav.favorite === 1 && fav.id !== this.tokenAssetId && fav.favorite_order !== null && fav.favorite_order !== undefined)
+              const maxOrder = existingFavorites.length > 0 
+                ? Math.max(...existingFavorites.map(f => f.favorite_order))
+                : 0
+              currentFavorites[index].favorite_order = maxOrder + 1
+            }
           }
         } else {
-          // Add new favorite at the beginning (matching addNewAsset pattern)
-          currentFavorites.unshift({ id: this.tokenAssetId, favorite: 1 })
+          // Add new favorite at position 1, increment all existing favorites' favorite_order by 1
+          // First, increment all existing favorites' favorite_order
+          currentFavorites.forEach(fav => {
+            if (fav.favorite === 1 && fav.favorite_order !== null && fav.favorite_order !== undefined) {
+              fav.favorite_order = fav.favorite_order + 1
+            }
+          })
+          // Add new favorite with favorite_order: 1
+          currentFavorites.unshift({ id: this.tokenAssetId, favorite: 1, favorite_order: 1 })
         }
         
-        // Save the full favorites list (preserving favorites from all networks)
+        // Ensure all non-favorites have favorite_order: null
+        currentFavorites.forEach(fav => {
+          if (fav.favorite === 0 || fav.favorite === null || fav.favorite === undefined) {
+            fav.favorite_order = null
+          }
+        })
+        
+        // Save the full favorites list (preserving favorites from all networks and favorite_order)
         await assetSettings.saveFavorites(currentFavorites)
         
         // Update local favorites array immediately so button disappears right away
@@ -1403,7 +1499,7 @@ export default {
             }
           }
         } catch (error) {
-          console.log('[TransactionDetail] Could not fetch asset metadata for', assetId, error)
+          // Asset metadata fetch failed, continue without it
         }
         
         tx.asset = basicAsset
@@ -1458,7 +1554,7 @@ export default {
               }
             }
           } catch (error) {
-            console.log('[TransactionDetail] Could not fetch asset metadata for', assetId, error)
+            // Asset metadata fetch failed, continue without it
           }
           
           tx.asset = basicAsset
