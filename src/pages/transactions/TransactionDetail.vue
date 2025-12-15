@@ -675,12 +675,11 @@ export default {
       this.fetchTokenPrice()
     },
     'tx.encrypted_memo' () {
-      // Reload memo when encrypted_memo changes
-      if (this.tx?.encrypted_memo) {
-        this.$nextTick(() => {
-          this.loadMemo()
-        })
-      }
+      // Reload memo when encrypted_memo changes (including when it becomes null/empty)
+      // loadMemo() handles null/empty memos correctly by clearing the displayed memo
+      this.$nextTick(() => {
+        this.loadMemo()
+      })
     },
     tx (newTx, oldTx) {
       // Reload memo when transaction object is first set or txid changes
@@ -1372,23 +1371,46 @@ export default {
         // Create a map of existing favorites for quick lookup
         const favoritesMap = new Map()
         currentFavorites.forEach(fav => {
-          favoritesMap.set(fav.id, fav.favorite)
+          favoritesMap.set(fav.id, { favorite: fav.favorite, favorite_order: fav.favorite_order || null })
         })
         
-        // Update or add the token to favorites (preserving all existing favorites)
-        // This matches the pattern in addNewAsset which preserves all favorites
+        // Update or add the token to favorites (preserving all existing favorites and favorite_order)
         if (favoritesMap.has(this.tokenAssetId)) {
-          // Update existing favorite status
+          // Update existing favorite status, preserve favorite_order if it exists
           const index = currentFavorites.findIndex(fav => fav.id === this.tokenAssetId)
           if (index !== -1) {
+            const existingOrder = currentFavorites[index].favorite_order
             currentFavorites[index].favorite = 1
+            // If favorite_order doesn't exist, assign it position 1 and shift others
+            if (existingOrder === null || existingOrder === undefined) {
+              // Get all existing favorites with order
+              const existingFavorites = currentFavorites.filter(fav => fav.favorite === 1 && fav.id !== this.tokenAssetId && fav.favorite_order !== null && fav.favorite_order !== undefined)
+              const maxOrder = existingFavorites.length > 0 
+                ? Math.max(...existingFavorites.map(f => f.favorite_order))
+                : 0
+              currentFavorites[index].favorite_order = maxOrder + 1
+            }
           }
         } else {
-          // Add new favorite at the beginning (matching addNewAsset pattern)
-          currentFavorites.unshift({ id: this.tokenAssetId, favorite: 1 })
+          // Add new favorite at position 1, increment all existing favorites' favorite_order by 1
+          // First, increment all existing favorites' favorite_order
+          currentFavorites.forEach(fav => {
+            if (fav.favorite === 1 && fav.favorite_order !== null && fav.favorite_order !== undefined) {
+              fav.favorite_order = fav.favorite_order + 1
+            }
+          })
+          // Add new favorite with favorite_order: 1
+          currentFavorites.unshift({ id: this.tokenAssetId, favorite: 1, favorite_order: 1 })
         }
         
-        // Save the full favorites list (preserving favorites from all networks)
+        // Ensure all non-favorites have favorite_order: null
+        currentFavorites.forEach(fav => {
+          if (fav.favorite === 0 || fav.favorite === null || fav.favorite === undefined) {
+            fav.favorite_order = null
+          }
+        })
+        
+        // Save the full favorites list (preserving favorites from all networks and favorite_order)
         await assetSettings.saveFavorites(currentFavorites)
         
         // Update local favorites array immediately so button disappears right away

@@ -323,26 +323,136 @@ export default {
 	    // 		}
 	    // 	})	    
 	    // },
-	    updateFavorite (favAsset) {
+	    async updateFavorite (favAsset) {
 	    	// Toggle favorite status
-	    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: favAsset.favorite === 0 ? 1 : 0} : asset)
+	    	const wasFavorite = favAsset.favorite === 1
+	    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: wasFavorite ? 0 : 1} : asset)
 	    	
 	    	// Add a small delay to make the animation more noticeable
-	    	setTimeout(() => {
+	    	setTimeout(async () => {
+		    	// Fetch current favorites from API to get complete state including favorite_order
+		    	let currentFavorites = await assetSettings.fetchFavorites()
+		    	if (!Array.isArray(currentFavorites)) {
+		    		currentFavorites = []
+		    	}
+		    	
+		    	// Create a map of current favorites for quick lookup
+		    	const favoritesMap = new Map()
+		    	currentFavorites.forEach(fav => {
+		    		favoritesMap.set(fav.id, { favorite: fav.favorite, favorite_order: fav.favorite_order })
+		    	})
+		    	
 		    	// Sort list: favorites first, then non-favorites
 		    	this.assetList = this.assetList.sort((a, b) => {
 		    		// If one is favorite and other is not, favorite comes first
 		    		if (a.favorite === 1 && b.favorite === 0) return -1
 		    		if (a.favorite === 0 && b.favorite === 1) return 1
+		    		// If both are favorites, maintain their favorite_order
+		    		if (a.favorite === 1 && b.favorite === 1) {
+		    			const orderA = a.favorite_order || 0
+		    			const orderB = b.favorite_order || 0
+		    			return orderA - orderB
+		    		}
 		    		// If both have same favorite status, maintain their relative order
 		    		return 0
 		    	})
 		    	
-	    	const tempFavorites = this.assetList.map(({id, favorite}) =>({ id, favorite }))
-	    	assetSettings.saveFavorites(tempFavorites)
-	    	
-	    	// Note: Ordering is now handled by the API, so we don't need to save custom list
-	    	// The API will maintain the order based on favorites and favorite_order
+		    	// Separate favorites and non-favorites from current view
+		    	const favorites = this.assetList.filter(asset => asset.favorite === 1)
+		    	const nonFavorites = this.assetList.filter(asset => asset.favorite === 0)
+		    	
+		    	// Build favorites data with favorite_order preserved
+		    	let favoritesData = []
+		    	
+		    	if (wasFavorite) {
+		    		// Unfavoriting: reassign orders sequentially for remaining favorites
+		    		favoritesData = favorites.map((asset, index) => ({
+		    			id: asset.id,
+		    			favorite: 1,
+		    			favorite_order: index + 1 // Reassign orders sequentially
+		    		}))
+		    		
+		    		// Add the unfavorited asset with favorite: 0 and favorite_order: null
+		    		favoritesData.push({
+		    			id: favAsset.id,
+		    			favorite: 0,
+		    			favorite_order: null
+		    		})
+		    		
+		    		// Add all other non-favorites with favorite: 0 and favorite_order: null
+		    		nonFavorites.forEach(asset => {
+		    			if (asset.id !== favAsset.id) {
+		    				favoritesData.push({
+		    					id: asset.id,
+		    					favorite: 0,
+		    					favorite_order: null
+		    				})
+		    			}
+		    		})
+		    		
+		    		// Preserve favorites from API that aren't in current view (assets with zero balance, etc.)
+		    		currentFavorites.forEach(fav => {
+		    			const isInCurrentView = this.assetList.some(asset => asset.id === fav.id)
+		    			if (!isInCurrentView && fav.favorite === 1) {
+		    				// Keep existing favorites not in current view, but adjust their order if needed
+		    				favoritesData.push({
+		    					id: fav.id,
+		    					favorite: 1,
+		    					favorite_order: fav.favorite_order || null
+		    				})
+		    			}
+		    		})
+		    	} else {
+		    		// Favoriting: preserve existing favorite_order, assign new one to newly favorited item
+		    		// Get the highest existing favorite_order from all favorites (including those not in view)
+		    		const allFavorites = currentFavorites.filter(fav => fav.favorite === 1)
+		    		const maxOrder = allFavorites.length > 0 
+		    			? Math.max(...allFavorites.map(f => f.favorite_order || 0))
+		    			: 0
+		    		
+		    		// Assign favorite_order to all favorites in current view
+		    		favoritesData = favorites.map((asset) => {
+		    			// If this is the newly favorited item, assign it the next order
+		    			if (asset.id === favAsset.id) {
+		    				return {
+		    					id: asset.id,
+		    					favorite: 1,
+		    					favorite_order: maxOrder + 1
+		    				}
+		    			}
+		    			// Preserve existing favorite_order from API or use current value
+		    			const existingOrder = favoritesMap.get(asset.id)?.favorite_order
+		    			return {
+		    				id: asset.id,
+		    				favorite: 1,
+		    				favorite_order: existingOrder !== null && existingOrder !== undefined ? existingOrder : (maxOrder + 1)
+		    			}
+		    		})
+		    		
+		    		// Add all non-favorites with favorite: 0 and favorite_order: null
+		    		nonFavorites.forEach(asset => {
+		    			favoritesData.push({
+		    				id: asset.id,
+		    				favorite: 0,
+		    				favorite_order: null
+		    			})
+		    		})
+		    		
+		    		// Preserve favorites from API that aren't in current view
+		    		currentFavorites.forEach(fav => {
+		    			const isInCurrentView = this.assetList.some(asset => asset.id === fav.id)
+		    			if (!isInCurrentView && fav.favorite === 1) {
+		    				favoritesData.push({
+		    					id: fav.id,
+		    					favorite: 1,
+		    					favorite_order: fav.favorite_order || null
+		    				})
+		    			}
+		    		})
+		    	}
+		    	
+		    	// Save all assets with favorite_order to preserve ordering
+		    	await assetSettings.saveFavorites(favoritesData)
 	    	}, 100)
 	    },
 	    getWallet (type) {

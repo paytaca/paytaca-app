@@ -307,9 +307,25 @@ async function loadMemo() {
     return
   }
 
+  // Capture transaction identifiers at the start to detect prop changes during async operation
+  // This prevents race conditions in virtualized lists where components are recycled
+  const initialTxid = txid
+  const initialEncryptedMemo = props.transaction?.encrypted_memo
+
   try {
     // Use memo service to load and decrypt memo
-    const result = await memoService.loadMemo(txid, props.transaction?.encrypted_memo)
+    const result = await memoService.loadMemo(initialTxid, initialEncryptedMemo)
+
+    // Verify the transaction hasn't changed while the async call was in flight
+    // This prevents stale results from overwriting the memo for a different transaction
+    const currentTxid = props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash
+    const currentEncryptedMemo = props.transaction?.encrypted_memo
+    
+    if (currentTxid !== initialTxid || currentEncryptedMemo !== initialEncryptedMemo) {
+      // Transaction changed during async operation, ignore this result
+      console.debug('[TransactionListItem] Transaction changed during memo load, ignoring stale result')
+      return
+    }
 
     if (result.success && result.memo) {
       decryptedMemo.value = result.memo
@@ -317,8 +333,12 @@ async function loadMemo() {
       decryptedMemo.value = ''
     }
   } catch (error) {
-    console.error('[TransactionListItem] Error loading memo:', error)
-    decryptedMemo.value = ''
+    // Only update state if transaction hasn't changed
+    const currentTxid = props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash
+    if (currentTxid === initialTxid) {
+      console.error('[TransactionListItem] Error loading memo:', error)
+      decryptedMemo.value = ''
+    }
   }
 }
 
