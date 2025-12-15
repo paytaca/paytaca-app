@@ -380,7 +380,7 @@ export default {
 	    		return []
 	    	}
 	    	
-	    	const walletHash = this.wallet.BCH.walletHash || this.wallet.bch?.walletHash
+	    	const walletHash = this.wallet.BCH?.walletHash || this.wallet.bch?.walletHash
 	    	if (!walletHash) {
 	    		console.warn('Wallet hash not available')
 	    		return []
