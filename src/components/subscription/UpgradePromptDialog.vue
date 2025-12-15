@@ -109,15 +109,15 @@
       <q-card-actions align="right" class="q-pa-md">
         <q-btn
           flat
-          :label="$t('Cancel')"
+          :label="$t('LearnMore', {}, 'Learn More')"
           :color="darkMode ? 'grey-4' : 'grey-8'"
-          @click="$emit('update:modelValue', false)"
+          @click="navigateToSubscriptionDetails"
         />
         <q-btn
           unelevated
-          :label="$t('ViewLiftTokens', {}, 'View LIFT Tokens')"
+          :label="$t('BuyLIFTTokens', {}, 'Buy LIFT Tokens')"
           color="pt-primary1"
-          @click="navigateToLiftTokens"
+          @click="navigateToCauldron"
         />
       </q-card-actions>
     </q-card>
@@ -129,6 +129,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 
 export default {
   name: 'UpgradePromptDialog',
@@ -166,8 +167,24 @@ export default {
       return store.getters['subscription/getMinLiftTokens']
     })
     
-    const navigateToLiftTokens = () => {
-      router.push('/apps/lift-token')
+    const navigateToCauldron = () => {
+      router.push({
+        name: 'app-cauldron',
+        query: {
+          selectTokenId: LIFT_TOKEN_CATEGORY,
+          buyAmount: 100
+        }
+      })
+      // Close dialog after navigation
+      setTimeout(() => {
+        // Dialog will close via router navigation
+      }, 100)
+    }
+    
+    const navigateToSubscriptionDetails = () => {
+      router.push({
+        name: 'app-subscription-details'
+      })
       // Close dialog after navigation
       setTimeout(() => {
         // Dialog will close via router navigation
@@ -178,7 +195,8 @@ export default {
       currentLimit,
       plusLimit,
       minLiftTokens,
-      navigateToLiftTokens,
+      navigateToCauldron,
+      navigateToSubscriptionDetails,
       getDarkModeClass
     }
   }

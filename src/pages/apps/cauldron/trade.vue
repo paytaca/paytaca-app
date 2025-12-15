@@ -330,6 +330,7 @@ export default defineComponent({
   },
   props: {
     selectTokenId: String,
+    buyAmount: [String, Number],
   },
   setup(props) {
     const { t: $t } = useI18n()
@@ -360,6 +361,19 @@ export default defineComponent({
     watch(() => selectedToken.value?.token_id, (tokenId) => {
       if (tokenId) {
         debouncedTokenUpdate()
+      }
+    })
+    
+    // Watch for token selection to set buy amount if provided
+    watch(() => selectedToken.value, (token) => {
+      if (token && props.buyAmount && isBuyingToken.value) {
+        const buyAmountValue = typeof props.buyAmount === 'string' ? parseFloat(props.buyAmount) : Number(props.buyAmount);
+        if (!isNaN(buyAmountValue) && buyAmountValue > 0 && amountInput.value === 0) {
+          // Set the amount after a short delay to ensure token data is fully loaded
+          setTimeout(() => {
+            updateAmountInput(String(buyAmountValue));
+          }, 200);
+        }
       }
     })
 
@@ -895,10 +909,29 @@ export default defineComponent({
           const tokens = await fetchTokensList({ token_id: props.selectTokenId });
           if (tokens.length > 0) {
             selectedToken.value = tokens[0];
+            
+            // Set buy amount if provided
+            if (props.buyAmount) {
+              const buyAmountValue = typeof props.buyAmount === 'string' ? parseFloat(props.buyAmount) : Number(props.buyAmount);
+              if (!isNaN(buyAmountValue) && buyAmountValue > 0) {
+                // Ensure we're in buying mode
+                isBuyingToken.value = true;
+                // Set the amount after a short delay to ensure token is fully loaded
+                setTimeout(() => {
+                  updateAmountInput(String(buyAmountValue));
+                }, 100);
+              }
+            }
           } else {
+            // Truncate category ID for display (first 8 + last 8 characters)
+            const categoryId = props.selectTokenId || '';
+            const truncatedId = categoryId.length > 16 
+              ? `${categoryId.substring(0, 8)}...${categoryId.substring(categoryId.length - 8)}`
+              : categoryId;
+            
             $q.dialog({
               title: $t('NotFound'),
-              message: $t('NoTokensFound'),
+              message: $t('TokenNotListedInCauldron', { categoryId: truncatedId }, `The token with category ID ${truncatedId} has not been listed in Cauldron DEX.`),
               color: 'primary',
             })
           }

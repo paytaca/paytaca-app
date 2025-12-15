@@ -6,60 +6,59 @@
         <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
           {{ $t('SubscriptionTiers', {}, 'Subscription Tiers') }}
         </p>
-        <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-          <q-item>
-            <q-item-section>
-              <div class="row items-center q-mb-sm">
-                <q-icon name="account_circle" color="grey" size="md" class="q-mr-sm" />
-                <div class="col">
-                  <q-item-label class="pt-setting-menu text-weight-medium" :class="getDarkModeClass(darkMode)">
-                    {{ $t('PaytacaFree', {}, 'Paytaca Free') }}
-                  </q-item-label>
-                  <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                    {{ $t('FreeTierDescription', {}, 'Basic features for everyone') }}
-                  </q-item-label>
+        <div class="pt-card tier-container" :class="getDarkModeClass(darkMode)">
+          <!-- Paytaca Free Tier -->
+          <div class="tier-item">
+            <div class="tier-header">
+              <q-icon name="workspace_premium" color="grey-6" size="md" class="tier-icon" />
+              <div class="tier-title-section">
+                <div class="tier-title" :class="getDarkModeClass(darkMode)">
+                  {{ $t('PaytacaFree', {}, 'Paytaca Free') }}
+                </div>
+                <div class="tier-description" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('FreeTierDescription', {}, 'Basic features for everyone') }}
                 </div>
               </div>
-              <div class="q-mt-md">
-                <div class="row q-mb-xs" v-for="(limit, key) in freeLimits" :key="key">
-                  <div class="col-8 text-body2" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
-                    {{ getLimitLabel(key) }}
-                  </div>
-                  <div class="col-4 text-body2 text-weight-medium text-right" :class="getDarkModeClass(darkMode)">
-                    {{ limit }}
-                  </div>
+              <q-badge color="grey-6" text-color="white" :label="$t('Free', {}, 'Free')" />
+            </div>
+            <div class="tier-limits">
+              <div class="limit-row" v-for="(limit, key) in freeLimits" :key="key">
+                <div class="limit-label" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
+                  {{ getLimitLabel(key) }}
+                </div>
+                <div class="limit-value" :class="getDarkModeClass(darkMode)">
+                  {{ limit }}
                 </div>
               </div>
-            </q-item-section>
-          </q-item>
+            </div>
+          </div>
           
-          <q-item>
-            <q-item-section>
-              <div class="row items-center q-mb-sm">
-                <q-icon name="workspace_premium" color="amber" size="md" class="q-mr-sm" />
-                <div class="col">
-                  <q-item-label class="pt-setting-menu text-weight-medium" :class="getDarkModeClass(darkMode)">
-                    {{ $t('PaytacaPlus', {}, 'Paytaca Plus') }}
-                  </q-item-label>
-                  <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                    {{ $t('PlusTierDescription', {}, 'Enhanced features with higher limits') }}
-                  </q-item-label>
+          <!-- Paytaca Plus Tier -->
+          <div class="tier-item">
+            <div class="tier-header">
+              <q-icon name="workspace_premium" color="amber" size="md" class="tier-icon" />
+              <div class="tier-title-section">
+                <div class="tier-title" :class="getDarkModeClass(darkMode)">
+                  {{ $t('PaytacaPlus', {}, 'Paytaca Plus') }}
                 </div>
-                <q-badge color="amber" text-color="black" :label="$t('Plus', {}, 'Plus')" />
-              </div>
-              <div class="q-mt-md">
-                <div class="row q-mb-xs" v-for="(limit, key) in plusLimits" :key="key">
-                  <div class="col-8 text-body2" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
-                    {{ getLimitLabel(key) }}
-                  </div>
-                  <div class="col-4 text-body2 text-weight-medium text-right" :class="getDarkModeClass(darkMode)">
-                    {{ limit }}
-                  </div>
+                <div class="tier-description" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('PlusTierDescription', {}, 'Enhanced features with higher limits') }}
                 </div>
               </div>
-            </q-item-section>
-          </q-item>
-        </q-list>
+              <q-badge color="amber" text-color="black" :label="$t('Plus', {}, 'Plus')" />
+            </div>
+            <div class="tier-limits">
+              <div class="limit-row" v-for="(limit, key) in plusLimits" :key="key">
+                <div class="limit-label" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
+                  {{ getLimitLabel(key) }}
+                </div>
+                <div class="limit-value" :class="getDarkModeClass(darkMode)">
+                  {{ limit }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="col-12 q-px-lg q-mt-md">
@@ -224,30 +223,90 @@ export default {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
-  .settings-list {
-    .q-item {
-      padding: 16px 20px;
-      min-height: 64px;
-      
-      &:not(:last-child) {
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-      }
+  .tier-container {
+    padding: 0;
+  }
 
-      &.dark:not(:last-child) {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  .tier-item {
+    padding: 16px 20px;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    
+    .tier-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      
+      .tier-icon {
+        margin-right: 12px;
+      }
+      
+      .tier-title-section {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .tier-title {
+        font-weight: 500;
+        font-size: 15px;
+        margin-bottom: 4px;
+        
+        &.dark {
+          color: #e0e2e5;
+        }
+        &.light {
+          color: rgba(0, 0, 0, 0.87);
+        }
+      }
+      
+      .tier-description {
+        font-size: 13px;
+        line-height: 1.3;
+        opacity: 0.7;
       }
     }
-
-    :deep(.q-item__label--caption) {
-      opacity: 0.7;
-      margin-top: 4px;
-      line-height: 1.3;
-      font-size: 13px;
+    
+    .tier-limits {
+      .limit-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 14px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        .limit-label {
+          flex: 1;
+        }
+        
+        .limit-value {
+          font-weight: 500;
+          text-align: right;
+          
+          &.dark {
+            color: #e0e2e5;
+          }
+          &.light {
+            color: rgba(0, 0, 0, 0.87);
+          }
+        }
+      }
     }
   }
 
   #app-container {
     &.dark {
+      .tier-item {
+        &:not(:last-child) {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+      
       .settings-list .q-item {
         &:not(:last-child) {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -256,11 +315,31 @@ export default {
     }
     
     &.light {
+      .tier-item {
+        &:not(:last-child) {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+      }
+      
       .settings-list .q-item {
         &:not(:last-child) {
           border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
       }
+    }
+  }
+
+  .settings-list {
+    .q-item {
+      padding: 16px 20px;
+      min-height: 64px;
+    }
+
+    :deep(.q-item__label--caption) {
+      opacity: 0.7;
+      margin-top: 4px;
+      line-height: 1.3;
+      font-size: 13px;
     }
   }
 </style>

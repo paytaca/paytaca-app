@@ -142,6 +142,7 @@ const phrases = {
       NoIgnoredTokens: "No ignored tokens",
       NoInternetConnectionNotice: "You have lost connection to the internet. This app is offline.",
       NoTokensFound: "No tokens found",
+      TokenNotListedInCauldron: "The token with category ID {categoryId} has not been listed in Cauldron DEX.",
       NoTransactionsToDisplay: "No transactions to display",
       OpenSourceCode: "Open source code",
       OrderNo: "Order number",

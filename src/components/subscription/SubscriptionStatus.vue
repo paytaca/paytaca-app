@@ -3,8 +3,8 @@
     <q-item>
       <q-item-section avatar>
         <q-icon
-          :name="isPlus ? 'workspace_premium' : 'account_circle'"
-          :color="isPlus ? 'amber' : 'grey'"
+          name="workspace_premium"
+          :color="isPlus ? 'amber' : 'grey-6'"
           size="md"
           :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"
         />
@@ -17,11 +17,11 @@
           {{ $t('SubscriptionTier', {}, 'Subscription Tier') }}
         </q-item-label>
       </q-item-section>
-      <q-item-section side v-if="isPlus">
+      <q-item-section side>
         <q-badge
-          color="amber"
-          text-color="black"
-          :label="$t('Plus', {}, 'Plus')"
+          :color="isPlus ? 'amber' : 'grey-6'"
+          :text-color="isPlus ? 'black' : 'white'"
+          :label="isPlus ? $t('Plus', {}, 'Plus') : $t('Free', {}, 'Free')"
         />
       </q-item-section>
     </q-item>
@@ -66,13 +66,22 @@
           <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
             {{ $t('RequiresMinimumLiftTokens', { count: minLiftTokens }, `Requires a minimum of ${minLiftTokens} LIFT tokens`) }}
           </div>
-          <q-btn
-            unelevated
-            size="sm"
-            color="pt-primary1"
-            :label="$t('LearnMore', {}, 'Learn More')"
-            @click="showUpgradeDialog = true"
-          />
+          <div class="q-mt-sm row q-gutter-sm">
+            <q-btn
+              unelevated
+              size="sm"
+              color="positive"
+              :label="$t('UpgradeNow', {}, 'Upgrade Now')"
+              @click="showUpgradeDialog = true"
+            />
+            <q-btn
+              unelevated
+              size="sm"
+              color="pt-primary1"
+              :label="$t('LearnMore', {}, 'Learn More')"
+              @click="goToSubscriptionDetails"
+            />
+          </div>
         </q-banner>
       </q-item-section>
     </q-item>

@@ -1125,6 +1125,7 @@ export default {
   NoShortPositions: "No short positions",
   NoTokens: "No Tokens",
   NoTokensFound: "No tokens found",
+  TokenNotListedInCauldron: "The token with category ID {categoryId} has not been listed in Cauldron DEX.",
   NoTokensToDisplay: "No Tokens to Display",
   NoTransactionsInSelectedPeriod: "No transactions in selected period",
   NoTransactionsToDisplay: "No transactions to display",
