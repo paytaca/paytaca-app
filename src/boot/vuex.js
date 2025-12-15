@@ -6,6 +6,7 @@ import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asse
 import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
 import useStore from 'src/store'
+import limitsConfig from 'src/store/subscription/limits.json'
 
 /**
  * Support for vuex in quasar is dropped in @quasar/app-webpack v4.x.x
@@ -51,74 +52,33 @@ export default boot(async (obj) => {
           liftTokenBalance: 0,
           lastChecked: null,
           limits: {
-            free: {
-              wallets: 3,
-              favoriteTokens: 7,
-              multisigWallets: 1,
-              unclaimedGifts: 3,
-              merchants: 1
-            },
-            plus: {
-              wallets: 12,
-              favoriteTokens: 24,
-              multisigWallets: 5,
-              unclaimedGifts: 10,
-              merchants: 3
-            }
+            free: { ...limitsConfig.free },
+            plus: { ...limitsConfig.plus }
           },
-          minLiftTokens: 100
+          minLiftTokens: limitsConfig.minLiftTokens
         }
       } else {
         // Ensure limits object exists (handles case where subscription exists but limits is undefined)
         if (!parsedState.subscription.limits) {
           parsedState.subscription.limits = {
-            free: {
-              wallets: 3,
-              favoriteTokens: 7,
-              multisigWallets: 1,
-              unclaimedGifts: 3,
-              merchants: 1
-            },
-            plus: {
-              wallets: 12,
-              favoriteTokens: 24,
-              multisigWallets: 5,
-              unclaimedGifts: 10,
-              merchants: 3
-            }
+            free: { ...limitsConfig.free },
+            plus: { ...limitsConfig.plus }
           }
         } else {
-          // Migrate existing subscription limits to new values
+          // Migrate existing subscription limits to current values from limits.json
           if (parsedState.subscription.limits.free) {
-            parsedState.subscription.limits.free.favoriteTokens = 7
-            parsedState.subscription.limits.free.multisigWallets = 1
-            parsedState.subscription.limits.free.unclaimedGifts = 3
-            parsedState.subscription.limits.free.merchants = 1
+            parsedState.subscription.limits.free = { ...limitsConfig.free }
           }
           // Ensure plus limits exist
           if (!parsedState.subscription.limits.plus) {
-            parsedState.subscription.limits.plus = {
-              wallets: 12,
-              favoriteTokens: 24,
-              multisigWallets: 5,
-              unclaimedGifts: 10,
-              merchants: 3
-            }
+            parsedState.subscription.limits.plus = { ...limitsConfig.plus }
           } else {
-            // Migrate existing plus limits to new values
-            parsedState.subscription.limits.plus.multisigWallets = 5
-            parsedState.subscription.limits.plus.unclaimedGifts = 10
-            parsedState.subscription.limits.plus.merchants = 3
+            // Migrate existing plus limits to current values from limits.json
+            parsedState.subscription.limits.plus = { ...limitsConfig.plus }
           }
           // Ensure free limits exist
           if (!parsedState.subscription.limits.free) {
-            parsedState.subscription.limits.free = {
-              wallets: 3,
-              favoriteTokens: 7,
-              multisigWallets: 1,
-              unclaimedGifts: 3,
-              merchants: 1
-            }
+            parsedState.subscription.limits.free = { ...limitsConfig.free }
           }
         }
         // Ensure other required properties exist
@@ -132,7 +92,7 @@ export default boot(async (obj) => {
           parsedState.subscription.lastChecked = null
         }
         if (typeof parsedState.subscription.minLiftTokens === 'undefined') {
-          parsedState.subscription.minLiftTokens = 100
+          parsedState.subscription.minLiftTokens = limitsConfig.minLiftTokens
         }
       }
 

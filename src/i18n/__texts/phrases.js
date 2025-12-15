@@ -1490,7 +1490,7 @@ const phrases = {
       ExclusiveAppFeatures: 'Exclusive app features',
       ReducedFees: 'Reduced fees',
       GovernanceParticipation: 'Governance participation',
-      CommunityRewards: 'Community rewards',
+      CommunityRewards: 'Community rewards and airdrops',
       TokenDetails: 'Token Details',
       Decimals: 'Decimals',
       CategoryID: 'Category ID',

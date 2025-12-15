@@ -23,8 +23,13 @@
             </div>
             <div class="tier-limits">
               <div class="limit-row" v-for="(limit, key) in freeLimits" :key="key">
-                <div class="limit-label" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
-                  {{ getLimitLabel(key) }}
+                <div class="limit-label-container">
+                  <div class="limit-label" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
+                    {{ getLimitLabel(key) }}
+                  </div>
+                  <div class="limit-scope" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">
+                    {{ getLimitScope(key) }}
+                  </div>
                 </div>
                 <div class="limit-value" :class="getDarkModeClass(darkMode)">
                   {{ limit }}
@@ -49,8 +54,13 @@
             </div>
             <div class="tier-limits">
               <div class="limit-row" v-for="(limit, key) in plusLimits" :key="key">
-                <div class="limit-label" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
-                  {{ getLimitLabel(key) }}
+                <div class="limit-label-container">
+                  <div class="limit-label" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
+                    {{ getLimitLabel(key) }}
+                  </div>
+                  <div class="limit-scope" :class="darkMode ? 'text-grey-6' : 'text-grey-6'">
+                    {{ getLimitScope(key) }}
+                  </div>
                 </div>
                 <div class="limit-value" :class="getDarkModeClass(darkMode)">
                   {{ limit }}
@@ -167,6 +177,17 @@ export default {
       return labels[key] || key
     }
     
+    const getLimitScope = (key) => {
+      const scopes = {
+        wallets: $t('PerDevice', {}, 'per device'),
+        favoriteTokens: $t('PerWallet', {}, 'per wallet'),
+        multisigWallets: $t('PerWallet', {}, 'per wallet'),
+        unclaimedGifts: $t('PerWallet', {}, 'per wallet'),
+        merchants: $t('PerWallet', {}, 'per wallet')
+      }
+      return scopes[key] || ''
+    }
+    
     // Check subscription status on mount
     onMounted(() => {
       store.dispatch('subscription/checkSubscriptionStatus')
@@ -181,6 +202,7 @@ export default {
       plusLimits,
       currentStatusText,
       getLimitLabel,
+      getLimitScope,
       getDarkModeClass
     }
   }
@@ -273,20 +295,36 @@ export default {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         font-size: 14px;
         
         &:last-child {
           margin-bottom: 0;
         }
         
-        .limit-label {
+        .limit-label-container {
           flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        
+        .limit-label {
+          font-size: 14px;
+          line-height: 1.3;
+        }
+        
+        .limit-scope {
+          font-size: 11px;
+          line-height: 1.2;
+          font-style: italic;
+          opacity: 0.7;
         }
         
         .limit-value {
           font-weight: 500;
           text-align: right;
+          font-size: 14px;
           
           &.dark {
             color: #e0e2e5;

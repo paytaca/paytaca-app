@@ -35,7 +35,7 @@
       </q-item-section>
     </q-item>
     
-    <q-item clickable v-ripple @click="goToSubscriptionDetails">
+    <q-item v-if="isPlus" clickable v-ripple @click="goToSubscriptionDetails">
       <q-item-section>
         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
           {{ $t('ViewSubscriptionDetails', {}, 'View Subscription Details') }}

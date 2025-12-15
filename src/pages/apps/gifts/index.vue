@@ -12,7 +12,7 @@
             <div class="action-buttons-container">
               <button
                 class="action-button bg-grad"
-                @click="$router.push({ name: 'create-gift' })"
+                @click="handleCreateGiftClick"
               >
                 <q-icon name="mdi-plus-circle" size="20px" class="q-mr-xs"/>
                 {{ $t('CreateGift') }}
@@ -368,6 +368,7 @@
 import HeaderNav from '../../../components/header-nav'
 import GiftDialog from 'src/components/gifts/GiftDialog.vue'
 import ShareGiftDialog from 'src/components/gifts/ShareGiftDialog.vue'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 import { capitalize } from 'vue'
 import { formatDistance } from 'date-fns'
 import axios from 'axios'
@@ -379,7 +380,10 @@ import QrDialog from 'src/components/gifts/QrDialog.vue'
 
 export default {
   name: 'Gift',
-  components: { HeaderNav },
+  components: { 
+    HeaderNav,
+    UpgradePromptDialog
+  },
   data () {
     return {
       walletHash: this.getWallet('bch').walletHash,
@@ -769,6 +773,25 @@ export default {
         'glassmorphic-red': '#f54270'
       }
       return themeMap[this.theme] || '#42a5f5'
+    },
+    async handleCreateGiftClick() {
+      // Check subscription status before checking limit
+      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      
+      // Check if unclaimed gifts limit is reached using local computed property
+      if (this.isUnclaimedGiftsLimitReached) {
+        this.$q.dialog({
+          component: UpgradePromptDialog,
+          componentProps: {
+            darkMode: this.darkMode,
+            limitType: 'unclaimedGifts'
+          }
+        })
+        return
+      }
+      
+      // Limit not reached, proceed to create gift
+      this.$router.push({ name: 'create-gift' })
     }
   },
   async mounted() {

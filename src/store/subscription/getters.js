@@ -16,18 +16,13 @@ export function getSubscriptionTier (state) {
  * @param {string} limitType - 'wallets', 'favoriteTokens', 'multisigWallets', 'unclaimedGifts', 'merchants'
  * @returns {number} The limit for the current subscription tier
  */
+import limitsConfig from './limits.json'
+
 export function getLimit (state) {
   return (limitType) => {
     if (!state || !state.limits) {
-      // Return free tier limits as default
-      const defaultLimits = {
-        wallets: 3,
-        favoriteTokens: 12,
-        multisigWallets: 3,
-        unclaimedGifts: 12,
-        merchants: 3
-      }
-      return defaultLimits[limitType] || 0
+      // Return free tier limits as default from limits.json
+      return limitsConfig.free[limitType] || 0
     }
     const tier = state.isPlus ? 'plus' : 'free'
     return state.limits[tier]?.[limitType] || 0
