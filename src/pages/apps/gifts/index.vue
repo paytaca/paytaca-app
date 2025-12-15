@@ -455,8 +455,15 @@ export default {
       })
     },
     unclaimedGiftsCount () {
-      if (this.activeTab !== 'unclaimed') return 0
-      return this.giftsList.filter(gift => gift.date_claimed === 'None' && !gift.recovered).length
+      // Count unclaimed gifts from fetchedGifts directly, regardless of active tab
+      // This ensures limit enforcement works correctly even when user is on a different tab
+      const gifts = Object.entries(this.fetchedGifts).map(([hash, gift]) => ({
+        hash,
+        ...gift,
+        date_claimed: gift.payload?.date_claimed,
+        recovered: gift.payload?.recovered
+      }))
+      return gifts.filter(gift => gift.date_claimed === 'None' && !gift.recovered).length
     },
     unclaimedGiftsLimit () {
       return this.$store.getters['subscription/getLimit']('unclaimedGifts')
