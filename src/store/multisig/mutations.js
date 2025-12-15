@@ -6,8 +6,7 @@ import { Store } from 'src/store'
 export function createWallet (state, multisigWallet) {
   // Check limit before creating (this is a safety check, UI should prevent this)
   const currentCount = state.wallets.length
-  const isPlus = Store.getters['subscription/isPlusSubscriber']
-  const limit = isPlus ? 12 : 3
+  const limit = Store.getters['subscription/getLimit']('multisigWallets')
   
   if (currentCount >= limit) {
     console.warn('Multisig wallet limit reached, cannot create new wallet')
