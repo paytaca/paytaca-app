@@ -534,6 +534,7 @@ import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 import { getAllAssets } from 'src/store/assets/getters'
 import initialAssetState from 'src/store/assets/state'
+import { checkWatchtowerStatus } from 'src/utils/watchtower-status'
 
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
@@ -2436,8 +2437,8 @@ export default {
 
     // Note: Auto-detection moved to step 2 initialization (initializeStep2 method)
     
-    // Check server status
-    this.$axios.get('https://watchtower.cash/api/status/', { timeout: 30000 }).then(response => {
+    // Check server status (no wallet hash available during registration)
+    checkWatchtowerStatus(null).then(response => {
       if (response.status !== 200) return Promise.reject(new Error('Server status check returned non-200 status'))
       if (response.data.status !== 'up') return Promise.reject(new Error('Server status is not up'))
       this.serverOnline = true

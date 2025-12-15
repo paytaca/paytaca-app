@@ -14,6 +14,8 @@ import { is, useQuasar } from 'quasar'
 import { computed, watchEffect } from "@vue/runtime-core"
 import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
+import { checkWatchtowerStatus } from './utils/watchtower-status'
+import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
 
 // Handle JSON serialization of BigInt
 // Source: https://github.com/GoogleChromeLabs/jsbi/issues/30#issuecomment-1006086291
@@ -250,6 +252,29 @@ export default {
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
+
+    // Check watchtower status (with wallet hash if available)
+    const walletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash
+    checkWatchtowerStatus(walletHash).then(response => {
+      if (response.status === 200 && response.data.status === 'up') {
+        console.log('Watchtower status: up')
+      }
+      
+      // Check for app version update
+      if (response.data?.app_version_check === 'outdated' && response.data?.app_upgrade) {
+        const upgradeType = response.data.app_upgrade
+        if (upgradeType === 'optional' || upgradeType === 'required') {
+          vm.$q.dialog({
+            component: AppVersionUpdate,
+            componentProps: {
+              upgradeType: upgradeType
+            }
+          })
+        }
+      }
+    }).catch(error => {
+      console.warn('Watchtower status check failed:', error)
+    })
 
     if (mnemonic) {
 
