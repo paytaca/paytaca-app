@@ -425,9 +425,17 @@ export default {
       // Immediately update vault data from store
       this.arrangeVaultData().catch(console.error)
       
-      // Then load full data if wallets are recovered
+      // Load full data when dialog opens (balances will be updated here)
+      // This is the only time we need to check balances of other wallets
       if (this.isWalletsRecovered) {
         await this.loadData()
+      } else {
+        // Even if wallets aren't recovered, still update balances when dialog opens
+        // since user is actively viewing the multi-wallet interface
+        this.$store.dispatch('assets/updateVaultBchBalances', {
+          chipnet: this.isChipnet,
+          excludeCurrentIndex: true,
+        })?.catch(console.error)
       }
     },
     async loadData () {
@@ -480,7 +488,8 @@ export default {
     }
   },
   async mounted () {
-   this.loadData()
+   // No need to load data on mount - balances of other wallets are not displayed on home page
+   // Data will be loaded when user opens the multi-wallet dialog (onDialogShow)
   }
 }
 </script>

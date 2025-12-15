@@ -675,13 +675,25 @@ export default {
     seedPhraseBackup (val) {
       this.seedPhraseBackup = this.cleanUpSeedPhrase(val)
     },
-    $route (to) {
+    async $route (to) {
       // Reset restore flow state when navigating back to /accounts
       if (to.path === '/accounts' || to.path === '/accounts/') {
         this.importSeedPhrase = false
         this.authenticationPhase = 'options'
         this.seedPhraseBackup = null
         this.useTextArea = false
+        
+        // Check subscription status and show upgrade dialog if limits are exceeded
+        // This handles the case when user navigates back to /accounts page
+        try {
+          await this.$store.dispatch('subscription/checkSubscriptionStatus')
+          const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
+          if (isOnMainView && this.checkIfLimitsExceeded()) {
+            this.showUpgradeDialog = true
+          }
+        } catch (error) {
+          console.error('Error checking subscription status in route watcher:', error)
+        }
       }
       
       // Handle route changes for create flow
@@ -1244,17 +1256,13 @@ export default {
       }
       throw new Error('mnemonic not ready')
     },
-    async initCreateWallet () {
-      // First, check subscription status to get current limits
-      await this.$store.dispatch('subscription/checkSubscriptionStatus')
-      
+    checkIfLimitsExceeded () {
       // Check wallet limit first - this is the primary restriction
       const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
       
       if (!canCreate) {
         // Show upgrade dialog when wallet limit is reached
-        this.showUpgradeDialog = true
-        return
+        return true
       }
       
       // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
@@ -1270,9 +1278,19 @@ export default {
         if (liftBalance < minLiftTokens) {
           // Show upgrade dialog instead of generic LIFT token dialog
           // This provides better context about Paytaca Plus
-          this.showUpgradeDialog = true
-          return
+          return true
         }
+      }
+      
+      return false
+    },
+    async initCreateWallet () {
+      // First, check subscription status to get current limits
+      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      
+      if (this.checkIfLimitsExceeded()) {
+        this.showUpgradeDialog = true
+        return
       }
       
       // Handle restore flow
@@ -1315,31 +1333,9 @@ export default {
       // First, check subscription status to get current limits
       await this.$store.dispatch('subscription/checkSubscriptionStatus')
       
-      // Check wallet limit first - this is the primary restriction
-      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
-      
-      if (!canCreate) {
-        // Show upgrade dialog when wallet limit is reached
+      if (this.checkIfLimitsExceeded()) {
         this.showUpgradeDialog = true
         return
-      }
-      
-      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
-      const vault = this.$store.getters['global/getVault']
-      const nonDeletedWallets = vault ? vault.filter(w => !w?.deleted) : []
-      const walletCount = nonDeletedWallets.length
-      
-      if (walletCount >= 3) {
-        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
-        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance']
-        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens']
-        
-        if (liftBalance < minLiftTokens) {
-          // Show upgrade dialog instead of generic LIFT token dialog
-          // This provides better context about Paytaca Plus
-          this.showUpgradeDialog = true
-          return
-        }
       }
       
       // Set importSeedPhrase flag and navigate to restore step-1
@@ -2395,6 +2391,15 @@ export default {
       this.$nextTick(() => {
         this.$forceUpdate()
       })
+      
+      // Check if user is on the base /accounts page and has exceeded limits
+      // Show upgrade dialog immediately if limits are exceeded
+      const isOnBaseAccountsPage = this.$route.path === '/accounts' || this.$route.path === '/accounts/'
+      const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
+      
+      if (isOnBaseAccountsPage && isOnMainView && this.checkIfLimitsExceeded()) {
+        this.showUpgradeDialog = true
+      }
     } catch (error) {
       console.error('Error checking subscription status:', error)
       this.subscriptionChecked = true // Set to true even on error to prevent blocking

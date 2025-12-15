@@ -14,91 +14,59 @@
 
       <q-card-section class="q-pt-md">
         <div class="text-body2 q-mb-md" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
-          {{ $t('PlusBenefitsDescription', {}, 'Paytaca Plus extends your wallet limits and unlocks special features.') }}
+          {{ $t('ExceededFreeTierLimits', {}, 'You have exceeded the limits of the Free tier. Upgrade to Paytaca Plus to unlock higher limits and special features.') }}
         </div>
         
-        <!-- Current vs Plus Limits -->
+        <!-- Free vs Plus Limits Comparison -->
         <div class="limits-comparison q-mb-md">
           <div class="text-subtitle2 q-mb-sm" :class="darkMode ? 'text-grey-2' : 'text-grey-9'">
             {{ $t('LimitComparison', {}, 'Limit Comparison') }}
           </div>
-          <q-list bordered separator :class="getDarkModeClass(darkMode)">
-            <q-item>
-              <q-item-section>
-                <q-item-label>{{ $t('Wallets') }}</q-item-label>
-                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
-                  {{ getLimitScope('wallets') }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-item-label>
-                  <span class="text-grey">{{ currentLimit.wallets }}</span>
-                  <span class="q-mx-sm">→</span>
-                  <span class="text-positive">{{ plusLimit.wallets }}</span>
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>
-                <q-item-label>{{ $t('FavoriteTokens') }}</q-item-label>
-                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
-                  {{ getLimitScope('favoriteTokens') }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-item-label>
-                  <span class="text-grey">{{ currentLimit.favoriteTokens }}</span>
-                  <span class="q-mx-sm">→</span>
-                  <span class="text-positive">{{ plusLimit.favoriteTokens }}</span>
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>
-                <q-item-label>{{ $t('MultisigWallets') }}</q-item-label>
-                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
-                  {{ getLimitScope('multisigWallets') }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-item-label>
-                  <span class="text-grey">{{ currentLimit.multisigWallets }}</span>
-                  <span class="q-mx-sm">→</span>
-                  <span class="text-positive">{{ plusLimit.multisigWallets }}</span>
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>
-                <q-item-label>{{ $t('UnclaimedGifts') }}</q-item-label>
-                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
-                  {{ getLimitScope('unclaimedGifts') }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-item-label>
-                  <span class="text-grey">{{ currentLimit.unclaimedGifts }}</span>
-                  <span class="q-mx-sm">→</span>
-                  <span class="text-positive">{{ plusLimit.unclaimedGifts }}</span>
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section>
-                <q-item-label>{{ $t('Merchants') }}</q-item-label>
-                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
-                  {{ getLimitScope('merchants') }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-item-label>
-                  <span class="text-grey">{{ currentLimit.merchants }}</span>
-                  <span class="q-mx-sm">→</span>
-                  <span class="text-positive">{{ plusLimit.merchants }}</span>
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
+          <q-table
+            :rows="limitRows"
+            :columns="limitColumns"
+            flat
+            bordered
+            hide-pagination
+            :class="getDarkModeClass(darkMode)"
+            :row-key="row => row.name"
+          >
+            <template v-slot:header="props">
+              <q-tr :props="props">
+                <q-th auto-width></q-th>
+                <q-th class="text-center">
+                  <div class="text-subtitle2" :class="darkMode ? 'text-grey-2' : 'text-grey-9'">
+                    {{ $t('Free', {}, 'Free') }}
+                  </div>
+                </q-th>
+                <q-th class="text-center">
+                  <div class="text-subtitle2 text-positive">
+                    {{ $t('Plus', {}, 'Plus') }}
+                  </div>
+                </q-th>
+              </q-tr>
+            </template>
+            <template v-slot:body="props">
+              <q-tr :props="props">
+                <q-td>
+                  <div class="text-body2">{{ props.row.label }}</div>
+                  <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
+                    {{ props.row.scope }}
+                  </div>
+                </q-td>
+                <q-td class="text-center">
+                  <div class="text-body2" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+                    {{ props.row.free }}
+                  </div>
+                </q-td>
+                <q-td class="text-center">
+                  <div class="text-body2 text-positive">
+                    {{ props.row.plus }}
+                  </div>
+                </q-td>
+              </q-tr>
+            </template>
+          </q-table>
         </div>
 
         <!-- Requirements -->
@@ -169,11 +137,8 @@ export default {
     const store = useStore()
     const { t: $t } = useI18n()
     
-    const currentLimit = computed(() => {
-      const isPlus = store.getters['subscription/isPlusSubscriber']
-      return isPlus
-        ? store.state.subscription.limits.plus
-        : store.state.subscription.limits.free
+    const freeLimit = computed(() => {
+      return store.state.subscription.limits.free
     })
     
     const plusLimit = computed(() => {
@@ -194,6 +159,30 @@ export default {
       }
       return scopes[key] || ''
     }
+    
+    const limitColumns = [
+      { name: 'feature', label: '', field: 'label', align: 'left' },
+      { name: 'free', label: $t('Free', {}, 'Free'), field: 'free', align: 'center' },
+      { name: 'plus', label: $t('Plus', {}, 'Plus'), field: 'plus', align: 'center' }
+    ]
+    
+    const limitRows = computed(() => {
+      const limits = [
+        { key: 'wallets', label: $t('Wallets', {}, 'Wallets') },
+        { key: 'favoriteTokens', label: $t('FavoriteTokens', {}, 'Favorite Tokens') },
+        { key: 'multisigWallets', label: $t('MultisigWallets', {}, 'Multisig Wallets') },
+        { key: 'unclaimedGifts', label: $t('UnclaimedGifts', {}, 'Unclaimed Gifts') },
+        { key: 'merchants', label: $t('Merchants', {}, 'Merchants') }
+      ]
+      
+      return limits.map(limit => ({
+        name: limit.key,
+        label: limit.label,
+        scope: getLimitScope(limit.key),
+        free: freeLimit.value[limit.key],
+        plus: plusLimit.value[limit.key]
+      }))
+    })
     
     const navigateToCauldron = () => {
       // Close dialog before navigation
@@ -216,10 +205,12 @@ export default {
     }
     
     return {
-      currentLimit,
+      freeLimit,
       plusLimit,
       minLiftTokens,
       getLimitScope,
+      limitColumns,
+      limitRows,
       navigateToCauldron,
       navigateToSubscriptionDetails,
       getDarkModeClass
@@ -236,11 +227,6 @@ export default {
 
 .requirements-card {
   background-color: rgba(0, 0, 0, 0.02);
-}
-
-.limits-comparison {
-  max-height: 300px;
-  overflow-y: auto;
 }
 </style>
 

@@ -493,8 +493,7 @@ export default {
       loadingBchPrice: false,
       bchBalanceMode: localStorage.getItem('bchBalanceMode') || 'bch-only',
       favoriteTokenIds: [], // Store favorite token IDs for synchronous access (deprecated, kept for compatibility)
-      favoriteTokensFromAPI: [], // Store favorite tokens fetched from API with balances
-      allTokensFromAPI: [] // Store all tokens fetched from API with balances (for favorites note logic)
+      allTokensFromAPI: [] // Store all tokens fetched from API with balances (includes favorites)
     }
   },
 
@@ -643,10 +642,10 @@ export default {
     assets () {
       const vm = this
 
-      // For CashTokens on BCH network, use favorite tokens from API (favorites_only=true)
-      // This ensures we only fetch and display favorited tokens
+      // For CashTokens on BCH network, filter favorites from allTokensFromAPI
+      // No need for separate API call - allTokensFromAPI already includes favorite field
       if (vm.selectedNetwork !== 'sBCH' && vm.isCashToken) {
-        return this.favoriteTokensFromAPI || []
+        return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
       }
 
       // For sBCH network, use store data (API doesn't support sBCH yet)
@@ -665,7 +664,7 @@ export default {
       // Check if there are tokens (excluding BCH) but no favorites
       // Only show this message when:
       // 1. There are tokens available from API (not from Vuex store)
-      // 2. No favorites are set (check favoriteTokensFromAPI directly since favoriteTokens might be empty for sBCH/SLP)
+      // 2. No favorites are set (check allTokensFromAPI directly since favoriteTokens might be empty for sBCH/SLP)
       // 3. Balance is loaded (indicates assets have been processed)
 
       // For CashTokens, use API data exclusively - never use Vuex store
@@ -677,11 +676,12 @@ export default {
         hasTokens = this.assets && this.assets.length > 0
       }
 
-      // Check if favoriteTokensFromAPI is populated (uses API data exclusively)
-      // For CashTokens, check API data directly
+      // Check if there are favorites in allTokensFromAPI (uses API data exclusively)
+      // For CashTokens, filter favorites from allTokensFromAPI
       let hasFavorites = false
       if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
-        hasFavorites = this.favoriteTokensFromAPI && this.favoriteTokensFromAPI.length > 0
+        const favorites = (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+        hasFavorites = favorites.length > 0
       } else {
         // For sBCH or SLP, check favoriteTokens computed property
         hasFavorites = this.favoriteTokens && this.favoriteTokens.length > 0
@@ -716,9 +716,9 @@ export default {
     },
     favoriteTokens () {
       // Always use API data only - never use Vuex store for favorite tokens
-      // For CashTokens on BCH network, return API data
+      // For CashTokens on BCH network, filter favorites from allTokensFromAPI
       if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
-        return this.favoriteTokensFromAPI || []
+        return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
       }
 
       // For sBCH or SLP, the API doesn't support favorites_only yet
@@ -886,120 +886,6 @@ export default {
       localStorage.setItem('bchBalanceMode', value)
       this.bchBalanceMode = value
     },
-    async fetchFavoriteTokensFromAPI () {
-      // Fetch favorite tokens directly from API with balances included
-      // Uses favorites_only=true to only get favorite tokens - no need for favorites API endpoint
-      if (this.selectedNetwork === 'sBCH' || !this.isCashToken) {
-        // For sBCH or SLP, API doesn't support favorites_only yet
-        this.favoriteTokensFromAPI = []
-        return []
-      }
-
-      if (!this.wallet) {
-        console.warn('Wallet not loaded, cannot fetch favorite tokens')
-        this.favoriteTokensFromAPI = []
-        return []
-      }
-
-      const walletHash = this.wallet.BCH?.walletHash || this.wallet.bch?.walletHash
-      if (!walletHash) {
-        console.warn('Wallet hash not available')
-        this.favoriteTokensFromAPI = []
-        return []
-      }
-
-      const isChipnet = this.$store.getters['global/isChipnet']
-      const baseUrl = getWatchtowerApiUrl(isChipnet)
-
-      const filterParams = {
-        has_balance: true,
-        token_type: 1,
-        wallet_hash: walletHash,
-        favorites_only: 'true', // Only fetch favorite tokens - no need for exclude_token_ids or favorites API
-        limit: 100
-      }
-
-      try {
-        const url = `${baseUrl}/cashtokens/fungible/`
-        let allTokens = []
-        let nextUrl = url
-        let params = filterParams
-
-        // Fetch all pages if there are more results
-        while (nextUrl) {
-          const { data } = await axios.get(nextUrl, { params })
-
-          if (!Array.isArray(data.results)) {
-            break
-          }
-
-          // Map API response to asset format expected by the component
-          const tokens = data.results.map(result => {
-            const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
-
-            return {
-              id: result.id,
-              name: result.name || 'Unknown Token',
-              symbol: result.symbol || '',
-              decimals: result.decimals || 0,
-              logo: logo,
-              balance: result.balance !== undefined ? result.balance : 0,
-              favorite: result.favorite === true ? 1 : 0,
-              favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
-            }
-          })
-
-          allTokens = [...allTokens, ...tokens]
-
-          // Check if there's a next page
-          if (data.next) {
-            nextUrl = data.next
-            params = {} // Don't send params again, URL already has them
-          } else {
-            nextUrl = null
-          }
-        }
-
-        // Update favoriteTokenIds for backward compatibility
-        this.favoriteTokenIds = allTokens.map(token => token.id).filter(id => id !== 'bch')
-
-        // Store the full token data with balances
-        this.favoriteTokensFromAPI = allTokens
-
-        // Update store assets with balances and metadata (including icons) from API
-        allTokens.forEach(token => {
-          // Update balance
-          this.$store.commit('assets/updateAssetBalance', {
-            id: token.id,
-            balance: token.balance
-          })
-          
-          // Update metadata including icon - API provides the latest icon
-          // Use both updateAssetMetadata and updateAssetImageUrl to ensure icon is updated
-          if (token.logo) {
-            // Update full metadata
-            this.$store.commit('assets/updateAssetMetadata', {
-              id: token.id,
-              name: token.name,
-              symbol: token.symbol,
-              decimals: token.decimals,
-              logo: token.logo // Use icon from API (always up-to-date)
-            })
-            // Also update icon URL directly (works even if asset doesn't exist in store yet)
-            this.$store.commit('assets/updateAssetImageUrl', {
-              assetId: token.id,
-              imageUrl: token.logo
-            })
-          }
-        })
-
-        return allTokens
-      } catch (error) {
-        console.error('Error fetching favorite tokens from API:', error)
-        this.favoriteTokensFromAPI = []
-        return []
-      }
-    },
     async fetchAllTokensFromAPI () {
       // Fetch all tokens directly from API with balances included (not just favorites)
       // This is used to determine if wallet has tokens for the favorites note display logic
@@ -1086,8 +972,18 @@ export default {
         // Store the result in the component data for computed property access
         this.allTokensFromAPI = allTokens
 
-        // Update store assets with metadata (including icons) from API
+        // Update favoriteTokenIds for backward compatibility (filter favorites from allTokens)
+        const favorites = allTokens.filter(token => token.favorite === 1 || token.favorite === true)
+        this.favoriteTokenIds = favorites.map(token => token.id).filter(id => id !== 'bch')
+
+        // Update store assets with balances and metadata (including icons) from API
         allTokens.forEach(token => {
+          // Update balance
+          this.$store.commit('assets/updateAssetBalance', {
+            id: token.id,
+            balance: token.balance
+          })
+          
           // Update metadata including icon - API provides the latest icon
           // Use both updateAssetMetadata and updateAssetImageUrl to ensure icon is updated
           if (token.logo) {
@@ -1742,10 +1638,8 @@ export default {
             }
           })
 
-          // Fetch favorite tokens from API (includes balances)
-          await vm.fetchFavoriteTokensFromAPI()
-
-          // Also fetch all tokens from API for favorites note logic
+          // Fetch all tokens from API (includes favorites and balances)
+          // No need for separate favorites call - allTokensFromAPI includes favorite field
           await vm.fetchAllTokensFromAPI()
           
           // Remove tokens from refreshing array
@@ -1794,8 +1688,9 @@ export default {
         let favoriteTokenIds = []
         
         if (vm.selectedNetwork !== 'sBCH' && vm.isCashToken) {
-          // Use token IDs from API data
-          favoriteTokenIds = vm.favoriteTokensFromAPI.map(token => token.id).filter(Boolean)
+          // Use token IDs from API data - filter favorites from allTokensFromAPI
+          const favorites = (vm.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+          favoriteTokenIds = favorites.map(token => token.id).filter(Boolean)
         } else {
           // For sBCH or SLP, API doesn't support favorites_only yet
           // No favorite tokens to refresh prices for
@@ -1872,9 +1767,35 @@ export default {
       }
 
       if (!asset?.id && tokenId.startsWith('ct/')) {
-        asset = await this.wallet.BCH.getTokenDetails(tokenId.split('/')[1])
-        this.$store.commit(`assets/addNewAsset`, asset)
-        this.$store.commit(`assets/moveAssetToBeginning`)
+        // Fetch token metadata from cashtokens/fungible API instead of BCMR
+        // The API already provides all the metadata we need
+        try {
+          const tokenCategory = tokenId.split('/')[1]
+          const isChipnet = this.$store.getters['global/isChipnet']
+          const baseUrl = getWatchtowerApiUrl(isChipnet)
+          const { data } = await axios.get(`${baseUrl}/cashtokens/fungible/${tokenCategory}/`)
+          
+          asset = {
+            'id': data.id || tokenId,
+            'name': data.name || 'Unknown Token',
+            'symbol': data.symbol || '',
+            'decimals': parseInt(data.decimals) || 0,
+            'logo': data.image_url ? convertIpfsUrl(data.image_url) : '',
+            'balance': 0,
+            'is_nft': false
+          }
+          
+          this.$store.commit(`assets/addNewAsset`, asset)
+          this.$store.commit(`assets/moveAssetToBeginning`)
+        } catch (error) {
+          console.error('Error fetching token from API:', error)
+          // Fallback: if API fails, try BCMR as last resort
+          asset = await this.wallet.BCH.getTokenDetails(tokenId.split('/')[1])
+          if (asset) {
+            this.$store.commit(`assets/addNewAsset`, asset)
+            this.$store.commit(`assets/moveAssetToBeginning`)
+          }
+        }
       }
 
       if (asset?.id) {
@@ -2232,48 +2153,79 @@ export default {
         console.error('Error in cashin operations:', error)
       }
 
-      // refactored to fetch tokens in batch by 3 instead of all at once
-      const assets = vm.$store.getters['assets/getAssets'] || []
-      for (var i = 0; i < assets.length; i = i + 3) {
-        const chunk = assets.slice(i, i + 3).map(a => {
-          return vm.$store.dispatch('assets/getAssetMetadata', a.id)
-        })
-        await Promise.allSettled(chunk)
+      // Note: No need to fetch metadata from BCMR indexer here because
+      // the cashtokens/fungible endpoint already provides all the metadata
+      // (name, symbol, decimals, image_url) which is used to update the store
+
+      // Fetch all tokens from API (includes favorites and all metadata)
+      // No need for separate favorites call - allTokensFromAPI includes favorite field
+      // This already provides all CashToken metadata, so we can use it instead of getMissingAssets
+      try {
+        await vm.fetchAllTokensFromAPI()
+      } catch (error) {
+        console.error('Error fetching all tokens from API:', error)
       }
 
       // check if newly-received token is already stored in vuex store,
       // if not, then add it to the very first of the list
       try {
-        const tokens = vm.selectedNetwork === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
+        const assets = vm.$store.getters['assets/getAssets'] || []
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         const removedAssetIdsGetter = vm.$store.getters['assets/getRemovedAssetIds']
         const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+        const assetsId = assets.map(a => a.id)
 
-        if (tokens && tokens.length > 0) {
-          const assetsId = assets.map(a => a.id)
-          const newTokens = tokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
+        if (vm.selectedNetwork === 'sBCH') {
+          // For sBCH, still use getSmartchainTokens (API doesn't support sBCH tokens)
+          const tokens = await vm.getSmartchainTokens()
+          if (tokens && tokens.length > 0) {
+            const newTokens = tokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
+            newTokens.forEach(token => {
+              vm.$store.commit('sep20/addNewAsset', token)
+              vm.$store.commit('sep20/moveAssetToBeginning')
+            })
+          }
+        } else if (vm.isCashToken) {
+          // For CashTokens, use tokens already fetched from fetchAllTokensFromAPI()
+          // No need to call getMissingAssets() - the API already provided all the data
+          const allTokensFromAPI = vm.allTokensFromAPI || []
+          const newTokens = allTokensFromAPI.filter(token => 
+            !assetsId.includes(token.id) && 
+            !vaultRemovedAssetIds.includes(token.id)
+          )
 
           newTokens.forEach(token => {
-            vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, token)
-            vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+            // Convert API token format to asset format expected by addNewAsset
+            vm.$store.commit('assets/addNewAsset', {
+              id: token.id,
+              name: token.name,
+              symbol: token.symbol,
+              decimals: token.decimals,
+              logo: token.logo,
+              balance: token.balance,
+              is_nft: false
+            })
+            vm.$store.commit('assets/moveAssetToBeginning')
           })
+        } else {
+          // For SLP tokens, still use getMissingAssets (API doesn't support SLP yet)
+          const slpWalletHash = vm.getWallet('slp').walletHash
+          const slpTokens = await vm.$store.dispatch('assets/getMissingAssets', {
+            isCashToken: false,
+            walletHash: slpWalletHash,
+            includeIgnoredTokens: false
+          })
+          
+          if (slpTokens && slpTokens.length > 0) {
+            const newTokens = slpTokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
+            newTokens.forEach(token => {
+              vm.$store.commit('assets/addNewAsset', token)
+              vm.$store.commit('assets/moveAssetToBeginning')
+            })
+          }
         }
       } catch (error) {
         console.error('Error loading tokens:', error)
-      }
-
-      // Fetch favorite tokens from API (includes balances for CashTokens)
-      try {
-        await vm.fetchFavoriteTokensFromAPI()
-      } catch (error) {
-        console.error('Error fetching favorite tokens from API:', error)
-      }
-
-      // Fetch all tokens from API for favorites note logic
-      try {
-        await vm.fetchAllTokensFromAPI()
-      } catch (error) {
-        console.error('Error fetching all tokens from API:', error)
       }
 
       // Fetch prices for all favorite tokens + BCH using unified API

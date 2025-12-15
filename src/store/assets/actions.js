@@ -146,30 +146,24 @@ export async function getMissingAssets (
   if (!Array.isArray(data.results)) return []
 
   if (isCashToken) {
+    // The cashtokens/fungible endpoint already provides all metadata (name, symbol, decimals, image_url)
+    // No need to call BCMR indexer - construct token details directly from API response
     const finalData = []
-    const mnemonic = await getMnemonic(context.rootGetters['global/getWalletIndex'])
-    let wallet = new Wallet(mnemonic, context.rootGetters['global/network'])
-    wallet = getWalletByNetwork(wallet, 'bch')
     
     for (const result of data.results) {
-      const tokenId = result.id.split('/')[1]
-      const tokenDetails = await wallet.getTokenDetails(tokenId)
-      
-      // exclude tokens without metadata
-      if (tokenDetails !== null) {
-        // Use balance directly from API response instead of making separate API call
-        // The API now includes balance field in the response
-        tokenDetails.balance = result.balance !== undefined ? result.balance : 0
-        
-        // Use image_url from API response if available, convert IPFS URL
-        // API provides the most up-to-date icon URL
-        if (result.image_url) {
-          tokenDetails.logo = convertIpfsUrl(result.image_url)
-        }
-        // If API doesn't have image_url, keep the one from BCMR metadata (if any)
-        
-        finalData.push(tokenDetails)
+      // Construct token details directly from API response
+      // API provides: id, name, symbol, decimals, image_url, balance
+      const tokenDetails = {
+        'id': result.id,
+        'name': result.name || 'Unknown Token',
+        'symbol': result.symbol || '',
+        'decimals': parseInt(result.decimals) || 0,
+        'logo': result.image_url ? convertIpfsUrl(result.image_url) : '',
+        'balance': result.balance !== undefined ? result.balance : 0,
+        'is_nft': false // fungible tokens from this endpoint are not NFTs
       }
+      
+      finalData.push(tokenDetails)
     }
     return finalData
   }
