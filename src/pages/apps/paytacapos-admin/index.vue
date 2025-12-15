@@ -198,6 +198,7 @@ import { useStore } from 'vuex'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import HeaderNav from 'src/components/header-nav'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 
 const $router = useRouter()
 const $store = useStore()
@@ -315,7 +316,7 @@ async function openMerchantInfoDialog(merchantData) {
     
     if (!canCreate) {
       $q.dialog({
-        component: () => import('src/components/subscription/UpgradePromptDialog.vue'),
+        component: UpgradePromptDialog,
         componentProps: {
           darkMode: darkMode.value,
           limitType: 'merchants'

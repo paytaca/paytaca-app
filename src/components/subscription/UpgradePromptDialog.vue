@@ -148,7 +148,7 @@ export default {
     }
   },
   emits: ['update:modelValue'],
-  setup (props) {
+  setup (props, { emit }) {
     const router = useRouter()
     const store = useStore()
     
@@ -168,6 +168,8 @@ export default {
     })
     
     const navigateToCauldron = () => {
+      // Close dialog before navigation
+      emit('update:modelValue', false)
       router.push({
         name: 'app-cauldron',
         query: {
@@ -175,20 +177,14 @@ export default {
           buyAmount: 100
         }
       })
-      // Close dialog after navigation
-      setTimeout(() => {
-        // Dialog will close via router navigation
-      }, 100)
     }
     
     const navigateToSubscriptionDetails = () => {
+      // Close dialog before navigation
+      emit('update:modelValue', false)
       router.push({
         name: 'app-subscription-details'
       })
-      // Close dialog after navigation
-      setTimeout(() => {
-        // Dialog will close via router navigation
-      }, 100)
     }
     
     return {

@@ -12,7 +12,7 @@
         rounded
       />
     </div>
-    <div v-if="showWarning" class="text-caption text-warning q-mt-xs">
+    <div v-if="showWarning && warningMessage" class="text-caption text-warning q-mt-xs">
       <q-icon name="warning" size="0.8em" class="q-mr-xs" />
       {{ warningMessage }}
     </div>

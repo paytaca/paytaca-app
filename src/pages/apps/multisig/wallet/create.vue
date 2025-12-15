@@ -152,6 +152,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { shortenString, MultisigWallet, getMasterFingerprint } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 import { loadWallet } from 'src/wallet'
@@ -243,7 +244,7 @@ const onCreateClicked = async () => {
   
   if (!canCreate) {
     $q.dialog({
-      component: () => import('src/components/subscription/UpgradePromptDialog.vue'),
+      component: UpgradePromptDialog,
       componentProps: {
         darkMode: darkMode.value,
         limitType: 'multisigWallets'
