@@ -2124,6 +2124,9 @@ export default {
       } else {
         walletLoadPromise = vm.loadWallets()
       }
+      // Wait for wallet loading to complete (with timeout to prevent hanging)
+      // onConnectivityChange() already calls refreshFavoriteTokenBalances() which calls fetchAllTokensFromAPI()
+      // so we don't need to call it again, avoiding duplicate API calls
       await Promise.race([ asyncSleep(500), walletLoadPromise ])
 
       this.checkVersionUpdate()
@@ -2157,14 +2160,9 @@ export default {
       // the cashtokens/fungible endpoint already provides all the metadata
       // (name, symbol, decimals, image_url) which is used to update the store
 
-      // Fetch all tokens from API (includes favorites and all metadata)
-      // No need for separate favorites call - allTokensFromAPI includes favorite field
-      // This already provides all CashToken metadata, so we can use it instead of getMissingAssets
-      try {
-        await vm.fetchAllTokensFromAPI()
-      } catch (error) {
-        console.error('Error fetching all tokens from API:', error)
-      }
+      // Note: fetchAllTokensFromAPI() is already called by refreshFavoriteTokenBalances()
+      // in onConnectivityChange() when online, so we don't need to call it again here
+      // to avoid duplicate API calls. If offline, loadWallets() handles loading from cache.
 
       // check if newly-received token is already stored in vuex store,
       // if not, then add it to the very first of the list
