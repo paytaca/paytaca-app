@@ -404,32 +404,50 @@ export default {
 		    				})
 		    			}
 		    		})
-		    	} else {
-		    		// Favoriting: preserve existing favorite_order, assign new one to newly favorited item
-		    		// Get the highest existing favorite_order from all favorites (including those not in view)
-		    		const allFavorites = currentFavorites.filter(fav => fav.favorite === 1)
-		    		const maxOrder = allFavorites.length > 0 
-		    			? Math.max(...allFavorites.map(f => f.favorite_order || 0))
-		    			: 0
-		    		
-		    		// Assign favorite_order to all favorites in current view
-		    		favoritesData = favorites.map((asset) => {
-		    			// If this is the newly favorited item, assign it the next order
-		    			if (asset.id === favAsset.id) {
-		    				return {
-		    					id: asset.id,
-		    					favorite: 1,
-		    					favorite_order: maxOrder + 1
-		    				}
-		    			}
-		    			// Preserve existing favorite_order from API or use current value
-		    			const existingOrder = favoritesMap.get(asset.id)?.favorite_order
-		    			return {
-		    				id: asset.id,
-		    				favorite: 1,
-		    				favorite_order: existingOrder !== null && existingOrder !== undefined ? existingOrder : (maxOrder + 1)
-		    			}
-		    		})
+	    	} else {
+	    		// Favoriting: preserve existing favorite_order, assign new one to newly favorited item
+	    		// Get the highest existing favorite_order from all favorites (including those not in view)
+	    		const allFavorites = currentFavorites.filter(fav => fav.favorite === 1)
+	    		const maxOrder = allFavorites.length > 0 
+	    			? Math.max(...allFavorites.map(f => f.favorite_order || 0))
+	    			: 0
+	    		
+	    		// Track order assignment to ensure uniqueness
+	    		// Start with maxOrder + 1 for the newly favorited token
+	    		let nextOrder = maxOrder + 1
+	    		
+	    		// Assign favorite_order to all favorites in current view
+	    		favoritesData = favorites.map((asset) => {
+	    			// If this is the newly favorited item, assign it the next order
+	    			if (asset.id === favAsset.id) {
+	    				const assignedOrder = nextOrder
+	    				nextOrder++ // Increment for next null order assignment
+	    				return {
+	    					id: asset.id,
+	    					favorite: 1,
+	    					favorite_order: assignedOrder
+	    				}
+	    			}
+	    			// Preserve existing favorite_order from API or use incremented value for null orders
+	    			const existingOrder = favoritesMap.get(asset.id)?.favorite_order
+	    			if (existingOrder !== null && existingOrder !== undefined) {
+	    				// Preserve existing order
+	    				return {
+	    					id: asset.id,
+	    					favorite: 1,
+	    					favorite_order: existingOrder
+	    				}
+	    			} else {
+	    				// Assign incremented order for null/undefined orders
+	    				const assignedOrder = nextOrder
+	    				nextOrder++ // Increment for next null order assignment
+	    				return {
+	    					id: asset.id,
+	    					favorite: 1,
+	    					favorite_order: assignedOrder
+	    				}
+	    			}
+	    		})
 		    		
 		    		// Add all non-favorites with favorite: 0 and favorite_order: null
 		    		nonFavorites.forEach(asset => {
