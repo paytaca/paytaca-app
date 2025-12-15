@@ -308,7 +308,11 @@ export async function saveMemo(txid, memoText, isUpdate = false) {
       }
     }
 
-    return { success: true, error: null }
+    return { 
+      success: true, 
+      error: null,
+      encrypted_memo: serializedEncryptedMessage 
+    }
   } catch (error) {
     console.error('[memoService] saveMemo error:', error)
     return { 

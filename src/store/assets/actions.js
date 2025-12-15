@@ -160,6 +160,14 @@ export async function getMissingAssets (
         // Use balance directly from API response instead of making separate API call
         // The API now includes balance field in the response
         tokenDetails.balance = result.balance !== undefined ? result.balance : 0
+        
+        // Use image_url from API response if available, convert IPFS URL
+        // API provides the most up-to-date icon URL
+        if (result.image_url) {
+          tokenDetails.logo = convertIpfsUrl(result.image_url)
+        }
+        // If API doesn't have image_url, keep the one from BCMR metadata (if any)
+        
         finalData.push(tokenDetails)
       }
     }

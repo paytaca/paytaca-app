@@ -71,6 +71,7 @@
 <script>
 import * as assetSettings from 'src/utils/asset-settings'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 
 export default {
@@ -368,14 +369,20 @@ export default {
       return logoGenerator(String(asset && asset.id))
     },
     getImageUrl (asset) {
-      if (asset.logo) {
-        if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
-          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-        } else {
-          return asset.logo
-        }
+      if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
+        return 'assets/img/theme/payhero/deem-logo.png'
       } else {
-        return this.getFallbackAssetLogo(asset)
+        if (asset.logo) {
+          // Convert ipfs:// URLs to https://ipfs.paytaca.com/ipfs/ format
+          const convertedLogo = convertIpfsUrl(asset.logo)
+          if (convertedLogo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+            return convertedLogo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+          } else {
+            return convertedLogo
+          }
+        } else {
+          return this.getFallbackAssetLogo(asset)
+        }
       }
     },
     selectAsset (event, asset) {

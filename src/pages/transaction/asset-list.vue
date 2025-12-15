@@ -233,10 +233,12 @@ export default {
 	        return 'assets/img/theme/payhero/deem-logo.png'
 	      } else {
 	        if (asset.logo) {
-	          if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
-	            return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+	          // Convert ipfs:// URLs to https://ipfs.paytaca.com/ipfs/ format
+	          const convertedLogo = convertIpfsUrl(asset.logo)
+	          if (convertedLogo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+	            return convertedLogo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
 	          } else {
-	            return asset.logo
+	            return convertedLogo
 	          }
 	        } else {
 	          return this.getFallbackAssetLogo(asset)

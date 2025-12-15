@@ -775,10 +775,10 @@ export default {
           this.hasMemo = true
           this.networkError = false
           
-          // Emit memo updated event - parent can fetch encrypted_memo if needed
+          // Emit memo updated event with the actual encrypted memo
           this.$emit('memo-updated', {
             txid: this.transaction.txid,
-            encrypted_memo: 'updated' // Signal that memo was updated
+            encrypted_memo: result.encrypted_memo || null
           })
         } else {
           this.hasMemo = false
