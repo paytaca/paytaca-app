@@ -21,6 +21,7 @@
 
 <script>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -48,23 +49,25 @@ export default {
     }
   },
   setup (props) {
+    const { t: $t } = useI18n()
+
     const progress = computed(() => {
       if (props.limit === 0) return 0
       return Math.min(props.current / props.limit, 1)
     })
-    
+
     const progressColor = computed(() => {
       if (progress.value >= 1) return 'negative'
       if (progress.value >= 0.8) return 'warning'
       return 'positive'
     })
-    
+
     const warningMessage = computed(() => {
       if (props.current >= props.limit) {
-        return props.$t('LimitReached', {}, 'Limit reached')
+        return $t('LimitReached', {}, 'Limit reached')
       }
       if (props.current >= props.limit * 0.8) {
-        return props.$t('ApproachingLimit', {}, 'Approaching limit')
+        return $t('ApproachingLimit', {}, 'Approaching limit')
       }
       return ''
     })
