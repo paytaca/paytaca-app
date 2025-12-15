@@ -733,32 +733,40 @@ export default {
   },
   computed: {
     canCreateOrImportWallet () {
-      // Check if user has 3 or more wallets
+      // Check if vault is initialized
       const vault = this.$store.getters['global/getVault']
       if (!vault || !Array.isArray(vault)) {
         return true // Allow if vault is not initialized yet
       }
       
-      const nonDeletedWallets = vault.filter(w => !w?.deleted)
-      const walletCount = nonDeletedWallets.length
-      
-      // If user has less than 3 wallets, always allow
-      if (walletCount < 3) {
-        return true
-      }
-      
-      // If user has 3+ wallets, check LIFT token balance
-      // Access subscription state directly to ensure reactivity
+      // Check subscription state exists
       const subscriptionState = this.$store.state.subscription
       if (!subscriptionState) {
         return false // Block if subscription state doesn't exist
       }
       
-      // Use getters for reactivity
-      const liftBalance = this.$store.getters['subscription/getLiftTokenBalance'] || 0
-      const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens'] || 100
+      // First, check subscription tier limit (3 for free, 12 for plus)
+      // This is the primary restriction that matches initCreateWallet logic
+      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
+      if (!canCreate) {
+        return false // Block if wallet limit is reached for current subscription tier
+      }
       
-      return liftBalance >= minLiftTokens
+      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
+      const nonDeletedWallets = vault.filter(w => !w?.deleted)
+      const walletCount = nonDeletedWallets.length
+      
+      if (walletCount >= 3) {
+        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
+        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance'] || 0
+        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens'] || 100
+        
+        if (liftBalance < minLiftTokens) {
+          return false // Block if LIFT token requirement not met
+        }
+      }
+      
+      return true // All checks passed
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']

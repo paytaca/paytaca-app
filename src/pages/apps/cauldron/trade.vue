@@ -908,20 +908,12 @@ export default defineComponent({
         try {
           const tokens = await fetchTokensList({ token_id: props.selectTokenId });
           if (tokens.length > 0) {
-            selectedToken.value = tokens[0];
-            
-            // Set buy amount if provided
+            // Ensure we're in buying mode if buyAmount is provided (before setting token to trigger watcher)
             if (props.buyAmount) {
-              const buyAmountValue = typeof props.buyAmount === 'string' ? parseFloat(props.buyAmount) : Number(props.buyAmount);
-              if (!isNaN(buyAmountValue) && buyAmountValue > 0) {
-                // Ensure we're in buying mode
-                isBuyingToken.value = true;
-                // Set the amount after a short delay to ensure token is fully loaded
-                setTimeout(() => {
-                  updateAmountInput(String(buyAmountValue));
-                }, 100);
-              }
+              isBuyingToken.value = true;
             }
+            // Setting selectedToken will trigger the watcher which handles setting the buy amount
+            selectedToken.value = tokens[0];
           } else {
             // Truncate category ID for display (first 8 + last 8 characters)
             const categoryId = props.selectTokenId || '';

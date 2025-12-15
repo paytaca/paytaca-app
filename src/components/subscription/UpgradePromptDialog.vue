@@ -26,6 +26,9 @@
             <q-item>
               <q-item-section>
                 <q-item-label>{{ $t('Wallets') }}</q-item-label>
+                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
+                  {{ getLimitScope('wallets') }}
+                </q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-item-label>
@@ -38,6 +41,9 @@
             <q-item>
               <q-item-section>
                 <q-item-label>{{ $t('FavoriteTokens') }}</q-item-label>
+                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
+                  {{ getLimitScope('favoriteTokens') }}
+                </q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-item-label>
@@ -50,6 +56,9 @@
             <q-item>
               <q-item-section>
                 <q-item-label>{{ $t('MultisigWallets') }}</q-item-label>
+                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
+                  {{ getLimitScope('multisigWallets') }}
+                </q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-item-label>
@@ -62,6 +71,9 @@
             <q-item>
               <q-item-section>
                 <q-item-label>{{ $t('UnclaimedGifts') }}</q-item-label>
+                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
+                  {{ getLimitScope('unclaimedGifts') }}
+                </q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-item-label>
@@ -74,6 +86,9 @@
             <q-item>
               <q-item-section>
                 <q-item-label>{{ $t('Merchants') }}</q-item-label>
+                <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-6'" style="font-style: italic; opacity: 0.7;">
+                  {{ getLimitScope('merchants') }}
+                </q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-item-label>
@@ -128,6 +143,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
+import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 
@@ -151,6 +167,7 @@ export default {
   setup (props, { emit }) {
     const router = useRouter()
     const store = useStore()
+    const { t: $t } = useI18n()
     
     const currentLimit = computed(() => {
       const isPlus = store.getters['subscription/isPlusSubscriber']
@@ -166,6 +183,17 @@ export default {
     const minLiftTokens = computed(() => {
       return store.getters['subscription/getMinLiftTokens']
     })
+    
+    const getLimitScope = (key) => {
+      const scopes = {
+        wallets: $t('PerDevice', {}, 'per device'),
+        favoriteTokens: $t('PerWallet', {}, 'per wallet'),
+        multisigWallets: $t('PerWallet', {}, 'per wallet'),
+        unclaimedGifts: $t('PerWallet', {}, 'per wallet'),
+        merchants: $t('PerWallet', {}, 'per wallet')
+      }
+      return scopes[key] || ''
+    }
     
     const navigateToCauldron = () => {
       // Close dialog before navigation
@@ -191,6 +219,7 @@ export default {
       currentLimit,
       plusLimit,
       minLiftTokens,
+      getLimitScope,
       navigateToCauldron,
       navigateToSubscriptionDetails,
       getDarkModeClass

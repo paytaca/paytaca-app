@@ -138,10 +138,21 @@ export default {
         return this.customList.filter(asset => asset && this.favorites.includes(asset.id))
       } 
       
-      // Always filter by favorites - only show favorited tokens
-      // If favorites is empty, return empty array (no tokens to show)
-      if (this.assets && this.assets.length > 0 && Array.isArray(this.favorites)) {
-        return this.assets.filter(asset => asset && this.favorites.includes(asset.id))
+      // For CashTokens on BCH network, tokens from API already have favorite field
+      // Use the favorite field directly from tokens instead of separate favorites array
+      if (this.assets && this.assets.length > 0) {
+        // Check if tokens have favorite field (from API)
+        const hasFavoriteField = this.assets.some(asset => asset && typeof asset.favorite !== 'undefined')
+        
+        if (hasFavoriteField) {
+          // Use favorite field from tokens (API provides this)
+          return this.assets.filter(asset => asset && (asset.favorite === 1 || asset.favorite === true))
+        } else {
+          // Fall back to old favorites array system (for sBCH/SLP)
+          if (Array.isArray(this.favorites)) {
+            return this.assets.filter(asset => asset && this.favorites.includes(asset.id))
+          }
+        }
       }
       
       return []
@@ -159,9 +170,15 @@ export default {
     }
   },
   watch: {
-    // Watch for changes in assets prop to refresh customList when new tokens are added
+    // For CashTokens on BCH, assets come from API with favorite field - no need to watch/save
+    // Only watch for sBCH/SLP which still use the old system
     async assets (newAssets, oldAssets) {
-      // Only process if we have customListIDs initialized and new assets
+      // Skip for CashTokens on BCH network - API handles everything
+      if (this.network === 'BCH' && this.isCashToken) {
+        return
+      }
+      
+      // Only process if we have customListIDs initialized and new assets (for sBCH/SLP)
       if (!this.customListIDs || !newAssets || newAssets.length === 0) {
         return
       }
@@ -210,9 +227,15 @@ export default {
       }
     }
   },
-  async mounted() {        
+  async mounted() {
+    // For CashTokens on BCH, API provides all data - no need for old favorites/customList APIs
+    if (this.network === 'BCH' && this.isCashToken) {
+      // Assets come from API with favorite field already set - nothing to do here
+      return
+    }
+    
+    // For sBCH/SLP, still use old system
     this.customListIDs = await assetSettings.fetchCustomList()      
-
 
     if (this.customListIDs) {
       

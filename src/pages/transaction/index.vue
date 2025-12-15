@@ -643,9 +643,10 @@ export default {
     assets () {
       const vm = this
 
-      // For CashTokens on BCH network, use API data for proper ordering
+      // For CashTokens on BCH network, use favorite tokens from API (favorites_only=true)
+      // This ensures we only fetch and display favorited tokens
       if (vm.selectedNetwork !== 'sBCH' && vm.isCashToken) {
-        return this.allTokensFromAPI
+        return this.favoriteTokensFromAPI || []
       }
 
       // For sBCH network, use store data (API doesn't support sBCH yet)
@@ -885,32 +886,6 @@ export default {
       localStorage.setItem('bchBalanceMode', value)
       this.bchBalanceMode = value
     },
-    async loadFavoriteTokenIds () {
-      // DEPRECATED: This method is kept for backward compatibility
-      // Favorite tokens are now loaded via fetchFavoriteTokensFromAPI()
-      // which includes balances and all token data
-      try {
-        // Fetch favorites from server for backward compatibility
-        const favorites = await assetSettings.fetchFavorites()
-        
-        if (!favorites || !Array.isArray(favorites)) {
-          this.favoriteTokenIds = []
-          return
-        }
-
-        // Extract favorite token IDs (where favorite === 1)
-        const favoriteTokenIds = favorites
-          .filter(item => item.favorite === 1)
-          .map(item => item.id)
-          .filter(Boolean) // Remove any undefined/null values
-          .filter(id => id !== 'bch') // Exclude BCH itself
-
-        this.favoriteTokenIds = favoriteTokenIds
-      } catch (error) {
-        console.error('Error loading favorite token IDs:', error)
-        this.favoriteTokenIds = []
-      }
-    },
     async fetchFavoriteTokensFromAPI () {
       // Fetch favorite tokens directly from API with balances included
       // Uses favorites_only=true to only get favorite tokens - no need for favorites API endpoint
@@ -991,12 +966,31 @@ export default {
         // Store the full token data with balances
         this.favoriteTokensFromAPI = allTokens
 
-        // Update store assets with balances from API
+        // Update store assets with balances and metadata (including icons) from API
         allTokens.forEach(token => {
+          // Update balance
           this.$store.commit('assets/updateAssetBalance', {
             id: token.id,
             balance: token.balance
           })
+          
+          // Update metadata including icon - API provides the latest icon
+          // Use both updateAssetMetadata and updateAssetImageUrl to ensure icon is updated
+          if (token.logo) {
+            // Update full metadata
+            this.$store.commit('assets/updateAssetMetadata', {
+              id: token.id,
+              name: token.name,
+              symbol: token.symbol,
+              decimals: token.decimals,
+              logo: token.logo // Use icon from API (always up-to-date)
+            })
+            // Also update icon URL directly (works even if asset doesn't exist in store yet)
+            this.$store.commit('assets/updateAssetImageUrl', {
+              assetId: token.id,
+              imageUrl: token.logo
+            })
+          }
         })
 
         return allTokens
@@ -1043,14 +1037,27 @@ export default {
 
         // Fetch all pages if there are more results
         while (nextUrl) {
-          const { data } = await axios.get(nextUrl, { params })
+          const response = await axios.get(nextUrl, { params })
+          const data = response?.data
+
+          // Check if response data exists and has results array
+          if (!data) {
+            console.warn('API response has no data:', response)
+            break
+          }
 
           if (!Array.isArray(data.results)) {
+            console.warn('API response results is not an array:', data)
             break
           }
 
           // Map API response to asset format expected by the component
           const tokens = data.results.map(result => {
+            if (!result || !result.id) {
+              console.warn('Invalid token result:', result)
+              return null
+            }
+
             const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
 
             return {
@@ -1063,7 +1070,7 @@ export default {
               favorite: result.favorite === true ? 1 : 0,
               favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
             }
-          })
+          }).filter(Boolean) // Remove any null entries from invalid results
 
           allTokens = [...allTokens, ...tokens]
 
@@ -1079,9 +1086,38 @@ export default {
         // Store the result in the component data for computed property access
         this.allTokensFromAPI = allTokens
 
+        // Update store assets with metadata (including icons) from API
+        allTokens.forEach(token => {
+          // Update metadata including icon - API provides the latest icon
+          // Use both updateAssetMetadata and updateAssetImageUrl to ensure icon is updated
+          if (token.logo) {
+            // Update full metadata
+            this.$store.commit('assets/updateAssetMetadata', {
+              id: token.id,
+              name: token.name,
+              symbol: token.symbol,
+              decimals: token.decimals,
+              logo: token.logo // Use icon from API (always up-to-date)
+            })
+            // Also update icon URL directly (works even if asset doesn't exist in store yet)
+            this.$store.commit('assets/updateAssetImageUrl', {
+              assetId: token.id,
+              imageUrl: token.logo
+            })
+          }
+        })
+
+        console.log(`Fetched ${allTokens.length} tokens from API for wallet ${walletHash}`)
         return allTokens
       } catch (error) {
         console.error('Error fetching all tokens from API:', error)
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          url: error.config?.url,
+          params: error.config?.params
+        })
         this.allTokensFromAPI = []
         return []
       }
@@ -2131,32 +2167,6 @@ export default {
         this.$router.push({ name: 'asset-list' })
         // if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
-    },
-    async checkUnappliedUnlistedTokens () {
-      const vm = this      
-      const unlisted_tokens = await assetSettings.fetchUnlistedTokens()
-      const assetIDs = vm.assets.map(asset => asset.id)
-
-      if(Array.isArray(unlisted_tokens) && unlisted_tokens.length > 0) {
-        let diff = assetIDs.filter(asset => unlisted_tokens.includes(asset))
-
-        if (diff.length > 0) {
-          const walletIndex = vm.$store.getters['global/getWalletIndex']
-          
-          diff.forEach(asset => {
-            if (vm.selectedNetwork === 'sBCH') {
-              vm.$store.commit('sep20/addRemovedAssetIds', asset)
-              const commitName = 'sep20/removeAsset'
-              return vm.$store.commit(commitName, asset)
-            }
-            vm.$store.commit('assets/removeAsset', asset)
-            vm.$store.commit('assets/addRemovedAssetIds', {
-              vaultIndex: walletIndex,
-              id: asset
-            })
-          })        
-        }
-      }      
     }
   },
 
@@ -2291,13 +2301,6 @@ export default {
         console.error('Error computing wallet yield:', error)
       }
 
-      // add unapplied unlisted token
-      try {
-        vm.checkUnappliedUnlistedTokens()
-      } catch (error) {
-        console.error('Error checking unapplied unlisted tokens:', error)
-      }
-      
       // Set loading to false after initial mount operations complete
       // If assets exist, the watcher will handle it, otherwise set it after a delay
       this.$nextTick(() => {
