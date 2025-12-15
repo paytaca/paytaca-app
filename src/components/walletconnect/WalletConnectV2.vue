@@ -64,20 +64,50 @@
         </q-btn>
       </div>
       <div class="col-xs-12">
-        <q-btn-group spread push>
-          <q-btn
-            class="button"
-            icon="mdi-qrcode"
-            no-caps
-            :label="$t('Scan')"
-            @click="() => $emit('request-scanner')" :disable="Boolean(loading) || sessionProposals?.length > 0"/>
-          <q-btn
-            class="button"
-            icon="link"
-            no-caps
-            :label="$t('PasteURL')"
-            @click="() => connectNewSession()" :disable="Boolean(loading) || sessionProposals?.length > 0"/>
-        </q-btn-group>
+        <div class="send-option-card pt-card q-mb-md q-pa-lg br-15" :class="getDarkModeClass(darkMode)">
+            <div class="send-option-header">
+              <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
+              <div class="send-option-title">
+                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                  {{ $t('InitiateNewSession') }}
+                </div>
+                <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                  {{ $t('WcScanOrPasteURL') }}
+                </div>
+              </div>
+            </div>
+
+            <div class="row q-gutter-sm q-mt-md">
+              <div class="col">
+                <q-btn
+                  unelevated
+                  no-caps
+                  class="full-width scan-option-btn"
+                  :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                  @click="() => $emit('request-scanner')" :disable="Boolean(loading) || sessionProposals?.length > 0"
+                >
+                  <div class="column items-center q-py-sm">
+                    <q-icon name="mdi-qrcode-scan" size="32px"/>
+                    <div class="text-caption q-mt-xs">{{ $t('ScanQRCode', {}, 'Scan QR Code') }}</div>
+                  </div>
+                </q-btn>
+              </div>
+              <div class="col">
+                <q-btn
+                  unelevated
+                  no-caps
+                  class="full-width scan-option-btn"
+                  :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                  @click="() => connectNewSession()" :disable="Boolean(loading) || sessionProposals?.length > 0"
+                >
+                  <div class="column items-center q-py-sm">
+                    <q-icon name="content_paste_go" size="32px"/>
+                    <div class="text-caption q-mt-xs">{{ $t('PasteURL', {}, 'Paste URL') }}</div>
+                  </div>
+                </q-btn>
+              </div>
+            </div>
+        </div>
       </div>
     </div>
     <div class="row">
@@ -107,19 +137,20 @@
                   <q-btn
                     :label="$t('Reject')" color="negative"
                     @click="() => rejectSessionRequest(sessionRequest)"
-                    class="action-button"
+                    class="action-button col-xs-5 col-sm-3"
                     :disable="Boolean(processingSession[sessionRequest.topic])"
-                    :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Reject'))">
+                    :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Reject'))" rounded outline>
                     <template v-slot:loading>
                       <q-spinner-facebook></q-spinner-facebook>
                     </template>
                   </q-btn>
                   <q-btn
-                    :label="$t('Accept')" color="green"
+                    :label="$t('Accept')" color="primary"
                     @click="() => respondToSessionRequest(sessionRequest)"
-                    class="action-button"
+                    class="action-button col-xs-5 col-sm-3"
                     :disable="Boolean(processingSession[sessionRequest.topic])"
                     :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Sign'))"
+                    rounded outline
                     >
                     <template v-slot:loading>
                       <q-spinner-facebook></q-spinner-facebook>
@@ -143,24 +174,25 @@
                 <q-icon name="notifications_active" size="sm" color="warning"></q-icon>
               </template>
               <template v-slot:actions>
-                <q-btn
-                  :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Rejecting'))"
-                  :label="$t('Reject')" color="negative" class="action-button"
-                  @click.stop="() => rejectSessionProposal(sessionProposal)"
-                  :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps>
-                  <template v-slot:loading>
-                    <q-spinner-facebook></q-spinner-facebook>
-                  </template>
-                </q-btn>
-                <q-btn
-                  :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Connecting'))"
-                  :label="$t('Connect')" color="green" class="action-button"
-                  @click.stop="() => approveSessionProposal(sessionProposal)"
-                  :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps >
-                  <template v-slot:loading>
-                    <q-spinner-facebook></q-spinner-facebook>
-                  </template>
-                </q-btn>
+                  <q-btn
+                    :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Rejecting'))"
+                    :label="$t('Reject')" color="negative" class="action-button col-xs-5 col-sm-3"
+                    @click.stop="() => rejectSessionProposal(sessionProposal)"
+                    :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps rounded outline>
+                    <template v-slot:loading>
+                      <q-spinner-facebook></q-spinner-facebook>
+                    </template>
+                  </q-btn>
+                  <q-btn
+                    color="primary"
+                    :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Connecting'))"
+                    :label="$t('Connect')" class="action-button col-xs-5 col-sm-3"
+                    @click.stop="() => approveSessionProposal(sessionProposal)"
+                    :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps rounded>
+                    <template v-slot:loading>
+                      <q-spinner-facebook></q-spinner-facebook>
+                    </template>
+                  </q-btn>
               </template>
             </SessionInfo>
           </div>
@@ -198,11 +230,12 @@
                   <q-btn
                     label="Disconnect"
                     color="negative"
-                    class="cursor-pointer action-button"
+                    class="cursor-pointer action-button col-xs-10"
                     no-caps
                     :loading="Boolean(processingSession[activeSession.topic]?.includes('Disconnect'))"
                     :disable="Boolean(processingSession[activeSession.topic])"
                     @click.stop="() => disconnectSession(activeSession)"
+                    rounded
                     >
                     <template v-slot:loading>
                       <q-spinner-facebook />
@@ -240,6 +273,8 @@ import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
+import NewSessionDialog from './NewSessionDialog.vue'
+import ManualAddressEntryDialog from './ManualAddressEntryDialog.vue'
 import {
   // createMultisigTransactionFromWCSessionRequest,
   // generateTransactionHash,
@@ -305,6 +340,16 @@ const delay = async (seconds) => {
   await new Promise((resolve, reject) => {
     setTimeout(() => { resolve() }, seconds * 1000)
   })
+}
+
+const getThemeColor = () => {
+  const themeColors = {
+    'glassmorphic-blue': '#42a5f5',
+    'glassmorphic-gold': '#ffa726',
+    'glassmorphic-green': '#4caf50',
+    'glassmorphic-red': '#f54270'
+  }
+  return themeColors[$store.getters['global/theme']] || '#42a5f5'
 }
 
 const formatAddressForDisplay = (address, lockingBytecode = null) => {
@@ -509,32 +554,13 @@ async function saveConnectedApp (session) {
 const connectNewSession = async (uri = '', prompt = true) => {
   if (prompt) {
     $q.dialog({
-      title: $t('NewSession'),
-      class: `q-pb-lg q-px-sm br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)} new-session`,
-      prompt: {
-        label: $t('SessionURL'),
-        placeholder: $t('PasteURL'),
-        model: uri,
-        outlined: true,
-        type: 'textarea',
-        autogrow: true,
-        inputStyle: 'word-break: break-all; padding: 2px;'
-      },
-      ok: {
-        noCaps: true,
-        label: $t('Proceed'),
-        class: `button q-mr-md ${getDarkModeClass(darkMode.value)}`
-      },
-      cancel: {
-        flat: true,
-        noCaps: true,
-        label: $t('Close'),
-        class: `${getDarkModeClass(darkMode.value)}`
-      },
-      position: 'bottom',
-      seamless: true
+      component: NewSessionDialog,
+      componentProps: {
+        darkMode: darkMode.value
+      }
     })
-      .onOk(async (_uri) => await pairURI(_uri))
+      .onOk(async (payload) => await pairURI(payload))
+      
   } else {
     setTimeout(async () => {
       await pairURI(uri)
@@ -590,11 +616,14 @@ const disconnectSession = async (activeSession) => {
         ok: {
           label: $t('Yes'),
           noCaps: true,
-          color: 'primary'
+          color: 'primary',
+          rounded: true
         },
         cancel: {
-          flat: true,
           noCaps: true,
+          rounded: true,
+          outline: true,
+          color: 'negative',
           label: $t('No')
         },
         class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
@@ -616,10 +645,67 @@ const disconnectSession = async (activeSession) => {
   }
 }
 
+const openManualAddressEntryDialog = async (sessionProposal) => {
+  try {
+    const addressAddressIndexAndWif = await new Promise((resolve, reject) => {
+      $q.dialog({
+        component: ManualAddressEntryDialog,
+        componentProps: {
+          darkMode: darkMode.value
+        }
+      })
+      .onOk(async(payload) => {
+        const { ok, addressIndex, address, wif } = 
+          await $store.dispatch('global/depositAddressIsFromWallet', { 
+            address: payload.address, addressIndex: payload.addressIndex
+          })
+          if (ok) {
+            return resolve({ address, addressIndex, wif }) 
+          }
+        reject(new Error($t('AddressNotFoundOnThisWallet', 'Could not find address on this wallet. Try providing an address index.')))
+      })
+      .onCancel(() => {
+        // Just close the dialog and return control to SelectAddressForSessionDialog
+        reject(new Error('MANUAL_ADDRESS_ENTRY_CANCELLED'))
+      })
+    })
+    return addressAddressIndexAndWif
+  } catch (error) {
+    if (error.message === 'MANUAL_ADDRESS_ENTRY_CANCELLED') {
+      // Just return undefined to give control back to SelectAddressForSessionDialog
+      openAddressSelectionDialog(sessionProposal)
+      return
+    }
+    $q.dialog({
+      title: 'Error',
+      message: error.message,
+      ok: {
+        rounded: true,
+        label: $t('Ok'),
+        noCaps: true,
+        color: 'primary'
+      },
+      class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }   
+}
+
 const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
   try {
     const lastUsedWalletAddress =
       $store.getters['global/lastUsedAddressAtAppUrl'](sessionProposal?.proposer?.metadata?.url)
+    let addressSelection = walletAddresses.value
+      ?.map(a => a)
+      ?.filter((addressInfo, index, self) => 
+        index === self.findIndex((a) => a.address === addressInfo.address)
+      )
+      ?.sort((a, b) => b.address_index - a.address_index)
+    const arrayIndexOfLastUsedWalletAddress = addressSelection?.findIndex((addressInfo) => addressInfo.address === lastUsedWalletAddress?.wallet_address)
+    if (arrayIndexOfLastUsedWalletAddress !== -1) {
+      addressSelection.unshift(addressSelection[arrayIndexOfLastUsedWalletAddress])
+      addressSelection.splice(arrayIndexOfLastUsedWalletAddress, 1)
+    }
+    addressSelection = addressSelection.slice(0, 5)
     const { selectedWalletAddress, isMultisig } = await new Promise((resolve, reject) => {
       $q.dialog({
         component: SelectAddressForSessionDialog,
@@ -628,14 +714,21 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
           // peerMeta: sessionProposal?.proposer?.metadata,
           sessionProposal: sessionProposal,
           darkMode: darkMode.value,
-          walletAddresses: walletAddresses.value,
+          walletAddresses: addressSelection,
           // multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
           // multisigWallets: [],
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })
-        .onOk(({ selectedWalletAddress, isMultisig }) => {
-          resolve({ selectedWalletAddress, isMultisig })
+        .onOk(async (payload) => {
+          if (payload.iWantToProvideSpecificAddress) {
+            const selectedWalletAddress = await openManualAddressEntryDialog(sessionProposal)
+            return resolve({ selectedWalletAddress, isMultisig: false })
+          }
+          resolve({ 
+            selectedWalletAddress: payload.selectedWalletAddress, 
+            isMultisig: payload.isMultisig
+          })
         })
         .onCancel(async () => {
           processingSession.value[sessionProposal.pairingTopic] = ''
@@ -858,7 +951,6 @@ const respondToSignMessageRequest = async (sessionRequest) => {
   } finally {
     if (!response.result) delete response.result
     if (!response.error) delete response.error
-    console.log(sessionRequest?.params?.request?.method, 'response', response);
     await web3Wallet.value.respondSessionRequest({ topic: sessionRequest.topic, response })
     if (!sessionRequest.error) {
       sessionRequest.confirmed = true
@@ -955,7 +1047,6 @@ const openSessionRequestDialog = (sessionRequest) => {
 }
 
 const rejectSessionRequest = async (sessionRequest) => {
-  console.log('🚀 ~ rejectSessionRequest ~ sessionRequest:', sessionRequest)
   const id = sessionRequest?.id
   const topic = sessionRequest?.topic
   try {
@@ -1000,12 +1091,6 @@ async function wcVersionUpgradeMigration() {
 }
 
 const loadWeb3Wallet = async () => {
-  // console.log('🚀 ~ loadWeb3Wal ~ chipnet:', chipnet)
-  // web3WalletPromise.value = initWeb3Wallet(chipnet)
-  // const _web3Wallet = await web3WalletPromise.value
-  // web3Wallet.value = _web3Wallet
-  // window.w3w = _web3Wallet
-
   web3Wallet.value = await initWeb3Wallet()
   window.w3w = web3Wallet.value
 }
@@ -1070,15 +1155,15 @@ const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('session_request_expire', onSessionExpire)
 }
 
-const refreshComponent = async () => {
+const refreshComponent = async (showLoading = true) => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
   await $store.dispatch('global/loadWalletAddresses')
   await $store.dispatch('global/loadWalletConnectedApps')
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
   walletAddresses.value = $store.getters['global/walletAddresses']
-  await loadSessionRequests({ showLoading: true })
-  await loadSessionProposals({ showLoading: true })
-  await loadActiveSessions({ showLoading: true })
+  await loadSessionRequests({ showLoading })
+  await loadSessionProposals({ showLoading })
+  await loadActiveSessions({ showLoading })
 }
 
 watchEffect(() => {
@@ -1086,14 +1171,7 @@ watchEffect(() => {
 })
 
 onBeforeMount(async () => {
-  await $store.dispatch('global/loadWalletLastAddressIndex')
-  await $store.dispatch('global/loadWalletAddresses')
-  await $store.dispatch('global/loadWalletConnectedApps')
-  watchtower.value = new Watchtower($store.getters['global/isChipnet'])
-  walletAddresses.value = $store.getters['global/walletAddresses']
-  await loadSessionRequests()
-  await loadSessionProposals()
-  await loadActiveSessions()
+  await refreshComponent(false)
 })
 
 onMounted(async () => {
@@ -1115,7 +1193,7 @@ onMounted(async () => {
     // multisigWallets.value = $store.getters['multisig/getWallets']
     // TODO: load multisig wallets from watchtower
     walletAddresses.value = $store.getters['global/walletAddresses']
-    console.log('multisigWallets', multisigWallets.value)
+    
   } catch (error) {} finally { loading.value = undefined }
 })
 onUnmounted(() => {
@@ -1126,10 +1204,7 @@ onUnmounted(() => {
 
 defineExpose({
   onScannerDecode,
-  // statusUpdate,
   refreshComponent,
-  // web3Wallet,
-  // web3WalletPromise,
   connectNewSession
 })
 </script>
