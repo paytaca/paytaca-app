@@ -580,7 +580,7 @@ const phrases = {
       DeleteWallet: "Delete Wallet",
       DeleteWalletDescription: "Are you sure you want to delete this wallet?",
       DeletingMerchant: "Deleting Merchant",
-      UTXOScanComplete: "UTXO scan completed at",
+      UTXOScanComplete: "UTXO scan completed",
       UTXOScanOngoing: "UTXO scan ongoing, started",
       InvalidAmount: "Invalid amount",
       MinDuration: "Min Duration",

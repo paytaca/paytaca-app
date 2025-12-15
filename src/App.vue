@@ -17,6 +17,10 @@ import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
 
+// Module-level variable to track version update dialog instance
+// This persists across component remounts (important for iOS/Capacitor)
+let versionUpdateDialogInstance = null
+
 // Handle JSON serialization of BigInt
 // Source: https://github.com/GoogleChromeLabs/jsbi/issues/30#issuecomment-1006086291
 BigInt.prototype["toJSON"] = function () {
@@ -57,8 +61,7 @@ export default {
       promptedPushNotifications: false,
       subscribedPushNotifications: false,
       assetPricesUpdateIntervalId: null,
-      offlineNotif: null,
-      versionUpdateDialogOpen: false
+      offlineNotif: null
     }
   },
   methods: {
@@ -266,24 +269,23 @@ export default {
         const upgradeType = response.data.app_upgrade
         if (upgradeType === 'optional' || upgradeType === 'required') {
           // Show dialog if not already open (prevent duplicates)
+          // Use module-level variable to persist across component remounts (important for iOS)
           // No need to track if optional dialog was shown - user can dismiss it
-          if (!vm.versionUpdateDialogOpen) {
-            vm.versionUpdateDialogOpen = true
-            
-            const dialog = vm.$q.dialog({
+          if (!versionUpdateDialogInstance) {
+            versionUpdateDialogInstance = vm.$q.dialog({
               component: AppVersionUpdate,
               componentProps: {
                 upgradeType: upgradeType
               }
             })
             
-            // Reset flag when dialog is closed
-            dialog.onOk(() => {
-              vm.versionUpdateDialogOpen = false
+            // Clear reference when dialog is closed
+            versionUpdateDialogInstance.onOk(() => {
+              versionUpdateDialogInstance = null
             }).onCancel(() => {
-              vm.versionUpdateDialogOpen = false
+              versionUpdateDialogInstance = null
             }).onDismiss(() => {
-              vm.versionUpdateDialogOpen = false
+              versionUpdateDialogInstance = null
             })
           }
         }
