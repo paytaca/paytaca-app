@@ -135,6 +135,13 @@
 
 		<footer-menu ref="footerMenu" />
 
+		<!-- Upgrade Prompt Dialog -->
+		<UpgradePromptDialog
+			v-model="showUpgradeDialog"
+			:dark-mode="darkmode"
+			limit-type="favoriteTokens"
+		/>
+
 	</div>
 </template>
 <script>
@@ -150,6 +157,7 @@ import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import headerNav from 'src/components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import RemoveAsset from 'src/pages/transaction/dialog/RemoveAsset'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 
 export default {
 	data () {
@@ -160,7 +168,8 @@ export default {
 			wallet: null,	
 			drag: false,	
 			isloaded: false,
-			networkError: false
+			networkError: false,
+			showUpgradeDialog: false
 		}
 	},
 	computed: {
@@ -195,7 +204,8 @@ export default {
 		headerNav,
 		AssetFilter,
 		RemoveAsset,
-		draggable
+		draggable,
+		UpgradePromptDialog
 	},
 	watch: {
 		isCashToken () {
@@ -325,18 +335,70 @@ export default {
 	    // 		}
 	    // 	})	    
 	    // },
-	    async updateFavorite (favAsset) {
-	    	// Toggle favorite status
-	    	const wasFavorite = favAsset.favorite === 1
-	    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: wasFavorite ? 0 : 1} : asset)
-	    	
-	    	// Add a small delay to make the animation more noticeable
-	    	setTimeout(async () => {
-		    	// Fetch current favorites from API to get complete state including favorite_order
-		    	let currentFavorites = await assetSettings.fetchFavorites()
-		    	if (!Array.isArray(currentFavorites)) {
-		    		currentFavorites = []
-		    	}
+    async updateFavorite (favAsset) {
+    	// Toggle favorite status
+    	const wasFavorite = favAsset.favorite === 1
+    	
+    	// If adding a favorite (not removing), check subscription limit first
+    	if (!wasFavorite) {
+    		// Check subscription limit before adding
+    		await this.$store.dispatch('subscription/checkSubscriptionStatus')
+    		
+    		// Fetch current favorites to check count
+    		let currentFavorites = await assetSettings.fetchFavorites()
+    		if (!Array.isArray(currentFavorites)) {
+    			currentFavorites = []
+    		}
+    		
+    		// Count current favorites (where favorite === 1)
+    		const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
+    		
+    		// Check if this token is already a favorite
+    		const isAlreadyFavorite = currentFavorites.some(fav => fav.id === favAsset.id && fav.favorite === 1)
+    		
+    		// If not already a favorite, check limit
+    		if (!isAlreadyFavorite) {
+    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+    			if (currentFavoriteCount >= limit) {
+    				// Check if user is on free tier
+    				const isPlus = this.$store.getters['subscription/isPlusSubscriber']
+    				if (!isPlus) {
+    					// Show upgrade dialog for free tier users
+    					this.showUpgradeDialog = true
+    				} else {
+    					// Show notification for plus tier users who somehow reached limit
+    					this.$q.notify({
+    						message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus for more favorites.'),
+    						color: 'negative',
+    						icon: 'error',
+    						position: 'top',
+    						timeout: 3000,
+    						actions: [
+    							{
+    								label: this.$t('LearnMore', {}, 'Learn More'),
+    								color: 'white',
+    								handler: () => {
+    									this.$router.push('/apps/lift-token')
+    								}
+    							}
+    						]
+    					})
+    				}
+    				return // Prevent adding favorite if limit is reached
+    			}
+    		}
+    	}
+    	
+    	// Update UI immediately for better UX
+    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: wasFavorite ? 0 : 1} : asset)
+    	
+    	// Add a small delay to make the animation more noticeable
+    	setTimeout(async () => {
+	    	// Fetch current favorites from API to get complete state including favorite_order
+	    	let currentFavorites = await assetSettings.fetchFavorites()
+	    	if (!Array.isArray(currentFavorites)) {
+	    		currentFavorites = []
+	    	}
 		    	
 		    	// Create a map of current favorites for quick lookup
 		    	const favoritesMap = new Map()
