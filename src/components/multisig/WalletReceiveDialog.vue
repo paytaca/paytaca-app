@@ -94,10 +94,10 @@ watch(() => address.value, (v) => {
 
 onMounted(async () => {
   addressIndex.value = 0
-  if (props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex === undefined || props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex === -1) {
-    return addressIndex.value = 0
+  const lastIssuedDepositAddressIndex = Number(props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex)
+  if (lastIssuedDepositAddressIndex && lastIssuedDepositAddressIndex > 0) {
+    addressIndex.value = lastIssuedDepositAddressIndex
   }
-  addressIndex.value = Number(props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex )
   if (address.value?.address) {
     await props.multisigWallet?.subscribeWalletAddress(address.value?.address)
   }
