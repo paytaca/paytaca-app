@@ -89,12 +89,21 @@ const wallet = computed(() => {
 })
 
 const psts = computed(() => {
-  const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
-  return psbts?.map(psbtBase64 => {
-    const pst = Pst.fromPsbt(psbtBase64)
-    pst.setWallet(wallet.value)
-    return pst
-  })
+  try {
+    const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
+    return psbts?.map(psbtBase64 => {
+      const pst = Pst.fromPsbt(psbtBase64)
+      pst.setWallet(wallet.value)
+      return pst
+    })  
+  } catch (error) {
+    $q.dialog({
+      title: 'Error loading transaction proposals!',
+      message: error.message,
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }
+  return []
 })
 
 const importPsbt = () => {
@@ -109,12 +118,6 @@ const importPsbt = () => {
     }
   })
 }
-
-onMounted(() => {
-    // if (psts.value.length === 1) {
-    //   router.push({ name: 'app-multisig-wallet-pst-view', params: { wallethash: route.params.wallethash, unsignedtransactionhash: psts.value[0].unsignedTransactionHash } })
-    // }
-})
 
 </script>
 
