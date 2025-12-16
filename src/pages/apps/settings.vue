@@ -225,7 +225,7 @@
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" caption>{{ $t('Version') }}</q-item-label>
-                  <q-item-label class="pt-label text-grad" :class="getDarkModeClass(darkMode)">v{{ appVersion }}</q-item-label>
+                  <q-item-label class="pt-label text-grad" :class="getDarkModeClass(darkMode)">{{ appVersion }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>

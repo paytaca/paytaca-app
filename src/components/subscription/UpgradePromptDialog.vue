@@ -5,7 +5,7 @@
     persistent
     :class="getDarkModeClass(darkMode)"
   >
-    <q-card class="upgrade-prompt-dialog" :class="getDarkModeClass(darkMode)">
+    <q-card class="upgrade-prompt-dialog" :class="getDarkModeClass(darkMode)" style="width: min(500px, 90vw); max-width: 90vw;">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">{{ $t('UpgradeToPaytacaPlus', {}, 'Upgrade to Paytaca Plus') }}</div>
         <q-space />
@@ -89,18 +89,20 @@
         </q-card>
       </q-card-section>
 
-      <q-card-actions align="right" class="q-pa-md">
+      <q-card-actions align="right" class="q-pa-md responsive-actions">
         <q-btn
           flat
           :label="$t('LearnMore', {}, 'Learn More')"
           :color="darkMode ? 'grey-4' : 'grey-8'"
           @click="navigateToSubscriptionDetails"
+          class="action-btn"
         />
         <q-btn
           unelevated
           :label="$t('BuyLIFTTokens', {}, 'Buy LIFT Tokens')"
           color="pt-primary1"
           @click="navigateToCauldron"
+          class="action-btn"
         />
       </q-card-actions>
     </q-card>
@@ -221,8 +223,56 @@ export default {
 
 <style scoped>
 .upgrade-prompt-dialog {
-  min-width: 400px;
-  max-width: 500px;
+  width: min(500px, 90vw);
+  max-width: 90vw;
+}
+
+/* Ensure table is responsive on small screens */
+.limits-comparison :deep(.q-table) {
+  width: 100%;
+  table-layout: auto;
+}
+
+.limits-comparison :deep(.q-table__container) {
+  overflow-x: auto;
+}
+
+/* Responsive text sizing for small screens */
+@media (max-width: 480px) {
+  .upgrade-prompt-dialog {
+    margin: 8px;
+  }
+  
+  .upgrade-prompt-dialog :deep(.text-h6) {
+    font-size: 1.1rem;
+  }
+  
+  .upgrade-prompt-dialog :deep(.text-body2) {
+    font-size: 0.875rem;
+  }
+  
+  .upgrade-prompt-dialog :deep(.text-subtitle2) {
+    font-size: 0.9rem;
+  }
+  
+  /* Reduce padding on small screens */
+  .upgrade-prompt-dialog :deep(.q-card-section) {
+    padding: 12px 16px;
+  }
+  
+  .upgrade-prompt-dialog :deep(.q-card-actions) {
+    padding: 12px 16px;
+  }
+  
+  /* Stack buttons vertically on very small screens */
+  .responsive-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .responsive-actions .action-btn {
+    width: 100%;
+  }
 }
 
 .requirements-card {
