@@ -54,15 +54,17 @@
 
 <script setup>
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'components/header-nav'
 import { MultisigWallet, Pst } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 
+const $q = useQuasar()
 const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
@@ -88,23 +90,33 @@ const wallet = computed(() => {
   return walletObject
 })
 
-const psts = computed(() => {
-  try {
-    const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
-    return psbts?.map(psbtBase64 => {
-      const pst = Pst.fromPsbt(psbtBase64)
-      pst.setWallet(wallet.value)
-      return pst
-    })  
-  } catch (error) {
-    $q.dialog({
-      title: 'Error loading transaction proposals!',
-      message: error.message,
-      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-    })
-  }
-  return []
-})
+const pstsData = ref([])
+
+// Computed property is now pure - just returns the ref value
+const psts = computed(() => pstsData.value)
+
+// Watch dependencies and compute psts, handling errors in the watcher
+watch(
+  () => [route.params.wallethash, wallet.value, $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)],
+  () => {
+    try {
+      const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
+      pstsData.value = psbts?.map(psbtBase64 => {
+        const pst = Pst.fromPsbt(psbtBase64)
+        pst.setWallet(wallet.value)
+        return pst
+      }) || []
+    } catch (error) {
+      pstsData.value = []
+      $q.dialog({
+        title: 'Error loading transaction proposals!',
+        message: error.message,
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+      })
+    }
+  },
+  { immediate: true }
+)
 
 const importPsbt = () => {
   router.push({ 
