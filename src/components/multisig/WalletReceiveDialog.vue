@@ -85,9 +85,10 @@ const onDialogOkWrapper = () => {
   onDialogOK({ addressIndex: addressIndex.value })
 }
 
-watch(() => address.value?.address, (v) => {
+
+watch(() => address.value, (v) => {
   if (v) {
-    props.multisigWallet?.subscribeWalletAddress(address.value?.address)
+    props.multisigWallet?.subscribeWalletAddress(v.address)
   }
 })
 

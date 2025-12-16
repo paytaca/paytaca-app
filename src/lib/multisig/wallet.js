@@ -794,7 +794,7 @@ async getWalletTokenBalance(tokenCategory, decimals = 0) {
 }
 
 async subscribeWalletAddress(address) {
-  retryWithBackoff(async () => {
+  return retryWithBackoff(async () => {
     return await this.options?.store?.dispatch(
       'multisig/subscribeWalletAddress',
       address
