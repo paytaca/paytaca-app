@@ -253,10 +253,34 @@ export default {
 
       const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
       if (res.content) {
-        BarcodeScanner.showBackground()
-        BarcodeScanner.stopScan()
-        document.body.classList.remove('transparent-body')
-        vm.onQRDecode([{ rawValue: res.content }])
+        const _value = res.content
+        const isStreamingQR = _value?.startsWith('ur:crypto-mofnwallet') || _value?.startsWith('ur:crypto-psbt')
+        
+        // For streaming QR codes, process the part but continue scanning
+        if (isStreamingQR) {
+          const part = _value
+          vm.urDecoder.receivePart(part)
+          vm.progress = vm.urDecoder.estimatedPercentComplete()
+          
+          // If complete, process and stop scanning
+          if (vm.urDecoder.isComplete()) {
+            BarcodeScanner.showBackground()
+            BarcodeScanner.stopScan()
+            document.body.classList.remove('transparent-body')
+            vm.onQRDecode([{ rawValue: res.content }])
+          } else {
+            // Not complete yet, continue scanning without stopping
+            // Prepare scanner and continue scanning for next part
+            BarcodeScanner.prepare()
+            vm.scanBarcode()
+          }
+        } else {
+          // Non-streaming QR code - process normally and stop
+          BarcodeScanner.showBackground()
+          BarcodeScanner.stopScan()
+          document.body.classList.remove('transparent-body')
+          vm.onQRDecode([{ rawValue: res.content }])
+        }
       } else {
         BarcodeScanner.stopScan()
         document.body.classList.remove('transparent-body')
