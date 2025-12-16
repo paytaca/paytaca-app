@@ -1,0 +1,18 @@
+{
+  "free": {
+    "wallets": 3,
+    "favoriteTokens": 7,
+    "multisigWallets": 3,
+    "unclaimedGifts": 12,
+    "merchants": 3
+  },
+  "plus": {
+    "wallets": 12,
+    "favoriteTokens": 24,
+    "multisigWallets": 12,
+    "unclaimedGifts": 24,
+    "merchants": 7
+  },
+  "minLiftTokens": 100
+}
+

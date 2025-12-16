@@ -85,14 +85,22 @@ const onDialogOkWrapper = () => {
   onDialogOK({ addressIndex: addressIndex.value })
 }
 
-onMounted(() => {
-  addressIndex.value = 0
-  console.log(props.multisigWallet)
-  // console.log(props.multisigWallet)
-  if (props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex === undefined || props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex === -1) {
-    return addressIndex.value = 0
+
+watch(() => address.value, (v) => {
+  if (v) {
+    props.multisigWallet?.subscribeWalletAddress(v.address)
   }
-  addressIndex.value = Number(props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex )
+})
+
+onMounted(async () => {
+  addressIndex.value = 0
+  const lastIssuedDepositAddressIndex = Number(props.multisigWallet.networks[props.multisigWallet.options.provider.network].lastIssuedDepositAddressIndex)
+  if (lastIssuedDepositAddressIndex && lastIssuedDepositAddressIndex > 0) {
+    addressIndex.value = lastIssuedDepositAddressIndex
+  }
+  if (address.value?.address) {
+    await props.multisigWallet?.subscribeWalletAddress(address.value?.address)
+  }
 })
 
 </script>

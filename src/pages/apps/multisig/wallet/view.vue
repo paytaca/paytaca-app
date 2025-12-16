@@ -195,7 +195,6 @@ import {
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
-import UploadWalletDialog from 'components/multisig/UploadWalletDialog.vue'
 import WalletExportOptionsDialog from 'components/multisig/WalletExportOptionsDialog.vue'
 import WalletQrDialog from 'components/multisig/WalletQrDialog.vue'
 import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
@@ -253,18 +252,6 @@ const assetPrice = computed(() => {
     return b?.[`assetPriceIn${b?.currency}Text`] || ''
   }
 })
-
-const uploadWallet = () => {
-  $q.dialog({
-    component: UploadWalletDialog,
-    componentProps: {
-      multisigWallet: wallet.value,
-      darkMode: darkMode.value
-    }
-  }).onOk(async () => {
-    await $store.dispatch('multisig/uploadWallet', wallet.value)
-  })
-}
 
 const showWalletDepositDialog = () => {
   $q.dialog({
@@ -346,12 +333,6 @@ const openWalletActionsDialog = () => {
         color: 'red'
       },
       {
-        icon: 'cloud_upload',
-        label: $t('SyncWallet'),
-        value: 'sync-wallet',
-        color: 'primary'
-      },
-      {
         icon: 'mdi-file-export',
         label: $t('ExportWallet'),
         value: 'export-wallet',
@@ -373,9 +354,6 @@ const openWalletActionsDialog = () => {
         }).onCancel(() => {
           openWalletActionsDialog()
         })
-    }
-    if (action.value === 'sync-wallet') {
-      uploadWallet()
     }
     if (action.value === 'export-wallet') {
       showWalletExportOptionsDialog()

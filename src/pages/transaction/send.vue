@@ -784,6 +784,7 @@ export default {
       return null
     },
 
+
     // ========== main methods ==========
     // on component mount
     async initWallet () {
@@ -1384,8 +1385,50 @@ export default {
           if (token?.tokenId && this.userSelectedChangeAddress) {
             changeAddress = this.userSelectedChangeAddress
           }
+
+          // Extract fiat amounts for BCH transactions (including tokens)
+          let fiatAmounts = null
+          let fiatCurrency = null
+          let priceIdToUse = vm.priceId // Use priceId from BIP21 if available
+          
+          if (vm.asset.id === 'bch') {
+            // Build a map of normalized addresses to fiat amounts from toSendData
+            const addressToFiatMap = new Map()
+            toSendData.forEach(sendData => {
+              if (sendData.fiatAmount && sendData.recipientAddress) {
+                try {
+                  const addressObj = new Address(sendData.recipientAddress.trim())
+                  const normalizedAddress = addressObj.toCashAddress().toLowerCase()
+                  addressToFiatMap.set(normalizedAddress, sendData.fiatAmount)
+                } catch (e) {
+                  // Skip invalid addresses
+                }
+              }
+            })
+
+            // Map fiat amounts to match the order of toSendBchRecipients
+            fiatAmounts = []
+            toSendBchRecipients.forEach(recipient => {
+              const normalizedRecipientAddr = recipient.address.toLowerCase()
+              const fiatAmount = addressToFiatMap.get(normalizedRecipientAddr)
+              fiatAmounts.push(fiatAmount || null)
+            })
+
+            // Only include fiat amounts if at least one is available
+            if (fiatAmounts.some(amount => amount !== null && amount !== '')) {
+              fiatCurrency = vm.currentSendPageCurrency()
+              
+              // If no priceId from BIP21, get the price_id from the market store
+              if (!priceIdToUse && fiatCurrency) {
+                priceIdToUse = vm.$store.getters['market/getAssetPriceId'](vm.assetId, fiatCurrency)
+              }
+            } else {
+              fiatAmounts = null
+            }
+          }
+
           getWalletByNetwork(vm.wallet, 'bch')
-            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, vm.priceId)
+            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, priceIdToUse, fiatAmounts, fiatCurrency)
             .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
         } else if (toSendSlpRecipients.length > 0) {
           const tokenId = vm.assetId.split('slp/')[1]

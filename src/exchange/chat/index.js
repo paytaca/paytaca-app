@@ -403,13 +403,18 @@ async function getKeypairSeed () {
 export async function updateOrCreateKeypair (update = true) {
   console.log('Updating chat encryption keypair')
   const seed = await getKeypairSeed()
+  
+  if (!seed || typeof seed !== 'string' || seed.length === 0) {
+    throw new Error('Failed to get wallet private key from path 0 - cannot generate memo keypair. Memos require a deterministic keypair derived from the wallet.')
+  }
+  
   const keypair = generateKeypair({ seed: seed })
 
   try {
     const storedKeypair = await getKeypair()
-    if (storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
+    if (storedKeypair && storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
       console.log('Chat encryption keypair still updated')
-      return
+      return keypair // Return the keypair, not undefined
     }
 
   } catch (error) {

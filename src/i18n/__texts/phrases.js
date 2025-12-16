@@ -142,6 +142,7 @@ const phrases = {
       NoIgnoredTokens: "No ignored tokens",
       NoInternetConnectionNotice: "You have lost connection to the internet. This app is offline.",
       NoTokensFound: "No tokens found",
+      TokenNotListedInCauldron: "The token with category ID {categoryId} has not been listed in Cauldron DEX.",
       NoTransactionsToDisplay: "No transactions to display",
       OpenSourceCode: "Open source code",
       OrderNo: "Order number",
@@ -579,7 +580,7 @@ const phrases = {
       DeleteWallet: "Delete Wallet",
       DeleteWalletDescription: "Are you sure you want to delete this wallet?",
       DeletingMerchant: "Deleting Merchant",
-      UTXOScanComplete: "UTXO scan completed at",
+      UTXOScanComplete: "UTXO scan completed",
       UTXOScanOngoing: "UTXO scan ongoing, started",
       InvalidAmount: "Invalid amount",
       MinDuration: "Min Duration",
@@ -1489,7 +1490,7 @@ const phrases = {
       ExclusiveAppFeatures: 'Exclusive app features',
       ReducedFees: 'Reduced fees',
       GovernanceParticipation: 'Governance participation',
-      CommunityRewards: 'Community rewards',
+      CommunityRewards: 'Community rewards and airdrops',
       TokenDetails: 'Token Details',
       Decimals: 'Decimals',
       CategoryID: 'Category ID',
@@ -1754,8 +1755,25 @@ const phrases = {
       ImportTxProposal: 'Import Tx Proposal',
       ExportTransaction: 'Export Transaction',
       ExportTransactionDescription: 'Export the transaction proposal so you can share it with your cosigners.',
-      DisplayTxQRCode: 'Display Tx QR Code',
+      DisplayTxQRCode: 'Display Tx QR Code'
     },
+    {
+      Connect: 'Connect',
+      SpecifyAddressHeader: 'Specify the address for this wallet connection session',
+      SingleSigAddressSelectionHeader: 'Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.',
+      AddressNotFoundOnThisWallet: 'Address not found on this wallet',
+      EnterAddressIndex: 'Enter the address index (optional)',
+      AddressIndexHintLabel: 'Example: Enter 1 if you\'re referring to address at path 0/1. If you don\'t know the index, leave this blank. The device will try to find the address by scanning the address set from 0 to last used address index',
+      Address: 'Address',
+      AddressIndexLabel: 'Address Index',
+      IwantToProvideSpecificAddress: 'I want to provide specific address',
+      WcPasteSessionURLLabel: 'Paste session URL',
+      SessionURL: 'Session URL',
+      WcScanOrPasteURL: 'In the app you want to connect to, open the wallet-connect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new wallet connect session.',
+      InitiateNewSession: 'Initiate new wallet connect session',
+      Sign: 'Sign',
+      Reject: 'Reject'
+    }
   ],
   dynamic: [
     {
@@ -1872,6 +1890,7 @@ const phrases = {
       WebsiteDescription: 'Visit {website}',
       TransactionProposalPending: 'You have {count} transaction proposal pending. This feature doesn\'t support creating of tx proposal while there\'s atleast 1 pending! This will change in the future.',
       SignerNamePlaceholder: 'Signer {index}\'s name',
+      WcSelectAddressHeader: 'Select the address you want to connect to {peerName}.',
     }
   ]
 }

@@ -137,6 +137,11 @@
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Subscription', {}, 'Subscription') }}</p>
+            <SubscriptionStatus :dark-mode="darkMode" />
+        </div>
+
+        <div class="col-12 q-px-lg q-mt-md">
           <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Personalize') }}</p>
           <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
             <q-item>
@@ -220,7 +225,7 @@
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" caption>{{ $t('Version') }}</q-item-label>
-                  <q-item-label class="pt-label text-grad" :class="getDarkModeClass(darkMode)">v{{ appVersion }}</q-item-label>
+                  <q-item-label class="pt-label text-grad" :class="getDarkModeClass(darkMode)">{{ appVersion }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -279,6 +284,7 @@ import CurrencySelector from '../../components/settings/CurrencySelector'
 import AdvertisementsSettings from 'src/components/settings/AdvertisementsSettings.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
+import SubscriptionStatus from 'src/components/subscription/SubscriptionStatus.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { loadWallet, getMnemonic } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -313,7 +319,8 @@ export default {
     CurrencySelector,
     ThemeSelector,
     AdvertisementsSettings,
-    RenameDialog
+    RenameDialog,
+    SubscriptionStatus
   },
   computed: {
     isMobile () {

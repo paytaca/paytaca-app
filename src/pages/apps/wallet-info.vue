@@ -3,67 +3,11 @@
     <header-nav :title="$t('Support', {}, 'Support')" backnavpath="/apps" class="header-nav header-nav apps-header" />
     <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
       <div class="col-12 q-px-lg q-mt-md">
-        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('WalletManagement', {}, 'Wallet Management') }}</p>
-        <q-list class="pt-card wallet-info-list" :class="getDarkModeClass(darkMode)">
-          <q-item>
-            <q-item-section>
-              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletName') }}</q-item-label>
-              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
-                {{ currentWalletName }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section side>
-              <q-btn
-                no-caps
-                class="button"
-                :label="$t('Rename')"
-                @click="openRenameDialog()"
-              />
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </div>
-      <div class="col-12 q-px-lg q-mt-md">
-        <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('BchAddresses') }}</p>
-        <q-list class="pt-card wallet-info-list" :class="getDarkModeClass(darkMode)">
-          <q-item clickable v-ripple>
-            <q-item-section>
-              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('DerivationPath') }}</q-item-label>
-              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
-                {{ getWallet('bch').derivationPath }}
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').xPubKey)">
-            <q-item-section>
-              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('XpubKey') }}</q-item-label>
-              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
-                {{ getWallet('bch').xPubKey }}
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-ripple @click="copyToClipboard(getWalletMasterFingerprint('bch'))">
-            <q-item-section>
-              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('MasterFingerprint') }}</q-item-label>
-              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
-                {{ getWalletMasterFingerprint('bch') }}
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-ripple @click="copyToClipboard(getWallet('bch').walletHash)">
-            <q-item-section>
-              <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
-              <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
-                {{ getWallet('bch').walletHash }}
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
         <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
-          {{ $t('ScanTools') }}
+          {{ $t('WalletTools', {}, 'Wallet Tools') }}
         </p>
         <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-          <q-item>
+          <q-item clickable v-ripple @click="scanUtxos" :disable="scanningUtxos">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                 {{ $t('UtxoScan') }}
@@ -71,44 +15,15 @@
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
                 {{ $t('UtxoScanDescription') }}
               </q-item-label>
-              <q-banner
-                v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.completedAt"
-                dense
-                class="rounded-borders q-mt-sm pt-card-2 text-bow"
-                :class="getDarkModeClass(darkMode, '', 'bg-grey-2')"
-              >
-                {{ $t('UTXOScanComplete') }} {{ formatTimestampToText(bchUtxoScanTaskInfo?.completedAt) }}
-                <template v-slot:action>
-                  <q-btn
-                    no-caps flat
-                    class="button button-text-primary"
-                    :class="getDarkModeClass(darkMode)"
-                    :label="$t('Dismiss')"
-                    @click="$store.commit('global/removeUtxoScanTask', bchUtxoScanTaskInfo?.walletHash)"
-                  />
-                </template>
-              </q-banner>
-              <div v-if="bchUtxoScanOngoing" class="text-center text-grey q-mt-sm">
-                <template v-if="bchUtxoScanTaskInfo?.taskId && bchUtxoScanTaskInfo?.queueInfo?.time_start">
-                  {{ $t('UTXOScanOngoing') }} {{ formatRelativeTime(bchUtxoScanTaskInfo?.queueInfo?.time_start * 1000) }}
-                </template>
-                <template v-else>
-                  {{ $t('ScanningForUtxos') }}
-                </template>
-              </div>
             </q-item-section>
-            <q-item-section side>
-              <q-btn
-                no-caps
-                class="button"
-                :disable="bchUtxoScanOngoing"
-                :loading="bchUtxoScanOngoing"
-                :label="$t('Scan')"
-                @click="scanBCHUtxos()"
-              />
+            <q-item-section avatar>
+              <q-icon name="search" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+            </q-item-section>
+            <q-item-section side v-if="scanningUtxos">
+              <q-spinner color="primary" size="20px" />
             </q-item-section>
           </q-item>
-          <q-item>
+          <q-item clickable v-ripple @click="scanAddresses" :disable="scanningAddresses">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
                 {{ $t('AddressScan') }}
@@ -116,19 +31,12 @@
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
                 {{ $t('AddressScanDescription') }}
               </q-item-label>
-              <div v-if="scanningBchAddresses" class="text-center text-grey q-mt-sm">
-                {{ $t('ScanningForUntrackedAddr') }}
-              </div>
             </q-item-section>
-            <q-item-section side>
-              <q-btn
-                no-caps
-                class="button"
-                :disable="scanningBchAddresses"
-                :loading="scanningBchAddresses"
-                :label="$t('Scan')"
-                @click="scanBCHAddresses()"
-              />
+            <q-item-section avatar>
+              <q-icon name="mdi-map-search" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+            </q-item-section>
+            <q-item-section side v-if="scanningAddresses">
+              <q-spinner color="primary" size="20px" />
             </q-item-section>
           </q-item>
         </q-list>
@@ -251,15 +159,9 @@
 <script>
 import HeaderNav from '../../components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getMnemonic, Wallet } from '../../wallet'
+import { loadWallet, getMnemonic } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import { markRaw } from '@vue/reactivity'
-import ago from 's-ago'
-import { marketplacePushNotificationsManager } from 'src/marketplace/push-notifications'
-import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
-import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
-import { binToHex, deriveHdPrivateNodeFromSeed, deriveHdPublicNode, hash160 } from '@bitauth/libauth'
-import { deriveSeedFromBip39Mnemonic } from 'bitauth-libauth-v3'
+
 export default {
   name: 'app-support',
   components: {
@@ -268,11 +170,9 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      wallet: null,
-      scanningBchUtxos: false,
-      scanningBchAddresses: false,
-      bchAddressScanResponseDialog: null,
-      prevUtxoStatusUpdateTimeout: null
+      scanningUtxos: false,
+      scanningAddresses: false,
+      utxoScanPollInterval: null
     }
   },
   computed: {
@@ -282,197 +182,10 @@ export default {
       if (theme === 'glassmorphic-green') return 'green-6'
       if (theme === 'glassmorphic-gold') return 'amber-7'
       return 'blue-6'
-    },
-    bchUtxoScanTaskInfo() {
-      let walletHash = this.getWallet('bch')?.walletHash
-      if (this.wallet) walletHash = getWalletByNetwork(this.wallet, 'bch').walletHash
-
-      const utxoScanInfo = this.$store.getters['global/getUtxoScanInfo'](walletHash)
-      if (utxoScanInfo) {
-        // if task was added 1 hour ago, consider as not scanning anymore
-        const expiry = Date.now() - (60 * 60 * 1000 )
-        utxoScanInfo.expired = expiry > utxoScanInfo.timestamp
-
-        utxoScanInfo.walletHash = walletHash
-      }
-      return utxoScanInfo
-    },
-    bchUtxoScanOngoing() {
-      if (this.scanningBchUtxos) return true
-      if (this.bchUtxoScanTaskInfo?.taskId) {
-        if (this.bchUtxoScanTaskInfo.completedAt) return false
-        if (this.bchUtxoScanTaskInfo.expired) return false
-        return true
-      }
-      return false
     }
   },
   methods: {
     getDarkModeClass,
-    formatTimestampToText(timestamp) {
-      const dateObj = new Date(timestamp)
-      return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'medium' }).format(dateObj)
-    },
-    formatRelativeTime (date) {
-      return ago(new Date(date))
-    },
-    loadWallet () {
-      const vm = this
-      return getMnemonic(vm.$store.getters['global/getWalletIndex'])
-        .then(function (mnemonic) {
-          const wallet = new Wallet(mnemonic, 'BCH')
-          vm.wallet = markRaw(wallet)
-        })
-    },
-    updateUtxoScanTasksStatus(nextUpdate=5*1000, age=0) {
-      const bchWalletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()  
-
-      const updateScanPromise = this.$store.dispatch('global/updateUtxoScanTaskStatus', { walletHash: bchWalletHash, age: age })
-
-      updateScanPromise
-        .finally(() => {
-          if (Number.isSafeInteger(nextUpdate)) {
-            clearTimeout(this.prevUtxoStatusUpdateTimeout)
-            this.prevUtxoStatusUpdateTimeout = setTimeout(
-              () => this.updateUtxoScanTasksStatus(nextUpdate),
-              nextUpdate,
-            )
-          }
-        })
-    },
-    async scanBCHUtxos() {
-      if (!this.wallet) await this.loadWallet()
-
-      this.scanningBchUtxos = true
-      getWalletByNetwork(this.wallet, 'bch').scanUtxos({ background: true })
-        .then(response => {
-          if (response?.data?.task_id) {
-            this.$store.commit('global/setUtxoScanTask', {
-              walletHash: getWalletByNetwork(this.wallet, 'bch').getWalletHash(),
-              taskId: response.data.task_id,
-            })
-            this.updateUtxoScanTasksStatus()
-          }
-        })
-        .finally(() => {
-          this.scanningBchUtxos = false
-        })
-    },
-    async scanBCHAddresses() {
-      if (!this.wallet) await this.loadWallet()
-      const lastAddressFromStore = this.$store.getters['global/getWallet']('bch')?.lastAddress
-      const lastAddressIndexFromStore = this.$store.getters['global/getWallet']('bch')?.lastAddressIndex
-      const lastAddressIndex = (Number.isSafeInteger(lastAddressIndexFromStore) && lastAddressIndexFromStore >= 0)
-        ? lastAddressIndexFromStore
-        : -1
-      const count = 5
-
-      this.scanningBchAddresses = true
-      getWalletByNetwork(this.wallet, 'bch').scanAddresses({ startIndex: lastAddressIndex+1, count: count })
-        .then(response => {
-          if (!response.success) return Promise.reject(response)
-          if (!Array.isArray(response?.subscriptionResponses)) return Promise.reject(response)
-
-          const subscribedAddressSets = response.subscriptionResponses
-            .filter(subscriptionResponse => subscriptionResponse?.success)
-            .map(subscriptionResponse => subscriptionResponse?.address_set)
-            .filter(addressSet => {
-              if (!Number.isSafeInteger(addressSet.address_index)) return false
-              if (!addressSet.addresses.receiving) return false
-              if (!addressSet.addresses.change) return false
-              return true
-            })
-
-          // extract address set with greatest address_index
-          const latestAddressSet = subscribedAddressSets
-            .reduce((_latest, addressSet) => {
-              if (addressSet.address_index < _latest?.address_index) return _latest
-              return addressSet
-            }, null)
-
-          if (latestAddressSet?.address_index >= lastAddressIndex) {
-            this.$store.commit('global/generateNewAddressSet', {
-              type: 'bch',
-              lastAddress: latestAddressSet.addresses.receiving,
-              lastChangeAddress: latestAddressSet.addresses.change,
-              lastAddressIndex: latestAddressSet.address_index
-            })
-            if (latestAddressSet.addresses.receiving !== lastAddressFromStore) {
-              this.bchAddressScanResponseDialog?.hide?.()
-              this.bchAddressScanResponseDialog = this.$q.dialog({
-                title: 'BCH address scan complete',
-                html: true,
-                message: [
-                  `Latest address is now:<br/>`,
-                  latestAddressSet.addresses.receiving,
-                  lastAddressFromStore ? `<br/><br/>Previous:<br/>${lastAddressFromStore}` : '',
-                ].join(''),
-                ok: true,
-                seamless: true,
-                class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
-                style: 'word-break:break-word;',
-              })
-            }
-          }
-          return Promise.resolve({
-            scanMore: subscribedAddressSets?.length >= count
-          })
-        })
-        .then(postScanResponse => {
-          if (postScanResponse?.scanMore) this.scanBCHAddresses()
-        })
-        .finally(() => {
-          this.scanningBchAddresses = false
-        })
-    },
-    getWallet (type) {
-      const wallet = this.$store.getters['global/getWallet'](type)
-      // Return wallet if it exists, otherwise return a safe default object
-      if (!wallet) {
-        // Return a minimal wallet object to prevent errors
-        return {
-          walletHash: '',
-          derivationPath: '',
-          xPubKey: '',
-          lastAddress: '',
-          lastChangeAddress: '',
-          lastAddressIndex: 0,
-          subscribed: false
-        }
-      }
-      return wallet
-    },
-    getWalletMasterFingerprint(type) {
-      const w = this.$store.getters['global/getWallet'](type)
-      if (!this.wallet?.mnemonic) return 
-      return binToHex(
-          hash160(
-          deriveHdPublicNode(
-            deriveHdPrivateNodeFromSeed(
-              deriveSeedFromBip39Mnemonic(this.wallet.mnemonic)
-            )).publicKey
-          ).slice(0, 4)
-      )
-    },
-    copyToClipboard (value) {
-      this.$copyText(value)
-      this.$q.notify({
-        message: this.$t('CopiedToClipboard'),
-        timeout: 200,
-        color: 'blue-9',
-        icon: 'mdi-clipboard-check'
-      })
-    },
-    openRenameDialog () {
-      const vm = this
-      const walletIndex = vm.$store.getters['global/getWalletIndex']
-      vm.$q.dialog({
-        component: RenameDialog,
-        componentProps: {
-          index: walletIndex
-        }
-      })
-    },
     showDeleteDialog () {
       const vm = this
       vm.disableDeleteButton = true
@@ -510,13 +223,162 @@ export default {
       } else {
         window.open(url, '_blank', 'noopener,noreferrer')
       }
+    },
+    async scanUtxos () {
+      const vm = this
+      if (vm.scanningUtxos) return
+      
+      vm.scanningUtxos = true
+      try {
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        const wallet = await loadWallet('BCH', walletIndex)
+        const isChipnet = vm.$store.getters['global/isChipnet']
+        const bchWallet = getWalletByNetwork(wallet, 'bch')
+        const walletHash = bchWallet.walletHash
+        
+        const response = await bchWallet.scanUtxos({ background: true })
+        const taskId = response?.data?.task_id || response?.data?.taskId
+        
+        if (taskId) {
+          // Store the task in the store
+          vm.$store.commit('global/setUtxoScanTask', {
+            walletHash: walletHash,
+            taskId: taskId,
+            status: 'PENDING',
+            completedAt: 0
+          })
+          
+          vm.$q.notify({
+            message: vm.$t('UTXOScanOngoing', {}, 'UTXO scan started in the background'),
+            timeout: 3000,
+            color: 'blue-9',
+            icon: 'check_circle'
+          })
+          
+          // Poll for completion (loader will be turned off in pollUtxoScanStatus)
+          vm.pollUtxoScanStatus(walletHash)
+        } else {
+          throw new Error('No task ID returned from scan')
+        }
+      } catch (error) {
+        console.error('Error starting UTXO scan:', error)
+        vm.scanningUtxos = false
+        vm.$q.notify({
+          message: vm.$t('ErrorStartingUtxoScan', {}, 'Failed to start UTXO scan'),
+          timeout: 3000,
+          color: 'red-9',
+          icon: 'error'
+        })
+      }
+    },
+    async pollUtxoScanStatus (walletHash) {
+      const vm = this
+      // Clear any existing polling interval
+      if (vm.utxoScanPollInterval) {
+        clearInterval(vm.utxoScanPollInterval)
+      }
+      
+      const maxAttempts = 120 // Poll for up to 10 minutes (5 second intervals)
+      let attempts = 0
+      
+      vm.utxoScanPollInterval = setInterval(async () => {
+        attempts++
+        
+        try {
+          const result = await vm.$store.dispatch('global/updateUtxoScanTaskStatus', {
+            walletHash: walletHash,
+            age: 5000 // Only update if last update was more than 5 seconds ago
+          })
+          
+          if (result.success && result.taskInfo) {
+            const status = result.taskInfo.status
+            
+            if (status === 'SUCCESS') {
+              clearInterval(vm.utxoScanPollInterval)
+              vm.utxoScanPollInterval = null
+              vm.scanningUtxos = false
+              
+              vm.$q.notify({
+                message: vm.$t('UTXOScanComplete', {}, 'UTXO scan completed'),
+                timeout: 5000,
+                color: 'green-9',
+                icon: 'check_circle'
+              })
+            } else if (status === 'FAILURE') {
+              clearInterval(vm.utxoScanPollInterval)
+              vm.utxoScanPollInterval = null
+              vm.scanningUtxos = false
+              vm.$q.notify({
+                message: vm.$t('UTXOScanFailed', {}, 'UTXO scan failed'),
+                timeout: 5000,
+                color: 'red-9',
+                icon: 'error'
+              })
+            }
+          }
+          
+          // Stop polling after max attempts
+          if (attempts >= maxAttempts) {
+            clearInterval(vm.utxoScanPollInterval)
+            vm.utxoScanPollInterval = null
+            vm.scanningUtxos = false
+          }
+        } catch (error) {
+          // If update fails (e.g., no task found), stop polling
+          if (error?.error === 'no ongoing task id found') {
+            clearInterval(vm.utxoScanPollInterval)
+            vm.utxoScanPollInterval = null
+            vm.scanningUtxos = false
+          }
+        }
+      }, 5000) // Poll every 5 seconds
+    },
+    async scanAddresses () {
+      const vm = this
+      if (vm.scanningAddresses) return
+      
+      vm.scanningAddresses = true
+      try {
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        const wallet = await loadWallet('BCH', walletIndex)
+        const isChipnet = vm.$store.getters['global/isChipnet']
+        const bchWallet = getWalletByNetwork(wallet, 'bch')
+        
+        const lastAddressIndex = vm.$store.getters['global/getWallet']('bch')?.lastAddressIndex || 0
+        const startIndex = Math.max(0, lastAddressIndex - 10)
+        const count = 20
+        
+        const result = await bchWallet.scanAddresses({ startIndex, count })
+        
+        if (result.success) {
+          vm.$q.notify({
+            message: vm.$t('AddressScanComplete', {}, 'Address scan completed successfully'),
+            timeout: 3000,
+            color: 'blue-9',
+            icon: 'check_circle'
+          })
+        } else {
+          throw new Error(result.error || 'Address scan failed')
+        }
+      } catch (error) {
+        console.error('Error scanning addresses:', error)
+        vm.$q.notify({
+          message: vm.$t('ErrorScanningAddresses', {}, 'Failed to scan addresses'),
+          timeout: 3000,
+          color: 'red-9',
+          icon: 'error'
+        })
+      } finally {
+        vm.scanningAddresses = false
+      }
     }
   },
-  beforeUnmount() {
-    clearTimeout(this.prevUtxoStatusUpdateTimeout)
-  },
-  mounted () {
-    this.loadWallet().then(() => this.updateUtxoScanTasksStatus())
+  beforeUnmount () {
+    // Clean up polling interval when component is destroyed
+    if (this.utxoScanPollInterval) {
+      clearInterval(this.utxoScanPollInterval)
+      this.utxoScanPollInterval = null
+    }
   }
 }
 </script>

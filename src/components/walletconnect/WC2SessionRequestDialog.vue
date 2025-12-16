@@ -52,30 +52,29 @@
         <template v-else>
           <JSONRenderer :value="sessionRequest?.params?.request" :darkMode="darkMode"/>
         </template>
-
-        <div class="row items-center q-gutter-x-sm q-my-md">
-          <q-btn
-            :loading="loading"
-            :disable="disable"
-            no-caps
-            :label="$t('Accept')"
-            icon="check" color="green"
-            padding="xs md"
-            class="q-space"
-            @click.stop="() => emitAccept()"
-          />
-          <q-btn
+      </q-card-section>
+      <q-card-actions class="row justify-around q-pa-md q-mt-xl">
+        <q-btn
+            outline
+            color="negative"
             :loading="loading"
             :disable="disable"
             no-caps
             :label="$t('Reject')"
-            icon="close" color="red"
-            padding="xs md"
-            class="q-space"
+            class="col-5 col-sm-3"
             @click.stop="() => emitReject()"
           />
-        </div>
-      </q-card-section>
+        <q-btn
+            :loading="loading"
+            :disable="disable"
+            color="primary"
+            :label="$t('Accept')"
+            rounded
+            class="col-5 col-sm-3"
+            no-caps
+            @click.stop="() => emitAccept()"
+          />
+      </q-card-actions>
     </q-card>
   </q-dialog>
 </template>

@@ -35,13 +35,13 @@ export default {
   },
   methods: {
     parseLockupStatusChip(purchase) {
-      if (purchase.is_done_vesting) {
-        return "comp";
+      if (!purchase.is_done_vesting) {
+        if (purchase.purchase_vesting_details.every(detail => !detail.tx_id)
+          && !purchase.is_done_vesting) return 'lock'
+        else if (purchase.purchase_vesting_details.some(detail => detail.tx_id)
+          && !purchase.is_done_vesting) return 'vest'
       }
-      if (purchase.purchase_vesting_details.some(detail => detail.vested_date) 
-          && !purchase.is_done_vesting
-      ) return 'vest'
-      return 'lock'
+      return 'comp'
     },
     getStatusLabel(status) {
       const labels = {

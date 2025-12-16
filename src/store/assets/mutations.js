@@ -143,7 +143,7 @@ export function updateAssetImageUrl (state, data) {
   if (!Array.isArray(assets)) return
 
   for (var i = 0; i < assets.length; i++) {
-    if (assets[i] && state.assets[i].id === data.assetId) {
+    if (assets[i] && assets[i].id === data.assetId) {
       assets[i].logo = data.imageUrl
       break
     }
