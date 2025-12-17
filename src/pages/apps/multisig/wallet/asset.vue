@@ -186,6 +186,9 @@ const assetHeaderName = computed(() => {
 
 const assetHeaderIcon = computed(() => {
   if (route.query.asset === 'bch') return 'img:bitcoin-cash-circle.svg'
+  if (assetTokenIdentity.value?.uris?.icon?.includes('nftstorage.link') || assetTokenIdentity.value?.uris?.icon?.startsWith('ipfs://')) {
+    return `https://cashtokens.studio/api/ipfs-image?url=${encodeURIComponent(assetTokenIdentity.value?.uris?.icon)}`
+  }
   return assetTokenIdentity.value?.uris?.icon || 'token'
 })
 
