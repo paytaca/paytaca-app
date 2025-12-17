@@ -3,8 +3,14 @@
   <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="$t('TxProposals')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav" />
     <div class="row items-center justify-center full-height">
+      <q-btn color="red" icon="clear_all" @click="clearAll" rounded outline>
+              {{ $t('ClearAll') }}
+            </q-btn>
         <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
           <div class="row justify-end q-gutter-x-sm q-mb-md">
+            <q-btn color="red" icon="clear_all" @click="clearAll" rounded outline>
+              {{ $t('ClearAll') }}
+            </q-btn>
             <q-btn color="primary" icon="upload" @click="importPsbt" rounded outline>
               {{ $t('Import') }}
             </q-btn>
@@ -127,6 +133,31 @@ const importPsbt = () => {
     },
     query: {
       description: 'You can import an unsigned or partially signed transaction proposal by scanning a QR code or loading from file.',
+    }
+  })
+}
+
+const clearAll = () => {
+  $q.dialog({
+    title: $t('ClearingAllTxProposals'),
+    message: $t('ClearingAllTxProposalsConfirmationMessage'),
+    // 'Are you sure you want to clear all transaction proposals? This action cannot be undone.',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+    ok: {
+      label: 'Yes',
+      color: 'primary',
+      rounded: true
+    },
+    cancel: {
+      label: 'No',
+      color: 'primary',
+      rounded: true,
+      outline: true
+    }
+  }).onOk(() => {
+    for (const pst of psts.value) {
+      pst.setStore($store)
+      pst.delete({sync: false})
     }
   })
 }
