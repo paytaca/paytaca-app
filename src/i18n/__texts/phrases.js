@@ -1623,7 +1623,7 @@ const phrases = {
       FailedToSweepSomeTokens: 'Failed to sweep some tokens',
       FailedToGetAddress: 'Failed to get address',
       EmptyBalancesError: 'Both the address and your wallet have insufficient BCH balance to be able to sweep the token(s) below',
-      UseWalletBalance: 'Balance from your wallet will be used to sweep the token(s) below',
+      UseWalletBalance: 'BCH balance from your wallet will be used for transaction fees.',
       ManualCashTokensSweep: 'Manual CashTokens Sweep',
       SelectTokensToSweep: 'Select Tokens to Sweep',
       SelectPointsToSweep: 'Select Points to Sweep',

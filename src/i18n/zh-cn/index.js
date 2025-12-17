@@ -2056,7 +2056,7 @@ export default {
   UsePoolPricing: "Use Pool Pricing",
   UseSystemGeneratedChangeAddress: "Use a system generated change address",
   UseSystemGeneratedChangeAddressHelp: "For improved privacy, Paytaca will select your change address for you.",
-  UseWalletBalance: "Balance from your wallet will be used to sweep the token(s) below",
+  UseWalletBalance: "BCH balance from your wallet will be used for transaction fees.",
   UsedFundingProposal: "Funding proposal is already used",
   UserNotTransacted: "User has not yet transacted",
   UserRejected: "User rejected",

@@ -95,140 +95,122 @@
           :class="cashTokensCount <= 0 ? 'wide-margin-top' : ''"
         >
           <div v-if="sweeper && Number.isFinite(bchBalance)">
-            <div class="q-mb-sm">
-              <div class="text-subtitle1 text-weight-medium">BCH</div>
-              <div>
-                {{ ellipsisText(sweeper.bchAddress) }}
-                <q-icon name="mdi-content-copy" @click="copyToClipboard(sweeper.bchAddress)" />
-              </div>
-            </div>
-
-            <div class="bch-balance">
-              <p>{{ $t('BchBalance') }}: {{ bchBalance }}</p>
-              <q-btn
-                v-if="!sweeping && (cashTokensCount > 0 || bchBalance > 0)"
-                color="primary"
-                :disabled="!hasEnoughBalances"
-                :label="(cashTokensCount - skippedTokens.length) > 0 ? $t('SweepAll') : $t('Sweep')"
-                @click.prevent="sweepAll"
-              />
-              <div v-if="sweeping">
-                <progress-loader />
-              </div>
-              <span v-else class="row q-mt-xs text-red">
-                <template v-if="cashTokensCount === 0 && bchBalance === 0">{{ $t('SweepErrMsg1') }}</template>
-                <i v-else-if="!hasEnoughBalances">{{ $t('EmptyBalancesError') }}</i>
-                <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance') }}</i>
-              </span>
-            </div>
-          </div>
-
-          <div v-if="fungibleCashTokens?.length || nonFungibleCashTokens?.length" class="q-mt-md">
-            <div class="row items-center q-mb-sm relative-position">
-              <div class="q-space">
-                <div class="text-subtitle1 text-weight-medium">
-                    {{ $t('CashTokens') }} ({{ cashTokensCount }})
+            <!-- Address Display - Always show -->
+            <div class="q-mb-lg q-px-md address-section">
+              <div class="address-card q-pa-md rounded-borders q-mb-md">
+                <div class="text-caption text-weight-medium q-mb-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="text-transform: uppercase; letter-spacing: 0.5px;">
+                  {{ $t('Address') }}
                 </div>
-                <div>
-                  {{ ellipsisText(sweeper.tokenAddress) }}
-                  <q-icon name="mdi-content-copy" @click.stop="copyToClipboard(sweeper.tokenAddress)" />
+                <div class="text-body2 text-weight-medium q-mb-sm" :class="darkMode ? 'text-grey-3' : 'text-grey-9'" style="word-break: break-all;">
+                  {{ sweeper.bchAddress }}
+                  <q-icon name="mdi-content-copy" size="18px" @click="copyToClipboard(sweeper.bchAddress)" class="q-ml-xs cursor-pointer copy-icon" />
                 </div>
+                <a
+                  :href="getAddressExplorerLink(sweeper.bchAddress)"
+                  target="_blank"
+                  class="text-primary text-body2 explorer-link"
+                  style="text-decoration: none; font-weight: 500;"
+                >
+                  {{ $t('ViewInExplorer', {}, 'View in Explorer') }}
+                  <q-icon name="open_in_new" size="16px" class="q-ml-xs" />
+                </a>
+              </div>
+              
+              <div v-if="allAssets.length > 0" class="text-center text-subtitle1 text-weight-medium q-mt-lg" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('CheckTheAssetsThatYouWouldLikeToSweep', {}, 'Check the assets that you would like to sweep') }}
               </div>
             </div>
 
-            <div class="row justify-center q-my-sm">
-              <q-btn
-                outline
-                color="primary"
-                :label="$t('ManualCashTokensSweep')"
-                :disabled="!hasEnoughBalances"
-                @click.prevent="expandCashTokens = !expandCashTokens"
-              />
-            </div>
-
-            <q-slide-transition>
-              <div v-if="expandCashTokens">
-                <span class="row justify-center text-subtitle1 q-mb-sm">
-                  {{ isHongKong(currentCountry) ? $t('SelectPointsToSweep') : $t('SelectTokensToSweep') }}
-                </span>
-
-                <div v-for="(fungibleToken, index) in fungibleCashTokens" :key="index" class="token-details">
-                  <div class="row items-center justify-between">
-                    <span class="text-subtitle1 text-weight-bold">
-                      {{ fungibleToken?.parsedMetadata?.name }}
-                    </span>
-                    <img
-                      v-if="fungibleToken?.parsedMetadata?.fungible && fungibleToken?.parsedMetadata?.imageUrl"
-                      :src="fungibleToken?.parsedMetadata?.imageUrl"
-                      height="35px"
-                      alt="CT"
-                    />
-                  </div>
-                  <p>
-                    {{ $t('Category') }}:
-                    {{ ellipsisText(fungibleToken?.category) }}
-                    <q-icon name="mdi-content-copy" @click="copyToClipboard(fungibleToken?.category)" />
-                  </p>
-                  <p>{{ $t('Symbol') }}: {{ fungibleToken?.parsedMetadata?.symbol }}</p>
-                  <p>{{ $t('Amount') }}: {{ round(fungibleToken?.balance, fungibleToken?.parsedMetadata?.decimals) }}</p>
-
-                  <div v-if="selectedToken !== fungibleToken.category">
-                    <q-btn
-                      color="primary"
-                      :label="$t('Sweep')"
-                      @click.prevent="sweepCashTokenFungible([fungibleToken])"
-                      :disabled="sweeping || skippedTokens.includes(fungibleToken.category)"
-                    />
-                    <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
-                    <q-checkbox
-                      :label="$t('Skip')"
-                      v-model="skippedTokens"
-                      v-bind:val="fungibleToken.category"
-                    />
-                  </div>
-                  <div v-if="sweeping && selectedToken === fungibleToken.category">
+            <!-- Asset List - Only show if there are assets -->
+            <div v-if="allAssets.length > 0">
+              <div class="q-px-md">
+                <q-list class="asset-list">
+                <q-card
+                  v-for="(asset, index) in allAssets"
+                  :key="asset.id"
+                  class="q-py-sm q-my-sm br-15 asset-card"
+                  :class="{ 
+                    'sweeping': sweeping && selectedToken === asset.id,
+                    'cursor-pointer': !sweeping && !skippedTokens.includes(asset.id)
+                  }"
+                  @click="handleAssetClick(asset.id)"
+                >
+                  <q-item class="no-hover-effect">
+                    <q-item-section avatar>
+                      <q-avatar>
+                        <img :src="getImageUrl(asset)" :alt="asset.name">
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <div class="text-bold">{{ asset.name }}</div>
+                      <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                        {{ formatAssetBalance(asset) }}
+                      </div>
+                      <div v-if="getAssetFiatValue(asset)" class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                        {{ getAssetFiatValue(asset) }}
+                      </div>
+                    </q-item-section>
+                    <q-item-section side>
+                      <div 
+                        class="custom-circular-checkbox"
+                        :class="{ 
+                          'selected': selectedAssets.includes(asset.id),
+                          'disabled': sweeping || skippedTokens.includes(asset.id)
+                        }"
+                      >
+                        <q-icon 
+                          :name="selectedAssets.includes(asset.id) ? 'check_circle' : 'radio_button_unchecked'" 
+                          size="28px"
+                        />
+                      </div>
+                    </q-item-section>
+                  </q-item>
+                  <div v-if="sweeping && selectedToken === asset.id" class="q-pa-sm text-center">
                     <progress-loader />
                   </div>
-                </div>
+                </q-card>
+              </q-list>
 
-                <div v-for="(nft, index) in nonFungibleCashTokens" :key="index" class="token-details">
-                  <p class="text-subtitle1 text-weight-bold">{{ nft?.parsedMetadata?.name }}</p>
-                  <p>
-                    {{ $t('Category') }}:
-                    {{ ellipsisText(nft?.category) }}
-                    <q-icon name="mdi-content-copy" @click="copyToClipboard(nft?.category)" />
-                  </p>
-                  <p v-if="nft?.capability">
-                    NFT ({{ nft?.capability}}):
-                    {{ ellipsisText(nft?.commitment) }}
-                    <q-icon name="mdi-content-copy" @click="copyToClipboard(nft?.commitment)" />
-                  </p>
-                  <div class="q-mb-sm">
-                    <img
-                      :src="nft?.parsedMetadata?.imageUrl || generateFallbackImage(nft)"
-                      style="width: min(100%, 200px);"
-                      class="rounded-borders"
-                      alt="NFT"
-                    />
-                  </div>
+              <div v-if="sweeping && selectedToken === null" class="q-mt-md text-center">
+                <progress-loader />
+              </div>
 
-                  <div v-if="selectedToken !== nft.category">
-                    <q-btn
-                      color="primary"
-                      :label="$t('Sweep')"
-                      @click.prevent="sweepCashTokenNonFungible([nft])"
-                      :disabled="sweeping || skippedTokens.includes(`${nft.category}|${nft.commitment}`)"
-                    />
-                    <span class="text-uppercase q-ml-md q-mr-sm">{{ $t('or') }}</span>
-                    <q-checkbox
-                      :label="$t('Skip')"
-                      v-model="skippedTokens"
-                      v-bind:val="`${nft.category}|${nft.commitment}`"
-                    />
-                  </div>
+              <div v-else-if="!sweeping" class="q-mt-md text-center">
+                <span class="text-red text-body2">
+                  <template v-if="cashTokensCount === 0 && bchBalance === 0">{{ $t('SweepErrMsg1') }}</template>
+                  <i v-else-if="!hasEnoughBalances">{{ $t('EmptyBalancesError') }}</i>
+                  <i v-else-if="bchBalance === 0">{{ $t('UseWalletBalance') }}</i>
+                </span>
+              </div>
+
+              <!-- Sweep Button -->
+              <div class="q-mt-lg q-mb-md">
+                <q-btn
+                  v-if="!sweeping && allAssets.length > 0"
+                  color="primary"
+                  :disabled="!hasEnoughBalances || selectedAssets.length === 0"
+                  :label="getSweepButtonLabel()"
+                  @click.prevent="sweepSelected"
+                  class="sweep-action-button full-width"
+                  size="md"
+                  unelevated
+                  rounded
+                >
+                  <template v-if="selectedAssets.length > 0 && selectedAssets.length < allAssets.length">
+                    <q-badge color="white" text-color="primary" rounded class="q-ml-sm">
+                      {{ selectedAssets.length }}
+                    </q-badge>
+                  </template>
+                </q-btn>
                 </div>
               </div>
-            </q-slide-transition>
+            </div>
+
+            <!-- Show empty state message when address has no assets -->
+            <div v-if="allAssets.length === 0" class="text-center q-mt-lg q-px-md">
+              <q-icon name="inbox" size="80px" :color="darkMode ? 'grey-6' : 'grey-5'" />
+              <p class="text-h6 q-mt-md" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">{{ $t('SweepErrMsg1') }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -245,7 +227,9 @@ import QrScanner from '../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../wallet'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { CashNonFungibleToken } from 'src/wallet/cashtokens'
-import { convertCashAddress } from 'src/wallet/chipnet'
+import { convertCashAddress, convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import bip38 from '@asoltys/bip38'
 import * as wifPackage from 'wif'
 
@@ -279,6 +263,7 @@ export default {
         }
       }),
       skippedTokens: [],
+      selectedAssets: [],
       bchBalance: null,
       sweeper: null,
       submitted: false,
@@ -294,6 +279,7 @@ export default {
       isDecrypting: false,
       hasEnoughBalances: true,
       tokenIndex: 0,
+      hasSuccessfulSweeps: false, // Track if any successful sweeps occurred in this session
 
       sweepTxidMap: {
         'bch': '',
@@ -326,6 +312,12 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
+    assetPrices () {
+      return this.$store.getters['market/assetPrices']
+    },
+    selectedCurrency () {
+      return this.$store.getters['market/selectedCurrency']
+    },
     cashTokensCount() {
       const ctFts = Number.parseInt(this.fungibleCashTokens?.length) || 0
       const ctNfts = Number.parseInt(this.nonFungibleCashTokens?.length) || 0
@@ -338,6 +330,58 @@ export default {
     async getWalletBchBalance() {
       const resp = await this.wallet.BCH.getBalance()
       return resp.balance
+    },
+    allAssets() {
+      const assets = []
+      const DUST = 546 / 10 ** 8
+
+      // Add BCH first (at the top) only if balance is above dust threshold
+      if (this.bchBalance !== null && Number.isFinite(this.bchBalance) && this.bchBalance >= DUST) {
+        assets.push({
+          id: 'bch',
+          name: 'Bitcoin Cash',
+          symbol: this.denomination || 'BCH',
+          balance: this.bchBalance,
+          decimals: 8,
+          type: 'bch',
+          logo: 'bch-logo.png'
+        })
+      }
+
+      // Add fungible tokens with ct/ prefix for price lookup
+      this.fungibleCashTokens.forEach(token => {
+        if (token.balance > 0) {
+          assets.push({
+            id: `ct/${token.category}`,
+            name: token?.parsedMetadata?.name || 'Unknown Token',
+            symbol: token?.parsedMetadata?.symbol || '',
+            balance: token.balance,
+            decimals: token?.parsedMetadata?.decimals || 0,
+            type: 'fungible',
+            logo: token?.parsedMetadata?.imageUrl || null,
+            category: token.category
+          })
+        }
+      })
+
+      // Add non-fungible tokens
+      this.nonFungibleCashTokens.forEach(nft => {
+        assets.push({
+          id: `${nft.category}|${nft.commitment}`,
+          name: nft?.parsedMetadata?.name || 'NFT',
+          symbol: nft?.parsedMetadata?.symbol || 'NFT',
+          balance: 1,
+          decimals: 0,
+          type: 'nft',
+          logo: nft?.parsedMetadata?.imageUrl || null,
+          category: nft.category,
+          commitment: nft.commitment,
+          capability: nft.capability,
+          nft: nft
+        })
+      })
+
+      return assets
     }
   },
   methods: {
@@ -373,6 +417,111 @@ export default {
     },
     generateFallbackImage(nft=CashNonFungibleToken.parse()) {
       return this.$store.getters['global/getDefaultAssetLogo']?.(`${nft?.category}|${nft?.commitment}`)
+    },
+    getFallbackAssetLogo(asset) {
+      const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
+      if (asset.type === 'bch') {
+        return logoGenerator('bch')
+      } else if (asset.type === 'nft') {
+        return logoGenerator(`${asset.category}|${asset.commitment}`)
+      } else {
+        return logoGenerator(`ct/${asset.category}`)
+      }
+    },
+    getImageUrl(asset) {
+      if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
+        return 'assets/img/theme/payhero/deem-logo.png'
+      } else {
+        if (asset.logo) {
+          const convertedLogo = convertIpfsUrl(asset.logo)
+          if (convertedLogo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+            return convertedLogo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+          } else {
+            return convertedLogo
+          }
+        } else {
+          return this.getFallbackAssetLogo(asset)
+        }
+      }
+    },
+    formatAssetBalance(asset) {
+      if (asset.type === 'bch') {
+        // Format BCH balance - Watchtower API already returns balance in BCH, not satoshis
+        const balance = asset.balance || 0
+        const formatted = balance.toLocaleString('en-US', {
+          maximumFractionDigits: 8,
+          minimumFractionDigits: 0
+        })
+        return `${formatted} ${asset.symbol}`
+      } else if (asset.type === 'nft') {
+        // For NFTs, just show the name or symbol
+        return asset.symbol || 'NFT'
+      } else {
+        // Format token balance with decimals
+        const formatted = convertToTokenAmountWithDecimals(asset.balance, asset.decimals).toLocaleString(
+          'en-US',
+          { maximumFractionDigits: parseInt(asset.decimals) || 0 }
+        )
+        return `${formatted} ${asset.symbol}`
+      }
+    },
+    getSweepButtonLabel() {
+      if (this.selectedAssets.length === 0) {
+        return this.$t('Sweep')
+      } else if (this.selectedAssets.length === this.allAssets.length) {
+        return this.$t('SweepAll')
+      } else {
+        return this.$t('Sweep')
+      }
+    },
+    getAssetFiatValue(asset) {
+      if (!asset || !asset.id) return ''
+      
+      // Access assetPrices to ensure reactivity
+      const _ = this.assetPrices
+      
+      const currencySymbol = this.selectedCurrency?.symbol
+      if (!currencySymbol) return ''
+      
+      const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, currencySymbol)
+      if (!assetPrice || assetPrice === 0) return ''
+
+      let balance = Number(asset.balance || 0)
+      
+      // Adjust for token decimals (balance is in smallest units)
+      // For BCH, use balance directly (already in BCH units from Watchtower)
+      // For tokens, divide by 10^decimals to get token units
+      if (asset.id !== 'bch' && asset.decimals) {
+        const decimals = parseInt(asset.decimals) || 0
+        if (decimals > 0) {
+          balance = balance / (10 ** decimals)
+        }
+      }
+      
+      const computedBalance = balance * Number(assetPrice)
+      
+      return parseFiatCurrency(computedBalance.toFixed(2), currencySymbol)
+    },
+    handleAssetClick(assetId) {
+      if (this.sweeping || this.skippedTokens.includes(assetId)) {
+        return
+      }
+      this.toggleAssetSelection(assetId)
+    },
+    toggleAssetSelection(assetId) {
+      const index = this.selectedAssets.indexOf(assetId)
+      if (index > -1) {
+        this.selectedAssets.splice(index, 1)
+      } else {
+        this.selectedAssets.push(assetId)
+      }
+    },
+    getAddressExplorerLink(address) {
+      const isChipnet = this.$store.getters['global/isChipnet']
+      if (isChipnet) {
+        return `${process.env.TESTNET_EXPLORER_URL}/address/${address}`
+      }
+      return `https://explorer.paytaca.com/address/${address}`
     },
     copyToClipboard (value) {
       this.$copyText(value)
@@ -413,23 +562,36 @@ export default {
       // Subscribe once if needed, then fetch all data in parallel without redundant subscriptions
       if (signalFetch) {
         await this.sweeper.subscribe()
+        // Give Watchtower a moment to index the address after subscription
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
 
       await Promise.allSettled([
         this.sweeper.getNftCashTokens(false).then(results => {
-          this.nonFungibleCashTokens = results
+          this.nonFungibleCashTokens = results || []
         }),
         this.sweeper.getFungibleCashTokens(false).then(results => {
-          this.fungibleCashTokens = results
+          this.fungibleCashTokens = results || []
         }),
         this.sweeper.getBchBalance(false).then(resp => {
           this.bchBalance = resp?.spendable || 0
         }),
       ])
 
+      // Fetch token prices for all fungible tokens
+      const tokenPricePromises = this.fungibleCashTokens.map(token => {
+        const assetId = `ct/${token.category}`
+        return this.$store.dispatch('market/updateAssetPrices', { assetId })
+          .catch(() => {
+            // Silently handle price fetch errors
+          })
+      })
+      await Promise.allSettled(tokenPricePromises)
+
       this.hasEnoughBalances = this.bchBalance > 0 || (await this.getWalletBchBalance) > 0
 
-      if (this.sweeping && this.emptyAssets) {
+      // Show success screen if we successfully swept assets and the address is now empty
+      if (this.hasSuccessfulSweeps && this.emptyAssets) {
         this.showSuccess = true
       }
 
@@ -458,7 +620,7 @@ export default {
       }
 
       for (const token of tokens) {
-        this.selectedToken = token?.category
+        this.selectedToken = `ct/${token?.category}`
         const fungiblePayload = {
           tokenAddress: this.sweeper.tokenAddress,
           bchWif: this.sweeper.wif,
@@ -470,7 +632,7 @@ export default {
           recipient: tokenAddress,
         }
 
-        await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
+        await this.sweeper.sweepCashToken(fungiblePayload).then(async result => {
           if (!result.success) {
             if (isSingleSweep) {
               this.$q.notify({
@@ -480,15 +642,25 @@ export default {
               })
             }
             hasSweepingError = true
+          } else {
+            // Mark that we had a successful sweep
+            this.hasSuccessfulSweeps = true
+            // Clear selected assets after successful sweep
+            this.selectedAssets = []
           }
-          this.getTokens(false)
+          await this.getTokens(false)
         })
 
         if (hasSweepingError) {
           fungiblePayload.feeFunder = this.parseFeeFunder(true)
-          await this.sweeper.sweepCashToken(fungiblePayload).then(result => {
-            if (result.success) hasSweepingError = false
-            else {
+          await this.sweeper.sweepCashToken(fungiblePayload).then(async result => {
+            if (result.success) {
+              hasSweepingError = false
+              // Mark that we had a successful sweep
+              this.hasSuccessfulSweeps = true
+              // Clear selected assets after successful sweep
+              this.selectedAssets = []
+            } else {
               if (isSingleSweep) {
                 this.$q.notify({
                   message: result.error,
@@ -498,7 +670,7 @@ export default {
               }
               hasSweepingError = true
             }
-            this.getTokens(false)
+            await this.getTokens(false)
           })
         }
 
@@ -527,7 +699,7 @@ export default {
       }
 
       for (const token of tokens) {
-        this.selectedToken = token?.category
+        this.selectedToken = `${token?.category}|${token?.commitment}`
         const nftPayload = {
           tokenAddress: this.sweeper.tokenAddress,
           bchWif: this.sweeper.wif,
@@ -542,7 +714,7 @@ export default {
           feeFunder: this.parseFeeFunder(),
         }
   
-        await this.sweeper.sweepCashToken(nftPayload).then(result => {
+        await this.sweeper.sweepCashToken(nftPayload).then(async result => {
           if (!result.success) {
             if (isSingleSweep) {
               this.$q.notify({
@@ -552,15 +724,25 @@ export default {
               })
             }
             hasSweepingError = true
+          } else {
+            // Mark that we had a successful sweep
+            this.hasSuccessfulSweeps = true
+            // Clear selected assets after successful sweep
+            this.selectedAssets = []
           }
-          this.getTokens(false)
+          await this.getTokens(false)
         })
 
         if (hasSweepingError) {
           nftPayload.feeFunder = this.parseFeeFunder(true)
-          await this.sweeper.sweepCashToken(nftPayload).then(result => {
-            if (result.success) hasSweepingError = false
-            else {
+          await this.sweeper.sweepCashToken(nftPayload).then(async result => {
+            if (result.success) {
+              hasSweepingError = false
+              // Mark that we had a successful sweep
+              this.hasSuccessfulSweeps = true
+              // Clear selected assets after successful sweep
+              this.selectedAssets = []
+            } else {
               if (isSingleSweep) {
                 this.$q.notify({
                   message: result.error,
@@ -570,7 +752,7 @@ export default {
               }
               hasSweepingError = true
             }
-            this.getTokens(false)
+            await this.getTokens(false)
           })
         }
 
@@ -583,34 +765,93 @@ export default {
       this.sweeping = true
       this.selectedToken = 'bch'
       let bchSweepError = false
+      let errorMessage = ''
+
+      // Refresh balance right before sweeping to ensure we have the latest data
+      const freshBalance = await this.sweeper.getBchBalance(false)
+      const currentBalance = freshBalance?.spendable || 0
+      
+      // Check if balance is sufficient (must be above dust)
+      const DUST = 546 / 10 ** 8
+      if (currentBalance < DUST) {
+        this.$q.notify({
+          message: this.$t('InsufficientBalance', {}, 'Insufficient balance to sweep'),
+          icon: 'mdi-alert-circle',
+          color: 'orange-5',
+          timeout: 3000
+        })
+        await this.getTokens(false)
+        this.sweeping = false
+        return
+      }
+
+      // Give Watchtower a moment to ensure UTXOs are properly indexed
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
       await this.sweeper.sweepBch(
         this.sweeper.bchAddress,
         this.wif,
-        this.bchBalance,
+        currentBalance,
         undefined,
         recipientAddress
-      ).then(result => {
+      ).then(async result => {
         if (!result.success) {
           bchSweepError = true
+          errorMessage = result.error || 'Unknown error'
+        } else {
+          // Mark that we had a successful sweep
+          this.hasSuccessfulSweeps = true
+          // Clear selected assets after successful sweep
+          this.selectedAssets = []
+          // Wait for Watchtower to update before checking balance
+          await new Promise(resolve => setTimeout(resolve, 3000))
         }
-        this.getTokens(false)
+        await this.getTokens(false)
+      }).catch(error => {
+        console.error('BCH sweep error:', error)
+        bchSweepError = true
+        errorMessage = error.message || error.toString()
       })
 
       if (bchSweepError) {
         await this.sweeper.sweepBch(
           this.sweeper.bchAddress,
           this.wif,
-          this.bchBalance,
+          currentBalance,
           this.parseFeeFunder(true),
           recipientAddress
-        ).then(result => {
-          this.getTokens(false)
+        ).then(async result => {
+          if (!result.success) {
+            this.$q.notify({
+              message: result.error || errorMessage || this.$t('FailedToSweepBCH', {}, 'Failed to sweep BCH'),
+              icon: 'mdi-close-circle',
+              color: 'red-5',
+              timeout: 5000
+            })
+          } else {
+            // Mark that we had a successful sweep
+            this.hasSuccessfulSweeps = true
+            // Clear selected assets after successful sweep
+            this.selectedAssets = []
+            // Wait for Watchtower to update before checking balance
+            await new Promise(resolve => setTimeout(resolve, 3000))
+          }
+          await this.getTokens(false)
+        }).catch(error => {
+          console.error('BCH sweep retry error:', error)
+          this.$q.notify({
+            message: error.message || error.toString(),
+            icon: 'mdi-close-circle',
+            color: 'red-5',
+            timeout: 5000
+          })
         })
       }
     },
 
-    async sweepAll() {
+    async sweepSelected() {
+      if (this.selectedAssets.length === 0) return
+
       const bchAddress = await this.getRecipientAddress('bch')
       if (!bchAddress) {
         this.$q.notify({
@@ -622,45 +863,67 @@ export default {
       }
       const tokenAddress = convertCashAddress(bchAddress, false, true)
 
-      if ((this.cashTokensCount - this.skippedTokens.length) > 0) {
-        const unskippedCashTokens = this.fungibleCashTokens.filter(
-          token => !this.skippedTokens.includes(token.category)
-        )
-        const unskippedNonFungibleCashTokens = this.nonFungibleCashTokens.filter(
-          token => !this.skippedTokens.includes(`${token.category}|${token.commitment}`)
-        )
-        this.tokenIndex = 0
+      // Separate selected assets by type
+      const selectedBch = this.selectedAssets.includes('bch')
+      const selectedFungible = this.fungibleCashTokens.filter(
+        token => this.selectedAssets.includes(`ct/${token.category}`)
+      )
+      const selectedNfts = this.nonFungibleCashTokens.filter(
+        nft => this.selectedAssets.includes(`${nft.category}|${nft.commitment}`)
+      )
 
-        const fungibleError = await this.sweepCashTokenFungible(
-          unskippedCashTokens, tokenAddress
-        )
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        const nonFungibleError = await this.sweepCashTokenNonFungible(
-          unskippedNonFungibleCashTokens, tokenAddress
-        )
-        await new Promise(resolve => setTimeout(resolve, 1000))
+      this.tokenIndex = 0
 
-        if (fungibleError || nonFungibleError) {
+      // Sweep fungible tokens
+      if (selectedFungible.length > 0) {
+        const fungibleError = await this.sweepCashTokenFungible(selectedFungible, tokenAddress)
+        if (fungibleError) {
           this.$q.notify({
             message: this.$t('FailedToSweepSomeTokens'),
             icon: 'warning',
             color: 'warning'
           })
-          return
         }
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
 
+      // Sweep NFTs
+      if (selectedNfts.length > 0) {
+        const nonFungibleError = await this.sweepCashTokenNonFungible(selectedNfts, tokenAddress)
+        if (nonFungibleError) {
+          this.$q.notify({
+            message: this.$t('FailedToSweepSomeTokens'),
+            icon: 'warning',
+            color: 'warning'
+          })
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+
+      // Refresh tokens to get updated balances
       await this.getTokens(false)
-
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      if (this.bchBalance > 0) await this.sweepBch(bchAddress)
       await new Promise(resolve => setTimeout(resolve, 1000))
 
+      // Sweep BCH last
+      if (selectedBch && this.bchBalance > 0) {
+        await this.sweepBch(bchAddress)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+
+      // Refresh multiple times to ensure balances are updated
       let retries = 0
       while (retries < 3) {
         await this.getTokens(false)
         retries++
       }
+
+      // Clear selections after successful sweep
+      this.selectedAssets = []
+    },
+    async sweepAll() {
+      // Select all assets and sweep them
+      this.selectedAssets = this.allAssets.map(asset => asset.id)
+      await this.sweepSelected()
     },
 
     onScannerDecode (content) {
@@ -723,9 +986,7 @@ export default {
 <style lang="scss" scoped>
   #app {
     padding: 25px;
-    overflow-y: auto;
     z-index: 1 !important;
-    min-height: 100vh;
   }
 
   .sweep-input {
@@ -758,67 +1019,139 @@ export default {
     letter-spacing: 0.05em;
   }
 
-  .bch-balance {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    padding: 16px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    margin-bottom: 16px;
+  .asset-list {
+    margin-top: 8px;
+  }
 
-    p {
-      margin: 0 0 12px;
-      font-size: 1rem;
-      color: rgba(0, 0, 0, 0.87);
+  .asset-card {
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .text-red {
-      color: #d32f2f;
-      font-size: 0.875rem;
-      font-style: italic;
+    &.sweeping {
+      opacity: 0.7;
+      pointer-events: none;
     }
   }
 
-  .token-details {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-
+  .no-hover-effect {
     &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      background: none !important;
+    }
+    
+    &::before {
+      display: none !important;
+    }
+  }
+
+  .custom-circular-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 4px;
+    border-radius: 50%;
+    
+    .q-icon {
+      transition: all 0.2s ease;
+      color: rgba(0, 0, 0, 0.3);
     }
 
-    p {
-      margin: 0 0 8px;
-      font-size: 0.9375rem;
-      color: rgba(0, 0, 0, 0.87);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    &.selected .q-icon {
+      color: var(--q-primary);
+      animation: checkScale 0.3s ease;
+    }
 
+    &:not(.disabled):hover {
+      background-color: rgba(0, 0, 0, 0.05);
+      
       .q-icon {
-        font-size: 1.25rem;
-        opacity: 0.7;
-        cursor: pointer;
-        transition: opacity 0.2s ease;
-
-        &:hover {
-          opacity: 1;
-        }
+        color: var(--q-primary);
+        opacity: 0.8;
       }
     }
 
-    img {
-      border-radius: 8px;
-      margin: 8px 0;
+    &.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  @keyframes checkScale {
+    0% {
+      transform: scale(0.8);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .address-section {
+    .address-card {
+      background: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.03);
+      }
     }
 
-    .q-btn {
-      margin-right: 12px;
+    .copy-icon {
+      opacity: 0.6;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+      vertical-align: middle;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    .explorer-link {
+      display: inline-flex;
+      align-items: center;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+
+  .sweep-action-button {
+    min-height: 48px;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:not(.q-btn--disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    &:not(.q-btn--disabled):active {
+      transform: translateY(0);
+    }
+
+    &.q-btn--disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    :deep(.q-badge) {
+      font-weight: 600;
+      padding: 4px 8px;
+      min-width: 24px;
     }
   }
 
@@ -879,18 +1212,42 @@ export default {
       color: rgba(255, 255, 255, 0.6);
     }
 
-    .bch-balance,
-    .token-details {
+    .asset-card {
       background: rgba(255, 255, 255, 0.05);
       border-color: rgba(255, 255, 255, 0.1);
-
-      p {
-        color: rgba(255, 255, 255, 0.87);
-      }
     }
 
     .text-red {
       color: #ef5350;
+    }
+
+    .address-section {
+      .address-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.07);
+        }
+      }
+    }
+
+    .custom-circular-checkbox {
+      .q-icon {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      &.selected .q-icon {
+        color: var(--q-primary);
+      }
+
+      &:not(.disabled):hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        
+        .q-icon {
+          color: var(--q-primary);
+        }
+      }
     }
   }
 </style>
