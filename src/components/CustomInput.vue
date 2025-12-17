@@ -61,7 +61,8 @@ export default {
     'on-backspace-click', // after triggering makeKeyAction backspace
     'on-delete-click', // after triggering makeKeyAction delete
     'on-check-click', // after triggering makeKeyAction check/ok
-    'update:model-value'
+    'update:model-value',
+    'keyboard-state-change' // emitted when keyboard visibility changes
   ],
 
   components: {
@@ -90,6 +91,9 @@ export default {
   watch: {
     val () {
       this.$emit('update:model-value', this.val)
+    },
+    keyboardState (newState) {
+      this.$emit('keyboard-state-change', newState)
     },
     modelValue (value) {
       // Ensure val is always a string for consistent handling

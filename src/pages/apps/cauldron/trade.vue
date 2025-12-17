@@ -178,6 +178,7 @@
                   v-else
                   :model-value="amountInputString"
                   @update:model-value="updateAmountInput($event)"
+                  @keyboard-state-change="handleKeyboardStateChange"
                   :input-symbol="amountInputSymbol"
                   :label="isBuyingToken ? $t('AmountToReceive') : $t('AmountToSupply')"
                   :decimal-obj="amountInputDecimalObj"
@@ -255,23 +256,25 @@
   
               <!-- Swap Button -->
               <q-slide-transition>
-                <div v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken">
+                <div v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken && !isKeyboardVisible">
                   <DragSlide
                     disable-absolute-bottom
                     :text="$t('Swap')"
                     :disable="!hasSufficientBalance"
                     @swiped="securityCheck"
                   />
-                  <div
-                    v-if="showInsufficientBalance"
-                    class="insufficient-balance-alert q-mt-md"
-                    :class="getDarkModeClass(darkMode)"
-                  >
-                    <q-icon name="info" size="16px" class="q-mr-xs" />
-                    <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
-                  </div>
                 </div>
               </q-slide-transition>
+              
+              <!-- Insufficient Balance Message - Always show when applicable -->
+              <div
+                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
+                class="insufficient-balance-alert q-mt-md"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-icon name="info" size="16px" class="q-mr-xs" />
+                <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
+              </div>
             </template>
           </q-card-section>
           <div class="row justify-center q-mb-md text-grey-6">
@@ -387,6 +390,7 @@ export default defineComponent({
     const showTokenDialog = ref(false);
     const isRecomputingTrade = ref(false);
     const tokenSelectDialog = ref();
+    const isKeyboardVisible = ref(false);
 
     function updateAmountInput(value) {
       amountInputString.value = value || '';
@@ -395,6 +399,10 @@ export default defineComponent({
       if (!isNaN(numValue)) {
         amountInput.value = numValue;
       }
+    }
+
+    function handleKeyboardStateChange(state) {
+      isKeyboardVisible.value = state === 'show';
     }
 
     /** 
@@ -959,6 +967,8 @@ export default defineComponent({
       amountInput,
       amountInputString,
       updateAmountInput,
+      handleKeyboardStateChange,
+      isKeyboardVisible,
       amountInputSymbol,
       amountInputDecimalObj,
       amountInputAsset,
@@ -982,7 +992,7 @@ export default defineComponent({
 
       showSlider,
       securityCheck,
-      
+
       selectToken,
       formatAmount,
       copyTxid,
