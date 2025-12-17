@@ -139,7 +139,7 @@
                     <q-item-section>
                       <div class="flex items-center q-gutter-x-sm">
                         <q-avatar size="md">
-                          <q-img v-if="balancesTokenIdentities[asset]?.uris?.icon" :src="balancesTokenIdentities[asset]?.uris?.icon"></q-img>
+                          <q-img v-if="balancesTokenIdentities[asset]?.uris?.icon" :src="assetIconUrl(balancesTokenIdentities[asset]?.uris?.icon)"></q-img>
                           <q-icon v-else name="token" size="md"></q-icon>
                         </q-avatar>
                         <div>
@@ -250,6 +250,15 @@ const assetPrice = computed(() => {
        priceData.relative_currency?.toLowerCase() === 'bch'
     ))
     return b?.[`assetPriceIn${b?.currency}Text`] || ''
+  }
+})
+
+const assetIconUrl = computed(() => {
+  return (iconUrl) => {
+    if (iconUrl?.includes('nftstorage.link') || iconUrl?.startsWith('ipfs://')) {
+      return `https://cashtokens.studio/api/ipfs-image?url=${encodeURIComponent(iconUrl)}`
+    }
+    return iconUrl
   }
 })
 
