@@ -3,9 +3,6 @@
   <div id="app-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="$t('TxProposals')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav" />
     <div class="row items-center justify-center full-height">
-      <q-btn color="red" icon="clear_all" @click="clearAll" rounded outline>
-              {{ $t('ClearAll') }}
-            </q-btn>
         <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
           <div class="row justify-end q-gutter-x-sm q-mb-md">
             <q-btn color="red" icon="clear_all" @click="clearAll" rounded outline>
