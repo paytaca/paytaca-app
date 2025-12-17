@@ -406,10 +406,7 @@ onMounted(async () => {
       )
   assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
   const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.getLastUsedChangeAddressIndex(network) + 1).address
-  await $store.dispatch(
-    'multisig/subscribeWalletAddress',
-    nextChangeCashAddress
-  )
+  await wallet.value.subscribeWalletAddress(nextChangeCashAddress)
 })
 </script>
 
