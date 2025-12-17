@@ -255,7 +255,7 @@ const assetPrice = computed(() => {
 
 const assetIconUrl = computed(() => {
   return (iconUrl) => {
-    if (iconUrl?.includes('nftstorage.link' || iconUrl?.startsWith('ipfs://'))) {
+    if (iconUrl?.includes('nftstorage.link') || iconUrl?.startsWith('ipfs://')) {
       return `https://cashtokens.studio/api/ipfs-image?url=${encodeURIComponent(iconUrl)}`
     }
     return iconUrl
