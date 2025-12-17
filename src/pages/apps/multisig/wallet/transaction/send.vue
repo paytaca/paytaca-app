@@ -70,7 +70,7 @@
                   </q-item>
                   <q-item v-for="recipient,i in recipients" :key="`recipient-${i}`" :ref="el => { if (el) recipientRefs[i] = el.$el || el }">
                     <q-item-section>
-                      <q-item-label class="q-gutter-y-md">
+                      <q-item-label :class="addressInputRefs[i]? 'q-gutter-y-md': ''">
                         <div class="flex justify-between items-center">
                             <span class="text-italic">{{ $t('RecipientLabel') }} {{ i + 1 }}</span>
                             <q-btn v-if="i > 0" @click="removeRecipient(i)" icon="remove" color="red" flat dense ></q-btn>
@@ -99,7 +99,7 @@
                           </template> -->
                         </q-input>
                       </q-item-label>
-                      <q-separator />
+                      <q-separator class="q-my-sm"/>
                     </q-item-section>
                     
                   </q-item>
@@ -138,7 +138,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, nextTick, onBeforeMount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -201,6 +201,9 @@ const assetHeaderName = computed(() => {
 
 const assetHeaderIcon = computed(() => {
   if (route.query.asset === 'bch') return 'img:bitcoin-cash-circle.svg'
+  if (assetTokenIdentity.value?.uris?.icon?.includes('nftstorage.link') || assetTokenIdentity.value?.uris?.icon?.startsWith('ipfs://')) {
+    return `https://cashtokens.studio/api/ipfs-image?url=${encodeURIComponent(assetTokenIdentity.value?.uris?.icon)}`
+  }
   return assetTokenIdentity.value?.uris?.icon || 'token'
 })
 
@@ -368,7 +371,6 @@ const createProposal = async () => {
         label: $t('OK')
       }
     })
-
   }
 }
 
@@ -390,25 +392,24 @@ const refreshPage = async (done) => {
   }
 }
 
-onMounted(async () => {
+onBeforeMount(async () => {
   addRecipient()
+})
+
+onMounted(async () => {
   balance.value = await wallet.value.getWalletBalance(route.query.asset)
-  assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
   balanceConvertionRates.value = 
       await wallet.value.convertBalanceToCurrencies(
         route.query.asset,
         balance.value,
         [$store.getters['market/selectedCurrency'].symbol]
       )
-
+  assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
   const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.getLastUsedChangeAddressIndex(network) + 1).address
-  const promises = [
-    (async () => $store.dispatch(
-      'multisig/subscribeWalletAddress',
-      nextChangeCashAddress
-    ))()
-  ]
-  await Promise.allSettled(promises)
+  await $store.dispatch(
+    'multisig/subscribeWalletAddress',
+    nextChangeCashAddress
+  )
 })
 </script>
 

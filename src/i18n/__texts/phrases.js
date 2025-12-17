@@ -1772,7 +1772,10 @@ const phrases = {
       WcScanOrPasteURL: 'In the app you want to connect to, open the wallet-connect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new wallet connect session.',
       InitiateNewSession: 'Initiate new wallet connect session',
       Sign: 'Sign',
-      Reject: 'Reject'
+      Reject: 'Reject',
+      ClearAll: 'Clear All',
+      ClearingAllTxProposals: 'Clearing All TX Proposals',
+      ClearingAllTxProposalsConfirmationMessage: 'Are you sure you want to clear all transaction proposals? This action cannot be undone.',
     }
   ],
   dynamic: [
