@@ -1,5 +1,4 @@
 import { SlpWallet } from './slp'
-import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import { LibauthHDWallet } from './bch-libauth'
 import aes256 from 'aes256'
@@ -36,8 +35,6 @@ export class Wallet {
     this.mnemonic = mnemonic
     if (network === 'BCH') {
       this.loadBCH()
-    } else if (network === 'sBCH') {
-      this.loadSBCH()
     }
   }
 
@@ -61,11 +58,6 @@ export class Wallet {
     return this._SLP_TEST
   }
 
-  get sBCH() {
-    if (!this._sBCH) this.loadSBCH()
-    return this._sBCH
-  }
-
   loadBCH() {
     const derivationPaths = {
       bch: "m/44'/145'/0'",
@@ -77,10 +69,6 @@ export class Wallet {
     this._SLP_TEST = new SlpWallet(projectId.chipnet, this.mnemonic, derivationPaths.slp, true) // Test SLP wallet
   }
 
-  loadSBCH() {
-    this._sBCH = new SmartBchWallet(projectId.mainnet, this.mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
-    this._sBCH.initWallet()
-  }
 }
 
 export async function loadWallet(network = 'BCH', index = 0) {
