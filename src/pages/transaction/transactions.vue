@@ -26,10 +26,7 @@
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
-                      <div v-if="selectedNetwork === 'sBCH'">
-                        <img src="sep20-logo.png" alt="" style="height: 75px;"/>
-                      </div>
-                      <div v-else>
+                      <div>
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
@@ -271,7 +268,6 @@ export default {
 	      const currency = this.$store.getters['market/selectedCurrency']
 	      const selectedMarketCurrency = currency && currency.symbol
 	      return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
-	        this.selectedNetwork !== 'sBCH' &&
 	        currentCountry === 'HK' &&
 	        selectedMarketCurrency === 'HKD')
 	    },
@@ -391,11 +387,11 @@ export default {
 					// This preserves the filter even if the asset metadata isn't loaded yet
 					// The transaction list component will use selectedAsset.id to filter transactions
 					const assetIdParts = assetID.split('/')
-					const isToken = assetIdParts.length === 2 && (assetIdParts[0] === 'ct' || assetIdParts[0] === 'slp' || assetIdParts[0] === 'sep20')
-					
+					const isToken = assetIdParts.length === 2 && (assetIdParts[0] === 'ct' || assetIdParts[0] === 'slp')
+
 					this.selectedAsset = {
 						id: assetID,
-						symbol: isToken ? (assetIdParts[0] === 'ct' ? 'CT' : assetIdParts[0] === 'slp' ? 'SLP' : 'SEP20') : 'BCH',
+						symbol: isToken ? (assetIdParts[0] === 'ct' ? 'CT' : 'SLP') : 'BCH',
 						name: isToken ? `${assetIdParts[0].toUpperCase()} Token` : 'Bitcoin Cash',
 						logo: null
 					}
@@ -717,7 +713,7 @@ export default {
 	      }
 	    },
 	    formatBalance (asset) {
-	      if (asset.id.includes('ct') || asset.id.includes('sep20')) {
+	      if (asset.id.includes('ct')) {
 	        const convertedBalance = asset.balance / 10 ** asset.decimals
 	        return `${(convertedBalance || 0).toLocaleString('en-us', {maximumFractionDigits: asset.decimals})} ${asset.symbol}`
 	      } else if (asset.id.includes('bch')) {
