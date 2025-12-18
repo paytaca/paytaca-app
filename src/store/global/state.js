@@ -19,7 +19,7 @@
 
 export default function () {
   return {
-    network: 'BCH', // BCH || sBCH
+    network: 'BCH',
     language: 'en-us',
     country: {
       name: 'United States',
@@ -29,7 +29,6 @@ export default function () {
     isChipnet: false,
     autoGenerateAddress: true,
     enableStablhedge: false,
-    enableSmartBCH: false,
     enableSLP: false,
     wallets: {
       bch: {
@@ -53,16 +52,6 @@ export default function () {
         lastAddress: '',
         lastChangeAddress: '',
         lastAddressIndex: 0,
-        connectedAddress: '',
-        connectedAddressIndex: '0/0',
-        connectedSites: {},
-
-      },
-      sbch: {
-        subscribed: false,
-        walletHash: '',
-        derivationPath: '',
-        lastAddress: '',
         connectedAddress: '',
         connectedAddressIndex: '0/0',
         connectedSites: {}

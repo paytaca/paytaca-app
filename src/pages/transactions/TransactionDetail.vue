@@ -1332,17 +1332,13 @@ export default {
       
       this.addingToFavorites = true
       try {
-        // Determine network: 'sBCH' for smartchain tokens, 'BCH' for mainchain tokens
-        const isSmartchain = this.tokenAssetId.startsWith('sep20/')
-        const selectedNetwork = isSmartchain ? 'sBCH' : 'BCH'
+        const selectedNetwork = 'BCH'
         
         // Fetch custom list (same as asset list page)
         let customList = await assetSettings.fetchCustomList()
         
-        // Get all assets from store based on network
-        const allAssets = selectedNetwork === 'sBCH'
-          ? this.$store.getters['sep20/getAssets']
-          : this.$store.getters['assets/getAssets']
+        // Get all assets from store for BCH network
+        const allAssets = this.$store.getters['assets/getAssets']
         
         // Filter out BCH from the list
         const assets = allAssets.filter(asset => asset && asset.id !== 'bch')

@@ -10,7 +10,6 @@ function getDefaultWalletSettings() {
     isChipnet: false,
     autoGenerateAddress: true,
     enableStablhedge: false,
-    enableSmartBCH: false,
     enableSLP: false,
     denomination: 'BCH',
     theme: 'glassmorphic-blue',
@@ -59,9 +58,6 @@ export function setNetwork (state, network) {
   switch (network) {
     case 'BCH':
       state.network = 'BCH'
-      break
-    case 'sBCH':
-      state.network = 'sBCH'
       break
     default:
       state.network = 'BCH'
@@ -248,7 +244,6 @@ export function updateCurrentWallet (state, index) {
     state.isChipnet = vault.settings.isChipnet !== undefined ? vault.settings.isChipnet : state.isChipnet
     state.autoGenerateAddress = vault.settings.autoGenerateAddress !== undefined ? vault.settings.autoGenerateAddress : state.autoGenerateAddress
     state.enableStablhedge = vault.settings.enableStablhedge !== undefined ? vault.settings.enableStablhedge : state.enableStablhedge
-    state.enableSmartBCH = vault.settings.enableSmartBCH !== undefined ? vault.settings.enableSmartBCH : state.enableSmartBCH
     state.enableSLP = vault.settings.enableSLP !== undefined ? vault.settings.enableSLP : state.enableSLP
     state.denomination = vault.settings.denomination || state.denomination
     state.theme = vault.settings.theme || state.theme
@@ -265,7 +260,6 @@ export function updateCurrentWallet (state, index) {
     state.isChipnet = defaults.isChipnet
     state.autoGenerateAddress = defaults.autoGenerateAddress
     state.enableStablhedge = defaults.enableStablhedge
-    state.enableSmartBCH = defaults.enableSmartBCH
     state.enableSLP = defaults.enableSLP
     state.denomination = defaults.denomination
     state.theme = defaults.theme
@@ -346,7 +340,6 @@ export function migrateWalletSettings (state, payload) {
     isChipnet: state.isChipnet,
     autoGenerateAddress: state.autoGenerateAddress,
     enableStablhedge: state.enableStablhedge,
-    enableSmartBCH: state.enableSmartBCH,
     enableSLP: state.enableSLP,
     denomination: state.denomination,
     theme: state.theme,
@@ -430,28 +423,6 @@ export function enableStablhedge(state, value) {
       state.vault[state.walletIndex].settings = getDefaultWalletSettings()
     }
     state.vault[state.walletIndex].settings.enableStablhedge = value
-  }
-}
-
-export function enableSmartBCH (state) {
-  state.enableSmartBCH = !state.enableSmartBCH
-  // Save to vault
-  if (state.vault && state.vault[state.walletIndex]) {
-    if (!state.vault[state.walletIndex].settings) {
-      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
-    }
-    state.vault[state.walletIndex].settings.enableSmartBCH = state.enableSmartBCH
-  }
-}
-
-export function disableSmartBCH (state) {
-  state.enableSmartBCH = false
-  // Save to vault
-  if (state.vault && state.vault[state.walletIndex]) {
-    if (!state.vault[state.walletIndex].settings) {
-      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
-    }
-    state.vault[state.walletIndex].settings.enableSmartBCH = false
   }
 }
 

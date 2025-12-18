@@ -11,7 +11,6 @@ import market from './market'
 import marketplace from './marketplace'
 import assets from './assets'
 import paytacapos from './paytacapos'
-import sep20 from './sep20'
 import walletconnect from './walletconnect'
 import gifts from './gifts'
 import notification from './notification'
@@ -218,7 +217,6 @@ export const Store = createStore({
       //   'global.theme',
       //   'global.isChipnet',
       //   'global.enableStablhedge',
-      //   'global.enableSmartBCH',
       //   'global.user',
       //   'global.online',
       //   'global.walletIndex',
@@ -258,7 +256,6 @@ export const Store = createStore({
     market,
     marketplace,
     paytacapos,
-    sep20,
     walletconnect,
     gifts,
     notification,

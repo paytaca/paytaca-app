@@ -189,9 +189,9 @@ export function updatedCurrentAssets (state, index) {
     }
     const filtered = assets.filter(asset => {
       if (!asset || !asset.id) return false
-      // Keep BCH and sBCH, filter out all tokens (slp/, ct/, sep20/)
+      // Keep BCH only, filter out all tokens (slp/, ct/)
       const id = String(asset.id).toLowerCase()
-      return id === 'bch' || id === 'sbch' || !id.includes('/')
+      return id === 'bch' || !id.includes('/')
     })
     // Ensure at least BCH is present
     if (filtered.length === 0 || !filtered.find(a => a && a.id === 'bch')) {

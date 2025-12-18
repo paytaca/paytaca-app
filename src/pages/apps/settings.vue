@@ -302,7 +302,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
-      enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
       enablePushNotifs: false,
@@ -358,9 +357,6 @@ export default {
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
-    },
-    enableSmartBCH (n, o) {
-      this.$store.commit('global/enableSmartBCH')
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)

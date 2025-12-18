@@ -10,7 +10,7 @@
           </p>
         </div>
         <div
-          class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
+          class="col-3 q-mt-sm asset-filter-container">
           <AssetFilter v-if="enableSLP" @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
@@ -170,8 +170,8 @@ export default {
     assets () {
       const vm = this
 
-      // For CashTokens on BCH network, use API data directly
-      if (vm.isCashToken && vm.selectedNetwork === 'BCH') {
+      // For CashTokens, use API data directly
+      if (vm.isCashToken) {
         // Get BCH asset from store
         let bchAsset = vm.$store.getters['assets/getAssets'].find(asset => asset?.id === 'bch')
         
@@ -269,8 +269,8 @@ export default {
       }
     },
     isFavorite(assetId) {
-      // For CashTokens on BCH, use API data
-      if (this.isCashToken && this.selectedNetwork === 'BCH') {
+      // For CashTokens, use API data
+      if (this.isCashToken) {
         const token = this.allTokensFromAPI.find(t => t.id === assetId)
         return token && (token.favorite === true || token.favorite === 1)
       }
@@ -278,8 +278,8 @@ export default {
       return false
     },
     async fetchTokensFromAPI () {
-      // Only fetch for CashTokens on BCH network
-      if (this.selectedNetwork !== 'BCH' || !this.isCashToken) {
+      // Only fetch for CashTokens
+      if (!this.isCashToken) {
         return []
       }
 
@@ -424,8 +424,8 @@ export default {
     const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
     vm.wallet = wallet
 
-    // For CashTokens on BCH, fetch tokens directly from API
-    if (vm.isCashToken && vm.selectedNetwork === 'BCH') {
+    // For CashTokens, fetch tokens directly from API
+    if (vm.isCashToken) {
       vm.allTokensFromAPI = await vm.fetchTokensFromAPI()
     } else {
       // For SLP, use store data (legacy behavior)
@@ -465,19 +465,14 @@ export default {
   watch: {
     isCashToken () {
       // Reload tokens when filter changes
-      if (this.isCashToken && this.selectedNetwork === 'BCH') {
+      if (this.isCashToken) {
         this.fetchTokensFromAPI().then(tokens => {
           this.allTokensFromAPI = tokens
         })
       }
     },
     selectedNetwork () {
-      // Reload tokens when network changes
-      if (this.isCashToken && this.selectedNetwork === 'BCH') {
-        this.fetchTokensFromAPI().then(tokens => {
-          this.allTokensFromAPI = tokens
-        })
-      }
+      // Network changes not needed anymore (BCH only)
     }
   },
   beforeRouteLeave (to, from, next) {

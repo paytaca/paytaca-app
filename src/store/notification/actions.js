@@ -61,7 +61,6 @@ export function getOpenedNotificationRoute(context) {
   let route = null
   switch(openedNotification?.data?.type) {
     case(NotificationTypes.MAIN_TRANSACTION):
-    case(NotificationTypes.SBCH_TRANSACTION):
       route = { name: 'transaction-index' }
       break
     case(NotificationTypes.ANYHEDGE_MATURED):
