@@ -275,7 +275,6 @@ import { convertCashAddress } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   generateReceivingAddress,
-  generateSbchAddress,
   getDerivationPathForWalletType
 } from 'src/utils/address-generation-utils.js'
 
@@ -442,7 +441,6 @@ export default {
       if (this.isSep20) {
         // For sBCH, generate dynamically
         try {
-          const address = await generateSbchAddress({
             walletIndex: this.$store.getters['global/getWalletIndex']
           })
           if (!address) {
