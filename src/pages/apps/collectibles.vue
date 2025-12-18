@@ -86,6 +86,113 @@
               />
             </keep-alive>
           </q-tab-panel>
+          <q-tab-panel name="sBCH">
+        <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" :currentCountry="currentCountry" />
+        <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :darkMode="darkMode" :asset="erc721AssetDetailDialog.asset"/>
+        <div class="row items-start justify-end q-px-sm">
+          <q-btn
+            flat
+            rounded
+            padding="sm"
+            size="sm"
+            icon="add"
+            class="q-mx-sm button button-icon"
+            :class="getDarkModeClass(darkMode)"
+            @click="showAddERC721Form = true"
+          />
+          <q-btn
+            flat
+            rounded
+            padding="sm"
+            size="sm"
+            icon="app_registration"
+            class="q-mx-sm button button-icon"
+            :class="getDarkModeClass(darkMode)"
+            @click="toggleManageAssets"
+          />
+        </div>
+        <p v-if="erc721Assets && erc721Assets.length === 0" style="color: gray;" class="q-py-md text-center text-h6">
+          Asset list empty
+        </p>
+        <template v-else>
+          <q-expansion-item v-model="selectERC721AssetExpanded" dense dense-toggle>
+            <template v-slot:header>
+              <div class="row no-wrap items-center q-space q-pl-md" style="min-height:40px">
+                <template v-if="erc721Assets[selectedERC721AssetIndex]">
+                  <q-btn
+                    flat
+                    rounded
+                    padding="sm"
+                    icon="info"
+                    class="button button-icon"
+                    :class="getDarkModeClass(darkMode)"
+                    @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
+                  />
+                  <div class="text-subtitle1 pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ erc721Assets[selectedERC721AssetIndex].name }}
+                  </div>
+                </template>
+                <div v-else class="pt-label" :class="getDarkModeClass(darkMode)">
+                  {{ $t('SelectCollection') }}
+                </div>
+              </div>
+            </template>
+
+            <q-item
+              v-for="(asset, index) in erc721Assets"
+              :key="index"
+              clickable
+              :active="index === selectedERC721AssetIndex"
+              @click="function() {
+                selectedERC721AssetIndex = index
+                selectERC721AssetExpanded = false
+              }"
+            >
+              <q-item-section side>
+                <q-btn
+                  v-if="enableManageAssets"
+                  flat
+                  rounded
+                  padding="sm"
+                  icon="delete"
+                  class="button button-icon"
+                  :class="getDarkModeClass(darkMode)"
+                  @click.stop="confirmRemoveERC721Asset(asset)"
+                />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">{{ asset.name }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-btn
+                  flat
+                  rounded
+                  padding="sm"
+                  icon="info"
+                  class="button button-icon"
+                  :class="getDarkModeClass(darkMode)"
+                  @click.stop="showERC721Asset(asset)"
+                />
+              </q-item-section>
+            </q-item>
+          </q-expansion-item>
+          <q-separator spaced inset/>
+        </template>
+        <q-tab-panels v-model="selectedERC721AssetIndex" keep-alive style="background:inherit;" class="collectibles-panel">
+          <q-tab-panel
+            v-for="(asset, index) in erc721Assets"
+            :key="index"
+            :name="index"
+            class="q-pa-none"
+          >
+            <ERC721Collectibles
+              ref='erc721Collectibles'
+              :contract-address="asset.address"
+              :wallet="wallet"
+            />
+          </q-tab-panel>
+        </q-tab-panels>
+          </q-tab-panel>
         </q-tab-panels>
       </q-tab-panel>
       
@@ -160,7 +267,6 @@
 import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
-// ERC721 components removed - SmartBCH no longer supported
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
@@ -175,7 +281,9 @@ export default {
   name: 'app-wallet-info',
   components: {
     HeaderNav,
-    // ERC721 components removed
+    AddERC721AssetFormDialog,
+    ERC721Collectibles,
+    ERC721AssetDetailDialog,
     SLPCollectibles,
     CashTokensNFTs,
     AssetFilter
@@ -216,7 +324,12 @@ export default {
     enableSLP () {
       return this.$store.getters['global/enableSLP']
     },
-    // SmartBCH removed - isSep20 and erc721Assets removed
+    isSep20 () {
+      return this.selectedNetwork === 'sBCH'
+    },
+    erc721Assets () {
+      return this.$store.getters['sep20/getNftAssets']
+    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -253,7 +366,40 @@ export default {
       this.enableManageAssets = !this.enableManageAssets
       this.selectERC721AssetExpanded = this.enableManageAssets
     },
-    // ERC721 methods removed (showERC721Asset, confirmRemoveERC721Asset)
+    showERC721Asset (asset) {
+      this.erc721AssetDetailDialog.asset = asset
+      this.erc721AssetDetailDialog.show = true
+    },
+    confirmRemoveERC721Asset (asset) {
+      const title = this.$t('RemoveAsset')
+      const message = this.$t(
+        'RemoveAssetPrompt',
+        { assetName: asset.name },
+        `Remove asset ${asset.name}. Are you sure?`
+      )
+      let dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      dialogStyleClass += ' br-15'
+
+      this.$q.dialog({
+        title: title,
+        message: message,
+        persistent: true,
+        seamless: true,
+        class: dialogStyleClass,
+        ok: {
+          rounded: true,
+          label: this.$t('OK')
+        },
+        cancel: {
+          rounded: true,
+          flat: true,
+          label: this.$t('Cancel')
+        }
+      }).onOk(() => {
+        const commitName = 'sep20/removeNftAsset'
+        this.$store.commit(commitName, asset.address)
+      })
+    },
     getCollectibles (done=() => {}) {
       try {
         if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
@@ -293,6 +439,27 @@ export default {
     },
     async getReceivingAddress () {
       // Dynamically generate address like the Receive page
+      if (this.isSep20) {
+        // For sBCH, generate dynamically
+        try {
+          const address = await generateSbchAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex']
+          })
+          if (!address) {
+            throw new Error('Failed to generate and subscribe sBCH address')
+          }
+          this.receivingAddress = address
+        } catch (error) {
+          console.error('Error generating sBCH address:', error)
+          this.$q.notify({
+            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+            color: 'negative',
+            icon: 'warning'
+          })
+          // Don't fallback to store - address generation must succeed
+          this.receivingAddress = null
+        }
+      } else {
         // For BCH/SLP/CashTokens, generate dynamically
         const walletType = this.bchNftType === 'ct' ? 'bch' : 'slp'
         try {
