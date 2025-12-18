@@ -438,26 +438,6 @@ export default {
     },
     async getReceivingAddress () {
       // Dynamically generate address like the Receive page
-      if (this.isSep20) {
-        // For sBCH, generate dynamically
-        try {
-            walletIndex: this.$store.getters['global/getWalletIndex']
-          })
-          if (!address) {
-            throw new Error('Failed to generate and subscribe sBCH address')
-          }
-          this.receivingAddress = address
-        } catch (error) {
-          console.error('Error generating sBCH address:', error)
-          this.$q.notify({
-            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
-            color: 'negative',
-            icon: 'warning'
-          })
-          // Don't fallback to store - address generation must succeed
-          this.receivingAddress = null
-        }
-      } else {
         // For BCH/SLP/CashTokens, generate dynamically
         const walletType = this.bchNftType === 'ct' ? 'bch' : 'slp'
         try {
