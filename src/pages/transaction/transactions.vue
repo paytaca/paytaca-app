@@ -276,10 +276,7 @@ export default {
 	        if (item && item.id !== 'bch') return item
 	      })
 	    },
-	    smartchainAssets() {
-	        if (item && item.id !== 'bch') return item
-	      })
-	    },
+	    // SmartBCH assets removed
 	    // assets () {
 	    //   const vm = this
 	    //   if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
