@@ -48,7 +48,6 @@
 </template>
 
 <script>
-import SmartSwapForm from '../../components/asset-swap/SmartSwapForm.vue'
 import HeaderNav from '../../components/header-nav'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 

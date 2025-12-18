@@ -267,8 +267,6 @@
 import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
-import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetFormDialog.vue'
-import ERC721Collectibles from 'src/components/collectibles/ERC721Collectibles.vue'
 import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDialog.vue'
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
