@@ -198,7 +198,6 @@ export default {
         .map(token => {
           if (!token) return
           return {
-            id: token.address ? `sep20/${token.address}` : '',
             name: token.name || '',
             symbol: token.symbol || '',
             logo: token.image_url || '',
@@ -226,14 +225,11 @@ export default {
       return false
     },
     isSmartchainAsset (assetId) {
-      if (Array.isArray(this.$store.getters['sep20/getAssets'])) {
-        return this.$store.getters['sep20/getAssets'].some(asset => asset && asset.id === assetId)
       }
       return false
     },
     isAssetInIgnoredList (assetId) {
       return this.$store.getters['assets/ignoredAssets'].some(asset => asset && asset.id === assetId) ||
-              this.$store.getters['sep20/ignoredAssets'].some(asset => asset && asset.id === assetId)
     },
     assetIdExists (assetId) {
       return this.isMainchainAsset(assetId) || this.isSmartchainAsset(assetId)
@@ -263,13 +259,11 @@ export default {
     addTokenToIgnoredList (tokenInfo) {
       if (!tokenInfo) return
 
-      if (tokenInfo.isSep20) this.$store.commit('sep20/addIgnoredAsset', tokenInfo)
       else this.$store.commit('assets/addIgnoredAsset', tokenInfo)
     },
     removeTokenFromIgnoredList (tokenInfo) {
       if (!tokenInfo || !tokenInfo.id) return
 
-      if (tokenInfo.isSep20) this.$store.commit('sep20/removeIgnoredAsset', tokenInfo.id)
       else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
     },
     async addAllTokens () {
@@ -298,7 +292,6 @@ export default {
     async updateSmartchainList (opts = { includeIgnored: false }) {
       const vm = this
       vm.smartchainTokens = await vm.$store.dispatch(
-        'sep20/getMissingAssets',
         {
           address: vm.sbchAddress,
           icludeIgnoredTokens: opts.includeIgnored
@@ -341,7 +334,6 @@ export default {
       }
     },
     onClose () {
-      // this.$store.dispatch('sep20/updateTokenIcons', { all: false })
       this.$store.dispatch('assets/updateTokenIcons', { all: false })
       this.$store.dispatch('market/updateAssetPrices', {})
     }

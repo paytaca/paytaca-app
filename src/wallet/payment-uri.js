@@ -42,7 +42,7 @@ const bchjs = new BCHJS()
  *
  *  opts = opt [ "&" opt ]
  *  opt   = [ name / message / asset / pos / ts / otherparams ]
- *  asset = "asset=" [sbch | bch | "sep20/" slpid | "sep20/" contractAddress ]
+ *  asset = "asset=" [bch | "slp/" slpid | "ct/" category ]
  *  pos = "pos=" wallethash "-" posid
  *  ts = "ts=" unix_timestamp
  *  otherparams = paramname [ "=" paramvalue ]

@@ -332,7 +332,6 @@ export default {
       return this.selectedNetwork === 'sBCH'
     },
     erc721Assets () {
-      return this.$store.getters['sep20/getNftAssets']
     },
     selectedNetwork: {
       get () {
@@ -400,7 +399,6 @@ export default {
           label: this.$t('Cancel')
         }
       }).onOk(() => {
-        const commitName = 'sep20/removeNftAsset'
         this.$store.commit(commitName, asset.address)
       })
     },

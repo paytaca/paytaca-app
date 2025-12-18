@@ -281,7 +281,6 @@ export default {
 	      })
 	    },
 	    smartchainAssets() {
-	      return this.$store.getters['sep20/getAssets'].filter(function (item) {
 	        if (item && item.id !== 'bch') return item
 	      })
 	    },

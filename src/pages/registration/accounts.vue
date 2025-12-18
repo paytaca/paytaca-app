@@ -1437,12 +1437,8 @@ export default {
         })
       }
 
-      await wallet.sBCH.subscribeWallet().then(function () {
         const walletTypeInfo = {
           type: 'sbch',
-          derivationPath: wallet.sBCH.derivationPath,
-          walletHash: wallet.sBCH.walletHash,
-          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
         }
 
         if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
@@ -1454,7 +1450,6 @@ export default {
         wallet.BCH_CHIP.walletHash,
         wallet.SLP.walletHash,
         wallet.SLP_TEST.walletHash,
-        wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash
@@ -1569,8 +1564,6 @@ export default {
       }
       if (!walletStructure.sbch) {
         walletStructure.sbch = {
-          walletHash: wallet.sBCH.walletHash,
-          derivationPath: wallet.sBCH.derivationPath,
           lastAddress: '',
           subscribed: false
         }
@@ -1976,8 +1969,6 @@ export default {
           lastAddressIndex: -1
         },
         sbch: {
-          walletHash: wallet.sBCH.walletHash,
-          derivationPath: wallet.sBCH.derivationPath,
           lastAddress: '',
           subscribed: false
         }
@@ -2147,12 +2138,8 @@ export default {
         })
       }
 
-      await wallet.sBCH.subscribeWallet().then(function () {
         const walletTypeInfo = {
           type: 'sbch',
-          derivationPath: wallet.sBCH.derivationPath,
-          walletHash: wallet.sBCH.walletHash,
-          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
         }
 
         if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
@@ -2164,7 +2151,6 @@ export default {
         wallet.BCH_CHIP.walletHash,
         wallet.SLP.walletHash,
         wallet.SLP_TEST.walletHash,
-        wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash

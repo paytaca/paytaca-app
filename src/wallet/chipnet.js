@@ -28,7 +28,9 @@ export function getWalletByNetwork (wallet, type) {
     return [w.BCH, w.BCH_CHIP][idx]
   if (type === 'slp')
     return [w.SLP, w.SLP_TEST][idx]
-  return w.sBCH
+  
+  // Unknown wallet type
+  throw new Error(`Unknown wallet type: ${type}`)
 }
 
 export function convertCashAddress (address, toTestNet = true, toTokenAddress = true) {

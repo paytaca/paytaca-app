@@ -260,7 +260,8 @@ export default {
         const walletHashes = [
           getWalletByNetwork(wallet, 'bch').getWalletHash(),
           getWalletByNetwork(wallet, 'slp').getWalletHash(),
-          wallet.sBCH.getWalletHash()
+          // SmartBCH removed
+          Promise.resolve('')
         ]
 
         if (shouldEnable) {

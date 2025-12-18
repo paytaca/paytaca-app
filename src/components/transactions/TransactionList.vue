@@ -238,13 +238,10 @@ export default {
       let requestPromise = null
       if (sep20IdRegexp.test(id)) {
         const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
-          contractAddress,
-          address,
-          filterOpts
-        )
+        // SmartBCH support removed
+        requestPromise = Promise.reject(new Error('SmartBCH not supported'))
       } else {
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
+        requestPromise = Promise.reject(new Error('SmartBCH not supported'))
           address,
           filterOpts
         )

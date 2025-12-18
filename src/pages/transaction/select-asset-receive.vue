@@ -2,30 +2,6 @@
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav id="RECEIVE" 
       :title="$t('Receive')" backnavpath="/"></header-nav>
-    <q-tabs
-      dense
-      v-if="enableSmartBCH"
-      active-color="brandblue"
-      
-      :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
-      class="col-12 q-px-lg"
-      :modelValue="selectedNetwork"
-      @update:modelValue="changeNetwork"
-    >
-      <q-tab
-        name="BCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        :label="networks.BCH.name"
-      />
-      <q-tab
-        name="sBCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        :label="networks.sBCH.name"
-        :disable="isChipnet"
-      />
-    </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
@@ -33,7 +9,7 @@
             {{ $t('SelectAssetToBeReceived') }}
           </p>
         </div>
-        <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
+        <div class="col-3 q-mt-sm asset-filter-container">
           <AssetFilter v-if="enableSLP" @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
@@ -81,7 +57,7 @@
             <div class="row q-pt-sm q-pb-xs q-pl-md" style="width: 100%;">
               <div>
                 <img
-                  v-if="asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'"
+                  v-if="asset.id === 'ct/unlisted' || asset.id === 'slp/unlisted'"
                   src="ct-logo.png"
                   width="50"
                   alt=""
@@ -100,16 +76,16 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p 
-                  v-if="asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'"
-                  class="q-ma-none amount-text" 
+                <p
+                  v-if="asset.id === 'ct/unlisted' || asset.id === 'slp/unlisted'"
+                  class="q-ma-none amount-text"
                   :class="getDarkModeClass(darkMode, '', 'text-grad')"
                 >
                   Any Fungible CashToken
                 </p>
-                <p 
-                  v-else-if="asset.id !== 'ct/unlisted' && asset.id !== 'sep20/unlisted' && asset.id !== 'slp/unlisted'"
-                  class="q-ma-none amount-text" 
+                <p
+                  v-else-if="asset.id !== 'ct/unlisted' && asset.id !== 'slp/unlisted'"
+                  class="q-ma-none amount-text"
                   :class="getDarkModeClass(darkMode, '', 'text-grad')"
                 >
                   <template v-if="!asset.name.includes('New')">
@@ -158,7 +134,6 @@ import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeRece
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { convertTokenAmount, getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
-import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 import axios from 'axios'
 
 export default {
@@ -173,10 +148,6 @@ export default {
   },
   data () {
     return {
-      networks: {
-        BCH: { name: 'BCH' },
-        sBCH: { name: 'SmartBCH' }
-      },
       activeBtn: 'btn-bch',
       result: '',
       error: '',
@@ -204,9 +175,6 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
-    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -219,35 +187,8 @@ export default {
       const themedIconPath = ''
       const themedNewTokenIcon = `${themedIconPath}new-token.png`
 
-      if (this.selectedNetwork === 'sBCH') {
-        // For sBCH, use store data (API doesn't support sBCH yet)
-        let _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
-        _assets = _assets.map((item) => {
-          if (item?.id === 'bch') {
-            item.name = 'Smart Bitcoin Cash'
-            item.symbol = 'sBCH'
-            item.logo = 'sep20-logo.png'
-          }
-          return item
-        })
-        const unlistedAsset = {
-          id: 'sep20/unlisted',
-          name: 'CashToken',
-          symbol: 'SEP20 token',
-          logo: themedNewTokenIcon
-        }
-        // Ordering: sBCH first, then unlisted SEP20 token, then others
-        const bchAsset = _assets.find(asset => asset?.id === 'bch')
-        const otherAssets = _assets.filter(asset => asset?.id !== 'bch')
-        return [
-          ...(bchAsset ? [bchAsset] : []),
-          unlistedAsset,
-          ...otherAssets
-        ]
-      }
-
-      // For CashTokens on BCH network, use API data directly
-      if (this.isCashToken && this.selectedNetwork === 'BCH') {
+      // For CashTokens, use API data directly
+      if (this.isCashToken) {
         // Get BCH asset from store
         const bchAsset = this.$store.getters['assets/getAssets'].find(asset => asset?.id === 'bch')
         
@@ -425,30 +366,30 @@ export default {
       if (!previousAsset) return false
       
       // Show if previous asset was BCH or unlisted CashToken, or if it wasn't a favorite
-      const isUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'sep20/unlisted' || previousAsset.id === 'slp/unlisted'
+      const isUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'slp/unlisted'
       const isBch = previousAsset.id === 'bch'
       const wasFavorite = this.isFavorite(previousAsset.id)
-      
+
       return (isBch || isUnlisted || !wasFavorite)
     },
     shouldShowOtherTokensLabel(asset, index) {
       // Show label if:
       // 1. Current asset is NOT a favorite (and not BCH or unlisted CashToken)
       // 2. Previous asset (if exists) was a favorite, BCH, or unlisted CashToken
-      const isUnlisted = asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'
+      const isUnlisted = asset.id === 'ct/unlisted' || asset.id === 'slp/unlisted'
       const isBch = asset.id === 'bch'
       if (isBch || isUnlisted || this.isFavorite(asset.id)) return false
-      
+
       if (index === 0) return false // Don't show before first item
-      
+
       const previousAsset = this.assets[index - 1]
       if (!previousAsset) return false
-      
+
       // Show if previous asset was a favorite, BCH, or unlisted CashToken
-      const prevIsUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'sep20/unlisted' || previousAsset.id === 'slp/unlisted'
+      const prevIsUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'slp/unlisted'
       const prevIsBch = previousAsset.id === 'bch'
       const prevWasFavorite = this.isFavorite(previousAsset.id)
-      
+
       return (prevIsBch || prevIsUnlisted || prevWasFavorite)
     },
     convertTokenAmount,
@@ -486,16 +427,12 @@ export default {
       if ((asset?.txCount ?? 0) !== 0) return false
       if (asset.id.split('/')[1] === 'unlisted') return false
 
-      const transactionsLength = this.selectedNetwork === 'sBCH'
-        ? await this.getSbchTransactions(asset)
-        : await this.getBchTransactions(asset)
+      const transactionsLength = await this.getBchTransactions(asset)
 
-      if (this.selectedNetwork !== 'sBCH') {
-        this.$store.commit('assets/updateAssetTxCount', {
-          id: asset?.id,
-          txCount: transactionsLength,
-        })
-      }
+      this.$store.commit('assets/updateAssetTxCount', {
+        id: asset?.id,
+        txCount: transactionsLength,
+      })
 
       return transactionsLength === 0
     },
@@ -539,41 +476,6 @@ export default {
       })
 
       return historyLength
-    },
-    async getSbchTransactions (asset) {
-      const vm = this
-      const address = await generateSbchAddress({
-        walletIndex: vm.$store.getters['global/getWalletIndex']
-      })
-      if (!address) {
-        return Promise.reject(new Error('Failed to generate sBCH address'))
-      }
-      const id = asset.id
-      const sep20IdRegexp = /sep20\/(.*)/
-      let historyLength = -1
-
-      const filterOpts = { limit: 10, includeTimestamp: true, type: 'incoming' }
-      let requestPromise = null
-
-      if (sep20IdRegexp.test(id)) {
-        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
-          contractAddress,
-          address,
-          filterOpts
-        )
-      } else {
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
-          address,
-          filterOpts
-        )
-      }
-
-      if (!requestPromise) return
-      await requestPromise.then(response => {
-        historyLength = response?.transactions.length ?? 0
-      })
-      return historyLength
     }
   },
   async mounted () {
@@ -593,10 +495,10 @@ export default {
     vm.wallet = wallet
 
     // For CashTokens on BCH, fetch tokens directly from API
-    if (vm.isCashToken && vm.selectedNetwork === 'BCH') {
+    if (vm.isCashToken) {
       vm.allTokensFromAPI = await vm.fetchTokensFromAPI()
     } else {
-      // For sBCH or SLP, use store data (legacy behavior)
+      // For SLP, use store data (legacy behavior)
       const bchAssets = vm.$store.getters['assets/getAssets']
       bchAssets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
     }
@@ -604,7 +506,7 @@ export default {
   watch: {
     isCashToken () {
       // Reload tokens when filter changes
-      if (this.isCashToken && this.selectedNetwork === 'BCH') {
+      if (this.isCashToken) {
         this.fetchTokensFromAPI().then(tokens => {
           this.allTokensFromAPI = tokens
         })

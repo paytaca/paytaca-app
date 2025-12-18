@@ -61,20 +61,6 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
-                  <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableSmartBCH') }}
-                      </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle
-                      v-model="enableSmartBCH"
-                      color="blue-9"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item> -->
             </q-list>
         </div>
 
