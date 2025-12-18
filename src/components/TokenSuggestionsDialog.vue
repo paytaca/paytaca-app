@@ -225,11 +225,11 @@ export default {
       return false
     },
     isSmartchainAsset (assetId) {
-      }
+      // SmartBCH removed
       return false
     },
     isAssetInIgnoredList (assetId) {
-      return this.$store.getters['assets/ignoredAssets'].some(asset => asset && asset.id === assetId) ||
+      return this.$store.getters['assets/ignoredAssets'].some(asset => asset && asset.id === assetId)
     },
     assetIdExists (assetId) {
       return this.isMainchainAsset(assetId) || this.isSmartchainAsset(assetId)
@@ -237,7 +237,7 @@ export default {
     addToken (tokenInfo) {
       if (!tokenInfo) return
 
-      const storeLoc = tokenInfo.isSep20 ? 'sep20' : 'assets'
+      const storeLoc = 'assets'
       const walletIndex = this.$store.getters['global/getWalletIndex']
       this.$store.commit(`${storeLoc}/addNewAsset`, tokenInfo)
       this.$store.commit(`${storeLoc}/removeRemovedAssetIds`, {
@@ -248,7 +248,7 @@ export default {
     removeToken (tokenInfo) {
       if (!tokenInfo?.id) return
 
-      const storeLoc = tokenInfo.isSep20 ? 'sep20' : 'assets'
+      const storeLoc = 'assets'
       const walletIndex = this.$store.getters['global/getWalletIndex']
       this.$store.commit(`${storeLoc}/removeAsset`, tokenInfo.id)
       this.$store.commit(`${storeLoc}/addRemovedAssetIds`, {
@@ -259,12 +259,12 @@ export default {
     addTokenToIgnoredList (tokenInfo) {
       if (!tokenInfo) return
 
-      else this.$store.commit('assets/addIgnoredAsset', tokenInfo)
+      this.$store.commit('assets/addIgnoredAsset', tokenInfo)
     },
     removeTokenFromIgnoredList (tokenInfo) {
       if (!tokenInfo || !tokenInfo.id) return
 
-      else this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
+      this.$store.commit('assets/removeIgnoredAsset', tokenInfo.id)
     },
     async addAllTokens () {
       await this.parsedTokens.forEach(this.addToken)
@@ -290,13 +290,8 @@ export default {
       }
     },
     async updateSmartchainList (opts = { includeIgnored: false }) {
-      const vm = this
-      vm.smartchainTokens = await vm.$store.dispatch(
-        {
-          address: vm.sbchAddress,
-          icludeIgnoredTokens: opts.includeIgnored
-        }
-      )
+      // SmartBCH removed
+      this.smartchainTokens = []
     },
     async updateList (opts = { includeIgnored: false, autoOpen: false }) {
       this.loading = true

@@ -866,8 +866,7 @@ export default {
           // if unlisted token is detected, add to front of list
           // check if token already added in list using store getters
           const allAssets = vm.$store.getters['assets/getAssets'] || []
-          const existingAsset = allAssets.find(a => a && a.id === data.token_id) || 
-                               allSep20Assets.find(a => a && a.id === data.token_id)
+          const existingAsset = allAssets.find(a => a && a.id === data.token_id)
           
           if (!existingAsset) {
             try {
