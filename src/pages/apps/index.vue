@@ -188,14 +188,6 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: this.$t('Bridge'),
-          iconName: 'mdi-bridge',
-          path: '/apps/bridge',
-          iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: true
-        },
-        {
           name: this.$t('AssetSwap'),
           iconName: 'mdi-autorenew',
           path: '/apps/asset-swap',

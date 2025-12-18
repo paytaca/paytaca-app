@@ -44,12 +44,6 @@
       :denomination="denomination"
       class="q-mx-md"
     />
-
-    <!-- <div class="q-px-md" style="margin-top: 7%; text-align: center; font-size: 20px; padding: 30px;" :class="darkMode ? 'text-white' : 'text-black'">
-      <p style="font-size: 24px;">Soon, you will be able to swap tokens!</p>
-      <p>We will integrate SLP DEX for SLP tokens and SmartSwap DEX aggregator for SEP20 tokens.</p><br>
-      <p>If you want to bridge BCH to SmartBCH or vice-versa, use the <router-link to="/apps/bridge">Bridge</router-link>.</p>
-    </div> -->
   </div>
 </template>
 
