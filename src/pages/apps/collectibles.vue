@@ -360,39 +360,7 @@ export default {
       this.enableManageAssets = !this.enableManageAssets
       this.selectERC721AssetExpanded = this.enableManageAssets
     },
-    showERC721Asset (asset) {
-      this.erc721AssetDetailDialog.asset = asset
-      this.erc721AssetDetailDialog.show = true
-    },
-    confirmRemoveERC721Asset (asset) {
-      const title = this.$t('RemoveAsset')
-      const message = this.$t(
-        'RemoveAssetPrompt',
-        { assetName: asset.name },
-        `Remove asset ${asset.name}. Are you sure?`
-      )
-      let dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
-      dialogStyleClass += ' br-15'
-
-      this.$q.dialog({
-        title: title,
-        message: message,
-        persistent: true,
-        seamless: true,
-        class: dialogStyleClass,
-        ok: {
-          rounded: true,
-          label: this.$t('OK')
-        },
-        cancel: {
-          rounded: true,
-          flat: true,
-          label: this.$t('Cancel')
-        }
-      }).onOk(() => {
-        this.$store.commit(commitName, asset.address)
-      })
-    },
+    // ERC721 methods removed (showERC721Asset, confirmRemoveERC721Asset)
     getCollectibles (done=() => {}) {
       try {
         if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
