@@ -1437,13 +1437,6 @@ export default {
         })
       }
 
-        const walletTypeInfo = {
-          type: 'sbch',
-        }
-
-        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-      })
 
       const walletHashes = [
         wallet.BCH.walletHash,
@@ -2122,13 +2115,6 @@ export default {
         })
       }
 
-        const walletTypeInfo = {
-          type: 'sbch',
-        }
-
-        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-      })
 
       const walletHashes = [
         wallet.BCH.walletHash,
