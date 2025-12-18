@@ -7,7 +7,6 @@
     ></header-nav>
     <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
-        v-if="!isSep20"
         id="context-menu"
         size="35px"
         name="more_vert"
@@ -196,7 +195,6 @@
 
 <script>
 import { getMnemonic, Wallet, Address } from '../../wallet'
-import { watchTransactions } from '../../wallet/sbch'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
@@ -207,7 +205,6 @@ import { useWakeLock } from '@vueuse/core'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
 import {
   generateReceivingAddress,
-  generateSbchAddress,
   getDerivationPathForWalletType,
   generateAddressSetWithoutSubscription
 } from 'src/utils/address-generation-utils.js'
@@ -218,9 +215,6 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 import HeaderNav from '../../components/header-nav'
 import CustomInput from 'src/components/CustomInput.vue'
-
-const sep20IdRegexp = /sep20\/(.*)/
-const sBCHWalletType = 'Smart BCH'
 
 export default {
   name: 'receive-page',
@@ -233,7 +227,6 @@ export default {
   },
   data () {
     return {
-      sBCHListener: null,
       activeBtn: 'btn-bch',
       walletType: '',
       isCt: false,
@@ -281,17 +274,12 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    isSep20 () {
-      return this.network === 'sBCH'
-    },
     address () {
       // Use dynamically generated address instead of store-retrieved address
       const address = this.dynamicAddress
       if (!address) return ''
       
-      if (this.walletType === sBCHWalletType) {
-        return address
-      } else if (this.legacy) {
+      if (this.legacy) {
         return this.convertToLegacyAddress(address)
       } else {
         if (this.isCt) {
@@ -360,16 +348,6 @@ export default {
 
       return mainchainTokens
     },
-    async getSmartchainTokens () {
-      const tokens = await this.$store.dispatch(
-        'sep20/getMissingAssets',
-        {
-          address: this.getWallet('sbch').lastAddress,
-          icludeIgnoredTokens: false
-        }
-      )
-      return tokens
-    },
     convertFiatToSelectedAsset (amount) {
       const parsedAmount = Number(amount)
       if (!parsedAmount) return ''
@@ -406,10 +384,9 @@ export default {
       const lastAddressIndex = vm.getLastAddressIndex()
       const newAddressIndex = lastAddressIndex + 1
 
-      vm.stopSbchListener()
       delete this?.$options?.sockets
 
-        getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
           getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
@@ -438,12 +415,6 @@ export default {
             // Refresh the dynamic address after generating new address
             await vm.refreshDynamicAddress()
             try { await vm.setupListener() } catch {}
-          })
-        }
-
-        if (vm.walletType === sBCHWalletType) {
-          wallet.sBCH.getOrInitWallet().then(() => {
-            wallet.sBCH.subscribeWallet()
           })
         }
       })
@@ -521,27 +492,7 @@ export default {
       
       // Fallback: if dynamicAddress is not set yet, wait for it or generate
       // This should rarely happen, but provides a safety net
-      if (this.isSep20) {
-        this.walletType = 'sbch'
-        // For sBCH, generate dynamically
-        try {
-          const address = await generateSbchAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex']
-          })
-          if (!address) {
-            throw new Error('Failed to generate and subscribe sBCH address')
-          }
-          return address
-        } catch (error) {
-          console.error('Error generating sBCH address:', error)
-          this.$q.notify({
-            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
-            color: 'negative',
-            icon: 'warning'
-          })
-          return null
-        }
-      } else if (this.assetId.indexOf('slp/') > -1) {
+      if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
       } else {
         this.walletType = 'bch'
@@ -608,8 +559,6 @@ export default {
         // Determine wallet type
         if (this.assetId.indexOf('slp/') > -1) {
           this.walletType = 'slp'
-        } else if (this.isSep20) {
-          this.walletType = 'sbch'
         } else {
           this.walletType = 'bch'
         }
@@ -620,20 +569,8 @@ export default {
         
         // Generate address from lastAddressIndex
         let address
-        if (this.isSep20) {
-          // For sBCH, use existing logic
-          address = await generateSbchAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex']
-          })
-          if (!address) {
-            throw new Error('Failed to generate and subscribe sBCH address')
-          }
-          this.dynamicAddress = address
-          this.dynamicAddressRegular = address // sBCH uses same format
-          this.generating = false
-          return
-        } else {
-          // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+        
+        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
           const addressResult = await generateAddressSetWithoutSubscription({
             walletIndex: this.$store.getters['global/getWalletIndex'],
             derivationPath: getDerivationPathForWalletType(this.walletType),
@@ -716,7 +653,6 @@ export default {
             this.dynamicAddress = newAddress
           }
           this.generating = false
-        }
       } catch (error) {
         console.error('Error refreshing dynamic address:', error)
         this.generating = false // Stop generating even on error
@@ -746,10 +682,7 @@ export default {
       })
     },
     getAsset (id) {
-      let getter = 'assets/getAsset'
-      if (this.isSep20) {
-        getter = 'sep20/getAsset'
-      }
+      const getter = 'assets/getAsset'
       const assets = this.$store.getters[getter](id)
       if (assets.length > 0) {
         return assets[0]
@@ -776,7 +709,6 @@ export default {
     },
     async setupListener () {
       const vm = this
-      if (vm.isSep20) return vm.setupSbchListener()
 
       let url
       let assetType
@@ -953,53 +885,14 @@ export default {
                   balance: amount
                 }
 
-                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, tokenWithBalance)
-                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+                vm.$store.commit('assets/addNewAsset', tokenWithBalance)
+                vm.$store.commit('assets/moveAssetToBeginning')
               }
             } catch (error) {
               console.error('Error adding new token:', error)
             }
           }
         }
-      }
-    },
-
-    setupSbchListener () {
-      const vm = this
-      if (!vm.isSep20) return
-
-      const address = vm.getAddress()
-      const opts = { type: 'incoming' }
-      if (sep20IdRegexp.test(vm.asset.id)) {
-        const contractAddress = vm.asset.id.match(sep20IdRegexp)[1]
-        opts.contractAddresses = [contractAddress]
-        opts.tokensOnly = true
-      } else {
-        opts.tokensOnly = false
-      }
-
-      // Stop listener if another listener already exists
-      vm.stopSbchListener()
-      watchTransactions(
-        address,
-        opts,
-        function ({ tx }) {
-          if (!tx || tx.to !== address) return
-
-          vm.notifyOnReceive(
-            tx.amount,
-            vm.asset.symbol,
-            vm.getImageUrl(vm.asset)
-          )
-        }
-      ).then(listener => {
-        vm.sBCHListener = listener
-      })
-    },
-
-    stopSbchListener () {
-      if (this.sBCHListener && this.sBCHListener.stop && this.sBCHListener.stop.call) {
-        this.sBCHListener.stop()
       }
     }
   },
@@ -1039,11 +932,9 @@ export default {
 
   async unmounted () {
     if (!this.assetId.endsWith('unlisted')) {
-      this.stopSbchListener()
       this.$disconnect()
       delete this?.$options?.sockets
     }
-
 
     await self.wakeLock.release()
   },
@@ -1069,7 +960,7 @@ export default {
       console.warn('Wake lock permission denied or not available:', error)
     }
 
-    vm.tokens = vm.$store.getters['global/network'] === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
+    vm.tokens = await vm.getMainchainTokens()
   },
 
   created () {
