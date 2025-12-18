@@ -267,7 +267,7 @@
 import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
-import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDialog.vue'
+// ERC721 components removed - SmartBCH no longer supported
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
@@ -282,9 +282,7 @@ export default {
   name: 'app-wallet-info',
   components: {
     HeaderNav,
-    AddERC721AssetFormDialog,
-    ERC721Collectibles,
-    ERC721AssetDetailDialog,
+    // ERC721 components removed
     SLPCollectibles,
     CashTokensNFTs,
     AssetFilter
