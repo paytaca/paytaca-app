@@ -323,11 +323,7 @@ export default {
     enableSLP () {
       return this.$store.getters['global/enableSLP']
     },
-    isSep20 () {
-      return this.selectedNetwork === 'sBCH'
-    },
-    erc721Assets () {
-    },
+    // SmartBCH removed - isSep20 and erc721Assets removed
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
