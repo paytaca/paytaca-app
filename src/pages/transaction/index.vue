@@ -336,13 +336,6 @@
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
-
-    <TokenSuggestionsDialog
-      ref="tokenSuggestionsDialog"
-      v-model="showTokenSuggestionsDialog"
-      :bch-wallet-hash="getWallet('bch')?.walletHash || ''"
-      :slp-wallet-hash="getWallet('slp')?.walletHash || ''"
-    />
   </q-pull-to-refresh>
 </template>
 
@@ -366,7 +359,6 @@ import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { debounce } from 'quasar'
 import { refToHex } from 'src/utils/reference-id-utils'
 
-import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
@@ -395,7 +387,6 @@ export default {
   name: 'Transaction-page',
   components: {
     TransactionList,
-    TokenSuggestionsDialog,
     Transaction,
     AssetInfo,
     AssetCards,
@@ -439,7 +430,6 @@ export default {
       pinDialogAction: '',
       securityOptionDialogStatus: 'dismiss',
       prevPath: null,
-      showTokenSuggestionsDialog: false,
       isCashToken: true,
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;',
@@ -1392,12 +1382,6 @@ export default {
         }
       }
       return wallet
-    },
-
-    async checkMissingAssets (opts = { autoOpen: false }) {
-      if (!this.$refs.tokenSuggestionsDialog) return Promise.reject()
-      this.showTokenSuggestionsDialog = Boolean(opts && opts.autoOpen)
-      return this.$refs.tokenSuggestionsDialog.updateList(opts)
     },
 
     async loadWallets () {
