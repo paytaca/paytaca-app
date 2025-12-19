@@ -113,11 +113,11 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     )
     newBalance = formatWithLocale(rawConverted, { max: asset.decimals })
     if (subStringMax > 0) newBalance = String(newBalance).substring(0, subStringMax)
-    symbol = asset.symbol
+    symbol = asset.symbol || ''
   }
 
   if (asset.excludeSymbol) return `${newBalance}`
-  else return `${newBalance} ${symbol}`
+  else return `${newBalance} ${symbol}`.trim()
 }
 
 /**

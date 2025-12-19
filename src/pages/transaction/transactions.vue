@@ -325,7 +325,7 @@ export default {
 	},
 	async mounted () {				
 		// Update selected asset from query parameter
-		this.updateSelectedAssetFromQuery()
+		await this.updateSelectedAssetFromQuery()
 		
 		const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
 
@@ -355,15 +355,15 @@ export default {
 	        this.calculateTransactionRowHeight()
 	      })
 	    },
-	    '$route.query.assetID' (newAssetID) {
+	    async '$route.query.assetID' (newAssetID) {
 	      // Update selected asset when route query changes (e.g., when navigating back)
-	      this.updateSelectedAssetFromQuery()
+	      await this.updateSelectedAssetFromQuery()
 	    }
 	},
 	methods: {
 		parseAssetDenomination,
 		getDarkModeClass,
-		updateSelectedAssetFromQuery () {
+		async updateSelectedAssetFromQuery () {
 			const assetID = this.$route.query.assetID
 			let asset = []
 			
@@ -386,11 +386,34 @@ export default {
 					const assetIdParts = assetID.split('/')
 					const isToken = assetIdParts.length === 2 && (assetIdParts[0] === 'ct' || assetIdParts[0] === 'slp')
 
+					// Set initial basic asset
 					this.selectedAsset = {
 						id: assetID,
 						symbol: isToken ? (assetIdParts[0] === 'ct' ? 'CT' : 'SLP') : 'BCH',
 						name: isToken ? `${assetIdParts[0].toUpperCase()} Token` : 'Bitcoin Cash',
 						logo: null
+					}
+
+					// Fetch metadata from BCMR backend if it's a CashToken
+					if (assetIdParts[0] === 'ct') {
+						console.log('[Transactions] Fetching metadata for token:', assetID)
+						try {
+							const metadata = await this.$store.dispatch('assets/getAssetMetadata', assetID)
+							if (metadata) {
+								console.log('[Transactions] Fetched metadata:', metadata)
+								// Update selectedAsset with fetched metadata
+								this.selectedAsset = {
+									id: metadata.id,
+									symbol: metadata.symbol || this.selectedAsset.symbol,
+									name: metadata.name || this.selectedAsset.name,
+									logo: metadata.logo || null,
+									decimals: metadata.decimals || 0
+								}
+							}
+						} catch (error) {
+							console.warn('[Transactions] Failed to fetch metadata from BCMR:', error)
+							// Keep the basic asset object if fetching fails
+						}
 					}
 				}
 			}
@@ -545,7 +568,7 @@ export default {
 	    	this.$q.dialog({
                 component: AssetListDialog,
                 componentProps: {
-                    assets: this.assets
+                    // AssetListDialog now fetches tokens directly from API
                 }
             })
             .onOk(asset => {
