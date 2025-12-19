@@ -289,14 +289,9 @@ export default {
         this.mainchainTokens.push(...tokens)
       }
     },
-    async updateSmartchainList (opts = { includeIgnored: false }) {
-      // SmartBCH removed
-      this.smartchainTokens = []
-    },
     async updateList (opts = { includeIgnored: false, autoOpen: false }) {
       this.loading = true
 
-      // await Promise.all([this.updateMainchainList(opts), this.updateSmartchainList(opts)])
       await Promise.all([this.updateMainchainList(opts)])
       this.loading = false
 
