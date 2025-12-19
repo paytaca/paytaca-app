@@ -1,10 +1,21 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
-    :class="getDarkModeClass(darkMode)"
+    :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     @refresh="getCollectibles"
   >
-    <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
+    <header-nav :title="$t('Collectibles')" backnavpath="/apps">
+      <template v-slot:top-right-menu>
+        <q-btn
+          flat
+          round
+          dense
+          icon="inbox"
+          :class="getDarkModeClass(darkMode)"
+          @click="showReceiveDialog = true"
+        />
+      </template>
+    </header-nav>
     
     <!-- Main Tabs -->
     <div class="tabs-wrapper q-mt-sm q-mb-sm">
@@ -28,13 +39,13 @@
           class="collectibles-tab"
           :class="[
             darkMode ? 'dark' : '',
-            tabButtonClass('receive'),
+            tabButtonClass('history'),
             `theme-${theme}`
           ]"
-          :style="viewTab === 'receive' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-          @click="viewTab = 'receive'"
+          :style="viewTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+          @click="viewTab = 'history'"
         >
-          {{ $t('Receive') }}
+          {{ $t('History') }}
         </button>
       </div>
     </div>
@@ -100,41 +111,46 @@
         </q-tab-panels>
       </q-tab-panel>
       
-      <!-- Receive Tab -->
-      <q-tab-panel name="receive" class="q-pa-none tab-panel-content">
-        <div class="receive-tab-content">
-          <!-- Network Selector -->
-          <q-tabs
-            dense
-            v-if="enableSmartBCH"
-            active-color="brandblue"
-            class="col-12 q-px-lg q-mb-md"
-            :modelValue="selectedNetwork"
-            @update:modelValue="changeNetwork"
-          >
-            <q-tab
-              class="network-selection-tab"
-              :class="getDarkModeClass(darkMode)"
-              name="BCH"
-              label="BCH"
-            />
-            <q-tab
-              class="network-selection-tab"
-              :class="getDarkModeClass(darkMode)"
-              name="sBCH"
-              label="SmartBCH"
-            />
-          </q-tabs>
-          
+      <!-- History Tab -->
+      <q-tab-panel name="history" class="q-pa-none tab-panel-content">
+        <div class="history-tab-content q-pa-md text-center">
+          <p class="text-h6" :class="getDarkModeClass(darkMode)">
+            {{ $t('CollectiblesHistory', {}, 'Collectibles transaction history coming soon') }}
+          </p>
+        </div>
+      </q-tab-panel>
+    </q-tab-panels>
+    
+    <div style="padding-bottom:60px;"></div>
+
+    <!-- Receive Dialog -->
+    <q-dialog v-model="showReceiveDialog" position="bottom">
+      <q-card class="receive-dialog-card" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Receive') }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup :class="getDarkModeClass(darkMode)" />
+        </q-card-section>
+
+        <q-card-section>
           <!-- BCH Token Type Filter -->
-          <div v-if="selectedNetwork === 'BCH' && enableSLP" class="row items-center justify-center q-mb-md">
+          <div v-if="enableSLP" class="row items-center justify-center q-mb-md">
             <AssetFilter style="float:none" @filterTokens="filterTokens"/>
           </div>
           
           <!-- QR Code Display -->
-          <div class="flex flex-center" style="padding-top: 30px;">
+          <div class="flex flex-center" style="padding-top: 10px;">
             <div class="q-pa-md br-15 justify-center">
-              <q-spinner v-if="!receivingAddress" color="primary" size="50px" />
+              <template v-if="!receivingAddress">
+                <!-- Skeleton Loader for QR Code -->
+                <q-skeleton
+                  type="rect"
+                  width="200px"
+                  height="200px"
+                  :class="getDarkModeClass(darkMode)"
+                  style="border-radius: 8px;"
+                />
+              </template>
               <qr-code
                 v-else
                 :text="receivingAddress"
@@ -146,24 +162,45 @@
           </div>
           
           <!-- Address Display -->
-          <div v-if="receivingAddress" class="row">
+          <div class="row">
             <div class="col receiving-address-container">
-              <span class="qr-code-text text-weight-light text-center">
+              <template v-if="!receivingAddress">
+                <!-- Skeleton Loader for Address -->
+                <div class="text-center">
+                  <q-skeleton
+                    type="text"
+                    width="80%"
+                    height="24px"
+                    :class="getDarkModeClass(darkMode)"
+                    style="margin: 0 auto;"
+                  />
+                </div>
+              </template>
+              <div v-else class="text-center">
                 <div
-                  class="text-nowrap text-bow receiving-address"
+                  class="text-bow receiving-address"
+                  style="letter-spacing: 1px; word-break: break-all; margin-bottom: 8px;"
                   @click="copyAddress(receivingAddress)" 
                   :class="getDarkModeClass(darkMode)"
                 >
                   {{ receivingAddress }}
                 </div>
-              </span>
+                <q-btn
+                  outline
+                  no-caps
+                  class="br-15"
+                  color="grey-7"
+                  icon="content_copy"
+                  padding="xs md"
+                  :label="$t('ClickToCopyAddress')"
+                  @click="copyAddress(receivingAddress)"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </q-tab-panel>
-    </q-tab-panels>
-    
-    <div style="padding-bottom:60px;"></div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-pull-to-refresh>
 </template>
 
@@ -199,7 +236,8 @@ export default {
       enableManageAssets: false,
       viewTab: 'gallery',
       wallet: null,
-      receivingAddress: ''
+      receivingAddress: '',
+      showReceiveDialog: false
     }
   },
   computed: {
@@ -348,18 +386,18 @@ export default {
     }
   },
   watch: {
-    async viewTab (newVal) {
-      if (newVal === 'receive') {
+    async showReceiveDialog (newVal) {
+      if (newVal) {
         await this.getReceivingAddress()
       }
     },
     async selectedNetwork () {
-      if (this.viewTab === 'receive') {
+      if (this.showReceiveDialog) {
         await this.getReceivingAddress()
       }
     },
     async bchNftType () {
-      if (this.viewTab === 'receive') {
+      if (this.showReceiveDialog) {
         await this.getReceivingAddress()
       }
     }
@@ -376,12 +414,45 @@ export default {
     overflow-y: auto;
     z-index: -10 !important;
   }
+
+  #app-container {
+    min-height: 100vh;
+    
+    // Light mode backgrounds
+    &.theme-glassmorphic-blue:not(.dark) {
+      background: linear-gradient(135deg, rgba(220,236,255,0.4) 0%, rgba(220,236,255,0.2) 100%);
+    }
+    &.theme-glassmorphic-gold:not(.dark) {
+      background: linear-gradient(135deg, rgba(255,246,220,0.4) 0%, rgba(255,246,220,0.2) 100%);
+    }
+    &.theme-glassmorphic-green:not(.dark) {
+      background: linear-gradient(135deg, rgba(220,255,236,0.4) 0%, rgba(220,255,236,0.2) 100%);
+    }
+    &.theme-glassmorphic-red:not(.dark) {
+      background: linear-gradient(135deg, rgba(255,220,228,0.4) 0%, rgba(255,220,228,0.2) 100%);
+    }
+    
+    // Dark mode backgrounds
+    &.theme-glassmorphic-blue.dark {
+      background: linear-gradient(135deg, rgba(39,55,70,0.6) 0%, rgba(39,55,70,0.3) 100%);
+    }
+    &.theme-glassmorphic-gold.dark {
+      background: linear-gradient(135deg, rgba(70,60,39,0.6) 0%, rgba(70,60,39,0.3) 100%);
+    }
+    &.theme-glassmorphic-green.dark {
+      background: linear-gradient(135deg, rgba(39,70,55,0.6) 0%, rgba(39,70,55,0.3) 100%);
+    }
+    &.theme-glassmorphic-red.dark {
+      background: linear-gradient(135deg, rgba(70,39,49,0.6) 0%, rgba(70,39,49,0.3) 100%);
+    }
+  }
   
   .tabs-wrapper {
     position: sticky;
     top: 0;
     z-index: 100;
     background: inherit;
+    text-align: center;
   }
   
   .collectibles-tabs {
@@ -479,16 +550,65 @@ export default {
     min-height: 300px;
   }
   
-  .receive-tab-content {
-    padding: 20px 16px;
+  .history-tab-content {
+    padding: 40px 16px;
+  }
+
+  .receive-dialog-card {
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: 400px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    
+    // Light mode glassmorphic backgrounds
+    &.theme-glassmorphic-blue:not(.dark) {
+      background: rgba(220, 236, 255, 0.85);
+    }
+    &.theme-glassmorphic-gold:not(.dark) {
+      background: rgba(255, 246, 220, 0.85);
+    }
+    &.theme-glassmorphic-green:not(.dark) {
+      background: rgba(220, 255, 236, 0.85);
+    }
+    &.theme-glassmorphic-red:not(.dark) {
+      background: rgba(255, 220, 228, 0.85);
+    }
+    
+    // Dark mode glassmorphic backgrounds
+    &.theme-glassmorphic-blue.dark {
+      background: rgba(39, 55, 70, 0.9);
+      border: 1px solid rgba(66, 165, 245, 0.3);
+    }
+    &.theme-glassmorphic-gold.dark {
+      background: rgba(70, 60, 39, 0.9);
+      border: 1px solid rgba(255, 167, 38, 0.3);
+    }
+    &.theme-glassmorphic-green.dark {
+      background: rgba(39, 70, 55, 0.9);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+    &.theme-glassmorphic-red.dark {
+      background: rgba(70, 39, 49, 0.9);
+      border: 1px solid rgba(245, 66, 112, 0.3);
+    }
   }
   
   .receiving-address-container {
-    padding: 20px 40px;
+    padding: 10px 20px;
     overflow-wrap: break-word;
     .receiving-address {
       letter-spacing: 1px;
-      font-size: 18px;
+      font-size: 16px;
+      cursor: pointer;
+      
+      &:hover {
+        opacity: 0.8;
+      }
     }
   }
 </style>
