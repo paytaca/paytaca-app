@@ -437,6 +437,14 @@ export function enableSLP (state) {
   }
 }
 
+/**
+ * Forcibly disable SmartBCH support (deprecated feature)
+ * SmartBCH network is no longer supported in preparation for future deprecation
+ */
+export function disableSmartBCH (state) {
+  state.enableSmartBCH = false
+}
+
 export function updateWallet (state, details) {
   const wallet = getWalletData(state, details)
 

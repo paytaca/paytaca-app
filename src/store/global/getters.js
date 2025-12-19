@@ -54,6 +54,10 @@ export function enableSLP (state) {
   return state.enableSLP
 }
 
+export function enableSmartBCH (state) {
+  return state.enableSmartBCH
+}
+
 export function getAddress (state) {
   return function (walletType) {
     const wallet = getWalletData(state, walletType)

@@ -1,7 +1,7 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
-      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + ' ' + asset.symbol)"
+      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + (asset?.symbol ? ' ' + asset.symbol : ''))"
       :backnavpath="backNavPath"
       class="header-nav"
     ></header-nav>
@@ -35,7 +35,7 @@
         </q-menu>
       </q-icon>
       <div>
-        <div v-if="asset.id ==='bch'" class="row flex-center">
+        <div v-if="asset && asset.id ==='bch'" class="row flex-center">
           <div class="row flex-center" style="margin-top: 20px;">
             <q-img @click="isCt = false" src="bitcoin-cash-circle.svg" height="35px" width="35px" />
             <span @click="isCt = false">&nbsp;BCH</span>
@@ -88,11 +88,11 @@
             </div>
           </div>
         </div>
-        <div v-if="!isCt && asset.id ==='bch'" class="row flex-center">
+        <div v-if="!isCt && asset && asset.id ==='bch'" class="row flex-center">
           <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
           <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
         </div>
-        <div class="row q-mt-md" v-if="!generating && walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
+        <div class="row q-mt-md" v-if="!generating && walletType === 'bch' && asset && asset.id ==='bch' && !isCt && showLegacy">
           <q-toggle
             v-model="legacy"
             class="text-bow"
@@ -136,7 +136,7 @@
                 </div>
                 <div class="text-weight-light receive-amount-label">
                   {{ formatWithLocale(amount, decimalObj) }}
-                  {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
+                  {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset?.symbol }}
                 </div>
               </div>
             </div>
@@ -173,7 +173,7 @@
         <div class="col q-mt-md q-px-lg text-center">
           <custom-input
             v-model="amount"
-            :inputSymbol="setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol"
+            :inputSymbol="setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset?.symbol"
             :inputRules="[val => Boolean(val) || $t('InvalidAmount')]"
             :asset="asset"
             :decimalObj="decimalObj"
@@ -290,7 +290,7 @@ export default {
       }
     },
     selectedAssetMarketPrice() {
-      return this.$store.getters['market/getAssetPrice'](this.asset.id, this.selectedMarketCurrency())
+      return this.$store.getters['market/getAssetPrice'](this.asset?.id, this.selectedMarketCurrency())
     },
     addressAmountFormat () {
       let tempAddress = this.address
@@ -308,7 +308,7 @@ export default {
       }
 
       if (this.assetId.startsWith('ct/')) {
-        const tokenAmount = parseFloat(tempAmount) * (10 ** this.asset.decimals)
+        const tokenAmount = parseFloat(tempAmount) * (10 ** (this.asset?.decimals || 0))
         tempAddress += this.amount ? '&f=' + Math.round(tokenAmount) : ''
       } else {
         tempAddress += this.amount ? '?amount=' + tempAmount : ''
@@ -364,6 +364,7 @@ export default {
       return logoGenerator(String(asset && asset.id))
     },
     getImageUrl (asset) {
+      if (!asset) return this.getFallbackAssetLogo(asset)
       if (asset.logo) {
         if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
           return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
@@ -789,7 +790,7 @@ export default {
               data.amount / (10 ** data.token_decimals),
               data.token_symbol.toUpperCase(),
               vm.getImageUrl(vm.asset),
-              tokenType === 'ct' ? vm.asset.decimals : 0,
+              tokenType === 'ct' ? (vm.asset?.decimals || 0) : 0,
               tokenType === 'ct'
             )
           }
@@ -963,6 +964,35 @@ export default {
 
   created () {
     const vm = this
+    
+    // Check if asset data was passed from select-asset page
+    // This allows immediate rendering with correct logo and details
+    if (vm.$route.query.assetData) {
+      try {
+        const passedAsset = JSON.parse(vm.$route.query.assetData)
+        if (passedAsset && passedAsset.id) {
+          // Use the passed asset data immediately
+          vm.asset = {
+            id: passedAsset.id,
+            name: passedAsset.name || 'Unknown Token',
+            symbol: passedAsset.symbol || '',
+            decimals: passedAsset.decimals !== undefined ? passedAsset.decimals : 0,
+            logo: passedAsset.logo || null,
+            balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
+          }
+          console.log('[Receive] Using passed asset data from select-asset page:', vm.asset)
+          if (vm.assetId.startsWith('ct/')) {
+            vm.setAmountInFiat = false
+          }
+          return // Early return - we have the asset data we need
+        }
+      } catch (error) {
+        console.warn('[Receive] Failed to parse passed asset data:', error)
+        // Fall through to default logic below
+      }
+    }
+    
+    // Fallback to original logic if no asset data was passed or parsing failed
     if (vm.assetId.endsWith('unlisted')) {
       vm.asset = {
         id: vm.assetId,
