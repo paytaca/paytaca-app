@@ -1,19 +1,33 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
-    :class="getDarkModeClass(darkMode)"
+    :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     @refresh="getCollectibles"
   >
-    <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
+    <header-nav :title="$t('Collectibles')" backnavpath="/apps">
+      <template v-slot:top-right-menu>
+        <q-btn
+          flat
+          round
+          dense
+          icon="inbox"
+          :class="getDarkModeClass(darkMode)"
+          @click="showReceiveDialog = true"
+        />
+      </template>
+    </header-nav>
     
     <!-- Main Tabs -->
-    <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
-      <div class="collectibles-tabs q-px-sm q-py-xs" :class="getDarkModeClass(darkMode)">
+    <div class="tabs-wrapper q-mt-sm q-mb-sm">
+      <div
+        class="collectibles-tabs q-pa-xs"
+        :class="getDarkModeClass(darkMode)"
+      >
         <button
           class="collectibles-tab"
           :class="[
             darkMode ? 'dark' : '',
-            viewTab === 'gallery' ? 'active' : '',
+            tabButtonClass('gallery'),
             `theme-${theme}`
           ]"
           :style="viewTab === 'gallery' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
@@ -25,13 +39,13 @@
           class="collectibles-tab"
           :class="[
             darkMode ? 'dark' : '',
-            viewTab === 'receive' ? 'active' : '',
+            tabButtonClass('history'),
             `theme-${theme}`
           ]"
-          :style="viewTab === 'receive' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-          @click="viewTab = 'receive'"
+          :style="viewTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+          @click="viewTab = 'history'"
         >
-          {{ $t('Receive') }}
+          {{ $t('History') }}
         </button>
       </div>
     </div>
@@ -87,150 +101,56 @@
             </keep-alive>
           </q-tab-panel>
           <q-tab-panel name="sBCH">
-        <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" :currentCountry="currentCountry" />
-        <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :darkMode="darkMode" :asset="erc721AssetDetailDialog.asset"/>
-        <div class="row items-start justify-end q-px-sm">
-          <q-btn
-            flat
-            rounded
-            padding="sm"
-            size="sm"
-            icon="add"
-            class="q-mx-sm button button-icon"
-            :class="getDarkModeClass(darkMode)"
-            @click="showAddERC721Form = true"
-          />
-          <q-btn
-            flat
-            rounded
-            padding="sm"
-            size="sm"
-            icon="app_registration"
-            class="q-mx-sm button button-icon"
-            :class="getDarkModeClass(darkMode)"
-            @click="toggleManageAssets"
-          />
-        </div>
-        <p v-if="erc721Assets && erc721Assets.length === 0" style="color: gray;" class="q-py-md text-center text-h6">
-          Asset list empty
-        </p>
-        <template v-else>
-          <q-expansion-item v-model="selectERC721AssetExpanded" dense dense-toggle>
-            <template v-slot:header>
-              <div class="row no-wrap items-center q-space q-pl-md" style="min-height:40px">
-                <template v-if="erc721Assets[selectedERC721AssetIndex]">
-                  <q-btn
-                    flat
-                    rounded
-                    padding="sm"
-                    icon="info"
-                    class="button button-icon"
-                    :class="getDarkModeClass(darkMode)"
-                    @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
-                  />
-                  <div class="text-subtitle1 pt-label" :class="getDarkModeClass(darkMode)">
-                    {{ erc721Assets[selectedERC721AssetIndex].name }}
-                  </div>
-                </template>
-                <div v-else class="pt-label" :class="getDarkModeClass(darkMode)">
-                  {{ $t('SelectCollection') }}
-                </div>
-              </div>
-            </template>
-
-            <q-item
-              v-for="(asset, index) in erc721Assets"
-              :key="index"
-              clickable
-              :active="index === selectedERC721AssetIndex"
-              @click="function() {
-                selectedERC721AssetIndex = index
-                selectERC721AssetExpanded = false
-              }"
-            >
-              <q-item-section side>
-                <q-btn
-                  v-if="enableManageAssets"
-                  flat
-                  rounded
-                  padding="sm"
-                  icon="delete"
-                  class="button button-icon"
-                  :class="getDarkModeClass(darkMode)"
-                  @click.stop="confirmRemoveERC721Asset(asset)"
-                />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">{{ asset.name }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-btn
-                  flat
-                  rounded
-                  padding="sm"
-                  icon="info"
-                  class="button button-icon"
-                  :class="getDarkModeClass(darkMode)"
-                  @click.stop="showERC721Asset(asset)"
-                />
-              </q-item-section>
-            </q-item>
-          </q-expansion-item>
-          <q-separator spaced inset/>
-        </template>
-        <q-tab-panels v-model="selectedERC721AssetIndex" keep-alive style="background:inherit;" class="collectibles-panel">
-          <q-tab-panel
-            v-for="(asset, index) in erc721Assets"
-            :key="index"
-            :name="index"
-            class="q-pa-none"
-          >
-            <ERC721Collectibles
-              ref='erc721Collectibles'
-              :contract-address="asset.address"
-              :wallet="wallet"
-            />
-          </q-tab-panel>
-        </q-tab-panels>
+            <!-- SmartBCH support has been removed -->
+            <div class="q-pa-lg text-center">
+              <p class="text-h6" :class="getDarkModeClass(darkMode)">
+                {{ $t('SmartBCHDeprecated', {}, 'SmartBCH is no longer supported') }}
+              </p>
+            </div>
           </q-tab-panel>
         </q-tab-panels>
       </q-tab-panel>
       
-      <!-- Receive Tab -->
-      <q-tab-panel name="receive" class="q-pa-none tab-panel-content">
-        <div class="receive-tab-content">
-          <!-- Network Selector -->
-          <q-tabs
-            dense
-            v-if="enableSmartBCH"
-            active-color="brandblue"
-            class="col-12 q-px-lg q-mb-md"
-            :modelValue="selectedNetwork"
-            @update:modelValue="changeNetwork"
-          >
-            <q-tab
-              class="network-selection-tab"
-              :class="getDarkModeClass(darkMode)"
-              name="BCH"
-              label="BCH"
-            />
-            <q-tab
-              class="network-selection-tab"
-              :class="getDarkModeClass(darkMode)"
-              name="sBCH"
-              label="SmartBCH"
-            />
-          </q-tabs>
-          
+      <!-- History Tab -->
+      <q-tab-panel name="history" class="q-pa-none tab-panel-content">
+        <div class="history-tab-content q-pa-md text-center">
+          <p class="text-h6" :class="getDarkModeClass(darkMode)">
+            {{ $t('CollectiblesHistory', {}, 'Collectibles transaction history coming soon') }}
+          </p>
+        </div>
+      </q-tab-panel>
+    </q-tab-panels>
+    
+    <div style="padding-bottom:60px;"></div>
+
+    <!-- Receive Dialog -->
+    <q-dialog v-model="showReceiveDialog" position="bottom">
+      <q-card class="receive-dialog-card" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Receive') }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup :class="getDarkModeClass(darkMode)" />
+        </q-card-section>
+
+        <q-card-section>
           <!-- BCH Token Type Filter -->
-          <div v-if="selectedNetwork === 'BCH' && enableSLP" class="row items-center justify-center q-mb-md">
+          <div v-if="enableSLP" class="row items-center justify-center q-mb-md">
             <AssetFilter style="float:none" @filterTokens="filterTokens"/>
           </div>
           
           <!-- QR Code Display -->
-          <div class="flex flex-center" style="padding-top: 30px;">
+          <div class="flex flex-center" style="padding-top: 10px;">
             <div class="q-pa-md br-15 justify-center">
-              <q-spinner v-if="!receivingAddress" color="primary" size="50px" />
+              <template v-if="!receivingAddress">
+                <!-- Skeleton Loader for QR Code -->
+                <q-skeleton
+                  type="rect"
+                  width="200px"
+                  height="200px"
+                  :class="getDarkModeClass(darkMode)"
+                  style="border-radius: 8px;"
+                />
+              </template>
               <qr-code
                 v-else
                 :text="receivingAddress"
@@ -242,24 +162,45 @@
           </div>
           
           <!-- Address Display -->
-          <div v-if="receivingAddress" class="row">
+          <div class="row">
             <div class="col receiving-address-container">
-              <span class="qr-code-text text-weight-light text-center">
+              <template v-if="!receivingAddress">
+                <!-- Skeleton Loader for Address -->
+                <div class="text-center">
+                  <q-skeleton
+                    type="text"
+                    width="80%"
+                    height="24px"
+                    :class="getDarkModeClass(darkMode)"
+                    style="margin: 0 auto;"
+                  />
+                </div>
+              </template>
+              <div v-else class="text-center">
                 <div
-                  class="text-nowrap text-bow receiving-address"
+                  class="text-bow receiving-address"
+                  style="letter-spacing: 1px; word-break: break-all; margin-bottom: 8px;"
                   @click="copyAddress(receivingAddress)" 
                   :class="getDarkModeClass(darkMode)"
                 >
                   {{ receivingAddress }}
                 </div>
-              </span>
+                <q-btn
+                  outline
+                  no-caps
+                  class="br-15"
+                  color="grey-7"
+                  icon="content_copy"
+                  padding="xs md"
+                  :label="$t('ClickToCopyAddress')"
+                  @click="copyAddress(receivingAddress)"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </q-tab-panel>
-    </q-tab-panels>
-    
-    <div style="padding-bottom:60px;"></div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-pull-to-refresh>
 </template>
 
@@ -267,9 +208,6 @@
 import { markRaw } from '@vue/reactivity'
 import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
-import AddERC721AssetFormDialog from 'components/collectibles/AddERC721AssetFormDialog.vue'
-import ERC721Collectibles from 'src/components/collectibles/ERC721Collectibles.vue'
-import ERC721AssetDetailDialog from 'components/collectibles/ERC721AssetDetailDialog.vue'
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
@@ -277,7 +215,6 @@ import { convertCashAddress } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   generateReceivingAddress,
-  generateSbchAddress,
   getDerivationPathForWalletType
 } from 'src/utils/address-generation-utils.js'
 
@@ -285,9 +222,6 @@ export default {
   name: 'app-wallet-info',
   components: {
     HeaderNav,
-    AddERC721AssetFormDialog,
-    ERC721Collectibles,
-    ERC721AssetDetailDialog,
     SLPCollectibles,
     CashTokensNFTs,
     AssetFilter
@@ -300,16 +234,10 @@ export default {
       },
       bchNftType: 'ct', // slp | ct
       enableManageAssets: false,
-      showAddERC721Form: false,
-      selectERC721AssetExpanded: false,
-      erc721AssetDetailDialog: {
-        show: false,
-        asset: null
-      },
-      selectedERC721AssetIndex: -1,
       viewTab: 'gallery',
       wallet: null,
-      receivingAddress: ''
+      receivingAddress: '',
+      showReceiveDialog: false
     }
   },
   computed: {
@@ -330,9 +258,6 @@ export default {
     },
     isSep20 () {
       return this.selectedNetwork === 'sBCH'
-    },
-    erc721Assets () {
-      return this.$store.getters['sep20/getNftAssets']
     },
     selectedNetwork: {
       get () {
@@ -360,49 +285,16 @@ export default {
       }
       return themeColors[this.theme] || themeColors['glassmorphic-blue']
     },
+    tabButtonClass(tabName) {
+      return {
+        'active-theme-btn': this.viewTab === tabName
+      }
+    },
     filterTokens (isCashToken) {
       this.bchNftType = isCashToken ? 'ct' : 'slp'
     },
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
-    },
-    toggleManageAssets () {
-      this.enableManageAssets = !this.enableManageAssets
-      this.selectERC721AssetExpanded = this.enableManageAssets
-    },
-    showERC721Asset (asset) {
-      this.erc721AssetDetailDialog.asset = asset
-      this.erc721AssetDetailDialog.show = true
-    },
-    confirmRemoveERC721Asset (asset) {
-      const title = this.$t('RemoveAsset')
-      const message = this.$t(
-        'RemoveAssetPrompt',
-        { assetName: asset.name },
-        `Remove asset ${asset.name}. Are you sure?`
-      )
-      let dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
-      dialogStyleClass += ' br-15'
-
-      this.$q.dialog({
-        title: title,
-        message: message,
-        persistent: true,
-        seamless: true,
-        class: dialogStyleClass,
-        ok: {
-          rounded: true,
-          label: this.$t('OK')
-        },
-        cancel: {
-          rounded: true,
-          flat: true,
-          label: this.$t('Cancel')
-        }
-      }).onOk(() => {
-        const commitName = 'sep20/removeNftAsset'
-        this.$store.commit(commitName, asset.address)
-      })
     },
     getCollectibles (done=() => {}) {
       try {
@@ -412,14 +304,6 @@ export default {
 
         if (this?.$refs?.cashtokenNFTs?.refresh?.call) {
           this.$refs.cashtokenNFTs.refresh()
-        }
-
-        if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {
-          this.$refs.erc721Collectibles.fetchCollectibles()
-        } else if (Array.isArray(this?.$refs?.erc721Collectibles)) {
-          this.$refs.erc721Collectibles.forEach(component => {
-            if (component?.fetchCollectibles?.call) component.fetchCollectibles()
-          })
         }
       } finally {
         done()
@@ -502,18 +386,18 @@ export default {
     }
   },
   watch: {
-    async viewTab (newVal) {
-      if (newVal === 'receive') {
+    async showReceiveDialog (newVal) {
+      if (newVal) {
         await this.getReceivingAddress()
       }
     },
     async selectedNetwork () {
-      if (this.viewTab === 'receive') {
+      if (this.showReceiveDialog) {
         await this.getReceivingAddress()
       }
     },
     async bchNftType () {
-      if (this.viewTab === 'receive') {
+      if (this.showReceiveDialog) {
         await this.getReceivingAddress()
       }
     }
@@ -530,58 +414,132 @@ export default {
     overflow-y: auto;
     z-index: -10 !important;
   }
+
+  #app-container {
+    min-height: 100vh;
+    
+    // Light mode backgrounds
+    &.theme-glassmorphic-blue:not(.dark) {
+      background: linear-gradient(135deg, rgba(220,236,255,0.4) 0%, rgba(220,236,255,0.2) 100%);
+    }
+    &.theme-glassmorphic-gold:not(.dark) {
+      background: linear-gradient(135deg, rgba(255,246,220,0.4) 0%, rgba(255,246,220,0.2) 100%);
+    }
+    &.theme-glassmorphic-green:not(.dark) {
+      background: linear-gradient(135deg, rgba(220,255,236,0.4) 0%, rgba(220,255,236,0.2) 100%);
+    }
+    &.theme-glassmorphic-red:not(.dark) {
+      background: linear-gradient(135deg, rgba(255,220,228,0.4) 0%, rgba(255,220,228,0.2) 100%);
+    }
+    
+    // Dark mode backgrounds
+    &.theme-glassmorphic-blue.dark {
+      background: linear-gradient(135deg, rgba(39,55,70,0.6) 0%, rgba(39,55,70,0.3) 100%);
+    }
+    &.theme-glassmorphic-gold.dark {
+      background: linear-gradient(135deg, rgba(70,60,39,0.6) 0%, rgba(70,60,39,0.3) 100%);
+    }
+    &.theme-glassmorphic-green.dark {
+      background: linear-gradient(135deg, rgba(39,70,55,0.6) 0%, rgba(39,70,55,0.3) 100%);
+    }
+    &.theme-glassmorphic-red.dark {
+      background: linear-gradient(135deg, rgba(70,39,49,0.6) 0%, rgba(70,39,49,0.3) 100%);
+    }
+  }
   
   .tabs-wrapper {
     position: sticky;
     top: 0;
     z-index: 100;
     background: inherit;
+    text-align: center;
   }
   
   .collectibles-tabs {
-    display: flex;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.03);
-    border-radius: 12px;
+    display: inline-flex;
+    gap: clamp(4px, 1.5vw, 8px);
+    background-color: rgb(242, 243, 252);
+    border-radius: 24px;
     padding: 4px;
-    
+    max-width: 100%;
+    box-sizing: border-box;
+
     &.dark {
-      background: rgba(255, 255, 255, 0.05);
+      background-color: rgba(255, 255, 255, 0.1);
     }
-    
-    .collectibles-tab {
-      flex: 1;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      color: #666;
-      background: transparent;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      
+  }
+
+  .collectibles-tab {
+    min-width: clamp(90px, 25vw, 120px);
+    height: 40px;
+    border-radius: 20px;
+    border: none;
+    color: #4C4F4F;
+    background-color: transparent;
+    outline: 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+    font-size: clamp(12px, 3vw, 14px);
+    padding: 0 clamp(12px, 4vw, 20px);
+    flex: 1 1 auto;
+
+    &:hover:not(.active-theme-btn) {
+      background-color: rgba(0, 0, 0, 0.05);
+
       &.dark {
-        color: rgba(255, 255, 255, 0.7);
-      }
-      
-      &:hover:not(.active) {
-        background-color: rgba(0, 0, 0, 0.05);
-        
-        &.dark {
-          background-color: rgba(255, 255, 255, 0.08);
-        }
-      }
-      
-      &.active {
-        font-weight: 600;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        
-        &.dark {
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        }
+        background-color: rgba(255, 255, 255, 0.15);
       }
     }
+
+    &.dark {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  // Theme-based active button styles
+  .collectibles-tab.active-theme-btn {
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+
+  // Dark mode active button
+  .collectibles-tab.active-theme-btn.dark {
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  // Active button hover effects - slightly darken
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
   
   .tab-panels-wrapper {
@@ -592,16 +550,65 @@ export default {
     min-height: 300px;
   }
   
-  .receive-tab-content {
-    padding: 20px 16px;
+  .history-tab-content {
+    padding: 40px 16px;
+  }
+
+  .receive-dialog-card {
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: 400px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    
+    // Light mode glassmorphic backgrounds
+    &.theme-glassmorphic-blue:not(.dark) {
+      background: rgba(220, 236, 255, 0.85);
+    }
+    &.theme-glassmorphic-gold:not(.dark) {
+      background: rgba(255, 246, 220, 0.85);
+    }
+    &.theme-glassmorphic-green:not(.dark) {
+      background: rgba(220, 255, 236, 0.85);
+    }
+    &.theme-glassmorphic-red:not(.dark) {
+      background: rgba(255, 220, 228, 0.85);
+    }
+    
+    // Dark mode glassmorphic backgrounds
+    &.theme-glassmorphic-blue.dark {
+      background: rgba(39, 55, 70, 0.9);
+      border: 1px solid rgba(66, 165, 245, 0.3);
+    }
+    &.theme-glassmorphic-gold.dark {
+      background: rgba(70, 60, 39, 0.9);
+      border: 1px solid rgba(255, 167, 38, 0.3);
+    }
+    &.theme-glassmorphic-green.dark {
+      background: rgba(39, 70, 55, 0.9);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+    &.theme-glassmorphic-red.dark {
+      background: rgba(70, 39, 49, 0.9);
+      border: 1px solid rgba(245, 66, 112, 0.3);
+    }
   }
   
   .receiving-address-container {
-    padding: 20px 40px;
+    padding: 10px 20px;
     overflow-wrap: break-word;
     .receiving-address {
       letter-spacing: 1px;
-      font-size: 18px;
+      font-size: 16px;
+      cursor: pointer;
+      
+      &:hover {
+        opacity: 0.8;
+      }
     }
   }
 </style>

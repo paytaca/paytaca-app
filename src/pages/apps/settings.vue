@@ -61,20 +61,6 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
-                  <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableSmartBCH') }}
-                      </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle
-                      v-model="enableSmartBCH"
-                      color="blue-9"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item> -->
             </q-list>
         </div>
 
@@ -302,7 +288,6 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
-      enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
       enablePushNotifs: false,
@@ -358,9 +343,6 @@ export default {
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
-    },
-    enableSmartBCH (n, o) {
-      this.$store.commit('global/enableSmartBCH')
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)

@@ -6,7 +6,6 @@ import BigNumber from 'bignumber.js'
 import { parsePOSLabel } from 'src/wallet/pos'
 import { Wallet } from './index'
 import { decodeBIP0021URI } from 'src/wallet/bch'
-import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
 import { getWalletByNetwork } from './chipnet'
@@ -43,7 +42,7 @@ const bchjs = new BCHJS()
  *
  *  opts = opt [ "&" opt ]
  *  opt   = [ name / message / asset / pos / ts / otherparams ]
- *  asset = "asset=" [sbch | bch | "sep20/" slpid | "sep20/" contractAddress ]
+ *  asset = "asset=" [bch | "slp/" slpid | "ct/" category ]
  *  pos = "pos=" wallethash "-" posid
  *  ts = "ts=" unix_timestamp
  *  otherparams = paramname [ "=" paramvalue ]
@@ -155,9 +154,6 @@ export function parsePaytacaPaymentUri(paymentUri = '') {
  * @returns {{ chain: 'main' | 'smart', assetId: String }}
  */
 function resolvePaymentUriAssetParam(paramValue='') {
-  if (paramValue === 'sbch') return { chain: 'smartbch', assetId: 'bch' }
-  if (paramValue.startsWith('sep20/')) return  { chain: 'smart', assetId: paramValue }
-
   if (paramValue.startsWith('slp/')) return  { chain: 'main', assetId: paramValue }
   return { chain: 'main', assetId: 'bch' }
 }

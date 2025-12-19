@@ -525,7 +525,7 @@ export default {
     loadWallet () {
       getMnemonic(this.$store.getters['global/getWalletIndex']).then((mnemonic) => {
         const wallet = new Wallet(mnemonic, 'BCH')
-        wallet.sBCH.getOrInitWallet()
+        // SmartBCH support removed
           .then(() => {
             this.wallet = markRaw(wallet)
           })

@@ -1437,24 +1437,12 @@ export default {
         })
       }
 
-      await wallet.sBCH.subscribeWallet().then(function () {
-        const walletTypeInfo = {
-          type: 'sbch',
-          derivationPath: wallet.sBCH.derivationPath,
-          walletHash: wallet.sBCH.walletHash,
-          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
-        }
-
-        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-      })
 
       const walletHashes = [
         wallet.BCH.walletHash,
         wallet.BCH_CHIP.walletHash,
         wallet.SLP.walletHash,
         wallet.SLP_TEST.walletHash,
-        wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash
@@ -1468,8 +1456,7 @@ export default {
       // Build wallet structure from newWalletSnapshot
       const walletStructure = {
         bch: null,
-        slp: null,
-        sbch: null
+        slp: null
       }
       
       const chipnetStructure = {
@@ -1519,14 +1506,8 @@ export default {
               lastAddressIndex: walletInfo.lastAddressIndex
             }
           }
-        } else if (walletInfo.type === 'sbch') {
-          walletStructure.sbch = {
-            walletHash: walletInfo.walletHash,
-            derivationPath: walletInfo.derivationPath,
-            lastAddress: walletInfo.lastAddress,
-            subscribed: false
-          }
         }
+        // SmartBCH wallet type removed
       })
       
       // Populate xPubKeys from newWalletSnapshot
@@ -1567,14 +1548,7 @@ export default {
           lastAddressIndex: -1
         }
       }
-      if (!walletStructure.sbch) {
-        walletStructure.sbch = {
-          walletHash: wallet.sBCH.walletHash,
-          derivationPath: wallet.sBCH.derivationPath,
-          lastAddress: '',
-          subscribed: false
-        }
-      }
+      // SmartBCH wallet structure removed
       if (!chipnetStructure.bch) {
         chipnetStructure.bch = {
           walletHash: wallet.BCH_CHIP.walletHash,
@@ -1956,8 +1930,8 @@ export default {
       // This allows settings to be saved during steps 2-4
       const wallet = new Wallet(this.mnemonic)
       const walletHash = wallet.BCH.walletHash
-      
-      // Create minimal wallet structure with all wallet types (BCH, SLP, sBCH)
+
+      // Create minimal wallet structure with all wallet types (BCH, SLP)
       const minimalWallet = {
         bch: {
           walletHash: wallet.BCH.walletHash,
@@ -1974,12 +1948,6 @@ export default {
           lastAddress: '',
           lastChangeAddress: '',
           lastAddressIndex: -1
-        },
-        sbch: {
-          walletHash: wallet.sBCH.walletHash,
-          derivationPath: wallet.sBCH.derivationPath,
-          lastAddress: '',
-          subscribed: false
         }
       }
       
@@ -2147,24 +2115,12 @@ export default {
         })
       }
 
-      await wallet.sBCH.subscribeWallet().then(function () {
-        const walletTypeInfo = {
-          type: 'sbch',
-          derivationPath: wallet.sBCH.derivationPath,
-          walletHash: wallet.sBCH.walletHash,
-          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
-        }
-
-        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-      })
 
       const walletHashes = [
         wallet.BCH.walletHash,
         wallet.BCH_CHIP.walletHash,
         wallet.SLP.walletHash,
         wallet.SLP_TEST.walletHash,
-        wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash

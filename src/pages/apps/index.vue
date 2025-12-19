@@ -63,8 +63,7 @@ export default {
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
           iconStyle: 'width:45%; height: 45%;',
-          active: true, // !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          active: true // !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('Marketplace'),
@@ -92,16 +91,14 @@ export default {
           iconName: 'mdi-gift',
           path: '/apps/gifts/',
           iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: `LIFT ${this.$t('Token')}`,
           iconName: 'img:lift-token.png',
           path: '/apps/lift-token',
           iconStyle: 'width: 50%; height: 60%;',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
@@ -109,7 +106,6 @@ export default {
           path: '/apps/multisig',
           active: true,
           iconStyle: 'font-size: 4em',
-          smartBCHOnly: false,
           beta: true,
           betaMessage: this.$t('MultisigWalletsBetaMessage', {}, 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.')
         },
@@ -118,8 +114,7 @@ export default {
           iconName: 'img:cauldron-logo.svg',
           path: '/apps/cauldron',
           iconStyle: 'width:45%; height: 45%;',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('CryptoSwap'),
@@ -134,8 +129,7 @@ export default {
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
           iconStyle: 'width:55%; height: 55%;',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: 'Stablehedge',
@@ -143,7 +137,6 @@ export default {
           path: '/apps/stablehedge/wallet',
           iconStyle: 'width:55%; height: 55%;',
           active: true,
-          smartBCHOnly: false,
           beta: true,
           betaMessage: this.$t('StablehedgeBetaMessage', {}, 'Stablehedge is currently in beta. This feature allows you to create stablecoin positions backed by Bitcoin Cash. Please note that this is an experimental feature and may have limitations or risks.')
         },
@@ -160,24 +153,21 @@ export default {
           iconName: 'point_of_sale',
           path: '/apps/merchant-admin',
           iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('MerchantMap', {}, 'Merchant Map'),
           iconName: 'public',
           path: '/apps/map/',
           iconStyle: 'font-size: 4.2em',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           name: this.$t('Support', {}, 'Support'),
           iconName: 'support',
           path: '/apps/wallet-info',
           active: true,
-          iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
+          iconStyle: 'font-size: 4em'
         },
         {
           name: this.$t('Settings'),
@@ -186,22 +176,6 @@ export default {
           active: true,
           iconStyle: 'font-size: 4em',
           smartBCHOnly: false
-        },
-        {
-          name: this.$t('Bridge'),
-          iconName: 'mdi-bridge',
-          path: '/apps/bridge',
-          iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: true
-        },
-        {
-          name: this.$t('AssetSwap'),
-          iconName: 'mdi-autorenew',
-          path: '/apps/asset-swap',
-          iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: true
         }
       ],
       debugApp: {
@@ -290,14 +264,7 @@ export default {
         this.filteredApps.push(this.debugApp)
       }
       
-      // Filter by smartBCH if needed
-      if (!this.enableSmartBCH) {
-        this.filteredApps = this.filteredApps.filter((app) => {
-          if (!app.smartBCHOnly) {
-            return true
-          }
-        })
-      }
+      // SmartBCH filtering removed - no longer needed
     }
   },
   created () {

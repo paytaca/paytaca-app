@@ -17,30 +17,7 @@
               />
             </div>
 
-            <div class="row" :class="enableSmartBCH ? 'q-pt-lg': 'q-pt-sm'">
-              <template v-if="enableSmartBCH">
-                <q-tabs
-                  class="col-12 q-px-sm q-pb-md"
-                  :modelValue="selectedNetwork"
-                  @update:modelValue="changeNetwork"
-                  style="margin-top: -25px;"
-                  indicator-color=""
-                >
-                  <q-tab
-                    name="BCH"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    :label="networks.BCH.name"
-                  />
-                  <q-tab
-                    name="sBCH"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    :label="networks.sBCH.name"
-                    :disable="isChipnet"
-                  />
-                </q-tabs>
-              </template>
+            <div class="row q-pt-sm">
               <template v-if="isDenominationTabEnabled">
                 <q-tabs
                   inline-label
@@ -52,8 +29,8 @@
                 >
                   <q-tab
                     name="BCH"
-                    class="network-selection-tab denominations-tab"
-                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
+                    class="network-selection-tab denominations-tab main-tab"
+                    :class="[getDarkModeClass(darkMode)]"
                     label="BCH &#x1F30F;"
                   />
                   <q-icon
@@ -65,8 +42,8 @@
                   />
                   <q-tab
                     :name="$t('DEEM')"
-                    class="network-selection-tab denominations-tab"
-                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
+                    class="network-selection-tab denominations-tab main-tab"
+                    :class="[getDarkModeClass(darkMode)]"
                   >
                     <template v-slot:default>
                       <div class="q-tab__content">
@@ -147,16 +124,11 @@
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
-                      <div v-if="selectedNetwork === 'sBCH'">
-                        <img src="sep20-logo.png" alt="" style="height: 75px;"/>
-                      </div>
-                      <div v-else>
-                        <img
-                          :src="denominationTabSelected === $t('DEEM') ? 'assets/img/theme/payhero/deem-logo.png' : 'bch-logo.png'"
-                          alt=""
-                          style="height: 75px;"
-                        />
-                      </div>
+                      <img
+                        :src="denominationTabSelected === $t('DEEM') ? 'assets/img/theme/payhero/deem-logo.png' : 'bch-logo.png'"
+                        alt=""
+                        style="height: 75px;"
+                      />
                     </q-card-section>
                   </q-card-section>
                 </q-card>
@@ -188,7 +160,7 @@
             </div>
             <div class="row items-center q-gutter-sm">
               <AssetFilter 
-                v-if="hasAssetFilter && selectedNetwork === networks.BCH.name" 
+                v-if="hasAssetFilter" 
                 @filterTokens="isCT => isCashToken = isCT" 
               />
               <q-btn
@@ -364,14 +336,6 @@
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
-
-    <TokenSuggestionsDialog
-      ref="tokenSuggestionsDialog"
-      v-model="showTokenSuggestionsDialog"
-      :bch-wallet-hash="getWallet('bch')?.walletHash || ''"
-      :slp-wallet-hash="getWallet('slp')?.walletHash || ''"
-      :sbch-address="getWallet('sbch')?.lastAddress || ''"
-    />
   </q-pull-to-refresh>
 </template>
 
@@ -383,7 +347,6 @@ import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
 import { getMnemonic } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
@@ -395,9 +358,7 @@ import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { debounce } from 'quasar'
 import { refToHex } from 'src/utils/reference-id-utils'
-import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 
-import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
@@ -422,13 +383,10 @@ import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
 
-const sep20IdRegexp = /sep20\/(.*)/
-
 export default {
   name: 'Transaction-page',
   components: {
     TransactionList,
-    TokenSuggestionsDialog,
     Transaction,
     AssetInfo,
     AssetCards,
@@ -452,10 +410,6 @@ export default {
   data () {
     return {
       hideBalances: false,
-      networks: {
-        BCH: { name: 'BCH' },
-        sBCH: { name: 'SmartBCH' }
-      },
       selectedAsset: {
         id: 'bch',
         symbol: 'BCH',
@@ -476,7 +430,6 @@ export default {
       pinDialogAction: '',
       securityOptionDialogStatus: 'dismiss',
       prevPath: null,
-      showTokenSuggestionsDialog: false,
       isCashToken: true,
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;',
@@ -501,15 +454,9 @@ export default {
     online(newValue, oldValue) {
       this.onConnectivityChange(newValue)
     },
-    selectedNetwork() {
-      // Refetch API data when network changes
-      if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
-        this.fetchAllTokensFromAPI()
-      }
-    },
     isCashToken() {
       // Refetch API data when token type changes
-      if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
+      if (this.isCashToken) {
         this.fetchAllTokensFromAPI()
       }
     },
@@ -541,9 +488,6 @@ export default {
       if (val) {
         this.formatBCHCardBalance(this.denomination)
       }
-    },
-    selectedNetwork (value) {
-      this.checkCashinAvailable()
     }
   },
 
@@ -569,9 +513,6 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
-    },
     enableSLP () {
       return this.$store.getters['global/enableSLP']
     },
@@ -583,7 +524,6 @@ export default {
     },
     isDenominationTabEnabled () {
       return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
-        this.selectedNetwork !== 'sBCH' &&
         this.currentCountry === 'HK' &&
         this.selectedMarketCurrency === 'HKD')
     },
@@ -597,10 +537,6 @@ export default {
       }
     },
     bchAsset () {
-      if (this.selectedNetwork === 'sBCH') {
-        return this.$store.getters['sep20/getAssets'][0]
-      }
-
       const asset = this.$store.getters['assets/getAssets'][0]
       return asset
     },
@@ -612,10 +548,6 @@ export default {
       const balance = this.bchBalanceMode === 'bch+favorites' 
         ? this.aggregatedBchBalance 
         : this.bchAsset.balance
-
-      if (this.selectedNetwork === 'sBCH') {
-        return `${String(balance).substring(0, 10)} ${selectedNetwork}`
-      }
 
       const parsedBCHBalance = getAssetDenomination(currentDenomination, balance)
 
@@ -634,22 +566,14 @@ export default {
         if (item && item.id !== 'bch') return item
       })
     },
-    smartchainAssets() {
-      return this.$store.getters['sep20/getAssets'].filter(function (item) {
-        if (item && item.id !== 'bch') return item
-      })
-    },
     assets () {
       const vm = this
 
       // For CashTokens on BCH network, filter favorites from allTokensFromAPI
       // No need for separate API call - allTokensFromAPI already includes favorite field
-      if (vm.selectedNetwork !== 'sBCH' && vm.isCashToken) {
+      if (vm.isCashToken) {
         return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
       }
-
-      // For sBCH network, use store data (API doesn't support sBCH yet)
-      if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
 
       // For SLP tokens, use store data (API doesn't support SLP yet)
       return vm.mainchainAssets.filter(token => {
@@ -664,26 +588,26 @@ export default {
       // Check if there are tokens (excluding BCH) but no favorites
       // Only show this message when:
       // 1. There are tokens available from API (not from Vuex store)
-      // 2. No favorites are set (check allTokensFromAPI directly since favoriteTokens might be empty for sBCH/SLP)
+      // 2. No favorites are set (check allTokensFromAPI directly since favoriteTokens might be empty for SLP)
       // 3. Balance is loaded (indicates assets have been processed)
 
       // For CashTokens, use API data exclusively - never use Vuex store
       let hasTokens = false
-      if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
+      if (this.isCashToken) {
         hasTokens = this.allTokensFromAPI && this.allTokensFromAPI.length > 0
       } else {
-        // For sBCH or SLP, fall back to Vuex store (since API doesn't support these yet)
+        // For SLP, fall back to Vuex store (since API doesn't support these yet)
         hasTokens = this.assets && this.assets.length > 0
       }
 
       // Check if there are favorites in allTokensFromAPI (uses API data exclusively)
       // For CashTokens, filter favorites from allTokensFromAPI
       let hasFavorites = false
-      if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
+      if (this.isCashToken) {
         const favorites = (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
         hasFavorites = favorites.length > 0
       } else {
-        // For sBCH or SLP, check favoriteTokens computed property
+        // For SLP, check favoriteTokens computed property
         hasFavorites = this.favoriteTokens && this.favoriteTokens.length > 0
       }
 
@@ -717,11 +641,11 @@ export default {
     favoriteTokens () {
       // Always use API data only - never use Vuex store for favorite tokens
       // For CashTokens on BCH network, filter favorites from allTokensFromAPI
-      if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
+      if (this.isCashToken) {
         return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
       }
 
-      // For sBCH or SLP, the API doesn't support favorites_only yet
+      // For SLP, the API doesn't support favorites_only yet
       // Return empty array instead of using store data
       return []
     },
@@ -888,8 +812,8 @@ export default {
     },
     async fetchAllTokensFromAPI () {
       // Fetch favorite tokens directly from API for the home page tokens section
-      if (this.selectedNetwork === 'sBCH' || !this.isCashToken) {
-        // For sBCH or SLP, API doesn't support favorites_only yet
+      if (!this.isCashToken) {
+        // For SLP, API doesn't support favorites_only yet
         return []
       }
 
@@ -1108,44 +1032,39 @@ export default {
     },
     async checkCashinAvailable () {
       this.hasCashin = false
-      // check network
-      if (this.selectedNetwork === 'BCH') {
-        // check availableCashinFiat is empty to avoid duplicate requests
-        if (this.availableCashinFiat) {
-          this.hasCashin = true
-        } else {
-          let fetchCurrency = false
+      // check availableCashinFiat is empty to avoid duplicate requests
+      if (this.availableCashinFiat) {
+        this.hasCashin = true
+      } else {
+        let fetchCurrency = false
 
-          await backend.get('/auth')
+        await backend.get('/auth')
+          .then(response => {
+            const user = response.data
+
+            if (!user?.is_arbiter) {
+              fetchCurrency = true
+            }
+          })
+          .catch(error => {
+            if (error.response?.status === 404) {
+              fetchCurrency = true
+            }
+          })
+
+        if (fetchCurrency) {
+          backend.get('/ramp-p2p/currency/fiat')
             .then(response => {
-              const user = response.data
+              this.availableCashinFiat = response.data
+              const selectedFiat = this.$store.getters['market/selectedCurrency']
+              const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
 
-              if (!user?.is_arbiter) {
-                fetchCurrency = true
-              }
+              this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
             })
             .catch(error => {
-              if (error.response?.status === 404) {
-                fetchCurrency = true
-              }
+              console.error(error)
             })
-
-          if (fetchCurrency) {
-            backend.get('/ramp-p2p/currency/fiat')
-              .then(response => {
-                this.availableCashinFiat = response.data
-                const selectedFiat = this.$store.getters['market/selectedCurrency']
-                const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
-
-                this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
-              })
-              .catch(error => {
-                console.error(error)
-              })
-          }
         }
-      } else {
-        this.hasCashin = false
       }
     },
     async checkCashinAlert () {
@@ -1329,43 +1248,7 @@ export default {
     getBalance (id) {
       const vm = this
       vm.balanceLoaded = false
-      if (vm.selectedNetwork === 'sBCH') return vm.getSbchBalance(id, vm)
       return vm.getBchBalance(id, vm)
-    },
-    async getSbchBalance (id, vm) {
-      if (!id) {
-        id = vm.selectedAsset.id
-      }
-      const parsedId = String(id)
-
-      const address = await generateSbchAddress({
-        walletIndex: vm.$store.getters['global/getWalletIndex']
-      })
-      if (!address) {
-        return Promise.reject(new Error('Failed to generate sBCH address'))
-      }
-      if (sep20IdRegexp.test(parsedId)) {
-        const contractAddress = parsedId.match(sep20IdRegexp)[1]
-        return vm.wallet.sBCH.getSep20TokenBalance(contractAddress, address)
-          .then(balance => {
-            const commitName = 'sep20/updateAssetBalance'
-            vm.$store.commit(commitName, {
-              id: parsedId,
-              balance: balance
-            })
-            vm.balanceLoaded = true
-          })
-      } else {
-        return vm.wallet.sBCH.getBalance(address)
-          .then(balance => {
-            const commitName = 'sep20/updateAssetBalance'
-            vm.$store.commit(commitName, {
-              id: parsedId,
-              balance: balance
-            })
-            vm.balanceLoaded = true
-          })
-      }
     },
     async getBchBalance (id, vm) {
       if (!id) {
@@ -1501,12 +1384,6 @@ export default {
       return wallet
     },
 
-    async checkMissingAssets (opts = { autoOpen: false }) {
-      if (!this.$refs.tokenSuggestionsDialog) return Promise.reject()
-      this.showTokenSuggestionsDialog = Boolean(opts && opts.autoOpen)
-      return this.$refs.tokenSuggestionsDialog.updateList(opts)
-    },
-
     async loadWallets () {
       const vm = this
       const wallet = await cachedLoadWallet('BCH', this.$store.getters['global/getWalletIndex'])
@@ -1603,12 +1480,7 @@ export default {
         const balancePromise = vm.getBalance(vm.selectedAsset.id)
         // const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
 
-        let tokenIconUpdatePromise
-        if (this.selectedNetwork === 'sBCH') {
-          tokenIconUpdatePromise = vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
-        } else {
-          tokenIconUpdatePromise = vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-        }
+        const tokenIconUpdatePromise = vm.$store.dispatch('assets/updateTokenIcons', { all: false })
 
         return Promise.allSettled([
           balancePromise,
@@ -1627,7 +1499,7 @@ export default {
       try {
         // Always use API for favorite tokens - never use Vuex store
         // For CashTokens on BCH network, fetch from API (balances already included)
-        if (vm.selectedNetwork !== 'sBCH' && vm.isCashToken) {
+        if (vm.isCashToken) {
           // Add tokens to refreshing array to show skeleton loaders
           const currentFavoriteIds = vm.favoriteTokenIds
           const tokensToRefresh = [...new Set([...currentFavoriteIds, 'bch'])]
@@ -1657,7 +1529,7 @@ export default {
               return null
             })
         } else {
-          // For sBCH or SLP, the API doesn't support favorites_only yet
+          // For SLP, the API doesn't support favorites_only yet
           // Just refresh BCH balance
           if (!vm.refreshingTokenIds.includes('bch')) {
             vm.refreshingTokenIds.push('bch')
@@ -1687,12 +1559,12 @@ export default {
         // Always use API data only - never use Vuex store for favorite tokens
         let favoriteTokenIds = []
         
-        if (vm.selectedNetwork !== 'sBCH' && vm.isCashToken) {
+        if (vm.isCashToken) {
           // Use token IDs from API data - filter favorites from allTokensFromAPI
           const favorites = (vm.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
           favoriteTokenIds = favorites.map(token => token.id).filter(Boolean)
         } else {
-          // For sBCH or SLP, API doesn't support favorites_only yet
+          // For SLP, API doesn't support favorites_only yet
           // No favorite tokens to refresh prices for
           favoriteTokenIds = []
         }
@@ -1726,11 +1598,6 @@ export default {
           const txid = openedNotification?.data?.txid
           const tokenId = openedNotification?.data?.token_id
           this.findAndOpenTransaction({txid, tokenId, chain: 'BCH' })
-        } else if (openedNotification?.data?.type === notificationTypes.SBCH_TRANSACTION) {
-          const txid = openedNotification?.data?.txid
-          const tokenId = openedNotification?.data?.token_address
-          const logIndex = openedNotification?.data?.log_index
-          this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
         } else if (Object.prototype.hasOwnProperty.call(openedNotification?.data, 'order_id')) {
           this.handleRampNotif(openedNotification?.data)
         }
@@ -1748,9 +1615,9 @@ export default {
         asset = this.mainchainAssets.find(asset => asset?.id === assetId)
       } else {
         const isToken = tokenId && String(tokenId) !== 'bch'
-        const tokenPrefix = chain === 'sBCH' ? 'sep20' : 'slp'
+        const tokenPrefix = 'slp'
         assetId = isToken ? `${tokenPrefix}/${tokenId}` : 'bch'
-        const assets = chain === 'sBCH' ? this.smartchainAssets : this.mainchainAssets
+        const assets = this.mainchainAssets
         asset = isToken ? assets.find(asset => asset?.id === assetId) : this.bchAsset
       }
 
@@ -1842,50 +1709,29 @@ export default {
     },
     async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
       if (!data) return
-      const { txid, assetId, chain, logIndex } = data
+      const { txid, assetId } = data
       const transaction = this.transactions?.find?.(tx => (tx?.txid || tx?.tx_hash) === txid)
       if (transaction) return transaction
 
       const watchtower = new Watchtower()
-      if (chain === 'sBCH') {
-        return watchtower.BCH._api(`smartbch/transactions/${txid}/transfers/`)
-          .then(async response => {
-            const txTransfer = response?.data?.find?.(tx => {
-              if (typeof logIndex === 'number') return tx?.log_index === logIndex
-              return true
-            })
-            const address = await generateSbchAddress({
-              walletIndex: this.$store.getters['global/getWalletIndex']
-            })
-            if (!address) {
-              throw new Error('Failed to generate sBCH address')
-            }
-            return parseTransactionTransfer(txTransfer, { address })
-          })
-          .catch(error => {
-            console.error(error)
-            return null
-          })
+      let tokenId = ''
+      let walletHash = ''
+      let apiPath = ''
+      if (assetId.split('/')[0] === 'ct') {
+        tokenId = assetId.split('/')[1]
+        walletHash = this.getWallet('bch')?.walletHash
+        apiPath = `history/wallet/${walletHash}/${tokenId}/`
       } else {
-        let tokenId = ''
-        let walletHash = ''
-        let apiPath = ''
-        if (assetId.split('/')[0] === 'ct') {
-          tokenId = assetId.split('/')[1]
-          walletHash = this.getWallet('bch')?.walletHash
-          apiPath = `history/wallet/${walletHash}/${tokenId}/`
-        } else {
-          const isToken = assetId !== 'bch'
-          tokenId = isToken ? assetId.split('/')[1] : assetId
-          walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
-          apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
-        }
-
-        return watchtower.BCH._api(apiPath, { params: { txids: txid } })
-          .then(response => {
-            return response?.data?.history?.find?.(tx => tx?.txid === txid)
-          })
+        const isToken = assetId !== 'bch'
+        tokenId = isToken ? assetId.split('/')[1] : assetId
+        walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
+        apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
       }
+
+      return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+        .then(response => {
+          return response?.data?.history?.find?.(tx => tx?.txid === txid)
+        })
     },
     formatBCHCardBalance (currentDenomination, currentBalance = 0) {
       const balance = currentBalance || this.bchAsset?.balance || 0
@@ -1942,16 +1788,6 @@ export default {
       }
 
       return mainchainTokens
-    },
-    async getSmartchainTokens () {
-      const tokens = await this.$store.dispatch(
-        'sep20/getMissingAssets',
-        {
-          address: this.getWallet('sbch').lastAddress,
-          icludeIgnoredTokens: false
-        }
-      )
-      return tokens
     },
     /**
      * Returns boolean if app update prompt is shown
@@ -2173,17 +2009,7 @@ export default {
         const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
         const assetsId = assets.map(a => a.id)
 
-        if (vm.selectedNetwork === 'sBCH') {
-          // For sBCH, still use getSmartchainTokens (API doesn't support sBCH tokens)
-          const tokens = await vm.getSmartchainTokens()
-          if (tokens && tokens.length > 0) {
-            const newTokens = tokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
-            newTokens.forEach(token => {
-              vm.$store.commit('sep20/addNewAsset', token)
-              vm.$store.commit('sep20/moveAssetToBeginning')
-            })
-          }
-        } else if (vm.isCashToken) {
+        if (vm.isCashToken) {
           // For CashTokens, use tokens already fetched from fetchAllTokensFromAPI()
           // No need to call getMissingAssets() - the API already provided all the data
           const allTokensFromAPI = vm.allTokensFromAPI || []

@@ -10,9 +10,7 @@ import darkmode from './darkmode'
 import market from './market'
 import marketplace from './marketplace'
 import assets from './assets'
-import lns from './lns'
 import paytacapos from './paytacapos'
-import sep20 from './sep20'
 import walletconnect from './walletconnect'
 import gifts from './gifts'
 import notification from './notification'
@@ -219,7 +217,6 @@ export const Store = createStore({
       //   'global.theme',
       //   'global.isChipnet',
       //   'global.enableStablhedge',
-      //   'global.enableSmartBCH',
       //   'global.user',
       //   'global.online',
       //   'global.walletIndex',
@@ -258,9 +255,7 @@ export const Store = createStore({
     assets,
     market,
     marketplace,
-    lns,
     paytacapos,
-    sep20,
     walletconnect,
     gifts,
     notification,

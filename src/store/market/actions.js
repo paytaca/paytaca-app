@@ -21,11 +21,10 @@ export async function updateSupportedCurrencies (context, { force = true }) {
  *  }
  */
 export function getAllAssetList (context) {
-  // TODO: Fetching of price needs to be improved. Coingecko does not not have price quoute for 
-  // most BCH and sBCH tokens currently. For SPICE, the price quote is wrong.
+  // TODO: Fetching of price needs to be improved. Coingecko does not have price quote for 
+  // most BCH tokens currently. For SPICE, the price quote is wrong.
   // The filters below is meant to only have BCH as result. This is temporary.
   const mainchainAssets = context.rootGetters['assets/getAssets'].filter(asset => asset?.id?.indexOf?.('/') === -1)
-  const smartchainAssets = context.rootGetters['sep20/getAssets'].filter(asset => asset?.id?.indexOf?.('/') === -1)
 
   const mainchain = mainchainAssets.map(asset => {
     if (asset?.id == 'bch') return {
@@ -41,22 +40,7 @@ export function getAllAssetList (context) {
     return { asset, coin }
   })
 
-  const smartchain = smartchainAssets.map(asset => {
-    if (asset?.id == 'bch') return {
-      asset,
-      coin: { id: 'bitcoin-cash', symbol: 'BCH', name: 'Bitcoin Cash' },
-    }
-
-    const filteredSymbol = context.state.coinsList
-      .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
-    const filteredPlatform = filteredSymbol
-      .filter(coin => coin?.platforms?.smartbch)
-
-    const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
-    return { asset, coin }
-  })
-
-  return { mainchain, smartchain }
+  return { mainchain, smartchain: [] }
 }
 
 export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null, assetId = null }) {

@@ -51,10 +51,8 @@ import TransactionListItemSkeleton from 'src/components/transactions/Transaction
 import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { refToHex } from 'src/utils/reference-id-utils'
-import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 import axios from 'axios'
 
-const sep20IdRegexp = /sep20\/(.*)/
 const recordTypeMap = {
   all: 'all',
   sent: 'outgoing',
@@ -207,72 +205,8 @@ export default {
         })
     },
     async getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, append: false }) {
-      if (this.selectedNetwork === 'sBCH') {
-        const address = await generateSbchAddress({
-          walletIndex: this.$store.getters['global/getWalletIndex']
-        })
-        if (!address) {
-          return Promise.reject(new Error('Failed to generate sBCH address'))
-        }
-        return this.getSbchTransactions(address, opts)
-      }
+      // SmartBCH support removed
       return this.getBchTransactions(page, opts)
-    },
-    getSbchTransactions (address, opts = { scrollToBottom: false }) {
-      const vm = this
-      const asset = vm.selectedAsset
-      const id = String(vm.selectedAsset.id)
-
-      const filterOpts = {
-        limit: 10,
-        includeTimestamp: true,
-        type: recordTypeMap[vm.transactionsFilter]
-      }
-
-      let appendResults = false
-      if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
-        filterOpts.before = '0x' + (this.earliestBlock - 1).toString(16)
-        appendResults = true
-      }
-
-      let requestPromise = null
-      if (sep20IdRegexp.test(id)) {
-        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
-          contractAddress,
-          address,
-          filterOpts
-        )
-      } else {
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
-          address,
-          filterOpts
-        )
-      }
-
-      if (!requestPromise) return
-      if (!appendResults) vm.transactionsLoaded = false
-      vm.transactionsAppending = true
-      requestPromise
-        .then(response => {
-          vm.transactionsPageHasNext = false
-          if (Array.isArray(response.transactions)) {
-            vm.transactionsPageHasNext = response.hasNextPage
-            if (!appendResults) vm.transactions = []
-            vm.transactions.push(...response.transactions
-              .map(tx => {
-                tx.senders = [tx.from]
-                tx.recipients = [tx.to]
-                tx.asset = asset
-                return tx
-              })
-            )
-          }
-        })
-        .finally(() => {
-          vm.transactionsAppending = false
-          vm.transactionsLoaded = true
-        })
     },
     getBchTransactions (page, opts = { scrollToBottom: false, append: false }) {
       const vm = this
