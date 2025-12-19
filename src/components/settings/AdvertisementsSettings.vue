@@ -259,9 +259,7 @@ export default {
         const wallet = await loadWallet('BCH', multiWalletIndex)
         const walletHashes = [
           getWalletByNetwork(wallet, 'bch').getWalletHash(),
-          getWalletByNetwork(wallet, 'slp').getWalletHash(),
-          // SmartBCH removed
-          Promise.resolve('')
+          getWalletByNetwork(wallet, 'slp').getWalletHash()
         ]
 
         if (shouldEnable) {
