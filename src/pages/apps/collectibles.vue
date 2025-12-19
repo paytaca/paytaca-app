@@ -87,111 +87,12 @@
             </keep-alive>
           </q-tab-panel>
           <q-tab-panel name="sBCH">
-        <AddERC721AssetFormDialog v-model="showAddERC721Form" :darkMode="darkMode" :currentCountry="currentCountry" />
-        <ERC721AssetDetailDialog v-model="erc721AssetDetailDialog.show" :darkMode="darkMode" :asset="erc721AssetDetailDialog.asset"/>
-        <div class="row items-start justify-end q-px-sm">
-          <q-btn
-            flat
-            rounded
-            padding="sm"
-            size="sm"
-            icon="add"
-            class="q-mx-sm button button-icon"
-            :class="getDarkModeClass(darkMode)"
-            @click="showAddERC721Form = true"
-          />
-          <q-btn
-            flat
-            rounded
-            padding="sm"
-            size="sm"
-            icon="app_registration"
-            class="q-mx-sm button button-icon"
-            :class="getDarkModeClass(darkMode)"
-            @click="toggleManageAssets"
-          />
-        </div>
-        <p v-if="erc721Assets && erc721Assets.length === 0" style="color: gray;" class="q-py-md text-center text-h6">
-          Asset list empty
-        </p>
-        <template v-else>
-          <q-expansion-item v-model="selectERC721AssetExpanded" dense dense-toggle>
-            <template v-slot:header>
-              <div class="row no-wrap items-center q-space q-pl-md" style="min-height:40px">
-                <template v-if="erc721Assets[selectedERC721AssetIndex]">
-                  <q-btn
-                    flat
-                    rounded
-                    padding="sm"
-                    icon="info"
-                    class="button button-icon"
-                    :class="getDarkModeClass(darkMode)"
-                    @click.stop="showERC721Asset(erc721Assets[selectedERC721AssetIndex])"
-                  />
-                  <div class="text-subtitle1 pt-label" :class="getDarkModeClass(darkMode)">
-                    {{ erc721Assets[selectedERC721AssetIndex].name }}
-                  </div>
-                </template>
-                <div v-else class="pt-label" :class="getDarkModeClass(darkMode)">
-                  {{ $t('SelectCollection') }}
-                </div>
-              </div>
-            </template>
-
-            <q-item
-              v-for="(asset, index) in erc721Assets"
-              :key="index"
-              clickable
-              :active="index === selectedERC721AssetIndex"
-              @click="function() {
-                selectedERC721AssetIndex = index
-                selectERC721AssetExpanded = false
-              }"
-            >
-              <q-item-section side>
-                <q-btn
-                  v-if="enableManageAssets"
-                  flat
-                  rounded
-                  padding="sm"
-                  icon="delete"
-                  class="button button-icon"
-                  :class="getDarkModeClass(darkMode)"
-                  @click.stop="confirmRemoveERC721Asset(asset)"
-                />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">{{ asset.name }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-btn
-                  flat
-                  rounded
-                  padding="sm"
-                  icon="info"
-                  class="button button-icon"
-                  :class="getDarkModeClass(darkMode)"
-                  @click.stop="showERC721Asset(asset)"
-                />
-              </q-item-section>
-            </q-item>
-          </q-expansion-item>
-          <q-separator spaced inset/>
-        </template>
-        <q-tab-panels v-model="selectedERC721AssetIndex" keep-alive style="background:inherit;" class="collectibles-panel">
-          <q-tab-panel
-            v-for="(asset, index) in erc721Assets"
-            :key="index"
-            :name="index"
-            class="q-pa-none"
-          >
-            <ERC721Collectibles
-              ref='erc721Collectibles'
-              :contract-address="asset.address"
-              :wallet="wallet"
-            />
-          </q-tab-panel>
-        </q-tab-panels>
+            <!-- SmartBCH support has been removed -->
+            <div class="q-pa-lg text-center">
+              <p class="text-h6" :class="getDarkModeClass(darkMode)">
+                {{ $t('SmartBCHDeprecated', {}, 'SmartBCH is no longer supported') }}
+              </p>
+            </div>
           </q-tab-panel>
         </q-tab-panels>
       </q-tab-panel>
@@ -281,9 +182,6 @@ export default {
   name: 'app-wallet-info',
   components: {
     HeaderNav,
-    AddERC721AssetFormDialog,
-    ERC721Collectibles,
-    ERC721AssetDetailDialog,
     SLPCollectibles,
     CashTokensNFTs,
     AssetFilter
@@ -296,13 +194,6 @@ export default {
       },
       bchNftType: 'ct', // slp | ct
       enableManageAssets: false,
-      showAddERC721Form: false,
-      selectERC721AssetExpanded: false,
-      erc721AssetDetailDialog: {
-        show: false,
-        asset: null
-      },
-      selectedERC721AssetIndex: -1,
       viewTab: 'gallery',
       wallet: null,
       receivingAddress: ''
@@ -326,9 +217,6 @@ export default {
     },
     isSep20 () {
       return this.selectedNetwork === 'sBCH'
-    },
-    erc721Assets () {
-      return this.$store.getters['sep20/getNftAssets']
     },
     selectedNetwork: {
       get () {
@@ -362,44 +250,6 @@ export default {
     changeNetwork (newNetwork = 'BCH') {
       this.selectedNetwork = newNetwork
     },
-    toggleManageAssets () {
-      this.enableManageAssets = !this.enableManageAssets
-      this.selectERC721AssetExpanded = this.enableManageAssets
-    },
-    showERC721Asset (asset) {
-      this.erc721AssetDetailDialog.asset = asset
-      this.erc721AssetDetailDialog.show = true
-    },
-    confirmRemoveERC721Asset (asset) {
-      const title = this.$t('RemoveAsset')
-      const message = this.$t(
-        'RemoveAssetPrompt',
-        { assetName: asset.name },
-        `Remove asset ${asset.name}. Are you sure?`
-      )
-      let dialogStyleClass = `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
-      dialogStyleClass += ' br-15'
-
-      this.$q.dialog({
-        title: title,
-        message: message,
-        persistent: true,
-        seamless: true,
-        class: dialogStyleClass,
-        ok: {
-          rounded: true,
-          label: this.$t('OK')
-        },
-        cancel: {
-          rounded: true,
-          flat: true,
-          label: this.$t('Cancel')
-        }
-      }).onOk(() => {
-        const commitName = 'sep20/removeNftAsset'
-        this.$store.commit(commitName, asset.address)
-      })
-    },
     getCollectibles (done=() => {}) {
       try {
         if (this?.$refs?.slpCollectibles?.fetchCollectibles?.call) {
@@ -408,14 +258,6 @@ export default {
 
         if (this?.$refs?.cashtokenNFTs?.refresh?.call) {
           this.$refs.cashtokenNFTs.refresh()
-        }
-
-        if (this?.$refs?.erc721Collectibles?.fetchCollectibles?.call) {
-          this.$refs.erc721Collectibles.fetchCollectibles()
-        } else if (Array.isArray(this?.$refs?.erc721Collectibles)) {
-          this.$refs.erc721Collectibles.forEach(component => {
-            if (component?.fetchCollectibles?.call) component.fetchCollectibles()
-          })
         }
       } finally {
         done()
