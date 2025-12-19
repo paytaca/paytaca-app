@@ -7,13 +7,16 @@
     <header-nav :title="$t('Collectibles')" backnavpath="/apps" />
     
     <!-- Main Tabs -->
-    <div class="tabs-wrapper q-mx-md q-mt-sm q-mb-sm">
-      <div class="collectibles-tabs q-px-sm q-py-xs" :class="getDarkModeClass(darkMode)">
+    <div class="tabs-wrapper q-mt-sm q-mb-sm">
+      <div
+        class="collectibles-tabs q-pa-xs"
+        :class="getDarkModeClass(darkMode)"
+      >
         <button
           class="collectibles-tab"
           :class="[
             darkMode ? 'dark' : '',
-            viewTab === 'gallery' ? 'active' : '',
+            tabButtonClass('gallery'),
             `theme-${theme}`
           ]"
           :style="viewTab === 'gallery' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
@@ -25,7 +28,7 @@
           class="collectibles-tab"
           :class="[
             darkMode ? 'dark' : '',
-            viewTab === 'receive' ? 'active' : '',
+            tabButtonClass('receive'),
             `theme-${theme}`
           ]"
           :style="viewTab === 'receive' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
@@ -244,6 +247,11 @@ export default {
       }
       return themeColors[this.theme] || themeColors['glassmorphic-blue']
     },
+    tabButtonClass(tabName) {
+      return {
+        'active-theme-btn': this.viewTab === tabName
+      }
+    },
     filterTokens (isCashToken) {
       this.bchNftType = isCashToken ? 'ct' : 'slp'
     },
@@ -377,49 +385,90 @@ export default {
   }
   
   .collectibles-tabs {
-    display: flex;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.03);
-    border-radius: 12px;
+    display: inline-flex;
+    gap: clamp(4px, 1.5vw, 8px);
+    background-color: rgb(242, 243, 252);
+    border-radius: 24px;
     padding: 4px;
-    
+    max-width: 100%;
+    box-sizing: border-box;
+
     &.dark {
-      background: rgba(255, 255, 255, 0.05);
+      background-color: rgba(255, 255, 255, 0.1);
     }
-    
-    .collectibles-tab {
-      flex: 1;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      color: #666;
-      background: transparent;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      
+  }
+
+  .collectibles-tab {
+    min-width: clamp(90px, 25vw, 120px);
+    height: 40px;
+    border-radius: 20px;
+    border: none;
+    color: #4C4F4F;
+    background-color: transparent;
+    outline: 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+    font-size: clamp(12px, 3vw, 14px);
+    padding: 0 clamp(12px, 4vw, 20px);
+    flex: 1 1 auto;
+
+    &:hover:not(.active-theme-btn) {
+      background-color: rgba(0, 0, 0, 0.05);
+
       &.dark {
-        color: rgba(255, 255, 255, 0.7);
-      }
-      
-      &:hover:not(.active) {
-        background-color: rgba(0, 0, 0, 0.05);
-        
-        &.dark {
-          background-color: rgba(255, 255, 255, 0.08);
-        }
-      }
-      
-      &.active {
-        font-weight: 600;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        
-        &.dark {
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        }
+        background-color: rgba(255, 255, 255, 0.15);
       }
     }
+
+    &.dark {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  // Theme-based active button styles
+  .collectibles-tab.active-theme-btn {
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+
+  // Dark mode active button
+  .collectibles-tab.active-theme-btn.dark {
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  // Active button hover effects - slightly darken
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+
+  .collectibles-tab.active-theme-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
   
   .tab-panels-wrapper {
