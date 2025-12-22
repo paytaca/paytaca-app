@@ -72,7 +72,7 @@
             <q-avatar size="40px" class="amount-avatar-ss"><img :src="getImageUrl(tx.asset)" alt="asset-logo" /></q-avatar>
             <div class="amount-label-ss">{{ displayAmountText }}</div>
           </div>
-          <div v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
+          <div v-if="!isNft && displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
             <span>{{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}</span>
             <q-icon 
               name="info" 
@@ -89,6 +89,67 @@
           <div v-if="gainLossAmount !== null && gainLossAmount !== undefined && isBchTransaction && Math.abs(gainLossAmount) > 0.01" class="amount-gain-loss-ss" :class="gainLossClass">
             <q-icon :name="gainLossAmount >= 0 ? 'trending_up' : 'trending_down'" size="16px" class="q-mr-xs" />
             {{ gainLossText }}
+          </div>
+        </div>
+
+        <!-- NFT Image Display -->
+        <div v-if="isNft && tx && tx.asset" class="q-mt-md q-mb-lg text-center">
+          <div v-if="fetchingNftMetadata" class="nft-image-skeleton-container">
+            <q-skeleton
+              type="rect"
+              width="300px"
+              height="300px"
+              class="nft-image-skeleton"
+              style="border-radius: 12px; margin: 0 auto;"
+            />
+          </div>
+          <div v-else>
+            <q-img
+              v-if="nftImageUrl"
+              :src="nftImageUrl"
+              :alt="nftName || tx.asset.name || 'NFT'"
+              style="max-width: 300px; max-height: 300px; margin: 0 auto; border-radius: 12px;"
+              class="nft-image"
+              @error="nftImageError = true"
+            >
+              <template v-slot:error>
+                <div class="absolute-full flex flex-center bg-grey-3 text-grey-8">
+                  <div class="text-center">
+                    <q-icon name="image" size="48px" />
+                    <div class="text-caption q-mt-sm">{{ $t('ImageNotAvailable', {}, 'Image not available') }}</div>
+                  </div>
+                </div>
+              </template>
+            </q-img>
+            <q-img
+              v-else
+              :src="getImageUrl(tx.asset)"
+              :alt="tx.asset.name || 'NFT'"
+              style="max-width: 300px; max-height: 300px; margin: 0 auto; border-radius: 12px;"
+              class="nft-image"
+              @error="nftImageError = true"
+            >
+              <template v-slot:error>
+                <div class="absolute-full flex flex-center bg-grey-3 text-grey-8">
+                  <div class="text-center">
+                    <q-icon name="image" size="48px" />
+                    <div class="text-caption q-mt-sm">{{ $t('ImageNotAvailable', {}, 'Image not available') }}</div>
+                  </div>
+                </div>
+              </template>
+            </q-img>
+            <!-- View in Collectibles Button -->
+            <div class="q-mt-md q-mb-sm">
+              <q-btn
+                no-caps
+                rounded
+                color="pt-primary1"
+                :label="$t('ViewInCollectibles', {}, 'View in Collectibles')"
+                icon="collections"
+                @click="viewInCollectibles"
+                class="view-in-collectibles-btn"
+              />
+            </div>
           </div>
         </div>
 
@@ -307,6 +368,8 @@ import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDeta
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import JppDetailDialog from 'src/components/JppDetailDialog.vue'
 import * as assetSettings from 'src/utils/asset-settings'
+import { getBcmrBackend, convertIpfsUrl } from 'src/wallet/cashtokens'
+import { binToHex } from '@bitauth/libauth'
 
 export default {
   name: 'TransactionDetailPage',
@@ -338,6 +401,10 @@ export default {
       favorites: [],
       addingToFavorites: false,
       favoritesEvaluated: false, // Track if favorites have been evaluated in background
+      nftImageError: false, // Track if NFT image failed to load
+      nftImageUrl: null, // NFT image URL from BCMR type_metadata
+      nftName: null, // NFT name from BCMR type_metadata
+      fetchingNftMetadata: false, // Track if NFT metadata is being fetched
     }
   },
   computed: {
@@ -363,6 +430,13 @@ export default {
     },
     displayAmountText () {
       if (!this.tx) return ''
+      
+      // For NFT transactions, show type name instead of amount and symbol
+      if (this.isNft) {
+        // Use nftName if available (from BCMR metadata), otherwise use asset.name
+        return this.nftName || this.tx.asset?.name || 'NFT'
+      }
+      
       const denom = (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
         ? this.denominationTabSelected
         : this.$store.getters['global/denomination']
@@ -490,9 +564,93 @@ export default {
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
+    isNft () {
+      if (!this.tx) return false
+      // Check if is_nft is directly on tx or tx.asset
+      if (this.tx.is_nft === true || this.tx.is_nft === 'true') return true
+      if (this.tx.asset?.is_nft === true || this.tx.asset?.is_nft === 'true') return true
+      // Check if is_nft is in attributes array
+      if (Array.isArray(this.tx.attributes)) {
+        const nftAttribute = this.tx.attributes.find(attr => {
+          if (attr.key === 'is_nft') {
+            return attr.value === true || attr.value === 'true' || String(attr.value).toLowerCase() === 'true'
+          }
+          // Also check if key-value pair is stored as a string like "is_nft=true"
+          if (typeof attr.key === 'string' && attr.key.includes('is_nft')) {
+            return attr.value === true || attr.value === 'true' || String(attr.value).toLowerCase() === 'true'
+          }
+          return false
+        })
+        if (nftAttribute) return true
+      }
+      return false
+    },
+    nftTokenId () {
+      if (!this.isNft || !this.tx) return null
+      // Extract category from token field
+      // Priority: token.id (category) > token.asset_id (ct/category) > asset.id
+      let tokenId = null
+      
+      // First try token.id (this is the category ID)
+      if (this.tx.token?.id) {
+        tokenId = this.tx.token.id
+      }
+      // Then try token.asset_id (format: "ct/category")
+      else if (this.tx.token?.asset_id) {
+        tokenId = this.tx.token.asset_id
+      }
+      // Fallback to asset.id
+      else if (this.tx.asset?.id) {
+        tokenId = this.tx.asset.id
+      }
+      
+      if (!tokenId) return null
+      
+      // If it's in format "ct/..." or "slp/...", extract just the category part
+      if (typeof tokenId === 'string' && tokenId.includes('/')) {
+        const parts = tokenId.split('/')
+        if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+          return parts[1] // Return just the category ID
+        }
+      }
+      
+      // Otherwise return as-is (should be just the category ID)
+      return tokenId
+    },
+    nftCommitment () {
+      if (!this.isNft || !this.tx) return null
+      // Try to get commitment from token field first
+      let commitment = this.tx.token?.commitment
+      
+      // If not found, try to get from attributes
+      if (!commitment && Array.isArray(this.tx.attributes)) {
+        const commitmentAttr = this.tx.attributes.find(attr => attr.key === 'commitment')
+        if (commitmentAttr && commitmentAttr.value) {
+          commitment = commitmentAttr.value
+        }
+      }
+      
+      // Convert commitment to hex string if it's a Uint8Array or Buffer
+      if (commitment) {
+        if (commitment instanceof Uint8Array || (commitment.constructor && commitment.constructor.name === 'Uint8Array')) {
+          return binToHex(commitment)
+        }
+        if (Buffer && Buffer.isBuffer(commitment)) {
+          return commitment.toString('hex')
+        }
+        // If it's already a string, return as is
+        if (typeof commitment === 'string') {
+          return commitment
+        }
+      }
+      
+      return null
+    },
     showAddToFavoritesButton () {
       // Hide by default until favorites are evaluated
       if (!this.favoritesEvaluated) return false
+      // Don't show button for NFTs
+      if (this.isNft) return false
       if (!this.isTokenTransaction || !this.tokenAssetId) return false
       // Check if token is not in favorites
       const favoriteIds = this.favorites
@@ -686,6 +844,19 @@ export default {
       if (newTx && newTx.txid && (!oldTx || oldTx.txid !== newTx.txid)) {
         this.$nextTick(() => {
           this.loadMemo()
+        })
+      }
+      // Fetch NFT metadata when transaction changes and it's an NFT
+      if (newTx) {
+        this.$nextTick(() => {
+          // Reset NFT image and name when transaction changes
+          this.nftImageUrl = null
+          this.nftName = null
+          this.nftImageError = false
+          // Fetch metadata if it's an NFT
+          if (this.isNft) {
+            this.fetchNftMetadata()
+          }
         })
       }
     }
@@ -1287,6 +1458,85 @@ export default {
         // Price might not be available for this token
         console.debug('[TransactionDetail] Price not available for token:', assetId, error)
       }
+    },
+    async fetchNftMetadata () {
+      // Only fetch if it's an NFT and we have token ID
+      if (!this.isNft || !this.nftTokenId) {
+        this.nftImageUrl = null
+        this.nftName = null
+        return
+      }
+
+      // Don't fetch if already fetching or if we already have the image
+      if (this.fetchingNftMetadata || this.nftImageUrl) return
+
+      this.fetchingNftMetadata = true
+      this.nftImageError = false
+
+      try {
+        const tokenId = this.nftTokenId
+        const commitment = this.nftCommitment
+
+        // Build URL: tokens/{tokenId}/ or tokens/{tokenId}/{commitment}/
+        let url = `tokens/${tokenId}/`
+        if (commitment) {
+          url += `${commitment}/`
+        }
+
+        const response = await getBcmrBackend().get(url)
+        const metadata = response?.data
+
+        if (metadata) {
+          // Extract name from type_metadata
+          if (metadata.type_metadata?.name) {
+            this.nftName = metadata.type_metadata.name
+          } else if (metadata.name) {
+            // Fallback to top-level name if type_metadata.name doesn't exist
+            this.nftName = metadata.name
+          } else {
+            this.nftName = null
+          }
+
+          // Extract image URL from type_metadata
+          // Priority: type_metadata.uris.image > type_metadata.uris.icon
+          let imageUrl = null
+          if (metadata.type_metadata?.uris?.image) {
+            imageUrl = metadata.type_metadata.uris.image
+          } else if (metadata.type_metadata?.uris?.icon) {
+            imageUrl = metadata.type_metadata.uris.icon
+          }
+
+          if (imageUrl) {
+            // Convert IPFS URL if needed
+            this.nftImageUrl = convertIpfsUrl(imageUrl)
+            // Add Pinata gateway token if it's a Pinata IPFS URL
+            if (this.nftImageUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+              this.nftImageUrl += '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+            }
+          } else {
+            // No image found in type_metadata
+            this.nftImageUrl = null
+          }
+        } else {
+          this.nftImageUrl = null
+          this.nftName = null
+        }
+      } catch (error) {
+        console.error('[TransactionDetail] Error fetching NFT metadata:', error)
+        this.nftImageUrl = null
+        this.nftName = null
+      } finally {
+        this.fetchingNftMetadata = false
+      }
+    },
+    viewInCollectibles () {
+      // Navigate to collectibles page with category parameter if available
+      const category = this.nftTokenId
+      const query = category ? { category } : {}
+      this.$router.push({
+        name: 'app-collectibles',
+        query
+      })
     },
     async addTokenToFavorites () {
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
@@ -2098,6 +2348,35 @@ export default {
 .memo-actions { display: flex; align-items: center; flex-shrink: 0; }
 .memo-input.memo-input-dark { background-color: rgba(255, 255, 255, 0.1); color: white; }
 .memo-input.memo-input-light { background-color: rgba(0, 0, 0, 0.05); color: black; }
+
+/* NFT Image Styles */
+.nft-image {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  object-fit: contain;
+}
+
+.nft-image-skeleton-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.nft-image-skeleton {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.nft-name {
+  margin-top: 12px;
+  word-break: break-word;
+  padding: 0 16px;
+}
+
+.view-in-collectibles-btn {
+  margin-top: 8px;
+}
 
 </style>
 

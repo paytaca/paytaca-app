@@ -83,22 +83,48 @@
         </q-tabs>
         <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
           <q-tab-panel name="BCH">
-            <div v-if="enableSLP" class="row items-center justify-end">
+            <div v-if="enableSLP && !selectedCategory" class="row items-center justify-end">
               <AssetFilter style="float:none" @filterTokens="filterTokens"/>
             </div>
-            <keep-alive>
-              <CashTokensNFTs
-                v-if="bchNftType === 'ct' || !enableSLP"
-                ref="cashtokenNFTs"
+            <!-- Categories View -->
+            <CashTokensNFTs
+              v-if="bchNftType === 'ct' && !selectedCategory"
+              ref="cashtokenNFTs"
+              :wallet="wallet"
+              @select-category="handleCategorySelect"
+              @open-nft="handleOpenNft"
+            />
+            <!-- Items View -->
+            <div v-else-if="bchNftType === 'ct' && selectedCategory" class="items-view">
+              <div class="row items-center q-pa-md">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="arrow_back"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="clearCategory"
+                  class="q-mr-sm"
+                />
+                <div class="text-h6" :class="getDarkModeClass(darkMode)">
+                  {{ formatCategoryName(selectedCategoryName, selectedCategory) }}
+                </div>
+              </div>
+              <CashTokensNFTGroup
+                ref="cashtokenNFTItems"
                 :wallet="wallet"
+                :category="selectedCategory"
+                :dark-mode="darkMode"
+                @open-nft="handleOpenNft"
               />
-              <SLPCollectibles
-                v-else-if="enableSLP"
-                ref="slpCollectibles"
-                :wallet="wallet"
-                style="margin:auto;"
-              />
-            </keep-alive>
+            </div>
+            <!-- SLP Collectibles -->
+            <SLPCollectibles
+              v-else-if="enableSLP"
+              ref="slpCollectibles"
+              :wallet="wallet"
+              style="margin:auto;"
+            />
           </q-tab-panel>
           <q-tab-panel name="sBCH">
             <!-- SmartBCH support has been removed -->
@@ -113,10 +139,48 @@
       
       <!-- History Tab -->
       <q-tab-panel name="history" class="q-pa-none tab-panel-content">
-        <div class="history-tab-content q-pa-md text-center">
-          <p class="text-h6" :class="getDarkModeClass(darkMode)">
-            {{ $t('CollectiblesHistory', {}, 'Collectibles transaction history coming soon') }}
-          </p>
+        <div 
+          ref="historyList"
+          class="transaction-list scroll-y"
+          @scroll="onHistoryScroll"
+          @touchstart="preventPull"
+        >
+          <template v-if="historyLoaded">
+            <div class="transactions-content">
+              <TransactionListItem
+                v-for="(transaction, index) in historyTransactions"
+                :key="'tx-' + index"
+                :transaction="transaction"
+                :selected-asset="historySelectedAsset"
+                :denominationTabSelected="denominationTabSelected"
+                @click="() => showTransactionDetails(transaction)"
+              />
+            </div>
+            
+            <!-- Loading indicator for infinite scroll -->
+            <div v-if="historyAppending && historyTransactions.length > 0" class="loading-more">
+              <q-spinner color="primary" size="32px" />
+              <p class="loading-text" :class="getDarkModeClass(darkMode)">{{ $t('LoadingMore', {}, 'Loading more') }}...</p>
+            </div>
+            
+            <!-- End of list indicator -->
+            <div v-else-if="historyTransactions.length > 0 && !historyHasNext" class="end-of-list">
+              <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
+              <p class="end-text" :class="getDarkModeClass(darkMode)">{{ $t('AllTransactionsLoaded', {}, 'All transactions loaded') }}</p>
+            </div>
+            
+            <!-- Empty state -->
+            <div v-else-if="historyTransactions.length === 0" class="empty-state">
+              <q-img class="no-transaction-img" src="empty-wallet.svg" />
+              <p class="empty-state-text text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
+            </div>
+            
+            <!-- Scroll sentinel for intersection observer -->
+            <div ref="historyScrollSentinel" class="scroll-sentinel"></div>
+          </template>
+          <div v-else class="loading-state">
+            <TransactionListItemSkeleton v-for="i in 12" :key="i"/>
+          </div>
         </div>
       </q-tab-panel>
     </q-tab-panels>
@@ -201,6 +265,13 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <!-- NFT Detail Dialog -->
+    <CashTokenNFTDialog 
+      v-model="nftDialog.show" 
+      :nft="nftDialog.nft" 
+      :dark-mode="darkMode"
+    />
   </q-pull-to-refresh>
 </template>
 
@@ -210,13 +281,19 @@ import HeaderNav from '../../components/header-nav'
 import { getMnemonic, Wallet } from '../../wallet'
 import SLPCollectibles from 'components/collectibles/SLPCollectibles.vue'
 import CashTokensNFTs from 'src/components/collectibles/CashTokensNFTs.vue'
+import CashTokensNFTGroup from 'src/components/collectibles/CashTokensNFTGroup.vue'
+import CashTokenNFTDialog from 'src/components/collectibles/CashTokenNFTDialog.vue'
 import AssetFilter from 'src/components/AssetFilter.vue'
-import { convertCashAddress } from 'src/wallet/chipnet'
+import TransactionListItem from 'src/components/transactions/TransactionListItem.vue'
+import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
+import { convertCashAddress, getWatchtowerApiUrl, getWalletByNetwork } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   generateReceivingAddress,
   getDerivationPathForWalletType
 } from 'src/utils/address-generation-utils.js'
+import { getBcmrBackend, CashNonFungibleToken, convertIpfsUrl } from 'src/wallet/cashtokens'
+import axios from 'axios'
 
 export default {
   name: 'app-wallet-info',
@@ -224,7 +301,11 @@ export default {
     HeaderNav,
     SLPCollectibles,
     CashTokensNFTs,
-    AssetFilter
+    CashTokensNFTGroup,
+    CashTokenNFTDialog,
+    AssetFilter,
+    TransactionListItem,
+    TransactionListItemSkeleton
   },
   data () {
     return {
@@ -237,7 +318,20 @@ export default {
       viewTab: 'gallery',
       wallet: null,
       receivingAddress: '',
-      showReceiveDialog: false
+      showReceiveDialog: false,
+      selectedCategory: null,
+      selectedCategoryName: '',
+      nftDialog: {
+        show: false,
+        nft: null
+      },
+      historyTransactions: [],
+      historyPage: 1,
+      historyHasNext: false,
+      historyLoaded: false,
+      historyAppending: false,
+      historyScrollObserver: null,
+      denominationTabSelected: 'BCH'
     }
   },
   computed: {
@@ -272,6 +366,28 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    hasCollectibles () {
+      if (!this.wallet) return false
+      
+      // Check CashToken NFTs
+      const cashTokenNfts = this.$refs.cashtokenNFTs?.parsedNftGroups
+      const hasCashTokenNfts = Array.isArray(cashTokenNfts) && cashTokenNfts.length > 0
+      
+      // Check SLP Collectibles
+      const slpCollectibles = this.$refs.slpCollectibles?.collectibles
+      const hasSlpCollectibles = Array.isArray(slpCollectibles) && slpCollectibles.length > 0
+      
+      return hasCashTokenNfts || hasSlpCollectibles
+    },
+    historySelectedAsset () {
+      return {
+        id: 'all',
+        symbol: 'NFT',
+        name: 'Collectibles',
+        logo: null,
+        decimals: 0
+      }
     }
   },
   methods: {
@@ -304,10 +420,416 @@ export default {
 
         if (this?.$refs?.cashtokenNFTs?.refresh?.call) {
           this.$refs.cashtokenNFTs.refresh()
+          // After refreshing groups, update category name if needed
+          this.$nextTick(() => {
+            this.updateCategoryNameFromGroups()
+          })
+        }
+
+        if (this?.$refs?.cashtokenNFTItems?.fetchNfts?.call) {
+          this.$refs.cashtokenNFTItems.fetchNfts()
         }
       } finally {
         done()
       }
+    },
+    handleCategorySelect (category) {
+      this.selectedCategory = category
+      // Update URL query parameter
+      this.$router.replace({
+        query: {
+          ...this.$route.query,
+          category: category
+        }
+      })
+      // Find category name from the groups
+      if (this?.$refs?.cashtokenNFTs?.parsedNftGroups) {
+        const group = this.$refs.cashtokenNFTs.parsedNftGroups.find(g => g?.category === category)
+        this.selectedCategoryName = group?.parsedMetadata?.name || group?.metadata?.name || category || 'Collection'
+      } else {
+        this.selectedCategoryName = category || 'Collection'
+      }
+    },
+    async handleCategoryFromUrl (category) {
+      // Set NFT type to CashTokens if not already set
+      if (this.bchNftType !== 'ct') {
+        this.bchNftType = 'ct'
+      }
+      // Ensure we're on gallery tab
+      if (this.viewTab !== 'gallery') {
+        this.viewTab = 'gallery'
+      }
+      // Set the category
+      this.selectedCategory = category
+      
+      // Always fetch from BCMR indexer to get the category name
+      try {
+        const response = await getBcmrBackend().get(`tokens/${category}/`)
+        const metadata = response?.data
+        if (metadata) {
+          // Extract name from metadata - for groups, name is at top level
+          const name = metadata.name
+          if (name && name !== category) {
+            this.selectedCategoryName = name
+          } else {
+            // If no name found or name is same as category, fallback to groups if available
+            if (this?.$refs?.cashtokenNFTs?.parsedNftGroups) {
+              const group = this.$refs.cashtokenNFTs.parsedNftGroups.find(g => g?.category === category)
+              if (group) {
+                const groupName = group?.parsedMetadata?.name || group?.metadata?.name
+                if (groupName && groupName !== category) {
+                  this.selectedCategoryName = groupName
+                } else {
+                  this.selectedCategoryName = category || 'Collection'
+                }
+              } else {
+                this.selectedCategoryName = category || 'Collection'
+              }
+            } else {
+              this.selectedCategoryName = category || 'Collection'
+            }
+          }
+        } else {
+          // No metadata found, try groups as fallback
+          if (this?.$refs?.cashtokenNFTs?.parsedNftGroups) {
+            const group = this.$refs.cashtokenNFTs.parsedNftGroups.find(g => g?.category === category)
+            if (group) {
+              const groupName = group?.parsedMetadata?.name || group?.metadata?.name
+              this.selectedCategoryName = groupName || category || 'Collection'
+            } else {
+              this.selectedCategoryName = category || 'Collection'
+            }
+          } else {
+            this.selectedCategoryName = category || 'Collection'
+          }
+        }
+      } catch (error) {
+        console.error('[Collectibles] Error fetching category metadata from BCMR:', error)
+        // Fallback to groups if available
+        if (this?.$refs?.cashtokenNFTs?.parsedNftGroups) {
+          const group = this.$refs.cashtokenNFTs.parsedNftGroups.find(g => g?.category === category)
+          if (group) {
+            const groupName = group?.parsedMetadata?.name || group?.metadata?.name
+            this.selectedCategoryName = groupName || category || 'Collection'
+          } else {
+            this.selectedCategoryName = category || 'Collection'
+          }
+        } else {
+          this.selectedCategoryName = category || 'Collection'
+        }
+      }
+    },
+    clearCategory () {
+      this.selectedCategory = null
+      this.selectedCategoryName = ''
+      // Remove category from URL query
+      const query = { ...this.$route.query }
+      delete query.category
+      this.$router.replace({ query })
+    },
+    updateCategoryNameFromGroups () {
+      // Update category name from groups if available
+      if (this.selectedCategory && this.$refs?.cashtokenNFTs?.parsedNftGroups) {
+        const groups = this.$refs.cashtokenNFTs.parsedNftGroups
+        if (Array.isArray(groups) && groups.length > 0) {
+          const group = groups.find(g => g?.category === this.selectedCategory)
+          if (group) {
+            const groupName = group?.parsedMetadata?.name || group?.metadata?.name
+            // Update name if we have a better one (not just the category ID)
+            if (groupName && groupName !== this.selectedCategory) {
+              this.selectedCategoryName = groupName
+              return true // Successfully updated
+            }
+          }
+        }
+      }
+      return false // Not updated
+    },
+    formatCategoryName (name, category) {
+      // If name exists and is not the same as category ID, return it as is
+      if (name && name !== category) {
+        return name
+      }
+      // If it's a category ID (long hex string), truncate it
+      if (category && category.length > 15) {
+        return `${category.substring(0, 6)}...${category.substring(category.length - 6)}`
+      }
+      // Otherwise return the name or category as fallback
+      return name || category || 'Collection'
+    },
+    async loadHistory (page = 1, append = false) {
+      if (!this.wallet) return
+      
+      try {
+        if (!append) {
+          this.historyLoaded = false
+          this.historyTransactions = []
+        } else {
+          this.historyAppending = true
+        }
+        
+        const walletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()
+        const baseUrl = getWatchtowerApiUrl(this.isChipnet)
+        const url = `${baseUrl}/history/wallet/${walletHash}/`
+        
+        const params = {
+          page: page,
+          page_size: 10,
+          type: 'all',
+          exclude_attr: true,
+          all: false,
+          token_type: 'nft'
+        }
+        
+        const response = await axios.get(url, { params })
+        const transactions = response.data.history || []
+        
+        if (!Array.isArray(transactions)) {
+          this.historyTransactions = []
+          this.historyLoaded = true
+          this.historyAppending = false
+          return
+        }
+        
+        // Enrich transactions with asset information
+        const enrichedTransactions = await this.enrichHistoryTransactions(transactions)
+        
+        if (append) {
+          this.historyTransactions.push(...enrichedTransactions)
+        } else {
+          this.historyTransactions = enrichedTransactions
+        }
+        
+        this.historyPage = page
+        this.historyHasNext = response.data?.has_next || false
+        this.historyLoaded = true
+        this.historyAppending = false
+        
+        // Setup scroll observer for next page
+        this.$nextTick(() => {
+          this.setupHistoryScrollObserver()
+        })
+      } catch (error) {
+        console.error('Error loading collectibles history:', error)
+        this.historyTransactions = []
+        this.historyLoaded = true
+        this.historyAppending = false
+      }
+    },
+    async enrichHistoryTransactions (transactions) {
+      const bchAsset = {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        decimals: 8
+      }
+      
+      // Collect unique category/commitment pairs that need metadata fetching
+      const metadataKeys = new Set() // Store as "category:commitment" strings
+      const transactionMetadataMap = new Map() // Map transaction index to metadata key
+      
+      transactions.forEach((transaction, index) => {
+        const assetId = transaction?.token?.asset_id || 
+                        transaction?.asset_id || 
+                        transaction?.token_id ||
+                        null
+        
+        if (assetId && typeof assetId === 'string' && assetId.startsWith('ct/')) {
+          const tokenId = assetId.split('/')[1]
+          const commitment = transaction?.token?.commitment || transaction?.commitment
+          
+          if (commitment) {
+            const metadataKey = `${tokenId}:${commitment}`
+            metadataKeys.add(metadataKey)
+            transactionMetadataMap.set(index, metadataKey)
+          }
+        }
+      })
+      
+      // Fetch metadata for all unique category/commitment pairs
+      const metadataCache = new Map()
+      const fetchPromises = Array.from(metadataKeys).map(async (metadataKey) => {
+        const [category, commitment] = metadataKey.split(':')
+        try {
+          const response = await getBcmrBackend().get(`tokens/${category}/${commitment}/`)
+          const metadata = response?.data
+          if (metadata) {
+            // Create a CashNonFungibleToken instance to properly parse the metadata
+            const nftToken = CashNonFungibleToken.parse({
+              category: category,
+              commitment: commitment,
+              metadata: metadata
+            })
+            
+            // Extract collection name (from top-level name field)
+            const collectionName = metadata.name || 'NFT'
+            
+            // Extract type name (from type_metadata.name)
+            const typeName = metadata.type_metadata?.name || collectionName
+            
+            // Extract icon from uris.icon
+            let logo = metadata.uris?.icon || null
+            
+            // Convert IPFS URL if needed
+            if (logo && logo.startsWith('ipfs://')) {
+              logo = convertIpfsUrl(logo)
+            }
+            
+            // Don't add pinataGatewayToken here - TransactionListItem will add it when displaying
+            // This matches the behavior in TransactionList.vue where logos are stored without the token
+            
+            // Extract symbol (from token.symbol or fallback)
+            const symbol = metadata.token?.symbol || metadata.type_metadata?.symbol || 'NFT'
+            
+            metadataCache.set(metadataKey, {
+              collectionName,
+              typeName,
+              logo,
+              symbol
+            })
+          }
+        } catch (error) {
+          console.error(`[Collectibles] Error fetching metadata for ${category}/${commitment}:`, error)
+        }
+      })
+      
+      await Promise.allSettled(fetchPromises)
+      
+      // Now enrich transactions with fetched metadata
+      const enrichedTransactions = []
+      
+      for (let i = 0; i < transactions.length; i++) {
+        const transaction = transactions[i]
+        const enrichedTx = { ...transaction }
+        
+        const assetId = transaction?.token?.asset_id || 
+                        transaction?.asset_id || 
+                        transaction?.token_id ||
+                        null
+        
+        if (!assetId || assetId === null || assetId === '' || assetId === 'bch') {
+          enrichedTx.asset = bchAsset
+        } else if (typeof assetId === 'string' && assetId.startsWith('ct/')) {
+          // CashToken NFT transaction
+          const tokenId = assetId.split('/')[1]
+          const commitment = transaction?.token?.commitment || transaction?.commitment
+          
+          // Check existing assets first
+          const existingAssets = this.$store.getters['assets/getAssets']
+          let asset = existingAssets.find(a => a?.id === assetId)
+          
+          if (asset && asset.logo && asset.symbol && asset.decimals !== undefined) {
+            enrichedTx.asset = asset
+          } else {
+            // Use fetched metadata if available
+            const metadataKey = transactionMetadataMap.get(i)
+            const metadata = metadataKey ? metadataCache.get(metadataKey) : null
+            
+            if (metadata) {
+              enrichedTx.asset = {
+                id: assetId,
+                symbol: metadata.symbol,
+                name: metadata.typeName, // Use type name for display
+                logo: metadata.logo || null,
+                decimals: 0,
+                category: tokenId,
+                commitment: commitment || null,
+                collectionName: metadata.collectionName // Store collection name separately if needed
+              }
+            } else {
+              // Fallback if metadata fetch failed or no commitment
+              enrichedTx.asset = {
+                id: assetId,
+                symbol: 'NFT',
+                name: 'NFT',
+                logo: null,
+                decimals: 0,
+                category: tokenId
+              }
+            }
+          }
+        } else if (typeof assetId === 'string' && assetId.startsWith('slp/')) {
+          // SLP NFT transaction
+          const tokenId = assetId.split('/')[1]
+          const existingAssets = this.$store.getters['assets/getAssets']
+          let asset = existingAssets.find(a => a?.id === assetId)
+          
+          if (asset && asset.logo && asset.symbol && asset.decimals !== undefined) {
+            enrichedTx.asset = asset
+          } else {
+            enrichedTx.asset = {
+              id: assetId,
+              symbol: 'SLP NFT',
+              name: 'SLP NFT',
+              logo: null,
+              decimals: 0,
+              tokenId: tokenId
+            }
+          }
+        } else {
+          enrichedTx.asset = bchAsset
+        }
+        
+        enrichedTransactions.push(enrichedTx)
+      }
+      
+      return enrichedTransactions
+    },
+    setupHistoryScrollObserver () {
+      if (this.historyScrollObserver) {
+        this.historyScrollObserver.disconnect()
+      }
+      
+      if (!this.$refs.historyScrollSentinel) return
+      
+      this.historyScrollObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && this.historyHasNext && !this.historyAppending) {
+            this.loadHistory(this.historyPage + 1, true)
+          }
+        })
+      }, {
+        root: this.$refs.historyList,
+        rootMargin: '100px',
+        threshold: 0.1
+      })
+      
+      this.historyScrollObserver.observe(this.$refs.historyScrollSentinel)
+    },
+    onHistoryScroll () {
+      // Handle scroll if needed
+    },
+    preventPull (e) {
+      // Prevent pull-to-refresh when scrolling history
+      e.stopPropagation()
+    },
+    showTransactionDetails (transaction) {
+      const txid = transaction?.txid
+      if (!txid) return
+      
+      const assetId = transaction?.asset?.id || 'bch'
+      const query = (() => {
+        if (assetId === 'bch' || (assetId.startsWith('bch') && !assetId.includes('/'))) {
+          return {}
+        }
+        const parts = assetId.split('/')
+        if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+          return { category: parts[1] }
+        }
+        return {}
+      })()
+      
+      this.$router.push({
+        name: 'transaction-detail',
+        params: { txid },
+        query: { ...query, from: 'collectibles' }
+      })
+    },
+    handleOpenNft (nft) {
+      // Open NFT dialog
+      this.nftDialog.nft = nft
+      this.nftDialog.show = true
     },
     copyAddress (address) {
       this.$copyText(address)
@@ -386,6 +908,16 @@ export default {
     }
   },
   watch: {
+    '$route.query.category' (newCategory) {
+      // Handle category parameter from URL
+      if (newCategory) {
+        this.handleCategoryFromUrl(newCategory)
+      } else {
+        // Clear category selection if parameter is removed
+        this.selectedCategory = null
+        this.selectedCategoryName = ''
+      }
+    },
     async showReceiveDialog (newVal) {
       if (newVal) {
         await this.getReceivingAddress()
@@ -400,10 +932,65 @@ export default {
       if (this.showReceiveDialog) {
         await this.getReceivingAddress()
       }
+      // Reset category selection when switching NFT types (but preserve URL param)
+      if (!this.$route?.query?.category) {
+        this.selectedCategory = null
+      }
+    },
+    hasCollectibles (newVal) {
+      // When collectibles become available, update category name if needed
+      if (newVal && this.selectedCategory) {
+        this.$nextTick(() => {
+          this.updateCategoryNameFromGroups()
+        })
+      }
+    },
+    viewTab (newTab) {
+      // Load history when switching to history tab
+      if (newTab === 'history' && !this.historyLoaded && this.wallet) {
+        this.loadHistory(1, false)
+      }
+    },
+    wallet (newWallet) {
+      // Load history if wallet is ready and we're on history tab
+      if (newWallet && this.viewTab === 'history' && !this.historyLoaded) {
+        this.loadHistory(1, false)
+      }
+      // When wallet loads, check if we need to update category name from groups
+      if (newWallet && this.selectedCategory) {
+        this.updateCategoryNameFromGroups()
+      }
     }
   },
   mounted () {
+    // Check for category parameter in URL
+    const categoryParam = this.$route?.query?.category
+    if (categoryParam) {
+      // Use nextTick to ensure component refs are available
+      this.$nextTick(() => {
+        this.handleCategoryFromUrl(categoryParam)
+      })
+    }
     this.loadWallet()
+    // After wallet loads, check again for category name if we have a category selected
+    // This handles the case when loading directly with a category parameter
+    this.$nextTick(() => {
+      if (this.selectedCategory && this.wallet) {
+        // Wait a bit for groups to load, then check multiple times
+        setTimeout(() => {
+          this.updateCategoryNameFromGroups()
+          // Check again after a longer delay to catch groups that load later
+          setTimeout(() => {
+            this.updateCategoryNameFromGroups()
+          }, 2000)
+        }, 1000)
+      }
+    })
+  },
+  beforeUnmount () {
+    if (this.historyScrollObserver) {
+      this.historyScrollObserver.disconnect()
+    }
   }
 }
 </script>
@@ -418,32 +1005,38 @@ export default {
   #app-container {
     min-height: 100vh;
     
+    // Payhero theme - matches .pt-header background
+    &.theme-payhero {
+      background: rgba(0, 0, 0, 0.5) !important;
+    }
+    
+    // Glassmorphic themes - match .pt-header backgrounds
     // Light mode backgrounds
     &.theme-glassmorphic-blue:not(.dark) {
-      background: linear-gradient(135deg, rgba(220,236,255,0.4) 0%, rgba(220,236,255,0.2) 100%);
+      background: #ecf3f3;
     }
     &.theme-glassmorphic-gold:not(.dark) {
-      background: linear-gradient(135deg, rgba(255,246,220,0.4) 0%, rgba(255,246,220,0.2) 100%);
+      background: #fff8e1;
     }
     &.theme-glassmorphic-green:not(.dark) {
-      background: linear-gradient(135deg, rgba(220,255,236,0.4) 0%, rgba(220,255,236,0.2) 100%);
+      background: #e8f5e9;
     }
     &.theme-glassmorphic-red:not(.dark) {
-      background: linear-gradient(135deg, rgba(255,220,228,0.4) 0%, rgba(255,220,228,0.2) 100%);
+      background: #f3ecec;
     }
     
     // Dark mode backgrounds
     &.theme-glassmorphic-blue.dark {
-      background: linear-gradient(135deg, rgba(39,55,70,0.6) 0%, rgba(39,55,70,0.3) 100%);
+      background: #273746;
     }
     &.theme-glassmorphic-gold.dark {
-      background: linear-gradient(135deg, rgba(70,60,39,0.6) 0%, rgba(70,60,39,0.3) 100%);
+      background: #3d3224;
     }
     &.theme-glassmorphic-green.dark {
-      background: linear-gradient(135deg, rgba(39,70,55,0.6) 0%, rgba(39,70,55,0.3) 100%);
+      background: #263d32;
     }
     &.theme-glassmorphic-red.dark {
-      background: linear-gradient(135deg, rgba(70,39,49,0.6) 0%, rgba(70,39,49,0.3) 100%);
+      background: #462733;
     }
   }
   
@@ -484,7 +1077,7 @@ export default {
     padding: 0 clamp(12px, 4vw, 20px);
     flex: 1 1 auto;
 
-    &:hover:not(.active-theme-btn) {
+    &:hover:not(.active-theme-btn):not(.disabled) {
       background-color: rgba(0, 0, 0, 0.05);
 
       &.dark {
@@ -494,6 +1087,12 @@ export default {
 
     &.dark {
       color: rgba(255, 255, 255, 0.8);
+    }
+
+    &.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
     }
   }
 
@@ -550,8 +1149,119 @@ export default {
     min-height: 300px;
   }
   
-  .history-tab-content {
-    padding: 40px 16px;
+  .transaction-list {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    // overflow set by parent
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    
+    // Custom scrollbar styling
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 10px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      
+      &:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+    }
+  }
+
+  .transactions-content {
+    flex-shrink: 0; // Don't compress content
+  }
+
+  .loading-more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 12px;
+  }
+
+  .loading-text {
+    font-size: 14px;
+    opacity: 0.7;
+    margin: 0;
+    
+    &.dark {
+      color: #e0e2e5;
+    }
+    
+    &.light {
+      color: rgba(0, 0, 0, 0.7);
+    }
+  }
+
+  .end-of-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 8px;
+    opacity: 0.6;
+  }
+
+  .end-text {
+    font-size: 13px;
+    margin: 0;
+    
+    &.dark {
+      color: #a6acaf;
+    }
+    
+    &.light {
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+  }
+
+  .no-transaction-img {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 24px;
+    opacity: 0.6;
+  }
+
+  .empty-state-text {
+    font-size: 16px;
+    opacity: 0.7;
+    margin: 0;
+  }
+
+  .loading-state {
+    padding: 16px 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .scroll-sentinel {
+    height: 1px;
+    width: 100%;
+    visibility: hidden;
   }
 
   .receive-dialog-card {

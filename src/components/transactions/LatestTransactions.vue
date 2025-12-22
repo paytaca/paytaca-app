@@ -188,6 +188,11 @@ export default {
         const batchPromises = batch.map(async (transaction) => {
           const enrichedTx = { ...transaction }
           
+          // Check if transaction has token.id === "1" (BCH)
+          // When token.id is "1", it's a BCH transaction
+          const tokenId = transaction?.token?.id
+          const isBchToken = tokenId === "1" || tokenId === 1
+          
           // Check if transaction has token.asset_id
           // Try multiple possible paths for asset_id
           const assetId = transaction?.token?.asset_id || 
@@ -195,8 +200,8 @@ export default {
                          transaction?.token_id ||
                          null
           
-          // If assetId is null, undefined, empty string, or 'bch', it's a BCH transaction
-          if (!assetId || assetId === null || assetId === '' || assetId === 'bch') {
+          // If token.id is "1", assetId is null/undefined/empty, or 'bch', it's a BCH transaction
+          if (isBchToken || !assetId || assetId === null || assetId === '' || assetId === 'bch') {
             // BCH transaction
             enrichedTx.asset = bchAsset
           } else if (typeof assetId === 'string' && assetId.startsWith('ct/')) {
