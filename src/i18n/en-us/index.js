@@ -209,6 +209,7 @@ export default {
   Branches: "branches",
   BranchesCapped: "Branches",
   BrazilianPortuguese: "Portuguese (Brazil)",
+  Bridge: "Bridge",
   BroadcastingTransaction: "Broadcasting transaction",
   BuildingTransaction: "Building transaction",
   BusinessDetails: "Business details",
