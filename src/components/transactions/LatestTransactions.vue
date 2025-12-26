@@ -207,6 +207,14 @@ export default {
           } else if (typeof assetId === 'string' && assetId.startsWith('ct/')) {
             // CashToken transaction - fetch metadata
             const tokenId = assetId.split('/')[1]
+            const commitment = transaction?.token?.commitment || transaction?.commitment
+            
+            // Check if this is an NFT transaction
+            const isNft = transaction?.is_nft === true || transaction?.is_nft === 'true' ||
+                         transaction?.asset?.is_nft === true || transaction?.asset?.is_nft === 'true' ||
+                         (Array.isArray(transaction?.attributes) && transaction.attributes.some(attr => 
+                           attr.key === 'is_nft' && (attr.value === true || attr.value === 'true')
+                         ))
             
             // Check if asset already exists in store
             const existingAssets = vm.$store.getters['assets/getAssets']
@@ -215,8 +223,62 @@ export default {
             if (asset && asset.logo && asset.symbol && asset.decimals !== undefined) {
               // Use existing asset from store
               enrichedTx.asset = asset
+            } else if (isNft && commitment) {
+              // For NFT transactions with commitment, fetch metadata directly from BCMR indexer
+              try {
+                const { getBcmrBackend } = await import('src/wallet/cashtokens')
+                const response = await getBcmrBackend().get(`tokens/${tokenId}/${commitment}/`)
+                const metadata = response?.data
+                
+                if (metadata) {
+                  // Extract collection name from top-level name field
+                  const collectionName = metadata.name || 'NFT'
+                  // Extract type name from type_metadata.name
+                  const typeName = metadata.type_metadata?.name || collectionName
+                  // Extract icon from uris.icon
+                  let logo = metadata.uris?.icon || null
+                  
+                  // Convert IPFS URL if needed
+                  if (logo && logo.startsWith('ipfs://')) {
+                    const { convertIpfsUrl } = await import('src/wallet/cashtokens')
+                    logo = convertIpfsUrl(logo)
+                  }
+                  
+                  enrichedTx.asset = {
+                    id: assetId,
+                    symbol: metadata.token?.symbol || 'NFT',
+                    name: typeName, // Use type name for NFT display
+                    logo: logo || null,
+                    decimals: 0,
+                    category: tokenId,
+                    commitment: commitment,
+                    collectionName: collectionName // Store collection name separately if needed
+                  }
+                } else {
+                  // Fallback if metadata not found
+                  enrichedTx.asset = {
+                    id: assetId,
+                    symbol: 'NFT',
+                    name: 'NFT',
+                    logo: null,
+                    decimals: 0,
+                    category: tokenId
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching NFT metadata from BCMR for', assetId, error)
+                // Fallback asset
+                enrichedTx.asset = {
+                  id: assetId,
+                  symbol: 'NFT',
+                  name: 'NFT',
+                  logo: null,
+                  decimals: 0,
+                  category: tokenId
+                }
+              }
             } else {
-              // Fetch token details
+              // Fetch token details for non-NFT tokens
               try {
                 const bchWallet = getWalletByNetwork(vm.wallet, 'bch')
                 const tokenDetails = await bchWallet.getTokenDetails(tokenId)

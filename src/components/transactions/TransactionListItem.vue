@@ -11,7 +11,7 @@
     <div class="transaction-content">
       <div class="transaction-header">
         <div class="transaction-type">
-          <div class="type-with-asset" v-if="showAssetInfo">
+          <div class="type-with-asset" v-if="showAssetInfo && !isNftTransaction">
             <q-avatar size="20px" class="q-mr-xs">
               <img v-if="assetImageUrl" :src="assetImageUrl" />
               <q-icon v-else name="apps" size="14px" />

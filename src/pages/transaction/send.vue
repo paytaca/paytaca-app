@@ -42,7 +42,7 @@
                 :class="getDarkModeClass(darkMode)"
                 v-if="tokenType === 'CT-NFT'"
               >
-                <span>{{ $t('name') }}: {{ name }}</span>
+                <span>{{ nftDisplayName }}</span>
                 <p style="word-break: break-all;">{{ $t('Commitment') }}: {{ commitment }}</p>
               </div>
             </div>
@@ -56,7 +56,7 @@
                   {{ $t('HowToSend', {}, 'How would you like to send?') }}
                 </div>
                 <div class="text-caption text-center q-mt-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
-                  {{ $t('ChooseMethod', { symbol: asset?.symbol || 'BCH' }, `Choose a method to send your ${asset?.symbol || 'BCH'}`) }}
+                  {{ $t('ChooseMethod', { symbol: isNFT ? 'NFT' : (asset?.symbol || 'BCH') }, `Choose a method to send your ${isNFT ? 'NFT' : (asset?.symbol || 'BCH')}`) }}
                 </div>
               </div>
 
@@ -615,6 +615,32 @@ export default {
       if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65 || this.tokenType === 'CT-NFT'
+    },
+    nftDisplayName () {
+      // Check name prop first
+      if (this.name && this.name.trim()) {
+        return this.name
+      }
+      
+      // Check asset.name as fallback (might be populated from assetData or metadata)
+      if (this.asset?.name && this.asset.name.trim()) {
+        return this.asset.name
+      }
+      
+      // Otherwise, extract and truncate category ID from assetId
+      if (this.assetId && this.assetId.startsWith('ct/')) {
+        const categoryId = this.assetId.split('/')[1]
+        if (categoryId) {
+          // Truncate category ID: first 6 chars + ... + last 6 chars
+          if (categoryId.length > 12) {
+            return `${categoryId.substring(0, 6)}...${categoryId.substring(categoryId.length - 6)}`
+          }
+          return categoryId
+        }
+      }
+      
+      // Fallback
+      return 'NFT'
     },
     defaultNftImage () {
       if (!this.isNFT) return ''
