@@ -211,10 +211,10 @@
                     :key="quickAmount"
                     unelevated
                     no-caps
-                    :outline="Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) > 0.000001"
+                    :outline="!giftAmount || Math.abs(getAmountOnDenomination(quickAmount) - (parseFloat(giftAmount) || 0)) > 0.000001"
                     class="quick-amount-btn"
-                    :class="{ 'bg-grad': Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) <= 0.000001 }"
-                    :style="Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) > 0.000001 ? `border-color: ${getThemeColor()}; color: ${getThemeColor()};` : ''"
+                    :class="{ 'bg-grad': giftAmount && Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) <= 0.000001 }"
+                    :style="(!giftAmount || Math.abs(getAmountOnDenomination(quickAmount) - (parseFloat(giftAmount) || 0)) > 0.000001) ? `border-color: ${getThemeColor()}; color: ${getThemeColor()};` : ''"
                     @click="selectQuickAmount(quickAmount)"
                   >
                     {{ getAssetDenomination(denomination, quickAmount) }}
@@ -373,7 +373,7 @@
             </div>
 
             <!-- Generate Button -->
-            <div class="form-actions q-mt-xl">
+            <div v-if="customKeyboardState !== 'show'" class="form-actions q-mt-xl">
             <q-btn
                 unelevated
               no-caps
@@ -425,6 +425,8 @@ import {
   adjustSplicedAmount,
   formatWithLocaleSelective
 } from 'src/utils/custom-keyboard-utils'
+import { ensureKeypair } from 'src/utils/memo-service'
+import { encryptMemo } from 'src/utils/transaction-memos'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -530,15 +532,9 @@ export default {
       if (!Number.isFinite(balance)) return null
       return balance
     },
-    giftShare() {
-      return this.$store.getters['gifts/getGiftShare'](this.giftCodeHash)
-    },
-    giftStatus() {
-      return this.$store.getters['gifts/getGiftStatus'](this.giftCodeHash)
-    },
     quickAmounts() {
       // Return quick amount presets in BCH
-      return [0.001, 0.01, 0.05, 0.1, 0.5, 1]
+      return [0.001, 0.0025, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
     }
   },
   methods: {
@@ -586,29 +582,61 @@ export default {
       // All checks passed
       return false
     },
-    generateGift () {
+    async generateGift () {
       const vm = this
       vm.processing = true
+      console.log('[Gift Creation] Starting gift generation...')
+      console.log('[Gift Creation] Amount:', this.amountBCH)
+      
       const privateKey = ECPair.makeRandom()
       const wif = privateKey.toWIF()
+      console.log('[Gift Creation] Generated private key WIF:', wif.substring(0, 10) + '...')
 
       const BCHJS = require('@psf/bch-js')
       const bchjs = new BCHJS()
       const pair = bchjs.ECPair.fromWIF(wif)
       const address = bchjs.ECPair.toCashAddress(pair)
+      console.log('[Gift Creation] Gift address:', address)
+      
       const secret = Buffer.from(wif)
-      const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
+      const stateShare = sss.split(secret, { shares: 2, threshold: 2 })
       const shares = stateShare.map((share) => { return toHex(share) })
+      console.log('[Gift Creation] Split into 2 shares (2-of-2)')
+      console.log('[Gift Creation] Share[0] length:', shares[0]?.length)
+      console.log('[Gift Creation] Share[1] length:', shares[1]?.length)
+      
       const encryptedShard = this.encryptShard(shares[0])
+      console.log('[Gift Creation] Encrypted share[0] with gift code')
+      console.log('[Gift Creation] Gift code (password):', encryptedShard.code)
+      console.log('[Gift Creation] Encrypted share hex length:', encryptedShard.encryptedHex?.length)
 
       vm.giftCodeHash = sha256(encryptedShard.code)
+      console.log('[Gift Creation] Gift code hash:', vm.giftCodeHash)
+      
+      // Encrypt the gift code using memo encryption (private key from address 0/0)
+      console.log('[Gift Creation] Encrypting gift code with wallet 0/0 key...')
+      const keypair = await ensureKeypair()
+      console.log('[Gift Creation] Keypair obtained, pubkey:', keypair.pubkey?.substring(0, 20) + '...')
+      const encryptedGiftCode = await encryptMemo(keypair.privkey, keypair.pubkey, encryptedShard.code)
+      console.log('[Gift Creation] Gift code encrypted, length:', encryptedGiftCode?.length)
+      
       const payload = {
         gift_code_hash: vm.giftCodeHash,
         encrypted_share: encryptedShard.encryptedHex,
         address: address,
         share: shares[1],
         amount: parseFloat(this.amountBCH),
+        encrypted_gift_code: encryptedGiftCode
       }
+      console.log('[Gift Creation] Payload prepared:', {
+        gift_code_hash: payload.gift_code_hash,
+        address: payload.address,
+        share_length: payload.share?.length,
+        amount: payload.amount,
+        encrypted_share_length: payload.encrypted_share?.length,
+        encrypted_gift_code_length: payload.encrypted_gift_code?.length,
+        has_campaign: !!vm.selectedCampaign
+      })
       if (vm.selectedCampaign) {
         if (vm.createNewCampaign) {
           payload.campaign = {
@@ -622,59 +650,56 @@ export default {
         }
       }
 
-      // Save gift details first with processing status
-      vm.$store.dispatch('gifts/saveGift', { 
-        giftCodeHash: vm.giftCodeHash, 
-        share: shares[2],
-        status: 'processing',
-        amount: this.amountBCH,
-        address: address,
-        payload: payload
-      })
-      vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: encryptedShard.code })
-
       const walletHash = this.wallet.BCH.getWalletHash()
       const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
       
-      this.submitGiftToServer(url, payload, shares[2], encryptedShard.code, address)
+      this.submitGiftToServer(url, payload, encryptedShard.code, address)
     },
 
-    async submitGiftToServer(url, payload, share, qrCode, address) {
+    async submitGiftToServer(url, payload, qrCode, address) {
       const vm = this
+      console.log('[Gift Creation] Submitting gift to server...')
+      console.log('[Gift Creation] URL:', url)
       try {
         const resp = await axios.post(url, payload)
+        console.log('[Gift Creation] Server response status:', resp.status)
+        console.log('[Gift Creation] Server response data:', resp.data)
         if (resp.status === 200) {
           vm.qrCodeContents = qrCode
+          console.log('[Gift Creation] Gift created on server, sending BCH...')
+          console.log('[Gift Creation] Sending', this.amountBCH, 'BCH to address:', address)
           try {
             const result = await vm.wallet.BCH.sendBch(this.amountBCH, address)
+            console.log('[Gift Creation] Send BCH result:', {
+              success: result.success,
+              txid: result.txid,
+              error: result.error
+            })
             if (result.success) {
-              // Update gift status to completed
-              vm.$store.dispatch('gifts/updateGiftStatus', {
-                giftCodeHash: vm.giftCodeHash,
-                status: 'completed'
-              })
+              console.log('[Gift Creation] ✅ Gift created and funded successfully!')
+              console.log('[Gift Creation] Transaction ID:', result.txid)
               vm.processing = false
               vm.completed = true
               vm.giftStatus = 'completed'
 
               // Update balance
               const response = await vm.wallet.BCH.getBalance()
+              console.log('[Gift Creation] Updated balance:', {
+                balance: response.balance,
+                spendable: response.spendable
+              })
               vm.$store.commit('assets/updateAssetBalance', {
                 id: 'bch',
                 balance: response.balance,
                 spendable: response.spendable
               })
             } else {
+              console.error('[Gift Creation] ❌ Send BCH failed:', result.error)
               // Update status to failed
-              vm.$store.dispatch('gifts/updateGiftStatus', {
-                giftCodeHash: vm.giftCodeHash,
-                status: 'failed'
-              })
               vm.processing = false
               vm.giftStatus = 'failed'
               vm.failedGiftDetails = {
                 payload: payload,
-                share: share,
                 qr: qrCode,
                 address: address
               }
@@ -685,16 +710,15 @@ export default {
               })
             }
           } catch (sendError) {
-            console.error('Send BCH error:', sendError)
-            vm.$store.dispatch('gifts/updateGiftStatus', {
-              giftCodeHash: vm.giftCodeHash,
-              status: 'failed'
+            console.error('[Gift Creation] ❌ Send BCH error:', sendError)
+            console.error('[Gift Creation] Error details:', {
+              message: sendError.message,
+              stack: sendError.stack
             })
             vm.processing = false
             vm.giftStatus = 'failed'
             vm.failedGiftDetails = {
               payload: payload,
-              share: share,
               qr: qrCode,
               address: address
             }
@@ -706,16 +730,13 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Gift creation API error:', error)
-        vm.$store.dispatch('gifts/updateGiftStatus', {
-          giftCodeHash: vm.giftCodeHash,
-          status: 'failed'
-        })
+        console.error('[Gift Creation] ❌ API error:', error)
+        console.error('[Gift Creation] Error response:', error?.response?.data)
+        console.error('[Gift Creation] Error status:', error?.response?.status)
         vm.processing = false
         vm.giftStatus = 'failed'
         vm.failedGiftDetails = {
           payload: payload,
-          share: share,
           qr: qrCode,
           address: address
         }
@@ -737,7 +758,6 @@ export default {
       await this.submitGiftToServer(
         url,
         giftDetails.payload,
-        giftDetails.share,
         giftDetails.qr,
         giftDetails.address
       )

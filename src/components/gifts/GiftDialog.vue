@@ -55,8 +55,10 @@ const props = defineProps({
 })
 
 const qrCodeContents = computed(() => {
+  const giftCode = props.gift?.qr || props.gift?.giftCode
+  if (!giftCode) return ''
   const url = 'https://gifts.paytaca.com/claim/?code='
-  return url + $store.getters['gifts/getQrShare'](props.gift?.gift_code_hash)
+  return url + giftCode
 })
 const amount = computed(() => props.gift?.amount)
 

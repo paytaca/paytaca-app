@@ -112,8 +112,13 @@
             >
               <q-icon name="mdi-gift-outline" size="80px" class="q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'"/>
               <div class="text-h6" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">{{ $t('NoUnclaimedGifts', {}, 'No unclaimed gifts') }}</div>
-              <div class="text-caption q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('CreateYourFirstGift', {}, 'Create your first gift to get started') }}
+              <div 
+                class="text-caption q-mt-sm cursor-pointer" 
+                :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+                style="text-decoration: underline;"
+                @click="handleCreateGiftClick"
+              >
+                {{ $t('CreateAGiftNow', {}, 'Create a gift now') }}
               </div>
             </div>
 
@@ -377,6 +382,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getMnemonic, Wallet } from '../../../wallet'
 import QRCode from 'qrcode'
 import QrDialog from 'src/components/gifts/QrDialog.vue'
+import { ensureKeypair } from 'src/utils/memo-service'
+import { decryptMemo } from 'src/utils/transaction-memos'
 
 export default {
   name: 'Gift',
@@ -424,19 +431,16 @@ export default {
       }
       return themeMap[this.theme] || 'blue-6'
     },
-    gifts () {
-      return this.$store.state.gifts.gifts || {}
-    },
     giftsList () {
       const gifts = Object.entries(this.fetchedGifts).map(([hash, gift]) => ({
         hash,
         ...gift,
-        qr: this.$store.getters['gifts/getQr'](hash),
-        date_created: gift.payload?.date_created,
-        date_claimed: gift.payload?.date_claimed,
-        campaign_id: gift.payload?.campaign_id,
-        campaign_name: gift.payload?.campaign_name,
-        recovered: gift.payload?.recovered
+        qr: gift.giftCode,
+        date_created: gift.date_created,
+        date_claimed: gift.date_claimed,
+        campaign_id: gift.campaign_id,
+        campaign_name: gift.campaign_name,
+        recovered: gift.recovered
       }))
 
       // Filter based on active tab
@@ -567,44 +571,42 @@ export default {
 
       this.fetchingGifts = true
       axios.get(url, { params: query })
-        .then(response => {
+        .then(async response => {
           if (!Array.isArray(response?.data?.gifts)) return Promise.reject({ response })
 
-          // Transform gifts before storing
-          const transformedGifts = response.data.gifts.map(gift => ({
-            hash: gift.gift_code_hash,
-            amount: gift.amount,
-            date_created: gift.date_created,
-            date_claimed: gift.date_claimed,
-            campaign_id: gift.campaign_id,
-            campaign_name: gift.campaign_name,
-            recovered: gift.recovered,
-            status: gift.date_claimed !== 'None' ? 'completed' : 'processing'
-          }))
+          // Get keypair for decryption
+          const keypair = await ensureKeypair()
 
-          // Store each gift individually
-          transformedGifts.forEach(gift => {
-            // Get existing gift data to preserve local share
-            const existingGift = this.$store.getters['gifts/getGift'](gift.hash)
-            const existingShare = existingGift?.share || null
-            const savedGift = {
-              giftCodeHash: gift.hash,
-              share: existingShare, // Preserve existing local share
-              status: gift.status,
-              amount: gift.amount,
-              address: gift.address,
-              payload: {
-                gift_code_hash: gift.hash,
-                date_created: gift.date_created,
+          // Transform gifts and decrypt gift codes
+          const transformedGifts = await Promise.all(
+            response.data.gifts.map(async gift => {
+              let giftCode = null
+              if (gift.encrypted_gift_code) {
+                try {
+                  giftCode = await decryptMemo(keypair.privkey, gift.encrypted_gift_code)
+                } catch (error) {
+                  console.error('Failed to decrypt gift code:', error)
+                }
+              }
+
+              return {
+                hash: gift.gift_code_hash,
                 amount: gift.amount,
+                date_created: gift.date_created,
+                date_claimed: gift.date_claimed,
                 campaign_id: gift.campaign_id,
                 campaign_name: gift.campaign_name,
-                date_claimed: gift.date_claimed,
-                recovered: gift.recovered
+                recovered: gift.recovered,
+                status: gift.date_claimed !== 'None' ? 'completed' : 'processing',
+                giftCode: giftCode,
+                encrypted_gift_code: gift.encrypted_gift_code
               }
-            }
-            this.$store.commit('gifts/saveGift', savedGift)
-            this.fetchedGifts[gift.hash] = savedGift
+            })
+          )
+
+          // Store gifts in component state only (no Vuex store)
+          transformedGifts.forEach(gift => {
+            this.fetchedGifts[gift.hash] = gift
           })
           return Promise.resolve(response)
         })
@@ -639,11 +641,8 @@ export default {
         componentProps: { gift: gift },
       })
     },
-    getGiftShare (giftCodeHash) {
-      return this.$store.getters['gifts/getGiftShare'](giftCodeHash)
-    },
     getQrShare (giftCodeHash) {
-      return this.$store.getters['gifts/getQrShare'](giftCodeHash)
+      return this.fetchedGifts[giftCodeHash]?.giftCode || null
     },
     confirmRecoverGift(gift) {
       this.$q.dialog({
@@ -656,21 +655,38 @@ export default {
       })
         .onOk(() => this.recoverGift(gift?.hash))
     },
-    recoverGift (giftCodeHash) {
-      const localShare = this.getGiftShare(giftCodeHash)
-      this.$router.push(
-        {
+    async recoverGift (giftCodeHash) {
+      const gift = this.fetchedGifts[giftCodeHash]
+      if (!gift?.encrypted_gift_code) {
+        this.$q.notify({
+          message: this.$t('GiftNotFound') || 'Gift not found or missing encrypted gift code',
+          color: 'negative',
+          timeout: 3000
+        })
+        return
+      }
+      try {
+        const keypair = await ensureKeypair()
+        const giftCode = await decryptMemo(keypair.privkey, gift.encrypted_gift_code)
+        this.$router.push({
           name: 'claim-gift',
           query: {
             actionProp: 'Recover',
             giftCodeHash: giftCodeHash,
-            localShare: localShare
+            localShare: giftCode
           }
-        }
-      )
+        })
+      } catch (error) {
+        console.error('Failed to decrypt gift code for recovery:', error)
+        this.$q.notify({
+          message: this.$t('FailedToDecryptGiftCode') || 'Failed to decrypt gift code',
+          color: 'negative',
+          timeout: 3000
+        })
+      }
     },
     showQr (giftCodeHash) {
-      const qrCode = this.$store.getters['gifts/getQr'](giftCodeHash)
+      const qrCode = this.fetchedGifts[giftCodeHash]?.giftCode
       const gift = this.giftsList.find(g => g.hash === giftCodeHash)
       this.$q.dialog({
         component: QrDialog,
@@ -697,19 +713,11 @@ export default {
         if (resp.status === 200) {
           const result = await this.wallet.BCH.sendBch(gift.amount, gift.address)
           if (result.success) {
-            this.$store.dispatch('gifts/updateGiftStatus', {
-              giftCodeHash: gift.hash,
-              status: 'completed'
-            })
             this.$q.notify({
               message: this.$t('Success'),
               color: 'positive'
             })
           } else {
-            this.$store.dispatch('gifts/updateGiftStatus', {
-              giftCodeHash: gift.hash,
-              status: 'failed'
-            })
             this.$q.notify({
               message: this.$t('GiftCreatedButTransactionPending'),
               color: 'warning'
@@ -717,10 +725,6 @@ export default {
           }
         }
       } catch (error) {
-        this.$store.dispatch('gifts/updateGiftStatus', {
-          giftCodeHash: gift.hash,
-          status: 'failed'
-        })
         this.$q.notify({
           message: this.$t('ErrorCreatingGiftPleaseRetry'),
           color: 'negative'
