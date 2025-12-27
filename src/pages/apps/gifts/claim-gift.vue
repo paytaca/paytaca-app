@@ -163,204 +163,141 @@ export default {
     claimGift (giftCodeHash) {
       const vm = this
       vm.processing = true
-      console.log('[Gift Claiming] Starting gift claim process...')
-      console.log('[Gift Claiming] Action:', vm.action)
-      console.log('[Gift Claiming] Scanned share length:', this.scannedShare?.length)
+      vm.error = null
       
       const sss = require('shamirs-secret-sharing')
       let giftCode
       if (!giftCodeHash) {
         if (this.scannedShare.split('?code=').length === 2) {
           giftCode = this.scannedShare.split('?code=')[1]
-          console.log('[Gift Claiming] Extracted gift code from URL parameter')
         } else {
           giftCode = this.scannedShare
-          console.log('[Gift Claiming] Using scanned share directly as gift code')
         }
         giftCodeHash = sha256(giftCode)
-        console.log('[Gift Claiming] Computed gift code hash:', giftCodeHash)
-      } else {
-        console.log('[Gift Claiming] Using provided gift code hash:', giftCodeHash)
       }
 
       if (vm.action === 'Recover') {
         giftCode = vm.localShare
-        console.log('[Gift Claiming] Recovery mode - using localShare as gift code')
-        console.log('[Gift Claiming] Local share length:', giftCode?.length)
       }
       
-      console.log('[Gift Claiming] Gift code length:', giftCode?.length)
-      console.log('[Gift Claiming] Gift code (first 20 chars):', giftCode?.substring(0, 20))
-      
-      const url = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
+      const sharesUrl = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/`
+      const claimUrl = `https://gifts.paytaca.com/api/gifts/${giftCodeHash}/${vm.action.toLowerCase()}`
       const walletHash = this.wallet.BCH.getWalletHash()
-      console.log('[Gift Claiming] Fetching shares from server...')
-      console.log('[Gift Claiming] URL:', url)
-      console.log('[Gift Claiming] Wallet hash:', walletHash)
       
-      axios.post(url, { wallet_hash: walletHash }).then((resp) => {
-        console.log('[Gift Claiming] Server response status:', resp.status)
-        console.log('[Gift Claiming] Server response data:', {
-          has_share: !!resp.data.share,
-          share_length: resp.data.share?.length,
-          has_encrypted_share: !!resp.data.encrypted_share,
-          encrypted_share_length: resp.data.encrypted_share?.length
-        })
+      // First API call: Get shares from dedicated endpoint
+      axios.get(sharesUrl).then(async (resp) => {
+        if (!resp.data?.share) {
+          vm.error = resp.data?.message || vm.$t('FailedToGetShares', {}, 'Failed to get gift shares')
+          vm.processing = false
+          return
+        }
         
         const share1 = resp.data.share
-        console.log('[Gift Claiming] Share[1] from server length:', share1?.length)
-        console.log('[Gift Claiming] Share[1] (first 20 chars):', share1?.substring(0, 20))
         
         let share2
         if (resp.data.encrypted_share) {
-          console.log('[Gift Claiming] Decrypting encrypted_share with gift code...')
           try {
             share2 = this.decryptShard(resp.data.encrypted_share, giftCode)
-            console.log('[Gift Claiming] ✅ Successfully decrypted share[0]')
-            console.log('[Gift Claiming] Share[0] length:', share2?.length)
-            console.log('[Gift Claiming] Share[0] (first 20 chars):', share2?.substring(0, 20))
           } catch (decryptError) {
-            console.error('[Gift Claiming] ❌ Failed to decrypt share[0]:', decryptError)
-            console.error('[Gift Claiming] Decrypt error details:', {
-              message: decryptError.message,
-              stack: decryptError.stack
-            })
-            throw decryptError
+            vm.error = vm.$t('DecryptFailed', {}, 'Failed to decrypt gift share')
+            vm.processing = false
+            return
           }
         } else {
-          console.log('[Gift Claiming] No encrypted_share found, using gift code directly as share[0]')
           share2 = giftCode
         }
-
-        console.log('[Gift Claiming] Combining shares to reconstruct private key...')
-        console.log('[Gift Claiming] Share[0] length:', share2?.length)
-        console.log('[Gift Claiming] Share[1] length:', share1?.length)
         
         let privateKey
         try {
           privateKey = sss.combine([share1, share2])
-          console.log('[Gift Claiming] ✅ Successfully combined shares')
-          console.log('[Gift Claiming] Private key length:', privateKey?.length)
-          console.log('[Gift Claiming] Private key (first 20 chars):', privateKey?.toString().substring(0, 20))
         } catch (error) {
-          console.error('[Gift Claiming] ❌ Failed to combine shares:', error)
-          console.error('[Gift Claiming] Trying fallback with gift code directly...')
           // fallback for when sss.combine causes an error because share2 was
           // not decrypted successfully and thus contains unreadable characters
           // when recovering gift
           try {
             privateKey = sss.combine([share1, giftCode])
-            console.log('[Gift Claiming] ✅ Fallback combination succeeded')
           } catch (fallbackError) {
-            console.error('[Gift Claiming] ❌ Fallback also failed:', fallbackError)
-            throw fallbackError
+            vm.error = vm.$t('ShareCombinationFailed', {}, 'Failed to combine gift shares')
+            vm.processing = false
+            return
           }
         }
         
-        console.log('[Gift Claiming] Creating SweepPrivateKey instance...')
         vm.sweeper = new SweepPrivateKey(privateKey.toString())
-        console.log('[Gift Claiming] Sweeper address:', vm.sweeper.bchAddress)
         
-        console.log('[Gift Claiming] Checking balance at gift address...')
-        vm.sweeper.getBchBalance().then(async function (data) {
-          console.log('[Gift Claiming] Balance check result:', {
-            balance: data.balance,
-            spendable: data.spendable,
-            unspent: data.unspent
-          })
-          
-          vm.bchAmount = data.spendable || 0
-          console.log('[Gift Claiming] BCH amount to sweep:', vm.bchAmount)
+        try {
+          const balanceData = await vm.sweeper.getBchBalance()
+          vm.bchAmount = balanceData.spendable || 0
           
           if (vm.bchAmount > 0) {
-            console.log('[Gift Claiming] Balance > 0, proceeding with sweep...')
             const recipientAddress = await vm.getRecipientAddress('bch')
-            console.log('[Gift Claiming] Recipient address:', recipientAddress)
             
             if (!recipientAddress) {
-              console.error('[Gift Claiming] ❌ Failed to get recipient address')
               vm.error = vm.$t('FailedToGetAddress', {}, 'Failed to get recipient address')
               vm.processing = false
               return
             }
             
-            console.log('[Gift Claiming] Sweeping funds...')
-            console.log('[Gift Claiming] From:', vm.sweeper.bchAddress)
-            console.log('[Gift Claiming] To:', recipientAddress)
-            console.log('[Gift Claiming] Amount:', vm.bchAmount)
+            // Create transaction without broadcasting
+            const sweepResult = await vm.sweeper.sweepBch(
+              vm.sweeper.bchAddress,
+              privateKey.toString(),
+              vm.bchAmount,
+              undefined, // feeFunder
+              recipientAddress,
+              false // broadcast = false
+            )
             
-            try {
-              const sweepResult = await vm.sweeper.sweepBch(
-                vm.sweeper.bchAddress,
-                privateKey.toString(),
-                vm.bchAmount,
-                undefined, // feeFunder
-                recipientAddress
-              )
-              console.log('[Gift Claiming] Sweep result:', {
-                success: sweepResult.success,
-                txid: sweepResult.txid,
-                error: sweepResult.error
-              })
-              
-              if (!sweepResult.success) {
-                console.error('[Gift Claiming] ❌ Sweep failed:', sweepResult.error)
-                vm.error = sweepResult.error || vm.$t('SweepFailed', {}, 'Failed to sweep funds')
-                vm.processing = false
-                return
-              }
-              
-              console.log('[Gift Claiming] ✅ Sweep transaction broadcasted successfully')
-              console.log('[Gift Claiming] Transaction ID:', sweepResult.txid)
-              
-              // Wait a bit for transaction to propagate before updating balance
-              console.log('[Gift Claiming] Waiting for transaction to propagate...')
-              await new Promise(resolve => setTimeout(resolve, 3000))
-              
-              vm.wallet.BCH.getBalance().then(function (response) {
-                console.log('[Gift Claiming] Updated wallet balance:', {
-                  balance: response.balance,
-                  spendable: response.spendable
-                })
-                vm.$store.commit('assets/updateAssetBalance', {
-                  id: 'bch',
-                  balance: response.balance,
-                  spendable: response.spendable
-                })
-              })
-              
-              console.log('[Gift Claiming] ✅ Claim completed successfully')
+            if (!sweepResult.success) {
+              vm.error = sweepResult.error || vm.$t('SweepFailed', {}, 'Failed to create transaction')
+              vm.processing = false
+              return
+            }
+            
+            // Extract transaction hex
+            const transactionHex = sweepResult.transaction
+            if (!transactionHex) {
+              vm.error = vm.$t('TransactionHexMissing', {}, 'Failed to get transaction hex')
+              vm.processing = false
+              return
+            }
+            
+            // Second API call: Submit transaction_hex to record claim/recover
+            const claimResp = await axios.post(claimUrl, {
+              wallet_hash: walletHash,
+              transaction_hex: transactionHex
+            })
+            
+            // Handle API response
+            if (claimResp.data.success) {
               vm.completed = true
-            } catch (sweepError) {
-              console.error('[Gift Claiming] ❌ Sweep failed with exception:', sweepError)
-              console.error('[Gift Claiming] Sweep error details:', {
-                message: sweepError.message,
-                stack: sweepError.stack,
-                response: sweepError.response
-              })
-              vm.error = sweepError.message || sweepError.toString() || vm.$t('SweepFailed', {}, 'Failed to sweep funds')
+            } else {
+              vm.error = claimResp.data.message || vm.$t('ClaimFailed', {}, 'Failed to claim gift')
             }
           } else {
-            console.warn('[Gift Claiming] ⚠️ Balance is 0 or negative')
-            console.warn('[Gift Claiming] This gift may have already been claimed')
             vm.error = vm.$t('GiftAlreadyClaimed')
           }
-          vm.processing = false
-        }).catch((balanceError) => {
-          console.error('[Gift Claiming] ❌ Balance check failed:', balanceError)
-          console.error('[Gift Claiming] Balance error details:', {
-            message: balanceError.message,
-            stack: balanceError.stack
-          })
-          vm.error = balanceError.message || vm.$t('FailedToCheckBalance', {}, 'Failed to check gift balance')
-          vm.processing = false
-        })
+        } catch (error) {
+          // Handle errors from transaction creation or claim submission
+          if (error.response?.data?.error) {
+            vm.error = error.response.data.error
+          } else if (error.response?.data?.message) {
+            vm.error = error.response.data.message
+          } else if (error.message) {
+            vm.error = error.message
+          } else {
+            vm.error = vm.$t('ClaimFailed', {}, 'Failed to claim gift')
+          }
+        }
+        
+        vm.processing = false
       }).catch((error) => {
-        console.error('[Gift Claiming] ❌ API request failed:', error)
-        console.error('[Gift Claiming] Error response:', error?.response?.data)
-        console.error('[Gift Claiming] Error status:', error?.response?.status)
-        console.error('[Gift Claiming] Error message:', error?.message)
-        vm.error = error?.response?.data?.message || error?.message || vm.$t('ClaimFailed', {}, 'Failed to claim gift')
+        // Handle 404 and other errors from the shares endpoint
+        if (error.response?.status === 404 || error.response?.data?.error) {
+          vm.error = error.response.data.error || error.response.data.message || vm.$t('GiftDoesNotExist', {}, 'Gift does not exist')
+        } else {
+          vm.error = error?.response?.data?.message || error?.response?.data?.error || error?.message || vm.$t('ClaimFailed', {}, 'Failed to claim gift')
+        }
         vm.processing = false
       })
     },
