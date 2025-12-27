@@ -14,13 +14,12 @@
               <p>{{ $t(`${action}ingGift`) }}</p>
               <progress-loader />
             </div>
-            <q-form v-if="!processing && !completed" class="text-center" style="margin-top: 25px;">
+            <q-form v-if="!processing && !completed && !error" class="text-center" style="margin-top: 25px;">
               <textarea
                 v-model="scannedShare"
                 rows="2"
                 :placeholder="$t('PasteGiftCodeHere')"
                 class="full-width text-black bg-white rounded-borders text-subtitle1 q-px-sm"
-                :disabled="error"
               >
               </textarea>
               <br>
@@ -46,19 +45,42 @@
                 </div>
               </template>
               <div style="margin-top: 20px;">
-                <q-btn color="primary" v-if="scannedShare.length > 0 && !error" @click.prevent="claimGift(null)">
+                <q-btn color="primary" v-if="scannedShare.length > 0" @click.prevent="claimGift(null)">
                   {{ $t(action) }}
                 </q-btn>
               </div>
             </q-form>
             <div class="text-center q-pt-md">
-              <p v-if="bchAmount" style="font-size: 24px;">{{ $t('Amount') }}:<br>{{ getAssetDenomination(denomination, bchAmount) }}</p>
+              <p v-if="bchAmount && !error" style="font-size: 24px;">{{ $t('Amount') }}:<br>{{ getAssetDenomination(denomination, bchAmount) }}</p>
               <p v-if="completed" style="color: green; font-size: 20px;">{{ $t(`${action}GiftCompleted`) }}</p>
-              <p v-if="error" style="color: red; font-size: 20px;">
-                {{ error }}
-              </p>
+              <div v-if="error" class="error-container q-pa-lg" style="margin-top: 60px;">
+                <div class="error-icon-wrapper">
+                  <div class="error-icon-circle">
+                    <q-icon name="card_giftcard" size="64px" color="orange-6" />
+                  </div>
+                </div>
+                <h3 class="error-title" :class="darkMode ? 'text-white' : 'text-grey-9'" style="font-size: 24px; font-weight: 600; margin: 24px 0 12px;">
+                  {{ $t('Oops', {}, 'Oops!') }}
+                </h3>
+                <p class="error-message" :class="darkMode ? 'text-grey-4' : 'text-grey-7'" style="font-size: 16px; line-height: 1.6; max-width: 320px; margin: 0 auto 32px;">
+                  {{ error }}
+                </p>
+                <div class="error-actions">
+                  <q-btn
+                    unelevated
+                    rounded
+                    color="primary"
+                    size="lg"
+                    class="q-px-xl full-width"
+                    @click="$router.push('/')"
+                  >
+                    <q-icon name="home" class="q-mr-sm" />
+                    {{ $t("GoToHome") }}
+                  </q-btn>
+                </div>
+              </div>
               <q-btn
-                v-if="completed || error"
+                v-if="completed"
                 class="q-mt-md button"
                 @click="$router.push('/')"
               >
@@ -272,13 +294,15 @@ export default {
             if (claimResp.data.success) {
               vm.completed = true
             } else {
-              vm.error = claimResp.data.message || vm.$t('ClaimFailed', {}, 'Failed to claim gift')
+              // Display error message from backend (e.g., "Maximum claim has been made", "Gift does not exist", etc.)
+              vm.error = claimResp.data.message || claimResp.data.error || vm.$t('ClaimFailed', {}, 'Failed to claim gift')
             }
           } else {
             vm.error = vm.$t('GiftAlreadyClaimed')
           }
         } catch (error) {
           // Handle errors from transaction creation or claim submission
+          // Prioritize error field, then message field from API response
           if (error.response?.data?.error) {
             vm.error = error.response.data.error
           } else if (error.response?.data?.message) {
@@ -293,10 +317,18 @@ export default {
         vm.processing = false
       }).catch((error) => {
         // Handle 404 and other errors from the shares endpoint
+        // Check for error field first (e.g., "Gift does not exist"), then message field
         if (error.response?.status === 404 || error.response?.data?.error) {
           vm.error = error.response.data.error || error.response.data.message || vm.$t('GiftDoesNotExist', {}, 'Gift does not exist')
+        } else if (error.response?.data?.message) {
+          // Handle other API error messages (e.g., maximum claim reached, etc.)
+          vm.error = error.response.data.message
+        } else if (error.response?.data?.error) {
+          vm.error = error.response.data.error
+        } else if (error?.message) {
+          vm.error = error.message
         } else {
-          vm.error = error?.response?.data?.message || error?.response?.data?.error || error?.message || vm.$t('ClaimFailed', {}, 'Failed to claim gift')
+          vm.error = vm.$t('ClaimFailed', {}, 'Failed to claim gift')
         }
         vm.processing = false
       })
@@ -351,5 +383,54 @@ export default {
   .btn-scan {
     background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
     color: white;
+  }
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    animation: fadeIn 0.3s ease-in;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .error-icon-wrapper {
+    margin-bottom: 8px;
+  }
+  .error-icon-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid rgba(255, 152, 0, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 10px rgba(255, 152, 0, 0);
+    }
+  }
+  .error-actions {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 </style>
