@@ -324,6 +324,19 @@ export default {
     getDarkModeClass,
     formatWithLocale,
 
+    /**
+     * Ensures address index is never 0 (0/0 is reserved for message encryption)
+     * Returns 1 if index is 0, otherwise returns the index as-is
+     * @param {number} index - The address index to validate
+     * @returns {number} - The validated address index (never 0)
+     */
+    ensureAddressIndexNotZero (index) {
+      if (typeof index !== 'number' || index < 0) {
+        return 1 // Default to 1 if invalid
+      }
+      return index === 0 ? 1 : index
+    },
+
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
@@ -383,7 +396,9 @@ export default {
       const vm = this
       vm.generating = true
       const lastAddressIndex = vm.getLastAddressIndex()
-      const newAddressIndex = lastAddressIndex + 1
+      let newAddressIndex = lastAddressIndex + 1
+      // Skip address 0/0 (reserved for message encryption)
+      newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
 
       delete this?.$options?.sockets
 
@@ -424,7 +439,9 @@ export default {
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
-        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        // Skip address 0/0 (reserved for message encryption)
+        lastAddressIndex = this.ensureAddressIndexNotZero(lastAddressIndex)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const privateKey = await dynamicWallet.getPrivateKey('0/' + String(lastAddressIndex))
         
@@ -448,7 +465,9 @@ export default {
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
-        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        // Skip address 0/0 (reserved for message encryption)
+        lastAddressIndex = this.ensureAddressIndexNotZero(lastAddressIndex)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
         
@@ -503,7 +522,9 @@ export default {
       // This should not happen in normal flow since refreshDynamicAddress is called first
       try {
         const addressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        let validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 1
+        // Skip address 0/0 (reserved for message encryption)
+        validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
         
         let address = await generateReceivingAddress({
           walletIndex: this.$store.getters['global/getWalletIndex'],
@@ -566,7 +587,9 @@ export default {
         
         // Get lastAddressIndex
         const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        const validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 0
+        let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
+        // Skip address 0/0 (reserved for message encryption)
+        validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
         
         // Generate address from lastAddressIndex
         let address
@@ -616,7 +639,9 @@ export default {
           }
           
           // Step 4: Else, generate a new address by incrementing the lastAddressIndex by 1
-          const newAddressIndex = validAddressIndex + 1
+          let newAddressIndex = validAddressIndex + 1
+          // Skip address 0/0 (reserved for message encryption)
+          newAddressIndex = this.ensureAddressIndexNotZero(newAddressIndex)
           
           // Step 5: Generate and subscribe the new address (only subscribe when creating new address)
           const newAddress = await generateReceivingAddress({

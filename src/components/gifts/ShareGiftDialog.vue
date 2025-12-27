@@ -29,5 +29,5 @@ const props = defineProps({
   gift: Object,
 })
 
-const qrCodeContents = computed(() => $store.getters['gifts/getQrShare'](props.gift?.gift_code_hash))
+const qrCodeContents = computed(() => props.gift?.qr || props.gift?.giftCode || null)
 </script>

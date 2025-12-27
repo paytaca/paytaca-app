@@ -12,7 +12,6 @@ import marketplace from './marketplace'
 import assets from './assets'
 import paytacapos from './paytacapos'
 import walletconnect from './walletconnect'
-import gifts from './gifts'
 import notification from './notification'
 import ramp from './ramp'
 import stablehedge from './stablehedge'
@@ -257,7 +256,6 @@ export const Store = createStore({
     marketplace,
     paytacapos,
     walletconnect,
-    gifts,
     notification,
     ramp,
     stablehedge,

@@ -196,7 +196,7 @@ export class SweepPrivateKey {
     return watchtower.BCH.send(data)
   }
 
-  sweepBch (bchAddress, bchWif, spendableBalance, feeFunder, recipient) {
+  sweepBch (bchAddress, bchWif, spendableBalance, feeFunder, recipient, broadcast = true) {
     const watchtower = new Watchtower()
     const data = {
       sender: {
@@ -210,7 +210,7 @@ export class SweepPrivateKey {
         }
       ],
       feeFunder,
-      broadcast: true
+      broadcast
     }
 
     return watchtower.BCH.send(data)
