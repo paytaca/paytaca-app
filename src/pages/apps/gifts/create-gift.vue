@@ -60,7 +60,7 @@
             <!-- QR Code -->
             <div class="qr-section q-mt-lg">
               <div class="qr-wrapper" @click="copyToClipboard('https://gifts.paytaca.com/claim/?code=' + qrCodeContents)">
-                <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="220" />
+                <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="220" icon="bch-logo.png" />
                 <div class="qr-overlay">
                   <q-icon name="mdi-content-copy" size="32px" color="white"/>
                   <div class="text-caption text-white q-mt-xs">{{ $t('TapToCopy', {}, 'Tap to copy') }}</div>
@@ -160,31 +160,32 @@
 
               <!-- Custom Amount Input (shown when custom mode is active) -->
               <div v-if="isCustomAmount" class="custom-amount-section">
-          <q-input
-            ref="amountInput"
-            required
-                  :placeholder="$t('EnterCustomAmount', {}, 'Enter custom amount')"
-            filled
-                  inputmode="none"
-                  class="q-mt-sm amount-input"
-                  :rules="[
-                    val => !!val || $t('FieldIsRequired'), 
-                    val => (amountBCH <= spendableBch) || $t('AmountGreaterThanBalance'), 
-                    val => (amountBCH >= 0.00001) || $t('BelowMinimumGiftAmount')
-                  ]"
-                  type="text"
-                  v-model="giftAmountFormatted"
-                  @focus="onAmountInputFocus"
-            :dark="darkMode"
-            hide-bottom-space
-          >
-                  <template v-slot:prepend>
-                    <q-icon name="mdi-currency-bch" />
-            </template>
-                  <template v-slot:append>
-                    <span class="text-weight-medium">{{ denomination }}</span>
-                  </template>
-                </q-input>
+                <div class="amount-input-wrapper">
+                  <label class="amount-label" :class="getDarkModeClass(darkMode)">{{ $t('Amount') }}</label>
+                  <q-input
+                    ref="amountInput"
+                    required
+                    :placeholder="$t('EnterCustomAmount', {}, 'Enter custom amount')"
+                    filled
+                    inputmode="none"
+                    class="q-mt-sm amount-input"
+                    :rules="[
+                      val => !!val || $t('FieldIsRequired'), 
+                      val => (amountBCH <= spendableBch) || $t('AmountGreaterThanBalance'), 
+                      val => (amountBCH >= 0.00001) || $t('BelowMinimumGiftAmount')
+                    ]"
+                    type="text"
+                    v-model="giftAmountFormatted"
+                    @focus="onAmountInputFocus"
+                    :dark="darkMode"
+                    hide-bottom-space
+                  >
+                    <template v-slot:append>
+                      <span class="text-weight-medium denomination-selector">{{ denomination }}</span>
+                      <q-icon name="mdi-chevron-down" size="20px" class="denomination-arrow" />
+                    </template>
+                  </q-input>
+                </div>
                 
                 <div class="row items-center justify-between q-mt-sm">
                   <div v-if="sendAmountMarketValue" class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
@@ -585,40 +586,26 @@ export default {
     async generateGift () {
       const vm = this
       vm.processing = true
-      console.log('[Gift Creation] Starting gift generation...')
-      console.log('[Gift Creation] Amount:', this.amountBCH)
       
       const privateKey = ECPair.makeRandom()
       const wif = privateKey.toWIF()
-      console.log('[Gift Creation] Generated private key WIF:', wif.substring(0, 10) + '...')
 
       const BCHJS = require('@psf/bch-js')
       const bchjs = new BCHJS()
       const pair = bchjs.ECPair.fromWIF(wif)
       const address = bchjs.ECPair.toCashAddress(pair)
-      console.log('[Gift Creation] Gift address:', address)
       
       const secret = Buffer.from(wif)
       const stateShare = sss.split(secret, { shares: 2, threshold: 2 })
       const shares = stateShare.map((share) => { return toHex(share) })
-      console.log('[Gift Creation] Split into 2 shares (2-of-2)')
-      console.log('[Gift Creation] Share[0] length:', shares[0]?.length)
-      console.log('[Gift Creation] Share[1] length:', shares[1]?.length)
       
       const encryptedShard = this.encryptShard(shares[0])
-      console.log('[Gift Creation] Encrypted share[0] with gift code')
-      console.log('[Gift Creation] Gift code (password):', encryptedShard.code)
-      console.log('[Gift Creation] Encrypted share hex length:', encryptedShard.encryptedHex?.length)
 
       vm.giftCodeHash = sha256(encryptedShard.code)
-      console.log('[Gift Creation] Gift code hash:', vm.giftCodeHash)
       
       // Encrypt the gift code using memo encryption (private key from address 0/0)
-      console.log('[Gift Creation] Encrypting gift code with wallet 0/0 key...')
       const keypair = await ensureKeypair()
-      console.log('[Gift Creation] Keypair obtained, pubkey:', keypair.pubkey?.substring(0, 20) + '...')
       const encryptedGiftCode = await encryptMemo(keypair.privkey, keypair.pubkey, encryptedShard.code)
-      console.log('[Gift Creation] Gift code encrypted, length:', encryptedGiftCode?.length)
       
       const payload = {
         gift_code_hash: vm.giftCodeHash,
@@ -628,15 +615,6 @@ export default {
         amount: parseFloat(this.amountBCH),
         encrypted_gift_code: encryptedGiftCode
       }
-      console.log('[Gift Creation] Payload prepared:', {
-        gift_code_hash: payload.gift_code_hash,
-        address: payload.address,
-        share_length: payload.share?.length,
-        amount: payload.amount,
-        encrypted_share_length: payload.encrypted_share?.length,
-        encrypted_gift_code_length: payload.encrypted_gift_code?.length,
-        has_campaign: !!vm.selectedCampaign
-      })
       if (vm.selectedCampaign) {
         if (vm.createNewCampaign) {
           payload.campaign = {
@@ -658,43 +636,25 @@ export default {
 
     async submitGiftToServer(url, payload, qrCode, address) {
       const vm = this
-      console.log('[Gift Creation] Submitting gift to server...')
-      console.log('[Gift Creation] URL:', url)
       try {
         const resp = await axios.post(url, payload)
-        console.log('[Gift Creation] Server response status:', resp.status)
-        console.log('[Gift Creation] Server response data:', resp.data)
         if (resp.status === 200) {
           vm.qrCodeContents = qrCode
-          console.log('[Gift Creation] Gift created on server, sending BCH...')
-          console.log('[Gift Creation] Sending', this.amountBCH, 'BCH to address:', address)
           try {
             const result = await vm.wallet.BCH.sendBch(this.amountBCH, address)
-            console.log('[Gift Creation] Send BCH result:', {
-              success: result.success,
-              txid: result.txid,
-              error: result.error
-            })
             if (result.success) {
-              console.log('[Gift Creation] ✅ Gift created and funded successfully!')
-              console.log('[Gift Creation] Transaction ID:', result.txid)
               vm.processing = false
               vm.completed = true
               vm.giftStatus = 'completed'
 
               // Update balance
               const response = await vm.wallet.BCH.getBalance()
-              console.log('[Gift Creation] Updated balance:', {
-                balance: response.balance,
-                spendable: response.spendable
-              })
               vm.$store.commit('assets/updateAssetBalance', {
                 id: 'bch',
                 balance: response.balance,
                 spendable: response.spendable
               })
             } else {
-              console.error('[Gift Creation] ❌ Send BCH failed:', result.error)
               // Update status to failed
               vm.processing = false
               vm.giftStatus = 'failed'
@@ -710,11 +670,6 @@ export default {
               })
             }
           } catch (sendError) {
-            console.error('[Gift Creation] ❌ Send BCH error:', sendError)
-            console.error('[Gift Creation] Error details:', {
-              message: sendError.message,
-              stack: sendError.stack
-            })
             vm.processing = false
             vm.giftStatus = 'failed'
             vm.failedGiftDetails = {
@@ -730,9 +685,6 @@ export default {
           }
         }
       } catch (error) {
-        console.error('[Gift Creation] ❌ API error:', error)
-        console.error('[Gift Creation] Error response:', error?.response?.data)
-        console.error('[Gift Creation] Error status:', error?.response?.status)
         vm.processing = false
         vm.giftStatus = 'failed'
         vm.failedGiftDetails = {
@@ -916,7 +868,7 @@ export default {
     },
     decimalObj() {
       return {
-        max: getDenomDecimals(this.denomination),
+        max: getDenomDecimals(this.denomination).decimal,
         min: 0
       }
     },
@@ -1174,15 +1126,60 @@ export default {
   }
 }
 
+.amount-input-wrapper {
+  position: relative;
+  
+  .amount-label {
+    position: absolute;
+    left: 16px;
+    top: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 1;
+    pointer-events: none;
+    
+    &.dark {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    &.light {
+      color: rgba(0, 0, 0, 0.7);
+    }
+  }
+}
+
 .amount-input {
   :deep(.q-field__control) {
     height: 56px;
     border-radius: 12px;
+    padding-left: 0 !important;
+  }
+  
+  :deep(.q-field__native) {
+    padding-left: 16px !important;
+    padding-top: 24px !important;
   }
   
   :deep(input) {
     font-size: 18px;
     font-weight: 600;
+    padding-left: 0 !important;
+  }
+  
+  :deep(.q-field__append) {
+    padding-right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    
+    .denomination-selector {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .denomination-arrow {
+      opacity: 0.7;
+    }
   }
 }
 

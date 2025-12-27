@@ -4,30 +4,20 @@
       :title="$t('Gifts')"
       backnavpath="/apps"
       class="header-nav q-px-sm apps-header"
-    />
+    >
+      <template v-slot:top-right-menu>
+        <q-btn
+          flat
+          round
+          dense
+          icon="mdi-plus-circle"
+          :class="getDarkModeClass(darkMode)"
+          @click="handleCreateGiftClick"
+        />
+      </template>
+    </HeaderNav>
     <q-pull-to-refresh @refresh="fetchGifts">
       <div class="gifts-content" :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
-          <!-- Action Buttons -->
-          <div class="action-buttons-wrapper q-px-md q-mb-md">
-            <div class="action-buttons-container">
-              <button
-                class="action-button bg-grad"
-                @click="handleCreateGiftClick"
-              >
-                <q-icon name="mdi-plus-circle" size="20px" class="q-mr-xs"/>
-                {{ $t('CreateGift') }}
-              </button>
-              <button
-                class="action-button action-button-outline"
-                :style="`border-color: ${getThemeColor()}; color: ${getThemeColor()};`"
-                @click="$router.push({ name: 'claim-gift' })"
-              >
-                <q-icon name="mdi-gift" size="20px" class="q-mr-xs"/>
-                {{ $t('ClaimGift') }}
-              </button>
-            </div>
-          </div>
-
           <!-- Tabs Section -->
           <div class="tabs-wrapper q-mb-md">
             <div 
@@ -60,19 +50,6 @@
                 <q-icon name="mdi-check-circle" size="18px" class="q-mr-xs"/>
                 {{ $t('Claimed') }}
               </button>
-              <button
-                class="gifts-tab"
-                :class="[
-                  darkMode ? 'dark' : '',
-                  tabButtonClass('recovered'),
-                  `theme-${theme}`
-                ]"
-                :style="activeTab === 'recovered' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-                @click="changeTab('recovered')"
-              >
-                <q-icon name="mdi-recycle" size="18px" class="q-mr-xs"/>
-                {{ $t('Recovered') }}
-              </button>
             </div>
           </div>
 
@@ -87,29 +64,25 @@
             </q-chip>
           </div>
 
-          <!-- Unclaimed Gifts - Card View -->
-          <div v-if="activeTab === 'unclaimed'" class="gifts-grid q-px-md q-pb-md">
-            <template v-if="fetchingGifts">
+          <!-- Unclaimed Gifts - List View -->
+          <div 
+            v-if="activeTab === 'unclaimed'" 
+            ref="unclaimedGiftsList"
+            class="gifts-list scroll-y"
+            @scroll="onUnclaimedGiftsScroll"
+          >
+            <template v-if="fetchingGifts && !hasLoadedGifts">
               <div
-                v-for="i in 4"
+                v-for="i in 8"
                 :key="i"
-                class="gift-card-container"
+                class="gift-item text-bow q-mx-lg q-px-sm q-py-md"
+                :class="getDarkModeClass(darkMode)"
               >
-                <div class="gift-card-skeleton pt-card" :class="getDarkModeClass(darkMode)">
-                  <q-skeleton height="60px" class="q-mb-md" />
-                  <q-skeleton height="20px" class="q-mb-sm" width="60%" />
-                  <q-skeleton height="20px" width="40%" />
-                  <div class="q-mt-md">
-                    <q-skeleton height="32px" class="q-mb-sm" />
-                    <q-skeleton height="40px" />
-                  </div>
-                </div>
+                <q-skeleton type="rect" height="60px" />
               </div>
             </template>
 
-            <div v-else-if="!giftsList.length"
-              class="empty-state"
-            >
+            <div v-else-if="!giftsList.length" class="empty-state">
               <q-icon name="mdi-gift-outline" size="80px" class="q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'"/>
               <div class="text-h6" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">{{ $t('NoUnclaimedGifts', {}, 'No unclaimed gifts') }}</div>
               <div 
@@ -126,243 +99,179 @@
               <div 
                 v-for="gift in giftsList" 
                 :key="gift.hash" 
-                class="gift-card-container"
+                class="gift-item text-bow q-mx-lg q-px-sm q-py-md"
+                :class="getDarkModeClass(darkMode)"
+                @click="displayGift(gift)"
               >
-                <div 
-                  class="gift-card pt-card"
-                  :class="[
-                    getDarkModeClass(darkMode),
-                    { 'gift-card-claimed': gift.date_claimed !== 'None' || gift.recovered }
-                  ]"
-                >
-                  <!-- Gift Icon & Amount -->
-                  <div class="gift-header">
-                    <div class="gift-icon-wrapper">
-                      <q-icon 
-                        name="mdi-gift" 
-                        size="32px"
-                        :class="getGiftIconClass(gift)"
-                      />
+                <div class="gift-item-content">
+                  <div class="gift-item-header">
+                    <div class="gift-item-type">
+                      <q-icon name="mdi-gift" size="20px" class="q-mr-xs" :class="getGiftIconClass(gift)" />
+                      <span class="type-text text-uppercase" :class="getDarkModeClass(darkMode)">
+                        {{ $t('Gift') }}
+                      </span>
+                      <span v-if="gift.campaign_name" class="gift-campaign-name" :class="getDarkModeClass(darkMode)">
+                        • {{ gift.campaign_name }}
+                      </span>
                     </div>
-                    <div class="gift-amount text-grad">
+                    <div class="gift-item-amount" :class="getDarkModeClass(darkMode)">
+                      <div class="amount-primary text-grad">
                       {{ getAssetDenomination(denomination, gift.amount) }}
                     </div>
-                    <div class="gift-date text-caption">
-                      {{ formatRelativeTimestamp(gift.date_created) }}
                     </div>
                   </div>
-
-                  <!-- Status Badge -->
-                  <div class="gift-status-section q-mt-md">
-                    <q-badge
-                      :class="getStatusBadgeClass(gift)"
-                      class="status-badge"
-                    >
-                      <q-icon 
-                        :name="getStatusIcon(gift)" 
-                        size="14px" 
-                        class="q-mr-xs"
-                      />
-                      {{ getStatusText(gift) }}
-                    </q-badge>
-                    
+                  <div class="gift-item-footer">
+                    <span class="gift-date-footer" :class="getDarkModeClass(darkMode)">
+                      {{ formatRelativeTimestamp(gift.date_created) }}
+                    </span>
+                    <div class="gift-item-actions">
                     <q-btn
-                      v-if="gift.status === 'failed'"
-                      unelevated
-                      no-caps
-                      :loading="processing"
-                      class="full-width q-mt-sm bg-grad"
-                      @click="resubmitGift(gift)"
-                    >
-                      <q-icon name="mdi-reload" class="q-mr-sm" />
-                      {{ $t('Resubmit') }}
-                    </q-btn>
-                  </div>
-
-                  <!-- Action Buttons -->
-                  <div class="gift-actions q-mt-md">
-                    <q-btn
+                      v-if="gift.encrypted_gift_code"
                       flat
                       dense
                       round
+                        size="sm"
                       :color="themeColor"
                       icon="mdi-share-variant"
-                      class="action-icon-btn"
-                      @click="copyToClipboard('https://gifts.paytaca.com/claim/?code=' + gift.qr)"
+                        @click.stop="copyToClipboard('https://gifts.paytaca.com/claim/?code=' + gift.qr)"
                     >
                       <q-tooltip>{{ $t('ShareGiftLink') }}</q-tooltip>
                     </q-btn>
                     <q-btn
+                      v-if="gift.encrypted_gift_code"
                       flat
                       dense
                       round
+                        size="sm"
                       :color="themeColor"
                       icon="mdi-qrcode"
-                      class="action-icon-btn"
-                      @click="showQr(gift.hash)"
+                        @click.stop="displayGiftQr(gift)"
                     >
                       <q-tooltip>{{ $t('ShowQRCode') }}</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="!gift.recovered && gift.date_claimed === 'None'"
+                      v-if="gift.encrypted_gift_code && !gift.recovered && gift.date_claimed === 'None'"
                       flat
                       dense
                       round
+                        size="sm"
                       color="orange-6"
                       icon="mdi-recycle"
-                      class="action-icon-btn"
-                      @click="confirmRecoverGift(gift)"
+                        @click.stop="confirmRecoverGift(gift)"
                     >
                       <q-tooltip>{{ $t('RecoverGift') }}</q-tooltip>
                     </q-btn>
                   </div>
                 </div>
               </div>
-            </template>
-
-            <!-- Pagination -->
-            <div v-if="pageNumberPaginationData?.pageCount > 1" class="pagination-container q-mt-lg">
-              <q-pagination
-                v-model="pageNumberPaginationData.currentPage"
-                :max="pageNumberPaginationData.pageCount"
-                :max-pages="6"
-                :color="themeColor"
-                :dark="darkMode"
-                direction-links
-                boundary-links
-                padding="sm"
-                @update:model-value="
-                  (val) => fetchGifts(null, {
-                    recordType: activeTab,
-                    limit: 10,
-                    offset: (val - 1) * 10
-                  })
-                "
-              />
+              </div>
+              
+              <!-- Loading indicator for infinite scroll -->
+              <div v-if="loadingMoreGifts && giftsList.length > 0" class="loading-more q-pa-md">
+                <q-spinner :color="themeColor" size="32px" />
+                <p class="loading-text q-mt-sm" :class="getDarkModeClass(darkMode)">{{ $t('LoadingMore', {}, 'Loading more') }}...</p>
             </div>
+              
+              <!-- End of list indicator -->
+              <div v-else-if="giftsList.length > 0 && !hasMoreUnclaimedGifts" class="end-of-list q-pa-md">
+                <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
+                <p class="end-text q-mt-sm" :class="getDarkModeClass(darkMode)">{{ $t('AllGiftsLoaded', {}, 'All gifts loaded') }}</p>
           </div>
 
-          <!-- Claimed/Recovered Gifts - Table View -->
-          <div v-else class="gifts-table-container q-px-md q-pb-md">
-            <div v-if="fetchingGifts" class="pt-card q-pa-md" :class="getDarkModeClass(darkMode)">
-              <q-skeleton type="rect" height="400px" />
+              <!-- Scroll sentinel for intersection observer -->
+              <div ref="scrollSentinel" class="scroll-sentinel"></div>
+            </template>
             </div>
+
+          <!-- Claimed Gifts - List View -->
+          <div 
+            v-else 
+            ref="claimedGiftsList"
+            class="gifts-list scroll-y"
+            @scroll="onClaimedGiftsScroll"
+          >
+            <template v-if="fetchingGifts && !hasLoadedClaimedGifts">
+              <div
+                v-for="i in 8"
+                :key="i"
+                class="gift-item text-bow q-mx-lg q-px-sm q-py-md"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-skeleton type="rect" height="60px" />
+              </div>
+            </template>
 
             <div v-else-if="!giftsList.length" class="empty-state">
               <q-icon 
-                :name="activeTab === 'claimed' ? 'mdi-check-circle-outline' : 'mdi-recycle'" 
+                name="mdi-check-circle-outline" 
                 size="80px" 
                 class="q-mb-md"
                 :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
               />
               <div class="text-h6" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                {{ activeTab === 'claimed' ? $t('NoClaimedGifts', {}, 'No claimed gifts') : $t('NoRecoveredGifts', {}, 'No recovered gifts') }}
+                {{ $t('NoClaimedGifts', {}, 'No claimed gifts') }}
               </div>
             </div>
 
-            <q-table
-              v-else
-              :rows="giftsList"
-              :columns="tableColumns"
-              row-key="hash"
-              :dark="darkMode"
-              flat
-              class="gifts-table pt-card"
+            <template v-else>
+              <div 
+                v-for="gift in giftsList" 
+                :key="gift.hash" 
+                class="gift-item text-bow q-mx-lg q-px-sm q-py-md"
               :class="getDarkModeClass(darkMode)"
-              :rows-per-page-options="[10, 20, 50]"
-              :pagination="{ rowsPerPage: 10 }"
-            >
-              <template v-slot:body-cell-amount="props">
-                <q-td :props="props">
-                  <div class="text-weight-medium text-grad">
-                    {{ getAssetDenomination(denomination, props.row.amount) }}
+                @click="displayGift(gift)"
+              >
+                <div class="gift-item-content">
+                  <div class="gift-item-header">
+                    <div class="gift-item-type">
+                      <q-icon name="mdi-gift" size="20px" class="q-mr-xs" :class="getGiftIconClass(gift)" />
+                      <span class="type-text text-uppercase" :class="getDarkModeClass(darkMode)">
+                        {{ $t('Gift') }}
+                      </span>
+                      <span v-if="gift.campaign_name" class="gift-campaign-name" :class="getDarkModeClass(darkMode)">
+                        • {{ gift.campaign_name }}
+                      </span>
                   </div>
-                </q-td>
-              </template>
-
-              <template v-slot:body-cell-date="props">
-                <q-td :props="props">
-                  <div class="text-caption">
-                    {{ formatRelativeTimestamp(props.row.date_created) }}
+                    <div class="gift-item-amount" :class="getDarkModeClass(darkMode)">
+                      <div class="amount-primary text-grad">
+                        {{ getAssetDenomination(denomination, gift.amount) }}
                   </div>
-                </q-td>
-              </template>
-
-              <template v-slot:body-cell-status="props">
-                <q-td :props="props">
+                    </div>
+                  </div>
+                  <div class="gift-item-footer">
+                    <span class="gift-date-footer" :class="getDarkModeClass(darkMode)">
+                      {{ formatRelativeTimestamp(gift.date_claimed !== 'None' ? gift.date_claimed : gift.date_created) }}
+                    </span>
                   <q-badge
-                    :class="getStatusBadgeClass(props.row)"
+                      :class="gift.recovered ? 'status-recovered' : 'status-claimed'"
                     class="status-badge-small"
                   >
                     <q-icon 
-                      :name="getStatusIcon(props.row)" 
+                        :name="gift.recovered ? 'mdi-recycle' : 'mdi-check-circle'" 
                       size="12px" 
                       class="q-mr-xs"
                     />
-                    {{ getStatusText(props.row) }}
+                      {{ gift.recovered ? $t('Recovered', {}, 'RECOVERED') : $t('Claimed', {}, 'CLAIMED') }}
                   </q-badge>
-                </q-td>
-              </template>
-
-              <template v-slot:body-cell-claimed_date="props">
-                <q-td :props="props">
-                  <div v-if="props.row.date_claimed !== 'None'" class="text-caption">
-                    {{ formatRelativeTimestamp(props.row.date_claimed) }}
                   </div>
-                  <div v-else class="text-grey-5">-</div>
-                </q-td>
-              </template>
-
-              <template v-slot:body-cell-actions="props">
-                <q-td :props="props">
-                  <div class="row q-gutter-xs no-wrap">
-                    <q-btn
-                      flat
-                      dense
-                      round
-                      size="sm"
-                      :color="themeColor"
-                      icon="mdi-share-variant"
-                      @click="copyToClipboard('https://gifts.paytaca.com/claim/?code=' + props.row.qr)"
-                    >
-                      <q-tooltip>{{ $t('ShareGiftLink') }}</q-tooltip>
-                    </q-btn>
-                    <q-btn
-                      flat
-                      dense
-                      round
-                      size="sm"
-                      :color="themeColor"
-                      icon="mdi-qrcode"
-                      @click="showQr(props.row.hash)"
-                    >
-                      <q-tooltip>{{ $t('ShowQRCode') }}</q-tooltip>
-                    </q-btn>
+                </div>
+              </div>
+              
+              <!-- Loading indicator for infinite scroll -->
+              <div v-if="loadingMoreClaimedGifts && giftsList.length > 0" class="loading-more q-pa-md">
+                <q-spinner :color="themeColor" size="32px" />
+                <p class="loading-text q-mt-sm" :class="getDarkModeClass(darkMode)">{{ $t('LoadingMore', {}, 'Loading more') }}...</p>
                   </div>
-                </q-td>
-              </template>
-            </q-table>
-
-            <!-- Pagination for table -->
-            <div v-if="pageNumberPaginationData?.pageCount > 1" class="pagination-container q-mt-lg">
-              <q-pagination
-                v-model="pageNumberPaginationData.currentPage"
-                :max="pageNumberPaginationData.pageCount"
-                :max-pages="6"
-                :color="themeColor"
-                :dark="darkMode"
-                direction-links
-                boundary-links
-                padding="sm"
-                @update:model-value="
-                  (val) => fetchGifts(null, {
-                    recordType: activeTab,
-                    limit: 10,
-                    offset: (val - 1) * 10
-                  })
-                "
-              />
-            </div>
+              
+              <!-- End of list indicator -->
+              <div v-else-if="giftsList.length > 0 && !hasMoreClaimedGifts" class="end-of-list q-pa-md">
+                <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
+                <p class="end-text q-mt-sm" :class="getDarkModeClass(darkMode)">{{ $t('AllGiftsLoaded', {}, 'All gifts loaded') }}</p>
+                  </div>
+              
+              <!-- Scroll sentinel for intersection observer -->
+              <div ref="claimedScrollSentinel" class="scroll-sentinel"></div>
+            </template>
           </div>
         </div>
       </q-pull-to-refresh>
@@ -381,7 +290,6 @@ import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getMnemonic, Wallet } from '../../../wallet'
 import QRCode from 'qrcode'
-import QrDialog from 'src/components/gifts/QrDialog.vue'
 import { ensureKeypair } from 'src/utils/memo-service'
 import { decryptMemo } from 'src/utils/transaction-memos'
 
@@ -399,7 +307,7 @@ export default {
         recordType: {
           active: 'unclaimed',
           default: 'unclaimed',
-          options: ['claimed', 'unclaimed', 'recovered'],
+          options: ['claimed', 'unclaimed'],
         }
       },
       fetchingGifts: false,
@@ -409,9 +317,30 @@ export default {
         limit: 0,
         offset: 0,
       },
+      isGiftDialogOpen: false, // Track if gift dialog is currently open
+      currentGiftDialog: null, // Store reference to current dialog instance
       campaign_filter: {},
       processing: false,
-      wallet: null
+      wallet: null,
+      // Infinite scroll state
+      loadingMoreGifts: false,
+      unclaimedGiftsPage: 1,
+      unclaimedGiftsLimit: 10,
+      hasMoreUnclaimedGifts: true,
+      hasLoadedGifts: false,
+      // Claimed gifts infinite scroll state
+      loadingMoreClaimedGifts: false,
+      claimedGiftsPage: 1,
+      claimedGiftsLimit: 10,
+      hasMoreClaimedGifts: true,
+      hasLoadedClaimedGifts: false,
+      claimedGiftsNoItemsCount: 0, // Track consecutive fetches with no items
+      // IntersectionObserver for infinite scroll
+      unclaimedIntersectionObserver: null,
+      claimedIntersectionObserver: null,
+      // Debounce timers for scroll handlers
+      unclaimedScrollTimer: null,
+      claimedScrollTimer: null
     }
   },
 
@@ -445,17 +374,21 @@ export default {
 
       // Filter based on active tab
       const filteredGifts = gifts.filter(gift => {
+        // Helper to check if gift is recovered (handles various formats)
+        const isRecovered = gift.recovered === true || gift.recovered === 'true' || gift.recovered === 1
+        
         if (this.activeTab === 'unclaimed') {
-          return gift.date_claimed === 'None' && !gift.recovered
+          return gift.date_claimed === 'None' && !isRecovered
         }
         if (this.activeTab === 'claimed') {
-          return gift.date_claimed !== 'None' && !gift.recovered
-        }
-        if (this.activeTab === 'recovered') {
-          return gift.recovered
+          // Show all gifts returned by API when type=claimed
+          // The API already filters by type, so we should trust all returned items
+          // Some items might be recovered and not have date_claimed set, but they're still "claimed" in the API's view
+          return true
         }
         return true
       })
+      
 
       // Sort by date_created in descending order (latest first)
       return filteredGifts.sort((a, b) => {
@@ -473,11 +406,11 @@ export default {
       }))
       return gifts.filter(gift => gift.date_claimed === 'None' && !gift.recovered).length
     },
-    unclaimedGiftsLimit () {
+    subscriptionUnclaimedGiftsLimit () {
       return this.$store.getters['subscription/getLimit']('unclaimedGifts')
     },
     isUnclaimedGiftsLimitReached () {
-      return this.unclaimedGiftsCount >= this.unclaimedGiftsLimit
+      return this.unclaimedGiftsCount >= this.subscriptionUnclaimedGiftsLimit
     },
     tableColumns () {
       const columns = [
@@ -504,9 +437,7 @@ export default {
         },
         {
           name: 'claimed_date',
-          label: this.activeTab === 'recovered' 
-            ? this.$t('DateRecovered', {}, 'Date Recovered')
-            : this.$t('DateClaimed', {}, 'Date Claimed'),
+          label: this.$t('DateClaimed', {}, 'Date Claimed'),
           field: 'date_claimed',
           align: 'left',
           sortable: true
@@ -551,28 +482,65 @@ export default {
     capitalize: capitalize,
     formatRelativeTimestamp(val) {
       if (isNaN(new Date(val).valueOf())) return ''
-      return `${formatDistance(new Date(val), new Date(), { addSuffix: true })}`
+      try {
+        const date = new Date(val)
+        const now = new Date()
+        const diffTime = Math.abs(now - date)
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        
+        if (diffDays < 7) {
+          // Show relative time for dates less than 7 days ago
+          return `${formatDistance(date, now, { addSuffix: true })}`
+        } else {
+          // Show absolute date for dates 7 days or more ago
+          return date.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          })
+        }
+      } catch (e) {
+        return val
+      }
     },
-    fetchGifts(done, opts = { recordType: 'all', limit: 10, offset: 0 }) {
-      this.fetchedGifts = {}
+    fetchGifts(done, opts = { recordType: 'all', limit: 10, offset: 0, append: false }) {
       const recordType = opts?.recordType || 'all'
-      const url = `https://gifts.paytaca.com/api/gifts/${this.walletHash}/list`
-      const query = {
-        limit: opts.limit || 10,
-        offset: opts.offset || 0,
-        claimed: undefined
+      const shouldAppend = opts?.append || false
+      
+      // Reset state if not appending
+      if (!shouldAppend) {
+        this.fetchedGifts = {}
+        if (recordType === 'unclaimed') {
+          this.unclaimedGiftsPage = 1
+          this.hasMoreUnclaimedGifts = true
+          this.hasLoadedGifts = false
+        } else if (recordType === 'claimed') {
+          this.claimedGiftsPage = 1
+          this.hasMoreClaimedGifts = true
+          this.hasLoadedClaimedGifts = false
+        }
       }
       
-      if (recordType === 'claimed') query.claimed = true
-      if (recordType === 'unclaimed') query.claimed = false
+      const url = `https://gifts.paytaca.com/api/gifts/${this.walletHash}/list`
+      const query = {
+        limit: opts.limit || (recordType === 'unclaimed' ? this.unclaimedGiftsLimit : (recordType === 'claimed' ? this.claimedGiftsLimit : 10)),
+        offset: opts.offset || 0
+      }
+      
+      // Set type parameter based on recordType
+      if (recordType === 'unclaimed' || recordType === 'claimed') {
+        query.type = recordType
+      }
+      
       if (this.campaign_filter?.id) {
         query.campaign = this.campaign_filter.id
       }
 
       this.fetchingGifts = true
-      axios.get(url, { params: query })
+      return axios.get(url, { params: query })
         .then(async response => {
           if (!Array.isArray(response?.data?.gifts)) return Promise.reject({ response })
+
 
           // Get keypair for decryption
           const keypair = await ensureKeypair()
@@ -588,15 +556,14 @@ export default {
                   console.error('Failed to decrypt gift code:', error)
                 }
               }
-
               return {
-                hash: gift.gift_code_hash,
-                amount: gift.amount,
-                date_created: gift.date_created,
-                date_claimed: gift.date_claimed,
-                campaign_id: gift.campaign_id,
-                campaign_name: gift.campaign_name,
-                recovered: gift.recovered,
+            hash: gift.gift_code_hash,
+            amount: gift.amount,
+            date_created: gift.date_created,
+            date_claimed: gift.date_claimed,
+            campaign_id: gift.campaign_id,
+            campaign_name: gift.campaign_name,
+            recovered: gift.recovered,
                 status: gift.date_claimed !== 'None' ? 'completed' : 'processing',
                 giftCode: giftCode,
                 encrypted_gift_code: gift.encrypted_gift_code
@@ -605,9 +572,77 @@ export default {
           )
 
           // Store gifts in component state only (no Vuex store)
+          if (shouldAppend) {
+            // Append new gifts (don't overwrite existing ones)
+            const beforeCount = Object.keys(this.fetchedGifts).length
+            const existingHashes = new Set(Object.keys(this.fetchedGifts))
+            let addedCount = 0
+            const skippedHashes = []
+            const newHashes = []
+            
           transformedGifts.forEach(gift => {
-            this.fetchedGifts[gift.hash] = gift
-          })
+              if (!this.fetchedGifts[gift.hash]) {
+                this.fetchedGifts[gift.hash] = gift
+                addedCount++
+                newHashes.push(gift.hash.substring(0, 8))
+              } else {
+                skippedHashes.push(gift.hash.substring(0, 8))
+              }
+            })
+            const afterCount = Object.keys(this.fetchedGifts).length
+          } else {
+            // Replace gifts - clear first if not appending
+            this.fetchedGifts = {}
+            transformedGifts.forEach(gift => {
+              this.fetchedGifts[gift.hash] = gift
+            })
+          }
+          
+          
+          // Update pagination state for unclaimed gifts
+          if (recordType === 'unclaimed') {
+            const pagination = response?.data?.pagination || {}
+            // Use the offset we requested (query.offset) when appending, otherwise use pagination offset or 0
+            const currentOffset = shouldAppend ? query.offset : (pagination.offset || query.offset || 0)
+            const currentLimit = pagination.limit || query.limit
+            const totalCount = pagination.count || 0
+            
+            let hasNext = false
+            if (pagination.has_next !== undefined) {
+              hasNext = pagination.has_next === true
+            } else if (totalCount > 0 && currentOffset !== undefined && currentLimit !== undefined) {
+              // Calculate if there are more items: current offset + limit < total count
+              hasNext = (currentOffset + currentLimit) < totalCount
+            } else {
+              // Fallback: if we got a full page, assume there might be more
+              hasNext = transformedGifts.length === query.limit
+            }
+            this.hasMoreUnclaimedGifts = hasNext
+            this.hasLoadedGifts = true
+          }
+          
+          // Update pagination state for claimed gifts
+          if (recordType === 'claimed') {
+            const pagination = response?.data?.pagination || {}
+            // Use the offset we requested (query.offset) when appending, otherwise use pagination offset or 0
+            const currentOffset = shouldAppend ? query.offset : (pagination.offset || query.offset || 0)
+            const currentLimit = pagination.limit || query.limit
+            const totalCount = pagination.count || 0
+            
+            let hasNext = false
+            if (pagination.has_next !== undefined) {
+              hasNext = pagination.has_next === true
+            } else if (totalCount > 0 && currentOffset !== undefined && currentLimit !== undefined) {
+              // Calculate if there are more items: current offset + limit < total count
+              hasNext = (currentOffset + currentLimit) < totalCount
+            } else {
+              // Fallback: if we got a full page, assume there might be more
+              hasNext = transformedGifts.length === query.limit
+            }
+            this.hasMoreClaimedGifts = hasNext
+            this.hasLoadedClaimedGifts = true
+          }
+          
           return Promise.resolve(response)
         })
         .then(response => {
@@ -625,6 +660,201 @@ export default {
           this.fetchingGifts = false
         })
     },
+    loadMoreUnclaimedGifts() {
+      if (this.loadingMoreGifts || !this.hasMoreUnclaimedGifts) {
+        return Promise.resolve() // Return early, don't increment page
+      }
+      
+      this.loadingMoreGifts = true
+      // Calculate offset: page 1 (first load more) = 10, page 2 = 20, etc.
+      // Since initial load uses offset 0, first "load more" should use offset 10
+      const offset = this.unclaimedGiftsPage * this.unclaimedGiftsLimit
+      const currentPage = this.unclaimedGiftsPage
+      const storedCountBefore = Object.keys(this.fetchedGifts).length
+      
+      return this.fetchGifts(null, {
+        recordType: 'unclaimed',
+        limit: this.unclaimedGiftsLimit,
+        offset: offset,
+        append: true
+      }).then((response) => {
+        const storedCountAfter = Object.keys(this.fetchedGifts).length
+        const itemsAdded = storedCountAfter - storedCountBefore
+        
+        // Only increment page if we actually got new items
+        if (itemsAdded > 0 && this.hasMoreUnclaimedGifts) {
+          this.unclaimedGiftsPage = currentPage + 1
+        }
+      }).catch((error) => {
+        console.error('[Gifts] Error loading more unclaimed gifts:', error)
+        // Don't increment page on error
+      }).finally(() => {
+        this.loadingMoreGifts = false
+        
+        // Re-setup IntersectionObserver after items are loaded to ensure it can detect the sentinel
+        this.$nextTick(() => {
+          if (this.activeTab === 'unclaimed' && this.hasMoreUnclaimedGifts) {
+            this.setupUnclaimedIntersectionObserver()
+          }
+        })
+      })
+    },
+    loadMoreClaimedGifts() {
+      if (this.loadingMoreClaimedGifts || !this.hasMoreClaimedGifts) {
+        return Promise.resolve() // Return early, don't increment page
+      }
+      this.loadingMoreClaimedGifts = true
+      // Calculate offset: page 1 = 0, page 2 = 10, page 3 = 20, etc.
+      const offset = this.claimedGiftsPage * this.claimedGiftsLimit
+      const currentPage = this.claimedGiftsPage
+      const storedCountBefore = Object.keys(this.fetchedGifts).length
+      
+      return this.fetchGifts(null, {
+        recordType: 'claimed',
+        limit: this.claimedGiftsLimit,
+        offset: offset,
+        append: true
+      }).then((response) => {
+        // fetchGifts returns the axios response, which has the data nested
+        const storedCountAfter = Object.keys(this.fetchedGifts).length
+        const itemsAdded = storedCountAfter - storedCountBefore
+        // The response from fetchGifts is the axios response object
+        const apiReturnedItems = response?.data?.data?.gifts?.length || response?.data?.gifts?.length || 0
+        
+        // Always increment page if API returned items (even if they were duplicates)
+        // This ensures we try the next offset on the next scroll
+        if (apiReturnedItems > 0 && this.hasMoreClaimedGifts) {
+          this.claimedGiftsPage = currentPage + 1
+          this.claimedGiftsNoItemsCount = 0 // Reset counter
+        } else if (itemsAdded > 0 && this.hasMoreClaimedGifts) {
+          // Fallback: increment if items were added
+          this.claimedGiftsPage = currentPage + 1
+          this.claimedGiftsNoItemsCount = 0
+        } else {
+          this.claimedGiftsNoItemsCount++
+          
+          // If API returned no items at all, only increment after multiple attempts
+          if (this.claimedGiftsNoItemsCount >= 2 && this.hasMoreClaimedGifts) {
+            this.claimedGiftsPage = currentPage + 1
+            this.claimedGiftsNoItemsCount = 0
+          }
+        }
+      }).catch((error) => {
+        console.error('[Gifts] Error loading more claimed gifts:', error)
+        // Don't increment page on error
+      }).finally(() => {
+        this.loadingMoreClaimedGifts = false
+        
+        // Re-setup IntersectionObserver after items are loaded to ensure it can detect the sentinel
+        this.$nextTick(() => {
+          if (this.activeTab === 'claimed' && this.hasMoreClaimedGifts) {
+            this.setupClaimedIntersectionObserver()
+          }
+        })
+      })
+    },
+    onUnclaimedGiftsScroll(event) {
+      // Debounce scroll handler to prevent multiple rapid calls
+      if (this.unclaimedScrollTimer) {
+        clearTimeout(this.unclaimedScrollTimer)
+      }
+      
+      this.unclaimedScrollTimer = setTimeout(() => {
+        const element = event.target
+        const scrollTop = element.scrollTop
+        const scrollHeight = element.scrollHeight
+        const clientHeight = element.clientHeight
+        const scrollBottom = scrollHeight - scrollTop - clientHeight
+        
+        // Load more when user is near the bottom (within 300px, matching transactions)
+        // This ensures we load before reaching the absolute bottom
+        if (scrollBottom < 300 && this.hasMoreUnclaimedGifts && !this.loadingMoreGifts && this.activeTab === 'unclaimed') {
+          this.loadMoreUnclaimedGifts()
+        }
+      }, 100) // 100ms debounce
+    },
+    onClaimedGiftsScroll(event) {
+      // Debounce scroll handler to prevent multiple rapid calls
+      if (this.claimedScrollTimer) {
+        clearTimeout(this.claimedScrollTimer)
+      }
+      
+      this.claimedScrollTimer = setTimeout(() => {
+        const element = event.target
+        const scrollTop = element.scrollTop
+        const scrollHeight = element.scrollHeight
+        const clientHeight = element.clientHeight
+        const scrollBottom = scrollHeight - scrollTop - clientHeight
+        
+        // Load more when user is near the bottom (within 300px, matching transactions)
+        // This ensures we load before reaching the absolute bottom
+        if (scrollBottom < 300 && this.hasMoreClaimedGifts && !this.loadingMoreClaimedGifts && this.activeTab === 'claimed') {
+          this.loadMoreClaimedGifts()
+        }
+      }, 100) // 100ms debounce
+    },
+    setupUnclaimedIntersectionObserver() {
+      // Clean up existing observer first
+      if (this.unclaimedIntersectionObserver) {
+        this.unclaimedIntersectionObserver.disconnect()
+        this.unclaimedIntersectionObserver = null
+      }
+      
+      if (!this.$refs.unclaimedGiftsList || !this.$refs.scrollSentinel) {
+        return
+      }
+      
+      const options = {
+        root: this.$refs.unclaimedGiftsList,
+        rootMargin: '200px',
+        threshold: 0.1
+      }
+
+      this.unclaimedIntersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && this.hasMoreUnclaimedGifts && !this.loadingMoreGifts && this.activeTab === 'unclaimed') {
+            this.loadMoreUnclaimedGifts()
+          }
+        })
+      }, options)
+
+      this.$nextTick(() => {
+        if (this.$refs.scrollSentinel) {
+          this.unclaimedIntersectionObserver.observe(this.$refs.scrollSentinel)
+        }
+      })
+    },
+    setupClaimedIntersectionObserver() {
+      // Clean up existing observer first
+      if (this.claimedIntersectionObserver) {
+        this.claimedIntersectionObserver.disconnect()
+        this.claimedIntersectionObserver = null
+      }
+      
+      if (!this.$refs.claimedGiftsList || !this.$refs.claimedScrollSentinel) {
+        return
+      }
+      
+      const options = {
+        root: this.$refs.claimedGiftsList,
+        rootMargin: '200px',
+        threshold: 0.1
+      }
+
+      this.claimedIntersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && this.hasMoreClaimedGifts && !this.loadingMoreClaimedGifts && this.activeTab === 'claimed') {
+            this.loadMoreClaimedGifts()
+          }
+        })
+      }, options)
+
+      this.$nextTick(() => {
+        if (this.$refs.claimedScrollSentinel) {
+          this.claimedIntersectionObserver.observe(this.$refs.claimedScrollSentinel)
+        }
+        })
+    },
     shareGift(gift) {
       this.$q.dialog({
         component: ShareGiftDialog,
@@ -636,9 +866,51 @@ export default {
       this.fetchGifts(null, opts={ recordType: 'all', limit: 10, offset: 0 })
     },
     displayGift(gift) {
-      this.$q.dialog({
+      // If a dialog is already open, close it first
+      if (this.isGiftDialogOpen && this.currentGiftDialog) {
+        this.currentGiftDialog.hide()
+        this.currentGiftDialog = null
+        this.isGiftDialogOpen = false
+      }
+      
+      // Mark dialog as open
+      this.isGiftDialogOpen = true
+      
+      // Open dialog and store reference (info-only, no QR)
+      this.currentGiftDialog = this.$q.dialog({
         component: GiftDialog,
-        componentProps: { gift: gift },
+        componentProps: { gift: gift, showQr: false },
+        persistent: false
+      })
+      
+      this.currentGiftDialog.onDismiss(() => {
+        // Clear flag and reference when dialog is dismissed
+        this.isGiftDialogOpen = false
+        this.currentGiftDialog = null
+      })
+    },
+    displayGiftQr(gift) {
+      // If a dialog is already open, close it first
+      if (this.isGiftDialogOpen && this.currentGiftDialog) {
+        this.currentGiftDialog.hide()
+        this.currentGiftDialog = null
+        this.isGiftDialogOpen = false
+      }
+      
+      // Mark dialog as open
+      this.isGiftDialogOpen = true
+      
+      // Open dialog with QR code display
+      this.currentGiftDialog = this.$q.dialog({
+        component: GiftDialog,
+        componentProps: { gift: gift, showQr: true },
+        persistent: false
+      })
+      
+      this.currentGiftDialog.onDismiss(() => {
+        // Clear flag and reference when dialog is dismissed
+        this.isGiftDialogOpen = false
+        this.currentGiftDialog = null
       })
     },
     getQrShare (giftCodeHash) {
@@ -684,19 +956,6 @@ export default {
           timeout: 3000
         })
       }
-    },
-    showQr (giftCodeHash) {
-      const qrCode = this.fetchedGifts[giftCodeHash]?.giftCode
-      const gift = this.giftsList.find(g => g.hash === giftCodeHash)
-      this.$q.dialog({
-        component: QrDialog,
-        componentProps: {
-          qrCode: qrCode,
-          amount: gift.amount,
-          claimed: gift.date_claimed !== 'None',
-          recovered: gift.recovered
-        }
-      })
     },
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
@@ -763,8 +1022,40 @@ export default {
       return this.$t('Unclaimed')
     },
     changeTab(tab) {
+      // Clean up existing observers
+      if (this.unclaimedIntersectionObserver) {
+        this.unclaimedIntersectionObserver.disconnect()
+        this.unclaimedIntersectionObserver = null
+      }
+      if (this.claimedIntersectionObserver) {
+        this.claimedIntersectionObserver.disconnect()
+        this.claimedIntersectionObserver = null
+      }
+      
       this.activeTab = tab
-      this.fetchGifts(null, { recordType: tab, limit: 10 })
+      if (tab === 'unclaimed') {
+        // Reset infinite scroll state for unclaimed tab
+        this.unclaimedGiftsPage = 1
+        this.hasMoreUnclaimedGifts = true
+        this.hasLoadedGifts = false
+        this.fetchGifts(null, { recordType: tab, limit: this.unclaimedGiftsLimit, offset: 0 })
+        // Setup observer after DOM updates
+        this.$nextTick(() => {
+          this.setupUnclaimedIntersectionObserver()
+        })
+      } else if (tab === 'claimed') {
+        // Reset infinite scroll state for claimed tab
+        this.claimedGiftsPage = 1
+        this.hasMoreClaimedGifts = true
+        this.hasLoadedClaimedGifts = false
+        this.fetchGifts(null, { recordType: tab, limit: this.claimedGiftsLimit, offset: 0 })
+        // Setup observer after DOM updates
+        this.$nextTick(() => {
+          this.setupClaimedIntersectionObserver()
+        })
+      } else {
+        this.fetchGifts(null, { recordType: tab, limit: 10, offset: 0 })
+      }
     },
     tabButtonClass(tab) {
       return this.activeTab === tab ? 'active-theme-btn' : ''
@@ -801,8 +1092,42 @@ export default {
   async mounted() {
     const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
     this.wallet = new Wallet(mnemonic)
-    this.fetchGifts(null, { recordType: this.activeTab, limit: 10 })
-  }
+    if (this.activeTab === 'unclaimed') {
+      this.fetchGifts(null, { recordType: this.activeTab, limit: this.unclaimedGiftsLimit, offset: 0 })
+    } else if (this.activeTab === 'claimed') {
+      this.fetchGifts(null, { recordType: this.activeTab, limit: this.claimedGiftsLimit, offset: 0 })
+    } else {
+      this.fetchGifts(null, { recordType: this.activeTab, limit: 10, offset: 0 })
+    }
+    
+    // Setup IntersectionObserver for infinite scroll (backup to scroll handler)
+    this.$nextTick(() => {
+      this.setupUnclaimedIntersectionObserver()
+      this.setupClaimedIntersectionObserver()
+    })
+  },
+  beforeUnmount() {
+    // Clean up any open dialog
+    if (this.currentGiftDialog) {
+      this.currentGiftDialog.hide()
+      this.currentGiftDialog = null
+      this.isGiftDialogOpen = false
+    }
+    // Clean up IntersectionObservers
+    if (this.unclaimedIntersectionObserver) {
+      this.unclaimedIntersectionObserver.disconnect()
+    }
+    if (this.claimedIntersectionObserver) {
+      this.claimedIntersectionObserver.disconnect()
+    }
+    // Clean up scroll timers
+    if (this.unclaimedScrollTimer) {
+      clearTimeout(this.unclaimedScrollTimer)
+    }
+    if (this.claimedScrollTimer) {
+      clearTimeout(this.claimedScrollTimer)
+    }
+  },
 }
 </script>
 
@@ -817,56 +1142,6 @@ export default {
   }
 }
 
-// Action Buttons
-.action-buttons-wrapper {
-  display: flex;
-  justify-content: center;
-  animation: slideDown 0.4s ease-out;
-}
-
-.action-buttons-container {
-  display: inline-flex;
-  gap: 12px;
-  width: 100%;
-  max-width: 500px;
-
-  .action-button {
-    flex: 1;
-    height: 50px;
-    border-radius: 25px;
-    border: none;
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: 0.3px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    outline: 0;
-    color: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-    
-    &:active {
-      transform: translateY(0);
-    }
-  }
-
-  .action-button-outline {
-    background: transparent;
-    border: 2px solid;
-    box-shadow: none;
-
-    &:hover {
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-  }
-}
 
 // Tabs Section
 .tabs-wrapper {
@@ -966,11 +1241,192 @@ export default {
   background-color: #e91e63 !important;
 }
 
-// Gifts Grid
+// Gifts List (for unclaimed - infinite scroll)
+.gifts-list {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.gift-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+  user-select: none;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+  
+  &:active {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  &.dark {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+    
+    &:active {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.gift-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gift-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.gift-item-type {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gift-item-type .gift-date {
+  margin-left: auto;
+  font-size: 14px;
+  opacity: 0.6;
+  flex-shrink: 0;
+  
+  &.dark {
+    color: #a6acaf;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.type-text {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  
+  &.dark {
+    color: #e0e2e5;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+.gift-item-amount {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.amount-primary {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.gift-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.gift-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.gift-date-footer {
+  font-size: 14px;
+  opacity: 0.6;
+  flex-shrink: 0;
+  
+  &.dark {
+    color: #a6acaf;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.gift-campaign-name {
+  font-size: 14px;
+  opacity: 0.7;
+  font-weight: 500;
+  margin-left: 4px;
+  
+  &.dark {
+    color: #e0e2e5;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+
+.gift-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.loading-more,
+.end-of-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.loading-text,
+.end-text {
+  font-size: 14px;
+  opacity: 0.7;
+  
+  &.dark {
+    color: #a6acaf;
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.scroll-sentinel {
+  height: 1px;
+  width: 100%;
+}
+
+// Gifts Grid (kept for backward compatibility if needed)
 .gifts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
   animation: fadeIn 0.6s ease-out;
 
   @media (max-width: 600px) {
@@ -990,16 +1446,16 @@ export default {
 
 // Gift Cards
 .gift-card {
-  padding: 20px;
-  border-radius: 16px;
+  padding: 12px;
+  border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: default;
   position: relative;
   overflow: hidden;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
   }
 
   &.gift-card-claimed {
@@ -1012,9 +1468,9 @@ export default {
 }
 
 .gift-card-skeleton {
-  padding: 20px;
-  border-radius: 16px;
-  min-height: 220px;
+  padding: 12px;
+  border-radius: 12px;
+  min-height: 160px;
 }
 
 // Gift Header
@@ -1023,9 +1479,9 @@ export default {
 }
 
 .gift-icon-wrapper {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   display: inline-block;
-  padding: 12px;
+  padding: 8px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -1036,31 +1492,31 @@ export default {
 }
 
 .gift-amount {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
-  margin-bottom: 4px;
-  letter-spacing: -0.5px;
+  margin-bottom: 2px;
+  letter-spacing: -0.3px;
 }
 
 .gift-date {
   opacity: 0.7;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 // Status Section
 .gift-status-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .status-badge {
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 5px 12px;
+  border-radius: 12px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1089,8 +1545,8 @@ export default {
 .gift-actions {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  padding-top: 8px;
+  gap: 8px;
+  padding-top: 6px;
   border-top: 1px solid rgba(128, 128, 128, 0.15);
 }
 
