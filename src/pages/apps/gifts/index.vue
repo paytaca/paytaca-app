@@ -126,7 +126,7 @@
                     </span>
                     <div class="gift-item-actions">
                     <q-btn
-                      v-if="gift.encrypted_gift_code"
+                      v-if="gift.encrypted_gift_code && gift.qr"
                       flat
                       dense
                       round
@@ -138,7 +138,7 @@
                       <q-tooltip>{{ $t('ShareGiftLink') }}</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="gift.encrypted_gift_code"
+                      v-if="gift.encrypted_gift_code && gift.qr"
                       flat
                       dense
                       round
@@ -150,7 +150,7 @@
                       <q-tooltip>{{ $t('ShowQRCode') }}</q-tooltip>
                     </q-btn>
                     <q-btn
-                      v-if="gift.encrypted_gift_code && !gift.recovered && gift.date_claimed === 'None'"
+                      v-if="gift.encrypted_gift_code && gift.qr && !gift.recovered && gift.date_claimed === 'None'"
                       flat
                       dense
                       round
@@ -894,6 +894,11 @@ export default {
       })
     },
     displayGiftQr(gift) {
+      // Safety check: don't show dialog if gift.qr is not available (decryption failed)
+      if (!gift.qr) {
+        return
+      }
+      
       // If a dialog is already open, close it first
       if (this.isGiftDialogOpen && this.currentGiftDialog) {
         this.currentGiftDialog.hide()
