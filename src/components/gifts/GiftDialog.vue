@@ -59,6 +59,26 @@
                 </q-badge>
               </div>
             </div>
+            <div class="row q-mt-md" v-if="!props.gift?.encrypted_gift_code">
+              <div class="col-12">
+                <q-banner 
+                  :class="darkMode ? 'old-gift-notice dark' : 'old-gift-notice light'"
+                  rounded
+                  class="old-gift-notice-banner"
+                >
+                  <template v-slot:avatar>
+                    <q-icon 
+                      name="mdi-information-outline" 
+                      :color="darkMode ? 'amber-4' : 'amber-8'"
+                      size="24px"
+                    />
+                  </template>
+                  <div class="old-gift-notice-text">
+                    This gift was created from an old version of the app, it can still be claimed by those who got the link, but the link cannot be recreated anymore in this version.
+                  </div>
+                </q-banner>
+              </div>
+            </div>
           </div>
         </template>
       </q-card-section>
@@ -216,5 +236,29 @@ function copyToClipboard (value, message=t('CopiedToClipboard')) {
   background: rgba(33, 150, 243, 0.15);
   color: #2196f3;
   border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.old-gift-notice-banner {
+  border-left: 3px solid #ff9800;
+  padding: 12px 16px;
+  margin-top: 8px;
+}
+
+.old-gift-notice.dark {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.12) 0%, rgba(255, 193, 7, 0.12) 100%);
+  border-left-color: #ff9800;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.old-gift-notice.light {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.08) 0%, rgba(255, 193, 7, 0.08) 100%);
+  border-left-color: #ff9800;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.old-gift-notice-text {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
 }
 </style>
