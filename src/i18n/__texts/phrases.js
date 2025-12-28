@@ -724,7 +724,6 @@ const phrases = {
       ScanToClaimGift: 'Scan to claim the gift',
       ShareGiftLink: "Share gift link",
       ShowQRCode: "Show QR Code",
-      ShowQRCode: "Show QR Code",
       CampaignLimitError: "Campaign limit per wallet cannot be greater than the gift amount",
       CreateNewCampaign: "Create New Campaign",
       SeeBasicWalletInfo: "See Basic Wallet Info",
