@@ -587,62 +587,86 @@ export default {
       const vm = this
       vm.processing = true
       
-      const privateKey = ECPair.makeRandom()
-      const wif = privateKey.toWIF()
+      try {
+        const privateKey = ECPair.makeRandom()
+        const wif = privateKey.toWIF()
 
-      const BCHJS = require('@psf/bch-js')
-      const bchjs = new BCHJS()
-      const pair = bchjs.ECPair.fromWIF(wif)
-      const address = bchjs.ECPair.toCashAddress(pair)
-      
-      const secret = Buffer.from(wif)
-      const stateShare = sss.split(secret, { shares: 2, threshold: 2 })
-      const shares = stateShare.map((share) => { return toHex(share) })
-      
-      const encryptedShard = this.encryptShard(shares[0])
+        const BCHJS = require('@psf/bch-js')
+        const bchjs = new BCHJS()
+        const pair = bchjs.ECPair.fromWIF(wif)
+        const address = bchjs.ECPair.toCashAddress(pair)
+        
+        const secret = Buffer.from(wif)
+        const stateShare = sss.split(secret, { shares: 2, threshold: 2 })
+        const shares = stateShare.map((share) => { return toHex(share) })
+        
+        const encryptedShard = this.encryptShard(shares[0])
 
-      vm.giftCodeHash = sha256(encryptedShard.code)
-      
-      // Encrypt the gift code using memo encryption (private key from address 0/0)
-      const keypair = await ensureKeypair()
-      const encryptedGiftCode = await encryptMemo(keypair.privkey, keypair.pubkey, encryptedShard.code)
-      
-      // Verify encryption succeeded - if it failed, we cannot proceed as the gift cannot be recovered
-      if (!encryptedGiftCode) {
+        vm.giftCodeHash = sha256(encryptedShard.code)
+        
+        // Encrypt the gift code using memo encryption (private key from address 0/0)
+        let keypair
+        let encryptedGiftCode
+        try {
+          keypair = await ensureKeypair()
+          encryptedGiftCode = await encryptMemo(keypair.privkey, keypair.pubkey, encryptedShard.code)
+        } catch (keypairError) {
+          vm.processing = false
+          console.error('Error ensuring keypair or encrypting gift code:', keypairError)
+          vm.$q.notify({
+            message: vm.$t('ErrorCreatingGiftPleaseRetry'),
+            color: 'negative',
+            timeout: 5000
+          })
+          return
+        }
+        
+        // Verify encryption succeeded - if it failed, we cannot proceed as the gift cannot be recovered
+        if (!encryptedGiftCode) {
+          vm.processing = false
+          vm.$q.notify({
+            message: vm.$t('ErrorCreatingGiftPleaseRetry'),
+            color: 'negative',
+            timeout: 5000
+          })
+          return
+        }
+        
+        const payload = {
+          gift_code_hash: vm.giftCodeHash,
+          encrypted_share: encryptedShard.encryptedHex,
+          address: address,
+          share: shares[1],
+          amount: parseFloat(this.amountBCH),
+          encrypted_gift_code: encryptedGiftCode
+        }
+        if (vm.selectedCampaign) {
+          if (vm.createNewCampaign) {
+            payload.campaign = {
+              name: vm.campaignName,
+              limit_per_wallet: vm.maxPerCampaign
+            }
+          } else {
+            payload.campaign = {
+              id: vm.selectedCampaign.value
+            }
+          }
+        }
+
+        const walletHash = this.wallet.BCH.getWalletHash()
+        const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
+        
+        this.submitGiftToServer(url, payload, encryptedShard.code, address)
+      } catch (error) {
+        // Handle any unexpected errors during gift generation
         vm.processing = false
+        console.error('Error generating gift:', error)
         vm.$q.notify({
           message: vm.$t('ErrorCreatingGiftPleaseRetry'),
           color: 'negative',
           timeout: 5000
         })
-        return
       }
-      
-      const payload = {
-        gift_code_hash: vm.giftCodeHash,
-        encrypted_share: encryptedShard.encryptedHex,
-        address: address,
-        share: shares[1],
-        amount: parseFloat(this.amountBCH),
-        encrypted_gift_code: encryptedGiftCode
-      }
-      if (vm.selectedCampaign) {
-        if (vm.createNewCampaign) {
-          payload.campaign = {
-            name: vm.campaignName,
-            limit_per_wallet: vm.maxPerCampaign
-          }
-        } else {
-          payload.campaign = {
-            id: vm.selectedCampaign.value
-          }
-        }
-      }
-
-      const walletHash = this.wallet.BCH.getWalletHash()
-      const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
-      
-      this.submitGiftToServer(url, payload, encryptedShard.code, address)
     },
 
     async submitGiftToServer(url, payload, qrCode, address) {
@@ -735,8 +759,20 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    processRequest () {
-      this.generateGift()
+    async processRequest () {
+      try {
+        await this.generateGift()
+      } catch (error) {
+        // This catch handles any unhandled promise rejections from generateGift
+        // (though generateGift should handle its own errors now)
+        this.processing = false
+        console.error('Error in processRequest:', error)
+        this.$q.notify({
+          message: this.$t('ErrorCreatingGiftPleaseRetry'),
+          color: 'negative',
+          timeout: 5000
+        })
+      }
     },
     getAmountOnDenomination (amount) {
       const amountStr = this.getAssetDenomination(this.denomination, amount)
