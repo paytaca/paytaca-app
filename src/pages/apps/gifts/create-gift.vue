@@ -607,6 +607,17 @@ export default {
       const keypair = await ensureKeypair()
       const encryptedGiftCode = await encryptMemo(keypair.privkey, keypair.pubkey, encryptedShard.code)
       
+      // Verify encryption succeeded - if it failed, we cannot proceed as the gift cannot be recovered
+      if (!encryptedGiftCode) {
+        vm.processing = false
+        vm.$q.notify({
+          message: vm.$t('ErrorCreatingGiftPleaseRetry'),
+          color: 'negative',
+          timeout: 5000
+        })
+        return
+      }
+      
       const payload = {
         gift_code_hash: vm.giftCodeHash,
         encrypted_share: encryptedShard.encryptedHex,
