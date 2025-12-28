@@ -304,9 +304,9 @@ export default {
           // Handle errors from transaction creation or claim submission
           // Prioritize error field, then message field from API response
           if (error.response?.data?.error) {
-            vm.error = error.response.data.error
+            vm.error = error.response?.data?.error
           } else if (error.response?.data?.message) {
-            vm.error = error.response.data.message
+            vm.error = error.response?.data?.message
           } else if (error.message) {
             vm.error = error.message
           } else {
