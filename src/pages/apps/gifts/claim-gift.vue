@@ -319,12 +319,12 @@ export default {
         // Handle 404 and other errors from the shares endpoint
         // Check for error field first (e.g., "Gift does not exist"), then message field
         if (error.response?.status === 404 || error.response?.data?.error) {
-          vm.error = error.response.data.error || error.response.data.message || vm.$t('GiftDoesNotExist', {}, 'Gift does not exist')
+          vm.error = error.response?.data?.error || error.response?.data?.message || vm.$t('GiftDoesNotExist', {}, 'Gift does not exist')
         } else if (error.response?.data?.message) {
           // Handle other API error messages (e.g., maximum claim reached, etc.)
-          vm.error = error.response.data.message
+          vm.error = error.response?.data?.message
         } else if (error.response?.data?.error) {
-          vm.error = error.response.data.error
+          vm.error = error.response?.data?.error
         } else if (error?.message) {
           vm.error = error.message
         } else {
