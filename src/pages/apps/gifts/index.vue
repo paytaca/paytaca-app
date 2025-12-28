@@ -71,6 +71,12 @@
             class="gifts-list scroll-y"
             @scroll="onUnclaimedGiftsScroll"
           >
+            <!-- Info text at the top -->
+            <div class="q-px-lg q-pt-md q-pb-sm">
+              <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('UnclaimedGiftsDescription', {}, 'These are gifts you created that have not been claimed.') }}
+              </div>
+            </div>
             <template v-if="fetchingGifts && !hasLoadedGifts">
               <div
                 v-for="i in 8"
@@ -190,6 +196,22 @@
             class="gifts-list scroll-y"
             @scroll="onClaimedGiftsScroll"
           >
+            <!-- Info text at the top -->
+            <div class="q-px-lg q-pt-md q-pb-sm">
+              <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('ClaimedGiftsDescription', {}, 'These are your claimed gifts that are either created by you or by others.') }}
+              </div>
+            </div>
+            <!-- Filter checkbox -->
+            <div class="q-px-lg q-pb-sm">
+              <q-checkbox
+                v-model="showOnlyCreatedByWallet"
+                :label="$t('ShowOnlyClaimedGiftsYouCreated', {}, 'Show only the claimed gifts that you created')"
+                :color="themeColor"
+                :class="getDarkModeClass(darkMode)"
+                @update:model-value="onCreatedByWalletFilterChange"
+              />
+            </div>
             <template v-if="fetchingGifts && !hasLoadedClaimedGifts">
               <div
                 v-for="i in 8"
@@ -342,7 +364,9 @@ export default {
       unclaimedScrollTimer: null,
       claimedScrollTimer: null,
       // Track the active tab when a request is initiated to prevent race conditions
-      requestActiveTab: null
+      requestActiveTab: null,
+      // Filter for showing only gifts created by wallet in claimed tab
+      showOnlyCreatedByWallet: false
     }
   },
 
@@ -541,6 +565,11 @@ export default {
       // Set type parameter based on recordType
       if (recordType === 'unclaimed' || recordType === 'claimed') {
         query.type = recordType
+      }
+      
+      // Add created_by_wallet parameter for claimed gifts when filter is enabled
+      if (recordType === 'claimed' && this.showOnlyCreatedByWallet) {
+        query.created_by_wallet = true
       }
       
       if (this.campaign_filter?.id) {
@@ -1103,6 +1132,32 @@ export default {
       } else {
         this.fetchGifts(null, { recordType: tab, limit: 10, offset: 0 })
       }
+    },
+    onCreatedByWalletFilterChange() {
+      // Only apply filter when on claimed tab
+      if (this.activeTab !== 'claimed') {
+        return
+      }
+      
+      // Reset pagination state
+      this.claimedGiftsPage = 1
+      this.hasMoreClaimedGifts = true
+      this.hasLoadedClaimedGifts = false
+      
+      // Clear fetched gifts to start fresh
+      this.fetchedGifts = {}
+      
+      // Refetch gifts with the new filter
+      this.fetchGifts(null, { 
+        recordType: 'claimed', 
+        limit: this.claimedGiftsLimit, 
+        offset: 0 
+      })
+      
+      // Setup observer after DOM updates
+      this.$nextTick(() => {
+        this.setupClaimedIntersectionObserver()
+      })
     },
     tabButtonClass(tab) {
       return this.activeTab === tab ? 'active-theme-btn' : ''
