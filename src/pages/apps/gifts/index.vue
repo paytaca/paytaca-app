@@ -658,6 +658,8 @@ export default {
           if (response?.data?.pagination) {
             this.pagination = response.data.pagination
           }
+          
+          return response
         })
         .finally(() => {
           if (done) done()
