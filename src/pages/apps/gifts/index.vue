@@ -949,6 +949,16 @@ export default {
       try {
         const keypair = await ensureKeypair()
         const giftCode = await decryptMemo(keypair.privkey, gift.encrypted_gift_code)
+        // decryptMemo returns null on failure rather than throwing an exception
+        if (!giftCode) {
+          console.error('Failed to decrypt gift code for recovery: decryptMemo returned null')
+          this.$q.notify({
+            message: this.$t('FailedToDecryptGiftCode') || 'Failed to decrypt gift code',
+            color: 'negative',
+            timeout: 3000
+          })
+          return
+        }
         this.$router.push({
           name: 'claim-gift',
           query: {
