@@ -401,10 +401,14 @@ export default {
       const gifts = Object.entries(this.fetchedGifts).map(([hash, gift]) => ({
         hash,
         ...gift,
-        date_claimed: gift.payload?.date_claimed,
-        recovered: gift.payload?.recovered
+        date_claimed: gift.date_claimed,
+        recovered: gift.recovered
       }))
-      return gifts.filter(gift => gift.date_claimed === 'None' && !gift.recovered).length
+      // Helper to check if gift is recovered (handles various formats)
+      return gifts.filter(gift => {
+        const isRecovered = gift.recovered === true || gift.recovered === 'true' || gift.recovered === 1
+        return gift.date_claimed === 'None' && !isRecovered
+      }).length
     },
     subscriptionUnclaimedGiftsLimit () {
       return this.$store.getters['subscription/getLimit']('unclaimedGifts')
