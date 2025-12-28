@@ -340,7 +340,9 @@ export default {
       claimedIntersectionObserver: null,
       // Debounce timers for scroll handlers
       unclaimedScrollTimer: null,
-      claimedScrollTimer: null
+      claimedScrollTimer: null,
+      // Track the active tab when a request is initiated to prevent race conditions
+      requestActiveTab: null
     }
   },
 
@@ -511,6 +513,11 @@ export default {
       const recordType = opts?.recordType || 'all'
       const shouldAppend = opts?.append || false
       
+      // Track the active tab when this request is initiated to prevent race conditions
+      // This ensures we don't append results from a different tab
+      const requestTab = recordType === 'unclaimed' || recordType === 'claimed' ? recordType : this.activeTab
+      this.requestActiveTab = requestTab
+      
       // Reset state if not appending
       if (!shouldAppend) {
         this.fetchedGifts = {}
@@ -577,6 +584,13 @@ export default {
 
           // Store gifts in component state only (no Vuex store)
           if (shouldAppend) {
+            // Check if the active tab still matches the request tab to prevent race conditions
+            // If user switched tabs while request was in-flight, don't append results
+            if (this.activeTab !== this.requestActiveTab) {
+              // User switched tabs, ignore this response
+              return response
+            }
+            
             // Append new gifts (don't overwrite existing ones)
             const beforeCount = Object.keys(this.fetchedGifts).length
             const existingHashes = new Set(Object.keys(this.fetchedGifts))
@@ -684,6 +698,12 @@ export default {
         offset: offset,
         append: true
       }).then((response) => {
+        // Check if user switched tabs while request was in-flight
+        if (this.activeTab !== 'unclaimed') {
+          // User switched tabs, ignore this response
+          return
+        }
+        
         const storedCountAfter = Object.keys(this.fetchedGifts).length
         const itemsAdded = storedCountAfter - storedCountBefore
         
@@ -721,6 +741,12 @@ export default {
         offset: offset,
         append: true
       }).then((response) => {
+        // Check if user switched tabs while request was in-flight
+        if (this.activeTab !== 'claimed') {
+          // User switched tabs, ignore this response
+          return
+        }
+        
         // fetchGifts returns the axios response, which has the data nested
         const storedCountAfter = Object.keys(this.fetchedGifts).length
         const itemsAdded = storedCountAfter - storedCountBefore
