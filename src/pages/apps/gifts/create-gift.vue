@@ -690,8 +690,9 @@ export default {
                 spendable: response.spendable
               })
             } else {
-              // Update status to failed
+              // Gift registered on server but funding failed - show success screen with resubmit option
               vm.processing = false
+              vm.completed = true
               vm.giftStatus = 'failed'
               vm.failedGiftDetails = {
                 payload: payload,
@@ -705,7 +706,9 @@ export default {
               })
             }
           } catch (sendError) {
+            // Gift registered on server but funding failed - show success screen with resubmit option
             vm.processing = false
+            vm.completed = true
             vm.giftStatus = 'failed'
             vm.failedGiftDetails = {
               payload: payload,
