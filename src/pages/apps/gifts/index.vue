@@ -261,9 +261,23 @@
                     </div>
                   </div>
                   <div class="gift-item-footer">
-                    <span class="gift-date-footer" :class="getDarkModeClass(darkMode)">
-                      {{ formatRelativeTimestamp(gift.date_claimed !== 'None' ? gift.date_claimed : gift.date_created) }}
-                    </span>
+                    <div class="gift-date-container">
+                      <span class="gift-date-footer" :class="getDarkModeClass(darkMode)">
+                        {{ formatRelativeTimestamp(gift.date_claimed !== 'None' ? gift.date_claimed : gift.date_created) }}
+                      </span>
+                      <q-badge
+                        v-if="isCreatedByWallet(gift)"
+                        class="status-badge-small status-created-by"
+                        :class="getDarkModeClass(darkMode)"
+                      >
+                        <q-icon 
+                          name="mdi-account-check" 
+                          size="12px" 
+                          class="q-mr-xs"
+                        />
+                        {{ $t('CreatedByYou', {}, 'Created by you') }}
+                      </q-badge>
+                    </div>
                   <q-badge
                       :class="gift.recovered ? 'status-recovered' : 'status-claimed'"
                     class="status-badge-small"
@@ -314,6 +328,7 @@ import { getMnemonic, Wallet } from '../../../wallet'
 import QRCode from 'qrcode'
 import { ensureKeypair } from 'src/utils/memo-service'
 import { decryptMemo } from 'src/utils/transaction-memos'
+import sha256 from 'js-sha256'
 
 export default {
   name: 'Gift',
@@ -395,7 +410,8 @@ export default {
         date_claimed: gift.date_claimed,
         campaign_id: gift.campaign_id,
         campaign_name: gift.campaign_name,
-        recovered: gift.recovered
+        recovered: gift.recovered,
+        created_by: gift.created_by
       }))
 
       // Filter based on active tab
@@ -604,6 +620,7 @@ export default {
             campaign_id: gift.campaign_id,
             campaign_name: gift.campaign_name,
             recovered: gift.recovered,
+            created_by: gift.created_by,
                 status: gift.date_claimed !== 'None' ? 'completed' : 'processing',
                 giftCode: giftCode,
                 encrypted_gift_code: gift.encrypted_gift_code
@@ -1097,6 +1114,13 @@ export default {
       if (gift.date_claimed !== 'None') return this.$t('Claimed')
       return this.$t('Unclaimed')
     },
+    isCreatedByWallet(gift) {
+      if (!gift.created_by || !this.walletHash) {
+        return false
+      }
+      const walletHashSha256 = sha256(this.walletHash)
+      return gift.created_by === walletHashSha256
+    },
     changeTab(tab) {
       // Clean up existing observers
       if (this.unclaimedIntersectionObserver) {
@@ -1460,6 +1484,12 @@ export default {
   flex-wrap: wrap;
 }
 
+.gift-date-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .gift-date-footer {
   font-size: 14px;
   opacity: 0.6;
@@ -1737,6 +1767,13 @@ export default {
     background: rgba(255, 152, 0, 0.15);
     color: #ff9800;
     border: 1px solid rgba(255, 152, 0, 0.3);
+  }
+
+  &.status-created-by {
+    background: rgba(66, 165, 245, 0.15);
+    color: #42a5f5;
+    border: 1px solid rgba(66, 165, 245, 0.3);
+    margin-top: 4px;
   }
 }
 

@@ -727,6 +727,7 @@ const phrases = {
       ShowOnlyClaimedGiftsYouCreated: "Show only the claimed gifts that you created",
       UnclaimedGiftsDescription: "These are gifts you created that have not been claimed.",
       ClaimedGiftsDescription: "These are your claimed gifts that are either created by you or by others.",
+      CreatedByYou: "Created by you",
       CampaignLimitError: "Campaign limit per wallet cannot be greater than the gift amount",
       CreateNewCampaign: "Create New Campaign",
       SeeBasicWalletInfo: "See Basic Wallet Info",
