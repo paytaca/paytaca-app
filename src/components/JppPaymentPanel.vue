@@ -12,7 +12,7 @@
       </div>
 
       <!-- Expiration Countdown -->
-      <div v-if="jpp?.parsed?.expires" class="expiration-countdown q-mb-lg">
+      <div v-if="jpp?.parsed?.expires && !isExpired" class="expiration-countdown q-mb-lg">
         <div class="row items-center q-gutter-xs">
           <q-icon 
             :name="isExpired ? 'error_outline' : 'schedule'" 
@@ -142,7 +142,7 @@
 
       <!-- Expiration Warning -->
       <div
-        v-if="isExpired"
+        v-if="isExpired || isNearExpiration"
         class="expiration-banner q-mt-md"
         :class="getDarkModeClass(darkMode)"
       >
@@ -154,10 +154,20 @@
           />
           <div class="col">
             <div class="text-body2 text-weight-medium expiration-title">
-              {{ $t('InvoiceExpired', {}, 'This invoice has expired and cannot be paid') }}
+              <template v-if="isExpired">
+                {{ $t('InvoiceExpired', {}, 'This invoice has expired and cannot be paid') }}
+              </template>
+              <template v-else>
+                {{ $t('InvoiceExpiringSoon', {}, 'This invoice is about to expire') }}
+              </template>
             </div>
             <div v-if="jpp?.parsed?.expires" class="text-caption q-mt-xs expiration-subtitle">
-              {{ $t('ExpiredAt', {}, 'Expired at') }}: {{ formatTimestampToText(jpp.parsed.expires) }}
+              <template v-if="isExpired">
+                {{ $t('ExpiredAt', {}, 'Expired at') }}: {{ formatTimestampToText(jpp.parsed.expires) }}
+              </template>
+              <template v-else>
+                {{ $t('ExpiresAt', {}, 'Expires at') }}: {{ formatTimestampToText(jpp.parsed.expires) }}
+              </template>
             </div>
           </div>
         </div>
@@ -167,7 +177,7 @@
       <q-banner v-if="errorMsg && !loading" class="bg-red text-white rounded-borders q-mt-md">
         {{ errorMsg }}
       </q-banner>
-      <div v-if="!showDragSlide && !loading && !isExpired" class="q-mt-md">
+      <div v-if="!showDragSlide && !loading && !isExpired && !isNearExpiration" class="q-mt-md">
             <q-btn
               no-caps
               :label="$t('Confirm')"
@@ -177,7 +187,7 @@
           </div>
     </div>
     <DragSlide
-      v-if="showDragSlide && !loading && !isExpired"
+      v-if="showDragSlide && !loading && !isExpired && !isNearExpiration"
       @swiped="onSwipe"
       class="fixed-bottom drag-slide"
     />
@@ -309,8 +319,13 @@ function txLink(txid) {
 
 const showDragSlide = ref(true)
 const expirationCountdown = ref('')
+const timeLeftMs = ref(null)
 const loadingStateRef = ref(null)
 let countdownInterval = null
+
+const isNearExpiration = computed(() => {
+  return timeLeftMs.value !== null && timeLeftMs.value > 0 && timeLeftMs.value <= 2000
+})
 
 function formatCountdown(timeLeft) {
   if (timeLeft <= 0) {
@@ -336,6 +351,7 @@ function formatCountdown(timeLeft) {
 function updateCountdown() {
   if (!props.jpp?.parsed?.expires) {
     expirationCountdown.value = ''
+    timeLeftMs.value = null
     return
   }
 
@@ -343,6 +359,7 @@ function updateCountdown() {
   const now = Date.now()
   const timeLeft = expires - now
 
+  timeLeftMs.value = timeLeft
   expirationCountdown.value = formatCountdown(timeLeft)
 
   if (timeLeft <= 0 && countdownInterval) {
@@ -377,10 +394,12 @@ watch(() => props.jpp?.parsed?.expires, () => {
 })
 
 function onSwipe(reset = () => {}) {
-  // Prevent payment if expired
-  if (isExpired.value) {
+  // Prevent payment if expired or near expiration
+  if (isExpired.value || isNearExpiration.value) {
     $q.notify({
-      message: $t('InvoiceExpired', {}, 'This invoice has expired and cannot be paid'),
+      message: isExpired.value 
+        ? $t('InvoiceExpired', {}, 'This invoice has expired and cannot be paid')
+        : $t('InvoiceExpiringSoon', {}, 'This invoice is about to expire'),
       color: 'red',
       icon: 'error',
       timeout: 3000
@@ -403,8 +422,10 @@ const loadingMsg = ref('')
 const errorMsg = ref('')
 function completePayment() {
   // Double-check expiration before proceeding
-  if (isExpired.value) {
-    errorMsg.value = $t('InvoiceExpired', {}, 'This invoice has expired and cannot be paid')
+  if (isExpired.value || isNearExpiration.value) {
+    errorMsg.value = isExpired.value
+      ? $t('InvoiceExpired', {}, 'This invoice has expired and cannot be paid')
+      : $t('InvoiceExpiringSoon', {}, 'This invoice is about to expire')
     return
   }
   
@@ -492,7 +513,7 @@ function formatTokenAmount(tokenData) {
 
   .memo-section {
     .memo-text {
-      font-size: 15px;
+      font-size: 17px;
       line-height: 1.5;
       word-break: break-word;
       padding: 12px 0;
