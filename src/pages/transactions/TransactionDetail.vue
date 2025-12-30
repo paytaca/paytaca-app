@@ -195,79 +195,63 @@
         </div>
 
         <!-- Transaction Metadata Section -->
-        <template v-if="attributeDetails?.length">
+        <template v-if="metadataBadges?.length || attributeDetails?.length">
           <q-separator spaced class="q-mt-lg"/>
-          <div class="q-px-md row items-center justify-center section-block-ss">
-            <div class="text-grey text-weight-medium text-caption">{{ $t('TransactionMetadata', {}, 'Transaction metadata') }}</div>
-            <q-btn flat icon="more_vert" padding="sm" round class="q-r-mr-md">
-              <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                <q-item
-                  :active="displayRawAttributes"
-                  clickable v-close-popup
-                  @click="() => displayRawAttributes = true"
-                >
-                  <q-item-section>
-                    <q-item-label>{{ $t('DisplayRawData', {}, 'Display raw data') }}</q-item-label>    
-                  </q-item-section>
-                </q-item>
-                <q-item
-                  :active="!displayRawAttributes"
-                  clickable v-close-popup
-                  @click="() => displayRawAttributes = false"
-                >
-                  <q-item-section>
-                    <q-item-label>{{ $t('DisplayRefinedData', {}, 'Display refined data') }}</q-item-label>    
-                  </q-item-section>
-                </q-item>
-              </q-menu>
-            </q-btn>
+          <div class="section-block-ss">
+            <div class="row items-center justify-center q-mb-sm">
+              <div class="text-grey text-weight-medium text-caption">{{ $t('TransactionMetadata', {}, 'Transaction metadata') }}</div>
+              <q-btn flat icon="more_vert" size="sm" padding="xs" round dense>
+                <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                  <q-item
+                    :active="displayRawAttributes"
+                    clickable v-close-popup
+                    @click="() => displayRawAttributes = true"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ $t('DisplayRawData', {}, 'Display raw data') }}</q-item-label>    
+                    </q-item-section>
+                  </q-item>
+                  <q-item
+                    :active="!displayRawAttributes"
+                    clickable v-close-popup
+                    @click="() => displayRawAttributes = false"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ $t('DisplayRefinedData', {}, 'Display refined data') }}</q-item-label>    
+                    </q-item-section>
+                  </q-item>
+                </q-menu>
+              </q-btn>
+            </div>
           </div>
           <q-slide-transition>
-            <div>
-              <div v-if="!displayRawAttributes" v-for="(group, index) in attributeDetails" :key="index" class="q-my-sm section-block-ss"> 
-                <div class="q-px-md text-subtitle1 text-left">{{ group?.name }}</div>
-                <q-item
-                  v-for="(attributeDetails, index2) in group?.items" :key="`${index}-${index2}`"
+            <div v-if="!displayRawAttributes" class="q-mt-sm q-mb-md">
+              <div v-if="metadataBadges?.length" class="transaction-metadata-badges">
+                <q-badge
+                  v-for="(badge, index) in metadataBadges" :key="index"
+                  class="badge-item"
+                  rounded
+                  @click.stop
                 >
-                  <q-item-section>
-                    <q-item-label class="text-grey row items-center justify-left">
-                      <div>{{ attributeDetails?.label }}</div>
-                      <template v-if="attributeDetails?.tooltip">
-                        <q-icon name="description" size="1.25em" class="q-ml-xs"/>
-                        <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
-                          {{ attributeDetails?.tooltip }}
-                        </q-menu>
-                      </template>
-                    </q-item-label>
-                    <q-item-label>
-                      <div class="row items-start no-wrap justify-left">
-                        <div class="q-space q-my-xs text-left" style="word-break:break-all">
-                          {{ attributeDetails?.text }}
-                        </div>
-                        <div
-                          v-for="(action, index3) in attributeDetails?.actions" :key="`${index}-${index2}-${index3}`"
-                          class="row items-center"
-                        >
-                          <q-btn
-                            flat :icon="action?.icon"
-                            size="sm" padding="xs sm"
-                            @click.stop="() => handleAttributeAction(action)"
-                          />
-                          <q-separator
-                            v-if="index3 < attributeDetails?.actions?.length - 1"
-                            vertical
-                            :dark="darkMode"
-                          />
-                        </div>
+                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon" class="badge-icon-img q-mr-xs"/>
+                  <q-icon v-else-if="badge?.icon" :name="badge?.icon" class="q-mr-xs" size="14px"/>
+                  <span class="badge-text">
+                    {{ badge?.text }}
+                  </span>
+                  <q-popup-proxy :breakpoint="0">
+                    <div class="badge-popup pt-card pt-label" :class="getDarkModeClass(darkMode)">
+                      <div v-if="badge?.text?.length >= 14">
+                        {{ badge?.text }}
                       </div>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
+                      <div class="text-caption">{{ badge?.description }}</div>
+                    </div>
+                  </q-popup-proxy>
+                </q-badge>
               </div>
             </div>
           </q-slide-transition>
           <q-slide-transition>
-            <div v-if="displayRawAttributes">
+            <div v-if="displayRawAttributes" class="q-mt-sm">
               <q-item v-for="(attribute, index) in tx?.attributes" :key="index">
                 <q-item-section side top>
                   <q-item-label caption class="text-grey">
@@ -361,7 +345,7 @@ import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
-import { parseAttributesToGroups } from 'src/utils/tx-attributes'
+import { parseAttributesToGroups, parseAttributeToBadge } from 'src/utils/tx-attributes'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
@@ -703,6 +687,11 @@ export default {
     attributeDetails () {
       if (!Array.isArray(this.tx?.attributes)) return []
       return parseAttributesToGroups({ attributes: this.tx?.attributes })
+    },
+    metadataBadges () {
+      if (!Array.isArray(this.tx?.attributes)) return []
+      return this.tx.attributes.map(parseAttributeToBadge)
+        .filter(badge => badge?.custom)
     },
     backNavPath () {
       // Return the appropriate back path based on where we came from
@@ -2376,6 +2365,50 @@ export default {
 
 .view-in-collectibles-btn {
   margin-top: 8px;
+}
+
+/* Transaction Metadata Badges */
+.transaction-metadata-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.transaction-metadata-badges .badge-item {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.transaction-metadata-badges .badge-item:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.transaction-metadata-badges .badge-text {
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-metadata-badges .badge-icon-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.transaction-metadata-badges .badge-popup {
+  padding: 8px 12px;
+  word-break: break-all;
+  max-width: 280px;
 }
 
 </style>
