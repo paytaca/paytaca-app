@@ -90,7 +90,6 @@ import { extractWifFromUrl } from 'src/wallet/sweep'
 import { parsePayPro } from 'src/utils/pay-pro'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import HeaderNav from 'src/components/header-nav'
-import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
@@ -105,8 +104,6 @@ export default {
   components: {
     HeaderNav,
     QrcodeStream,
-    // eslint-disable-next-line vue/no-unused-components
-    LoadingWalletDialog,
     QRUploader
   },
 
@@ -315,10 +312,6 @@ export default {
 
         if (value.includes('gifts.paytaca.com')) {
           // redirect to gifts page
-          const loadingDialog = vm.loadingDialog()
-          setTimeout(() => {
-            loadingDialog.hide()
-          }, 700)
           vm.$router.push({
             name: 'claim-gift',
             query: { code: value }
@@ -331,10 +324,6 @@ export default {
         } else if (value.includes('bitcoincash:') || value.includes('bchtest:')) {
           vm.processSendPageRedirection(value)
         } else if (parseWalletConnectUri(value)) {
-          const loadingDialog = vm.loadingDialog()
-          setTimeout(() => {
-            loadingDialog.hide()
-          }, 700)
           vm.$router.push({
             name: 'app-wallet-connect',
             query: { uri: value }
@@ -430,9 +419,6 @@ export default {
       // redirect to send page
       const vm = this
       const payProData = await parsePayPro(value)
-      const loadingDialog = vm.loadingDialog()
-
-      setTimeout(() => { loadingDialog.hide() }, 700)
 
       const prefixArray = [
         'bitcoincash:q', 'bchtest:q',
@@ -541,15 +527,6 @@ export default {
       return value.length === 58
         && value.substring(0, 2) === '6P'
         && isBase58
-    },
-
-    loadingDialog () {
-      return this.$q.dialog({
-        component: LoadingWalletDialog,
-        componentProps: {
-          loadingText: this.$t('Redirecting')
-        }
-      })
     }
   },
 
