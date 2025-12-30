@@ -4,9 +4,9 @@
     <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="state != 'form'" @click="clickBack"></div>
     <HeaderNav :title="$t('CryptoSwap')" :backnavpath="backnav" class="header-nav" />
     
-    <div class="crypto-swap-content" :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
+    <div class="crypto-swap-content">
       <!-- Tabs Section -->
-      <div class="tabs-wrapper q-mx-md" :class="activeTab === 'swap' ? 'q-mb-md' : ''" v-if="hideTab">
+      <div class="tabs-wrapper q-mx-md q-mt-sm pt-header" :class="activeTab === 'swap' ? 'q-mb-md' : 'q-mb-sm'" v-if="hideTab">
         <div 
           class="crypto-swap-tabs" 
           :class="getDarkModeClass(darkMode)"

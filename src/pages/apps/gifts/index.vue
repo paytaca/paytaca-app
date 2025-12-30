@@ -17,9 +17,9 @@
       </template>
     </HeaderNav>
     <q-pull-to-refresh @refresh="(done) => fetchGifts(done, { recordType: activeTab, limit: activeTab === 'unclaimed' ? unclaimedGiftsLimit : (activeTab === 'claimed' ? claimedGiftsLimit : 10), offset: 0 })">
-      <div class="gifts-content" :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
+      <div class="gifts-content">
           <!-- Tabs Section -->
-          <div class="tabs-wrapper q-mb-md">
+          <div class="tabs-wrapper q-mt-sm q-mb-sm pt-header">
             <div 
               class="gifts-tabs" 
               :class="getDarkModeClass(darkMode)"
