@@ -16,7 +16,7 @@
         />
       </template>
     </HeaderNav>
-    <q-pull-to-refresh @refresh="fetchGifts">
+    <q-pull-to-refresh @refresh="(done) => fetchGifts(done, { recordType: activeTab, limit: activeTab === 'unclaimed' ? unclaimedGiftsLimit : (activeTab === 'claimed' ? claimedGiftsLimit : 10), offset: 0 })">
       <div class="gifts-content" :style="{ 'margin-top': $q.platform.is.ios ? '45px' : '30px'}">
           <!-- Tabs Section -->
           <div class="tabs-wrapper q-mb-md">
