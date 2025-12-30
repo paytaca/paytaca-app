@@ -71,6 +71,12 @@
             class="gifts-list scroll-y"
             @scroll="onUnclaimedGiftsScroll"
           >
+            <!-- Info text at the top -->
+            <div class="q-px-lg q-pt-md q-pb-sm">
+              <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('UnclaimedGiftsDescription', {}, 'These are gifts you created that have not been claimed.') }}
+              </div>
+            </div>
             <template v-if="fetchingGifts && !hasLoadedGifts">
               <div
                 v-for="i in 8"
@@ -190,6 +196,22 @@
             class="gifts-list scroll-y"
             @scroll="onClaimedGiftsScroll"
           >
+            <!-- Info text at the top -->
+            <div class="q-px-lg q-pt-md q-pb-sm">
+              <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('ClaimedGiftsDescription', {}, 'These are your claimed gifts that are either created by you or by others.') }}
+              </div>
+            </div>
+            <!-- Filter checkbox -->
+            <div class="q-px-lg q-pb-sm">
+              <q-checkbox
+                v-model="showOnlyCreatedByWallet"
+                :label="$t('ShowOnlyClaimedGiftsYouCreated', {}, 'Show only the claimed gifts that you created')"
+                :color="themeColor"
+                :class="getDarkModeClass(darkMode)"
+                @update:model-value="onCreatedByWalletFilterChange"
+              />
+            </div>
             <template v-if="fetchingGifts && !hasLoadedClaimedGifts">
               <div
                 v-for="i in 8"
@@ -239,9 +261,23 @@
                     </div>
                   </div>
                   <div class="gift-item-footer">
-                    <span class="gift-date-footer" :class="getDarkModeClass(darkMode)">
-                      {{ formatRelativeTimestamp(gift.date_claimed !== 'None' ? gift.date_claimed : gift.date_created) }}
-                    </span>
+                    <div class="gift-date-container">
+                      <span class="gift-date-footer" :class="getDarkModeClass(darkMode)">
+                        {{ formatRelativeTimestamp(gift.date_claimed !== 'None' ? gift.date_claimed : gift.date_created) }}
+                      </span>
+                      <q-badge
+                        v-if="isCreatedByWallet(gift)"
+                        class="status-badge-small status-created-by"
+                        :class="getDarkModeClass(darkMode)"
+                      >
+                        <q-icon 
+                          name="mdi-account-check" 
+                          size="12px" 
+                          class="q-mr-xs"
+                        />
+                        {{ $t('CreatedByYou', {}, 'Created by you') }}
+                      </q-badge>
+                    </div>
                   <q-badge
                       :class="gift.recovered ? 'status-recovered' : 'status-claimed'"
                     class="status-badge-small"
@@ -292,6 +328,7 @@ import { getMnemonic, Wallet } from '../../../wallet'
 import QRCode from 'qrcode'
 import { ensureKeypair } from 'src/utils/memo-service'
 import { decryptMemo } from 'src/utils/transaction-memos'
+import sha256 from 'js-sha256'
 
 export default {
   name: 'Gift',
@@ -342,7 +379,9 @@ export default {
       unclaimedScrollTimer: null,
       claimedScrollTimer: null,
       // Track the active tab when a request is initiated to prevent race conditions
-      requestActiveTab: null
+      requestActiveTab: null,
+      // Filter for showing only gifts created by wallet in claimed tab
+      showOnlyCreatedByWallet: false
     }
   },
 
@@ -371,7 +410,8 @@ export default {
         date_claimed: gift.date_claimed,
         campaign_id: gift.campaign_id,
         campaign_name: gift.campaign_name,
-        recovered: gift.recovered
+        recovered: gift.recovered,
+        created_by: gift.created_by
       }))
 
       // Filter based on active tab
@@ -543,6 +583,11 @@ export default {
         query.type = recordType
       }
       
+      // Add created_by_wallet parameter for claimed gifts when filter is enabled
+      if (recordType === 'claimed' && this.showOnlyCreatedByWallet) {
+        query.created_by_wallet = true
+      }
+      
       if (this.campaign_filter?.id) {
         query.campaign = this.campaign_filter.id
       }
@@ -575,6 +620,7 @@ export default {
             campaign_id: gift.campaign_id,
             campaign_name: gift.campaign_name,
             recovered: gift.recovered,
+            created_by: gift.created_by,
                 status: gift.date_claimed !== 'None' ? 'completed' : 'processing',
                 giftCode: giftCode,
                 encrypted_gift_code: gift.encrypted_gift_code
@@ -1068,6 +1114,13 @@ export default {
       if (gift.date_claimed !== 'None') return this.$t('Claimed')
       return this.$t('Unclaimed')
     },
+    isCreatedByWallet(gift) {
+      if (!gift.created_by || !this.walletHash) {
+        return false
+      }
+      const walletHashSha256 = sha256(this.walletHash)
+      return gift.created_by === walletHashSha256
+    },
     changeTab(tab) {
       // Clean up existing observers
       if (this.unclaimedIntersectionObserver) {
@@ -1103,6 +1156,32 @@ export default {
       } else {
         this.fetchGifts(null, { recordType: tab, limit: 10, offset: 0 })
       }
+    },
+    onCreatedByWalletFilterChange() {
+      // Only apply filter when on claimed tab
+      if (this.activeTab !== 'claimed') {
+        return
+      }
+      
+      // Reset pagination state
+      this.claimedGiftsPage = 1
+      this.hasMoreClaimedGifts = true
+      this.hasLoadedClaimedGifts = false
+      
+      // Clear fetched gifts to start fresh
+      this.fetchedGifts = {}
+      
+      // Refetch gifts with the new filter
+      this.fetchGifts(null, { 
+        recordType: 'claimed', 
+        limit: this.claimedGiftsLimit, 
+        offset: 0 
+      })
+      
+      // Setup observer after DOM updates
+      this.$nextTick(() => {
+        this.setupClaimedIntersectionObserver()
+      })
     },
     tabButtonClass(tab) {
       return this.activeTab === tab ? 'active-theme-btn' : ''
@@ -1405,6 +1484,12 @@ export default {
   flex-wrap: wrap;
 }
 
+.gift-date-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .gift-date-footer {
   font-size: 14px;
   opacity: 0.6;
@@ -1682,6 +1767,13 @@ export default {
     background: rgba(255, 152, 0, 0.15);
     color: #ff9800;
     border: 1px solid rgba(255, 152, 0, 0.3);
+  }
+
+  &.status-created-by {
+    background: rgba(66, 165, 245, 0.15);
+    color: #42a5f5;
+    border: 1px solid rgba(66, 165, 245, 0.3);
+    margin-top: 4px;
   }
 }
 
