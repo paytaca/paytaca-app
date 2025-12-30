@@ -60,7 +60,7 @@
             <!-- QR Code -->
             <div class="qr-section q-mt-lg">
               <div class="qr-wrapper" @click="copyToClipboard('https://gifts.paytaca.com/claim/?code=' + qrCodeContents)">
-                <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="220" />
+                <qr-code :text="'https://gifts.paytaca.com/claim/?code=' + qrCodeContents" :size="220" icon="bch-logo.png" />
                 <div class="qr-overlay">
                   <q-icon name="mdi-content-copy" size="32px" color="white"/>
                   <div class="text-caption text-white q-mt-xs">{{ $t('TapToCopy', {}, 'Tap to copy') }}</div>
@@ -160,31 +160,32 @@
 
               <!-- Custom Amount Input (shown when custom mode is active) -->
               <div v-if="isCustomAmount" class="custom-amount-section">
-          <q-input
-            ref="amountInput"
-            required
-                  :placeholder="$t('EnterCustomAmount', {}, 'Enter custom amount')"
-            filled
-                  inputmode="none"
-                  class="q-mt-sm amount-input"
-                  :rules="[
-                    val => !!val || $t('FieldIsRequired'), 
-                    val => (amountBCH <= spendableBch) || $t('AmountGreaterThanBalance'), 
-                    val => (amountBCH >= 0.00001) || $t('BelowMinimumGiftAmount')
-                  ]"
-                  type="text"
-                  v-model="giftAmountFormatted"
-                  @focus="onAmountInputFocus"
-            :dark="darkMode"
-            hide-bottom-space
-          >
-                  <template v-slot:prepend>
-                    <q-icon name="mdi-currency-bch" />
-            </template>
-                  <template v-slot:append>
-                    <span class="text-weight-medium">{{ denomination }}</span>
-                  </template>
-                </q-input>
+                <div class="amount-input-wrapper">
+                  <label class="amount-label" :class="getDarkModeClass(darkMode)">{{ $t('Amount') }}</label>
+                  <q-input
+                    ref="amountInput"
+                    required
+                    :placeholder="$t('EnterCustomAmount', {}, 'Enter custom amount')"
+                    filled
+                    inputmode="none"
+                    class="q-mt-sm amount-input"
+                    :rules="[
+                      val => !!val || $t('FieldIsRequired'), 
+                      val => (amountBCH <= spendableBch) || $t('AmountGreaterThanBalance'), 
+                      val => (amountBCH >= 0.00001) || $t('BelowMinimumGiftAmount')
+                    ]"
+                    type="text"
+                    v-model="giftAmountFormatted"
+                    @focus="onAmountInputFocus"
+                    :dark="darkMode"
+                    hide-bottom-space
+                  >
+                    <template v-slot:append>
+                      <span class="text-weight-medium denomination-selector">{{ denomination }}</span>
+                      <q-icon name="mdi-chevron-down" size="20px" class="denomination-arrow" />
+                    </template>
+                  </q-input>
+                </div>
                 
                 <div class="row items-center justify-between q-mt-sm">
                   <div v-if="sendAmountMarketValue" class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
@@ -211,10 +212,10 @@
                     :key="quickAmount"
                     unelevated
                     no-caps
-                    :outline="Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) > 0.000001"
+                    :outline="!giftAmount || Math.abs(getAmountOnDenomination(quickAmount) - (parseFloat(giftAmount) || 0)) > 0.000001"
                     class="quick-amount-btn"
-                    :class="{ 'bg-grad': Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) <= 0.000001 }"
-                    :style="Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) > 0.000001 ? `border-color: ${getThemeColor()}; color: ${getThemeColor()};` : ''"
+                    :class="{ 'bg-grad': giftAmount && Math.abs(getAmountOnDenomination(quickAmount) - parseFloat(giftAmount)) <= 0.000001 }"
+                    :style="(!giftAmount || Math.abs(getAmountOnDenomination(quickAmount) - (parseFloat(giftAmount) || 0)) > 0.000001) ? `border-color: ${getThemeColor()}; color: ${getThemeColor()};` : ''"
                     @click="selectQuickAmount(quickAmount)"
                   >
                     {{ getAssetDenomination(denomination, quickAmount) }}
@@ -373,7 +374,7 @@
             </div>
 
             <!-- Generate Button -->
-            <div class="form-actions q-mt-xl">
+            <div v-if="customKeyboardState !== 'show'" class="form-actions q-mt-xl">
             <q-btn
                 unelevated
               no-caps
@@ -425,6 +426,8 @@ import {
   adjustSplicedAmount,
   formatWithLocaleSelective
 } from 'src/utils/custom-keyboard-utils'
+import { ensureKeypair } from 'src/utils/memo-service'
+import { encryptMemo } from 'src/utils/transaction-memos'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -530,15 +533,9 @@ export default {
       if (!Number.isFinite(balance)) return null
       return balance
     },
-    giftShare() {
-      return this.$store.getters['gifts/getGiftShare'](this.giftCodeHash)
-    },
-    giftStatus() {
-      return this.$store.getters['gifts/getGiftStatus'](this.giftCodeHash)
-    },
     quickAmounts() {
       // Return quick amount presets in BCH
-      return [0.001, 0.01, 0.05, 0.1, 0.5, 1]
+      return [0.001, 0.0025, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
     }
   },
   methods: {
@@ -586,60 +583,93 @@ export default {
       // All checks passed
       return false
     },
-    generateGift () {
+    async generateGift () {
       const vm = this
       vm.processing = true
-      const privateKey = ECPair.makeRandom()
-      const wif = privateKey.toWIF()
+      
+      try {
+        const privateKey = ECPair.makeRandom()
+        const wif = privateKey.toWIF()
 
-      const BCHJS = require('@psf/bch-js')
-      const bchjs = new BCHJS()
-      const pair = bchjs.ECPair.fromWIF(wif)
-      const address = bchjs.ECPair.toCashAddress(pair)
-      const secret = Buffer.from(wif)
-      const stateShare = sss.split(secret, { shares: 3, threshold: 2 })
-      const shares = stateShare.map((share) => { return toHex(share) })
-      const encryptedShard = this.encryptShard(shares[0])
+        const BCHJS = require('@psf/bch-js')
+        const bchjs = new BCHJS()
+        const pair = bchjs.ECPair.fromWIF(wif)
+        const address = bchjs.ECPair.toCashAddress(pair)
+        
+        const secret = Buffer.from(wif)
+        const stateShare = sss.split(secret, { shares: 2, threshold: 2 })
+        const shares = stateShare.map((share) => { return toHex(share) })
+        
+        const encryptedShard = this.encryptShard(shares[0])
 
-      vm.giftCodeHash = sha256(encryptedShard.code)
-      const payload = {
-        gift_code_hash: vm.giftCodeHash,
-        encrypted_share: encryptedShard.encryptedHex,
-        address: address,
-        share: shares[1],
-        amount: parseFloat(this.amountBCH),
-      }
-      if (vm.selectedCampaign) {
-        if (vm.createNewCampaign) {
-          payload.campaign = {
-            name: vm.campaignName,
-            limit_per_wallet: vm.maxPerCampaign
-          }
-        } else {
-          payload.campaign = {
-            id: vm.selectedCampaign.value
+        vm.giftCodeHash = sha256(encryptedShard.code)
+        
+        // Encrypt the gift code using memo encryption (private key from address 0/0)
+        let keypair
+        let encryptedGiftCode
+        try {
+          keypair = await ensureKeypair()
+          encryptedGiftCode = await encryptMemo(keypair.privkey, keypair.pubkey, encryptedShard.code)
+        } catch (keypairError) {
+          vm.processing = false
+          console.error('Error ensuring keypair or encrypting gift code:', keypairError)
+          vm.$q.notify({
+            message: vm.$t('ErrorCreatingGiftPleaseRetry'),
+            color: 'negative',
+            timeout: 5000
+          })
+          return
+        }
+        
+        // Verify encryption succeeded - if it failed, we cannot proceed as the gift cannot be recovered
+        if (!encryptedGiftCode) {
+          vm.processing = false
+          vm.$q.notify({
+            message: vm.$t('ErrorCreatingGiftPleaseRetry'),
+            color: 'negative',
+            timeout: 5000
+          })
+          return
+        }
+        
+        const payload = {
+          gift_code_hash: vm.giftCodeHash,
+          encrypted_share: encryptedShard.encryptedHex,
+          address: address,
+          share: shares[1],
+          amount: parseFloat(this.amountBCH),
+          encrypted_gift_code: encryptedGiftCode
+        }
+        if (vm.selectedCampaign) {
+          if (vm.createNewCampaign) {
+            payload.campaign = {
+              name: vm.campaignName,
+              limit_per_wallet: vm.maxPerCampaign
+            }
+          } else {
+            payload.campaign = {
+              id: vm.selectedCampaign.value
+            }
           }
         }
+
+        const walletHash = this.wallet.BCH.getWalletHash()
+        const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
+        
+        this.submitGiftToServer(url, payload, encryptedShard.code, address)
+      } catch (error) {
+        // Handle any unexpected errors during gift generation
+        vm.processing = false
+        console.error('Error generating gift:', error)
+        vm.$q.notify({
+          message: vm.$t('ErrorCreatingGiftPleaseRetry'),
+          color: 'negative',
+          timeout: 5000
+        })
       }
-
-      // Save gift details first with processing status
-      vm.$store.dispatch('gifts/saveGift', { 
-        giftCodeHash: vm.giftCodeHash, 
-        share: shares[2],
-        status: 'processing',
-        amount: this.amountBCH,
-        address: address,
-        payload: payload
-      })
-      vm.$store.dispatch('gifts/saveQr', { giftCodeHash: vm.giftCodeHash, qr: encryptedShard.code })
-
-      const walletHash = this.wallet.BCH.getWalletHash()
-      const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
-      
-      this.submitGiftToServer(url, payload, shares[2], encryptedShard.code, address)
     },
 
-    async submitGiftToServer(url, payload, share, qrCode, address) {
+    async submitGiftToServer(url, payload, qrCode, address) {
       const vm = this
       try {
         const resp = await axios.post(url, payload)
@@ -648,11 +678,6 @@ export default {
           try {
             const result = await vm.wallet.BCH.sendBch(this.amountBCH, address)
             if (result.success) {
-              // Update gift status to completed
-              vm.$store.dispatch('gifts/updateGiftStatus', {
-                giftCodeHash: vm.giftCodeHash,
-                status: 'completed'
-              })
               vm.processing = false
               vm.completed = true
               vm.giftStatus = 'completed'
@@ -665,16 +690,12 @@ export default {
                 spendable: response.spendable
               })
             } else {
-              // Update status to failed
-              vm.$store.dispatch('gifts/updateGiftStatus', {
-                giftCodeHash: vm.giftCodeHash,
-                status: 'failed'
-              })
+              // Gift registered on server but funding failed - show success screen with resubmit option
               vm.processing = false
+              vm.completed = true
               vm.giftStatus = 'failed'
               vm.failedGiftDetails = {
                 payload: payload,
-                share: share,
                 qr: qrCode,
                 address: address
               }
@@ -685,16 +706,12 @@ export default {
               })
             }
           } catch (sendError) {
-            console.error('Send BCH error:', sendError)
-            vm.$store.dispatch('gifts/updateGiftStatus', {
-              giftCodeHash: vm.giftCodeHash,
-              status: 'failed'
-            })
+            // Gift registered on server but funding failed - show success screen with resubmit option
             vm.processing = false
+            vm.completed = true
             vm.giftStatus = 'failed'
             vm.failedGiftDetails = {
               payload: payload,
-              share: share,
               qr: qrCode,
               address: address
             }
@@ -706,16 +723,10 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Gift creation API error:', error)
-        vm.$store.dispatch('gifts/updateGiftStatus', {
-          giftCodeHash: vm.giftCodeHash,
-          status: 'failed'
-        })
         vm.processing = false
         vm.giftStatus = 'failed'
         vm.failedGiftDetails = {
           payload: payload,
-          share: share,
           qr: qrCode,
           address: address
         }
@@ -737,7 +748,6 @@ export default {
       await this.submitGiftToServer(
         url,
         giftDetails.payload,
-        giftDetails.share,
         giftDetails.qr,
         giftDetails.address
       )
@@ -752,8 +762,20 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    processRequest () {
-      this.generateGift()
+    async processRequest () {
+      try {
+        await this.generateGift()
+      } catch (error) {
+        // This catch handles any unhandled promise rejections from generateGift
+        // (though generateGift should handle its own errors now)
+        this.processing = false
+        console.error('Error in processRequest:', error)
+        this.$q.notify({
+          message: this.$t('ErrorCreatingGiftPleaseRetry'),
+          color: 'negative',
+          timeout: 5000
+        })
+      }
     },
     getAmountOnDenomination (amount) {
       const amountStr = this.getAssetDenomination(this.denomination, amount)
@@ -896,7 +918,7 @@ export default {
     },
     decimalObj() {
       return {
-        max: getDenomDecimals(this.denomination),
+        max: getDenomDecimals(this.denomination).decimal,
         min: 0
       }
     },
@@ -1154,15 +1176,60 @@ export default {
   }
 }
 
+.amount-input-wrapper {
+  position: relative;
+  
+  .amount-label {
+    position: absolute;
+    left: 16px;
+    top: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 1;
+    pointer-events: none;
+    
+    &.dark {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    &.light {
+      color: rgba(0, 0, 0, 0.7);
+    }
+  }
+}
+
 .amount-input {
   :deep(.q-field__control) {
     height: 56px;
     border-radius: 12px;
+    padding-left: 0 !important;
+  }
+  
+  :deep(.q-field__native) {
+    padding-left: 16px !important;
+    padding-top: 24px !important;
   }
   
   :deep(input) {
     font-size: 18px;
     font-weight: 600;
+    padding-left: 0 !important;
+  }
+  
+  :deep(.q-field__append) {
+    padding-right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    
+    .denomination-selector {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .denomination-arrow {
+      opacity: 0.7;
+    }
   }
 }
 
