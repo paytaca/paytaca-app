@@ -325,7 +325,7 @@ export class JSONPaymentProtocol {
 
   get expired() {
     let now = Date.now() 
-    if (opts?.networkTimeDiff) now += opts?.networkTimeDiff
+    if (this.opts?.networkTimeDiff) now += this.opts.networkTimeDiff
     return now > this.parsed.expires
   }
 

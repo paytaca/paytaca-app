@@ -1908,7 +1908,7 @@ export default {
     to{ opacity:1; }
   }
   .jpp-panel-container {
-    padding-top:5.5rem;
+    padding-top: 1rem;
     padding-bottom:120px;
     position: relative;
   }
