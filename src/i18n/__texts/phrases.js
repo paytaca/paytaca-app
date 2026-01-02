@@ -1764,6 +1764,15 @@ const phrases = {
       ClearAll: 'Clear All',
       ClearingAllTxProposals: 'Clearing All TX Proposals',
       ClearingAllTxProposalsConfirmationMessage: 'Are you sure you want to clear all transaction proposals? This action cannot be undone.',
+    },
+    {
+      LiftTokenBalance: 'LIFT Token Balance',
+      ViewSubscriptionDetails: 'View Subscription Details',
+      ViewSubscriptionDetailsDescription: 'Learn more about subscription tiers and limits',
+      UpgradeToPlusMessage: 'Upgrade to Paytaca Plus to unlock higher limits and special features.',
+      UpgradeToPaytacaPlus: 'Upgrade to Paytaca Plus',
+      ExceededFreeTierLimits: 'You have exceeded the limits of the Free tier. Upgrade to Paytaca Plus to unlock higher limits and special features.',
+      MonthlyPaymentInfo: '$5 worth of LIFT tokens per month (waived for the first 3 months)',
     }
   ],
   dynamic: [
@@ -1882,6 +1891,8 @@ const phrases = {
       TransactionProposalPending: 'You have {count} transaction proposal pending. This feature doesn\'t support creating of tx proposal while there\'s atleast 1 pending! This will change in the future.',
       SignerNamePlaceholder: 'Signer {index}\'s name',
       WcSelectAddressHeader: 'Select the address you want to connect to {peerName}.',
+      RequiresMinimumLiftTokens: 'Requires a minimum of {count} LIFT tokens',
+      HoldMinimumLiftTokens: 'Hold a minimum of {count} LIFT tokens in your wallet',
     }
   ]
 }

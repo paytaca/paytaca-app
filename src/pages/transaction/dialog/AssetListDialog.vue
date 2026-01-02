@@ -33,7 +33,7 @@
 		      </q-card-section>
 			<div v-if="loading" class="q-pa-md text-center">
 				<q-spinner color="primary" size="40px" />
-				<p class="q-mt-sm">{{ $t('LoadingAssets', {}, 'Loading assets...') }}</p>
+				<p class="q-mt-sm">{{ $t('LoadingAssets', {}, 'Loading assets') }}...</p>
 			</div>
 			<div v-else :class="darkMode ? 'text-white' : 'text-black'">
 				<q-list separator class="q-px-lg">

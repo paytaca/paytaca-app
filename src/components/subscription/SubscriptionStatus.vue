@@ -1,16 +1,15 @@
 <template>
-  <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+  <q-list class="pt-card text-bow settings-list" :class="getDarkModeClass(darkMode)">
     <q-item>
       <q-item-section avatar>
         <q-icon
           name="workspace_premium"
           :color="isPlus ? 'amber' : 'grey-6'"
           size="md"
-          :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"
         />
       </q-item-section>
       <q-item-section>
-        <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+        <q-item-label>
           {{ isPlus ? $t('PaytacaPlus', {}, 'Paytaca Plus') : $t('PaytacaFree', {}, 'Paytaca Free') }}
         </q-item-label>
         <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
