@@ -33,6 +33,22 @@ export default function () {
   })
 
   Router.beforeEach(async (to, from, next) => {
+    // Check if app is locked and user is trying to access a protected route
+    const lockAppEnabled = store.getters['global/lockApp']
+    const isUnlocked = store.getters['global/isUnlocked']
+    const isLockScreen = to.path === '/lock'
+    const isAccountsRoute = to.path.startsWith('/accounts')
+
+    // If lock is enabled, not unlocked, and not already on lock screen or accounts
+    if (lockAppEnabled && !isUnlocked && !isLockScreen && !isAccountsRoute) {
+      console.log('[Router] App is locked, redirecting to lock screen')
+      next({
+        path: '/lock',
+        query: { redirect: to.fullPath }
+      })
+      return
+    }
+
     if (to.path === '/') {
       try {
         // Ensure current wallet index is valid (points to undeleted wallet)

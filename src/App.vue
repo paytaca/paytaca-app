@@ -16,6 +16,7 @@ import Watchtower from 'watchtower-cash-js'
 import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
+import { App as CapacitorApp } from '@capacitor/app'
 
 // Module-level variable to track version update dialog instance
 // This persists across component remounts (important for iOS/Capacitor)
@@ -61,10 +62,30 @@ export default {
       promptedPushNotifications: false,
       subscribedPushNotifications: false,
       assetPricesUpdateIntervalId: null,
-      offlineNotif: null
+      offlineNotif: null,
+      appStateListener: null
     }
   },
   methods: {
+    setupAppLifecycleListener() {
+      const vm = this
+      // Listen for app state changes (background/foreground)
+      vm.appStateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+        const lockAppEnabled = vm.$store.getters['global/lockApp']
+        
+        if (!isActive) {
+          // App went to background - keep unlock state as is
+          console.log('App went to background')
+        } else {
+          // App came to foreground - reset unlock state if lock is enabled
+          console.log('App came to foreground')
+          if (lockAppEnabled) {
+            vm.$store.commit('global/setIsUnlocked', false)
+            console.log('Lock app enabled - reset unlock state')
+          }
+        }
+      })
+    },
     async onConnectivityChange (online) {
       const vm = this
       vm.$store.dispatch('global/updateConnectivityStatus', online)
@@ -247,6 +268,17 @@ export default {
     // Skip if we just switched wallets (check for a flag or recent switch)
     await vm.$store.dispatch('global/ensureValidWalletIndex')
 
+    // Set up app lifecycle listener for lock screen
+    if (vm.$q.platform.is.mobile) {
+      vm.setupAppLifecycleListener()
+    }
+
+    // On initial mount (cold start), reset unlock state if lock is enabled
+    const lockAppEnabled = vm.$store.getters['global/lockApp']
+    if (lockAppEnabled) {
+      vm.$store.commit('global/setIsUnlocked', false)
+    }
+
     // Note: Removed autoGenerateAddress calls - no longer needed since balances
     // are fetched via wallet hash API (cashtokens/fungible) instead of individual addresses
 
@@ -391,6 +423,10 @@ export default {
   },
   unmounted () {
     if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
+    // Clean up app state listener
+    if (this.appStateListener) {
+      this.appStateListener.remove()
+    }
   },
   created () {
     const vm = this

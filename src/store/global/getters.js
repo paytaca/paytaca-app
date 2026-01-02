@@ -378,3 +378,23 @@ export function preferredSecurity (state) {
     return 'pin'
   }
 }
+
+/**
+ * Get lock app setting for current wallet
+ * Returns true if app lock is enabled, false otherwise
+ */
+export function lockApp (state) {
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    return Boolean(state.vault[walletIndex].settings.lockApp)
+  }
+  return false
+}
+
+/**
+ * Get current unlock state
+ * Returns true if app is unlocked in current session
+ */
+export function isUnlocked (state) {
+  return Boolean(state.isUnlocked)
+}

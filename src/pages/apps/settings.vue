@@ -87,6 +87,23 @@
                       <q-icon name="lock" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
                   </q-item-section>
               </q-item>
+              <q-item>
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('LockApp', {}, 'Lock App') }}
+                      </q-item-label>
+                      <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                        {{ $t('LockAppDescription', {}, 'Require authentication when opening or resuming the app') }}
+                      </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                      <q-toggle
+                        :model-value="lockAppEnabled"
+                        @update:model-value="toggleLockApp"
+                        color="brandblue"
+                      />
+                  </q-item-section>
+              </q-item>
             </q-list>
         </div>
 
@@ -338,6 +355,9 @@ export default {
         }
       }
       return wallet
+    },
+    lockAppEnabled () {
+      return this.$store.getters['global/lockApp']
     }
   },
   watch: {
@@ -377,6 +397,17 @@ export default {
         timeout: 200,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
+      })
+    },
+    toggleLockApp (value) {
+      this.$store.commit('global/setLockApp', value)
+      this.$q.notify({
+        message: value 
+          ? this.$t('LockAppEnabled', {}, 'App lock enabled') 
+          : this.$t('LockAppDisabled', {}, 'App lock disabled'),
+        timeout: 1000,
+        color: 'brandblue',
+        icon: value ? 'lock' : 'lock_open'
       })
     },
     openRenameDialog () {
