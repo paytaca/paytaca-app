@@ -5,11 +5,11 @@
     persistent
     :class="getDarkModeClass(darkMode)"
   >
-    <q-card class="upgrade-prompt-dialog" :class="getDarkModeClass(darkMode)" style="width: min(500px, 90vw); max-width: 90vw;">
+    <q-card class="upgrade-prompt-dialog text-bow" :class="getDarkModeClass(darkMode)" style="width: min(500px, 90vw); max-width: 90vw;">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">{{ $t('UpgradeToPaytacaPlus', {}, 'Upgrade to Paytaca Plus') }}</div>
         <q-space />
-        <q-btn icon="close" flat round dense v-close-popup />
+        <q-btn icon="close" flat round dense v-close-popup color="red" />
       </q-card-section>
 
       <q-card-section class="q-pt-md">
@@ -239,10 +239,6 @@ export default {
 
 /* Responsive text sizing for small screens */
 @media (max-width: 480px) {
-  .upgrade-prompt-dialog {
-    margin: 8px;
-  }
-  
   .upgrade-prompt-dialog :deep(.text-h6) {
     font-size: 1.1rem;
   }
