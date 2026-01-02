@@ -19,18 +19,17 @@
 
       <!-- Unlock Button with Theme Color -->
       <div class="unlock-section">
-        <!-- Show unlock button only if not using biometrics or if biometrics failed -->
+        <!-- Unlock button - always shown, changes based on state -->
         <q-btn
-          v-if="preferredSecurity !== 'biometric' || biometricFailed"
           unelevated
           no-caps
           :color="themeColor"
           class="unlock-button glass-button"
           :class="getDarkModeClass(darkMode)"
-          :label="preferredSecurity === 'biometric' ? ($t('TryAgain') || 'Try Again') : ($t('Unlock') || 'Unlock')"
+          :label="getUnlockButtonLabel()"
           @click="handleUnlock"
           :loading="authenticating"
-          :icon-right="preferredSecurity === 'biometric' ? 'fingerprint' : 'lock_open'"
+          :icon-right="getUnlockButtonIcon()"
         >
           <template v-slot:loading>
             <q-spinner-dots size="24px" />
@@ -116,6 +115,23 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    
+    getUnlockButtonLabel() {
+      if (this.preferredSecurity === 'biometric') {
+        if (this.biometricFailed) {
+          return this.$t('TryAgain') || 'Try Again'
+        }
+        return this.$t('Unlock') || 'Unlock'
+      }
+      return this.$t('Unlock') || 'Unlock'
+    },
+    
+    getUnlockButtonIcon() {
+      if (this.preferredSecurity === 'biometric') {
+        return 'fingerprint'
+      }
+      return 'lock_open'
+    },
     
     handleUnlock() {
       console.log('[LockScreen] Unlock button clicked')
@@ -248,9 +264,29 @@ export default {
     onUnlockSuccess() {
       console.log('[LockScreen] Unlock successful, navigating...')
       
-      // Set unlock state in store
+      // Set unlock state in store FIRST, before navigation
+      // Use a more explicit approach to ensure state is set
       this.$store.commit('global/setIsUnlocked', true)
-      console.log('[LockScreen] Unlock state set to true')
+      
+      // Force a synchronous state update by accessing the state directly
+      // This ensures the state is immediately available for the router guard
+      const state = this.$store.state.global
+      if (state) {
+        state.isUnlocked = true
+      }
+      
+      // Verify it was set correctly
+      const verifyUnlocked = this.$store.getters['global/isUnlocked']
+      console.log('[LockScreen] Unlock state set to true, verified:', verifyUnlocked)
+      
+      if (!verifyUnlocked) {
+        console.error('[LockScreen] ERROR: Unlock state was not set correctly!')
+        // Try again with direct state access
+        this.$store.commit('global/setIsUnlocked', true)
+        if (this.$store.state.global) {
+          this.$store.state.global.isUnlocked = true
+        }
+      }
       
       // Emit unlock event for parent components
       this.$emit('unlocked')
@@ -258,7 +294,28 @@ export default {
       // If there's a redirect path stored, navigate to it
       const redirectPath = this.$route.query.redirect || '/'
       console.log('[LockScreen] Redirecting to:', redirectPath)
-      this.$router.replace(redirectPath)
+      
+      // Use nextTick to ensure state is committed before navigation
+      // Add a small delay on mobile to ensure state propagation
+      const delay = this.$q.platform.is.mobile ? 50 : 0
+      setTimeout(() => {
+        this.$nextTick(() => {
+          // Double-check state before navigation
+          const finalCheck = this.$store.getters['global/isUnlocked']
+          console.log('[LockScreen] Final unlock state check before navigation:', finalCheck)
+          
+          if (!finalCheck) {
+            console.error('[LockScreen] State lost before navigation, setting again')
+            this.$store.commit('global/setIsUnlocked', true)
+          }
+          
+          this.$router.replace(redirectPath).catch(err => {
+            console.error('[LockScreen] Navigation error:', err)
+            // Fallback to home if redirect fails
+            this.$router.replace('/')
+          })
+        })
+      }, delay)
     }
   },
   mounted() {
@@ -271,15 +328,6 @@ export default {
     // Check if PIN dialog is mounted
     this.$nextTick(() => {
       console.log('[LockScreen] After nextTick, PIN dialog ref:', this.$refs.pinDialogRef)
-      
-      // Auto-trigger biometric authentication if it's the preferred method
-      if (this.preferredSecurity === 'biometric') {
-        console.log('[LockScreen] Auto-triggering biometric authentication')
-        // Small delay to ensure UI is ready
-        setTimeout(() => {
-          this.verifyBiometric()
-        }, 300)
-      }
     })
   }
 }

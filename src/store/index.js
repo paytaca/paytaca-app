@@ -191,6 +191,15 @@ function reducer(state) {
               }
             }
           }
+        } else if (moduleName === 'global') {
+          // For global module, exclude session-only state like isUnlocked
+          const globalState = state[moduleName]
+          const serializedGlobal = serializeState(globalState)
+          // Remove isUnlocked from persisted state (it's session-only)
+          if (serializedGlobal && typeof serializedGlobal === 'object') {
+            delete serializedGlobal.isUnlocked
+          }
+          serialized[moduleName] = serializedGlobal
         } else {
           // For other modules, serialize normally
           serialized[moduleName] = serializeState(state[moduleName])

@@ -63,26 +63,97 @@ export default {
       subscribedPushNotifications: false,
       assetPricesUpdateIntervalId: null,
       offlineNotif: null,
-      appStateListener: null
+      appStateListener: null,
+      wasInBackground: false, // Track if app was in background
+      lastBackgroundTime: null, // Timestamp when app went to background
+      appInitialized: false, // Track if app has been initialized
+      isCurrentlyActive: true, // Track current active state to detect real transitions
+      unlockStateResetDisabled: false // Flag to prevent resetting unlock state
     }
   },
   methods: {
     setupAppLifecycleListener() {
       const vm = this
+      
+      // Get initial app state
+      CapacitorApp.getState().then(({ isActive }) => {
+        console.log('[App] Initial app state:', isActive)
+        vm.appInitialized = true
+        vm.isCurrentlyActive = isActive
+        // If app starts inactive, mark as was in background
+        if (!isActive) {
+          vm.wasInBackground = true
+          vm.lastBackgroundTime = Date.now()
+        }
+      }).catch(err => {
+        console.warn('[App] Could not get initial app state:', err)
+        vm.appInitialized = true
+        vm.isCurrentlyActive = true // Assume active if we can't determine
+      })
+      
       // Listen for app state changes (background/foreground)
       vm.appStateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+        // Wait for initialization to complete
+        if (!vm.appInitialized) {
+          console.log('[App] App state change before initialization, ignoring')
+          return
+        }
+        
         const lockAppEnabled = vm.$store.getters['global/lockApp']
+        const currentUnlockState = vm.$store.getters['global/isUnlocked']
+        
+        // CRITICAL FIX FOR iOS: If app is already unlocked, completely ignore appStateChange events
+        // iOS fires these events erratically (on dialog open, route change, etc.)
+        // Once unlocked, the app should stay unlocked until a REAL background transition
+        if (currentUnlockState && isActive) {
+          console.log('[App] App already unlocked - ignoring appStateChange event (iOS false trigger protection)')
+          // Still update the active state tracking, but don't reset unlock state
+          if (!vm.isCurrentlyActive) {
+            vm.isCurrentlyActive = true
+          }
+          return
+        }
+        
+        // Only process if there's an actual state change
+        if (isActive === vm.isCurrentlyActive) {
+          console.log('[App] App state unchanged (isActive:', isActive, '), ignoring duplicate event')
+          return
+        }
         
         if (!isActive) {
-          // App went to background - keep unlock state as is
-          console.log('App went to background')
+          // App went to background - mark timestamp
+          console.log('[App] App went to background, current unlock state:', currentUnlockState)
+          vm.wasInBackground = true
+          vm.lastBackgroundTime = Date.now()
+          vm.isCurrentlyActive = false
         } else {
-          // App came to foreground - reset unlock state if lock is enabled
-          console.log('App came to foreground')
-          if (lockAppEnabled) {
+          // App came to foreground - only reset if we have clear evidence of background transition
+          const timeSinceBackground = vm.lastBackgroundTime ? Date.now() - vm.lastBackgroundTime : 0
+          console.log('[App] App came to foreground, wasInBackground:', vm.wasInBackground, 
+                     'timeSinceBackground:', timeSinceBackground, 'ms, current unlock state:', currentUnlockState)
+          
+          // Only reset unlock state if:
+          // 1. We actually transitioned from background to foreground (wasInBackground is true)
+          // 2. Lock is enabled
+          // 3. We were in background for at least 500ms (prevents false triggers from rapid events)
+          // 4. We're not in a state where reset is disabled
+          if (vm.wasInBackground && lockAppEnabled && timeSinceBackground >= 500 && !vm.unlockStateResetDisabled) {
             vm.$store.commit('global/setIsUnlocked', false)
-            console.log('Lock app enabled - reset unlock state')
+            console.log('[App] Lock app enabled - reset unlock state after background transition (was:', currentUnlockState, ')')
+          } else {
+            if (!vm.wasInBackground) {
+              console.log('[App] Ignoring - was not in background, definitely false trigger')
+            } else if (timeSinceBackground < 500) {
+              console.log('[App] Ignoring rapid state change (timeSinceBackground:', timeSinceBackground, 'ms < 500ms)')
+            } else if (vm.unlockStateResetDisabled) {
+              console.log('[App] Ignoring - unlock state reset is disabled')
+            }
           }
+          
+          // Reset the flag after handling the transition
+          vm.wasInBackground = false
+          vm.lastBackgroundTime = null
+          vm.isCurrentlyActive = true
         }
       })
     },

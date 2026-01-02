@@ -34,19 +34,55 @@ export default function () {
 
   Router.beforeEach(async (to, from, next) => {
     // Check if app is locked and user is trying to access a protected route
+    // Access state directly from store to ensure we get the latest value
+    // Use multiple access methods to ensure we get the correct state
     const lockAppEnabled = store.getters['global/lockApp']
-    const isUnlocked = store.getters['global/isUnlocked']
+    
+    // Try multiple ways to get the unlock state to ensure we have the latest value
+    let isUnlocked = Boolean(store.getters['global/isUnlocked'])
+    
+    // Also check state directly as a fallback (for debugging and reliability)
+    const stateUnlocked = store.state?.global?.isUnlocked
+    if (typeof stateUnlocked === 'boolean') {
+      isUnlocked = Boolean(stateUnlocked)
+    }
+    
     const isLockScreen = to.path === '/lock'
     const isAccountsRoute = to.path.startsWith('/accounts')
 
-    // If lock is enabled, not unlocked, and not already on lock screen or accounts
-    if (lockAppEnabled && !isUnlocked && !isLockScreen && !isAccountsRoute) {
-      console.log('[Router] App is locked, redirecting to lock screen')
-      next({
-        path: '/lock',
-        query: { redirect: to.fullPath }
-      })
-      return
+    // Debug logging (only log when lock is enabled to reduce noise)
+    if (lockAppEnabled) {
+      console.log('[Router] Lock check - lockAppEnabled:', lockAppEnabled, 'isUnlocked:', isUnlocked, 
+                 'stateDirect:', stateUnlocked, 'to:', to.path, 'from:', from.path)
+    }
+
+    // IMPORTANT: If app is already unlocked, skip ALL lock checks and allow navigation
+    // The lock screen should only show on initial app load or when coming from background
+    // Once unlocked, the app should remain unlocked for the entire session until it goes to background
+    // This check must happen FIRST before any other lock-related logic
+    // Use strict equality to ensure we're checking for true, not just truthy
+    if (isUnlocked === true) {
+      // If user tries to go to lock screen while unlocked, redirect away
+      if (isLockScreen) {
+        console.log('[Router] App is already unlocked, redirecting from lock screen')
+        const redirectPath = to.query.redirect || '/'
+        next(redirectPath)
+        return
+      }
+      // App is unlocked - skip ALL lock checks and proceed directly to route handling
+      // Do NOT check lock state again - the app is unlocked for this session
+      // Continue to normal route handling below - DO NOT return here
+    } else if (lockAppEnabled) {
+      // App is locked - only redirect if not already on lock screen or accounts
+      if (!isLockScreen && !isAccountsRoute) {
+        console.log('[Router] App is locked, redirecting to lock screen')
+        next({
+          path: '/lock',
+          query: { redirect: to.fullPath }
+        })
+        return
+      }
+      // If already on lock screen or accounts route, allow navigation to proceed
     }
 
     if (to.path === '/') {
