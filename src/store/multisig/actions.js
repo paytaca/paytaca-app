@@ -6,6 +6,10 @@ import { generateAuthCredentialsForFirstSignerWithPrivateKey, generateAuthCreden
 import { watchtowerUtxoToCommonUtxo } from 'src/utils/utxo-utils'
 import Watchtower from 'src/lib/watchtower'
 
+const projectId = {
+  mainnet: process.env.WATCHTOWER_PROJECT_ID,
+  chipnet: process.env.WATCHTOWER_CHIP_PROJECT_ID
+}
 
 export async function uploadWallet ({ commit, getters, rootGetters }, multisigWallet ) {
   
@@ -158,5 +162,41 @@ export async function subscribeWalletAddress ({ rootGetters }, address) {
   const watchtower = new Watchtower(rootGetters['global/isChipnet'])
   return await watchtower.subscribeAddress(address)
 }
+
+export async function subscribeWalletAddressIndex ({ rootGetters }, { wallet, addressIndex, type }) {
+  const walletHash = wallet.getWalletHash()
+  const receiveAddress = wallet.getDepositAddress(addressIndex, wallet.cashAddressNetworkPrefix).address
+  const changeAddress = wallet.getChangeAddress(addressIndex, wallet.cashAddressNetworkPrefix).address
+  let address = ''
+  if (type === 'pair') {
+    address = {
+      receiving: receiveAddress,
+      change: changeAddress
+    }
+  }
+  if (type === 'deposit') {
+    address = receiveAddress
+  }
+  if (type === 'change') {
+    address = changeAddress
+  }
+  
+  const watchtower = new Watchtower(rootGetters['global/isChipnet'])
+
+  const subscriptionData = {
+    projectId: projectId[rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'],
+    walletHash
+  }
+  if (typeof address === 'string') {
+    subscriptionData.address = address
+  }
+  if (typeof address === 'object') {
+    subscriptionData.addresses = address
+    subscriptionData.addressIndex = addressIndex
+  }
+  return await watchtower.subscribe(subscriptionData)
+}
+
+
 
 

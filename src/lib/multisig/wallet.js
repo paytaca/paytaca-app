@@ -802,8 +802,19 @@ async subscribeWalletAddress(address) {
     2,
     1000
   ).catch((e) => e)
-
 }
+
+async subscribeWalletAddressIndex(addressIndex, type) {
+  return retryWithBackoff(async () => {
+    return await this.options?.store?.dispatch(
+      'multisig/subscribeWalletAddressIndex',
+      { wallet: this, addressIndex: addressIndex, type: type }
+    )},
+    2,
+    1000
+  ).catch((e) => e)
+}
+
 
 /**
  * Marks the address at addressIndex as issued.
@@ -825,7 +836,8 @@ async issueDepositAddress(addressIndex) {
   //     ?.updateWalletLastIssuedDepositAddressIndex(this, addressIndex, this.options.provider.network)
   //     .catch(e => e)
 
-  await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+  // await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+  await this.subscribeWalletAddressIndex(addressIndex, 'deposit')
 
 }
 
@@ -848,7 +860,8 @@ async issueDepositAddress(addressIndex) {
     //     ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
     //     .catch(e => e)
 
-    await this.subscribeWalletAddress(this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+    // await this.subscribeWalletAddress(this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+    await this.subscribeWalletAddressIndex(addressIndex, 'change')
  }
 
   async selectUtxos(proposal) {
