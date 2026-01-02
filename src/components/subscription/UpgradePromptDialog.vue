@@ -6,10 +6,9 @@
     :class="getDarkModeClass(darkMode)"
   >
     <q-card class="upgrade-prompt-dialog text-bow" :class="getDarkModeClass(darkMode)" style="width: min(500px, 90vw); max-width: 90vw;">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ $t('UpgradeToPaytacaPlus', {}, 'Upgrade to Paytaca Plus') }}</div>
-        <q-space />
-        <q-btn icon="close" flat round dense v-close-popup color="red" />
+      <q-card-section class="row items-center justify-between q-pb-none">
+        <div class="col-10 text-h6">{{ $t('UpgradeToPaytacaPlus', {}, 'Upgrade to Paytaca Plus') }}</div>
+        <q-btn icon="close" flat round dense v-close-popup color="red" class="col-2" />
       </q-card-section>
 
       <q-card-section class="q-pt-md">
