@@ -26,10 +26,7 @@
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
-                      <div v-if="selectedNetwork === 'sBCH'">
-                        <img src="sep20-logo.png" alt="" style="height: 75px;"/>
-                      </div>
-                      <div v-else>
+                      <div>
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
@@ -271,7 +268,6 @@ export default {
 	      const currency = this.$store.getters['market/selectedCurrency']
 	      const selectedMarketCurrency = currency && currency.symbol
 	      return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
-	        this.selectedNetwork !== 'sBCH' &&
 	        currentCountry === 'HK' &&
 	        selectedMarketCurrency === 'HKD')
 	    },
@@ -280,11 +276,7 @@ export default {
 	        if (item && item.id !== 'bch') return item
 	      })
 	    },
-	    smartchainAssets() {
-	      return this.$store.getters['sep20/getAssets'].filter(function (item) {
-	        if (item && item.id !== 'bch') return item
-	      })
-	    },
+	    // SmartBCH assets removed
 	    // assets () {
 	    //   const vm = this
 	    //   if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
@@ -333,7 +325,7 @@ export default {
 	},
 	async mounted () {				
 		// Update selected asset from query parameter
-		this.updateSelectedAssetFromQuery()
+		await this.updateSelectedAssetFromQuery()
 		
 		const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
 
@@ -363,15 +355,15 @@ export default {
 	        this.calculateTransactionRowHeight()
 	      })
 	    },
-	    '$route.query.assetID' (newAssetID) {
+	    async '$route.query.assetID' (newAssetID) {
 	      // Update selected asset when route query changes (e.g., when navigating back)
-	      this.updateSelectedAssetFromQuery()
+	      await this.updateSelectedAssetFromQuery()
 	    }
 	},
 	methods: {
 		parseAssetDenomination,
 		getDarkModeClass,
-		updateSelectedAssetFromQuery () {
+		async updateSelectedAssetFromQuery () {
 			const assetID = this.$route.query.assetID
 			let asset = []
 			
@@ -392,13 +384,36 @@ export default {
 					// This preserves the filter even if the asset metadata isn't loaded yet
 					// The transaction list component will use selectedAsset.id to filter transactions
 					const assetIdParts = assetID.split('/')
-					const isToken = assetIdParts.length === 2 && (assetIdParts[0] === 'ct' || assetIdParts[0] === 'slp' || assetIdParts[0] === 'sep20')
-					
+					const isToken = assetIdParts.length === 2 && (assetIdParts[0] === 'ct' || assetIdParts[0] === 'slp')
+
+					// Set initial basic asset
 					this.selectedAsset = {
 						id: assetID,
-						symbol: isToken ? (assetIdParts[0] === 'ct' ? 'CT' : assetIdParts[0] === 'slp' ? 'SLP' : 'SEP20') : 'BCH',
+						symbol: isToken ? (assetIdParts[0] === 'ct' ? 'CT' : 'SLP') : 'BCH',
 						name: isToken ? `${assetIdParts[0].toUpperCase()} Token` : 'Bitcoin Cash',
 						logo: null
+					}
+
+					// Fetch metadata from BCMR backend if it's a CashToken
+					if (assetIdParts[0] === 'ct') {
+						console.log('[Transactions] Fetching metadata for token:', assetID)
+						try {
+							const metadata = await this.$store.dispatch('assets/getAssetMetadata', assetID)
+							if (metadata) {
+								console.log('[Transactions] Fetched metadata:', metadata)
+								// Update selectedAsset with fetched metadata
+								this.selectedAsset = {
+									id: metadata.id,
+									symbol: metadata.symbol || this.selectedAsset.symbol,
+									name: metadata.name || this.selectedAsset.name,
+									logo: metadata.logo || null,
+									decimals: metadata.decimals || 0
+								}
+							}
+						} catch (error) {
+							console.warn('[Transactions] Failed to fetch metadata from BCMR:', error)
+							// Keep the basic asset object if fetching fails
+						}
 					}
 				}
 			}
@@ -553,7 +568,7 @@ export default {
 	    	this.$q.dialog({
                 component: AssetListDialog,
                 componentProps: {
-                    assets: this.assets
+                    // AssetListDialog now fetches tokens directly from API
                 }
             })
             .onOk(asset => {
@@ -718,7 +733,7 @@ export default {
 	      }
 	    },
 	    formatBalance (asset) {
-	      if (asset.id.includes('ct') || asset.id.includes('sep20')) {
+	      if (asset.id.includes('ct')) {
 	        const convertedBalance = asset.balance / 10 ** asset.decimals
 	        return `${(convertedBalance || 0).toLocaleString('en-us', {maximumFractionDigits: asset.decimals})} ${asset.symbol}`
 	      } else if (asset.id.includes('bch')) {

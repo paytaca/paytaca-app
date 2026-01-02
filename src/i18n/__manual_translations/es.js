@@ -38,7 +38,6 @@ export default {
   BranchName: "Nombre de sucursal",
   BranchRemoved: "Sucursal eliminada",
   BranchSmall: "sucursal",
-  BridgeLeavingPageMsg: "Salir de la página puede causar que no sea visible el progreso. ¿Desea salir?",
   BroadcastingTransaction: "Enviando transacción",
   BuildingTransaction: "Construyendo transacción",
   BusinessDetails: "Detalles del negocio/empresa",

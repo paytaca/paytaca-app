@@ -50,12 +50,12 @@ export function enableStablhedge (state) {
   return state.enableStablhedge
 }
 
-export function enableSmartBCH (state) {
-  return state.enableSmartBCH
-}
-
 export function enableSLP (state) {
   return state.enableSLP
+}
+
+export function enableSmartBCH (state) {
+  return state.enableSmartBCH
 }
 
 export function getAddress (state) {

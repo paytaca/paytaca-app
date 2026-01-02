@@ -7,7 +7,7 @@
     <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav
-        :title="$t('Send') + ' ' + (asset.symbol || name || '')"
+        :title="$t('Send') + ' ' + (asset?.symbol || name || '')"
         :backnavpath="backNavigationPath"
         class="header-nav"
       />
@@ -42,7 +42,7 @@
                 :class="getDarkModeClass(darkMode)"
                 v-if="tokenType === 'CT-NFT'"
               >
-                <span>{{ $t('name') }}: {{ name }}</span>
+                <span>{{ nftDisplayName }}</span>
                 <p style="word-break: break-all;">{{ $t('Commitment') }}: {{ commitment }}</p>
               </div>
             </div>
@@ -56,7 +56,7 @@
                   {{ $t('HowToSend', {}, 'How would you like to send?') }}
                 </div>
                 <div class="text-caption text-center q-mt-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
-                  {{ $t('ChooseMethod', { symbol: asset.symbol || 'BCH' }, `Choose a method to send your ${asset.symbol || 'BCH'}`) }}
+                  {{ $t('ChooseMethod', { symbol: isNFT ? 'NFT' : (asset?.symbol || 'BCH') }, `Choose a method to send your ${isNFT ? 'NFT' : (asset?.symbol || 'BCH')}`) }}
                 </div>
               </div>
 
@@ -502,7 +502,14 @@ export default {
 
   data () {
     return {
-      asset: {},
+      asset: {
+        id: '',
+        name: '',
+        symbol: '',
+        decimals: 0,
+        logo: null,
+        balance: 0
+      },
       scanner: {
         show: false,
         frontCamera: false,
@@ -608,6 +615,32 @@ export default {
       if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65 || this.tokenType === 'CT-NFT'
+    },
+    nftDisplayName () {
+      // Check name prop first
+      if (this.name && this.name.trim()) {
+        return this.name
+      }
+      
+      // Check asset.name as fallback (might be populated from assetData or metadata)
+      if (this.asset?.name && this.asset.name.trim()) {
+        return this.asset.name
+      }
+      
+      // Otherwise, extract and truncate category ID from assetId
+      if (this.assetId && this.assetId.startsWith('ct/')) {
+        const categoryId = this.assetId.split('/')[1]
+        if (categoryId) {
+          // Truncate category ID: first 6 chars + ... + last 6 chars
+          if (categoryId.length > 12) {
+            return `${categoryId.substring(0, 6)}...${categoryId.substring(categoryId.length - 6)}`
+          }
+          return categoryId
+        }
+      }
+      
+      // Fallback
+      return 'NFT'
     },
     defaultNftImage () {
       if (!this.isNFT) return ''
@@ -889,10 +922,10 @@ export default {
         }
 
         if (vm.fungible || fungibleTokenAmount) {
-          const tokenAmount = parseInt(vm.fungible || fungibleTokenAmount) / (10 ** vm.asset.decimals) || 0
+          const tokenAmount = parseInt(vm.fungible || fungibleTokenAmount) / (10 ** (vm.asset?.decimals || 0)) || 0
           currentRecipient.amount = tokenAmount
           currentInputExtras.amountFormatted = tokenAmount.toLocaleString(
-            'en-us', { maximumFractionDigits: vm.asset.decimals }
+            'en-us', { maximumFractionDigits: vm.asset?.decimals || 0 }
           )
           currentRecipient.fixedAmount = true
           vm.sliderStatus = true
@@ -958,7 +991,7 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0] && !this.isNFT) {
-        if (vm.asset.symbol === undefined) {
+        if (vm.asset?.symbol === undefined) {
           vm.$router.push({
             name: 'transaction-send-select-asset',
             query: { error: 'token-not-found' }
@@ -1077,10 +1110,10 @@ export default {
           currentRecipient.fiatAmount, this.decimalObj(true)
         )
       } else {
-        if (this.asset.id.startsWith('ct/')) {
-          currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
+        if (this.asset?.id?.startsWith('ct/')) {
+          currentRecipient.amount = (this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0))
         } else {
-          currentRecipient.amount = this.asset.balance
+          currentRecipient.amount = this.asset?.balance || 0
         }
         currentInputExtras.amountFormatted = currentRecipient.amount
       }
@@ -1513,7 +1546,7 @@ export default {
             toSendBchRecipients.push({
               address: recipientAddress,
               amount: sendData.amount,
-              tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
+              tokenAmount: Math.round(tokenAmount * (10 ** (vm.asset?.decimals || 0)) || 0)
             })
           } else {
             toSendBchRecipients.push({
@@ -1766,7 +1799,50 @@ export default {
     const vm = this
 
     vm.updateNetworkDiff()
-    vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+    
+    // Check if asset data was passed from select-asset page
+    // This allows immediate rendering with correct logo and details
+    if (vm.$route.query.assetData) {
+      try {
+        const passedAsset = JSON.parse(vm.$route.query.assetData)
+        console.log('[Send] Received asset data from select-asset page:', passedAsset)
+        
+        if (passedAsset && passedAsset.id) {
+          // Use the passed asset data immediately
+          // Ensure symbol has a value - use fallback if empty
+          let symbol = passedAsset.symbol || passedAsset.name || ''
+          
+          // If still no symbol, extract from ID (e.g., "ct/abc123" -> use token name or "TOKEN")
+          if (!symbol && passedAsset.id.startsWith('ct/')) {
+            symbol = passedAsset.name || 'TOKEN'
+          }
+          
+          vm.asset = {
+            id: passedAsset.id,
+            name: passedAsset.name || 'Unknown Token',
+            symbol: symbol,
+            decimals: passedAsset.decimals !== undefined ? passedAsset.decimals : 0,
+            logo: passedAsset.logo || null,
+            balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
+          }
+          console.log('[Send] Set asset with symbol:', vm.asset.symbol)
+          
+          // Don't fall through to the default logic - we have everything we need
+          // Continue with the rest of mounted() logic below
+        } else {
+          // Fallback to default logic
+          vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+        }
+      } catch (error) {
+        console.warn('[Send] Failed to parse passed asset data:', error)
+        // Fallback to default logic
+        vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+      }
+    } else {
+      console.log('[Send] No asset data passed in query, using default logic')
+      // No asset data passed, use default logic
+      vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+    }
 
     if (vm.assetId.indexOf('slp/') > -1) vm.walletType = 'slp'
     else {
@@ -1832,7 +1908,7 @@ export default {
     to{ opacity:1; }
   }
   .jpp-panel-container {
-    padding-top:5.5rem;
+    padding-top: 1rem;
     padding-bottom:120px;
     position: relative;
   }

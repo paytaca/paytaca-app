@@ -1,13 +1,12 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
-      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + ' ' + asset.symbol)"
+      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + (asset?.symbol ? ' ' + asset.symbol : ''))"
       :backnavpath="backNavPath"
       class="header-nav"
     ></header-nav>
     <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
-        v-if="!isSep20"
         id="context-menu"
         size="35px"
         name="more_vert"
@@ -36,7 +35,7 @@
         </q-menu>
       </q-icon>
       <div>
-        <div v-if="asset.id ==='bch'" class="row flex-center">
+        <div v-if="asset && asset.id ==='bch'" class="row flex-center">
           <div class="row flex-center" style="margin-top: 20px;">
             <q-img @click="isCt = false" src="bitcoin-cash-circle.svg" height="35px" width="35px" />
             <span @click="isCt = false">&nbsp;BCH</span>
@@ -89,11 +88,11 @@
             </div>
           </div>
         </div>
-        <div v-if="!isCt && asset.id ==='bch'" class="row flex-center">
+        <div v-if="!isCt && asset && asset.id ==='bch'" class="row flex-center">
           <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
           <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
         </div>
-        <div class="row q-mt-md" v-if="!generating && walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
+        <div class="row q-mt-md" v-if="!generating && walletType === 'bch' && asset && asset.id ==='bch' && !isCt && showLegacy">
           <q-toggle
             v-model="legacy"
             class="text-bow"
@@ -137,7 +136,7 @@
                 </div>
                 <div class="text-weight-light receive-amount-label">
                   {{ formatWithLocale(amount, decimalObj) }}
-                  {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
+                  {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset?.symbol }}
                 </div>
               </div>
             </div>
@@ -174,7 +173,7 @@
         <div class="col q-mt-md q-px-lg text-center">
           <custom-input
             v-model="amount"
-            :inputSymbol="setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol"
+            :inputSymbol="setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset?.symbol"
             :inputRules="[val => Boolean(val) || $t('InvalidAmount')]"
             :asset="asset"
             :decimalObj="decimalObj"
@@ -196,7 +195,6 @@
 
 <script>
 import { getMnemonic, Wallet, Address } from '../../wallet'
-import { watchTransactions } from '../../wallet/sbch'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
@@ -207,7 +205,6 @@ import { useWakeLock } from '@vueuse/core'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
 import {
   generateReceivingAddress,
-  generateSbchAddress,
   getDerivationPathForWalletType,
   generateAddressSetWithoutSubscription
 } from 'src/utils/address-generation-utils.js'
@@ -218,9 +215,6 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 import HeaderNav from '../../components/header-nav'
 import CustomInput from 'src/components/CustomInput.vue'
-
-const sep20IdRegexp = /sep20\/(.*)/
-const sBCHWalletType = 'Smart BCH'
 
 export default {
   name: 'receive-page',
@@ -233,7 +227,6 @@ export default {
   },
   data () {
     return {
-      sBCHListener: null,
       activeBtn: 'btn-bch',
       walletType: '',
       isCt: false,
@@ -281,17 +274,12 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    isSep20 () {
-      return this.network === 'sBCH'
-    },
     address () {
       // Use dynamically generated address instead of store-retrieved address
       const address = this.dynamicAddress
       if (!address) return ''
       
-      if (this.walletType === sBCHWalletType) {
-        return address
-      } else if (this.legacy) {
+      if (this.legacy) {
         return this.convertToLegacyAddress(address)
       } else {
         if (this.isCt) {
@@ -302,7 +290,7 @@ export default {
       }
     },
     selectedAssetMarketPrice() {
-      return this.$store.getters['market/getAssetPrice'](this.asset.id, this.selectedMarketCurrency())
+      return this.$store.getters['market/getAssetPrice'](this.asset?.id, this.selectedMarketCurrency())
     },
     addressAmountFormat () {
       let tempAddress = this.address
@@ -320,7 +308,7 @@ export default {
       }
 
       if (this.assetId.startsWith('ct/')) {
-        const tokenAmount = parseFloat(tempAmount) * (10 ** this.asset.decimals)
+        const tokenAmount = parseFloat(tempAmount) * (10 ** (this.asset?.decimals || 0))
         tempAddress += this.amount ? '&f=' + Math.round(tokenAmount) : ''
       } else {
         tempAddress += this.amount ? '?amount=' + tempAmount : ''
@@ -335,6 +323,19 @@ export default {
   methods: {
     getDarkModeClass,
     formatWithLocale,
+
+    /**
+     * Ensures address index is never 0 (0/0 is reserved for message encryption)
+     * Returns 1 if index is 0, otherwise returns the index as-is
+     * @param {number} index - The address index to validate
+     * @returns {number} - The validated address index (never 0)
+     */
+    ensureAddressIndexNotZero (index) {
+      if (typeof index !== 'number' || index < 0) {
+        return 1 // Default to 1 if invalid
+      }
+      return index === 0 ? 1 : index
+    },
 
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
@@ -360,16 +361,6 @@ export default {
 
       return mainchainTokens
     },
-    async getSmartchainTokens () {
-      const tokens = await this.$store.dispatch(
-        'sep20/getMissingAssets',
-        {
-          address: this.getWallet('sbch').lastAddress,
-          icludeIgnoredTokens: false
-        }
-      )
-      return tokens
-    },
     convertFiatToSelectedAsset (amount) {
       const parsedAmount = Number(amount)
       if (!parsedAmount) return ''
@@ -386,6 +377,7 @@ export default {
       return logoGenerator(String(asset && asset.id))
     },
     getImageUrl (asset) {
+      if (!asset) return this.getFallbackAssetLogo(asset)
       if (asset.logo) {
         if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
           return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
@@ -404,12 +396,13 @@ export default {
       const vm = this
       vm.generating = true
       const lastAddressIndex = vm.getLastAddressIndex()
-      const newAddressIndex = lastAddressIndex + 1
+      let newAddressIndex = lastAddressIndex + 1
+      // Skip address 0/0 (reserved for message encryption)
+      newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
 
-      vm.stopSbchListener()
       delete this?.$options?.sockets
 
-        getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
           getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
@@ -440,19 +433,15 @@ export default {
             try { await vm.setupListener() } catch {}
           })
         }
-
-        if (vm.walletType === sBCHWalletType) {
-          wallet.sBCH.getOrInitWallet().then(() => {
-            wallet.sBCH.subscribeWallet()
-          })
-        }
       })
     },
     async showPrivateKey () {
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
-        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        // Skip address 0/0 (reserved for message encryption)
+        lastAddressIndex = this.ensureAddressIndexNotZero(lastAddressIndex)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const privateKey = await dynamicWallet.getPrivateKey('0/' + String(lastAddressIndex))
         
@@ -476,7 +465,9 @@ export default {
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
-        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        // Skip address 0/0 (reserved for message encryption)
+        lastAddressIndex = this.ensureAddressIndexNotZero(lastAddressIndex)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
         
@@ -521,27 +512,7 @@ export default {
       
       // Fallback: if dynamicAddress is not set yet, wait for it or generate
       // This should rarely happen, but provides a safety net
-      if (this.isSep20) {
-        this.walletType = 'sbch'
-        // For sBCH, generate dynamically
-        try {
-          const address = await generateSbchAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex']
-          })
-          if (!address) {
-            throw new Error('Failed to generate and subscribe sBCH address')
-          }
-          return address
-        } catch (error) {
-          console.error('Error generating sBCH address:', error)
-          this.$q.notify({
-            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
-            color: 'negative',
-            icon: 'warning'
-          })
-          return null
-        }
-      } else if (this.assetId.indexOf('slp/') > -1) {
+      if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
       } else {
         this.walletType = 'bch'
@@ -551,7 +522,9 @@ export default {
       // This should not happen in normal flow since refreshDynamicAddress is called first
       try {
         const addressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        let validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 1
+        // Skip address 0/0 (reserved for message encryption)
+        validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
         
         let address = await generateReceivingAddress({
           walletIndex: this.$store.getters['global/getWalletIndex'],
@@ -608,32 +581,20 @@ export default {
         // Determine wallet type
         if (this.assetId.indexOf('slp/') > -1) {
           this.walletType = 'slp'
-        } else if (this.isSep20) {
-          this.walletType = 'sbch'
         } else {
           this.walletType = 'bch'
         }
         
         // Get lastAddressIndex
         const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        const validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 0
+        let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
+        // Skip address 0/0 (reserved for message encryption)
+        validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
         
         // Generate address from lastAddressIndex
         let address
-        if (this.isSep20) {
-          // For sBCH, use existing logic
-          address = await generateSbchAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex']
-          })
-          if (!address) {
-            throw new Error('Failed to generate and subscribe sBCH address')
-          }
-          this.dynamicAddress = address
-          this.dynamicAddressRegular = address // sBCH uses same format
-          this.generating = false
-          return
-        } else {
-          // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+        
+        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
           const addressResult = await generateAddressSetWithoutSubscription({
             walletIndex: this.$store.getters['global/getWalletIndex'],
             derivationPath: getDerivationPathForWalletType(this.walletType),
@@ -678,7 +639,9 @@ export default {
           }
           
           // Step 4: Else, generate a new address by incrementing the lastAddressIndex by 1
-          const newAddressIndex = validAddressIndex + 1
+          let newAddressIndex = validAddressIndex + 1
+          // Skip address 0/0 (reserved for message encryption)
+          newAddressIndex = this.ensureAddressIndexNotZero(newAddressIndex)
           
           // Step 5: Generate and subscribe the new address (only subscribe when creating new address)
           const newAddress = await generateReceivingAddress({
@@ -716,7 +679,6 @@ export default {
             this.dynamicAddress = newAddress
           }
           this.generating = false
-        }
       } catch (error) {
         console.error('Error refreshing dynamic address:', error)
         this.generating = false // Stop generating even on error
@@ -746,10 +708,7 @@ export default {
       })
     },
     getAsset (id) {
-      let getter = 'assets/getAsset'
-      if (this.isSep20) {
-        getter = 'sep20/getAsset'
-      }
+      const getter = 'assets/getAsset'
       const assets = this.$store.getters[getter](id)
       if (assets.length > 0) {
         return assets[0]
@@ -776,7 +735,6 @@ export default {
     },
     async setupListener () {
       const vm = this
-      if (vm.isSep20) return vm.setupSbchListener()
 
       let url
       let assetType
@@ -857,7 +815,7 @@ export default {
               data.amount / (10 ** data.token_decimals),
               data.token_symbol.toUpperCase(),
               vm.getImageUrl(vm.asset),
-              tokenType === 'ct' ? vm.asset.decimals : 0,
+              tokenType === 'ct' ? (vm.asset?.decimals || 0) : 0,
               tokenType === 'ct'
             )
           }
@@ -934,9 +892,7 @@ export default {
           // if unlisted token is detected, add to front of list
           // check if token already added in list using store getters
           const allAssets = vm.$store.getters['assets/getAssets'] || []
-          const allSep20Assets = vm.$store.getters['sep20/getAssets'] || []
-          const existingAsset = allAssets.find(a => a && a.id === data.token_id) || 
-                               allSep20Assets.find(a => a && a.id === data.token_id)
+          const existingAsset = allAssets.find(a => a && a.id === data.token_id)
           
           if (!existingAsset) {
             try {
@@ -953,53 +909,14 @@ export default {
                   balance: amount
                 }
 
-                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, tokenWithBalance)
-                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+                vm.$store.commit('assets/addNewAsset', tokenWithBalance)
+                vm.$store.commit('assets/moveAssetToBeginning')
               }
             } catch (error) {
               console.error('Error adding new token:', error)
             }
           }
         }
-      }
-    },
-
-    setupSbchListener () {
-      const vm = this
-      if (!vm.isSep20) return
-
-      const address = vm.getAddress()
-      const opts = { type: 'incoming' }
-      if (sep20IdRegexp.test(vm.asset.id)) {
-        const contractAddress = vm.asset.id.match(sep20IdRegexp)[1]
-        opts.contractAddresses = [contractAddress]
-        opts.tokensOnly = true
-      } else {
-        opts.tokensOnly = false
-      }
-
-      // Stop listener if another listener already exists
-      vm.stopSbchListener()
-      watchTransactions(
-        address,
-        opts,
-        function ({ tx }) {
-          if (!tx || tx.to !== address) return
-
-          vm.notifyOnReceive(
-            tx.amount,
-            vm.asset.symbol,
-            vm.getImageUrl(vm.asset)
-          )
-        }
-      ).then(listener => {
-        vm.sBCHListener = listener
-      })
-    },
-
-    stopSbchListener () {
-      if (this.sBCHListener && this.sBCHListener.stop && this.sBCHListener.stop.call) {
-        this.sBCHListener.stop()
       }
     }
   },
@@ -1039,11 +956,9 @@ export default {
 
   async unmounted () {
     if (!this.assetId.endsWith('unlisted')) {
-      this.stopSbchListener()
       this.$disconnect()
       delete this?.$options?.sockets
     }
-
 
     await self.wakeLock.release()
   },
@@ -1069,11 +984,40 @@ export default {
       console.warn('Wake lock permission denied or not available:', error)
     }
 
-    vm.tokens = vm.$store.getters['global/network'] === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
+    vm.tokens = await vm.getMainchainTokens()
   },
 
   created () {
     const vm = this
+    
+    // Check if asset data was passed from select-asset page
+    // This allows immediate rendering with correct logo and details
+    if (vm.$route.query.assetData) {
+      try {
+        const passedAsset = JSON.parse(vm.$route.query.assetData)
+        if (passedAsset && passedAsset.id) {
+          // Use the passed asset data immediately
+          vm.asset = {
+            id: passedAsset.id,
+            name: passedAsset.name || 'Unknown Token',
+            symbol: passedAsset.symbol || '',
+            decimals: passedAsset.decimals !== undefined ? passedAsset.decimals : 0,
+            logo: passedAsset.logo || null,
+            balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
+          }
+          console.log('[Receive] Using passed asset data from select-asset page:', vm.asset)
+          if (vm.assetId.startsWith('ct/')) {
+            vm.setAmountInFiat = false
+          }
+          return // Early return - we have the asset data we need
+        }
+      } catch (error) {
+        console.warn('[Receive] Failed to parse passed asset data:', error)
+        // Fall through to default logic below
+      }
+    }
+    
+    // Fallback to original logic if no asset data was passed or parsing failed
     if (vm.assetId.endsWith('unlisted')) {
       vm.asset = {
         id: vm.assetId,

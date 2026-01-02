@@ -39,12 +39,25 @@ export class SweepPrivateKey {
     let resp
 
     while (retries < 3) {
-      resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
-      if (resp.data.balance > 0) break
-      else retries++
-      setTimeout(() => {}, 250)
+      try {
+        resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
+        // Return response even if balance is 0
+        if (resp.data) {
+          return resp.data
+        }
+      } catch (error) {
+        console.error(`BCH balance fetch attempt ${retries + 1} failed:`, error.message)
+      }
+      
+      retries++
+      if (retries < 3) {
+        // Properly wait between retries
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
     }
-    return resp.data
+    
+    // Return default balance structure if all retries failed
+    return resp?.data || { balance: 0, spendable: 0, pending: 0 }
   }
 
   async getFungibleCashTokens(subscribe=true) {
@@ -52,7 +65,7 @@ export class SweepPrivateKey {
       const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
         address: this.bchAddress,
       })
-      if (!subscribeResp.data.success) return
+      if (!subscribeResp.data.success) return []
     }
 
     const url = `https://watchtower.cash/api/cts/balances/${encodeURIComponent(this.tokenAddress)}/fts`
@@ -61,10 +74,24 @@ export class SweepPrivateKey {
     let resp
 
     while (retries < 3) {
-      resp = await axios.get(url, { params })
-      if (resp.data.results.length > 0) break
-      else retries++
-      setTimeout(() => {}, 250)
+      try {
+        resp = await axios.get(url, { params })
+        if (resp.data?.results) {
+          break
+        }
+      } catch (error) {
+        console.error(`Fungible tokens fetch attempt ${retries + 1} failed:`, error.message)
+      }
+      
+      retries++
+      if (retries < 3) {
+        // Properly wait between retries
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+    }
+    
+    if (!resp?.data?.results) {
+      return []
     }
 
     const tokenDataPromises = await Promise.allSettled(
@@ -104,7 +131,7 @@ export class SweepPrivateKey {
       const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
         address: this.bchAddress,
       })
-      if (!subscribeResp.data.success) return
+      if (!subscribeResp.data.success) return []
     }
 
     const url = `https://watchtower.cash/api/cashtokens/nft/`
@@ -125,15 +152,19 @@ export class SweepPrivateKey {
           break
         }
       } catch (error) {
-        // On error, retry
+        console.error(`NFT tokens fetch attempt ${retries + 1} failed:`, error.message)
       }
       retries++
       if (retries < 3) {
-        await new Promise(resolve => setTimeout(resolve, 250))
+        await new Promise(resolve => setTimeout(resolve, 500))
       }
     }
 
-    const results = resp?.data?.results.map(CashNonFungibleToken.parse)
+    if (!resp?.data?.results) {
+      return []
+    }
+
+    const results = resp.data.results.map(CashNonFungibleToken.parse)
     await Promise.allSettled(results.map(nft => nft?.fetchMetadata()))
     return results
   }
@@ -165,7 +196,7 @@ export class SweepPrivateKey {
     return watchtower.BCH.send(data)
   }
 
-  sweepBch (bchAddress, bchWif, spendableBalance, feeFunder, recipient) {
+  sweepBch (bchAddress, bchWif, spendableBalance, feeFunder, recipient, broadcast = true) {
     const watchtower = new Watchtower()
     const data = {
       sender: {
@@ -179,7 +210,7 @@ export class SweepPrivateKey {
         }
       ],
       feeFunder,
-      broadcast: true
+      broadcast
     }
 
     return watchtower.BCH.send(data)

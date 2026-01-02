@@ -259,8 +259,7 @@ export default {
         const wallet = await loadWallet('BCH', multiWalletIndex)
         const walletHashes = [
           getWalletByNetwork(wallet, 'bch').getWalletHash(),
-          getWalletByNetwork(wallet, 'slp').getWalletHash(),
-          wallet.sBCH.getWalletHash()
+          getWalletByNetwork(wallet, 'slp').getWalletHash()
         ]
 
         if (shouldEnable) {

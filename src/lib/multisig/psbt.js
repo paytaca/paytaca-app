@@ -1072,8 +1072,11 @@ export class PsbtOutput {
   }
 
   getToken() {
-    return this.keypairs[PSBT_OUT_CASHTOKEN]?.value?.value && 
-      readTokenPrefix({ bin: this.keypairs[PSBT_OUT_CASHTOKEN]?.value?.value, index: 0 })
+    if (this.keypairs[PSBT_OUT_CASHTOKEN]?.value?.value) {
+      const readTokenPrefixResult = readTokenPrefix({ bin: this.keypairs[PSBT_OUT_CASHTOKEN]?.value?.value, index: 0 })
+      return readTokenPrefixResult?.result?.token
+    }
+    return null
   }
 
   /**

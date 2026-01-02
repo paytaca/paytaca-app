@@ -72,7 +72,7 @@
             <q-avatar size="40px" class="amount-avatar-ss"><img :src="getImageUrl(tx.asset)" alt="asset-logo" /></q-avatar>
             <div class="amount-label-ss">{{ displayAmountText }}</div>
           </div>
-          <div v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
+          <div v-if="!isNft && displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
             <span>{{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}</span>
             <q-icon 
               name="info" 
@@ -89,6 +89,67 @@
           <div v-if="gainLossAmount !== null && gainLossAmount !== undefined && isBchTransaction && Math.abs(gainLossAmount) > 0.01" class="amount-gain-loss-ss" :class="gainLossClass">
             <q-icon :name="gainLossAmount >= 0 ? 'trending_up' : 'trending_down'" size="16px" class="q-mr-xs" />
             {{ gainLossText }}
+          </div>
+        </div>
+
+        <!-- NFT Image Display -->
+        <div v-if="isNft && tx && tx.asset" class="q-mt-md q-mb-lg text-center">
+          <div v-if="fetchingNftMetadata" class="nft-image-skeleton-container">
+            <q-skeleton
+              type="rect"
+              width="300px"
+              height="300px"
+              class="nft-image-skeleton"
+              style="border-radius: 12px; margin: 0 auto;"
+            />
+          </div>
+          <div v-else>
+            <q-img
+              v-if="nftImageUrl"
+              :src="nftImageUrl"
+              :alt="nftName || tx.asset.name || 'NFT'"
+              style="max-width: 300px; max-height: 300px; margin: 0 auto; border-radius: 12px;"
+              class="nft-image"
+              @error="nftImageError = true"
+            >
+              <template v-slot:error>
+                <div class="absolute-full flex flex-center bg-grey-3 text-grey-8">
+                  <div class="text-center">
+                    <q-icon name="image" size="48px" />
+                    <div class="text-caption q-mt-sm">{{ $t('ImageNotAvailable', {}, 'Image not available') }}</div>
+                  </div>
+                </div>
+              </template>
+            </q-img>
+            <q-img
+              v-else
+              :src="getImageUrl(tx.asset)"
+              :alt="tx.asset.name || 'NFT'"
+              style="max-width: 300px; max-height: 300px; margin: 0 auto; border-radius: 12px;"
+              class="nft-image"
+              @error="nftImageError = true"
+            >
+              <template v-slot:error>
+                <div class="absolute-full flex flex-center bg-grey-3 text-grey-8">
+                  <div class="text-center">
+                    <q-icon name="image" size="48px" />
+                    <div class="text-caption q-mt-sm">{{ $t('ImageNotAvailable', {}, 'Image not available') }}</div>
+                  </div>
+                </div>
+              </template>
+            </q-img>
+            <!-- View in Collectibles Button -->
+            <div class="q-mt-md q-mb-sm">
+              <q-btn
+                no-caps
+                rounded
+                color="pt-primary1"
+                :label="$t('ViewInCollectibles', {}, 'View in Collectibles')"
+                icon="collections"
+                @click="viewInCollectibles"
+                class="view-in-collectibles-btn"
+              />
+            </div>
           </div>
         </div>
 
@@ -134,79 +195,63 @@
         </div>
 
         <!-- Transaction Metadata Section -->
-        <template v-if="attributeDetails?.length">
+        <template v-if="metadataBadges?.length || attributeDetails?.length">
           <q-separator spaced class="q-mt-lg"/>
-          <div class="q-px-md row items-center justify-center section-block-ss">
-            <div class="text-grey text-weight-medium text-caption">{{ $t('TransactionMetadata', {}, 'Transaction metadata') }}</div>
-            <q-btn flat icon="more_vert" padding="sm" round class="q-r-mr-md">
-              <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                <q-item
-                  :active="displayRawAttributes"
-                  clickable v-close-popup
-                  @click="() => displayRawAttributes = true"
-                >
-                  <q-item-section>
-                    <q-item-label>{{ $t('DisplayRawData', {}, 'Display raw data') }}</q-item-label>    
-                  </q-item-section>
-                </q-item>
-                <q-item
-                  :active="!displayRawAttributes"
-                  clickable v-close-popup
-                  @click="() => displayRawAttributes = false"
-                >
-                  <q-item-section>
-                    <q-item-label>{{ $t('DisplayRefinedData', {}, 'Display refined data') }}</q-item-label>    
-                  </q-item-section>
-                </q-item>
-              </q-menu>
-            </q-btn>
+          <div class="section-block-ss">
+            <div class="row items-center justify-center q-mb-sm">
+              <div class="text-grey text-weight-medium text-caption">{{ $t('TransactionMetadata', {}, 'Transaction metadata') }}</div>
+              <q-btn flat icon="more_vert" size="sm" padding="xs" round dense>
+                <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                  <q-item
+                    :active="displayRawAttributes"
+                    clickable v-close-popup
+                    @click="() => displayRawAttributes = true"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ $t('DisplayRawData', {}, 'Display raw data') }}</q-item-label>    
+                    </q-item-section>
+                  </q-item>
+                  <q-item
+                    :active="!displayRawAttributes"
+                    clickable v-close-popup
+                    @click="() => displayRawAttributes = false"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ $t('DisplayRefinedData', {}, 'Display refined data') }}</q-item-label>    
+                    </q-item-section>
+                  </q-item>
+                </q-menu>
+              </q-btn>
+            </div>
           </div>
           <q-slide-transition>
-            <div>
-              <div v-if="!displayRawAttributes" v-for="(group, index) in attributeDetails" :key="index" class="q-my-sm section-block-ss"> 
-                <div class="q-px-md text-subtitle1 text-left">{{ group?.name }}</div>
-                <q-item
-                  v-for="(attributeDetails, index2) in group?.items" :key="`${index}-${index2}`"
+            <div v-if="!displayRawAttributes" class="q-mt-sm q-mb-md">
+              <div v-if="metadataBadges?.length" class="transaction-metadata-badges">
+                <q-badge
+                  v-for="(badge, index) in metadataBadges" :key="index"
+                  class="badge-item"
+                  rounded
+                  @click.stop
                 >
-                  <q-item-section>
-                    <q-item-label class="text-grey row items-center justify-left">
-                      <div>{{ attributeDetails?.label }}</div>
-                      <template v-if="attributeDetails?.tooltip">
-                        <q-icon name="description" size="1.25em" class="q-ml-xs"/>
-                        <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
-                          {{ attributeDetails?.tooltip }}
-                        </q-menu>
-                      </template>
-                    </q-item-label>
-                    <q-item-label>
-                      <div class="row items-start no-wrap justify-left">
-                        <div class="q-space q-my-xs text-left" style="word-break:break-all">
-                          {{ attributeDetails?.text }}
-                        </div>
-                        <div
-                          v-for="(action, index3) in attributeDetails?.actions" :key="`${index}-${index2}-${index3}`"
-                          class="row items-center"
-                        >
-                          <q-btn
-                            flat :icon="action?.icon"
-                            size="sm" padding="xs sm"
-                            @click.stop="() => handleAttributeAction(action)"
-                          />
-                          <q-separator
-                            v-if="index3 < attributeDetails?.actions?.length - 1"
-                            vertical
-                            :dark="darkMode"
-                          />
-                        </div>
+                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon" class="badge-icon-img q-mr-xs"/>
+                  <q-icon v-else-if="badge?.icon" :name="badge?.icon" class="q-mr-xs" size="14px"/>
+                  <span class="badge-text">
+                    {{ badge?.text }}
+                  </span>
+                  <q-popup-proxy :breakpoint="0">
+                    <div class="badge-popup pt-card pt-label" :class="getDarkModeClass(darkMode)">
+                      <div v-if="badge?.text?.length >= 14">
+                        {{ badge?.text }}
                       </div>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
+                      <div class="text-caption">{{ badge?.description }}</div>
+                    </div>
+                  </q-popup-proxy>
+                </q-badge>
               </div>
             </div>
           </q-slide-transition>
           <q-slide-transition>
-            <div v-if="displayRawAttributes">
+            <div v-if="displayRawAttributes" class="q-mt-sm">
               <q-item v-for="(attribute, index) in tx?.attributes" :key="index">
                 <q-item-section side top>
                   <q-item-label caption class="text-grey">
@@ -300,13 +345,15 @@ import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
-import { parseAttributesToGroups } from 'src/utils/tx-attributes'
+import { parseAttributesToGroups, parseAttributeToBadge } from 'src/utils/tx-attributes'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import JppDetailDialog from 'src/components/JppDetailDialog.vue'
 import * as assetSettings from 'src/utils/asset-settings'
+import { getBcmrBackend, convertIpfsUrl } from 'src/wallet/cashtokens'
+import { binToHex } from '@bitauth/libauth'
 
 export default {
   name: 'TransactionDetailPage',
@@ -338,6 +385,10 @@ export default {
       favorites: [],
       addingToFavorites: false,
       favoritesEvaluated: false, // Track if favorites have been evaluated in background
+      nftImageError: false, // Track if NFT image failed to load
+      nftImageUrl: null, // NFT image URL from BCMR type_metadata
+      nftName: null, // NFT name from BCMR type_metadata
+      fetchingNftMetadata: false, // Track if NFT metadata is being fetched
     }
   },
   computed: {
@@ -363,6 +414,13 @@ export default {
     },
     displayAmountText () {
       if (!this.tx) return ''
+      
+      // For NFT transactions, show type name instead of amount and symbol
+      if (this.isNft) {
+        // Use nftName if available (from BCMR metadata), otherwise use asset.name
+        return this.nftName || this.tx.asset?.name || 'NFT'
+      }
+      
       const denom = (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
         ? this.denominationTabSelected
         : this.$store.getters['global/denomination']
@@ -490,9 +548,93 @@ export default {
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
+    isNft () {
+      if (!this.tx) return false
+      // Check if is_nft is directly on tx or tx.asset
+      if (this.tx.is_nft === true || this.tx.is_nft === 'true') return true
+      if (this.tx.asset?.is_nft === true || this.tx.asset?.is_nft === 'true') return true
+      // Check if is_nft is in attributes array
+      if (Array.isArray(this.tx.attributes)) {
+        const nftAttribute = this.tx.attributes.find(attr => {
+          if (attr.key === 'is_nft') {
+            return attr.value === true || attr.value === 'true' || String(attr.value).toLowerCase() === 'true'
+          }
+          // Also check if key-value pair is stored as a string like "is_nft=true"
+          if (typeof attr.key === 'string' && attr.key.includes('is_nft')) {
+            return attr.value === true || attr.value === 'true' || String(attr.value).toLowerCase() === 'true'
+          }
+          return false
+        })
+        if (nftAttribute) return true
+      }
+      return false
+    },
+    nftTokenId () {
+      if (!this.isNft || !this.tx) return null
+      // Extract category from token field
+      // Priority: token.id (category) > token.asset_id (ct/category) > asset.id
+      let tokenId = null
+      
+      // First try token.id (this is the category ID)
+      if (this.tx.token?.id) {
+        tokenId = this.tx.token.id
+      }
+      // Then try token.asset_id (format: "ct/category")
+      else if (this.tx.token?.asset_id) {
+        tokenId = this.tx.token.asset_id
+      }
+      // Fallback to asset.id
+      else if (this.tx.asset?.id) {
+        tokenId = this.tx.asset.id
+      }
+      
+      if (!tokenId) return null
+      
+      // If it's in format "ct/..." or "slp/...", extract just the category part
+      if (typeof tokenId === 'string' && tokenId.includes('/')) {
+        const parts = tokenId.split('/')
+        if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+          return parts[1] // Return just the category ID
+        }
+      }
+      
+      // Otherwise return as-is (should be just the category ID)
+      return tokenId
+    },
+    nftCommitment () {
+      if (!this.isNft || !this.tx) return null
+      // Try to get commitment from token field first
+      let commitment = this.tx.token?.commitment
+      
+      // If not found, try to get from attributes
+      if (!commitment && Array.isArray(this.tx.attributes)) {
+        const commitmentAttr = this.tx.attributes.find(attr => attr.key === 'commitment')
+        if (commitmentAttr && commitmentAttr.value) {
+          commitment = commitmentAttr.value
+        }
+      }
+      
+      // Convert commitment to hex string if it's a Uint8Array or Buffer
+      if (commitment) {
+        if (commitment instanceof Uint8Array || (commitment.constructor && commitment.constructor.name === 'Uint8Array')) {
+          return binToHex(commitment)
+        }
+        if (Buffer && Buffer.isBuffer(commitment)) {
+          return commitment.toString('hex')
+        }
+        // If it's already a string, return as is
+        if (typeof commitment === 'string') {
+          return commitment
+        }
+      }
+      
+      return null
+    },
     showAddToFavoritesButton () {
       // Hide by default until favorites are evaluated
       if (!this.favoritesEvaluated) return false
+      // Don't show button for NFTs
+      if (this.isNft) return false
       if (!this.isTokenTransaction || !this.tokenAssetId) return false
       // Check if token is not in favorites
       const favoriteIds = this.favorites
@@ -545,6 +687,11 @@ export default {
     attributeDetails () {
       if (!Array.isArray(this.tx?.attributes)) return []
       return parseAttributesToGroups({ attributes: this.tx?.attributes })
+    },
+    metadataBadges () {
+      if (!Array.isArray(this.tx?.attributes)) return []
+      return this.tx.attributes.map(parseAttributeToBadge)
+        .filter(badge => badge?.custom)
     },
     backNavPath () {
       // Return the appropriate back path based on where we came from
@@ -686,6 +833,19 @@ export default {
       if (newTx && newTx.txid && (!oldTx || oldTx.txid !== newTx.txid)) {
         this.$nextTick(() => {
           this.loadMemo()
+        })
+      }
+      // Fetch NFT metadata when transaction changes and it's an NFT
+      if (newTx) {
+        this.$nextTick(() => {
+          // Reset NFT image and name when transaction changes
+          this.nftImageUrl = null
+          this.nftName = null
+          this.nftImageError = false
+          // Fetch metadata if it's an NFT
+          if (this.isNft) {
+            this.fetchNftMetadata()
+          }
         })
       }
     }
@@ -1288,6 +1448,85 @@ export default {
         console.debug('[TransactionDetail] Price not available for token:', assetId, error)
       }
     },
+    async fetchNftMetadata () {
+      // Only fetch if it's an NFT and we have token ID
+      if (!this.isNft || !this.nftTokenId) {
+        this.nftImageUrl = null
+        this.nftName = null
+        return
+      }
+
+      // Don't fetch if already fetching or if we already have the image
+      if (this.fetchingNftMetadata || this.nftImageUrl) return
+
+      this.fetchingNftMetadata = true
+      this.nftImageError = false
+
+      try {
+        const tokenId = this.nftTokenId
+        const commitment = this.nftCommitment
+
+        // Build URL: tokens/{tokenId}/ or tokens/{tokenId}/{commitment}/
+        let url = `tokens/${tokenId}/`
+        if (commitment) {
+          url += `${commitment}/`
+        }
+
+        const response = await getBcmrBackend().get(url)
+        const metadata = response?.data
+
+        if (metadata) {
+          // Extract name from type_metadata
+          if (metadata.type_metadata?.name) {
+            this.nftName = metadata.type_metadata.name
+          } else if (metadata.name) {
+            // Fallback to top-level name if type_metadata.name doesn't exist
+            this.nftName = metadata.name
+          } else {
+            this.nftName = null
+          }
+
+          // Extract image URL from type_metadata
+          // Priority: type_metadata.uris.image > type_metadata.uris.icon
+          let imageUrl = null
+          if (metadata.type_metadata?.uris?.image) {
+            imageUrl = metadata.type_metadata.uris.image
+          } else if (metadata.type_metadata?.uris?.icon) {
+            imageUrl = metadata.type_metadata.uris.icon
+          }
+
+          if (imageUrl) {
+            // Convert IPFS URL if needed
+            this.nftImageUrl = convertIpfsUrl(imageUrl)
+            // Add Pinata gateway token if it's a Pinata IPFS URL
+            if (this.nftImageUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+              this.nftImageUrl += '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+            }
+          } else {
+            // No image found in type_metadata
+            this.nftImageUrl = null
+          }
+        } else {
+          this.nftImageUrl = null
+          this.nftName = null
+        }
+      } catch (error) {
+        console.error('[TransactionDetail] Error fetching NFT metadata:', error)
+        this.nftImageUrl = null
+        this.nftName = null
+      } finally {
+        this.fetchingNftMetadata = false
+      }
+    },
+    viewInCollectibles () {
+      // Navigate to collectibles page with category parameter if available
+      const category = this.nftTokenId
+      const query = category ? { category } : {}
+      this.$router.push({
+        name: 'app-collectibles',
+        query
+      })
+    },
     async addTokenToFavorites () {
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
       
@@ -1332,17 +1571,13 @@ export default {
       
       this.addingToFavorites = true
       try {
-        // Determine network: 'sBCH' for smartchain tokens, 'BCH' for mainchain tokens
-        const isSmartchain = this.tokenAssetId.startsWith('sep20/')
-        const selectedNetwork = isSmartchain ? 'sBCH' : 'BCH'
+        const selectedNetwork = 'BCH'
         
         // Fetch custom list (same as asset list page)
         let customList = await assetSettings.fetchCustomList()
         
-        // Get all assets from store based on network
-        const allAssets = selectedNetwork === 'sBCH'
-          ? this.$store.getters['sep20/getAssets']
-          : this.$store.getters['assets/getAssets']
+        // Get all assets from store for BCH network
+        const allAssets = this.$store.getters['assets/getAssets']
         
         // Filter out BCH from the list
         const assets = allAssets.filter(asset => asset && asset.id !== 'bch')
@@ -2102,6 +2337,79 @@ export default {
 .memo-actions { display: flex; align-items: center; flex-shrink: 0; }
 .memo-input.memo-input-dark { background-color: rgba(255, 255, 255, 0.1); color: white; }
 .memo-input.memo-input-light { background-color: rgba(0, 0, 0, 0.05); color: black; }
+
+/* NFT Image Styles */
+.nft-image {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  object-fit: contain;
+}
+
+.nft-image-skeleton-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.nft-image-skeleton {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.nft-name {
+  margin-top: 12px;
+  word-break: break-word;
+  padding: 0 16px;
+}
+
+.view-in-collectibles-btn {
+  margin-top: 8px;
+}
+
+/* Transaction Metadata Badges */
+.transaction-metadata-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.transaction-metadata-badges .badge-item {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.transaction-metadata-badges .badge-item:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.transaction-metadata-badges .badge-text {
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-metadata-badges .badge-icon-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.transaction-metadata-badges .badge-popup {
+  padding: 8px 12px;
+  word-break: break-all;
+  max-width: 280px;
+}
 
 </style>
 

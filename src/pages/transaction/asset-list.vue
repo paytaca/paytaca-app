@@ -185,9 +185,6 @@ export default {
 	    denomination () {
 	      return this.$store.getters['global/denomination']
 	    },
-	    isSep20 () {
-	      return this.selectedNetwork === 'sBCH'
-	    },
 	    selectedNetwork: {
 	      get () {
 	        return this.$store.getters['global/network']
@@ -264,7 +261,7 @@ export default {
 
 		    // Always fetch tokens directly from API - completely ignore Vuex store
 		    // Only CashTokens on BCH network are supported by the fungible API
-		    if (this.selectedNetwork !== 'sBCH' && this.isCashToken) {
+		    if (this.isCashToken) {
 		    	try {
 		    		const directTokens = await this.fetchTokensDirectlyFromAPI()
 		    		// Use API data only - no fallback to store
@@ -276,7 +273,7 @@ export default {
 		    		this.assetList = []
 		    	}
 		    } else {
-		    	// For SLP and sBCH, the fungible API doesn't support them yet
+		    	// For SLP, the fungible API doesn't support it yet
 		    	// Show empty list instead of using store data
 		    	this.assetList = []
 		    }
@@ -562,7 +559,7 @@ export default {
 	      })
 	    },
 	    async fetchTokensDirectlyFromAPI () {
-	    	if (this.selectedNetwork === 'sBCH' || !this.isCashToken) {
+	    	if (!this.isCashToken) {
 	    		return []
 	    	}
 	    	

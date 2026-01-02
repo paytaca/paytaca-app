@@ -90,7 +90,7 @@ export function getWallet (type) {
  * IMPORTANT: This function subscribes the address to watchtower before returning.
  * If subscription fails, it will throw an error to prevent using unsubscribed addresses.
  * 
- * @param {string} walletType - 'bch', 'slp', or 'sbch'
+ * @param {string} walletType - 'bch' or 'slp'
  * @returns {Promise<string>} The change address
  * @throws {Error} If address generation or subscription fails
  */

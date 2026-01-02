@@ -11,7 +11,7 @@
     <div class="transaction-content">
       <div class="transaction-header">
         <div class="transaction-type">
-          <div class="type-with-asset" v-if="showAssetInfo">
+          <div class="type-with-asset" v-if="showAssetInfo && !isNftTransaction">
             <q-avatar size="20px" class="q-mr-xs">
               <img v-if="assetImageUrl" :src="assetImageUrl" />
               <q-icon v-else name="apps" size="14px" />
@@ -47,23 +47,29 @@
             </div>
           </template>
           <template v-else>
-            <div class="amount-primary">
-              {{
-                `${parseAssetDenomination(
-                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                  ...asset,
-                  balance: transaction?.amount,
-                  thousandSeparator: true
-                })}`
-              }}
+            <!-- For NFT transactions, show type name instead of quantity and symbol -->
+            <div v-if="isNftTransaction" class="amount-primary">
+              {{ asset?.name || 'NFT' }}
             </div>
-            <div
-              v-if="displayFiatAmount !== null && displayFiatAmount !== undefined"
-              class="amount-secondary"
-              :class="getDarkModeClass(darkMode)"
-            >
-              {{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}
-            </div>
+            <template v-else>
+              <div class="amount-primary">
+                {{
+                  `${parseAssetDenomination(
+                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                    ...asset,
+                    balance: transaction?.amount,
+                    thousandSeparator: true
+                  })}`
+                }}
+              </div>
+              <div
+                v-if="displayFiatAmount !== null && displayFiatAmount !== undefined"
+                class="amount-secondary"
+                :class="getDarkModeClass(darkMode)"
+              >
+                {{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}
+              </div>
+            </template>
           </template>
         </div>
       </div>
@@ -275,6 +281,23 @@ const badges = computed(() => {
 
 const stablehedgeTxData = computed(() => extractStablehedgeTxData(props.transaction))
 const isStablehedgeTx = computed(() => Boolean(stablehedgeTxData.value))
+
+// Check if this is an NFT transaction (has category/commitment or is_nft flag)
+const isNftTransaction = computed(() => {
+  if (!asset.value) return false
+  // Check if asset has category and commitment (NFT indicators)
+  if (asset.value.category && asset.value.commitment) return true
+  // Check if transaction has is_nft flag
+  if (props.transaction?.is_nft === true || props.transaction?.is_nft === 'true') return true
+  if (props.transaction?.asset?.is_nft === true || props.transaction?.asset?.is_nft === 'true') return true
+  // Check if asset ID starts with ct/ and has decimals 0 (NFT indicator)
+  if (asset.value.id && asset.value.id.startsWith('ct/') && asset.value.decimals === 0) {
+    // Additional check: if amount is 1 or 0 and it's not BCH, likely an NFT
+    const amount = Number(props.transaction?.amount) || 0
+    if (amount <= 1 && asset.value.id !== 'bch') return true
+  }
+  return false
+})
 
 function formatDate (date) {
   return ago(new Date(date))

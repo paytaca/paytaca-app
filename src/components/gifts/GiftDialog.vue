@@ -11,20 +11,76 @@
         />
       </div>
       <q-card-section style="max-height:calc(90vh - 3.5rem);overflow-y:auto" class="q-pt-sm">
-        <div class="text-center text-h5 q-mb-md">{{ $t('Amount') }}: {{ amount }} BCH</div>
-        <div class="row justify-center q-mb-md">
-          <qr-code :text="qrCodeContents" :size="200"/>
-        </div>
-        <div
-          class="q-py-sm q-px-md q-px-lg q-my-xs row items-center no-wrap rounded-borders q-mb-sm"
-          style="border:1px solid grey; position:relative"
-          v-ripple
-          @click="() => copyToClipboard(qrCodeContents)"
-        >
-          <div class="ellipsis">{{ qrCodeContents }}</div>
-          <q-icon name="content_copy" size="1.25em" class="q-ml-sm"/>
-        </div>
-        <div class="text-center text-subtitle1">{{ $t('ScanClaimGift') }}</div>
+        <!-- Show QR code and URL when showQr is true -->
+        <template v-if="showQr">
+          <div class="text-center text-h5 q-mb-md">{{ $t('Amount') }}: {{ amount }} BCH</div>
+          <div class="row justify-center q-mb-md">
+            <qr-code :text="qrCodeContents" :size="200" icon="bch-logo.png"/>
+          </div>
+          <div
+            class="q-py-sm q-px-md q-px-lg q-my-xs row items-center no-wrap rounded-borders q-mb-sm"
+            style="border:1px solid grey; position:relative"
+            v-ripple
+            @click="() => copyToClipboard(qrCodeContents)"
+          >
+            <div class="ellipsis">{{ qrCodeContents }}</div>
+            <q-icon name="content_copy" size="1.25em" class="q-ml-sm"/>
+          </div>
+          <div class="text-center text-subtitle1">{{ $t('ScanClaimGift') }}</div>
+        </template>
+        
+        <!-- Show gift details when showQr is false -->
+        <template v-else>
+          <div class="q-pa-md">
+            <div class="row q-mb-md">
+              <div class="col-5 text-grey-7">{{ $t('DateCreated', {}, 'Date Created') }}:</div>
+              <div class="col-7 text-right">{{ formattedDateCreated }}</div>
+            </div>
+            <div class="row q-mb-md">
+              <div class="col-5 text-grey-7">{{ $t('Amount') }}:</div>
+              <div class="col-7 text-right text-weight-medium">{{ amount }} BCH</div>
+            </div>
+            <div class="row q-mb-md" v-if="formattedDateClaimed">
+              <div class="col-5 text-grey-7">{{ $t('DateClaimed', {}, 'Date Claimed') }}:</div>
+              <div class="col-7 text-right">{{ formattedDateClaimed }}</div>
+            </div>
+            <div class="row q-mt-md">
+              <div class="col-12 text-center">
+                <q-badge
+                  :class="getStatusBadgeClass()"
+                  class="status-badge-small"
+                >
+                  <q-icon 
+                    :name="getStatusIcon()" 
+                    size="12px" 
+                    class="q-mr-xs"
+                  />
+                  {{ getStatusText() }}
+                </q-badge>
+              </div>
+            </div>
+            <div class="row q-mt-md" v-if="!props.gift?.encrypted_gift_code">
+              <div class="col-12">
+                <q-banner 
+                  :class="darkMode ? 'old-gift-notice dark' : 'old-gift-notice light'"
+                  rounded
+                  class="old-gift-notice-banner"
+                >
+                  <template v-slot:avatar>
+                    <q-icon 
+                      name="mdi-information-outline" 
+                      :color="darkMode ? 'amber-4' : 'amber-8'"
+                      size="24px"
+                    />
+                  </template>
+                  <div class="old-gift-notice-text">
+                    This gift was created from an old version of the app, it can still be claimed by those who got the link, but the link cannot be recreated anymore in this version.
+                  </div>
+                </q-banner>
+              </div>
+            </div>
+          </div>
+        </template>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -35,6 +91,7 @@ import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import { useDialogPluginComponent } from 'quasar'
 import { useI18n } from "vue-i18n"
+import { formatDistance } from 'date-fns'
 
 // dialog plugins requirement
 defineEmits([
@@ -52,14 +109,93 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const props = defineProps({
   gift: Object,
+  showQr: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const qrCodeContents = computed(() => {
+  const giftCode = props.gift?.qr || props.gift?.giftCode
+  if (!giftCode) return ''
   const url = 'https://gifts.paytaca.com/claim/?code='
-  return url + $store.getters['gifts/getQrShare'](props.gift?.gift_code_hash)
+  return url + giftCode
 })
 const amount = computed(() => props.gift?.amount)
 
+const isClaimed = computed(() => {
+  return props.gift?.date_claimed && props.gift?.date_claimed !== 'None'
+})
+
+const isRecovered = computed(() => {
+  return props.gift?.recovered === true || props.gift?.recovered === 'true' || props.gift?.recovered === 1
+})
+
+const formattedDateCreated = computed(() => {
+  if (!props.gift?.date_created) return ''
+  try {
+    const date = new Date(props.gift.date_created)
+    const now = new Date()
+    const diffTime = Math.abs(now - date)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays < 7) {
+      // Show relative time for dates less than 7 days ago
+      return formatDistance(date, now, { addSuffix: true })
+    } else {
+      // Show absolute date for dates 7 days or more ago
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+  } catch (e) {
+    return props.gift.date_created
+  }
+})
+
+const formattedDateClaimed = computed(() => {
+  if (!props.gift?.date_claimed || props.gift?.date_claimed === 'None') return ''
+  try {
+    const date = new Date(props.gift.date_claimed)
+    const now = new Date()
+    const diffTime = Math.abs(now - date)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays < 7) {
+      // Show relative time for dates less than 7 days ago
+      return formatDistance(date, now, { addSuffix: true })
+    } else {
+      // Show absolute date for dates 7 days or more ago
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+  } catch (e) {
+    return props.gift.date_claimed
+  }
+})
+
+function getStatusBadgeClass() {
+  if (isRecovered.value) return 'status-recovered'
+  if (isClaimed.value) return 'status-claimed'
+  return 'status-unclaimed'
+}
+
+function getStatusIcon() {
+  if (isRecovered.value) return 'mdi-recycle'
+  if (isClaimed.value) return 'mdi-check-circle'
+  return 'mdi-clock-outline'
+}
+
+function getStatusText() {
+  if (isRecovered.value) return t('Recovered', {}, 'RECOVERED')
+  if (isClaimed.value) return t('Claimed', {}, 'CLAIMED')
+  return t('Unclaimed', {}, 'UNCLAIMED')
+}
 
 function copyToClipboard (value, message=t('CopiedToClipboard')) {
   $copyText(value)
@@ -71,3 +207,58 @@ function copyToClipboard (value, message=t('CopiedToClipboard')) {
   })
 }
 </script>
+
+<style scoped>
+.status-badge-small {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-badge-small.status-claimed {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.status-badge-small.status-recovered {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.status-badge-small.status-unclaimed {
+  background: rgba(33, 150, 243, 0.15);
+  color: #2196f3;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.old-gift-notice-banner {
+  border-left: 3px solid #ff9800;
+  padding: 12px 16px;
+  margin-top: 8px;
+}
+
+.old-gift-notice.dark {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.12) 0%, rgba(255, 193, 7, 0.12) 100%);
+  border-left-color: #ff9800;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.old-gift-notice.light {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.08) 0%, rgba(255, 193, 7, 0.08) 100%);
+  border-left-color: #ff9800;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.old-gift-notice-text {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+</style>

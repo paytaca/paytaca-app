@@ -1139,12 +1139,6 @@ export async function autoGenerateAddress(context, opts) {
         lastAddressIndex: newAddressIndex
       })
     })
-
-    if (walletType === 'Smart BCH') {
-      await wallet.sBCH.getOrInitWallet().then(() => {
-        wallet.sBCH.subscribeWallet()
-      })
-    }
   }
   return { success: true }
 }

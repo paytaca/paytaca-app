@@ -110,11 +110,11 @@
         :key="inputExtras.amountFormatted"
       >
         <template v-slot:append>
-          {{ asset.id === 'bch' ? selectedDenomination : asset.symbol }}
+          {{ asset?.id === 'bch' ? selectedDenomination : (asset?.symbol || '') }}
           <DenominatorTextDropdown
             v-if="!recipient.fixedAmount"
             @on-selected-denomination="onSelectedDenomination"
-            :selectedNetwork="asset.symbol"
+            :selectedNetwork="asset?.symbol"
             :darkMode="darkMode"
             :theme="theme"
             :currentCountry="currentCountry"
@@ -124,7 +124,7 @@
     </div>
   </div>
 
-  <div class="row" v-if="!isNFT && asset.id === 'bch'">
+  <div class="row" v-if="!isNFT && asset?.id === 'bch'">
     <div class="col q-mt-xs">
       <q-input
         type="text"
@@ -151,7 +151,7 @@
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
-      <template v-if="asset.id === 'bch'">
+      <template v-if="asset?.id === 'bch'">
         <span>
         {{ parseAssetDenomination(selectedDenomination, {
           ...asset,
@@ -165,7 +165,7 @@
       <span v-else>
         {{ parseAssetDenomination(selectedDenomination, {
           ...asset,
-          balance: currentWalletBalance * (10 ** asset.decimals)
+          balance: currentWalletBalance * (10 ** (asset?.decimals || 0))
         }) }}
       </span>
       <a
@@ -423,9 +423,9 @@ export default {
 
   watch: {
     amount: function (value) {
-      if (this.asset.id.startsWith('ct/')) {
-        this.balanceExceeded = value > (this.asset.balance / (10 ** this.asset.decimals))
-      } else if (this.asset.id === 'bch') {
+      if (this.asset?.id?.startsWith('ct/')) {
+        this.balanceExceeded = value > ((this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0)))
+      } else if (this.asset?.id === 'bch') {
         this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
       }
 

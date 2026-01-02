@@ -76,9 +76,20 @@
       </div>
     </template>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
-      <p class="text-center pt-label no-collectibles-label" :class="getDarkModeClass(darkMode)">
-        {{ $t('NoCollectibles') }}
-      </p>
+      <div class="empty-state flex flex-center column q-pa-xl">
+        <q-icon 
+          name="collections" 
+          size="80px" 
+          class="q-mb-md" 
+          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+        />
+        <div class="text-h6 text-center q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+          {{ $t('NoCollectibles') }}
+        </div>
+        <div class="text-caption text-center q-px-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+          {{ $t('NoCollectiblesSubtitle', {}, 'Start collecting SLP tokens to see them here') }}
+        </div>
+      </div>
     </template>
     <Collectible v-model="collectibleDetail.show" :collectible="collectibleDetail.collectible"/>
   </div>
@@ -204,9 +215,8 @@ export default {
   .upsidedown {
     transform: rotate(180deg);
   }
-  .no-collectibles-label {
-    font-size: 18px;
-    color: gray;
-    margin-top: 50px;
+  .empty-state {
+    min-height: 300px;
+    padding: 60px 20px;
   }
 </style>
