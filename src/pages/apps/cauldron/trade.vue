@@ -933,6 +933,7 @@ export default defineComponent({
               title: $t('NotFound'),
               message: $t('TokenNotListedInCauldron', { categoryId: truncatedId }, `The token with category ID ${truncatedId} has not been listed in Cauldron DEX.`),
               color: 'primary',
+              class: `text-bow ${getDarkModeClass(darkMode.value)}`,
             })
           }
         } catch (error) {
