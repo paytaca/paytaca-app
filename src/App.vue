@@ -133,17 +133,25 @@ export default {
           console.log('[App] App came to foreground, wasInBackground:', vm.wasInBackground, 
                      'timeSinceBackground:', timeSinceBackground, 'ms, current unlock state:', currentUnlockState)
           
+          // SECURITY FIX: Check if ANY wallet has lock enabled, not just the current wallet
+          // This prevents the attack where: unlock wallet A (lock enabled), switch to wallet B (no lock),
+          // background/foreground (no reset because B has no lock), switch back to A (still unlocked)
+          // Since isUnlocked is session-global, we must reset it if ANY wallet has lock enabled
+          const anyWalletHasLock = vm.$store.getters['global/anyWalletHasLockEnabled']
+          
           // Only reset unlock state if:
           // 1. We actually transitioned from background to foreground (wasInBackground is true)
-          // 2. Lock is enabled
+          // 2. ANY wallet has lock enabled (not just current wallet - security fix)
           // 3. We were in background for at least 500ms (prevents false triggers from rapid events)
           // 4. We're not in a state where reset is disabled
-          if (vm.wasInBackground && lockAppEnabled && timeSinceBackground >= 500 && !vm.unlockStateResetDisabled) {
+          if (vm.wasInBackground && anyWalletHasLock && timeSinceBackground >= 500 && !vm.unlockStateResetDisabled) {
             vm.$store.commit('global/setIsUnlocked', false)
-            console.log('[App] Lock app enabled - reset unlock state after background transition (was:', currentUnlockState, ')')
+            console.log('[App] At least one wallet has lock enabled - reset unlock state after background transition (was:', currentUnlockState, ')')
           } else {
             if (!vm.wasInBackground) {
               console.log('[App] Ignoring - was not in background, definitely false trigger')
+            } else if (!anyWalletHasLock) {
+              console.log('[App] Ignoring - no wallets have lock enabled')
             } else if (timeSinceBackground < 500) {
               console.log('[App] Ignoring rapid state change (timeSinceBackground:', timeSinceBackground, 'ms < 500ms)')
             } else if (vm.unlockStateResetDisabled) {

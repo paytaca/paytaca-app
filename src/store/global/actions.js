@@ -476,6 +476,15 @@ export async function switchWallet (context, walletHashOrIndex) {
         // No need to clear data when switching wallets since each wallet has its own state
         // Note: wallet index was already updated above
         
+        // SECURITY FIX: Reset unlock state when switching to a wallet with lock enabled
+        // This prevents the attack where: unlock wallet A (lock enabled), switch to wallet B (no lock),
+        // background/foreground (no reset because B has no lock), switch back to A (still unlocked)
+        const newWalletLockEnabled = newWallet?.settings?.lockApp === true
+        if (newWalletLockEnabled) {
+          console.log('[switchWallet] New wallet has lock enabled - resetting unlock state for security')
+          context.commit('setIsUnlocked', false)
+        }
+        
         // Sync settings to darkmode and market modules
         console.log('[switchWallet] Syncing settings to modules...')
         context.dispatch('syncSettingsToModules')

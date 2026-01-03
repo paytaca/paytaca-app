@@ -392,6 +392,23 @@ export function lockApp (state) {
 }
 
 /**
+ * Check if ANY wallet in the vault has lock app enabled
+ * Returns true if at least one wallet has lock enabled, false otherwise
+ * Used for security checks that should apply globally when any wallet is protected
+ */
+export function anyWalletHasLockEnabled (state) {
+  if (!state.vault || !Array.isArray(state.vault)) {
+    return false
+  }
+  return state.vault.some(wallet => {
+    if (!wallet || wallet.deleted === true) {
+      return false
+    }
+    return Boolean(wallet.settings?.lockApp)
+  })
+}
+
+/**
  * Get current unlock state
  * Returns true if app is unlocked in current session
  */
