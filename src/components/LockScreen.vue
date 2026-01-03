@@ -36,12 +36,6 @@
           </template>
         </q-btn>
         
-        <!-- Biometric Prompt Status -->
-        <div v-if="preferredSecurity === 'biometric' && authenticating && !biometricFailed" class="biometric-status" :class="getDarkModeClass(darkMode)">
-          <q-spinner-dots size="32px" :color="themeColor" />
-          <p class="q-mt-md text-caption">{{ $t('WaitingForBiometric', {}, 'Waiting for biometric authentication...') }}</p>
-        </div>
-        
         <!-- Error Message with Glassmorphic Style -->
         <transition name="fade">
           <div v-if="errorMessage" class="error-message glass-error" :class="getDarkModeClass(darkMode)">
@@ -710,28 +704,6 @@ export default {
     background: rgba(193, 0, 21, 0.08);
     border: 1px solid rgba(193, 0, 21, 0.2);
     color: #c10015;
-  }
-}
-
-.biometric-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  text-align: center;
-  
-  p {
-    margin: 0;
-    opacity: 0.8;
-    
-    &.dark {
-      color: rgba(255, 255, 255, 0.7);
-    }
-    
-    &.light {
-      color: rgba(0, 0, 0, 0.7);
-    }
   }
 }
 

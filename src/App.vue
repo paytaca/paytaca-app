@@ -63,143 +63,54 @@ export default {
       subscribedPushNotifications: false,
       assetPricesUpdateIntervalId: null,
       offlineNotif: null,
-      appStateListener: null,
-      wasInBackground: false, // Track if app was in background
-      lastBackgroundTime: null, // Timestamp when app went to background
-      appInitialized: false, // Track if app has been initialized
-      isCurrentlyActive: true, // Track current active state to detect real transitions
-      backgroundTransitionTimer: null // Timer to debounce false background triggers on iOS
+      pauseListener: null, // Listener for app pause (background) events
+      resumeListener: null // Listener for app resume (foreground) events
     }
   },
   methods: {
     async setupAppLifecycleListener() {
       const vm = this
       
-      // Get initial app state
-      CapacitorApp.getState().then(({ isActive }) => {
-        console.log('[App] Initial app state:', isActive)
-        vm.appInitialized = true
-        vm.isCurrentlyActive = isActive
-        // If app starts inactive, mark as was in background
-        if (!isActive) {
-          vm.wasInBackground = true
-          vm.lastBackgroundTime = Date.now()
-        }
-      }).catch(err => {
-        console.warn('[App] Could not get initial app state:', err)
-        vm.appInitialized = true
-        vm.isCurrentlyActive = true // Assume active if we can't determine
+      // Use pause/resume events instead of appStateChange
+      // These are more reliable and only fire on actual background/foreground transitions
+      // They don't fire on dialogs, route changes, or other UI events
+      
+      // Listen for app going to background (pause event)
+      vm.pauseListener = await CapacitorApp.addListener('pause', () => {
+        console.log('[App] App paused (went to background)')
+        // We don't need to do anything here - just let the app pause
+        // The unlock state will be reset when the app resumes
       })
       
-      // Listen for app state changes (background/foreground)
-      // In Capacitor 5, addListener returns a Promise<PluginListenerHandle>
-      vm.appStateListener = await CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-        // Wait for initialization to complete
-        if (!vm.appInitialized) {
-          console.log('[App] App state change before initialization, ignoring')
-          return
-        }
+      // Listen for app coming to foreground (resume event)
+      vm.resumeListener = await CapacitorApp.addListener('resume', () => {
+        console.log('[App] App resumed (came to foreground)')
         
-        const lockAppEnabled = vm.$store.getters['global/lockApp']
+        // Check if ANY wallet has lock enabled
+        // Use anyWalletHasLockEnabled instead of current wallet to prevent security bypass
+        // (e.g., unlock wallet A with lock, switch to wallet B without lock, background/foreground, switch back to A)
+        const anyWalletHasLock = vm.$store.getters['global/anyWalletHasLockEnabled']
         const currentUnlockState = vm.$store.getters['global/isUnlocked']
         
-        // CRITICAL FIX FOR iOS: If app is already unlocked, completely ignore appStateChange events
-        // iOS fires these events erratically (on dialog open, route change, etc.)
-        // Once unlocked, the app should stay unlocked until a REAL background transition
-        // We use a debounce timer to distinguish real background transitions from false triggers
-        if (currentUnlockState && isActive) {
-          // If we're unlocked and becoming active, check if this is a false trigger
-          // False triggers happen very quickly (< 1 second), real background transitions take longer
-          if (vm.lastBackgroundTime && (Date.now() - vm.lastBackgroundTime < 1000)) {
-            // This is a false trigger - we were "inactive" for less than 1 second
-            console.log('[App] App already unlocked - ignoring rapid appStateChange event (iOS false trigger protection, inactive for', Date.now() - vm.lastBackgroundTime, 'ms)')
-            // Clear the background timer if it exists
-            if (vm.backgroundTransitionTimer) {
-              clearTimeout(vm.backgroundTransitionTimer)
-              vm.backgroundTransitionTimer = null
-            }
-            // Reset background tracking since this was a false trigger
-            vm.wasInBackground = false
-            vm.lastBackgroundTime = null
-            // Still update the active state tracking
-            if (!vm.isCurrentlyActive) {
-              vm.isCurrentlyActive = true
-            }
-            return
-          }
-          // If we were in background for a meaningful time, allow the reset logic below to run
-        }
-        
-        // Only process if there's an actual state change
-        if (isActive === vm.isCurrentlyActive) {
-          console.log('[App] App state unchanged (isActive:', isActive, '), ignoring duplicate event')
-          return
-        }
-        
-        if (!isActive) {
-          // App went to background - use debounced timer to detect real background transitions
-          // iOS fires false triggers very quickly, so we wait 1 second before considering it real
-          console.log('[App] App became inactive, starting background transition timer (iOS false trigger protection)')
+        if (anyWalletHasLock) {
+          // Reset unlock state - user must re-authenticate
+          vm.$store.commit('global/setIsUnlocked', false)
+          console.log('[App] At least one wallet has lock enabled - reset unlock state after resume (was:', currentUnlockState, ')')
           
-          // Clear any existing timer
-          if (vm.backgroundTransitionTimer) {
-            clearTimeout(vm.backgroundTransitionTimer)
-          }
+          // Immediately navigate to lock screen - don't wait for user action
+          // Store the current route to redirect back after unlock
+          const currentPath = vm.$router.currentRoute.value.fullPath
+          console.log('[App] Navigating to lock screen immediately, will redirect to:', currentPath)
           
-          // Set a timer - only mark as "in background" if we stay inactive for 1 second
-          // This filters out false triggers from dialogs/route changes
-          vm.backgroundTransitionTimer = setTimeout(() => {
-            // Only mark as background if we're still inactive after the delay
-            if (!vm.isCurrentlyActive) {
-              console.log('[App] App confirmed in background (was inactive for 1+ seconds), current unlock state:', currentUnlockState)
-              vm.wasInBackground = true
-              vm.lastBackgroundTime = Date.now()
-            }
-            vm.backgroundTransitionTimer = null
-          }, 1000) // 1 second debounce
-          
-          vm.isCurrentlyActive = false
+          vm.$router.replace({
+            path: '/lock',
+            query: { redirect: currentPath }
+          }).catch(err => {
+            // If navigation fails (e.g., already on lock screen), just log it
+            console.log('[App] Lock screen navigation failed (may already be there):', err)
+          })
         } else {
-          // App came to foreground
-          // Clear any pending background transition timer (we became active before the timer fired)
-          if (vm.backgroundTransitionTimer) {
-            clearTimeout(vm.backgroundTransitionTimer)
-            vm.backgroundTransitionTimer = null
-            console.log('[App] App became active before background timer completed - this was a false trigger (dialog/route change)')
-          }
-          
-          // Only reset if we have clear evidence of a REAL background transition
-          const timeSinceBackground = vm.lastBackgroundTime ? Date.now() - vm.lastBackgroundTime : 0
-          console.log('[App] App came to foreground, wasInBackground:', vm.wasInBackground, 
-                     'timeSinceBackground:', timeSinceBackground, 'ms, current unlock state:', currentUnlockState)
-          
-          // SECURITY FIX: Check if ANY wallet has lock enabled, not just the current wallet
-          // This prevents the attack where: unlock wallet A (lock enabled), switch to wallet B (no lock),
-          // background/foreground (no reset because B has no lock), switch back to A (still unlocked)
-          // Since isUnlocked is session-global, we must reset it if ANY wallet has lock enabled
-          const anyWalletHasLock = vm.$store.getters['global/anyWalletHasLockEnabled']
-          
-          // Only reset unlock state if:
-          // 1. We actually transitioned from background to foreground (wasInBackground is true)
-          // 2. ANY wallet has lock enabled (not just current wallet - security fix)
-          // 3. We were in background for at least 1 second (prevents false triggers - debounced)
-          if (vm.wasInBackground && anyWalletHasLock && timeSinceBackground >= 1000) {
-            vm.$store.commit('global/setIsUnlocked', false)
-            console.log('[App] At least one wallet has lock enabled - reset unlock state after background transition (was:', currentUnlockState, ')')
-          } else {
-            if (!vm.wasInBackground) {
-              console.log('[App] Ignoring - was not in background, definitely false trigger')
-            } else if (!anyWalletHasLock) {
-              console.log('[App] Ignoring - no wallets have lock enabled')
-            } else if (timeSinceBackground < 1000) {
-              console.log('[App] Ignoring rapid state change (timeSinceBackground:', timeSinceBackground, 'ms < 1000ms)')
-            }
-          }
-          
-          // Reset the flag after handling the transition
-          vm.wasInBackground = false
-          vm.lastBackgroundTime = null
-          vm.isCurrentlyActive = true
+          console.log('[App] No wallets have lock enabled - keeping current unlock state')
         }
       })
     },
@@ -540,14 +451,12 @@ export default {
   },
   unmounted () {
     if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
-    // Clean up background transition timer
-    if (this.backgroundTransitionTimer) {
-      clearTimeout(this.backgroundTransitionTimer)
-      this.backgroundTransitionTimer = null
+    // Clean up app lifecycle listeners
+    if (this.pauseListener) {
+      this.pauseListener.remove()
     }
-    // Clean up app state listener
-    if (this.appStateListener) {
-      this.appStateListener.remove()
+    if (this.resumeListener) {
+      this.resumeListener.remove()
     }
   },
   created () {
