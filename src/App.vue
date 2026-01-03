@@ -64,7 +64,19 @@ export default {
       assetPricesUpdateIntervalId: null,
       offlineNotif: null,
       pauseListener: null, // Listener for app pause (background) events
-      resumeListener: null // Listener for app resume (foreground) events
+      resumeListener: null, // Listener for app resume (foreground) events
+      lastUnlockTime: 0 // Timestamp of last successful unlock (to prevent immediate re-lock on biometric resume)
+    }
+  },
+  watch: {
+    // Watch for unlock state changes to track when user successfully unlocks
+    // This prevents the lock screen from reappearing when biometric scanner triggers pause/resume
+    '$store.state.global.isUnlocked' (newVal, oldVal) {
+      if (newVal === true && oldVal === false) {
+        // User just unlocked - record timestamp
+        this.lastUnlockTime = Date.now()
+        console.log('[App] User unlocked - recorded timestamp:', this.lastUnlockTime)
+      }
     }
   },
   methods: {
@@ -85,6 +97,15 @@ export default {
       // Listen for app coming to foreground (resume event)
       vm.resumeListener = await CapacitorApp.addListener('resume', () => {
         console.log('[App] App resumed (came to foreground)')
+        
+        // Check if resume happened shortly after unlock (within 3 seconds)
+        // This prevents the lock screen from reappearing when biometric authentication
+        // (like fingerprint scanner on Android) triggers a pause/resume cycle
+        const timeSinceUnlock = Date.now() - vm.lastUnlockTime
+        if (timeSinceUnlock < 3000) {
+          console.log('[App] Resume happened', timeSinceUnlock, 'ms after unlock - ignoring (likely biometric scanner)')
+          return
+        }
         
         // Check if ANY wallet has lock enabled
         // Use anyWalletHasLockEnabled instead of current wallet to prevent security bypass

@@ -291,35 +291,36 @@ export default {
     },
 
     onUnlockSuccess() {
+      const vm = this
       console.log('[LockScreen] Unlock successful, navigating...')
       
       // Set unlock state in store using proper Vuex mutation
       // This ensures proper reactivity, DevTools support, and watcher notifications
-      this.$store.commit('global/setIsUnlocked', true)
+      vm.$store.commit('global/setIsUnlocked', true)
       
       // Verify it was set correctly (for debugging)
-      const verifyUnlocked = this.$store.getters['global/isUnlocked']
+      const verifyUnlocked = vm.$store.getters['global/isUnlocked']
       console.log('[LockScreen] Unlock state set to true, verified:', verifyUnlocked)
       
       // Emit unlock event for parent components
-      this.$emit('unlocked')
+      vm.$emit('unlocked')
       
-      // If there's a redirect path stored, navigate to it
-      const redirectPath = this.$route.query.redirect || '/'
+      // Get redirect path
+      const redirectPath = vm.$route.query.redirect || '/'
       console.log('[LockScreen] Redirecting to:', redirectPath)
       
-      // Use nextTick to ensure state is committed before navigation
-      // Add a small delay on mobile to ensure state propagation
-      const delay = this.$q.platform.is.mobile ? 50 : 0
-      setTimeout(() => {
-        this.$nextTick(() => {
-          this.$router.replace(redirectPath).catch(err => {
-            console.error('[LockScreen] Navigation error:', err)
-            // Fallback to home if redirect fails
-            this.$router.replace('/')
+      // Use nextTick to ensure store mutation is processed
+      // Then navigate immediately (simplified from previous complex timeout logic)
+      vm.$nextTick(() => {
+        console.log('[LockScreen] About to navigate to:', redirectPath)
+        vm.$router.replace(redirectPath).catch(err => {
+          console.error('[LockScreen] Navigation error:', err)
+          // If navigation fails, try going to home
+          vm.$router.replace('/').catch(err2 => {
+            console.error('[LockScreen] Fallback navigation also failed:', err2)
           })
         })
-      }, delay)
+      })
     }
   },
   mounted() {
