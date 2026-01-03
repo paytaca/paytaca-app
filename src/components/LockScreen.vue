@@ -49,6 +49,22 @@
             <span class="q-ml-xs">{{ errorMessage }}</span>
           </div>
         </transition>
+        
+        <!-- Use PIN Instead Button - shown when biometric is permanently unavailable -->
+        <transition name="fade">
+          <q-btn
+            v-if="biometricPermanentlyUnavailable && preferredSecurity === 'biometric' && !usePinFallback"
+            unelevated
+            no-caps
+            outline
+            :color="themeColor"
+            class="pin-fallback-button glass-button"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('UsePinInstead', {}, 'Use PIN Instead')"
+            @click="switchToPin"
+            icon="lock"
+          />
+        </transition>
       </div>
       </div>
     </div>
@@ -80,7 +96,9 @@ export default {
       authenticating: false,
       errorMessage: '',
       biometricFailed: false,
-      biometricAttempts: 0
+      biometricAttempts: 0,
+      biometricPermanentlyUnavailable: false, // Track if biometric is unavailable due to device issues
+      usePinFallback: false // Track if user wants to use PIN instead of biometric
     }
   },
   computed: {
@@ -117,8 +135,8 @@ export default {
     getDarkModeClass,
     
     getUnlockButtonLabel() {
-      if (this.preferredSecurity === 'biometric') {
-        if (this.biometricFailed) {
+      if (this.preferredSecurity === 'biometric' && !this.usePinFallback) {
+        if (this.biometricFailed && !this.biometricPermanentlyUnavailable) {
           return this.$t('TryAgain') || 'Try Again'
         }
         return this.$t('Unlock') || 'Unlock'
@@ -127,7 +145,7 @@ export default {
     },
     
     getUnlockButtonIcon() {
-      if (this.preferredSecurity === 'biometric') {
+      if (this.preferredSecurity === 'biometric' && !this.usePinFallback) {
         return 'fingerprint'
       }
       return 'lock_open'
@@ -136,12 +154,18 @@ export default {
     handleUnlock() {
       console.log('[LockScreen] Unlock button clicked')
       console.log('[LockScreen] Preferred security:', this.preferredSecurity)
+      console.log('[LockScreen] Biometric permanently unavailable:', this.biometricPermanentlyUnavailable)
+      console.log('[LockScreen] Use PIN fallback:', this.usePinFallback)
       
       this.errorMessage = ''
       this.biometricFailed = false
       this.authenticating = true
 
-      if (this.preferredSecurity === 'pin') {
+      // Check if we should use PIN (either preferred or fallback)
+      const shouldUsePin = this.preferredSecurity === 'pin' || 
+                          (this.preferredSecurity === 'biometric' && (this.biometricPermanentlyUnavailable || this.usePinFallback))
+      
+      if (shouldUsePin) {
         console.log('[LockScreen] Using PIN authentication')
         this.authenticating = false
         
@@ -173,6 +197,14 @@ export default {
         this.verifyBiometric()
       }
     },
+    
+    switchToPin() {
+      console.log('[LockScreen] User chose to use PIN instead of biometric')
+      this.usePinFallback = true
+      this.errorMessage = ''
+      this.biometricFailed = false
+      this.handleUnlock()
+    },
 
     verifyBiometric() {
       const vm = this
@@ -182,6 +214,7 @@ export default {
         console.error('[LockScreen] NativeBiometric not available')
         vm.authenticating = false
         vm.biometricFailed = true
+        vm.biometricPermanentlyUnavailable = true
         vm.errorMessage = vm.$t('BiometricNotAvailable', {}, 'Biometric authentication not available. Please use PIN instead.')
         return
       }
@@ -228,9 +261,11 @@ export default {
               vm.errorMessage = ''
             }, 2000)
           } else if (error.code === 'UNIMPLEMENTED') {
+            vm.biometricPermanentlyUnavailable = true
             vm.errorMessage = vm.$t('BiometricNotSupported', {}, 'Biometric authentication is not supported on this device.')
           } else if (error.message.includes('not enrolled') || 
                      error.message.includes('No biometric credentials')) {
+            vm.biometricPermanentlyUnavailable = true
             vm.errorMessage = vm.$t('BiometricNotEnrolled', {}, 'No biometric credentials found. Please set up biometrics in your device settings.')
           } else {
             // Authentication failed (wrong fingerprint/face)
@@ -324,6 +359,12 @@ export default {
     console.log('[LockScreen] Theme:', this.theme)
     console.log('[LockScreen] Dark mode:', this.darkMode)
     console.log('[LockScreen] PIN dialog ref:', this.$refs.pinDialogRef)
+    
+    // Reset biometric state flags on mount
+    this.biometricPermanentlyUnavailable = false
+    this.usePinFallback = false
+    this.biometricFailed = false
+    this.errorMessage = ''
     
     // Check if PIN dialog is mounted
     this.$nextTick(() => {
@@ -652,6 +693,24 @@ export default {
   
   &.light {
     border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+}
+
+.pin-fallback-button {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 12px;
+  margin-top: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 }
 
