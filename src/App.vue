@@ -72,7 +72,7 @@ export default {
     }
   },
   methods: {
-    setupAppLifecycleListener() {
+    async setupAppLifecycleListener() {
       const vm = this
       
       // Get initial app state
@@ -92,7 +92,8 @@ export default {
       })
       
       // Listen for app state changes (background/foreground)
-      vm.appStateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      // In Capacitor 5, addListener returns a Promise<PluginListenerHandle>
+      vm.appStateListener = await CapacitorApp.addListener('appStateChange', ({ isActive }) => {
         // Wait for initialization to complete
         if (!vm.appInitialized) {
           console.log('[App] App state change before initialization, ignoring')
@@ -350,7 +351,7 @@ export default {
 
     // Set up app lifecycle listener for lock screen
     if (vm.$q.platform.is.mobile) {
-      vm.setupAppLifecycleListener()
+      await vm.setupAppLifecycleListener()
     }
 
     // On initial mount (cold start), reset unlock state if lock is enabled
