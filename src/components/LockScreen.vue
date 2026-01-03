@@ -299,29 +299,13 @@ export default {
     onUnlockSuccess() {
       console.log('[LockScreen] Unlock successful, navigating...')
       
-      // Set unlock state in store FIRST, before navigation
-      // Use a more explicit approach to ensure state is set
+      // Set unlock state in store using proper Vuex mutation
+      // This ensures proper reactivity, DevTools support, and watcher notifications
       this.$store.commit('global/setIsUnlocked', true)
       
-      // Force a synchronous state update by accessing the state directly
-      // This ensures the state is immediately available for the router guard
-      const state = this.$store.state.global
-      if (state) {
-        state.isUnlocked = true
-      }
-      
-      // Verify it was set correctly
+      // Verify it was set correctly (for debugging)
       const verifyUnlocked = this.$store.getters['global/isUnlocked']
       console.log('[LockScreen] Unlock state set to true, verified:', verifyUnlocked)
-      
-      if (!verifyUnlocked) {
-        console.error('[LockScreen] ERROR: Unlock state was not set correctly!')
-        // Try again with direct state access
-        this.$store.commit('global/setIsUnlocked', true)
-        if (this.$store.state.global) {
-          this.$store.state.global.isUnlocked = true
-        }
-      }
       
       // Emit unlock event for parent components
       this.$emit('unlocked')
@@ -335,15 +319,6 @@ export default {
       const delay = this.$q.platform.is.mobile ? 50 : 0
       setTimeout(() => {
         this.$nextTick(() => {
-          // Double-check state before navigation
-          const finalCheck = this.$store.getters['global/isUnlocked']
-          console.log('[LockScreen] Final unlock state check before navigation:', finalCheck)
-          
-          if (!finalCheck) {
-            console.error('[LockScreen] State lost before navigation, setting again')
-            this.$store.commit('global/setIsUnlocked', true)
-          }
-          
           this.$router.replace(redirectPath).catch(err => {
             console.error('[LockScreen] Navigation error:', err)
             // Fallback to home if redirect fails
