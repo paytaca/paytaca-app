@@ -105,7 +105,8 @@ export default {
         // CRITICAL FIX FOR iOS: If app is already unlocked, completely ignore appStateChange events
         // iOS fires these events erratically (on dialog open, route change, etc.)
         // Once unlocked, the app should stay unlocked until a REAL background transition
-        if (currentUnlockState && isActive) {
+        // Only ignore if we were NOT in background (to allow genuine background->foreground transitions to reset lock)
+        if (currentUnlockState && isActive && !vm.wasInBackground) {
           console.log('[App] App already unlocked - ignoring appStateChange event (iOS false trigger protection)')
           // Still update the active state tracking, but don't reset unlock state
           if (!vm.isCurrentlyActive) {
