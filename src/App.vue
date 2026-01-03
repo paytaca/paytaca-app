@@ -68,7 +68,7 @@ export default {
       lastBackgroundTime: null, // Timestamp when app went to background
       appInitialized: false, // Track if app has been initialized
       isCurrentlyActive: true, // Track current active state to detect real transitions
-      unlockStateResetDisabled: false // Flag to prevent resetting unlock state
+      backgroundTransitionTimer: null // Timer to debounce false background triggers on iOS
     }
   },
   methods: {
@@ -106,14 +106,28 @@ export default {
         // CRITICAL FIX FOR iOS: If app is already unlocked, completely ignore appStateChange events
         // iOS fires these events erratically (on dialog open, route change, etc.)
         // Once unlocked, the app should stay unlocked until a REAL background transition
-        // Only ignore if we were NOT in background (to allow genuine background->foreground transitions to reset lock)
-        if (currentUnlockState && isActive && !vm.wasInBackground) {
-          console.log('[App] App already unlocked - ignoring appStateChange event (iOS false trigger protection)')
-          // Still update the active state tracking, but don't reset unlock state
-          if (!vm.isCurrentlyActive) {
-            vm.isCurrentlyActive = true
+        // We use a debounce timer to distinguish real background transitions from false triggers
+        if (currentUnlockState && isActive) {
+          // If we're unlocked and becoming active, check if this is a false trigger
+          // False triggers happen very quickly (< 1 second), real background transitions take longer
+          if (vm.lastBackgroundTime && (Date.now() - vm.lastBackgroundTime < 1000)) {
+            // This is a false trigger - we were "inactive" for less than 1 second
+            console.log('[App] App already unlocked - ignoring rapid appStateChange event (iOS false trigger protection, inactive for', Date.now() - vm.lastBackgroundTime, 'ms)')
+            // Clear the background timer if it exists
+            if (vm.backgroundTransitionTimer) {
+              clearTimeout(vm.backgroundTransitionTimer)
+              vm.backgroundTransitionTimer = null
+            }
+            // Reset background tracking since this was a false trigger
+            vm.wasInBackground = false
+            vm.lastBackgroundTime = null
+            // Still update the active state tracking
+            if (!vm.isCurrentlyActive) {
+              vm.isCurrentlyActive = true
+            }
+            return
           }
-          return
+          // If we were in background for a meaningful time, allow the reset logic below to run
         }
         
         // Only process if there's an actual state change
@@ -123,13 +137,38 @@ export default {
         }
         
         if (!isActive) {
-          // App went to background - mark timestamp
-          console.log('[App] App went to background, current unlock state:', currentUnlockState)
-          vm.wasInBackground = true
-          vm.lastBackgroundTime = Date.now()
+          // App went to background - use debounced timer to detect real background transitions
+          // iOS fires false triggers very quickly, so we wait 1 second before considering it real
+          console.log('[App] App became inactive, starting background transition timer (iOS false trigger protection)')
+          
+          // Clear any existing timer
+          if (vm.backgroundTransitionTimer) {
+            clearTimeout(vm.backgroundTransitionTimer)
+          }
+          
+          // Set a timer - only mark as "in background" if we stay inactive for 1 second
+          // This filters out false triggers from dialogs/route changes
+          vm.backgroundTransitionTimer = setTimeout(() => {
+            // Only mark as background if we're still inactive after the delay
+            if (!vm.isCurrentlyActive) {
+              console.log('[App] App confirmed in background (was inactive for 1+ seconds), current unlock state:', currentUnlockState)
+              vm.wasInBackground = true
+              vm.lastBackgroundTime = Date.now()
+            }
+            vm.backgroundTransitionTimer = null
+          }, 1000) // 1 second debounce
+          
           vm.isCurrentlyActive = false
         } else {
-          // App came to foreground - only reset if we have clear evidence of background transition
+          // App came to foreground
+          // Clear any pending background transition timer (we became active before the timer fired)
+          if (vm.backgroundTransitionTimer) {
+            clearTimeout(vm.backgroundTransitionTimer)
+            vm.backgroundTransitionTimer = null
+            console.log('[App] App became active before background timer completed - this was a false trigger (dialog/route change)')
+          }
+          
+          // Only reset if we have clear evidence of a REAL background transition
           const timeSinceBackground = vm.lastBackgroundTime ? Date.now() - vm.lastBackgroundTime : 0
           console.log('[App] App came to foreground, wasInBackground:', vm.wasInBackground, 
                      'timeSinceBackground:', timeSinceBackground, 'ms, current unlock state:', currentUnlockState)
@@ -143,9 +182,8 @@ export default {
           // Only reset unlock state if:
           // 1. We actually transitioned from background to foreground (wasInBackground is true)
           // 2. ANY wallet has lock enabled (not just current wallet - security fix)
-          // 3. We were in background for at least 500ms (prevents false triggers from rapid events)
-          // 4. We're not in a state where reset is disabled
-          if (vm.wasInBackground && anyWalletHasLock && timeSinceBackground >= 500 && !vm.unlockStateResetDisabled) {
+          // 3. We were in background for at least 1 second (prevents false triggers - debounced)
+          if (vm.wasInBackground && anyWalletHasLock && timeSinceBackground >= 1000) {
             vm.$store.commit('global/setIsUnlocked', false)
             console.log('[App] At least one wallet has lock enabled - reset unlock state after background transition (was:', currentUnlockState, ')')
           } else {
@@ -153,10 +191,8 @@ export default {
               console.log('[App] Ignoring - was not in background, definitely false trigger')
             } else if (!anyWalletHasLock) {
               console.log('[App] Ignoring - no wallets have lock enabled')
-            } else if (timeSinceBackground < 500) {
-              console.log('[App] Ignoring rapid state change (timeSinceBackground:', timeSinceBackground, 'ms < 500ms)')
-            } else if (vm.unlockStateResetDisabled) {
-              console.log('[App] Ignoring - unlock state reset is disabled')
+            } else if (timeSinceBackground < 1000) {
+              console.log('[App] Ignoring rapid state change (timeSinceBackground:', timeSinceBackground, 'ms < 1000ms)')
             }
           }
           
@@ -504,6 +540,11 @@ export default {
   },
   unmounted () {
     if (this.assetPricesUpdateIntervalId) clearInterval(this.assetPricesUpdateIntervalId)
+    // Clean up background transition timer
+    if (this.backgroundTransitionTimer) {
+      clearTimeout(this.backgroundTransitionTimer)
+      this.backgroundTransitionTimer = null
+    }
     // Clean up app state listener
     if (this.appStateListener) {
       this.appStateListener.remove()
