@@ -291,6 +291,7 @@ import SubscriptionStatus from 'src/components/subscription/SubscriptionStatus.v
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { loadWallet, getMnemonic } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
+import ScreenshotSecurity from 'src/utils/screenshot-security'
 
 export default {
   data () {
@@ -399,8 +400,18 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    toggleLockApp (value) {
+    async toggleLockApp (value) {
       this.$store.commit('global/setLockApp', value)
+      
+      // Update screenshot security based on lock app setting
+      if (this.$q.platform.is.mobile) {
+        try {
+          await ScreenshotSecurity.setSecureFlag({ enabled: value })
+        } catch (error) {
+          console.error('[Settings] Failed to set screenshot security:', error)
+        }
+      }
+      
       this.$q.notify({
         message: value 
           ? this.$t('LockAppEnabled', {}, 'App lock enabled') 

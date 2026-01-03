@@ -135,7 +135,8 @@
     "module-alias": "^2.2.3",
     "node-polyfill-webpack-plugin": "^1.1.4",
     "sinon": "^21.0.0",
-    "ts-loader": "^9.5.2"
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.9.3"
   },
   "browserslist": [
     "last 10 Chrome versions",

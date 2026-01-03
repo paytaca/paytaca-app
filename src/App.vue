@@ -2,6 +2,20 @@
     <div>
       <router-view />
       <v-offline @detected-condition="onConnectivityChange" />
+      
+      <!-- Privacy overlay for app switcher/background preview -->
+      <!-- Always present in DOM, controlled by CSS class for instant visibility -->
+      <!-- Shows immediately on pause to prevent sensitive content in app preview -->
+      <div 
+        id="privacy-overlay" 
+        class="privacy-overlay" 
+        :class="[privacyOverlayTheme, privacyOverlayDarkMode]">
+        <div class="privacy-overlay-content">
+          <div class="logo-container">
+            <img src="~/assets/paytaca_logo.png" height="60" alt="Paytaca" class="privacy-logo">
+          </div>
+        </div>
+      </div>
     </div>
 </template>
 
@@ -17,6 +31,7 @@ import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
 import { App as CapacitorApp } from '@capacitor/app'
+import ScreenshotSecurity from './utils/screenshot-security'
 
 // Module-level variable to track version update dialog instance
 // This persists across component remounts (important for iOS/Capacitor)
@@ -65,21 +80,50 @@ export default {
       offlineNotif: null,
       pauseListener: null, // Listener for app pause (background) events
       resumeListener: null, // Listener for app resume (foreground) events
-      lastUnlockTime: 0 // Timestamp of last successful unlock (to prevent immediate re-lock on biometric resume)
+      lastPauseTime: 0, // Timestamp of last pause event (to detect genuine background/foreground transitions)
+      showPrivacyOverlay: false // Controls privacy overlay visibility for app preview protection
+    }
+  },
+  computed: {
+    privacyOverlayTheme() {
+      const theme = this.$store?.state?.global?.theme || 'glassmorphic-blue'
+      return `theme-${theme}`
+    },
+    privacyOverlayDarkMode() {
+      const darkMode = this.$store?.state?.darkmode?.darkmode
+      return darkMode ? 'dark' : 'light'
+    },
+    walletIndex() {
+      return this.$store.getters['global/getWalletIndex']
+    },
+    lockAppEnabled() {
+      return this.$store.getters['global/lockApp']
     }
   },
   watch: {
-    // Watch for unlock state changes to track when user successfully unlocks
-    // This prevents the lock screen from reappearing when biometric scanner triggers pause/resume
-    '$store.state.global.isUnlocked' (newVal, oldVal) {
-      if (newVal === true && oldVal === false) {
-        // User just unlocked - record timestamp
-        this.lastUnlockTime = Date.now()
-        console.log('[App] User unlocked - recorded timestamp:', this.lastUnlockTime)
-      }
+    // Watch for wallet switches to update screenshot security
+    walletIndex() {
+      this.updateScreenshotSecurity()
+    },
+    // Watch for changes to lock app setting
+    lockAppEnabled() {
+      this.updateScreenshotSecurity()
     }
   },
   methods: {
+    async updateScreenshotSecurity() {
+      const vm = this
+      if (!vm.$q.platform.is.mobile) {
+        return
+      }
+      
+      const lockAppEnabled = vm.$store.getters['global/lockApp']
+      try {
+        await ScreenshotSecurity.setSecureFlag({ enabled: lockAppEnabled })
+      } catch (error) {
+        console.error('[App] Failed to set screenshot security:', error)
+      }
+    },
     async setupAppLifecycleListener() {
       const vm = this
       
@@ -89,49 +133,234 @@ export default {
       
       // Listen for app going to background (pause event)
       vm.pauseListener = await CapacitorApp.addListener('pause', () => {
+        console.log('[App] ===== PAUSE EVENT =====')
         console.log('[App] App paused (went to background)')
-        // We don't need to do anything here - just let the app pause
-        // The unlock state will be reset when the app resumes
+        
+        // Get current route and wallet state for diagnosis
+        const currentRoute = vm.$router.currentRoute.value.path
+        const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
+        console.log('[App] Pause context - route:', currentRoute, 'walletIndex:', currentWalletIndex)
+        
+        // SECURITY: Immediately show privacy overlay to prevent sensitive content in app preview
+        // This overlay appears SYNCHRONOUSLY before OS takes the app switcher snapshot
+        // The lock screen navigation happens after, but this overlay ensures the preview is protected
+        const lockAppEnabled = vm.$store.getters['global/lockApp']
+        const currentUnlockState = vm.$store.getters['global/isUnlocked']
+        
+        if (lockAppEnabled) {
+          console.log('[App] Lock enabled - immediately showing privacy overlay to protect app preview')
+          
+          // Show privacy overlay IMMEDIATELY by directly manipulating DOM (synchronous, before OS snapshot)
+          // This bypasses Vue's reactivity delay to ensure overlay is visible before OS captures snapshot
+          const overlay = document.getElementById('privacy-overlay')
+          if (overlay) {
+            overlay.style.display = 'flex'
+            overlay.style.visibility = 'visible'
+            overlay.style.opacity = '1'
+            // Force immediate reflow/repaint to ensure overlay is rendered before OS captures snapshot
+            overlay.offsetHeight // eslint-disable-line no-unused-expressions
+            console.log('[App] Privacy overlay shown immediately via DOM manipulation')
+          } else {
+            console.warn('[App] Privacy overlay element not found in DOM')
+          }
+          
+          // Also set the data property for consistency
+          vm.showPrivacyOverlay = true
+          
+          // Reset unlock state immediately
+          vm.$store.commit('global/setIsUnlocked', false)
+          console.log('[App] Reset unlock state (was:', currentUnlockState, ')')
+          
+          // Navigate to lock screen (asynchronous, after overlay is shown)
+          // Use replace to avoid adding to history
+          const currentPath = vm.$router.currentRoute.value.fullPath
+          
+          // Only navigate if not already on lock screen
+          if (currentPath !== '/lock') {
+            console.log('[App] Navigating to lock screen, will redirect to:', currentPath)
+            vm.$router.replace({
+              path: '/lock',
+              query: { redirect: currentPath }
+            }).catch(err => {
+              console.log('[App] Lock screen navigation failed (may already be there):', err)
+            })
+          } else {
+            console.log('[App] Already on lock screen')
+          }
+        }
+        
+        // Record pause timestamp - this helps distinguish genuine backgrounding
+        // from spurious resume events (e.g., from showing dialogs on Android)
+        vm.lastPauseTime = Date.now()
+        console.log('[App] Recorded pause timestamp:', vm.lastPauseTime)
       })
       
       // Listen for app coming to foreground (resume event)
       vm.resumeListener = await CapacitorApp.addListener('resume', () => {
+        console.log('[App] ===== RESUME EVENT =====')
         console.log('[App] App resumed (came to foreground)')
         
-        // Check if resume happened shortly after unlock (within 3 seconds)
-        // This prevents the lock screen from reappearing when biometric authentication
-        // (like fingerprint scanner on Android) triggers a pause/resume cycle
-        const timeSinceUnlock = Date.now() - vm.lastUnlockTime
-        if (timeSinceUnlock < 3000) {
-          console.log('[App] Resume happened', timeSinceUnlock, 'ms after unlock - ignoring (likely biometric scanner)')
+        // Get current route and wallet state for diagnosis
+        const currentRoute = vm.$router.currentRoute.value.path
+        const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
+        const lockAppEnabled = vm.$store.getters['global/lockApp']
+        const isUnlocked = vm.$store.getters['global/isUnlocked']
+        const isOnLockScreen = currentRoute === '/lock'
+        
+        console.log('[App] Resume context - route:', currentRoute, 'walletIndex:', currentWalletIndex, 'lockAppEnabled:', lockAppEnabled, 'isUnlocked:', isUnlocked, 'isOnLockScreen:', isOnLockScreen)
+        
+        // CRITICAL SECURITY CHECK: If we're on lock screen and app is locked, NEVER unlock automatically
+        // This prevents app switcher previews on Android from bypassing the lock screen
+        // The lock screen can ONLY be dismissed through successful authentication
+        if (lockAppEnabled && isOnLockScreen && !isUnlocked) {
+          console.log('[App] SECURITY: On lock screen with app locked - ensuring lock screen stays visible')
+          // Ensure unlock state remains false
+          vm.$store.commit('global/setIsUnlocked', false)
+          // Ensure we stay on lock screen (router guard should handle this, but be defensive)
+          if (currentRoute !== '/lock') {
+            console.log('[App] WARNING: Not on lock screen but should be - navigating to lock screen')
+            const currentPath = vm.$router.currentRoute.value.fullPath
+            vm.$router.replace({
+              path: '/lock',
+              query: { redirect: currentPath !== '/lock' ? currentPath : '/' }
+            }).catch(err => {
+              console.log('[App] Lock screen navigation failed:', err)
+            })
+          }
+          // Hide privacy overlay now that lock screen is visible
+          const overlay = document.getElementById('privacy-overlay')
+          if (overlay) {
+            overlay.style.display = 'none'
+            overlay.style.visibility = 'hidden'
+            overlay.style.opacity = '0'
+          }
+          vm.showPrivacyOverlay = false
+          // Don't process any resume logic - lock screen must stay until authentication
+          console.log('[App] ===== RESUME EVENT END (lock screen protected - requires authentication) =====')
           return
         }
         
-        // Check if ANY wallet has lock enabled
-        // Use anyWalletHasLockEnabled instead of current wallet to prevent security bypass
-        // (e.g., unlock wallet A with lock, switch to wallet B without lock, background/foreground, switch back to A)
-        const anyWalletHasLock = vm.$store.getters['global/anyWalletHasLockEnabled']
-        const currentUnlockState = vm.$store.getters['global/isUnlocked']
+        const now = Date.now()
+        const timeSincePause = now - vm.lastPauseTime
+        const isAndroid = vm.$q.platform.is.android
+        console.log('[App] Resume timing - timeSincePause:', timeSincePause, 'ms, isAndroid:', isAndroid)
         
-        if (anyWalletHasLock) {
-          // Reset unlock state - user must re-authenticate
-          vm.$store.commit('global/setIsUnlocked', false)
-          console.log('[App] At least one wallet has lock enabled - reset unlock state after resume (was:', currentUnlockState, ')')
+        // Platform-specific logic:
+        // - Android: Dialogs/sidebars trigger rapid pause/resume (< 2 seconds), so we need to filter these out
+        // - iOS: Pause/resume events are more reliable, but we still check pause duration for safety
+        
+        if (vm.lastPauseTime === 0) {
+          // No pause event recorded - this is a spurious resume (can happen on Android)
+          console.log('[App] DECISION: Resume without pause event - ignoring (spurious event)')
+          console.log('[App] ===== RESUME EVENT END (no pause event) =====')
+          return
+        }
+        
+        // On Android, dialogs/sidebars trigger rapid pause/resume (< 2 seconds)
+        // On iOS, pause/resume is more reliable, but dialogs can still cause short pauses
+        // Wallet switching and UI interactions happen in < 1 second
+        // We use different thresholds to distinguish real backgrounding from UI interactions
+        const minPauseDuration = isAndroid ? 2000 : 500
+        
+        if (timeSincePause < minPauseDuration) {
+          // App was paused for less than threshold - this is a dialog/UI interaction, not real backgrounding
+          // CRITICAL: On Android, app switcher previews can trigger resume events even when app isn't in foreground
+          // We should NEVER auto-unlock when on lock screen - user must authenticate
+          // Only auto-unlock if we're NOT on lock screen (meaning pause didn't navigate to lock, so it was a dialog)
+          console.log('[App] DECISION: Resume after', timeSincePause, 'ms pause - short pause detected (likely dialog/sidebar/UI interaction)')
           
-          // Immediately navigate to lock screen - don't wait for user action
-          // Store the current route to redirect back after unlock
-          const currentPath = vm.$router.currentRoute.value.fullPath
-          console.log('[App] Navigating to lock screen immediately, will redirect to:', currentPath)
+          if (lockAppEnabled && isOnLockScreen) {
+            // We're on lock screen - DO NOT auto-unlock
+            // On Android, app switcher previews trigger resume events, so we must require authentication
+            // On iOS, we could auto-unlock, but for security consistency, we require authentication here too
+            console.log('[App] On lock screen - NOT auto-unlocking (requires authentication, even for short pause)')
+            console.log('[App] This prevents app switcher previews from bypassing lock screen on Android')
+            // Hide privacy overlay now that lock screen is visible
+            const overlay = document.getElementById('privacy-overlay')
+            if (overlay) {
+              overlay.style.display = 'none'
+              overlay.style.visibility = 'hidden'
+              overlay.style.opacity = '0'
+            }
+            vm.showPrivacyOverlay = false
+          } else if (lockAppEnabled && !isOnLockScreen) {
+            // We're not on lock screen - this means pause didn't navigate to lock (likely a dialog)
+            // Only unlock if we're not already on lock screen (for iOS dialogs that don't trigger navigation)
+            console.log('[App] Not on lock screen - short pause was likely a dialog, keeping unlocked state')
+            // Don't change unlock state - it should already be unlocked if we're not on lock screen
+            // Hide privacy overlay (may have been shown on pause)
+            const overlay = document.getElementById('privacy-overlay')
+            if (overlay) {
+              overlay.style.display = 'none'
+              overlay.style.visibility = 'hidden'
+              overlay.style.opacity = '0'
+            }
+            vm.showPrivacyOverlay = false
+          }
           
-          vm.$router.replace({
-            path: '/lock',
-            query: { redirect: currentPath }
-          }).catch(err => {
-            // If navigation fails (e.g., already on lock screen), just log it
-            console.log('[App] Lock screen navigation failed (may already be there):', err)
-          })
+          // Reset pause timestamp to prevent stale timestamps from interfering with future checks
+          vm.lastPauseTime = 0
+          console.log('[App] ===== RESUME EVENT END (short pause - lock screen stays locked) =====')
+          return
+        }
+        
+        // App was genuinely backgrounded (paused for > threshold)
+        // Since we already locked on pause (to protect app preview), we just need to verify
+        // the lock state is correct and ensure we're on the lock screen
+        console.log('[App] DECISION: Genuine background detected (paused for', timeSincePause, 'ms)')
+        
+        if (lockAppEnabled) {
+          // Verify lock state is correct (should already be locked from pause event)
+          const currentUnlockState = vm.$store.getters['global/isUnlocked']
+          
+          if (currentUnlockState) {
+            // Lock state wasn't reset on pause (shouldn't happen, but handle it)
+            console.log('[App] WARNING: App was unlocked on resume, locking now')
+            vm.$store.commit('global/setIsUnlocked', false)
+          }
+          
+          // Ensure we're on lock screen (should already be there from pause event)
+          if (!isOnLockScreen) {
+            const currentPath = vm.$router.currentRoute.value.fullPath
+            console.log('[App] Not on lock screen, navigating to lock screen, will redirect to:', currentPath)
+            vm.$router.replace({
+              path: '/lock',
+              query: { redirect: currentPath }
+            }).catch(err => {
+              console.log('[App] Lock screen navigation failed (may already be there):', err)
+            })
+          } else {
+            console.log('[App] Already on lock screen (correct state)')
+          }
+          
+          // Hide privacy overlay now that lock screen is visible
+          const overlay = document.getElementById('privacy-overlay')
+          if (overlay) {
+            overlay.style.display = 'none'
+            overlay.style.visibility = 'hidden'
+            overlay.style.opacity = '0'
+          }
+          vm.showPrivacyOverlay = false
+          console.log('[App] ===== RESUME EVENT END (genuine background - locked) =====')
         } else {
-          console.log('[App] No wallets have lock enabled - keeping current unlock state')
+          // No lock enabled - unlock if we're on lock screen (shouldn't happen, but handle it)
+          if (isOnLockScreen) {
+            console.log('[App] No lock enabled but on lock screen, unlocking')
+            vm.$store.commit('global/setIsUnlocked', true)
+            const redirectPath = vm.$router.currentRoute.value.query.redirect || '/'
+            vm.$router.replace(redirectPath).catch(err => {
+              console.log('[App] Navigation failed:', err)
+            })
+          }
+          // Hide privacy overlay (no lock enabled)
+          const overlay = document.getElementById('privacy-overlay')
+          if (overlay) {
+            overlay.style.display = 'none'
+            overlay.style.visibility = 'hidden'
+            overlay.style.opacity = '0'
+          }
+          vm.showPrivacyOverlay = false
+          console.log('[App] ===== RESUME EVENT END (no lock enabled) =====')
         }
       })
     },
@@ -322,11 +551,23 @@ export default {
       await vm.setupAppLifecycleListener()
     }
 
+    // Initialize privacy overlay to hidden state
+    const overlay = document.getElementById('privacy-overlay')
+    if (overlay) {
+      overlay.style.display = 'none'
+      overlay.style.visibility = 'hidden'
+      overlay.style.opacity = '0'
+      console.log('[App] Privacy overlay initialized to hidden state')
+    }
+
     // On initial mount (cold start), reset unlock state if lock is enabled
     const lockAppEnabled = vm.$store.getters['global/lockApp']
     if (lockAppEnabled) {
       vm.$store.commit('global/setIsUnlocked', false)
     }
+
+    // Initialize screenshot security based on current wallet's lock setting
+    await vm.updateScreenshotSecurity()
 
     // Note: Removed autoGenerateAddress calls - no longer needed since balances
     // are fetched via wallet hash API (cashtokens/fungible) instead of individual addresses
@@ -556,6 +797,178 @@ html {
     width: 0 !important;
     height: 0 !important;
     -webkit-appearance: none !important;
+  }
+}
+
+/* Privacy overlay for app switcher/background preview */
+.privacy-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: none; /* Hidden by default */
+  visibility: hidden;
+  opacity: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.1s ease; /* Quick transition for smooth appearance */
+  
+  /* Glassmorphic animated gradient background */
+  &.light {
+    background: linear-gradient(-45deg, #f5f7fa, #e8eef5, #f0f4f8, #e3e9f0);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+  
+  &.dark {
+    background: linear-gradient(-45deg, #1a1d23, #252930, #1e2229, #2a2f38);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+  
+  /* Theme-specific gradient overlays */
+  &.theme-glassmorphic-blue {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(66, 165, 245, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(21, 101, 192, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(66, 165, 245, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(21, 101, 192, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+  
+  &.theme-glassmorphic-gold {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+  
+  &.theme-glassmorphic-green {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(46, 125, 50, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(46, 125, 50, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+  
+  &.theme-glassmorphic-red {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(245, 66, 112, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(192, 21, 67, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(245, 66, 112, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(192, 21, 67, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+  
+  &.theme-payhero {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+}
+
+.privacy-overlay-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border-radius: 50%;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.privacy-logo {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
   }
 }
 </style>

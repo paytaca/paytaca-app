@@ -34,8 +34,6 @@ export default function () {
 
   Router.beforeEach(async (to, from, next) => {
     // Check if app is locked and user is trying to access a protected route
-    // Access state directly from store to ensure we get the latest value
-    // Use multiple access methods to ensure we get the correct state
     const lockAppEnabled = store.getters['global/lockApp']
     
     // Try multiple ways to get the unlock state to ensure we have the latest value
@@ -50,12 +48,6 @@ export default function () {
     const isLockScreen = to.path === '/lock'
     const isAccountsRoute = to.path.startsWith('/accounts')
 
-    // Debug logging (only log when lock is enabled to reduce noise)
-    if (lockAppEnabled) {
-      console.log('[Router] Lock check - lockAppEnabled:', lockAppEnabled, 'isUnlocked:', isUnlocked, 
-                 'stateDirect:', stateUnlocked, 'to:', to.path, 'from:', from.path)
-    }
-
     // IMPORTANT: If app is already unlocked, skip ALL lock checks and allow navigation
     // The lock screen should only show on initial app load or when coming from background
     // Once unlocked, the app should remain unlocked for the entire session until it goes to background
@@ -64,25 +56,19 @@ export default function () {
     if (isUnlocked === true) {
       // If user tries to go to lock screen while unlocked, redirect away
       if (isLockScreen) {
-        console.log('[Router] App is already unlocked, redirecting from lock screen')
         const redirectPath = to.query.redirect || '/'
         next(redirectPath)
         return
       }
-      // App is unlocked - skip ALL lock checks and proceed directly to route handling
-      // Do NOT check lock state again - the app is unlocked for this session
-      // Continue to normal route handling below - DO NOT return here
     } else if (lockAppEnabled) {
       // App is locked - only redirect if not already on lock screen or accounts
       if (!isLockScreen && !isAccountsRoute) {
-        console.log('[Router] App is locked, redirecting to lock screen')
         next({
           path: '/lock',
           query: { redirect: to.fullPath }
         })
         return
       }
-      // If already on lock screen or accounts route, allow navigation to proceed
     }
 
     if (to.path === '/') {
@@ -91,10 +77,8 @@ export default function () {
         // This will switch to the first valid wallet if current is null/deleted
         await store.dispatch('global/ensureValidWalletIndex')
 
-        // Get the current wallet index (may have changed after ensureValidWalletIndex)
         const currentWalletIndex = store.getters['global/getWalletIndex']
         const vault = store.getters['global/getVault']
-
         const currentWallet = vault[currentWalletIndex]
 
         // Check if we have a valid wallet structure
