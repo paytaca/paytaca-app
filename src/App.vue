@@ -173,14 +173,16 @@ export default {
           
           // Navigate to lock screen (asynchronous, after overlay is shown)
           // Use replace to avoid adding to history
-          const currentPath = vm.$router.currentRoute.value.fullPath
+          const currentRoute = vm.$router.currentRoute.value
+          const currentPath = currentRoute.path
+          const currentFullPath = currentRoute.fullPath
           
-          // Only navigate if not already on lock screen
+          // Only navigate if not already on lock screen (check path, not fullPath with query params)
           if (currentPath !== '/lock') {
-            console.log('[App] Navigating to lock screen, will redirect to:', currentPath)
+            console.log('[App] Navigating to lock screen, will redirect to:', currentFullPath)
             vm.$router.replace({
               path: '/lock',
-              query: { redirect: currentPath }
+              query: { redirect: currentFullPath }
             }).catch(err => {
               console.log('[App] Lock screen navigation failed (may already be there):', err)
             })
@@ -219,10 +221,10 @@ export default {
           // Ensure we stay on lock screen (router guard should handle this, but be defensive)
           if (currentRoute !== '/lock') {
             console.log('[App] WARNING: Not on lock screen but should be - navigating to lock screen')
-            const currentPath = vm.$router.currentRoute.value.fullPath
+            const currentFullPath = vm.$router.currentRoute.value.fullPath
             vm.$router.replace({
               path: '/lock',
-              query: { redirect: currentPath !== '/lock' ? currentPath : '/' }
+              query: { redirect: currentFullPath }
             }).catch(err => {
               console.log('[App] Lock screen navigation failed:', err)
             })
@@ -321,11 +323,11 @@ export default {
           
           // Ensure we're on lock screen (should already be there from pause event)
           if (!isOnLockScreen) {
-            const currentPath = vm.$router.currentRoute.value.fullPath
-            console.log('[App] Not on lock screen, navigating to lock screen, will redirect to:', currentPath)
+            const currentFullPath = vm.$router.currentRoute.value.fullPath
+            console.log('[App] Not on lock screen, navigating to lock screen, will redirect to:', currentFullPath)
             vm.$router.replace({
               path: '/lock',
-              query: { redirect: currentPath }
+              query: { redirect: currentFullPath }
             }).catch(err => {
               console.log('[App] Lock screen navigation failed (may already be there):', err)
             })
