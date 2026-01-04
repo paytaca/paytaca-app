@@ -138,7 +138,16 @@
                   <q-item class="no-hover-effect">
                     <q-item-section avatar>
                       <q-avatar>
-                        <img :src="getImageUrl(asset)" :alt="asset.name">
+                        <img 
+                          :src="getImageUrl(asset)" 
+                          :alt="asset.name" 
+                          class="asset-icon"
+                          @touchstart.prevent.stop
+                          @touchmove.prevent.stop
+                          @touchend.prevent.stop
+                          @contextmenu.prevent.stop
+                          @selectstart.prevent
+                        >
                       </q-avatar>
                     </q-item-section>
                     <q-item-section>

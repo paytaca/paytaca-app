@@ -13,7 +13,16 @@
         <div class="transaction-type">
           <div class="type-with-asset" v-if="showAssetInfo && !isNftTransaction">
             <q-avatar size="20px" class="q-mr-xs">
-              <img v-if="assetImageUrl" :src="assetImageUrl" />
+              <img 
+                v-if="assetImageUrl" 
+                :src="assetImageUrl" 
+                class="asset-icon"
+                @touchstart.prevent.stop
+                @touchmove.prevent.stop
+                @touchend.prevent.stop
+                @contextmenu.prevent.stop
+                @selectstart.prevent
+              />
               <q-icon v-else name="apps" size="14px" />
             </q-avatar>
             <span class="asset-symbol" :class="getDarkModeClass(darkMode)">{{ assetSymbol }}</span>

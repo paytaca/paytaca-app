@@ -100,7 +100,8 @@
                       <q-toggle
                         :model-value="lockAppEnabled"
                         @update:model-value="toggleLockApp"
-                        color="brandblue"
+                        :color="toggleColor"
+                        keep-color
                       />
                   </q-item-section>
               </q-item>

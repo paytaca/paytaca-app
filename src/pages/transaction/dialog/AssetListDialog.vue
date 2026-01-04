@@ -50,7 +50,15 @@
 					<q-item class="q-py-md" clickable v-ripple v-for="asset in filteredList" @click="onOKClick(asset)" :key="asset.id">
 						<q-item-section avatar>
 		          <q-avatar>
-		            <img :src="getImageUrl(asset)">
+		            <img 
+		              :src="getImageUrl(asset)" 
+		              class="asset-icon"
+		              @touchstart.prevent.stop
+		              @touchmove.prevent.stop
+		              @touchend.prevent.stop
+		              @contextmenu.prevent.stop
+		              @selectstart.prevent
+		            >
 		          </q-avatar>
 		        </q-item-section>
 		        <q-item-section class="text-bold">{{ asset.name }}</q-item-section>

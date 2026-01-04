@@ -39,7 +39,17 @@
               </div>
             </template>
             <template v-else>
-              <img :src="getImageUrl(asset)" height="30" class="q-mr-xs" alt="">
+              <img 
+                :src="getImageUrl(asset)" 
+                height="30" 
+                class="q-mr-xs asset-icon" 
+                alt=""
+                @touchstart.prevent.stop
+                @touchmove.prevent.stop
+                @touchend.prevent.stop
+                @contextmenu.prevent.stop
+                @selectstart.prevent
+              >
               <div class="q-gutter-y-sm text-right">
                 <div class="asset-symbol">{{ asset?.symbol }}</div>
                 <div class="asset-balance">{{ parseAssetDenomination(denomination, { ...asset, excludeSymbol: true }) }}</div>

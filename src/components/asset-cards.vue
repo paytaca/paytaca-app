@@ -36,7 +36,17 @@
       v-touch-pan="handlePan"
     >
       <div class="row items-center no-wrap justify-between q-mb-xs">
-        <img :src="getImageUrl(asset)" height="28" class="q-mr-xs" alt="">
+        <img 
+          :src="getImageUrl(asset)" 
+          height="28" 
+          class="q-mr-xs asset-icon" 
+          alt=""
+          @touchstart.prevent.stop
+          @touchmove.prevent.stop
+          @touchend.prevent.stop
+          @contextmenu.prevent.stop
+          @selectstart.prevent
+        >
         <p class="col text-right asset-symbol">
           {{ asset.symbol }}
         </p>

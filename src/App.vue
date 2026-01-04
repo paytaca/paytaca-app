@@ -520,6 +520,54 @@ export default {
           })
         })
       }
+    },
+    setupImageContextMenuPrevention() {
+      const vm = this
+      
+      // Prevent iOS image context menu for all asset images
+      const preventDefault = (e) => {
+        // Only prevent for images with asset-icon class or inside asset-related containers
+        const target = e.target
+        if (target.tagName === 'IMG' && (
+          target.classList.contains('asset-icon') ||
+          target.closest('.asset-card') ||
+          target.closest('.method-cards') ||
+          target.closest('.transaction-item') ||
+          target.closest('q-avatar')
+        )) {
+          e.preventDefault()
+          e.stopPropagation()
+          return false
+        }
+      }
+
+      // Use event delegation on document body for all current and future images
+      document.addEventListener('touchstart', preventDefault, { passive: false, capture: true })
+      document.addEventListener('touchmove', preventDefault, { passive: false, capture: true })
+      document.addEventListener('touchend', preventDefault, { passive: false, capture: true })
+      document.addEventListener('contextmenu', preventDefault, { capture: true })
+      document.addEventListener('selectstart', preventDefault, { capture: true })
+
+      // Store reference for cleanup
+      vm._imageContextMenuPreventionHandlers = {
+        touchstart: preventDefault,
+        touchmove: preventDefault,
+        touchend: preventDefault,
+        contextmenu: preventDefault,
+        selectstart: preventDefault
+      }
+    }
+  },
+  beforeUnmount() {
+    // Clean up global event listeners
+    if (this._imageContextMenuPreventionHandlers) {
+      const handlers = this._imageContextMenuPreventionHandlers
+      document.removeEventListener('touchstart', handlers.touchstart, { capture: true })
+      document.removeEventListener('touchmove', handlers.touchmove, { capture: true })
+      document.removeEventListener('touchend', handlers.touchend, { capture: true })
+      document.removeEventListener('contextmenu', handlers.contextmenu, { capture: true })
+      document.removeEventListener('selectstart', handlers.selectstart, { capture: true })
+      delete this._imageContextMenuPreventionHandlers
     }
   },
   beforeMount() {
@@ -556,6 +604,9 @@ export default {
 
     // Initialize screenshot security based on current wallet's lock setting
     await vm.updateScreenshotSecurity()
+
+    // Prevent iOS image context menu for all asset images
+    vm.setupImageContextMenuPrevention()
 
     // Note: Removed autoGenerateAddress calls - no longer needed since balances
     // are fetched via wallet hash API (cashtokens/fungible) instead of individual addresses

@@ -6,7 +6,12 @@
         <div class="logo-container q-mb-md" :class="getDarkModeClass(darkMode)">
           <q-img
             src="/lift-token.png"
-            class="lift-logo"
+            class="lift-logo asset-icon"
+            @touchstart.prevent.stop
+            @touchmove.prevent.stop
+            @touchend.prevent.stop
+            @contextmenu.prevent.stop
+            @selectstart.prevent
           />
         </div>
         <div class="text-h4 text-weight-bold q-mb-xs q-mt-sm">LIFT Token</div>

@@ -69,7 +69,18 @@
         <!-- Amount block (mirrors SendSuccessBlock proportions) -->
         <div class="amount-block q-mt-md text-center section-block-ss">
           <div class="row justify-center q-gutter-sm amount-row-ss" style="margin-top: 25px;">
-            <q-avatar size="40px" class="amount-avatar-ss"><img :src="getImageUrl(tx.asset)" alt="asset-logo" /></q-avatar>
+            <q-avatar size="40px" class="amount-avatar-ss">
+              <img 
+                :src="getImageUrl(tx.asset)" 
+                alt="asset-logo" 
+                class="asset-icon"
+                @touchstart.prevent.stop
+                @touchmove.prevent.stop
+                @touchend.prevent.stop
+                @contextmenu.prevent.stop
+                @selectstart.prevent
+              />
+            </q-avatar>
             <div class="amount-label-ss">{{ displayAmountText }}</div>
           </div>
           <div v-if="!isNft && displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
