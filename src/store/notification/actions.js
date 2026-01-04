@@ -8,6 +8,19 @@ const NotificationTypes = types()
 export async function handleOpenedNotification(context) {
   const $router = Router()
   const openedNotification = context.getters['openedNotification']
+  
+  // Check if app is locked
+  const lockAppEnabled = context.rootGetters['global/lockApp']
+  const isUnlocked = context.rootGetters['global/isUnlocked']
+  
+  if (lockAppEnabled && !isUnlocked) {
+    // Store the notification for later processing after unlock
+    console.log('[Notification] App is locked, redirecting to lock screen first')
+    // The notification will be processed after unlock via push-notification-router
+    $router.push($router.resolve({ name: 'push-notification-router' }))
+    return
+  }
+  
   const route = await context.dispatch('getOpenedNotificationRoute')
 
   // Check for wallet_hash first (newer wallets)

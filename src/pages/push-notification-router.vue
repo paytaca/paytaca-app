@@ -83,6 +83,21 @@ async function switchWallet(walletHashOrIndex) {
 }
 
 async function handleOpenedNotification() {
+  // Check if app is locked
+  const lockAppEnabled = $store.getters['global/lockApp']
+  const isUnlocked = $store.getters['global/isUnlocked']
+  
+  if (lockAppEnabled && !isUnlocked) {
+    console.log('[Push Notification Router] App is locked, redirecting to lock screen')
+    loadingMsg.value = t('Unlocking') + '...'
+    // Redirect to lock screen with the current path as redirect target
+    await $router.replace({
+      path: '/lock',
+      query: { redirect: $router.currentRoute.value.fullPath }
+    })
+    return
+  }
+  
   loadingMsg.value = t('ResolvingRoute') + '...'
   const route = await $store.dispatch('notification/getOpenedNotificationRoute')
 

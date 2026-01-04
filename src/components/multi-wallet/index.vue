@@ -6,7 +6,7 @@
     position="left"
     maximized
     @before-show="onDialogShow"
-    @before-hide="$emit('dialog-hide')"    
+    @before-hide="onDialogHide"    
   >
     <q-card
       class="wallet-card"
@@ -57,6 +57,8 @@
             @end="onDragEnd"
             :item-key="getWalletItemKey"
             :animation="200"
+            :delay="200"
+            :delay-on-touch-only="true"
             class="wallet-list-draggable"
           >
             <template #item="{ element: wallet, index }">
@@ -69,11 +71,18 @@
                     getDarkModeClass(darkMode),
                     isActive(index) ? 'active-wallet' : ''
                   ]"
-                  @click="switchWallet(index)"
+                  @click.stop="handleWalletClick(index, $event)"
+                  @click.native.stop="handleWalletClickNative(index, $event)"
+                  @touchstart.stop="handleWalletTouchStart(index, $event)"
+                  @touchend.stop="handleWalletTouchEnd(index, $event)"
                 >
                   <q-item-section>
                     <!-- Wallet name -->
-                    <div class="wallet-name text-weight-medium" :class="isActive(index) ? 'text-grad' : ''">
+                    <div 
+                      class="wallet-name text-weight-medium" 
+                      :class="isActive(index) ? 'text-grad' : ''"
+                      @click.stop="handleWalletNameClick(index, $event)"
+                    >
                       {{ wallet.name }}
                     </div>
                   </q-item-section>
@@ -108,6 +117,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getWalletName } from 'src/utils/wallet-name-cache'
 
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
+import WalletSwitchLoading from 'src/components/WalletSwitchLoading.vue'
 import draggable from 'vuedraggable'
 
 export default {
@@ -121,11 +131,14 @@ export default {
       vault: [],
       vaultIndexMap: new Map(), // Maps displayed index to actual vault index
       isloading: false,
-      secondDialog: false
+      secondDialog: false,
+      touchData: {}, // Track touch events for tap detection
+      isSwitching: false // Prevent multiple simultaneous wallet switches
     }
   },
   components: {
     LoadingWalletDialog,
+    WalletSwitchLoading,
     draggable
   },
   watch: {
@@ -220,44 +233,129 @@ export default {
         }
       })
     },
-    switchWallet (displayIndex) {
+    handleWalletTouchStart (displayIndex, event) {
+      // Store touch start time and position to detect tap vs drag
+      if (!this.touchData) {
+        this.touchData = {}
+      }
+      const touch = event.touches?.[0] || event.changedTouches?.[0]
+      this.touchData[displayIndex] = {
+        startTime: Date.now(),
+        startX: touch?.clientX,
+        startY: touch?.clientY
+      }
+    },
+    handleWalletTouchEnd (displayIndex, event) {
+      if (!this.touchData || !this.touchData[displayIndex]) {
+        return
+      }
+      
+      const touch = event.changedTouches?.[0]
+      // Guard: if touch is undefined or missing coordinates, can't determine tap vs drag
+      if (!touch || touch.clientX === undefined || touch.clientY === undefined) {
+        delete this.touchData[displayIndex]
+        return
+      }
+      
+      const touchInfo = this.touchData[displayIndex]
+      const endTime = Date.now()
+      const duration = endTime - touchInfo.startTime
+      const deltaX = Math.abs(touch.clientX - touchInfo.startX)
+      const deltaY = Math.abs(touch.clientY - touchInfo.startY)
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+      
+      // Consider it a tap if duration < 300ms and distance < 10px
+      if (duration < 300 && distance < 10) {
+        delete this.touchData[displayIndex]
+        this.switchWallet(displayIndex)
+      } else {
+        delete this.touchData[displayIndex]
+      }
+    },
+    handleWalletClickNative (displayIndex, event) {
+      this.switchWallet(displayIndex)
+    },
+    handleWalletNameClick (displayIndex, event) {
+      this.switchWallet(displayIndex)
+    },
+    handleWalletClick (displayIndex, event) {
+      this.switchWallet(displayIndex)
+    },
+    async switchWallet (displayIndex) {
       const vm = this
+      
+      // Prevent multiple simultaneous switches
+      if (vm.isSwitching) {
+        return
+      }
+      
       // Map displayed index to actual vault index
       const actualIndex = vm.vaultIndexMap.get(displayIndex) ?? displayIndex
       
-      console.log('[MultiWallet] switchWallet called with displayIndex:', displayIndex)
-      console.log('[MultiWallet] Mapped to actualIndex:', actualIndex)
-      console.log('[MultiWallet] Current index:', vm.currentIndex)
-      
-      // Also check if the current index matches the actual index
+      // Check if already on this wallet
       const currentActualIndex = vm.vaultIndexMap.get(vm.currentIndex) ?? vm.currentIndex
-      console.log('[MultiWallet] Current actual index:', currentActualIndex)
       if (actualIndex === currentActualIndex) {
-        console.log('[MultiWallet] Already on this wallet, skipping switch')
         return
       }
+      
+      // Set switching flag
+      vm.isSwitching = true
 
       vm.hide()
-      const loadingDialog = this.$q.dialog({
-        component: LoadingWalletDialog
+      
+      // Show full-screen loading with pulsating logo
+      const loadingComponent = vm.$q.dialog({
+        component: WalletSwitchLoading,
+        persistent: true
       })
-
-      console.log('[MultiWallet] Dispatching switchWallet action with index:', actualIndex)
-      vm.$store.dispatch('global/switchWallet', actualIndex).then(function () {
-        console.log('[MultiWallet] switchWallet action completed, navigating to home...')
-        vm.$router.push('/')
-        console.log('[MultiWallet] Navigation pushed, reloading in 500ms...')
-        setTimeout(() => { 
-          console.log('[MultiWallet] Reloading page...')
-          location.reload() 
-        }, 500)
-      }).catch(function (error) {
-        console.error('[MultiWallet] Error switching wallet:', error)
-        loadingDialog.hide()
-      })
-
-      // Don't hide loading dialog immediately - wait for switch to complete
-      // loadingDialog.hide()
+      
+      try {
+        // Execute wallet switch - this includes a 1 second delay for syncing
+        await vm.$store.dispatch('global/switchWallet', actualIndex)
+        
+        // Verify wallet index was updated correctly
+        const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
+        if (currentWalletIndex !== actualIndex) {
+          // Force update if it didn't persist
+          vm.$store.commit('global/updateWalletIndex', actualIndex)
+          vm.$store.commit('global/updateCurrentWallet', actualIndex)
+        }
+        
+        // SECURITY: Check if destination wallet is locked
+        // If locked, navigate directly to lock screen without showing home page
+        const lockAppEnabled = vm.$store.getters['global/lockApp']
+        const isUnlocked = vm.$store.getters['global/isUnlocked']
+        
+        // Hide loading component
+        loadingComponent.hide()
+        
+        // Wait for dialog to dismiss and ensure localStorage is persisted
+        // On Android, localStorage writes can be async, so we need extra time
+        // Also wait for vuex-persistedstate to write the state
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        vm.isSwitching = false
+        
+        if (lockAppEnabled && !isUnlocked) {
+          // Wallet is locked - go directly to lock screen with page reload
+          window.location.href = '/#/lock?redirect=/'
+        } else {
+          // Wallet is unlocked or has no lock - go to home with reload
+          location.reload()
+        }
+      } catch (error) {
+        console.error('[MultiWallet] Switch error:', error)
+        vm.isSwitching = false
+        loadingComponent.hide()
+        
+        // Show error notification
+        vm.$q.notify({
+          message: vm.$t('WalletSwitchFailed', {}, 'Failed to switch wallet'),
+          color: 'negative',
+          icon: 'error',
+          timeout: 2000
+        })
+      }
     },
     isActive (displayIndex) {
       // Map displayed index to actual vault index and compare with current index
@@ -415,12 +513,31 @@ export default {
       }
     },
     hide () {
-      this.$refs['multi-wallet'].hide()
+      console.log('[MultiWallet] hide() called - closing sidebar dialog')
+      console.log('[MultiWallet] Dialog ref exists:', !!this.$refs['multi-wallet'])
+      if (this.$refs['multi-wallet']) {
+        this.$refs['multi-wallet'].hide()
+        console.log('[MultiWallet] Dialog hide() called')
+      } else {
+        console.error('[MultiWallet] Dialog ref not found!')
+      }
+    },
+    onDialogHide () {
+      console.log('[MultiWallet] ===== DIALOG BEFORE-HIDE EVENT =====')
+      console.log('[MultiWallet] Dialog is about to hide')
+      console.log('[MultiWallet] Current route:', this.$router.currentRoute.value.path)
+      console.log('[MultiWallet] Emitting dialog-hide event')
+      this.$emit('dialog-hide')
     },
     async onDialogShow () {
+      console.log('[MultiWallet] ===== DIALOG SHOW EVENT =====')
+      console.log('[MultiWallet] Dialog is being shown')
+      console.log('[MultiWallet] Current route:', this.$router.currentRoute.value.path)
+      
       // Refresh wallet list every time the sidebar is shown
       // Update current index first
       this.currentIndex = this.$store.getters['global/getWalletIndex']
+      console.log('[MultiWallet] Current wallet index:', this.currentIndex)
       
       // Immediately update vault data from store
       this.arrangeVaultData().catch(console.error)

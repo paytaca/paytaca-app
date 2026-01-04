@@ -52,8 +52,8 @@
               <div v-show="expandedShard === 0" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
                 <div class="qr-code-container" :id="`qr-shard-0`">
                   <div class="col q-pl-sm q-pr-sm">
-                    <div class="row text-center">
-                      <div class="col row justify-center q-pt-md">
+                    <div class="row text-center justify-center">
+                      <div class="col-auto q-pt-md">
                         <qr-code :qr-id="1" :text="shards[0]" :size="220" class="q-mb-sm" />
                       </div>
                     </div>
@@ -127,8 +127,8 @@
               <div v-show="expandedShard === 1" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
                 <div class="qr-code-container" :id="`qr-shard-1`">
                   <div class="col q-pl-sm q-pr-sm">
-                    <div class="row text-center">
-                      <div class="col row justify-center q-pt-md">
+                    <div class="row text-center justify-center">
+                      <div class="col-auto q-pt-md">
                         <qr-code :qr-id="2" :text="shards[1]" :size="220" class="q-mb-sm" />
                       </div>
                     </div>
@@ -202,8 +202,8 @@
               <div v-show="expandedShard === 2" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
                 <div class="qr-code-container" :id="`qr-shard-2`">
                   <div class="col q-pl-sm q-pr-sm">
-                    <div class="row text-center">
-                      <div class="col row justify-center q-pt-md">
+                    <div class="row text-center justify-center">
+                      <div class="col-auto q-pt-md">
                         <qr-code :qr-id="3" :text="shards[2]" :size="220" class="q-mb-sm" />
                       </div>
                     </div>
@@ -757,25 +757,36 @@ export default {
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
-        overflow: visible;
+        overflow-x: hidden; // Prevent horizontal overflow from QR codes
+        overflow-y: visible;
 
         .qr-code-container {
           margin-top: 20px;
           padding-left: 28px;
           padding-right: 28px;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          
+          // The QR component uses inline styles with fixed size (280px for size 220 + padding 30*2)
+          // On small screens, reduce padding to give QR code more room
         }
         
-        /* iPhone 5/SE */
-        @media (min-width: 280px) and (max-width: 320px) {
+        /* iPhone 5/SE and small screens - reduce padding to fit QR */
+        @media (min-width: 280px) and (max-width: 360px) {
           .qr-code-container {
             margin-top: 30px;
+            padding-left: 12px;
+            padding-right: 12px;
           }
         }
         
-        /* Galaxy Fold */
-        @media (min-width: 200px) and (max-width: 280px) {
+        /* Galaxy Fold and very small screens - minimal padding */
+        @media (max-width: 280px) {
           .qr-code-container {
             margin-top: 66px;
+            padding-left: 8px;
+            padding-right: 8px;
           }
         }
 
@@ -866,26 +877,12 @@ export default {
           width: 100%;
           max-width: 100%;
           box-sizing: border-box;
+          overflow-x: hidden; // Prevent horizontal overflow
 
-          .qr-container {
-            padding: 10px;
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-            height: auto;
-            
-            // Override QR code component's fixed width on mobile
-            :deep(.qr-wrap) {
-              max-width: 100% !important;
-              width: 100% !important;
-              box-sizing: border-box !important;
-            }
-            
-            :deep(.qr) {
-              max-width: 100%;
-            }
+          .qr-code-container {
+            // QR code is 280px, ensure it fits on small screens
           }
-
+          
           .qr-action-buttons {
             flex-direction: column;
             gap: 8px;
@@ -903,6 +900,13 @@ export default {
             .shard-text {
               font-size: 11px;
             }
+          }
+        }
+        
+        /* Reduce shard-content padding on very small screens to fit QR */
+        @media (max-width: 360px) {
+          .shard-content {
+            padding: 12px;
           }
         }
       }

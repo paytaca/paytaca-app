@@ -136,6 +136,12 @@ export default function () {
        * }} - A partial BCMR IdentitySnapshot, other fields are omitted
        */
       cashtokenIdentities: {}
-    }
+    },
+    /**
+     * Session-only state for app lock feature
+     * isUnlocked tracks if user has successfully authenticated in current session
+     * Not persisted to localStorage
+     */
+    isUnlocked: false
   }
 }

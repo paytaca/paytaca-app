@@ -20,7 +20,8 @@ function getDefaultWalletSettings() {
     },
     darkMode: true,
     currency: { name: 'United States Dollar', symbol: 'USD' },
-    preferredSecurity: 'pin' // 'pin' or 'biometric'
+    preferredSecurity: 'pin', // 'pin' or 'biometric'
+    lockApp: false // Enable/disable app lock feature
   }
 }
 
@@ -646,4 +647,26 @@ export function cacheCashtokenIdentity(state, { category, cashtokenIdentity }) {
   state.cache.cashtokenIdentities[category] = cashtokenIdentity
 }
 
+/**
+ * Set the lock app feature for current wallet
+ * @param {Object} state - Global state
+ * @param {boolean} value - true to enable lock, false to disable
+ */
+export function setLockApp (state, value) {
+  if (state.vault && state.vault[state.walletIndex]) {
+    if (!state.vault[state.walletIndex].settings) {
+      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
+    }
+    state.vault[state.walletIndex].settings.lockApp = Boolean(value)
+  }
+}
+
+/**
+ * Set the unlock state for current session
+ * @param {Object} state - Global state
+ * @param {boolean} value - true if unlocked, false if locked
+ */
+export function setIsUnlocked (state, value) {
+  state.isUnlocked = Boolean(value)
+}
 
