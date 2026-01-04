@@ -433,7 +433,12 @@ export default {
             // Reset toggle to previous state (disabled)
             vm.$nextTick(() => {
               // Force update the toggle to reflect that lock is still disabled
-              // The toggle component should handle this via v-model, but we ensure it's synced
+              // Explicitly ensure state is false to trigger computed property update
+              // This ensures the toggle component syncs properly with the store state
+              const currentState = vm.$store.getters['global/lockApp']
+              if (currentState !== false) {
+                vm.$store.commit('global/setLockApp', false)
+              }
             })
           })
           
