@@ -47,6 +47,9 @@ export default function () {
     
     const isLockScreen = to.path === '/lock'
     const isAccountsRoute = to.path.startsWith('/accounts')
+    // Wallet backup routes have their own authentication (PIN/biometric) separate from app lock
+    // They should be accessible even when app is locked, as they handle their own security
+    const isWalletBackupRoute = to.path.startsWith('/apps/wallet-backup')
 
     // IMPORTANT: If app is already unlocked, skip ALL lock checks and allow navigation
     // The lock screen should only show on initial app load or when coming from background
@@ -61,8 +64,9 @@ export default function () {
         return
       }
     } else if (lockAppEnabled) {
-      // App is locked - only redirect if not already on lock screen or accounts
-      if (!isLockScreen && !isAccountsRoute) {
+      // App is locked - only redirect if not already on lock screen, accounts, or wallet-backup routes
+      // Wallet-backup routes have their own authentication mechanism and should not be blocked
+      if (!isLockScreen && !isAccountsRoute && !isWalletBackupRoute) {
         next({
           path: '/lock',
           query: { redirect: to.fullPath }

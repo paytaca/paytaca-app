@@ -351,7 +351,12 @@ export default {
       vm.$store.commit('global/setIsUnlocked', true)
       
       // Verify it was set correctly (for debugging)
-      const verifyUnlocked = vm.$store.getters['global/isUnlocked']
+      let verifyUnlocked = vm.$store.getters['global/isUnlocked']
+      // Also check state directly to ensure it's set
+      const stateUnlocked = vm.$store.state?.global?.isUnlocked
+      if (typeof stateUnlocked === 'boolean') {
+        verifyUnlocked = Boolean(stateUnlocked)
+      }
       console.log('[LockScreen] Unlock state set to true, verified:', verifyUnlocked)
       
       // Emit unlock event for parent components
@@ -362,16 +367,27 @@ export default {
       console.log('[LockScreen] Redirecting to:', redirectPath)
       
       // Use nextTick to ensure store mutation is processed
-      // Then navigate immediately (simplified from previous complex timeout logic)
+      // Then add a small delay to ensure state propagation before navigation
+      // This prevents race conditions with resume handlers and router guards
       vm.$nextTick(() => {
-        console.log('[LockScreen] About to navigate to:', redirectPath)
-        vm.$router.replace(redirectPath).catch(err => {
-          console.error('[LockScreen] Navigation error:', err)
-          // If navigation fails, try going to home
-          vm.$router.replace('/').catch(err2 => {
-            console.error('[LockScreen] Fallback navigation also failed:', err2)
+        // Double-check unlock state before navigation
+        const finalUnlockCheck = vm.$store.getters['global/isUnlocked']
+        if (finalUnlockCheck !== true) {
+          console.warn('[LockScreen] Unlock state not properly set, setting again before navigation')
+          vm.$store.commit('global/setIsUnlocked', true)
+        }
+        
+        // Small delay to ensure state is fully propagated to all watchers and guards
+        setTimeout(() => {
+          console.log('[LockScreen] About to navigate to:', redirectPath)
+          vm.$router.replace(redirectPath).catch(err => {
+            console.error('[LockScreen] Navigation error:', err)
+            // If navigation fails, try going to home
+            vm.$router.replace('/').catch(err2 => {
+              console.error('[LockScreen] Fallback navigation also failed:', err2)
+            })
           })
-        })
+        }, 50) // Small delay to ensure state propagation
       })
     }
   },

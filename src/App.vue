@@ -147,7 +147,11 @@ export default {
         const lockAppEnabled = vm.$store.getters['global/lockApp']
         const currentUnlockState = vm.$store.getters['global/isUnlocked']
         
-        if (lockAppEnabled) {
+        // Wallet backup routes have their own authentication (PIN/biometric) separate from app lock
+        // They should not be interrupted by app lock logic, as they handle their own security
+        const isWalletBackupRoute = currentRoute.startsWith('/apps/wallet-backup')
+        
+        if (lockAppEnabled && !isWalletBackupRoute) {
           console.log('[App] Lock enabled - immediately showing privacy overlay to protect app preview')
           
           // Show privacy overlay IMMEDIATELY by directly manipulating DOM (synchronous, before OS snapshot)
@@ -173,9 +177,9 @@ export default {
           
           // Navigate to lock screen (asynchronous, after overlay is shown)
           // Use replace to avoid adding to history
-          const currentRoute = vm.$router.currentRoute.value
-          const currentPath = currentRoute.path
-          const currentFullPath = currentRoute.fullPath
+          const currentRouteObj = vm.$router.currentRoute.value
+          const currentPath = currentRouteObj.path
+          const currentFullPath = currentRouteObj.fullPath
           
           // Only navigate if not already on lock screen (check path, not fullPath with query params)
           if (currentPath !== '/lock') {
@@ -189,6 +193,8 @@ export default {
           } else {
             console.log('[App] Already on lock screen')
           }
+        } else if (isWalletBackupRoute) {
+          console.log('[App] On wallet-backup route - skipping app lock logic (has own authentication)')
         }
         
         // Record pause timestamp - this helps distinguish genuine backgrounding
@@ -206,7 +212,16 @@ export default {
         const currentRoute = vm.$router.currentRoute.value.path
         const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
         const lockAppEnabled = vm.$store.getters['global/lockApp']
-        const isUnlocked = vm.$store.getters['global/isUnlocked']
+        
+        // Check unlock state using multiple methods to avoid race conditions
+        // This is critical because the state might be in transition after authentication
+        let isUnlocked = Boolean(vm.$store.getters['global/isUnlocked'])
+        // Also check state directly as a fallback
+        const stateUnlocked = vm.$store.state?.global?.isUnlocked
+        if (typeof stateUnlocked === 'boolean') {
+          isUnlocked = Boolean(stateUnlocked)
+        }
+        
         const isOnLockScreen = currentRoute === '/lock'
         
         console.log('[App] Resume context - route:', currentRoute, 'walletIndex:', currentWalletIndex, 'lockAppEnabled:', lockAppEnabled, 'isUnlocked:', isUnlocked, 'isOnLockScreen:', isOnLockScreen)
@@ -214,10 +229,18 @@ export default {
         // CRITICAL SECURITY CHECK: If we're on lock screen and app is locked, NEVER unlock automatically
         // This prevents app switcher previews on Android from bypassing the lock screen
         // The lock screen can ONLY be dismissed through successful authentication
-        if (lockAppEnabled && isOnLockScreen && !isUnlocked) {
+        // IMPORTANT: Only force lock if unlock state is actually false (not just falsy)
+        // This prevents race conditions where unlock state was just set to true but hasn't propagated yet
+        if (lockAppEnabled && isOnLockScreen && isUnlocked === false) {
           console.log('[App] SECURITY: On lock screen with app locked - ensuring lock screen stays visible')
-          // Ensure unlock state remains false
-          vm.$store.commit('global/setIsUnlocked', false)
+          // Only force unlock state to false if it's not already true
+          // This prevents race conditions where authentication just succeeded
+          const currentUnlockState = vm.$store.getters['global/isUnlocked']
+          if (currentUnlockState !== true) {
+            vm.$store.commit('global/setIsUnlocked', false)
+          } else {
+            console.log('[App] Unlock state is already true - not forcing lock (authentication in progress)')
+          }
           // Ensure we stay on lock screen (router guard should handle this, but be defensive)
           if (currentRoute !== '/lock') {
             console.log('[App] WARNING: Not on lock screen but should be - navigating to lock screen')
