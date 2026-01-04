@@ -8,13 +8,14 @@ class PrivacyOverlayViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Create glassmorphic blue background gradient
+        // Create darker background gradient for privacy overlay
+        // Using darker colors to reduce brightness in app switcher preview
         let gradientLayer = CAGradientLayer()
         gradientLayer.colors = [
-            UIColor(red: 0.96, green: 0.97, blue: 0.98, alpha: 1.0).cgColor,
-            UIColor(red: 0.91, green: 0.93, blue: 0.96, alpha: 1.0).cgColor,
-            UIColor(red: 0.94, green: 0.96, blue: 0.97, alpha: 1.0).cgColor,
-            UIColor(red: 0.89, green: 0.91, blue: 0.94, alpha: 1.0).cgColor
+            UIColor(red: 0.20, green: 0.22, blue: 0.25, alpha: 1.0).cgColor,  // Dark grey
+            UIColor(red: 0.15, green: 0.17, blue: 0.20, alpha: 1.0).cgColor,  // Darker grey
+            UIColor(red: 0.18, green: 0.20, blue: 0.23, alpha: 1.0).cgColor,  // Medium dark grey
+            UIColor(red: 0.12, green: 0.14, blue: 0.17, alpha: 1.0).cgColor   // Darkest grey
         ]
         gradientLayer.locations = [0.0, 0.33, 0.66, 1.0]
         gradientLayer.startPoint = CGPoint(x: 0.0, y: 0.0)
@@ -117,35 +118,160 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let viewController = PrivacyOverlayViewController()
         let view = viewController.view!
         
-        // Add logo (if you have one in assets, otherwise use a colored circle)
+        // Create glassmorphic logo container similar to WalletSwitchLoading
         let logoContainer = UIView()
-        logoContainer.backgroundColor = UIColor(white: 1.0, alpha: 0.5)
-        logoContainer.layer.cornerRadius = 55
         logoContainer.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Glassmorphic styling - dark theme (matching darker gradient background)
+        logoContainer.backgroundColor = UIColor(white: 1.0, alpha: 0.05)
+        logoContainer.layer.cornerRadius = 55
+        logoContainer.layer.borderWidth = 2.0
+        logoContainer.layer.borderColor = UIColor(white: 1.0, alpha: 0.15).cgColor
+        
+        // Add shadow for depth (matching WalletSwitchLoading dark theme)
+        logoContainer.layer.shadowColor = UIColor.black.cgColor
+        logoContainer.layer.shadowOffset = CGSize(width: 0, height: 6)
+        logoContainer.layer.shadowRadius = 20
+        logoContainer.layer.shadowOpacity = 0.3
+        
+        // Add blue glow effect (theme-glassmorphic-blue style)
+        // Create a circular glow view behind the logo container
+        let glowView = UIView()
+        glowView.translatesAutoresizingMaskIntoConstraints = false
+        glowView.backgroundColor = UIColor(red: 66/255, green: 165/255, blue: 245/255, alpha: 0.2)
+        glowView.layer.cornerRadius = 65
+        glowView.alpha = 0.3
+        
+        // Add both views to hierarchy first
+        view.addSubview(glowView)
         view.addSubview(logoContainer)
         
-        // Center logo container
+        // Constrain both views relative to parent view (not relative to each other)
+        // This prevents constraint conflicts
         NSLayoutConstraint.activate([
+            // Logo container constraints
             logoContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             logoContainer.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             logoContainer.widthAnchor.constraint(equalToConstant: 110),
-            logoContainer.heightAnchor.constraint(equalToConstant: 110)
+            logoContainer.heightAnchor.constraint(equalToConstant: 110),
+            
+            // Glow view constraints (centered same as logo container)
+            glowView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            glowView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            glowView.widthAnchor.constraint(equalToConstant: 130),
+            glowView.heightAnchor.constraint(equalToConstant: 130)
         ])
         
-        // Try to load logo image from assets
-        if let logoImage = UIImage(named: "AppIcon") {
-            let imageView = UIImageView(image: logoImage)
-            imageView.contentMode = .scaleAspectFit
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            logoContainer.addSubview(imageView)
-            
-            NSLayoutConstraint.activate([
-                imageView.centerXAnchor.constraint(equalTo: logoContainer.centerXAnchor),
-                imageView.centerYAnchor.constraint(equalTo: logoContainer.centerYAnchor),
-                imageView.widthAnchor.constraint(equalToConstant: 60),
-                imageView.heightAnchor.constraint(equalToConstant: 60)
-            ])
+        // Ensure glow view is behind logo container
+        view.sendSubviewToBack(glowView)
+        
+        // Try to load logo image from multiple possible locations
+        var logoImage: UIImage?
+        
+        // Method 1: Try loading from www/assets folder (Capacitor bundle)
+        // In Capacitor, assets from src/assets get copied to www/assets during build
+        // Try multiple possible paths for the www folder
+        let possiblePaths = [
+            Bundle.main.resourcePath,
+            Bundle.main.bundlePath,
+            Bundle.main.path(forResource: "www", ofType: nil)
+        ].compactMap { $0 }
+        
+        for basePath in possiblePaths {
+            let logoPath = "\(basePath)/www/assets/paytaca_logo.png"
+            if FileManager.default.fileExists(atPath: logoPath) {
+                logoImage = UIImage(contentsOfFile: logoPath)
+                if logoImage != nil { break }
+            }
+            // Also try without www prefix (in case www is already in the path)
+            let altPath = "\(basePath)/assets/paytaca_logo.png"
+            if FileManager.default.fileExists(atPath: altPath) {
+                logoImage = UIImage(contentsOfFile: altPath)
+                if logoImage != nil { break }
+            }
         }
+        
+        // Method 2: Try using Bundle pathForResource (alternative method)
+        if logoImage == nil {
+            if let logoPath = Bundle.main.path(forResource: "paytaca_logo", ofType: "png", inDirectory: "www/assets") {
+                logoImage = UIImage(contentsOfFile: logoPath)
+            }
+        }
+        if logoImage == nil {
+            if let logoPath = Bundle.main.path(forResource: "paytaca_logo", ofType: "png", inDirectory: "assets") {
+                logoImage = UIImage(contentsOfFile: logoPath)
+            }
+        }
+        
+        // Method 3: Try loading from asset catalog (if manually added to Xcode)
+        if logoImage == nil {
+            logoImage = UIImage(named: "paytaca_logo")
+        }
+        if logoImage == nil {
+            logoImage = UIImage(named: "paytaca_logo.png")
+        }
+        
+        // Method 4: Try AppIcon as fallback (app icon)
+        if logoImage == nil {
+            logoImage = UIImage(named: "AppIcon")
+        }
+        
+        // Create image view for logo
+        let imageView = UIImageView()
+        if let logo = logoImage {
+            imageView.image = logo
+        } else {
+            // Fallback: create a simple "P" placeholder if logo not found
+            let placeholderSize = CGSize(width: 50, height: 50)
+            UIGraphicsBeginImageContextWithOptions(placeholderSize, false, 0)
+            let context = UIGraphicsGetCurrentContext()!
+            
+            // Draw a simple "P" shape
+            context.setFillColor(UIColor.white.cgColor)
+            context.setStrokeColor(UIColor.white.cgColor)
+            context.setLineWidth(4)
+            
+            // Draw P shape
+            context.move(to: CGPoint(x: 10, y: 10))
+            context.addLine(to: CGPoint(x: 10, y: 40))
+            context.move(to: CGPoint(x: 10, y: 10))
+            context.addLine(to: CGPoint(x: 30, y: 10))
+            context.addLine(to: CGPoint(x: 35, y: 15))
+            context.addLine(to: CGPoint(x: 35, y: 22))
+            context.addLine(to: CGPoint(x: 30, y: 25))
+            context.addLine(to: CGPoint(x: 10, y: 25))
+            context.strokePath()
+            
+            imageView.image = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+        }
+        
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        logoContainer.addSubview(imageView)
+        
+        // Add drop shadow to logo image
+        imageView.layer.shadowColor = UIColor.black.cgColor
+        imageView.layer.shadowOffset = CGSize(width: 0, height: 2)
+        imageView.layer.shadowRadius = 6
+        imageView.layer.shadowOpacity = 0.15
+        
+        NSLayoutConstraint.activate([
+            imageView.centerXAnchor.constraint(equalTo: logoContainer.centerXAnchor),
+            imageView.centerYAnchor.constraint(equalTo: logoContainer.centerYAnchor),
+            imageView.widthAnchor.constraint(equalToConstant: 50),
+            imageView.heightAnchor.constraint(equalToConstant: 50)
+        ])
+        
+        // Add pulse animation similar to WalletSwitchLoading
+        let pulseAnimation = CABasicAnimation(keyPath: "transform.scale")
+        pulseAnimation.fromValue = 1.0
+        pulseAnimation.toValue = 1.1
+        pulseAnimation.duration = 1.5
+        pulseAnimation.autoreverses = true
+        pulseAnimation.repeatCount = .infinity
+        pulseAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        logoContainer.layer.add(pulseAnimation, forKey: "pulse")
         
         return viewController
     }

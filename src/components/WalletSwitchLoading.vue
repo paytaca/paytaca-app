@@ -1,25 +1,20 @@
 <template>
-  <q-dialog
-    ref="dialog"
-    v-model="showDialog"
-    persistent
-    maximized
-    transition-show="fade"
-    transition-hide="fade"
+  <div 
+    v-if="showDialog"
+    class="wallet-switch-loading" 
+    :class="[getDarkModeClass(darkMode), themeClass]"
   >
-    <div class="wallet-switch-loading" :class="[getDarkModeClass(darkMode), themeClass]">
-      <!-- Animated Background Gradient -->
-      <div class="animated-background" :class="themeClass"></div>
-      
-      <!-- Logo Section (copied from LockScreen) -->
-      <div class="logo-section">
-        <div class="logo-glass-circle" :class="[getDarkModeClass(darkMode), themeClass]">
-          <div class="logo-glow" :class="themeClass"></div>
-          <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
-        </div>
+    <!-- Animated Background Gradient -->
+    <div class="animated-background" :class="themeClass"></div>
+    
+    <!-- Logo Section (copied from LockScreen) -->
+    <div class="logo-section">
+      <div class="logo-glass-circle" :class="[getDarkModeClass(darkMode), themeClass]">
+        <div class="logo-glow" :class="themeClass"></div>
+        <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
       </div>
     </div>
-  </q-dialog>
+  </div>
 </template>
 
 <script>
@@ -48,17 +43,36 @@ export default {
     getDarkModeClass,
     show() {
       this.showDialog = true
-      this.$refs.dialog?.show()
     },
     hide() {
       this.showDialog = false
-      this.$refs.dialog?.hide()
     }
   }
 }
 </script>
 
 <style lang="scss" scoped>
+// Ensure Quasar dialog wrapper is full height when this component is used
+:deep(.q-dialog) {
+  height: 100vh !important;
+  height: -webkit-fill-available !important;
+  max-height: none !important;
+}
+
+:deep(.q-dialog__inner) {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100vh !important;
+  height: -webkit-fill-available !important;
+  max-height: none !important;
+  display: block !important;
+}
+
+:deep(.q-dialog__backdrop) {
+  height: 100vh !important;
+  height: -webkit-fill-available !important;
+}
+
 @keyframes gradientShift {
   0%, 100% {
     background-position: 0% 50%;
@@ -85,6 +99,9 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100%;
+  height: 100vh;
+  height: -webkit-fill-available; // iOS Safari viewport fix
   z-index: 9999;
   display: flex;
   align-items: center;

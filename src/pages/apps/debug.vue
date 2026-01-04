@@ -437,11 +437,16 @@ export default {
             currentComponentInstance.logs = [...persistentLogs]
             
             // Auto-scroll to bottom if terminal is visible
-            if (currentComponentInstance.$nextTick) {
-              currentComponentInstance.$nextTick(() => {
-                const terminalBody = currentComponentInstance.$refs?.terminalBody
-                if (terminalBody) {
-                  terminalBody.scrollTop = terminalBody.scrollHeight
+            // Capture local reference to prevent null access if component unmounts
+            const componentInstance = currentComponentInstance
+            if (componentInstance.$nextTick) {
+              componentInstance.$nextTick(() => {
+                // Use captured reference to avoid accessing null if unmounted
+                if (componentInstance && componentInstance.$refs) {
+                  const terminalBody = componentInstance.$refs.terminalBody
+                  if (terminalBody) {
+                    terminalBody.scrollTop = terminalBody.scrollHeight
+                  }
                 }
               })
             }
