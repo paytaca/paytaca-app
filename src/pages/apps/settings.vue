@@ -486,10 +486,15 @@ export default {
       if (action === 'proceed') {
         if (vm.securityChange === 'change-pin') {
           vm.pinDialogAction = 'SET NEW'
+          // Reset securityChange immediately after triggering SET NEW dialog
+          // to prevent infinite loop when callback fires again after new PIN is set
+          vm.securityChange = null
         }
         if (vm.securityChange === 'switch-to-biometric') {
           vm.$store.commit('global/setPreferredSecurity', 'biometric')
           vm.pinStatus = false
+          // Reset securityChange after completing the switch
+          vm.securityChange = null
         }
         
         // If PIN was just set up and lock is pending, enable it now
@@ -532,6 +537,8 @@ export default {
       } else if (action === 'cancel') {
         // User cancelled PIN setup - clear pending lock enable
         vm.pendingLockEnable = false
+        // Reset securityChange when user cancels to clean up state
+        vm.securityChange = null
       }
     },
     verifyBiometric () {
