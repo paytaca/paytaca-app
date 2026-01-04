@@ -283,26 +283,34 @@ export default {
           vm.biometricAttempts++
           console.error('[LockScreen] Biometric verification error:', error)
           
-          if (error.message.includes('Cancel') || 
-              error.message.includes('Authentication cancelled') || 
-              error.message.includes('Fingerprint operation cancelled') ||
-              error.message.includes('User cancelled')) {
+          // Safely extract error message - handle various error formats
+          // Error could be: string, Error object, object with message property, or null/undefined
+          const errorMessage = typeof error === 'string' 
+            ? error 
+            : (error && typeof error === 'object' && typeof error.message === 'string')
+              ? error.message
+              : ''
+          
+          if (errorMessage.includes('Cancel') || 
+              errorMessage.includes('Authentication cancelled') || 
+              errorMessage.includes('Fingerprint operation cancelled') ||
+              errorMessage.includes('User cancelled')) {
             // User cancelled - don't show error, just allow retry
             vm.errorMessage = ''
             console.log('[LockScreen] User cancelled biometric authentication')
-          } else if (error.message.includes('Too many attempts') || 
-                     error.message.includes('too many attempts')) {
+          } else if (errorMessage.includes('Too many attempts') || 
+                     errorMessage.includes('too many attempts')) {
             vm.errorMessage = vm.$t('TooManyAttempts', {}, 'Too many attempts. Please try again later.')
             // Disable retry for a moment
             setTimeout(() => {
               vm.biometricFailed = false
               vm.errorMessage = ''
             }, 2000)
-          } else if (error.code === 'UNIMPLEMENTED') {
+          } else if (error && typeof error === 'object' && error.code === 'UNIMPLEMENTED') {
             vm.biometricPermanentlyUnavailable = true
             vm.errorMessage = vm.$t('BiometricNotSupported', {}, 'Biometric authentication is not supported on this device.')
-          } else if (error.message.includes('not enrolled') || 
-                     error.message.includes('No biometric credentials')) {
+          } else if (errorMessage.includes('not enrolled') || 
+                     errorMessage.includes('No biometric credentials')) {
             vm.biometricPermanentlyUnavailable = true
             vm.errorMessage = vm.$t('BiometricNotEnrolled', {}, 'No biometric credentials found. Please set up biometrics in your device settings.')
           } else {
