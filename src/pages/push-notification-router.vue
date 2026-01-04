@@ -121,8 +121,6 @@ async function handleOpenedNotification() {
     const notifWalletIndex = parseInt(openedNotification.value?.data?.multi_wallet_index)
 
     if (Number.isSafeInteger(notifWalletIndex) && notifWalletIndex !== currentWalletIndex.value) {
-        'Switching wallet..',
-      )
       loadingMsg.value = t('SwitchingWallet') + '...'
       // this function is expected to reload the page
       await switchWallet(notifWalletIndex)
