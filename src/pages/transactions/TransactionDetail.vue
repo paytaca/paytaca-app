@@ -230,6 +230,7 @@
                 <q-badge
                   v-for="(badge, index) in metadataBadges" :key="index"
                   class="badge-item"
+                  :color="badgeColor"
                   rounded
                   @click.stop
                 >
@@ -651,6 +652,15 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    badgeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'amber-7',
+        'glassmorphic-red': 'pink-6'
+      }
+      return themeMap[this.theme] || 'blue-6'
     },
     wrapperBackgroundStyle () {
       const theme = this.theme
