@@ -78,6 +78,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import pinDialog from 'src/components/pin/index.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { pinExists } from 'src/wallet'
 
 export default {
   name: 'LockScreen',
@@ -161,43 +162,86 @@ export default {
       
       if (shouldUsePin) {
         console.log('[LockScreen] Using PIN authentication')
-        this.authenticating = false
         
-        console.log('[LockScreen] Current pinDialogAction:', this.pinDialogAction)
-        console.log('[LockScreen] Setting pinDialogAction to VERIFY')
-        this.pinDialogAction = 'VERIFY'
-        console.log('[LockScreen] pinDialogAction after set:', this.pinDialogAction)
-        
-        // Check PIN dialog state after a delay
-        setTimeout(() => {
-          console.log('[LockScreen] After timeout, pinDialogAction:', this.pinDialogAction)
-          if (this.$refs.pinDialogRef) {
-            console.log('[LockScreen] PIN dialog ref exists')
-            console.log('[LockScreen] PIN dialog pinDialogAction prop:', this.$refs.pinDialogRef.pinDialogAction)
-            console.log('[LockScreen] PIN dialog dialog state:', this.$refs.pinDialogRef.dialog)
-            console.log('[LockScreen] PIN dialog actionCaption:', this.$refs.pinDialogRef.actionCaption)
+        // Verify PIN exists before attempting PIN authentication
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        pinExists(walletIndex).then(hasPin => {
+          if (!hasPin) {
+            // PIN doesn't exist - this should not happen if validation worked correctly
+            // But handle it gracefully to prevent lockout
+            console.error('[LockScreen] PIN authentication requested but PIN does not exist')
+            this.authenticating = false
+            this.errorMessage = this.$t('PinNotConfigured', {}, 'PIN is not configured for this wallet. Please set up a PIN in Settings to use this feature.')
             
-            // Try to manually trigger the dialog
-            if (!this.$refs.pinDialogRef.dialog) {
-              console.warn('[LockScreen] PIN dialog.dialog is false! Trying to set it to true')
-              this.$refs.pinDialogRef.dialog = true
+            // If biometric is available, suggest using it instead
+            if (this.preferredSecurity === 'biometric' && !this.biometricPermanentlyUnavailable) {
+              this.errorMessage += ' ' + this.$t('TryBiometricInstead', {}, 'Try using biometric authentication instead.')
+              // Reset state to allow biometric retry
+              this.usePinFallback = false
+              this.biometricPermanentlyUnavailable = false
             }
-          } else {
-            console.error('[LockScreen] PIN dialog ref is not available!')
+            return
           }
-        }, 100)
+          
+          // PIN exists - proceed with PIN dialog
+          this.authenticating = false
+          console.log('[LockScreen] Current pinDialogAction:', this.pinDialogAction)
+          console.log('[LockScreen] Setting pinDialogAction to VERIFY')
+          this.pinDialogAction = 'VERIFY'
+          console.log('[LockScreen] pinDialogAction after set:', this.pinDialogAction)
+          
+          // Check PIN dialog state after a delay
+          setTimeout(() => {
+            console.log('[LockScreen] After timeout, pinDialogAction:', this.pinDialogAction)
+            if (this.$refs.pinDialogRef) {
+              console.log('[LockScreen] PIN dialog ref exists')
+              console.log('[LockScreen] PIN dialog pinDialogAction prop:', this.$refs.pinDialogRef.pinDialogAction)
+              console.log('[LockScreen] PIN dialog dialog state:', this.$refs.pinDialogRef.dialog)
+              console.log('[LockScreen] PIN dialog actionCaption:', this.$refs.pinDialogRef.actionCaption)
+              
+              // Try to manually trigger the dialog
+              if (!this.$refs.pinDialogRef.dialog) {
+                console.warn('[LockScreen] PIN dialog.dialog is false! Trying to set it to true')
+                this.$refs.pinDialogRef.dialog = true
+              }
+            } else {
+              console.error('[LockScreen] PIN dialog ref is not available!')
+            }
+          }, 100)
+        }).catch(error => {
+          console.error('[LockScreen] Error checking PIN existence:', error)
+          this.authenticating = false
+          this.errorMessage = this.$t('ErrorCheckingPin', {}, 'Error checking PIN configuration. Please try again.')
+        })
       } else {
         console.log('[LockScreen] Using biometric authentication')
         this.verifyBiometric()
       }
     },
     
-    switchToPin() {
+    async switchToPin() {
+      const vm = this
       console.log('[LockScreen] User chose to use PIN instead of biometric')
-      this.usePinFallback = true
-      this.errorMessage = ''
-      this.biometricFailed = false
-      this.handleUnlock()
+      
+      // Check if PIN exists before allowing PIN fallback
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const hasPin = await pinExists(walletIndex)
+      
+      if (!hasPin) {
+        // PIN doesn't exist - this is a critical error
+        // User cannot unlock wallet without PIN or biometric
+        vm.errorMessage = vm.$t('PinNotConfigured', {}, 'PIN is not configured for this wallet. Please set up a PIN in Settings to use this feature.')
+        vm.biometricPermanentlyUnavailable = true
+        vm.usePinFallback = false
+        console.error('[LockScreen] PIN fallback requested but PIN does not exist')
+        return
+      }
+      
+      // PIN exists - proceed with PIN fallback
+      vm.usePinFallback = true
+      vm.errorMessage = ''
+      vm.biometricFailed = false
+      vm.handleUnlock()
     },
 
     verifyBiometric() {

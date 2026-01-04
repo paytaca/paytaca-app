@@ -289,7 +289,7 @@ import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
 import SubscriptionStatus from 'src/components/subscription/SubscriptionStatus.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { loadWallet, getMnemonic } from 'src/wallet'
+import { loadWallet, getMnemonic, pinExists } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import ScreenshotSecurity from 'src/utils/screenshot-security'
 
@@ -302,6 +302,7 @@ export default {
       securityAuth: false,
       securityChange: null,
       pinStatus: true,
+      pendingLockEnable: false, // Track if lock should be enabled after PIN setup
       appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
@@ -401,10 +402,51 @@ export default {
       })
     },
     async toggleLockApp (value) {
-      this.$store.commit('global/setLockApp', value)
+      const vm = this
+      
+      // If enabling lock, check if PIN exists first
+      if (value) {
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        const hasPin = await pinExists(walletIndex)
+        
+        if (!hasPin) {
+          // PIN doesn't exist - prompt user to set up PIN first
+          vm.$q.dialog({
+            title: vm.$t('PinRequired', {}, 'PIN Required'),
+            message: vm.$t('PinRequiredForLock', {}, 'A PIN must be set up before enabling app lock. This ensures you can always unlock your wallet even if biometric authentication becomes unavailable.'),
+            ok: {
+              label: vm.$t('SetupPin', {}, 'Set Up PIN'),
+              color: 'brandblue'
+            },
+            cancel: {
+              label: vm.$t('Cancel'),
+              flat: true
+            },
+            persistent: true
+          }).onOk(() => {
+            // Mark that lock should be enabled after PIN setup
+            vm.pendingLockEnable = true
+            // Open PIN setup dialog
+            vm.pinDialogAction = 'SET UP'
+          }).onCancel(() => {
+            // User cancelled - don't enable lock
+            // Reset toggle to previous state (disabled)
+            vm.$nextTick(() => {
+              // Force update the toggle to reflect that lock is still disabled
+              // The toggle component should handle this via v-model, but we ensure it's synced
+            })
+          })
+          
+          // Don't enable lock if PIN doesn't exist
+          return
+        }
+      }
+      
+      // PIN exists or disabling lock - proceed with toggle
+      vm.$store.commit('global/setLockApp', value)
       
       // Update screenshot security based on lock app setting
-      if (this.$q.platform.is.mobile) {
+      if (vm.$q.platform.is.mobile) {
         try {
           await ScreenshotSecurity.setSecureFlag({ enabled: value })
         } catch (error) {
@@ -412,10 +454,10 @@ export default {
         }
       }
       
-      this.$q.notify({
+      vm.$q.notify({
         message: value 
-          ? this.$t('LockAppEnabled', {}, 'App lock enabled') 
-          : this.$t('LockAppDisabled', {}, 'App lock disabled'),
+          ? vm.$t('LockAppEnabled', {}, 'App lock enabled') 
+          : vm.$t('LockAppDisabled', {}, 'App lock disabled'),
         timeout: 1000,
         color: 'brandblue',
         icon: value ? 'lock' : 'lock_open'
@@ -435,19 +477,61 @@ export default {
       this.securityChange = 'change-pin'
       this.pinDialogAction = 'VERIFY'
     },
-    pinDialogCallback (action = '') {
-      this.pinDialogAction = ''
+    async pinDialogCallback (action = '') {
+      const vm = this
+      vm.pinDialogAction = ''
       if (action !== 'cancel') {
-        this.securityOptionDialogStatus = 'dismiss'
+        vm.securityOptionDialogStatus = 'dismiss'
       }
       if (action === 'proceed') {
-        if (this.securityChange === 'change-pin') {
-          this.pinDialogAction = 'SET NEW'
+        if (vm.securityChange === 'change-pin') {
+          vm.pinDialogAction = 'SET NEW'
         }
-        if (this.securityChange === 'switch-to-biometric') {
-          this.$store.commit('global/setPreferredSecurity', 'biometric')
-          this.pinStatus = false
+        if (vm.securityChange === 'switch-to-biometric') {
+          vm.$store.commit('global/setPreferredSecurity', 'biometric')
+          vm.pinStatus = false
         }
+        
+        // If PIN was just set up and lock is pending, enable it now
+        if (vm.pendingLockEnable) {
+          vm.pendingLockEnable = false
+          
+          // Verify PIN exists before enabling lock
+          const walletIndex = vm.$store.getters['global/getWalletIndex']
+          const hasPin = await pinExists(walletIndex)
+          
+          if (hasPin) {
+            // Enable lock now that PIN is set up
+            vm.$store.commit('global/setLockApp', true)
+            
+            // Update screenshot security
+            if (vm.$q.platform.is.mobile) {
+              try {
+                await ScreenshotSecurity.setSecureFlag({ enabled: true })
+              } catch (error) {
+                console.error('[Settings] Failed to set screenshot security:', error)
+              }
+            }
+            
+            vm.$q.notify({
+              message: vm.$t('LockAppEnabled', {}, 'App lock enabled'),
+              timeout: 2000,
+              color: 'brandblue',
+              icon: 'lock'
+            })
+          } else {
+            // PIN setup didn't complete - show error
+            vm.$q.notify({
+              message: vm.$t('PinSetupIncomplete', {}, 'PIN setup incomplete. Please try again.'),
+              timeout: 3000,
+              color: 'negative',
+              icon: 'error'
+            })
+          }
+        }
+      } else if (action === 'cancel') {
+        // User cancelled PIN setup - clear pending lock enable
+        vm.pendingLockEnable = false
       }
     },
     verifyBiometric () {
