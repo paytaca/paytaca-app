@@ -1,6 +1,36 @@
 import UIKit
 import Capacitor
 
+/// Custom view controller for privacy overlay that properly handles gradient layer frame updates
+class PrivacyOverlayViewController: UIViewController {
+    private var gradientLayer: CAGradientLayer?
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Create glassmorphic blue background gradient
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.colors = [
+            UIColor(red: 0.96, green: 0.97, blue: 0.98, alpha: 1.0).cgColor,
+            UIColor(red: 0.91, green: 0.93, blue: 0.96, alpha: 1.0).cgColor,
+            UIColor(red: 0.94, green: 0.96, blue: 0.97, alpha: 1.0).cgColor,
+            UIColor(red: 0.89, green: 0.91, blue: 0.94, alpha: 1.0).cgColor
+        ]
+        gradientLayer.locations = [0.0, 0.33, 0.66, 1.0]
+        gradientLayer.startPoint = CGPoint(x: 0.0, y: 0.0)
+        gradientLayer.endPoint = CGPoint(x: 1.0, y: 1.0)
+        view.layer.insertSublayer(gradientLayer, at: 0)
+        self.gradientLayer = gradientLayer
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Update gradient layer frame when view bounds change
+        // This is called after the view has been laid out, so view.bounds is now correct
+        gradientLayer?.frame = view.bounds
+    }
+}
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
@@ -84,22 +114,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     private func createPrivacyViewController() -> UIViewController {
-        let viewController = UIViewController()
+        let viewController = PrivacyOverlayViewController()
         let view = viewController.view!
-        
-        // Create glassmorphic blue background gradient
-        let gradientLayer = CAGradientLayer()
-        gradientLayer.frame = view.bounds
-        gradientLayer.colors = [
-            UIColor(red: 0.96, green: 0.97, blue: 0.98, alpha: 1.0).cgColor,
-            UIColor(red: 0.91, green: 0.93, blue: 0.96, alpha: 1.0).cgColor,
-            UIColor(red: 0.94, green: 0.96, blue: 0.97, alpha: 1.0).cgColor,
-            UIColor(red: 0.89, green: 0.91, blue: 0.94, alpha: 1.0).cgColor
-        ]
-        gradientLayer.locations = [0.0, 0.33, 0.66, 1.0]
-        gradientLayer.startPoint = CGPoint(x: 0.0, y: 0.0)
-        gradientLayer.endPoint = CGPoint(x: 1.0, y: 1.0)
-        view.layer.insertSublayer(gradientLayer, at: 0)
         
         // Add logo (if you have one in assets, otherwise use a colored circle)
         let logoContainer = UIView()
