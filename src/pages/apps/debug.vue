@@ -209,6 +209,8 @@ const persistentLogs = []
 let isIntercepting = false
 let originalConsoleMethods = {}
 let logInterceptors = {}
+// Store reference to current component instance so interceptors can update the active instance
+let currentComponentInstance = null
 
 export default {
   name: 'DebugApp',
@@ -372,8 +374,16 @@ export default {
       }
     },
     interceptConsole () {
-      // Only intercept if not already intercepting
+      // Always update the component instance reference, even if already intercepting
+      // This ensures interceptors use the current (mounted) component instance
+      currentComponentInstance = this
+      
+      // Only set up interceptors if not already intercepting
       if (isIntercepting) {
+        // Update logs in current component instance
+        if (currentComponentInstance && currentComponentInstance.logs) {
+          currentComponentInstance.logs = [...persistentLogs]
+        }
         return
       }
       
@@ -421,17 +431,20 @@ export default {
             persistentLogs.shift()
           }
           
-          // Update local reference if component is mounted
-          if (this.logs) {
-            this.logs = [...persistentLogs]
+          // Update local reference using stored component instance
+          // This ensures we always update the currently mounted component
+          if (currentComponentInstance && currentComponentInstance.logs) {
+            currentComponentInstance.logs = [...persistentLogs]
             
             // Auto-scroll to bottom if terminal is visible
-            this.$nextTick(() => {
-              const terminalBody = this.$refs.terminalBody
-              if (terminalBody) {
-                terminalBody.scrollTop = terminalBody.scrollHeight
-              }
-            })
+            if (currentComponentInstance.$nextTick) {
+              currentComponentInstance.$nextTick(() => {
+                const terminalBody = currentComponentInstance.$refs?.terminalBody
+                if (terminalBody) {
+                  terminalBody.scrollTop = terminalBody.scrollHeight
+                }
+              })
+            }
           }
         }
         console[method] = logInterceptors[method]
@@ -456,6 +469,9 @@ export default {
       // Clear interceptors
       logInterceptors = {}
       isIntercepting = false
+      
+      // Clear component instance reference
+      currentComponentInstance = null
     },
     async testSound () {
       this.testingSound = true
@@ -632,6 +648,12 @@ export default {
     })
   },
   async beforeUnmount () {
+    // Clear component instance reference if this is the current instance
+    // This prevents interceptors from trying to update an unmounted component
+    if (currentComponentInstance === this) {
+      currentComponentInstance = null
+    }
+    
     // DON'T restore console here - keep intercepting even when navigating away
     // This allows logs to continue being captured when user goes to sidebar/wallet switching
     // Only restore console when user explicitly hides the debug app
