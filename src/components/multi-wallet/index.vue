@@ -251,11 +251,17 @@ export default {
       }
       
       const touch = event.changedTouches?.[0]
+      // Guard: if touch is undefined or missing coordinates, can't determine tap vs drag
+      if (!touch || touch.clientX === undefined || touch.clientY === undefined) {
+        delete this.touchData[displayIndex]
+        return
+      }
+      
       const touchInfo = this.touchData[displayIndex]
       const endTime = Date.now()
       const duration = endTime - touchInfo.startTime
-      const deltaX = Math.abs(touch?.clientX - touchInfo.startX)
-      const deltaY = Math.abs(touch?.clientY - touchInfo.startY)
+      const deltaX = Math.abs(touch.clientX - touchInfo.startX)
+      const deltaY = Math.abs(touch.clientY - touchInfo.startY)
       const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
       
       // Consider it a tap if duration < 300ms and distance < 10px
