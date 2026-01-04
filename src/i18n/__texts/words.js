@@ -509,7 +509,7 @@ const words = [
     DateClaimed: 'Date Claimed',
     SearchAsset: 'Search Asset',
     LoadingAssets: 'Loading assets',
-    WalletTools: 'Wallet Tools',
+    WalletTools: 'Support Tools',
   },
   {
     Subscription: 'Subscription',

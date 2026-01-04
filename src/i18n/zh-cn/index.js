@@ -2318,7 +2318,7 @@ export default {
   WalletRestoredDescription: "Wallet restored successfully. Click on the button to continue.",
   WalletSpecs: "Wallet Specs",
   WalletSwitchFailed: "切换钱包失败",
-  WalletTools: "Wallet Tools",
+  WalletTools: "Support Tools",
   WalletUnavailable: "Wallet is not ready. Please try again.",
   Wallets: "Wallets",
   Warning: "Warning",
