@@ -79,7 +79,7 @@
                     border-width="3px"
                     border-color="#ed5f59"
                     :size="220"
-                    :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)"
+                    :icon="getQrCodeIcon()"
                     class="q-mb-sm"
                   >
                   </qr-code>
@@ -375,6 +375,28 @@ export default {
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
+    },
+    getQrCodeIcon () {
+      const vm = this
+      // If user toggled to CashToken for BCH, use cashtoken logo
+      if (vm.isCt) {
+        return 'ct-logo.png'
+      }
+      // If it's a cashtoken (starts with ct/)
+      if (vm.asset && vm.asset.id && vm.asset.id.startsWith('ct/')) {
+        // If the token has a specific logo (listed token), use that
+        // Otherwise use the generic cashtoken logo
+        const assetLogo = vm.getImageUrl(vm.asset)
+        // Check if asset has a specific logo (not generic/fallback)
+        // If asset.logo exists and is not a generic cashtoken logo, use it
+        if (vm.asset.logo && !vm.asset.logo.includes('ct-logo') && !vm.asset.logo.includes('new-token')) {
+          return assetLogo
+        }
+        // For unlisted tokens or tokens without specific logos, use cashtoken logo
+        return 'ct-logo.png'
+      }
+      // For other assets, use their logo
+      return vm.getImageUrl(vm.asset)
     },
     getImageUrl (asset) {
       if (!asset) return this.getFallbackAssetLogo(asset)
