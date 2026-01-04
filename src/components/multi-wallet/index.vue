@@ -513,31 +513,19 @@ export default {
       }
     },
     hide () {
-      console.log('[MultiWallet] hide() called - closing sidebar dialog')
-      console.log('[MultiWallet] Dialog ref exists:', !!this.$refs['multi-wallet'])
       if (this.$refs['multi-wallet']) {
         this.$refs['multi-wallet'].hide()
-        console.log('[MultiWallet] Dialog hide() called')
       } else {
         console.error('[MultiWallet] Dialog ref not found!')
       }
     },
     onDialogHide () {
-      console.log('[MultiWallet] ===== DIALOG BEFORE-HIDE EVENT =====')
-      console.log('[MultiWallet] Dialog is about to hide')
-      console.log('[MultiWallet] Current route:', this.$router.currentRoute.value.path)
-      console.log('[MultiWallet] Emitting dialog-hide event')
       this.$emit('dialog-hide')
     },
     async onDialogShow () {
-      console.log('[MultiWallet] ===== DIALOG SHOW EVENT =====')
-      console.log('[MultiWallet] Dialog is being shown')
-      console.log('[MultiWallet] Current route:', this.$router.currentRoute.value.path)
-      
       // Refresh wallet list every time the sidebar is shown
       // Update current index first
       this.currentIndex = this.$store.getters['global/getWalletIndex']
-      console.log('[MultiWallet] Current wallet index:', this.currentIndex)
       
       // Immediately update vault data from store
       this.arrangeVaultData().catch(console.error)

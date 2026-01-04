@@ -88,7 +88,6 @@ async function handleOpenedNotification() {
   const isUnlocked = $store.getters['global/isUnlocked']
   
   if (lockAppEnabled && !isUnlocked) {
-    console.log('[Push Notification Router] App is locked, redirecting to lock screen')
     loadingMsg.value = t('Unlocking') + '...'
     // Redirect to lock screen with the current path as redirect target
     await $router.replace({
@@ -111,12 +110,6 @@ async function handleOpenedNotification() {
     const normalizedCurrentHash = currentWalletHash ? currentWalletHash.trim() : null
 
     if (normalizedCurrentHash && normalizedNotificationHash !== normalizedCurrentHash) {
-      console.log(
-        'Expecting different wallet hash loaded.',
-        'Has', normalizedCurrentHash, ',',
-        'Expecting', normalizedNotificationHash, '.',
-        'Switching wallet..',
-      )
       loadingMsg.value = t('SwitchingWallet') + '...'
       // this function is expected to reload the page
       await switchWallet(normalizedNotificationHash)
@@ -128,10 +121,6 @@ async function handleOpenedNotification() {
     const notifWalletIndex = parseInt(openedNotification.value?.data?.multi_wallet_index)
 
     if (Number.isSafeInteger(notifWalletIndex) && notifWalletIndex !== currentWalletIndex.value) {
-      console.log(
-        'Expecting different wallet index loaded.',
-        'Has', currentWalletIndex.value, ',',
-        'Expecting', notifWalletIndex, '.',
         'Switching wallet..',
       )
       loadingMsg.value = t('SwitchingWallet') + '...'

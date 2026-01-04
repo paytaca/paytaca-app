@@ -221,7 +221,6 @@ export default {
 				}
 
 				this.allTokensFromAPI = allTokens
-				console.log('[AssetListDialog] Fetched', allTokens.length, 'tokens from API')
 				return allTokens
 			} catch (error) {
 				console.error('[AssetListDialog] Error fetching tokens from API:', error)

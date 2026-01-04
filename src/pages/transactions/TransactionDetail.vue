@@ -1455,7 +1455,6 @@ export default {
         })
       } catch (error) {
         // Price might not be available for this token
-        console.debug('[TransactionDetail] Price not available for token:', assetId, error)
       }
     },
     async fetchNftMetadata () {

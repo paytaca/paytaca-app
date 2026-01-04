@@ -67,7 +67,7 @@
     <pinDialog
       ref="pinDialogRef"
       :pinDialogAction="pinDialogAction"
-      @update:pinDialogAction="val => { console.log('[LockScreen] PIN dialog emitted update:', val); pinDialogAction = val }"
+      @update:pinDialogAction="val => { pinDialogAction = val }"
       @nextAction="pinDialogNextAction"
       :disableClose="true"
     />
@@ -122,8 +122,8 @@ export default {
     }
   },
   watch: {
-    pinDialogAction(newVal, oldVal) {
-      console.log('[LockScreen] pinDialogAction changed from', oldVal, 'to', newVal)
+    pinDialogAction() {
+      // Watcher for pinDialogAction changes
     }
   },
   methods: {
@@ -147,11 +147,6 @@ export default {
     },
     
     handleUnlock() {
-      console.log('[LockScreen] Unlock button clicked')
-      console.log('[LockScreen] Preferred security:', this.preferredSecurity)
-      console.log('[LockScreen] Biometric permanently unavailable:', this.biometricPermanentlyUnavailable)
-      console.log('[LockScreen] Use PIN fallback:', this.usePinFallback)
-      
       this.errorMessage = ''
       this.biometricFailed = false
       this.authenticating = true
@@ -161,8 +156,6 @@ export default {
                           (this.preferredSecurity === 'biometric' && (this.biometricPermanentlyUnavailable || this.usePinFallback))
       
       if (shouldUsePin) {
-        console.log('[LockScreen] Using PIN authentication')
-        
         // Verify PIN exists before attempting PIN authentication
         const walletIndex = this.$store.getters['global/getWalletIndex']
         pinExists(walletIndex).then(hasPin => {
@@ -185,27 +178,15 @@ export default {
           
           // PIN exists - proceed with PIN dialog
           this.authenticating = false
-          console.log('[LockScreen] Current pinDialogAction:', this.pinDialogAction)
-          console.log('[LockScreen] Setting pinDialogAction to VERIFY')
           this.pinDialogAction = 'VERIFY'
-          console.log('[LockScreen] pinDialogAction after set:', this.pinDialogAction)
           
           // Check PIN dialog state after a delay
           setTimeout(() => {
-            console.log('[LockScreen] After timeout, pinDialogAction:', this.pinDialogAction)
             if (this.$refs.pinDialogRef) {
-              console.log('[LockScreen] PIN dialog ref exists')
-              console.log('[LockScreen] PIN dialog pinDialogAction prop:', this.$refs.pinDialogRef.pinDialogAction)
-              console.log('[LockScreen] PIN dialog dialog state:', this.$refs.pinDialogRef.dialog)
-              console.log('[LockScreen] PIN dialog actionCaption:', this.$refs.pinDialogRef.actionCaption)
-              
               // Try to manually trigger the dialog
               if (!this.$refs.pinDialogRef.dialog) {
-                console.warn('[LockScreen] PIN dialog.dialog is false! Trying to set it to true')
                 this.$refs.pinDialogRef.dialog = true
               }
-            } else {
-              console.error('[LockScreen] PIN dialog ref is not available!')
             }
           }, 100)
         }).catch(error => {
@@ -214,14 +195,12 @@ export default {
           this.errorMessage = this.$t('ErrorCheckingPin', {}, 'Error checking PIN configuration. Please try again.')
         })
       } else {
-        console.log('[LockScreen] Using biometric authentication')
         this.verifyBiometric()
       }
     },
     
     async switchToPin() {
       const vm = this
-      console.log('[LockScreen] User chose to use PIN instead of biometric')
       
       // Check if PIN exists before allowing PIN fallback
       const walletIndex = vm.$store.getters['global/getWalletIndex']
@@ -257,7 +236,6 @@ export default {
         return
       }
       
-      console.log('[LockScreen] Calling NativeBiometric.verifyIdentity')
       vm.errorMessage = ''
       vm.biometricFailed = false
       
@@ -269,7 +247,6 @@ export default {
       })
         .then(() => {
           // Authentication successful
-          console.log('[LockScreen] Biometric authentication successful')
           vm.authenticating = false
           vm.biometricFailed = false
           vm.biometricAttempts = 0
@@ -297,7 +274,6 @@ export default {
               errorMessage.includes('User cancelled')) {
             // User cancelled - don't show error, just allow retry
             vm.errorMessage = ''
-            console.log('[LockScreen] User cancelled biometric authentication')
           } else if (errorMessage.includes('Too many attempts') || 
                      errorMessage.includes('too many attempts')) {
             vm.errorMessage = vm.$t('TooManyAttempts', {}, 'Too many attempts. Please try again later.')
@@ -316,55 +292,38 @@ export default {
           } else {
             // Authentication failed (wrong fingerprint/face)
             vm.errorMessage = vm.$t('BiometricFailed', {}, 'Authentication failed. Please try again.')
-            console.log('[LockScreen] Biometric authentication failed - wrong biometric')
           }
         })
     },
 
     pinDialogNextAction(action) {
-      console.log('[LockScreen] PIN dialog action received:', action)
-      
       if (action === 'proceed') {
-        console.log('[LockScreen] PIN verification successful')
         this.pinDialogAction = ''
         this.errorMessage = ''
         this.onUnlockSuccess()
       } else if (action === 'cancel') {
-        console.log('[LockScreen] PIN verification cancelled by user')
         this.pinDialogAction = ''
         this.errorMessage = ''
         // Don't show error on cancel - user can try again
       } else {
         // Action is undefined or empty - this happens during dialog reset
         // Only show error if we were actually in verification mode and it wasn't successful
-        console.log('[LockScreen] PIN dialog action is empty/undefined - likely dialog reset')
         // Don't set error message here - wait for explicit failure
       }
     },
 
     onUnlockSuccess() {
       const vm = this
-      console.log('[LockScreen] Unlock successful, navigating...')
       
       // Set unlock state in store using proper Vuex mutation
       // This ensures proper reactivity, DevTools support, and watcher notifications
       vm.$store.commit('global/setIsUnlocked', true)
-      
-      // Verify it was set correctly (for debugging)
-      let verifyUnlocked = vm.$store.getters['global/isUnlocked']
-      // Also check state directly to ensure it's set
-      const stateUnlocked = vm.$store.state?.global?.isUnlocked
-      if (typeof stateUnlocked === 'boolean') {
-        verifyUnlocked = Boolean(stateUnlocked)
-      }
-      console.log('[LockScreen] Unlock state set to true, verified:', verifyUnlocked)
       
       // Emit unlock event for parent components
       vm.$emit('unlocked')
       
       // Get redirect path
       const redirectPath = vm.$route.query.redirect || '/'
-      console.log('[LockScreen] Redirecting to:', redirectPath)
       
       // Use nextTick to ensure store mutation is processed
       // Then add a small delay to ensure state propagation before navigation
@@ -373,13 +332,11 @@ export default {
         // Double-check unlock state before navigation
         const finalUnlockCheck = vm.$store.getters['global/isUnlocked']
         if (finalUnlockCheck !== true) {
-          console.warn('[LockScreen] Unlock state not properly set, setting again before navigation')
           vm.$store.commit('global/setIsUnlocked', true)
         }
         
         // Small delay to ensure state is fully propagated to all watchers and guards
         setTimeout(() => {
-          console.log('[LockScreen] About to navigate to:', redirectPath)
           vm.$router.replace(redirectPath).catch(err => {
             console.error('[LockScreen] Navigation error:', err)
             // If navigation fails, try going to home
@@ -392,22 +349,11 @@ export default {
     }
   },
   mounted() {
-    console.log('[LockScreen] Component mounted')
-    console.log('[LockScreen] Preferred security:', this.preferredSecurity)
-    console.log('[LockScreen] Theme:', this.theme)
-    console.log('[LockScreen] Dark mode:', this.darkMode)
-    console.log('[LockScreen] PIN dialog ref:', this.$refs.pinDialogRef)
-    
     // Reset biometric state flags on mount
     this.biometricPermanentlyUnavailable = false
     this.usePinFallback = false
     this.biometricFailed = false
     this.errorMessage = ''
-    
-    // Check if PIN dialog is mounted
-    this.$nextTick(() => {
-      console.log('[LockScreen] After nextTick, PIN dialog ref:', this.$refs.pinDialogRef)
-    })
   }
 }
 </script>

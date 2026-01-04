@@ -15,7 +15,6 @@ export async function handleOpenedNotification(context) {
   
   if (lockAppEnabled && !isUnlocked) {
     // Store the notification for later processing after unlock
-    console.log('[Notification] App is locked, redirecting to lock screen first')
     // The notification will be processed after unlock via push-notification-router
     $router.push($router.resolve({ name: 'push-notification-router' }))
     return
@@ -33,11 +32,6 @@ export async function handleOpenedNotification(context) {
     const normalizedCurrentHash = currentWalletHash ? currentWalletHash.trim() : null
 
     if (normalizedCurrentHash && normalizedNotificationHash !== normalizedCurrentHash) {
-      console.log(
-        'current wallet hash:', normalizedCurrentHash,
-        'push notification wallet hash:', normalizedNotificationHash,
-        'redirecting to push notification page',
-      )
       $router.push($router.resolve({ name: 'push-notification-router' }))
       return
     }
@@ -48,11 +42,6 @@ export async function handleOpenedNotification(context) {
     const currentWalletIndex = context.rootGetters['global/getWalletIndex']
 
     if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
-      console.log(
-        'current wallet index:', currentWalletIndex,
-        'push notification wallet index:', multiWalletIndex,
-        'redirecting to push notification page',
-      )
       $router.push($router.resolve({ name: 'push-notification-router' }))
       return
     }
@@ -69,7 +58,6 @@ export function emitOpenedNotification(context) {
 export function getOpenedNotificationRoute(context) {
   const $router = Router()
   const openedNotification = context.getters['openedNotification']
-  console.log('openedNotification', openedNotification)
 
   let route = null
   switch(openedNotification?.data?.type) {
@@ -131,7 +119,6 @@ export function getOpenedNotificationRoute(context) {
   }
 
   try {
-    console.log('route', route)
     return $router.resolve(route)
   } catch (error) { console.error(error) }
   return null

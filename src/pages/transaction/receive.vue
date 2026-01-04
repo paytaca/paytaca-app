@@ -720,7 +720,6 @@ export default {
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
     copyToClipboard (value) {
-      console.log('copyToClipboard', value)
       this.$copyText(value)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),
@@ -921,7 +920,6 @@ export default {
               const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
               if (newTokenData) {
                 if (!newTokenData.decimals || newTokenData.isNft) {
-                  console.log('Not adding unrecognized token due to being an nft')
                   return
                 }
                 
@@ -1027,7 +1025,6 @@ export default {
             logo: passedAsset.logo || null,
             balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
           }
-          console.log('[Receive] Using passed asset data from select-asset page:', vm.asset)
           if (vm.assetId.startsWith('ct/')) {
             vm.setAmountInFiat = false
           }

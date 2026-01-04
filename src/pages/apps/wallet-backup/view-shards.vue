@@ -459,17 +459,12 @@ export default {
               reader.onloadend = async () => {
                 try {
                   const base64Data = reader.result.split(',')[1]
-                  console.log('[SaveQR] Attempting to save image, base64 length:', base64Data.length)
-                  console.log('[SaveQR] Filename:', filename)
-                  console.log('[SaveQR] SaveToGallery plugin:', SaveToGallery)
                   
                   // Save to photo library using our custom plugin
                   const result = await SaveToGallery.saveImage({
                     base64Data: base64Data,
                     filename: filename
                   })
-                  
-                  console.log('[SaveQR] Save successful:', result)
                   
                   vm.$q.notify({
                     message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
@@ -555,19 +550,12 @@ export default {
     
     executeSecurityChecking () {
       const vm = this
-      console.log('[WalletBackup-Shards] executeSecurityChecking called')
-      console.log('[WalletBackup-Shards] $store available:', !!vm.$store)
-      console.log('[WalletBackup-Shards] preferredSecurity:', vm.$store?.getters?.['global/preferredSecurity'])
       
       setTimeout(() => {
         const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
-        console.log('[WalletBackup-Shards] Setting security check, preferredSecurity:', preferredSecurity)
         if (preferredSecurity === 'pin') {
-          console.log('[WalletBackup-Shards] Setting pinDialogAction to VERIFY')
           vm.pinDialogAction = 'VERIFY'
-          console.log('[WalletBackup-Shards] pinDialogAction after set:', vm.pinDialogAction)
         } else {
-          console.log('[WalletBackup-Shards] Calling verifyBiometric')
           vm.verifyBiometric()
         }
       }, 300)
@@ -601,15 +589,12 @@ export default {
     
     onPinVerified (action) {
       const vm = this
-      console.log('PIN verified with action:', action)
       
       if (action === 'proceed') {
-        console.log('Authentication successful, loading shards...')
         vm.pinDialogAction = ''
         vm.onAuthenticationSuccess()
       } else if (action === 'cancel') {
         // User explicitly cancelled
-        console.log('Authentication cancelled, redirecting back')
         vm.pinDialogAction = ''
         vm.$router.push('/apps/wallet-backup')
       }
@@ -650,12 +635,11 @@ export default {
   },
 
   mounted () {
-    console.log('[WalletBackup-Shards] Component mounted, calling executeSecurityChecking')
     this.executeSecurityChecking()
   },
   watch: {
-    pinDialogAction (newVal, oldVal) {
-      console.log('[WalletBackup-Shards] pinDialogAction changed from', oldVal, 'to', newVal)
+    pinDialogAction () {
+      // Watcher for pinDialogAction changes
     }
   }
 }

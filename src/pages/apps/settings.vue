@@ -566,7 +566,7 @@ export default {
         },
         (error) => {
           // Failed to authenticate
-          console.log(error)
+          console.error(error)
         }
         )
     },

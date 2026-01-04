@@ -133,13 +133,9 @@ export default {
       
       // Listen for app going to background (pause event)
       vm.pauseListener = await CapacitorApp.addListener('pause', () => {
-        console.log('[App] ===== PAUSE EVENT =====')
-        console.log('[App] App paused (went to background)')
-        
-        // Get current route and wallet state for diagnosis
+        // Get current route and wallet state
         const currentRoute = vm.$router.currentRoute.value.path
         const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
-        console.log('[App] Pause context - route:', currentRoute, 'walletIndex:', currentWalletIndex)
         
         // SECURITY: Immediately show privacy overlay to prevent sensitive content in app preview
         // This overlay appears SYNCHRONOUSLY before OS takes the app switcher snapshot
@@ -152,8 +148,6 @@ export default {
         const isWalletBackupRoute = currentRoute.startsWith('/apps/wallet-backup')
         
         if (lockAppEnabled && !isWalletBackupRoute) {
-          console.log('[App] Lock enabled - immediately showing privacy overlay to protect app preview')
-          
           // Show privacy overlay IMMEDIATELY by directly manipulating DOM (synchronous, before OS snapshot)
           // This bypasses Vue's reactivity delay to ensure overlay is visible before OS captures snapshot
           const overlay = document.getElementById('privacy-overlay')
@@ -163,7 +157,6 @@ export default {
             overlay.style.opacity = '1'
             // Force immediate reflow/repaint to ensure overlay is rendered before OS captures snapshot
             overlay.offsetHeight // eslint-disable-line no-unused-expressions
-            console.log('[App] Privacy overlay shown immediately via DOM manipulation')
           } else {
             console.warn('[App] Privacy overlay element not found in DOM')
           }
@@ -173,7 +166,6 @@ export default {
           
           // Reset unlock state immediately
           vm.$store.commit('global/setIsUnlocked', false)
-          console.log('[App] Reset unlock state (was:', currentUnlockState, ')')
           
           // Navigate to lock screen (asynchronous, after overlay is shown)
           // Use replace to avoid adding to history
@@ -183,32 +175,23 @@ export default {
           
           // Only navigate if not already on lock screen (check path, not fullPath with query params)
           if (currentPath !== '/lock') {
-            console.log('[App] Navigating to lock screen, will redirect to:', currentFullPath)
             vm.$router.replace({
               path: '/lock',
               query: { redirect: currentFullPath }
-            }).catch(err => {
-              console.log('[App] Lock screen navigation failed (may already be there):', err)
+            }).catch(() => {
+              // Navigation failed, likely already on lock screen
             })
-          } else {
-            console.log('[App] Already on lock screen')
           }
-        } else if (isWalletBackupRoute) {
-          console.log('[App] On wallet-backup route - skipping app lock logic (has own authentication)')
         }
         
         // Record pause timestamp - this helps distinguish genuine backgrounding
         // from spurious resume events (e.g., from showing dialogs on Android)
         vm.lastPauseTime = Date.now()
-        console.log('[App] Recorded pause timestamp:', vm.lastPauseTime)
       })
       
       // Listen for app coming to foreground (resume event)
       vm.resumeListener = await CapacitorApp.addListener('resume', () => {
-        console.log('[App] ===== RESUME EVENT =====')
-        console.log('[App] App resumed (came to foreground)')
-        
-        // Get current route and wallet state for diagnosis
+        // Get current route and wallet state
         const currentRoute = vm.$router.currentRoute.value.path
         const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
         const lockAppEnabled = vm.$store.getters['global/lockApp']
@@ -224,32 +207,26 @@ export default {
         
         const isOnLockScreen = currentRoute === '/lock'
         
-        console.log('[App] Resume context - route:', currentRoute, 'walletIndex:', currentWalletIndex, 'lockAppEnabled:', lockAppEnabled, 'isUnlocked:', isUnlocked, 'isOnLockScreen:', isOnLockScreen)
-        
         // CRITICAL SECURITY CHECK: If we're on lock screen and app is locked, NEVER unlock automatically
         // This prevents app switcher previews on Android from bypassing the lock screen
         // The lock screen can ONLY be dismissed through successful authentication
         // IMPORTANT: Only force lock if unlock state is actually false (not just falsy)
         // This prevents race conditions where unlock state was just set to true but hasn't propagated yet
         if (lockAppEnabled && isOnLockScreen && isUnlocked === false) {
-          console.log('[App] SECURITY: On lock screen with app locked - ensuring lock screen stays visible')
           // Only force unlock state to false if it's not already true
           // This prevents race conditions where authentication just succeeded
           const currentUnlockState = vm.$store.getters['global/isUnlocked']
           if (currentUnlockState !== true) {
             vm.$store.commit('global/setIsUnlocked', false)
-          } else {
-            console.log('[App] Unlock state is already true - not forcing lock (authentication in progress)')
           }
           // Ensure we stay on lock screen (router guard should handle this, but be defensive)
           if (currentRoute !== '/lock') {
-            console.log('[App] WARNING: Not on lock screen but should be - navigating to lock screen')
             const currentFullPath = vm.$router.currentRoute.value.fullPath
             vm.$router.replace({
               path: '/lock',
               query: { redirect: currentFullPath }
-            }).catch(err => {
-              console.log('[App] Lock screen navigation failed:', err)
+            }).catch(() => {
+              // Navigation failed
             })
           }
           // Hide privacy overlay now that lock screen is visible
@@ -261,14 +238,12 @@ export default {
           }
           vm.showPrivacyOverlay = false
           // Don't process any resume logic - lock screen must stay until authentication
-          console.log('[App] ===== RESUME EVENT END (lock screen protected - requires authentication) =====')
           return
         }
         
         const now = Date.now()
         const timeSincePause = now - vm.lastPauseTime
         const isAndroid = vm.$q.platform.is.android
-        console.log('[App] Resume timing - timeSincePause:', timeSincePause, 'ms, isAndroid:', isAndroid)
         
         // Platform-specific logic:
         // - Android: Dialogs/sidebars trigger rapid pause/resume (< 2 seconds), so we need to filter these out
@@ -276,8 +251,6 @@ export default {
         
         if (vm.lastPauseTime === 0) {
           // No pause event recorded - this is a spurious resume (can happen on Android)
-          console.log('[App] DECISION: Resume without pause event - ignoring (spurious event)')
-          console.log('[App] ===== RESUME EVENT END (no pause event) =====')
           return
         }
         
@@ -292,14 +265,11 @@ export default {
           // CRITICAL: On Android, app switcher previews can trigger resume events even when app isn't in foreground
           // We should NEVER auto-unlock when on lock screen - user must authenticate
           // Only auto-unlock if we're NOT on lock screen (meaning pause didn't navigate to lock, so it was a dialog)
-          console.log('[App] DECISION: Resume after', timeSincePause, 'ms pause - short pause detected (likely dialog/sidebar/UI interaction)')
           
           if (lockAppEnabled && isOnLockScreen) {
             // We're on lock screen - DO NOT auto-unlock
             // On Android, app switcher previews trigger resume events, so we must require authentication
             // On iOS, we could auto-unlock, but for security consistency, we require authentication here too
-            console.log('[App] On lock screen - NOT auto-unlocking (requires authentication, even for short pause)')
-            console.log('[App] This prevents app switcher previews from bypassing lock screen on Android')
             // Hide privacy overlay now that lock screen is visible
             const overlay = document.getElementById('privacy-overlay')
             if (overlay) {
@@ -311,7 +281,6 @@ export default {
           } else if (lockAppEnabled && !isOnLockScreen) {
             // We're not on lock screen - this means pause didn't navigate to lock (likely a dialog)
             // Only unlock if we're not already on lock screen (for iOS dialogs that don't trigger navigation)
-            console.log('[App] Not on lock screen - short pause was likely a dialog, keeping unlocked state')
             // Don't change unlock state - it should already be unlocked if we're not on lock screen
             // Hide privacy overlay (may have been shown on pause)
             const overlay = document.getElementById('privacy-overlay')
@@ -325,14 +294,12 @@ export default {
           
           // Reset pause timestamp to prevent stale timestamps from interfering with future checks
           vm.lastPauseTime = 0
-          console.log('[App] ===== RESUME EVENT END (short pause - lock screen stays locked) =====')
           return
         }
         
         // App was genuinely backgrounded (paused for > threshold)
         // Since we already locked on pause (to protect app preview), we just need to verify
         // the lock state is correct and ensure we're on the lock screen
-        console.log('[App] DECISION: Genuine background detected (paused for', timeSincePause, 'ms)')
         
         if (lockAppEnabled) {
           // Verify lock state is correct (should already be locked from pause event)
@@ -340,22 +307,18 @@ export default {
           
           if (currentUnlockState) {
             // Lock state wasn't reset on pause (shouldn't happen, but handle it)
-            console.log('[App] WARNING: App was unlocked on resume, locking now')
             vm.$store.commit('global/setIsUnlocked', false)
           }
           
           // Ensure we're on lock screen (should already be there from pause event)
           if (!isOnLockScreen) {
             const currentFullPath = vm.$router.currentRoute.value.fullPath
-            console.log('[App] Not on lock screen, navigating to lock screen, will redirect to:', currentFullPath)
             vm.$router.replace({
               path: '/lock',
               query: { redirect: currentFullPath }
-            }).catch(err => {
-              console.log('[App] Lock screen navigation failed (may already be there):', err)
+            }).catch(() => {
+              // Navigation failed, likely already on lock screen
             })
-          } else {
-            console.log('[App] Already on lock screen (correct state)')
           }
           
           // Hide privacy overlay now that lock screen is visible
@@ -366,15 +329,13 @@ export default {
             overlay.style.opacity = '0'
           }
           vm.showPrivacyOverlay = false
-          console.log('[App] ===== RESUME EVENT END (genuine background - locked) =====')
         } else {
           // No lock enabled - unlock if we're on lock screen (shouldn't happen, but handle it)
           if (isOnLockScreen) {
-            console.log('[App] No lock enabled but on lock screen, unlocking')
             vm.$store.commit('global/setIsUnlocked', true)
             const redirectPath = vm.$router.currentRoute.value.query.redirect || '/'
-            vm.$router.replace(redirectPath).catch(err => {
-              console.log('[App] Navigation failed:', err)
+            vm.$router.replace(redirectPath).catch(() => {
+              // Navigation failed
             })
           }
           // Hide privacy overlay (no lock enabled)
@@ -385,7 +346,6 @@ export default {
             overlay.style.opacity = '0'
           }
           vm.showPrivacyOverlay = false
-          console.log('[App] ===== RESUME EVENT END (no lock enabled) =====')
         }
         
         // Reset pause timestamp to prevent stale timestamps from interfering with future checks
@@ -586,7 +546,6 @@ export default {
       overlay.style.display = 'none'
       overlay.style.visibility = 'hidden'
       overlay.style.opacity = '0'
-      console.log('[App] Privacy overlay initialized to hidden state')
     }
 
     // On initial mount (cold start), reset unlock state if lock is enabled
@@ -611,7 +570,7 @@ export default {
     const walletHash = vm.$store.getters['global/getWallet']('bch')?.walletHash
     checkWatchtowerStatus(walletHash).then(response => {
       if (response.status === 200 && response.data.status === 'up') {
-        console.log('Watchtower status: up')
+        // Watchtower is up
       }
       
       // Check for app version update (check regardless of status being 'up')

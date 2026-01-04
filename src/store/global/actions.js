@@ -389,8 +389,6 @@ export async function switchWallet (context, walletHashOrIndex) {
         // For hash-based switching: index is still the old one, so we can sync directly
         if (oldWalletIndex !== null && oldWalletIndex !== undefined && oldWalletIndex !== index) {
           const currentIndexBeforeSync = context.getters.getWalletIndex
-          console.log('[switchWallet] Syncing OLD wallet (index:', oldWalletIndex, ') to vault BEFORE switching...')
-          console.log('[switchWallet] Current index before sync:', currentIndexBeforeSync)
           
           // Temporarily restore old index to sync the old wallet (only if it's different)
           if (currentIndexBeforeSync !== oldWalletIndex) {
@@ -400,7 +398,6 @@ export async function switchWallet (context, walletHashOrIndex) {
           
           // Sync the old wallet to its vault slot
           await context.dispatch('syncCurrentWalletToVault')
-          console.log('[switchWallet] Old wallet sync completed')
           
           // Restore to target index (for index-based switching) or keep old index (for hash-based, will update below)
           if (index !== null) {
@@ -537,7 +534,6 @@ export async function deleteWallet (context, walletHashOrIndex) {
   
   // Perform complete cleanup of all wallet data
   if (walletHash) {
-    console.log(`[Wallet Deletion] Performing complete cleanup for wallet hash: ${walletHash}`)
     await deleteAllWalletData(walletHash, mnemonic, index).catch(err => {
       console.error(`[Wallet Deletion] Error during cleanup:`, err)
     })
@@ -788,7 +784,6 @@ export async function cleanupNullAndDeletedWallets (context) {
         await deleteMnemonic(i).catch(console.error)
       }
       
-      console.log(`[Wallet Cleanup] Removing vault entry at index ${i} - no mnemonic found`)
     }
   }
 
@@ -831,9 +826,6 @@ export async function cleanupNullAndDeletedWallets (context) {
     }
   }
   
-  if (indicesToRemove.length > 0) {
-    console.log(`[Wallet Cleanup] Removed ${indicesToRemove.length} null/deleted vault entries`)
-  }
 }
 
 /**
@@ -1034,7 +1026,7 @@ export async function loadWalletAddresses (context) {
       }
       walletAddresses.push({ address_index: i, address: cashAddress, wif: wif })
     } catch (error) {
-      console.log(error)
+      console.error(error)
       break
     }
   }

@@ -359,13 +359,12 @@ export function migrateWalletSettings (state, payload) {
       if (!wallet.deleted) {
         wallet.settings = { ...currentSettings }
         migratedCount++
-        console.log(`[Migration] Initialized settings for wallet at index ${index}`)
       }
     }
   })
 
   if (migratedCount > 0) {
-    console.log(`[Migration] Migrated settings for ${migratedCount} wallet(s)`)
+    // Settings migrated successfully
   }
 }
 

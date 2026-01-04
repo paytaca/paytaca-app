@@ -97,10 +97,6 @@ export default function () {
         
         if (!hasValidWallet) {
           // No valid wallets - go to account creation
-          console.warn('[Router] No valid wallet found, redirecting to accounts')
-          console.warn('[Router] Reason: currentWallet =', currentWallet ? 'exists' : 'null/undefined', 
-                       ', deleted =', currentWallet?.deleted, 
-                       ', hasWalletHash =', !!(currentWallet?.wallet?.bch?.walletHash || currentWallet?.wallet?.BCH?.walletHash || currentWallet?.BCH?.walletHash || currentWallet?.bch?.walletHash || currentWallet?.walletHash))
           next('/accounts')
           return
         }
@@ -164,19 +160,10 @@ export default function () {
         if (mnemonic) {
           next()
         } else {
-          console.warn('[Router] No mnemonic found for any wallet, redirecting to accounts')
-          console.warn('[Router] Checked wallet index:', currentWalletIndex)
-          console.warn('[Router] Checked wallet hash:', walletHash || 'none')
-          console.warn('[Router] Vault state:', vault?.map((w, i) => ({
-            index: i,
-            deleted: w?.deleted,
-            hasWalletHash: !!(w?.wallet?.bch?.walletHash || w?.wallet?.BCH?.walletHash || w?.BCH?.walletHash || w?.bch?.walletHash || w?.walletHash)
-          })))
           next('/accounts')
         }
       } catch (err) {
         console.error('[Router] Router error:', err)
-        console.error('[Router] Error stack:', err.stack)
         next('/accounts')
       }
     } else {

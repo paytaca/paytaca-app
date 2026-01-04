@@ -358,7 +358,6 @@ async function loadMemo() {
     
     if (currentTxid !== initialTxid || currentEncryptedMemo !== initialEncryptedMemo) {
       // Transaction changed during async operation, ignore this result
-      console.debug('[TransactionListItem] Transaction changed during memo load, ignoring stale result')
       return
     }
 
