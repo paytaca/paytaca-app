@@ -32,12 +32,13 @@ public class ScreenshotSecurityPlugin extends Plugin {
                     WindowManager.LayoutParams.FLAG_SECURE
                 );
             }
+            
+            // Resolve only after the flag has been applied on the UI thread
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            ret.put("enabled", enabled);
+            call.resolve(ret);
         });
-        
-        JSObject ret = new JSObject();
-        ret.put("success", true);
-        ret.put("enabled", enabled);
-        call.resolve(ret);
     }
 
     @PluginMethod()
