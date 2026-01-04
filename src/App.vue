@@ -364,6 +364,10 @@ export default {
           vm.showPrivacyOverlay = false
           console.log('[App] ===== RESUME EVENT END (no lock enabled) =====')
         }
+        
+        // Reset pause timestamp to prevent stale timestamps from interfering with future checks
+        // This prevents spurious resume events on Android from incorrectly triggering genuine background handling
+        vm.lastPauseTime = 0
       })
     },
     async onConnectivityChange (online) {
