@@ -1054,17 +1054,27 @@ body {
   margin-top: 20px;
   padding-left: 28px;
   padding-right: 28px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  
+  // The QR component uses inline styles with fixed size (280px for size 220 + padding 30*2)
+  // On small screens, reduce padding to give QR code more room
 }
-/* iPhone 5/SE */
-@media (min-width: 280px) and (max-width: 320px) {
+/* iPhone 5/SE and small screens - reduce padding to fit QR */
+@media (min-width: 280px) and (max-width: 360px) {
   .qr-code-container {
     margin-top: 30px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }
-/* Galaxy Fold */
-@media (min-width: 200px) and (max-width: 280px) {
+/* Galaxy Fold and very small screens - minimal padding */
+@media (max-width: 280px) {
   .qr-code-container {
     margin-top: 66px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }
 .qr-code-text {
