@@ -409,6 +409,7 @@ import { parsePaymentUri } from 'src/wallet/payment-uri'
 import Watchtower from 'watchtower-cash-js'
 import WatchtowerExtended from 'src/lib/watchtower'
 import { generateReceivingAddress, getDerivationPathForWalletType, generateAddressSetWithoutSubscription } from 'src/utils/address-generation-utils'
+import { toTokenAddress } from 'src/utils/crypto'
 import axios from 'axios'
 import {
   getWalletByNetwork,
@@ -2029,9 +2030,30 @@ export default {
           finalAddress = newAddress
         }
 
-        // Use the generated address as recipient address
+        // Convert address to the appropriate format based on asset type
+        // For SLP tokens, convert to SLP address format
+        // For CashTokens, convert to token address format
+        // For regular BCH, use as-is (already in cash address format)
+        let formattedAddress = finalAddress
+        if (assetType === 'slp') {
+          // Convert to SLP address format for SLP tokens
+          const addressObj = new Address(finalAddress)
+          formattedAddress = addressObj.toSLPAddress()
+        } else if (assetId.indexOf('ct/') > -1) {
+          // Convert to token address format for CashTokens
+          try {
+            formattedAddress = toTokenAddress(finalAddress)
+          } catch (error) {
+            console.error('Error converting address to token format:', error)
+            // If conversion fails, use the original address and let validation handle it
+            formattedAddress = finalAddress
+          }
+        }
+        // For regular BCH, the address is already in the correct format
+
+        // Use the generated and formatted address as recipient address
         // This will trigger the normal send flow
-        await vm.onScannerDecode(finalAddress, false)
+        await vm.onScannerDecode(formattedAddress, false)
         
         // Keep selection visible to show which wallet was chosen
       } catch (error) {
