@@ -63,7 +63,7 @@
               <!-- Paste Address Option -->
               <div class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
                 <div class="send-option-header">
-                  <q-icon name="mdi-wallet" size="28px" class="text-grad"/>
+                  <q-icon name="mdi-inbox" size="28px" class="text-grad"/>
                   <div class="send-option-title">
                     <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
                       {{ $t('SendToAddress', {}, 'Send to Address') }}
@@ -175,6 +175,42 @@
                     </q-btn>
                   </div>
                 </div>
+              </div>
+
+              <!-- Send to Other Wallets Option -->
+              <div v-if="otherWallets.length > 0" class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="send-option-header">
+                  <q-icon name="mdi-wallet" size="28px" class="text-grad"/>
+                  <div class="send-option-title">
+                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                      {{ $t('SendToYourOtherWallets', {}, 'Send to Your Other Wallets') }}
+                    </div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('SelectWalletToSend', {}, 'Select a wallet to send funds to') }}
+                    </div>
+                  </div>
+                </div>
+
+                <q-select
+                  v-model="selectedOtherWallet"
+                  :options="otherWallets"
+                  option-label="name"
+                  :dark="darkMode"
+                  filled
+                  :loading="generatingOtherWalletAddress"
+                  :disable="generatingOtherWalletAddress"
+                  class="q-mt-md"
+                  :placeholder="$t('SelectWallet', {}, 'Select a wallet')"
+                  @update:model-value="onOtherWalletSelected"
+                >
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section>
+                        <q-item-label>{{ scope.opt.name }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
               </div>
 
               <!-- Gift Link Option (only for BCH) -->
@@ -371,6 +407,8 @@ import { getCashbackAmount } from 'src/utils/engagementhub-utils/engagementhub-u
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import Watchtower from 'watchtower-cash-js'
+import WatchtowerExtended from 'src/lib/watchtower'
+import { generateReceivingAddress, getDerivationPathForWalletType } from 'src/utils/address-generation-utils'
 import {
   getWalletByNetwork,
   convertTokenAmount
@@ -573,7 +611,9 @@ export default {
       focusedInputField: '',
       isScrolledToBottom: false,
       priceId: null,
-      priceIdPrice: null
+      priceIdPrice: null,
+      selectedOtherWallet: null,
+      generatingOtherWalletAddress: false
     }
   },
 
@@ -694,6 +734,35 @@ export default {
       }
 
       return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
+    },
+    otherWallets () {
+      const vault = this.$store.getters['global/getVault'] || []
+      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
+      
+      return vault
+        .map((wallet, index) => {
+          // Skip deleted wallets and current wallet
+          if (wallet?.deleted === true || index === currentWalletIndex) {
+            return null
+          }
+          
+          // Get wallet name or fallback to 'Personal Wallet'
+          const name = wallet?.name || 'Personal Wallet'
+          
+          // Get wallet hash
+          const walletHash = wallet?.wallet?.bch?.walletHash || 
+                            wallet?.wallet?.BCH?.walletHash ||
+                            wallet?.BCH?.walletHash || 
+                            wallet?.bch?.walletHash ||
+                            null
+          
+          return {
+            index,
+            name,
+            walletHash
+          }
+        })
+        .filter(wallet => wallet !== null)
     }
   },
 
@@ -1767,6 +1836,96 @@ export default {
     },
     decimalObj (isFiat) {
       return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
+    },
+
+    // ========== other wallets methods ==========
+    /**
+     * Get the last address index for a specific wallet
+     * @param {number} walletIndex - The vault index of the wallet
+     * @returns {Promise<number>} The last address index or 0 if not available
+     */
+    async getLastAddressIndexForWallet (walletIndex) {
+      try {
+        const walletHash = this.$store.getters['global/getWalletHashByIndex'](walletIndex)
+        if (!walletHash) {
+          console.warn(`No wallet hash found for wallet index ${walletIndex}`)
+          return 0
+        }
+
+        const watchtower = new WatchtowerExtended(this.isChipnet)
+        const lastAddressAndIndex = await watchtower.getLastExternalAddressIndex(walletHash)
+        
+        if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+          return lastAddressAndIndex.address_index
+        }
+        
+        return 0
+      } catch (error) {
+        console.error(`Error getting last address index for wallet ${walletIndex}:`, error)
+        return 0
+      }
+    },
+
+    /**
+     * Ensure address index is not 0 (reserved for message encryption)
+     * @param {number} index - The address index to validate
+     * @returns {number} - The validated address index (never 0)
+     */
+    ensureAddressIndexNotZero (index) {
+      if (typeof index !== 'number' || index < 0) {
+        return 1 // Default to 1 if invalid
+      }
+      return index === 0 ? 1 : index
+    },
+
+    /**
+     * Handle wallet selection from dropdown
+     * @param {Object} selectedWallet - The selected wallet object with { index, name, walletHash }
+     */
+    async onOtherWalletSelected (selectedWallet) {
+      if (!selectedWallet || typeof selectedWallet.index !== 'number') {
+        return
+      }
+
+      const vm = this
+      vm.generatingOtherWalletAddress = true
+
+      try {
+        // Get the last address index for the selected wallet
+        const lastAddressIndex = await vm.getLastAddressIndexForWallet(selectedWallet.index)
+        
+        // Calculate next address index (skip 0/0 if needed)
+        let nextAddressIndex = lastAddressIndex + 1
+        nextAddressIndex = vm.ensureAddressIndexNotZero(nextAddressIndex)
+
+        // Generate the receiving address for the selected wallet
+        const derivationPath = getDerivationPathForWalletType(vm.walletType)
+        const generatedAddress = await generateReceivingAddress({
+          walletIndex: selectedWallet.index,
+          derivationPath: derivationPath,
+          addressIndex: nextAddressIndex,
+          isChipnet: vm.isChipnet
+        })
+
+        if (!generatedAddress) {
+          throw new Error('Failed to generate receiving address')
+        }
+
+        // Use the generated address as recipient address
+        // This will trigger the normal send flow
+        await vm.onScannerDecode(generatedAddress, false)
+        
+        // Keep selection visible to show which wallet was chosen
+      } catch (error) {
+        console.error('Error generating address for other wallet:', error)
+        sendPageUtils.raiseNotifyError(
+          vm.$t('FailedToGenerateAddress', {}, 'Failed to generate address. Please try again.')
+        )
+        // Reset selection on error to allow retry
+        vm.selectedOtherWallet = null
+      } finally {
+        vm.generatingOtherWalletAddress = false
+      }
     }
   },
 
