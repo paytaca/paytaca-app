@@ -762,7 +762,7 @@ export default {
             walletHash
           }
         })
-        .filter(wallet => wallet !== null)
+        .filter(wallet => wallet !== null && wallet.walletHash !== null)
     }
   },
 
