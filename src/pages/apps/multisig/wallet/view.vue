@@ -86,8 +86,8 @@
                   <q-item-label>{{ $t('WalletId') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                 <q-item-label class="flex flex-wrap items-center">
-                   <span>{{ shortenString(`${wallet.id}`, 20)}}</span>
+                 <q-item-label >
+                   <span class="flex flex-wrap items-center">{{ shortenString(`${wallet.walletHash}`, 20)}}<CopyButton :text="wallet.walletHash"/></span> 
                  </q-item-label>
                 </q-item-section>
               </q-item>
