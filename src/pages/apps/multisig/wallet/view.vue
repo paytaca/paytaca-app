@@ -392,7 +392,6 @@ const loadCashtokenIdentitiesToBalances = async() => {
   for(const asset of Object.keys(balances.value || {})) {
     if (asset === 'bch') continue
     const tokenIdentityPromise = async () => {
-      const tk = await getAssetTokenIdentity(asset)
       balancesTokenIdentities.value[asset] = await getAssetTokenIdentity(asset)
     }
     promises.push(tokenIdentityPromise())
@@ -447,6 +446,7 @@ onMounted(async () => {
     balancesRefreshing.value = false
   }
 })
+
 </script>
 
 <style lang="scss">
