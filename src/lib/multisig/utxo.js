@@ -380,6 +380,30 @@ export function watchtowerUtxoToCommonUtxo (utxo) {
   return commonUtxo
 }
 
+export function watchtowerWalletHashUtxoToCommonUtxo(utxo) {
+  const commonUtxo = {
+    ...utxo,
+    txid: utxo.txid,
+    satoshis: utxo.value,
+    vout: Number(utxo.vout),
+    height: utxo.block
+  }
+
+  if (utxo.is_cashtoken || utxo.tokenid) {
+    commonUtxo.token = {
+      amount: utxo.amount,
+      category: utxo.tokenid,
+    }
+    if (utxo.capability) {
+      commonUtxo.token.nft = {
+        capability: utxo.capability,
+        commitment: utxo.commitment
+      }
+    }
+  }
+  return commonUtxo
+}
+
 /**
  * @param { CommonUtxo } utxo
  * @returns { import("@bitauth/libauth").Input }
