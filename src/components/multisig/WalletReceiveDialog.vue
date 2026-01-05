@@ -99,7 +99,7 @@ onMounted(async () => {
     addressIndex.value = lastIssuedDepositAddressIndex
   }
   if (address.value?.address) {
-    await props.multisigWallet?.subscribeWalletAddress(address.value?.address)
+    await props.multisigWallet?.subscribeWalletAddressIndex(addressIndex.value, 'deposit')
   }
   
 })

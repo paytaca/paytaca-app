@@ -163,40 +163,39 @@ export async function subscribeWalletAddress ({ rootGetters }, address) {
   return await watchtower.subscribeAddress(address)
 }
 
-export async function subscribeWalletAddressIndex ({ rootGetters }, { wallet, addressIndex, type }) {
+export async function subscribeWalletAddressIndex ({ rootGetters }, { wallet, addressIndex, type = 'pair' }) {
   const walletHash = wallet.getWalletHash()
   const receiveAddress = wallet.getDepositAddress(addressIndex, wallet.cashAddressNetworkPrefix).address
   const changeAddress = wallet.getChangeAddress(addressIndex, wallet.cashAddressNetworkPrefix).address
-  let address = ''
+  
+  let addresses = {}
+  
   if (type === 'pair') {
-    address = {
-      receiving: receiveAddress,
-      change: changeAddress
-    }
+    changeAddress.receiving = receiveAddress
+    changeAddress.change = changeAddress
   }
+
   if (type === 'deposit') {
-    address = receiveAddress
+    addresses.receiving = receiveAddress
   }
+  
   if (type === 'change') {
-    address = changeAddress
+    addresses.change = changeAddress
   }
   
   const watchtower = new Watchtower(rootGetters['global/isChipnet'])
 
-  const subscriptionData = {
+  return await watchtower.subscribe({
     projectId: projectId[rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'],
-    walletHash
-  }
-  if (typeof address === 'string') {
-    subscriptionData.address = address
-  }
-  if (typeof address === 'object') {
-    subscriptionData.addresses = address
-    subscriptionData.addressIndex = addressIndex
-  }
-  return await watchtower.subscribe(subscriptionData)
+    walletHash,
+    addresses,
+    addressIndex
+  })
 }
 
-
+export async function getWalletTransactionHistory ({ rootGetters }, { walletHash, type }) {
+  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+  return await axios.get(`${watchtower}/api/history/wallet/${walletHash}?type=${type}&all=true&page=1`)
+}
 
 
