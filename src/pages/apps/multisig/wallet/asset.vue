@@ -166,6 +166,7 @@ const wallet = computed(() => {
   const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
   if (savedWallet) {
     return MultisigWallet.importFromObject(savedWallet, {
+      store: $store,
       provider: new WatchtowerNetworkProvider({
         network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
       })
@@ -249,7 +250,6 @@ onMounted(async () => {
         balance.value,
         [$store.getters['market/selectedCurrency'].symbol]
       )
-
   } catch (error) {}
 })
 </script>

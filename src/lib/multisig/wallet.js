@@ -139,7 +139,7 @@ import {
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 import { createTemplate } from './template.js'
-import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos } from './utxo.js'
+import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos, watchtowerWalletHashUtxoToCommonUtxo } from './utxo.js'
 import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
@@ -677,8 +677,74 @@ async getWalletUtxos() {
   return this._utxos
 }
 
+
 async getWalletHashUtxos() {
-  return await this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
+
+  const r1 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
+  const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken')
+
+  const responses = await Promise.allSettled([r1, r2])
+
+  let utxos = []
+
+  for (const r of responses) {
+    utxos = utxos.concat(r?.value?.data?.utxos ?? [])
+  }
+
+  utxos = utxos?.map(u => {
+      return {
+        ...u,
+        ...watchtowerWalletHashUtxoToCommonUtxo(u)
+      }
+    })
+
+  utxos?.forEach((u) => {
+    const addressPaths = u.address_path?.split('/') 
+    if (addressPaths.length === 2 && addressPaths.every(p => /[0-9]/.test(p))) {
+      u.addressPath = u.address_path
+      const [ addressType, addressIndex ] = addressPaths.map(p => Number(p)) 
+      if (addressType === 0) {
+        u.address = this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address
+      }
+      if (addressType === 1) {
+        u.address = this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address
+      }
+    }
+  })
+    
+  const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
+    if (u.addressPath?.startsWith('0/')) {
+      const index = Number(u.addressPath.split('/')[1])
+      if (index > highest) return index
+    }
+    return highest
+  }, -1)
+
+  const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
+    if (u.addressPath?.startsWith('1/')) {
+      const index = Number(u.addressPath.split('/')[1])
+      if (index > highest) return index
+    }
+    return highest
+  }, -1)
+
+  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
+    this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
+  }
+
+  if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
+    this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
+  }
+
+  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
+    this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
+  }
+  
+  this._utxos = utxos
+  return this._utxos
 }
 
 async getAddressBalance(address) {
@@ -691,7 +757,7 @@ async getAddressBalance(address) {
  
  */
 async getWalletBalance(asset, decimals) {
-  const utxos = (await this.getWalletUtxos())
+  const utxos = (await this.getWalletHashUtxos())
   if (!asset || asset === 'bch') {
     const balance = utxos.filter(u=> !u.token).reduce((b, u) => b += u.satoshis, 0)
     return balance / 1e8
@@ -759,7 +825,7 @@ async convertBalanceToCurrencies(asset, balance, currencySymbols) {
 
 async getWalletBalances() {
   const assetsBalances = {}
-  const utxos = await this.getWalletUtxos() 
+  const utxos = await this.getWalletHashUtxos() 
   utxos.forEach((u) => {
     if (!u.token) {
       if (!assetsBalances['bch']) {
@@ -785,7 +851,7 @@ async getWalletHashBalance() {
 
 async getWalletTokenBalance(tokenCategory, decimals = 0) {
   const balance = 
-    (await this.getWalletUtxos() || [])
+    (await this.getWalletHashUtxos() || [])
       .filter((u)=>{
         return u.token.category === tokenCategory
       })
@@ -802,7 +868,21 @@ async subscribeWalletAddress(address) {
     2,
     1000
   ).catch((e) => e)
+}
 
+async subscribeWalletAddressIndex(addressIndex, type) {
+  return retryWithBackoff(async () => {
+    return await this.options?.store?.dispatch(
+      'multisig/subscribeWalletAddressIndex',
+      { wallet: this, addressIndex: addressIndex, type: type }
+    )},
+    2,
+    1000
+  ).catch((e) => e)
+}
+
+async getWalletTransactionHistory(walletHash, type) {
+  return await this.options?.store?.dispatch('multisig/getWalletTransactionHistory', { walletHash, type })
 }
 
 /**
@@ -825,7 +905,8 @@ async issueDepositAddress(addressIndex) {
   //     ?.updateWalletLastIssuedDepositAddressIndex(this, addressIndex, this.options.provider.network)
   //     .catch(e => e)
 
-  await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+  // await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+  await this.subscribeWalletAddressIndex(addressIndex, 'deposit')
 
 }
 
@@ -848,7 +929,8 @@ async issueDepositAddress(addressIndex) {
     //     ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
     //     .catch(e => e)
 
-    await this.subscribeWalletAddress(this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+    // await this.subscribeWalletAddress(this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+    await this.subscribeWalletAddressIndex(addressIndex, 'change')
  }
 
   async selectUtxos(proposal) {
@@ -858,7 +940,7 @@ async issueDepositAddress(addressIndex) {
     }
 
     if (!this.utxos) {
-      await this.getWalletUtxos()
+      await this.getWalletHashUtxos()
     }
 
     let targetBch = 
@@ -987,7 +1069,7 @@ async issueDepositAddress(addressIndex) {
     }
 
     if (!this.utxos) {
-      const u = await this.getWalletUtxos()
+      await this.getWalletHashUtxos()
     }
 
     let selectedUtxos = await this.selectUtxos(proposal)
@@ -1380,8 +1462,6 @@ async generateAuthCredentials(xpub) {
     const bin = base64ToBin(base64)
     const psbtWalletMagicMarker = readBytes(4)
     const psbtWalletMagicMarkerReadResult = psbtWalletMagicMarker({ bin, index: 0 })
-    console.log('psbtWalletMagicMarkerReadResult', psbtWalletMagicMarkerReadResult)
-    console.log('WALLET_MAGIC', hexToBin(WALLET_MAGIC))
     if (binsAreEqual(psbtWalletMagicMarkerReadResult.result, hexToBin(WALLET_MAGIC))) {
       const wallet = new MultisigWallet()
       const psbtWallet = new PsbtWallet()

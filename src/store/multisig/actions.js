@@ -6,6 +6,10 @@ import { generateAuthCredentialsForFirstSignerWithPrivateKey, generateAuthCreden
 import { watchtowerUtxoToCommonUtxo } from 'src/utils/utxo-utils'
 import Watchtower from 'src/lib/watchtower'
 
+const projectId = {
+  mainnet: process.env.WATCHTOWER_PROJECT_ID,
+  chipnet: process.env.WATCHTOWER_CHIP_PROJECT_ID
+}
 
 export async function uploadWallet ({ commit, getters, rootGetters }, multisigWallet ) {
   
@@ -157,6 +161,41 @@ export async function deletePsbt ({ commit }, { pst, sync = false }) {
 export async function subscribeWalletAddress ({ rootGetters }, address) {
   const watchtower = new Watchtower(rootGetters['global/isChipnet'])
   return await watchtower.subscribeAddress(address)
+}
+
+export async function subscribeWalletAddressIndex ({ rootGetters }, { wallet, addressIndex, type = 'pair' }) {
+  const walletHash = wallet.getWalletHash()
+  const receiveAddress = wallet.getDepositAddress(addressIndex, wallet.cashAddressNetworkPrefix).address
+  const changeAddress = wallet.getChangeAddress(addressIndex, wallet.cashAddressNetworkPrefix).address
+  
+  let addresses = {}
+  
+  if (type === 'pair') {
+    changeAddress.receiving = receiveAddress
+    changeAddress.change = changeAddress
+  }
+
+  if (type === 'deposit') {
+    addresses.receiving = receiveAddress
+  }
+  
+  if (type === 'change') {
+    addresses.change = changeAddress
+  }
+  
+  const watchtower = new Watchtower(rootGetters['global/isChipnet'])
+
+  return await watchtower.subscribe({
+    projectId: projectId[rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'],
+    walletHash,
+    addresses,
+    addressIndex
+  })
+}
+
+export async function getWalletTransactionHistory ({ rootGetters }, { walletHash, type }) {
+  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
+  return await axios.get(`${watchtower}/api/history/wallet/${walletHash}?type=${type}&all=true&page=1`)
 }
 
 

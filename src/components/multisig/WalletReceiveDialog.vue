@@ -88,7 +88,7 @@ const onDialogOkWrapper = () => {
 
 watch(() => address.value, (v) => {
   if (v) {
-    props.multisigWallet?.subscribeWalletAddress(v.address)
+    props.multisigWallet?.subscribeWalletAddressIndex(addressIndex.value, 'deposit')
   }
 })
 
@@ -99,8 +99,9 @@ onMounted(async () => {
     addressIndex.value = lastIssuedDepositAddressIndex
   }
   if (address.value?.address) {
-    await props.multisigWallet?.subscribeWalletAddress(address.value?.address)
+    await props.multisigWallet?.subscribeWalletAddressIndex(addressIndex.value, 'deposit')
   }
+  
 })
 
 </script>

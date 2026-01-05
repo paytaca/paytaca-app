@@ -115,8 +115,8 @@ export class WatchtowerNetworkProvider {
         return response?.data || []
     }
 
-    async getWalletHashUtxos(address) {
-        throw new Error('Not yet implemented')
+    async getWalletHashUtxos(walletHash, utxoType = 'bch') {
+        return await axios.get(`${this.hostname}/api/utxo/wallet/${walletHash}?is_cashtoken=${utxoType === 'cashtoken' ? 'true': 'false'}`) 
     }
 
     async getWalletUtxos(address) {

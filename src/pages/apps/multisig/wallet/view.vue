@@ -86,8 +86,8 @@
                   <q-item-label>{{ $t('WalletId') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                 <q-item-label class="flex flex-wrap items-center">
-                   <span>{{ shortenString(`${wallet.id}`, 20)}}</span>
+                 <q-item-label >
+                   <span class="flex flex-wrap items-center">{{ shortenString(`${wallet.walletHash}`, 20)}}<CopyButton :text="wallet.walletHash"/></span> 
                  </q-item-label>
                 </q-item-section>
               </q-item>
@@ -392,7 +392,6 @@ const loadCashtokenIdentitiesToBalances = async() => {
   for(const asset of Object.keys(balances.value || {})) {
     if (asset === 'bch') continue
     const tokenIdentityPromise = async () => {
-      const tk = await getAssetTokenIdentity(asset)
       balancesTokenIdentities.value[asset] = await getAssetTokenIdentity(asset)
     }
     promises.push(tokenIdentityPromise())
@@ -447,6 +446,7 @@ onMounted(async () => {
     balancesRefreshing.value = false
   }
 })
+
 </script>
 
 <style lang="scss">
