@@ -1949,9 +1949,18 @@ export default {
       vm.generatingOtherWalletAddress = true
 
       try {
-        // Validate that we have a valid asset type (walletType is set based on assetId)
-        if (!vm.walletType || (vm.walletType !== 'bch' && vm.walletType !== 'slp')) {
-          throw new Error(`Invalid wallet type: ${vm.walletType}. Must be 'bch' or 'slp'.`)
+        // Derive asset type directly from the asset being sent, not from vm.walletType
+        // This ensures we use the correct derivation path regardless of the current wallet context
+        const assetId = vm.asset?.id || vm.assetId
+        if (!assetId) {
+          throw new Error('Asset ID is required to determine derivation path')
+        }
+        
+        // Determine asset type: 'slp' for SLP tokens, 'bch' for BCH and CashTokens
+        const assetType = assetId.indexOf('slp/') > -1 ? 'slp' : 'bch'
+        
+        if (assetType !== 'bch' && assetType !== 'slp') {
+          throw new Error(`Invalid asset type: ${assetType}. Must be 'bch' or 'slp'.`)
         }
 
         // Get the last address index for the selected wallet
@@ -1961,9 +1970,10 @@ export default {
         let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
         validAddressIndex = vm.ensureAddressIndexNotZero(validAddressIndex)
 
-        // IMPORTANT: Use the asset type (vm.walletType) for derivation path, not the selected wallet's type
+        // IMPORTANT: Use the asset type being sent for derivation path, not the selected wallet's type
         // The asset type determines whether we need a BCH address (m/44'/145'/0') or SLP address (m/44'/245'/0')
-        const derivationPath = getDerivationPathForWalletType(vm.walletType)
+        // All wallets support both BCH and SLP addresses, so we use the asset type being sent
+        const derivationPath = getDerivationPathForWalletType(assetType)
 
         // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
         const addressResult = await generateAddressSetWithoutSubscription({
@@ -1980,7 +1990,7 @@ export default {
         const address = addressResult.addresses.receiving
         
         // Step 2: Check if that address has balance (including token sats)
-        const hasBalance = await vm.checkAddressBalance(address, vm.walletType)
+        const hasBalance = await vm.checkAddressBalance(address, assetType)
         
         let finalAddress = null
 
