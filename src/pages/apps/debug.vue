@@ -19,6 +19,16 @@
     </header-nav>
 
     <div class="q-pa-md q-mt-sm">
+      <!-- Tools Section -->
+      <q-expansion-item
+        :default-opened="false"
+        icon="build"
+        :label="$t('Tools', {}, 'Tools')"
+        header-class="expansion-header"
+        :class="getDarkModeClass(darkMode)"
+        class="q-mb-md"
+      >
+        <div v-if="isComponentReady" class="q-pa-md">
       <!-- Enable SLP Toggle -->
       <div class="q-mb-md">
         <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
@@ -43,7 +53,7 @@
       </div>
 
       <!-- BCH Denomination Selector -->
-      <div class="q-mb-md">
+      <div v-if="isComponentReady" class="q-mb-md">
         <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
           <q-card-section>
             <div class="row items-center justify-between">
@@ -103,7 +113,180 @@
         <DragSlide text="Test" disable-absolute-bottom @swiped="onSwipe"/>
       </div>
 
-      <!-- Terminal Display -->
+          <!-- Address Key Viewer -->
+          <div v-if="isComponentReady" class="q-mb-md">
+            <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
+              <q-card-section>
+                <div class="text-subtitle1 text-weight-medium text-bow q-mb-md" :class="getDarkModeClass(darkMode)">
+                  {{ $t('AddressKeyViewer', {}, 'Address Key Viewer') }}
+                </div>
+                <div class="text-caption q-mb-md" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                  {{ $t('AddressKeyViewerToolTip', {}, 'View public and private keys for wallet addresses') }}
+                </div>
+                
+                <q-btn-toggle
+                  :model-value="addressInputMode"
+                  @update:model-value="onAddressModeChange"
+                  toggle-color="primary"
+                  :options="addressInputToggleOptions"
+                  class="q-mb-md full-width"
+                />
+
+                <q-select
+                  v-if="addressInputMode === 'select' && addressOptions.length > 0"
+                  v-model="selectedAddressForKeys"
+                  :options="addressOptions"
+                  :label="$t('SelectAddress', {}, 'Select Address')"
+                  option-label="label"
+                  option-value="address"
+                  emit-value
+                  map-options
+                  :class="getDarkModeClass(darkMode)"
+                  class="q-mb-md"
+                  @update:model-value="loadKeysForAddress"
+                >
+                  <template v-slot:no-option>
+                    <q-item>
+                      <q-item-section class="text-grey">
+                        {{ $t('NoAddressesAvailable', {}, 'No addresses available') }}
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
+
+                <div v-else class="q-mb-md">
+                  <q-input
+                    v-model="manualAddressInput"
+                    :label="$t('EnterBCHAddress', {}, 'Enter BCH Address')"
+                    filled
+                    dense
+                    :class="getDarkModeClass(darkMode)"
+                    class="q-mb-sm"
+                    @keyup.enter="loadKeysForManualAddress"
+                  />
+                  <q-btn
+                    color="primary"
+                    :label="$t('LoadKeys', {}, 'Load Keys')"
+                    @click="loadKeysForManualAddress"
+                    :loading="loadingManualAddress"
+                    class="full-width"
+                  />
+                </div>
+
+                <div v-if="(selectedAddressForKeys || manualAddressInput) && addressPublicKey && addressPrivateKey">
+                  <div v-if="addressInfo?.address_path" class="q-mb-md">
+                    <div class="text-caption text-weight-medium q-mb-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                      {{ $t('AddressPath', {}, 'Address Path') }}
+                    </div>
+                    <div class="text-body2" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+                      {{ addressInfo.address_path }}
+                    </div>
+                  </div>
+
+                  <div v-if="addressInfo?.token_address" class="q-mb-md">
+                    <div class="text-caption text-weight-medium q-mb-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                      {{ $t('TokenAddress', {}, 'Token Address') }}
+                    </div>
+                    <div class="row items-center q-gutter-sm">
+                      <q-input
+                        :model-value="addressInfo.token_address"
+                        readonly
+                        filled
+                        dense
+                        class="col"
+                        :class="getDarkModeClass(darkMode)"
+                      />
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        icon="content_copy"
+                        @click="copyToClipboard(addressInfo.token_address, 'Token address')"
+                        :class="getDarkModeClass(darkMode)"
+                      >
+                        <q-tooltip>{{ $t('Copy') }}</q-tooltip>
+                      </q-btn>
+                    </div>
+                  </div>
+
+                  <div class="q-mb-md">
+                    <div class="text-caption text-weight-medium q-mb-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                      {{ $t('PublicKey', {}, 'Public Key') }}
+                    </div>
+                    <div class="row items-center q-gutter-sm">
+                      <q-input
+                        :model-value="addressPublicKey"
+                        readonly
+                        filled
+                        dense
+                        class="col"
+                        :class="getDarkModeClass(darkMode)"
+                      />
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        icon="content_copy"
+                        @click="copyToClipboard(addressPublicKey, 'Public key')"
+                        :class="getDarkModeClass(darkMode)"
+                      >
+                        <q-tooltip>{{ $t('Copy') }}</q-tooltip>
+                      </q-btn>
+                    </div>
+                  </div>
+
+                  <div class="q-mb-md">
+                    <div class="text-caption text-weight-medium q-mb-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                      {{ $t('PrivateKey', {}, 'Private Key (WIF)') }}
+                    </div>
+                    <div class="row items-center q-gutter-sm">
+                      <q-input
+                        :model-value="addressPrivateKey"
+                        readonly
+                        filled
+                        dense
+                        :type="showPrivateKey ? 'text' : 'password'"
+                        class="col"
+                        :class="getDarkModeClass(darkMode)"
+                      />
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        :icon="showPrivateKey ? 'visibility_off' : 'visibility'"
+                        @click="showPrivateKey = !showPrivateKey"
+                        :class="getDarkModeClass(darkMode)"
+                      >
+                        <q-tooltip>{{ showPrivateKey ? $t('Hide') : $t('Show') }}</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        icon="content_copy"
+                        @click="copyToClipboard(addressPrivateKey, 'Private key')"
+                        :class="getDarkModeClass(darkMode)"
+                      >
+                        <q-tooltip>{{ $t('Copy') }}</q-tooltip>
+                      </q-btn>
+                    </div>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </div>
+      </q-expansion-item>
+
+      <!-- Console Section -->
+      <q-expansion-item
+        :default-opened="true"
+        icon="terminal"
+        :label="$t('Console', {}, 'Console')"
+        header-class="expansion-header"
+        :class="getDarkModeClass(darkMode)"
+        class="q-mb-md"
+      >
       <div class="terminal-container" :class="getDarkModeClass(darkMode)">
         <div class="terminal-header">
           <span class="terminal-title">{{ $t('ConsoleLogs', {}, 'Console Logs') }}</span>
@@ -190,6 +373,7 @@
           </div>
         </div>
       </div>
+      </q-expansion-item>
     </div>
   </div>
 </template>
@@ -202,6 +386,10 @@ import { Capacitor } from '@capacitor/core'
 import DenominatorSelector from 'src/components/settings/DenominatorSelector'
 import SecurityCheckDialog from "src/components/SecurityCheckDialog.vue";
 import DragSlide from "src/components/drag-slide.vue";
+import { wifToPubkey } from 'src/utils/crypto'
+import { loadLibauthHdWallet } from 'src/wallet'
+import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
+import axios from 'axios'
 
 // Module-level log storage - persists across component mounts/unmounts
 // This allows logs to continue being captured even when navigating away from debug page
@@ -232,6 +420,21 @@ export default {
         { label: 'Warn', value: 'warn' },
         { label: 'Debug', value: 'debug' },
         { label: 'Info', value: 'info' }
+      ],
+      selectedAddressForKeys: null,
+      addressPublicKey: null,
+      addressPrivateKey: null,
+      showPrivateKey: false,
+      addressInputMode: 'select',
+      manualAddressInput: '',
+      loadingManualAddress: false,
+      addressInfo: null, // Store full address info from watchtower
+      isUpdatingTab: false, // Flag to prevent recursive updates
+      addressOptions: [], // Address options as data property to prevent reactivity loops
+      isComponentReady: false, // Flag to prevent rendering before component is ready
+      addressInputToggleOptions: [
+        { label: 'Select from Wallet', value: 'select' },
+        { label: 'Enter Manually', value: 'manual' }
       ]
     }
   },
@@ -252,7 +455,7 @@ export default {
         return []
       }
       return this.logs.filter(log => this.logLevelFilter.includes(log.type))
-    }
+    },
   },
   watch: {
     enableSLP (n, o) {
@@ -264,6 +467,225 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    updateAddressOptions () {
+      // Use nextTick to prevent recursive updates during render
+      this.$nextTick(() => {
+        const addresses = this.$store.getters['global/walletAddresses'] || []
+        if (!addresses || addresses.length === 0) {
+          this.addressOptions = []
+          return
+        }
+        // Create a new array with deep copy to break reactivity chain
+        this.addressOptions = addresses.map(addr => ({
+          label: `${addr.address} (Index: ${addr.address_index})`,
+          address: addr.address,
+          wif: addr.wif,
+          index: addr.address_index
+        }))
+      })
+    },
+    onAddressModeChange (newMode) {
+      // Prevent recursive updates
+      if (this.isUpdatingTab || newMode === this.addressInputMode) {
+        return
+      }
+      
+      this.isUpdatingTab = true
+      
+      // Clear keys when switching modes
+      this.addressPublicKey = null
+      this.addressPrivateKey = null
+      this.addressInfo = null
+      this.showPrivateKey = false
+      if (newMode === 'select') {
+        this.manualAddressInput = ''
+      } else {
+        this.selectedAddressForKeys = null
+      }
+      
+      // Update mode
+      this.addressInputMode = newMode
+      
+      // Reset flag
+      this.$nextTick(() => {
+        this.isUpdatingTab = false
+      })
+    },
+    async loadKeysForAddress (address) {
+      // Reset private key visibility when changing address
+      this.showPrivateKey = false
+      this.addressInfo = null
+
+      if (!address) {
+        this.addressPublicKey = null
+        this.addressPrivateKey = null
+        return
+      }
+
+      // First try to get from store
+      const addresses = this.$store.getters['global/walletAddresses'] || []
+      const addressData = addresses.find(addr => addr.address === address)
+
+      if (addressData && addressData.wif) {
+        try {
+          // Get private key (WIF)
+          this.addressPrivateKey = addressData.wif
+
+          // Derive public key from WIF
+          this.addressPublicKey = wifToPubkey(addressData.wif)
+
+          // Set basic address info
+          this.addressInfo = {
+            address: address,
+            address_path: `0/${addressData.address_index}`,
+            token_address: null
+          }
+
+          this.addLog('info', `Loaded keys for address: ${address}`)
+          return
+        } catch (error) {
+          console.error('Error loading keys from store:', error)
+        }
+      }
+
+      // If not in store, try watchtower API
+      await this.loadKeysFromWatchtower(address)
+    },
+    async loadKeysForManualAddress () {
+      if (!this.manualAddressInput || !this.manualAddressInput.trim()) {
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('PleaseEnterAddress', {}, 'Please enter an address'),
+          timeout: 2000
+        })
+        return
+      }
+
+      this.loadingManualAddress = true
+      this.showPrivateKey = false
+
+      try {
+        await this.loadKeysFromWatchtower(this.manualAddressInput.trim())
+      } finally {
+        this.loadingManualAddress = false
+      }
+    },
+    async loadKeysFromWatchtower (address) {
+      try {
+        const isChipnet = this.$store.getters['global/isChipnet']
+        const baseUrl = getWatchtowerApiUrl(isChipnet)
+        const addressUri = encodeURIComponent(address)
+        const url = `${baseUrl}/address-info/bch/${addressUri}/`
+
+        this.addLog('info', `Fetching address info from watchtower for: ${address}`)
+        const response = await axios.get(url)
+        
+        const addressFromApi = response.data?.address
+        const addressPath = response.data?.address_path
+
+        if (!addressPath) {
+          throw new Error('Address path not found in watchtower response')
+        }
+
+        // Verify the address matches
+        if (addressFromApi && addressFromApi !== address) {
+          this.$q.notify({
+            type: 'negative',
+            message: this.$t('AddressMismatch', {}, 'Address mismatch from watchtower'),
+            timeout: 3000
+          })
+          return
+        }
+
+        // Load wallet and get keys from path
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const libauthWallet = await loadLibauthHdWallet(walletIndex, isChipnet)
+
+        // Verify the address path is correct
+        const derivedAddress = libauthWallet.getAddressAt({ path: addressPath, token: false })
+        if (derivedAddress !== address && addressFromApi !== address) {
+          this.$q.notify({
+            type: 'negative',
+            message: this.$t('AddressNotInWallet', {}, 'Address does not belong to this wallet'),
+            timeout: 3000
+          })
+          this.addressPublicKey = null
+          this.addressPrivateKey = null
+          this.addressInfo = null
+          return
+        }
+
+        // Get private key (WIF) from path
+        const wif = libauthWallet.getPrivateKeyWifAt(addressPath)
+        this.addressPrivateKey = wif
+
+        // Derive public key from WIF
+        this.addressPublicKey = wifToPubkey(wif)
+
+        // Store address info from watchtower
+        this.addressInfo = {
+          address: response.data.address || address,
+          token_address: response.data.token_address,
+          address_path: addressPath,
+          wallet_digest: response.data.wallet_digest,
+          project_id: response.data.project_id
+        }
+
+        this.addLog('info', `Loaded keys for address: ${address} (path: ${addressPath})`)
+        this.selectedAddressForKeys = address // Update selected address if using manual mode
+      } catch (error) {
+        console.error('Error loading keys from watchtower:', error)
+        const errorMessage = error.response?.status === 404
+          ? this.$t('AddressNotFoundInWatchtower', {}, 'Address not found in watchtower')
+          : error.response?.status === 403
+          ? this.$t('AddressNotInWallet', {}, 'Address does not belong to this wallet')
+          : this.$t('ErrorLoadingKeys', {}, 'Error loading keys for address')
+        
+        this.$q.notify({
+          type: 'negative',
+          message: errorMessage,
+          timeout: 3000
+        })
+        this.addressPublicKey = null
+        this.addressPrivateKey = null
+        this.addressInfo = null
+      }
+    },
+    async copyToClipboard (text, label) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text)
+          this.$q.notify({
+            type: 'positive',
+            message: `${label} ${this.$t('CopiedToClipboard', {}, 'copied to clipboard')}`,
+            timeout: 2000
+          })
+        } else {
+          // Fallback for older browsers
+          const textarea = document.createElement('textarea')
+          textarea.value = text
+          textarea.style.position = 'fixed'
+          textarea.style.opacity = '0'
+          document.body.appendChild(textarea)
+          textarea.select()
+          document.execCommand('copy')
+          document.body.removeChild(textarea)
+          this.$q.notify({
+            type: 'positive',
+            message: `${label} ${this.$t('CopiedToClipboard', {}, 'copied to clipboard')}`,
+            timeout: 2000
+          })
+        }
+        this.addLog('info', `${label} copied to clipboard`)
+      } catch (error) {
+        console.error('Failed to copy:', error)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('FailedToCopy', {}, 'Failed to copy to clipboard'),
+          timeout: 2000
+        })
+      }
+    },
     onSwipe(reset = () => {}) {
       this.$q.dialog({
         component: SecurityCheckDialog,
@@ -416,7 +838,7 @@ export default {
             return String(arg)
           }).join(' ')
           
-          // Add to persistent logs
+          // Add to persistent logs (this always happens, even when component is unmounted)
           const time = new Date().toLocaleTimeString()
           const logEntry = {
             type,
@@ -433,6 +855,7 @@ export default {
           
           // Update local reference using stored component instance
           // This ensures we always update the currently mounted component
+          // Note: This check prevents errors when component is unmounted, but logs are still saved above
           if (currentComponentInstance && currentComponentInstance.logs) {
             currentComponentInstance.logs = [...persistentLogs]
             
@@ -452,6 +875,7 @@ export default {
             }
           }
         }
+        // Assign interceptor to console method - this persists even when component unmounts
         console[method] = logInterceptors[method]
       }
 
@@ -629,12 +1053,47 @@ export default {
       // Logs are limited to 1000 entries to prevent memory issues
     }
   },
-  mounted () {
+  async mounted () {
+    // Initialize toggle options with translations
+    this.addressInputToggleOptions = [
+      { label: this.$t('SelectFromWallet', {}, 'Select from Wallet'), value: 'select' },
+      { label: this.$t('EnterManually', {}, 'Enter Manually'), value: 'manual' }
+    ]
+    
     // Sync logs from persistent storage
     this.logs = [...persistentLogs]
     
+    // Verify interceptors are still active (they should be, but check to be sure)
+    let interceptorsWereInactive = false
+    if (isIntercepting) {
+      // Check if console methods are still our interceptors
+      interceptorsWereInactive = ['log', 'error', 'warn', 'debug', 'info'].some(method => {
+        return logInterceptors[method] && console[method] !== logInterceptors[method]
+      })
+    }
+    
     // Start intercepting console if not already intercepting
     this.interceptConsole()
+    
+    // Load wallet addresses if not already loaded
+    const addresses = this.$store.getters['global/walletAddresses']
+    if (!addresses || addresses.length === 0) {
+      try {
+        await this.$store.dispatch('global/loadWalletAddresses')
+        this.addLog('info', 'Wallet addresses loaded')
+      } catch (error) {
+        console.error('Error loading wallet addresses:', error)
+        this.addLog('warn', 'Could not load wallet addresses')
+      }
+    }
+    
+    // Update address options to prevent reactivity issues
+    this.updateAddressOptions()
+    
+    // Mark component as ready after initial setup
+    this.$nextTick(() => {
+      this.isComponentReady = true
+    })
     
     // Add initialization messages
     if (persistentLogs.length === 0) {
@@ -642,6 +1101,9 @@ export default {
       this.addLog('info', `Platform: ${this.$q.platform.is.ios ? 'iOS' : this.$q.platform.is.android ? 'Android' : 'Web'}`)
     } else {
       this.addLog('info', 'Debug app resumed - logs continue from previous session')
+      if (interceptorsWereInactive) {
+        this.addLog('warn', 'Console interceptors were inactive - they have been restored')
+      }
     }
     
     // Auto-scroll to bottom to show latest logs
@@ -881,6 +1343,21 @@ body.theme-payhero .debug-page.dark {
 
 .terminal-body::-webkit-scrollbar-thumb:hover {
   background: #777;
+}
+
+.expansion-header {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.expansion-header.dark {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.expansion-header.light {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 </style>
 
