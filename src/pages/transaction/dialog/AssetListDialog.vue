@@ -33,7 +33,7 @@
 		      </q-card-section>
 			<div v-if="loading" class="q-pa-md text-center">
 				<q-spinner color="primary" size="40px" />
-				<p class="q-mt-sm">{{ $t('LoadingAssets', {}, 'Loading assets...') }}</p>
+				<p class="q-mt-sm">{{ $t('LoadingAssets', {}, 'Loading assets') }}...</p>
 			</div>
 			<div v-else :class="darkMode ? 'text-white' : 'text-black'">
 				<q-list separator class="q-px-lg">
@@ -50,7 +50,15 @@
 					<q-item class="q-py-md" clickable v-ripple v-for="asset in filteredList" @click="onOKClick(asset)" :key="asset.id">
 						<q-item-section avatar>
 		          <q-avatar>
-		            <img :src="getImageUrl(asset)">
+		            <img 
+		              :src="getImageUrl(asset)" 
+		              class="asset-icon"
+		              @touchstart.prevent.stop
+		              @touchmove.prevent.stop
+		              @touchend.prevent.stop
+		              @contextmenu.prevent.stop
+		              @selectstart.prevent
+		            >
 		          </q-avatar>
 		        </q-item-section>
 		        <q-item-section class="text-bold">{{ asset.name }}</q-item-section>
@@ -221,7 +229,6 @@ export default {
 				}
 
 				this.allTokensFromAPI = allTokens
-				console.log('[AssetListDialog] Fetched', allTokens.length, 'tokens from API')
 				return allTokens
 			} catch (error) {
 				console.error('[AssetListDialog] Error fetching tokens from API:', error)

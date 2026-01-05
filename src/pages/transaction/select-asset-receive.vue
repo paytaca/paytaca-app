@@ -67,7 +67,13 @@
                   v-else
                   :src="getImageUrl(asset)"
                   width="50"
+                  class="asset-icon"
                   alt=""
+                  @touchstart.prevent.stop
+                  @touchmove.prevent.stop
+                  @touchend.prevent.stop
+                  @contextmenu.prevent.stop
+                  @selectstart.prevent
                 >
               </div>
               <div class="col q-pl-sm q-pr-sm">

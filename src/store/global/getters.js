@@ -378,3 +378,40 @@ export function preferredSecurity (state) {
     return 'pin'
   }
 }
+
+/**
+ * Get lock app setting for current wallet
+ * Returns true if app lock is enabled, false otherwise
+ */
+export function lockApp (state) {
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    return Boolean(state.vault[walletIndex].settings.lockApp)
+  }
+  return false
+}
+
+/**
+ * Check if ANY wallet in the vault has lock app enabled
+ * Returns true if at least one wallet has lock enabled, false otherwise
+ * Used for security checks that should apply globally when any wallet is protected
+ */
+export function anyWalletHasLockEnabled (state) {
+  if (!state.vault || !Array.isArray(state.vault)) {
+    return false
+  }
+  return state.vault.some(wallet => {
+    if (!wallet || wallet.deleted === true) {
+      return false
+    }
+    return Boolean(wallet.settings?.lockApp)
+  })
+}
+
+/**
+ * Get current unlock state
+ * Returns true if app is unlocked in current session
+ */
+export function isUnlocked (state) {
+  return Boolean(state.isUnlocked)
+}

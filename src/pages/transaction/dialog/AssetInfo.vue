@@ -13,7 +13,16 @@
         <!-- Header: Logo and Name -->
         <div class="asset-header text-center q-mb-md">
           <div class="asset-logo-container">
-            <img :src="getImageUrl(asset)" height="45" class="asset-logo">
+            <img 
+              :src="getImageUrl(asset)" 
+              height="45" 
+              class="asset-logo asset-icon"
+              @touchstart.prevent.stop
+              @touchmove.prevent.stop
+              @touchend.prevent.stop
+              @contextmenu.prevent.stop
+              @selectstart.prevent
+            >
           </div>
           <div class="asset-name q-mt-xs text-weight-bold" style="font-size: 20px; letter-spacing: 0.3px;">
             {{ assetDisplayName }}

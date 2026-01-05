@@ -107,6 +107,18 @@ const routes = [
     ]
   },
   {
+    path: '/lock',
+    component: () => import('layouts/Accounts.vue'),
+    children: [
+      { 
+        path: '', 
+        name: 'lock-screen',
+        component: () => import('src/components/LockScreen.vue'),
+        props: route => route.query
+      }
+    ]
+  },
+  {
     path: '/apps',
     component: () => import('layouts/Apps.vue'),
     children: [

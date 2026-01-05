@@ -33,16 +33,56 @@ export default function () {
   })
 
   Router.beforeEach(async (to, from, next) => {
+    // Check if app is locked and user is trying to access a protected route
+    const lockAppEnabled = store.getters['global/lockApp']
+    
+    // Try multiple ways to get the unlock state to ensure we have the latest value
+    let isUnlocked = Boolean(store.getters['global/isUnlocked'])
+    
+    // Also check state directly as a fallback (for debugging and reliability)
+    const stateUnlocked = store.state?.global?.isUnlocked
+    if (typeof stateUnlocked === 'boolean') {
+      isUnlocked = Boolean(stateUnlocked)
+    }
+    
+    const isLockScreen = to.path === '/lock'
+    const isAccountsRoute = to.path.startsWith('/accounts')
+    // Wallet backup routes have their own authentication (PIN/biometric) separate from app lock
+    // They should be accessible even when app is locked, as they handle their own security
+    const isWalletBackupRoute = to.path.startsWith('/apps/wallet-backup')
+
+    // IMPORTANT: If app is already unlocked, skip ALL lock checks and allow navigation
+    // The lock screen should only show on initial app load or when coming from background
+    // Once unlocked, the app should remain unlocked for the entire session until it goes to background
+    // This check must happen FIRST before any other lock-related logic
+    // Use strict equality to ensure we're checking for true, not just truthy
+    if (isUnlocked === true) {
+      // If user tries to go to lock screen while unlocked, redirect away
+      if (isLockScreen) {
+        const redirectPath = to.query.redirect || '/'
+        next(redirectPath)
+        return
+      }
+    } else if (lockAppEnabled) {
+      // App is locked - only redirect if not already on lock screen, accounts, or wallet-backup routes
+      // Wallet-backup routes have their own authentication mechanism and should not be blocked
+      if (!isLockScreen && !isAccountsRoute && !isWalletBackupRoute) {
+        next({
+          path: '/lock',
+          query: { redirect: to.fullPath }
+        })
+        return
+      }
+    }
+
     if (to.path === '/') {
       try {
         // Ensure current wallet index is valid (points to undeleted wallet)
         // This will switch to the first valid wallet if current is null/deleted
         await store.dispatch('global/ensureValidWalletIndex')
 
-        // Get the current wallet index (may have changed after ensureValidWalletIndex)
         const currentWalletIndex = store.getters['global/getWalletIndex']
         const vault = store.getters['global/getVault']
-
         const currentWallet = vault[currentWalletIndex]
 
         // Check if we have a valid wallet structure
@@ -57,10 +97,6 @@ export default function () {
         
         if (!hasValidWallet) {
           // No valid wallets - go to account creation
-          console.warn('[Router] No valid wallet found, redirecting to accounts')
-          console.warn('[Router] Reason: currentWallet =', currentWallet ? 'exists' : 'null/undefined', 
-                       ', deleted =', currentWallet?.deleted, 
-                       ', hasWalletHash =', !!(currentWallet?.wallet?.bch?.walletHash || currentWallet?.wallet?.BCH?.walletHash || currentWallet?.BCH?.walletHash || currentWallet?.bch?.walletHash || currentWallet?.walletHash))
           next('/accounts')
           return
         }
@@ -124,19 +160,10 @@ export default function () {
         if (mnemonic) {
           next()
         } else {
-          console.warn('[Router] No mnemonic found for any wallet, redirecting to accounts')
-          console.warn('[Router] Checked wallet index:', currentWalletIndex)
-          console.warn('[Router] Checked wallet hash:', walletHash || 'none')
-          console.warn('[Router] Vault state:', vault?.map((w, i) => ({
-            index: i,
-            deleted: w?.deleted,
-            hasWalletHash: !!(w?.wallet?.bch?.walletHash || w?.wallet?.BCH?.walletHash || w?.BCH?.walletHash || w?.bch?.walletHash || w?.walletHash)
-          })))
           next('/accounts')
         }
       } catch (err) {
         console.error('[Router] Router error:', err)
-        console.error('[Router] Error stack:', err.stack)
         next('/accounts')
       }
     } else {

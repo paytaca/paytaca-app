@@ -14,7 +14,9 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		8C85C4A32F0A7E930068BF2C /* paytaca_logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 8C85C4A22F0A7E930068BF2C /* paytaca_logo.png */; };
 		8C9498C62EAEFFC9007F1102 /* SaveToGalleryPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9498C52EAEFFC9007F1102 /* SaveToGalleryPlugin.swift */; };
+		8C9498C72EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9498C82EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift */; };
 		8CDF32FB2EC302EB0083F06E /* send-success.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8CDF32FA2EC302EB0083F06E /* send-success.mp3 */; };
 		AB4C9DB6DC078C3F979CA3D6 /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CCBC391946425CE841986A4 /* Pods_App.framework */; };
 /* End PBXBuildFile section */
@@ -33,7 +35,9 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		8C5E2B91297B8F9C001D535F /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		8C85C4A22F0A7E930068BF2C /* paytaca_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = paytaca_logo.png; sourceTree = "<group>"; };
 		8C9498C52EAEFFC9007F1102 /* SaveToGalleryPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToGalleryPlugin.swift; sourceTree = "<group>"; };
+		8C9498C82EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSecurityPlugin.swift; sourceTree = "<group>"; };
 		8CDA945029AE31FD0089EE1B /* AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AppRelease.entitlements; sourceTree = "<group>"; };
 		8CDF32FA2EC302EB0083F06E /* send-success.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "send-success.mp3"; sourceTree = "<group>"; };
 		CFB4C42D60BF2C75DE545871 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
@@ -63,6 +67,7 @@
 			isa = PBXGroup;
 			children = (
 				8C9498C52EAEFFC9007F1102 /* SaveToGalleryPlugin.swift */,
+				8C9498C82EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift */,
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,
 				B360B6311B9A1A9356CC6D1F /* Pods */,
@@ -81,6 +86,7 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				8C85C4A22F0A7E930068BF2C /* paytaca_logo.png */,
 				8CDF32FA2EC302EB0083F06E /* send-success.mp3 */,
 				8CDA945029AE31FD0089EE1B /* AppRelease.entitlements */,
 				8C5E2B91297B8F9C001D535F /* App.entitlements */,
@@ -173,6 +179,7 @@
 				8CDF32FB2EC302EB0083F06E /* send-success.mp3 in Resources */,
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
+				8C85C4A32F0A7E930068BF2C /* paytaca_logo.png in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -226,6 +233,7 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				8C9498C62EAEFFC9007F1102 /* SaveToGalleryPlugin.swift in Sources */,
+				8C9498C72EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -372,7 +380,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 371;
+				CURRENT_PROJECT_VERSION = 394;
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -395,7 +403,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/AppRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 371;
+				CURRENT_PROJECT_VERSION = 394;
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
