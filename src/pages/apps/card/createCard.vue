@@ -1,7 +1,7 @@
 <template>
   <q-layout>
     
-    <div class="q-mb-l">
+    <div class="q-ml-l">
       <p class="text-primary text-weight-bold text-h5 text-center">Create Card</p>
     </div>
      
@@ -38,10 +38,34 @@
               <div class="text-caption text-grey-7">{{ item.subtitle }}</div>
             </div>
             <q-space />
-            <q-icon name="chevron_right" color="grey-4" size="30px" />
+            <q-icon 
+              :name="isExpanded? 'expand_more' : 'chevron_right'"
+              color="grey-4"
+              size="30px"
+              class="transition-icon cursor-pointer"
+              @click.stop="isExpanded = !isExpanded"
+            />
           </q-card-section>
         </q-card>
       </div>
+    </div>
+
+    <div class="row justify-center q-px-md">
+      <q-card
+        class="create-card-compact"  
+        style="margin-top: 50px;"
+        >
+        <q-card-section class="row-items-center no-wrap q-py-sm q-px-md">
+          <div class="text-h6 text-weight-medium">Create Card
+            <q-icon
+              name="mdi-plus"
+              class="q-ml-lg cursor-pointer"
+              color="primary"
+              @click="handlePlus"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
     </div>
 
     <transition
@@ -50,7 +74,7 @@
       leave-active-class="animated fadeOut"
     >
       <div v-if="selectedCategory === 'Cards List'" class="q-mt-lg">
-        <div class="text-h6 q-mb-md row items-center">
+        <div class="text-h6 q-mb-md q-mt-md row items-center">
           <q-icon name="credit_card" class="q-mr-sm" color="primary" />
           My Cards
       </div>
@@ -67,7 +91,7 @@
 
               <q-card-actions align="right">
                 <q-btn flat color="grey-7" label="Edit" icon="edit" size="sm" @click="editCard(card)" />
-                <q-btn flat color="primary" label="View" icon="visibility" size="sm" @click="viewCard(card)" />
+                <q-btn flat color="primary" label="View" icon="visibility" size="sm" @click="handleEdit(card)" />
               </q-card-actions>
             </q-card>
           </div>
@@ -87,6 +111,24 @@
             label="Card Name" 
             autofocus 
             counter
+            @keyup.enter="saveCard"
+          />
+          
+          <q-label v-model="editingCard.lock" autofocus style="margin-right: 40px;">Card Lock</q-label>
+          <q-btn-toggle
+            v-model="editingCard.lock"
+            class="my-custom-toggle"
+            no-caps
+            rounded
+            unelevated
+            toggle-color="primary"
+            toggle-text-color="white"
+            color="grey-3"
+            text-color="primary"
+            :options="[
+              {label: 'ON', value: 'on'},
+              {label: 'OFF', value: 'off'}
+            ]"
             @keyup.enter="saveCard"
           />
         </q-card-section>
@@ -115,23 +157,29 @@
 
     data() {
       return {
+        expandedId: null, 
         isLoading: false,
         selectedCategory: null,
         editDialogVisible: false,
-        editingCard: {id: null, name: '', balance: 0},
+        editing: false, 
+        editingCard: {id: null, name: '', balance: 0, lock: 'off'},
         menuItems: [
           { id: 1, title: 'Cards List', subtitle: 'View your cards list', icon: 'credit_card', color: 'primary', route: '/cardsList' },
           { id: 2, title: 'NFTs', subtitle: 'View your NFTs', icon: 'diamond', color: 'teal', route: '/nfts' },
         ],
-        subCards: [
-          {id: 101, name: 'Card 1', balance: 0.0045},
-          {id: 102, name: 'Card 2', balance: 0.0567},
-          {id: 103, name: 'Card 3', balance: 1.0004},
-        ]
+        subCards: []
       }
     },
 
     methods: {
+      toggleExpandId(){
+        if(this.expandedId === id){
+          this.expandedId = null;
+        }
+        else{
+          this.expandedId = id;
+        }
+      },
     
       handleNavigation (item) {
         // if user clicks the same item twice, toggle it closed
@@ -144,6 +192,23 @@
         console.log('Category selected is:', this.selectedCategory)
       },
 
+      handlePlus() {
+        this.editing = false;
+        this.editingCard = {
+          id: Date.now(),
+          name: '',
+          balance: 0,
+          lock: 'off'
+        };
+        this.editDialogVisible = true;
+      },
+
+      handleEdit(card){
+        this.editing = true;
+        this.editingCard = {...card};
+        this.editDialogVisible = true
+      },
+
       editCard (card) {
         this.$q.notify({
           message: `Editing ${card.name}`,
@@ -154,18 +219,30 @@
         this.editDialogVisible = true;
       },
 
-      saveCard (card) {
-        const index = this.subCards.findIndex(c => c.id === this.editingCard.id)
-        if (index !== -1){
-          this.subCards[index] = {...this.editingCard}
-        
+      saveCard() {
+        if (this.editing === true){
+          const index = this.subCards.findIndex(c => c.id === this.editingCard.id)
+          if (index !== -1){
+            this.subCards[index] = {...this.editingCard}
+
+            this.$q.notify({
+              color: 'positive',
+              message: 'Card updated successfully',
+              icon: 'check'
+            });
+          }
+        }
+        else {
+          this.subCards.push({...this.editingCard});
           this.$q.notify({
             color: 'positive',
-            message: `${card.name} updated successfully`,
-            icon: 'check'
+            message: 'New card created',
+            icon: 'add'
           })
         }
+        
         this.editDialogVisible = false
+        this.editing = true
       },
 
 
@@ -215,4 +292,27 @@
     border-color: var(--q-primary);
   }
 }
+
+.my-custom-toggle {
+  border: 1px solid var(--q-primary);
+  transition: all 0.3s ease;
+}
+
+.my-custom-card {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.my-custom-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+}
+
+.transition-icon {
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.transition-icon:hover {
+  color: var(--q-primary) !important;
+}
+
 </style>
