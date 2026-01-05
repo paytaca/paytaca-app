@@ -408,7 +408,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import Watchtower from 'watchtower-cash-js'
 import WatchtowerExtended from 'src/lib/watchtower'
-import { generateReceivingAddress, getDerivationPathForWalletType } from 'src/utils/address-generation-utils'
+import { generateReceivingAddress, getDerivationPathForWalletType, generateAddressSetWithoutSubscription } from 'src/utils/address-generation-utils'
+import axios from 'axios'
 import {
   getWalletByNetwork,
   convertTokenAmount
@@ -1879,6 +1880,63 @@ export default {
     },
 
     /**
+     * Get wallet type (bch or slp) from vault wallet object
+     * Note: All wallets support both BCH and SLP, but this can be used for validation
+     * @param {number} walletIndex - The vault index of the wallet
+     * @returns {string} 'bch' or 'slp' based on wallet structure, defaults to 'bch'
+     */
+    getWalletTypeFromVault (walletIndex) {
+      try {
+        const vault = this.$store.getters['global/getVault'] || []
+        const wallet = vault?.[walletIndex]
+        
+        if (!wallet) {
+          return 'bch' // Default to BCH
+        }
+        
+        // Check if wallet has SLP structure (indicating it's an SLP wallet)
+        // If both exist, default to BCH as it's more common
+        const hasSlp = !!(wallet?.wallet?.slp || wallet?.SLP)
+        const hasBch = !!(wallet?.wallet?.bch || wallet?.wallet?.BCH || wallet?.BCH || wallet?.bch)
+        
+        // For address generation, we use the asset type, not wallet type
+        // But return 'bch' as default since all wallets support BCH
+        return hasBch ? 'bch' : (hasSlp ? 'slp' : 'bch')
+      } catch (error) {
+        console.error(`Error getting wallet type for wallet ${walletIndex}:`, error)
+        return 'bch' // Default to BCH on error
+      }
+    },
+
+    /**
+     * Check if an address has balance (including token sats)
+     * @param {string} address - The address to check
+     * @param {string} walletType - 'bch' or 'slp'
+     * @returns {Promise<boolean>} True if address has balance, false otherwise
+     */
+    async checkAddressBalance (address, walletType) {
+      try {
+        const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+        
+        if (walletType === 'slp') {
+          // For SLP, check BCH balance
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          const balance = response?.data?.balance || 0
+          return balance > 0
+        } else {
+          // For BCH, check balance including token sats
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => ({ data: { balance: 0 } }))
+          const balance = response?.data?.balance || 0
+          return balance > 0
+        }
+      } catch (error) {
+        console.error('Error checking address balance:', error)
+        // If check fails, assume no balance to be safe
+        return false
+      }
+    },
+
+    /**
      * Handle wallet selection from dropdown
      * @param {Object} selectedWallet - The selected wallet object with { index, name, walletHash }
      */
@@ -1891,29 +1949,79 @@ export default {
       vm.generatingOtherWalletAddress = true
 
       try {
+        // Validate that we have a valid asset type (walletType is set based on assetId)
+        if (!vm.walletType || (vm.walletType !== 'bch' && vm.walletType !== 'slp')) {
+          throw new Error(`Invalid wallet type: ${vm.walletType}. Must be 'bch' or 'slp'.`)
+        }
+
         // Get the last address index for the selected wallet
         const lastAddressIndex = await vm.getLastAddressIndexForWallet(selectedWallet.index)
         
-        // Calculate next address index (skip 0/0 if needed)
-        let nextAddressIndex = lastAddressIndex + 1
-        nextAddressIndex = vm.ensureAddressIndexNotZero(nextAddressIndex)
+        // Ensure address index is valid and not 0
+        let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
+        validAddressIndex = vm.ensureAddressIndexNotZero(validAddressIndex)
 
-        // Generate the receiving address for the selected wallet
+        // IMPORTANT: Use the asset type (vm.walletType) for derivation path, not the selected wallet's type
+        // The asset type determines whether we need a BCH address (m/44'/145'/0') or SLP address (m/44'/245'/0')
         const derivationPath = getDerivationPathForWalletType(vm.walletType)
-        const generatedAddress = await generateReceivingAddress({
+
+        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+        const addressResult = await generateAddressSetWithoutSubscription({
           walletIndex: selectedWallet.index,
           derivationPath: derivationPath,
-          addressIndex: nextAddressIndex,
+          addressIndex: validAddressIndex,
           isChipnet: vm.isChipnet
         })
+        
+        if (!addressResult.success) {
+          throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
+        }
+        
+        const address = addressResult.addresses.receiving
+        
+        // Step 2: Check if that address has balance (including token sats)
+        const hasBalance = await vm.checkAddressBalance(address, vm.walletType)
+        
+        let finalAddress = null
 
-        if (!generatedAddress) {
-          throw new Error('Failed to generate receiving address')
+        if (!hasBalance) {
+          // Step 3: If balance is zero, subscribe and use that address
+          const subscribeResult = await generateReceivingAddress({
+            walletIndex: selectedWallet.index,
+            derivationPath: derivationPath,
+            addressIndex: validAddressIndex,
+            isChipnet: vm.isChipnet
+          })
+          
+          if (!subscribeResult) {
+            throw new Error('Failed to subscribe address to watchtower')
+          }
+          
+          finalAddress = subscribeResult
+        } else {
+          // Step 4: If address has balance (already used), generate a new address by incrementing
+          let newAddressIndex = validAddressIndex + 1
+          // Skip address 0/0 (reserved for message encryption)
+          newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
+          
+          // Step 5: Generate and subscribe the new address
+          const newAddress = await generateReceivingAddress({
+            walletIndex: selectedWallet.index,
+            derivationPath: derivationPath,
+            addressIndex: newAddressIndex,
+            isChipnet: vm.isChipnet
+          })
+          
+          if (!newAddress) {
+            throw new Error('Failed to generate and subscribe new address')
+          }
+          
+          finalAddress = newAddress
         }
 
         // Use the generated address as recipient address
         // This will trigger the normal send flow
-        await vm.onScannerDecode(generatedAddress, false)
+        await vm.onScannerDecode(finalAddress, false)
         
         // Keep selection visible to show which wallet was chosen
       } catch (error) {
