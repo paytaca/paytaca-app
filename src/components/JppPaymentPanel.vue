@@ -155,10 +155,10 @@
           <div class="col">
             <div class="text-body2 text-weight-medium expiration-title">
               <template v-if="isExpired">
-                This invoice has expired and cannot be paid
+                {{ $t('InvoiceExpired', {}, 'This invoice has expired and cannot be paid') }}
               </template>
               <template v-else>
-                This invoice is about to expire
+                {{ $t('InvoiceExpiringSoon', {}, 'This invoice is about to expire') }}
               </template>
             </div>
             <div v-if="jpp?.parsed?.expires" class="text-caption q-mt-xs expiration-subtitle">

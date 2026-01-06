@@ -555,9 +555,7 @@ export default {
     },
     fiatConversionTooltip () {
       const currency = this.selectedMarketCurrency || 'USD'
-      // Use a non-existent key so the fallback text is used, or construct directly
-      // The fallback provides the full explanation text
-      return `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`
+      return this.$t('ConversionInfo', { currency }, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
@@ -1363,7 +1361,7 @@ export default {
       // Show confirmation dialog before deleting
       this.$q.dialog({
         title: this.$t('DeleteMemo', {}, 'Delete Memo'),
-        message: 'Are you sure you want to delete this memo? This action cannot be undone.',
+        message: this.$t('ConfirmDeleteMemo', {}, 'Are you sure you want to delete this memo? This action cannot be undone.'),
         ok: {
           push: true,
           color: 'negative',
@@ -1572,7 +1570,7 @@ export default {
         const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
         if (currentFavoriteCount >= limit) {
           this.$q.notify({
-            message: 'Favorite tokens limit reached. Upgrade to Paytaca Plus for more favorites.',
+            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus for more favorites.'),
             color: 'negative',
             icon: 'error',
             position: 'top',
