@@ -69,7 +69,18 @@
         <!-- Amount block (mirrors SendSuccessBlock proportions) -->
         <div class="amount-block q-mt-md text-center section-block-ss">
           <div class="row justify-center q-gutter-sm amount-row-ss" style="margin-top: 25px;">
-            <q-avatar size="40px" class="amount-avatar-ss"><img :src="getImageUrl(tx.asset)" alt="asset-logo" /></q-avatar>
+            <q-avatar size="40px" class="amount-avatar-ss">
+              <img 
+                :src="getImageUrl(tx.asset)" 
+                alt="asset-logo" 
+                class="asset-icon"
+                @touchstart.prevent.stop
+                @touchmove.prevent.stop
+                @touchend.prevent.stop
+                @contextmenu.prevent.stop
+                @selectstart.prevent
+              />
+            </q-avatar>
             <div class="amount-label-ss">{{ displayAmountText }}</div>
           </div>
           <div v-if="!isNft && displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
@@ -230,6 +241,7 @@
                 <q-badge
                   v-for="(badge, index) in metadataBadges" :key="index"
                   class="badge-item"
+                  :color="badgeColor"
                   rounded
                   @click.stop
                 >
@@ -651,6 +663,15 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    badgeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'amber-7',
+        'glassmorphic-red': 'pink-6'
+      }
+      return themeMap[this.theme] || 'blue-6'
     },
     wrapperBackgroundStyle () {
       const theme = this.theme
@@ -1445,7 +1466,6 @@ export default {
         })
       } catch (error) {
         // Price might not be available for this token
-        console.debug('[TransactionDetail] Price not available for token:', assetId, error)
       }
     },
     async fetchNftMetadata () {

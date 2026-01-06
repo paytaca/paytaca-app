@@ -68,7 +68,6 @@ export function updateOrderChatSessionRef (orderId, chatRef) {
     const payload = { chat_session_ref: chatRef }
     backend.patch(`/ramp-p2p/order/${orderId}/`, payload, { authorize: true })
       .then(response => {
-        console.log('Updated order chat_session_ref:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -87,7 +86,6 @@ export async function updateChatIdentityId (userType, id) {
     const payload = { chat_identity_id: id }
     backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: true })
       .then(response => {
-        console.log('Updated chat identity id:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -192,7 +190,6 @@ export async function createChatSession (orderId, chatRef) {
         if (error.response) {
           // 403 means chat identity not found - this is expected if identity isn't created yet
           if (error.response.status === 403) {
-            console.log('Chat session creation failed - chat identity not ready yet')
             // Don't reject - let caller handle gracefully
             resolve(null)
           } else {
@@ -218,7 +215,6 @@ export async function checkChatSessionAdmin (chatRef) {
         if (error.response) {
           // 403 means chat identity not found - this is expected if identity isn't created yet
           if (error.response.status === 403) {
-            console.log('Chat admin check failed - chat identity not ready yet')
             resolve(null)
           } else {
             console.error('Failed to check chat admin:', error.response)
@@ -243,7 +239,6 @@ export async function fetchChatSession (chatRef) {
         if (error.response) {
           // 403 means chat identity not found - this is expected if identity isn't created yet
           if (error.response.status === 403) {
-            console.log('Chat session fetch failed - chat identity not ready yet')
             // Resolve with null to indicate session doesn't exist yet
             resolve(null)
           } else if (error.response.status === 404) {
@@ -276,7 +271,6 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
         if (error.response) {
           // 403 means chat identity not found - this is expected if identity isn't created yet
           if (error.response.status === 403) {
-            console.log('Chat members update failed - chat identity not ready yet')
             // Resolve instead of reject to allow graceful handling
             resolve(null)
           } else {

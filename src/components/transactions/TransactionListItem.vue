@@ -13,7 +13,16 @@
         <div class="transaction-type">
           <div class="type-with-asset" v-if="showAssetInfo && !isNftTransaction">
             <q-avatar size="20px" class="q-mr-xs">
-              <img v-if="assetImageUrl" :src="assetImageUrl" />
+              <img 
+                v-if="assetImageUrl" 
+                :src="assetImageUrl" 
+                class="asset-icon"
+                @touchstart.prevent.stop
+                @touchmove.prevent.stop
+                @touchend.prevent.stop
+                @contextmenu.prevent.stop
+                @selectstart.prevent
+              />
               <q-icon v-else name="apps" size="14px" />
             </q-avatar>
             <span class="asset-symbol" :class="getDarkModeClass(darkMode)">{{ assetSymbol }}</span>
@@ -84,6 +93,7 @@
       <q-badge
         v-for="(badge, index) in badges" :key="index"
         class="badge-item"
+        :color="badgeColor"
         rounded
         @click.stop
       >
@@ -118,6 +128,17 @@ const $store = useStore()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
+const theme = computed(() => $store.getters['global/theme'])
+
+const badgeColor = computed(() => {
+  const themeMap = {
+    'glassmorphic-blue': 'blue-6',
+    'glassmorphic-green': 'green-6',
+    'glassmorphic-gold': 'amber-7',
+    'glassmorphic-red': 'pink-6'
+  }
+  return themeMap[theme.value] || 'blue-6'
+})
 
 const decryptedMemo = ref('')
 const currentTime = ref(Date.now())
@@ -346,7 +367,6 @@ async function loadMemo() {
     
     if (currentTxid !== initialTxid || currentEncryptedMemo !== initialEncryptedMemo) {
       // Transaction changed during async operation, ignore this result
-      console.debug('[TransactionListItem] Transaction changed during memo load, ignoring stale result')
       return
     }
 

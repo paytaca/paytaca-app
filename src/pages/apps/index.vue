@@ -209,6 +209,13 @@ export default {
     },
     enableSmartBCH () {
       return this.$store.getters['global/enableSmartBCH']
+    },
+    themeColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return 'pink-6'
+      if (theme === 'glassmorphic-green') return 'green-6'
+      if (theme === 'glassmorphic-gold') return 'amber-7'
+      return 'blue-6'
     }
   },
   methods: {
@@ -254,8 +261,15 @@ export default {
           class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
           title: this.$t('ShowDebugApp'),
           message: this.$t('DoYouWantToShowTheDebugApp'),
-          cancel: { label: this.$t('Cancel'), },
-          ok: { label: this.$t('OK'), },
+          cancel: { 
+            label: this.$t('Cancel'),
+            color: 'grey-7',
+            flat: true
+          },
+          ok: { 
+            label: this.$t('OK'),
+            color: this.themeColor
+          },
           persistent: true,
         }).onOk(() => {
           this.showDebugApp = true

@@ -508,6 +508,23 @@ const words = [
     DateRecovered: 'Date Recovered',
     DateClaimed: 'Date Claimed',
     SearchAsset: 'Search Asset',
+    LoadingAssets: 'Loading assets',
+    WalletTools: 'Support Tools',
+  },
+  {
+    Subscription: 'Subscription',
+    PaytacaPlus: 'Paytaca Plus',
+    PaytacaFree: 'Paytaca Free',
+    SubscriptionTier: 'Subscription Tier',
+    Plus: 'Plus',
+    Free: 'Free',
+    UpgradeNow: 'Upgrade Now',
+    LimitComparison: 'Limit Comparison',
+    Requirements: 'Requirements',
+    PerDevice: 'per device',
+    PerWallet: 'per wallet',
+    FavoriteTokens: 'Favorite Tokens',
+    UnclaimedGifts: 'Unclaimed Gifts',
   }
 ]
 

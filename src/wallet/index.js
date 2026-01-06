@@ -459,6 +459,54 @@ export async function getMnemonic (walletHashOrIndex = 0) {
   return mnemonic
 }
 
+/**
+ * Check if PIN exists for a wallet
+ * @param {string|number} walletHashOrIndex - Wallet hash (string) or vault index (number)
+ * @returns {Promise<boolean>} True if PIN exists, false otherwise
+ */
+export async function pinExists (walletHashOrIndex = 0) {
+  try {
+    const mnemonic = await getMnemonic(walletHashOrIndex)
+    if (!mnemonic) {
+      return false
+    }
+    
+    const pinKey = `pin-${sha256(mnemonic)}`
+    
+    // Try to get PIN with all possible keys
+    try {
+      const pin = await SecureStoragePlugin.get({ key: pinKey })
+      if (pin?.value && pin.value.length >= 6) {
+        return true
+      }
+    } catch {
+      // Try fallback keys
+      try {
+        const pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+        if (pin?.value && pin.value.length >= 6) {
+          return true
+        }
+      } catch {
+        // Try old global PIN key
+        try {
+          const pin = await SecureStoragePlugin.get({ key: 'pin' })
+          if (pin?.value && pin.value.length >= 6) {
+            return true
+          }
+        } catch {
+          // PIN doesn't exist
+          return false
+        }
+      }
+    }
+    
+    return false
+  } catch (error) {
+    console.error('[pinExists] Error checking PIN existence:', error)
+    return false
+  }
+}
+
 
 export async function deleteMnemonic (walletHashOrIndex) {
   // Check if migration is completed

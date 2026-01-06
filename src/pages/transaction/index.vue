@@ -127,7 +127,13 @@
                       <img
                         :src="denominationTabSelected === $t('DEEM') ? 'assets/img/theme/payhero/deem-logo.png' : 'bch-logo.png'"
                         alt=""
+                        class="asset-icon"
                         style="height: 75px;"
+                        @touchstart.prevent.stop
+                        @touchmove.prevent.stop
+                        @touchend.prevent.stop
+                        @contextmenu.prevent.stop
+                        @selectstart.prevent
                       />
                     </q-card-section>
                   </q-card-section>

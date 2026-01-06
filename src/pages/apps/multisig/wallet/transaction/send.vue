@@ -405,8 +405,10 @@ onMounted(async () => {
         [$store.getters['market/selectedCurrency'].symbol]
       )
   assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
-  const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.getLastUsedChangeAddressIndex(network) + 1).address
-  await wallet.value.subscribeWalletAddress(nextChangeCashAddress)
+  // const nextChangeCashAddress = wallet.value.getChangeAddress(wallet.value.getLastUsedChangeAddressIndex(network) + 1).address
+  // await wallet.value.subscribeWalletAddress(nextChangeCashAddress)
+  await wallet.value.subscribeWalletAddressIndex(wallet.value.getLastUsedChangeAddressIndex(network) + 1, 'change')
+
 })
 </script>
 

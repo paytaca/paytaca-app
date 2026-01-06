@@ -79,7 +79,7 @@
                     border-width="3px"
                     border-color="#ed5f59"
                     :size="220"
-                    :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)"
+                    :icon="getQrCodeIcon()"
                     class="q-mb-sm"
                   >
                   </qr-code>
@@ -375,6 +375,28 @@ export default {
     getFallbackAssetLogo (asset) {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
+    },
+    getQrCodeIcon () {
+      const vm = this
+      // If user toggled to CashToken for BCH, use cashtoken logo
+      if (vm.isCt) {
+        return 'ct-logo.png'
+      }
+      // If it's a cashtoken (starts with ct/)
+      if (vm.asset && vm.asset.id && vm.asset.id.startsWith('ct/')) {
+        // If the token has a specific logo (listed token), use that
+        // Otherwise use the generic cashtoken logo
+        const assetLogo = vm.getImageUrl(vm.asset)
+        // Check if asset has a specific logo (not generic/fallback)
+        // If asset.logo exists and is not a generic cashtoken logo, use it
+        if (vm.asset.logo && !vm.asset.logo.includes('ct-logo') && !vm.asset.logo.includes('new-token')) {
+          return assetLogo
+        }
+        // For unlisted tokens or tokens without specific logos, use cashtoken logo
+        return 'ct-logo.png'
+      }
+      // For other assets, use their logo
+      return vm.getImageUrl(vm.asset)
     },
     getImageUrl (asset) {
       if (!asset) return this.getFallbackAssetLogo(asset)
@@ -698,7 +720,6 @@ export default {
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
     copyToClipboard (value) {
-      console.log('copyToClipboard', value)
       this.$copyText(value)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),
@@ -899,7 +920,6 @@ export default {
               const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
               if (newTokenData) {
                 if (!newTokenData.decimals || newTokenData.isNft) {
-                  console.log('Not adding unrecognized token due to being an nft')
                   return
                 }
                 
@@ -1005,7 +1025,6 @@ export default {
             logo: passedAsset.logo || null,
             balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
           }
-          console.log('[Receive] Using passed asset data from select-asset page:', vm.asset)
           if (vm.assetId.startsWith('ct/')) {
             vm.setAmountInFiat = false
           }
@@ -1054,17 +1073,27 @@ body {
   margin-top: 20px;
   padding-left: 28px;
   padding-right: 28px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  
+  // The QR component uses inline styles with fixed size (280px for size 220 + padding 30*2)
+  // On small screens, reduce padding to give QR code more room
 }
-/* iPhone 5/SE */
-@media (min-width: 280px) and (max-width: 320px) {
+/* iPhone 5/SE and small screens - reduce padding to fit QR */
+@media (min-width: 280px) and (max-width: 360px) {
   .qr-code-container {
     margin-top: 30px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }
-/* Galaxy Fold */
-@media (min-width: 200px) and (max-width: 280px) {
+/* Galaxy Fold and very small screens - minimal padding */
+@media (max-width: 280px) {
   .qr-code-container {
     margin-top: 66px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }
 .qr-code-text {

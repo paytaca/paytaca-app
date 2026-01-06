@@ -86,7 +86,15 @@
 				      	    			</q-item-section>		      	    			      	    	
 									      <q-item-section avatar :class="{'q-pl-md': asset.favorite !== 1}">
 									          <q-avatar>
-									            <img :src="getImageUrl(asset)">
+									            <img 
+									              :src="getImageUrl(asset)" 
+									              class="asset-icon"
+									              @touchstart.prevent.stop
+									              @touchmove.prevent.stop
+									              @touchend.prevent.stop
+									              @contextmenu.prevent.stop
+									              @selectstart.prevent
+									            >
 									          </q-avatar>
 									        </q-item-section>
 									        <q-item-section>
