@@ -18,8 +18,8 @@
                     <div class="row q-gutter-y-md">
                       <div class="col-xs-12 flex items-center justify-center q-gutter-x-sm">
                         <q-avatar v-if="assetHeaderIcon?.startsWith('http')" size="md">
-                          <q-skeleton v-if="!assetHeaderIconError" type="QAvatar"></q-skeleton>
-                          <img v-if="!assetHeaderIconError" :src="assetHeaderIcon" @error="() => assetHeaderIconError = true">
+                          <q-skeleton v-if="!assetHeaderIconError && !assetHeaderIconLoaded" type="QAvatar"></q-skeleton>
+                          <q-img v-if="!assetHeaderIconError" :src="assetHeaderIcon" @error="() => assetHeaderIconError = true" :load="() => assetHeaderIconLoaded = true" :style="assetHeaderIconLoaded? 'visibility: visible;': 'visibility: hidden'" />
                           <q-icon v-if="assetHeaderIconError" name="token" size="md"></q-icon>
                         </q-avatar>
                         <q-icon v-else
@@ -233,6 +233,7 @@ const balance = ref()
 const balanceConvertionRates = ref()
 const assetTokenIdentity = ref()
 const assetHeaderIconError = ref(false)
+const assetHeaderIconLoaded = ref(false)
 const history = ref()
 const historyFilter = ref('all')
 const historyFiltered = computed(() => {
