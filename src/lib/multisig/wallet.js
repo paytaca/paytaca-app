@@ -884,7 +884,7 @@ async subscribeWalletAddressIndex(addressIndex, type) {
 }
 
 async getWalletTransactionHistory({walletHash, type, all, tokenCategory, page }) {
-  return await this.options?.store?.dispatch('multisig/getWalletTransactionHistory', {walletHash, type, all, tokenCategory, page })
+  return await this.options?.provider?.getWalletTransactionHistory({walletHash, type, all, tokenCategory, page })
 }
 
 /**
