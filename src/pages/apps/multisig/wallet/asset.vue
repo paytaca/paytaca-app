@@ -14,7 +14,8 @@
             <div class="row q-gutter-y-lg">
               <div class="col-xs-12 flex items-center justify-center q-gutter-x-sm">
                 <q-avatar v-if="assetHeaderIcon?.startsWith('http')" size="md">
-                  <img :src="assetHeaderIcon">
+                  <img v-if="!assetHeaderIconError" :src="assetHeaderIcon" @error="() => assetHeaderIconError = true">
+                  <q-icon v-if="assetHeaderIconError" name="token" size="md"></q-icon>
                 </q-avatar>
                 <q-icon v-else
                   :name="assetHeaderIcon"
@@ -77,7 +78,7 @@
                     BCH
                   </span>
                    <span v-else>
-                    {{ shortenString(route.query.asset, 20)}}
+                    {{ shortenString(route.query.asset, 20)}}<CopyButton :text="route.query.asset"/>
                    </span>
                  </q-item-label>
                 </q-item-section>
@@ -101,7 +102,7 @@
             <TransactionListItemSkeleton v-if="historyLoading"/>
             <div v-else class="row q-pt-md q-px-sm" :class="darkMode ? 'text-light' : 'text-dark'">
               <div class="q-mb-md">{{ $t('TransactionHistory') }}</div>
-              <div v-if="historyFiltered?.length === 0" class="col-12">
+              <div v-if="history?.history?.length === 0" class="col-12">
                 <code style="word-break: break-all; filter: brightness(80%)">
                   {{ $t('NoData') }}
                 </code>
@@ -182,7 +183,6 @@
                         </q-item>
                         <q-separator class="q-mx-sm"/>
                       </template>
-                      
                     </q-list>
                   </div>
               </template>
@@ -197,10 +197,11 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import ago from 's-ago'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import ago from 's-ago'
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
@@ -208,8 +209,8 @@ import {
   MultisigWallet
 } from 'src/lib/multisig'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
-import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
-import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
+import TransactionListItemSkeleton from 'components/transactions/TransactionListItemSkeleton.vue'
+import CopyButton from 'components/CopyButton.vue'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 
@@ -220,8 +221,8 @@ const route = useRoute()
 const router = useRouter()
 const balance = ref()
 const balanceConvertionRates = ref()
-const balanceLoading = ref()
 const assetTokenIdentity = ref()
+const assetHeaderIconError = ref(false)
 const history = ref()
 const historyFilter = ref('all')
 const historyFiltered = computed(() => {
