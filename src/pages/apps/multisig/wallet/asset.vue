@@ -12,24 +12,34 @@
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="wallet">
             <div class="row q-gutter-y-lg">
-              <div class="col-xs-12 flex items-center justify-center q-gutter-x-sm">
-                <q-avatar v-if="assetHeaderIcon?.startsWith('http')" size="md">
-                  <img v-if="!assetHeaderIconError" :src="assetHeaderIcon" @error="() => assetHeaderIconError = true">
-                  <q-icon v-if="assetHeaderIconError" name="token" size="md"></q-icon>
-                </q-avatar>
-                <q-icon v-else
-                  :name="assetHeaderIcon"
-                   size="md"
-                  :color="assetHeaderIcon === 'token'? 'grey': '' "
-                />
-                <div class="text-bold" style="font-size: larger;">{{ assetHeaderName }}</div>                
-              </div>
-              <div class="col-xs-12 text-center">
-                <div class="text-grey-6">{{ $t('Balance') }}</div>
-                <div class="items-center justify-center q-gutter-x-sm">
-                  <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
-                  <div class="text-grey-6">{{ assetPrice? `=${assetPrice}` : '' }}</div>
-                </div>
+              <div class="col-xs-12">
+                <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px;">
+                  <q-card-section>
+                    <div class="row q-gutter-y-md">
+                      <div class="col-xs-12 flex items-center justify-center q-gutter-x-sm">
+                        <q-avatar v-if="assetHeaderIcon?.startsWith('http')" size="md">
+                          <q-skeleton v-if="!assetHeaderIconError" type="QAvatar"></q-skeleton>
+                          <img v-if="!assetHeaderIconError" :src="assetHeaderIcon" @error="() => assetHeaderIconError = true">
+                          <q-icon v-if="assetHeaderIconError" name="token" size="md"></q-icon>
+                        </q-avatar>
+                        <q-icon v-else
+                          :name="assetHeaderIcon"
+                          size="md"
+                          :color="assetHeaderIcon === 'token'? 'grey': '' "
+                        />
+                        <div class="text-bold" style="font-size: larger;">{{ assetHeaderName }}</div>                
+                      </div>
+                      <div class="col-xs-12 text-center">
+                        <div :class="getDarkModeClass(darkMode)">{{ $t('Balance') }}</div>
+                        <div class="items-center justify-center q-gutter-x-sm">
+                          <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
+                          <div>{{ assetPrice? `=${assetPrice}` : '' }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                  </q-card-section>
+                </q-card>
               </div>
               <div class="col-xs-12 flex justify-evenly">
                 <q-btn flat dense no-caps @click="showWalletReceiveDialog" class="tile" v-close-popup>
