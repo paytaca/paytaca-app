@@ -326,22 +326,21 @@ export default {
         const lockAppEnabled = vm.$store.getters['global/lockApp']
         const isUnlocked = vm.$store.getters['global/isUnlocked']
         
-        // Wait for localStorage to persist and vuex-persistedstate to write the state
+        // Hide loading component
+        loadingComponent.hide()
+        
+        // Wait for dialog to dismiss and ensure localStorage is persisted
         // On Android, localStorage writes can be async, so we need extra time
+        // Also wait for vuex-persistedstate to write the state
         await new Promise(resolve => setTimeout(resolve, 500))
         
         vm.isSwitching = false
         
-        // Keep loading component visible until navigation happens
-        // This prevents flicker where home page briefly shows before lock screen
-        // The loading component will be destroyed automatically when page reloads
         if (lockAppEnabled && !isUnlocked) {
           // Wallet is locked - go directly to lock screen with page reload
-          // Loading component will be destroyed on reload, no need to hide manually
           window.location.href = '/#/lock?redirect=/'
         } else {
           // Wallet is unlocked or has no lock - go to home with reload
-          // Loading component will be destroyed on reload, no need to hide manually
           location.reload()
         }
       } catch (error) {
