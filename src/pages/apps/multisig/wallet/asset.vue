@@ -96,27 +96,97 @@
                  </q-item-label>
                 </q-item-section>
               </q-item>
-
               <q-separator spaced inset />
-              <q-expansion-item v-model="historyExpanded">
-                <template v-slot:header>
-                  <q-item-section>
-                    {{ $t('TransactionHistory') }}
-                  </q-item-section>
-                </template>
-                <q-item>
-                  <q-item-section>
-                    <div class="flex">
-                      <div>
-                        <code style="word-break: break-all; filter: brightness(80%)">
-                          {{ $t('NoData') }}
-                        </code>
-                      </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </q-expansion-item>
             </q-list>
+            <TransactionListItemSkeleton v-if="historyLoading"/>
+            <div v-else class="row q-pt-md q-px-sm" :class="darkMode ? 'text-light' : 'text-dark'">
+              <div class="q-mb-md">{{ $t('TransactionHistory') }}</div>
+              <div v-if="historyFiltered?.length === 0" class="col-12">
+                <code style="word-break: break-all; filter: brightness(80%)">
+                  {{ $t('NoData') }}
+                </code>
+              </div>
+              <template v-else>
+                <div class="col-12 row br-15 pt-card" :class="getDarkModeClass(darkMode)"
+                  :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`" >
+                    <!-- <button
+                      v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
+                      class="btn-custom q-mt-none"
+                      :class="[
+                        darkMode ? 'text-light' : 'text-dark', 
+                        `btn-${transactionFilterOpt.value}`,
+                        {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
+                      ]"
+                      @click="setTransactionsFilter(transactionFilterOpt.value)"
+                    >
+                      {{ transactionFilterOpt?.label }}
+                    </button> -->
+                    
+                    <q-btn 
+                      class="btn-custom q-mt-none col-4"
+                      :class="[
+                        darkMode ? 'text-light' : 'text-dark', 
+                        `btn-outcome`,
+                        {'active-transaction-btn border': historyFilter === 'all' },
+                      ]"
+                      :flat="historyFilter !== 'all'"
+                      :rounded="historyFilter === 'all'"
+                      @click="historyFilter = 'all'"
+                    >All</q-btn>
+                    <q-btn class="btn-custom q-mt-none col-4" 
+                    :class="[
+                      darkMode ? 'text-light' : 'text-dark', 
+                      `btn-outcome`,
+                      {'active-transaction-btn border': historyFilter === 'sent' },
+                    ]"
+                    :flat="historyFilter !== 'sent'" 
+                    :rounded="historyFilter === 'sent'"
+                    @click="historyFilter = 'sent'"
+                    >Sent</q-btn>
+                    <q-btn class="btn-custom q-mt-none col-4" 
+                    :class="[
+                      darkMode ? 'text-light' : 'text-dark', 
+                      `btn-outcome`,
+                      {'active-transaction-btn border': historyFilter === 'received' },
+                    ]"
+                    :flat="historyFilter !== 'received'" 
+                    :rounded="historyFilter === 'received'"
+                    @click="historyFilter = 'received'">Received</q-btn>
+                  </div>		      
+                  <div class="col-12">
+                    <q-list>
+                      <template v-for="t in historyFiltered">
+                        <q-item class="q-my-sm">
+                          <q-item-section>
+                            <span class="type-text text-uppercase text-bold text-strong" :class="getDarkModeClass(darkMode)">
+                              {{ historyRecordTypeMap[t.record_type]}}
+                            </span>
+                            <span class="transaction-date" :class="getDarkModeClass(darkMode)">
+                              <template v-if="t.tx_timestamp">{{ ago(new Date(t.tx_timestamp)) }}</template>
+                              <template v-else-if="t.date_created">{{ ago(new Date(t.date_created)) }}</template>
+                              <template v-else>{{ t.tx_timestamp }}</template>
+                            </span>
+                          </q-item-section>
+                          <q-item-section side>
+                            <span class=" text-uppercase text-bold" :class="getDarkModeClass(darkMode)">
+                              <template v-if="t.amount">
+                                {{ t.amount }} {{ assetHeaderName }}
+                              </template>
+                            </span>
+                            <span :class="getDarkModeClass(darkMode)" class="amount-secondary">
+                              <template v-if="t.amount && t.market_prices && assetHeaderName === 'BCH'">
+                                {{ historyQoutePrice(t.amount, t.market_prices) }}
+                              </template>
+                            </span>
+                          </q-item-section>
+                        </q-item>
+                        <q-separator class="q-mx-sm"/>
+                      </template>
+                      
+                    </q-list>
+                  </div>
+              </template>
+            </div>
         </template>
       </div>
     </div>
@@ -127,7 +197,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { axios } from 'axios'
+import ago from 's-ago'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
@@ -135,11 +205,11 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
-  isMultisigWalletSynced,
   MultisigWallet
 } from 'src/lib/multisig'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
-import { CashAddressNetworkPrefix, walletTemplateP2pkh } from 'bitauth-libauth-v3'
+import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton.vue'
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import { WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 
@@ -150,8 +220,35 @@ const route = useRoute()
 const router = useRouter()
 const balance = ref()
 const balanceConvertionRates = ref()
-const historyExpanded = ref(true)
+const balanceLoading = ref()
 const assetTokenIdentity = ref()
+const history = ref()
+const historyFilter = ref('all')
+const historyFiltered = computed(() => {
+  return history.value?.history?.filter(h => {
+    if (historyFilter.value === 'sent') {
+      return h.record_type === 'outgoing'
+    }
+    if (historyFilter.value === 'received') {
+      return h.record_type === 'incoming'
+    }
+    return true
+  })
+})
+const historyQoutePrice = computed(() => {
+  return (amount, marketPrices) => {
+    const currency = $store.getters['market/selectedCurrency']?.symbol || 'USD'
+    if (!amount || !marketPrices) return ''
+    return `${amount * marketPrices[currency]} ${currency}`  
+  }
+})
+const historyLoading = ref(false)
+
+const historyRecordTypeMap = {
+  'incoming': $t('Received'),
+  'outgoing': $t('Sent'),
+  'all': $t('All')
+} 
 
 const {
   getAssetTokenIdentity 
@@ -236,10 +333,30 @@ const showWalletReceiveDialog = () => {
   })
 }
 
-onMounted(async () => {
+const loadTransactionHistory = async (tokenCategory) => {
+  try {
+    historyLoading.value = true
+    const response = await wallet.value.getWalletTransactionHistory({ 
+      walletHash: wallet.value.getWalletHash(), 
+      all: false,
+      tokenCategory
+    })
+
+    history.value = response?.data  
+    
+  } catch (error) {
+    $q.notify({
+      message: $t('ErrorLoadingHistory'),
+      color: 'negative'
+    })
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+const loadWalletBalance = async () => {
   try {
     balance.value = await wallet.value.getWalletBalance(route.query.asset)
-
     if (route.query.asset !== 'bch') {
       assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
     }
@@ -250,7 +367,17 @@ onMounted(async () => {
         balance.value,
         [$store.getters['market/selectedCurrency'].symbol]
       )
-  } catch (error) {}
+  } catch (error) {
+    $q.notify({
+      message: error?.message,
+      color: 'negative'
+    })
+  }
+}
+
+onMounted(async () => {
+  const tokenCategory = route.query.asset !== 'bch'? route.query.asset : '' 
+  await Promise.allSettled([loadWalletBalance(), loadTransactionHistory(tokenCategory)])
 })
 </script>
 
