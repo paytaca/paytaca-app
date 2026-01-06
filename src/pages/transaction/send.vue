@@ -1971,6 +1971,17 @@ export default {
         let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
         validAddressIndex = vm.ensureAddressIndexNotZero(validAddressIndex)
 
+        // IMPORTANT: Address reuse strategy
+        // We use lastAddressIndex directly (not lastAddressIndex + 1) to check if the last address
+        // has a balance. This allows us to:
+        // 1. Reuse addresses that were previously used but now have zero balance (funds were spent)
+        //    - This is safe and privacy-preserving since the address has no balance
+        //    - It prevents unnecessary address index growth
+        // 2. Only increment to a new address if the last address still has a balance
+        //    - This ensures we never reuse an address that currently holds funds
+        // This behavior is intentional and correct - we check balance first, then decide whether
+        // to reuse or increment, rather than always incrementing.
+
         // IMPORTANT: Use the asset type being sent for derivation path, not the selected wallet's type
         // The asset type determines whether we need a BCH address (m/44'/145'/0') or SLP address (m/44'/245'/0')
         // All wallets support both BCH and SLP addresses, so we use the asset type being sent
