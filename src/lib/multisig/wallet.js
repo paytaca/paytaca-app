@@ -680,6 +680,8 @@ async getWalletUtxos() {
 
 async getWalletHashUtxos() {
 
+  if (!this.options?.provider) throw new Error('Missing provider') 
+
   const r1 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
   const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken')
 
@@ -881,8 +883,8 @@ async subscribeWalletAddressIndex(addressIndex, type) {
   ).catch((e) => e)
 }
 
-async getWalletTransactionHistory(walletHash, type) {
-  return await this.options?.store?.dispatch('multisig/getWalletTransactionHistory', { walletHash, type })
+async getWalletTransactionHistory({walletHash, type, all, tokenCategory, page }) {
+  return await this.options?.store?.dispatch('multisig/getWalletTransactionHistory', {walletHash, type, all, tokenCategory, page })
 }
 
 /**
