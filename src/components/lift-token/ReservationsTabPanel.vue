@@ -201,15 +201,12 @@
               </template>
             </div>
 
-            <div
-              v-if="!rsvp.is_paid"
-              class="row col-12 justify-center q-mt-md"
-            >
+            <div class="row col-12 justify-center q-mt-md">
               <q-btn
                 unelevated
                 rounded
                 no-caps
-                :label="$t('Purchase')"
+                :label="!rsvp.is_paid ? $t('Purchase') : $t('ConfirmReservation')"
                 class="purchase-btn"
                 :class="`theme-${theme}`"
                 :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
@@ -348,6 +345,9 @@ export default {
           this.$emit("on-successful-purchase");
         });
     },
+    openConfirmReservationDialog(rsvp) {
+      
+    }
   },
 
   async mounted() {
