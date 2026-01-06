@@ -167,7 +167,7 @@
                   <div class="col-12">
                     <q-list>
                       <template v-for="t in historyFiltered">
-                        <q-item class="q-my-sm">
+                        <q-item class="q-my-sm" clickable @click="onHistoryItemClick(t)">
                           <q-item-section>
                             <span class="type-text text-uppercase text-bold text-strong" :class="getDarkModeClass(darkMode)">
                               {{ historyRecordTypeMap[t.record_type]}}
@@ -385,6 +385,25 @@ const loadWalletBalance = async () => {
       color: 'negative'
     })
   }
+}
+
+const onHistoryItemClick = (t) => {
+  const query = {
+    from: route.path,
+    asset: route.query.asset,
+    assetID: route.query.asset, // for compatibility with other UI
+    walletHash: wallet.value.walletHash
+  }
+
+  if (route.query.asset && route.query.asset !== 'bch') {
+    query.category = route.query.asset // for compatibility with other UI
+  }
+  
+  router.push({
+    name: 'transaction-detail',
+    params: { txid: t.txid},
+    query
+  })
 }
 
 onMounted(async () => {
