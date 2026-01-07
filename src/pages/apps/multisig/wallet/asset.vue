@@ -112,7 +112,7 @@
             <TransactionListItemSkeleton v-if="historyLoading"/>
             <div v-else class="row q-pt-md q-px-sm" :class="darkMode ? 'text-light' : 'text-dark'">
               <div class="q-mb-md">{{ $t('TransactionHistory') }}</div>
-              <div v-if="history?.history?.length === 0" class="col-12">
+              <div v-if="!history || !history.history || !Array.isArray(history.history) || history.history.length === 0" class="col-12">
                 <code style="word-break: break-all; filter: brightness(80%)">
                   {{ $t('NoData') }}
                 </code>
@@ -237,7 +237,10 @@ const assetHeaderIconLoaded = ref(false)
 const history = ref()
 const historyFilter = ref('all')
 const historyFiltered = computed(() => {
-  return history.value?.history?.filter(h => {
+  if (!history.value?.history || !Array.isArray(history.value.history)) {
+    return []
+  }
+  return history.value.history.filter(h => {
     if (historyFilter.value === 'sent') {
       return h.record_type === 'outgoing'
     }
