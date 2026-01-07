@@ -3,7 +3,6 @@
     <div class="transaction-detail-header-wrapper">
       <header-nav :title="$t('Transaction', {}, 'Transaction')" :backnavpath="backNavPath" class="header-nav apps-header" @click:left="goBack" />
     </div>
-    
     <div class="transaction-detail-content-wrapper" :class="getDarkModeClass(darkMode)">
       <!-- Skeleton Loading State -->
       <div v-if="isLoading" class="q-pa-lg">
@@ -732,12 +731,25 @@ export default {
           query: { assetID: assetId }
         }
       }
+      if (fromParam?.includes('apps/multisig')) { 
+        return {
+          path: this.$route?.query?.from,
+          query: { asset: this.$route?.query?.asset }
+        }
+      }
       return '/'
     }
   },
   async mounted () {
-    await this.initWallet()
-    
+
+    if (this.$route.query?.walletHash && this.$route.query?.from?.includes('apps/multisig')) {
+      this.walletHash = this.$route.query.walletHash
+    }
+
+    if (!this.$route.query?.from?.includes('apps/multisig')) {
+      await this.initWallet()
+    }
+
     // Ensure HTML and body have the correct background color to match our wrapper
     this.updateBackgroundColors()
     
