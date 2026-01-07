@@ -1845,13 +1845,41 @@ export default {
     /**
      * Get the last address index for a specific wallet
      * @param {number} walletIndex - The vault index of the wallet
+     * @param {string} assetType - The asset type: 'bch' or 'slp' (defaults to 'bch')
      * @returns {Promise<number>} The last address index or 0 if not available
      */
-    async getLastAddressIndexForWallet (walletIndex) {
+    async getLastAddressIndexForWallet (walletIndex, assetType = 'bch') {
       try {
-        const walletHash = this.$store.getters['global/getWalletHashByIndex'](walletIndex)
+        // Get the correct wallet hash based on asset type
+        // BCH and SLP have different derivation paths and wallet hashes
+        const vault = this.$store.getters['global/getVault'] || []
+        const wallet = vault?.[walletIndex]
+        
+        if (!wallet) {
+          console.warn(`No wallet found for wallet index ${walletIndex}`)
+          return 0
+        }
+
+        // Get wallet hash based on asset type and network (mainnet vs chipnet)
+        let walletHash = null
+        const walletData = this.isChipnet ? wallet?.chipnet : wallet?.wallet
+        
+        if (assetType === 'slp') {
+          walletHash = walletData?.slp?.walletHash || 
+                      walletData?.SLP?.walletHash ||
+                      null
+        } else {
+          // Default to BCH
+          walletHash = walletData?.bch?.walletHash || 
+                      walletData?.BCH?.walletHash ||
+                      wallet?.BCH?.walletHash || 
+                      wallet?.bch?.walletHash ||
+                      wallet?.walletHash ||
+                      null
+        }
+
         if (!walletHash) {
-          console.warn(`No wallet hash found for wallet index ${walletIndex}`)
+          console.warn(`No ${assetType} wallet hash found for wallet index ${walletIndex}`)
           return 0
         }
 
@@ -1864,7 +1892,7 @@ export default {
         
         return 0
       } catch (error) {
-        console.error(`Error getting last address index for wallet ${walletIndex}:`, error)
+        console.error(`Error getting last address index for wallet ${walletIndex} (${assetType}):`, error)
         return 0
       }
     },
@@ -1965,8 +1993,9 @@ export default {
           throw new Error(`Invalid asset type: ${assetType}. Must be 'bch' or 'slp'.`)
         }
 
-        // Get the last address index for the selected wallet
-        const lastAddressIndex = await vm.getLastAddressIndexForWallet(selectedWallet.index)
+        // Get the last address index for the selected wallet using the correct asset type
+        // This ensures we use the correct wallet hash (BCH vs SLP) for the watchtower query
+        const lastAddressIndex = await vm.getLastAddressIndexForWallet(selectedWallet.index, assetType)
         
         // Ensure address index is valid and not 0
         let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
