@@ -1921,19 +1921,19 @@ export default {
         
         if (walletType === 'slp') {
           // For SLP, check BCH balance
-          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/`)
           const balance = response?.data?.balance || 0
           return balance > 0
         } else {
           // For BCH, check balance including token sats
-          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => ({ data: { balance: 0 } }))
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
           const balance = response?.data?.balance || 0
           return balance > 0
         }
       } catch (error) {
         console.error('Error checking address balance:', error)
-        // If check fails, assume no balance to be safe
-        return false
+        // If check fails, assume has balance to be safe (prevents address reuse when balance cannot be verified)
+        return true
       }
     },
 
