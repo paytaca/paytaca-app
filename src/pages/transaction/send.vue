@@ -751,12 +751,10 @@ export default {
           // Get wallet name or fallback to 'Personal Wallet'
           const name = wallet?.name || 'Personal Wallet'
           
-          // Get wallet hash
-          const walletHash = wallet?.wallet?.bch?.walletHash || 
-                            wallet?.wallet?.BCH?.walletHash ||
-                            wallet?.BCH?.walletHash || 
-                            wallet?.bch?.walletHash ||
-                            wallet?.walletHash ||
+          // Get wallet hash based on network (mainnet vs chipnet)
+          const walletData = this.isChipnet ? wallet?.chipnet : wallet?.wallet
+          const walletHash = walletData?.bch?.walletHash || 
+                            walletData?.BCH?.walletHash ||
                             null
           
           return {
@@ -1872,9 +1870,6 @@ export default {
           // Default to BCH
           walletHash = walletData?.bch?.walletHash || 
                       walletData?.BCH?.walletHash ||
-                      wallet?.BCH?.walletHash || 
-                      wallet?.bch?.walletHash ||
-                      wallet?.walletHash ||
                       null
         }
 
