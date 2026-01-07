@@ -1,8 +1,9 @@
 <template>
   <q-layout>
-    
+  
+  
     <div class="q-ml-l">
-      <p class="text-primary text-weight-bold text-h5 text-center">Create Card</p>
+      <p class="text-primary text-weight-bold text-h5 text-center">Card Management</p>
     </div>
      
     <div>
@@ -11,144 +12,245 @@
 
     <q-separator class="q-my-xl" />
 
-    <!-- Cards and Creating Cards -->
-    <div class="row q-col-gutter-md">
-      <div
-        v-for="item in menuItems"
-        :key="item.id"
-        class="col-12 col-sm-6 col-md-4"
-      >
-      <q-card
-          class="my-custom-card cursor-pointer q-hoverable"
-          v-ripple
-          @click="handleNavigation(item)"
-        >
-          <span class="q-focus-helper"></span>
-          <q-card-section class="row items-center no-wrap">
-            <q-avatar
-              rounded
-              :color="item.color"
-              text-color="white"
-              :icon="item.icon"
-              font-size="28px"
-              class="q-mr-md shadow-2"
-            />
-            <div class="ellipsis">
-              <div class="text-h6 q-mb-xs">{{ item.title }}</div>
-              <div class="text-caption text-grey-7">{{ item.subtitle }}</div>
-            </div>
-            <q-space />
-            <q-icon 
-              :name="isExpanded? 'expand_more' : 'chevron_right'"
-              color="grey-4"
-              size="30px"
-              class="transition-icon cursor-pointer"
-              @click.stop="isExpanded = !isExpanded"
-            />
-          </q-card-section>
-        </q-card>
-      </div>
-    </div>
-
-    <div class="row justify-center q-px-md">
-      <q-card
-        class="create-card-compact"  
-        style="margin-top: 50px;"
-        >
-        <q-card-section class="row-items-center no-wrap q-py-sm q-px-md">
-          <div class="text-h6 text-weight-medium">Create Card
-            <q-icon
-              name="mdi-plus"
-              class="q-ml-lg cursor-pointer"
-              color="primary"
-              @click="handlePlus"
-            />
-          </div>
-        </q-card-section>
-      </q-card>
-    </div>
-
+    
     <transition
       appear
       enter-active-class="animated fadeIn"
       leave-active-class="animated fadeOut"
     >
-      <div v-if="selectedCategory === 'Cards List'" class="q-mt-lg">
+      <div class="q-mt-lg">
+        <!-- Header -->
         <div class="text-h6 q-mb-md q-mt-md row items-center">
           <q-icon name="credit_card" class="q-mr-sm" color="primary" />
           My Cards
-      </div>
+        </div>
 
-      <div class="row q-col-gutter-md">
-          <div v-for="card in subCards" :key="card.id" class="col-12 col-sm-2">
-            <q-card bordered flat class="bg-white">
-              <q-card-section>
-                <div class="text-weight-bold text-subtitle1 text-black">{{ card.name }}</div>
-                <div class="text-caption text-grey">Balance: {{ card.balance }} BCH</div>
-              </q-card-section>
+        <!-- Cards Grid -->
+        <div class="row q-col-gutter-md">
+          <!-- Existing Subcards -->
+            <div v-for="card in subCards" :key="card.id" class="col-12 col-sm-2">
+              <q-card bordered flat class="bg-white full-height">
+                <!-- Card header: Name + Icons -->
+                <q-card-section class="row items-center justify-between q-pa-sm">
+                  <div class="text-weight-bold text-subtitle1 text-black">{{ card.name }}</div>
 
-              <q-separator />
+                  <div class="row items-center q-gutter-sm">
+                    <!-- View Icon -->
+                     <q-btn
+                        flat
+                        dense
+                        round
+                        icon="visibility"
+                        color="primary"
+                        @click="viewCard(card)"
+                     />
+                    <!-- Triple Dot Icon -->
+                     <q-btn
+                        flat
+                        dense
+                        round
+                        icon="more_vert"
+                        color="primary"
+                        @click="openCardMenu($event, card)"
+                     />
+                  </div>
+                </q-card-section>
 
-              <q-card-actions align="right">
-                <q-btn flat color="grey-7" label="Edit" icon="edit" size="sm" @click="editCard(card)" />
-                <q-btn flat color="primary" label="View" icon="visibility" size="sm" @click="handleEdit(card)" />
-              </q-card-actions>
-            </q-card>
-          </div>
+                <!-- Card Options Menu -->
+                <q-menu
+                  v-model="cardMenu.visible"
+                  :anchor="cardMenu.anchorOrigin"
+                  :self="cardMenu.selfOrigin"
+                  transition-show="scale"
+                  transition-hide="scale"
+                >
+                    <q-list padding>
+                      <q-item clickable v-ripple @click="manageAuthNFTs(cardMenu.card)">
+                        <q-item-section>Manage Auth NFTs</q-item-section>
+                      </q-item>
+                      <q-item clickable v-ripple @click="viewTransactionHistory(cardMenu.card)">
+                        <q-item-section>Transaction History</q-item-section>
+                      </q-item>
+                      <q-item clickable v-ripple @click="lockCard(cardMenu.card)">
+                        <q-item-section>Lock Card</q-item-section>
+                      </q-item>
+                    </q-list>
+                </q-menu>
+
+                <q-separator/>
+
+                <!-- Card Info -->
+                 <q-card-section>
+                    <div class="text-caption text-grey">Contract Address: {{ card.contractAddress }}</div>
+                    <div class="text-caption text-grey">Balance: {{ card.balance }} BCH</div>
+                 </q-card-section>
+
+              </q-card>
+            </div>
+
+            <!-- Create Card Button opens dialog -->
+             <div class="col-12 col-sm-2">
+                <q-card
+                  bordered
+                  flat
+                  class="bg-grey-1 flex flex-center cursor-pointer full-height"
+                  @click="openCreateCardDialog"
+                >
+                  <q-card-section class="text-center">
+                    <q-icon
+                      name="add_circle_outline"
+                      size="48px"
+                      color="primary"
+                    />
+                    <div class="text-caption q-mt-sm text-primary text-center">
+                      Create Card
+                    </div>
+                  </q-card-section>
+                </q-card>
+             </div>
+
         </div>
       </div>
     </transition>
-
-    <q-dialog v-model="editDialogVisible" persistent>
-      <q-card style="min-width: 350px">
-        <q-card-section>
-          <div class="text-h6">Edit Card Details</div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-none">
-          <q-input 
-            v-model="editingCard.name" 
-            label="Card Name" 
-            autofocus 
-            counter
-            @keyup.enter="saveCard"
-          />
-          
-          <q-label v-model="editingCard.lock" autofocus style="margin-right: 40px;">Card Lock</q-label>
-          <q-btn-toggle
-            v-model="editingCard.lock"
-            class="my-custom-toggle"
-            no-caps
-            rounded
-            unelevated
-            toggle-color="primary"
-            toggle-text-color="white"
-            color="grey-3"
-            text-color="primary"
-            :options="[
-              {label: 'ON', value: 'on'},
-              {label: 'OFF', value: 'off'}
-            ]"
-            @keyup.enter="saveCard"
-          />
-        </q-card-section>
-
-        <q-card-actions align="right" class="text-primary">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Save Changes" @click="saveCard" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-
-
   </q-layout>
+
+  <!-- CREATE CARD POP-UP BOX -->
+  <q-dialog
+    v-model="createCardDialog"
+    persistent
+    transition-show="fade"
+    transition-hide="fade"
+    backdrop-filter="blur(6px)"
+  >
+    <q-card
+      class="create-card-dialog"
+      flat
+    >
+      <!-- Dialog Header -->
+       <q-card-section class="row items-center q-pb-sm">
+          <div class="text-h6 text-weight-bold text-center">
+            Create Card
+          </div>
+
+          <q-space />
+
+          <q-btn 
+            icon="close"
+            flat
+            round
+            dense
+            @click="createCardDialog = false"
+          />
+
+        </q-card-section>
+
+       <q-separator />
+
+       <!-- Dialog Content -->
+       <q-card-section>
+          <q-input v-model="newCardName" label="Card Name" outlined dense></q-input>
+       </q-card-section>
+
+       <q-separator />
+
+        <!-- Dialog Actions -->
+        <q-card-actions align="right">
+            <q-btn 
+              flat
+              label="Cancel"
+              color="grey-7"
+              @click="createCardDialog = false"
+            />
+            <q-btn 
+              unelevated
+              label="Create"
+              color="primary"
+              @click="handleCreateCard"
+            />
+         </q-card-actions>
+
+    </q-card>
+
+  </q-dialog>
+
+  <!-- VIEW CARD POP-UP -->
+   <q-dialog
+      v-model="viewCardDialog"
+      persistent
+      transition-show="fade"
+      transition-hide="fade"
+      backdrop-filter="blur(6px)"
+   >
+      <q-card class="view-card-dialog" flat>
+
+        <!-- Dialog Header: Card Name -->
+         <q-card-section class="row items-center q-pb-sm justify-between">
+            <div class="text-h6 text-weight-bold text-center">
+              {{ selectedCard?.name }}
+            </div>
+
+            <q-btn
+              icon="close"
+              flat
+              round
+              dense
+              @click="viewCardDialog = false"
+            />
+         </q-card-section>
+
+         <q-separator/>
+
+         <!-- QR CODE -->
+          <q-card-section class="q-pt-md q-pb-md flex flex-center">
+              <qr-code 
+                v-if="selectedCard"
+                :text="selectedCard.contractAddress"
+                :size="150"
+              />
+          </q-card-section>
+
+          <!-- Contract Address with Copy Icon -->
+           <q-card-section class="row justify-center items-center text-nowrap q-gutter-sm" style="letter-spacing: 1px;">
+              <div>{{ selectedCard?.contractAddress }}</div>
+              <q-btn
+                flat
+                round
+                dense
+                icon="content_copy"
+                @click="copyToClipboard(selectedCard.contractAddress)"
+              />
+           </q-card-section>
+
+           <!-- Cash-in button -->
+            <q-card-section class="row justify-center q-mt-md">
+                <q-btn
+                    label="Cash In"
+                    color="primary"
+                    unelevated
+                    @click="handleCashIn(selectedCard)"
+                />
+            </q-card-section>
+
+
+
+      </q-card>
+
+   </q-dialog>
   
 </template>
 
 <script>
-  import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-
+ 
+import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
+import { createCard } from 'src/services/card/api';
+import HeaderNav from 'components/header-nav'
+import Card from 'src/services/card/card.js';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { loadWallet } from 'src/wallet';
+import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'src/utils/wallet';
+import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
+import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
+  
   export default {
     
     components: {
@@ -157,162 +259,153 @@
 
     data() {
       return {
-        expandedId: null, 
-        isLoading: false,
-        selectedCategory: null,
-        editDialogVisible: false,
-        editing: false, 
-        editingCard: {id: null, name: '', balance: 0, lock: 'off'},
-        menuItems: [
-          { id: 1, title: 'Cards List', subtitle: 'View your cards list', icon: 'credit_card', color: 'primary', route: '/cardsList' },
-          { id: 2, title: 'NFTs', subtitle: 'View your NFTs', icon: 'diamond', color: 'teal', route: '/nfts' },
-        ],
-        subCards: []
+        createCardDialog: false,
+        subCards: [],
+        contractAddress: 'address', // dummy
+        // For inputs
+        newCardName: '',
+        newAuthNFT: '',
+        // View card dialog
+        viewCardDialog: false,
+        selectedCard: null,
+        // Menu state
+        cardMenu: {
+          visible: false,
+          anchorOrigin: { horizontal: 'right', vertical: 'top' },
+          selfOrigin: { horizontal: 'right', vertical: 'top' },
+          card: null
+        }
       }
+    },
+
+    async mounted () {
+      console.log("GO!")
     },
 
     methods: {
-      toggleExpandId(){
-        if(this.expandedId === id){
-          this.expandedId = null;
-        }
-        else{
-          this.expandedId = id;
-        }
+      // Open dialog
+      openCreateCardDialog(){
+        this.newCardName = '';
+        this.newAuthNFT = '';
+        this.createCardDialog = true;
       },
-    
-      handleNavigation (item) {
-        // if user clicks the same item twice, toggle it closed
-        if (this.selectedCategory === item.title){
-          this.selectedCategory = null
+      
+      handleCreateCard(){
+        if(!this.newCardName){
+          this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
+          return;
         }
-        else {
-          this.selectedCategory = item.title
-        }
-        console.log('Category selected is:', this.selectedCategory)
-      },
 
-      handlePlus() {
-        this.editing = false;
-        this.editingCard = {
-          id: Date.now(),
-          name: '',
-          balance: 0,
-          lock: 'off'
-        };
-        this.editDialogVisible = true;
-      },
+        // Create new subcard object
+        const newCard = {
+          id: Date.now(), // unique key
+          name: this.newCardName,
+          authNFT: this.newAuthNFT,
+          contractAddress: this.contractAddress,
+          balance: 0
+        }
 
-      handleEdit(card){
-        this.editing = true;
-        this.editingCard = {...card};
-        this.editDialogVisible = true
-      },
+        // Insert before the create card button
+        this.subCards.push(newCard);
 
-      editCard (card) {
+        // Close dialog
+        this.createCardDialog = false;
+
+        // Card created successfully
         this.$q.notify({
-          message: `Editing ${card.name}`,
-          color: 'orange-7',
-          icon: 'edit',
-        }),
-        this.editingCard = {...card};
-        this.editDialogVisible = true;
+          message: `Card "${this.newCardName}" created!`,
+          color: 'positive',
+          position: 'top'
+        });
+
       },
 
-      saveCard() {
-        if (this.editing === true){
-          const index = this.subCards.findIndex(c => c.id === this.editingCard.id)
-          if (index !== -1){
-            this.subCards[index] = {...this.editingCard}
+      viewCard(card){
+        this.selectedCard = card;
+        this.viewCardDialog = true;
+      },
 
-            this.$q.notify({
-              color: 'positive',
-              message: 'Card updated successfully',
-              icon: 'check'
-            });
-          }
-        }
-        else {
-          this.subCards.push({...this.editingCard});
+      copyToClipboard(text){
+        navigator.clipboard.writeText(text).then(() => {
           this.$q.notify({
+            message: 'Copied to clipboard',
             color: 'positive',
-            message: 'New card created',
-            icon: 'add'
-          })
-        }
-        
-        this.editDialogVisible = false
-        this.editing = true
+            position: 'top'
+          });
+        }).catch(() => {
+          this.$q.notify({
+            message: 'Failed to copy',
+            color: 'negative',
+            position: 'top'
+          });
+        });
       },
 
-
-      viewCard (card) {
+      handleCashIn(card) {
+        // For now, just notify
         this.$q.notify({
-          message: `View details for ${card.name}`,
-          color: 'primary',
-          icon: 'visibility',
-        })
+          message: `Cash In for "${card.name}" clicked!`,
+          color: 'positive',
+          position: 'top'
+        });
+
+        console.log('Cash In clicked for:', card);
       },
 
-      async getDashboardData () {
-        this.isLoading = true;
-        try {
-          
-          // Cards List and NFTs
-          setTimeout(() => {
-            this.menuItems = [
-              { id: 1, title: 'Cards List', subtitle: 'View your cards list', icon: 'credit_card', color: 'blue' },
-              { id: 2, title: 'NFTs', subtitle: 'View your NFTs', icon: 'diamond', color: 'green' }
-            ];
-            this.isLoading = false;
-          }, 1000);
-        } catch (error) {
-          console.error("Failed to load", error);
-        }
+      openCardMenu(evt, card){
+        this.cardMenu.card = card;
+        this.cardMenu.visible = true;
+        
+        this.$nextTick(() => {
+          this.cardMenu.anchorOrigin = {horizontal: 'right', vertical: 'top'};
+          this.cardMenu.selfOrigin = {horizontal: 'right', vertical: 'top'};
+        })
+        
+      },
+
+      manageAuthNFTs(card) {
+        this.$q.notify({ message: `Manage Auth NFTs for "${card.name}" clicked!`, color: 'primary' });
+        this.cardMenu.visible = false;
+      },
+
+      viewTransactionHistory(card) {
+        this.$q.notify({ message: `Transaction History for "${card.name}" clicked!`, color: 'primary' });
+        this.cardMenu.visible = false;
+      },
+
+      lockCard(card) {
+        this.$q.notify({ message: `Lock Card "${card.name}" clicked!`, color: 'negative' });
+        this.cardMenu.visible = false;
       }
-    },
 
-    mounted () {
-      console.log('The component is now on the screen!');
-    
-      //Populate list
-      this.getDashboardData();
-
-    
     }
+
+   
 
   }
 </script>
 
 <style lang="scss" scoped>
-.my-custom-card {
-  transition: all 0.3s;
-  border: 1px solid transparent;
-  &.border-primary {
-    border-color: var(--q-primary);
+  .create-card-dialog {
+    width: 500px;
+    max-width: 90vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 0 40px rgba(33, 150, 243, 0.25);
+    overflow: hidden;
   }
-}
 
-.my-custom-toggle {
-  border: 1px solid var(--q-primary);
-  transition: all 0.3s ease;
-}
-
-.my-custom-card {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.my-custom-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
-}
-
-.transition-icon {
-  transition: transform 0.3s ease, color 0.3s ease;
-}
-
-.transition-icon:hover {
-  color: var(--q-primary) !important;
-}
-
+  .view-card-dialog {
+    width: 400px;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    overflow: hidden;
+  }
 </style>
