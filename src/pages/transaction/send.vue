@@ -434,6 +434,7 @@ import {
   processCashinPoints,
   processOnetimePoints
 } from 'src/utils/engagementhub-utils/rewards'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 import DragSlide from 'src/components/drag-slide.vue'
 import Pin from 'src/components/pin/index.vue'
@@ -764,6 +765,10 @@ export default {
           }
         })
         .filter(wallet => wallet !== null && wallet.walletHash !== null)
+    },
+    // Get asset from store reactively to ensure balance updates are reflected
+    storeAsset () {
+      return sendPageUtils.getAsset(this.assetId, this.symbol)
     }
   },
 
@@ -789,6 +794,20 @@ export default {
             this.recipients[i].amount, this.decimalObj(false)
           )
         }
+      }
+    },
+    // Watch for asset balance updates from store
+    storeAsset (newStoreAsset) {
+      if (newStoreAsset && newStoreAsset.balance !== undefined) {
+        // Merge store asset data with local asset (preserve local overrides like logo, name from route)
+        this.asset = {
+          ...this.asset,
+          balance: newStoreAsset.balance,
+          spendable: newStoreAsset.spendable,
+          yield: newStoreAsset.yield
+        }
+        // Recalculate wallet balance when asset balance updates
+        this.adjustWalletBalance()
       }
     },
     manualAddress (address) {
@@ -2189,8 +2208,19 @@ export default {
     vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId })
 
     vm.selectedDenomination = vm.denomination
-    // Load wallets
-    vm.initWallet().then(() => vm.adjustWalletBalance())
+    // Load wallets and fetch balance
+    vm.initWallet().then(async () => {
+      // Fetch and update asset balance from wallet
+      try {
+        await updateAssetBalanceOnLoad(vm.assetId, vm.wallet, vm.$store)
+        // Refresh asset from store after balance update
+        vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+      } catch (error) {
+        console.error('Error fetching asset balance:', error)
+      }
+      // Calculate wallet balance after asset balance is loaded
+      vm.adjustWalletBalance()
+    })
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 
