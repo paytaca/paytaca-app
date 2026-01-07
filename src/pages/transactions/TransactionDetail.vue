@@ -731,7 +731,7 @@ export default {
           query: { assetID: assetId }
         }
       }
-      if (fromParam.includes('apps/multisig')) { // dirty but non-breaking
+      if (fromParam?.includes('apps/multisig')) { 
         return {
           path: this.$route?.query?.from,
           query: { asset: this.$route?.query?.asset }
