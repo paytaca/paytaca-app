@@ -554,7 +554,7 @@ export default {
     },
     fiatConversionTooltip () {
       const currency = this.selectedMarketCurrency || 'USD'
-      return this.$t('ConversionInfo', {}, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
+      return this.$t('ConversionInfo', { currency }, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
