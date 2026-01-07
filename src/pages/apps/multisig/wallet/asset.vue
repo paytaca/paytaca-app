@@ -251,7 +251,9 @@ const historyQoutePrice = computed(() => {
   return (amount, marketPrices) => {
     const currency = $store.getters['market/selectedCurrency']?.symbol || 'USD'
     if (!amount || !marketPrices) return ''
-    return `${amount * marketPrices[currency]} ${currency}`  
+    const price = marketPrices[currency]
+    if (price === undefined || price === null || isNaN(price)) return ''
+    return `${amount * price} ${currency}`  
   }
 })
 const historyLoading = ref(false)
