@@ -756,6 +756,7 @@ export default {
                             wallet?.wallet?.BCH?.walletHash ||
                             wallet?.BCH?.walletHash || 
                             wallet?.bch?.walletHash ||
+                            wallet?.walletHash ||
                             null
           
           return {
