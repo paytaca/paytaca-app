@@ -1963,10 +1963,15 @@ export default {
         const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
         
         if (walletType === 'slp') {
-          // For SLP, check BCH balance
-          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/`)
-          const balance = response?.data?.balance || 0
-          return balance > 0
+          // For SLP, check both BCH balance and SLP token balance
+          // An address should not be reused if it has either BCH or SLP tokens
+          const [bchResponse, slpResponse] = await Promise.all([
+            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } })),
+            axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          ])
+          const bchBalance = bchResponse?.data?.balance || 0
+          const slpBalance = slpResponse?.data?.balance || 0
+          return bchBalance > 0 || slpBalance > 0
         } else {
           // For BCH, check balance including token sats
           const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
