@@ -408,6 +408,17 @@ const onHistoryItemClick = (t) => {
   })
 }
 
+const refreshPage = async (done) => {
+  try {
+    const tokenCategory = route.query.asset !== 'bch'? route.query.asset : '' 
+    await Promise.allSettled([loadWalletBalance(), loadTransactionHistory(tokenCategory)])
+  } catch (error) {
+    console.error('Error refreshing page:', error)
+  } finally {
+    if (done) done()
+  }
+}
+
 onMounted(async () => {
   const tokenCategory = route.query.asset !== 'bch'? route.query.asset : '' 
   await Promise.allSettled([loadWalletBalance(), loadTransactionHistory(tokenCategory)])
@@ -418,4 +429,4 @@ onMounted(async () => {
 .light {
   color: #141414;
 }
-</style>i
+</style>
