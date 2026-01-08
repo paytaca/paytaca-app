@@ -147,7 +147,6 @@ export default {
   AmountToken: "Token de montant",
   TotalRefundable: "Total remboursable",
   DiscountApplied: "Remise appliquée",
-  SuccessfulPurchaseMessage: "Message d'achat réussi",
   // Other features
   AddingLiquidity: "Ajout de liquidité",
   ConversionInfo: "Conversion en {currency} au moment de la transaction. Le gain/la perte est affiché ci-dessous par rapport au prix actuel.",

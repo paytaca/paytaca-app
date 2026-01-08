@@ -1945,7 +1945,7 @@ const phrases = {
       AmountToken: 'Amount token',
       TotalRefundable: 'Total refundable',
       DiscountApplied: 'Discount applied',
-      SuccessfulPurchaseMessage: 'Successful purchase message',
+      SuccessfulPurchaseMessage: 'Purchase processed successfully. Check the Purchases tab for more details.',
     },
     {
       // Other features
@@ -1976,6 +1976,8 @@ const phrases = {
       'You earned': 'You earned',
       EnterCustomAmount: 'Enter custom amount',
       Devicesuspended: 'Device suspended',
+      SuccessfulConfirmReservationMessage: 'Reservation confirmed successfully. Check the Purchases tab for more details.',
+      ConfirmReservationError: 'Error confirming reservation',
     }
   ],
   dynamic: [

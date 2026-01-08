@@ -148,7 +148,6 @@ export default {
   AmountToken: "Amount token",
   TotalRefundable: "Kabuuang maire-refund",
   DiscountApplied: "Na-apply ang discount",
-  SuccessfulPurchaseMessage: "Successful purchase message",
   // Other features
   AddingLiquidity: "Nagda-dagdag ng liquidity",
   ConversionInfo: "Conversion sa {currency} sa oras ng transaction. Ang kita/talo ay ipinapakita sa ibaba kung ihahambing sa kasalukuyang presyo.",

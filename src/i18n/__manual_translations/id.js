@@ -147,7 +147,6 @@ export default {
   AmountToken: "Token jumlah",
   TotalRefundable: "Total yang dapat dikembalikan",
   DiscountApplied: "Diskon diterapkan",
-  SuccessfulPurchaseMessage: "Pesan pembelian berhasil",
   // Other features
   AddingLiquidity: "Menambahkan likuiditas",
   ConversionInfo: "Konversi ke {currency} pada saat transaksi. Keuntungan/kerugian ditampilkan di bawah dibandingkan dengan harga saat ini.",

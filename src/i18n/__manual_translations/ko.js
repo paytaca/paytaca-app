@@ -147,7 +147,6 @@ export default {
   AmountToken: "금액 토큰",
   TotalRefundable: "환불 가능한 총액",
   DiscountApplied: "할인이 적용되었습니다",
-  SuccessfulPurchaseMessage: "구매 성공 메시지",
   // Other features
   AddingLiquidity: "유동성 추가 중",
   ConversionInfo: "거래 시점의 {currency}로의 변환. 현재 가격과 비교한 손익이 아래에 표시됩니다.",

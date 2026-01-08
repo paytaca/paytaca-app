@@ -149,7 +149,6 @@ export default {
   AmountToken: "金额代币",
   TotalRefundable: "可退款总额",
   DiscountApplied: "已应用折扣",
-  SuccessfulPurchaseMessage: "购买成功消息",
   // Other features
   AddingLiquidity: "添加流动性",
   ConversionInfo: "在交易时转换为 {currency}。与当前价格相比的盈亏显示在下方。",

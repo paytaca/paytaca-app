@@ -147,7 +147,6 @@ export default {
   AmountToken: "金額トークン",
   TotalRefundable: "返金可能な合計",
   DiscountApplied: "割引が適用されました",
-  SuccessfulPurchaseMessage: "購入成功メッセージ",
   // Other features
   AddingLiquidity: "流動性を追加中",
   ConversionInfo: "取引時の{currency}への変換。現在の価格と比較した損益が下に表示されます。",
