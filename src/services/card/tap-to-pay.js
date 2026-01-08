@@ -1,6 +1,5 @@
 
 
-// This file/class is to be used by the NFC card backend server.
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
 import { SignatureTemplate, Contract, TransactionBuilder, ElectrumNetworkProvider, Network, HashType } from 'cashscript0.11.x';
 import { defaultNetwork, TX_FEE } from './constants.js';

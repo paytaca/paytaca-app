@@ -1,3 +1,21 @@
+/**
+ * Card Service Module
+ * 
+ * Manages all card-related operations for the Paytaca application, providing a comprehensive
+ * interface for handling cryptocurrency card functionality. This module orchestrates:
+ * 
+ * - Genesis Token Creation: Mints NFT-based genesis tokens with vout=0 UTXO management
+ * - Auth Token Management: Issues and manages authentication tokens for payment terminals
+ * - Smart Contract Operations: Interacts with TapToPay contracts for payments and fund management
+ * - Card Lifecycle: Handles complete card creation workflow from genesis to server registration
+ * - UTXO Management: Ensures proper transaction output management for token operations
+ * 
+ * The Card class combines multiple sub-managers (AuthTokenManager, TapToPay) to provide
+ * a unified interface for card operations, abstracting away low-level blockchain details
+ * while maintaining flexibility for advanced operations.
+ * 
+ */
+
 import { loadWallet } from 'src/wallet';
 import AuthTokenManager from './auth-token';
 import { TapToPay } from './tap-to-pay';
@@ -16,7 +34,7 @@ export class Card {
     
     // Initialize sub-managers
     this.authTokenManager = new AuthTokenManager(privateKey);
-    this.tapToPay = null; // Will be initialized when needed
+    this.tapToPay = null; 
   }
 
   // ==================== GENESIS TOKEN OPERATIONS ====================
@@ -59,7 +77,6 @@ export class Card {
    */
   async mintGenesisToken() {
     console.log('Starting genesis token minting...');
-    
     // Check for vout=0 UTXOs first
     const hasVoutZero = await this.checkForVoutZeroUtxos();
     
@@ -177,9 +194,9 @@ export class Card {
   /**
    * Waits for transaction confirmation
    */
-  async waitForTransaction() {
-    console.log('Waiting for transaction confirmation...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  async waitForTransaction(delayMs = 30000) {
+    console.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
+    await new Promise(resolve => setTimeout(resolve, delayMs));
   }
 
   // ==================== AUTH TOKEN OPERATIONS ====================
@@ -238,16 +255,16 @@ export class Card {
     return { mutateResponse, serverResponse };
   }
 
-  /**
-   * Spends from the card (terminal payment)
-   */
-  async spend(signers, recipient, broadcast = true) {
-    if (!this.tapToPay) {
-      throw new Error('TapToPay contract not initialized. Call initializeTapToPay() first.');
-    }
-    
-    return await this.tapToPay.spend({ signers, recipient, broadcast });
-  }
+  // // this spend function should be in the POS app, not in paytaca-app
+  // /**
+  //  * Spends from the card (terminal payment)
+  //  */
+  // async spend(signers, recipient, broadcast = true) {
+  //   if (!this.tapToPay) {
+  //     throw new Error('TapToPay contract not initialized. Call initializeTapToPay() first.');
+  //   }
+  //   return await this.tapToPay.spend({ signers, recipient, broadcast });
+  // }
 
   /**
    * Sweeps all funds from the card
