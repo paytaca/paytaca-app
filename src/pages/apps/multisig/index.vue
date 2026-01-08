@@ -28,7 +28,7 @@
               :key="i"
               flat
               class="q-mb-sm multisig-wallet-card"
-              :class="getDarkModeClass(darkMode)"
+              :class="`${getDarkModeClass(darkMode)} ${$q.screen.gt.xs ? 'q-mx-lg': ''}`"
               clickable
               @click="router.push({ name: 'app-multisig-wallet-view', params: { wallethash: wallet.getWalletHash() } })"
             >

@@ -63,7 +63,7 @@
               <!-- Paste Address Option -->
               <div class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
                 <div class="send-option-header">
-                  <q-icon name="mdi-wallet" size="28px" class="text-grad"/>
+                  <q-icon name="mdi-inbox" size="28px" class="text-grad"/>
                   <div class="send-option-title">
                     <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
                       {{ $t('SendToAddress', {}, 'Send to Address') }}
@@ -175,6 +175,42 @@
                     </q-btn>
                   </div>
                 </div>
+              </div>
+
+              <!-- Send to Other Wallets Option -->
+              <div v-if="otherWallets.length > 0" class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="send-option-header">
+                  <q-icon name="mdi-wallet" size="28px" class="text-grad"/>
+                  <div class="send-option-title">
+                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                      {{ $t('SendToYourOtherWallets', {}, 'Send to Your Other Wallets') }}
+                    </div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('SelectWalletToSend', {}, 'Select a wallet to send funds to') }}
+                    </div>
+                  </div>
+                </div>
+
+                <q-select
+                  v-model="selectedOtherWallet"
+                  :options="otherWallets"
+                  option-label="name"
+                  :dark="darkMode"
+                  filled
+                  :loading="generatingOtherWalletAddress"
+                  :disable="generatingOtherWalletAddress"
+                  class="q-mt-md"
+                  :placeholder="$t('SelectWallet', {}, 'Select a wallet')"
+                  @update:model-value="onOtherWalletSelected"
+                >
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section>
+                        <q-item-label>{{ scope.opt.name }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
               </div>
 
               <!-- Gift Link Option (only for BCH) -->
@@ -371,6 +407,10 @@ import { getCashbackAmount } from 'src/utils/engagementhub-utils/engagementhub-u
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import Watchtower from 'watchtower-cash-js'
+import WatchtowerExtended from 'src/lib/watchtower'
+import { generateReceivingAddress, getDerivationPathForWalletType, generateAddressSetWithoutSubscription } from 'src/utils/address-generation-utils'
+import { toTokenAddress } from 'src/utils/crypto'
+import axios from 'axios'
 import {
   getWalletByNetwork,
   convertTokenAmount
@@ -394,6 +434,7 @@ import {
   processCashinPoints,
   processOnetimePoints
 } from 'src/utils/engagementhub-utils/rewards'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 import DragSlide from 'src/components/drag-slide.vue'
 import Pin from 'src/components/pin/index.vue'
@@ -573,7 +614,9 @@ export default {
       focusedInputField: '',
       isScrolledToBottom: false,
       priceId: null,
-      priceIdPrice: null
+      priceIdPrice: null,
+      selectedOtherWallet: null,
+      generatingOtherWalletAddress: false
     }
   },
 
@@ -694,6 +737,38 @@ export default {
       }
 
       return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
+    },
+    otherWallets () {
+      const vault = this.$store.getters['global/getVault'] || []
+      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
+      
+      return vault
+        .map((wallet, index) => {
+          // Skip deleted wallets and current wallet
+          if (wallet?.deleted === true || index === currentWalletIndex) {
+            return null
+          }
+          
+          // Get wallet name or fallback to 'Personal Wallet'
+          const name = wallet?.name || 'Personal Wallet'
+          
+          // Get wallet hash based on network (mainnet vs chipnet)
+          const walletData = this.isChipnet ? wallet?.chipnet : wallet?.wallet
+          const walletHash = walletData?.bch?.walletHash || 
+                            walletData?.BCH?.walletHash ||
+                            null
+          
+          return {
+            index,
+            name,
+            walletHash
+          }
+        })
+        .filter(wallet => wallet !== null && wallet.walletHash !== null)
+    },
+    // Get asset from store reactively to ensure balance updates are reflected
+    storeAsset () {
+      return sendPageUtils.getAsset(this.assetId, this.symbol)
     }
   },
 
@@ -719,6 +794,20 @@ export default {
             this.recipients[i].amount, this.decimalObj(false)
           )
         }
+      }
+    },
+    // Watch for asset balance updates from store
+    storeAsset (newStoreAsset) {
+      if (newStoreAsset && newStoreAsset.balance !== undefined) {
+        // Merge store asset data with local asset (preserve local overrides like logo, name from route)
+        this.asset = {
+          ...this.asset,
+          balance: newStoreAsset.balance,
+          spendable: newStoreAsset.spendable,
+          yield: newStoreAsset.yield
+        }
+        // Recalculate wallet balance when asset balance updates
+        this.adjustWalletBalance()
       }
     },
     manualAddress (address) {
@@ -1767,6 +1856,276 @@ export default {
     },
     decimalObj (isFiat) {
       return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
+    },
+
+    // ========== other wallets methods ==========
+    /**
+     * Get the last address index for a specific wallet
+     * @param {number} walletIndex - The vault index of the wallet
+     * @param {string} assetType - The asset type: 'bch' or 'slp' (defaults to 'bch')
+     * @returns {Promise<number>} The last address index or 0 if not available
+     */
+    async getLastAddressIndexForWallet (walletIndex, assetType = 'bch') {
+      try {
+        // Get the correct wallet hash based on asset type
+        // BCH and SLP have different derivation paths and wallet hashes
+        const vault = this.$store.getters['global/getVault'] || []
+        const wallet = vault?.[walletIndex]
+        
+        if (!wallet) {
+          console.warn(`No wallet found for wallet index ${walletIndex}`)
+          return 0
+        }
+
+        // Get wallet hash based on asset type and network (mainnet vs chipnet)
+        let walletHash = null
+        const walletData = this.isChipnet ? wallet?.chipnet : wallet?.wallet
+        
+        if (assetType === 'slp') {
+          walletHash = walletData?.slp?.walletHash || 
+                      walletData?.SLP?.walletHash ||
+                      null
+        } else {
+          // Default to BCH
+          walletHash = walletData?.bch?.walletHash || 
+                      walletData?.BCH?.walletHash ||
+                      null
+        }
+
+        if (!walletHash) {
+          console.warn(`No ${assetType} wallet hash found for wallet index ${walletIndex}`)
+          return 0
+        }
+
+        const watchtower = new WatchtowerExtended(this.isChipnet)
+        const lastAddressAndIndex = await watchtower.getLastExternalAddressIndex(walletHash)
+        
+        if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+          return lastAddressAndIndex.address_index
+        }
+        
+        return 0
+      } catch (error) {
+        console.error(`Error getting last address index for wallet ${walletIndex} (${assetType}):`, error)
+        return 0
+      }
+    },
+
+    /**
+     * Ensure address index is not 0 (reserved for message encryption)
+     * @param {number} index - The address index to validate
+     * @returns {number} - The validated address index (never 0)
+     */
+    ensureAddressIndexNotZero (index) {
+      if (typeof index !== 'number' || index < 0) {
+        return 1 // Default to 1 if invalid
+      }
+      return index === 0 ? 1 : index
+    },
+
+    /**
+     * Get wallet type (bch or slp) from vault wallet object
+     * Note: All wallets support both BCH and SLP, but this can be used for validation
+     * @param {number} walletIndex - The vault index of the wallet
+     * @returns {string} 'bch' or 'slp' based on wallet structure, defaults to 'bch'
+     */
+    getWalletTypeFromVault (walletIndex) {
+      try {
+        const vault = this.$store.getters['global/getVault'] || []
+        const wallet = vault?.[walletIndex]
+        
+        if (!wallet) {
+          return 'bch' // Default to BCH
+        }
+        
+        // Check if wallet has SLP structure (indicating it's an SLP wallet)
+        // If both exist, default to BCH as it's more common
+        const hasSlp = !!(wallet?.wallet?.slp || wallet?.SLP)
+        const hasBch = !!(wallet?.wallet?.bch || wallet?.wallet?.BCH || wallet?.BCH || wallet?.bch)
+        
+        // For address generation, we use the asset type, not wallet type
+        // But return 'bch' as default since all wallets support BCH
+        return hasBch ? 'bch' : (hasSlp ? 'slp' : 'bch')
+      } catch (error) {
+        console.error(`Error getting wallet type for wallet ${walletIndex}:`, error)
+        return 'bch' // Default to BCH on error
+      }
+    },
+
+    /**
+     * Check if an address has balance (including token sats)
+     * @param {string} address - The address to check
+     * @param {string} walletType - 'bch' or 'slp'
+     * @returns {Promise<boolean>} True if address has balance, false otherwise
+     */
+    async checkAddressBalance (address, walletType) {
+      try {
+        const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+        
+        if (walletType === 'slp') {
+          // For SLP, check both BCH balance and SLP token balance
+          // An address should not be reused if it has either BCH or SLP tokens
+          const [bchResponse, slpResponse] = await Promise.all([
+            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } })),
+            axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          ])
+          const bchBalance = bchResponse?.data?.balance || 0
+          const slpBalance = slpResponse?.data?.balance || 0
+          return bchBalance > 0 || slpBalance > 0
+        } else {
+          // For BCH, check balance including token sats
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
+          const balance = response?.data?.balance || 0
+          return balance > 0
+        }
+      } catch (error) {
+        console.error('Error checking address balance:', error)
+        // If check fails, assume has balance to be safe (prevents address reuse when balance cannot be verified)
+        return true
+      }
+    },
+
+    /**
+     * Handle wallet selection from dropdown
+     * @param {Object} selectedWallet - The selected wallet object with { index, name, walletHash }
+     */
+    async onOtherWalletSelected (selectedWallet) {
+      if (!selectedWallet || typeof selectedWallet.index !== 'number') {
+        return
+      }
+
+      const vm = this
+      vm.generatingOtherWalletAddress = true
+
+      try {
+        // Derive asset type directly from the asset being sent, not from vm.walletType
+        // This ensures we use the correct derivation path regardless of the current wallet context
+        const assetId = vm.asset?.id || vm.assetId
+        if (!assetId) {
+          throw new Error('Asset ID is required to determine derivation path')
+        }
+        
+        // Determine asset type: 'slp' for SLP tokens, 'bch' for BCH and CashTokens
+        const assetType = assetId.indexOf('slp/') > -1 ? 'slp' : 'bch'
+        
+        if (assetType !== 'bch' && assetType !== 'slp') {
+          throw new Error(`Invalid asset type: ${assetType}. Must be 'bch' or 'slp'.`)
+        }
+
+        // Get the last address index for the selected wallet using the correct asset type
+        // This ensures we use the correct wallet hash (BCH vs SLP) for the watchtower query
+        const lastAddressIndex = await vm.getLastAddressIndexForWallet(selectedWallet.index, assetType)
+        
+        // Ensure address index is valid and not 0
+        let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
+        validAddressIndex = vm.ensureAddressIndexNotZero(validAddressIndex)
+
+        // IMPORTANT: Address reuse strategy
+        // We use lastAddressIndex directly (not lastAddressIndex + 1) to check if the last address
+        // has a balance. This allows us to:
+        // 1. Reuse addresses that were previously used but now have zero balance (funds were spent)
+        //    - This is safe and privacy-preserving since the address has no balance
+        //    - It prevents unnecessary address index growth
+        // 2. Only increment to a new address if the last address still has a balance
+        //    - This ensures we never reuse an address that currently holds funds
+        // This behavior is intentional and correct - we check balance first, then decide whether
+        // to reuse or increment, rather than always incrementing.
+
+        // IMPORTANT: Use the asset type being sent for derivation path, not the selected wallet's type
+        // The asset type determines whether we need a BCH address (m/44'/145'/0') or SLP address (m/44'/245'/0')
+        // All wallets support both BCH and SLP addresses, so we use the asset type being sent
+        const derivationPath = getDerivationPathForWalletType(assetType)
+
+        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+        const addressResult = await generateAddressSetWithoutSubscription({
+          walletIndex: selectedWallet.index,
+          derivationPath: derivationPath,
+          addressIndex: validAddressIndex,
+          isChipnet: vm.isChipnet
+        })
+        
+        if (!addressResult.success) {
+          throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
+        }
+        
+        const address = addressResult.addresses.receiving
+        
+        // Step 2: Check if that address has balance (including token sats)
+        const hasBalance = await vm.checkAddressBalance(address, assetType)
+        
+        let finalAddress = null
+
+        if (!hasBalance) {
+          // Step 3: If balance is zero, subscribe and use that address
+          const subscribeResult = await generateReceivingAddress({
+            walletIndex: selectedWallet.index,
+            derivationPath: derivationPath,
+            addressIndex: validAddressIndex,
+            isChipnet: vm.isChipnet
+          })
+          
+          if (!subscribeResult) {
+            throw new Error('Failed to subscribe address to watchtower')
+          }
+          
+          finalAddress = subscribeResult
+        } else {
+          // Step 4: If address has balance (already used), generate a new address by incrementing
+          let newAddressIndex = validAddressIndex + 1
+          // Skip address 0/0 (reserved for message encryption)
+          newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
+          
+          // Step 5: Generate and subscribe the new address
+          const newAddress = await generateReceivingAddress({
+            walletIndex: selectedWallet.index,
+            derivationPath: derivationPath,
+            addressIndex: newAddressIndex,
+            isChipnet: vm.isChipnet
+          })
+          
+          if (!newAddress) {
+            throw new Error('Failed to generate and subscribe new address')
+          }
+          
+          finalAddress = newAddress
+        }
+
+        // Convert address to the appropriate format based on asset type
+        // For SLP tokens, convert to SLP address format
+        // For CashTokens, convert to token address format
+        // For regular BCH, use as-is (already in cash address format)
+        let formattedAddress = finalAddress
+        if (assetType === 'slp') {
+          // Convert to SLP address format for SLP tokens
+          const addressObj = new Address(finalAddress)
+          formattedAddress = addressObj.toSLPAddress()
+        } else if (assetId.indexOf('ct/') > -1) {
+          // Convert to token address format for CashTokens
+          try {
+            formattedAddress = toTokenAddress(finalAddress)
+          } catch (error) {
+            console.error('Error converting address to token format:', error)
+            // If conversion fails, use the original address and let validation handle it
+            formattedAddress = finalAddress
+          }
+        }
+        // For regular BCH, the address is already in the correct format
+
+        // Use the generated and formatted address as recipient address
+        // This will trigger the normal send flow
+        await vm.onScannerDecode(formattedAddress, false)
+        
+        // Keep selection visible to show which wallet was chosen
+      } catch (error) {
+        console.error('Error generating address for other wallet:', error)
+        sendPageUtils.raiseNotifyError(
+          vm.$t('FailedToGenerateAddress', {}, 'Failed to generate address. Please try again.')
+        )
+        // Reset selection on error to allow retry
+        vm.selectedOtherWallet = null
+      } finally {
+        vm.generatingOtherWalletAddress = false
+      }
     }
   },
 
@@ -1854,8 +2213,19 @@ export default {
     vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId })
 
     vm.selectedDenomination = vm.denomination
-    // Load wallets
-    vm.initWallet().then(() => vm.adjustWalletBalance())
+    // Load wallets and fetch balance
+    vm.initWallet().then(async () => {
+      // Fetch and update asset balance from wallet
+      try {
+        await updateAssetBalanceOnLoad(vm.assetId, vm.wallet, vm.$store)
+        // Refresh asset from store after balance update
+        vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+      } catch (error) {
+        console.error('Error fetching asset balance:', error)
+      }
+      // Calculate wallet balance after asset balance is loaded
+      vm.adjustWalletBalance()
+    })
 
     if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 

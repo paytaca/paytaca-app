@@ -193,9 +193,3 @@ export async function subscribeWalletAddressIndex ({ rootGetters }, { wallet, ad
   })
 }
 
-export async function getWalletTransactionHistory ({ rootGetters }, { walletHash, type }) {
-  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  return await axios.get(`${watchtower}/api/history/wallet/${walletHash}?type=${type}&all=true&page=1`)
-}
-
-

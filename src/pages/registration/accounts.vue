@@ -684,9 +684,10 @@ export default {
         this.useTextArea = false
         
         // Check subscription status and show upgrade dialog if limits are exceeded
+        // Force refresh to ensure we fetch fresh LIFT token balance from the server
         // This handles the case when user navigates back to /accounts page
         try {
-          await this.$store.dispatch('subscription/checkSubscriptionStatus')
+          await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
           const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
           if (isOnMainView && this.checkIfLimitsExceeded()) {
             this.showUpgradeDialog = true
@@ -1286,7 +1287,8 @@ export default {
     },
     async initCreateWallet () {
       // First, check subscription status to get current limits
-      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      // Force refresh to ensure we fetch fresh LIFT token balance from the server
+      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
       
       if (this.checkIfLimitsExceeded()) {
         this.showUpgradeDialog = true
@@ -1331,7 +1333,8 @@ export default {
     },
     async initRestoreWallet () {
       // First, check subscription status to get current limits
-      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      // Force refresh to ensure we fetch fresh LIFT token balance from the server
+      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
       
       if (this.checkIfLimitsExceeded()) {
         this.showUpgradeDialog = true
@@ -2339,9 +2342,10 @@ export default {
     this.isOnboarding = this.isVaultEmpty
     
     // Check subscription status on mount to enable/disable buttons
+    // Force refresh to ensure we fetch fresh LIFT token balance from the server
     // This ensures the computed property has the correct values
     try {
-      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
       this.subscriptionChecked = true
       // Force reactivity update to refresh computed property
       this.$nextTick(() => {
