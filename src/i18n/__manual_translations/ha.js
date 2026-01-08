@@ -147,7 +147,6 @@ export default {
   AmountToken: "Token na adadi",
   TotalRefundable: "Jimlar da za a iya mayarwa",
   DiscountApplied: "An yi amfani da rangwame",
-  SuccessfulPurchaseMessage: "Saƙon siye mai nasara",
   // Other features
   AddingLiquidity: "Ƙara ruwa",
   ConversionInfo: "Canzawa zuwa {currency} a lokacin ma'amala. Ana nuna riba/asara a ƙasa idan aka kwatanta da farashin yanzu.",

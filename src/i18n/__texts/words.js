@@ -525,6 +525,9 @@ const words = [
     PerWallet: 'per wallet',
     FavoriteTokens: 'Favorite Tokens',
     UnclaimedGifts: 'Unclaimed Gifts',
+    ConfirmReservation: 'Confirm Reservation',
+    ConfirmingReservation: 'Confirming reservation',
+    ReservedAmount: 'Reserved Amount',
   }
 ]
 

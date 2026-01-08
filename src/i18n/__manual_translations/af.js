@@ -147,7 +147,6 @@ export default {
   AmountToken: "Bedrag token",
   TotalRefundable: "Totale terugbetaalbaar",
   DiscountApplied: "Afslag toegepas",
-  SuccessfulPurchaseMessage: "Suksesvolle aankoop boodskap",
   // Other features
   AddingLiquidity: "Voeg likiditeit by",
   ConversionInfo: "Omskakeling na {currency} ten tyde van die transaksie. Wins/verlies word hieronder getoon in vergelyking met die huidige prys.",

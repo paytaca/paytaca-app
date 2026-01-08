@@ -147,7 +147,6 @@ export default {
   AmountToken: "Токен суммы",
   TotalRefundable: "Общая сумма к возврату",
   DiscountApplied: "Скидка применена",
-  SuccessfulPurchaseMessage: "Сообщение об успешной покупке",
   // Other features
   AddingLiquidity: "Добавление ликвидности",
   ConversionInfo: "Конвертация в {currency} на момент транзакции. Прибыль/убыток показаны ниже по сравнению с текущей ценой.",
