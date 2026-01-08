@@ -142,10 +142,7 @@
                           :src="getImageUrl(asset)" 
                           :alt="asset.name" 
                           class="asset-icon"
-                          @touchstart.prevent.stop
-                          @touchmove.prevent.stop
-                          @touchend.prevent.stop
-                          @contextmenu.prevent.stop
+                          @contextmenu.prevent
                           @selectstart.prevent
                         >
                       </q-avatar>

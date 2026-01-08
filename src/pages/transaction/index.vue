@@ -129,10 +129,7 @@
                         alt=""
                         class="asset-icon"
                         style="height: 75px;"
-                        @touchstart.prevent.stop
-                        @touchmove.prevent.stop
-                        @touchend.prevent.stop
-                        @contextmenu.prevent.stop
+                        @contextmenu.prevent
                         @selectstart.prevent
                       />
                     </q-card-section>

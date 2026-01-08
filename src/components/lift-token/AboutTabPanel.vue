@@ -7,10 +7,7 @@
           <q-img
             src="/lift-token.png"
             class="lift-logo asset-icon"
-            @touchstart.prevent.stop
-            @touchmove.prevent.stop
-            @touchend.prevent.stop
-            @contextmenu.prevent.stop
+            @contextmenu.prevent
             @selectstart.prevent
           />
         </div>

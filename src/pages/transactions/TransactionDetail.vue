@@ -73,10 +73,7 @@
                 :src="getImageUrl(tx.asset)" 
                 alt="asset-logo" 
                 class="asset-icon"
-                @touchstart.prevent.stop
-                @touchmove.prevent.stop
-                @touchend.prevent.stop
-                @contextmenu.prevent.stop
+                @contextmenu.prevent
                 @selectstart.prevent
               />
             </q-avatar>
