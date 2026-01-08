@@ -96,7 +96,7 @@
                     <q-icon name="info" size="18px" class="cursor-pointer text-blue-6">
                       <q-menu
                         touch-position
-                        class="discount-menu q-py-sm q-px-md"
+                        class="discount-menu q-py-sm q-px-md text-bow"
                         :class="getDarkModeClass(darkMode)"
                       >
                         <div class="discount-info">
@@ -206,11 +206,11 @@
                 unelevated
                 rounded
                 no-caps
-                :label="!rsvp.is_paid ? $t('Purchase') : $t('ConfirmReservation')"
+                :label="rsvp.is_paid ? $t('ConfirmReservation') : $t('Purchase')"
                 class="purchase-btn"
                 :class="`theme-${theme}`"
                 :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
-                @click="openPayReservationDialog(rsvp)"
+                @click="rsvp.is_paid ? openConfirmReservationDialog(rsvp) : openPayReservationDialog(rsvp)"
               />
             </div>
           </q-card>
@@ -234,6 +234,7 @@ import { getMnemonic, Wallet } from "src/wallet";
 import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 import PayReservationDialog from "src/components/lift-token/dialogs/PayReservationDialog.vue";
+import ConfirmReservationDialog from "src/components/lift-token/dialogs/ConfirmReservationDialog.vue";
 
 export default {
   name: "ReservationsTabPanel",
@@ -346,7 +347,11 @@ export default {
         });
     },
     openConfirmReservationDialog(rsvp) {
-      
+      this.$q
+        .dialog({
+          component: ConfirmReservationDialog,
+          componentProps: { rsvp }
+        })
     }
   },
 
