@@ -52,30 +52,31 @@
                         icon="more_vert"
                         color="primary"
                         @click="openCardMenu($event, card)"
-                     />
+                     >
+                        <!-- Card Options Menu -->
+                        <q-menu
+                            anchor="top right"
+                            self="top right"
+                            transition-show="scale"
+                            transition-hide="scale"
+                        >
+                          <q-list padding style="min-width: 150px">
+                              <q-item clickable v-ripple @click="manageAuthNFTs(card)">
+                                <q-item-section>Manage Auth NFTs</q-item-section>
+                              </q-item>
+
+                              <q-item clickable v-ripple @click="viewTransactionHistory(card)">
+                                <q-item-section>Transaction History</q-item-section>
+                              </q-item>
+
+                              <q-item clickable v-ripple @click="lockCard(card)">
+                                <q-item-section>Lock Card</q-item-section>
+                              </q-item>
+                            </q-list>
+                        </q-menu>
+                      </q-btn>
                   </div>
                 </q-card-section>
-
-                <!-- Card Options Menu -->
-                <q-menu
-                  v-model="cardMenu.visible"
-                  :anchor="cardMenu.anchorOrigin"
-                  :self="cardMenu.selfOrigin"
-                  transition-show="scale"
-                  transition-hide="scale"
-                >
-                    <q-list padding>
-                      <q-item clickable v-ripple @click="manageAuthNFTs(cardMenu.card)">
-                        <q-item-section>Manage Auth NFTs</q-item-section>
-                      </q-item>
-                      <q-item clickable v-ripple @click="viewTransactionHistory(cardMenu.card)">
-                        <q-item-section>Transaction History</q-item-section>
-                      </q-item>
-                      <q-item clickable v-ripple @click="lockCard(cardMenu.card)">
-                        <q-item-section>Lock Card</q-item-section>
-                      </q-item>
-                    </q-list>
-                </q-menu>
 
                 <q-separator/>
 
@@ -271,8 +272,8 @@ import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
         // Menu state
         cardMenu: {
           visible: false,
-          anchorOrigin: { horizontal: 'right', vertical: 'top' },
-          selfOrigin: { horizontal: 'right', vertical: 'top' },
+          anchorOrigin: 'top right',
+          selfOrigin: 'top right',
           card: null
         }
       }
@@ -315,7 +316,6 @@ import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
         this.$q.notify({
           message: `Card "${this.newCardName}" created!`,
           color: 'positive',
-          position: 'top'
         });
 
       },
@@ -346,7 +346,7 @@ import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
         this.$q.notify({
           message: `Cash In for "${card.name}" clicked!`,
           color: 'positive',
-          position: 'top'
+          
         });
 
         console.log('Cash In clicked for:', card);
@@ -357,8 +357,8 @@ import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
         this.cardMenu.visible = true;
         
         this.$nextTick(() => {
-          this.cardMenu.anchorOrigin = {horizontal: 'right', vertical: 'top'};
-          this.cardMenu.selfOrigin = {horizontal: 'right', vertical: 'top'};
+          this.cardMenu.anchorOrigin = 'top right';
+          this.cardMenu.selfOrigin = 'top right';
         })
         
       },
@@ -379,8 +379,6 @@ import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
       }
 
     }
-
-   
 
   }
 </script>
