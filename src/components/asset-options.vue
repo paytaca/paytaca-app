@@ -14,7 +14,11 @@
 			<div class="row">	             
 	              <div class="col" v-for="opt in bchOpt">	              	
 	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
-	                  <q-icon class="default-text-color"  size="24px" :name="opt.icon"/>
+	                  <div v-if="opt.name === 'cash in'" class="receive-bch-icon-wrapper-small">
+	                    <q-icon class="default-text-color" size="24px" name="volunteer_activism"/>
+	                    <img src="bitcoin-cash-circle.svg" class="bch-overlay-icon-small" alt="BCH" />
+	                  </div>
+	                  <q-icon v-else class="default-text-color" size="24px" :name="opt.icon"/>
 	                </q-btn>
 	                <div class="q-pt-xs text-center text-capitalize" :class="disableButton(opt.name) ? 'text-grey' : ''" style="font-size: 13px;">{{ opt.label }}</div>
 	              </div>
@@ -86,10 +90,6 @@ export default {
 			type: String,
 			default: null
 		},
-		hasCashin: {
-			type: Boolean,
-			default: true
-		}
 	},
 	emits: [
 		'cashin',
@@ -131,7 +131,7 @@ export default {
 	          this.$router.push({ name: 'transaction-receive-select-asset' })
 	          break
 	        case 'cash in':
-	          this.$emit('cashin')
+	          this.$router.push({ name: 'app-get-bch' })
 	          break
 	        case 'spend bch':
 	          this.$emit('spend-bch')
@@ -142,12 +142,7 @@ export default {
 	      } 
 	},
 	disableButton (name) {
-		if (name === 'cash in') {
-			return !this.loaded || !this.hasCashin
-		} else {
-			return !this.loaded
-		}
-
+		return !this.loaded
 	},
  		async openFreezeDialog() { 			
 			const { contract } = (await this.findContractForFreeze())
@@ -373,5 +368,20 @@ export default {
 <style lang="scss" scoped>
 .asset-option {
 	margin: 10px 0px 15px;
+}
+
+.receive-bch-icon-wrapper-small {
+  position: relative;
+  display: inline-block;
+  
+  .bch-overlay-icon-small {
+    position: absolute;
+    top: 30%;
+    left: 67%;
+    transform: translate(-50%, -50%);
+    width: 0.5em;
+    height: 0.5em;
+    pointer-events: none;
+  }
 }
 </style>
