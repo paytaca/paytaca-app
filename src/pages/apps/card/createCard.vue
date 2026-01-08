@@ -69,8 +69,10 @@
                                 <q-item-section>Transaction History</q-item-section>
                               </q-item>
 
-                              <q-item clickable v-ripple @click="lockCard(card)">
-                                <q-item-section>Lock Card</q-item-section>
+                              <q-item clickable v-ripple @click="toggleLock(card)">
+                                <q-item-section :class="card.status === 'Locked' ? 'text-positive' : 'text-negative'">
+                                  {{ card.status === 'Locked' ? 'Unlock Card' : 'Lock Card' }}
+                                </q-item-section>
                               </q-item>
                             </q-list>
                         </q-menu>
@@ -84,6 +86,15 @@
                  <q-card-section>
                     <div class="text-caption text-grey">Contract Address: {{ card.contractAddress }}</div>
                     <div class="text-caption text-grey">Balance: {{ card.balance }} BCH</div>
+
+                    <div class>
+                      <div class="text-caption text-weight-bold">Status:</div>
+                      <q-badge
+                        :color="card.status === 'Locked' ? 'negative' : 'positive'"
+                        class="q-ml-xs"
+                        :label="card.status || 'Active'"
+                      />
+                    </div>
                  </q-card-section>
 
               </q-card>
@@ -251,6 +262,7 @@ import { loadWallet } from 'src/wallet';
 import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'src/utils/wallet';
 import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
 import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
+import RampHistoryDialog from 'src/components/ramp/crypto/RampHistoryDialog.vue';
   
   export default {
     
@@ -303,7 +315,8 @@ import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
           name: this.newCardName,
           authNFT: this.newAuthNFT,
           contractAddress: this.contractAddress,
-          balance: 0
+          balance: 0,
+          status: 'Active'
         }
 
         // Insert before the create card button
@@ -373,9 +386,46 @@ import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
         this.cardMenu.visible = false;
       },
 
-      lockCard(card) {
-        this.$q.notify({ message: `Lock Card "${card.name}" clicked!`, color: 'negative' });
-        this.cardMenu.visible = false;
+      toggleLock(card) {
+        const isLocked = card.status === 'Locked'
+
+        this.$q.dialog({
+          title: isLocked ? 'Unlock Card' : 'Lock Card',
+          message: isLocked
+            ? `Are you sure you want unlock "${card.name}"? This will enable all transactions.`
+            : `Are you sure you want to lock "${card.name}"? This will disable all transactions.`,
+          cancel: true,
+          persistent: true,
+          ok: {
+            label: isLocked ? 'Unlock now' : 'Proceed',
+            color: isLocked? 'positive' : 'negative',
+            unelevated: true
+          },
+          cancel: {
+            label: 'Cancel',
+            flat: true,
+            color: 'grey'
+          }
+        }).onOk(() => {
+          if(isLocked){
+            card.status = 'Active'
+            this.notifyStatus(card.name, 'unlocked', 'positive', 'lock_open')
+          }
+          else{
+            card.status = 'Locked'
+            this.notifyStatus(card.name, 'locked', 'negative', 'lock')
+          }
+        }).onCancel(() => {
+          console.log('User cancelled the lock action.')
+        })
+      },
+
+      notifyStatus(name, action, color, icon){
+        this.$q.notify({
+          message: `Card "${name}" has been ${action}`,
+          color: color,
+          icon: icon
+        })
       }
 
     }
