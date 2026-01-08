@@ -240,7 +240,7 @@
                     color="primary"
                     unelevated
                     @click="handleCashIn(selectedCard)"
-                />
+                  />
             </q-card-section>
 
 
@@ -248,6 +248,43 @@
       </q-card>
 
    </q-dialog>
+
+
+   <!-- CASH IN POP UP -->
+   <q-dialog v-model="showCashInDialog" persistent>
+      <q-card style="min-width: 350px" class="br-15 q-pa-sm">
+        <q-card-section>
+          <div class="text-h6">Cash In</div>
+        </q-card-section>
+
+        <q-card-section class="row q-col-gutter-sm items-center">
+          <div class="col-8">
+            <q-input
+              v-model.number="tempAmount"
+              type="number"
+              label="Amount"
+              outlined
+              dense
+              autofocus
+            />
+          </div>
+          
+          <div class="col-4">
+            <q-select
+              v-model="selectedCurrency"
+              :options="['PHP', 'BCH', 'satoshis']"
+              outlined
+              dense
+            />
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Confirm" @click="confirmCashIn" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   
 </template>
 
@@ -263,6 +300,7 @@ import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'sr
 import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
 import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
 import RampHistoryDialog from 'src/components/ramp/crypto/RampHistoryDialog.vue';
+import { selectedCurrency } from 'src/store/market/getters';
   
   export default {
     
@@ -287,7 +325,13 @@ import RampHistoryDialog from 'src/components/ramp/crypto/RampHistoryDialog.vue'
           anchorOrigin: 'top right',
           selfOrigin: 'top right',
           card: null
-        }
+        },
+        // Cash In
+        showCashInDialog: false, 
+        tempAmount: 0,
+        activeCard: null,
+        cashInamount: null,
+        selectedCurrency: 'PHP'
       }
     },
 
@@ -354,15 +398,31 @@ import RampHistoryDialog from 'src/components/ramp/crypto/RampHistoryDialog.vue'
         });
       },
 
-      handleCashIn(card) {
-        // For now, just notify
-        this.$q.notify({
-          message: `Cash In for "${card.name}" clicked!`,
-          color: 'positive',
-          
-        });
+      handleCashIn(card) {   
+        this.viewCardDialog = false; 
+        this.activeCard = card;
+        this.tempAmount = 0;
+        this.showCashInDialog = true;
+      },
 
-        console.log('Cash In clicked for:', card);
+      confirmCashIn() {
+        const amount = parseFloat(this.tempAmount);
+
+        if (!amount || amount <= 0) {
+          this.$q.notify({
+            message: 'Please enter a valid amount',
+            color: 'negative',
+            icon: 'warning'
+          });
+          return;
+        }
+
+        this.cashInAmount = amount;
+        this.showCashInDialog = false;
+        
+        console.log(`Cashing in ${this.cashInAmount} ${this.selectedCurrency} for card:`, this.activeCard);
+        
+        // Call actual Cash in function
       },
 
       openCardMenu(evt, card){
