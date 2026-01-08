@@ -1499,18 +1499,82 @@ async generateAuthCredentials(xpub) {
         'X-Auth-Message': rawMessage
     }
   }
+
+  /**
+   * Extracts the compressed raw public key (33 bytes) from a recipient's xpub string.
+   * @param {string} xpubString The Base58 encoded xpub.
+   * @returns {Uint8Array} The raw compressed public key.
+   */
+  static extractRawPublicKeyFromXpub(xpubString) {
+    const decodeResult = decodeHdPublicKey(xpubString);
+    if (typeof decodeResult === 'string') {
+        throw new Error(`Failed to decode xpub: ${decodeResult}`);
+    }
+    return decodeResult.publicKey;
+  }
+
+  /**
+  * Encrypts a message using ECIES for a specific recipient's public key.
+  * @param {Uint8Array} recipientRawPublicKey The raw compressed public key.
+  * @param {string} messageText The message to encrypt (your xpub).
+  * @returns {Promise<string>} The encrypted message encoded as a hex string.
+  */
+  static async encryptMessageForXpubOwner(recipientRawPublicKey, messageText) {
+    const messageBytes = utf8ToBin(messageText); 
+
+    // Initialize ECIES using libauth's secp256k1 implementation
+    const eciesEncrypt = ecies(secp256k1);
+
+    const encryptedBytes = await eciesEncrypt.encrypt(
+        recipientRawPublicKey, 
+        messageBytes
+    );
+
+    // Convert the resulting Uint8Array to a hex string for easy transmission
+    return binToHex(encryptedBytes);
+  }
+
+  // =============================================================================
+  // RECIPIENT SIDE FUNCTIONS
+  // (To be used only by the owner of the xprv/xpub pair to decrypt the message)
+  // =============================================================================
+
+  /**
+  * Extracts the master private key from the owner's xprv string.
+  * @param {string} xprvString The Base58 encoded xprv.
+  * @returns {Uint8Array} The raw master private key.
+  */
+  static extractRawPrivateKeyFromXprv(xprvString) {
+    const decodeResult = decodeHdPrivateKey(xprvString);
+    if (typeof decodeResult === 'string') {
+        throw new Error(`Failed to decode xprv: ${decodeResult}`);
+    }
+    // Note: privateKey might be undefined if you pass in an xpub string accidentally
+    if (!decodeResult.privateKey) {
+        throw new Error("Could not extract private key from provided string.");
+    }
+    return decodeResult.privateKey;
+  }
+
+
+  /**
+  * Decrypts an ECIES message using the owner's private key.
+  * @param {Uint8Array} ownerPrivateKeyBytes The owner's raw private key bytes.
+  * @param {string} encryptedHexMessage The encrypted message received.
+  * @returns {Promise<string>} The original plaintext message (sender's xpub).
+  */
+  static async decryptMessage(ownerPrivateKeyBytes, encryptedHexMessage) {
+    const encryptedBytes = hexToBin(encryptedHexMessage);
+
+    // Initialize ECIES with libauth's curve implementation
+    const eciesDecrypt = ecies(secp256k1);
+
+    const decryptedBytes = await eciesDecrypt.decrypt(
+        ownerPrivateKeyBytes,
+        encryptedBytes
+    );
+    
+    // Convert the resulting bytes back to a UTF-8 string
+    return binToUtf8(decryptedBytes);
+  }
 }
-
-
-// const wallet = new MultisigWallet({
-//   onStateChange: async ({ key, value }) => {
-//     await store.commit('wallet/update', { key, value });
-//     await fetch('/api/sync-wallet', {
-//       method: 'POST',
-//       body: JSON.stringify({ key, value }),
-//       headers: { 'Content-Type': 'application/json' }
-//     });
-//   }
-// });
-
-
