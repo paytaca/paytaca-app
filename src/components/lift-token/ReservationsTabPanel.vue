@@ -352,6 +352,14 @@ export default {
           component: ConfirmReservationDialog,
           componentProps: { rsvp }
         })
+        .onOk(() => {
+          this.$q.notify({
+            type: "positive",
+            timeout: 3000,
+            message: this.$t("SuccessfulConfirmReservationMessage"),
+          });
+          this.$emit("on-successful-purchase");
+        });
     }
   },
 

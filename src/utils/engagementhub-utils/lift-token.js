@@ -179,3 +179,10 @@ export function updateRsvpPublicKeys (data) {
     .patch(`reservation/${getWalletHash()}/`, data)
     .catch(error => console.error(error))
 }
+
+export async function confirmReservationApi(data) {
+  return await LIFTTOKEN_URL
+    .post('reservation/confirm_reservation/', data)
+    .then(response => { return response.status === 200 })
+    .catch(_error => { return false })
+}

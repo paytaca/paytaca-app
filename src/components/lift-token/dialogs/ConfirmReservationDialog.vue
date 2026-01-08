@@ -29,7 +29,7 @@
 
       <!-- Highlighted Reservation Details Card -->
       <div 
-        class="reservation-details-card q-pa-lg q-mb-lg"
+        class="reservation-details-card q-pa-md q-mb-lg"
         :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
       >
         <!-- Token Amount - Prominent Display -->
@@ -50,7 +50,7 @@
         <!-- USD Amount -->
         <div class="text-center q-mb-md">
           <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-            {{ $t('TotalCost') || 'Total Cost' }}
+            {{ $t('TotalCost') }}
           </div>
           <div class="row items-center justify-center q-gutter-xs q-mt-xs">
             <span 
@@ -129,6 +129,13 @@
         :text="$t('SwipeToConfirm')"
         @swiped="confirmReservation"
       />
+
+      <div v-if="isSliderLoading" class="row flex-center">
+        <progress-loader />
+        <span class="col-12 text-center text-h6 q-mb-sm">
+          {{ $t('ConfirmingReservation') }} ...
+        </span>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -141,16 +148,19 @@ import {
   parseFiatCurrency,
   getAssetDenomination,
 } from 'src/utils/denomination-utils';
+import { raiseNotifyError } from 'src/utils/send-page-utils';
 
 import DragSlide from "src/components/drag-slide.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
+import ProgressLoader from "src/components/ProgressLoader.vue";
 
 export default {
   name: 'ConfirmReservationDialog',
 
   components: {
     DragSlide,
-    SaleGroupBadge
+    SaleGroupBadge,
+    ProgressLoader
   },
 
   props: {
@@ -189,13 +199,24 @@ export default {
     },
 
     async confirmReservation() {
-      console.log(this.rsvp)
+      this.isSliderLoading = true;
+
       const oracleData = await getOracleData()
       const data = {
-        reservation: this.rsvp.id,
+        reservation_id: this.rsvp.id,
         message_timestamp: oracleData.messageTimestamp
       }
-      console.log(data)
+
+      const isSuccessful = await confirmReservationApi(data)
+
+      if (isSuccessful) {
+        this.isSliderLoading = false;
+        this.$refs.confirmDialogRef.$emit("ok");
+        this.$refs.confirmDialogRef.hide();
+      } else {
+        raiseNotifyError(this.$t("ConfirmReservationError"));
+        this.isSliderLoading = false;
+      }
     }
   }
 }
