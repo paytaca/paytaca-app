@@ -100,11 +100,11 @@
             </div>
             <div class="detail-value">
               <a
-                :href="`https://explorer.bch.ninja/tx/${purchase.initial_tx_id}`"
+                :href="`https://explorer.bch.ninja/tx/${purchase.payment_tx_id}`"
                 target="_blank"
                 class="tx-link"
               >
-                {{ parseTxid(purchase.initial_tx_id) }}
+                {{ parseTxid(purchase.payment_tx_id) }}
                 <q-icon name="mdi-open-in-new" size="14px" class="q-ml-xs" />
               </a>
             </div>
