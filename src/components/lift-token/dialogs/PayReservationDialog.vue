@@ -22,6 +22,14 @@
         />
       </div>
 
+      <!-- Sale Group Badge -->
+      <div v-if="rsvp.sale_group" class="row justify-center q-mb-md">
+        <sale-group-badge
+          type="round"
+          :saleGroup="rsvp.sale_group"
+        />
+      </div>
+
       <div class="price-info-box q-pa-sm q-mb-md" :class="getDarkModeClass(darkMode)">
         <div class="row justify-between">
           <span class="text-caption text-grey-7" :class="{'text-grey-4': darkMode}">
@@ -159,6 +167,7 @@ import {
 
 import CustomInput from "src/components/CustomInput.vue";
 import PayReservationConfirmDialog from "src/components/lift-token/dialogs/PayReservationConfirmDialog.vue";
+import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 
 export default {
   name: "PayReservationDialog",
@@ -170,7 +179,8 @@ export default {
   },
 
   components: {
-    CustomInput
+    CustomInput,
+    SaleGroupBadge
   },
 
   data() {
