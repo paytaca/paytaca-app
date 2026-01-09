@@ -1,11 +1,18 @@
+/**
+ * Card API Service Module
+ * 
+ * Provides a centralized API client and utility functions for managing card-related operations
+ * in the Paytaca application. This module handles communication with the Card API backend service
+ * and integrates with the Watchtower service for blockchain balance queries.
+ * 
+ */
+
 import axios from 'axios'
 import { Store } from 'src/store'
 import Watchtower from 'src/lib/watchtower'
 const isChipnet = Store.getters['global/isChipnet']
 const watchtower = new Watchtower(isChipnet)
 
-// You might want to create a backend configuration similar to other services
-// For now, I'll use a base configuration that you can customize
 const API_BASE_URL = process.env.CARD_API_BASE_URL || 'http:/localhost:3000/api' // Adjust this to your actual card API base URL
 
 const cardApi = axios.create({
@@ -31,33 +38,7 @@ const cardApi = axios.create({
 //   }
 // )
 
-/**
- * Fetch card information
- * @param {string} cardId - The card ID to fetch
- * @returns {Promise} API response with card information
- */
-export async function fetchCard(identifier) {
-  try {
-    console.log('url:', cardApi.defaults.baseURL)
-    const response = await cardApi.get(`/cards/${identifier}/`)
-    const balance = await getCardBalance(response.data.cash_address)
-    return { ...response.data, balance }
-  } catch (error) {
-    console.error('Error fetching card info:', error)
-    throw error
-  }
-}
-
-export async function getCardBalance(address) {
-  try {
-    const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
-    console.log('Card balance response:', response.data)
-    return response.data.balance
-  } catch (error) {
-    console.error('Error fetching card balance:', error)
-    throw error
-  }
-}
+// ==================== CARD OPERATIONS ====================
 
 /**
  * Create new card information
@@ -77,6 +58,41 @@ export async function createCard(cardData) {
     throw error
   }
 }
+
+/**
+ * Fetch card information
+ * @param {string} cardId - The card ID to fetch
+ * @returns {Promise} API response with card information
+ */
+export async function fetchCard(identifier) {
+  try {
+    console.log('url:', cardApi.defaults.baseURL)
+    const response = await cardApi.get(`/cards/${identifier}/`)
+    const balance = await getCardBalance(response.data.cash_address)
+    return { ...response.data, balance }
+  } catch (error) {
+    console.error('Error fetching card info:', error)
+    throw error
+  }
+}
+
+/**
+ * Get the BCH balance of a card address
+ * @param {string} address - The BCH address of the card
+ * @returns {Promise<number>} The BCH balance of the card
+ */
+export async function getCardBalance(address) {
+  try {
+    const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
+    console.log('Card balance response:', response.data)
+    return response.data.balance
+  } catch (error) {
+    console.error('Error fetching card balance:', error)
+    throw error
+  }
+}
+
+// ==================== AUTH NFT OPERATIONS ====================
 
 /**
  * Fetch authentication NFTs
@@ -119,6 +135,10 @@ export async function createNFTs(nftData) {
   }
 }
 
+/** * Mutate (update) authentication NFTs
+ * @param {Object} mutationData - The mutation data for NFTs
+ * @returns {Promise} API response with updated auth NFTs
+ */
 export async function mutateNFTs(mutationData) {
   try {
     const response = await cardApi.patch(`/auth-nfts/batch-update/`, mutationData)
@@ -129,6 +149,7 @@ export async function mutateNFTs(mutationData) {
   }
 }
 
+// ==================== TERMINAL OPERATIONS ====================
 
 export async function createTerminal(terminalData) {
   try {
@@ -160,5 +181,5 @@ export async function fetchUnissuedTerminals(cardId) {
   }
 }
 
-// Export the axios instance for advanced usage if needed
+// ==================== EXPORTS ====================
 export { cardApi }

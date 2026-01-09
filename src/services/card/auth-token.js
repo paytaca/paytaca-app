@@ -1,3 +1,24 @@
+
+
+/**
+ * Authentication Token Manager for Card Services
+ * 
+ * This module manages the creation, minting, issuance, mutation, and burning of authentication tokens
+ * in the Paytaca card system. It provides functionality to:
+ * - Generate genesis tokens with minting capabilities
+ * - Mint NFT tokens with terminal-specific commitments (authorization, expiration, spend limits)
+ * - Issue tokens to recipients with specific capabilities
+ * - Mutate token commitments (update authorization, expiration, spend limits)
+ * - Burn tokens associated with specific terminals
+ * 
+ * The module uses mainnet-js Wallet to interact with the Bitcoin Cash blockchain and employs
+ * commitment encoding/decoding to embed terminal metadata (ID, public key, authorization state,
+ * expiration block, and spend limit) into token commitments for validation and access control.
+ * 
+ * @requires crypto - For SHA256 hashing of terminal data
+ * @requires mainnet-js - For blockchain wallet operations and token management
+ */
+
 import { createHash } from 'crypto';
 import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainnet-js';
 import { defaultExpirationDeltaMinutes, defaultSpendLimitSats, minTokenValue } from './constants';
