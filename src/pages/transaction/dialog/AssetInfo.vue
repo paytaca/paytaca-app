@@ -17,10 +17,7 @@
               :src="getImageUrl(asset)" 
               height="45" 
               class="asset-logo asset-icon"
-              @touchstart.prevent.stop
-              @touchmove.prevent.stop
-              @touchend.prevent.stop
-              @contextmenu.prevent.stop
+              @contextmenu.prevent
               @selectstart.prevent
             >
           </div>

@@ -41,10 +41,7 @@
           height="28" 
           class="q-mr-xs asset-icon" 
           alt=""
-          @touchstart.prevent.stop
-          @touchmove.prevent.stop
-          @touchend.prevent.stop
-          @contextmenu.prevent.stop
+          @contextmenu.prevent
           @selectstart.prevent
         >
         <p class="col text-right asset-symbol">

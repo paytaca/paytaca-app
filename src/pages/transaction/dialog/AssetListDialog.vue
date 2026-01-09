@@ -53,10 +53,7 @@
 		            <img 
 		              :src="getImageUrl(asset)" 
 		              class="asset-icon"
-		              @touchstart.prevent.stop
-		              @touchmove.prevent.stop
-		              @touchend.prevent.stop
-		              @contextmenu.prevent.stop
+		              @contextmenu.prevent
 		              @selectstart.prevent
 		            >
 		          </q-avatar>
