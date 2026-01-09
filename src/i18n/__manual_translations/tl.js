@@ -173,8 +173,8 @@ export default {
   "Connect to Paytaca": "I-connect sa Paytaca",
   "Required number of signers": "Kailangang bilang ng signers",
   "Total number of signers": "Kabuuang bilang ng signers",
-  "You earned": "Nakakuha ka ng",
   EnterCustomAmount: "Maglagay ng custom amount",
   Devicesuspended: "Na-suspend ang device",
+  LegacyAddressWarning: "Isang legacy address ang iyong nai-paste. Mangyaring siguraduhing ito ay isang <span class=\"highlighted-word\">BCH deposit address</span>, hindi isang BTC deposit address."
 }
 

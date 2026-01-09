@@ -172,8 +172,11 @@ export default {
   "Connect to Paytaca": "Paytacaに接続",
   "Required number of signers": "必要な署名者の数",
   "Total number of signers": "署名者の総数",
-  "You earned": "獲得しました",
   EnterCustomAmount: "カスタム金額を入力",
   Devicesuspended: "デバイスが停止されました",
+  LegacyAddressWarning: "Legacyアドレスを入力しました。<span class=\"highlighted-word\">BCH預金アドレス</span>であることを確認してください。BTC預金アドレスではありません。",
+  AppealableAfterCooldown: "{cooldown}後に異議申し立て可能",
+  AppealableInCooldown: "{cooldown}でアピール可能",
+  ThemeName: "{theme} テーマ",
 }
 

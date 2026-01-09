@@ -172,8 +172,11 @@ export default {
   "Connect to Paytaca": "Hubungkan ke Paytaca",
   "Required number of signers": "Jumlah penandatangan yang diperlukan",
   "Total number of signers": "Jumlah total penandatangan",
-  "You earned": "Anda mendapatkan",
   EnterCustomAmount: "Masukkan jumlah kustom",
   Devicesuspended: "Perangkat ditangguhkan",
+  LegacyAddressWarning: "Anda telah memasukkan alamat legacy. Pastikan itu adalah <span class=\"highlighted-word\">alamat deposit BCH</span>, bukan alamat deposit BTC.",
+  BitcoinCash: "Bitcoin Cash",
+  WebsiteDescription: "Kunjungi {website}",
+  TotalLIFT: "Jumlah LIFT",
 }
 

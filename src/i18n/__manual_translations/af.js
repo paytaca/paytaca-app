@@ -172,8 +172,11 @@ export default {
   "Connect to Paytaca": "Koppel aan Paytaca",
   "Required number of signers": "Vereiste aantal ondertekenaars",
   "Total number of signers": "Totale aantal ondertekenaars",
-  "You earned": "Jy het verdien",
   EnterCustomAmount: "Voer aangepaste bedrag in",
   Devicesuspended: "Toestel opgeskort",
+  LegacyAddressWarning: "Jy het 'n legacy adres gepas. Maak asseblief seker dat dit 'n <span class=\"highlighted-word\">BCH deposito adres</span> is, nie 'n BTC deposito adres nie.",
+  BitcoinCash: "Bitcoin Cash",
+  TotalLIFT: "Totale LIFT",
+  UnpaidLift: "Onbetaalde LIFT",
 }
 
