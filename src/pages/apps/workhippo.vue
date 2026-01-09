@@ -1,7 +1,7 @@
 <template>
   <div id="app-container" class="workhippo-page text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav 
-      :title="$t('WorkHippo', {}, 'WorkHippo')"
+      title="WorkHippo"
       backnavpath="/apps/get-bch"
     />
     
@@ -10,7 +10,7 @@
       <div class="hero-section text-center q-mb-xl">
         <q-icon name="work" size="4em" color="primary" class="q-mb-md" />
         <h4 class="text-h4 text-weight-bold q-mb-sm" :class="getDarkModeClass(darkMode)">
-          {{ $t('WorkHippo', {}, 'WorkHippo') }}
+          WorkHippo
         </h4>
         <p class="text-body1 q-mb-lg" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="max-width: 600px; margin: 0 auto;">
           {{ $t('WorkHippoTagline', {}, 'An upcoming freelance work platform') }}
@@ -48,7 +48,7 @@
                 no-caps
                 color="primary"
                 icon="language"
-                :label="$t('VisitWebsite', {}, 'Visit workhippo.app')"
+                :label="$t('VisitWorkHippoWebsite', { workHippoWebsite: 'workhippo.app' }, 'Visit workhippo.app')"
                 @click="openWebsite"
                 class="full-width"
               />

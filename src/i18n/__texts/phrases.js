@@ -1926,6 +1926,38 @@ const phrases = {
       Devicesuspended: 'Device suspended',
       SuccessfulConfirmReservationMessage: 'Reservation confirmed successfully. Check the Purchases tab for more details.',
       ConfirmReservationError: 'Error confirming reservation',
+    },
+    {
+      HowToGetBCH: 'How to get BCH',
+      GetBCHDescription: 'Discover the many ways to acquire Bitcoin Cash',
+      BuyBCHWithLocalCurrency: 'Buy BCH with Local Currency',
+      BuyBCHDescription: 'Purchase Bitcoin Cash through P2P Exchange with your local currency',
+      SwapFromOtherCryptocurrencies: 'Swap From Other Cryptocurrencies',
+      SwapFromCryptosDescription: 'Exchange other cryptocurrencies for Bitcoin Cash',
+      EarnBCHWithWorkHippo: 'Earn BCH With WorkHippo',
+      WorkHippoDescription: 'Earn Bitcoin Cash by completing freelance work on WorkHippo',
+      CollectBCHCashdrops: 'Collect BCH Cashdrops With PurelyPeer',
+      PurelyPeerDescription: 'Find and collect hidden Bitcoin Cash cashdrops around quest centers',
+      WorkHippoTagline: 'An upcoming freelance work platform',
+      WorkHippoDescription: 'WorkHippo is an upcoming freelance work platform that will allow you to earn Bitcoin Cash by completing various freelance tasks and projects.',
+      WorkHippoComingSoon: 'This platform is currently under development. Stay tuned for updates!',
+      WorkHippoContact: 'For more information or collaboration opportunities, visit the WorkHippo website.',
+      PurelyPeerTagline: 'Discover the thrill of quest hunting with PurelyPeer',
+      PurelyPeerDescription: 'The ultimate noncustodial wallet for modern quest hunters! Find hidden cashdrops and collect Bitcoin Cash!',
+      PurelyPeerDescription2: 'PurelyPeer uses a map with hints to find the closest cashdrops with BCH, hidden in random locations around a quest center. These cashdrops are micro-advertisements from anyone who had created a PurelyPeer quest.',
+      CollectNowDescription: 'A map with hints to find closest cashdrops with BCH, hidden in random locations around a quest center.',
+      CreateAQuest: 'Create A Quest',
+      CreateAQuestDescription: 'A map and a short form to customize a quest, including an optional memo. A quest is a campaign that includes multiple cashdrops with BCH in each of them.',
+      FundAQuest: 'Fund A Quest',
+      FundAQuestDescription: 'Empower the community by funding meaningful Quests with Bitcoin Cash — support creators and help spread their mission farther and wider.',
+      ExploreDescription: 'A map to view quests created by peers worldwide. It shows active quests which have some cashdrops available to seek, and Unfunded quests pending the start of the quest.',
+      PurelyPeerVaultsDescription: 'When creating a Merchant quest, anywhere between 10-90% of the cashdrop value can be locked in a PurelyPeer Vault, usable only at that merchant.',
+      PurelyPeerVaultsExample: 'For example, a cashdrop could be $10 but the collector would get only $1 when collected, and have the remaining $9 locked until it is spent at that merchant.',
+      PurelyPeerVaultsBenefit: "That's an evolution of the good ol' coupons, with added benefits for both merchants and customers.",
+      PaytacaMerchantsDescription: 'PurelyPeer has partnered with Paytaca to provide verification of merchant information. Merchants using Paytaca POS (Point of Sale) system can choose to have their information available in PurelyPeer\'s Create a Quest mode.',
+      VisitPurelyPeerWebsiteButton: 'Visit the PurelyPeer website to learn more about quests, cashdrops, and how to get started.',
+      SendToYourOtherWallets: 'Send to Your Other Wallets',
+      SelectWalletToSend: 'Select a wallet to send funds to'
     }
   ],
   dynamic: [
@@ -2045,6 +2077,8 @@ const phrases = {
       RequiresMinimumLiftTokens: 'Requires a minimum of {count} LIFT tokens',
       HoldMinimumLiftTokens: 'Hold a minimum of {count} LIFT tokens in your wallet',
       ConversionInfo: 'Conversion to {currency} at the time of the transaction. Gain/loss is shown below when compared to current price.',
+      VisitWorkHippoWebsite: 'Visit {workHippoWebsite}',
+      VisitPurelyPeerWebsite: 'Visit {purelypeerWebsite}',
     }
   ]
 }
