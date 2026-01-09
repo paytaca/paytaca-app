@@ -285,6 +285,35 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Manage Auth NFT Pop-up -->
+     <q-dialog v-model="showManageAuthNFTdialog" persistent>
+        <q-card style="min-width: 300px" class="br-15 q-pa-sm">
+            <q-card-section>
+              <div class="text-h6">Manage Auth NFTs</div>
+            </q-card-section>
+
+            <q-card-section class="q-pt-none">
+              <q-input
+                v-model="merchantSearch" label="Search for Merchant" outlined dense class="q-mb-md"
+              />
+
+              <div class="row items-center justify-between q-pa-md border-outlined">
+                <div class="text-subtitle2">Generic Auth NFT</div>
+                <q-toggle
+                  v-model="genericAuthEnabled"
+                  color="primary"
+                  keep-color
+                />
+              </div>
+            </q-card-section>
+
+            <q-card-actions align="right">
+              <q-btn flat label="Close" color="primary" v-close-popup />
+            </q-card-actions>
+            
+        </q-card>
+     </q-dialog>
   
 </template>
 
@@ -301,6 +330,7 @@ import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
 import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
 import RampHistoryDialog from 'src/components/ramp/crypto/RampHistoryDialog.vue';
 import { selectedCurrency } from 'src/store/market/getters';
+import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
   
   export default {
     
@@ -315,7 +345,6 @@ import { selectedCurrency } from 'src/store/market/getters';
         contractAddress: 'address', // dummy
         // For inputs
         newCardName: '',
-        newAuthNFT: '',
         // View card dialog
         viewCardDialog: false,
         selectedCard: null,
@@ -331,7 +360,11 @@ import { selectedCurrency } from 'src/store/market/getters';
         tempAmount: 0,
         activeCard: null,
         cashInamount: null,
-        selectedCurrency: 'PHP'
+        selectedCurrency: 'PHP',
+        // Manage Auth NFT
+        showManageAuthNFTdialog: false,
+        merchantSearch: '',
+        genericAuthEnabled: false,
       }
     },
 
@@ -343,7 +376,6 @@ import { selectedCurrency } from 'src/store/market/getters';
       // Open dialog
       openCreateCardDialog(){
         this.newCardName = '';
-        this.newAuthNFT = '';
         this.createCardDialog = true;
       },
       
@@ -357,7 +389,6 @@ import { selectedCurrency } from 'src/store/market/getters';
         const newCard = {
           id: Date.now(), // unique key
           name: this.newCardName,
-          authNFT: this.newAuthNFT,
           contractAddress: this.contractAddress,
           balance: 0,
           status: 'Active'
@@ -437,8 +468,17 @@ import { selectedCurrency } from 'src/store/market/getters';
       },
 
       manageAuthNFTs(card) {
-        this.$q.notify({ message: `Manage Auth NFTs for "${card.name}" clicked!`, color: 'primary' });
+        this.selectedCard = card;
+        this.merchantSearch = '';
+        this.genericAuthEnabled = card.hasGenericAuth || false;
+
+        this.showManageAuthNFTdialog = true;
         this.cardMenu.visible = false;
+        this.$q.notify({
+          message: `Managing Auth NFTs for ${card.name}`,
+          color: 'primary',
+          icon: 'settings'
+        })
       },
 
       viewTransactionHistory(card) {
