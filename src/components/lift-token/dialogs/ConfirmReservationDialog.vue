@@ -23,7 +23,7 @@
 
       <div class="row flex-center full-width q-mb-md text-center">
         <span class="col-12 text-h6 text-weight-bold q-mb-md">
-          {{ $t('ConfirmReservation') }}
+          {{ $t('FinalizeReservation') }}
         </span>
       </div>
 

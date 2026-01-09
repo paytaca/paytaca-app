@@ -11,7 +11,7 @@
       :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
       <div class="row justify-between items-center q-mb-lg">
-        <span class="text-h5 text-weight-bold">{{ $t("PurchaseLift") }}</span>
+        <span class="text-h5 text-weight-bold">{{ $t("PayForLIFT") }}</span>
         <q-btn
           flat
           round
