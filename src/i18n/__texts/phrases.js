@@ -1231,8 +1231,6 @@ const phrases = {
       StablehedgeUnFreezeDesc: "Exchange stablehedge tokens and receive BCH of equal value based on the market price at the time of transaction",
       MaintainingLiquidity: "Maintaining liquidity",
       StablehedgeLiquidityDesc2: "the remaining funds are kept in the smart contract to be used as liquidty for unfreezing BCH",
-    },
-    {
       PushNotifications: 'Advertisements',
       Advertisements: 'Advertisements',
       EnablePushNotifications: 'Enable Advertisements',
@@ -1245,9 +1243,7 @@ const phrases = {
       EnterCountry: 'Enter country',
       EnterCity: 'Enter city',
       UpdateCountry: 'Update country',
-      UpdateCity: 'Update city'
-    },
-    {
+      UpdateCity: 'Update city',
       NoNotifications: 'No notifications',
       NoAssetsAvailable: 'No assets available',
       SameWalletAddressWarning: 'You are about to send funds to your own address. This will combine unspent transaction outputs into a single transaction. If this is not your intended action, please enter another address.',
@@ -1261,7 +1257,9 @@ const phrases = {
       BIP38WalletPassphrase: 'BIP38 wallet passphrase',
       BIP38WalletDetected: 'Detected a BIP38-encrypted wallet. Enter its passphrase to unlock.',
       BIP38DecryptError: 'Failed to decrypt wallet. Try again later or use another passphrase.',
-      UserRewards: 'User Rewards',
+    },
+    {
+      /*UserRewards: 'User Rewards',
       RFPromo: 'Refer-a-friend Promo',
       YouCurrentlyHave: 'You currently have',
       RedeemPoints: 'Redeem Points',
@@ -1283,7 +1281,7 @@ const phrases = {
       ReferralStatusWarning2: 'Refer other users to use Paytaca to start earning points!',
       PageLiveNo: 'The page will be live in:',
       PageLiveYes: 'The page is now live!',
-      PleaseWait: 'Please wait...'
+      PleaseWait: 'Please wait...'*/
     },
     /*{
       ReferredStepDescription1: 'Were you referred by a friend?',
@@ -1398,7 +1396,7 @@ const phrases = {
       SelectChangeAddressHelp: 'Some of your accounts were used on one or more(D)apps. Click below if you want to send the change to one of this account.',
       WillSendChangeTo: 'Will send change to',
       ShowConnectedApps: 'Show connected apps',
-      SelectChangeAddressHint: 'Paytaca detected that one ore more of your accounts were used on (D)apps. You may choose to send the change to one of this address.',
+      SelectChangeAddressHint: 'Paytaca detected that one or more of your accounts were used on (D)apps. You may choose to send the change to one of this address.',
       SendTokenChangeTo: 'Send token change to',
       CheckingForActiveConnections: 'Checking for active connections',
       CheckingForConnectionRequests: 'Checking for connection requests',
@@ -2045,7 +2043,12 @@ const phrases = {
       NoLimitsReachedMessage: 'You will receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
       CustomerLimitReachedMessage: 'But since it falls within the set customer limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
       MerchantLimitReachedMessage: 'But since it falls within the set merchant limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
-      TransactionLimitReachedMessage: 'But since it falls within the set transaction limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.'
+      TransactionLimitReachedMessage: 'But since it falls within the set transaction limit, you will only receive<br/><span class="cashback-text amount">{amountBch} BCH or {amountFiat}</span>.',
+      MarketplaceCashbackMsgOneTime: 'Get {percent}% cashback!',
+      MarketplaceCashbackMsg: 'Get {min} - {max}% cashback!',
+      MarketplaceCashbackDescOneTime: 'Order now and get {percent}% cashback!',
+      MarketplaceCashbackDesc: 'Order now and get {min} - {max}% cashback!',
+      MarketplaceCashbackDescSub: 'Get up to maximum cashback value of {amount} {currency}.'
     },
     {
       StabilizeAmount: "Stabilize {amount}",
@@ -2056,7 +2059,7 @@ const phrases = {
       StablehedgeContractDesc2: "The exchanged amounts are calculated based on the price values taken from {priceOracleLink}",
       StablehedgeLiquidityDesc1: "A part of your frozen funds are pooled with other users and locked in a leveraged short contract in {BCHBullLink} to protect against price drops",
     },
-    {
+    /*{
       InitialUP: 'Initial {points} from referral',
       EarnedOn: 'Earned on {date}',
       EarnedFirstSeven: 'Earned <strong>{pointsEarned}</strong> from {refId} last {date}',
@@ -2067,14 +2070,7 @@ const phrases = {
       PageLiveTimeframe: '{days} days, {hours} hours, {minutes} minutes, {seconds} seconds',
       RewardsRedeemDyn1: 'When redeeming your {points}, you can either swap it to BCH or convert it to Paytaca tokens (PTC). Both actions, if successful, will deduct your points balance and respective converted assets will appear in your wallet.',
       RewardsRedeemDyn2: 'This action will convert your points to Paytaca tokens. Conversion rate is 1 {points} = 1 PTC.',
-    },
-    {
-      MarketplaceCashbackMsgOneTime: 'Get {percent}% cashback!',
-      MarketplaceCashbackMsg: 'Get {min} - {max}% cashback!',
-      MarketplaceCashbackDescOneTime: 'Order now and get {percent}% cashback!',
-      MarketplaceCashbackDesc: 'Order now and get {min} - {max}% cashback!',
-      MarketplaceCashbackDescSub: 'Get up to maximum cashback value of {amount} {currency}.'
-    },
+    },*/
     {
       ApprovedLastDate: 'Approved last {date}',
       DiscountApplied1: 'A {discount}% discount is applied, saving you {currency}',
