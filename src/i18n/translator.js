@@ -32,13 +32,15 @@ class Translator {
     }
   }
 
-  async translate (opts = { ignoreExisting: false }) {
+  async translate (opts = { ignoreExisting: false, languagesToProcess: null }) {
     const ignoreExisting = opts?.ignoreExisting
+    const languagesToProcess = opts?.languagesToProcess
+    
     /*
       check for supported language codes here
       https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
     */
-    const supportedLangs = [
+    const allSupportedLangs = [
       'en-us',
       'es',
       'zh-tw',
@@ -69,12 +71,48 @@ class Translator {
       'es-ar:es',
       'pt-br:pt',
     ]
+    
+    // Filter languages if specific ones are requested
+    let supportedLangs = allSupportedLangs
+    if (languagesToProcess && languagesToProcess.length > 0) {
+      // Validate that requested languages are supported
+      const invalidLangs = languagesToProcess.filter(lang => {
+        // Check both direct match and branch language syntax
+        const directMatch = allSupportedLangs.includes(lang)
+        const isBranchLang = allSupportedLangs.some(supportedLang => {
+          if (supportedLang.includes(':')) {
+            const [branchLang] = supportedLang.split(':')
+            return branchLang === lang
+          }
+          return false
+        })
+        return !directMatch && !isBranchLang
+      })
+      
+      if (invalidLangs.length > 0) {
+        console.warn(`⚠ Warning: The following language codes are not supported and will be skipped: ${invalidLangs.join(', ')}`)
+        console.log(`Supported languages: ${allSupportedLangs.filter(l => !l.includes(':')).join(', ')}, es-ar, pt-br\n`)
+      }
+      
+      // Filter to only requested languages (include branch languages that depend on requested languages)
+      supportedLangs = allSupportedLangs.filter(lang => {
+        if (lang.includes(':')) {
+          const [branchLang, mainLang] = lang.split(':')
+          // Include branch language if either branch or main language is requested
+          return languagesToProcess.includes(branchLang) || languagesToProcess.includes(mainLang)
+        }
+        return languagesToProcess.includes(lang)
+      })
+      
+      if (supportedLangs.length === 0) {
+        throw new Error(`No valid languages to process. Please check the language codes you provided.`)
+      }
+    }
+    
     const sum = this.getTotalLines()
     console.log('Expected no. of translation keys on i18n files: ', sum)
     if (ignoreExisting) console.log('Will ignore keys with existing translation')
     
-    let jsonData = {}
-
     for (let lang of supportedLangs) {
       await this.sleep(1)
 
@@ -84,10 +122,11 @@ class Translator {
         continue
       }
 
-      if (ignoreExisting) {
-        const importedModule = await this.getExistingTranslations(lang)
-        jsonData = importedModule || {}
-      }
+      // Load existing translations to check them (for detecting English entries)
+      const importedModule = await this.getExistingTranslations(lang)
+      // Start with existing translations, but we'll rebuild jsonData with only valid ones
+      const allExistingData = importedModule || {}
+      let jsonData = {}
 
       const manualTranslationsData = (await this.getManualTranslations(lang)) || {}
       // console.log(`Hardcoded translations for '${lang}': ${JSON.stringify(manualTranslations, undefined, 2)}`)
@@ -105,7 +144,7 @@ class Translator {
         // console.log(`Group keys: ${JSON.stringify(Object.keys(group))}`)
 
         const { filteredGroup, manualTranslations, existingTranslations } = this.filterGroup(
-          group, manualTranslationsData, jsonData,
+          group, manualTranslationsData, allExistingData, ignoreExisting,
         )
         const translateCountData = {
           total: this.objectCount(group),
@@ -118,26 +157,58 @@ class Translator {
         console.log(`Translating ${label}...`)
 
         let translatedObj = {}
-        if (translateCountData.filtered === 0 && translateCountData.manual === 0) {
-          console.log(`Skipping ${label}...`)
+        
+        // Only skip if there's absolutely nothing to process
+        // Even if no new translations, we still need to preserve existing and manual translations
+        const hasWorkToDo = (
+          Object.keys(filteredGroup).length > 0 ||
+          Object.keys(existingTranslations).length > 0 ||
+          Object.keys(manualTranslations).length > 0
+        )
+        
+        if (!hasWorkToDo) {
+          console.log(`Skipping ${label} (nothing to translate or preserve)...`)
           index++
           continue
         }
+        
         console.log(translateCountData)
 
+        // Translate new entries that need translation
         if (Object.keys(filteredGroup).length !== 0) {
           const batchedGroups = this.batchGroup(filteredGroup);
           console.log('Batched into', batchedGroups.length, 'group(s)')
           for(let i = 0; i < batchedGroups.length; i++) {
             const batch = batchedGroups[i];
-            // Sleep for 1 second
-            await sleep(100)
+            // Sleep longer between batches to avoid rate limiting (2 seconds)
+            // This helps prevent Google from blocking requests due to rate limiting
+            await sleep(2000)
             console.log('Translating batch', (i + 1), 'of', batchedGroups.length, 'for', label)
-            Object.assign(translatedObj, await this.translateGroup(batch, codes))
+            try {
+              // translateGroup has built-in retry logic with exponential backoff
+              Object.assign(translatedObj, await this.translateGroup(batch, codes))
+            } catch (error) {
+              // If all retries in translateGroup failed, fallback to English text
+              console.error(`✗ All retry attempts failed for batch ${i + 1}:`, error.message)
+              console.log('⚠ Using original English text as fallback for failed translations.')
+              // Fallback to original English text for failed translations
+              // These will be detected as English on next run and retranslated
+              Object.assign(translatedObj, batch)
+            }
           }
         }
 
-        // override hardcoded translations
+        // Merge existing valid (non-English) translations first
+        // Then merge newly translated entries (which may override existing if retranslated)
+        if (Object.keys(existingTranslations).length > 0) {
+          translatedObj = {
+            ...existingTranslations,
+            ...translatedObj,
+          }
+        }
+
+        // Manual translations must override everything (existing, automated, etc.)
+        // This ensures manual translations always have the final say
         if (Object.keys(manualTranslations).length > 0) {
           translatedObj = {
             ...translatedObj,
@@ -193,8 +264,30 @@ class Translator {
       }
     }
 
-    // translate in bulks
-    let translatedObj = await translate(group, codes)
+    // translate in bulks with retry logic
+    let translatedObj
+    const maxRetries = 3
+    const baseDelay = 2000 // 2 seconds base delay
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Exponential backoff: 2s, 4s, 8s
+          const delay = baseDelay * Math.pow(2, attempt - 1)
+          console.log(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms delay...`)
+          await sleep(delay)
+        }
+        translatedObj = await translate(group, codes)
+        break // Success, exit retry loop
+      } catch (error) {
+        if (attempt === maxRetries) {
+          // Final attempt failed, throw the error
+          throw error
+        }
+        console.warn(`Translation attempt ${attempt + 1} failed:`, error.message)
+        // Continue to retry
+      }
+    }
     if (codes.to == 'en') {
       let hasInconsistency = false
       for (const [key, value] of Object.entries(translatedObj)) {
@@ -227,15 +320,37 @@ class Translator {
     return translatedObj
   }
 
-  filterGroup(group, manualTranslations, existingData) {
+  filterGroup(group, manualTranslations, existingData, ignoreExisting = false) {
     const existing = {}
     const manual = {}
     const filteredGroup = {}
 
     Object.keys(group).forEach(key => {
-      if (manualTranslations?.[key]) manual[key] = manualTranslations[key]
-      else if (existingData?.[key]) existing[key] = existingData[key]
-      else filteredGroup[key] = group[key]
+      if (manualTranslations?.[key]) {
+        // Always preserve manual translations
+        manual[key] = manualTranslations[key]
+      } else if (existingData?.[key] && ignoreExisting) {
+        // When ignoreExisting is true, always use existing translations without checking
+        existing[key] = existingData[key]
+      } else if (existingData?.[key]) {
+        // When ignoreExisting is false, check if existing translation is actually in English (matches source)
+        // If it matches the English source, it needs to be retranslated
+        const existingValue = existingData[key]
+        const sourceValue = group[key]
+        
+        // Normalize both values for comparison (trim whitespace, handle case)
+        const normalizedExisting = existingValue.trim()
+        const normalizedSource = sourceValue.trim()
+        
+        // If existing translation matches source English text, it needs translation
+        if (normalizedExisting.toLowerCase() === normalizedSource.toLowerCase()) {
+          filteredGroup[key] = group[key]
+        } else {
+          existing[key] = existingData[key]
+        }
+      } else {
+        filteredGroup[key] = group[key]
+      }
     })
 
     return { filteredGroup, manualTranslations: manual, existingTranslations: existing }
