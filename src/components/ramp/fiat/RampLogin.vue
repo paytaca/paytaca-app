@@ -39,7 +39,7 @@
               :dark="darkMode"
               :readonly="!register || user?.is_arbiter"
               :disable="loggingIn"
-              :placeholder="register ? 'Enter nickname' : ''"
+              :placeholder="register ? $t('EnterNickname') : ''"
               :loading="inputLoading"
               :error="errorMessage !== null"
               v-model="usernickname"
