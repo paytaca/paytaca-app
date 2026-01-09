@@ -1955,7 +1955,10 @@ const phrases = {
       PaytacaMerchantsDescription: 'PurelyPeer has partnered with Paytaca to provide verification of merchant information. Merchants using Paytaca POS (Point of Sale) system can choose to have their information available in PurelyPeer\'s Create a Quest mode.',
       VisitPurelyPeerWebsiteButton: 'Visit the PurelyPeer website to learn more about quests, cashdrops, and how to get started.',
       SendToYourOtherWallets: 'Send to Your Other Wallets',
-      SelectWalletToSend: 'Select a wallet to send funds to'
+      SelectWalletToSend: 'Select a wallet to send funds to',
+      FinalizeAndPay: 'Finalize and Pay',
+      PayForLIFT: 'Pay for LIFT',
+      LiftTokenLockupInfo: 'Your purchased LIFT tokens will be locked in a smart contract that will automatically unlock based on the vesting schedule of the round you purchased from.',
     }
   ],
   dynamic: [
@@ -2077,6 +2080,7 @@ const phrases = {
       ConversionInfo: 'Conversion to {currency} at the time of the transaction. Gain/loss is shown below when compared to current price.',
       VisitWorkHippoWebsite: 'Visit {workHippoWebsite}',
       VisitPurelyPeerWebsite: 'Visit {purelypeerWebsite}',
+      PaidUsingMethod: 'Paid using {method}',
     }
   ]
 }

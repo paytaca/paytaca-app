@@ -194,5 +194,6 @@ export default {
   StabilizeAmount: "Стабилизировать {amount}",
   VerifyingWithSeconds: "Подтверждаем, пожалуйста, подождите.({seconds} сек.)",
   WebsiteDescription: "Посетите {website}",
+  PayForLIFT: "Оплатить LIFT",
 }
 

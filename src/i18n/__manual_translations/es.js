@@ -284,4 +284,6 @@ export default {
   WhatIsLIFT: "¿Qué es LIFT?",
   LegacyAddressWarning: "Pegaste una dirección heredada. Asegúrese de que sea una <span class=\"highlighted-word\">dirección de depósito de BCH</span>, no una dirección de depósito de BTC.",
   ButtonDeem: "DEEM",
+  PaidUsingMethod: "Pagado usando {method}",
+  PayForLIFT: "Pagar por LIFT",
 }

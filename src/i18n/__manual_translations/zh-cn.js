@@ -181,4 +181,5 @@ export default {
   TotalLIFT: "总LIFT",
   UnpaidLift: "LIFT未支付",
   WhatIsLIFT: "什么是LIFT？",
+  PayForLIFT: "支付LIFT费用",
 }

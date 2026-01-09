@@ -539,6 +539,8 @@ const words = [
     PaytacaMerchants: 'Paytaca Merchants',
     LearnMore: 'Learn More',
     SelectWallet: 'Select Wallet',
+    Finalize: 'Finalize',
+    FinalizeReservation: 'Finalize Reservation',
   }
 ]
 

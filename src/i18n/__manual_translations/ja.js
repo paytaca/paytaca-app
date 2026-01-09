@@ -178,5 +178,6 @@ export default {
   AppealableAfterCooldown: "{cooldown}後に異議申し立て可能",
   AppealableInCooldown: "{cooldown}でアピール可能",
   ThemeName: "{theme} テーマ",
+  PayForLIFT: "LIFT料金を支払う",
 }
 

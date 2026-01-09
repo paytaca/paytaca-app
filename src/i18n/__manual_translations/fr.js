@@ -179,5 +179,6 @@ export default {
   UnpaidLift: "LIFT impayé",
   AppealableInCooldown: "Faisable en appel dans {cooldown}",
   WebsiteDescription: "Visitez le {website}",
+  PayForLIFT: "Payer pour LIFT",
 }
 

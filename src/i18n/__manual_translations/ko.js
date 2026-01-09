@@ -190,5 +190,6 @@ export default {
   VerifyingWithSeconds: "확인 중입니다. 잠시 기다려 주세요.({seconds}초)",
   ViewAmountInCurrency: "{currency} 단위로 금액 보기",
   WebsiteDescription: "{website} 방문",
+  PayForLIFT: "LIFT 비용 지불",
 }
 
