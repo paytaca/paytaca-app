@@ -1580,48 +1580,148 @@ async generateAuthCredentials(xpub) {
     return binToUtf8(decryptedBytes);
   }
 
-/**
- * Generate a BSMS 1.0 descriptor record (plain text)
- *
- * @param {Object} options
- * @param {number} options.m - Multisig threshold (e.g., 2 for 2-of-3)
- * @param {Array} options.signers - Array of signer objects
- *   Each: {
- *     masterFingerprint: string,   // 8-character hex 
- *     xpub: string,         // Full xpub string
- *     path: string   // e.g. "44'/145'/0'" hardened path
- *   }
- * @param {string} [options.scriptType='sh'] - Wrapper: 'sh' for P2SH, etc.
- * @param {string} [options.branchRange='<0;1>/*'] - Ranged derivation for receive/change
- * @param {string} [options.pathRestrictions='/0/*,/1/*'] - Path restrictions line
- * @param {string} options.firstAddress - The first receive address (you provide this)
- * @returns {string} Complete BSMS record as multi-line string
- */
-generateBSMSRecord({
-  m,
-  signers,
-  scriptType = 'sh',
-  branchRange = '<0;1>/*',
-  pathRestrictions = '/0/*,/1/*'
-}) {
-    
-    const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
+  /**
+   * Generate a BSMS 1.0 descriptor record (plain text)
+   *
+   * @param {Object} options
+   * @param {number} options.m - Multisig threshold (e.g., 2 for 2-of-3)
+   * @param {Array} options.signers - Array of signer objects
+   *   Each: {
+   *     masterFingerprint: string,   // 8-character hex 
+   *     xpub: string,         // Full xpub string
+   *     path: string   // e.g. "44'/145'/0'" hardened path
+   *   }
+   * @param {string} [options.scriptType='sh'] - Wrapper: 'sh' for P2SH, etc.
+   * @param {string} [options.branchRange='<0;1>/*'] - Ranged derivation for receive/change
+   * @param {string} [options.pathRestrictions='/0/*,/1/*'] - Path restrictions line
+   * @param {string} options.firstAddress - The first receive address (you provide this)
+   * @returns {string} Complete BSMS record as multi-line string
+   */
+  generateBSMSRecord({
+    m,
+    signers,
+    scriptType = 'sh',
+    branchRange = '<0;1>/*',
+    pathRestrictions = '/0/*,/1/*'
+  }) {
+      
+      const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
 
-    // Build each key expression: [fingerprint/path]xpub/branchRange
-    const keyExpressions = signers.map(signer => {
-      const { masterFingerprint, xpub, path } = signer;
-      const cleanPath = path.trim()?.replace('m', '');
-      return `[${masterFingerprint}/${cleanPath}]${xpub}/${branchRange}`;
+      // Build each key expression: [fingerprint/path]xpub/branchRange
+      const keyExpressions = signers.map(signer => {
+        const { masterFingerprint, xpub, path } = signer;
+        const cleanPath = path.trim()?.replace(/^m/, '');
+        return `[${masterFingerprint}/${cleanPath}]${xpub}/${branchRange}`;
+      });
+
+      const descriptor = `${scriptType}(sortedmulti(${m},${keyExpressions.join(',')}))`;
+
+      return [
+        'BSMS 1.0',
+        descriptor,
+        pathRestrictions,
+        firstAddress
+      ].join('\n');
+  }
+
+  /**
+   * Parse a BSMS 1.0 descriptor record (multi-line string)
+   *
+   * @param {string} bsmsText - The full BSMS record content
+   * @returns {Object} Parsed data
+   * @throws {Error} If invalid format or version
+   */
+  parseBSMSRecord(bsmsText) {
+    if (typeof bsmsText !== 'string') {
+      throw new Error('BSMS record must be a string');
+    }
+
+    const lines = bsmsText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0); // Remove empty lines
+
+    if (lines.length !== 4) {
+      throw new Error(`Invalid BSMS record: expected 4 lines, got ${lines.length}`);
+    }
+
+    const [header, descriptor, pathRestrictions, firstAddress] = lines;
+
+    // Line 1: Header
+    if (header !== 'BSMS 1.0') {
+      throw new Error(`Unsupported BSMS version: ${header} (only BSMS 1.0 supported)`);
+    }
+
+    // Line 4: First address (basic validation)
+    const expectedFirstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
+    if (firstAddress !== expectedFirstAddress) {
+      throw new Error('Address does not match expected first address');
+    }
+
+    // Line 3: Path restrictions
+    let normalizedPathRestrictions = pathRestrictions;
+    if (pathRestrictions.toLowerCase() === 'no path restrictions') {
+      normalizedPathRestrictions = '/*'; // Standard internal form
+    }
+
+    // Line 2: Parse the descriptor
+    const descriptorTrimmed = descriptor.trim();
+
+    // Match wrapper like sh(...), wsh(...), etc.
+    const wrapperMatch = descriptorTrimmed.match(/^([a-z]+)\((.*)\)$/);
+    
+
+    const scriptType = wrapperMatch[1]; // e.g., 'sh'
+    if (scriptType !== 'sh') {
+      throw new Error('Invalid descriptor, must use sh(...) format');
+    }
+    
+    const innerContent = wrapperMatch[2].trim();
+
+    // Match sortedmulti(m, key1, key2, ...)
+    const multiMatch = innerContent.match(/^sortedmulti\((\d+),(.*)\)$/);
+    if (!multiMatch) {
+      throw new Error('Descriptor must use sortedmulti(...)');
+    }
+
+    const m = parseInt(multiMatch[1], 10);
+    const keyStrings = multiMatch[2]
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+
+    if (keyStrings.length < m) {
+      throw new Error('Not enough keys for threshold');
+    }
+
+    // Parse each key expression: [fingerprint/path]xpub/branchRange
+    const signers = keyStrings.map(keyStr => {
+      // Match pattern: [fingerprint/path]xpub/branchRange
+      const keyMatch = keyStr.match(/^\[([0-9a-fA-F]{8})\/([^[\]]+)\]([xtyY]pub[^/]+)\/(.+)$/);
+      if (!keyMatch) {
+        throw new Error(`Invalid key expression: ${keyStr}`);
+      }
+
+      const [, masterFingerprint, originPath, xpub, branchRange] = keyMatch;
+
+      return {
+        masterFingerprint: masterFingerprint.toLowerCase(),
+        path: `m/${originPath.trim().replace(/\/+$/, '')}`,
+        xpub: xpub.trim(),
+        branchRange: branchRange.trim()
+      };
     });
 
-    const descriptor = `${scriptType}(sortedmulti(${m},${keyExpressions.join(',')}))`;
-
-    return [
-      'BSMS 1.0',
-      descriptor,
-      pathRestrictions,
+    return {
+      version: '1.0',
+      scriptType,           // e.g., 'sh'
+      m,            // m in m-of-n
+      n: signers.length,    // total signers
+      signers,              // array of parsed signer objects
+      descriptor: descriptorTrimmed,
+      pathRestrictions: normalizedPathRestrictions,
       firstAddress
-    ].join('\n');
+    };
   }
 }
 
