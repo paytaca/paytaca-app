@@ -123,6 +123,21 @@
         </div>
       </div>
 
+      <!-- Lockup Info -->
+      <div class="lockup-info q-mb-md q-pa-md" :class="getDarkModeClass(darkMode)">
+        <div class="row items-center q-gutter-sm">
+          <q-icon 
+            name="info" 
+            size="20px" 
+            :style="`color: ${getThemeColor()}`"
+            class="q-mt-xs"
+          />
+          <div class="col text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+            {{ $t('LiftTokenLockupInfo') }}
+          </div>
+        </div>
+      </div>
+
       <drag-slide
         v-if="!isSliderLoading"
         disable-absolute-bottom
@@ -315,6 +330,17 @@ export default {
 
 .close-button {
   color: inherit;
+}
+
+.lockup-info {
+  background-color: rgba(66, 165, 245, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(66, 165, 245, 0.2);
+  
+  &.dark {
+    background-color: rgba(66, 165, 245, 0.1);
+    border-color: rgba(66, 165, 245, 0.3);
+  }
 }
 
 @media (max-width: 600px) {
