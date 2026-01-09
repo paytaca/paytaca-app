@@ -986,7 +986,7 @@ export default {
   LearnMore: "了解更多",
   LeavingPage: "離開頁面",
   LegacyAddressFormat: "舊格式",
-  LegacyAddressWarning: "返回",
+  LegacyAddressWarning: "您粘貼了一個遺留地址。請確保它是 <span class=\"highlighted-word\">BCH 存款地址</span>，而不是 BTC 存款地址。",
   Leverage: "槓桿",
   LiftIntro1: "Paytaca LIFT 代幣（利用激勵促進金融轉型）體現了 Bayanihan 精神，這是菲律賓社區驅動的自願合作概念。正如社區曾經將房屋一起抬高一樣，LIFT 象徵著推動比特幣現金 (BCH) 採用的集體努力。",
   LiftIntro2: "每個代幣都代表了個人對推動 BCH 向上和向前發展、培養社區意識和共同目標的貢獻。",
