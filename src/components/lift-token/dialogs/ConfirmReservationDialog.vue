@@ -22,18 +22,18 @@
       </div>
 
       <div class="row flex-center full-width q-mb-md text-center">
-        <span class="col-12 text-h6 text-weight-bold q-mb-md">
+        <span class="col-12 text-h6 text-weight-bold q-mb-xs">
           {{ $t('FinalizeReservation') }}
         </span>
       </div>
 
       <!-- Highlighted Reservation Details Card -->
       <div 
-        class="reservation-details-card q-pa-md q-mb-lg"
+        class="reservation-details-card q-pa-sm q-mb-sm"
         :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
       >
         <!-- Token Amount - Prominent Display -->
-        <div class="text-center q-mb-md">
+        <div class="text-center q-mb-sm">
           <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             {{ $t('ReservedAmount') }}
           </div>
@@ -45,10 +45,10 @@
           </div>
         </div>
 
-        <q-separator :dark="darkMode" class="q-my-md" />
+        <q-separator :dark="darkMode" class="q-my-sm" />
 
         <!-- USD Amount -->
-        <div class="text-center q-mb-md">
+        <div class="text-center q-mb-xs">
           <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             {{ $t('TotalCost') }}
           </div>
