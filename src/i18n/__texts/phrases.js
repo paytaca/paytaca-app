@@ -226,6 +226,7 @@ const phrases = {
       TokenAdded: "Token added",
       TokenAlreadyInList: "Token already exists in list",
       TransactionId: "Transaction ID",
+      PaidUsing: "Paid using {method}",
       TransactionDeadline: "Transaction Deadline",
       TransactionSent: "Transaction Sent",
       UnlinkDevice: "Unlink device",

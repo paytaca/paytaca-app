@@ -93,9 +93,23 @@
             </div>
           </div>
 
-          <div class="detail-row">
+          <div class="detail-row q-mb-sm">
             <div class="detail-label">
-              <q-icon name="mdi-receipt-text" size="16px" class="q-mr-xs" />
+              <q-icon name="mdi-credit-card" size="16px" class="q-mr-xs" />
+              {{ $t('PaymentMethod') }}
+            </div>
+            <div class="detail-value" style="word-break: auto-phrase;">
+              {{ $t(
+                'PaidUsingMethod',
+                { method: purchase.purchase_more_details.payment_method?.toUpperCase() },
+                `Paid using ${purchase.purchase_more_details.payment_method?.toUpperCase()}`
+              ) }}
+            </div>
+          </div>
+
+          <div v-if="purchase.purchase_more_details.payment_method === 'bch'" class="detail-row">
+            <div class="detail-label">
+              <q-icon name="receipt_long" size="16px" class="q-mr-xs" />
               {{ $t('TransactionId') }}
             </div>
             <div class="detail-value">
@@ -178,7 +192,7 @@
                       </template>
                     </div>
                     <div v-if="details.tx_id" class="vesting-tx">
-                      <q-icon name="mdi-receipt-text" size="14px" class="q-mr-xs" />
+                      <q-icon name="receipt_long" size="14px" class="q-mr-xs" />
                       <a
                         :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
                         target="_blank"
