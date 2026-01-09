@@ -1452,6 +1452,8 @@ async generateAuthCredentials(xpub) {
     } 
   }
 
+  
+
   static cashAddressToTokenAddress(cashAddress) {
     return lockingBytecodeToCashAddress({ 
       bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
@@ -1577,4 +1579,49 @@ async generateAuthCredentials(xpub) {
     // Convert the resulting bytes back to a UTF-8 string
     return binToUtf8(decryptedBytes);
   }
+
+/**
+ * Generate a BSMS 1.0 descriptor record (plain text)
+ *
+ * @param {Object} options
+ * @param {number} options.m - Multisig threshold (e.g., 2 for 2-of-3)
+ * @param {Array} options.signers - Array of signer objects
+ *   Each: {
+ *     masterFingerprint: string,   // 8-character hex 
+ *     xpub: string,         // Full xpub string
+ *     path: string   // e.g. "44'/145'/0'" hardened path
+ *   }
+ * @param {string} [options.scriptType='sh'] - Wrapper: 'sh' for P2SH, etc.
+ * @param {string} [options.branchRange='<0;1>/*'] - Ranged derivation for receive/change
+ * @param {string} [options.pathRestrictions='/0/*,/1/*'] - Path restrictions line
+ * @param {string} options.firstAddress - The first receive address (you provide this)
+ * @returns {string} Complete BSMS record as multi-line string
+ */
+generateBSMSRecord({
+  m,
+  signers,
+  scriptType = 'sh',
+  branchRange = '<0;1>/*',
+  pathRestrictions = '/0/*,/1/*'
+}) {
+    
+    const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
+
+    // Build each key expression: [fingerprint/path]xpub/branchRange
+    const keyExpressions = signers.map(signer => {
+      const { masterFingerprint, xpub, path } = signer;
+      const cleanPath = path.trim()?.replace('m', '');
+      return `[${masterFingerprint}/${cleanPath}]${xpub}/${branchRange}`;
+    });
+
+    const descriptor = `${scriptType}(sortedmulti(${m},${keyExpressions.join(',')}))`;
+
+    return [
+      'BSMS 1.0',
+      descriptor,
+      pathRestrictions,
+      firstAddress
+    ].join('\n');
+  }
 }
+
