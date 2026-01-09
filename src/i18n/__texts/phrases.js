@@ -439,7 +439,7 @@ const phrases = {
       NotEnoughForBoth: "Not enough balance to cover the send amount and transaction fee",
       SendAmountGreaterThanZero: "Send amount should be greater than zero",
       UnknownError: "Unknown error",
-      CannotAddRecipient: "Cannot add more than 5 recipients.",
+      CannotAddRecipient: "Cannot add more than 10 recipients.",
       TotalAmountError: "Total amount being sent is greater than your current balance",
       EmptyRecipient: "Recipient cannot be empty",
       SetMaxWarning: "This will set the maximum amount to this recipient. Other recipients added will be removed. Do you want to proceed?",
@@ -1285,7 +1285,7 @@ const phrases = {
       PageLiveYes: 'The page is now live!',
       PleaseWait: 'Please wait...'
     },
-    {
+    /*{
       ReferredStepDescription1: 'Were you referred by a friend?',
       ReferredStepDescription2: 'Scan or upload their referral code so you can both receive rewards!',
       ReferredStepDescription3: 'Rewards can be viewed on the Rewards App in Apps page.',
@@ -1336,7 +1336,7 @@ const phrases = {
       RewardsRedeem4: 'This action will swap your points to BCH. BCH conversion rate may vary depending on the BCH market value.',
       RewardsRedeem5: 'Convert to Tokens',
       RewardsRedeemRP2: 'Note that you can only redeem up to 10,000 RP per month.'
-    },
+    },*/
     {
       EmptyReservations1: 'You do not have any approved reservations yet.',
       EmptyReservations2: 'Your reservations will appear here once approved.',
