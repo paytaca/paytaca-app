@@ -75,24 +75,24 @@
           </q-card-section>
         </q-card>
 
-        <!-- Earn BCH with WorkHippo -->
+        <!-- Accept BCH Payments -->
         <q-card 
           class="get-bch-option-card br-15 cursor-pointer"
           :class="getDarkModeClass(darkMode)"
-          @click="goToWorkHippo"
+          @click="goToAcceptBCHPayments"
         >
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="work" size="3em" color="primary" />
+                <q-icon name="store" size="3em" color="primary" />
               </div>
             </div>
             <div class="col">
               <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-                {{ $t('EarnBCHWithWorkHippo', {}, 'Earn BCH With WorkHippo') }}
+                {{ $t('AcceptBCHPayments', {}, 'Accept BCH Payments') }}
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('WorkHippoDescription', {}, 'Earn Bitcoin Cash by completing freelance work on WorkHippo') }}
+                {{ $t('AcceptBCHPaymentsShortDescription', {}, 'Get onboarded as a BCH-accepting merchant using Paytaca POS') }}
               </div>
             </div>
             <div class="col-auto">
@@ -119,6 +119,32 @@
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
                 {{ $t('PurelyPeerDescription', {}, 'Find and collect hidden Bitcoin Cash cashdrops around quest centers') }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <q-icon name="chevron_right" size="md" color="grey-6" />
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <!-- Earn BCH with WorkHippo -->
+        <q-card 
+          class="get-bch-option-card br-15 cursor-pointer"
+          :class="getDarkModeClass(darkMode)"
+          @click="goToWorkHippo"
+        >
+          <q-card-section class="row items-center q-pa-lg">
+            <div class="col-auto q-mr-lg">
+              <div class="icon-container">
+                <q-icon name="work" size="3em" color="primary" />
+              </div>
+            </div>
+            <div class="col">
+              <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
+                {{ $t('EarnBCHWithWorkHippo', {}, 'Earn BCH With WorkHippo') }}
+              </div>
+              <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                {{ $t('WorkHippoDescription', {}, 'Earn Bitcoin Cash by completing freelance work on WorkHippo') }}
               </div>
             </div>
             <div class="col-auto">
@@ -154,11 +180,14 @@ export default {
     goToCryptoSwap() {
       this.$router.push({ name: 'crypto-swap-form' })
     },
-    goToWorkHippo() {
-      this.$router.push({ name: 'app-workhippo' })
+    goToAcceptBCHPayments() {
+      this.$router.push({ name: 'app-accept-bch-payments' })
     },
     goToPurelyPeer() {
       this.$router.push({ name: 'app-purelypeer' })
+    },
+    goToWorkHippo() {
+      this.$router.push({ name: 'app-workhippo' })
     }
   }
 }

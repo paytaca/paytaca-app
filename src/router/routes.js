@@ -132,6 +132,7 @@ const routes = [
       { path: 'map', component: () => import('src/pages/apps/map.vue'), name: 'app-map', props: route => route.query },
       { path: 'spend-bch', component: () => import('src/pages/apps/spend-bch.vue'), name: 'spend-bch' },
       { path: 'get-bch', component: () => import('src/pages/apps/get-bch.vue'), name: 'app-get-bch' },
+      { path: 'accept-bch-payments', component: () => import('src/pages/apps/accept-bch-payments.vue'), name: 'app-accept-bch-payments' },
       { path: 'workhippo', component: () => import('src/pages/apps/workhippo.vue'), name: 'app-workhippo' },
       { path: 'purelypeer', component: () => import('src/pages/apps/purelypeer.vue'), name: 'app-purelypeer' },
       { path: 'anyhedge', component: () => import('src/pages/apps/anyhedge.vue'), name: 'app-any-hedge', props: route => route.query },
