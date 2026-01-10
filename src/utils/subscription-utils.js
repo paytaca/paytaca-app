@@ -15,13 +15,18 @@ const LIFT_TOKEN_DECIMALS = 2
  */
 export async function checkLiftTokenBalance () {
   try {
-    const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+    // Get the current wallet index first
+    const walletIndex = Store.getters['global/getWalletIndex']
+    
+    // Get wallet hash from vault at current index to ensure we're checking the correct wallet
+    // This is important because the in-memory wallet state might be stale after a wallet switch
+    const getWalletHashByIndex = Store.getters['global/getWalletHashByIndex']
+    const walletHash = getWalletHashByIndex(walletIndex)
+    
     if (!walletHash) {
       console.warn('No wallet hash available for checking LIFT token balance')
       return 0
     }
-    
-    const walletIndex = Store.getters['global/getWalletIndex']
     
     // Load wallet using the standard method
     const wallet = await loadWallet('BCH', walletIndex)

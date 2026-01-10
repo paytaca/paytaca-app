@@ -147,6 +147,21 @@ export class WatchtowerNetworkProvider {
         const provider = new ElectrumNetworkProvider(this.network)
         return await provider.getRawTransaction(txid)
     }
+
+    async getWalletTransactionHistory ({ walletHash, type = 'all', all='false',  tokenCategory='', page = 1 }) {
+        
+        let url = `${this.hostname}/api/history/wallet/${walletHash}`
+        
+        if (tokenCategory) {
+          url += `/${tokenCategory}`
+        }
+      
+        url += `?type=${type}&all=${all}&page=${page}`
+        
+        return await axios.get(url)
+      }
+      
+      
 }
 
 

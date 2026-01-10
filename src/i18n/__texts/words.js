@@ -525,6 +525,22 @@ const words = [
     PerWallet: 'per wallet',
     FavoriteTokens: 'Favorite Tokens',
     UnclaimedGifts: 'Unclaimed Gifts',
+    ConfirmReservation: 'Confirm Reservation',
+    ConfirmingReservation: 'Confirming reservation',
+    ReservedAmount: 'Reserved Amount',
+    GetBCH: 'Get BCH',
+    AboutWorkHippo: 'About WorkHippo',
+    Contact: 'Contact',
+    AboutPurelyPeer: 'About PurelyPeer',
+    Features: 'Features',
+    CollectNow: 'Collect Now',
+    Explore: 'Explore',
+    PurelyPeerVaults: 'PurelyPeer Vaults',
+    PaytacaMerchants: 'Paytaca Merchants',
+    LearnMore: 'Learn More',
+    SelectWallet: 'Select Wallet',
+    Finalize: 'Finalize',
+    FinalizeReservation: 'Finalize Reservation',
   }
 ]
 

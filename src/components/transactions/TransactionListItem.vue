@@ -17,10 +17,7 @@
                 v-if="assetImageUrl" 
                 :src="assetImageUrl" 
                 class="asset-icon"
-                @touchstart.prevent.stop
-                @touchmove.prevent.stop
-                @touchend.prevent.stop
-                @contextmenu.prevent.stop
+                @contextmenu.prevent
                 @selectstart.prevent
               />
               <q-icon v-else name="apps" size="14px" />

@@ -10,7 +10,15 @@
         <div class="logo-section">
           <div class="logo-glass-circle" :class="[getDarkModeClass(darkMode), themeClass]">
             <div class="logo-glow" :class="themeClass"></div>
-            <img src="~/assets/paytaca_logo.png" height="50" alt="" class="logo-image">
+            <img 
+              :src="logoSrc"
+              width="50"
+              height="50"
+              alt="Logo" 
+              class="logo-image"
+              @error="handleLogoError"
+              @load="handleLogoLoad"
+            >
           </div>
           <div class="lock-title text-bow" :class="getDarkModeClass(darkMode)">
             {{ $t('YourWalletIsLocked', {}, 'Your wallet is locked') }}
@@ -31,7 +39,7 @@
           :loading="authenticating"
           :icon-right="getUnlockButtonIcon()"
         >
-          <template v-slot:loading>
+          <template #loading>
             <q-spinner-dots size="24px" />
           </template>
         </q-btn>
@@ -79,6 +87,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import pinDialog from 'src/components/pin/index.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { pinExists } from 'src/wallet'
+// Import logo as a static asset - webpack will resolve this automatically
+import logoImage from '../assets/paytaca_logo.png'
 
 export default {
   name: 'LockScreen',
@@ -93,10 +103,19 @@ export default {
       biometricFailed: false,
       biometricAttempts: 0,
       biometricPermanentlyUnavailable: false, // Track if biometric is unavailable due to device issues
-      usePinFallback: false // Track if user wants to use PIN instead of biometric
+      usePinFallback: false, // Track if user wants to use PIN instead of biometric
+      logoLoadAttempts: 0
     }
   },
   computed: {
+    logoSrc() {
+      // Use the imported logo path, which webpack resolves automatically
+      // This ensures the path is properly resolved at build time
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[LockScreen] logoSrc computed, returning:', logoImage)
+      }
+      return logoImage
+    },
     darkMode() {
       return this.$store?.state?.darkmode?.darkmode
     },
@@ -128,6 +147,27 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    
+    handleLogoError(event) {
+      console.error('[LockScreen] Logo failed to load:', event.target.src)
+    },
+    
+    handleLogoLoad() {
+      // Logo loaded successfully
+    },
+    
+    preloadLogo() {
+      // Preload the logo image to ensure it's available
+      // This is especially important after navigation, dialogs, and wallet switching
+      const img = new Image()
+      
+      img.onerror = () => {
+        console.error('[LockScreen] Logo preload failed:', this.logoSrc)
+      }
+      
+      // Start preloading with the imported path
+      img.src = this.logoSrc
+    },
     
     getUnlockButtonLabel() {
       if (this.preferredSecurity === 'biometric' && !this.usePinFallback) {
@@ -354,6 +394,10 @@ export default {
     this.usePinFallback = false
     this.biometricFailed = false
     this.errorMessage = ''
+    
+    // Preload logo to ensure it's available when component renders
+    // This is especially important after navigation, dialogs, and wallet switching
+    this.preloadLogo()
   }
 }
 </script>
@@ -530,10 +574,7 @@ export default {
 .logo-section {
   margin-bottom: 40px;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
+  opacity: 1 !important; // Fix for logo visibility on navigation
 }
 
 .logo-glass-circle {
@@ -594,6 +635,7 @@ export default {
   opacity: 0.3;
   filter: blur(20px);
   pointer-events: none;
+  z-index: 0;
   
   &.theme-glassmorphic-blue {
     background: radial-gradient(circle, rgba(66, 165, 245, 0.4), transparent 70%);
@@ -615,17 +657,19 @@ export default {
 .logo-image {
   position: relative;
   z-index: 1;
-  width: 100%;
-  height: auto;
+  width: 50px;
+  height: 50px;
   object-fit: contain;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
 }
 
 .lock-title {
-  font-size: 22px;
+  font-size: 24px !important;
   font-weight: 600;
   letter-spacing: -0.02em;
   opacity: 0.9;
+  margin-top: 32px !important;
+  transform: none !important;
   
   &.dark {
     color: rgba(255, 255, 255, 0.95);

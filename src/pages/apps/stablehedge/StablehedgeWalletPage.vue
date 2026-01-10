@@ -44,10 +44,7 @@
                 height="30" 
                 class="q-mr-xs asset-icon" 
                 alt=""
-                @touchstart.prevent.stop
-                @touchmove.prevent.stop
-                @touchend.prevent.stop
-                @contextmenu.prevent.stop
+                @contextmenu.prevent
                 @selectstart.prevent
               >
               <div class="q-gutter-y-sm text-right">

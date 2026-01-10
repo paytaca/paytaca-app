@@ -96,7 +96,7 @@
                     <q-icon name="info" size="18px" class="cursor-pointer text-blue-6">
                       <q-menu
                         touch-position
-                        class="discount-menu q-py-sm q-px-md"
+                        class="discount-menu q-py-sm q-px-md text-bow"
                         :class="getDarkModeClass(darkMode)"
                       >
                         <div class="discount-info">
@@ -201,19 +201,16 @@
               </template>
             </div>
 
-            <div
-              v-if="!rsvp.is_paid"
-              class="row col-12 justify-center q-mt-md"
-            >
+            <div class="row col-12 justify-center q-mt-md">
               <q-btn
                 unelevated
                 rounded
                 no-caps
-                :label="$t('Purchase')"
+                :label="rsvp.is_paid ? $t('Finalize') : $t('FinalizeAndPay')"
                 class="purchase-btn"
                 :class="`theme-${theme}`"
                 :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
-                @click="openPayReservationDialog(rsvp)"
+                @click="rsvp.is_paid ? openConfirmReservationDialog(rsvp) : openPayReservationDialog(rsvp)"
               />
             </div>
           </q-card>
@@ -237,6 +234,7 @@ import { getMnemonic, Wallet } from "src/wallet";
 import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 import PayReservationDialog from "src/components/lift-token/dialogs/PayReservationDialog.vue";
+import ConfirmReservationDialog from "src/components/lift-token/dialogs/ConfirmReservationDialog.vue";
 
 export default {
   name: "ReservationsTabPanel",
@@ -348,6 +346,21 @@ export default {
           this.$emit("on-successful-purchase");
         });
     },
+    openConfirmReservationDialog(rsvp) {
+      this.$q
+        .dialog({
+          component: ConfirmReservationDialog,
+          componentProps: { rsvp }
+        })
+        .onOk(() => {
+          this.$q.notify({
+            type: "positive",
+            timeout: 3000,
+            message: this.$t("SuccessfulConfirmReservationMessage"),
+          });
+          this.$emit("on-successful-purchase");
+        });
+    }
   },
 
   async mounted() {

@@ -3,7 +3,6 @@
     <div class="transaction-detail-header-wrapper">
       <header-nav :title="$t('Transaction', {}, 'Transaction')" :backnavpath="backNavPath" class="header-nav apps-header" @click:left="goBack" />
     </div>
-    
     <div class="transaction-detail-content-wrapper" :class="getDarkModeClass(darkMode)">
       <!-- Skeleton Loading State -->
       <div v-if="isLoading" class="q-pa-lg">
@@ -74,10 +73,7 @@
                 :src="getImageUrl(tx.asset)" 
                 alt="asset-logo" 
                 class="asset-icon"
-                @touchstart.prevent.stop
-                @touchmove.prevent.stop
-                @touchend.prevent.stop
-                @contextmenu.prevent.stop
+                @contextmenu.prevent
                 @selectstart.prevent
               />
             </q-avatar>
@@ -555,7 +551,7 @@ export default {
     },
     fiatConversionTooltip () {
       const currency = this.selectedMarketCurrency || 'USD'
-      return this.$t('ConversionInfo', {}, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
+      return this.$t('ConversionInfo', { currency }, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
@@ -732,12 +728,25 @@ export default {
           query: { assetID: assetId }
         }
       }
+      if (fromParam?.includes('apps/multisig')) { 
+        return {
+          path: this.$route?.query?.from,
+          query: { asset: this.$route?.query?.asset }
+        }
+      }
       return '/'
     }
   },
   async mounted () {
-    await this.initWallet()
-    
+
+    if (this.$route.query?.walletHash && this.$route.query?.from?.includes('apps/multisig')) {
+      this.walletHash = this.$route.query.walletHash
+    }
+
+    if (!this.$route.query?.from?.includes('apps/multisig')) {
+      await this.initWallet()
+    }
+
     // Ensure HTML and body have the correct background color to match our wrapper
     this.updateBackgroundColors()
     

@@ -524,8 +524,155 @@ export default {
     setupImageContextMenuPrevention() {
       const vm = this
       
+      // Track touch start times and positions to detect long presses
+      // Use touch identifier as key to handle cases where touch moves off element
+      const touchStartData = new Map()
+      
+      // Helper to check if target is an asset image
+      const isAssetImage = (target) => {
+        if (!target) return false
+        return target.tagName === 'IMG' && (
+          target.classList.contains('asset-icon') ||
+          target.closest('.asset-card') ||
+          target.closest('.method-cards') ||
+          target.closest('.transaction-item') ||
+          target.closest('q-avatar')
+        )
+      }
+      
+      // Helper to find the parent clickable element
+      const findClickableParent = (element) => {
+        // First try to find the closest parent with known clickable classes
+        const clickableParent = element.closest('.method-cards, .asset-card, .transaction-item, [clickable]')
+        if (clickableParent) {
+          return clickableParent
+        }
+        // Check for BCH card specifically (has id="bch-card")
+        const bchCard = element.closest('#bch-card')
+        if (bchCard) {
+          // Find the parent div that has the click handler
+          // The structure is: div.col.text-white (@click) > q-card#bch-card > ...
+          let parentWithClick = bchCard.parentElement
+          // Walk up to find the div with click handler (should be immediate parent)
+          while (parentWithClick && parentWithClick !== document.body) {
+            // Look for div with col or text-white class (the clickable container)
+            if (parentWithClick.tagName === 'DIV' && 
+                parentWithClick.classList && 
+                (parentWithClick.classList.contains('col') || 
+                 parentWithClick.classList.contains('text-white'))) {
+              return parentWithClick
+            }
+            // Also check if it's a row container that might wrap the clickable div
+            if (parentWithClick.tagName === 'DIV' && 
+                parentWithClick.classList && 
+                parentWithClick.classList.contains('row')) {
+              // The clickable div should be a child of this row
+              const clickableChild = Array.from(parentWithClick.children).find(
+                child => child.classList && (child.classList.contains('col') || child.classList.contains('text-white'))
+              )
+              if (clickableChild) {
+                return clickableChild
+              }
+            }
+            parentWithClick = parentWithClick.parentElement
+          }
+        }
+        // Fallback: walk up the DOM tree looking for clickable elements
+        let current = element.parentElement
+        while (current && current !== document.body) {
+          // Check for known clickable classes
+          if (current.classList.contains('method-cards') ||
+              current.classList.contains('asset-card') ||
+              current.classList.contains('transaction-item') ||
+              current.hasAttribute('clickable')) {
+            return current
+          }
+          // Check if element has click handler (native)
+          if (current.onclick || current.style.cursor === 'pointer') {
+            return current
+          }
+          // Check for Vue components (Vue 2 and Vue 3 store references differently)
+          if (current.__vue__ || current.__vueParentComponent || current._vnode) {
+            // If it's a Vue component, it might have click handlers
+            // Check if it's a container element that typically has click handlers
+            if (current.classList.contains('col') || 
+                current.classList.contains('row') ||
+                current.tagName === 'DIV' && current.children.length > 0) {
+              // This might be a clickable container, return it
+              return current
+            }
+          }
+          current = current.parentElement
+        }
+        return null
+      }
+      
       // Prevent iOS image context menu for all asset images
-      const preventDefault = (e) => {
+      // Prevent default on touchstart to stop context menu, then manually trigger clicks for quick taps
+      const handleTouchStart = (e) => {
+        const target = e.target
+        if (isAssetImage(target) && e.touches.length > 0) {
+          // Prevent default to stop iOS context menu from appearing
+          e.preventDefault()
+          const touch = e.touches[0]
+          // Store touch start time and position using touch identifier
+          touchStartData.set(touch.identifier, {
+            time: Date.now(),
+            x: touch.clientX,
+            y: touch.clientY,
+            target: target,
+            clickableParent: findClickableParent(target)
+          })
+        }
+      }
+
+      const handleTouchMove = (e) => {
+        if (e.touches.length > 0) {
+          const touch = e.touches[0]
+          const data = touchStartData.get(touch.identifier)
+          if (data) {
+            // If user moved significantly, clear the touch data (not a tap)
+            const deltaX = Math.abs(touch.clientX - data.x)
+            const deltaY = Math.abs(touch.clientY - data.y)
+            if (deltaX > 10 || deltaY > 10) {
+              touchStartData.delete(touch.identifier)
+            }
+          }
+        }
+      }
+
+      const handleTouchEnd = (e) => {
+        if (e.changedTouches.length > 0) {
+          const touch = e.changedTouches[0]
+          const data = touchStartData.get(touch.identifier)
+          if (data && isAssetImage(data.target)) {
+            const duration = Date.now() - data.time
+            // If it was a quick tap (<500ms) and didn't move much, trigger click on parent
+            if (duration < 500 && data.clickableParent) {
+              // Use setTimeout to ensure the touch event has fully completed
+              setTimeout(() => {
+                // Create and dispatch a click event to the parent element
+                // Use the touch coordinates for the click event
+                const clickEvent = new MouseEvent('click', {
+                  bubbles: true,
+                  cancelable: true,
+                  view: window,
+                  detail: 1,
+                  clientX: touch.clientX,
+                  clientY: touch.clientY,
+                  screenX: touch.screenX,
+                  screenY: touch.screenY
+                })
+                data.clickableParent.dispatchEvent(clickEvent)
+              }, 0)
+            }
+            // For long presses, we already prevented default on touchstart, so context menu won't show
+          }
+          touchStartData.delete(touch.identifier)
+        }
+      }
+
+      const preventDefaultContext = (e) => {
         // Only prevent for images with asset-icon class or inside asset-related containers
         const target = e.target
         if (target.tagName === 'IMG' && (
@@ -535,6 +682,7 @@ export default {
           target.closest('.transaction-item') ||
           target.closest('q-avatar')
         )) {
+          // Prevent default and stop propagation for context menu events
           e.preventDefault()
           e.stopPropagation()
           return false
@@ -542,19 +690,21 @@ export default {
       }
 
       // Use event delegation on document body for all current and future images
-      document.addEventListener('touchstart', preventDefault, { passive: false, capture: true })
-      document.addEventListener('touchmove', preventDefault, { passive: false, capture: true })
-      document.addEventListener('touchend', preventDefault, { passive: false, capture: true })
-      document.addEventListener('contextmenu', preventDefault, { capture: true })
-      document.addEventListener('selectstart', preventDefault, { capture: true })
+      // Touch events: prevent default on touchstart to stop context menu, then manually trigger clicks
+      document.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true })
+      document.addEventListener('touchmove', handleTouchMove, { passive: true, capture: true })
+      document.addEventListener('touchend', handleTouchEnd, { passive: true, capture: true })
+      // Context menu events: prevent default and stop propagation
+      document.addEventListener('contextmenu', preventDefaultContext, { capture: true })
+      document.addEventListener('selectstart', preventDefaultContext, { capture: true })
 
       // Store reference for cleanup
       vm._imageContextMenuPreventionHandlers = {
-        touchstart: preventDefault,
-        touchmove: preventDefault,
-        touchend: preventDefault,
-        contextmenu: preventDefault,
-        selectstart: preventDefault
+        touchstart: handleTouchStart,
+        touchmove: handleTouchMove,
+        touchend: handleTouchEnd,
+        contextmenu: preventDefaultContext,
+        selectstart: preventDefaultContext
       }
     }
   },

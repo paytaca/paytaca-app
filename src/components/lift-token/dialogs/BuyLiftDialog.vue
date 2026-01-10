@@ -140,6 +140,21 @@
             <span class="text-body2">{{ walletBalance.toFixed(8) }} BCH</span>
           </div>
         </div>
+
+        <!-- Lockup Info -->
+        <div class="lockup-info q-mb-md q-pa-md" :class="getDarkModeClass(darkMode)">
+          <div class="row items-center q-gutter-sm">
+            <q-icon 
+              name="info" 
+              size="20px" 
+              :style="`color: ${getThemeColor()}`"
+              class="q-mt-xs"
+            />
+            <div class="col text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+              {{ $t('LiftTokenLockupInfo') }}
+            </div>
+          </div>
+        </div>
   
         <!-- Purchase Button -->
         <q-btn
@@ -725,6 +740,17 @@ export default {
   }
   
   .conversion-display {
+    background-color: rgba(66, 165, 245, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(66, 165, 245, 0.2);
+    
+    &.dark {
+      background-color: rgba(66, 165, 245, 0.1);
+      border-color: rgba(66, 165, 245, 0.3);
+    }
+  }
+  
+  .lockup-info {
     background-color: rgba(66, 165, 245, 0.05);
     border-radius: 12px;
     border: 1px solid rgba(66, 165, 245, 0.2);

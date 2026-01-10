@@ -129,10 +129,7 @@
                         alt=""
                         class="asset-icon"
                         style="height: 75px;"
-                        @touchstart.prevent.stop
-                        @touchmove.prevent.stop
-                        @touchend.prevent.stop
-                        @contextmenu.prevent.stop
+                        @contextmenu.prevent
                         @selectstart.prevent
                       />
                     </q-card-section>
@@ -145,8 +142,6 @@
           <asset-options 
             :loaded="balanceLoaded"
             :selectedDenomination="selectedDenomination"
-            :hasCashin="hasCashin"
-            @cashin="openCashIn()"
             @spend-bch="openSpendBch()"
           />
           <div class="row items-center justify-between q-mb-sm q-mt-sm">
@@ -375,7 +370,6 @@ import connectedDialog from '../connect/connectedDialog.vue'
 import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
-import CashIn from 'src/components/cash-in/CashinIndex.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
@@ -442,9 +436,6 @@ export default {
       denominationTabSelected: 'BCH',
       parsedBCHBalance: '0',
       walletYield: null,
-      hasCashin: false,
-      hasCashinAlert: false,
-      availableCashinFiat: null,
       websocketManager: null,
       assetClickTimer: null,
       assetClickCounter: 0 ,
@@ -1002,103 +993,6 @@ export default {
     goToAssetList () {
       this.$router.push({ name: 'asset-list' })
     },
-    async openCashIn () {
-      await this.checkCashinAvailable()
-      this.$q.dialog({
-        component: CashIn,
-        componentProps: {
-          fiatCurrencies: this.availableCashinFiat
-        }
-      }).onOk(() => {
-        // Refresh data
-        this.resetAndRefetchData()
-      })
-    },
-    handleCashinOrderCreated (data) {
-      console.log('Cashin order created event received:', data)
-      if (data && data.orderId) {
-        console.log('Navigating to order page:', data.orderId)
-        // Wait a bit for dialog to fully close before navigation
-        setTimeout(() => {
-          console.log('Executing navigation with order_id query param:', data.orderId)
-          // Navigate to P2P Exchange with order_id as query parameter
-          // This prevents the exchange/index.vue from redirecting to store page
-          this.$router.push({
-            path: '/apps/exchange/peer-to-peer/',
-            query: { order_id: data.orderId }
-          })
-            .then(() => {
-              console.log('Navigation successful')
-            })
-            .catch((err) => {
-              console.error('Navigation error:', err)
-            })
-        }, 500)
-      }
-    },
-    async checkCashinAvailable () {
-      this.hasCashin = false
-      // check availableCashinFiat is empty to avoid duplicate requests
-      if (this.availableCashinFiat) {
-        this.hasCashin = true
-      } else {
-        let fetchCurrency = false
-
-        await backend.get('/auth')
-          .then(response => {
-            const user = response.data
-
-            if (!user?.is_arbiter) {
-              fetchCurrency = true
-            }
-          })
-          .catch(error => {
-            if (error.response?.status === 404) {
-              fetchCurrency = true
-            }
-          })
-
-        if (fetchCurrency) {
-          backend.get('/ramp-p2p/currency/fiat')
-            .then(response => {
-              this.availableCashinFiat = response.data
-              const selectedFiat = this.$store.getters['market/selectedCurrency']
-              const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
-
-              this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
-            })
-            .catch(error => {
-              console.error(error)
-            })
-        }
-      }
-    },
-    async checkCashinAlert () {
-      if (this.hasCashin) {
-        const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
-        await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
-          .then(response => {
-            this.hasCashinAlert = response.data.has_cashin_alerts
-          })
-          .catch(error => {
-            console.log(error.response || error)
-          })
-      }
-    },
-    setupCashinWebSocket () {
-      this.closeCashinWebSocket()
-      const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
-      const url = `${getBackendWsUrl()}${walletHash}/cash-in/`
-      this.websocketManager = new WebSocketManager()
-      this.websocketManager.setWebSocketUrl(url)
-      this.websocketManager.subscribeToMessages((message) => {
-        if (message?.type === 'ConnectionMessage') return
-        bus.emit('cashin-alert', true)
-      })
-    },
-    closeCashinWebSocket () {
-      this.websocketManager?.closeConnection()
-    },
     async updateTokenMenuPosition () {
       await this.$nextTick()
       this.$refs.tokenMenu.updatePosition()
@@ -1265,7 +1159,6 @@ export default {
       vm.balanceLoaded = true
     },
     resetAndRefetchData () {
-      this.checkCashinAlert()
       this.assets.map((asset) => {
         return this.getBalance(asset.id)
       })
@@ -1905,11 +1798,6 @@ export default {
 
       return !forceRecreate
     },
-    resetCashinOrderPagination () {
-      this.$store.commit('ramp/resetCashinOrderList')
-      this.$store.commit('ramp/resetCashinOrderListPage')
-      this.$store.commit('ramp/resetCashinOrderListTotalPage')
-    },
     hideMultiWalletDialog () {
       this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
     },
@@ -1941,13 +1829,9 @@ export default {
 
   unmounted () {
     bus.off('handle-push-notification', this.handleOpenedNotification)
-    bus.off('cashin-order-created', this.handleCashinOrderCreated)
-    this.closeCashinWebSocket()
   },
   created () {
-    bus.on('cashin-alert', (value) => { this.hasCashinAlert = value })
     bus.on('handle-push-notification', this.handleOpenedNotification)
-    bus.on('cashin-order-created', this.handleCashinOrderCreated)
   },
   beforeMount () {
     const vm = this
@@ -1987,16 +1871,6 @@ export default {
         this.handleOpenedNotification()
       }
 
-      try {
-        await Promise.all([
-          this.checkCashinAvailable(),
-          this.setupCashinWebSocket(),
-          this.resetCashinOrderPagination(),
-          this.checkCashinAlert(),
-        ])
-      } catch(error) {
-        console.error('Error in cashin operations:', error)
-      }
 
       // Note: No need to fetch metadata from BCMR indexer here because
       // the cashtokens/fungible endpoint already provides all the metadata
