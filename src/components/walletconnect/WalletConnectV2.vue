@@ -647,7 +647,7 @@ const mapSessionTopicWithAddressLocal = async (activeSessions, walletAddresses, 
       }
       
       // Check multisig wallets (these don't need WIF derivation as they're handled separately)
-      if (!addressIndex) {
+      if (addressIndex === undefined) {
         addressInfo = multisigMap.get(accountAddress)
         if (!addressInfo && !accountAddress.includes(':')) {
           addressInfo = multisigMap.get(`bitcoincash:${accountAddress}`)
@@ -658,7 +658,7 @@ const mapSessionTopicWithAddressLocal = async (activeSessions, walletAddresses, 
       }
       
       // Fallback: check if account includes the address (for edge cases only)
-      if (!addressIndex && !addressInfo) {
+      if (addressIndex === undefined && !addressInfo) {
         for (const [addr, index] of addressIndexMap.entries()) {
           if (addr && account.includes(addr)) {
             addressIndex = index
@@ -666,7 +666,7 @@ const mapSessionTopicWithAddressLocal = async (activeSessions, walletAddresses, 
           }
         }
       }
-      if (!addressIndex && !addressInfo) {
+      if (addressIndex === undefined && !addressInfo) {
         for (const [addr, info] of multisigMap.entries()) {
           if (addr && account.includes(addr)) {
             addressInfo = info
