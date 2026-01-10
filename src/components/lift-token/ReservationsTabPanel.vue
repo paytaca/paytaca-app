@@ -206,7 +206,7 @@
                 unelevated
                 rounded
                 no-caps
-                :label="rsvp.is_paid ? $t('ConfirmReservation') : $t('Purchase')"
+                :label="rsvp.is_paid ? $t('Finalize') : $t('FinalizeAndPay')"
                 class="purchase-btn"
                 :class="`theme-${theme}`"
                 :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"

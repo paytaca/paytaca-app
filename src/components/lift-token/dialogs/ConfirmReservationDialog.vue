@@ -22,18 +22,18 @@
       </div>
 
       <div class="row flex-center full-width q-mb-md text-center">
-        <span class="col-12 text-h6 text-weight-bold q-mb-md">
-          {{ $t('ConfirmReservation') }}
+        <span class="col-12 text-h6 text-weight-bold q-mb-xs">
+          {{ $t('FinalizeReservation') }}
         </span>
       </div>
 
       <!-- Highlighted Reservation Details Card -->
       <div 
-        class="reservation-details-card q-pa-md q-mb-lg"
+        class="reservation-details-card q-pa-sm q-mb-sm"
         :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
       >
         <!-- Token Amount - Prominent Display -->
-        <div class="text-center q-mb-md">
+        <div class="text-center q-mb-sm">
           <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             {{ $t('ReservedAmount') }}
           </div>
@@ -45,10 +45,10 @@
           </div>
         </div>
 
-        <q-separator :dark="darkMode" class="q-my-md" />
+        <q-separator :dark="darkMode" class="q-my-sm" />
 
         <!-- USD Amount -->
-        <div class="text-center q-mb-md">
+        <div class="text-center q-mb-xs">
           <div class="text-overline" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
             {{ $t('TotalCost') }}
           </div>
@@ -120,6 +120,21 @@
           <span class="text-caption text-weight-bold">
             {{ rsvp.discount }}% {{ $t("DiscountApplied") || "Discount Applied" }}
           </span>
+        </div>
+      </div>
+
+      <!-- Lockup Info -->
+      <div class="lockup-info q-mb-md q-pa-md" :class="getDarkModeClass(darkMode)">
+        <div class="row items-center q-gutter-sm">
+          <q-icon 
+            name="info" 
+            size="20px" 
+            :style="`color: ${getThemeColor()}`"
+            class="q-mt-xs"
+          />
+          <div class="col text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+            {{ $t('LiftTokenLockupInfo') }}
+          </div>
         </div>
       </div>
 
@@ -315,6 +330,17 @@ export default {
 
 .close-button {
   color: inherit;
+}
+
+.lockup-info {
+  background-color: rgba(66, 165, 245, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(66, 165, 245, 0.2);
+  
+  &.dark {
+    background-color: rgba(66, 165, 245, 0.1);
+    border-color: rgba(66, 165, 245, 0.3);
+  }
 }
 
 @media (max-width: 600px) {
