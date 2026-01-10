@@ -172,8 +172,15 @@ export default {
   "Connect to Paytaca": "Haɗa zuwa Paytaca",
   "Required number of signers": "Adadin masu sanya hannu da ake buƙata",
   "Total number of signers": "Jimlar adadin masu sanya hannu",
-  "You earned": "Ka samu",
   EnterCustomAmount: "Shigar da adadi na musamman",
   Devicesuspended: "An dakatar da na'ura",
+  LegacyAddressWarning: "Ka yi shigar adireshi gudanar da. Kaɓi zuwa cewa aka shigar <span class=\"highlighted-word\">adireshin ajiya BCH</span>, kuma ba za a iya shigar adireshin ajiya BTC.",
+  VerifyingWithSeconds: "Tabbatarwa, da fatan za a jira.({seconds} s)",
+  WebsiteDescription: "Ziyarci {website}",
+  LockedUntilDate: "An kulle har zuwa {date}",
+  ApprovedLastDate: "Amincewa da ƙarshe {date}",
+  InvalidHedgeSatoshis: "satoshis shinge mara inganci, {amount}",
+  PostAd: "POST {type} AD",
+  ResolvedDate: "An warware {date}",
 }
 

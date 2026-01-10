@@ -172,8 +172,15 @@ export default {
   "Connect to Paytaca": "Conectar ao Paytaca",
   "Required number of signers": "Número necessário de signatários",
   "Total number of signers": "Número total de signatários",
-  "You earned": "Você ganhou",
   EnterCustomAmount: "Inserir valor personalizado",
   Devicesuspended: "Dispositivo suspenso",
+  LegacyAddressWarning: "Você inseriu um endereço legado. Certifique-se de que é um <span class=\"highlighted-word\">endereço de depósito BCH</span>, não um endereço de depósito BTC.",
+  BitcoinCash: "Bitcoin Cash",
+  ChooseMethod: "Escolha um método para enviar seu {symbol}",
+  RatingValue: "(avaliação de {rating})",
+  TotalLIFT: "LIFT TOTAL",
+  UnpaidLift: "LIFT não pago",
+  WhatIsLIFT: "O que é LIFT?",
+  PurchaseLift: "Comprar LIFT",
 }
 

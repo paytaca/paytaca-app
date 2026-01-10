@@ -96,7 +96,7 @@
                     }}
                   </span><br/>
                   <span v-if="item.has_transacted">
-                    {{ $t('You earned') }}&nbsp;
+                    {{ $t('YouEarned') }}&nbsp;
                     <span class="text-bold">5 RP</span>
                   </span>
                   <span

@@ -172,8 +172,12 @@ export default {
   "Connect to Paytaca": "Connetti a Paytaca",
   "Required number of signers": "Numero richiesto di firmatari",
   "Total number of signers": "Numero totale di firmatari",
-  "You earned": "Hai guadagnato",
   EnterCustomAmount: "Inserisci importo personalizzato",
   Devicesuspended: "Dispositivo sospeso",
+  LegacyAddressWarning: "Hai inserito un indirizzo legacy. Assicurati che sia un <span class=\"highlighted-word\">indirizzo deposito BCH</span>, non un indirizzo deposito BTC.",
+  BitcoinCash: "Bitcoin Cash",
+  WebsiteDescription: "Visita {website}",
+  TotalLIFT: "LIFT totale",
+  UnpaidLift: "LIFT non pagato",
 }
 

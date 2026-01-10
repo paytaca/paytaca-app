@@ -1,7 +1,7 @@
 <template>
   <div id="app-container" class="purelypeer-page text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav 
-      :title="$t('PurelyPeer', {}, 'PurelyPeer')"
+      title="PurelyPeer"
       backnavpath="/apps/get-bch"
     />
     
@@ -10,7 +10,7 @@
       <div class="hero-section text-center q-mb-xl">
         <q-icon name="explore" size="4em" color="primary" class="q-mb-md" />
         <h4 class="text-h4 text-weight-bold q-mb-sm" :class="getDarkModeClass(darkMode)">
-          {{ $t('PurelyPeer', {}, 'PurelyPeer') }}
+          PurelyPeer
         </h4>
         <p class="text-body1 q-mb-lg" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="max-width: 600px; margin: 0 auto;">
           {{ $t('PurelyPeerTagline', {}, 'Discover the thrill of quest hunting with PurelyPeer') }}
@@ -134,7 +134,7 @@
               {{ $t('LearnMore', {}, 'Learn More') }}
             </div>
             <div class="text-body1 q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-              {{ $t('VisitPurelyPeerWebsite', {}, 'Visit the PurelyPeer website to learn more about quests, cashdrops, and how to get started.') }}
+              {{ $t('VisitPurelyPeerWebsiteButton', {}, 'Visit the PurelyPeer website to learn more about quests, cashdrops, and how to get started.') }}
             </div>
             <div class="q-mt-md">
               <q-btn
@@ -142,7 +142,7 @@
                 no-caps
                 color="primary"
                 icon="language"
-                :label="$t('VisitWebsite', {}, 'Visit purelypeer.cash')"
+                :label="$t('VisitPurelyPeerWebsite', { purelypeerWebsite: 'purelypeer.cash' }, 'Visit purelypeer.cash')"
                 @click="openWebsite"
                 class="full-width"
               />

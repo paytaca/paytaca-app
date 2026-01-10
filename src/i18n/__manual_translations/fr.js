@@ -172,8 +172,13 @@ export default {
   "Connect to Paytaca": "Se connecter à Paytaca",
   "Required number of signers": "Nombre requis de signataires",
   "Total number of signers": "Nombre total de signataires",
-  "You earned": "Vous avez gagné",
   EnterCustomAmount: "Entrer un montant personnalisé",
   Devicesuspended: "Appareil suspendu",
+  LegacyAddressWarning: "Vous avez entré une adresse héritée. Veuillez vous assurer que c'est une <span class=\"highlighted-word\">adresse de dépôt BCH</span>, pas une adresse de dépôt BTC.",
+  TotalLIFT: "LIFT TOTALE",
+  UnpaidLift: "LIFT impayé",
+  AppealableInCooldown: "Faisable en appel dans {cooldown}",
+  WebsiteDescription: "Visitez le {website}",
+  PayForLIFT: "Payer pour LIFT",
 }
 

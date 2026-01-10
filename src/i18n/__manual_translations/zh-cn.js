@@ -174,7 +174,12 @@ export default {
   "Connect to Paytaca": "连接到Paytaca",
   "Required number of signers": "所需签名者数量",
   "Total number of signers": "签名者总数",
-  "You earned": "您赚取了",
   EnterCustomAmount: "输入自定义金额",
   Devicesuspended: "设备已暂停",
+  LegacyAddressWarning: "您粘贴了一个遗留地址。请确保它是 <span class=\"highlighted-word\">BCH 存款地址</span>，而不是 BTC 存款地址。",
+  PurchaseLift: "购买LIFT",
+  TotalLIFT: "总LIFT",
+  UnpaidLift: "LIFT未支付",
+  WhatIsLIFT: "什么是LIFT？",
+  PayForLIFT: "支付LIFT费用",
 }

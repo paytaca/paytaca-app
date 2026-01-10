@@ -172,8 +172,8 @@ export default {
   "Connect to Paytaca": "Verbinden met Paytaca",
   "Required number of signers": "Vereist aantal ondertekenaars",
   "Total number of signers": "Totaal aantal ondertekenaars",
-  "You earned": "U heeft verdiend",
   EnterCustomAmount: "Voer aangepast bedrag in",
   Devicesuspended: "Apparaat opgeschort",
+  LegacyAddressWarning: "U hebt een legacy adres ingevoerd. Zorg ervoor dat het een <span class=\"highlighted-word\">BCH stortingsadres</span> is, niet een BTC stortingsadres.",
 }
 
