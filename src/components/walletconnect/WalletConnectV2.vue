@@ -712,9 +712,12 @@ const mapSessionTopicWithAddressLocal = async (activeSessions, walletAddresses, 
  */
 const mapSessionTopicWithAddress = async (activeSessions, walletAddresses, multisigWallets) => {
   // Clear previous mappings for topics that no longer exist
+  // Exclude topics that are currently being processed (e.g., pairingTopic during session approval)
+  // to prevent race condition where cleanup deletes temporary mappings before they can be copied
   const currentTopics = new Set(Object.keys(activeSessions || {}))
+  const processingTopics = new Set(Object.keys(processingSession.value || {}))
   Object.keys(sessionTopicWalletAddressMapping.value).forEach(topic => {
-    if (!currentTopics.has(topic)) {
+    if (!currentTopics.has(topic) && !processingTopics.has(topic)) {
       delete sessionTopicWalletAddressMapping.value[topic]
     }
   })
@@ -1193,13 +1196,20 @@ const approveSessionProposal = async (sessionProposal) => {
       //   }
       // }
     })
-    activeSessions.value[session.topic] = session
     // Update mapping to use session.topic instead of pairingTopic (they're different!)
-    // This ensures the mapping persists when mapSessionTopicWithAddress runs
+    // IMPORTANT: Copy mapping first, then update activeSessions (which triggers watch),
+    // then delete pairingTopic. This order prevents race conditions:
+    // 1. Copy ensures session.topic mapping exists
+    // 2. Updating activeSessions triggers mapSessionTopicWithAddress, but session.topic is now protected (in activeSessions)
+    // 3. pairingTopic is protected during cleanup by processingSession check
+    // 4. After activeSessions update, safe to delete pairingTopic (already copied)
     if (sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]) {
       sessionTopicWalletAddressMapping.value[session.topic] = sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]
-      delete sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]
     }
+    // Update activeSessions - this triggers the watch but session.topic is now protected
+    activeSessions.value[session.topic] = session
+    // Now safe to delete pairingTopic mapping (session.topic is already in activeSessions, so it's protected)
+    delete sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
     await saveConnectedApp(session)
