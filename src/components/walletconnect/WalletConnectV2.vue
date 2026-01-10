@@ -491,17 +491,43 @@ const loadSessionRequests = async ({ showLoading } = { showLoading: true }) => {
  */
 const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWallets) => {
   // Create Maps for O(1) address lookups instead of O(n) find() operations
+  // Build map with multiple keys per address to support different formats:
+  // - Full CashAddress format: "bitcoincash:qxxx..." (as stored)
+  // - Hash-only format: "qxxx..." (for accounts like "bch:qxxx...")
   const addressMap = new Map()
   if (walletAddresses?.length) {
     walletAddresses.forEach(addrInfo => {
-      addressMap.set(addrInfo.address, addrInfo)
+      const fullAddress = addrInfo.address
+      // Store with full address format (primary key)
+      addressMap.set(fullAddress, addrInfo)
+      
+      // Also store with hash-only format for compatibility
+      // Extract hash portion after the colon (e.g., "qxxx..." from "bitcoincash:qxxx...")
+      const colonIndex = fullAddress.indexOf(':')
+      if (colonIndex >= 0) {
+        const hashOnly = fullAddress.substring(colonIndex + 1)
+        // Only add hash-only entry if it doesn't already exist (avoid overwriting)
+        if (!addressMap.has(hashOnly)) {
+          addressMap.set(hashOnly, addrInfo)
+        }
+      }
     })
   }
   
   const multisigMap = new Map()
   if (multisigWallets?.length) {
     multisigWallets.forEach(wallet => {
-      multisigMap.set(wallet.address, wallet)
+      const fullAddress = wallet.address
+      multisigMap.set(fullAddress, wallet)
+      
+      // Also store with hash-only format for compatibility
+      const colonIndex = fullAddress.indexOf(':')
+      if (colonIndex >= 0) {
+        const hashOnly = fullAddress.substring(colonIndex + 1)
+        if (!multisigMap.has(hashOnly)) {
+          multisigMap.set(hashOnly, wallet)
+        }
+      }
     })
   }
   
@@ -517,16 +543,31 @@ const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWal
   for (const topic in activeSessions) {
     activeSessions?.[topic]?.namespaces?.bch?.accounts?.forEach((account) => {
       // Extract address from account format: "bch:bitcoincash:qxxx..." or "bch:qxxx..."
-      // The address is the part after the last colon
-      const lastColonIndex = account.lastIndexOf(':')
-      const accountAddress = lastColonIndex >= 0 ? account.substring(lastColonIndex + 1) : account
+      // Remove the "bch:" prefix first (matches how saveConnectedApp handles it)
+      const accountAddress = account.replace(/^bch:/, '')
       
+      // Try O(1) lookup with extracted address
       let addressInfo = addressMap.get(accountAddress)
       if (!addressInfo) {
         addressInfo = multisigMap.get(accountAddress)
       }
       
-      // Fallback: check if account includes the address (for edge cases)
+      // If account format is "bch:qxxx..." (hash only), also try with "bitcoincash:" prefix
+      if (!addressInfo && !accountAddress.includes(':')) {
+        addressInfo = addressMap.get(`bitcoincash:${accountAddress}`)
+        if (!addressInfo) {
+          addressInfo = multisigMap.get(`bitcoincash:${accountAddress}`)
+        }
+        // Try testnet prefix too
+        if (!addressInfo) {
+          addressInfo = addressMap.get(`bchtest:${accountAddress}`)
+          if (!addressInfo) {
+            addressInfo = multisigMap.get(`bchtest:${accountAddress}`)
+          }
+        }
+      }
+      
+      // Fallback: check if account includes the address (for edge cases only)
       if (!addressInfo) {
         for (const [addr, info] of addressMap.entries()) {
           if (account.includes(addr)) {

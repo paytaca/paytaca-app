@@ -127,9 +127,6 @@ export default {
   "No Transactions To Display": "Keine Transaktionen anzuzeigen",
   "No transactions selected": "Keine Transaktionen ausgewählt",
   AllTransactionsLoaded: "Alle Transaktionen geladen",
-  ReceiverWarningText1: "Stellen Sie sicher, dass Sie die Wiederherstellungsphrase gesichert haben, bevor Sie Vermögenswerte empfangen.",
-  ReceiverWarningText2: "",
-  ReceiverWarningText3: "",
   GoBack: "ZURÜCK",
   // Errors and operations
   ErrorGeneratingSeedPhrase: "Fehler beim Generieren der Seed-Phrase",

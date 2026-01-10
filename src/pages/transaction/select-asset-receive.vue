@@ -85,7 +85,7 @@
                   class="q-ma-none amount-text"
                   :class="getDarkModeClass(darkMode, '', 'text-grad')"
                 >
-                  Any Fungible CashToken
+                  Any CashToken
                 </p>
                 <p
                   v-else-if="asset.id !== 'ct/unlisted' && asset.id !== 'slp/unlisted'"
@@ -135,9 +135,8 @@ import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { cachedLoadWallet } from 'src/wallet'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
-import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
-import { convertTokenAmount, getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
+import { convertTokenAmount, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import axios from 'axios'
 
@@ -148,8 +147,7 @@ export default {
   ],
   components: {
     HeaderNav,
-    AssetFilter,
-    FirstTimeReceiverWarning
+    AssetFilter
   },
   data () {
     return {
@@ -446,25 +444,7 @@ export default {
         }
       }
     },
-    async isFirstTimeReceiver(asset) {
-      if (!asset || !asset.id) return false
-      if ((asset?.balance ?? 0) !== 0) return false
-      if ((asset?.txCount ?? 0) !== 0) return false
-      if (asset.id.split('/')[1] === 'unlisted') return false
-
-      const transactionsLength = await this.getBchTransactions(asset)
-
-      this.$store.commit('assets/updateAssetTxCount', {
-        id: asset?.id,
-        txCount: transactionsLength,
-      })
-
-      return transactionsLength === 0
-    },
-    async checkIfFirstTimeReceiver (asset) {
-      // check wallet/assets if balance is zero and no transactions were made
-      const displayFirstTimeReceiverWarning = await this.isFirstTimeReceiver(asset)
-      
+    checkIfFirstTimeReceiver (asset) {
       // Prepare asset data to pass to receive page
       // This ensures the receive page has immediate access to logo, name, symbol, decimals, and balance
       const assetData = asset ? {
@@ -483,45 +463,10 @@ export default {
         assetData: assetData ? JSON.stringify(assetData) : undefined
       }
       
-      if (displayFirstTimeReceiverWarning) {
-        this.$q.dialog({ component: FirstTimeReceiverWarning })
-          .onOk(() => {
-            this.$router.push({
-              name: 'transaction-receive',
-              query: routeQuery
-            })
-          })
-      } else {
-        this.$router.push({
-          name: 'transaction-receive',
-          query: routeQuery
-        })
-      }
-    },
-    async getBchTransactions (asset) {
-      if (!asset || !asset.id) return 0
-      
-      const vm = this
-      const id = asset.id
-      let historyLength = -1
-      let requestPromise
-
-      if (id.indexOf('slp/') > -1) {
-        const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions(tokenId, 1, 'all')
-      } else if (id.indexOf('ct/') > -1) {
-        const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(1, 'all', tokenId)
-      } else {
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(1, 'all')
-      }
-
-      if (!requestPromise) return 0
-      await requestPromise.then((response) => {
-        historyLength = response?.history.length ?? 0
+      this.$router.push({
+        name: 'transaction-receive',
+        query: routeQuery
       })
-
-      return historyLength
     }
   },
   async mounted () {
