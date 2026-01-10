@@ -410,7 +410,7 @@ const loadActiveSessions = async ({ showLoading } = { showLoading: true }) => {
         })
       )
     }
-    mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
+    // mapSessionTopicWithAddress is automatically called by watchEffect when activeSessions changes
     return activeSessions.value
   } catch (error) {
     console.log(error)
@@ -490,21 +490,66 @@ const loadSessionRequests = async ({ showLoading } = { showLoading: true }) => {
  * data
  */
 const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWallets) => {
+  // Create Maps for O(1) address lookups instead of O(n) find() operations
+  const addressMap = new Map()
+  if (walletAddresses?.length) {
+    walletAddresses.forEach(addrInfo => {
+      addressMap.set(addrInfo.address, addrInfo)
+    })
+  }
+  
+  const multisigMap = new Map()
+  if (multisigWallets?.length) {
+    multisigWallets.forEach(wallet => {
+      multisigMap.set(wallet.address, wallet)
+    })
+  }
+  
+  // Clear previous mappings for topics that no longer exist
+  const currentTopics = new Set(Object.keys(activeSessions || {}))
+  Object.keys(sessionTopicWalletAddressMapping.value).forEach(topic => {
+    if (!currentTopics.has(topic)) {
+      delete sessionTopicWalletAddressMapping.value[topic]
+    }
+  })
+  
+  // Map sessions to addresses using the Map
   for (const topic in activeSessions) {
     activeSessions?.[topic]?.namespaces?.bch?.accounts?.forEach((account) => {
-      let addressInfo = walletAddresses?.find((addressInfo) => {
-        return account.includes(addressInfo.address)
-      })
+      // Extract address from account format: "bch:bitcoincash:qxxx..." or "bch:qxxx..."
+      // The address is the part after the last colon
+      const lastColonIndex = account.lastIndexOf(':')
+      const accountAddress = lastColonIndex >= 0 ? account.substring(lastColonIndex + 1) : account
+      
+      let addressInfo = addressMap.get(accountAddress)
       if (!addressInfo) {
-        addressInfo = multisigWallets?.find((addressInfo) => {
-          return account.includes(addressInfo.address)
-        })
+        addressInfo = multisigMap.get(accountAddress)
       }
+      
+      // Fallback: check if account includes the address (for edge cases)
+      if (!addressInfo) {
+        for (const [addr, info] of addressMap.entries()) {
+          if (account.includes(addr)) {
+            addressInfo = info
+            break
+          }
+        }
+      }
+      if (!addressInfo) {
+        for (const [addr, info] of multisigMap.entries()) {
+          if (account.includes(addr)) {
+            addressInfo = info
+            break
+          }
+        }
+      }
+      
       if (addressInfo) {
         sessionTopicWalletAddressMapping.value[topic] = addressInfo
       }
     })
   }
+  
   return sessionTopicWalletAddressMapping.value
 }
 
