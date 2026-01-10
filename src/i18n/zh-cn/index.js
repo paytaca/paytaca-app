@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "供应量",
   AmountToken: "金额代币",
   AndMoreAddresses: "以及另外 {addressCount} 个地址",
+  AnyCashToken: "任何现金代币",
   AnyHedge: "任意对冲",
   AnyHedgeContract: "任意对冲合约",
   AnyHedgeNoExactMatchInfo: "如果在池中没有找到完全匹配的内容，则会建议类似的优惠列表",

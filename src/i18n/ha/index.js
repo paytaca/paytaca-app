@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "Adadin da ake bayarwa",
   AmountToken: "Token na adadi",
   AndMoreAddresses: "da ƙarin adireshi {addressCount}",
+  AnyCashToken: "Duk wani CashToken",
   AnyHedge: "AnyHedge",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "Idan babu takamaiman wasa da aka samo daga tafkin, ana ba da shawarar jerin irin wannan tayin maimakon",

@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "Jumlah Pasokan",
   AmountToken: "Token jumlah",
   AndMoreAddresses: "dan {addressCount} alamat lainnya",
+  AnyCashToken: "Token Tunai apa pun",
   AnyHedge: "AnyHedge",
   AnyHedgeContract: "Kontrak Lindung Nilai Apa Pun",
   AnyHedgeNoExactMatchInfo: "Jika tidak ditemukan kecocokan persis dari kumpulan tersebut, daftar penawaran serupa akan disarankan",

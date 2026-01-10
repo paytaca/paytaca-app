@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "Сумма к поставке",
   AmountToken: "Токен суммы",
   AndMoreAddresses: "и еще {addressCount} адресов",
+  AnyCashToken: "Любой CashToken",
   AnyHedge: "AnyHedge",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "Если точного соответствия в пуле не найдено, вместо него предлагается список похожих предложений.",

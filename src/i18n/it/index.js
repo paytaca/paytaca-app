@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "Importo da fornire",
   AmountToken: "Token importo",
   AndMoreAddresses: "e altri {addressCount} indirizzi",
+  AnyCashToken: "Qualsiasi CashToken",
   AnyHedge: "AnyHedge",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "Se non viene trovata alcuna corrispondenza esatta dal pool, viene suggerito invece un elenco di offerte simili",

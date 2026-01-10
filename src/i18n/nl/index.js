@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "Te leveren hoeveelheid",
   AmountToken: "Bedrag token",
   AndMoreAddresses: "en nog {addressCount} adressen",
+  AnyCashToken: "Elke CashToken",
   AnyHedge: "AnyHedge",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "Als er geen exacte match uit de pool wordt gevonden, wordt in plaats daarvan een lijst met vergelijkbare aanbiedingen voorgesteld",

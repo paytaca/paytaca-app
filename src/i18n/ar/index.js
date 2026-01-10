@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "المبلغ المطلوب توريده",
   AmountToken: "رمز المبلغ",
   AndMoreAddresses: "و{addressCount} عناوين أخرى",
+  AnyCashToken: "أي CashToken",
   AnyHedge: "أي هيدج",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "إذا لم يتم العثور على تطابق تام من المجموعة، فسيتم اقتراح قائمة بالعروض المماثلة بدلاً من ذلك",

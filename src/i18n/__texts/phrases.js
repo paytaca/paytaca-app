@@ -9,6 +9,7 @@ const phrases = {
       AutoGenerateAddress: 'Auto generate address',
       AutoGenerateAddressToolTip: 'A new address will be generated after receiving assets.',
       AnyHedge: "AnyHedge",
+      AnyCashToken: "Any CashToken",
       AppealRamp: "Appeal Ramp",
       ApproveToken: "Approve token",
       AboutTheApp: "About the App",

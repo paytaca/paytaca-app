@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "供給量",
   AmountToken: "金額トークン",
   AndMoreAddresses: "他に {addressCount} 個のアドレス",
+  AnyCashToken: "任意のキャッシュトークン",
   AnyHedge: "エニヘッジ",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "プールから完全に一致するものが見つからない場合は、代わりに同様のオファーのリストが提案されます。",

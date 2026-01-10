@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "Bedrag om te verskaf",
   AmountToken: "Bedrag token",
   AndMoreAddresses: "en nog {addressCount} adresse",
+  AnyCashToken: "Enige CashToken",
   AnyHedge: "Enige Hedge",
   AnyHedgeContract: "AnyHedge Contract",
   AnyHedgeNoExactMatchInfo: "As daar nie 'n presiese passing van die swembad gevind word nie, word 'n lys soortgelyke aanbiedings eerder voorgestel",

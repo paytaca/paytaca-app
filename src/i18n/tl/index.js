@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "Halaga sa Supply",
   AmountToken: "Amount token",
   AndMoreAddresses: "at {addressCount} pang mga address",
+  AnyCashToken: "Anumang CashToken",
   AnyHedge: "AnyHedge",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "Kung walang eksaktong tugma na makikita mula sa pool, isang listahan ng mga katulad na alok ang iminumungkahi sa halip",

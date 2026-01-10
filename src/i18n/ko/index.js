@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "공급량",
   AmountToken: "금액 토큰",
   AndMoreAddresses: "외 주소 {addressCount}개",
+  AnyCashToken: "모든 CashToken",
   AnyHedge: "AnyHedge",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "풀에서 정확히 일치하는 항목을 찾을 수 없는 경우 유사한 제안 목록이 대신 제안됩니다.",

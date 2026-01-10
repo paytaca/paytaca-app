@@ -90,6 +90,7 @@ export default {
   AmountToSupply: "Amount to Supply",
   AmountToken: "Amount token",
   AndMoreAddresses: "and {addressCount} more addresses",
+  AnyCashToken: "Any CashToken",
   AnyHedge: "AnyHedge",
   AnyHedgeContract: "AnyHedgeContract",
   AnyHedgeNoExactMatchInfo: "If there is no exact match found from the pool, a list of similar offers is suggested instead",

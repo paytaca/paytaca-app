@@ -85,7 +85,7 @@
                   class="q-ma-none amount-text"
                   :class="getDarkModeClass(darkMode, '', 'text-grad')"
                 >
-                  Any CashToken
+                  {{ $t('AnyCashToken') }}
                 </p>
                 <p
                   v-else-if="asset.id !== 'ct/unlisted' && asset.id !== 'slp/unlisted'"
