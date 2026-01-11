@@ -42,6 +42,8 @@ export default {
   "Sync Wallet": "同步錢包",
   WalletSwitchFailed: "切換錢包失敗",
   WalletNotFound: "找不到錢包",
+  BackupConfirmed: "錢包備份已確認",
+  BackupConfirmedOn: "最後確認時間: {date}",
   CannotDeleteLastWallet: "無法刪除最後一個錢包",
   ErrorDeletingWallet: "刪除錢包時出錯",
   ErrorRestoringWallet: "還原錢包時出錯",

@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Нельзя удалить последний кошелек",
   ErrorDeletingWallet: "Ошибка при удалении кошелька",
   ErrorRestoringWallet: "Ошибка при восстановлении кошелька",
+  BackupConfirmed: "Резервное копирование кошелька подтверждено",
+  BackupConfirmedOn: "Последнее подтверждение {date}",
   "Wallet Details": "Детали кошелька",
   "Wallet Qr Code": "QR-код кошелька",
   "XPubKey QR Code": "QR-код расширенного открытого ключа",

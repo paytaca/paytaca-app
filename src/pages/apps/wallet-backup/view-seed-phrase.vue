@@ -64,6 +64,9 @@
       </template>
     </div>
 
+    <!-- Sticky Confirm Backup button -->
+    <StickyBackupConfirmButton :authenticated="authenticated" />
+
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="onPinVerified" />
     <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
   </div>
@@ -72,6 +75,7 @@
 <script>
 import HeaderNav from 'src/components/header-nav'
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
+import StickyBackupConfirmButton from 'src/components/wallet-backup/StickyBackupConfirmButton.vue'
 import { getMnemonic } from 'src/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import pinDialog from 'src/components/pin'
@@ -84,6 +88,7 @@ export default {
   components: {
     HeaderNav,
     SeedPhraseContainer,
+    StickyBackupConfirmButton,
     pinDialog,
     biometricWarningAttempts
   },
@@ -108,19 +113,11 @@ export default {
     
     executeSecurityChecking () {
       const vm = this
-      console.log('[WalletBackup-SeedPhrase] executeSecurityChecking called')
-      console.log('[WalletBackup-SeedPhrase] $store available:', !!vm.$store)
-      console.log('[WalletBackup-SeedPhrase] preferredSecurity:', vm.$store?.getters?.['global/preferredSecurity'])
-      
       setTimeout(() => {
         const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
-        console.log('[WalletBackup-SeedPhrase] Setting security check, preferredSecurity:', preferredSecurity)
         if (preferredSecurity === 'pin') {
-          console.log('[WalletBackup-SeedPhrase] Setting pinDialogAction to VERIFY')
           vm.pinDialogAction = 'VERIFY'
-          console.log('[WalletBackup-SeedPhrase] pinDialogAction after set:', vm.pinDialogAction)
         } else {
-          console.log('[WalletBackup-SeedPhrase] Calling verifyBiometric')
           vm.verifyBiometric()
         }
       }, 300)
@@ -189,12 +186,11 @@ export default {
   },
 
   mounted () {
-    console.log('[WalletBackup-SeedPhrase] Component mounted, calling executeSecurityChecking')
     this.executeSecurityChecking()
   },
   watch: {
-    pinDialogAction (newVal, oldVal) {
-      console.log('[WalletBackup-SeedPhrase] pinDialogAction changed from', oldVal, 'to', newVal)
+    pinDialogAction () {
+      // Watcher for pinDialogAction changes
     }
   }
 }
@@ -203,7 +199,7 @@ export default {
 <style lang="scss" scoped>
   .seed-phrase-view-container {
     min-height: 100vh;
-    padding-bottom: 40px;
+    padding-bottom: 100px; // Extra padding for sticky button
   }
 
   .content-wrapper {

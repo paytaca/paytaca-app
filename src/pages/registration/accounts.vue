@@ -1276,7 +1276,10 @@ export default {
           console.warn('mnemonic readiness wait timeout', e)
           vm.isRedirecting = false
         }
-        vm.$router.push('/').catch(() => {
+        vm.$router.push({
+          path: '/',
+          query: { newWallet: 'true' }
+        }).catch(() => {
           vm.isRedirecting = false
         })
       }).catch((error) => {

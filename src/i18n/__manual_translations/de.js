@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Letzte Brieftasche kann nicht gelöscht werden",
   ErrorDeletingWallet: "Fehler beim Löschen der Brieftasche",
   ErrorRestoringWallet: "Fehler beim Wiederherstellen der Brieftasche",
+  BackupConfirmed: "Wallet-Backup bestätigt",
+  BackupConfirmedOn: "Zuletzt bestätigt am {date}",
   "Wallet Details": "Brieftaschendetails",
   "Wallet Qr Code": "Brieftaschen-QR-Code",
   "XPubKey QR Code": "Erweiterter öffentlicher Schlüssel QR-Code",

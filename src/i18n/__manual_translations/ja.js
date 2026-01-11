@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "最後のウォレットは削除できません",
   ErrorDeletingWallet: "ウォレットの削除中にエラー",
   ErrorRestoringWallet: "ウォレットの復元中にエラー",
+  BackupConfirmed: "ウォレットのバックアップが確認されました",
+  BackupConfirmedOn: "最後に確認された日: {date}",
   "Wallet Details": "ウォレットの詳細",
   "Wallet Qr Code": "ウォレットQRコード",
   "XPubKey QR Code": "拡張公開鍵QRコード",

@@ -728,6 +728,10 @@ export default {
   async mounted () {
     const vm = this
 
+    // Clear session-based backup reminder dismissal on fresh app start
+    // App.vue only mounts on fresh app start (not during navigation), so always clear
+    sessionStorage.removeItem('backupReminderDismissedTimestamp')
+
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run before any wallet operations
     // Skip if we just switched wallets (check for a flag or recent switch)

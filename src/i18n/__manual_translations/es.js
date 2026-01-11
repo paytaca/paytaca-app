@@ -127,6 +127,8 @@ export default {
   CannotDeleteLastWallet: "No se puede eliminar la última billetera",
   ErrorDeletingWallet: "Error al eliminar la billetera",
   ErrorRestoringWallet: "Error al restaurar la billetera",
+  BackupConfirmed: "Copia de seguridad de billetera confirmada",
+  BackupConfirmedOn: "Última confirmación el {date}",
   "Wallet Details": "Detalles de la billetera",
   "Wallet Qr Code": "Código QR de la billetera",
   "XPubKey QR Code": "Código QR de la clave pública extendida",

@@ -114,6 +114,7 @@ export default function () {
     },
     walletsRecovered: false, // Flag to check if wallets have been recovered from storage
     walletRecoveryMessage: '',
+    backupReminderDismissed: false, // Flag to track if user has marked backup as done
     /**
      * Clearable state, any apps storing state here should be able to recover if cache is cleared.
      */

@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Kan nie laaste beursie verwyder nie",
   ErrorDeletingWallet: "Fout met die verwydering van beursie",
   ErrorRestoringWallet: "Fout met die herstel van beursie",
+  BackupConfirmed: "Beursie rugsteun bevestig",
+  BackupConfirmedOn: "Laas bevestig op {date}",
   "Wallet Details": "Beursie besonderhede",
   "Wallet Qr Code": "Beursie QR kode",
   "XPubKey QR Code": "Uitgebreide publieke sleutel QR kode",

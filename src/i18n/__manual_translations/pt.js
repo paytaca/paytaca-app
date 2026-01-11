@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Não é possível excluir a última carteira",
   ErrorDeletingWallet: "Erro ao excluir a carteira",
   ErrorRestoringWallet: "Erro ao restaurar a carteira",
+  BackupConfirmed: "Backup da carteira confirmado",
+  BackupConfirmedOn: "Última confirmação em {date}",
   "Wallet Details": "Detalhes da carteira",
   "Wallet Qr Code": "Código QR da carteira",
   "XPubKey QR Code": "Código QR da chave pública estendida",

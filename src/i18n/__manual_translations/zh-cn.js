@@ -30,6 +30,8 @@ export default {
   CannotDeleteLastWallet: "无法删除最后一个钱包",
   ErrorDeletingWallet: "删除钱包时出错",
   ErrorRestoringWallet: "恢复钱包时出错",
+  BackupConfirmed: "钱包备份已确认",
+  BackupConfirmedOn: "最后确认时间: {date}",
   "Wallet Details": "钱包详情",
   "Wallet Qr Code": "钱包二维码",
   "XPubKey QR Code": "扩展公钥二维码",

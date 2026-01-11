@@ -29,6 +29,8 @@ export default {
   CannotDeleteLastWallet: "Hindi ma-delete ang huling wallet",
   ErrorDeletingWallet: "Error sa pag-delete ng wallet",
   ErrorRestoringWallet: "Error sa pag-restore ng wallet",
+  BackupConfirmed: "Nakumpirma ang backup ng wallet",
+  BackupConfirmedOn: "Huling nakumpirma noong {date}",
   "Wallet Details": "Mga detalye ng wallet",
   "Wallet Qr Code": "QR code ng wallet",
   "XPubKey QR Code": "QR code ng extended public key",

@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Ba za a iya share walat na ƙarshe ba",
   ErrorDeletingWallet: "Kuskure yayin share walat",
   ErrorRestoringWallet: "Kuskure yayin maido da walat",
+  BackupConfirmed: "An tabbatar da ajiyar walat",
+  BackupConfirmedOn: "An tabbatar kwanan nan a {date}",
   "Wallet Details": "Bayanan walat",
   "Wallet Qr Code": "Lambar QR na walat",
   "XPubKey QR Code": "Lambar QR na maɓallin jama'a mai faɗaɗawa",

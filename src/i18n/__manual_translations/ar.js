@@ -82,6 +82,8 @@ export default {
   CannotDeleteLastWallet: "لا يمكن حذف المحفظة الأخيرة",
   ErrorDeletingWallet: "خطأ في حذف المحفظة",
   ErrorRestoringWallet: "خطأ في استعادة المحفظة",
+  BackupConfirmed: "تم تأكيد نسخ احتياطي للمحفظة",
+  BackupConfirmedOn: "تم التأكيد آخر مرة في {date}",
   "Wallet Details": "تفاصيل المحفظة",
   "Wallet Qr Code": "رمز QR للمحفظة",
   "XPubKey QR Code": "رمز QR للمفتاح العام الممتد",
