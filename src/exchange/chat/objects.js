@@ -124,10 +124,19 @@ export class ChatMessage {
 
   async decryptMessage (privkey, tryAllKeys = false) {
     if (!this.encrypted) return
-    const parsedEncryptedMessage = decompressEncryptedMessage(this.message)
-    const opts = { privkey, tryAllKeys, ...parsedEncryptedMessage }
-    this.decryptedMessage = decryptMessage(opts)
-    return this
+    try {
+      const parsedEncryptedMessage = decompressEncryptedMessage(this.message)
+      const opts = { privkey, tryAllKeys, ...parsedEncryptedMessage }
+      this.decryptedMessage = decryptMessage(opts)
+      return this
+    } catch (error) {
+      console.error('Error decrypting message in ChatMessage.decryptMessage:', error)
+      // Set _decryptedMessage to undefined to indicate decryption failed
+      // This will be handled by the wrapper in order.vue
+      this._decryptedMessage = undefined
+      // Re-throw so the wrapper can handle it appropriately
+      throw error
+    }
   }
 
   async fetchEncryptedAttachment () {

@@ -292,7 +292,11 @@
                       :class="getDarkModeClass(darkMode)"
                     >
                       <div v-if="message.message || message._decryptedMessage" class="message-text">
-                        {{ message._decryptedMessage || message.message }}
+                        <span v-if="message._decryptedMessage">{{ message._decryptedMessage }}</span>
+                        <span v-else-if="!message.encrypted">{{ message.message }}</span>
+                        <span v-else class="text-grey-6 text-italic">
+                          {{ $t('MessageDecryptionFailed', {}, 'Unable to decrypt message') }}
+                        </span>
                       </div>
                     </q-chat-message>
                     
@@ -1454,13 +1458,24 @@ export default {
       if (!this.keypair.privkey) await this.loadKeyPair()
       if (!this.keypair.privkey) return null
       
+      // If message is not encrypted, return as-is
+      if (!message.encrypted) {
+        return message
+      }
+      
       try {
         // decryptMessage returns `this` if encrypted, or undefined if not encrypted
         const decryptedMessage = await message.decryptMessage(this.keypair.privkey, false)
-        // If undefined (not encrypted), return the original message
+        // If decryption succeeded, _decryptedMessage should be set
+        // Return the message with decrypted content
         return decryptedMessage || message
       } catch (error) {
         console.error('Error decrypting message:', error)
+        // On decryption failure, mark the message to indicate decryption failed
+        // Don't return the message with encrypted content visible
+        // Return null or the message with _decryptedMessage explicitly set to indicate failure
+        message._decryptionFailed = true
+        message._decryptedMessage = undefined
         return message
       }
     },
