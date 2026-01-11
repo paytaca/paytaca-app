@@ -831,7 +831,13 @@ const mapSessionTopicWithAddress = async (activeSessions, walletAddresses, multi
 
 async function saveConnectedApp (session) {
   try {
-    session?.namespaces?.bch?.accounts?.forEach(async (account) => {
+    const accounts = session?.namespaces?.bch?.accounts
+    if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+      return
+    }
+    
+    // Use Promise.all to wait for all async operations to complete
+    const savePromises = accounts.map(async (account) => {
       const accountWCPrefixRemoved = account.replace('bch:', '')
       let wif = null
       
@@ -906,7 +912,11 @@ async function saveConnectedApp (session) {
       //     addressToConnect: accountWCPrefixRemoved
       //   })
       // }
+      return null
     })
+    
+    // Wait for all save operations to complete
+    await Promise.all(savePromises)
   } catch (error) { console.log('🚀 ~ saveConnectedApp ~ error:', error) }
 }
 
