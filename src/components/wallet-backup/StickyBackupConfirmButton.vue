@@ -1,6 +1,6 @@
 <template>
   <div 
-    v-if="!lastBackupTimestamp && (!isAtBottom || !hasScrolled || showAfterTimeout)" 
+    v-if="!lastBackupTimestamp && !isAtBottom" 
     class="sticky-button-container"
     :class="getDarkModeClass(darkMode)"
   >
@@ -36,8 +36,6 @@ export default {
     return {
       isAtBottom: false,
       hasScrolled: false,
-      showAfterTimeout: true,
-      bottomTimeout: null,
       scrollHandler: null
     }
   },
@@ -76,39 +74,6 @@ export default {
       const threshold = 50
       return scrollTop + windowHeight >= documentHeight - threshold
     },
-    startShowHideCycle () {
-      const vm = this
-      // Show the button
-      vm.showAfterTimeout = true
-      // Clear any existing timeout
-      if (vm.bottomTimeout) {
-        clearTimeout(vm.bottomTimeout)
-      }
-      // Start timer to hide after 3 seconds
-      vm.bottomTimeout = setTimeout(() => {
-        // Check if still at bottom
-        if (vm.checkIfAtBottom()) {
-          // Still at bottom - hide the button
-          vm.showAfterTimeout = false
-          // Start timer to show again after 3 seconds
-          vm.bottomTimeout = setTimeout(() => {
-            // Check again if still at bottom
-            if (vm.checkIfAtBottom()) {
-              // Still at bottom - restart the cycle
-              vm.startShowHideCycle()
-            } else {
-              // Not at bottom - keep button shown and clear timer
-              vm.showAfterTimeout = true
-              vm.bottomTimeout = null
-            }
-          }, 3000)
-        } else {
-          // Not at bottom - keep button shown and clear timer
-          vm.showAfterTimeout = true
-          vm.bottomTimeout = null
-        }
-      }, 3000)
-    },
     checkScrollPosition () {
       const vm = this
       const windowHeight = window.innerHeight
@@ -124,49 +89,11 @@ export default {
       // If page height <= viewport height, always show (page not scrollable)
       if (documentHeight <= windowHeight) {
         vm.isAtBottom = false
-        // Clear any timeout and show button
-        if (vm.bottomTimeout) {
-          clearTimeout(vm.bottomTimeout)
-          vm.bottomTimeout = null
-        }
-        vm.showAfterTimeout = true
         return
       }
       
-      // Check if at bottom
-      const isAtBottom = vm.checkIfAtBottom()
-      const wasAtBottom = vm.isAtBottom
-      vm.isAtBottom = isAtBottom && vm.hasScrolled
-      
-      // If just reached bottom, hide and start the show/hide cycle
-      if (vm.isAtBottom && !wasAtBottom) {
-        vm.showAfterTimeout = false
-        // Clear any existing timeout
-        if (vm.bottomTimeout) {
-          clearTimeout(vm.bottomTimeout)
-        }
-        // Start the cycle: show after 3 seconds, then hide, then show again, etc.
-        vm.bottomTimeout = setTimeout(() => {
-          // Check if still at bottom
-          if (vm.checkIfAtBottom()) {
-            // Still at bottom - start the show/hide cycle
-            vm.startShowHideCycle()
-          } else {
-            // Not at bottom anymore - show the button
-            vm.showAfterTimeout = true
-            vm.bottomTimeout = null
-          }
-        }, 3000)
-      }
-      
-      // If scrolled away from bottom, clear timeout and show immediately
-      if (!vm.isAtBottom && wasAtBottom) {
-        if (vm.bottomTimeout) {
-          clearTimeout(vm.bottomTimeout)
-          vm.bottomTimeout = null
-        }
-        vm.showAfterTimeout = true
-      }
+      // Check if at bottom - hide button when at bottom, show when not at bottom
+      vm.isAtBottom = vm.checkIfAtBottom() && vm.hasScrolled
     },
     addScrollListener () {
       const vm = this
@@ -183,11 +110,6 @@ export default {
       if (this.scrollHandler) {
         window.removeEventListener('scroll', this.scrollHandler)
         this.scrollHandler = null
-      }
-      // Clear timeout on unmount
-      if (this.bottomTimeout) {
-        clearTimeout(this.bottomTimeout)
-        this.bottomTimeout = null
       }
     },
     showConfirmationDialog () {
