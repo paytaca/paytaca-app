@@ -23,6 +23,28 @@
       </div>
       <q-card-section>
         <q-form @submit="() => onSubmit()">
+          <!-- Currency Selection -->
+          <div class="q-mb-md">
+            <div class="text-body2 q-mb-sm text-weight-medium">{{ $t('SelectCurrency', {}, 'Select Currency') }}</div>
+            <div class="row q-gutter-sm">
+              <q-btn
+                v-for="currency in availableCurrencies"
+                :key="currency"
+                :label="currency"
+                :color="selectedCurrency === currency ? 'primary' : 'grey-7'"
+                :outline="selectedCurrency !== currency"
+                :flat="selectedCurrency !== currency"
+                unelevated
+                no-caps
+                rounded
+                class="col"
+                :class="selectedCurrency === currency ? 'text-white' : ''"
+                @click="selectCurrency(currency)"
+                :loading="loadingContract && selectedCurrency === currency"
+              />
+            </div>
+          </div>
+          
           <div v-if="pricePerDenomination" class="row items-center text-grey q-mb-lg">
             <div class="q-space">{{ $t('CurrentPrice') }}:</div>
             <div>{{ formatWithLocale(pricePerDenomination, { max: 8 }) }} {{ tokenCurrency}} / {{ denomination }}</div>
@@ -86,11 +108,12 @@ import { formatWithLocale, getDenomDecimals, parseFiatCurrency } from 'src/utils
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { useValueFormatters } from 'src/composables/stablehedge/formatters';
-import { useDialogPluginComponent } from 'quasar'
+import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import CustomInput from '../CustomInput.vue';
 import { useI18n } from 'vue-i18n';
+import { getStablehedgeBackend } from 'src/wallet/stablehedge/api';
 
 
 export default defineComponent({
@@ -110,34 +133,27 @@ export default defineComponent({
   setup(props, { emit: $emit }) {
     const { t: $t } = useI18n();
     const $store = useStore();
+    const $q = useQuasar();
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
     const { dialogRef, onDialogCancel, onDialogHide, onDialogOK } = useDialogPluginComponent()
     const innerVal = ref(props.modelValue)
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
-    watch(innerVal, () => {
-      if (!innerVal.value) return
-      tokenAmount.value = 0
-    })
+    const isChipnet = computed(() => $store.getters['global/isChipnet'])
+    const backend = computed(() => getStablehedgeBackend(isChipnet.value))
+    const loadingContract = ref(false)
+    const currentRedemptionContract = ref(props.redemptionContract)
+    const availableContracts = ref({})
+    const availableCurrencies = ref([])
+    const selectedCurrency = ref('')
+    const tokenAmount = ref(0)
 
-    const subscribeKey = 'deposit-form-dialog'
-    onMounted(() => {
-      if (!innerVal.value) return
-      console.log('Subscribing')
-      stablehedgePriceTracker.subscribe(subscribeKey, [category.value])
-    })
-    onUnmounted(() => stablehedgePriceTracker.unsubscribe(subscribeKey))
-    watch(innerVal, () => {
-      innerVal.value
-        ? stablehedgePriceTracker.subscribe(subscribeKey, [category.value])
-        : stablehedgePriceTracker.unsubscribe(subscribeKey)
-    })
-
+    // Define computed properties first (before watchers that use them)
     const denomination = computed(() => {
       return props.selectedDenomination || $store.getters['global/denomination']
     })
-    const fiatToken = computed(() => props.redemptionContract?.fiat_token)
+    const fiatToken = computed(() => currentRedemptionContract.value?.fiat_token)
     const tokenCurrency = computed(() => fiatToken.value?.currency || '')
     const decimals = computed(() => fiatToken.value?.decimals)
     const category = computed(() => fiatToken.value?.category)
@@ -147,7 +163,6 @@ export default defineComponent({
     })
     const priceTimestamp = computed(() => priceMessage.value?.messageTimestamp * 1000)
     const priceUnitPerBch = computed(() => parseFloat(priceMessage.value?.priceValue))
-    // const priceUnitPerBch = computed(() => parseFloat(41740))
     const pricePerBch = computed(() =>  priceUnitPerBch.value / 10 ** decimals.value)
     const pricePerDenomination = computed(() => {
       const currentDenomination = denomination.value || 'BCH'
@@ -167,8 +182,8 @@ export default defineComponent({
         maxAmountFromBalance = parseInt(satoshisToToken(maxAmountSats.value, priceUnitPerBch.value))
       }
       let maxAmountFromContract = Infinity
-      if (Number.isFinite(props?.redemtionContract?.reserve_supply)) {
-        maxAmountFromContract = parseInt(props?.redemtionContract?.reserve_supply) || Infinity
+      if (Number.isFinite(currentRedemptionContract.value?.reserve_supply)) {
+        maxAmountFromContract = parseInt(currentRedemptionContract.value?.reserve_supply) || Infinity
       }
       const maxTokenUnits = Math.min(maxAmountFromBalance, maxAmountFromContract)
       return maxTokenUnits / 10 ** decimals.value
@@ -185,7 +200,6 @@ export default defineComponent({
       return formatWithLocale(minAmount.value);
     })
 
-    const tokenAmount = ref(0)
     const tokenUnits = computed(() => parseInt(tokenAmount.value * 10 ** decimals.value))
     const bchAmount = computed(() => {
       if (!Number.isFinite(priceUnitPerBch.value)) return NaN
@@ -194,8 +208,142 @@ export default defineComponent({
       const sats = parseInt(tokenToSatoshis(tokenUnits.value, priceUnitPerBch.value, true))
       return sats / 10 ** 8
     })
+
+    const {
+      denominateBch,
+      formatDateRelative,
+      formatTimestampToText,
+    } = useValueFormatters(category)
+
     const denominatedBchAmountText = computed(() => {
       return bchAmount.value ? denominateBch(bchAmount.value) : ''
+    })
+
+    watch(innerVal, () => {
+      if (!innerVal.value) return
+      tokenAmount.value = 0
+      // Initialize currency from current contract
+      if (props.redemptionContract?.fiat_token?.currency) {
+        selectedCurrency.value = props.redemptionContract.fiat_token.currency
+        currentRedemptionContract.value = props.redemptionContract
+      }
+      // Fetch available contracts
+      fetchAvailableContracts()
+    })
+
+    watch(() => props.redemptionContract, (newContract) => {
+      if (newContract?.fiat_token?.currency) {
+        selectedCurrency.value = newContract.fiat_token.currency
+        currentRedemptionContract.value = newContract
+      }
+    }, { immediate: true })
+
+    async function fetchAvailableContracts() {
+      if (loadingContract.value) return
+      loadingContract.value = true
+      try {
+        const params = {
+          has_treasury_contract: true,
+          currencies: 'PHP,USD',
+          verified: true,
+        }
+        const response = await backend.value.get('stablehedge/redemption-contracts/', { params })
+        const redemptionContracts = Array.isArray(response.data)
+          ? response.data
+          : response.data?.results || []
+
+        // Group contracts by currency
+        const contractsByCurrency = {}
+        redemptionContracts.forEach(contract => {
+          const currency = contract?.fiat_token?.currency
+          if (currency && (currency === 'PHP' || currency === 'USD')) {
+            if (!contractsByCurrency[currency]) {
+              contractsByCurrency[currency] = []
+            }
+            contractsByCurrency[currency].push(contract)
+          }
+        })
+
+        availableContracts.value = contractsByCurrency
+        availableCurrencies.value = Object.keys(contractsByCurrency).sort()
+
+        // If no currency selected yet, use first available
+        if (!selectedCurrency.value && availableCurrencies.value.length > 0) {
+          selectedCurrency.value = availableCurrencies.value[0]
+        }
+
+        // Load contract for selected currency
+        if (selectedCurrency.value && contractsByCurrency[selectedCurrency.value]) {
+          await loadContractForCurrency(selectedCurrency.value)
+        }
+      } catch (error) {
+        console.error('Error fetching contracts:', error)
+        $q.notify({
+          type: 'negative',
+          message: $t('UnableToGetContractDetails'),
+        })
+      } finally {
+        loadingContract.value = false
+      }
+    }
+
+    async function loadContractForCurrency(currency) {
+      if (!availableContracts.value[currency] || availableContracts.value[currency].length === 0) {
+        return
+      }
+
+      loadingContract.value = true
+      try {
+        // Use first contract for the currency
+        const contract = availableContracts.value[currency][0]
+        currentRedemptionContract.value = contract
+
+        // Update price data
+        const category = contract?.fiat_token?.category
+        if (category) {
+          await $store.dispatch('stablehedge/updateTokenPrices', { includeCategories: [category] })
+          
+          const token = $store.getters['stablehedge/token']?.(category)
+          const priceValue = token?.priceMessage?.priceValue
+          if (!Number.isFinite(priceValue)) {
+            throw new Error($t('NoPriceDataFound'))
+          }
+        }
+
+        // Reset token amount when switching currency
+        tokenAmount.value = 0
+      } catch (error) {
+        console.error('Error loading contract:', error)
+        $q.notify({
+          type: 'negative',
+          message: typeof error === 'string' ? error : $t('UnableToGetContractDetails'),
+        })
+      } finally {
+        loadingContract.value = false
+      }
+    }
+
+    async function selectCurrency(currency) {
+      if (selectedCurrency.value === currency || loadingContract.value) return
+      selectedCurrency.value = currency
+      await loadContractForCurrency(currency)
+    }
+
+    const subscribeKey = 'deposit-form-dialog'
+    onMounted(() => {
+      if (!innerVal.value) return
+      console.log('Subscribing')
+      if (category.value) {
+        stablehedgePriceTracker.subscribe(subscribeKey, [category.value])
+      }
+    })
+    onUnmounted(() => stablehedgePriceTracker.unsubscribe(subscribeKey))
+    watch([innerVal, category], () => {
+      if (innerVal.value && category.value) {
+        stablehedgePriceTracker.subscribe(subscribeKey, [category.value])
+      } else {
+        stablehedgePriceTracker.unsubscribe(subscribeKey)
+      }
     })
 
     function validateAmount(value) {
@@ -208,22 +356,21 @@ export default defineComponent({
     function onSubmit() {
       onDialogOK({
         tokenUnits: tokenUnits.value,
-        redemptionContract: props.redemptionContract,
+        redemptionContract: currentRedemptionContract.value,
         priceMessage: priceMessage.value,
       })
     }
-
-    const {
-      denominateBch,
-      formatDateRelative,
-      formatTimestampToText,
-    } = useValueFormatters(category)
 
     return {
       darkMode, getDarkModeClass,
 
       dialogRef, onDialogCancel, onDialogHide, onDialogOK,
       innerVal,
+
+      availableCurrencies,
+      selectedCurrency,
+      loadingContract,
+      selectCurrency,
 
       denomination,
       tokenCurrency,
