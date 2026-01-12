@@ -268,7 +268,7 @@ export default {
       } catch (error) {
         console.error('BuyLiftDialog proceeds error:', error)
         raiseNotifyError(this.$t("PurchasePaymentError"));
-        this.$emit('purchase', { success: false, errorMessage: message })
+        this.$emit('purchase', { success: false, errorMessage: error?.message || error?.toString() || this.$t("PurchasePaymentError") })
       } finally {
         this.isSliderLoading = false;
       }
