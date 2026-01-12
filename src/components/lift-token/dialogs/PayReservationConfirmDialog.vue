@@ -171,29 +171,28 @@ export default {
       this.isSliderLoading = true;
       this.processingMessage = this.$t("SendingPayment");
 
-      if (!this.liftSwapContractAddress) {
-        const message = this.$t('ContractAddressUnavailable', {}, 'Unable to resolve the contract address. Please try again later.')
-        raiseNotifyError(message)
-        return
-      }
-
-      const wallet = await this.ensureWallet().catch(error => {
-        console.error('Failed to initialize wallet for purchase:', error)
-        return null
-      })
-      if (!wallet) {
-        const message = this.$t('WalletUnavailable', {}, 'Wallet is not ready. Please try again.')
-        raiseNotifyError(message)
-        return
-      }
-
-      if (this.purchase.bch <= 0 || Number.isNaN(this.purchase.bch)) {
-        const message = this.$t('InvalidPurchaseAmount', {}, 'Purchase amount is not valid.')
-        raiseNotifyError(message)
-        return
-      }
-
       try {
+        if (!this.liftSwapContractAddress) {
+          const message = this.$t('ContractAddressUnavailable', {}, 'Unable to resolve the contract address. Please try again later.')
+          raiseNotifyError(message)
+          return
+        }
+
+        const wallet = await this.ensureWallet().catch(error => {
+          console.error('Failed to initialize wallet for purchase:', error)
+          return null
+        })
+        if (!wallet) {
+          const message = this.$t('WalletUnavailable', {}, 'Wallet is not ready. Please try again.')
+          raiseNotifyError(message)
+          return
+        }
+
+        if (this.purchase.bch <= 0 || Number.isNaN(this.purchase.bch)) {
+          const message = this.$t('InvalidPurchaseAmount', {}, 'Purchase amount is not valid.')
+          raiseNotifyError(message)
+          return
+        }
         // Note: Fees are handled automatically by watchtower library (deducted from change output).
         // estimatedNetworkFeeBch is used only for balance validation to ensure sufficient funds.
         // The 7th parameter is priceId (for BIP21 price tracking), not fee.
