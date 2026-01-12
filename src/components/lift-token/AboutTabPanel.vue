@@ -81,7 +81,20 @@
             {{ $t('LiftIntro1', {}, 'The Paytaca LIFT token (Leveraging Incentives for Financial Transformation) embodies the spirit of Bayanihan, a Filipino concept of community-driven voluntary cooperation. Just as communities once physically lifted houses together, LIFT symbolizes collective effort to advance Bitcoin Cash (BCH) adoption.') }}
           </div>
           <div class="text-body1 q-mb-md">
-            {{ $t('LiftIntro2', {}, 'Each token represents an individual\'s contribution toward moving BCH upward and forward, fostering a sense of community and shared purpose.') }}
+            {{ $t('LiftIntro2', {}, 'Each token represents an individual\'s contribution toward moving BCH upward and forward, fostering a sense of community and shared purpose. LIFT offers participants access to ecosystem benefits such as exclusive app features, reduced fees, and a voice in shaping the ecosystem. It is a symbol of participation, encouraging meaningful engagement in the journey towards widespread BCH integration.') }}
+          </div>
+          
+          <!-- Learn More Link -->
+          <div class="q-mb-md text-center">
+            <q-btn
+              flat
+              no-caps
+              :label="$t('ReadMore', {}, 'Read more')"
+              icon="open_in_new"
+              class="read-more-button"
+              :class="getDarkModeClass(darkMode)"
+              @click="openTokenPage"
+            />
           </div>
           
           <!-- Benefits List -->
@@ -309,9 +322,20 @@
           no-caps
           size="lg"
           icon="shopping_cart"
-          class="cta-button button"
+          class="cta-button button q-mb-sm"
           @click="showBuyDialog = true"
         />
+        <div class="q-mt-md">
+          <q-btn
+            flat
+            no-caps
+            :label="$t('VisitTokenPage', {}, 'Visit paytaca.com/token for more information')"
+            icon="language"
+            class="website-link-button"
+            :class="getDarkModeClass(darkMode)"
+            @click="openTokenPage"
+          />
+        </div>
       </q-card>
     </div>
 
@@ -360,13 +384,12 @@ export default {
       tokenCategoryId: '5932b2fd4915d6a75d3ec53282cd49118149a2176ee67ed68b1111ff0786f7fc',
       seedRoundPrice: 0.015,
       tokenomicsData: [
-        { category: this.$t('TokenSale'), percentage: 20, tokens: 200000000, description: this.$t('EarlySupporterStrategicPartnerRounds') },
-        { category: this.$t('CommunityIncentives'), percentage: 30, tokens: 300000000, description: this.$t('CampaignBasedDistribution') },
-        { category: this.$t('TeamAndAdvisors'), percentage: 15, tokens: 150000000, description: this.$t('OneYearCliffVesting') },
-        { category: this.$t('EcosystemGrowth'), percentage: 15, tokens: 150000000, description: this.$t('MilestoneBasedUnlocks') },
-        { category: this.$t('Partnerships'), percentage: 5, tokens: 50000000, description: this.$t('SixMonthLockup') },
-        { category: this.$t('LiquidityPool'), percentage: 5, tokens: 50000000, description: this.$t('ImmediateAvailability') },
-        { category: this.$t('ReserveFund'), percentage: 10, tokens: 100000000, description: this.$t('TwentyFourMonthLockup') }
+        { category: this.$t('TokenSale'), percentage: 20, tokens: 200000000, description: this.$t('VariesByRound') },
+        { category: this.$t('LiquidityPool'), percentage: 5, tokens: 50000000, description: this.$t('ImmediateAvailabilityNoLockup') },
+        { category: this.$t('CommunityIncentives'), percentage: 30, tokens: 300000000, description: this.$t('CampaignBasedDistributionNoLockup') },
+        { category: this.$t('EcosystemGrowth'), percentage: 20, tokens: 200000000, description: this.$t('OneYearCliffMilestoneBased') },
+        { category: this.$t('TeamAndAdvisors'), percentage: 15, tokens: 150000000, description: this.$t('OneYearCliffOneYearLockupLinearVesting') },
+        { category: this.$t('ReserveFund'), percentage: 10, tokens: 100000000, description: this.$t('TwentyFourMonthLockupMilestoneBased') }
       ],
       faqData: [
         {
@@ -465,6 +488,9 @@ export default {
         })
         this.$emit('navigate-to-buy')
       }
+    },
+    openTokenPage() {
+      window.open('https://www.paytaca.com/token', '_blank', 'noopener,noreferrer')
     }
   }
 }
@@ -611,6 +637,43 @@ export default {
     
     li {
       margin-bottom: 8px;
+    }
+  }
+  
+  .read-more-button {
+    color: #42a5f5;
+    font-weight: 500;
+    text-transform: none;
+    
+    &.dark {
+      color: #64b5f6;
+    }
+    
+    &:hover {
+      background-color: rgba(66, 165, 245, 0.1);
+      
+      &.dark {
+        background-color: rgba(100, 181, 246, 0.15);
+      }
+    }
+  }
+  
+  .website-link-button {
+    color: #666;
+    font-weight: 500;
+    text-transform: none;
+    font-size: 14px;
+    
+    &.dark {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+      
+      &.dark {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
     }
   }
   

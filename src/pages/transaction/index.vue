@@ -263,6 +263,50 @@
             :denominationTabSelected="denominationTabSelected"
           />
         </div>
+
+      <!-- Backup Reminder Dialog -->
+      <q-dialog
+        v-model="showBackupAlert"
+        persistent
+        no-backdrop-dismiss
+        :class="getDarkModeClass(darkMode)"
+      >
+        <q-card class="backup-reminder-dialog pt-card br-15" :class="getDarkModeClass(darkMode)" style="min-width: 320px; max-width: 400px;">
+          <q-card-section class="q-pb-sm">
+            <div class="row items-center q-gutter-sm">
+              <q-icon name="shield" size="32px" class="backup-dialog-icon" color="primary" />
+              <div class="col">
+                <div class="text-h6 text-weight-medium">{{ $t('BackupYourWallet', {}, 'Backup Your Wallet') }}</div>
+              </div>
+            </div>
+          </q-card-section>
+          
+          <q-card-section class="q-pt-sm">
+            <div class="text-body2">
+              {{ $t('BackupYourRecoveryPhraseToProtectFunds', {}, 'Backup your recovery phrase to protect your funds') }}
+            </div>
+          </q-card-section>
+          
+          <q-card-actions align="right" class="q-pa-md q-gutter-sm">
+            <q-btn
+              flat
+              no-caps
+              :label="$t('NotNow')"
+              class="backup-dialog-button"
+              @click="dismissAlertForSession"
+              padding="sm md"
+            />
+            <q-btn
+              unelevated
+              no-caps
+              :label="$t('ShowMeHow')"
+              class="backup-dialog-button backup-dialog-button-primary"
+              @click="goToBackupPage"
+              padding="sm md"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
       <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
           ref="transaction"
@@ -443,7 +487,10 @@ export default {
       loadingBchPrice: false,
       bchBalanceMode: localStorage.getItem('bchBalanceMode') || 'bch-only',
       favoriteTokenIds: [], // Store favorite token IDs for synchronous access (deprecated, kept for compatibility)
-      allTokensFromAPI: [] // Store all tokens fetched from API with balances (includes favorites)
+      allTokensFromAPI: [], // Store all tokens fetched from API with balances (includes favorites)
+      showBackupAlert: false,
+      alertDismissedForSession: false,
+      backupAlertTimeout: null
     }
   },
 
@@ -492,6 +539,9 @@ export default {
     ...mapState('global', ['online']),
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    lastBackupTimestamp () {
+      return this.$store.getters['global/lastBackupTimestamp']
     },
     currentCountry () {
       return this.$store.getters['global/country'].code
@@ -1818,6 +1868,47 @@ export default {
         this.$router.push({ name: 'asset-list' })
         // if (asset.data?.id) vm.selectAsset(null, asset.data)
       })
+    },
+    dismissAlertForSession () {
+      // Store dismissal timestamp in sessionStorage
+      // This persists during app runtime but gets cleared when app is fully closed and reopened
+      sessionStorage.setItem('backupReminderDismissedTimestamp', Date.now().toString())
+      this.alertDismissedForSession = true
+      this.showBackupAlert = false
+    },
+    goToBackupPage () {
+      this.showBackupAlert = false
+      this.$router.push('/apps/wallet-backup')
+    },
+    checkAndShowBackupAlert () {
+      // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
+      // Each wallet is tracked independently
+      if (this.lastBackupTimestamp) {
+        return
+      }
+
+      // Check if user dismissed for this session (app runtime)
+      // The dismissal is cleared in App.vue on mount (fresh app start)
+      const dismissedTimestamp = sessionStorage.getItem('backupReminderDismissedTimestamp')
+      if (dismissedTimestamp) {
+        this.alertDismissedForSession = true
+        return
+      }
+
+      // Check if this is a newly created wallet
+      const isNewWallet = this.$route.query.newWallet === 'true'
+      
+      if (isNewWallet) {
+        // Show after delay for newly created wallets (4 seconds)
+        this.backupAlertTimeout = setTimeout(() => {
+          this.showBackupAlert = true
+          // Clear the query parameter after showing
+          this.$router.replace({ query: {} }).catch(() => {})
+        }, 4000)
+      } else {
+        // Show immediately for existing wallets
+        this.showBackupAlert = true
+      }
     }
   },
 
@@ -1829,6 +1920,9 @@ export default {
 
   unmounted () {
     bus.off('handle-push-notification', this.handleOpenedNotification)
+    if (this.backupAlertTimeout) {
+      clearTimeout(this.backupAlertTimeout)
+    }
   },
   created () {
     bus.on('handle-push-notification', this.handleOpenedNotification)
@@ -1967,6 +2061,9 @@ export default {
           }, 500)
         }
       })
+
+      // Check and show backup reminder alert
+      this.checkAndShowBackupAlert()
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error

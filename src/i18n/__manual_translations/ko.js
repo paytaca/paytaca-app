@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "마지막 지갑을 삭제할 수 없습니다",
   ErrorDeletingWallet: "지갑 삭제 중 오류",
   ErrorRestoringWallet: "지갑 복원 중 오류",
+  BackupConfirmed: "지갑 백업 확인됨",
+  BackupConfirmedOn: "마지막 확인일: {date}",
   "Wallet Details": "지갑 세부 정보",
   "Wallet Qr Code": "지갑 QR 코드",
   "XPubKey QR Code": "확장 공개 키 QR 코드",

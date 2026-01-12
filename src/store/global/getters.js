@@ -18,6 +18,19 @@ export function walletRecoveryMessage(state) {
   return state.walletRecoveryMessage
 }
 
+export function backupReminderDismissed (state) {
+  return state.backupReminderDismissed
+}
+
+export function lastBackupTimestamp (state) {
+  // Get last backup timestamp from current wallet's settings
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    return state.vault[walletIndex].settings.lastBackupTimestamp || null
+  }
+  return null
+}
+
 export function theme (state) {
   return state.theme
 }

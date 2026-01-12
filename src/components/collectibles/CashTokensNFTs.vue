@@ -140,16 +140,21 @@ function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
     }
     fetchingNftGroups.value = true
     return watchtower.BCH._api.get('/cashtokens/nft/groups/', { params })
-      .then(response => {
+      .then(async response => {
         if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
-        // Metadata is already included in the response, so no need to fetch separately
+        
+        // If there are more results than the current limit and we need to check count,
+        // recursively fetch all groups in one go
+        if (response?.data?.count > response?.data?.limit && opts?.checkCount) {
+          // Recursively fetch with the actual count as limit - this will set nftGroups.value
+          return fetchNftGroups({ limit: response?.data?.count, checkCount: false })
+        }
+        
+        // Otherwise, use the current response
         nftGroups.value = response?.data?.results?.map?.(CashNonFungibleToken.parse)
         nftsPagination.value.count = response?.data?.count
         nftsPagination.value.limit = response?.data?.limit
         nftsPagination.value.offset = response?.data?.offset
-        if (response?.data?.count > response?.data?.limit && opts?.checkCount) {
-          return fetchNftGroups({ limit: response?.data?.count, checkCount: false })
-        }
         return response
       })
       .catch(error => {
@@ -165,12 +170,9 @@ function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
 const nftsPagination = ref({count: 0, limit: 0, offset: 0})
 
 const parsedNftGroups = computed(() => {
-  // Groups from API already have metadata pre-populated
-  return nftGroups.value.sort((a, b) => {
-    const aName = a?.parsedMetadata?.name || a?.metadata?.name || a?.category || ''
-    const bName = b?.parsedMetadata?.name || b?.metadata?.name || b?.category || ''
-    return aName.localeCompare(bName)
-  })
+  // Groups from API already have metadata pre-populated and are ordered by backend
+  // (those with metadata first, then those without) - preserve this ordering
+  return nftGroups.value
 })
 
 const selectedCategory = ref(null)

@@ -420,7 +420,9 @@ body.body--dark .history-record {
   }
 }
 .no-transaction-img {
-  width: 75px;
-  fill: gray;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 12px;
+  opacity: 0.6;
 }
 </style>

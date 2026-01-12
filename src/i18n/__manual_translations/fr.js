@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Impossible de supprimer le dernier portefeuille",
   ErrorDeletingWallet: "Erreur lors de la suppression du portefeuille",
   ErrorRestoringWallet: "Erreur lors de la restauration du portefeuille",
+  BackupConfirmed: "Sauvegarde du portefeuille confirmée",
+  BackupConfirmedOn: "Dernière confirmation le {date}",
   "Wallet Details": "Détails du portefeuille",
   "Wallet Qr Code": "Code QR du portefeuille",
   "XPubKey QR Code": "Code QR de la clé publique étendue",

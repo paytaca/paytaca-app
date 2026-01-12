@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Kan laatste portemonnee niet verwijderen",
   ErrorDeletingWallet: "Fout bij verwijderen van portemonnee",
   ErrorRestoringWallet: "Fout bij herstellen van portemonnee",
+  BackupConfirmed: "Portemonnee back-up bevestigd",
+  BackupConfirmedOn: "Laatst bevestigd op {date}",
   "Wallet Details": "Portemonnee details",
   "Wallet Qr Code": "Portemonnee QR-code",
   "XPubKey QR Code": "Uitgebreide publieke sleutel QR-code",

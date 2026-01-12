@@ -290,10 +290,22 @@ export default {
       }
       
       // Map displayed index to actual vault index
-      const actualIndex = vm.vaultIndexMap.get(displayIndex) ?? displayIndex
+      // Handle the case where displayIndex is 0 and map might return undefined
+      // Use has() to explicitly check if the key exists, since 0 is falsy
+      let actualIndex
+      if (vm.vaultIndexMap.has(displayIndex)) {
+        actualIndex = vm.vaultIndexMap.get(displayIndex)
+      } else {
+        // Fallback: if mapping doesn't exist, use displayIndex directly
+        // This should only happen if arrangeVaultData hasn't been called yet
+        console.warn(`[MultiWallet] vaultIndexMap missing entry for displayIndex ${displayIndex}, using displayIndex as fallback`)
+        actualIndex = displayIndex
+      }
       
       // Check if already on this wallet
-      const currentActualIndex = vm.vaultIndexMap.get(vm.currentIndex) ?? vm.currentIndex
+      const currentActualIndex = vm.vaultIndexMap.has(vm.currentIndex) 
+        ? vm.vaultIndexMap.get(vm.currentIndex) 
+        : vm.currentIndex
       if (actualIndex === currentActualIndex) {
         return
       }
@@ -326,21 +338,29 @@ export default {
         const lockAppEnabled = vm.$store.getters['global/lockApp']
         const isUnlocked = vm.$store.getters['global/isUnlocked']
         
-        // Hide loading component
-        loadingComponent.hide()
-        
-        // Wait for dialog to dismiss and ensure localStorage is persisted
-        // On Android, localStorage writes can be async, so we need extra time
+        // Wait for localStorage to persist (important for Android)
         // Also wait for vuex-persistedstate to write the state
+        // Keep loading component visible until reload to prevent flicker
         await new Promise(resolve => setTimeout(resolve, 500))
         
         vm.isSwitching = false
         
         if (lockAppEnabled && !isUnlocked) {
           // Wallet is locked - go directly to lock screen with page reload
-          window.location.href = '/#/lock?redirect=/'
+          // Use location.replace to avoid history entry and ensure reload
+          // Loading screen will be cleared by the reload
+          // Force a full page navigation to ensure the loading screen is cleared
+          window.location.replace('/#/lock?redirect=/')
+          // Add a fallback timeout to force reload if replace doesn't work
+          setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+              console.warn('[MultiWallet] location.replace did not navigate, forcing reload')
+              location.reload()
+            }
+          }, 1000)
         } else {
           // Wallet is unlocked or has no lock - go to home with reload
+          // Loading screen will be cleared by the reload
           location.reload()
         }
       } catch (error) {

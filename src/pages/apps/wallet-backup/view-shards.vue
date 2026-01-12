@@ -262,6 +262,9 @@
       </template>
     </div>
 
+    <!-- Sticky Confirm Backup button -->
+    <StickyBackupConfirmButton :authenticated="authenticated" />
+
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="onPinVerified" />
     <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
   </div>
@@ -274,6 +277,7 @@ import { copyToClipboard } from 'quasar'
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcode-svg'
 import HeaderNav from 'src/components/header-nav'
+import StickyBackupConfirmButton from 'src/components/wallet-backup/StickyBackupConfirmButton.vue'
 import { getMnemonic } from 'src/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import pinDialog from 'src/components/pin'
@@ -287,6 +291,7 @@ export default {
 
   components: {
     HeaderNav,
+    StickyBackupConfirmButton,
     pinDialog,
     biometricWarningAttempts
   },
@@ -648,7 +653,7 @@ export default {
 <style lang="scss" scoped>
   .shards-view-container {
     min-height: 100vh;
-    padding-bottom: 40px;
+    padding-bottom: 100px; // Extra padding for sticky button
   }
 
   .content-wrapper {

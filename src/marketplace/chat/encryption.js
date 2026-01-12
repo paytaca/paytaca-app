@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import * as secp from '@noble/secp256k1'
 import { Store } from 'src/store'
 import { nativeFileAPI } from 'src/utils/native-file'
+import { Buffer } from 'buffer'
 
 const CHUNK_SIZE = 15
 

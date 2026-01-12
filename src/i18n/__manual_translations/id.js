@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Tidak dapat menghapus dompet terakhir",
   ErrorDeletingWallet: "Kesalahan saat menghapus dompet",
   ErrorRestoringWallet: "Kesalahan saat memulihkan dompet",
+  BackupConfirmed: "Cadangan dompet dikonfirmasi",
+  BackupConfirmedOn: "Terakhir dikonfirmasi pada {date}",
   "Wallet Details": "Detail dompet",
   "Wallet Qr Code": "Kode QR dompet",
   "XPubKey QR Code": "Kode QR kunci publik diperluas",
