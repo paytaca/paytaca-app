@@ -1,6 +1,6 @@
 <template>
   <div 
-    v-if="!lastBackupTimestamp && !isAtBottom" 
+    v-if="!lastBackupTimestamp && !isAtBottom && showButton" 
     class="sticky-button-container"
     :class="getDarkModeClass(darkMode)"
   >
@@ -37,7 +37,9 @@ export default {
       isAtBottom: false,
       hasScrolled: false,
       scrollHandler: null,
-      isMounted: false
+      isMounted: false,
+      showButton: false,
+      buttonDisplayTimeout: null
     }
   },
   
@@ -61,9 +63,12 @@ export default {
       if (!newVal && oldVal) {
         // Clean up when authenticated becomes false
         this.removeScrollListener()
+        this.showButton = false
         return
       }
       if (newVal && !this.lastBackupTimestamp && this.isMounted) {
+        // Delay showing button by 2 seconds
+        this.scheduleButtonDisplay()
         this.$nextTick(() => {
           // Double-check mounted status after nextTick
           if (this.isMounted) {
@@ -76,6 +81,19 @@ export default {
   
   methods: {
     getDarkModeClass,
+    scheduleButtonDisplay () {
+      const vm = this
+      // Clear any existing timeout
+      if (vm.buttonDisplayTimeout) {
+        clearTimeout(vm.buttonDisplayTimeout)
+      }
+      // Show button after 1 second
+      vm.buttonDisplayTimeout = setTimeout(() => {
+        if (vm.isMounted && vm.authenticated && !vm.lastBackupTimestamp) {
+          vm.showButton = true
+        }
+      }, 1000)
+    },
     checkIfAtBottom () {
       const windowHeight = window.innerHeight
       const documentHeight = document.documentElement.scrollHeight
@@ -169,6 +187,8 @@ export default {
   mounted () {
     this.isMounted = true
     if (this.authenticated && !this.lastBackupTimestamp) {
+      // Delay showing button by 2 seconds
+      this.scheduleButtonDisplay()
       this.$nextTick(() => {
         // Double-check mounted status after nextTick
         if (this.isMounted) {
@@ -181,6 +201,11 @@ export default {
   beforeUnmount () {
     this.isMounted = false
     this.removeScrollListener()
+    // Clear button display timeout
+    if (this.buttonDisplayTimeout) {
+      clearTimeout(this.buttonDisplayTimeout)
+      this.buttonDisplayTimeout = null
+    }
   }
 }
 </script>
