@@ -36,7 +36,8 @@ export default {
     return {
       isAtBottom: false,
       hasScrolled: false,
-      scrollHandler: null
+      scrollHandler: null,
+      isMounted: false
     }
   },
   
@@ -56,10 +57,18 @@ export default {
   },
   
   watch: {
-    authenticated (newVal) {
-      if (newVal && !this.lastBackupTimestamp) {
+    authenticated (newVal, oldVal) {
+      if (!newVal && oldVal) {
+        // Clean up when authenticated becomes false
+        this.removeScrollListener()
+        return
+      }
+      if (newVal && !this.lastBackupTimestamp && this.isMounted) {
         this.$nextTick(() => {
-          this.addScrollListener()
+          // Double-check mounted status after nextTick
+          if (this.isMounted) {
+            this.addScrollListener()
+          }
         })
       }
     }
@@ -96,14 +105,25 @@ export default {
       vm.isAtBottom = vm.checkIfAtBottom() && vm.hasScrolled
     },
     addScrollListener () {
+      // Prevent adding listener if component is unmounted
+      if (!this.isMounted) {
+        return
+      }
       const vm = this
+      // Remove any existing listener first to avoid duplicates
+      this.removeScrollListener()
       this.scrollHandler = this.checkScrollPosition
       window.addEventListener('scroll', this.scrollHandler, { passive: true })
       // Check initial position after a brief delay to ensure content is rendered
       this.$nextTick(() => {
-        setTimeout(() => {
-          vm.checkScrollPosition()
-        }, 100)
+        // Double-check mounted status after nextTick before accessing component
+        if (vm.isMounted) {
+          setTimeout(() => {
+            if (vm.isMounted) {
+              vm.checkScrollPosition()
+            }
+          }, 100)
+        }
       })
     },
     removeScrollListener () {
@@ -147,14 +167,19 @@ export default {
   },
   
   mounted () {
+    this.isMounted = true
     if (this.authenticated && !this.lastBackupTimestamp) {
       this.$nextTick(() => {
-        this.addScrollListener()
+        // Double-check mounted status after nextTick
+        if (this.isMounted) {
+          this.addScrollListener()
+        }
       })
     }
   },
   
   beforeUnmount () {
+    this.isMounted = false
     this.removeScrollListener()
   }
 }

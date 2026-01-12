@@ -293,12 +293,13 @@ export default defineComponent({
       }
 
       loadingContract.value = true
+      // Save previous contract to revert on error
+      const previousContract = currentRedemptionContract.value
       try {
         // Use first contract for the currency
         const contract = availableContracts.value[currency][0]
-        currentRedemptionContract.value = contract
 
-        // Update price data
+        // Update price data BEFORE setting the contract
         const category = contract?.fiat_token?.category
         if (category) {
           await $store.dispatch('stablehedge/updateTokenPrices', { includeCategories: [category] })
@@ -310,14 +311,21 @@ export default defineComponent({
           }
         }
 
+        // Only set contract after successful price validation
+        currentRedemptionContract.value = contract
+
         // Reset token amount when switching currency
         tokenAmount.value = 0
       } catch (error) {
         console.error('Error loading contract:', error)
+        // Revert to previous contract on error
+        currentRedemptionContract.value = previousContract
         $q.notify({
           type: 'negative',
           message: typeof error === 'string' ? error : $t('UnableToGetContractDetails'),
         })
+        // Re-throw to allow selectCurrency to revert selectedCurrency
+        throw error
       } finally {
         loadingContract.value = false
       }
@@ -325,8 +333,15 @@ export default defineComponent({
 
     async function selectCurrency(currency) {
       if (selectedCurrency.value === currency || loadingContract.value) return
+      // Save previous currency to revert on error
+      const previousCurrency = selectedCurrency.value
       selectedCurrency.value = currency
-      await loadContractForCurrency(currency)
+      try {
+        await loadContractForCurrency(currency)
+      } catch (error) {
+        // Revert selectedCurrency if loadContractForCurrency fails
+        selectedCurrency.value = previousCurrency
+      }
     }
 
     const subscribeKey = 'deposit-form-dialog'
