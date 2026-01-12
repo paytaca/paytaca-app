@@ -224,7 +224,7 @@ export default {
       ]
     },
     disablePurchase() {
-      if (this.parseToken() / 10 ** 2 < this.selectedRoundMinPurchase) return false
+      if (this.parseToken() / 10 ** 2 < this.selectedRoundMinPurchase && Number(this.amountTkn) > 0) return false
 
       return (
         Number(this.amountTkn) === 0 ||
