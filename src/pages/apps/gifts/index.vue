@@ -1756,6 +1756,7 @@ export default {
   letter-spacing: 0.3px;
   display: inline-flex;
   align-items: center;
+  white-space: normal;
 
   &.status-claimed {
     background: rgba(76, 175, 80, 0.15);
