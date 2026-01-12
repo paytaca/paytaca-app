@@ -45,12 +45,7 @@
         <custom-input
           v-model="amountTkn"
           :inputSymbol="'LIFT'"
-          :inputRules="[
-            val => (
-              Number(this.amountBch) < this.walletBalance &&
-              Number(val) * 10 ** 2 <= this.tknBalance
-            ) || this.$t('BalanceExceeded')
-          ]"
+          :inputRules="inputValidationRules"
           :asset="null"
           :decimalObj="{ min: 0, max: 2 }"
           @on-amount-click="onKeyAction"
@@ -146,7 +141,8 @@
           :disable="
             Number(amountTkn) === 0 ||
             Number(amountBch) > walletBalance ||
-            Number(amountTkn) * 10 ** 2 > tknBalance
+            Number(amountTkn) * 10 ** 2 > tknBalance ||
+            Number(amountTkn) < selectedRoundMinPurchase
           "
           @click="openConfirmDialog"
         />
@@ -197,7 +193,8 @@ export default {
       bchBalance: 0,
       tknBalance: 0,
       currentUsdPrice: 0,
-      currentMessageTimestamp: 0
+      currentMessageTimestamp: 0,
+      selectedRoundMinPurchase: 100
     };
   },
 
@@ -216,6 +213,20 @@ export default {
       const asset = this.$store.getters["assets/getAssets"][0];
       return asset.spendable;
     },
+    inputValidationRules() {
+      return [
+        val => (
+          Number(this.amountBch) < this.walletBalance &&
+          Number(val) * 10 ** 2 <= this.tknBalance
+        ) || this.$t('BalanceExceeded'),
+        val => {
+          const amount = Number(val)
+          if (!amount || amount === 0) return true
+          if (amount >= this.selectedRoundMinPurchase) return true
+          return `${this.$t('MinimumPurchase')}: ${this.formatNumber(this.selectedRoundMinPurchase)} LIFT`
+        }
+      ]
+    }
   },
 
   methods: {
@@ -274,6 +285,9 @@ export default {
       this.bchBalance = (this.walletBalance - this.amountBch).toFixed(8);
       this.tknBalance = tkn;
       this.unpaidLift = this.parseToken() - Number(this.amountTkn * 10 ** 2);
+    },
+    formatNumber(num) {
+      return new Intl.NumberFormat().format(num)
     },
 
     onKeyAction (val) {
