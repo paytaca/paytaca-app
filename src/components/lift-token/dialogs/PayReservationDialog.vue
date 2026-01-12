@@ -138,12 +138,7 @@
           :class="`theme-${theme}`"
           :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
           :label="$t('Purchase')"
-          :disable="
-            Number(amountTkn) === 0 ||
-            Number(amountBch) > walletBalance ||
-            Number(amountTkn) * 10 ** 2 > tknBalance ||
-            Number(amountTkn) < selectedRoundMinPurchase
-          "
+          :disable="disablePurchase"
           @click="openConfirmDialog"
         />
       </div>
@@ -222,10 +217,21 @@ export default {
         val => {
           const amount = Number(val)
           if (!amount || amount === 0) return true
-          if (amount >= this.selectedRoundMinPurchase) return true
+          if (Number(this.unpaidLift) / 10 ** 2 < this.selectedRoundMinPurchase) return true
+          if (Number(val) >= this.selectedRoundMinPurchase) return true
           return `${this.$t('MinimumPurchase')}: ${this.formatNumber(this.selectedRoundMinPurchase)} LIFT`
         }
       ]
+    },
+    disablePurchase() {
+      if (this.parseToken() / 10 ** 2 < this.selectedRoundMinPurchase) return false
+
+      return (
+        Number(this.amountTkn) === 0 ||
+        Number(this.amountBch) > this.walletBalance ||
+        Number(this.amountTkn) * 10 ** 2 > this.tknBalance ||
+        Number(this.amountTkn) < this.selectedRoundMinPurchase
+      )
     }
   },
 
