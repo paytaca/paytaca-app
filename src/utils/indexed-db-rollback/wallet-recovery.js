@@ -523,7 +523,7 @@ export async function recoverWalletsFromStorage() {
         }
         // If processed, check if vault entry still exists and is valid
         // If vault entry is missing or invalid, allow re-recovery
-        const vaultEntry = vault[index]
+        // Note: vaultEntry was already declared above, so we reuse it here
         if (!vaultEntry || !vaultEntry.wallet) {
             // Vault entry missing - allow re-recovery and remove from processed list
             const processed = getProcessedRecoveryIndices()
