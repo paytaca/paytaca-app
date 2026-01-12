@@ -54,7 +54,7 @@
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
                       <div class="col-auto q-pt-md">
-                        <qr-code :qr-id="1" :text="shards[0]" :size="220" class="q-mb-sm" />
+                        <qr-code :qr-id="1" :text="shards[0]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
@@ -129,7 +129,7 @@
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
                       <div class="col-auto q-pt-md">
-                        <qr-code :qr-id="2" :text="shards[1]" :size="220" class="q-mb-sm" />
+                        <qr-code :qr-id="2" :text="shards[1]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
@@ -204,7 +204,7 @@
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
                       <div class="col-auto q-pt-md">
-                        <qr-code :qr-id="3" :text="shards[2]" :size="220" class="q-mb-sm" />
+                        <qr-code :qr-id="3" :text="shards[2]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
