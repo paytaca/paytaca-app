@@ -208,7 +208,7 @@ export default {
           [
             {
               address: this.liftSwapContractAddress,
-              amount: purchase.bch,
+              amount: this.purchase.bch,
               tokenAmount: undefined
             }
           ],
