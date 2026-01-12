@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="debug-page sticky-header-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="debug-page sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="$t('Console', {}, 'Console')"
       backnavpath="/apps/debug"
@@ -17,13 +17,14 @@
               dense
               :label="getFilterDisplayValue()"
               icon="filter_list"
+              color="white"
               class="log-filter-btn q-mr-sm"
               :class="getDarkModeClass(darkMode)"
             >
               <q-menu
                 fit
                 :offset="[0, 8]"
-                class="log-filter-menu"
+                class="log-filter-menu text-bow"
                 :class="getDarkModeClass(darkMode)"
               >
                 <q-list dense>
