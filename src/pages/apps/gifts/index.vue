@@ -180,7 +180,7 @@
               
               <!-- End of list indicator -->
               <div v-else-if="giftsList.length > 0 && !hasMoreUnclaimedGifts" class="end-of-list q-pa-md">
-                <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
+                <q-icon name="check_circle" size="24px" class="end-text" :class="getDarkModeClass(darkMode)" />
                 <p class="end-text q-mt-sm" :class="getDarkModeClass(darkMode)">{{ $t('AllGiftsLoaded', {}, 'All gifts loaded') }}</p>
           </div>
 
@@ -206,6 +206,7 @@
             <div class="q-px-lg q-pb-sm">
               <q-checkbox
                 v-model="showOnlyCreatedByWallet"
+                class="text-bow"
                 :label="$t('ShowOnlyClaimedGiftsYouCreated', {}, 'Show only the claimed gifts that you created')"
                 :color="themeColor"
                 :class="getDarkModeClass(darkMode)"
