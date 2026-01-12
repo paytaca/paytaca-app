@@ -370,7 +370,7 @@ export default {
     				} else {
     					// Show notification for plus tier users who somehow reached limit
     					this.$q.notify({
-    						message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus for more favorites.'),
+    						message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.'),
     						color: 'negative',
     						icon: 'error',
     						position: 'top',

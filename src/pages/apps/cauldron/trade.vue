@@ -334,6 +334,7 @@ export default defineComponent({
   props: {
     selectTokenId: String,
     buyAmount: [String, Number],
+    amount: [String, Number],
   },
   setup(props) {
     const { t: $t } = useI18n()
@@ -369,13 +370,17 @@ export default defineComponent({
     
     // Watch for token selection to set buy amount if provided
     watch(() => selectedToken.value, (token) => {
-      if (token && props.buyAmount && isBuyingToken.value) {
-        const buyAmountValue = typeof props.buyAmount === 'string' ? parseFloat(props.buyAmount) : Number(props.buyAmount);
-        if (!isNaN(buyAmountValue) && buyAmountValue > 0 && amountInput.value === 0) {
-          // Set the amount after a short delay to ensure token data is fully loaded
-          setTimeout(() => {
-            updateAmountInput(String(buyAmountValue));
-          }, 200);
+      if (token && isBuyingToken.value) {
+        // Check for amount prop first (from query parameter), then fallback to buyAmount
+        const amountValue = props.amount || props.buyAmount;
+        if (amountValue) {
+          const parsedAmount = typeof amountValue === 'string' ? parseFloat(amountValue) : Number(amountValue);
+          if (!isNaN(parsedAmount) && parsedAmount > 0 && amountInput.value === 0) {
+            // Set the amount after a short delay to ensure token data is fully loaded
+            setTimeout(() => {
+              updateAmountInput(String(parsedAmount));
+            }, 200);
+          }
         }
       }
     })

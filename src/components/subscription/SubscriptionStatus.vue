@@ -93,7 +93,7 @@
 </template>
 
 <script>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -119,6 +119,15 @@ export default {
     const isPlus = computed(() => store.getters['subscription/isPlusSubscriber'])
     const liftTokenBalance = computed(() => store.getters['subscription/getLiftTokenBalance'])
     const minLiftTokens = computed(() => store.getters['subscription/getMinLiftTokens'])
+    const currentWalletIndex = computed(() => store.getters['global/getWalletIndex'])
+    const currentWalletHash = computed(() => {
+      try {
+        const wallet = store.getters['global/getWallet']('bch')
+        return wallet?.walletHash || null
+      } catch (error) {
+        return null
+      }
+    })
     
     const formattedLiftBalance = computed(() => {
       return formatWithLocale(liftTokenBalance.value, { min: 2, max: 2 })
@@ -130,7 +139,19 @@ export default {
     
     // Check subscription status on mount
     onMounted(() => {
-      store.dispatch('subscription/checkSubscriptionStatus')
+      store.dispatch('subscription/checkSubscriptionStatus', true)
+    })
+    
+    // Watch for wallet changes (by hash) and refresh subscription status
+    watch(currentWalletHash, (newHash, oldHash) => {
+      // Only refresh if wallet actually changed (not initial load)
+      if (oldHash !== null && oldHash !== undefined && newHash !== oldHash && newHash !== null) {
+        // Force refresh subscription status when wallet changes
+        // Add a small delay to ensure wallet is fully loaded
+        setTimeout(() => {
+          store.dispatch('subscription/checkSubscriptionStatus', true)
+        }, 500)
+      }
     })
     
     return {

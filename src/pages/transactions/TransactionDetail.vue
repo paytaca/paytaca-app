@@ -1579,7 +1579,7 @@ export default {
         const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
         if (currentFavoriteCount >= limit) {
           this.$q.notify({
-            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus for more favorites.'),
+            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.'),
             color: 'negative',
             icon: 'error',
             position: 'top',
