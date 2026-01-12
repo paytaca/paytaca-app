@@ -247,8 +247,8 @@ export default {
           buyer_sig: signature,
           buyer_token_address: tokenAddress,
           buyer_tx_address: buyerAddress,
-          reservation: -1,
-          partial_purchase: -1,
+          reservation: this.rsvp.id,
+          partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1,
           sale_group: this.rsvp.sale_group,
           public_key: pubkeyHex,
           message_timestamp: this.messageTimestamp
