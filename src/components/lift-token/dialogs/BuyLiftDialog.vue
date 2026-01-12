@@ -10,13 +10,13 @@
       :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
       <div class="pt-card row justify-between items-center q-px-lg q-py-md sticky-title" :class="getDarkModeClass(darkMode)">
-        <span class="text-h5 text-weight-bold">{{ $t("BuyLIFTTokens") }}</span>
+        <span class="text-h5 text-weight-bold col-10">{{ $t("BuyLIFTTokens") }}</span>
         <q-btn
           flat
           round
           padding="sm"
           icon="close"
-          class="close-button"
+          class="col-auto close-button"
           :disable="isProcessing"
           v-close-popup
         />
