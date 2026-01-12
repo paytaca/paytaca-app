@@ -95,6 +95,7 @@
               rounded
               class="col-5 col-sm-3"
               type="submit"
+              :disable="!isFormValid || loadingContract"
             />
           </div>
         </q-form>
@@ -200,13 +201,27 @@ export default defineComponent({
       return formatWithLocale(minAmount.value);
     })
 
-    const tokenUnits = computed(() => parseInt(tokenAmount.value * 10 ** decimals.value))
+    const tokenUnits = computed(() => {
+      if (!Number.isFinite(decimals.value)) return NaN
+      return parseInt(tokenAmount.value * 10 ** decimals.value)
+    })
     const bchAmount = computed(() => {
       if (!Number.isFinite(priceUnitPerBch.value)) return NaN
       if (!parseInt(tokenUnits.value)) return NaN
 
       const sats = parseInt(tokenToSatoshis(tokenUnits.value, priceUnitPerBch.value, true))
       return sats / 10 ** 8
+    })
+
+    // Check if form is valid for submission
+    const isFormValid = computed(() => {
+      return Number.isFinite(decimals.value) &&
+             Number.isFinite(minAmount.value) &&
+             Number.isFinite(maxAmount.value) &&
+             Number.isFinite(tokenUnits.value) &&
+             tokenUnits.value > 0 &&
+             currentRedemptionContract.value &&
+             priceMessage.value
     })
 
     const {
@@ -363,12 +378,35 @@ export default defineComponent({
 
     function validateAmount(value) {
       const parsed = parseFloat(value);
+      // Check if contract data is valid before validating amount
+      if (!Number.isFinite(decimals.value)) {
+        return $t('ContractDataNotLoaded', {}, 'Contract data not loaded. Please wait...');
+      }
+      if (!Number.isFinite(minAmount.value) || !Number.isFinite(maxAmount.value)) {
+        return $t('ContractDataNotLoaded', {}, 'Contract data not loaded. Please wait...');
+      }
       if (parsed < minAmount.value) return $t('MustBeGreaterThan', { amount: formattedMinAmount.value + ' ' + tokenCurrency.value });
       if (parsed > maxAmount.value) return $t('MustBeLessThan', { amount: formattedMaxAmount.value + ' ' + tokenCurrency.value});
       return true
     }
 
     function onSubmit() {
+      // Prevent submission if form is invalid
+      if (!isFormValid.value) {
+        $q.notify({
+          type: 'negative',
+          message: $t('ContractDataNotLoaded', {}, 'Contract data not loaded. Please wait...'),
+        })
+        return
+      }
+      // Additional safety check: ensure tokenUnits is valid
+      if (!Number.isFinite(tokenUnits.value) || tokenUnits.value <= 0) {
+        $q.notify({
+          type: 'negative',
+          message: $t('InvalidAmount', {}, 'Invalid amount. Please enter a valid amount.'),
+        })
+        return
+      }
       onDialogOK({
         tokenUnits: tokenUnits.value,
         redemptionContract: currentRedemptionContract.value,
@@ -400,6 +438,7 @@ export default defineComponent({
       bchAmount,
       denominatedBchAmountText,
       validateAmount,
+      isFormValid,
 
       onSubmit,
 
