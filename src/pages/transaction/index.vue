@@ -271,7 +271,7 @@
         no-backdrop-dismiss
         :class="getDarkModeClass(darkMode)"
       >
-        <q-card class="backup-reminder-dialog pt-card br-15" :class="getDarkModeClass(darkMode)" style="min-width: 320px; max-width: 400px;">
+        <q-card class="backup-reminder-dialog pt-card br-15 text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 320px; max-width: 400px;">
           <q-card-section class="q-pb-sm">
             <div class="row items-center q-gutter-sm">
               <q-icon name="shield" size="32px" class="backup-dialog-icon" color="primary" />
