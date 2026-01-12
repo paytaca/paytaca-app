@@ -159,6 +159,9 @@ async function verifyWalletHashMatch(index, vaultEntry) {
  * 
  * If multiple keys have the same mnemonic value, only the first one is kept to avoid recovering the same wallet twice.
  * The final list is sorted ascending.
+ * 
+ * NOTE: This function returns all indices that have mnemonic keys in localStorage, regardless of vault state.
+ * The caller should filter out deleted wallets based on vault entries.
  */
 export async function getWalletIndicesFromStorage() {
     // Get all localStorage keys
@@ -305,6 +308,13 @@ async function recoverWallet(index, save=false) {
     const store = Store
     const walletVault = store.getters['global/getVault']
     const existingVaultEntry = walletVault?.[index]
+    
+    // If vault entry doesn't exist or is deleted, skip recovery
+    // This prevents trying to recover wallets that have been deleted
+    if (!existingVaultEntry || existingVaultEntry.deleted === true) {
+        console.warn(`[Wallet Recovery] Skipping recovery for index ${index}: vault entry missing or deleted`)
+        return null
+    }
     
     // Use wallet hash from vault if available (post-migration pattern)
     // This provides more reliable mnemonic lookup
@@ -495,6 +505,14 @@ export async function recoverWalletsFromStorage() {
         // Skip invalid indices (null, undefined, NaN, or non-numbers)
         if (index === null || index === undefined || isNaN(index) || typeof index !== 'number') {
             console.warn('[Wallet Recovery] Skipping invalid wallet index:', index)
+            continue
+        }
+        
+        // Skip indices that don't have vault entries or are marked as deleted
+        // This prevents trying to recover wallets that have been deleted
+        const vaultEntry = vault[index]
+        if (!vaultEntry || vaultEntry.deleted === true) {
+            console.warn(`[Wallet Recovery] Skipping index ${index}: vault entry missing or deleted`)
             continue
         }
         
