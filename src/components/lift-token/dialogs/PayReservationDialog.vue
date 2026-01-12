@@ -347,6 +347,8 @@ export default {
 
   async mounted() {
     if (!this.rsvp) return;
+
+    this.amountTkn = this.parseToken() / 10 ** 2;
     
     const oracleData = await getOracleData()
     this.currentUsdPrice = oracleData.price
