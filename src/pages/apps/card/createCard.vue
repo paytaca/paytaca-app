@@ -314,6 +314,27 @@
             
         </q-card>
      </q-dialog>
+
+     <!-- Transaction History -->
+     <q-dialog v-model="showTransactionHistory" persistent>
+        <q-card style="min-width: 300px" class="br-15 q-pa-sm">
+          <q-card-section>
+              <div class="text-h6">Transaction History</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+              <q-input v-model="transactionSearch" label="Search" outlined dense class="q-mb-md"/>
+          </q-card-section>
+
+          <q-card-section>
+            Contents
+          </q-card-section>
+
+          <q-card-actions align="right">
+              <q-btn flat label="Close" color="primary" v-close-popup />
+          </q-card-actions>
+        </q-card>
+     </q-dialog>
   
 </template>
 
@@ -365,6 +386,8 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
         showManageAuthNFTdialog: false,
         merchantSearch: '',
         genericAuthEnabled: false,
+        // Transaction History
+        showTransactionHistory: false,
       }
     },
 
@@ -482,8 +505,9 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
       },
 
       viewTransactionHistory(card) {
-        this.$q.notify({ message: `Transaction History for "${card.name}" clicked!`, color: 'primary' });
-        this.cardMenu.visible = false;
+        this.selectedCard = card;
+        this.showTransactionHistory = true;
+        this.transactionSearch = '';
       },
 
       toggleLock(card) {
