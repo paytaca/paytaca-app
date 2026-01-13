@@ -682,7 +682,7 @@ export default {
         websiteText.style.cssText = `
           font-size: 26px;
           font-weight: 500;
-          color: #718096;
+          color: #4a5568;
           letter-spacing: 0.2px;
         `
         websiteText.textContent = 'www.paytaca.com'

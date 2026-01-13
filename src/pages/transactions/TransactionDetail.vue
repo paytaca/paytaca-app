@@ -201,6 +201,19 @@
           {{ formatDate(tx.tx_timestamp || tx.date_created) }}
         </div>
 
+        <!-- Save Receipt Button -->
+        <div class="q-mt-md q-mb-lg text-center">
+          <q-btn
+            unelevated
+            no-caps
+            :label="$t('SaveReceipt', {}, 'Save Receipt')"
+            icon="receipt"
+            class="save-receipt-btn glassmorphic-receipt-btn"
+            :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
+            @click="saveReceiptImage"
+          />
+        </div>
+
         <!-- Transaction Metadata Section -->
         <template v-if="metadataBadges?.length || attributeDetails?.length">
           <q-separator spaced class="q-mt-lg"/>
@@ -353,6 +366,10 @@ import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
+import html2canvas from 'html2canvas'
+import SaveToGallery from 'src/utils/save-to-gallery'
+import paytacaLogoHorizontal from '../../assets/paytaca_logo_horizontal.png'
+import QRCode from 'qrcode-svg'
 import { parseAttributesToGroups, parseAttributeToBadge } from 'src/utils/tx-attributes'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
@@ -1880,6 +1897,501 @@ export default {
       this.$copyText(value)
       this.$q.notify({ color: 'blue-9', message: this.$t('CopiedToClipboard'), icon: 'mdi-clipboard-check', timeout: 200 })
     },
+    async saveReceiptImage () {
+      const vm = this
+      if (!vm.tx || !vm.transactionId) {
+        return
+      }
+      
+      try {
+        const isReceived = vm.tx.record_type === 'incoming'
+        const amount = vm.displayAmountText
+        const fiatAmount = vm.displayFiatAmount !== null && vm.displayFiatAmount !== undefined 
+          ? vm.parseFiatCurrency(vm.displayFiatAmount, vm.selectedMarketCurrency)
+          : null
+        const dateTime = vm.formatDate(vm.tx.tx_timestamp || vm.tx.date_created)
+        const referenceId = vm.transactionId ? vm.hexToRef(vm.transactionId.substring(0, 6)) : ''
+        const explorerLink = vm.explorerLink
+        
+        // Create a beautiful wrapper with gradient background (transaction receipt theme)
+        const wrapper = document.createElement('div')
+        wrapper.style.cssText = `
+          background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 50%, #0d9488 100%);
+          padding: 40px 35px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          width: 600px;
+          box-sizing: border-box;
+          position: relative;
+          overflow: hidden;
+        `
+        
+        // Add decorative background elements
+        const bgDecoration = document.createElement('div')
+        bgDecoration.style.cssText = `
+          position: absolute;
+          top: -100px;
+          right: -100px;
+          width: 400px;
+          height: 400px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration)
+        
+        const bgDecoration2 = document.createElement('div')
+        bgDecoration2.style.cssText = `
+          position: absolute;
+          bottom: -150px;
+          left: -150px;
+          width: 500px;
+          height: 500px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration2)
+        
+        // Main content container
+        const contentContainer = document.createElement('div')
+        contentContainer.style.cssText = `
+          position: relative;
+          z-index: 1;
+          background: white;
+          border-radius: 24px;
+          padding: 35px 30px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        `
+        
+        // Header with icon and title
+        const header = document.createElement('div')
+        header.style.cssText = `
+          text-align: center;
+          margin-bottom: 40px;
+        `
+        
+        // Header text (no icon, cleaner design)
+        const headerText = document.createElement('div')
+        headerText.style.cssText = `
+          font-size: 32px;
+          font-weight: 700;
+          color: #2d3748;
+          line-height: 1.4;
+          margin-bottom: 30px;
+          text-align: center;
+        `
+        headerText.textContent = 'Transaction Receipt'
+        header.appendChild(headerText)
+        
+        // Transaction type and amount container with gradient
+        const amountContainer = document.createElement('div')
+        amountContainer.style.cssText = `
+          background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 100%);
+          border-radius: 20px;
+          padding: 30px;
+          margin-bottom: 40px;
+          box-shadow: 0 8px 24px rgba(10, 193, 142, 0.3);
+        `
+        
+        const typeLabel = document.createElement('div')
+        typeLabel.style.cssText = `
+          font-size: 18px;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.95);
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          margin-bottom: 12px;
+        `
+        typeLabel.textContent = isReceived ? 'Received' : 'Sent'
+        amountContainer.appendChild(typeLabel)
+        
+        const amountValue = document.createElement('div')
+        amountValue.style.cssText = `
+          font-size: 48px;
+          font-weight: 800;
+          color: white;
+          letter-spacing: -1px;
+          margin-bottom: ${fiatAmount ? '12px' : '0'};
+        `
+        amountValue.textContent = amount
+        amountContainer.appendChild(amountValue)
+        
+        if (fiatAmount) {
+          const fiatValue = document.createElement('div')
+          fiatValue.style.cssText = `
+            font-size: 24px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 0.2px;
+          `
+          fiatValue.textContent = fiatAmount
+          amountContainer.appendChild(fiatValue)
+        }
+        
+        header.appendChild(amountContainer)
+        
+        // Transaction details section
+        const detailsSection = document.createElement('div')
+        detailsSection.style.cssText = `
+          margin-bottom: 35px;
+        `
+        
+        // Reference ID
+        if (referenceId) {
+          const refContainer = document.createElement('div')
+          refContainer.style.cssText = `
+            margin-bottom: 20px;
+          `
+          const refLabel = document.createElement('div')
+          refLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+          `
+          refLabel.textContent = 'Reference ID'
+          refContainer.appendChild(refLabel)
+          const refValue = document.createElement('div')
+          refValue.style.cssText = `
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            letter-spacing: 0.3px;
+          `
+          refValue.textContent = referenceId
+          refContainer.appendChild(refValue)
+          detailsSection.appendChild(refContainer)
+        }
+        
+        // Transaction ID
+        const txIdContainer = document.createElement('div')
+        txIdContainer.style.cssText = `
+          margin-bottom: 20px;
+        `
+        const txIdLabel = document.createElement('div')
+        txIdLabel.style.cssText = `
+          font-size: 12px;
+          font-weight: 600;
+          color: #718096;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 6px;
+        `
+        txIdLabel.textContent = 'Transaction ID'
+        txIdContainer.appendChild(txIdLabel)
+        const txIdValue = document.createElement('div')
+        txIdValue.style.cssText = `
+          font-size: 18px;
+          color: #4a5568;
+          font-family: monospace;
+          word-break: break-all;
+          line-height: 1.4;
+        `
+        // Truncate transaction ID like in the transaction details page
+        const truncatedTxId = vm.transactionId ? `${vm.transactionId.slice(0, 8)}...${vm.transactionId.slice(-8)}` : ''
+        txIdValue.textContent = truncatedTxId
+        txIdContainer.appendChild(txIdValue)
+        
+        // QR Code for explorer link
+        if (explorerLink) {
+          const qrContainer = document.createElement('div')
+          qrContainer.style.cssText = `
+            display: flex;
+            justify-content: center;
+            margin-top: 12px;
+            margin-bottom: 8px;
+          `
+          
+          // Create QR code
+          const qrcode = new QRCode({
+            content: explorerLink,
+            width: 200,
+            height: 200,
+            padding: 2,
+            color: '#000000',
+            background: '#ffffff',
+            ecl: 'M'
+          })
+          
+          const parser = new DOMParser()
+          const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
+          const svgElement = svgDoc.documentElement
+          svgElement.setAttribute('width', '200')
+          svgElement.setAttribute('height', '200')
+          qrContainer.appendChild(svgElement)
+          txIdContainer.appendChild(qrContainer)
+        }
+        
+        detailsSection.appendChild(txIdContainer)
+        
+        // Date & Time
+        const dateContainer = document.createElement('div')
+        const dateLabel = document.createElement('div')
+        dateLabel.style.cssText = `
+          font-size: 12px;
+          font-weight: 600;
+          color: #718096;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 6px;
+        `
+        dateLabel.textContent = 'Date & Time'
+        dateContainer.appendChild(dateLabel)
+        const dateValue = document.createElement('div')
+        dateValue.style.cssText = `
+          font-size: 18px;
+          font-weight: 600;
+          color: #2d3748;
+          letter-spacing: 0.2px;
+        `
+        dateValue.textContent = dateTime
+        dateContainer.appendChild(dateValue)
+        detailsSection.appendChild(dateContainer)
+        
+        header.appendChild(detailsSection)
+        contentContainer.appendChild(header)
+        
+        // Footer with logo and website
+        const footer = document.createElement('div')
+        footer.style.cssText = `
+          text-align: center;
+          padding-top: 15px;
+        `
+        
+        // Paytaca logo container
+        const paytacaLogoContainer = document.createElement('div')
+        paytacaLogoContainer.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 12px;
+        `
+        
+        // Load Paytaca logo
+        const loadPaytacaLogo = () => {
+          return new Promise((resolve) => {
+            const logoImg = document.createElement('img')
+            logoImg.src = paytacaLogoHorizontal
+            logoImg.style.cssText = `
+              height: 120px;
+              width: auto;
+              object-fit: contain;
+              display: block;
+            `
+            logoImg.onload = () => {
+              paytacaLogoContainer.appendChild(logoImg)
+              resolve()
+            }
+            logoImg.onerror = () => {
+              // If logo fails, just resolve (no logo)
+              resolve()
+            }
+          })
+        }
+        
+        // Website text
+        const websiteText = document.createElement('div')
+        websiteText.style.cssText = `
+          font-size: 26px;
+          font-weight: 500;
+          color: #4a5568;
+          letter-spacing: 0.2px;
+        `
+        websiteText.textContent = 'www.paytaca.com'
+        footer.appendChild(paytacaLogoContainer)
+        footer.appendChild(websiteText)
+        contentContainer.appendChild(footer)
+        
+        wrapper.appendChild(contentContainer)
+        document.body.appendChild(wrapper)
+        
+        try {
+          // Wait for logo to load before capturing
+          await loadPaytacaLogo()
+          
+          // Small delay to ensure DOM updates are rendered
+          await new Promise(resolve => setTimeout(resolve, 100))
+
+          // Capture with html2canvas (maximum scale for best quality)
+          const canvas = await html2canvas(wrapper, {
+            backgroundColor: null,
+            scale: 4,
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            windowWidth: wrapper.offsetWidth,
+            windowHeight: wrapper.offsetHeight,
+            onclone: (clonedDoc) => {
+              // Ensure all text is rendered at high quality
+              const clonedWrapper = clonedDoc.querySelector('div')
+              if (clonedWrapper) {
+                clonedWrapper.style.transform = 'scale(1)'
+                clonedWrapper.style.transformOrigin = 'top left'
+              }
+            }
+          })
+
+          // Remove temporary wrapper
+          document.body.removeChild(wrapper)
+
+          // Compress image to keep under 300KB while maximizing quality
+          const compressImage = async (canvas) => {
+            // Use JPEG directly (much smaller than PNG)
+            // Try to keep full resolution with very high quality
+            let quality = 0.95
+            let blob = await new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/jpeg', quality)
+            })
+            
+            // If too large, reduce quality gradually but keep it high
+            if (blob && blob.size > 300000) { // 300 KB
+              quality = 0.92
+              blob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/jpeg', quality)
+              })
+            }
+            
+            if (blob && blob.size > 300000) {
+              quality = 0.90
+              blob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/jpeg', quality)
+              })
+            }
+            
+            if (blob && blob.size > 300000) {
+              quality = 0.88
+              blob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/jpeg', quality)
+              })
+            }
+            
+            // Only reduce dimensions as last resort, but use maximum quality smoothing
+            if (blob && blob.size > 300000) {
+              // Try a larger dimension first to maintain quality
+              const maxDimension = 1600
+              const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
+              const newWidth = Math.floor(canvas.width * ratio)
+              const newHeight = Math.floor(canvas.height * ratio)
+              
+              const resizedCanvas = document.createElement('canvas')
+              resizedCanvas.width = newWidth
+              resizedCanvas.height = newHeight
+              const resizedCtx = resizedCanvas.getContext('2d')
+              // Use best image smoothing for quality
+              resizedCtx.imageSmoothingEnabled = true
+              resizedCtx.imageSmoothingQuality = 'high'
+              // Use better interpolation
+              resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
+              
+              blob = await new Promise(resolve => {
+                resizedCanvas.toBlob(resolve, 'image/jpeg', 0.90)
+              })
+            }
+            
+            // Final fallback - smaller dimension but still high quality
+            if (blob && blob.size > 300000) {
+              const maxDimension = 1400
+              const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
+              const newWidth = Math.floor(canvas.width * ratio)
+              const newHeight = Math.floor(canvas.height * ratio)
+              
+              const resizedCanvas = document.createElement('canvas')
+              resizedCanvas.width = newWidth
+              resizedCanvas.height = newHeight
+              const resizedCtx = resizedCanvas.getContext('2d')
+              resizedCtx.imageSmoothingEnabled = true
+              resizedCtx.imageSmoothingQuality = 'high'
+              resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
+              
+              blob = await new Promise(resolve => {
+                resizedCanvas.toBlob(resolve, 'image/jpeg', 0.88)
+              })
+            }
+            
+            return blob
+          }
+          
+          // Create filename with transaction ID (always JPEG now)
+          let shortTxId = vm.transactionId.substring(0, 8)
+          let filename = `receipt-${shortTxId}.jpg`
+          
+          const blob = await compressImage(canvas)
+          
+          // Check if running on mobile
+          const isMobile = Capacitor.getPlatform() !== 'web'
+          
+          if (isMobile) {
+            // Convert blob to base64
+            const reader = new FileReader()
+            reader.onloadend = async () => {
+              try {
+                const base64Data = reader.result.split(',')[1]
+                
+                // Save to photo library using our custom plugin
+                const result = await SaveToGallery.saveImage({
+                  base64Data: base64Data,
+                  filename: filename
+                })
+                
+                vm.$q.notify({
+                  message: vm.$t('ReceiptSavedToPhotos', {}, 'Receipt saved to Photos'),
+                  color: 'positive',
+                  icon: 'check_circle',
+                  position: 'top',
+                  timeout: 2000
+                })
+              } catch (error) {
+                console.error('[SaveReceipt] Error saving to photos:', error)
+                vm.$q.notify({
+                  message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt. Please ensure photo library permissions are granted.'),
+                  color: 'negative',
+                  icon: 'error',
+                  position: 'top',
+                  timeout: 3000
+                })
+              }
+            }
+            reader.readAsDataURL(blob)
+          } else {
+            // Desktop/web - use download link
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
+            vm.$q.notify({
+              message: vm.$t('ReceiptSaved', {}, 'Receipt saved'),
+              color: 'positive',
+              icon: 'download',
+              position: 'top',
+              timeout: 2000
+            })
+          }
+        } catch (error) {
+          // Error during logo loading or canvas capture
+          // Remove wrapper if it still exists
+          if (document.body.contains(wrapper)) {
+            document.body.removeChild(wrapper)
+          }
+          throw error // Re-throw to be caught by outer catch
+        }
+      } catch (error) {
+        console.error('Error saving receipt:', error)
+        vm.$q.notify({
+          message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
+          color: 'negative',
+          icon: 'error',
+          position: 'top',
+          timeout: 2000
+        })
+      }
+    },
     getImageUrl (asset) {
       if (this.denominationTabSelected === this.$t('DEEM') && asset.symbol === 'BCH') {
         return 'assets/img/theme/payhero/deem-logo.png'
@@ -2438,6 +2950,105 @@ export default {
   padding: 8px 12px;
   word-break: break-all;
   max-width: 280px;
+}
+
+/* Glassmorphic Save Receipt Button */
+.glassmorphic-receipt-btn {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+  padding: 10px 24px;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  /* Blue theme */
+  &.theme-glassmorphic-blue {
+    background: linear-gradient(
+      to right bottom,
+      rgba(59, 123, 246, 0.85),
+      rgba(54, 129, 232, 0.85),
+      rgba(49, 139, 218, 0.85)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(59, 123, 246, 0.75),
+        rgba(54, 129, 232, 0.75),
+        rgba(49, 139, 218, 0.75)
+      ) !important;
+    }
+  }
+  
+  /* Green theme */
+  &.theme-glassmorphic-green {
+    background: linear-gradient(
+      to right bottom,
+      rgba(67, 160, 71, 0.85),
+      rgba(62, 164, 74, 0.85),
+      rgba(57, 168, 77, 0.85)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(67, 160, 71, 0.75),
+        rgba(62, 164, 74, 0.75),
+        rgba(57, 168, 77, 0.75)
+      ) !important;
+    }
+  }
+  
+  /* Gold theme */
+  &.theme-glassmorphic-gold {
+    background: linear-gradient(
+      to right bottom,
+      rgba(255, 167, 38, 0.85),
+      rgba(255, 176, 56, 0.85),
+      rgba(255, 184, 74, 0.85)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(255, 167, 38, 0.75),
+        rgba(255, 176, 56, 0.75),
+        rgba(255, 184, 74, 0.75)
+      ) !important;
+    }
+  }
+  
+  /* Red theme */
+  &.theme-glassmorphic-red {
+    background: linear-gradient(
+      to right bottom,
+      rgba(246, 59, 123, 0.85),
+      rgba(232, 54, 96, 0.85),
+      rgba(218, 49, 72, 0.85)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(246, 59, 123, 0.75),
+        rgba(232, 54, 96, 0.75),
+        rgba(218, 49, 72, 0.75)
+      ) !important;
+    }
+  }
 }
 
 </style>
