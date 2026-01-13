@@ -92,7 +92,7 @@
                     />
                   </template>
                   <div class="old-gift-notice-text">
-                    This gift was created from an old version of the app, it can still be claimed by those who got the link, but the link cannot be recreated anymore in this version.
+                    {{ $t('OldGiftNotice', {}, 'This gift was created from an old version of the app, it can still be claimed by those who got the link, but the link cannot be recreated anymore in this version.') }}
                   </div>
                 </q-banner>
               </div>
