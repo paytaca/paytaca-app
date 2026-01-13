@@ -1606,9 +1606,9 @@ const phrases = {
       FAQDescription: 'Frequently asked questions',
       DocumentationDescription: 'Read our documentation',
       CommunityDescription: 'Join our community',
-      TelegramDescription: 'Join our Telegram community',
       GitHubDescription: 'View source code and report issues',
       SearchByReferenceID: 'Search by Reference ID',
+      DebugToolsDescription: 'SLP settings, denomination selector, address key viewer, and more'
     },
     {
       MultisigWalletsBetaMessage: 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.',
@@ -1862,7 +1862,6 @@ const phrases = {
       Validating: 'Validating',
       GettingLocation: 'Getting location',
       NoFilter: 'No filter',
-      NoFilteredLogs: 'No filtered logs',
       FilterLogs: 'Filter logs',
       CopyLogs: 'Copy logs',
       LogsCopied: 'Logs copied',
@@ -1985,6 +1984,29 @@ const phrases = {
       FinalizeAndPay: 'Finalize and Pay',
       PayForLIFT: 'Pay for LIFT',
       LiftTokenLockupInfo: 'Your purchased LIFT tokens will be locked in a smart contract that will automatically unlock based on the vesting schedule of the round you purchased from.',
+    },
+    {
+      AcceptBCHPayments: 'Accept BCH Payments',
+      AcceptBCHPaymentsShortDescription: 'Get onboarded as a BCH-accepting merchant using Paytaca POS',
+      AcceptBCHPaymentsTagline: 'Get onboarded as a BCH-accepting merchant using Paytaca POS',
+      AboutAcceptingBCHPayments: 'About Accepting BCH Payments',
+      AcceptBCHPaymentsDescription: 'This guide is for businesses with a physical shop. Learn how to get onboarded as a BCH-accepting merchant using Paytaca POS. Accept Bitcoin Cash payments directly in your store!',
+      HowToGetStarted: 'How to Get Started',
+      Step1InstallPOS: 'Step 1: Install Paytaca POS',
+      Step1Description: 'On the phone that will be used to receive payments (e.g. on your cashier\'s phone), install the Paytaca POS application.',
+      Step2LinkWallet: 'Step 2: Link to Your Wallet',
+      Step2Description: 'Link the POS app to your Paytaca wallet. This connects your POS system to your wallet for seamless payment processing.',
+      Step3ReceivePayments: 'Step 3: Receive Payments',
+      Step3Description: 'Payments received through the POS will go directly to your linked wallet. Start accepting Bitcoin Cash from your customers!',
+      TutorialLinkDescription: 'For more detailed step-by-step instructions on merchant onboarding, visit our tutorial page.',
+      ViewMerchantOnboardingTutorial: 'View Merchant Onboarding Tutorial',
+      ConsoleDescription: 'View intercepted console logs with filtering and export options',
+      NoFilteredLogs: 'No logs match the current filter.',
+      OldGiftNotice: 'This gift was created from an old version of the app, it can still be claimed by those who got the link, but the link cannot be recreated anymore in this version.',
+      ExceededFreeTierLimits: 'You have exceeded the limits of the Free tier. Upgrade to Paytaca Plus to unlock higher limits and special features.',
+      BitcoinIsCashDescription: 'Learn about Bitcoin Cash',
+      MoreAboutBitcoinCash: 'More About Bitcoin Cash',
+      MoreAboutBitcoinCashDescription: 'Educational resources about Bitcoin Cash',
     }
   ],
   dynamic: [
@@ -2108,6 +2130,14 @@ const phrases = {
       VisitWorkHippoWebsite: 'Visit {workHippoWebsite}',
       VisitPurelyPeerWebsite: 'Visit {purelypeerWebsite}',
       PaidUsingMethod: 'Paid using {method}',
+      WalletLimitReached: 'You\'ve reached the limit of {free} wallets. Upgrade to Paytaca Plus to create more wallets.',
+      MultisigWalletLimitReached: 'You\'ve reached the limit of {free} multisig wallets. Upgrade to Paytaca Plus to create more multisig wallets.',
+      UnclaimedGiftsLimitReached: 'You\'ve reached the limit of {free} unclaimed gifts. Upgrade to Paytaca Plus to create more gifts.',
+      FavoriteTokensLimitReached: 'You\'ve reached the limit of {free} favorite tokens. Upgrade to Paytaca Plus to add more favorites.',
+      MerchantsLimitReached: 'You\'ve reached the limit of {free} merchants. Upgrade to Paytaca Plus for more merchants.',
+      PaytacaWebsiteDescription: 'Visit {paytacaWebsite}',
+      FollowUsOn: 'Follow us on {platform}',
+      TelegramDescription: 'Join our {telegram} community',
     }
   ]
 }
