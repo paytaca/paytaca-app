@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "Der Vertragswert stieg auf",
   ContractWasCancelled: "Vertrag wurde gekündigt",
   ConversionInfo: "Umrechnung in {currency} zum Zeitpunkt der Transaktion. Gewinn/Verlust wird unten im Vergleich zum aktuellen Preis angezeigt.",
+  ConversionInformation: "Umrechnungsinformationen",
   Convert: "Konvertieren",
   CopiedToClipboard: "In die Zwischenablage kopiert",
   Copy: "Kopieren",

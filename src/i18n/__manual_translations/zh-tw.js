@@ -169,6 +169,7 @@ export default {
   // Other features
   AddingLiquidity: "新增流動性",
   ConversionInfo: "在交易時轉換為 {currency}。與目前價格相比的損益顯示在下方。",
+  ConversionInformation: "轉換資訊",
   ContractInformation: "合約資訊",
   DepositAddress: "存款地址",
   ExpiredAt: "過期時間",

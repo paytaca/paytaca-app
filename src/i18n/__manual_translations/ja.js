@@ -152,6 +152,7 @@ export default {
   // Other features
   AddingLiquidity: "流動性を追加中",
   ConversionInfo: "取引時の{currency}への変換。現在の価格と比較した損益が下に表示されます。",
+  ConversionInformation: "変換情報",
   ContractInformation: "契約情報",
   DepositAddress: "預金アドレス",
   ExpiredAt: "有効期限",

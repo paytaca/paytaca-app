@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "Стоимость контракта выросла до",
   ContractWasCancelled: "Контракт был расторгнут",
   ConversionInfo: "Конвертация в {currency} на момент транзакции. Прибыль/убыток показаны ниже по сравнению с текущей ценой.",
+  ConversionInformation: "Информация о Конвертации",
   Convert: "Конвертировать",
   CopiedToClipboard: "Скопировано в буфер обмена",
   Copy: "Копировать",

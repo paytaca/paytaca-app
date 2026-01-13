@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "Contract value rose to",
   ContractWasCancelled: "Contract is opgezegd",
   ConversionInfo: "Conversie naar {currency} op het moment van de transactie. Winst/verlies wordt hieronder getoond in vergelijking met de huidige prijs.",
+  ConversionInformation: "Conversie-informatie",
   Convert: "Converteren",
   CopiedToClipboard: "Gekopieerd naar klembord",
   Copy: "Kopieer",

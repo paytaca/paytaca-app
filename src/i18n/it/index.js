@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "Il valore del contratto è salito a",
   ContractWasCancelled: "Il contratto è stato annullato",
   ConversionInfo: "Conversione in {currency} al momento della transazione. Il guadagno/perdita è mostrato sotto rispetto al prezzo attuale.",
+  ConversionInformation: "Informazioni di Conversione",
   Convert: "Convertire",
   CopiedToClipboard: "Copiato negli appunti",
   Copy: "Copia",

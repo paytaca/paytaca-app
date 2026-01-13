@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "Ƙimar kwangila ta tashi zuwa",
   ContractWasCancelled: "An soke kwangilar",
   ConversionInfo: "Canzawa zuwa {currency} a lokacin ma'amala. Ana nuna riba/asara a ƙasa idan aka kwatanta da farashin yanzu.",
+  ConversionInformation: "Bayanan Canzawa",
   Convert: "Maida",
   CopiedToClipboard: "An Kwafi Zuwa Klipboard",
   Copy: "Kwafi",

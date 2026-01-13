@@ -152,6 +152,7 @@ export default {
   // Other features
   AddingLiquidity: "Ƙara ruwa",
   ConversionInfo: "Canzawa zuwa {currency} a lokacin ma'amala. Ana nuna riba/asara a ƙasa idan aka kwatanta da farashin yanzu.",
+  ConversionInformation: "Bayanan Canzawa",
   ContractInformation: "Bayanin kwangila",
   DepositAddress: "Adireshin ajiya",
   ExpiredAt: "Ya ƙare a",

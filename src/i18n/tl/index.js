@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "Ang halaga ng kontrata ay tumaas sa",
   ContractWasCancelled: "Kinansela ang kontrata",
   ConversionInfo: "Conversion sa {currency} sa oras ng transaction. Ang kita/talo ay ipinapakita sa ibaba kung ihahambing sa kasalukuyang presyo.",
+  ConversionInformation: "Impormasyon sa Conversion",
   Convert: "Magbalik-loob",
   CopiedToClipboard: "Kinopya Sa Clipboard",
   Copy: "Kopyahin",

@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "合同价值升至",
   ContractWasCancelled: "合同被取消",
   ConversionInfo: "在交易时转换为 {currency}。与当前价格相比的盈亏显示在下方。",
+  ConversionInformation: "转换信息",
   Convert: "转换",
   CopiedToClipboard: "复制到剪贴板",
   Copy: "复制",

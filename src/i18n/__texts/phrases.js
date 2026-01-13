@@ -2104,6 +2104,7 @@ const phrases = {
       RequiresMinimumLiftTokens: 'Requires a minimum of {count} LIFT tokens',
       HoldMinimumLiftTokens: 'Hold a minimum of {count} LIFT tokens in your wallet',
       ConversionInfo: 'Conversion to {currency} at the time of the transaction. Gain/loss is shown below when compared to current price.',
+      ConversionInformation: 'Conversion Information',
       VisitWorkHippoWebsite: 'Visit {workHippoWebsite}',
       VisitPurelyPeerWebsite: 'Visit {purelypeerWebsite}',
       PaidUsingMethod: 'Paid using {method}',

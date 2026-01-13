@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "契約金額は に上昇しました",
   ContractWasCancelled: "契約が解除されました",
   ConversionInfo: "取引時の{currency}への変換。現在の価格と比較した損益が下に表示されます。",
+  ConversionInformation: "変換情報",
   Convert: "変換する",
   CopiedToClipboard: "クリップボードにコピーされました",
   Copy: "コピー",

@@ -152,6 +152,7 @@ export default {
   // Other features
   AddingLiquidity: "Добавление ликвидности",
   ConversionInfo: "Конвертация в {currency} на момент транзакции. Прибыль/убыток показаны ниже по сравнению с текущей ценой.",
+  ConversionInformation: "Информация о Конвертации",
   ContractInformation: "Информация о контракте",
   DepositAddress: "Адрес депозита",
   ExpiredAt: "Истек в",

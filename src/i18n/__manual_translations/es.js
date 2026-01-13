@@ -251,6 +251,7 @@ export default {
   // Other features
   AddingLiquidity: "Agregando liquidez",
   ConversionInfo: "Conversión a {currency} en el momento de la transacción. La ganancia/pérdida se muestra a continuación en comparación con el precio actual.",
+  ConversionInformation: "Información de Conversión",
   ContractInformation: "Información del contrato",
   DepositAddress: "Dirección de depósito",
   ExpiredAt: "Expirado en",

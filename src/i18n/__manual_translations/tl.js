@@ -153,6 +153,7 @@ export default {
   // Other features
   AddingLiquidity: "Nagda-dagdag ng liquidity",
   ConversionInfo: "Conversion sa {currency} sa oras ng transaction. Ang kita/talo ay ipinapakita sa ibaba kung ihahambing sa kasalukuyang presyo.",
+  ConversionInformation: "Impormasyon sa Conversion",
   ContractInformation: "Contract information",
   DepositAddress: "Deposit address",
   ExpiredAt: "Nag-expire noong",

@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "Nilai kontrak naik menjadi",
   ContractWasCancelled: "Kontrak dibatalkan",
   ConversionInfo: "Konversi ke {currency} pada saat transaksi. Keuntungan/kerugian ditampilkan di bawah dibandingkan dengan harga saat ini.",
+  ConversionInformation: "Informasi Konversi",
   Convert: "Mengkonversi",
   CopiedToClipboard: "Disalin Ke Papan Klip",
   Copy: "Salin",

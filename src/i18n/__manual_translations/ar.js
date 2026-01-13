@@ -206,6 +206,7 @@ export default {
   // Other features
   AddingLiquidity: "إضافة السيولة",
   ConversionInfo: "التحويل إلى {currency} في وقت المعاملة. يتم عرض الربح/الخسارة أدناه عند المقارنة بالسعر الحالي.",
+  ConversionInformation: "معلومات التحويل",
   ContractInformation: "معلومات العقد",
   DepositAddress: "عنوان الإيداع",
   ExpiredAt: "انتهى في",

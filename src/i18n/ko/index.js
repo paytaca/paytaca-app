@@ -422,6 +422,7 @@ export default {
   ContractValueRoseTo: "계약 금액이 다음으로 증가했습니다.",
   ContractWasCancelled: "계약이 취소되었습니다",
   ConversionInfo: "거래 시점의 {currency}로의 변환. 현재 가격과 비교한 손익이 아래에 표시됩니다.",
+  ConversionInformation: "변환 정보",
   Convert: "변환",
   CopiedToClipboard: "클립보드에 복사됨",
   Copy: "복사",

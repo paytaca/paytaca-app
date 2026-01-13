@@ -2130,7 +2130,7 @@ export default {
     showConversionInfo () {
       if (this.isMobile) {
         this.$q.dialog({
-          title: this.$t('ConversionInfo', {}, 'Conversion Information'),
+          title: this.$t('ConversionInformation', {}, 'Conversion Information'),
           message: this.fiatConversionTooltip,
           ok: true,
           class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`

@@ -152,6 +152,7 @@ export default {
   // Other features
   AddingLiquidity: "Menambahkan likuiditas",
   ConversionInfo: "Konversi ke {currency} pada saat transaksi. Keuntungan/kerugian ditampilkan di bawah dibandingkan dengan harga saat ini.",
+  ConversionInformation: "Informasi Konversi",
   ContractInformation: "Informasi kontrak",
   DepositAddress: "Alamat deposit",
   ExpiredAt: "Kedaluwarsa pada",
