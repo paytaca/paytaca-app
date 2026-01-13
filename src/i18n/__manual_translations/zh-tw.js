@@ -112,7 +112,6 @@ export default {
   Validating: "驗證中",
   GettingLocation: "取得位置",
   NoFilter: "無篩選",
-  NoFilteredLogs: "無篩選日誌",
   FilterLogs: "篩選日誌",
   CopyLogs: "複製日誌",
   LogsCopied: "日誌已複製",

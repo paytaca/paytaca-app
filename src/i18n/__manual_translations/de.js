@@ -116,7 +116,6 @@ export default {
   Validating: "Validierung",
   GettingLocation: "Standort wird abgerufen",
   NoFilter: "Kein Filter",
-  NoFilteredLogs: "Keine gefilterten Protokolle",
   FilterLogs: "Protokolle filtern",
   CopyLogs: "Protokolle kopieren",
   LogsCopied: "Protokolle kopiert",

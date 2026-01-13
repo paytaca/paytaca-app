@@ -95,7 +95,6 @@ export default {
   Validating: "검증 중",
   GettingLocation: "위치 가져오는 중",
   NoFilter: "필터 없음",
-  NoFilteredLogs: "필터링된 로그 없음",
   FilterLogs: "로그 필터링",
   CopyLogs: "로그 복사",
   LogsCopied: "로그가 복사되었습니다",
@@ -194,5 +193,10 @@ export default {
   ViewAmountInCurrency: "{currency} 단위로 금액 보기",
   WebsiteDescription: "{website} 방문",
   PayForLIFT: "LIFT 비용 지불",
+  MerchantsLimitReached: "{free} 판매자 한도에 도달했습니다.더 많은 가맹점을 이용하려면 Paytaca Plus로 업그레이드하세요.",
+  MultisigWalletLimitReached: "{free} 다중서명 지갑 한도에 도달했습니다.더 많은 다중서명 지갑을 생성하려면 Paytaca Plus로 업그레이드하세요.",
+  UnclaimedGiftsLimitReached: "받지 않은 선물 한도인 {free}개에 도달했습니다.더 많은 선물을 만들려면 Paytaca Plus로 업그레이드하세요.",
+  WalletLimitReached: "{free} 지갑 한도에 도달했습니다.더 많은 지갑을 생성하려면 Paytaca Plus로 업그레이드하세요.",
+  
 }
 

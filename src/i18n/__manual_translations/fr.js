@@ -95,7 +95,6 @@ export default {
   Validating: "Validation",
   GettingLocation: "Obtention de l'emplacement",
   NoFilter: "Aucun filtre",
-  NoFilteredLogs: "Aucun journal filtré",
   FilterLogs: "Filtrer les journaux",
   CopyLogs: "Copier les journaux",
   LogsCopied: "Journaux copiés",
@@ -183,5 +182,6 @@ export default {
   AppealableInCooldown: "Faisable en appel dans {cooldown}",
   WebsiteDescription: "Visitez le {website}",
   PayForLIFT: "Payer pour LIFT",
+  PaytacaWebsiteDescription: "Visitez le {paytacaWebsite}",
 }
 

@@ -95,7 +95,6 @@ export default {
   Validating: "Valideer",
   GettingLocation: "Kry ligging",
   NoFilter: "Geen filter",
-  NoFilteredLogs: "Geen gefiltreerde logs",
   FilterLogs: "Filtreer logs",
   CopyLogs: "Kopieer logs",
   LogsCopied: "Logs gekopieer",

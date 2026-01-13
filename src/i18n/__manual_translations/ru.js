@@ -95,7 +95,6 @@ export default {
   Validating: "Проверка",
   GettingLocation: "Получение местоположения",
   NoFilter: "Без фильтра",
-  NoFilteredLogs: "Нет отфильтрованных логов",
   FilterLogs: "Фильтровать логи",
   CopyLogs: "Копировать логи",
   LogsCopied: "Логи скопированы",
@@ -198,5 +197,8 @@ export default {
   VerifyingWithSeconds: "Подтверждаем, пожалуйста, подождите.({seconds} сек.)",
   WebsiteDescription: "Посетите {website}",
   PayForLIFT: "Оплатить LIFT",
+  FollowUsOn: "Следуйте за нами на {platform}",
+  MultisigWalletLimitReached: "Вы достигли лимита {free} кошельков с мультиподписью.Обновитесь до Paytaca Plus, чтобы создать больше кошельков с мультиподписью.",
+  WalletLimitReached: "Вы достигли лимита {free} кошельков.Обновите Paytaca Plus, чтобы создать больше кошельков.",
 }
 

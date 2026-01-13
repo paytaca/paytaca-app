@@ -95,7 +95,6 @@ export default {
   Validating: "Memvalidasi",
   GettingLocation: "Mendapatkan lokasi",
   NoFilter: "Tidak ada filter",
-  NoFilteredLogs: "Tidak ada log yang difilter",
   FilterLogs: "Filter log",
   CopyLogs: "Salin log",
   LogsCopied: "Log disalin",
@@ -181,5 +180,7 @@ export default {
   BitcoinCash: "Bitcoin Cash",
   WebsiteDescription: "Kunjungi {website}",
   TotalLIFT: "Jumlah LIFT",
+  BitcoinIsCashDescription: "Pelajari tentang Bitcoin Cash",
+  
 }
 

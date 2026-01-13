@@ -149,7 +149,6 @@ export default {
   Validating: "التحقق",
   GettingLocation: "الحصول على الموقع",
   NoFilter: "لا يوجد مرشح",
-  NoFilteredLogs: "لا توجد سجلات مرشحة",
   FilterLogs: "تصفية السجلات",
   CopyLogs: "نسخ السجلات",
   LogsCopied: "تم نسخ السجلات",
@@ -254,5 +253,9 @@ export default {
   ThemeName: "{theme} الموضوع",
   TradeCount: "{count} الصفقات",
   VerifyingWithSeconds: "جارٍ التحقق، يرجى الانتظار.({seconds} ثانية)",
-  WebsiteDescription: "قم بزيارة {website}", 
+  WebsiteDescription: "قم بزيارة {website}",
+  MerchantsLimitReached: "لقد وصلت إلى الحد الأقصى لعدد التجار {free}.الترقية إلى Paytaca Plus لمزيد من التجار.",
+  MultisigWalletLimitReached: "لقد وصلت إلى الحد الأقصى لعدد محافظ multisig {free}.قم بالترقية إلى Paytaca Plus لإنشاء المزيد من محافظ multisig.",
+  UnclaimedGiftsLimitReached: "لقد وصلت إلى الحد الأقصى لعدد الهدايا {free} التي لم تتم المطالبة بها.قم بالترقية إلى Paytaca Plus لإنشاء المزيد من الهدايا.",
+  WalletLimitReached: "لقد وصلت إلى الحد الأقصى لعدد المحافظ {free}.قم بالترقية إلى Paytaca Plus لإنشاء المزيد من المحافظ.",
 }

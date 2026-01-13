@@ -127,11 +127,11 @@ export default {
     },
     logLevelOptions () {
       return [
-        { label: 'Log', value: 'log' },
-        { label: 'Error', value: 'error' },
-        { label: 'Warn', value: 'warn' },
-        { label: 'Debug', value: 'debug' },
-        { label: 'Info', value: 'info' }
+        { label: this.$t('Log', {}, 'Log'), value: 'log' },
+        { label: this.$t('Error', {}, 'Error'), value: 'error' },
+        { label: this.$t('Warn', {}, 'Warn'), value: 'warn' },
+        { label: this.$t('Debug', {}, 'Debug'), value: 'debug' },
+        { label: this.$t('Info', {}, 'Info'), value: 'info' }
       ]
     },
     filteredLogs () {

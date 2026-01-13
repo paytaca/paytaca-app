@@ -95,7 +95,6 @@ export default {
   Validating: "Tabbatarwa",
   GettingLocation: "Samun wuri",
   NoFilter: "Babu tacewa",
-  NoFilteredLogs: "Babu rajistan da aka tace",
   FilterLogs: "Tace rajistan",
   CopyLogs: "Kwafi rajistan",
   LogsCopied: "An kwafi rajistan",

@@ -194,7 +194,6 @@ export default {
   Validating: "Validando",
   GettingLocation: "Obteniendo ubicación",
   NoFilter: "Sin filtro",
-  NoFilteredLogs: "Sin registros filtrados",
   FilterLogs: "Filtrar registros",
   CopyLogs: "Copiar registros",
   LogsCopied: "Registros copiados",
@@ -289,4 +288,5 @@ export default {
   ButtonDeem: "DEEM",
   PaidUsingMethod: "Pagado usando {method}",
   PayForLIFT: "Pagar por LIFT",
+  PaytacaWebsiteDescription: "Visita {paytacaWebsite}",
 }

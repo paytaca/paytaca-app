@@ -95,7 +95,6 @@ export default {
   Validating: "Validazione",
   GettingLocation: "Recupero posizione",
   NoFilter: "Nessun filtro",
-  NoFilteredLogs: "Nessun log filtrato",
   FilterLogs: "Filtra log",
   CopyLogs: "Copia log",
   LogsCopied: "Log copiati",
@@ -182,5 +181,6 @@ export default {
   WebsiteDescription: "Visita {website}",
   TotalLIFT: "LIFT totale",
   UnpaidLift: "LIFT non pagato",
+  PaytacaWebsiteDescription: "Visita il {paytacaWebsite}",
 }
 
