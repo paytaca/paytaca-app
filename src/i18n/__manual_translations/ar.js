@@ -149,7 +149,6 @@ export default {
   Validating: "التحقق",
   GettingLocation: "الحصول على الموقع",
   NoFilter: "لا يوجد مرشح",
-  NoFilteredLogs: "لا توجد سجلات مرشحة",
   FilterLogs: "تصفية السجلات",
   CopyLogs: "نسخ السجلات",
   LogsCopied: "تم نسخ السجلات",

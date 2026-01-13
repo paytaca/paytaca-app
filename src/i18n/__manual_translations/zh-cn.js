@@ -97,7 +97,6 @@ export default {
   Validating: "验证中",
   GettingLocation: "获取位置",
   NoFilter: "无筛选",
-  NoFilteredLogs: "无筛选日志",
   FilterLogs: "筛选日志",
   CopyLogs: "复制日志",
   LogsCopied: "日志已复制",

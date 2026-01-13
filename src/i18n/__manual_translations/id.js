@@ -95,7 +95,6 @@ export default {
   Validating: "Memvalidasi",
   GettingLocation: "Mendapatkan lokasi",
   NoFilter: "Tidak ada filter",
-  NoFilteredLogs: "Tidak ada log yang difilter",
   FilterLogs: "Filter log",
   CopyLogs: "Salin log",
   LogsCopied: "Log disalin",

@@ -95,7 +95,6 @@ export default {
   Validating: "검증 중",
   GettingLocation: "위치 가져오는 중",
   NoFilter: "필터 없음",
-  NoFilteredLogs: "필터링된 로그 없음",
   FilterLogs: "로그 필터링",
   CopyLogs: "로그 복사",
   LogsCopied: "로그가 복사되었습니다",

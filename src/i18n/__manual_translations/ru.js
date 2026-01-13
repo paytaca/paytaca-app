@@ -95,7 +95,6 @@ export default {
   Validating: "Проверка",
   GettingLocation: "Получение местоположения",
   NoFilter: "Без фильтра",
-  NoFilteredLogs: "Нет отфильтрованных логов",
   FilterLogs: "Фильтровать логи",
   CopyLogs: "Копировать логи",
   LogsCopied: "Логи скопированы",

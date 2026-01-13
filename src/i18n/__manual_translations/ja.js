@@ -95,7 +95,6 @@ export default {
   Validating: "検証中",
   GettingLocation: "位置情報を取得中",
   NoFilter: "フィルターなし",
-  NoFilteredLogs: "フィルター済みログなし",
   FilterLogs: "ログをフィルター",
   CopyLogs: "ログをコピー",
   LogsCopied: "ログがコピーされました",

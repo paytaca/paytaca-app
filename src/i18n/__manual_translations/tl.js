@@ -96,7 +96,6 @@ export default {
   Validating: "Nagva-validate",
   GettingLocation: "Kumukuha ng lokasyon",
   NoFilter: "Walang filter",
-  NoFilteredLogs: "Walang filtered logs",
   FilterLogs: "I-filter ang logs",
   CopyLogs: "I-copy ang logs",
   LogsCopied: "Na-copy ang logs",

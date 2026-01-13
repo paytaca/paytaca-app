@@ -95,7 +95,6 @@ export default {
   Validating: "Valideren",
   GettingLocation: "Locatie ophalen",
   NoFilter: "Geen filter",
-  NoFilteredLogs: "Geen gefilterde logs",
   FilterLogs: "Logs filteren",
   CopyLogs: "Logs kopiëren",
   LogsCopied: "Logs gekopieerd",
