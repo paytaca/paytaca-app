@@ -65,14 +65,7 @@
           <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
             {{ $t('RequiresMinimumLiftTokens', { count: minLiftTokens }, `Requires a minimum of ${minLiftTokens} LIFT tokens`) }}
           </div>
-          <div class="q-mt-sm row q-gutter-sm">
-            <q-btn
-              unelevated
-              size="sm"
-              color="positive"
-              :label="$t('UpgradeNow', {}, 'Upgrade Now')"
-              @click="showUpgradeDialog = true"
-            />
+          <div class="q-mt-sm">
             <q-btn
               unelevated
               size="sm"
@@ -84,27 +77,18 @@
         </q-banner>
       </q-item-section>
     </q-item>
-    
-    <UpgradePromptDialog
-      v-model="showUpgradeDialog"
-      :dark-mode="darkMode"
-    />
   </q-list>
 </template>
 
 <script>
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatWithLocale } from 'src/utils/denomination-utils'
-import UpgradePromptDialog from './UpgradePromptDialog.vue'
 
 export default {
   name: 'SubscriptionStatus',
-  components: {
-    UpgradePromptDialog
-  },
   props: {
     darkMode: {
       type: Boolean,
@@ -114,7 +98,6 @@ export default {
   setup () {
     const store = useStore()
     const router = useRouter()
-    const showUpgradeDialog = ref(false)
     
     const isPlus = computed(() => store.getters['subscription/isPlusSubscriber'])
     const liftTokenBalance = computed(() => store.getters['subscription/getLiftTokenBalance'])
@@ -159,7 +142,6 @@ export default {
       liftTokenBalance,
       formattedLiftBalance,
       minLiftTokens,
-      showUpgradeDialog,
       goToSubscriptionDetails,
       getDarkModeClass
     }
