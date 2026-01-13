@@ -288,21 +288,24 @@ export default defineComponent({
         }
 
         // Load contract for selected currency
+        // Pass false to suppress duplicate notification (we'll show one here if needed)
         if (selectedCurrency.value && contractsByCurrency[selectedCurrency.value]) {
-          await loadContractForCurrency(selectedCurrency.value)
+          await loadContractForCurrency(selectedCurrency.value, false)
         }
       } catch (error) {
         console.error('Error fetching contracts:', error)
+        // Show notification for errors from loadContractForCurrency (since we passed showNotification=false)
+        // or for other fetch errors (network errors, etc.)
         $q.notify({
           type: 'negative',
-          message: $t('UnableToGetContractDetails'),
+          message: typeof error === 'string' ? error : (error?.message || $t('UnableToGetContractDetails')),
         })
       } finally {
         loadingContract.value = false
       }
     }
 
-    async function loadContractForCurrency(currency) {
+    async function loadContractForCurrency(currency, showNotification = true) {
       if (!availableContracts.value[currency] || availableContracts.value[currency].length === 0) {
         return
       }
@@ -335,10 +338,13 @@ export default defineComponent({
         console.error('Error loading contract:', error)
         // Revert to previous contract on error
         currentRedemptionContract.value = previousContract
-        $q.notify({
-          type: 'negative',
-          message: typeof error === 'string' ? error : $t('UnableToGetContractDetails'),
-        })
+        // Only show notification if requested (default true for selectCurrency, false for fetchAvailableContracts)
+        if (showNotification) {
+          $q.notify({
+            type: 'negative',
+            message: typeof error === 'string' ? error : $t('UnableToGetContractDetails'),
+          })
+        }
         // Re-throw to allow selectCurrency to revert selectedCurrency
         throw error
       } finally {
