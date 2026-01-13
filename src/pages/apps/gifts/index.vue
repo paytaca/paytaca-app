@@ -119,6 +119,9 @@
                       <span v-if="gift.campaign_name" class="gift-campaign-name" :class="getDarkModeClass(darkMode)">
                         • {{ gift.campaign_name }}
                       </span>
+                      <div class="gift-id text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7; margin-top: 2px;">
+                        ID: {{ getGiftId(gift.hash) }}
+                      </div>
                     </div>
                     <div class="gift-item-amount" :class="getDarkModeClass(darkMode)">
                       <div class="amount-primary text-grad">
@@ -254,6 +257,9 @@
                       <span v-if="gift.campaign_name" class="gift-campaign-name" :class="getDarkModeClass(darkMode)">
                         • {{ gift.campaign_name }}
                       </span>
+                      <div class="gift-id text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7; margin-top: 2px;">
+                        ID: {{ getGiftId(gift.hash) }}
+                      </div>
                   </div>
                     <div class="gift-item-amount" :class="getDarkModeClass(darkMode)">
                       <div class="amount-primary text-grad">
@@ -330,6 +336,7 @@ import QRCode from 'qrcode'
 import { ensureKeypair } from 'src/utils/memo-service'
 import { decryptMemo } from 'src/utils/transaction-memos'
 import sha256 from 'js-sha256'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 export default {
   name: 'Gift',
@@ -433,9 +440,18 @@ export default {
       })
       
 
-      // Sort by date_created in descending order (latest first)
+      // Sort by date_created or date_claimed depending on tab
       return filteredGifts.sort((a, b) => {
-        return new Date(b.date_created) - new Date(a.date_created)
+        if (this.activeTab === 'claimed') {
+          // For claimed gifts, sort by date_claimed (most recently claimed first)
+          // Handle 'None' values and missing dates
+          const aDate = a.date_claimed && a.date_claimed !== 'None' ? new Date(a.date_claimed) : new Date(0)
+          const bDate = b.date_claimed && b.date_claimed !== 'None' ? new Date(b.date_claimed) : new Date(0)
+          return bDate - aDate
+        } else {
+          // For unclaimed gifts, sort by date_created (latest first)
+          return new Date(b.date_created) - new Date(a.date_created)
+        }
       })
     },
     unclaimedGiftsCount () {
@@ -1121,6 +1137,12 @@ export default {
       }
       const walletHashSha256 = sha256(this.walletHash)
       return gift.created_by === walletHashSha256
+    },
+    getGiftId(giftCodeHash) {
+      if (!giftCodeHash || typeof giftCodeHash !== 'string') return ''
+      // Take first 6 characters of hash and convert to numeric ID
+      const hex6 = giftCodeHash.substring(0, 6)
+      return hexToRef(hex6)
     },
     changeTab(tab) {
       // Clean up existing observers
