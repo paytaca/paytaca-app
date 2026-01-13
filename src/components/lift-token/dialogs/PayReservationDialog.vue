@@ -224,13 +224,25 @@ export default {
       ]
     },
     disablePurchase() {
-      if (this.parseToken() / 10 ** 2 < this.selectedRoundMinPurchase && Number(this.amountTkn) > 0) return false
+      const availableBalance = this.parseToken() / 10 ** 2
+      const amount = Number(this.amountTkn)
+      const isBelowMinimum = availableBalance < this.selectedRoundMinPurchase
+      
+      // If available balance is below minimum, allow purchase but still validate balance limits
+      if (isBelowMinimum && amount > 0) {
+        return (
+          amount === 0 ||
+          Number(this.amountBch) > this.walletBalance ||
+          amount * 10 ** 2 > this.tknBalance
+        )
+      }
 
+      // Normal validation when available balance meets minimum requirement
       return (
-        Number(this.amountTkn) === 0 ||
+        amount === 0 ||
         Number(this.amountBch) > this.walletBalance ||
-        Number(this.amountTkn) * 10 ** 2 > this.tknBalance ||
-        Number(this.amountTkn) < this.selectedRoundMinPurchase
+        amount * 10 ** 2 > this.tknBalance ||
+        amount < this.selectedRoundMinPurchase
       )
     }
   },
