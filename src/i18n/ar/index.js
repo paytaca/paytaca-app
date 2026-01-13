@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "منصة عمل مستقلة قادمة",
   WriteDownAndStoreSafely: "اكتب وقم بتخزينها بأمان",
   WriteDownWordsInOrder: "اكتب جميع الكلمات الـ 12 بالترتيب الصحيح",
+  ReplaySequenceAnimation: "إعادة تشغيل رسوم متحركة التسلسل",
   "XPubKey QR Code": "رمز QR للمفتاح العام الممتد",
   XpubKey: "مفتاح اكس بوب",
   YearAgo: "قبل عام",

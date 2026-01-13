@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "Platform kerja freelance yang akan datang",
   WriteDownAndStoreSafely: "Catat dan simpan dengan aman",
   WriteDownWordsInOrder: "Tuliskan semua 12 kata dalam urutan yang benar",
+  ReplaySequenceAnimation: "Putar Ulang Animasi Urutan",
   "XPubKey QR Code": "Kode QR kunci publik diperluas",
   XpubKey: "Kunci xPub",
   YearAgo: "tahun yang lalu",

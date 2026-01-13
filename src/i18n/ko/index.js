@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "다가오는 프리랜서 작업 플랫폼",
   WriteDownAndStoreSafely: "적어서 안전하게 보관하세요",
   WriteDownWordsInOrder: "12개의 단어를 모두 올바른 순서로 적어보세요",
+  ReplaySequenceAnimation: "시퀀스 애니메이션 재생",
   "XPubKey QR Code": "확장 공개 키 QR 코드",
   XpubKey: "xPub 키",
   YearAgo: "년 전",

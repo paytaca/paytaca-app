@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "'n Opkomende vryskutwerkplatform",
   WriteDownAndStoreSafely: "Skryf neer en bêre veilig",
   WriteDownWordsInOrder: "Skryf al 12 woorde in die regte volgorde neer",
+  ReplaySequenceAnimation: "Herhaal Volgorde Animasie",
   "XPubKey QR Code": "Uitgebreide publieke sleutel QR kode",
   XpubKey: "xPub-sleutel",
   YearAgo: "jaar gelede",

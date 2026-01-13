@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "Dandalin aiki mai zaman kansa mai zuwa",
   WriteDownAndStoreSafely: "Rubuta kuma a adana lafiya",
   WriteDownWordsInOrder: "Rubuta duka kalmomi 12 cikin tsari daidai",
+  ReplaySequenceAnimation: "Maimaita Animation na Sequence",
   "XPubKey QR Code": "Lambar QR na maɓallin jama'a mai faɗaɗawa",
   XpubKey: "xPub Key",
   YearAgo: "shekara da ta wuce",

@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "Een aankomend freelance werkplatform",
   WriteDownAndStoreSafely: "Schrijf het op en bewaar het veilig",
   WriteDownWordsInOrder: "Schrijf alle 12 woorden in de juiste volgorde op",
+  ReplaySequenceAnimation: "Sequentie-animatie Opnieuw Afspelen",
   "XPubKey QR Code": "Uitgebreide publieke sleutel QR-code",
   XpubKey: "xPub-sleutel",
   YearAgo: "jaar geleden",

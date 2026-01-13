@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "即將推出的自由職業平台",
   WriteDownAndStoreSafely: "寫下並安全保存",
   WriteDownWordsInOrder: "按正確順序寫下所有 12 個單詞",
+  ReplaySequenceAnimation: "重播序列動畫",
   "XPubKey QR Code": "擴展公鑰二維碼",
   XpubKey: "x公鑰",
   YearAgo: "一年前",

@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "Isang paparating na freelance work platform",
   WriteDownAndStoreSafely: "Isulat at iimbak nang ligtas",
   WriteDownWordsInOrder: "Isulat ang lahat ng 12 salita sa tamang pagkakasunod-sunod",
+  ReplaySequenceAnimation: "I-replay ang Sequence Animation",
   "XPubKey QR Code": "QR code ng extended public key",
   XpubKey: "xPub Key",
   YearAgo: "taon na ang nakalipas",

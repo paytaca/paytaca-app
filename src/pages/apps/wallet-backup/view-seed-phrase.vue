@@ -44,7 +44,7 @@
           <div class="instruction-list">
             <div class="instruction-item">
               <div class="item-number">1</div>
-              <div class="item-text">{{ $t('WriteDownWordsInOrder', {}, 'Write down all 12 words in the correct order') }}</div>
+              <div class="item-text">{{ $t('WriteDownWordsInOrder', {}, 'Write down all 12 words in the correct sequence') }}</div>
             </div>
             <div class="instruction-item">
               <div class="item-number">2</div>

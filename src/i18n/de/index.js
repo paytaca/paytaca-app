@@ -2329,6 +2329,7 @@ export default {
   WorkHippoTagline: "Eine kommende Plattform für freiberufliche Arbeit",
   WriteDownAndStoreSafely: "Notieren Sie es und bewahren Sie es sicher auf",
   WriteDownWordsInOrder: "Schreiben Sie alle 12 Wörter in der richtigen Reihenfolge auf",
+  ReplaySequenceAnimation: "Sequenz-Animation Wiederholen",
   "XPubKey QR Code": "Erweiterter öffentlicher Schlüssel QR-Code",
   XpubKey: "xPub-Schlüssel",
   YearAgo: "Jahr vor",
