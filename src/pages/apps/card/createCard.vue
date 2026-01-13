@@ -32,7 +32,7 @@
               <q-card bordered flat class="bg-white full-height">
                 <!-- Card header: Name + Icons -->
                 <q-card-section class="row items-center justify-between q-pa-sm">
-                  <div class="text-weight-bold text-subtitle1 text-black">{{ card.name }}</div>
+                  <div class="text-weight-bold text-subtitle1 text-black ellipsis" style="max-width: 150px;">{{ card.name }}</div>
                   <q-btn
                     flat
                     round
@@ -171,7 +171,19 @@
 
        <!-- Dialog Content -->
        <q-card-section>
-          <q-input v-model="newCardName" label="Card Name" outlined dense></q-input>
+          <q-input 
+            v-model="newCardName" 
+            label="Card Name" 
+            outlined 
+            dense 
+            hint="Max of 15 characters allowed"
+            counter
+            maxlength="15"
+            :rules="[
+              val => (val && val.length > 0) || 'Name is required',
+              val => val.length <= 15 || 'Maximum 15 characters'
+            ]"
+          ></q-input>
        </q-card-section>
 
        <q-separator />
@@ -418,7 +430,7 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
           this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
           return;
         }
-
+        
         // Create new subcard object
         const newCard = {
           id: Date.now(), // unique key
@@ -445,14 +457,21 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
       editCardName(card){
         this.$q.dialog({
           title: 'Edit Card Name',
+          message: 'Maximum of 15 characters allowed',
           prompt: {
             model: card.name,
-            type: 'text'
+            type: 'text',
+            attrs: {
+              maxLength: 15, 
+            },
+            isValid: val => val.length <= 15 && val.length > 0
           },
           cancel: true,
           persistent: true
         }).onOk(data => {
-          card.name = data;
+          if (data.length <= 15){
+            card.name = data;
+          }
         })
       },
 
