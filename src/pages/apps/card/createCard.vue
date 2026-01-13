@@ -33,7 +33,18 @@
                 <!-- Card header: Name + Icons -->
                 <q-card-section class="row items-center justify-between q-pa-sm">
                   <div class="text-weight-bold text-subtitle1 text-black">{{ card.name }}</div>
-
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    color="grey-7"
+                    icon="edit"
+                    size="sm"
+                    @click="editCardName(card)"
+                  >
+                    <q-tooltip>Edit Card Name</q-tooltip>
+                  </q-btn>
+                  
                   <div class="row items-center q-gutter-sm">
                     <!-- View Icon -->
                      <q-btn
@@ -429,6 +440,20 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
           color: 'positive',
         });
 
+      },
+
+      editCardName(card){
+        this.$q.dialog({
+          title: 'Edit Card Name',
+          prompt: {
+            model: card.name,
+            type: 'text'
+          },
+          cancel: true,
+          persistent: true
+        }).onOk(data => {
+          card.name = data;
+        })
       },
 
       viewCard(card){
