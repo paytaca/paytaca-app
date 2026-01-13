@@ -157,7 +157,6 @@ export async function createTerminal(terminalData) {
     return response.data
   } catch (error) {
     console.error('Error creating terminal:', error)
-    throw error
   }
 }
 
@@ -167,7 +166,6 @@ export async function fetchTerminals(params = {}) {
     return response.data
   } catch (error) {
     console.error('Error fetching terminals:', error)
-    throw error
   }
 }
 
@@ -177,7 +175,6 @@ export async function fetchUnissuedTerminals(cardId) {
     return response.data
   } catch (error) {
     console.error('Error fetching unissued terminals:', error)
-    throw error
   }
 }
 
