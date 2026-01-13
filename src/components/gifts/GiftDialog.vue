@@ -597,99 +597,106 @@ async function saveGiftQRImage () {
     wrapper.appendChild(contentContainer)
     document.body.appendChild(wrapper)
     
-    // Wait for logos to load before capturing
-    await Promise.all([
-      loadBchLogo(),
-      loadPaytacaLogo()
-    ])
-    
-    // Small delay to ensure DOM updates are rendered
-    await new Promise(resolve => setTimeout(resolve, 100))
+    try {
+      // Wait for logos to load before capturing
+      await Promise.all([
+        loadBchLogo(),
+        loadPaytacaLogo()
+      ])
+      
+      // Small delay to ensure DOM updates are rendered
+      await new Promise(resolve => setTimeout(resolve, 100))
 
-    // Capture with html2canvas
-    const canvas = await html2canvas(wrapper, {
-      backgroundColor: null,
-      scale: 3,
-      logging: false,
-      useCORS: true,
-      allowTaint: true
-    })
+      // Capture with html2canvas
+      const canvas = await html2canvas(wrapper, {
+        backgroundColor: null,
+        scale: 3,
+        logging: false,
+        useCORS: true,
+        allowTaint: true
+      })
 
-    // Remove temporary wrapper
-    document.body.removeChild(wrapper)
+      // Remove temporary wrapper (success path - wrapper no longer needed)
+      document.body.removeChild(wrapper)
 
-    // Create filename with gift amount and code
-    const sanitizedAmount = giftAmount.replace(/[^a-z0-9]/gi, '-').toLowerCase()
-    const shortCode = qrCodeContents.value.substring(qrCodeContents.value.length - 8)
-    const filename = `bch-gift-${sanitizedAmount}-${shortCode}.png`
+      // Create filename with gift amount and code
+      const sanitizedAmount = giftAmount.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+      const shortCode = qrCodeContents.value.substring(qrCodeContents.value.length - 8)
+      const filename = `bch-gift-${sanitizedAmount}-${shortCode}.png`
 
-    canvas.toBlob(async (blob) => {
-      try {
-        // Check if running on mobile
-        const isMobile = Capacitor.getPlatform() !== 'web'
-        
-        if (isMobile) {
-          // Convert blob to base64
-          const reader = new FileReader()
-          reader.onloadend = async () => {
-            try {
-              const base64Data = reader.result.split(',')[1]
-              
-              // Save to photo library using our custom plugin
-              const result = await SaveToGallery.saveImage({
-                base64Data: base64Data,
-                filename: filename
-              })
-              
-              $q.notify({
-                message: t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
-                color: 'positive',
-                icon: 'check_circle',
-                position: 'top',
-                timeout: 2000
-              })
-            } catch (error) {
-              console.error('[SaveGiftQR] Error saving to photos:', error)
-              $q.notify({
-                message: t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
-                color: 'negative',
-                icon: 'error',
-                position: 'top',
-                timeout: 3000
-              })
-            }
-          }
-          reader.readAsDataURL(blob)
-        } else {
-          // Desktop/web - use download link
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = filename
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          URL.revokeObjectURL(url)
+      canvas.toBlob(async (blob) => {
+        try {
+          // Check if running on mobile
+          const isMobile = Capacitor.getPlatform() !== 'web'
           
+          if (isMobile) {
+            // Convert blob to base64
+            const reader = new FileReader()
+            reader.onloadend = async () => {
+              try {
+                const base64Data = reader.result.split(',')[1]
+                
+                // Save to photo library using our custom plugin
+                const result = await SaveToGallery.saveImage({
+                  base64Data: base64Data,
+                  filename: filename
+                })
+                
+                $q.notify({
+                  message: t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
+                  color: 'positive',
+                  icon: 'check_circle',
+                  position: 'top',
+                  timeout: 2000
+                })
+              } catch (error) {
+                console.error('[SaveGiftQR] Error saving to photos:', error)
+                $q.notify({
+                  message: t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
+                  color: 'negative',
+                  icon: 'error',
+                  position: 'top',
+                  timeout: 3000
+                })
+              }
+            }
+            reader.readAsDataURL(blob)
+          } else {
+            // Desktop/web - use download link
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+            
+            $q.notify({
+              message: t('QRDownloaded', {}, 'QR code downloaded'),
+              color: 'positive',
+              icon: 'check_circle',
+              position: 'top',
+              timeout: 2000
+            })
+          }
+        } catch (error) {
+          console.error('[SaveGiftQR] Error:', error)
           $q.notify({
-            message: t('QRDownloaded', {}, 'QR code downloaded'),
-            color: 'positive',
-            icon: 'check_circle',
+            message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+            color: 'negative',
+            icon: 'error',
             position: 'top',
-            timeout: 2000
+            timeout: 3000
           })
         }
-      } catch (error) {
-        console.error('[SaveGiftQR] Error:', error)
-        $q.notify({
-          message: t('ErrorSavingQR', {}, 'Error saving QR code'),
-          color: 'negative',
-          icon: 'error',
-          position: 'top',
-          timeout: 3000
-        })
+      }, 'image/png')
+    } finally {
+      // Ensure wrapper is always removed, even if an error occurred
+      if (wrapper && wrapper.parentNode === document.body) {
+        document.body.removeChild(wrapper)
       }
-    }, 'image/png')
+    }
   } catch (error) {
     console.error('[SaveGiftQR] Error creating image:', error)
     $q.notify({
