@@ -288,4 +288,5 @@ export default {
   ButtonDeem: "DEEM",
   PaidUsingMethod: "Pagado usando {method}",
   PayForLIFT: "Pagar por LIFT",
+  PaytacaWebsiteDescription: "Visita {paytacaWebsite}",
 }

@@ -181,5 +181,8 @@ export default {
   AppealableInCooldown: "{cooldown}でアピール可能",
   ThemeName: "{theme} テーマ",
   PayForLIFT: "LIFT料金を支払う",
+  FollowUsOn: "{platform} でフォローしてください",
+  PaytacaWebsiteDescription: "{paytacaWebsite} にアクセスしてください",
+  
 }
 

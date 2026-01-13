@@ -181,5 +181,6 @@ export default {
   WebsiteDescription: "Visita {website}",
   TotalLIFT: "LIFT totale",
   UnpaidLift: "LIFT non pagato",
+  PaytacaWebsiteDescription: "Visita il {paytacaWebsite}",
 }
 

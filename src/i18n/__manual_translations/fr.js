@@ -182,5 +182,6 @@ export default {
   AppealableInCooldown: "Faisable en appel dans {cooldown}",
   WebsiteDescription: "Visitez le {website}",
   PayForLIFT: "Payer pour LIFT",
+  PaytacaWebsiteDescription: "Visitez le {paytacaWebsite}",
 }
 
