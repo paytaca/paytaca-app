@@ -320,7 +320,7 @@
 <script>
  
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-import { createCard } from 'src/services/card/api';
+import { createCard } from 'src/services/card/backend/api';
 import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';

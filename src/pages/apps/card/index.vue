@@ -104,6 +104,11 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { loadWallet } from 'src/wallet';
 import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'src/utils/wallet';
 import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
+import cardBackend from 'src/services/card/backend';
+import Watchtower from 'watchtower-cash-js';
+import { sign } from '@noble/secp256k1';
+import { loadRampWallet } from 'src/exchange/wallet';
+import { loadCardUser } from 'src/services/card/auth';
 
 export default {
   components: {
@@ -128,9 +133,18 @@ export default {
     }
   },
   async mounted () {
+    console.log('Mounted Card Page');
     this.loading = true;
-    await this.fetchCard();
+    // await this.fetchCard();
     this.loading = false;
+    
+    // login
+    try {
+      const { user: user } = await loadCardUser();
+      console.log('Card User:', user); 
+    } catch (error) {
+      console.error('Error during card user load:', error);
+    }
   },
   methods: {
     getDarkModeClass,
@@ -204,9 +218,9 @@ export default {
       return privateKey;
     },
     async getPublicKey() {
-      const addressndex = 0;
+      const addressIndex = 0;
       const isChipnet = this.$store.getters['global/isChipnet'];
-      const publicKey = await getPublicKeyAt('bch', isChipnet ? 'chipnet' : 'mainnet', addressndex);
+      const publicKey = await getPublicKeyAt('bch', isChipnet ? 'chipnet' : 'mainnet', addressIndex);
       return publicKey;
     },
     async fetchCard () {

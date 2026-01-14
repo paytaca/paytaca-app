@@ -17,9 +17,9 @@
  */
 
 import { loadWallet } from 'src/wallet';
-import AuthTokenManager from './auth-token';
+import AuthTokenManager from './nft';
 import { TapToPay } from './tap-to-pay';
-import { createNFTs, fetchCard, createCard, mutateNFTs } from './api';
+import { createNFTs, fetchCard, createCard, mutateNFTs } from './backend/api';
 import { binToHex } from 'bitauth-libauth-v3';
 
 /**
