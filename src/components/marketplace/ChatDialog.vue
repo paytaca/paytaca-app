@@ -419,20 +419,26 @@ export default defineComponent({
       
       if (!keypair.value?.privkey) await loadKeypair()
       if (keypair.value?.privkey && data?.message) {
+        // Ensure our own pubkey is included for multi-recipient encryption
+        // This allows us to decrypt our own messages
+        const pubkeysForEncryption = [...new Set([keypair.value.pubkey, ...membersPubkeys.value])]
         const encryptedMessage = encryptMessage({
           data: data.message,
           privkey: keypair.value.privkey,
-          pubkeys: membersPubkeys.value,
+          pubkeys: pubkeysForEncryption,
         })
         data.message = compressEncryptedMessage(encryptedMessage)
         data.encrypted = true
       }
 
       if (attachment.value) {
+        // Ensure our own pubkey is included for multi-recipient encryption
+        // This allows us to decrypt our own attachments
+        const pubkeysForEncryption = [...new Set([keypair.value.pubkey, ...membersPubkeys.value])]
         const encryptedAttachment = await encryptImage({
           file: attachment.value,
           privkey: keypair.value.privkey,
-          pubkeys: membersPubkeys.value,
+          pubkeys: pubkeysForEncryption,
         })
         const compressedEncryptedAttachment = await compressEncryptedImage(encryptedAttachment)
         // data.attachment = await fileToJson(attachment.value)

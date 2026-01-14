@@ -256,14 +256,27 @@ export function compressEncryptedMessage(messagePayload) {
 }
 
 export function decompressEncryptedMessage(data='') {
-  const dataStr = Buffer.from(data, 'base64').toString('utf-8')
   const response = { data: '', iv: '', authorPubkey: '', pubkeys: [].map(String) }
-  if (dataStr) {
-    const deserialized = JSON.parse(dataStr)
-    response.data = deserialized?.d
-    response.iv = deserialized?.iv
-    response.authorPubkey = deserialized?.pk
-    response.pubkeys = deserialized?.pks
+  
+  if (!data || typeof data !== 'string') {
+    return response
+  }
+  
+  try {
+    // Handle potential buffer issues on desktop by ensuring proper base64 decoding
+    const dataBytes = Buffer.from(data, 'base64')
+    const dataStr = dataBytes.toString('utf-8')
+    
+    if (dataStr) {
+      const deserialized = JSON.parse(dataStr)
+      response.data = deserialized?.d || ''
+      response.iv = deserialized?.iv || ''
+      response.authorPubkey = deserialized?.pk || ''
+      response.pubkeys = Array.isArray(deserialized?.pks) ? deserialized.pks.map(String) : []
+    }
+  } catch (error) {
+    console.error('[decompressEncryptedMessage] Error decompressing message:', error)
+    // Return empty response on error
   }
 
   return response

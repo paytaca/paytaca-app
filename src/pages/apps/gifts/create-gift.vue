@@ -641,6 +641,8 @@ export default {
         let encryptedGiftCode
         try {
           keypair = await ensureKeypair()
+          // Use keypair.pubkey directly (same as transaction memos)
+          // The encryptMessage function will derive ourPubkey from privkey internally
           encryptedGiftCode = await encryptMemo(keypair.privkey, keypair.pubkey, encryptedShard.code)
         } catch (keypairError) {
           vm.processing = false

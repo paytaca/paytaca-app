@@ -4,10 +4,11 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { capitalize } from 'vue';
 import { bus } from 'src/wallet/event-bus';
 import { backend } from './backend';
-import { generateKeypair } from './chat/keys';
 import { EscrowArbiter } from './objects';
 import { i18n } from 'src/boot/i18n';
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage';
+import crypto from 'crypto'
+import * as secp from '@noble/secp256k1'
 
 
 const { t: $t } = i18n.global
@@ -26,7 +27,20 @@ export function getWifAddress(wif) {
 export function parseWif(wif) {
   const pubkey = getWifPubkey(wif)
   const address = getWifAddress(wif)
-  const chat = generateKeypair({ seed: wif })
+  
+  // Derive encryption keypair from WIF using the same method as wallet encryption
+  // Hash WIF string (SHA256) as UTF-8 to get derivative privkey (matches wallet encryption behavior)
+  const _sha256 = crypto.createHash('sha256')
+  _sha256.update(Buffer.from(wif, 'utf8'))
+  const privkey = _sha256.digest().toString('hex')
+  
+  // Derive pubkey from privkey
+  const privBytes = secp.etc.hexToBytes(privkey)
+  const pub = secp.getPublicKey(privBytes)
+  const pubkeyHex = secp.etc.bytesToHex(pub)
+  
+  const chat = { privkey, pubkey: pubkeyHex }
+  
   return { wif, pubkey, address, chat}
 }
 

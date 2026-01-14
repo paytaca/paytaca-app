@@ -296,7 +296,8 @@ import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
-import { getKeypair } from 'src/exchange/chat/keys'
+import { getEncryptionKeypairFromMnemonic } from 'src/utils/memo-key-utils'
+import { Store } from 'src/store'
 import { bus } from 'src/wallet/event-bus'
 import { fetchUser } from 'src/exchange/auth'
 
@@ -529,7 +530,14 @@ export default {
       }
     },
     async loadKeyPair () {
-      this.keypair = await getKeypair().catch(console.error)
+      try {
+        // Always derive fresh from mnemonic for cross-platform consistency
+        const walletIndex = Store.getters['global/getWalletIndex']
+        this.keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
+      } catch (error) {
+        console.error('Failed to load keypair from mnemonic:', error)
+        this.keypair = {}
+      }
     },
     async resizeAttachment () {
       this.attachment = await resizeImage({

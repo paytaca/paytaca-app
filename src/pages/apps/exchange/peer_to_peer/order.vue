@@ -446,7 +446,8 @@ import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession
 import { ChatMessage } from 'src/exchange/chat/objects'
 import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
 import { resizeImage } from 'src/marketplace/chat/attachment'
-import { getKeypair } from 'src/exchange/chat/keys'
+import { getEncryptionKeypairFromMnemonic } from 'src/utils/memo-key-utils'
+import { Store } from 'src/store'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { wallet } from 'src/exchange/wallet'
@@ -915,7 +916,14 @@ export default {
 
     // Chat Tab Methods
     async loadKeyPair () {
-      this.keypair = await getKeypair().catch(console.error)
+      try {
+        // Always derive fresh from mnemonic for cross-platform consistency
+        const walletIndex = Store.getters['global/getWalletIndex']
+        this.keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
+      } catch (error) {
+        console.error('Failed to load keypair from mnemonic:', error)
+        this.keypair = {}
+      }
     },
 
     async loadChatIdentity () {
@@ -1233,20 +1241,27 @@ export default {
 
         // Encrypt message if present
         if (message && vm.keypair.privkey && vm.chatPubkeys.length) {
+          // Ensure our own pubkey is included for multi-recipient encryption
+          // This allows us to decrypt our own messages
+          const pubkeysForEncryption = [...new Set([vm.keypair.pubkey, ...vm.chatPubkeys])]
+          
           const encryptedMessage = encryptMessage({
             data: message,
             privkey: vm.keypair.privkey,
-            pubkeys: vm.chatPubkeys
+            pubkeys: pubkeysForEncryption
           })
           message = compressEncryptedMessage(encryptedMessage)
         }
 
         // Encrypt attachment if present
         if (attachment && vm.keypair.privkey && vm.chatPubkeys.length) {
+          // Ensure our own pubkey is included for multi-recipient encryption
+          const pubkeysForEncryption = [...new Set([vm.keypair.pubkey, ...vm.chatPubkeys])]
+          
           const encryptedAttachment = await encryptImage({
             file: attachment,
             privkey: vm.keypair.privkey,
-            pubkeys: vm.chatPubkeys
+            pubkeys: pubkeysForEncryption
           })
           attachment = await compressEncryptedImage(encryptedAttachment)
           useFormData = true

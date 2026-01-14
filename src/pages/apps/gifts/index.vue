@@ -333,8 +333,7 @@ import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getMnemonic, Wallet } from '../../../wallet'
 import QRCode from 'qrcode'
-import { ensureKeypair } from 'src/utils/memo-service'
-import { decryptMemo } from 'src/utils/transaction-memos'
+import { ensureKeypair, decryptMemoData } from 'src/utils/memo-service'
 import sha256 from 'js-sha256'
 import { hexToRef } from 'src/utils/reference-id-utils'
 
@@ -623,10 +622,13 @@ export default {
             response.data.gifts.map(async gift => {
               let giftCode = null
               if (gift.encrypted_gift_code) {
-                try {
-                  giftCode = await decryptMemo(keypair.privkey, gift.encrypted_gift_code)
-                } catch (error) {
-                  console.error('Failed to decrypt gift code:', error)
+                // Use decryptMemoData (same as transaction memos) which always uses tryAllKeys: true
+                // This ensures cross-platform compatibility
+                const decryptResult = await decryptMemoData(gift.encrypted_gift_code, keypair.privkey)
+                if (decryptResult.success && decryptResult.memo) {
+                  giftCode = decryptResult.memo
+                } else {
+                  console.error('Failed to decrypt gift code:', decryptResult.error)
                 }
               }
               return {
@@ -1039,10 +1041,11 @@ export default {
       }
       try {
         const keypair = await ensureKeypair()
-        const giftCode = await decryptMemo(keypair.privkey, gift.encrypted_gift_code)
-        // decryptMemo returns null on failure rather than throwing an exception
-        if (!giftCode) {
-          console.error('Failed to decrypt gift code for recovery: decryptMemo returned null')
+        // Use decryptMemoData (same as transaction memos) which always uses tryAllKeys: true
+        // This ensures cross-platform compatibility
+        const decryptResult = await decryptMemoData(gift.encrypted_gift_code, keypair.privkey)
+        if (!decryptResult.success || !decryptResult.memo) {
+          console.error('Failed to decrypt gift code for recovery:', decryptResult.error)
           this.$q.notify({
             message: this.$t('FailedToDecryptGiftCode') || 'Failed to decrypt gift code',
             color: 'negative',
@@ -1050,6 +1053,7 @@ export default {
           })
           return
         }
+        const giftCode = decryptResult.memo
         this.$router.push({
           name: 'claim-gift',
           query: {
