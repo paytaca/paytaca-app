@@ -1,5 +1,5 @@
 <template>
-	<div class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-dark'">
+	<div v-bind="$attrs" class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-dark'">
 		<div v-if="stablehedgeView">
 			<div class="row">
 				<div class="col" v-for="opt in stablehedgeOpt">
@@ -50,6 +50,7 @@ import RedeemDialog from 'src/components/stablehedge/RedeemDialog.vue';
 import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue'
 
 export default {
+  inheritAttrs: false,
 	data () {
 		return {
 			depositFormDialog: {

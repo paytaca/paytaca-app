@@ -10,11 +10,24 @@
               class="row q-px-sm q-pt-sm"
               :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
-              <MultiWalletDropdown ref="multi-wallet-component"/>
-              <NotificationButton
-                @hide-multi-wallet-dialog="hideMultiWalletDialog"
-                @find-and-open-transaction="findAndOpenTransaction"
-              />
+              <div data-tour="wallet-opener" class="col">
+                <MultiWalletDropdown ref="multi-wallet-component"/>
+              </div>
+              <div class="row items-center justify-end q-gutter-md">
+                <q-btn
+                  flat
+                  round
+                  icon="lightbulb"
+                  class="text-bow"
+                  :class="getDarkModeClass(darkMode)"
+                  data-tour="home-tour-trigger"
+                  @click="startHomeTour(false)"
+                />
+                <NotificationButton
+                  @hide-multi-wallet-dialog="hideMultiWalletDialog"
+                  @find-and-open-transaction="findAndOpenTransaction"
+                />
+              </div>
             </div>
 
             <div class="row q-pt-sm">
@@ -61,7 +74,7 @@
             </div>
             <div class="row q-mt-xs">
               <div class="col text-white" @click="selectBch" v-touch-hold.mouse="() => showAssetInfo(bchAsset)">
-                <q-card id="bch-card">
+                <q-card id="bch-card" data-tour="bch-card">
                   <q-card-section horizontal>
                     <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px; min-height: 80px;">
                       <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; width: 100%;">
@@ -140,6 +153,7 @@
           </div>
 
           <asset-options 
+            data-tour="quick-actions"
             :loaded="balanceLoaded"
             :selectedDenomination="selectedDenomination"
             @spend-bch="openSpendBch()"
@@ -180,7 +194,8 @@
           <!-- Cards without drag scroll on mobile -->
           <template v-if="$q.platform.is.mobile">
             <asset-cards
-              :assets="assets"
+              data-tour="token-cards"
+              :assets="tokenCardsAssets"
               :manage-assets="manageAssets"
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
@@ -201,7 +216,8 @@
           <!-- Cards with drag scroll on other platforms -->
           <template v-if="!$q.platform.is.mobile">
             <asset-cards
-              :assets="assets"
+              data-tour="token-cards"
+              :assets="tokenCardsAssets"
               :manage-assets="manageAssets"
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
@@ -261,6 +277,9 @@
             ref="latest-transactions"
             :wallet="wallet"
             :denominationTabSelected="denominationTabSelected"
+            data-tour="transactions"
+            :tutorialMode="homeTour.active"
+            :tutorialStepId="homeTour.steps?.[homeTour.stepIndex]?.id"
           />
         </div>
 
@@ -376,11 +395,67 @@
           />
         </div>
       </div> -->
-      <footer-menu ref="footerMenu" />
+      <footer-menu ref="footerMenu" data-tour="main-menus" />
     </div>
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
+
+    <teleport to="body">
+      <div v-if="homeTour.active" class="home-tour-overlay" @click.self="endHomeTour">
+        <div
+          v-if="homeTour.targetRect"
+          class="home-tour-highlight"
+          :style="{
+            top: homeTour.targetRect.top + 'px',
+            left: homeTour.targetRect.left + 'px',
+            width: homeTour.targetRect.width + 'px',
+            height: homeTour.targetRect.height + 'px',
+          }"
+        />
+
+        <div
+          class="home-tour-tooltip pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
+          :style="{
+            top: homeTour.tooltipPos.top + 'px',
+            left: homeTour.tooltipPos.left + 'px',
+          }"
+        >
+          <div class="text-subtitle1 text-weight-medium q-mb-xs">
+            {{ homeTour.steps[homeTour.stepIndex]?.title }}
+          </div>
+          <div class="text-body2">
+            {{ homeTour.steps[homeTour.stepIndex]?.body }}
+          </div>
+
+          <div class="row items-center justify-between q-mt-md">
+            <q-btn
+              flat
+              no-caps
+              :label="$t('Skip', {}, 'Skip')"
+              @click="endHomeTour"
+            />
+            <div class="row items-center q-gutter-sm">
+              <q-btn
+                flat
+                no-caps
+                :disable="homeTour.stepIndex === 0"
+                :label="$t('Back', {}, 'Back')"
+                @click="prevHomeTourStep"
+              />
+              <q-btn
+                unelevated
+                color="primary"
+                no-caps
+                :label="homeTour.stepIndex === homeTour.steps.length - 1 ? $t('Done', {}, 'Done') : $t('Next', {}, 'Next')"
+                @click="nextHomeTourStep"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </q-pull-to-refresh>
 </template>
 
@@ -403,6 +478,7 @@ import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { debounce } from 'quasar'
 import { refToHex } from 'src/utils/reference-id-utils'
+import { buildHomeTourSteps, HOME_TOUR_SEEN_KEY } from 'src/utils/home-tour'
 
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
@@ -490,13 +566,30 @@ export default {
       allTokensFromAPI: [], // Store all tokens fetched from API with balances (includes favorites)
       showBackupAlert: false,
       alertDismissedForSession: false,
-      backupAlertTimeout: null
+      backupAlertTimeout: null,
+
+      homeTour: {
+        active: false,
+        auto: false,
+        stepIndex: 0,
+        steps: [],
+        targetRect: null,
+        tooltipPos: { top: 0, left: 0 },
+        lastAutoScrollStepIndex: null,
+      },
     }
   },
 
   watch: {
     online(newValue, oldValue) {
       this.onConnectivityChange(newValue)
+    },
+    lastBackupTimestamp (newValue, oldValue) {
+      // Auto-start the home tour only after backup reminder is no longer needed.
+      // This prevents the tour from competing with the backup reminder UI.
+      if (!oldValue && newValue) {
+        this._maybeAutoStartHomeTourAfterBackup()
+      }
     },
     isCashToken() {
       // Refetch API data when token type changes
@@ -630,6 +723,50 @@ export default {
           !vm.isCashToken && assetId === 'slp'
         )
       })
+    },
+    tokenCardsAssets () {
+      // Show temporary dummy tokens ONLY while the tutorial is active
+      // and ONLY when the token cards would otherwise be empty.
+      if (!this.homeTour?.active) return this.assets
+      // Only show dummy token cards when the tour is highlighting token cards.
+      if (this.homeTour.steps?.[this.homeTour.stepIndex]?.id !== 'token-cards') return this.assets
+      if (this.isLoadingAssets) return this.assets
+      if (this.hasTokensButNoFavorites) return this.assets
+
+      if (Array.isArray(this.assets) && this.assets.length === 0) {
+        // Dummy favorites (uses `favorite` field so `asset-cards` will render them).
+        return [
+          {
+            id: 'ct/tutorial-lift',
+            symbol: 'LIFT',
+            name: 'LIFT',
+            decimals: 8,
+            balance: 4200000000, // 42
+            logo: null,
+            favorite: 1,
+          },
+          {
+            id: 'ct/tutorial-spice',
+            symbol: 'SPICE',
+            name: 'SPICE',
+            decimals: 8,
+            balance: 12345000000, // 123.45
+            logo: null,
+            favorite: 1,
+          },
+          {
+            id: 'ct/tutorial-musd',
+            symbol: 'MUSD',
+            name: 'MUSD',
+            decimals: 6,
+            balance: 125750000, // 125.75
+            logo: null,
+            favorite: 1,
+          },
+        ]
+      }
+
+      return this.assets
     },
     hasTokensButNoFavorites () {
       // Check if there are tokens (excluding BCH) but no favorites
@@ -809,6 +946,178 @@ export default {
     parseFiatCurrency,
     getDarkModeClass,
     isHongKong,
+
+    // ---- Home guided tour (no dependency) ----
+    async startHomeTour (auto = false) {
+      const vm = this
+
+      if (auto && localStorage.getItem(HOME_TOUR_SEEN_KEY) === 'true') return
+      if (vm.homeTour.active) return
+
+      vm.homeTour.auto = auto
+      vm.homeTour.steps = buildHomeTourSteps((...args) => vm.$t(...args))
+      vm.homeTour.stepIndex = 0
+      vm.homeTour.active = true
+
+      await vm.$nextTick()
+      vm._homeTourBindListeners()
+      await vm._homeTourGoTo(0)
+    },
+
+    _maybeAutoStartHomeTourAfterBackup () {
+      // Only auto-run once backup is confirmed (lastBackupTimestamp exists).
+      // If the reminder is currently showing/scheduled, do nothing.
+      if (!this.lastBackupTimestamp) return
+      if (this.showBackupAlert) return
+      if (this.backupAlertTimeout) return
+
+      // Let the UI settle first (assets + layout).
+      setTimeout(() => {
+        this.startHomeTour(true)
+      }, 800)
+    },
+
+    endHomeTour () {
+      this.homeTour.active = false
+      this._homeTourUnbindListeners()
+      localStorage.setItem(HOME_TOUR_SEEN_KEY, 'true')
+    },
+
+    nextHomeTourStep () {
+      this._homeTourGoTo(this.homeTour.stepIndex + 1)
+    },
+
+    prevHomeTourStep () {
+      this._homeTourGoTo(this.homeTour.stepIndex - 1)
+    },
+
+    async _homeTourGoTo (index) {
+      const vm = this
+      if (!vm.homeTour.active) return
+      if (index < 0) return
+      if (index >= vm.homeTour.steps.length) {
+        vm.endHomeTour()
+        return
+      }
+
+      vm.homeTour.stepIndex = index
+
+      // Wait briefly for targets to exist (assets, etc.)
+      for (let i = 0; i < 10; i++) {
+        const el = vm._homeTourGetTargetEl()
+        if (el) break
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(r => setTimeout(r, 150))
+      }
+
+      // If the target is off-screen (e.g. footer/main menus), scroll it into view first.
+      const step = vm.homeTour.steps[vm.homeTour.stepIndex]
+      const targetEl = vm._homeTourGetTargetEl()
+      if (targetEl && vm.homeTour.lastAutoScrollStepIndex !== index) {
+        vm.homeTour.lastAutoScrollStepIndex = index
+        vm._homeTourEnsureVisible(targetEl, step?.scroll)
+        // Give the scroll a moment to settle before measuring/highlighting.
+        await new Promise(r => setTimeout(r, 350))
+      }
+
+      vm._homeTourRecalc()
+    },
+
+    _homeTourGetTargetEl () {
+      const step = this.homeTour.steps[this.homeTour.stepIndex]
+      if (!step?.selector) return null
+      return document.querySelector(step.selector)
+    },
+
+    _homeTourEnsureVisible (el, scrollMode = 'auto') {
+      if (!el?.getBoundingClientRect) return
+
+      if (scrollMode === 'top') {
+        const scroller = document.scrollingElement || document.documentElement
+        try {
+          scroller.scrollTo({ top: 0, behavior: 'smooth' })
+        } catch (_) {
+          scroller.scrollTop = 0
+        }
+        return
+      }
+
+      const rect = el.getBoundingClientRect()
+      const margin = 72
+
+      const verticallyVisible = rect.top >= margin && rect.bottom <= (window.innerHeight - margin)
+      const horizontallyVisible = rect.left >= 0 && rect.right <= window.innerWidth
+
+      if (verticallyVisible && horizontallyVisible) return
+
+      // Use center so the highlight fits comfortably inside the viewport.
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+      } catch (_) {
+        // Older browsers
+        el.scrollIntoView(true)
+      }
+    },
+
+    _homeTourRecalc () {
+      const step = this.homeTour.steps[this.homeTour.stepIndex]
+      const el = this._homeTourGetTargetEl()
+      if (!el) {
+        this.homeTour.targetRect = null
+        this.homeTour.tooltipPos = { top: 24, left: 24 }
+        return
+      }
+
+      const rect = el.getBoundingClientRect()
+      const pad = 8
+      const targetRect = {
+        top: Math.max(0, rect.top - pad),
+        left: Math.max(0, rect.left - pad),
+        width: Math.min(window.innerWidth, rect.width + pad * 2),
+        height: Math.min(window.innerHeight, rect.height + pad * 2),
+      }
+      this.homeTour.targetRect = targetRect
+
+      // Tooltip placement
+      const tooltipW = 320
+      const tooltipH = 160
+      const margin = 12
+
+      const availableBottom = window.innerHeight - (targetRect.top + targetRect.height)
+      const availableTop = targetRect.top
+
+      let place = step?.prefer || 'bottom'
+      if (place === 'bottom' && availableBottom < tooltipH + margin && availableTop > availableBottom) place = 'top'
+      if (place === 'top' && availableTop < tooltipH + margin && availableBottom > availableTop) place = 'bottom'
+
+      let top = place === 'top'
+        ? (targetRect.top - tooltipH - margin)
+        : (targetRect.top + targetRect.height + margin)
+      top = Math.max(margin, Math.min(window.innerHeight - tooltipH - margin, top))
+
+      let left = targetRect.left + (targetRect.width / 2) - (tooltipW / 2)
+      left = Math.max(margin, Math.min(window.innerWidth - tooltipW - margin, left))
+
+      this.homeTour.tooltipPos = { top, left }
+    },
+
+    _homeTourBindListeners () {
+      if (this._homeTourListenersBound) return
+      this._homeTourListenersBound = true
+      this._homeTourOnResize = () => this._homeTourRecalc()
+      this._homeTourOnScroll = () => this._homeTourRecalc()
+      window.addEventListener('resize', this._homeTourOnResize)
+      window.addEventListener('scroll', this._homeTourOnScroll, true)
+    },
+
+    _homeTourUnbindListeners () {
+      if (!this._homeTourListenersBound) return
+      this._homeTourListenersBound = false
+      window.removeEventListener('resize', this._homeTourOnResize)
+      window.removeEventListener('scroll', this._homeTourOnScroll, true)
+      this._homeTourOnResize = null
+      this._homeTourOnScroll = null
+    },
     serializeTransaction (tx) {
       if (!tx) return null
       
@@ -2064,6 +2373,9 @@ export default {
 
       // Check and show backup reminder alert
       this.checkAndShowBackupAlert()
+
+      // Auto-run home tour only after backup is confirmed.
+      this._maybeAutoStartHomeTourAfterBackup()
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error
@@ -2075,6 +2387,59 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  :global(.home-tour-overlay) {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+  }
+
+  :global(.home-tour-highlight) {
+    position: fixed;
+    border-radius: 14px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.75);
+    pointer-events: none;
+  }
+
+  /* Pulse/glow to emphasize the current highlighted target */
+  :global(.home-tour-highlight)::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 16px;
+    pointer-events: none;
+    /* Keep border always visible; animate glow intensity only */
+    border: 2px solid rgba(59, 123, 246, 0.95);
+    box-shadow: 0 0 10px 1px rgba(59, 123, 246, 0.25);
+    animation: homeTourGlow 1.6s ease-in-out infinite;
+  }
+
+  @keyframes homeTourGlow {
+    0% {
+      box-shadow:
+        0 0 10px 1px rgba(59, 123, 246, 0.22),
+        0 0 0 0 rgba(59, 123, 246, 0);
+    }
+    50% {
+      box-shadow:
+        0 0 18px 3px rgba(59, 123, 246, 0.38),
+        0 0 34px 10px rgba(59, 123, 246, 0.18);
+    }
+    100% {
+      box-shadow:
+        0 0 10px 1px rgba(59, 123, 246, 0.22),
+        0 0 0 0 rgba(59, 123, 246, 0);
+    }
+  }
+
+  :global(.home-tour-tooltip) {
+    position: fixed;
+    width: min(320px, calc(100vw - 24px));
+    padding: 12px 14px;
+    border-radius: 14px;
+    z-index: 100000;
+  }
+
   /* Hide scrollbar completely on all platforms */
   #app-container {
     padding-bottom: 30px; // Increased bottom padding to ensure clickable elements near the bottom are visible and clickable

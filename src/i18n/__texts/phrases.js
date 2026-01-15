@@ -1833,6 +1833,23 @@ const phrases = {
       ViewInCollectibles: 'View in Collectibles',
     },
     {
+      // Home guided tour
+      'HomeTour.WalletOpener.Title': 'Wallets',
+      'HomeTour.WalletOpener.Body': 'Tap here to open the wallet list and switch between wallets.',
+      'HomeTour.Notifications.Title': 'Notifications',
+      'HomeTour.Notifications.Body': 'Tap here to view your notifications.',
+      'HomeTour.BchCard.Title': 'Bitcoin Cash card',
+      'HomeTour.BchCard.Body': 'This card shows your BCH balance. Tap to view your full transaction history. Long-press or double-click for more details and actions.',
+      'HomeTour.QuickActions.Title': 'Quick actions',
+      'HomeTour.QuickActions.Body': 'Use these buttons to quickly Send, Receive, Get BCH, or Spend BCH.',
+      'HomeTour.TokenCards.Title': 'Token cards',
+      'HomeTour.TokenCards.Body': 'These are your token cards. Tap a token card to view the token\'s full transaction history. Long-press or double-click for more details and actions.',
+      'HomeTour.Transactions.Title': 'Transactions',
+      'HomeTour.Transactions.Body': 'Your recent transactions appear here. Tap a transaction to view details.',
+      'HomeTour.MainMenus.Title': 'Main menus',
+      'HomeTour.MainMenus.Body': 'Use these menus to navigate Home, Transactions, Apps, Settings, and QR tools.',
+    },
+    {
       // Gifts
       ErrorCreatingGiftPleaseRetry: 'Error creating gift. Please retry',
       GiftCreatedButTransactionPending: 'Gift created but transaction pending',
