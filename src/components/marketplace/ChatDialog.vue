@@ -332,9 +332,16 @@ export default defineComponent({
     onMounted(() => loadKeypair())
     async function loadKeypair() {
       if (props.usePrivkey) {
+        let derivedPubkey = ''
+        try {
+          const maybePubkey = privToPub(props.usePrivkey)
+          if (typeof maybePubkey === 'string' && maybePubkey) derivedPubkey = maybePubkey
+        } catch (error) {
+          console.error('loadKeypair - Failed to derive pubkey from usePrivkey:', error)
+        }
         keypair.value = {
           privkey: props.usePrivkey,
-          pubkey: privToPub(props.usePrivkey),
+          pubkey: derivedPubkey,
         }
         return
       }
