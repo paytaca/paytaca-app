@@ -99,16 +99,12 @@
 </template>
 <script>
 import HeaderNav from 'components/header-nav'
-import Card from 'src/services/card/card.js';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { loadWallet } from 'src/wallet';
 import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'src/utils/wallet';
-import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
-import cardBackend from 'src/services/card/backend';
-import Watchtower from 'watchtower-cash-js';
-import { sign } from '@noble/secp256k1';
-import { loadRampWallet } from 'src/exchange/wallet';
+import { loadWallet } from 'src/services/wallet';
 import { loadCardUser } from 'src/services/card/auth';
+import { backend } from 'src/services/card/backend';
+import Card from 'src/services/card/card.js';
 
 export default {
   components: {
@@ -117,7 +113,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      cardInfo: null,
+      card: null,
       isCt: false,
       loading: false,
       createCardLoading: false
@@ -134,20 +130,32 @@ export default {
   },
   async mounted () {
     console.log('Mounted Card Page');
-    this.loading = true;
-    // await this.fetchCard();
-    this.loading = false;
-    
-    // login
     try {
+      // load user, login if not authenticated
       const { user: user } = await loadCardUser();
       console.log('Card User:', user); 
+
+      // load card(s)
+      this.fetchCards()
+      console.log('card:', this.card);
     } catch (error) {
       console.error('Error during card user load:', error);
     }
   },
   methods: {
     getDarkModeClass,
+    async fetchCards() {
+      try {
+        this.loading = true;
+        const response = await backend.get('/cards/');
+        console.log('Cards response:', response);
+        return response.data
+      } catch (error) {
+        console.error('Error fetching card info:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
     async onManageAuthTokens() {
       console.log('Manage Auth Tokens clicked');
       const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
@@ -175,17 +183,11 @@ export default {
     },
     async onCreateCard() {
       try {
-        // Initialize Card instance
-        const privateKey = await this.getPrivateKey();
-        const walletIndex = this.$store.getters['global/getWalletIndex'];
-        const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
-        const publicKey = await this.getPublicKey();
-        
-        const card = new Card(privateKey, walletIndex, walletHash);
-        
-        // Complete card creation workflow
         this.showLoading("Creating card...");
-        const result = await card.createCard(publicKey);
+        const wallet = await loadWallet();
+        this.card = new Card(wallet);
+        const result = await this.card.create();
+        this.hideLoading();
         
         console.log('✅ Card created successfully:', result);
         this.$q.notify({
@@ -194,12 +196,7 @@ export default {
           position: 'top'
         });
 
-        // Refresh the card info
-        setTimeout(async () => {
-          this.loading = true;
-          await this.fetchCard();
-          this.loading = false;
-        }, 500);
+        console.log('card:', this.card);
         
       } catch (error) {
         console.error('❌ Error in card creation process:', error);
@@ -222,26 +219,6 @@ export default {
       const isChipnet = this.$store.getters['global/isChipnet'];
       const publicKey = await getPublicKeyAt('bch', isChipnet ? 'chipnet' : 'mainnet', addressIndex);
       return publicKey;
-    },
-    async fetchCard () {
-      const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
-      const card = new Card(null, null, walletHash); // Only need walletHash for fetching
-      
-      try {
-        const response = await card.fetchCardInfo();
-        console.log('Card info fetched:', response);
-        this.cardInfo = {
-          id: response.id,
-          category: response.category,
-          cashaddr: response.cash_address,
-          tokenaddr: response.token_address,
-          balance: response.balance,
-          contract_id: response.contract_id
-        };
-        console.log('Card info:', this.cardInfo);
-      } catch (error) {
-        console.error('Error fetching card info:', error);
-      }
     },
     copyToClipboard (text) {
       navigator.clipboard.writeText(text).then(() => {

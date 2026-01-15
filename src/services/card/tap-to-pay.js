@@ -5,7 +5,7 @@ import { SignatureTemplate, Contract, TransactionBuilder, ElectrumNetworkProvide
 import { defaultNetwork, TX_FEE } from './constants.js';
 import { binToHex } from '@bitauth/libauth';
 import { convertCashAddressToTokenAddress, pubkeyToPkHash } from './utils.js';
-import { decodeCommitment, encodeCommitment, encodeTerminalHash } from './nft.js';
+import { decodeCommitment, encodeCommitment, encodeTerminalHash } from './auth-nft.js';
 
 // import artifact from './contract/TapToPay.json';
 import { compileString } from 'cashc0.11.x';

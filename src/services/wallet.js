@@ -6,7 +6,13 @@ import { Store } from 'src/store'
 import { markRaw } from 'vue'
 
 /**
- * Simplified Wallet utility class
+ * Lightweight wrapper around LibauthHDWallet providing only the essential cryptographic 
+ * operations needed for feature implementation.
+ * 
+ * This class was created to avoid the complexity and overhead of existing wallet classes 
+ * and provide just what's needed: simple key derivation, address generation,
+ * and message signing/verification, with a cleaner API that integrates directly with the 
+ * store using walletIndex and addressIndex.
  */
 export class Wallet {
   /**
@@ -134,20 +140,29 @@ export class Wallet {
     if (typeof isValid === 'string') throw new Error(isValid)
     return isValid
   }
+
+  async getBchUtxos (address = null) {
+    const wallet = await this.getRawWallet()
+    if (address) {
+      return await wallet.watchtower.BCH.getBchUtxos(address)
+    }
+    return await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`)
+  }
 }
 
 const ADDRESS_INDEX = 0
-export let wallet = new Wallet()
 
 /**
- * Load the Wallet.
+ * Loads the Wallet.
+ * If walletIndex is not provided, uses the current wallet index from the store. 
+ * The addressIndex defaults to 0.
  * @returns {Promise<Wallet>} The loaded wallet.
  */
 export async function loadWallet (walletIndex = null, addressIndex = ADDRESS_INDEX) {
   const isChipnet = Store.getters['global/isChipnet']
   const globalWallet = Store.getters['global/getWallet']('bch')
   if (walletIndex === null) walletIndex = Store.getters['global/getWalletIndex']
-  wallet = new Wallet(walletIndex, globalWallet.walletHash, addressIndex, isChipnet)
+  const wallet = new Wallet(walletIndex, globalWallet.walletHash, addressIndex, isChipnet)
   await wallet.loadWallet()
   return wallet
 }

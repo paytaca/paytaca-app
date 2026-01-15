@@ -17,52 +17,52 @@
  */
 
 import { loadWallet } from 'src/wallet';
-import AuthTokenManager from './nft';
+import AuthNft from './auth-nft';
 import { TapToPay } from './tap-to-pay';
 import { createNFTs, fetchCard, createCard, mutateNFTs } from './backend/api';
 import { binToHex } from 'bitauth-libauth-v3';
+import { backend } from './backend';
 
 /**
  * Main Card class that handles all card-related operations
  * Combines genesis token creation, auth token management, and smart contract operations
  */
 export class Card {
-  constructor(privateKey, walletIndex, walletHash) {
-    this.privateKey = privateKey;
-    this.walletIndex = walletIndex;
-    this.walletHash = walletHash;
-    
-    // Initialize sub-managers
-    this.authTokenManager = new AuthTokenManager(privateKey);
+  constructor(wallet) {
+    this.wallet = wallet;
+    this.authNft = new AuthNft(this.wallet.privkey());
     this.tapToPay = null; 
+  }
+
+  set raw(data) {
+    this._rawData = data;
+  }
+
+  get raw() {
+    return this._rawData;
   }
 
   // ==================== GENESIS TOKEN OPERATIONS ====================
 
-  /**
-   * Complete card creation workflow
-   * 1. Ensures vout=0 UTXO exists
-   * 2. Mints genesis token
-   * 3. Creates server record
-   * 4. Creates card entry
-   */
-  async createCard(publicKey) {
+  async create() {
     console.log('Starting complete card creation workflow...');
     
     try {
-      // Step 1: Mint genesis token (includes vout=0 management)
-      const genesisResult = await this.mintGenesisToken();
-      
-      // Step 2: Create the card entry
-      const cardData = await this.createCardEntry(genesisResult.tokenId, publicKey);
 
-      // Step 3: Create server record for genesis NFT
-      await this.createGenesisServerRecord(genesisResult);
-      
+      // Mint genesis token (includes vout=0 management)
+      const genesisResult = await this.mintGenesisToken();
+
+      // Create the card from the server
+      const cardData = await this.createCardEntry();
+
+      // Save genesis NFT to server
+      const response = await this.saveGenesisNft(cardData.id, genesisResult);
+      this.raw = response;
+
       console.log('Card creation completed successfully');
       return {
         tokenId: genesisResult.tokenId,
-        cardData,
+        cardData: this.raw?.card,
         genesisResult
       };
       
@@ -77,22 +77,23 @@ export class Card {
    */
   async mintGenesisToken() {
     console.log('Starting genesis token minting...');
+    
     // Check for vout=0 UTXOs first
     const hasVoutZero = await this.checkForVoutZeroUtxos();
-    
+
     if (!hasVoutZero) {
       console.log('No vout=0 UTXO available, creating one...');
       await this.createVoutZeroTransaction();
       await this.waitForTransaction();
     }
-    
+
     try {
-      const result = await this.authTokenManager.genesis();
+      const result = await this.authNft.genesis();
       console.log('Genesis result:', result);
       
       if (result && result.tokenIds && result.tokenIds[0]) {
         const tokenId = result.tokenIds[0];
-        const utxos = await this.authTokenManager.getTokenUtxos(tokenId);
+        const utxos = await this.authNft.getTokenUtxos(tokenId);
         
         return { tokenId, utxos };
       }
@@ -109,9 +110,9 @@ export class Card {
   }
 
   /**
-   * Creates server record for the genesis NFT
+   * Saves the genesis NFT to the server
    */
-  async createGenesisServerRecord(genesisResult) {
+  async saveGenesisNft(cardId, genesisResult) {
     console.log('Creating server record for genesis NFT...');
     
     if (!genesisResult.utxos || genesisResult.utxos.length === 0) {
@@ -121,34 +122,31 @@ export class Card {
     const nftData = genesisResult.utxos[0];
     const payload = {
       txid: nftData.txid,
-      wallet_hash: this.walletHash,
       category: nftData.token?.tokenId,
-      capability: nftData.token?.capability,
-      commitment: nftData.token?.commitment,
-      satoshis: nftData.satoshis,
-      amount: nftData.token?.amount
+      card: cardId
     };
 
     console.log('Creating NFT with payload:', payload);
-    await createNFTs(payload);
-    console.log('Server record created');
+    const response = await backend.post('/genesis-nfts/', payload);
+    console.log('Server record created:', response.data);
+    return response.data;
   }
 
   /**
    * Creates the final card entry
    */
-  async createCardEntry(tokenId, publicKey) {
+  async createCardEntry() {
     console.log('Creating card entry...');
     
     const data = {
-      wallet_hash: this.walletHash,
-      public_key: publicKey,
-      category: tokenId
+      wallet_hash: this.wallet.walletHash,
+      public_key: this.wallet.pubkey(),
+      address_path: this.wallet.addressPath()
     };
     
-    const response = await createCard(data);
+    const response = await backend.post('/cards/', data);
     console.log('Card entry created:', response);
-    return response;
+    return response.data;
   }
 
   // ==================== UTXO MANAGEMENT ====================
@@ -160,9 +158,10 @@ export class Card {
     try {
       console.log('Checking for existing vout=0 UTXOs...');
       
-      const wallet = await loadWallet('BCH', this.walletIndex);
-      const utxos = await wallet.BCH.getUtxos();
-      const voutZeroUtxos = utxos.filter(utxo => utxo.vout === 0);
+      const resp = await this.wallet.getBchUtxos()
+      console.log('UTXO response:', resp);
+      const utxos = resp.utxos || [];
+      const voutZeroUtxos = utxos.filter(utxo => utxo.tx_pos === 0 && utxo.value >= 2000);
       
       console.log(`Found ${voutZeroUtxos.length} existing vout=0 UTXOs`);
       return voutZeroUtxos.length > 0;
@@ -180,12 +179,12 @@ export class Card {
     console.log('Creating vout=0 transaction...');
     console.log('Genesis tokens require a UTXO with output index 0 (vout=0)');
     
-    const wallet = await loadWallet('BCH', this.walletIndex);
-    const receivingAddress = (await wallet.BCH.getAddressSetAt(0)).receiving;
+    const wallet = await this.wallet.getRawWallet();
+    const receivingAddress = (await wallet.getAddressSetAt(0)).receiving;
     
     console.log('Sending BCH to address (will create vout=0):', receivingAddress);
     
-    const sendResult = await wallet.BCH.sendBch(0.0001, receivingAddress);
+    const sendResult = await wallet.sendBch(0.00002, receivingAddress);
     console.log('Transaction sent:', sendResult);
     
     return sendResult;
@@ -194,7 +193,7 @@ export class Card {
   /**
    * Waits for transaction confirmation
    */
-  async waitForTransaction(delayMs = 30000) {
+  async waitForTransaction(delayMs = 10000) {
     console.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
     await new Promise(resolve => setTimeout(resolve, delayMs));
   }

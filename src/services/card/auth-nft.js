@@ -24,7 +24,7 @@ import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainn
 import { defaultExpirationDeltaMinutes, defaultSpendLimitSats, minTokenValue } from './constants';
 import { convertTimeToBlock } from './utils';
 
-class AuthTokenManager {
+class AuthNft {
     constructor(wif) {
         this.wif = wif;
         this.wallet = null;
@@ -59,7 +59,7 @@ class AuthTokenManager {
     }
 
     /**
-     * Mint a genesis token with minting capability
+     * Mint a token with minting capability
      * @returns {Promise} API response with created genesis token
      */
     async genesis() {
@@ -67,7 +67,7 @@ class AuthTokenManager {
             await this.initWallet();
         }
 
-        // Create a genesis token with minting capability
+        // Create a genesis token
         const response = await this.wallet.tokenGenesis({
             amount: 0n,
             commitment: '',
@@ -250,4 +250,4 @@ function decodeCommitment(hex) {
 
 export { encodeTerminalHash, encodeCommitment, decodeCommitment };
 
-export default AuthTokenManager;
+export default AuthNft;

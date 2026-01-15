@@ -1,6 +1,7 @@
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadWallet } from 'src/services/wallet';
 import { backend } from './backend.js';
+import Card from './card.js';
 
 const TOKEN_STORAGE_KEY = 'card-auth-key'
 
@@ -85,34 +86,14 @@ export class CardUser {
     
 }
 
-async function createCard(wallet) {
-    try {
-        const cardPayload = {
-            public_key: wallet.pubkey(),
-            wallet_hash: wallet.walletHash,
-            address_path: wallet.addressPath()
-        };
-        console.log('Creating card with payload:', cardPayload);
-        const response = await backend.post('/cards/', cardPayload);
-        console.log('Card created:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('Error creating card:', error.response?.data || error.message);
-        throw error;
-    }
-}
-
-async function fetchOrCreateCardUser(wallet) {
+export async function fetchCardUser(wallet) {
+    console.log('Fetching Card User for wallet hash:', wallet.walletHash);
     try {
         const response = await backend.get(`/auth/${wallet.walletHash}`);
+        console.log('Card User fetched:', response.data);
         return new CardUser(response.data, backend, wallet);
     } catch (error) {
-        if (error.response?.status === 404) {
-            console.log('Card User not found, creating new card...');
-            await createCard(wallet);
-            const response = await backend.get(`/auth/${wallet.walletHash}`);
-            return new CardUser(response.data, backend, wallet);
-        }
+        console.error('Card User fetch failed:', error.response?.status || error.message);
         throw error;
     }
 }
@@ -120,7 +101,7 @@ async function fetchOrCreateCardUser(wallet) {
 export async function loadCardUser() {
     try {
         const wallet = await loadWallet();
-        const user = await fetchOrCreateCardUser(wallet);
+        const user = await fetchCardUser(wallet);
         
         if (!user.is_authenticated) {
             await user.login();
