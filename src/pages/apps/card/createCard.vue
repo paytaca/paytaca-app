@@ -411,6 +411,7 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
         genericAuthEnabled: false,
         // Transaction History
         showTransactionHistory: false,
+        isSweep: false,
       }
     },
 
@@ -436,7 +437,7 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
           id: Date.now(), // unique key
           name: this.newCardName,
           contractAddress: this.contractAddress,
-          balance: 0,
+          balance: 100,
           status: 'Active'
         }
 
@@ -580,6 +581,23 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
             this.notifyStatus(card.name, 'unlocked', 'positive', 'lock_open')
           }
           else{
+            this.$q.dialog({
+              message: `Do you want to sweep funds? This will send all ${card.name}'s funds to your wallet.'`,
+              cancel: true, 
+              persistent: true,
+              ok: {
+                label: 'Sweep',
+                color: 'positive',
+              },
+              cancel: {
+                label: 'Cancel',
+                flat: true,
+                color: 'grey',
+              }         
+            }).onOk(() => {
+                this.isSweep = true;
+                card.balance = 0;
+            })
             card.status = 'Locked'
             this.notifyStatus(card.name, 'locked', 'negative', 'lock')
           }
