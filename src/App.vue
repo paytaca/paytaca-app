@@ -31,6 +31,7 @@ import { VOffline } from 'v-offline'
 import { checkWatchtowerStatus } from './utils/watchtower-status'
 import AppVersionUpdate from './components/dialogs/AppVersionUpdate.vue'
 import { App as CapacitorApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 import ScreenshotSecurity from './utils/screenshot-security'
 
 // Module-level variable to track version update dialog instance
@@ -113,7 +114,10 @@ export default {
   methods: {
     async updateScreenshotSecurity() {
       const vm = this
-      if (!vm.$q.platform.is.mobile) {
+      // Only meaningful on native (iOS/Android) builds.
+      // Using Capacitor.isNativePlatform() avoids Quasar UA edge-cases (e.g., tablets)
+      // where `$q.platform.is.mobile` may be false even on native apps.
+      if (!Capacitor.isNativePlatform()) {
         return
       }
       
@@ -738,7 +742,7 @@ export default {
     await vm.$store.dispatch('global/ensureValidWalletIndex')
 
     // Set up app lifecycle listener for lock screen
-    if (vm.$q.platform.is.mobile) {
+    if (Capacitor.isNativePlatform()) {
       await vm.setupAppLifecycleListener()
     }
 
