@@ -239,7 +239,7 @@ export default {
   StartConversation: "Iniciar conversación",
   TypeMessage: "Escribir mensaje",
   MessageCannotBeEmpty: "El mensaje no puede estar vacío",
-  ChatActivationMessage: "Mensaje de activación del chat",
+  ChatActivationMessage: "El chat se habilitará cuando BCH se haya depositado en el contrato de depósito en garantía.",
   ChatNotYetActive: "Chat aún no activo",
   ServiceFeeToken: "Token de tarifa de servicio",
   DeliveryFeeToken: "Token de tarifa de entrega",

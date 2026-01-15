@@ -140,7 +140,7 @@ export default {
   StartConversation: "Iniciar conversa",
   TypeMessage: "Digitar mensagem",
   MessageCannotBeEmpty: "A mensagem não pode estar vazia",
-  ChatActivationMessage: "Mensagem de ativação do chat",
+  ChatActivationMessage: "O chat será ativado assim que BCH for depositado no contrato de custódia (escrow).",
   ChatNotYetActive: "Chat ainda não está ativo",
   ServiceFeeToken: "Token de taxa de serviço",
   DeliveryFeeToken: "Token de taxa de entrega",

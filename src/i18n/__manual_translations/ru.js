@@ -140,7 +140,7 @@ export default {
   StartConversation: "Начать разговор",
   TypeMessage: "Введите сообщение",
   MessageCannotBeEmpty: "Сообщение не может быть пустым",
-  ChatActivationMessage: "Сообщение активации чата",
+  ChatActivationMessage: "Чат будет доступен после внесения BCH в эскроу-контракт.",
   ChatNotYetActive: "Чат еще не активен",
   ServiceFeeToken: "Токен комиссии за услугу",
   DeliveryFeeToken: "Токен комиссии за доставку",

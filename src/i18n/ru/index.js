@@ -321,7 +321,7 @@ export default {
   ChangePin: "Изменить ПИН-код",
   ChartUnavailableOffline: "График недоступен в офлайн-режиме",
   Chat: "Чат",
-  ChatActivationMessage: "Сообщение активации чата",
+  ChatActivationMessage: "Чат будет доступен после внесения BCH в эскроу-контракт.",
   ChatNotYetActive: "Чат еще не активен",
   ChatSessionEnded: "Сеанс чата завершен",
   ChatWarningMsg: "Это приведет к удалению вашей локальной копии этого разговора, за исключением последнего сообщения.Хотите продолжить?",

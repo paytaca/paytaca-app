@@ -321,7 +321,7 @@ export default {
   ChangePin: "Changer le code PIN",
   ChartUnavailableOffline: "Graphique indisponible hors ligne",
   Chat: "Discuter",
-  ChatActivationMessage: "Message d'activation du chat",
+  ChatActivationMessage: "Le chat sera activé une fois que des BCH auront été déposés dans le contrat d'entiercement.",
   ChatNotYetActive: "Chat pas encore actif",
   ChatSessionEnded: "La session de chat est terminée",
   ChatWarningMsg: "Cela supprimera votre copie locale de cette conversation, à l'exception du dernier message.Voulez-vous continuer ?",

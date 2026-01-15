@@ -321,7 +321,7 @@ export default {
   ChangePin: "Cambiar PIN",
   ChartUnavailableOffline: "Gráfico no disponible sin conexión",
   Chat: "Chat",
-  ChatActivationMessage: "Mensaje de activación del chat",
+  ChatActivationMessage: "El chat se habilitará cuando BCH se haya depositado en el contrato de depósito en garantía.",
   ChatNotYetActive: "Chat aún no activo",
   ChatSessionEnded: "La sesión de chat ha terminado.",
   ChatWarningMsg: "Esto eliminará su copia local de esta conversación, excepto el último mensaje. ¿Desea continuar?",

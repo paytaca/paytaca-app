@@ -140,7 +140,7 @@ export default {
   StartConversation: "Gesprek starten",
   TypeMessage: "Typ bericht",
   MessageCannotBeEmpty: "Bericht mag niet leeg zijn",
-  ChatActivationMessage: "Chat activatie bericht",
+  ChatActivationMessage: "De chat wordt ingeschakeld zodra BCH in het escrowcontract is gestort.",
   ChatNotYetActive: "Chat nog niet actief",
   ServiceFeeToken: "Servicekosten token",
   DeliveryFeeToken: "Bezorgkosten token",

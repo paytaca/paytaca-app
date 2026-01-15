@@ -140,7 +140,7 @@ export default {
   StartConversation: "Démarrer la conversation",
   TypeMessage: "Taper un message",
   MessageCannotBeEmpty: "Le message ne peut pas être vide",
-  ChatActivationMessage: "Message d'activation du chat",
+  ChatActivationMessage: "Le chat sera activé une fois que des BCH auront été déposés dans le contrat d'entiercement.",
   ChatNotYetActive: "Chat pas encore actif",
   ServiceFeeToken: "Token de frais de service",
   DeliveryFeeToken: "Token de frais de livraison",

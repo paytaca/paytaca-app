@@ -321,7 +321,7 @@ export default {
   ChangePin: "Wijzig pincode",
   ChartUnavailableOffline: "Grafiek niet beschikbaar offline",
   Chat: "Chatten",
-  ChatActivationMessage: "Chat activatie bericht",
+  ChatActivationMessage: "De chat wordt ingeschakeld zodra BCH in het escrowcontract is gestort.",
   ChatNotYetActive: "Chat nog niet actief",
   ChatSessionEnded: "De chatsessie is beëindigd",
   ChatWarningMsg: "Hiermee wordt je lokale kopie van dit gesprek verwijderd, behalve het laatste bericht.Do you want to proceed?",
