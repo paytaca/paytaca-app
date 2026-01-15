@@ -31,7 +31,7 @@
               <div class="row items-start no-wrap q-gutter-sm">
                 <div class="" style="text-align:justify;">
                   <q-icon name="lock" size="1.2em"/>
-                  {{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}
+                  {{ $t('EncryptedChatMsg', {}, 'Messages are protected with end-to-end encryption. Only you and the intended recipient can read the content.') }}
                 </div>
                 <q-btn flat icon="close" padding="sm" class="float-right q-r-mr-sm q-r-mt-xs" @click="() => showEncryptedChatNotice = false"/>
               </div>
@@ -340,10 +340,28 @@ export default defineComponent({
       }
       keypair.value = await updateOrCreateKeypair().catch(console.error)
     }
+    function yieldToUi() {
+      // Yield so the UI can paint between expensive decrypt ops.
+      return new Promise(resolve => setTimeout(resolve, 0))
+    }
+
+    // Promise chains to serialize crypto work and avoid UI freezes
+    let decryptMessagesQueue = Promise.resolve()
+    let decryptAttachmentsQueue = Promise.resolve()
+
     async function decryptMessages() {
       if (!keypair.value?.privkey) await loadKeypair()
       if (!keypair.value?.privkey) return
-      await Promise.all(messages.value.map(message => decryptMessage(message, false)))
+      // Decryption uses synchronous primitives internally; Promise.all will still block the UI.
+      // Run sequentially and yield between batches.
+      decryptMessagesQueue = decryptMessagesQueue.then(async () => {
+        for (let i = 0; i < messages.value.length; i++) {
+          const message = messages.value[i]
+          await decryptMessage(message, false).catch(() => {})
+          if (i % 3 === 2) await yieldToUi()
+        }
+      })
+      return decryptMessagesQueue
     }
 
     async function decryptMessage(message=ChatMessage.parse(), tryAllKeys=false) {
@@ -357,7 +375,12 @@ export default defineComponent({
       if (!keypair.value?.privkey) await loadKeypair()
       if (!keypair.value?.privkey) return
       if (chatMessage?.decryptedAttachmentFile?.url) return
-      return chatMessage.decryptAttachment(keypair.value?.privkey, tryAllKeys)
+      // Multiple visible messages can trigger attachment decrypts at once; serialize and yield.
+      decryptAttachmentsQueue = decryptAttachmentsQueue.then(async () => {
+        await yieldToUi()
+        return chatMessage.decryptAttachment(keypair.value?.privkey, tryAllKeys)
+      })
+      return decryptAttachmentsQueue
     }
 
     function onNewMessage(newMessage=ChatMessage.parse()) {

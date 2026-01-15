@@ -754,7 +754,7 @@ const phrases = {
       UseCurrentLocation: 'Use current location',
       SelectPinLocation: 'Select pin location',
       SelectLocation: 'Select Location',
-      EncryptedChatMsg: 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.',
+      EncryptedChatMsg: 'Messages are protected with end-to-end encryption. Only you and the intended recipient can read the content.',
       UnableToCreatePayment: 'Unable to create payment',
     },
     {
@@ -1932,6 +1932,9 @@ const phrases = {
       StartConversation: 'Start conversation',
       TypeMessage: 'Type message',
       MessageCannotBeEmpty: 'Message cannot be empty',
+      ChatClosesIn: 'Chat closes in {time}',
+      ChatClosed: 'Chat closed',
+      ChatClosedExplanation: 'Chat is no longer available for this order.',
       ChatActivationMessage: 'Chat will be enabled once BCH has been deposited into the escrow contract.',
       ChatNotYetActive: 'Chat not yet active',
       ServiceFeeToken: 'Service fee token',

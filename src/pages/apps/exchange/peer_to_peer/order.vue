@@ -246,7 +246,7 @@
                 <template v-slot:avatar>
                   <q-icon name="lock" color="positive" size="20px"/>
                 </template>
-                <span class="encrypted-banner-text">{{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}</span>
+                <span class="encrypted-banner-text">{{ $t('EncryptedChatMsg', {}, 'Messages are protected with end-to-end encryption. Only you and the intended recipient can read the content.') }}</span>
               </q-banner>
               
               <!-- Messages list -->
@@ -331,7 +331,35 @@
               class="chat-input-wrapper" 
               :class="[getDarkModeClass(darkMode), { 'chat-input-hidden': isChatInputHidden }]"
             >
-              <div class="chat-input-container">
+              <!-- 1-hour grace period countdown after release/cancel -->
+              <div v-if="chatGraceCountdownActive" class="chat-close-countdown" :class="getDarkModeClass(darkMode)">
+                {{ $t('ChatClosesIn', { time: chatGraceCountdownText }, `Chat closes in ${chatGraceCountdownText}`) }}
+              </div>
+
+              <q-banner
+                v-else-if="chatClosedAfterGrace"
+                class="chat-closed-notice"
+                :class="getDarkModeClass(darkMode)"
+                rounded
+              >
+                <template v-slot:avatar>
+                  <q-icon name="info" color="info" />
+                </template>
+                <div class="text-weight-medium">
+                  {{ $t('ChatClosed', {}, 'Chat closed') }}
+                </div>
+                <div class="text-caption">
+                  {{
+                    $t(
+                      'ChatClosedExplanation',
+                      {},
+                      'Chat is no longer available for this order.'
+                    )
+                  }}
+                </div>
+              </q-banner>
+
+              <div v-if="canSendChatMessages" class="chat-input-container">
                 <q-btn
                   v-if="!chatAttachmentUrl"
                   flat
@@ -352,6 +380,7 @@
                   autogrow
                   :placeholder="$t('TypeMessage', {}, 'Type a message...')"
                   :dark="darkMode"
+                  :disable="!canSendChatMessages"
                   @keyup.enter.exact="sendChatMessage"
                   class="chat-input"
                   :maxlength="1000"
@@ -364,7 +393,7 @@
                       :icon="sendingMessage ? 'sync' : 'send'" 
                       size="sm"
                       @click="sendChatMessage" 
-                      :disable="!chatMessageInput.trim() || sendingMessage"
+                      :disable="!chatMessageInput.trim() || sendingMessage || !canSendChatMessages"
                       :loading="sendingMessage"
                       class="send-button"
                     />
@@ -566,7 +595,11 @@ export default {
       
       // Image dialog
       showImageDialog: false,
-      selectedImageUrl: null
+      selectedImageUrl: null,
+
+      // Chat-close countdown state (1-hour grace after release/cancel)
+      chatCloseNowMs: Date.now(),
+      chatCloseCountdownIntervalId: null,
     }
   },
   components: {
@@ -631,13 +664,91 @@ export default {
     },
     showChatTab () {
       // Show chat tab from confirmation onwards
-      const chatVisibleStatuses = ['CNF', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
+      // Include CNCL so users can still view chat history and see the grace-period/closed notice.
+      const chatVisibleStatuses = ['CNF', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL', 'CNCL']
       return chatVisibleStatuses.includes(this.order?.status?.value)
     },
     isChatEnabled () {
       // Chat is only functional when funds are escrowed
       const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
-      return escrowedStatuses.includes(this.order?.status?.value)
+      const status = this.order?.status?.value
+      if (escrowedStatuses.includes(status)) return true
+
+      // If the order is cancelled but a chat session exists, keep chat readable (and allow grace-period sending).
+      if (status === 'CNCL' && this.order?.chat_session_ref) return true
+
+      return false
+    },
+
+    /**
+     * P2P chat should close 1 hour after order is marked as released/cancelled.
+     * We derive the timestamp from status history when available, and fall back to order timestamps if not.
+     */
+    chatCloseStatusAtMs () {
+      const finalStatuses = ['RLS', 'CNCL']
+      const current = this.order?.status?.value
+      const isFinal = finalStatuses.includes(current)
+
+      // Prefer status history entry timestamps (server-authoritative)
+      if (Array.isArray(this.statusHistory) && this.statusHistory.length) {
+        const candidates = this.statusHistory
+          .filter(s => finalStatuses.includes(s?.status))
+          .map(s => new Date(s?.created_at).getTime())
+          .filter(ts => Number.isFinite(ts))
+        if (candidates.length) return Math.max(...candidates)
+      }
+
+      // Fallback to order-provided timestamps if we are already in a final state
+      if (isFinal) {
+        const t1 = new Date(this.order?.status?.updated_at).getTime()
+        if (Number.isFinite(t1)) return t1
+        const t2 = new Date(this.order?.updated_at).getTime()
+        if (Number.isFinite(t2)) return t2
+        const t3 = new Date().getTime()
+        if (Number.isFinite(t3)) return t3
+      }
+
+      return null
+    },
+
+    chatGraceDeadlineMs () {
+      if (!Number.isFinite(this.chatCloseStatusAtMs)) return null
+      return this.chatCloseStatusAtMs + (60 * 60 * 1000)
+    },
+
+    chatGraceRemainingMs () {
+      if (!Number.isFinite(this.chatGraceDeadlineMs)) return null
+      return this.chatGraceDeadlineMs - this.chatCloseNowMs
+    },
+
+    chatGraceCountdownActive () {
+      return Number.isFinite(this.chatGraceRemainingMs) && this.chatGraceRemainingMs > 0
+    },
+
+    chatClosedAfterGrace () {
+      return Number.isFinite(this.chatGraceRemainingMs) && this.chatGraceRemainingMs <= 0
+    },
+
+    chatGraceCountdownText () {
+      if (!Number.isFinite(this.chatGraceRemainingMs)) return ''
+      const totalSec = Math.max(0, Math.ceil(this.chatGraceRemainingMs / 1000))
+      const hours = Math.floor(totalSec / 3600)
+      const minutes = Math.floor((totalSec % 3600) / 60)
+      const seconds = totalSec % 60
+      const mm = String(minutes).padStart(2, '0')
+      const ss = String(seconds).padStart(2, '0')
+      if (hours > 0) {
+        const hh = String(hours).padStart(2, '0')
+        return `${hh}:${mm}:${ss}`
+      }
+      return `${mm}:${ss}`
+    },
+
+    canSendChatMessages () {
+      // If order isn't released/cancelled, normal chat rules apply.
+      if (!Number.isFinite(this.chatCloseStatusAtMs)) return this.isChatEnabled
+      // If there is a closure timestamp, only allow sending during the grace period.
+      return this.isChatEnabled && this.chatGraceCountdownActive
     },
     headerTitle () {
       switch (this.state) {
@@ -835,9 +946,15 @@ export default {
   async mounted () {
     await this.loadData()
     this.setupWebSocket()
+    this.ensureChatCloseCountdownTimer()
   },
   beforeUnmount () {
     this.closeWSConnection()
+
+    if (this.chatCloseCountdownIntervalId) {
+      clearInterval(this.chatCloseCountdownIntervalId)
+      this.chatCloseCountdownIntervalId = null
+    }
     
     // Remove bus listeners
     bus.off('new-message', this.onNewMessage)
@@ -875,6 +992,7 @@ export default {
         await vm.fetchAd()
         await vm.fetchFeedback()
         await vm.fetchStatusList() // Load status history
+        vm.ensureChatCloseCountdownTimer()
         if (this.notifType === 'new_message') { 
           this.activeTab = 'chat'
         }
@@ -890,6 +1008,7 @@ export default {
       try {
         const response = await backend.get(`/ramp-p2p/order/${this.order.id}/status/`, { authorize: true })
         this.statusHistory = response.data
+        this.ensureChatCloseCountdownTimer()
       } catch (error) {
         this.handleRequestError(error)
       }
@@ -1206,6 +1325,16 @@ export default {
 
     async sendChatMessage () {
       const vm = this
+
+      if (!vm.canSendChatMessages) {
+        vm.$q.notify({
+          type: 'warning',
+          message: vm.$t('ChatClosed', {}, 'Chat closed'),
+          position: 'top',
+          timeout: 2500
+        })
+        return
+      }
       
       // Validate message is not empty
       if (!vm.chatMessageInput.trim()) {
@@ -1405,6 +1534,32 @@ export default {
       } finally {
         vm.sendingMessage = false
       }
+    },
+
+    ensureChatCloseCountdownTimer () {
+      // Only run countdown when we have a known deadline and still within the 1-hour grace window.
+      const hasDeadline = Number.isFinite(this.chatGraceDeadlineMs)
+      if (!hasDeadline || this.chatClosedAfterGrace) {
+        if (this.chatCloseCountdownIntervalId) {
+          clearInterval(this.chatCloseCountdownIntervalId)
+          this.chatCloseCountdownIntervalId = null
+        }
+        // Keep "now" fresh for immediate UI update (e.g., on status change)
+        this.chatCloseNowMs = Date.now()
+        return
+      }
+
+      if (this.chatCloseCountdownIntervalId) return
+
+      this.chatCloseNowMs = Date.now()
+      this.chatCloseCountdownIntervalId = setInterval(() => {
+        this.chatCloseNowMs = Date.now()
+        // Stop ticking once grace is over
+        if (this.chatClosedAfterGrace) {
+          clearInterval(this.chatCloseCountdownIntervalId)
+          this.chatCloseCountdownIntervalId = null
+        }
+      }, 1000)
     },
 
     async onNewMessage (messageData) {
@@ -2814,6 +2969,7 @@ export default {
       align-self: center;
       display: flex;
       align-items: center;
+      margin-right: 8px; /* add space between icon and text */
     }
 
     :deep(.q-banner__content) {
@@ -2828,6 +2984,34 @@ export default {
     line-height: 1.4;
     font-weight: 400;
     opacity: 0.9;
+  }
+
+  /* Glassmorphic info banner for closed chat */
+  .chat-closed-notice {
+    margin: 10px 12px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    color: rgba(0, 0, 0, 0.87);
+
+    &.dark {
+      background: rgba(26, 30, 38, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    :deep(.q-banner__avatar) {
+      align-self: flex-start;
+      margin-right: 10px;
+    }
+
+    :deep(.q-banner__content) {
+      padding: 0;
+    }
   }
 
   .chat-messages-wrapper {
