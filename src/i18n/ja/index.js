@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "このデバイスでは生体認証がサポートされていません。",
   BitcoinCash: "ビットコインキャッシュ",
   BitcoinIsCashDescription: "ビットコインキャッシュについて学ぶ",
+  BoughtAmount: "{amount} {symbol} を購入しました",
   Branch: "支店",
   BranchDetails: "支店詳細",
   BranchDetailsSaved: "ブランチの詳細が保存されました",

@@ -2160,6 +2160,7 @@ const phrases = {
       PaytacaWebsiteDescription: 'Visit {paytacaWebsite}',
       FollowUsOn: 'Follow us on {platform}',
       TelegramDescription: 'Join our {telegram} community',
+      BoughtAmount: 'Bought {amount} {symbol}',
     }
   ]
 }

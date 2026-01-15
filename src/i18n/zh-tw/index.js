@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "此裝置不支援生物識別身份驗證。",
   BitcoinCash: "比特幣現金",
   BitcoinIsCashDescription: "了解比特幣現金",
+  BoughtAmount: "購買了{amount} {symbol}",
   Branch: "分公司",
   BranchDetails: "分行詳情",
   BranchDetailsSaved: "已保存分行詳細信息",

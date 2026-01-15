@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "이 기기에서는 생체 인증을 지원하지 않습니다.",
   BitcoinCash: "비트코인 캐시",
   BitcoinIsCashDescription: "비트코인 캐시에 대해 알아보세요",
+  BoughtAmount: "{amount} {symbol} 구매함",
   Branch: "지점",
   BranchDetails: "지점 세부정보",
   BranchDetailsSaved: "지점 세부정보가 저장되었습니다.",

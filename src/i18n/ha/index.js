@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "Tabbatarwar biometric ba ta goyan baya akan wannan na'urar ba.",
   BitcoinCash: "Bitcoin Cash",
   BitcoinIsCashDescription: "Koyi game da Bitcoin Cash",
+  BoughtAmount: "An siya {amount} {symbol}",
   Branch: "Reshe",
   BranchDetails: "Bayanan reshe",
   BranchDetailsSaved: "An adana bayanan reshe",

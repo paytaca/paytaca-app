@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "Autentikasi biometrik tidak didukung di perangkat ini.",
   BitcoinCash: "Bitcoin Cash",
   BitcoinIsCashDescription: "Pelajari tentang Bitcoin Cash",
+  BoughtAmount: "Membeli {amount} {symbol}",
   Branch: "Cabang",
   BranchDetails: "Detail cabang",
   BranchDetailsSaved: "Detail cabang disimpan",

@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "Hindi supported ang biometric authentication sa device na ito.",
   BitcoinCash: "Bitcoin Cash",
   BitcoinIsCashDescription: "Alamin ang tungkol sa Bitcoin Cash",
+  BoughtAmount: "Binili ng {amount} {symbol}",
   Branch: "Sangay",
   BranchDetails: "Mga detalye ng sangay",
   BranchDetailsSaved: "Na-save ang mga detalye ng branch",

@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "المصادقة البيومترية غير مدعومة على هذا الجهاز.",
   BitcoinCash: "بيتكوين كاش",
   BitcoinIsCashDescription: "تعرف على بيتكوين كاش",
+  BoughtAmount: "اشترى {المبلغ} {رمز}",
   Branch: "فرع",
   BranchDetails: "تفاصيل الفرع",
   BranchDetailsSaved: "تم حفظ تفاصيل الفرع",

@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "Биометрическая аутентификация не поддерживается на этом устройстве.",
   BitcoinCash: "Биткойн Кэш",
   BitcoinIsCashDescription: "Узнайте о Биткойн Кэш",
+  BoughtAmount: "Куплено {количество} {символ}",
   Branch: "Филиал",
   BranchDetails: "Детали филиала",
   BranchDetailsSaved: "Информация о филиале сохранена.",

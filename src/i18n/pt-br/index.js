@@ -229,6 +229,7 @@ export default {
   BiometricNotSupported: "A autenticação biométrica não é suportada neste dispositivo.",
   BitcoinCash: "Bitcoin Cash",
   BitcoinIsCashDescription: "Saiba mais sobre o Bitcoin Cash",
+  BoughtAmount: "Comprou {amount} {símbolo}",
   Branch: "Filial",
   BranchDetails: "Detalhes da filial",
   BranchDetailsSaved: "Detalhes da filial salvos",
