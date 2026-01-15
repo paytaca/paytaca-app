@@ -327,8 +327,11 @@
         />
         <div class="q-mt-md">
           <q-btn
-            flat
+            outline
+            rounded
             no-caps
+            size="md"
+            :color="getThemeColor()"
             :label="$t('VisitTokenPage', {}, 'Visit paytaca.com/token for more information')"
             icon="language"
             class="website-link-button"
@@ -659,21 +662,37 @@ export default {
   }
   
   .website-link-button {
-    color: #666;
     font-weight: 500;
     text-transform: none;
-    font-size: 14px;
+    font-size: 15px;
+    padding: 10px 24px;
+    border-width: 2px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     
     &.dark {
-      color: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
     
     &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       
       &.dark {
-        background-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       }
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+    
+    :deep(.q-icon) {
+      transition: transform 0.3s ease;
+    }
+    
+    &:hover :deep(.q-icon) {
+      transform: translateX(4px);
     }
   }
   
