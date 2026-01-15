@@ -10,15 +10,14 @@
       <MultiWalletDropdown></MultiWalletDropdown>
     </div>
 
-    <q-separator class="q-my-xl" />
-
     
     <transition
       appear
       enter-active-class="animated fadeIn"
       leave-active-class="animated fadeOut"
     >
-      <div class="q-mt-lg">
+      <div class="q-mt-lg q-ml-lg">
+        
         <!-- Header -->
         <div class="text-h6 q-mb-md q-mt-md row items-center">
           <q-icon name="credit_card" class="q-mr-sm" color="primary" />
@@ -31,21 +30,23 @@
             <div v-for="card in subCards" :key="card.id" class="col-12 col-sm-2">
               <q-card bordered flat class="bg-white full-height">
                 <!-- Card header: Name + Icons -->
-                <q-card-section class="row items-center justify-between q-pa-sm">
+                <q-card-section class="row items-center justify-between q-pa-sm bg-blue-2">
                   <div class="text-weight-bold text-subtitle1 text-black ellipsis" style="max-width: 150px;">{{ card.name }}</div>
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    color="grey-7"
-                    icon="edit"
-                    size="sm"
-                    @click="editCardName(card)"
-                  >
-                    <q-tooltip>Edit Card Name</q-tooltip>
-                  </q-btn>
                   
                   <div class="row items-center q-gutter-sm">
+                    <!-- Edit Icon -->
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="edit"
+                      size="sm"
+                      color="primary"
+                      @click="editCardName(card)"
+                    >
+                      <q-tooltip>Edit Card Name</q-tooltip>
+                    </q-btn>
+
                     <!-- View Icon -->
                      <q-btn
                         flat
@@ -64,6 +65,7 @@
                         color="primary"
                         @click="openCardMenu($event, card)"
                      >
+                        <q-tooltip>Card Options</q-tooltip>
                         <!-- Card Options Menu -->
                         <q-menu
                             anchor="top right"
@@ -91,12 +93,19 @@
                   </div>
                 </q-card-section>
 
-                <q-separator/>
+                <q-separator color="primary" size="1px"/>
 
                 <!-- Card Info -->
                  <q-card-section>
-                    <div class="text-caption text-grey">Contract Address: {{ card.contractAddress }}</div>
-                    <div class="text-caption text-grey">Balance: {{ card.balance }} BCH</div>
+                    <div class="text-caption text-grey">
+                      Balance:
+                      <span class="text-h5 text-black"> {{ card.balance }} BCH</span>
+                    </div>
+
+                    <div class="text-caption text-grey">
+                      Address:
+                      <span class="text-caption text-black ellipsis"> {{ formatContractAddress(card) }} </span>
+                    </div>
 
                     <div class>
                       <div class="text-caption text-weight-bold">Status:</div>
@@ -246,7 +255,7 @@
 
           <!-- Contract Address with Copy Icon -->
            <q-card-section class="row justify-center items-center text-nowrap q-gutter-sm" style="letter-spacing: 1px;">
-              <div>{{ selectedCard?.contractAddress }}</div>
+              <div class="text-white">{{ formatContractAddress(selectedCard)}}</div>
               <q-btn
                 flat
                 round
@@ -386,7 +395,7 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
       return {
         createCardDialog: false,
         subCards: [],
-        contractAddress: 'address', // dummy
+        contractAddress: 'bchtest:p02aanptmywrtmwt75mckrekkpnrwm0lxc7w6d0ljq4w97mu9uguzfdqshmp8', // dummy
         // For inputs
         newCardName: '',
         // View card dialog
@@ -414,7 +423,7 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
         isSweep: false,
       }
     },
-
+    
     async mounted () {
       console.log("GO!")
     },
@@ -424,6 +433,12 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
       openCreateCardDialog(){
         this.newCardName = '';
         this.createCardDialog = true;
+      },
+
+      formatContractAddress(card) {
+        const contractAddressLength = this.contractAddress.length
+        const formatted = this.contractAddress.substring(0, 4) + "..." + this.contractAddress.substring(contractAddressLength - 5, contractAddressLength)
+        return formatted
       },
       
       handleCreateCard(){
