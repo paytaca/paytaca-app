@@ -408,6 +408,38 @@ export default defineComponent({
     const message = ref('')
     const attachment = ref(null)
 
+    function buildPubkeysForEncryption() {
+      const candidates = []
+
+      const privkey = keypair.value?.privkey
+      let selfPubkey = keypair.value?.pubkey
+
+      // If we have a privkey but missing/invalid pubkey, attempt to derive it.
+      if (privkey && (typeof selfPubkey !== 'string' || !selfPubkey)) {
+        try {
+          selfPubkey = privToPub(privkey)
+        } catch (error) {
+          console.error('Failed to derive pubkey from privkey:', error)
+          selfPubkey = undefined
+        }
+
+        if (typeof selfPubkey === 'string' && selfPubkey) {
+          keypair.value.pubkey = selfPubkey
+        }
+      }
+
+      if (typeof selfPubkey === 'string' && selfPubkey) candidates.push(selfPubkey)
+      if (Array.isArray(membersPubkeys.value)) candidates.push(...membersPubkeys.value)
+
+      // Only keep valid, non-empty hex pubkeys to prevent secp hex parsing errors.
+      const filtered = candidates
+        .filter(pk => typeof pk === 'string')
+        .map(pk => pk.trim())
+        .filter(pk => pk && pk.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(pk))
+
+      return [...new Set(filtered)]
+    }
+
     const sendMessage = debounce(async function() {
       if (!message.value && !attachment.value) return
       let signData = undefined
@@ -419,9 +451,13 @@ export default defineComponent({
       
       if (!keypair.value?.privkey) await loadKeypair()
       if (keypair.value?.privkey && data?.message) {
-        // Ensure our own pubkey is included for multi-recipient encryption
-        // This allows us to decrypt our own messages
-        const pubkeysForEncryption = [...new Set([keypair.value.pubkey, ...membersPubkeys.value])]
+        // Ensure our own pubkey is included for multi-recipient encryption.
+        // Also filter invalid pubkeys to avoid runtime errors in encryption.
+        const pubkeysForEncryption = buildPubkeysForEncryption()
+        if (!pubkeysForEncryption.length) {
+          console.error('No valid pubkeys available for encryption; refusing to send message unencrypted.')
+          return
+        }
         const encryptedMessage = encryptMessage({
           data: data.message,
           privkey: keypair.value.privkey,
@@ -432,9 +468,13 @@ export default defineComponent({
       }
 
       if (attachment.value) {
-        // Ensure our own pubkey is included for multi-recipient encryption
-        // This allows us to decrypt our own attachments
-        const pubkeysForEncryption = [...new Set([keypair.value.pubkey, ...membersPubkeys.value])]
+        // Ensure our own pubkey is included for multi-recipient encryption.
+        // Also filter invalid pubkeys to avoid runtime errors in encryption.
+        const pubkeysForEncryption = buildPubkeysForEncryption()
+        if (!pubkeysForEncryption.length) {
+          console.error('No valid pubkeys available for encryption; refusing to send attachment unencrypted.')
+          return
+        }
         const encryptedAttachment = await encryptImage({
           file: attachment.value,
           privkey: keypair.value.privkey,
