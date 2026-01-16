@@ -403,17 +403,24 @@ export async function decryptMemo (privkey, encryptedMemo, tryAllKeys = false) {
   }
 
  export async function encryptMemo (privkey, pubkey, memo) {
- 	try {
- 		if (!memo || !privkey || !pubkey) {
- 			console.error('encryptMemo - Missing required parameters')
- 			return null
- 		}
- 		
-    	const encryptedMessage = encryptMessage({
-      		data: memo,
-      		privkey: privkey,
-      		pubkeys: pubkey
-    	})
+	try {
+		if (!memo || !privkey) {
+			console.error('encryptMemo - Missing required parameters')
+			return null
+		}
+		
+		// For single-recipient memos (encrypting to ourselves), always derive pubkey from privkey
+		// This ensures consistency with decryptMessage which uses derived pubkey
+		// The encryptMessage function also derives ourPubkey internally, so we must match it
+		const ourPubkey = privToPub(privkey)
+		// Always use derived pubkey for single-recipient encryption to ensure decryption works
+		const recipientPubkey = ourPubkey
+		
+   	const encryptedMessage = encryptMessage({
+     		data: memo,
+     		privkey: privkey,
+     		pubkeys: recipientPubkey
+   	})
     	
     	if (!encryptedMessage) {
     		console.error('encryptMemo - encryptMessage returned null/undefined')

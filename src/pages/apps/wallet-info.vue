@@ -63,7 +63,7 @@
           <q-item clickable v-ripple @click="openUrl('https://github.com/paytaca/paytaca-app')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('GitHub') }}
+                GitHub
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
                 {{ $t('GitHubDescription') }}
@@ -95,10 +95,10 @@
           <q-item clickable v-ripple @click="openUrl('https://www.facebook.com/paytaca')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('Facebook', {}, 'Facebook') }}
+                Facebook
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('FacebookDescription', {}, 'Follow us on Facebook') }}
+                {{ $t('FollowUsOn', { platform: 'Facebook' }, 'Follow us on Facebook') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -108,10 +108,10 @@
           <q-item clickable v-ripple @click="openUrl('https://www.instagram.com/paytaca')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('Instagram', {}, 'Instagram') }}
+                Instagram
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('InstagramDescription', {}, 'Follow us on Instagram') }}
+                {{ $t('FollowUsOn', { platform: 'Instagram' }, 'Follow us on Instagram') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -121,10 +121,10 @@
           <q-item clickable v-ripple @click="openUrl('https://x.com/_paytaca_')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('X', {}, 'X') }}
+                X
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('XDescription', {}, 'Follow us on X (Twitter)') }}
+                {{ $t('FollowUsOn', { platform: 'X (Twitter)' }, 'Follow us on X (Twitter)') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -134,10 +134,10 @@
           <q-item clickable v-ripple @click="openUrl('https://t.me/PaytacaWalletApp')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('Telegram') }}
+                Telegram
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('TelegramDescription') }}
+                {{ $t('TelegramDescription', { telegram: 'Telegram' }, 'Join our Telegram community') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -156,7 +156,7 @@
                 {{ $t('PaytacaWebsite', {}, 'Paytaca Website') }}
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-                {{ $t('PaytacaWebsiteDescription', {}, 'Visit paytaca.com') }}
+                {{ $t('PaytacaWebsiteDescription', { paytacaWebsite: 'paytaca.com' }, 'Visit paytaca.com') }}
               </q-item-label>
             </q-item-section>
             <q-item-section avatar>
@@ -166,7 +166,7 @@
           <q-item clickable v-ripple @click="openUrl('https://bitcoiniscash.org')">
             <q-item-section>
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                {{ $t('BitcoinIsCash', {}, 'Bitcoin Is Cash') }}
+                Bitcoin Is Cash
               </q-item-label>
               <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
                 {{ $t('BitcoinIsCashDescription', {}, 'Learn about Bitcoin Cash') }}

@@ -252,7 +252,7 @@
         />
       </div>
       <q-dialog v-model="openOrderReviewDialog" position="bottom">
-        <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+        <q-card class="pt-card text-bow bottom-card" :class="getDarkModeClass(darkMode)">
           <q-card-section>
             <div class="row items-center no-wrap">
               <div class="text-h5 q-space">Order Review</div>
@@ -642,7 +642,7 @@
     </div>
     <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
     <q-dialog v-model="showPaymentDialog" position="bottom">
-      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+      <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row no-wrap items-center justify-center">
             <div class="text-h6 q-mt-sm">Payment</div>

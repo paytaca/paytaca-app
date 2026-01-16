@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Tidak dapat menghapus dompet terakhir",
   ErrorDeletingWallet: "Kesalahan saat menghapus dompet",
   ErrorRestoringWallet: "Kesalahan saat memulihkan dompet",
+  BackupConfirmed: "Cadangan dompet dikonfirmasi",
+  BackupConfirmedOn: "Terakhir dikonfirmasi pada {date}",
   "Wallet Details": "Detail dompet",
   "Wallet Qr Code": "Kode QR dompet",
   "XPubKey QR Code": "Kode QR kunci publik diperluas",
@@ -93,7 +95,6 @@ export default {
   Validating: "Memvalidasi",
   GettingLocation: "Mendapatkan lokasi",
   NoFilter: "Tidak ada filter",
-  NoFilteredLogs: "Tidak ada log yang difilter",
   FilterLogs: "Filter log",
   CopyLogs: "Salin log",
   LogsCopied: "Log disalin",
@@ -150,6 +151,7 @@ export default {
   // Other features
   AddingLiquidity: "Menambahkan likuiditas",
   ConversionInfo: "Konversi ke {currency} pada saat transaksi. Keuntungan/kerugian ditampilkan di bawah dibandingkan dengan harga saat ini.",
+  ConversionInformation: "Informasi Konversi",
   ContractInformation: "Informasi kontrak",
   DepositAddress: "Alamat deposit",
   ExpiredAt: "Kedaluwarsa pada",
@@ -178,5 +180,7 @@ export default {
   BitcoinCash: "Bitcoin Cash",
   WebsiteDescription: "Kunjungi {website}",
   TotalLIFT: "Jumlah LIFT",
+  BitcoinIsCashDescription: "Pelajari tentang Bitcoin Cash",
+  
 }
 

@@ -34,5 +34,17 @@
 	},
 	"server": {
 		"androidScheme": "https"
-	}
+	},
+	"packageClassList": [
+		"BarcodeScanner",
+		"NativeAudio",
+		"AppPlugin",
+		"CAPBrowserPlugin",
+		"CAPCameraPlugin",
+		"DevicePlugin",
+		"GeolocationPlugin",
+		"KeyboardPlugin",
+		"PushNotificationsPlugin",
+		"NativeBiometric"
+	]
 }

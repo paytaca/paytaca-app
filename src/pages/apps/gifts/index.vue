@@ -119,6 +119,9 @@
                       <span v-if="gift.campaign_name" class="gift-campaign-name" :class="getDarkModeClass(darkMode)">
                         • {{ gift.campaign_name }}
                       </span>
+                      <div class="gift-id text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7; margin-top: 2px;">
+                        ID: {{ getGiftId(gift.hash) }}
+                      </div>
                     </div>
                     <div class="gift-item-amount" :class="getDarkModeClass(darkMode)">
                       <div class="amount-primary text-grad">
@@ -180,7 +183,7 @@
               
               <!-- End of list indicator -->
               <div v-else-if="giftsList.length > 0 && !hasMoreUnclaimedGifts" class="end-of-list q-pa-md">
-                <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
+                <q-icon name="check_circle" size="24px" class="end-text" :class="getDarkModeClass(darkMode)" />
                 <p class="end-text q-mt-sm" :class="getDarkModeClass(darkMode)">{{ $t('AllGiftsLoaded', {}, 'All gifts loaded') }}</p>
           </div>
 
@@ -206,6 +209,7 @@
             <div class="q-px-lg q-pb-sm">
               <q-checkbox
                 v-model="showOnlyCreatedByWallet"
+                class="text-bow"
                 :label="$t('ShowOnlyClaimedGiftsYouCreated', {}, 'Show only the claimed gifts that you created')"
                 :color="themeColor"
                 :class="getDarkModeClass(darkMode)"
@@ -253,6 +257,9 @@
                       <span v-if="gift.campaign_name" class="gift-campaign-name" :class="getDarkModeClass(darkMode)">
                         • {{ gift.campaign_name }}
                       </span>
+                      <div class="gift-id text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7; margin-top: 2px;">
+                        ID: {{ getGiftId(gift.hash) }}
+                      </div>
                   </div>
                     <div class="gift-item-amount" :class="getDarkModeClass(darkMode)">
                       <div class="amount-primary text-grad">
@@ -301,7 +308,7 @@
               
               <!-- End of list indicator -->
               <div v-else-if="giftsList.length > 0 && !hasMoreClaimedGifts" class="end-of-list q-pa-md">
-                <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
+                <q-icon name="check_circle" size="24px" class="end-text" :class="getDarkModeClass(darkMode)" />
                 <p class="end-text q-mt-sm" :class="getDarkModeClass(darkMode)">{{ $t('AllGiftsLoaded', {}, 'All gifts loaded') }}</p>
                   </div>
               
@@ -326,9 +333,9 @@ import { getAssetDenomination } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getMnemonic, Wallet } from '../../../wallet'
 import QRCode from 'qrcode'
-import { ensureKeypair } from 'src/utils/memo-service'
-import { decryptMemo } from 'src/utils/transaction-memos'
+import { ensureKeypair, decryptMemoData } from 'src/utils/memo-service'
 import sha256 from 'js-sha256'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 export default {
   name: 'Gift',
@@ -432,9 +439,18 @@ export default {
       })
       
 
-      // Sort by date_created in descending order (latest first)
+      // Sort by date_created or date_claimed depending on tab
       return filteredGifts.sort((a, b) => {
-        return new Date(b.date_created) - new Date(a.date_created)
+        if (this.activeTab === 'claimed') {
+          // For claimed gifts, sort by date_claimed (most recently claimed first)
+          // Handle 'None' values and missing dates
+          const aDate = a.date_claimed && a.date_claimed !== 'None' ? new Date(a.date_claimed) : new Date(0)
+          const bDate = b.date_claimed && b.date_claimed !== 'None' ? new Date(b.date_claimed) : new Date(0)
+          return bDate - aDate
+        } else {
+          // For unclaimed gifts, sort by date_created (latest first)
+          return new Date(b.date_created) - new Date(a.date_created)
+        }
       })
     },
     unclaimedGiftsCount () {
@@ -606,10 +622,13 @@ export default {
             response.data.gifts.map(async gift => {
               let giftCode = null
               if (gift.encrypted_gift_code) {
-                try {
-                  giftCode = await decryptMemo(keypair.privkey, gift.encrypted_gift_code)
-                } catch (error) {
-                  console.error('Failed to decrypt gift code:', error)
+                // Use decryptMemoData (same as transaction memos) which always uses tryAllKeys: true
+                // This ensures cross-platform compatibility
+                const decryptResult = await decryptMemoData(gift.encrypted_gift_code, keypair.privkey)
+                if (decryptResult.success && decryptResult.memo) {
+                  giftCode = decryptResult.memo
+                } else {
+                  console.error('Failed to decrypt gift code:', decryptResult.error)
                 }
               }
               return {
@@ -1022,10 +1041,11 @@ export default {
       }
       try {
         const keypair = await ensureKeypair()
-        const giftCode = await decryptMemo(keypair.privkey, gift.encrypted_gift_code)
-        // decryptMemo returns null on failure rather than throwing an exception
-        if (!giftCode) {
-          console.error('Failed to decrypt gift code for recovery: decryptMemo returned null')
+        // Use decryptMemoData (same as transaction memos) which always uses tryAllKeys: true
+        // This ensures cross-platform compatibility
+        const decryptResult = await decryptMemoData(gift.encrypted_gift_code, keypair.privkey)
+        if (!decryptResult.success || !decryptResult.memo) {
+          console.error('Failed to decrypt gift code for recovery:', decryptResult.error)
           this.$q.notify({
             message: this.$t('FailedToDecryptGiftCode') || 'Failed to decrypt gift code',
             color: 'negative',
@@ -1033,6 +1053,7 @@ export default {
           })
           return
         }
+        const giftCode = decryptResult.memo
         this.$router.push({
           name: 'claim-gift',
           query: {
@@ -1120,6 +1141,12 @@ export default {
       }
       const walletHashSha256 = sha256(this.walletHash)
       return gift.created_by === walletHashSha256
+    },
+    getGiftId(giftCodeHash) {
+      if (!giftCodeHash || typeof giftCodeHash !== 'string') return ''
+      // Take first 6 characters of hash and convert to numeric ID
+      const hex6 = giftCodeHash.substring(0, 6)
+      return hexToRef(hex6)
     },
     changeTab(tab) {
       // Clean up existing observers
@@ -1756,6 +1783,7 @@ export default {
   letter-spacing: 0.3px;
   display: inline-flex;
   align-items: center;
+  white-space: normal;
 
   &.status-claimed {
     background: rgba(76, 175, 80, 0.15);

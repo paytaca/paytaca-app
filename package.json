@@ -6,6 +6,12 @@
   "author": "joemar@paytaca.com",
   "private": true,
   "scripts": {
+    "dev": "quasar dev -m spa",
+    "build": "quasar build -m spa",
+    "dev:capacitor:ios": "quasar dev -m capacitor -T ios",
+    "dev:capacitor:android": "quasar dev -m capacitor -T android",
+    "build:capacitor:ios": "quasar build -m capacitor -T ios",
+    "build:capacitor:android": "quasar build -m capacitor -T android",
     "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
     "postinstall": "quasar prepare",
     "test": "cypress run",

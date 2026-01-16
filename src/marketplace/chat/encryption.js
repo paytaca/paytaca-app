@@ -2,8 +2,25 @@ import crypto from 'crypto'
 import * as secp from '@noble/secp256k1'
 import { Store } from 'src/store'
 import { nativeFileAPI } from 'src/utils/native-file'
+import { Buffer } from 'buffer'
 
 const CHUNK_SIZE = 15
+
+function isValidPubkeyHex(pubkey) {
+  if (typeof pubkey !== 'string') return false
+  const pk = pubkey.trim()
+  if (!pk) return false
+  if (!/^[0-9a-fA-F]+$/.test(pk)) return false
+
+  // noble-secp256k1 supports compressed (33 bytes / 66 hex) and uncompressed (65 bytes / 130 hex)
+  if (pk.length !== 66 && pk.length !== 130) return false
+
+  const prefix = pk.slice(0, 2).toLowerCase()
+  if (pk.length === 66 && prefix !== '02' && prefix !== '03') return false
+  if (pk.length === 130 && prefix !== '04') return false
+
+  return true
+}
 
 /**
  * @param {Object} opts
@@ -18,7 +35,11 @@ export function encryptMessage(opts={ data: '', privkey: '', pubkeys: '' }) {
 
   const ourPubkey = privToPub(privkey)
   const _pks = Array.isArray(pubkeys) ? [...pubkeys] : [pubkeys]
-  const pks = _pks.filter((pk, index, list) => list.indexOf(pk) === index)
+  const normalized = _pks
+    .filter(pk => typeof pk === 'string')
+    .map(pk => pk.trim())
+    .filter(isValidPubkeyHex)
+  const pks = normalized.filter((pk, index, list) => list.indexOf(pk) === index)
   if (pks.length <= 0) pks.push(ourPubkey)
 
   if (pks.length === 1) {
@@ -255,14 +276,27 @@ export function compressEncryptedMessage(messagePayload) {
 }
 
 export function decompressEncryptedMessage(data='') {
-  const dataStr = Buffer.from(data, 'base64').toString('utf-8')
   const response = { data: '', iv: '', authorPubkey: '', pubkeys: [].map(String) }
-  if (dataStr) {
-    const deserialized = JSON.parse(dataStr)
-    response.data = deserialized?.d
-    response.iv = deserialized?.iv
-    response.authorPubkey = deserialized?.pk
-    response.pubkeys = deserialized?.pks
+  
+  if (!data || typeof data !== 'string') {
+    return response
+  }
+  
+  try {
+    // Handle potential buffer issues on desktop by ensuring proper base64 decoding
+    const dataBytes = Buffer.from(data, 'base64')
+    const dataStr = dataBytes.toString('utf-8')
+    
+    if (dataStr) {
+      const deserialized = JSON.parse(dataStr)
+      response.data = deserialized?.d || ''
+      response.iv = deserialized?.iv || ''
+      response.authorPubkey = deserialized?.pk || ''
+      response.pubkeys = Array.isArray(deserialized?.pks) ? deserialized.pks.map(String) : []
+    }
+  } catch (error) {
+    console.error('[decompressEncryptedMessage] Error decompressing message:', error)
+    // Return empty response on error
   }
 
   return response
@@ -282,7 +316,11 @@ export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) 
   
   const ourPubkey = privToPub(privkey)
   const _pks = Array.isArray(pubkeysOpt) ? [...pubkeysOpt] : [pubkeysOpt]
-  const pks = _pks.filter((pk, index, list) => list.indexOf(pk) === index)
+  const normalized = _pks
+    .filter(pk => typeof pk === 'string')
+    .map(pk => pk.trim())
+    .filter(isValidPubkeyHex)
+  const pks = normalized.filter((pk, index, list) => list.indexOf(pk) === index)
   if (pks.length <= 0) pks.push(ourPubkey)
 
   const globalKey = Buffer.from(crypto.randomFillSync(new Uint8Array(32)))

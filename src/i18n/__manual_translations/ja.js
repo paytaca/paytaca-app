@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "最後のウォレットは削除できません",
   ErrorDeletingWallet: "ウォレットの削除中にエラー",
   ErrorRestoringWallet: "ウォレットの復元中にエラー",
+  BackupConfirmed: "ウォレットのバックアップが確認されました",
+  BackupConfirmedOn: "最後に確認された日: {date}",
   "Wallet Details": "ウォレットの詳細",
   "Wallet Qr Code": "ウォレットQRコード",
   "XPubKey QR Code": "拡張公開鍵QRコード",
@@ -93,7 +95,6 @@ export default {
   Validating: "検証中",
   GettingLocation: "位置情報を取得中",
   NoFilter: "フィルターなし",
-  NoFilteredLogs: "フィルター済みログなし",
   FilterLogs: "ログをフィルター",
   CopyLogs: "ログをコピー",
   LogsCopied: "ログがコピーされました",
@@ -150,6 +151,7 @@ export default {
   // Other features
   AddingLiquidity: "流動性を追加中",
   ConversionInfo: "取引時の{currency}への変換。現在の価格と比較した損益が下に表示されます。",
+  ConversionInformation: "変換情報",
   ContractInformation: "契約情報",
   DepositAddress: "預金アドレス",
   ExpiredAt: "有効期限",
@@ -179,5 +181,8 @@ export default {
   AppealableInCooldown: "{cooldown}でアピール可能",
   ThemeName: "{theme} テーマ",
   PayForLIFT: "LIFT料金を支払う",
+  FollowUsOn: "{platform} でフォローしてください",
+  PaytacaWebsiteDescription: "{paytacaWebsite} にアクセスしてください",
+  
 }
 

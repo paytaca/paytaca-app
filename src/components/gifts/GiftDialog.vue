@@ -13,7 +13,10 @@
       <q-card-section style="max-height:calc(90vh - 3.5rem);overflow-y:auto" class="q-pt-sm">
         <!-- Show QR code and URL when showQr is true -->
         <template v-if="showQr">
-          <div class="text-center text-h5 q-mb-md">{{ $t('Amount') }}: {{ amount }} BCH</div>
+          <div class="text-center text-h5 q-mb-xs">{{ $t('Amount') }}: {{ amount }} BCH</div>
+          <div class="text-center text-caption q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="opacity: 0.7;">
+            {{ $t('GiftID', {}, 'Gift ID') }}: {{ getGiftId() }}
+          </div>
           <div class="row justify-center q-mb-md">
             <qr-code :text="qrCodeContents" :size="200" icon="bch-logo.png"/>
           </div>
@@ -26,7 +29,18 @@
             <div class="ellipsis">{{ qrCodeContents }}</div>
             <q-icon name="content_copy" size="1.25em" class="q-ml-sm"/>
           </div>
-          <div class="text-center text-subtitle1">{{ $t('ScanClaimGift') }}</div>
+          <div class="text-center text-subtitle1 q-mb-md">{{ $t('ScanClaimGift') }}</div>
+          <div class="row justify-center q-mt-md">
+            <q-btn
+              unelevated
+              no-caps
+              :label="$t('SaveQR', {}, 'Save QR')"
+              icon="download"
+              color="primary"
+              class="save-image-btn"
+              @click="saveGiftQRImage"
+            />
+          </div>
         </template>
         
         <!-- Show gift details when showQr is false -->
@@ -39,6 +53,10 @@
             <div class="row q-mb-md">
               <div class="col-5 text-grey-7">{{ $t('Amount') }}:</div>
               <div class="col-7 text-right text-weight-medium">{{ amount }} BCH</div>
+            </div>
+            <div class="row q-mb-md" v-if="getGiftId()">
+              <div class="col-5 text-grey-7">{{ $t('GiftID', {}, 'Gift ID') }}:</div>
+              <div class="col-7 text-right text-weight-medium">{{ getGiftId() }}</div>
             </div>
             <div class="row q-mb-md" v-if="formattedDateClaimed">
               <div class="col-5 text-grey-7">{{ $t('DateClaimed', {}, 'Date Claimed') }}:</div>
@@ -74,7 +92,7 @@
                     />
                   </template>
                   <div class="old-gift-notice-text">
-                    This gift was created from an old version of the app, it can still be claimed by those who got the link, but the link cannot be recreated anymore in this version.
+                    {{ $t('OldGiftNotice', {}, 'This gift was created from an old version of the app, it can still be claimed by those who got the link, but the link cannot be recreated anymore in this version.') }}
                   </div>
                 </q-banner>
               </div>
@@ -92,6 +110,13 @@ import { useQuasar } from 'quasar'
 import { useDialogPluginComponent } from 'quasar'
 import { useI18n } from "vue-i18n"
 import { formatDistance } from 'date-fns'
+import html2canvas from 'html2canvas'
+import QRCode from 'qrcode-svg'
+import { Capacitor } from '@capacitor/core'
+import SaveToGallery from 'src/utils/save-to-gallery'
+import paytacaLogoHorizontal from '../../assets/paytaca_logo_horizontal.png'
+import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 // dialog plugins requirement
 defineEmits([
@@ -205,6 +230,526 @@ function copyToClipboard (value, message=t('CopiedToClipboard')) {
     color: 'blue-9',
     icon: 'mdi-clipboard-check'
   })
+}
+
+const denomination = computed(() => $store.getters['global/denomination'])
+
+function getGiftId() {
+  const giftCode = props.gift?.qr || props.gift?.giftCode
+  if (!giftCode) {
+    // Fallback to gift_code_hash if available
+    const giftCodeHash = props.gift?.hash || props.gift?.gift_code_hash
+    if (giftCodeHash && typeof giftCodeHash === 'string') {
+      const hex6 = giftCodeHash.substring(0, 6)
+      return hexToRef(hex6)
+    }
+    return ''
+  }
+  // Use sha256 to get hash from gift code, then convert to ID
+  const sha256 = require('js-sha256')
+  const hash = sha256(giftCode)
+  const hex6 = hash.substring(0, 6)
+  return hexToRef(hex6)
+}
+
+async function saveGiftQRImage () {
+  if (!qrCodeContents.value) {
+    return
+  }
+  
+  try {
+    const qrUrl = qrCodeContents.value
+    const giftAmount = getAssetDenomination(denomination.value, amount.value)
+    
+    // Create a beautiful wrapper with gradient background
+    const wrapper = document.createElement('div')
+    wrapper.style.cssText = `
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      padding: 60px 50px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      width: 800px;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    `
+    
+    // Add decorative background elements
+    const bgDecoration = document.createElement('div')
+    bgDecoration.style.cssText = `
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 400px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      z-index: 0;
+    `
+    wrapper.appendChild(bgDecoration)
+    
+    const bgDecoration2 = document.createElement('div')
+    bgDecoration2.style.cssText = `
+      position: absolute;
+      bottom: -150px;
+      left: -150px;
+      width: 500px;
+      height: 500px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      z-index: 0;
+    `
+    wrapper.appendChild(bgDecoration2)
+    
+    // Main content container
+    const contentContainer = document.createElement('div')
+    contentContainer.style.cssText = `
+      position: relative;
+      z-index: 1;
+      background: white;
+      border-radius: 32px;
+      padding: 50px 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    `
+    
+    // Header with logo and title
+    const header = document.createElement('div')
+    header.style.cssText = `
+      text-align: center;
+      margin-bottom: 40px;
+    `
+    
+    // Logo and text container
+    const logoContainer = document.createElement('div')
+    logoContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 30px;
+    `
+    
+    // Gift icon
+    const giftIcon = document.createElement('div')
+    giftIcon.style.cssText = `
+      font-size: 48px;
+      line-height: 1;
+    `
+    giftIcon.innerHTML = '🎁'
+    logoContainer.appendChild(giftIcon)
+    
+    // Header text with highlighted Bitcoin Cash
+    const headerText = document.createElement('div')
+    headerText.style.cssText = `
+      font-size: 28px;
+      font-weight: 700;
+      color: #2d3748;
+      line-height: 1.4;
+    `
+    
+    // Create text with highlighted "Bitcoin Cash"
+    const textSpan = document.createElement('span')
+    textSpan.textContent = 'You received a '
+    headerText.appendChild(textSpan)
+    
+    const bitcoinCashSpan = document.createElement('span')
+    bitcoinCashSpan.style.cssText = `
+      background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 100%);
+      color: white;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(10, 193, 142, 0.3);
+    `
+    bitcoinCashSpan.textContent = 'Bitcoin Cash'
+    headerText.appendChild(bitcoinCashSpan)
+    
+    const textSpan2 = document.createElement('span')
+    textSpan2.textContent = ' gift!'
+    headerText.appendChild(textSpan2)
+    
+    logoContainer.appendChild(headerText)
+    header.appendChild(logoContainer)
+    
+    // Amount display with beautiful styling
+    const amountContainer = document.createElement('div')
+    amountContainer.style.cssText = `
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 40px;
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+    `
+    
+    const amountLabel = document.createElement('div')
+    amountLabel.style.cssText = `
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    `
+    amountLabel.textContent = t('Amount', {}, 'Amount')
+    amountContainer.appendChild(amountLabel)
+    
+    const amountValue = document.createElement('div')
+    amountValue.style.cssText = `
+      font-size: 48px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -1px;
+    `
+    amountValue.textContent = giftAmount
+    amountContainer.appendChild(amountValue)
+    
+    header.appendChild(amountContainer)
+    
+    // Add Gift ID below amount container
+    const giftIdValue = getGiftId()
+    if (giftIdValue) {
+      const giftIdContainer = document.createElement('div')
+      giftIdContainer.style.cssText = `
+        text-align: center;
+        margin-top: 8px;
+        margin-bottom: 20px;
+      `
+      const giftIdLabel = document.createElement('div')
+      giftIdLabel.style.cssText = `
+        font-size: 18px;
+        font-weight: 600;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      `
+      giftIdLabel.textContent = `${t('GiftID', {}, 'Gift ID')}: ${giftIdValue}`
+      giftIdContainer.appendChild(giftIdLabel)
+      header.appendChild(giftIdContainer)
+    }
+    
+    contentContainer.appendChild(header)
+
+    // QR Code container with nice frame
+    const qrContainer = document.createElement('div')
+    qrContainer.style.cssText = `
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 24px;
+      margin-bottom: 35px;
+      position: relative;
+    `
+    
+    const qrFrame = document.createElement('div')
+    qrFrame.style.cssText = `
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      position: relative;
+    `
+
+    // Create QR code at native large size
+    const qrcode = new QRCode({
+      content: qrUrl,
+      width: 500,
+      height: 500,
+      swap: true,
+      join: true,
+      ecl: 'Q',
+      padding: 0
+    })
+    
+    const parser = new DOMParser()
+    const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
+    const svgElement = svgDoc.documentElement
+    svgElement.setAttribute('width', '500')
+    svgElement.setAttribute('height', '500')
+    qrFrame.appendChild(svgElement)
+    
+    // Add BCH logo overlay in the center
+    const logoOverlay = document.createElement('div')
+    logoOverlay.style.cssText = `
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90px;
+      height: 90px;
+      background: white;
+      border-radius: 50%;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+    `
+    
+    // Load BCH PNG logo
+    const loadBchLogo = () => {
+      return new Promise((resolve) => {
+        const logoImg = document.createElement('img')
+        logoImg.src = 'bch-logo.png'
+        logoImg.style.cssText = `
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+        `
+        logoImg.onload = () => {
+          logoOverlay.appendChild(logoImg)
+          resolve()
+        }
+        logoImg.onerror = () => {
+          // Fallback to styled badge if image fails
+          const logoInner = document.createElement('div')
+          logoInner.style.cssText = `
+            background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 100%);
+            color: white;
+            font-size: 28px;
+            font-weight: 800;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 1px;
+          `
+          logoInner.textContent = 'BCH'
+          logoOverlay.appendChild(logoInner)
+          resolve()
+        }
+      })
+    }
+    
+    qrFrame.appendChild(logoOverlay)
+    qrContainer.appendChild(qrFrame)
+    contentContainer.appendChild(qrContainer)
+    
+    // Footer with instructions, logo, and website
+    const footer = document.createElement('div')
+    footer.style.cssText = `
+      text-align: center;
+      padding-top: 30px;
+    `
+    
+    // Instruction text
+    const instructionText = document.createElement('div')
+    instructionText.style.cssText = `
+      font-size: 28px;
+      font-weight: 600;
+      color: #2d3748;
+      letter-spacing: -0.3px;
+      margin-bottom: 24px;
+      line-height: 1.4;
+    `
+    instructionText.textContent = 'To claim the gift, scan the QR using Paytaca app.'
+    footer.appendChild(instructionText)
+    
+    // Paytaca logo container
+    const paytacaLogoContainer = document.createElement('div')
+    paytacaLogoContainer.style.cssText = `
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 16px;
+    `
+    
+    // Load Paytaca logo
+    const loadPaytacaLogo = () => {
+      return new Promise((resolve) => {
+        const logoImg = document.createElement('img')
+        // Use the imported logo path (webpack will resolve it)
+        logoImg.src = paytacaLogoHorizontal
+        logoImg.style.cssText = `
+          height: 120px;
+          width: auto;
+          object-fit: contain;
+          display: block;
+        `
+        logoImg.onload = () => {
+          paytacaLogoContainer.appendChild(logoImg)
+          resolve()
+        }
+        logoImg.onerror = () => {
+          // If logo fails, just resolve (no logo)
+          resolve()
+        }
+      })
+    }
+    
+    // Website text
+    const websiteText = document.createElement('div')
+    websiteText.style.cssText = `
+      font-size: 26px;
+      font-weight: 500;
+      color: #4a5568;
+      letter-spacing: 0.2px;
+    `
+    websiteText.textContent = 'www.paytaca.com'
+    footer.appendChild(paytacaLogoContainer)
+    footer.appendChild(websiteText)
+    contentContainer.appendChild(footer)
+    
+    wrapper.appendChild(contentContainer)
+    document.body.appendChild(wrapper)
+    
+    try {
+      // Wait for logos to load before capturing
+      await Promise.all([
+        loadBchLogo(),
+        loadPaytacaLogo()
+      ])
+      
+      // Small delay to ensure DOM updates are rendered
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Capture with html2canvas
+      const canvas = await html2canvas(wrapper, {
+        backgroundColor: null,
+        scale: 3,
+        logging: false,
+        useCORS: true,
+        allowTaint: true
+      })
+
+      // Remove temporary wrapper (success path - wrapper no longer needed)
+      document.body.removeChild(wrapper)
+
+      // Create filename with gift amount and code
+      const sanitizedAmount = giftAmount.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+      const shortCode = qrCodeContents.value.substring(qrCodeContents.value.length - 8)
+      const filename = `bch-gift-${sanitizedAmount}-${shortCode}.png`
+
+      canvas.toBlob(async (blob) => {
+        try {
+          if (!blob) {
+            throw new Error('canvas.toBlob() returned null')
+          }
+
+          // Check if running on mobile
+          const isMobile = Capacitor.getPlatform() !== 'web'
+          
+          if (isMobile) {
+            // Convert blob to base64
+            const reader = new FileReader()
+            reader.onload = async () => {
+              try {
+                if (typeof reader.result !== 'string') {
+                  throw new Error('FileReader result is not a string')
+                }
+
+                const base64Data = reader.result.split(',')[1]
+                if (!base64Data) {
+                  throw new Error('Failed to extract base64 data from data URL')
+                }
+                
+                // Save to photo library using our custom plugin
+                const result = await SaveToGallery.saveImage({
+                  base64Data: base64Data,
+                  filename: filename
+                })
+                
+                $q.notify({
+                  message: t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
+                  color: 'positive',
+                  icon: 'check_circle',
+                  position: 'top',
+                  timeout: 2000
+                })
+              } catch (error) {
+                console.error('[SaveGiftQR] Error saving to photos:', error)
+                $q.notify({
+                  message: t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
+                  color: 'negative',
+                  icon: 'error',
+                  position: 'top',
+                  timeout: 3000
+                })
+              }
+            }
+            reader.onerror = (event) => {
+              console.error('[SaveGiftQR] Error converting QR blob to base64:', reader.error || event)
+              $q.notify({
+                message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
+            }
+            reader.onabort = () => {
+              console.error('[SaveGiftQR] FileReader aborted while converting QR blob to base64')
+              $q.notify({
+                message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
+            }
+
+            try {
+              reader.readAsDataURL(blob)
+            } catch (error) {
+              console.error('[SaveGiftQR] readAsDataURL threw:', error)
+              $q.notify({
+                message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
+            }
+          } else {
+            // Desktop/web - use download link
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+            
+            $q.notify({
+              message: t('QRDownloaded', {}, 'QR code downloaded'),
+              color: 'positive',
+              icon: 'check_circle',
+              position: 'top',
+              timeout: 2000
+            })
+          }
+        } catch (error) {
+          console.error('[SaveGiftQR] Error:', error)
+          $q.notify({
+            message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 3000
+          })
+        }
+      }, 'image/png')
+    } finally {
+      // Ensure wrapper is always removed, even if an error occurred
+      if (wrapper && wrapper.parentNode === document.body) {
+        document.body.removeChild(wrapper)
+      }
+    }
+  } catch (error) {
+    console.error('[SaveGiftQR] Error creating image:', error)
+    $q.notify({
+      message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+      color: 'negative',
+      icon: 'error',
+      position: 'top',
+      timeout: 3000
+    })
+  }
 }
 </script>
 

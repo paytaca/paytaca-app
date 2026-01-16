@@ -60,7 +60,7 @@
                     {{ $t('Step2LinkWallet', {}, 'Step 2: Link to Your Wallet') }}
                   </q-item-label>
                   <q-item-label caption :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                    {{ $t('Step2Description', {}, 'Link the POS app to your Paytaca wallet. This connects your point of sale system to your wallet for seamless payment processing.') }}
+                    {{ $t('Step2Description', {}, 'Link the POS app to your Paytaca wallet. This connects your POS system to your wallet for seamless payment processing.') }}
                   </q-item-label>
                 </q-item-section>
               </q-item>

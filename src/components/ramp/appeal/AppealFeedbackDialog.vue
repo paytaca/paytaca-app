@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" full-width no-shake v-model="showDialog" position="bottom">
-    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
+    <q-card class="br-15 pt-card text-bow bottom-card" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <div class="q-py-sm q-my-lg q-mx-lg q-px-sm">
         <div v-if="loading" class="row justify-center"><ProgressLoader/></div>
         <div v-else>

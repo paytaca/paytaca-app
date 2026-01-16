@@ -204,7 +204,7 @@
                   @update:model-value="onOtherWalletSelected"
                 >
                   <template v-slot:option="scope">
-                    <q-item v-bind="scope.itemProps">
+                    <q-item v-bind="scope.itemProps" class="text-bow" :class="getDarkModeClass(darkMode)">
                       <q-item-section>
                         <q-item-label>{{ scope.opt.name }}</q-item-label>
                       </q-item-section>

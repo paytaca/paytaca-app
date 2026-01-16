@@ -155,14 +155,19 @@ export default {
     
     /* Prevent iOS from hiding fixed elements during scroll */
     will-change: transform;
-    
-    /* Make sure all child elements are also transparent */
-    ::v-deep * {
-      background-color: transparent !important;
+
+    /*
+      IMPORTANT:
+      Do NOT force all child backgrounds to transparent.
+      QSlideItem uses the `left-color` to paint the revealed area during swipe.
+      Overriding it causes a "transparent strip" while sliding.
+    */
+    :deep(.q-slide-item__content) {
+      background: transparent;
     }
-    
+
     /* Keep only the actual button gradient - uses theme bg-grad */
-    ::v-deep .q-item.bg-grad {
+    :deep(.q-item.bg-grad) {
       /* Gradient is provided by theme system */
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       transition: all 0.3s ease;
@@ -170,6 +175,12 @@ export default {
       &:active {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
+    }
+
+    /* Ensure the slide item clips revealed background nicely */
+    :deep(.q-slide-item) {
+      border-radius: 40px;
+      overflow: hidden;
     }
   }
 }

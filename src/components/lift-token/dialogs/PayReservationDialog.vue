@@ -45,12 +45,7 @@
         <custom-input
           v-model="amountTkn"
           :inputSymbol="'LIFT'"
-          :inputRules="[
-            val => (
-              Number(this.amountBch) < this.walletBalance &&
-              Number(val) * 10 ** 2 <= this.tknBalance
-            ) || this.$t('BalanceExceeded')
-          ]"
+          :inputRules="inputValidationRules"
           :asset="null"
           :decimalObj="{ min: 0, max: 2 }"
           @on-amount-click="onKeyAction"
@@ -143,11 +138,7 @@
           :class="`theme-${theme}`"
           :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
           :label="$t('Purchase')"
-          :disable="
-            Number(amountTkn) === 0 ||
-            Number(amountBch) > walletBalance ||
-            Number(amountTkn) * 10 ** 2 > tknBalance
-          "
+          :disable="disablePurchase"
           @click="openConfirmDialog"
         />
       </div>
@@ -197,7 +188,8 @@ export default {
       bchBalance: 0,
       tknBalance: 0,
       currentUsdPrice: 0,
-      currentMessageTimestamp: 0
+      currentMessageTimestamp: 0,
+      selectedRoundMinPurchase: 100
     };
   },
 
@@ -216,6 +208,43 @@ export default {
       const asset = this.$store.getters["assets/getAssets"][0];
       return asset.spendable;
     },
+    inputValidationRules() {
+      return [
+        val => (
+          Number(this.amountBch) < this.walletBalance &&
+          Number(val) * 10 ** 2 <= this.tknBalance
+        ) || this.$t('BalanceExceeded'),
+        val => {
+          const amount = Number(val)
+          if (!amount || amount === 0) return true
+          if (Number(this.unpaidLift) / 10 ** 2 < this.selectedRoundMinPurchase) return true
+          if (Number(val) >= this.selectedRoundMinPurchase) return true
+          return `${this.$t('MinimumPurchase')}: ${this.formatNumber(this.selectedRoundMinPurchase)} LIFT`
+        }
+      ]
+    },
+    disablePurchase() {
+      const availableBalance = this.parseToken() / 10 ** 2
+      const amount = Number(this.amountTkn)
+      const isBelowMinimum = availableBalance < this.selectedRoundMinPurchase
+      
+      // If available balance is below minimum, allow purchase but still validate balance limits
+      if (isBelowMinimum && amount > 0) {
+        return (
+          amount === 0 ||
+          Number(this.amountBch) > this.walletBalance ||
+          amount * 10 ** 2 > this.tknBalance
+        )
+      }
+
+      // Normal validation when available balance meets minimum requirement
+      return (
+        amount === 0 ||
+        Number(this.amountBch) > this.walletBalance ||
+        amount * 10 ** 2 > this.tknBalance ||
+        amount < this.selectedRoundMinPurchase
+      )
+    }
   },
 
   methods: {
@@ -275,6 +304,9 @@ export default {
       this.tknBalance = tkn;
       this.unpaidLift = this.parseToken() - Number(this.amountTkn * 10 ** 2);
     },
+    formatNumber(num) {
+      return new Intl.NumberFormat().format(num)
+    },
 
     onKeyAction (val) {
       this.amountTkn = val
@@ -327,6 +359,8 @@ export default {
 
   async mounted() {
     if (!this.rsvp) return;
+
+    this.amountTkn = this.parseToken() / 10 ** 2;
     
     const oracleData = await getOracleData()
     this.currentUsdPrice = oracleData.price

@@ -531,6 +531,7 @@ import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { updateCssThemeColors } from 'src/utils/theme-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 import { getAllAssets } from 'src/store/assets/getters'
 import initialAssetState from 'src/store/assets/state'
@@ -893,18 +894,21 @@ export default {
           
           const finalWalletIndex = currentWalletIndex
           
-          // Update settings
+          // Update settings - preserve existing vault settings to maintain theme and other selections made during onboarding
+          const existingVaultEntry = vault[currentWalletIndex]
+          const existingSettings = existingVaultEntry?.settings || {}
           const currentSettings = {
-            language: this.$store.getters['global/language'],
-            theme: this.$store.getters['global/theme'],
-            country: this.$store.getters['global/country'],
-            denomination: this.$store.getters['global/denomination'],
-            preferredSecurity: this.$store.getters['global/preferredSecurity'],
-            isChipnet: this.$store.getters['global/isChipnet'],
-            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
-            enableStablhedge: this.$store.getters['global/enableStablhedge'],
-            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
-            enableSLP: this.$store.getters['global/enableSLP'],
+            ...existingSettings, // Preserve existing vault settings (theme, etc.)
+            language: existingSettings.language || this.$store.getters['global/language'],
+            theme: existingSettings.theme || this.$store.getters['global/theme'], // Use vault theme if available
+            country: existingSettings.country || this.$store.getters['global/country'],
+            denomination: existingSettings.denomination || this.$store.getters['global/denomination'],
+            preferredSecurity: existingSettings.preferredSecurity || this.$store.getters['global/preferredSecurity'],
+            isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: existingSettings.enableSmartBCH !== undefined ? existingSettings.enableSmartBCH : this.$store.getters['global/enableSmartBCH'],
+            enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
             darkMode: this.$store.getters['darkmode/getStatus'],
             currency: this.$store.getters['market/selectedCurrency']
           }
@@ -915,6 +919,11 @@ export default {
           
           this.$store.commit('global/updateWalletIndex', finalWalletIndex)
           this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+          
+          // Update theme CSS colors after switching wallet
+          const currentTheme = this.$store.getters['global/theme']
+          updateCssThemeColors(currentTheme)
+          
           this.$store.dispatch('global/syncSettingsToModules')
           
           // Handle asset vault update
@@ -967,18 +976,21 @@ export default {
           
           const finalWalletIndex = duplicateIndex
           
-          // Update settings and continue as above...
+          // Update settings - preserve existing vault settings to maintain theme and other selections
+          const existingVaultEntry = vault[duplicateIndex]
+          const existingSettings = existingVaultEntry?.settings || {}
           const currentSettings = {
-            language: this.$store.getters['global/language'],
-            theme: this.$store.getters['global/theme'],
-            country: this.$store.getters['global/country'],
-            denomination: this.$store.getters['global/denomination'],
-            preferredSecurity: this.$store.getters['global/preferredSecurity'],
-            isChipnet: this.$store.getters['global/isChipnet'],
-            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
-            enableStablhedge: this.$store.getters['global/enableStablhedge'],
-            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
-            enableSLP: this.$store.getters['global/enableSLP'],
+            ...existingSettings, // Preserve existing vault settings (theme, etc.)
+            language: existingSettings.language || this.$store.getters['global/language'],
+            theme: existingSettings.theme || this.$store.getters['global/theme'], // Use vault theme if available
+            country: existingSettings.country || this.$store.getters['global/country'],
+            denomination: existingSettings.denomination || this.$store.getters['global/denomination'],
+            preferredSecurity: existingSettings.preferredSecurity || this.$store.getters['global/preferredSecurity'],
+            isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: existingSettings.enableSmartBCH !== undefined ? existingSettings.enableSmartBCH : this.$store.getters['global/enableSmartBCH'],
+            enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
             darkMode: this.$store.getters['darkmode/getStatus'],
             currency: this.$store.getters['market/selectedCurrency']
           }
@@ -989,6 +1001,11 @@ export default {
           
           this.$store.commit('global/updateWalletIndex', finalWalletIndex)
           this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+          
+          // Update theme CSS colors after switching wallet
+          const currentTheme = this.$store.getters['global/theme']
+          updateCssThemeColors(currentTheme)
+          
           this.$store.dispatch('global/syncSettingsToModules')
           
           let asset = this.$store.getters['assets/getAllAssets']
@@ -1044,21 +1061,27 @@ export default {
       }
       
       // Settings should already be saved during steps 2-4 since vault entry exists
-      // But ensure they're up to date with current state
+      // Read existing settings from vault entry first to preserve theme and other selections made during onboarding
+      const existingVaultEntry = vaultAfterUpdate && vaultAfterUpdate[finalWalletIndex] ? vaultAfterUpdate[finalWalletIndex] : null
+      const existingSettings = existingVaultEntry?.settings || {}
+      
+      // Merge with current global state settings, but prioritize vault settings for critical fields like theme
+      // This ensures that theme selected during onboarding is preserved
       const currentSettings = {
-        language: this.$store.getters['global/language'],
-        theme: this.$store.getters['global/theme'],
-        country: this.$store.getters['global/country'],
-        denomination: this.$store.getters['global/denomination'],
-        preferredSecurity: this.$store.getters['global/preferredSecurity'],
-        isChipnet: this.$store.getters['global/isChipnet'],
-        autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
-        enableStablhedge: this.$store.getters['global/enableStablhedge'],
-        enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
-        enableSLP: this.$store.getters['global/enableSLP'],
-        // Get darkMode from darkmode module
+        ...existingSettings, // Preserve existing vault settings (theme, etc.)
+        language: existingSettings.language || this.$store.getters['global/language'],
+        theme: existingSettings.theme || this.$store.getters['global/theme'], // Use vault theme if available
+        country: existingSettings.country || this.$store.getters['global/country'],
+        denomination: existingSettings.denomination || this.$store.getters['global/denomination'],
+        preferredSecurity: existingSettings.preferredSecurity || this.$store.getters['global/preferredSecurity'],
+        isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
+        autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
+        enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
+        enableSmartBCH: existingSettings.enableSmartBCH !== undefined ? existingSettings.enableSmartBCH : this.$store.getters['global/enableSmartBCH'],
+        enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
+        // Get darkMode from darkmode module (always use current state)
         darkMode: this.$store.getters['darkmode/getStatus'],
-        // Get currency from market module
+        // Get currency from market module (always use current state)
         currency: this.$store.getters['market/selectedCurrency']
       }
       // Use mutation to update settings (prevents Vuex mutation error)
@@ -1072,6 +1095,11 @@ export default {
       
       // Update current wallet to switch to the wallet
       this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+      
+      // Update theme CSS colors after switching wallet
+      const currentTheme = this.$store.getters['global/theme']
+      updateCssThemeColors(currentTheme)
+      
       // Sync settings to darkmode and market modules
       this.$store.dispatch('global/syncSettingsToModules')
 
@@ -1079,8 +1107,8 @@ export default {
       // Check if vault existed before we created this new entry
       const vaultBeforeCreate = finalWalletIndex > 0
       if (vaultBeforeCreate) {
-        const vault = this.$store.getters['global/getVault']
         const previousWalletIndex = finalWalletIndex - 1
+        const vault = this.$store.getters['global/getVault']
         
         // Save wallet data from snapshot for new wallet first
         this.newWalletSnapshot.walletInfo.map(walletInfo => {
@@ -1229,6 +1257,18 @@ export default {
         return vm.promptEnablePushNotification()?.catch?.(console.error)
       }).then(async function () {
         vm.saveToVault()
+        
+        // Sync wallet name after saving to vault (for imported wallets)
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        if (walletIndex >= 0) {
+          try {
+            await vm.$store.dispatch('global/syncWalletName', { walletIndex })
+          } catch (error) {
+            // Non-critical - wallet name will sync later or use cached/default name
+            console.warn('Failed to sync wallet name after import:', error)
+          }
+        }
+        
         // Ensure mnemonic is readable before navigating to '/' (router guard depends on it)
         try {
           await vm.ensureMnemonicReady()
@@ -1236,7 +1276,10 @@ export default {
           console.warn('mnemonic readiness wait timeout', e)
           vm.isRedirecting = false
         }
-        vm.$router.push('/').catch(() => {
+        vm.$router.push({
+          path: '/',
+          query: { newWallet: 'true' }
+        }).catch(() => {
           vm.isRedirecting = false
         })
       }).catch((error) => {

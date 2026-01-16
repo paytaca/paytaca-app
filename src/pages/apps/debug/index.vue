@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" class="debug-page sticky-header-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="debug-page sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav
       :title="$t('Debug')"
       backnavpath="/apps"
@@ -23,7 +23,7 @@
         <!-- Tools Card -->
         <div class="col-12 col-md-6 q-pa-sm">
           <q-card 
-            class="debug-menu-card cursor-pointer" 
+            class="debug-menu-card cursor-pointer"
             :class="getDarkModeClass(darkMode)"
             @click="$router.push('/apps/debug/tools')"
           >

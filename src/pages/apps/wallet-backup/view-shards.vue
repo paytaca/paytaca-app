@@ -54,7 +54,7 @@
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
                       <div class="col-auto q-pt-md">
-                        <qr-code :qr-id="1" :text="shards[0]" :size="220" class="q-mb-sm" />
+                        <qr-code :qr-id="1" :text="shards[0]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
@@ -129,7 +129,7 @@
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
                       <div class="col-auto q-pt-md">
-                        <qr-code :qr-id="2" :text="shards[1]" :size="220" class="q-mb-sm" />
+                        <qr-code :qr-id="2" :text="shards[1]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
@@ -204,7 +204,7 @@
                   <div class="col q-pl-sm q-pr-sm">
                     <div class="row text-center justify-center">
                       <div class="col-auto q-pt-md">
-                        <qr-code :qr-id="3" :text="shards[2]" :size="220" class="q-mb-sm" />
+                        <qr-code :qr-id="3" :text="shards[2]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
@@ -262,6 +262,9 @@
       </template>
     </div>
 
+    <!-- Sticky Confirm Backup button -->
+    <StickyBackupConfirmButton :authenticated="authenticated" />
+
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="onPinVerified" />
     <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
   </div>
@@ -274,6 +277,7 @@ import { copyToClipboard } from 'quasar'
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcode-svg'
 import HeaderNav from 'src/components/header-nav'
+import StickyBackupConfirmButton from 'src/components/wallet-backup/StickyBackupConfirmButton.vue'
 import { getMnemonic } from 'src/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import pinDialog from 'src/components/pin'
@@ -281,12 +285,14 @@ import biometricWarningAttempts from 'src/components/authOption/biometric-warnin
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Capacitor } from '@capacitor/core'
 import SaveToGallery from 'src/utils/save-to-gallery'
+import paytacaLogoHorizontal from '../../../assets/paytaca_logo_horizontal.png'
 
 export default {
   name: 'view-shards',
 
   components: {
     HeaderNav,
+    StickyBackupConfirmButton,
     pinDialog,
     biometricWarningAttempts
   },
@@ -346,55 +352,231 @@ export default {
     async downloadQR (shardIndex) {
       const vm = this
       try {
-        // Create a professional wrapper for the QR code
+        // Create a beautiful wrapper with gradient background (security/backup theme)
         const wrapper = document.createElement('div')
         wrapper.style.cssText = `
-          background: white;
-          padding: 50px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-          width: 700px;
+          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+          padding: 60px 50px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          width: 800px;
           box-sizing: border-box;
+          position: relative;
+          overflow: hidden;
         `
-
-        // Header with wallet info
+        
+        // Add decorative background elements
+        const bgDecoration = document.createElement('div')
+        bgDecoration.style.cssText = `
+          position: absolute;
+          top: -100px;
+          right: -100px;
+          width: 400px;
+          height: 400px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration)
+        
+        const bgDecoration2 = document.createElement('div')
+        bgDecoration2.style.cssText = `
+          position: absolute;
+          bottom: -150px;
+          left: -150px;
+          width: 500px;
+          height: 500px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration2)
+        
+        // Main content container
+        const contentContainer = document.createElement('div')
+        contentContainer.style.cssText = `
+          position: relative;
+          z-index: 1;
+          background: white;
+          border-radius: 32px;
+          padding: 50px 40px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        `
+        
+        // Header with icon and title
         const header = document.createElement('div')
         header.style.cssText = `
           text-align: center;
-          margin-bottom: 35px;
-          padding-bottom: 25px;
-          border-bottom: 3px solid #e0e0e0;
+          margin-bottom: 40px;
         `
-        header.innerHTML = `
-          <div style="font-size: 36px; font-weight: 700; color: #1a1a1a; margin-bottom: 20px;">
-            ${vm.walletName || 'Paytaca Wallet'}
-          </div>
-          <div style="font-size: 14px; font-weight: 600; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-            Wallet Hash
-          </div>
-          <div style="font-size: 20px; color: #333; font-family: monospace; margin-bottom: 20px; word-break: break-all; line-height: 1.4;">
-            ${vm.walletHash}
-          </div>
-          <div style="font-size: 22px; font-weight: 600; color: #0d47a1; margin-top: 16px;">
-            Seed Phrase Shard ${shardIndex + 1}
-          </div>
+        
+        // Security icon and text container
+        const iconContainer = document.createElement('div')
+        iconContainer.style.cssText = `
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 30px;
         `
+        
+        // Security icon
+        const securityIcon = document.createElement('div')
+        securityIcon.style.cssText = `
+          font-size: 48px;
+          line-height: 1;
+        `
+        securityIcon.innerHTML = '🔐'
+        iconContainer.appendChild(securityIcon)
+        
+        // Header text
+        const headerText = document.createElement('div')
+        headerText.style.cssText = `
+          font-size: 28px;
+          font-weight: 700;
+          color: #2d3748;
+          line-height: 1.4;
+        `
+        headerText.textContent = 'Seed Phrase Shard Backup'
+        iconContainer.appendChild(headerText)
+        header.appendChild(iconContainer)
+        
+        // Wallet info container with gradient (compact layout)
+        const walletInfoContainer = document.createElement('div')
+        walletInfoContainer.style.cssText = `
+          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+          border-radius: 16px;
+          padding: 20px 24px;
+          margin-bottom: 30px;
+          box-shadow: 0 8px 24px rgba(30, 60, 114, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 30px;
+        `
+        
+        // Left side: Wallet Name
+        const walletNameSection = document.createElement('div')
+        walletNameSection.style.cssText = `
+          flex: 1;
+          text-align: left;
+        `
+        
+        const walletNameLabel = document.createElement('div')
+        walletNameLabel.style.cssText = `
+          font-size: 11px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.9);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 6px;
+        `
+        walletNameLabel.textContent = 'Wallet Name'
+        walletNameSection.appendChild(walletNameLabel)
+        
+        const walletNameValue = document.createElement('div')
+        walletNameValue.style.cssText = `
+          font-size: 24px;
+          font-weight: 800;
+          color: white;
+          letter-spacing: -0.3px;
+          line-height: 1.2;
+        `
+        walletNameValue.textContent = vm.walletName || 'Paytaca Wallet'
+        walletNameSection.appendChild(walletNameValue)
+        walletInfoContainer.appendChild(walletNameSection)
+        
+        // Right side: Shard Number
+        const shardSection = document.createElement('div')
+        shardSection.style.cssText = `
+          text-align: right;
+          flex-shrink: 0;
+        `
+        
+        const shardLabel = document.createElement('div')
+        shardLabel.style.cssText = `
+          font-size: 11px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.9);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 6px;
+        `
+        shardLabel.textContent = 'Shard Number'
+        shardSection.appendChild(shardLabel)
+        
+        const shardValue = document.createElement('div')
+        shardValue.style.cssText = `
+          font-size: 36px;
+          font-weight: 800;
+          color: white;
+          letter-spacing: -1px;
+          line-height: 1;
+        `
+        shardValue.textContent = `${shardIndex + 1}`
+        shardSection.appendChild(shardValue)
+        walletInfoContainer.appendChild(shardSection)
+        
+        header.appendChild(walletInfoContainer)
+        
+        // Wallet hash (smaller, below main info)
+        const hashContainer = document.createElement('div')
+        hashContainer.style.cssText = `
+          text-align: center;
+          margin-top: 8px;
+          margin-bottom: 20px;
+        `
+        const hashLabel = document.createElement('div')
+        hashLabel.style.cssText = `
+          font-size: 12px;
+          font-weight: 600;
+          color: #718096;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 6px;
+        `
+        hashLabel.textContent = 'Wallet Hash'
+        hashContainer.appendChild(hashLabel)
+        const hashValue = document.createElement('div')
+        hashValue.style.cssText = `
+          font-size: 14px;
+          color: #4a5568;
+          font-family: monospace;
+          word-break: break-all;
+          line-height: 1.4;
+        `
+        hashValue.textContent = vm.walletHash
+        hashContainer.appendChild(hashValue)
+        header.appendChild(hashContainer)
+        
+        contentContainer.appendChild(header)
 
-        // Generate a large QR code natively at 550px
+        // QR Code container with nice frame
         const qrContainer = document.createElement('div')
         qrContainer.style.cssText = `
           display: flex;
           justify-content: center;
-          padding: 25px;
+          align-items: center;
+          padding: 30px;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-radius: 24px;
+          margin-bottom: 35px;
+          position: relative;
+        `
+        
+        const qrFrame = document.createElement('div')
+        qrFrame.style.cssText = `
           background: white;
-          border-radius: 8px;
-          margin-bottom: 25px;
+          padding: 20px;
+          border-radius: 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          position: relative;
         `
 
         // Create QR code at native large size
         const qrcode = new QRCode({
           content: vm.shards[shardIndex],
-          width: 550,
-          height: 550,
+          width: 500,
+          height: 500,
           swap: true,
           join: true,
           ecl: 'Q',
@@ -404,122 +586,261 @@ export default {
         const parser = new DOMParser()
         const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
         const svgElement = svgDoc.documentElement
-        qrContainer.appendChild(svgElement)
-
-        // Footer with instructions
+        svgElement.setAttribute('width', '500')
+        svgElement.setAttribute('height', '500')
+        qrFrame.appendChild(svgElement)
+        
+        // Add security icon overlay in the center
+        const iconOverlay = document.createElement('div')
+        iconOverlay.style.cssText = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 90px;
+          height: 90px;
+          background: white;
+          border-radius: 50%;
+          padding: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          z-index: 10;
+          font-size: 48px;
+        `
+        iconOverlay.innerHTML = '🔐'
+        qrFrame.appendChild(iconOverlay)
+        qrContainer.appendChild(qrFrame)
+        contentContainer.appendChild(qrContainer)
+        
+        // Footer with instructions, logo, and website
         const footer = document.createElement('div')
         footer.style.cssText = `
           text-align: center;
-          padding-top: 25px;
-          border-top: 3px solid #e0e0e0;
-          color: #666;
+          padding-top: 30px;
         `
-        footer.innerHTML = `
-          <div style="margin-bottom: 12px; font-weight: 600; color: #1a1a1a; font-size: 18px;">
-            Generated using Shamir's Secret Sharing Algorithm
-          </div>
-          <div style="line-height: 1.7; font-size: 18px;">
-            Any 2 of 3 shards can recover your seed phrase.<br>
-            Store securely in separate locations.
-          </div>
+        
+        // Instruction text
+        const instructionText = document.createElement('div')
+        instructionText.style.cssText = `
+          font-size: 24px;
+          font-weight: 600;
+          color: #2d3748;
+          letter-spacing: -0.3px;
+          margin-bottom: 16px;
+          line-height: 1.4;
         `
-
-        // Append all elements
-        wrapper.appendChild(header)
-        wrapper.appendChild(qrContainer)
-        wrapper.appendChild(footer)
+        instructionText.textContent = 'Generated using Shamir\'s Secret Sharing Algorithm'
+        footer.appendChild(instructionText)
+        
+        const instructionSubtext = document.createElement('div')
+        instructionSubtext.style.cssText = `
+          font-size: 20px;
+          font-weight: 500;
+          color: #4a5568;
+          letter-spacing: 0.2px;
+          margin-bottom: 24px;
+          line-height: 1.5;
+        `
+        instructionSubtext.innerHTML = 'Any 2 of 3 shards can recover your seed phrase.<br>Store securely in separate locations.'
+        footer.appendChild(instructionSubtext)
+        
+        // Paytaca logo container
+        const paytacaLogoContainer = document.createElement('div')
+        paytacaLogoContainer.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 16px;
+        `
+        
+        // Load Paytaca logo
+        const loadPaytacaLogo = () => {
+          return new Promise((resolve) => {
+            const logoImg = document.createElement('img')
+            logoImg.src = paytacaLogoHorizontal
+            logoImg.style.cssText = `
+              height: 120px;
+              width: auto;
+              object-fit: contain;
+              display: block;
+            `
+            logoImg.onload = () => {
+              paytacaLogoContainer.appendChild(logoImg)
+              resolve()
+            }
+            logoImg.onerror = () => {
+              // If logo fails, just resolve (no logo)
+              resolve()
+            }
+          })
+        }
+        
+        // Website text
+        const websiteText = document.createElement('div')
+        websiteText.style.cssText = `
+          font-size: 26px;
+          font-weight: 500;
+          color: #4a5568;
+          letter-spacing: 0.2px;
+        `
+        websiteText.textContent = 'www.paytaca.com'
+        footer.appendChild(paytacaLogoContainer)
+        footer.appendChild(websiteText)
+        contentContainer.appendChild(footer)
+        
+        wrapper.appendChild(contentContainer)
         document.body.appendChild(wrapper)
+        
+        try {
+          // Wait for logo to load before capturing
+          await loadPaytacaLogo()
+          
+          // Small delay to ensure DOM updates are rendered
+          await new Promise(resolve => setTimeout(resolve, 100))
 
-        // Capture with html2canvas
-        const canvas = await html2canvas(wrapper, {
-          backgroundColor: '#ffffff',
-          scale: 3,
-          logging: false,
-          useCORS: true
-        })
+          // Capture with html2canvas
+          const canvas = await html2canvas(wrapper, {
+            backgroundColor: null,
+            scale: 3,
+            logging: false,
+            useCORS: true,
+            allowTaint: true
+          })
 
-        // Remove temporary wrapper
-        document.body.removeChild(wrapper)
+          // Remove temporary wrapper
+          document.body.removeChild(wrapper)
 
-        // Create filename with wallet name, hash, and shard number
-        const sanitizedWalletName = (vm.walletName || 'wallet')
-          .replace(/[^a-z0-9]/gi, '-')
-          .toLowerCase()
-        const shortHash = vm.walletHash.substring(0, 8)
-        const filename = `${sanitizedWalletName}-${shortHash}-shard-${shardIndex + 1}.png`
+          // Create filename with wallet name, hash, and shard number
+          const sanitizedWalletName = (vm.walletName || 'wallet')
+            .replace(/[^a-z0-9]/gi, '-')
+            .toLowerCase()
+          const shortHash = vm.walletHash.substring(0, 8)
+          const filename = `${sanitizedWalletName}-${shortHash}-shard-${shardIndex + 1}.png`
 
-        canvas.toBlob(async (blob) => {
-          try {
-            // Check if running on mobile
-            const isMobile = Capacitor.getPlatform() !== 'web'
-            
-            if (isMobile) {
-              // Convert blob to base64
-              const reader = new FileReader()
-              reader.onloadend = async () => {
-                try {
-                  const base64Data = reader.result.split(',')[1]
-                  
-                  // Save to photo library using our custom plugin
-                  const result = await SaveToGallery.saveImage({
-                    base64Data: base64Data,
-                    filename: filename
-                  })
-                  
+          canvas.toBlob(async (blob) => {
+            try {
+              if (!blob) {
+                throw new Error('canvas.toBlob() returned null')
+              }
+
+              // Check if running on mobile
+              const isMobile = Capacitor.getPlatform() !== 'web'
+              
+              if (isMobile) {
+                // Convert blob to base64
+                const reader = new FileReader()
+                reader.onload = async () => {
+                  try {
+                    if (typeof reader.result !== 'string') {
+                      throw new Error('FileReader result is not a string')
+                    }
+
+                    const base64Data = reader.result.split(',')[1]
+                    if (!base64Data) {
+                      throw new Error('Failed to extract base64 data from data URL')
+                    }
+                    
+                    // Save to photo library using our custom plugin
+                    const result = await SaveToGallery.saveImage({
+                      base64Data: base64Data,
+                      filename: filename
+                    })
+                    
+                    vm.$q.notify({
+                      message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
+                      color: 'positive',
+                      icon: 'check_circle',
+                      position: 'top',
+                      timeout: 2000
+                    })
+                  } catch (error) {
+                    console.error('[SaveQR] Error saving to photos:', error)
+                    console.error('[SaveQR] Error details:', {
+                      message: error.message,
+                      code: error.code,
+                      stack: error.stack
+                    })
+                    vm.$q.notify({
+                      message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
+                      color: 'negative',
+                      icon: 'error',
+                      position: 'top',
+                      timeout: 3000
+                    })
+                  }
+                }
+                reader.onerror = (event) => {
+                  console.error('[SaveQR] Error converting QR blob to base64:', reader.error || event)
                   vm.$q.notify({
-                    message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
-                    color: 'positive',
-                    icon: 'check_circle',
-                    position: 'top',
-                    timeout: 2000
-                  })
-                } catch (error) {
-                  console.error('[SaveQR] Error saving to photos:', error)
-                  console.error('[SaveQR] Error details:', {
-                    message: error.message,
-                    code: error.code,
-                    stack: error.stack
-                  })
-                  vm.$q.notify({
-                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
+                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
                     color: 'negative',
                     icon: 'error',
                     position: 'top',
-                    timeout: 3000
+                    timeout: 2000
                   })
                 }
-              }
-              reader.readAsDataURL(blob)
-            } else {
-              // Desktop/web - use download link
-              const url = URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = filename
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-              URL.revokeObjectURL(url)
+                reader.onabort = () => {
+                  console.error('[SaveQR] FileReader aborted while converting QR blob to base64')
+                  vm.$q.notify({
+                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
+                    color: 'negative',
+                    icon: 'error',
+                    position: 'top',
+                    timeout: 2000
+                  })
+                }
+                try {
+                  reader.readAsDataURL(blob)
+                } catch (error) {
+                  console.error('[SaveQR] readAsDataURL threw:', error)
+                  vm.$q.notify({
+                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
+                    color: 'negative',
+                    icon: 'error',
+                    position: 'top',
+                    timeout: 2000
+                  })
+                }
+              } else {
+                // Desktop/web - use download link
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = filename
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                URL.revokeObjectURL(url)
 
+                vm.$q.notify({
+                  message: vm.$t('QRSaved', {}, 'QR code saved'),
+                  color: 'positive',
+                  icon: 'download',
+                  position: 'top',
+                  timeout: 2000
+                })
+              }
+            } catch (error) {
+              console.error('Error in download process:', error)
               vm.$q.notify({
-                message: vm.$t('QRSaved', {}, 'QR code saved'),
-                color: 'positive',
-                icon: 'download',
+                message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
+                color: 'negative',
+                icon: 'error',
                 position: 'top',
                 timeout: 2000
               })
             }
-          } catch (error) {
-            console.error('Error in download process:', error)
-            vm.$q.notify({
-              message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-              color: 'negative',
-              icon: 'error',
-              position: 'top',
-              timeout: 2000
-            })
+          })
+        } catch (error) {
+          // Error during logo loading or canvas capture
+          // Remove wrapper if it still exists
+          if (document.body.contains(wrapper)) {
+            document.body.removeChild(wrapper)
           }
-        })
+          throw error // Re-throw to be caught by outer catch
+        }
       } catch (error) {
         console.error('Error downloading QR:', error)
         vm.$q.notify({
@@ -648,7 +969,7 @@ export default {
 <style lang="scss" scoped>
   .shards-view-container {
     min-height: 100vh;
-    padding-bottom: 40px;
+    padding-bottom: 100px; // Extra padding for sticky button
   }
 
   .content-wrapper {

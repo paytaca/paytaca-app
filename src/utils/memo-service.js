@@ -1,52 +1,31 @@
-import { getKeypair } from 'src/exchange/chat/keys'
-import { updateOrCreateKeypair } from 'src/exchange/chat/index'
+import { Store } from 'src/store'
 import { decompressEncryptedMessage, decryptMessage as decryptMessageCore } from 'src/marketplace/chat/encryption'
 import { encryptMessage as encryptMessageCore, compressEncryptedMessage } from 'src/marketplace/chat/encryption'
+import { getEncryptionKeypairFromMnemonic } from './memo-key-utils'
 import { privToPub } from 'src/exchange/chat/keys'
 import * as fetchMemoAPI from './transaction-memos'
 
-// In-memory cache for keypair to avoid repeated storage reads
-let keypairCache = null
-
 /**
- * Ensures a valid keypair is available for memo operations
- * Automatically regenerates if missing or invalid
+ * Gets encryption keypair derived from mnemonic (address 0/0)
+ * Always derives fresh from mnemonic to ensure cross-platform consistency
+ * @param {number} walletIndex - Optional wallet index, defaults to current wallet
  * @returns {Promise<{privkey: string, pubkey: string}>}
  */
-export async function ensureKeypair() {
-  // Check cache first
-  if (keypairCache && keypairCache.privkey && keypairCache.pubkey) {
-    const privkeyValid = /^[0-9a-f]{64}$/i.test(keypairCache.privkey)
-    const pubkeyValid = /^[0-9a-f]{66}$/i.test(keypairCache.pubkey)
-    if (privkeyValid && pubkeyValid) {
-      return keypairCache
-    }
-    keypairCache = null
-  }
-
+export async function ensureKeypair(walletIndex = null) {
   try {
-    // Try to get existing keypair from storage
-    let keypair = await getKeypair()
-    
-    // Validate keypair if found
-    if (keypair && keypair.privkey && keypair.pubkey) {
-      const privkeyValid = /^[0-9a-f]{64}$/i.test(keypair.privkey)
-      const pubkeyValid = /^[0-9a-f]{66}$/i.test(keypair.pubkey)
-      
-      if (privkeyValid && pubkeyValid) {
-        keypairCache = keypair
-        return keypair
-      }
+    // Get wallet index from store if not provided
+    if (walletIndex === null || walletIndex === undefined) {
+      walletIndex = Store.getters['global/getWalletIndex']
     }
     
-    // Keypair missing or invalid, regenerate it deterministically
-    keypair = await updateOrCreateKeypair(false)
+    // Always derive fresh from mnemonic (no caching for cross-platform consistency)
+    const keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
     
     if (!keypair || !keypair.privkey || !keypair.pubkey) {
       throw new Error('Failed to generate keypair for memo operations')
     }
     
-    // Validate regenerated keypair
+    // Validate keypair format
     const privkeyValid = /^[0-9a-f]{64}$/i.test(keypair.privkey)
     const pubkeyValid = /^[0-9a-f]{66}$/i.test(keypair.pubkey)
     
@@ -54,7 +33,6 @@ export async function ensureKeypair() {
       throw new Error('Generated keypair has invalid format')
     }
     
-    keypairCache = keypair
     return keypair
   } catch (error) {
     console.error('[memoService] ensureKeypair error:', error)
@@ -260,12 +238,15 @@ export async function saveMemo(txid, memoText, isUpdate = false) {
     }
 
     // Encrypt the memo
+    // For single-recipient memos, always use the derived pubkey to ensure consistency
+    // This matches what encryptMessage derives internally (ourPubkey = privToPub(privkey))
+    const ourPubkey = privToPub(keypair.privkey)
     let encryptedMessage
     try {
       encryptedMessage = encryptMessageCore({
         data: trimmedMemo,
         privkey: keypair.privkey,
-        pubkeys: keypair.pubkey
+        pubkeys: ourPubkey
       })
     } catch (encryptError) {
       console.error('[memoService] encryptMessage error:', encryptError)
@@ -353,8 +334,10 @@ export async function deleteMemo(txid) {
 }
 
 /**
- * Clear the keypair cache (useful for testing or when wallet changes)
+ * Clear the keypair cache (deprecated - keys are now always derived from mnemonic)
+ * Kept for backward compatibility but does nothing
+ * @deprecated
  */
 export function clearKeypairCache() {
-  keypairCache = null
+  // No-op: keys are always derived from mnemonic now
 }

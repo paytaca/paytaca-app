@@ -157,7 +157,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { getOracleData } from 'src/utils/engagementhub-utils/lift-token';
+import { getOracleData, confirmReservationApi } from 'src/utils/engagementhub-utils/lift-token';
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared';
 import {
   parseFiatCurrency,
