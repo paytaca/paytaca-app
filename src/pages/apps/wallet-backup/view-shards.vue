@@ -69,8 +69,14 @@
                     icon="download"
                     color="primary"
                     class="action-btn"
+                    :loading="savingShardQR[0]"
+                    :disable="savingShardQR[0]"
                     @click="downloadQR(0)"
-                  />
+                  >
+                    <template v-slot:loading>
+                      <q-spinner-dots color="white" size="24px" />
+                    </template>
+                  </q-btn>
                   <q-btn
                     unelevated
                     no-caps
@@ -144,8 +150,14 @@
                     icon="download"
                     color="primary"
                     class="action-btn"
+                    :loading="savingShardQR[1]"
+                    :disable="savingShardQR[1]"
                     @click="downloadQR(1)"
-                  />
+                  >
+                    <template v-slot:loading>
+                      <q-spinner-dots color="white" size="24px" />
+                    </template>
+                  </q-btn>
                   <q-btn
                     unelevated
                     no-caps
@@ -219,8 +231,14 @@
                     icon="download"
                     color="primary"
                     class="action-btn"
+                    :loading="savingShardQR[2]"
+                    :disable="savingShardQR[2]"
                     @click="downloadQR(2)"
-                  />
+                  >
+                    <template v-slot:loading>
+                      <q-spinner-dots color="white" size="24px" />
+                    </template>
+                  </q-btn>
                   <q-btn
                     unelevated
                     no-caps
@@ -308,7 +326,8 @@ export default {
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
       authenticated: false,
-      showRawText: [false, false, false]
+      showRawText: [false, false, false],
+      savingShardQR: [false, false, false]
     }
   },
 
@@ -351,9 +370,12 @@ export default {
     },
     async downloadQR (shardIndex) {
       const vm = this
+      if (vm.savingShardQR?.[shardIndex]) return
+      vm.savingShardQR.splice(shardIndex, 1, true)
+      let wrapper = null
       try {
         // Create a beautiful wrapper with gradient background (security/backup theme)
-        const wrapper = document.createElement('div')
+        wrapper = document.createElement('div')
         wrapper.style.cssText = `
           background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
           padding: 60px 50px;
@@ -719,120 +741,91 @@ export default {
           const shortHash = vm.walletHash.substring(0, 8)
           const filename = `${sanitizedWalletName}-${shortHash}-shard-${shardIndex + 1}.png`
 
-          canvas.toBlob(async (blob) => {
-            try {
-              if (!blob) {
-                throw new Error('canvas.toBlob() returned null')
-              }
-
-              // Check if running on mobile
-              const isMobile = Capacitor.getPlatform() !== 'web'
-              
-              if (isMobile) {
-                // Convert blob to base64
-                const reader = new FileReader()
-                reader.onload = async () => {
-                  try {
-                    if (typeof reader.result !== 'string') {
-                      throw new Error('FileReader result is not a string')
-                    }
-
-                    const base64Data = reader.result.split(',')[1]
-                    if (!base64Data) {
-                      throw new Error('Failed to extract base64 data from data URL')
-                    }
-                    
-                    // Save to photo library using our custom plugin
-                    const result = await SaveToGallery.saveImage({
-                      base64Data: base64Data,
-                      filename: filename
-                    })
-                    
-                    vm.$q.notify({
-                      message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
-                      color: 'positive',
-                      icon: 'check_circle',
-                      position: 'top',
-                      timeout: 2000
-                    })
-                  } catch (error) {
-                    console.error('[SaveQR] Error saving to photos:', error)
-                    console.error('[SaveQR] Error details:', {
-                      message: error.message,
-                      code: error.code,
-                      stack: error.stack
-                    })
-                    vm.$q.notify({
-                      message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
-                      color: 'negative',
-                      icon: 'error',
-                      position: 'top',
-                      timeout: 3000
-                    })
-                  }
-                }
-                reader.onerror = (event) => {
-                  console.error('[SaveQR] Error converting QR blob to base64:', reader.error || event)
-                  vm.$q.notify({
-                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-                    color: 'negative',
-                    icon: 'error',
-                    position: 'top',
-                    timeout: 2000
-                  })
-                }
-                reader.onabort = () => {
-                  console.error('[SaveQR] FileReader aborted while converting QR blob to base64')
-                  vm.$q.notify({
-                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-                    color: 'negative',
-                    icon: 'error',
-                    position: 'top',
-                    timeout: 2000
-                  })
-                }
+          const blobToBase64Data = async (blob) => {
+            return await new Promise((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onload = () => {
                 try {
-                  reader.readAsDataURL(blob)
-                } catch (error) {
-                  console.error('[SaveQR] readAsDataURL threw:', error)
-                  vm.$q.notify({
-                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-                    color: 'negative',
-                    icon: 'error',
-                    position: 'top',
-                    timeout: 2000
-                  })
-                }
-              } else {
-                // Desktop/web - use download link
-                const url = URL.createObjectURL(blob)
-                const link = document.createElement('a')
-                link.href = url
-                link.download = filename
-                document.body.appendChild(link)
-                link.click()
-                document.body.removeChild(link)
-                URL.revokeObjectURL(url)
+                  if (typeof reader.result !== 'string') {
+                    return reject(new Error('FileReader result is not a string'))
+                  }
 
-                vm.$q.notify({
-                  message: vm.$t('QRSaved', {}, 'QR code saved'),
-                  color: 'positive',
-                  icon: 'download',
-                  position: 'top',
-                  timeout: 2000
-                })
+                  const base64Data = reader.result.split(',')[1]
+                  if (!base64Data) {
+                    return reject(new Error('Failed to extract base64 data from data URL'))
+                  }
+                  resolve(base64Data)
+                } catch (e) {
+                  reject(e)
+                }
               }
-            } catch (error) {
-              console.error('Error in download process:', error)
+              reader.onerror = (event) => reject(reader.error || event)
+              reader.onabort = () => reject(new Error('FileReader aborted'))
+              try {
+                reader.readAsDataURL(blob)
+              } catch (e) {
+                reject(e)
+              }
+            })
+          }
+
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+          if (!blob) {
+            throw new Error('canvas.toBlob() returned null')
+          }
+
+          // Check if running on mobile
+          const isMobile = Capacitor.getPlatform() !== 'web'
+
+          if (isMobile) {
+            const base64Data = await blobToBase64Data(blob)
+            try {
+              await SaveToGallery.saveImage({
+                base64Data,
+                filename
+              })
+
               vm.$q.notify({
-                message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-                color: 'negative',
-                icon: 'error',
+                message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
+                color: 'positive',
+                icon: 'check_circle',
                 position: 'top',
                 timeout: 2000
               })
+            } catch (error) {
+              console.error('[SaveQR] Error saving to photos:', error)
+              console.error('[SaveQR] Error details:', {
+                message: error.message,
+                code: error.code,
+                stack: error.stack
+              })
+              vm.$q.notify({
+                message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
             }
-          })
+          } else {
+            // Desktop/web - use download link
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
+            vm.$q.notify({
+              message: vm.$t('QRSaved', {}, 'QR code saved'),
+              color: 'positive',
+              icon: 'download',
+              position: 'top',
+              timeout: 2000
+            })
+          }
         } catch (error) {
           // Error during logo loading or canvas capture
           // Remove wrapper if it still exists
@@ -850,6 +843,8 @@ export default {
           position: 'top',
           timeout: 2000
         })
+      } finally {
+        vm.savingShardQR.splice(shardIndex, 1, false)
       }
     },
     async generateShards () {
