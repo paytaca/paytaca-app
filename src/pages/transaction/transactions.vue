@@ -209,6 +209,8 @@ export default {
 			denominationTabSelected: 'BCH',
 			txSearchActive: false,
 			txSearchReference: '',
+			// Prevent duplicate fetches when query updates multiple keys at once (e.g. txid + reference).
+			lastAppliedRouteTxSearchKey: '',
 			transactionsFilter: 'all',
 			stablehedgeView: false,
 			isCashToken: true,
@@ -361,6 +363,14 @@ export default {
 	    async '$route.query.assetID' (newAssetID) {
 	      // Update selected asset when route query changes (e.g., when navigating back)
 	      await this.updateSelectedAssetFromQuery()
+	    },
+	    '$route.query.txid' () {
+	      // Deep-links can update query without remounting; apply route-driven search.
+	      this.applyRouteTxSearch()
+	    },
+	    '$route.query.reference' () {
+	      // Deep-links can update query without remounting; apply route-driven search.
+	      this.applyRouteTxSearch()
 	    }
 	},
 	methods: {
@@ -381,6 +391,13 @@ export default {
 			if (!referenceHex) return false
 			const refDecimal = hexToRef(referenceHex)
 			if (!refDecimal) return false
+
+			const routeKey = `${txid || ''}|${referenceHex}`
+			if (this.lastAppliedRouteTxSearchKey === routeKey && String(this.txSearchReference || '') === String(refDecimal)) {
+				// Already applied for this exact deep-link; avoid duplicate fetch.
+				return true
+			}
+			this.lastAppliedRouteTxSearchKey = routeKey
 
 			this.txSearchActive = true
 			this.txSearchReference = refDecimal
