@@ -301,17 +301,24 @@ export default {
 
       const groupedRecords = {}
       tempRecordsList.forEach(item => {
-        const letterGroup = item.name && typeof item.name === 'string'
+        let letterGroup = item.name && typeof item.name === 'string'
           ? item.name.charAt(0).toLowerCase()
-          : ''
-        if (!groupedRecords[letterGroup]) {
-          groupedRecords[letterGroup] = []
+          : '';
+        if (!/^[a-z]$/.test(letterGroup)) {
+          letterGroup = '...';
         }
-        groupedRecords[letterGroup].push(item)
-      })
+        if (!groupedRecords[letterGroup]) {
+          groupedRecords[letterGroup] = [];
+        }
+        groupedRecords[letterGroup].push(item);
+      });
 
       this.recordsList = Object.keys(groupedRecords)
-        .sort()
+        .sort((a, b) => {
+          if (a === "...") return -1;
+          if (b === "...") return 1;
+          return a.localeCompare(b);
+        })
         .map(group => ({
           letter_group: group,
           data: groupedRecords[group].sort((a, b) => a.name.localeCompare(b.name))
