@@ -23,7 +23,21 @@ class Watchtower extends WatchtowerSdk {
       if (this.Wallet && this.Wallet.getHistory) {
         const originalGetHistory = this.Wallet.getHistory.bind(this.Wallet)
         this.Wallet.getHistory = async (params) => {
-          const response = await originalGetHistory(params)
+          // watchtower API expects `reference` query param for reference-id search.
+          // Keep backward compatibility with existing callers passing:
+          // - camelCase: txSearchReference
+          // - snake_case: tx_search_reference
+          const normalizedParams = { ...(params || {}) }
+          if (!normalizedParams.reference) {
+            normalizedParams.reference =
+              normalizedParams.txSearchReference ||
+              normalizedParams.tx_search_reference
+          }
+          // Avoid sending legacy params in the same request.
+          if (Object.prototype.hasOwnProperty.call(normalizedParams, 'txSearchReference')) delete normalizedParams.txSearchReference
+          if (Object.prototype.hasOwnProperty.call(normalizedParams, 'tx_search_reference')) delete normalizedParams.tx_search_reference
+
+          const response = await originalGetHistory(normalizedParams)
           return this.enrichHistoryResponse(response)
         }
       }
