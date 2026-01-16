@@ -190,7 +190,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { registerMemoUser, authMemo } from 'src/utils/transaction-memos'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
-import { refToHex } from 'src/utils/reference-id-utils'
+import { hexToRef, normalizeRefToHex, refToHex } from 'src/utils/reference-id-utils'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
@@ -335,12 +335,15 @@ export default {
 
 		await this.loadWallets()
 		this.$nextTick(() => {
-	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
-	        this.$refs['transaction-list-component'].getTransactions()
-	        
-	        // Calculate transaction row height
-	        this.calculateTransactionRowHeight()
-	      })
+			this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
+			this.$refs['transaction-list-component'].getTransactions()
+
+			// Apply QR/deeplink-driven reference-id search (if present)
+			this.applyRouteTxSearch()
+
+			// Calculate transaction row height
+			this.calculateTransactionRowHeight()
+		})
 	      
 	      // Recalculate on window resize
 	      window.addEventListener('resize', this.calculateTransactionRowHeight)
@@ -361,6 +364,28 @@ export default {
 	    }
 	},
 	methods: {
+		applyRouteTxSearch () {
+			// Supports QR/deep links carrying:
+			// - txid: 64-hex transaction id (derive reference from first 6 hex chars)
+			// - reference: reference-id in either 6-hex or 8-decimal format
+			const q = this.$route?.query || {}
+
+			let referenceHex = ''
+			const txid = typeof q.txid === 'string' ? q.txid.trim() : ''
+			if (/^[0-9a-fA-F]{64}$/.test(txid)) {
+				referenceHex = txid.slice(0, 6).toUpperCase()
+			} else if (typeof q.reference === 'string') {
+				referenceHex = normalizeRefToHex(q.reference)
+			}
+
+			if (!referenceHex) return
+			const refDecimal = hexToRef(referenceHex)
+			if (!refDecimal) return
+
+			this.txSearchActive = true
+			this.txSearchReference = refDecimal
+			this.$nextTick(() => this.executeTxSearch(refDecimal))
+		},
 		parseAssetDenomination,
 		getDarkModeClass,
 		async updateSelectedAssetFromQuery () {
@@ -600,7 +625,7 @@ export default {
 	        // Convert decimal reference to hex before API call
 	        const hexRef = valueStr && valueStr.length === 8 ? refToHex(valueStr) : valueStr
 	        const opts = {txSearchReference: hexRef}
-	        this.$refs['tx-search'].blur()
+	        this.$refs['tx-search']?.blur?.()
 	        this.$refs['transaction-list-component'].getTransactions(1, opts)
 	      }
 	    },
