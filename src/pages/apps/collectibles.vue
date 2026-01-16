@@ -194,7 +194,7 @@
   
       <!-- Receive Dialog -->
       <q-dialog v-model="showReceiveDialog" position="bottom">
-        <q-card class="receive-dialog-card" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+        <q-card class="receive-dialog-card bottom-card" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Receive') }}</div>
             <q-space />

@@ -4,7 +4,7 @@
     seamless
     auto-close
     >
-    <q-card :class ="`q-pb-lg pt-card text-bow ${darkMode}`">
+    <q-card :class ="`q-pb-lg pt-card text-bow bottom-card ${darkMode}`">
       <q-bar class="full-width bg-inherit" style="padding: 0px;">
         <q-btn icon="close" @click="dialogRef.hide()" flat></q-btn>
       </q-bar>

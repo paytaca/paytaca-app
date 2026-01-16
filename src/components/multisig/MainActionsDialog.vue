@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" full-width position="bottom"
     transition-hide="slide-down" transition-show="slide-up" transition-duration="500"
     >
-    <q-card class="q-dialog-plugin q-pb-md pt-card" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-dialog-plugin q-pb-md pt-card bottom-card" :class="getDarkModeClass(darkMode)">
        <q-toolbar>
           <q-toolbar-title><span class="q-mr-sm"></span></q-toolbar-title>
           <q-btn flat round dense icon="close" v-close-popup />
