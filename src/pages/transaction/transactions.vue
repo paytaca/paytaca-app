@@ -336,10 +336,10 @@ export default {
 		await this.loadWallets()
 		this.$nextTick(() => {
 			this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
-			this.$refs['transaction-list-component'].getTransactions()
-
-			// Apply QR/deeplink-driven reference-id search (if present)
-			this.applyRouteTxSearch()
+			// Apply QR/deeplink-driven reference-id search (if present).
+			// If applied, it will trigger a filtered fetch, so skip the default unfiltered fetch.
+			const didApplyTxSearch = this.applyRouteTxSearch()
+			if (!didApplyTxSearch) this.$refs['transaction-list-component'].getTransactions()
 
 			// Calculate transaction row height
 			this.calculateTransactionRowHeight()
@@ -378,13 +378,14 @@ export default {
 				referenceHex = normalizeRefToHex(q.reference)
 			}
 
-			if (!referenceHex) return
+			if (!referenceHex) return false
 			const refDecimal = hexToRef(referenceHex)
-			if (!refDecimal) return
+			if (!refDecimal) return false
 
 			this.txSearchActive = true
 			this.txSearchReference = refDecimal
 			this.$nextTick(() => this.executeTxSearch(refDecimal))
+			return true
 		},
 		parseAssetDenomination,
 		getDarkModeClass,
