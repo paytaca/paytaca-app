@@ -626,15 +626,26 @@ async function saveGiftQRImage () {
 
       canvas.toBlob(async (blob) => {
         try {
+          if (!blob) {
+            throw new Error('canvas.toBlob() returned null')
+          }
+
           // Check if running on mobile
           const isMobile = Capacitor.getPlatform() !== 'web'
           
           if (isMobile) {
             // Convert blob to base64
             const reader = new FileReader()
-            reader.onloadend = async () => {
+            reader.onload = async () => {
               try {
+                if (typeof reader.result !== 'string') {
+                  throw new Error('FileReader result is not a string')
+                }
+
                 const base64Data = reader.result.split(',')[1]
+                if (!base64Data) {
+                  throw new Error('Failed to extract base64 data from data URL')
+                }
                 
                 // Save to photo library using our custom plugin
                 const result = await SaveToGallery.saveImage({
@@ -660,7 +671,39 @@ async function saveGiftQRImage () {
                 })
               }
             }
-            reader.readAsDataURL(blob)
+            reader.onerror = (event) => {
+              console.error('[SaveGiftQR] Error converting QR blob to base64:', reader.error || event)
+              $q.notify({
+                message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
+            }
+            reader.onabort = () => {
+              console.error('[SaveGiftQR] FileReader aborted while converting QR blob to base64')
+              $q.notify({
+                message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
+            }
+
+            try {
+              reader.readAsDataURL(blob)
+            } catch (error) {
+              console.error('[SaveGiftQR] readAsDataURL threw:', error)
+              $q.notify({
+                message: t('ErrorSavingQR', {}, 'Error saving QR code'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
+            }
           } else {
             // Desktop/web - use download link
             const url = URL.createObjectURL(blob)

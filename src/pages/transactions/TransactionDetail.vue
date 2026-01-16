@@ -2322,6 +2322,9 @@ export default {
           let filename = `receipt-${shortTxId}.jpg`
           
           const blob = await compressImage(canvas)
+          if (!blob) {
+            throw new Error('Failed to create receipt image blob')
+          }
           
           // Check if running on mobile
           const isMobile = Capacitor.getPlatform() !== 'web'
@@ -2329,9 +2332,16 @@ export default {
           if (isMobile) {
             // Convert blob to base64
             const reader = new FileReader()
-            reader.onloadend = async () => {
+            reader.onload = async () => {
               try {
+                if (typeof reader.result !== 'string') {
+                  throw new Error('FileReader result is not a string')
+                }
+
                 const base64Data = reader.result.split(',')[1]
+                if (!base64Data) {
+                  throw new Error('Failed to extract base64 data from data URL')
+                }
                 
                 // Save to photo library using our custom plugin
                 const result = await SaveToGallery.saveImage({
@@ -2357,7 +2367,38 @@ export default {
                 })
               }
             }
-            reader.readAsDataURL(blob)
+            reader.onerror = (event) => {
+              console.error('[SaveReceipt] Error converting receipt blob to base64:', reader.error || event)
+              vm.$q.notify({
+                message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 2000
+              })
+            }
+            reader.onabort = () => {
+              console.error('[SaveReceipt] FileReader aborted while converting receipt blob to base64')
+              vm.$q.notify({
+                message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 2000
+              })
+            }
+            try {
+              reader.readAsDataURL(blob)
+            } catch (error) {
+              console.error('[SaveReceipt] readAsDataURL threw:', error)
+              vm.$q.notify({
+                message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 2000
+              })
+            }
           } else {
             // Desktop/web - use download link
             const url = URL.createObjectURL(blob)
