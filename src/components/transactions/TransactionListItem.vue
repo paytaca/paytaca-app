@@ -33,49 +33,28 @@
           </span>
         </div>
         <div class="transaction-amount" :class="getDarkModeClass(darkMode)">
-          <template v-if="isStablehedgeTx">
+          <!-- For NFT transactions, show type name instead of quantity and symbol -->
+          <div v-if="isNftTransaction" class="amount-primary">
+            {{ asset?.name || 'NFT' }}
+          </div>
+          <template v-else>
             <div class="amount-primary">
-              {{ 
-                parseAssetDenomination(
+              {{
+                `${parseAssetDenomination(
                   denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
                   ...asset,
-                  balance: stablehedgeTxData?.bch,
+                  balance: transaction?.amount,
                   thousandSeparator: true
-                })
+                })}`
               }}
             </div>
             <div
-              v-if="isStablehedgeTx && stablehedgeTxData?.amount"
+              v-if="displayFiatAmount !== null && displayFiatAmount !== undefined"
               class="amount-secondary"
               :class="getDarkModeClass(darkMode)"
             >
-              {{ parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency) }}
+              {{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}
             </div>
-          </template>
-          <template v-else>
-            <!-- For NFT transactions, show type name instead of quantity and symbol -->
-            <div v-if="isNftTransaction" class="amount-primary">
-              {{ asset?.name || 'NFT' }}
-            </div>
-            <template v-else>
-              <div class="amount-primary">
-                {{
-                  `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...asset,
-                    balance: transaction?.amount,
-                    thousandSeparator: true
-                  })}`
-                }}
-              </div>
-              <div
-                v-if="displayFiatAmount !== null && displayFiatAmount !== undefined"
-                class="amount-secondary"
-                :class="getDarkModeClass(darkMode)"
-              >
-                {{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}
-              </div>
-            </template>
           </template>
         </div>
       </div>
@@ -115,7 +94,6 @@ import ago from 's-ago'
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
@@ -234,10 +212,6 @@ const selectedAssetMarketPrice = computed(() => {
 })
 
 const recordTypeText = computed(() => {
-  if (stablehedgeTxData.value?.transactionTypeText) {
-    return stablehedgeTxData.value?.transactionTypeText
-  }
-
   switch (props?.transaction?.record_type) {
     case('incoming'):
       return $t('Received')
@@ -294,11 +268,7 @@ const badges = computed(() => {
   if (!Array.isArray(props.transaction?.attributes)) return []
   return props.transaction?.attributes.map(parseAttributeToBadge)
     .filter(badge => badge?.custom)
-    .filter(badge => isStablehedgeTx.value || badge.key !== 'stablehedge_transaction')
 })
-
-const stablehedgeTxData = computed(() => extractStablehedgeTxData(props.transaction))
-const isStablehedgeTx = computed(() => Boolean(stablehedgeTxData.value))
 
 // Check if this is an NFT transaction (has category/commitment or is_nft flag)
 const isNftTransaction = computed(() => {

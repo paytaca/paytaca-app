@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Impossibile eliminare l'ultimo portafoglio",
   ErrorDeletingWallet: "Errore durante l'eliminazione del portafoglio",
   ErrorRestoringWallet: "Errore durante il ripristino del portafoglio",
+  BackupConfirmed: "Backup portafoglio confermato",
+  BackupConfirmedOn: "Ultima conferma il {date}",
   "Wallet Details": "Dettagli portafoglio",
   "Wallet Qr Code": "Codice QR portafoglio",
   "XPubKey QR Code": "Codice QR chiave pubblica estesa",
@@ -93,7 +95,6 @@ export default {
   Validating: "Validazione",
   GettingLocation: "Recupero posizione",
   NoFilter: "Nessun filtro",
-  NoFilteredLogs: "Nessun log filtrato",
   FilterLogs: "Filtra log",
   CopyLogs: "Copia log",
   LogsCopied: "Log copiati",
@@ -139,7 +140,7 @@ export default {
   StartConversation: "Inizia conversazione",
   TypeMessage: "Digita messaggio",
   MessageCannotBeEmpty: "Il messaggio non può essere vuoto",
-  ChatActivationMessage: "Messaggio attivazione chat",
+  ChatActivationMessage: "La chat verrà abilitata una volta che i BCH saranno depositati nel contratto di escrow.",
   ChatNotYetActive: "Chat non ancora attiva",
   ServiceFeeToken: "Token commissione servizio",
   DeliveryFeeToken: "Token commissione consegna",
@@ -150,6 +151,7 @@ export default {
   // Other features
   AddingLiquidity: "Aggiunta liquidità",
   ConversionInfo: "Conversione in {currency} al momento della transazione. Il guadagno/perdita è mostrato sotto rispetto al prezzo attuale.",
+  ConversionInformation: "Informazioni di Conversione",
   ContractInformation: "Informazioni contratto",
   DepositAddress: "Indirizzo deposito",
   ExpiredAt: "Scaduto il",
@@ -179,5 +181,6 @@ export default {
   WebsiteDescription: "Visita {website}",
   TotalLIFT: "LIFT totale",
   UnpaidLift: "LIFT non pagato",
+  PaytacaWebsiteDescription: "Visita il {paytacaWebsite}",
 }
 

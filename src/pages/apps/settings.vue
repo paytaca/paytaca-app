@@ -280,7 +280,7 @@ import pinDialog from '../../components/pin'
 import securityOptionDialog from '../../components/authOption'
 import HeaderNav from '../../components/header-nav'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { Plugins } from '@capacitor/core'
+import { Capacitor, Plugins } from '@capacitor/core'
 import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
@@ -452,7 +452,7 @@ export default {
       vm.$store.commit('global/setLockApp', value)
       
       // Update screenshot security based on lock app setting
-      if (vm.$q.platform.is.mobile) {
+      if (Capacitor.isNativePlatform()) {
         try {
           await ScreenshotSecurity.setSecureFlag({ enabled: value })
         } catch (error) {
@@ -516,7 +516,7 @@ export default {
             vm.$store.commit('global/setLockApp', true)
             
             // Update screenshot security
-            if (vm.$q.platform.is.mobile) {
+            if (Capacitor.isNativePlatform()) {
               try {
                 await ScreenshotSecurity.setSecureFlag({ enabled: true })
               } catch (error) {

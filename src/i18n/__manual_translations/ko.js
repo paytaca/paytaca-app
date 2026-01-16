@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "마지막 지갑을 삭제할 수 없습니다",
   ErrorDeletingWallet: "지갑 삭제 중 오류",
   ErrorRestoringWallet: "지갑 복원 중 오류",
+  BackupConfirmed: "지갑 백업 확인됨",
+  BackupConfirmedOn: "마지막 확인일: {date}",
   "Wallet Details": "지갑 세부 정보",
   "Wallet Qr Code": "지갑 QR 코드",
   "XPubKey QR Code": "확장 공개 키 QR 코드",
@@ -93,7 +95,6 @@ export default {
   Validating: "검증 중",
   GettingLocation: "위치 가져오는 중",
   NoFilter: "필터 없음",
-  NoFilteredLogs: "필터링된 로그 없음",
   FilterLogs: "로그 필터링",
   CopyLogs: "로그 복사",
   LogsCopied: "로그가 복사되었습니다",
@@ -150,6 +151,7 @@ export default {
   // Other features
   AddingLiquidity: "유동성 추가 중",
   ConversionInfo: "거래 시점의 {currency}로의 변환. 현재 가격과 비교한 손익이 아래에 표시됩니다.",
+  ConversionInformation: "변환 정보",
   ContractInformation: "계약 정보",
   DepositAddress: "입금 주소",
   ExpiredAt: "만료 시간",
@@ -191,5 +193,10 @@ export default {
   ViewAmountInCurrency: "{currency} 단위로 금액 보기",
   WebsiteDescription: "{website} 방문",
   PayForLIFT: "LIFT 비용 지불",
+  MerchantsLimitReached: "{free} 판매자 한도에 도달했습니다.더 많은 가맹점을 이용하려면 Paytaca Plus로 업그레이드하세요.",
+  MultisigWalletLimitReached: "{free} 다중서명 지갑 한도에 도달했습니다.더 많은 다중서명 지갑을 생성하려면 Paytaca Plus로 업그레이드하세요.",
+  UnclaimedGiftsLimitReached: "받지 않은 선물 한도인 {free}개에 도달했습니다.더 많은 선물을 만들려면 Paytaca Plus로 업그레이드하세요.",
+  WalletLimitReached: "{free} 지갑 한도에 도달했습니다.더 많은 지갑을 생성하려면 Paytaca Plus로 업그레이드하세요.",
+  
 }
 

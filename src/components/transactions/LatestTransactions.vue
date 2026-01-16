@@ -25,9 +25,9 @@
     </div>
 
     <template v-if="transactionsLoaded">
-      <div v-if="transactions.length > 0" class="transactions-list">
+      <div v-if="displayTransactions.length > 0" class="transactions-list">
         <TransactionListItem
-          v-for="(transaction, index) in transactions"
+          v-for="(transaction, index) in displayTransactions"
           :key="'latest-tx-' + index"
           :transaction="transaction"
           :selected-asset="allAsset"
@@ -37,7 +37,7 @@
           @click="() => handleTransactionClick(transaction)"
         />
         
-        <div v-if="hasMoreTransactions" class="see-more-container q-px-lg q-py-md">
+        <div v-if="displayHasMoreTransactions" class="see-more-container q-px-lg q-py-md">
           <q-btn
             flat
             no-caps
@@ -87,7 +87,15 @@ export default {
   
   props: {
     wallet: Object,
-    denominationTabSelected: String
+    denominationTabSelected: String,
+    tutorialMode: {
+      type: Boolean,
+      default: false
+    },
+    tutorialStepId: {
+      type: String,
+      default: ''
+    }
   },
   
   data () {
@@ -112,6 +120,18 @@ export default {
     selectedNetwork () {
       return this.$store.getters['global/network']
     },
+    displayTransactions () {
+      // Only show dummy transactions when the tour is highlighting this section.
+      if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) {
+        return this.getTutorialDummyTransactions()
+      }
+      return this.transactions
+    },
+    displayHasMoreTransactions () {
+      // Never show "See more" on dummy tutorial transactions.
+      if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) return false
+      return this.hasMoreTransactions
+    },
     transactionsFilterOpts() {
       return [
         { label: this.$t('All'), value: 'all' },
@@ -127,6 +147,51 @@ export default {
   
   methods: {
     getDarkModeClass,
+    getTutorialDummyTransactions () {
+      const now = Date.now()
+      const bchAsset = {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        decimals: 8
+      }
+      return [
+        {
+          record_type: 'incoming',
+          amount: 50000000, // 0.5 BCH
+          tx_timestamp: now - 1000 * 60 * 8,
+          asset: bchAsset,
+          attributes: []
+        },
+        {
+          record_type: 'outgoing',
+          amount: 4200000000, // 42 (decimals=8)
+          tx_timestamp: now - 1000 * 60 * 60 * 6,
+          asset: {
+            id: 'ct/tutorial-lift',
+            symbol: 'LIFT',
+            name: 'LIFT',
+            logo: null,
+            decimals: 8
+          },
+          attributes: []
+        },
+        {
+          record_type: 'incoming',
+          amount: 125750000, // 125.75 (decimals=6)
+          tx_timestamp: now - 1000 * 60 * 60 * 24 * 2,
+          asset: {
+            id: 'ct/tutorial-musd',
+            symbol: 'MUSD',
+            name: 'MUSD',
+            logo: null,
+            decimals: 6
+          },
+          attributes: []
+        }
+      ]
+    },
     async loadTransactions () {
       if (this.selectedNetwork === 'sBCH') {
         // For sBCH, we'll skip for now or implement separately
@@ -482,13 +547,13 @@ export default {
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 200px;
+  min-height: 150px;
 }
 
 .no-transaction-img {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 24px;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 12px;
   opacity: 0.6;
 }
 

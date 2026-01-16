@@ -2,7 +2,7 @@
   <q-dialog full-width no-shake position="bottom" v-model="showDialog" @before-hide="$emit('back')">
     <q-card
         v-if="!selectedListing && state === 'initial'"
-        class="br-15 q-pt-sm text-bow"
+        class="br-15 q-pt-sm text-bow bottom-card"
         :class="getDarkModeClass(darkMode)"
         :style="`height: ${minHeight}px; background-color: ${darkMode ? '#212f3d' : 'white'}`">
         <div v-if="!isloaded">

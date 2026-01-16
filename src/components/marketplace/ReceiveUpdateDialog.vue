@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card class="q-dialog-plugin pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-dialog-plugin pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <div class="row no-wrap items-center justify-center q-pl-md q-py-sm">
         <div class="text-h5 q-space q-mt-sm"> {{ $t('Received') }} </div>
         <q-btn

@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Нельзя удалить последний кошелек",
   ErrorDeletingWallet: "Ошибка при удалении кошелька",
   ErrorRestoringWallet: "Ошибка при восстановлении кошелька",
+  BackupConfirmed: "Резервное копирование кошелька подтверждено",
+  BackupConfirmedOn: "Последнее подтверждение {date}",
   "Wallet Details": "Детали кошелька",
   "Wallet Qr Code": "QR-код кошелька",
   "XPubKey QR Code": "QR-код расширенного открытого ключа",
@@ -93,7 +95,6 @@ export default {
   Validating: "Проверка",
   GettingLocation: "Получение местоположения",
   NoFilter: "Без фильтра",
-  NoFilteredLogs: "Нет отфильтрованных логов",
   FilterLogs: "Фильтровать логи",
   CopyLogs: "Копировать логи",
   LogsCopied: "Логи скопированы",
@@ -139,7 +140,7 @@ export default {
   StartConversation: "Начать разговор",
   TypeMessage: "Введите сообщение",
   MessageCannotBeEmpty: "Сообщение не может быть пустым",
-  ChatActivationMessage: "Сообщение активации чата",
+  ChatActivationMessage: "Чат будет доступен после внесения BCH в эскроу-контракт.",
   ChatNotYetActive: "Чат еще не активен",
   ServiceFeeToken: "Токен комиссии за услугу",
   DeliveryFeeToken: "Токен комиссии за доставку",
@@ -150,6 +151,7 @@ export default {
   // Other features
   AddingLiquidity: "Добавление ликвидности",
   ConversionInfo: "Конвертация в {currency} на момент транзакции. Прибыль/убыток показаны ниже по сравнению с текущей ценой.",
+  ConversionInformation: "Информация о Конвертации",
   ContractInformation: "Информация о контракте",
   DepositAddress: "Адрес депозита",
   ExpiredAt: "Истек в",
@@ -195,5 +197,8 @@ export default {
   VerifyingWithSeconds: "Подтверждаем, пожалуйста, подождите.({seconds} сек.)",
   WebsiteDescription: "Посетите {website}",
   PayForLIFT: "Оплатить LIFT",
+  FollowUsOn: "Следуйте за нами на {platform}",
+  MultisigWalletLimitReached: "Вы достигли лимита {free} кошельков с мультиподписью.Обновитесь до Paytaca Plus, чтобы создать больше кошельков с мультиподписью.",
+  WalletLimitReached: "Вы достигли лимита {free} кошельков.Обновите Paytaca Plus, чтобы создать больше кошельков.",
 }
 

@@ -65,14 +65,7 @@
           <div class="text-caption q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
             {{ $t('RequiresMinimumLiftTokens', { count: minLiftTokens }, `Requires a minimum of ${minLiftTokens} LIFT tokens`) }}
           </div>
-          <div class="q-mt-sm row q-gutter-sm">
-            <q-btn
-              unelevated
-              size="sm"
-              color="positive"
-              :label="$t('UpgradeNow', {}, 'Upgrade Now')"
-              @click="showUpgradeDialog = true"
-            />
+          <div class="q-mt-sm">
             <q-btn
               unelevated
               size="sm"
@@ -84,27 +77,18 @@
         </q-banner>
       </q-item-section>
     </q-item>
-    
-    <UpgradePromptDialog
-      v-model="showUpgradeDialog"
-      :dark-mode="darkMode"
-    />
   </q-list>
 </template>
 
 <script>
-import { computed, ref, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatWithLocale } from 'src/utils/denomination-utils'
-import UpgradePromptDialog from './UpgradePromptDialog.vue'
 
 export default {
   name: 'SubscriptionStatus',
-  components: {
-    UpgradePromptDialog
-  },
   props: {
     darkMode: {
       type: Boolean,
@@ -114,11 +98,19 @@ export default {
   setup () {
     const store = useStore()
     const router = useRouter()
-    const showUpgradeDialog = ref(false)
     
     const isPlus = computed(() => store.getters['subscription/isPlusSubscriber'])
     const liftTokenBalance = computed(() => store.getters['subscription/getLiftTokenBalance'])
     const minLiftTokens = computed(() => store.getters['subscription/getMinLiftTokens'])
+    const currentWalletIndex = computed(() => store.getters['global/getWalletIndex'])
+    const currentWalletHash = computed(() => {
+      try {
+        const wallet = store.getters['global/getWallet']('bch')
+        return wallet?.walletHash || null
+      } catch (error) {
+        return null
+      }
+    })
     
     const formattedLiftBalance = computed(() => {
       return formatWithLocale(liftTokenBalance.value, { min: 2, max: 2 })
@@ -130,7 +122,19 @@ export default {
     
     // Check subscription status on mount
     onMounted(() => {
-      store.dispatch('subscription/checkSubscriptionStatus')
+      store.dispatch('subscription/checkSubscriptionStatus', true)
+    })
+    
+    // Watch for wallet changes (by hash) and refresh subscription status
+    watch(currentWalletHash, (newHash, oldHash) => {
+      // Only refresh if wallet actually changed (not initial load)
+      if (oldHash !== null && oldHash !== undefined && newHash !== oldHash && newHash !== null) {
+        // Force refresh subscription status when wallet changes
+        // Add a small delay to ensure wallet is fully loaded
+        setTimeout(() => {
+          store.dispatch('subscription/checkSubscriptionStatus', true)
+        }, 500)
+      }
     })
     
     return {
@@ -138,7 +142,6 @@ export default {
       liftTokenBalance,
       formattedLiftBalance,
       minLiftTokens,
-      showUpgradeDialog,
       goToSubscriptionDetails,
       getDarkModeClass
     }

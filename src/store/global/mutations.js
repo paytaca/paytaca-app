@@ -21,7 +21,8 @@ function getDefaultWalletSettings() {
     darkMode: true,
     currency: { name: 'United States Dollar', symbol: 'USD' },
     preferredSecurity: 'pin', // 'pin' or 'biometric'
-    lockApp: false // Enable/disable app lock feature
+    lockApp: false, // Enable/disable app lock feature
+    lastBackupTimestamp: null // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
   }
 }
 
@@ -31,6 +32,22 @@ export function setWalletsRecovered (state, value) {
 
 export function setWalletRecoveryMessage(state, value) {
   state.walletRecoveryMessage = value
+}
+
+export function setBackupReminderDismissed (state, value) {
+  state.backupReminderDismissed = Boolean(value)
+}
+
+export function setLastBackupTimestamp (state, timestamp) {
+  // timestamp should be Unix timestamp in milliseconds (Date.now())
+  // null or undefined means no backup timestamp recorded
+  // Store per-wallet in vault settings
+  if (state.vault && state.vault[state.walletIndex]) {
+    if (!state.vault[state.walletIndex].settings) {
+      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
+    }
+    state.vault[state.walletIndex].settings.lastBackupTimestamp = timestamp !== null && timestamp !== undefined ? Number(timestamp) : null
+  }
 }
 
 export function updateAppControl (state, data) {

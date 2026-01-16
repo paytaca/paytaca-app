@@ -192,7 +192,7 @@
           <div class="row q-mb-sm q-mx-sm" v-if="redeemablePoints">
             {{ redeemablePointsBalance }}
             {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-            {{ $t('Remaning') }}
+            {{ $t('Remaining') }}
           </div>
 
           <div class="text-body1 q-mb-sm">

@@ -3,14 +3,30 @@
     <header-nav :title="$t('WalletBackup')" backnavpath="/apps/settings" class="header-nav apps-header" />
 
     <div class="content-wrapper" :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}">
+      <!-- Explanation Section -->
+      <div class="explanation-section q-mx-lg q-mt-xl q-mb-md">
+        <div class="explanation-content pt-card" :class="getDarkModeClass(darkMode)">
+          <div class="row items-start no-wrap">
+            <q-icon name="info" size="32px" class="explanation-icon" />
+            <div class="col q-ml-md">
+              <div class="explanation-title text-weight-bold">{{ $t('WhyBackupIsImportant', {}, 'Why Backup Is Important') }}</div>
+              <div class="explanation-text q-mt-sm">
+                <p class="q-mb-sm">{{ $t('BackupProtectsFunds', {}, 'Backing up your wallet protects your funds if your device is lost, stolen, or damaged. Without a backup, you cannot recover your funds.') }}</p>
+                <p class="q-mb-xs">{{ $t('StoreRecoveryPhraseSecurely', {}, 'Your recovery phrase (seed phrase) is the key to your wallet. Store it securely in a safe place where only you can access it.') }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Security Banner -->
-      <div class="security-banner q-mx-lg q-mt-xl q-mb-md">
+      <div class="security-banner q-mx-lg q-mb-md">
         <div class="banner-content pt-card" :class="getDarkModeClass(darkMode)">
           <div class="row items-center no-wrap">
             <q-icon name="shield" size="32px" class="banner-icon" />
             <div class="col q-ml-md">
-              <div class="banner-title text-weight-bold">{{ $t('SecureYourWallet', {}, 'Secure Your Wallet') }}</div>
-              <div class="banner-subtitle">{{ $t('BackupYourRecoveryPhrase', {}, 'Backup your recovery phrase to restore your wallet') }}</div>
+              <div class="banner-title text-weight-bold">{{ $t('BackupMethods', {}, 'Backup Methods') }}</div>
+              <div class="banner-subtitle">{{ $t('ChooseOneOrBothMethods', {}, 'Choose one or both methods below to secure your backup.') }}</div>
             </div>
           </div>
         </div>
@@ -107,19 +123,27 @@
         </div>
       </div>
 
-      <!-- Warning Footer -->
-      <div class="warning-footer q-mx-lg q-mt-lg q-mb-xl">
-        <div class="warning-content pt-card-2" :class="getDarkModeClass(darkMode)">
-          <div class="row items-start">
-            <q-icon name="warning" size="24px" class="warning-icon text-warning" />
-            <div class="col q-ml-sm">
-              <div class="warning-title text-weight-bold">{{ $t('ImportantReminder', {}, 'Important Reminder') }}</div>
-              <div class="warning-text">
-                {{ $t('NeverShareYourRecoveryPhrase', {}, 'Never share your recovery phrase with anyone. Anyone with access to it can access your funds.') }}
-              </div>
+      <!-- Backup Confirmation Status -->
+      <div class="backup-status-section q-mx-lg q-mt-lg q-mb-xl">
+        <!-- Show info alert if backup timestamp exists -->
+        <q-banner
+          v-if="lastBackupTimestamp"
+          class="backup-confirmed-banner pt-card br-15"
+          :class="getDarkModeClass(darkMode)"
+          rounded
+        >
+          <template v-slot:avatar>
+            <q-icon name="check_circle" color="positive" size="32px" />
+          </template>
+          <div class="banner-content">
+            <div class="banner-title text-weight-medium q-mb-xs">
+              {{ $t('BackupConfirmed', {}, 'Wallet Backup Confirmed') }}
+            </div>
+            <div class="banner-subtitle">
+              {{ $t('BackupConfirmedOn', { date: formattedBackupDate }, `Last confirmed on ${formattedBackupDate}`) }}
             </div>
           </div>
-        </div>
+        </q-banner>
       </div>
     </div>
   </div>
@@ -139,11 +163,31 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    lastBackupTimestamp () {
+      return this.$store.getters['global/lastBackupTimestamp']
+    },
+    formattedBackupDate () {
+      if (!this.lastBackupTimestamp) {
+        return ''
+      }
+      const date = new Date(this.lastBackupTimestamp)
+      const language = this.$store.getters['global/language'] || 'en-us'
+      
+      // Format date with full date and time
+      return new Intl.DateTimeFormat(language, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(date)
     }
   },
 
   methods: {
     getDarkModeClass,
+    // showConfirmationDialog method removed - now handled in view-seed-phrase.vue and view-shards.vue
     toggleBackupTypeDialog (backupType) {
       console.log('[WalletBackup] toggleBackupTypeDialog called with backupType:', backupType)
       if (backupType === 'seedphrase') {
@@ -153,7 +197,7 @@ export default {
         console.log('[WalletBackup] Navigating to shards page')
         this.$router.push('/apps/wallet-backup/shards')
       }
-    }
+    },
   }
 }
 </script>
@@ -167,6 +211,33 @@ export default {
   .content-wrapper {
     max-width: 800px;
     margin: 0 auto;
+  }
+
+  // Explanation Section
+  .explanation-section {
+    .explanation-content {
+      padding: 20px 24px;
+      border-radius: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .explanation-icon {
+      color: var(--q-primary);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .explanation-title {
+      font-size: 18px;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .explanation-text {
+      font-size: 14px;
+      opacity: 0.85;
+      line-height: 1.6;
+    }
   }
 
   // Security Banner
@@ -321,29 +392,34 @@ export default {
     }
   }
 
-  // Warning Footer
-  .warning-footer {
-    .warning-content {
-      padding: 20px 24px;
-      border-radius: 16px;
-      border-left: 4px solid var(--q-warning);
+  // Backup Status Section
+  .backup-status-section {
+    .backup-confirmed-banner {
+      padding: 16px 20px;
+      
+      .banner-content {
+        .banner-title {
+          font-size: 15px;
+          line-height: 1.4;
+        }
+        
+        .banner-subtitle {
+          font-size: 13px;
+          opacity: 0.85;
+          line-height: 1.5;
+        }
+      }
     }
-
-    .warning-icon {
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .warning-title {
-      font-size: 15px;
-      margin-bottom: 6px;
-      line-height: 1.4;
-    }
-
-    .warning-text {
-      font-size: 13px;
-      opacity: 0.85;
-      line-height: 1.6;
+    
+    .done-button {
+      border-radius: 12px;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
     }
   }
 
@@ -391,6 +467,24 @@ export default {
       }
     }
 
+    .explanation-section {
+      .explanation-content {
+        padding: 16px 20px;
+      }
+
+      .explanation-icon {
+        font-size: 28px !important;
+      }
+
+      .explanation-title {
+        font-size: 16px;
+      }
+
+      .explanation-text {
+        font-size: 13px;
+      }
+    }
+
     .security-banner {
       .banner-content {
         padding: 16px 20px;
@@ -406,24 +500,6 @@ export default {
 
       .banner-subtitle {
         font-size: 13px;
-      }
-    }
-
-    .warning-footer {
-      .warning-content {
-        padding: 16px 20px;
-      }
-
-      .warning-icon {
-        font-size: 20px !important;
-      }
-
-      .warning-title {
-        font-size: 14px;
-      }
-
-      .warning-text {
-        font-size: 12px;
       }
     }
   }
