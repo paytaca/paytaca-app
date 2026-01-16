@@ -404,6 +404,19 @@
     <teleport to="body">
       <div v-if="homeTour.active" class="home-tour-overlay" @click.self="endHomeTour">
         <div
+          v-if="homeTour.scrims && homeTour.targetRect"
+          v-for="(rect, key) in homeTour.scrims"
+          :key="key"
+          class="home-tour-scrim"
+          :style="{
+            top: rect.top + 'px',
+            left: rect.left + 'px',
+            width: rect.width + 'px',
+            height: rect.height + 'px',
+          }"
+        />
+
+        <div
           v-if="homeTour.targetRect"
           class="home-tour-highlight"
           :style="{
@@ -574,6 +587,7 @@ export default {
         stepIndex: 0,
         steps: [],
         targetRect: null,
+        scrims: null,
         tooltipPos: { top: 0, left: 0 },
         lastAutoScrollStepIndex: null,
       },
@@ -1064,6 +1078,7 @@ export default {
       const el = this._homeTourGetTargetEl()
       if (!el) {
         this.homeTour.targetRect = null
+        this.homeTour.scrims = null
         this.homeTour.tooltipPos = { top: 24, left: 24 }
         return
       }
@@ -1077,6 +1092,37 @@ export default {
         height: Math.min(window.innerHeight, rect.height + pad * 2),
       }
       this.homeTour.targetRect = targetRect
+
+      // Scrims: 4 rectangles around the highlight. This lets us dim + blur the
+      // rest of the page while keeping the target area clear.
+      const bottomTop = targetRect.top + targetRect.height
+      const rightLeft = targetRect.left + targetRect.width
+      this.homeTour.scrims = {
+        top: {
+          top: 0,
+          left: 0,
+          width: window.innerWidth,
+          height: Math.max(0, targetRect.top),
+        },
+        bottom: {
+          top: bottomTop,
+          left: 0,
+          width: window.innerWidth,
+          height: Math.max(0, window.innerHeight - bottomTop),
+        },
+        left: {
+          top: targetRect.top,
+          left: 0,
+          width: Math.max(0, targetRect.left),
+          height: targetRect.height,
+        },
+        right: {
+          top: targetRect.top,
+          left: rightLeft,
+          width: Math.max(0, window.innerWidth - rightLeft),
+          height: targetRect.height,
+        },
+      }
 
       // Tooltip placement
       const tooltipW = 320
@@ -2393,10 +2439,18 @@ export default {
     z-index: 99999;
   }
 
+  :global(.home-tour-scrim) {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.55);
+    /* Blur underlying content to emphasize the highlighted element */
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    pointer-events: none;
+  }
+
   :global(.home-tour-highlight) {
     position: fixed;
     border-radius: 14px;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
     border: 2px solid rgba(255, 255, 255, 0.75);
     pointer-events: none;
   }
