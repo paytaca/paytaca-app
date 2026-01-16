@@ -94,6 +94,7 @@ import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
 import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
+import { hexToRef } from 'src/utils/reference-id-utils'
 import base58 from 'bs58'
 import { binToBase64 } from 'bitauth-libauth-v3';
 import { extractMValue, getWalletHash, Pst } from 'src/lib/multisig';
@@ -309,6 +310,21 @@ export default {
         vm.paused = true
         // quick timeout to allow qrcode stream cache to reset after pausing
         await new Promise((resolve) => { window.setTimeout(resolve, 250) })
+
+        // Paytaca Explorer transaction URL (extract txid + derived reference-id)
+        // Example: https://explorer.paytaca.com/tx/<txid>
+        const explorerTxMatch = String(value || '').match(/^(https?:\/\/)?explorer\.paytaca\.com\/tx\/([0-9a-fA-F]{64})/i)
+        if (explorerTxMatch) {
+          const txid = explorerTxMatch[2]
+          const referenceHex = txid.slice(0, 6).toUpperCase()
+          const reference = hexToRef(referenceHex)
+          vm.$router.push({
+            name: 'transaction-list',
+            query: { txid, reference: referenceHex, ref: reference }
+          })
+          vm.paused = false
+          return
+        }
 
         if (value.includes('gifts.paytaca.com')) {
           // redirect to gifts page

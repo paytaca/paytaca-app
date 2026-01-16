@@ -190,7 +190,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { registerMemoUser, authMemo } from 'src/utils/transaction-memos'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
-import { refToHex } from 'src/utils/reference-id-utils'
+import { hexToRef, normalizeRefToHex, refToHex } from 'src/utils/reference-id-utils'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
@@ -209,6 +209,8 @@ export default {
 			denominationTabSelected: 'BCH',
 			txSearchActive: false,
 			txSearchReference: '',
+			// Prevent duplicate fetches when query updates multiple keys at once (e.g. txid + reference).
+			lastAppliedRouteTxSearchKey: '',
 			transactionsFilter: 'all',
 			stablehedgeView: false,
 			isCashToken: true,
@@ -335,12 +337,15 @@ export default {
 
 		await this.loadWallets()
 		this.$nextTick(() => {
-	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
-	        this.$refs['transaction-list-component'].getTransactions()
-	        
-	        // Calculate transaction row height
-	        this.calculateTransactionRowHeight()
-	      })
+			this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
+			// Apply QR/deeplink-driven reference-id search (if present).
+			// If applied, it will trigger a filtered fetch, so skip the default unfiltered fetch.
+			const didApplyTxSearch = this.applyRouteTxSearch()
+			if (!didApplyTxSearch) this.$refs['transaction-list-component'].getTransactions()
+
+			// Calculate transaction row height
+			this.calculateTransactionRowHeight()
+		})
 	      
 	      // Recalculate on window resize
 	      window.addEventListener('resize', this.calculateTransactionRowHeight)
@@ -358,9 +363,47 @@ export default {
 	    async '$route.query.assetID' (newAssetID) {
 	      // Update selected asset when route query changes (e.g., when navigating back)
 	      await this.updateSelectedAssetFromQuery()
+	    },
+	    '$route.query.txid' () {
+	      // Deep-links can update query without remounting; apply route-driven search.
+	      this.applyRouteTxSearch()
+	    },
+	    '$route.query.reference' () {
+	      // Deep-links can update query without remounting; apply route-driven search.
+	      this.applyRouteTxSearch()
 	    }
 	},
 	methods: {
+		applyRouteTxSearch () {
+			// Supports QR/deep links carrying:
+			// - txid: 64-hex transaction id (derive reference from first 6 hex chars)
+			// - reference: reference-id in either 6-hex or 8-decimal format
+			const q = this.$route?.query || {}
+
+			let referenceHex = ''
+			const txid = typeof q.txid === 'string' ? q.txid.trim() : ''
+			if (/^[0-9a-fA-F]{64}$/.test(txid)) {
+				referenceHex = txid.slice(0, 6).toUpperCase()
+			} else if (typeof q.reference === 'string') {
+				referenceHex = normalizeRefToHex(q.reference)
+			}
+
+			if (!referenceHex) return false
+			const refDecimal = hexToRef(referenceHex)
+			if (!refDecimal) return false
+
+			const routeKey = `${txid || ''}|${referenceHex}`
+			if (this.lastAppliedRouteTxSearchKey === routeKey && String(this.txSearchReference || '') === String(refDecimal)) {
+				// Already applied for this exact deep-link; avoid duplicate fetch.
+				return true
+			}
+			this.lastAppliedRouteTxSearchKey = routeKey
+
+			this.txSearchActive = true
+			this.txSearchReference = refDecimal
+			this.$nextTick(() => this.executeTxSearch(refDecimal))
+			return true
+		},
 		parseAssetDenomination,
 		getDarkModeClass,
 		async updateSelectedAssetFromQuery () {
@@ -600,7 +643,7 @@ export default {
 	        // Convert decimal reference to hex before API call
 	        const hexRef = valueStr && valueStr.length === 8 ? refToHex(valueStr) : valueStr
 	        const opts = {txSearchReference: hexRef}
-	        this.$refs['tx-search'].blur()
+	        this.$refs['tx-search']?.blur?.()
 	        this.$refs['transaction-list-component'].getTransactions(1, opts)
 	      }
 	    },
