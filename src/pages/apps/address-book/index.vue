@@ -67,19 +67,19 @@
 
         <template v-else>
           <!-- favorites list -->
-          <div v-if="favoritesList.length > 0">
+          <div v-if="!isLoading && favoritesList.length > 0">
             <record-list :list="favoritesList" />
           </div>
   
           <!-- contacts list -->
-          <div v-if="recordsList.length > 0">
+          <div v-if="!isLoading && recordsList.length > 0">
             <record-list :list="recordsList" />
           </div>
   
           <div
             class="text-center text-h6 q-mt-md"
             :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-            v-else
+            v-if="!isLoading && favoritesList.length === 0 && recordsList.length === 0"
           >
             <p>Empty address book</p>
             <p>
@@ -116,6 +116,8 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { ensureKeypair } from 'src/utils/memo-service';
+import { decryptMemo } from 'src/utils/transaction-memos';
 
 import HeaderNav from 'src/components/header-nav.vue'
 import RecordList from 'src/components/address-book/RecordList.vue'
@@ -130,106 +132,9 @@ export default {
 
   data () {
     return {
-      /** 
-       * id: Number
-       * name: String
-       * is_favorite: Boolean
-       * date_created: Date
-       * date_updated: Date
-       * address_list: Array
-       *   address: String
-       *   type: BCH | CT
-      */
-     favoritesList: [
-      {
-        letter_group: 'favorites',
-        data: [
-          {
-            id: 2,
-            name: '_hearty737',
-            address_count: 5
-          },
-          {
-            id: 3,
-            name: 'Fiona Apple',
-            address_count: 1
-          },
-          {
-            id: 4,
-            name: 'Wendy Darling',
-            address_count: 0
-          }
-        ]
-      },
-     ],
+     favoritesList: [],
      // non-favorite contacts
-     recordsList: [
-      {
-        letter_group: '...',
-        data: [
-          {
-            id: 1,
-            name: '_hearty737',
-            address_count: 5
-          },
-          {
-            id: 1,
-            name: '_hearty737',
-            address_count: 1
-          },
-          {
-            id: 1,
-            name: '_hearty737',
-            address_count: 0
-          }
-        ]
-      },
-      {
-        letter_group: 'a',
-        data: [
-          {
-            id: 1,
-            name: 'Alice Johnson',
-            address_count: 5
-          }
-        ]
-      },
-      {
-        letter_group: 'b',
-        data: [
-          {
-            id: 1,
-            name: 'Bob Smith',
-            address_count: 5
-          },
-        ]
-      },
-      {
-        letter_group: 'j',
-        data: [
-          {
-            id: 1,
-            name: 'Jane Doe',
-            address_count: 5
-          },
-          {
-            id: 1,
-            name: 'John Doe',
-            address_count: 5
-          },
-        ]
-      },
-      {
-        letter_group: 'l',
-        data: [
-          {
-            id: 1,
-            name: 'Laura Croft',
-            address_count: 5
-          }
-        ]
-      },
-     ],
+     recordsList: [],
 
      isLoading: false
     }
@@ -310,6 +215,110 @@ export default {
     const aboveDivsHeight = searchFilterEl.clientHeight + headerHeight
     const listsContainerHeight = this.$q.screen.height - aboveDivsHeight - 70
     document.getElementById('lists-container').style.height = `${listsContainerHeight}px`
+
+    try {
+      const keypair = await ensureKeypair()
+      const respData = [
+        {
+          id: 2,
+          name: 'eyJkIjoiSjAzNFNZbTdVeWpOSEhBaFdKRG04QT09IiwiaXYiOiJFdnRVSitwWXpkYXdmNmJoZ255VlJBPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 5,
+          is_favorite: true
+        },
+        {
+          id: 3,
+          name: 'eyJkIjoiNmtCVnJpRU50RHVJejJlZHU4Tm5SUT09IiwiaXYiOiJlNXRDRUdQT2FpRTdwcVVqaGY4SEpnPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 1,
+          is_favorite: true
+        },
+        {
+          id: 4,
+          name: 'eyJkIjoiSlBaY1dNOEhXajZ2OXQ5Zk9nRE9Bdz09IiwiaXYiOiJPUGEzY3VhbnBYYmhsQTN1SlBXcXdnPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 0,
+          is_favorite: true
+        },
+        {
+          id: 1,
+          name: 'eyJkIjoiQlVxdG9qdktPSmovYlJRM2ViczNvdz09IiwiaXYiOiJJTTB1T2M0VlVlcENsUzdBdTJVSk1BPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 5,
+          is_favorite: false
+        },
+        {
+          id: 1,
+          name: 'eyJkIjoiRWswaXY5Tk8vdEVhVTdDeW9pZnFZdz09IiwiaXYiOiI0NGV2MWVBSVpOVzBkV1dDdDhlYWhRPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 1,
+          is_favorite: false
+        },
+        {
+          id: 1,
+          name: 'eyJkIjoiN21xd05hNGxTbkNaMGExS2RTN3Vxdz09IiwiaXYiOiIxZ3JlcEZUNnQyTTVDWVRyMTlkaUpRPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 5,
+          is_favorite: false
+        },
+        {
+          id: 1,
+          name: 'eyJkIjoiNGdURHBoRFpXd1RWdGhtakxrYzlyUT09IiwiaXYiOiJBSVFMRWdRQmRJTWZYVWdMVS9MS2FRPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 5,
+          is_favorite: false
+        },
+        {
+          id: 1,
+          name: 'eyJkIjoiREE4cG1NK1ZGTitMbTJ2emFpTEtXZz09IiwiaXYiOiJBVE1TZHF3T2VjS3hleW44aE9QWHpRPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 5,
+          is_favorite: false
+        },
+        {
+          id: 1,
+          name: 'eyJkIjoiRXlWUU9Bai8xdHBHTHBGVWVVRWRrQT09IiwiaXYiOiJremFka1hxWmlpQ0JMbVpiZjErendnPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 5,
+          is_favorite: false
+        },
+        {
+          id: 1,
+          name: 'eyJkIjoidVdoZEJ1NFU5eEcwbW1YbmNZZVhaQT09IiwiaXYiOiJNL2VFUWxHamFpVSttby9tMFZja1pnPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
+          address_count: 5,
+          is_favorite: false
+        }
+      ]
+      
+      const tempFavoritesList = []
+      const tempRecordsList = []
+      for (const resp of respData) {
+        const decryptedName = await decryptMemo(keypair.privkey, resp.name)
+        const temp = {
+          id: resp.id,
+          name: decryptedName,
+          address_count: resp.address_count
+        }
+        if (resp.is_favorite) tempFavoritesList.push(temp)
+        else tempRecordsList.push(temp)
+      }
+
+      this.favoritesList = [{
+        letter_group: 'favorites',
+        data: tempFavoritesList.sort((a, b) => a.name.localeCompare(b.name))
+      }]
+
+      const groupedRecords = {}
+      tempRecordsList.forEach(item => {
+        const letterGroup = item.name && typeof item.name === 'string'
+          ? item.name.charAt(0).toLowerCase()
+          : ''
+        if (!groupedRecords[letterGroup]) {
+          groupedRecords[letterGroup] = []
+        }
+        groupedRecords[letterGroup].push(item)
+      })
+
+      this.recordsList = Object.keys(groupedRecords)
+        .sort()
+        .map(group => ({
+          letter_group: group,
+          data: groupedRecords[group].sort((a, b) => a.name.localeCompare(b.name))
+        }))
+    } catch (error) {
+      console.log(error)
+    }
 
     await new Promise(resolve => setTimeout(resolve, 1000))
     this.isLoading = false
