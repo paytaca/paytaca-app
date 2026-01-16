@@ -256,6 +256,8 @@ export default defineComponent({
     async function fetchAvailableContracts() {
       if (loadingContract.value) return
       loadingContract.value = true
+      // Save previous currency to revert on error (mirrors selectCurrency behavior)
+      const previousCurrency = selectedCurrency.value
       try {
         const params = {
           has_treasury_contract: true,
@@ -294,6 +296,9 @@ export default defineComponent({
         }
       } catch (error) {
         console.error('Error fetching contracts:', error)
+        // Revert selectedCurrency if loadContractForCurrency fails after auto-selecting one
+        // (prevents UI from showing a currency that doesn't match currentRedemptionContract)
+        selectedCurrency.value = previousCurrency
         // Show notification for errors from loadContractForCurrency (since we passed showNotification=false)
         // or for other fetch errors (network errors, etc.)
         $q.notify({
