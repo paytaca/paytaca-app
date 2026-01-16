@@ -1576,7 +1576,6 @@ const phrases = {
       ContractAddressUnavailable: 'Unable to resolve the contract address. Please try again later.',
       WalletUnavailable: 'Wallet is not ready. Please try again.',
       InvalidPurchaseAmount: 'Purchase amount is not valid.',
-      PurchasePaymentError: 'Failed to record the purchase.',
       PurchaseCompleted: 'Purchase completed successfully.',
       PurchaseFailed: 'Purchase failed. Please try again.',
       PurchaseProcessing: 'Processing purchase...',
