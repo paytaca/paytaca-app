@@ -265,9 +265,8 @@ export default {
           this.$refs.confirmDialogRef.hide();
         } else raiseNotifyError(this.$t("PurchasePaymentError"));
       } catch (error) {
-        console.error('BuyLiftDialog proceeds error:', error)
+        console.error('PayReservationConfirmDialog proceeds error:', error)
         raiseNotifyError(this.$t("PurchasePaymentError"));
-        this.$emit('purchase', { success: false, errorMessage: error?.message || error?.toString() || this.$t("PurchasePaymentError") })
       } finally {
         this.isSliderLoading = false;
       }
