@@ -767,23 +767,25 @@ export default {
     // Ensure HTML and body have the correct background color to match our wrapper
     this.updateBackgroundColors()
     
-    // Preload sound for new transactions (always preload, not just for new transactions)
-    // This ensures sound is ready when needed
-    // Don't block on audio errors - confetti should still work
-    this.preloadAudio()
-      .then(() => {
-        this.audioPreloaded = true
-      })
-      .catch(() => {
-        this.audioPreloaded = false
-      })
-    
     // Check if this is a new transaction from receive page
     // Handle both properly formatted query and malformed URLs with double ?
     const query = this.$route?.query || {}
     const isNewTransaction = query.new === 'true' || 
                              (typeof query.category === 'string' && query.category.includes('?new=true')) ||
                              (window.location.search && window.location.search.includes('new=true'))
+
+    // Only preload audio for new transactions.
+    // iOS audio preload can interrupt other apps' background audio.
+    // Don't block on audio errors - confetti should still work.
+    if (isNewTransaction) {
+      this.preloadAudio()
+        .then(() => {
+          this.audioPreloaded = true
+        })
+        .catch(() => {
+          this.audioPreloaded = false
+        })
+    }
     
     // Extract category parameter from query string
     let categoryParam = query.category || ''
@@ -852,10 +854,12 @@ export default {
     // Stop background fetch
     this.backgroundFetchActive = false
     
-    // Unload sound
-    NativeAudio.unload({
-      assetId: 'send-success'
-    })
+    // Unload sound (only if we preloaded/used it)
+    if (this.audioPreloaded) {
+      NativeAudio.unload({
+        assetId: 'send-success'
+      })
+    }
   },
   watch: {
     theme () {
@@ -2442,6 +2446,15 @@ export default {
     },
     async playSound (success) {
       if (!success) return
+
+      // Only allow audio for new-transaction views.
+      // Prevents preloading/playing from interrupting background audio on iOS
+      // when viewing older transactions.
+      const query = this.$route?.query || {}
+      const isNewTransaction = query.new === 'true' || 
+                               (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                               (window.location.search && window.location.search.includes('new=true'))
+      if (!isNewTransaction) return
       
       try {
         // Ensure audio is preloaded before playing
