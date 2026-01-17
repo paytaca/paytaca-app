@@ -439,7 +439,12 @@ export default {
         this.shards = shards
         this.shardsGenerated = true
         this.generatingShards = false
-        this.expandedShard = Number.isInteger(parsed?.expandedShard) ? parsed.expandedShard : 0
+        // Allow restoring "no shard expanded" state (null)
+        if (parsed?.expandedShard === null) {
+          this.expandedShard = null
+        } else {
+          this.expandedShard = Number.isInteger(parsed?.expandedShard) ? parsed.expandedShard : 0
+        }
         this.showRawText = Array.isArray(parsed?.showRawText) ? parsed.showRawText : [false, false, false]
         return true
       } catch (e) {
@@ -470,10 +475,17 @@ export default {
     toggleShard (index) {
       // Close if clicking on already expanded shard, otherwise open the clicked one
       this.expandedShard = this.expandedShard === index ? null : index
+      this.persistGeneratedShards()
     },
     toggleRawText (index) {
-      this.showRawText[index] = !this.showRawText[index]
-      this.$forceUpdate() // Force update to ensure reactivity
+      // Vue 2: array index assignment isn't reactive; use $set
+      if (typeof this.$set === 'function') {
+        this.$set(this.showRawText, index, !this.showRawText[index])
+      } else {
+        this.showRawText[index] = !this.showRawText[index]
+        this.$forceUpdate()
+      }
+      this.persistGeneratedShards()
     },
     copyToClipboard (text) {
       copyToClipboard(text)
