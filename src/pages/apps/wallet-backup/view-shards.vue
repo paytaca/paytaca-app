@@ -1510,10 +1510,6 @@ export default {
           box-sizing: border-box;
           overflow-x: hidden; // Prevent horizontal overflow
 
-          .qr-code-container {
-            // QR code is 280px, ensure it fits on small screens
-          }
-          
           .qr-action-buttons {
             flex-direction: column;
             gap: 8px;
