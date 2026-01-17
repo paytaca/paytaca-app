@@ -1235,6 +1235,9 @@ export default {
       try {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         vm.mnemonic = await getMnemonic(walletIndex)
+        if (typeof vm.mnemonic !== 'string' || vm.mnemonic.length === 0) {
+          throw new Error('[view-shards] Missing mnemonic from secure storage')
+        }
         // Compute walletHash from mnemonic to avoid relying on Vuex wallet instance during app resume/reload
         vm.walletHash = computeWalletHash(vm.mnemonic)
         
@@ -1247,7 +1250,6 @@ export default {
 
         // Do not auto-generate shards; user must click Generate Shards (unless restored above)
         vm.walletDataLoaded = true
-        vm.isLoading = false
       } catch (error) {
         console.error('Error loading wallet data:', error)
         vm.$q.notify({
@@ -1258,6 +1260,8 @@ export default {
           timeout: 3000
         })
         vm.$router.push('/apps/wallet-backup')
+      } finally {
+        vm.isLoading = false
       }
     }
   },

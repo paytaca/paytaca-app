@@ -100,6 +100,12 @@ export async function loadLibauthHdWallet(index=0, chipnet=false) {
  * @returns {string} The computed wallet hash
  */
 export function computeWalletHash(mnemonic, derivationPath = "m/44'/145'/0'") {
+  if (typeof mnemonic !== 'string' || mnemonic.length === 0) {
+    throw new TypeError('[computeWalletHash] mnemonic must be a non-empty string')
+  }
+  if (typeof derivationPath !== 'string' || derivationPath.length === 0) {
+    throw new TypeError('[computeWalletHash] derivationPath must be a non-empty string')
+  }
   const mnemonicHash = sha256(mnemonic)
   const derivationPathHash = sha256(derivationPath)
   const walletHash = sha256(mnemonicHash + derivationPathHash)
