@@ -152,7 +152,34 @@
 
           <!-- Chat input (P2P-like) -->
           <div class="chat-input-wrapper" :class="getDarkModeClass(darkMode)">
-            <PhotoSelectorVue v-model="attachment" v-slot="{ selectPhoto }">
+            <div v-if="chatGraceCountdownActive" class="chat-close-countdown" :class="getDarkModeClass(darkMode)">
+              {{ $t('ChatClosesIn', { time: chatGraceCountdownText }, `Chat closes in ${chatGraceCountdownText}`) }}
+            </div>
+
+            <q-banner
+              v-else-if="chatClosedAfterGrace"
+              class="chat-closed-notice"
+              :class="getDarkModeClass(darkMode)"
+              rounded
+            >
+              <template v-slot:avatar>
+                <q-icon name="info" color="info" />
+              </template>
+              <div class="text-weight-medium">
+                {{ $t('ChatClosed', {}, 'Chat closed') }}
+              </div>
+              <div class="text-caption">
+                {{
+                  $t(
+                    'ChatClosedExplanation',
+                    {},
+                    'Chat is no longer available for this order.'
+                  )
+                }}
+              </div>
+            </q-banner>
+
+            <PhotoSelectorVue v-if="canSendChatMessages" v-model="attachment" v-slot="{ selectPhoto }">
               <div class="chat-input-container">
                 <q-btn
                   v-if="!attachment"
@@ -247,6 +274,11 @@ export default defineComponent({
   props: {
     modelValue: Boolean,
     chatRef: String,
+    /**
+     * When provided, chat input is disabled after this timestamp.
+     * Used to match P2P Exchange behavior (chat closes 1 hour after order completion/cancellation).
+     */
+    chatCloseAt: { required: false },
     usePrivkey: String,
     customBackend: { required: false, default: () => backend },
   },
@@ -270,6 +302,50 @@ export default defineComponent({
     watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 
     const showEncryptedChatNotice = ref(true)
+
+    // --- Chat expiry / grace period (P2P-like) ---
+    const nowTs = ref(Date.now())
+    let nowTimer
+    onMounted(() => {
+      nowTimer = setInterval(() => (nowTs.value = Date.now()), 1000)
+    })
+    onUnmounted(() => {
+      if (nowTimer) clearInterval(nowTimer)
+    })
+
+    const chatCloseAtMs = computed(() => {
+      if (!props.chatCloseAt) return null
+      const d = props.chatCloseAt instanceof Date ? props.chatCloseAt : new Date(props.chatCloseAt)
+      const ms = d?.getTime?.()
+      return Number.isFinite(ms) ? ms : null
+    })
+
+    const chatGraceCountdownActive = computed(() => {
+      return chatCloseAtMs.value !== null && nowTs.value < chatCloseAtMs.value
+    })
+
+    const chatClosedAfterGrace = computed(() => {
+      return chatCloseAtMs.value !== null && nowTs.value >= chatCloseAtMs.value
+    })
+
+    const canSendChatMessages = computed(() => {
+      return !chatClosedAfterGrace.value
+    })
+
+    function formatCountdown(msRemaining) {
+      const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000))
+      const hours = Math.floor(totalSeconds / 3600)
+      const minutes = Math.floor((totalSeconds % 3600) / 60)
+      const seconds = totalSeconds % 60
+      const pad2 = n => String(n).padStart(2, '0')
+      if (hours > 0) return `${hours}:${pad2(minutes)}:${pad2(seconds)}`
+      return `${minutes}:${pad2(seconds)}`
+    }
+
+    const chatGraceCountdownText = computed(() => {
+      if (chatCloseAtMs.value === null) return ''
+      return formatCountdown(chatCloseAtMs.value - nowTs.value)
+    })
 
     const customer = computed(() => $store.getters['marketplace/customer'])
     function isOwnMessage(message=ChatMessage.parse()) {
@@ -513,6 +589,7 @@ export default defineComponent({
     }
 
     const sendMessage = debounce(async function() {
+      if (!canSendChatMessages.value) return
       if (!message.value && !attachment.value) return
       let signData = undefined
       let data = {
@@ -713,6 +790,10 @@ export default defineComponent({
       innerVal,
 
       showEncryptedChatNotice,
+      chatGraceCountdownActive,
+      chatClosedAfterGrace,
+      chatGraceCountdownText,
+      canSendChatMessages,
 
       customer,
       isOwnMessage,
@@ -954,6 +1035,54 @@ export default defineComponent({
     .message-text {
       color: rgba(255, 255, 255, 0.95);
     }
+  }
+}
+
+.chat-close-countdown {
+  margin: 0 12px 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  background: rgba(255, 193, 7, 0.14);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 193, 7, 0.28);
+  color: rgba(0, 0, 0, 0.78);
+
+  &.dark {
+    background: rgba(255, 193, 7, 0.18);
+    border: 1px solid rgba(255, 193, 7, 0.22);
+    color: rgba(255, 255, 255, 0.92);
+  }
+}
+
+/* Glassmorphic info banner for closed chat */
+.chat-closed-notice {
+  margin: 0 12px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  color: rgba(0, 0, 0, 0.87);
+
+  &.dark {
+    background: rgba(26, 30, 38, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  :deep(.q-banner__avatar) {
+    align-self: flex-start;
+    margin-right: 10px;
+  }
+
+  :deep(.q-banner__content) {
+    padding: 0;
   }
 }
 
