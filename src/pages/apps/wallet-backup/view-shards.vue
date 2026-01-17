@@ -335,7 +335,7 @@ import QRCode from 'qrcode-svg'
 import sha256 from 'js-sha256'
 import HeaderNav from 'src/components/header-nav'
 import StickyBackupConfirmButton from 'src/components/wallet-backup/StickyBackupConfirmButton.vue'
-import { getMnemonic } from 'src/wallet'
+import { getMnemonic, computeWalletHash } from 'src/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import pinDialog from 'src/components/pin'
 import biometricWarningAttempts from 'src/components/authOption/biometric-warning-attempt.vue'
@@ -390,6 +390,83 @@ export default {
 
   methods: {
     getDarkModeClass,
+    getSessionStorageKey () {
+      return this.walletHash ? `seed_phrase_shards:${this.walletHash}` : 'seed_phrase_shards'
+    },
+    getLastShardsKey () {
+      return 'seed_phrase_shards:last'
+    },
+    persistGeneratedShards () {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) return
+        if (!this.walletHash || !Array.isArray(this.shards) || this.shards.length < 3) return
+        const payload = {
+          walletHash: this.walletHash,
+          shards: this.shards,
+          expandedShard: this.expandedShard,
+          showRawText: this.showRawText,
+          generatedAt: Date.now()
+        }
+        window.localStorage.setItem(this.getSessionStorageKey(), JSON.stringify(payload))
+        // Fallback key (helps restore if wallet-specific key is unavailable for any reason)
+        window.localStorage.setItem(this.getLastShardsKey(), JSON.stringify(payload))
+      } catch (e) {
+        // Best-effort only
+      }
+    },
+    restorePersistedShards () {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) return false
+        if (!this.walletHash) return false
+
+        const readPayload = (key) => {
+          const raw = window.localStorage.getItem(key)
+          if (!raw) return null
+          try { return JSON.parse(raw) } catch { return null }
+        }
+
+        // Prefer wallet-specific key
+        let parsed = readPayload(this.getSessionStorageKey())
+        // Fallback to last-known key only if it matches this wallet
+        if (!parsed) {
+          const last = readPayload(this.getLastShardsKey())
+          if (last?.walletHash === this.walletHash) parsed = last
+        }
+        if (!parsed) return false
+
+        const shards = parsed?.shards
+        if (!Array.isArray(shards) || shards.length < 3) return false
+        this.shards = shards
+        this.shardsGenerated = true
+        this.generatingShards = false
+        this.expandedShard = Number.isInteger(parsed?.expandedShard) ? parsed.expandedShard : 0
+        this.showRawText = Array.isArray(parsed?.showRawText) ? parsed.showRawText : [false, false, false]
+        return true
+      } catch (e) {
+        return false
+      }
+    },
+    clearPersistedShards () {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) return
+        if (!this.walletHash) return
+        window.localStorage.removeItem(this.getSessionStorageKey())
+        // Only clear the fallback key if it matches this wallet
+        const rawLast = window.localStorage.getItem(this.getLastShardsKey())
+        if (rawLast) {
+          try {
+            const last = JSON.parse(rawLast)
+            if (last?.walletHash === this.walletHash) {
+              window.localStorage.removeItem(this.getLastShardsKey())
+            }
+          } catch (_) {
+            // ignore
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    },
     toggleShard (index) {
       // Close if clicking on already expanded shard, otherwise open the clicked one
       this.expandedShard = this.expandedShard === index ? null : index
@@ -973,6 +1050,11 @@ export default {
       const vm = this
       if (vm.generatingShards) return
       vm.generatingShards = true
+
+      // Clear any previously persisted shards before generating a new set
+      // so restore always loads the latest generation.
+      vm.clearPersistedShards()
+
       vm.shardsGenerated = false
       vm.shards = []
       vm.expandedShard = null
@@ -982,6 +1064,7 @@ export default {
         if (vm.shards?.length) {
           vm.shardsGenerated = true
           vm.expandedShard = 0
+          vm.persistGeneratedShards()
         }
       } finally {
         vm.generatingShards = false
@@ -1049,13 +1132,17 @@ export default {
       try {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         vm.mnemonic = await getMnemonic(walletIndex)
-        vm.walletHash = vm.$store.getters['global/getWallet']('bch').walletHash
+        // Compute walletHash from mnemonic to avoid relying on Vuex wallet instance during app resume/reload
+        vm.walletHash = computeWalletHash(vm.mnemonic)
         
         // Get wallet name from vault
         const vault = vm.$store.getters['global/getVault']
         vm.walletName = vault?.[walletIndex]?.name || ''
 
-        // Do not auto-generate shards; user must click Generate Shards
+        // Restore previously generated shards for this app session (survives background/foreground)
+        vm.restorePersistedShards()
+
+        // Do not auto-generate shards; user must click Generate Shards (unless restored above)
         vm.walletDataLoaded = true
         vm.isLoading = false
       } catch (error) {
@@ -1070,6 +1157,16 @@ export default {
         vm.$router.push('/apps/wallet-backup')
       }
     }
+  },
+
+  beforeRouteLeave (to, from, next) {
+    // Clear persisted shards only on explicit back navigation from this page
+    // (prevents accidental clearing during app background/foreground lifecycle quirks)
+    const toPath = to?.path || ''
+    if (toPath === '/apps/settings') {
+      this.clearPersistedShards()
+    }
+    next()
   },
 
   mounted () {
