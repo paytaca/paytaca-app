@@ -28,7 +28,49 @@
 
         <!-- Shards Display -->
         <div class="shards-section q-px-lg">
-          <div v-if="!isLoading && shards.length > 0">
+          <div v-if="isLoading" class="text-center q-py-xl">
+            <q-spinner-dots size="50px" color="primary" />
+            <div class="q-mt-md">{{ $t('LoadingWalletData', {}, 'Loading wallet data') }}...</div>
+          </div>
+
+          <div v-else-if="!shardsGenerated" class="pt-card q-pa-md q-mb-lg" :class="getDarkModeClass(darkMode)">
+            <div class="text-subtitle1 text-weight-bold">
+              {{ $t('GenerateShards', {}, 'Generate Shards') }}
+            </div>
+            <div class="q-mt-sm" style="opacity: 0.9; line-height: 1.5;">
+              {{ $t('ShardsGenerationWarning', {}, 'Note: This algorithm generates a new set of shards every time it is run. Make sure the shards you save were generated at the same time. This is indicated by the Generation ID.') }}
+            </div>
+            <div class="q-mt-md">
+              <q-btn
+                unelevated
+                no-caps
+                icon="mdi-shield-key"
+                type="button"
+                :label="$t('GenerateShards', {}, 'Generate Shards')"
+                class="glassmorphic-generate-btn"
+                :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
+                :loading="generatingShards"
+                :disable="generatingShards"
+                @click="generateShardsAndShow()"
+              >
+                <template v-slot:loading>
+                  <q-spinner-dots color="white" size="24px" />
+                </template>
+              </q-btn>
+            </div>
+          </div>
+
+          <div v-if="shardsGenerated && generationId" class="pt-card q-pa-md q-mb-lg" :class="getDarkModeClass(darkMode)">
+            <div class="text-subtitle1 text-weight-bold">
+              {{ $t('GenerationId', {}, 'Generation ID') }}
+            </div>
+            <div class="q-mt-sm" style="opacity: 0.9; line-height: 1.5;">
+              {{ $t('ShardsGeneratedAtSameTimeNote', {}, 'The shards displayed below were generated at the same time with Generation ID:') }}
+              <span class="generation-id-value q-ml-xs">{{ generationId }}</span>
+            </div>
+          </div>
+
+          <div v-if="shardsGenerated && shards.length > 0">
           <!-- Shard 1 -->
           <div class="shard-accordion-item q-mb-md">
             <div 
@@ -272,16 +314,12 @@
             </q-slide-transition>
           </div>
           </div>
-          <div v-else class="text-center q-py-xl">
-            <q-spinner-dots size="50px" color="primary" />
-            <div class="q-mt-md">{{ $t('LoadingShards', {}, 'Loading shards') }}...</div>
-          </div>
         </div>
       </template>
     </div>
 
     <!-- Sticky Confirm Backup button -->
-    <StickyBackupConfirmButton :authenticated="authenticated" />
+    <StickyBackupConfirmButton v-if="shardsGenerated" :authenticated="authenticated" />
 
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="onPinVerified" />
     <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
@@ -294,6 +332,7 @@ import { toHex } from 'hex-my-bytes'
 import { copyToClipboard } from 'quasar'
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcode-svg'
+import sha256 from 'js-sha256'
 import HeaderNav from 'src/components/header-nav'
 import StickyBackupConfirmButton from 'src/components/wallet-backup/StickyBackupConfirmButton.vue'
 import { getMnemonic } from 'src/wallet'
@@ -322,18 +361,30 @@ export default {
       walletName: '',
       shards: [],
       isLoading: true,
-      expandedShard: 0,
+      expandedShard: null,
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
       authenticated: false,
       showRawText: [false, false, false],
-      savingShardQR: [false, false, false]
+      savingShardQR: [false, false, false],
+      shardsGenerated: false,
+      generatingShards: false,
+      walletDataLoaded: false
     }
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    generationId () {
+      if (!this.shardsGenerated) return ''
+      if (!Array.isArray(this.shards) || this.shards.length < 3) return ''
+      const material = this.shards.join('|')
+      return sha256(material).substring(0, 12)
     }
   },
 
@@ -471,6 +522,14 @@ export default {
           margin-bottom: 30px;
           box-shadow: 0 8px 24px rgba(30, 60, 114, 0.3);
           display: flex;
+          flex-direction: column;
+          gap: 14px;
+        `
+
+        // Top row: Wallet Name (left) + Shard Number (right)
+        const walletTopRow = document.createElement('div')
+        walletTopRow.style.cssText = `
+          display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 30px;
@@ -505,7 +564,6 @@ export default {
         `
         walletNameValue.textContent = vm.walletName || 'Paytaca Wallet'
         walletNameSection.appendChild(walletNameValue)
-        walletInfoContainer.appendChild(walletNameSection)
         
         // Right side: Shard Number
         const shardSection = document.createElement('div')
@@ -536,38 +594,84 @@ export default {
         `
         shardValue.textContent = `${shardIndex + 1}`
         shardSection.appendChild(shardValue)
-        walletInfoContainer.appendChild(shardSection)
+
+        walletTopRow.appendChild(walletNameSection)
+        walletTopRow.appendChild(shardSection)
+        walletInfoContainer.appendChild(walletTopRow)
+
+        // Full-width row: Wallet Hash (inside the colored wallet info box)
+        if (vm.walletHash) {
+          const walletHashRow = document.createElement('div')
+          walletHashRow.style.cssText = `
+            width: 100%;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            padding-top: 12px;
+          `
+
+          const walletHashLabel = document.createElement('div')
+          walletHashLabel.style.cssText = `
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            margin-bottom: 4px;
+            text-align: left;
+          `
+          walletHashLabel.textContent = 'Wallet Hash'
+          walletHashRow.appendChild(walletHashLabel)
+
+          const walletHashValue = document.createElement('div')
+          walletHashValue.style.cssText = `
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.95);
+            font-family: monospace;
+            word-break: break-all;
+            line-height: 1.35;
+            text-align: left;
+          `
+          walletHashValue.textContent = vm.walletHash
+          walletHashRow.appendChild(walletHashValue)
+
+          walletInfoContainer.appendChild(walletHashRow)
+        }
         
         header.appendChild(walletInfoContainer)
         
-        // Wallet hash (smaller, below main info)
+        // Generation ID (below main info)
         const hashContainer = document.createElement('div')
         hashContainer.style.cssText = `
           text-align: center;
           margin-top: 8px;
           margin-bottom: 20px;
         `
-        const hashLabel = document.createElement('div')
-        hashLabel.style.cssText = `
-          font-size: 12px;
-          font-weight: 600;
-          color: #718096;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 6px;
-        `
-        hashLabel.textContent = 'Wallet Hash'
-        hashContainer.appendChild(hashLabel)
-        const hashValue = document.createElement('div')
-        hashValue.style.cssText = `
-          font-size: 14px;
-          color: #4a5568;
-          font-family: monospace;
-          word-break: break-all;
-          line-height: 1.4;
-        `
-        hashValue.textContent = vm.walletHash
-        hashContainer.appendChild(hashValue)
+
+        // Generation ID (to verify shards are from same run)
+        const generationId = vm.generationId || (vm.shards?.length ? sha256(vm.shards.join('|')).substring(0, 12) : '')
+        if (generationId) {
+          const genLabel = document.createElement('div')
+          genLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+          `
+          genLabel.textContent = 'Generation ID'
+          hashContainer.appendChild(genLabel)
+
+          const genValue = document.createElement('div')
+          genValue.style.cssText = `
+            font-size: 16px;
+            color: #2d3748;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+          `
+          genValue.textContent = generationId
+          hashContainer.appendChild(genValue)
+        }
+
         header.appendChild(hashContainer)
         
         contentContainer.appendChild(header)
@@ -739,7 +843,8 @@ export default {
             .replace(/[^a-z0-9]/gi, '-')
             .toLowerCase()
           const shortHash = vm.walletHash.substring(0, 8)
-          const filename = `${sanitizedWalletName}-${shortHash}-shard-${shardIndex + 1}.png`
+          const genId = vm.generationId || 'unknown'
+          const filename = `${sanitizedWalletName}-${shortHash}-gen-${genId}-shard-${shardIndex + 1}.png`
 
           const blobToBase64Data = async (blob) => {
             return await new Promise((resolve, reject) => {
@@ -863,6 +968,25 @@ export default {
         })
       }
     },
+
+    async generateShardsAndShow () {
+      const vm = this
+      if (vm.generatingShards) return
+      vm.generatingShards = true
+      vm.shardsGenerated = false
+      vm.shards = []
+      vm.expandedShard = null
+      vm.showRawText = [false, false, false]
+      try {
+        await vm.generateShards()
+        if (vm.shards?.length) {
+          vm.shardsGenerated = true
+          vm.expandedShard = 0
+        }
+      } finally {
+        vm.generatingShards = false
+      }
+    },
     
     executeSecurityChecking () {
       const vm = this
@@ -919,7 +1043,9 @@ export default {
     
     async onAuthenticationSuccess () {
       const vm = this
+      if (vm.walletDataLoaded) return
       vm.authenticated = true
+      vm.isLoading = true
       try {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         vm.mnemonic = await getMnemonic(walletIndex)
@@ -928,14 +1054,10 @@ export default {
         // Get wallet name from vault
         const vault = vm.$store.getters['global/getVault']
         vm.walletName = vault?.[walletIndex]?.name || ''
-        
-        // Generate shards
-        await vm.generateShards()
-        
-        // Wait a bit before showing (for smooth UX)
-        setTimeout(() => {
-          vm.isLoading = false
-        }, 500)
+
+        // Do not auto-generate shards; user must click Generate Shards
+        vm.walletDataLoaded = true
+        vm.isLoading = false
       } catch (error) {
         console.error('Error loading wallet data:', error)
         vm.$q.notify({
@@ -994,6 +1116,118 @@ export default {
       font-size: 14px;
       opacity: 0.85;
       line-height: 1.6;
+    }
+  }
+
+  .generation-id-row {
+    gap: 0;
+  }
+
+  .generation-id-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    letter-spacing: 0.4px;
+    opacity: 0.9;
+  }
+
+  /* Glassmorphic Generate Shards Button (theme-aware) */
+  .glassmorphic-generate-btn {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: white !important;
+    font-weight: 700;
+    border-radius: 14px;
+    padding: 10px 18px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    text-transform: none;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &.dark {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    /* Blue theme */
+    &.theme-glassmorphic-blue {
+      background: linear-gradient(
+        to right bottom,
+        rgba(59, 123, 246, 0.85),
+        rgba(54, 129, 232, 0.85),
+        rgba(49, 139, 218, 0.85)
+      ) !important;
+
+      &.dark {
+        background: linear-gradient(
+          to right bottom,
+          rgba(59, 123, 246, 0.75),
+          rgba(54, 129, 232, 0.75),
+          rgba(49, 139, 218, 0.75)
+        ) !important;
+      }
+    }
+
+    /* Green theme */
+    &.theme-glassmorphic-green {
+      background: linear-gradient(
+        to right bottom,
+        rgba(67, 160, 71, 0.85),
+        rgba(62, 164, 74, 0.85),
+        rgba(57, 168, 77, 0.85)
+      ) !important;
+
+      &.dark {
+        background: linear-gradient(
+          to right bottom,
+          rgba(67, 160, 71, 0.75),
+          rgba(62, 164, 74, 0.75),
+          rgba(57, 168, 77, 0.75)
+        ) !important;
+      }
+    }
+
+    /* Gold theme */
+    &.theme-glassmorphic-gold {
+      background: linear-gradient(
+        to right bottom,
+        rgba(255, 167, 38, 0.85),
+        rgba(255, 176, 56, 0.85),
+        rgba(255, 184, 74, 0.85)
+      ) !important;
+
+      &.dark {
+        background: linear-gradient(
+          to right bottom,
+          rgba(255, 167, 38, 0.75),
+          rgba(255, 176, 56, 0.75),
+          rgba(255, 184, 74, 0.75)
+        ) !important;
+      }
+    }
+
+    /* Red theme */
+    &.theme-glassmorphic-red {
+      background: linear-gradient(
+        to right bottom,
+        rgba(246, 59, 123, 0.85),
+        rgba(232, 54, 96, 0.85),
+        rgba(218, 49, 72, 0.85)
+      ) !important;
+
+      &.dark {
+        background: linear-gradient(
+          to right bottom,
+          rgba(246, 59, 123, 0.75),
+          rgba(232, 54, 96, 0.75),
+          rgba(218, 49, 72, 0.75)
+        ) !important;
+      }
     }
   }
 

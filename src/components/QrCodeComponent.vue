@@ -83,7 +83,9 @@ export default {
   },
   data () {
     return {
-      loading: true
+      loading: true,
+      _renderTimeout: null,
+      _renderToken: 0
     }
   },
   computed: {
@@ -99,9 +101,23 @@ export default {
   mounted() {
     this.renderQRCode();
   },
+  beforeUnmount() {
+    if (this._renderTimeout) {
+      clearTimeout(this._renderTimeout)
+      this._renderTimeout = null
+    }
+    // Invalidate any in-flight callbacks
+    this._renderToken++
+  },
   watch: {
     generating(newVal) {
       if (newVal) {
+        // Cancel any pending render and invalidate in-flight callbacks
+        this._renderToken++
+        if (this._renderTimeout) {
+          clearTimeout(this._renderTimeout)
+          this._renderTimeout = null
+        }
         this.loading = true
         const container = document.getElementById(`qr-${this.qrId}`)
         if (container) {
@@ -125,6 +141,14 @@ export default {
   methods: {
     renderQRCode() {
       const vm = this
+      // Cancel any previously scheduled render and ensure only the latest call can update DOM
+      vm._renderToken++
+      const token = vm._renderToken
+      if (vm._renderTimeout) {
+        clearTimeout(vm._renderTimeout)
+        vm._renderTimeout = null
+      }
+
       const container = document.getElementById(`qr-${vm.qrId}`)
 
       // Guard: Do not attempt to render with empty content
@@ -138,7 +162,9 @@ export default {
         return
       }
 
-      setTimeout(() => {
+      vm._renderTimeout = setTimeout(() => {
+        // Ignore stale renders
+        if (token !== vm._renderToken) return
         try {
           const qrcode = new QRCode({
             content,
@@ -166,9 +192,11 @@ export default {
           // Wait for next paint, then fade in
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
+              if (token !== vm._renderToken) return
               svgElement.style.transition = 'opacity 160ms ease'
               const onDone = () => {
                 svgElement.removeEventListener('transitionend', onDone)
+                if (token !== vm._renderToken) return
                 vm.loading = false
               }
               // use transitionend to hide skeleton exactly when visible
