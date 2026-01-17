@@ -23,6 +23,29 @@
       </div>
       <q-card-section style="max-height:75vh;overflow-y:auto;">
         <q-form @submit="() => onSubmit()">
+          <!-- Currency Selection (match Freeze dialog UX) -->
+          <div v-if="availableCurrencies?.length > 1" class="q-mb-md">
+            <div class="text-body2 q-mb-sm text-weight-medium">
+              {{ $t('SelectCurrency', {}, 'Select Currency') }}
+            </div>
+            <div class="row q-gutter-sm">
+              <q-btn
+                v-for="currency in availableCurrencies"
+                :key="currency"
+                :label="currency"
+                :color="selectedCurrency === currency ? 'primary' : 'grey-7'"
+                :outline="selectedCurrency !== currency"
+                :flat="selectedCurrency !== currency"
+                unelevated
+                no-caps
+                rounded
+                class="col"
+                :class="selectedCurrency === currency ? 'text-white' : ''"
+                @click="selectCurrency(currency)"
+              />
+            </div>
+          </div>
+
           <div class="row items-center q-my-sm">
             <div class="text-body1 q-space">{{ $t('InputAmountToUnfreeze') }}</div>
             <q-btn
@@ -202,10 +225,12 @@ export default defineComponent({
       return convert;
     })
 
-    const redemptionContracts = computed(() => props.redemptionContracts)
+    const redemptionContracts = computed(() => {
+      return Array.isArray(props.redemptionContracts) ? props.redemptionContracts : []
+    })
     const tokenBalances = computed(() => $store.getters['stablehedge/tokenBalances'])
-    const tokenBalanceContractPairs = computed(() => {
-      const results = redemptionContracts.value.map(redemptionContract => {
+    const allTokenBalanceContractPairs = computed(() => {
+      const results = (redemptionContracts.value || []).map(redemptionContract => {
         const tokenBalance = tokenBalances.value
           .find(tokenBalance => redemptionContract?.fiat_token?.category == tokenBalance?.category)
 
@@ -216,11 +241,64 @@ export default defineComponent({
         // ...results,
       ]
     })
+
+    const allTokenDataPerPair = computed(() => {
+      return allTokenBalanceContractPairs.value.map(pair => {
+        return $store.getters['stablehedge/token'](pair?.tokenBalance?.category)
+      })
+    })
+
+    const availableCurrencies = computed(() => {
+      const currencies = allTokenDataPerPair.value
+        .map(token => token?.currency)
+        .filter(Boolean)
+      return [...new Set(currencies)].sort()
+    })
+
+    const selectedMarketCurrency = computed(() => {
+      const currency = $store.getters['market/selectedCurrency']
+      return currency?.symbol
+    })
+    const preferredStablehedgeCurrency = computed(() => {
+      return selectedMarketCurrency.value === 'PHP' ? 'PHP' : 'USD'
+    })
+
+    const selectedCurrency = ref('')
+    watch([innerVal, availableCurrencies], () => {
+      if (!innerVal.value) return
+      if (selectedCurrency.value && availableCurrencies.value.includes(selectedCurrency.value)) return
+      if (preferredStablehedgeCurrency.value && availableCurrencies.value.includes(preferredStablehedgeCurrency.value)) {
+        selectedCurrency.value = preferredStablehedgeCurrency.value
+      } else {
+        // If wallet currency doesn't match any Stablehedge currency, default to USD (SUSD).
+        if (availableCurrencies.value.includes('USD')) selectedCurrency.value = 'USD'
+        else selectedCurrency.value = availableCurrencies.value?.[0] || ''
+      }
+    }, { immediate: true })
+
+    function selectCurrency(currency) {
+      if (!currency || selectedCurrency.value === currency) return
+      selectedCurrency.value = currency
+      // Reset amounts when switching currency (match Freeze dialog behavior)
+      expandAmounts.value = false
+      amounts.value = []
+      denominatedAmountInner.value = ''
+    }
+
+    const tokenBalanceContractPairs = computed(() => {
+      if (!selectedCurrency.value) return allTokenBalanceContractPairs.value
+      return allTokenBalanceContractPairs.value.filter((pair, index) => {
+        return allTokenDataPerPair.value[index]?.currency === selectedCurrency.value
+      })
+    })
+
     const tokenDataPerPair = computed(() => {
+      // keep in sync with filtered pairs
       return tokenBalanceContractPairs.value.map(pair => {
         return $store.getters['stablehedge/token'](pair?.tokenBalance?.category)
       })
     })
+
     const priceTimestampPerPair = computed(() => {
       return tokenDataPerPair.value.map(token => token?.priceMessage?.messageTimestamp * 1000)
     })
@@ -367,6 +445,10 @@ export default defineComponent({
 
       dialogRef, onDialogCancel, onDialogHide, onDialogOK,
       innerVal,
+
+      availableCurrencies,
+      selectedCurrency,
+      selectCurrency,
 
       denomination,
       denominationDecimals,
