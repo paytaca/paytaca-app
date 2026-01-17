@@ -10,16 +10,40 @@
         :class="[
           'rounded-borders',
           pool.disabled ? 'disabled-pool-option' : null,
-          openLiquidityPoolOptsForm.selected === pool.value ? 'text-weight-medium': null,
+          openLiquidityPoolOptsForm.selected === pool.value ? 'selected-pool-option text-weight-medium' : null,
         ]"
         @click="
           (pool.disabled)
             ? showTemporarilyDisabledTooltip(index)
-            : (openLiquidityPoolOptsForm.selected = openLiquidityPoolOptsForm.selected != pool.value ? pool.value : null)
+            : (openLiquidityPoolOptsForm.selected = pool.value)
         "
       >
         <q-item-section>
-          <q-item-label>{{ pool.label }}</q-item-label>
+          <div class="row items-center no-wrap">
+            <q-item-label class="q-space">{{ pool.label }}</q-item-label>
+            <q-badge
+              v-if="pool.disabled"
+              class="q-ml-sm"
+              color="warning"
+              outline
+            >
+              {{ $t('TemporarilyDisabled', {}, 'Temporarily disabled') }}
+            </q-badge>
+            <q-icon
+              v-else-if="openLiquidityPoolOptsForm.selected === pool.value"
+              name="check_circle"
+              color="positive"
+              size="sm"
+              class="q-ml-sm"
+            />
+          </div>
+          <q-item-label
+            v-if="pool.disabled"
+            caption
+            class="q-mt-xs"
+          >
+            {{ $t('PeerToPeerTemporarilyDisabled', {}, 'Peer-to-peer is temporarily disabled.') }}
+          </q-item-label>
           <q-slide-transition>
             <q-item-label
               v-if="pool.description && openLiquidityPoolOptsForm.selected == pool.value"
@@ -1548,5 +1572,14 @@ function amountRules (val) {
 }
 .slide-group-leave-to {
   opacity: 0;
+}
+
+.selected-pool-option {
+  border: 1px solid rgba(33, 186, 69, 0.4);
+  background: rgba(33, 186, 69, 0.06);
+}
+
+.disabled-pool-option {
+  opacity: 0.65;
 }
 </style>
