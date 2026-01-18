@@ -1,6 +1,6 @@
 <template>
   <q-pull-to-refresh id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)" @refresh="refreshPage">
-    <header-nav :title="$t('Stablehedge')" class="header-nav apps-header" />
+    <header-nav title="StableHedge" class="header-nav apps-header" />
 
     <div ref="fixedSection">
       <q-card id="bch-card" class="q-ma-md" @click="setSelectedAsset(bchAsset)">

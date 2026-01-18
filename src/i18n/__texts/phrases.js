@@ -8,7 +8,6 @@ const phrases = {
       AdvanceBackupMethods: 'Advanced Backup Methods',
       AutoGenerateAddress: 'Auto generate address',
       AutoGenerateAddressToolTip: 'A new address will be generated after receiving assets.',
-      AnyHedge: "AnyHedge",
       AnyCashToken: "Any CashToken",
       AppealRamp: "Appeal Ramp",
       ApproveToken: "Approve token",
@@ -1615,7 +1614,27 @@ const phrases = {
       CommunityDescription: 'Join our community',
       GitHubDescription: 'View source code and report issues',
       SearchByReferenceID: 'Search by Reference ID',
-      DebugToolsDescription: 'SLP settings, denomination selector, address key viewer, and more'
+      DebugToolsDescription: 'SLP settings, denomination selector, address key viewer, and more',
+
+      // Apps page
+      'Apps.P2PExchange.Description': 'Buy and sell BCH peer-to-peer with anyone, secured by smart contract escrow.',
+      'Apps.Marketplace.Description': 'Buy goods from merchants around your area and get your orders delivered to you.',
+      'Apps.Collectibles.Description': 'View and manage your Non-Fungible token collectibles.',
+      'Apps.Gifts.Description': 'Create and redeem BCH gifts.',
+      'Apps.LiftToken.Description': 'View your LIFT token activity and manage related actions.',
+      'Apps.MultisigWallets.Description': 'Create and manage multi-signature wallets for extra security.',
+      'Apps.CauldronDEX.Description': 'Swap or provide CashTokens liquidity on Cauldron DEX',
+      'Apps.CryptoSwap.Description': 'Swap your other cryptocurrencies (BTC, ETH, SOL, and others) into BCH.',
+      'Apps.AnyHedge.Description': 'Create hedges/longs to manage BCH price volatility exposure.',
+      'Apps.Stablehedge.Description': 'Mint and redeem stable tokens backed by BCH.',
+      'Apps.WalletConnect.Description': 'Connect Paytaca to dApps using WalletConnect.',
+      'Apps.MerchantAdmin.Description': 'Manage your merchant tools and settings.',
+      'Apps.MerchantMap.Description': 'Find merchants that accept BCH.',
+      'Apps.Support.Description': 'Get help, guides, and wallet information.',
+      'Apps.Settings.Description': 'Customize your wallet preferences and security settings.',
+      'Apps.Debug.Description': 'Developer tools and diagnostics.',
+      'Apps.Sandbox.Description': 'Experimental playground for testing features.',
+      'AppsTour.DefaultTitle': 'App'
     },
     {
       MultisigWalletsBetaMessage: 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.',
