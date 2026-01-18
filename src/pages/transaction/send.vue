@@ -798,17 +798,27 @@ export default {
     },
     // Watch for asset balance updates from store
     storeAsset (newStoreAsset) {
-      if (newStoreAsset && newStoreAsset.balance !== undefined) {
+      // Recompute derived wallet balance when either BCH `spendable` or `balance` updates.
+      // Some refresh paths update `spendable` without touching `balance`, which previously left
+      // the displayed balance stuck at 0 even though MAX (which uses spendable) was correct.
+      if (newStoreAsset && (newStoreAsset.balance !== undefined || newStoreAsset.spendable !== undefined)) {
         // Merge store asset data with local asset (preserve local overrides like logo, name from route)
         this.asset = {
           ...this.asset,
-          balance: newStoreAsset.balance,
-          spendable: newStoreAsset.spendable,
+          balance: newStoreAsset.balance ?? this.asset?.balance,
+          spendable: newStoreAsset.spendable ?? this.asset?.spendable,
           yield: newStoreAsset.yield
         }
         // Recalculate wallet balance when asset balance updates
         this.adjustWalletBalance()
       }
+    },
+    // Keep displayed balance in sync with BCH spendable/balance updates
+    'asset.spendable' () {
+      this.adjustWalletBalance()
+    },
+    'asset.balance' () {
+      this.adjustWalletBalance()
     },
     manualAddress (address) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
@@ -2269,11 +2279,16 @@ export default {
             symbol = passedAsset.name || 'TOKEN'
           }
           
+          // BCH decimals should always be 8; some callers omit it.
+          const normalizedDecimals = passedAsset.id === 'bch'
+            ? 8
+            : (passedAsset.decimals !== undefined ? passedAsset.decimals : 0)
+
           vm.asset = {
             id: passedAsset.id,
             name: passedAsset.name || 'Unknown Token',
             symbol: symbol,
-            decimals: passedAsset.decimals !== undefined ? passedAsset.decimals : 0,
+            decimals: normalizedDecimals,
             logo: passedAsset.logo || null,
             balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
           }
@@ -2289,7 +2304,7 @@ export default {
                 id: passedAsset.id,
                 name: passedAsset.name || 'Unknown Token',
                 symbol: symbol,
-                decimals: passedAsset.decimals !== undefined ? passedAsset.decimals : 0,
+                decimals: normalizedDecimals,
                 logo: passedAsset.logo || '',
                 balance: passedAsset.balance !== undefined ? passedAsset.balance : 0,
                 spendable: passedAsset.balance !== undefined ? passedAsset.balance : 0,
