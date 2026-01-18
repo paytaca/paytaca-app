@@ -360,6 +360,12 @@
       </div>
     </div>
   </div>
+
+  <UpgradePromptDialog
+    v-model="showUpgradeDialog"
+    :dark-mode="darkMode"
+    limit-type="favoriteTokens"
+  />
 </template>
 
 <script>
@@ -387,10 +393,11 @@ import JppDetailDialog from 'src/components/JppDetailDialog.vue'
 import * as assetSettings from 'src/utils/asset-settings'
 import { getBcmrBackend, convertIpfsUrl } from 'src/wallet/cashtokens'
 import { binToHex } from '@bitauth/libauth'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 
 export default {
   name: 'TransactionDetailPage',
-  components: { headerNav },
+  components: { headerNav, UpgradePromptDialog },
   props: {
     txid: String
   },
@@ -418,6 +425,7 @@ export default {
       favorites: [],
       addingToFavorites: false,
       favoritesEvaluated: false, // Track if favorites have been evaluated in background
+      showUpgradeDialog: false,
       nftImageError: false, // Track if NFT image failed to load
       nftImageUrl: null, // NFT image URL from BCMR type_metadata
       nftName: null, // NFT name from BCMR type_metadata
@@ -911,6 +919,20 @@ export default {
     }
   },
   methods: {
+    async ensureAssetSettingsAuth () {
+      // `fetchFavorites()` works without auth, but `saveFavorites()` / `saveCustomList()` require it.
+      // Asset list page calls `assetSettings.authToken()` before saving; do the same here.
+      try {
+        const token = await assetSettings.getAuthToken()
+        if (token) return true
+        await assetSettings.authToken()
+        const tokenAfter = await assetSettings.getAuthToken()
+        return !!tokenAfter
+      } catch (e) {
+        console.warn('[TransactionDetail] Failed to initialize asset settings auth token:', e)
+        return false
+      }
+    },
     getDarkModeClass,
     parseFiatCurrency,
     getAssetDenomination,
@@ -1464,6 +1486,9 @@ export default {
     },
     async loadFavorites () {
       try {
+        // Best-effort: ensure auth is ready so follow-up actions (save favorites) won't fail.
+        // (Fetching favorites itself is unauthenticated.)
+        await this.ensureAssetSettingsAuth()
         const favorites = await assetSettings.fetchFavorites()
         if (favorites && Array.isArray(favorites)) {
           this.favorites = favorites
@@ -1608,21 +1633,20 @@ export default {
       if (!isAlreadyFavorite) {
         const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
         if (currentFavoriteCount >= limit) {
+          // Match `/asset/list` UX: show upgrade dialog when limit reached for free users.
+          const isPlus = this.$store.getters['subscription/isPlusSubscriber']
+          if (!isPlus) {
+            this.showUpgradeDialog = true
+            return
+          }
+
+          // Fallback for Plus users (should be rare): keep a lightweight notice.
           this.$q.notify({
-            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.'),
+            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached.'),
             color: 'negative',
             icon: 'error',
             position: 'top',
-            timeout: 3000,
-            actions: [
-              {
-                label: this.$t('LearnMore', {}, 'Learn More'),
-                color: 'white',
-                handler: () => {
-                  this.$router.push('/apps/lift-token')
-                }
-              }
-            ]
+            timeout: 2500,
           })
           return
         }
@@ -1630,6 +1654,10 @@ export default {
       
       this.addingToFavorites = true
       try {
+        const hasAuth = await this.ensureAssetSettingsAuth()
+        if (!hasAuth) {
+          throw new Error('Asset settings auth token missing')
+        }
         const selectedNetwork = 'BCH'
         
         // Fetch custom list (same as asset list page)
@@ -1659,7 +1687,10 @@ export default {
         if (!assetIds.includes(this.tokenAssetId)) {
           assetIds.unshift(this.tokenAssetId)
           customList[selectedNetwork] = assetIds
-          await assetSettings.saveCustomList(customList)
+          const savedCustom = await assetSettings.saveCustomList(customList)
+          if (savedCustom && typeof savedCustom === 'object' && (savedCustom.detail || savedCustom.error)) {
+            throw new Error(savedCustom.detail || savedCustom.error)
+          }
         }
         
         // Create a map of existing favorites for quick lookup
@@ -1705,7 +1736,11 @@ export default {
         })
         
         // Save the full favorites list (preserving favorites from all networks and favorite_order)
-        await assetSettings.saveFavorites(currentFavorites)
+        const saved = await assetSettings.saveFavorites(currentFavorites)
+        if (saved && typeof saved === 'object' && (saved.detail || saved.error)) {
+          // asset-settings returns error payloads instead of throwing; normalize to exception
+          throw new Error(saved.detail || saved.error)
+        }
         
         // Update local favorites array immediately so button disappears right away
         this.favorites = currentFavorites

@@ -59,7 +59,7 @@
 				</div>				
 			</div>
 
-			<div class="full-width" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 12px ; margin-bottom: 40px;">
+			<div class="full-width tokens-list-container" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 12px ;">
 			    <q-list v-if="assetList.length > 0" :key="assetListKey" class="q-ma-md">
 			      	<draggable			      		
 			      		:list="assetList" 
@@ -101,7 +101,13 @@
 									      		</div>
 									        </q-item-section>
 									      	<q-item-section side>			      		
+									      		<q-spinner
+									      			v-if="favoriteLoading[asset.id]"
+									      			size="2em"
+									      			color="amber-6"
+									      		/>
 									      		<q-rating
+									      			v-else
 									      			readonly
 											        v-model="asset.favorite"
 											        max="1"
@@ -174,7 +180,8 @@ export default {
 			drag: false,	
 			isloaded: false,
 			networkError: false,
-			showUpgradeDialog: false
+			showUpgradeDialog: false,
+			favoriteLoading: {}, // { [assetId]: boolean }
 		}
 	},
 	computed: {
@@ -338,174 +345,179 @@ export default {
 	    // 	})	    
 	    // },
     async updateFavorite (favAsset) {
+    	if (!favAsset?.id) return
+    	if (this.favoriteLoading[favAsset.id]) return
+    	this.favoriteLoading = { ...this.favoriteLoading, [favAsset.id]: true }
+
     	// Toggle favorite status
     	const wasFavorite = favAsset.favorite === 1
     	
     	// Declare currentFavorites at function scope so it's accessible throughout
     	let currentFavorites = []
-    	
-    	// If adding a favorite (not removing), check subscription limit first
-    	if (!wasFavorite) {
-    		// Check subscription limit before adding
-    		await this.$store.dispatch('subscription/checkSubscriptionStatus')
-    		
-    		// Fetch current favorites to check count
-    		currentFavorites = await assetSettings.fetchFavorites()
-    		if (!Array.isArray(currentFavorites)) {
-    			currentFavorites = []
-    		}
-    		
-    		// Count current favorites (where favorite === 1)
-    		const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
-    		
-    		// Check if this token is already a favorite
-    		const isAlreadyFavorite = currentFavorites.some(fav => fav.id === favAsset.id && fav.favorite === 1)
-    		
-    		// If not already a favorite, check limit
-    		if (!isAlreadyFavorite) {
-    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-    			if (currentFavoriteCount >= limit) {
-    				// Check if user is on free tier
-    				const isPlus = this.$store.getters['subscription/isPlusSubscriber']
-    				if (!isPlus) {
-    					// Show upgrade dialog for free tier users
-    					this.showUpgradeDialog = true
-    				} else {
-    					// Show notification for plus tier users who somehow reached limit
-    					this.$q.notify({
-    						message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.'),
-    						color: 'negative',
-    						icon: 'error',
-    						position: 'top',
-    						timeout: 3000,
-    						actions: [
-    							{
-    								label: this.$t('LearnMore', {}, 'Learn More'),
-    								color: 'white',
-    								handler: () => {
-    									this.$router.push('/apps/lift-token')
-    								}
-    							}
-    						]
-    					})
-    				}
-    				return // Prevent adding favorite if limit is reached
-    			}
-    		}
-    	}
-    	
-    	// Update UI immediately for better UX
-    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: wasFavorite ? 0 : 1} : asset)
-    	
-    	// If unfavoriting, set favorite_order to null and sort immediately
-    	if (wasFavorite) {
-    		// Set favorite_order to null for the unfavorited token
-    		this.assetList = this.assetList.map(asset => {
-    			if (asset.id === favAsset.id && asset.favorite === 0) {
-    				return { ...asset, favorite_order: null }
-    			}
-    			return asset
-    		})
-    		
-    		// Sort immediately: favorites first (by favorite_order), then non-favorites
-    		this.assetList = this.assetList.sort((a, b) => {
-    			// If one is favorite and other is not, favorite comes first
-    			if (a.favorite === 1 && b.favorite === 0) return -1
-    			if (a.favorite === 0 && b.favorite === 1) return 1
-    			// If both are favorites, maintain their favorite_order
-    			if (a.favorite === 1 && b.favorite === 1) {
-    				const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
-    					? a.favorite_order 
-    					: Number.MAX_SAFE_INTEGER
-    				const orderB = (b.favorite_order !== null && b.favorite_order !== undefined && b.favorite_order > 0) 
-    					? b.favorite_order 
-    					: Number.MAX_SAFE_INTEGER
-    				return orderA - orderB
-    			}
-    			// If both are non-favorites, maintain their relative order (or sort by name/id for consistency)
-    			// Put the newly unfavorited token first in the non-favorites list
-    			if (a.favorite === 0 && b.favorite === 0) {
-    				if (a.id === favAsset.id) return -1 // Newly unfavorited comes first
-    				if (b.id === favAsset.id) return 1
-    				return 0 // Maintain relative order for others
-    			}
-    			return 0
-    		})
-    	}
-    	
-    	// If favoriting (not unfavoriting), calculate and assign favorite_order IMMEDIATELY (synchronously)
-    	// This ensures the sort uses the correct order before any async operations
-    	if (!wasFavorite) {
-    		// Get favorites in current view (excluding the one we're favoriting)
-    		const favoritesInView = this.assetList.filter(asset => asset.favorite === 1 && asset.id !== favAsset.id)
-    		
-    		// Get valid favorite_order values from visible favorites (only count non-null, non-undefined orders)
-    		const validOrdersInView = favoritesInView
-    			.map(f => f.favorite_order)
-    			.filter(order => order !== null && order !== undefined && order > 0)
-    		
-    		// Also get valid orders from API favorites (including those not in current view)
-    		// We already fetched currentFavorites above when checking subscription limits
-    		const allFavoritesFromAPI = currentFavorites.filter(fav => fav.favorite === 1)
-    		const validOrdersFromAPI = allFavoritesFromAPI
-    			.map(f => f.favorite_order)
-    			.filter(order => order !== null && order !== undefined && order > 0)
-    		
-    		// Combine all valid orders to get the true maximum
-    		const allValidOrders = [...validOrdersInView, ...validOrdersFromAPI]
-    		const maxOrderFromValid = allValidOrders.length > 0 ? Math.max(...allValidOrders) : 0
-    		
-    		// Find favorites in view with null/undefined orders - these need orders assigned first
-    		const favoritesWithNullOrder = favoritesInView.filter(f => 
-    			f.favorite_order === null || f.favorite_order === undefined || f.favorite_order <= 0
-    		)
-    		
-    		// Assign orders to null-order favorites first, starting from maxOrderFromValid + 1
-    		let nextOrder = maxOrderFromValid + 1
-    		this.assetList = this.assetList.map(asset => {
-    			if (favoritesWithNullOrder.some(f => f.id === asset.id)) {
-    				const assignedOrder = nextOrder
-    				nextOrder++
-    				return { ...asset, favorite_order: assignedOrder }
-    			}
-    			return asset
-    		})
-    		
-    		// Now assign favorite_order to the newly favorited token (after null-order favorites)
-    		this.assetList = this.assetList.map(asset => {
-    			if (asset.id === favAsset.id && asset.favorite === 1) {
-    				return { ...asset, favorite_order: nextOrder }
-    			}
-    			return asset
-    		})
-    		
-    		// Sort immediately after assigning favorite_order (synchronously)
-    		// This ensures the UI shows the correct order right away
-    		this.assetList = this.assetList.sort((a, b) => {
-    			// If one is favorite and other is not, favorite comes first
-    			if (a.favorite === 1 && b.favorite === 0) return -1
-    			if (a.favorite === 0 && b.favorite === 1) return 1
-    			// If both are favorites, maintain their favorite_order
-    			if (a.favorite === 1 && b.favorite === 1) {
-    				// Handle null/undefined orders - treat them as very large numbers so they sort to the end
-    				// This ensures favorites with valid orders come first
-    				const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
-    					? a.favorite_order 
-    					: Number.MAX_SAFE_INTEGER
-    				const orderB = (b.favorite_order !== null && b.favorite_order !== undefined && b.favorite_order > 0) 
-    					? b.favorite_order 
-    					: Number.MAX_SAFE_INTEGER
-    				return orderA - orderB
-    			}
-    			// If both have same favorite status, maintain their relative order
-    			return 0
-    		})
-    	}
-    	
-    	// Add a small delay to make the animation more noticeable
-    	setTimeout(async () => {
+    	try {
+	    	// If adding a favorite (not removing), check subscription limit first
+	    	if (!wasFavorite) {
+	    		// Check subscription limit before adding
+	    		await this.$store.dispatch('subscription/checkSubscriptionStatus')
+	    		
+	    		// Fetch current favorites to check count
+	    		currentFavorites = await assetSettings.fetchFavorites()
+	    		if (!Array.isArray(currentFavorites)) {
+	    			currentFavorites = []
+	    		}
+	    		
+	    		// Count current favorites (where favorite === 1)
+	    		const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
+	    		
+	    		// Check if this token is already a favorite
+	    		const isAlreadyFavorite = currentFavorites.some(fav => fav.id === favAsset.id && fav.favorite === 1)
+	    		
+	    		// If not already a favorite, check limit
+	    		if (!isAlreadyFavorite) {
+	    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+	    			if (currentFavoriteCount >= limit) {
+	    				// Check if user is on free tier
+	    				const isPlus = this.$store.getters['subscription/isPlusSubscriber']
+	    				if (!isPlus) {
+	    					// Show upgrade dialog for free tier users
+	    					this.showUpgradeDialog = true
+	    				} else {
+	    					// Show notification for plus tier users who somehow reached limit
+	    					this.$q.notify({
+	    						message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.'),
+	    						color: 'negative',
+	    						icon: 'error',
+	    						position: 'top',
+	    						timeout: 3000,
+	    						actions: [
+	    							{
+	    								label: this.$t('LearnMore', {}, 'Learn More'),
+	    								color: 'white',
+	    								handler: () => {
+	    									this.$router.push('/apps/lift-token')
+	    								}
+	    							}
+	    						]
+	    					})
+	    				}
+	    				return // Prevent adding favorite if limit is reached
+	    			}
+	    		}
+	    	}
+	    	
+	    	// Update UI immediately for better UX
+	    	this.assetList = this.assetList.map(asset => asset.id === favAsset.id ? {...asset, favorite: wasFavorite ? 0 : 1} : asset)
+	    	
+	    	// If unfavoriting, set favorite_order to null and sort immediately
+	    	if (wasFavorite) {
+	    		// Set favorite_order to null for the unfavorited token
+	    		this.assetList = this.assetList.map(asset => {
+	    			if (asset.id === favAsset.id && asset.favorite === 0) {
+	    				return { ...asset, favorite_order: null }
+	    			}
+	    			return asset
+	    		})
+	    		
+	    		// Sort immediately: favorites first (by favorite_order), then non-favorites
+	    		this.assetList = this.assetList.sort((a, b) => {
+	    			// If one is favorite and other is not, favorite comes first
+	    			if (a.favorite === 1 && b.favorite === 0) return -1
+	    			if (a.favorite === 0 && b.favorite === 1) return 1
+	    			// If both are favorites, maintain their favorite_order
+	    			if (a.favorite === 1 && b.favorite === 1) {
+	    				const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
+	    					? a.favorite_order 
+	    					: Number.MAX_SAFE_INTEGER
+	    				const orderB = (b.favorite_order !== null && b.favorite_order !== undefined && b.favorite_order > 0) 
+	    					? b.favorite_order 
+	    					: Number.MAX_SAFE_INTEGER
+	    				return orderA - orderB
+	    			}
+	    			// If both are non-favorites, maintain their relative order (or sort by name/id for consistency)
+	    			// Put the newly unfavorited token first in the non-favorites list
+	    			if (a.favorite === 0 && b.favorite === 0) {
+	    				if (a.id === favAsset.id) return -1 // Newly unfavorited comes first
+	    				if (b.id === favAsset.id) return 1
+	    				return 0 // Maintain relative order for others
+	    			}
+	    			return 0
+	    		})
+	    	}
+	    	
+	    	// If favoriting (not unfavoriting), calculate and assign favorite_order IMMEDIATELY (synchronously)
+	    	// This ensures the sort uses the correct order before any async operations
+	    	if (!wasFavorite) {
+	    		// Get favorites in current view (excluding the one we're favoriting)
+	    		const favoritesInView = this.assetList.filter(asset => asset.favorite === 1 && asset.id !== favAsset.id)
+	    		
+	    		// Get valid favorite_order values from visible favorites (only count non-null, non-undefined orders)
+	    		const validOrdersInView = favoritesInView
+	    			.map(f => f.favorite_order)
+	    			.filter(order => order !== null && order !== undefined && order > 0)
+	    		
+	    		// Also get valid orders from API favorites (including those not in current view)
+	    		// We already fetched currentFavorites above when checking subscription limits
+	    		const allFavoritesFromAPI = currentFavorites.filter(fav => fav.favorite === 1)
+	    		const validOrdersFromAPI = allFavoritesFromAPI
+	    			.map(f => f.favorite_order)
+	    			.filter(order => order !== null && order !== undefined && order > 0)
+	    		
+	    		// Combine all valid orders to get the true maximum
+	    		const allValidOrders = [...validOrdersInView, ...validOrdersFromAPI]
+	    		const maxOrderFromValid = allValidOrders.length > 0 ? Math.max(...allValidOrders) : 0
+	    		
+	    		// Find favorites in view with null/undefined orders - these need orders assigned first
+	    		const favoritesWithNullOrder = favoritesInView.filter(f => 
+	    			f.favorite_order === null || f.favorite_order === undefined || f.favorite_order <= 0
+	    		)
+	    		
+	    		// Assign orders to null-order favorites first, starting from maxOrderFromValid + 1
+	    		let nextOrder = maxOrderFromValid + 1
+	    		this.assetList = this.assetList.map(asset => {
+	    			if (favoritesWithNullOrder.some(f => f.id === asset.id)) {
+	    				const assignedOrder = nextOrder
+	    				nextOrder++
+	    				return { ...asset, favorite_order: assignedOrder }
+	    			}
+	    			return asset
+	    		})
+	    		
+	    		// Now assign favorite_order to the newly favorited token (after null-order favorites)
+	    		this.assetList = this.assetList.map(asset => {
+	    			if (asset.id === favAsset.id && asset.favorite === 1) {
+	    				return { ...asset, favorite_order: nextOrder }
+	    			}
+	    			return asset
+	    		})
+	    		
+	    		// Sort immediately after assigning favorite_order (synchronously)
+	    		// This ensures the UI shows the correct order right away
+	    		this.assetList = this.assetList.sort((a, b) => {
+	    			// If one is favorite and other is not, favorite comes first
+	    			if (a.favorite === 1 && b.favorite === 0) return -1
+	    			if (a.favorite === 0 && b.favorite === 1) return 1
+	    			// If both are favorites, maintain their favorite_order
+	    			if (a.favorite === 1 && b.favorite === 1) {
+	    				// Handle null/undefined orders - treat them as very large numbers so they sort to the end
+	    				// This ensures favorites with valid orders come first
+	    				const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
+	    					? a.favorite_order 
+	    					: Number.MAX_SAFE_INTEGER
+	    				const orderB = (b.favorite_order !== null && b.favorite_order !== undefined && b.favorite_order > 0) 
+	    					? b.favorite_order 
+	    					: Number.MAX_SAFE_INTEGER
+	    				return orderA - orderB
+	    			}
+	    			// If both have same favorite status, maintain their relative order
+	    			return 0
+	    		})
+	    	}
+
+	    	// Small delay to keep the reorder animation noticeable, but keep the spinner visible
+	    	await new Promise(resolve => setTimeout(resolve, 100))
+
 	    	// Fetch current favorites from API to get complete state including favorite_order
-	    	let currentFavorites = await assetSettings.fetchFavorites()
+	    	currentFavorites = await assetSettings.fetchFavorites()
 	    	if (!Array.isArray(currentFavorites)) {
 	    		currentFavorites = []
 	    	}
@@ -598,7 +610,9 @@ export default {
 		    	
 		    	// Save all assets with favorite_order to preserve ordering
 		    	await assetSettings.saveFavorites(favoritesData)
-	    	}, 100)
+    	} finally {
+    		this.favoriteLoading = { ...this.favoriteLoading, [favAsset.id]: false }
+    	}
 	    },
 	    getWallet (type) {
 	      return this.$store.getters['global/getWallet'](type)
@@ -704,6 +718,11 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
+// Ensure the last token can scroll above the fixed footer menu
+.tokens-list-container {
+  padding-bottom: calc(140px + env(safe-area-inset-bottom));
+}
+
 .drag-handle {
   cursor: grab;
   user-select: none;
