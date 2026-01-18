@@ -2278,6 +2278,27 @@ export default {
             balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
           }
           console.log('[Send] Set asset with symbol:', vm.asset.symbol)
+
+          // Ensure the asset exists in the `assets` store so balance refreshes
+          // (`updateAssetBalanceOnLoad` -> `assets/updateAssetBalance`) can update it.
+          // This is important for tokens that aren't already present in the asset list (e.g. non-favorites).
+          try {
+            const existing = vm.$store.getters['assets/getAsset']?.(passedAsset.id)
+            if (!Array.isArray(existing) || existing.length === 0) {
+              vm.$store.commit('assets/addNewAsset', {
+                id: passedAsset.id,
+                name: passedAsset.name || 'Unknown Token',
+                symbol: symbol,
+                decimals: passedAsset.decimals !== undefined ? passedAsset.decimals : 0,
+                logo: passedAsset.logo || '',
+                balance: passedAsset.balance !== undefined ? passedAsset.balance : 0,
+                spendable: passedAsset.balance !== undefined ? passedAsset.balance : 0,
+                is_nft: false,
+              })
+            }
+          } catch (e) {
+            console.warn('[Send] Failed to ensure asset exists in store:', e)
+          }
           
           // Don't fall through to the default logic - we have everything we need
           // Continue with the rest of mounted() logic below
@@ -2311,8 +2332,19 @@ export default {
       // Fetch and update asset balance from wallet
       try {
         await updateAssetBalanceOnLoad(vm.assetId, vm.wallet, vm.$store)
-        // Refresh asset from store after balance update
-        vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+        // Refresh asset from store after balance update, but avoid clobbering
+        // route-provided balance/logo/name when store doesn't have the token yet.
+        const refreshed = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+        const keepLocalBalance = (
+          (refreshed?.balance === undefined || refreshed?.balance === null) ||
+          (refreshed?.balance === 0 && (vm.asset?.balance || 0) > 0)
+        )
+        vm.asset = {
+          ...vm.asset,
+          ...refreshed,
+          balance: keepLocalBalance ? vm.asset?.balance : refreshed?.balance,
+          spendable: refreshed?.spendable ?? vm.asset?.spendable,
+        }
       } catch (error) {
         console.error('Error fetching asset balance:', error)
       }
