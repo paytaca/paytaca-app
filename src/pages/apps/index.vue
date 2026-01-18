@@ -11,7 +11,6 @@
           flat
           round
           icon="lightbulb"
-          size="sm"
           class="text-bow"
           :class="getDarkModeClass(darkMode)"
           data-tour="apps-tour-trigger"

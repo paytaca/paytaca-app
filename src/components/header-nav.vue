@@ -29,7 +29,7 @@
             {{ title }}
           </p>
         </div>
-        <div class="col-1">
+        <div class="col-1 row items-center justify-end">
           <slot name="top-right-menu">&nbsp;</slot>
         </div>
       </div>
