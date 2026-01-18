@@ -45,7 +45,6 @@ export default {
     async loadMerchant (merchantId) {
       await backend.get(`/paytacapos/merchants/${merchantId}/`)
         .then(response => {
-          console.log(response.data)
           this.merchant = response.data
           this.$store.commit('paytacapos/updateCashoutMerchant', this.merchant)
         })
@@ -69,11 +68,8 @@ export default {
       }
 
       await backend.post(url, { params: params, authorize: true })
-        .then(response => {
-          console.log(response)
-        })
         .catch(error => {
-          console.log(error)
+          console.error(error.response || error)
         })
     }
   }

@@ -3,22 +3,22 @@
     <template v-if="rewardsPage === ''">
       <div
         ref="header-nav"
-        class="pt-header row no-wrap"
+        class="pt-header row no-wrap items-center"
         :style="{'padding-top': $q.platform.is.ios ? '73px' : '18px', 'height': $q.platform.is.ios ? '95px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
         :class="getDarkModeClass(darkMode)"
       >
-        <div class="col-1">
+        <div class="pt-header-left col-auto row items-center">
           <router-link
             :to="backTo"
             class="pt-arrow-left-link"
             :class="{'text-grad': darkMode}"
-            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             <span class="material-icons" @click="onClick">
                 arrow_back
             </span>
           </router-link>
         </div>
-        <div class="col-10">
+        <div class="pt-header-title col">
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
@@ -29,7 +29,7 @@
             {{ title }}
           </p>
         </div>
-        <div class="col-1 row items-center justify-end">
+        <div class="pt-header-right col-auto row items-center justify-end">
           <slot name="top-right-menu">&nbsp;</slot>
         </div>
       </div>
@@ -38,7 +38,7 @@
     <template v-else>
       <div
         ref="header-nav"
-        class="row no-wrap pt-header justify-between"
+        class="row no-wrap pt-header justify-between items-center"
         :style="{
           'padding-top': $q.platform.is.ios ? '73px' : '18px',
           'height': $q.platform.is.ios ? '95px' : '70px',
@@ -46,18 +46,18 @@
         }"
         :class="{'pt-card-3': darkMode}"
       >
-        <div class="col-1">
+        <div class="pt-header-left col-auto row items-center">
           <router-link
             :to="backTo"
             class="pt-arrow-left-link"
             :class="{'text-grad': darkMode}"
-            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             <span class="material-icons" @click="onClick">
                 arrow_back
             </span>
           </router-link>
         </div>
-        <div>
+        <div class="pt-header-title col">
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
@@ -68,7 +68,7 @@
             {{ title }}
           </p>
         </div>
-        <div class="col-1 q-mr-sm">
+        <div class="pt-header-right col-auto q-mr-sm">
           <q-btn
             round
             class="button"
@@ -186,16 +186,33 @@ export default {
   margin-right: auto;
   padding-top: 20px;
   z-index: 100;
+  position: relative;
+  --pt-header-side: clamp(44px, 12vw, 56px);
+}
+
+/* Fixed side slots so icons never overlap the centered title */
+.pt-header-left,
+.pt-header-right {
+  flex: 0 0 var(--pt-header-side);
+  width: var(--pt-header-side);
+  min-width: var(--pt-header-side);
+}
+.pt-header-title {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .pt-arrow-left-link {
-  position: absolute;
+  position: relative;
   font-size: 30px;
-  left: 20px;
   color: #3B7BF6;
   text-decoration: none;
   display: flex;
   justify-items: center;
   align-items: center;
+  height: 100%;
+  width: 100%;
+  padding-left: 10px;
+  z-index: 2;
 }
 .pt-settings-icon {
   position: absolute;

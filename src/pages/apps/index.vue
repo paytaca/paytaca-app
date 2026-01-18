@@ -10,9 +10,11 @@
         <q-btn
           flat
           round
+          dense
           icon="lightbulb"
           class="text-bow"
           :class="getDarkModeClass(darkMode)"
+          :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '0px' }"
           data-tour="apps-tour-trigger"
           @click="startAppsTour(false)"
         />

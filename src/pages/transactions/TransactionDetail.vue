@@ -2899,16 +2899,10 @@ export default {
     padding-left: 2px !important;
     padding-right: 2px !important;
     overflow: visible !important;
+    --pt-header-side: 44px;
   }
   
-  .transaction-detail-wrapper .apps-header .pt-header .col-1:first-child {
-    flex: 0 0 32px !important;
-    max-width: 32px !important;
-    min-width: 32px !important;
-    padding-right: 0 !important;
-  }
-  
-  .transaction-detail-wrapper .apps-header .pt-header .col-10 {
+  .transaction-detail-wrapper .apps-header .pt-header .pt-header-title {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     max-width: none !important;
@@ -2917,7 +2911,7 @@ export default {
     overflow: visible !important;
   }
   
-  .transaction-detail-wrapper .apps-header .pt-header .col-10 p {
+  .transaction-detail-wrapper .apps-header .pt-header .pt-header-title p {
     line-height: 1.3 !important;
     white-space: normal !important;
     overflow: visible !important;
@@ -2925,13 +2919,6 @@ export default {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-  }
-  
-  .transaction-detail-wrapper .apps-header .pt-header .col-1:last-child {
-    flex: 0 0 32px !important;
-    max-width: 32px !important;
-    min-width: 32px !important;
-    padding-left: 0 !important;
   }
 }
 
