@@ -9,7 +9,7 @@
     <q-card
       class="notifs-card wallet-card"
       :class="getDarkModeClass(darkMode)"
-      :style="{'padding-top': $q.platform.is.ios ? '20px' : '0px'}"
+      :style="sidebarCardStyle"
     >
       <!-- Fixed Header -->
       <div class="fixed-header" :class="getDarkModeClass(darkMode)">
@@ -240,6 +240,19 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    sidebarCardStyle () {
+      // Keep sidebar content below the OS status bar/cutouts on native builds.
+      // iOS already looks correct; Android needs the safe-area top padding.
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+
+      if (this.$q.platform.is.android) {
+        return { paddingTop: safeTop }
+      }
+      if (this.$q.platform.is.ios) {
+        return { paddingTop: '20px' }
+      }
+      return { paddingTop: '0px' }
     },
     theme () {
       return this.$store.getters['global/theme']

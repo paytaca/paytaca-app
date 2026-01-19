@@ -8,7 +8,6 @@
 
             <div
               class="row q-px-sm q-pt-sm"
-              :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <div data-tour="wallet-opener" class="col">
                 <MultiWalletDropdown ref="multi-wallet-component"/>

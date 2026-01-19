@@ -82,7 +82,8 @@ export default {
       pauseListener: null, // Listener for app pause (background) events
       resumeListener: null, // Listener for app resume (foreground) events
       lastPauseTime: 0, // Timestamp of last pause event (to detect genuine background/foreground transitions)
-      showPrivacyOverlay: false // Controls privacy overlay visibility for app preview protection
+      showPrivacyOverlay: false, // Controls privacy overlay visibility for app preview protection
+      androidInsetResizeHandler: null, // Window resize handler for android status bar inset
     }
   },
   computed: {
@@ -112,6 +113,35 @@ export default {
     }
   },
   methods: {
+    updateAndroidStatusBarInset () {
+      // Some Android WebViews don't expose safe-area insets even when the status bar overlays the webview.
+      // Use a lightweight heuristic and set a CSS var for components (dialogs/headers) to consume.
+      try {
+        if (!Capacitor.isNativePlatform() || !this.$q.platform.is.android) {
+          document.body.style.removeProperty('--pt-android-statusbar')
+          return
+        }
+
+        const screenH = Number(window?.screen?.height) || 0
+        const innerH = Number(window?.innerHeight) || 0
+        const delta = Math.max(0, screenH - innerH)
+
+        // If the viewport almost matches the screen height, the status bar is likely overlaying the webview.
+        // On devices where the webview is already inset, delta is typically >= status bar height.
+        const overlaysStatusBar = screenH > 0 && delta < 16
+
+        // Fallback: approximate status bar height (~24dp), scaled slightly for tall screens.
+        const fallbackPx = screenH > 0
+          ? Math.round(Math.max(24, screenH * 0.03))
+          : 24
+
+        document.body.style.setProperty('--pt-android-statusbar', overlaysStatusBar ? `${fallbackPx}px` : '0px')
+      } catch (e) {
+        // Never block app startup for this.
+        // eslint-disable-next-line no-console
+        console.warn('[App] Failed to set android status bar inset:', e)
+      }
+    },
     async updateScreenshotSecurity() {
       const vm = this
       // Only meaningful on native (iOS/Android) builds.
@@ -746,6 +776,11 @@ export default {
       await vm.setupAppLifecycleListener()
     }
 
+    // Android-only: set a fallback status bar inset for devices that don't expose safe-area insets.
+    vm.updateAndroidStatusBarInset()
+    vm.androidInsetResizeHandler = () => vm.updateAndroidStatusBarInset()
+    window.addEventListener('resize', vm.androidInsetResizeHandler)
+
     // Initialize privacy overlay to hidden state
     const overlay = document.getElementById('privacy-overlay')
     if (overlay) {
@@ -917,6 +952,10 @@ export default {
     if (this.resumeListener) {
       this.resumeListener.remove()
     }
+    if (this.androidInsetResizeHandler) {
+      window.removeEventListener('resize', this.androidInsetResizeHandler)
+      this.androidInsetResizeHandler = null
+    }
   },
   created () {
     const vm = this
@@ -956,17 +995,15 @@ export default {
   -webkit-overflow-scrolling: touch !important;
 }
 
-/* Safe-area padding for pages WITHOUT HeaderNav (native only) */
-body.platform-ios:not(.pt-has-header-nav) #q-app,
-body.platform-android:not(.pt-has-header-nav) #q-app {
+/* Safe-area padding for pages WITHOUT HeaderNav (native only).
+   Apply padding on the page container so the status-bar area inherits
+   the same background as the page (avoids a black strip). */
+body.platform-ios:not(.pt-has-header-nav) #app-container,
+body.platform-android:not(.pt-has-header-nav) #app-container,
+body.platform-ios:not(.pt-has-header-nav) #apps-page-container,
+body.platform-android:not(.pt-has-header-nav) #apps-page-container {
   padding-top: var(--pt-safe-top);
   box-sizing: border-box;
-}
-
-/* Explicitly avoid double-padding when HeaderNav is present */
-body.platform-ios.pt-has-header-nav #q-app,
-body.platform-android.pt-has-header-nav #q-app {
-  padding-top: 0;
 }
 
 #app-container {

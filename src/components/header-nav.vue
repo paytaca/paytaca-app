@@ -122,7 +122,7 @@ export default {
        * - Android: add safe-area inset on top of the normal padding so the back button
        *   stays clickable on devices where the status bar overlays the webview.
        */
-      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px))'
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
 
       if (this.$q.platform.is.ios) {
         return {
@@ -161,7 +161,7 @@ export default {
     if (!headerNavEl || typeof headerTitleHeight !== 'number') return
 
     if (!this.$q.platform.is.ios) {
-      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px))'
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
       headerNavEl.style.height = headerTitleHeight > 32
         ? `calc(100px + ${safeTop})`
         : `calc(70px + ${safeTop})`
