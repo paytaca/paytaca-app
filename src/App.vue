@@ -938,6 +938,11 @@ export default {
 <style lang="scss">
 #q-app {
   overflow: auto;
+  --pt-safe-top: max(
+    env(safe-area-inset-top, 0px),
+    var(--q-safe-area-top, 0px),
+    var(--safe-area-inset-top, 0px)
+  );
   
   /* Hide scrollbar completely on all platforms */
   &::-webkit-scrollbar {
@@ -949,6 +954,19 @@ export default {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
   -webkit-overflow-scrolling: touch !important;
+}
+
+/* Safe-area padding for pages WITHOUT HeaderNav (native only) */
+body.platform-ios:not(.pt-has-header-nav) #q-app,
+body.platform-android:not(.pt-has-header-nav) #q-app {
+  padding-top: var(--pt-safe-top);
+  box-sizing: border-box;
+}
+
+/* Explicitly avoid double-padding when HeaderNav is present */
+body.platform-ios.pt-has-header-nav #q-app,
+body.platform-android.pt-has-header-nav #q-app {
+  padding-top: 0;
 }
 
 #app-container {

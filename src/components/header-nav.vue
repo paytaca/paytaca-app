@@ -4,7 +4,7 @@
       <div
         ref="header-nav"
         class="pt-header row no-wrap items-center"
-        :style="{'padding-top': $q.platform.is.ios ? '73px' : '18px', 'height': $q.platform.is.ios ? '95px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
+        :style="headerNavStyle"
         :class="getDarkModeClass(darkMode)"
       >
         <div class="pt-header-left col-auto row items-center">
@@ -39,11 +39,7 @@
       <div
         ref="header-nav"
         class="row no-wrap pt-header justify-between items-center"
-        :style="{
-          'padding-top': $q.platform.is.ios ? '73px' : '18px',
-          'height': $q.platform.is.ios ? '95px' : '70px',
-          'padding-bottom': $q.platform.is.ios ? '45px' : '0px'
-        }"
+        :style="headerNavStyle"
         :class="{'pt-card-3': darkMode}"
       >
         <div class="pt-header-left col-auto row items-center">
@@ -119,6 +115,30 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    headerNavStyle () {
+      /**
+       * Prevent header overlap with the OS status bar / cutouts.
+       * - iOS: keep the existing visual spacing, but also respect safe-area insets.
+       * - Android: add safe-area inset on top of the normal padding so the back button
+       *   stays clickable on devices where the status bar overlays the webview.
+       */
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px))'
+
+      if (this.$q.platform.is.ios) {
+        return {
+          // Preserve existing iOS sizing, but ensure we never go *below* safe area needs.
+          paddingTop: `max(73px, calc(${safeTop} + 29px))`,
+          height: `max(95px, calc(${safeTop} + 51px))`,
+          paddingBottom: '45px'
+        }
+      }
+
+      return {
+        paddingTop: `calc(18px + ${safeTop})`,
+        height: `calc(70px + ${safeTop})`,
+        paddingBottom: '0px'
+      }
+    },
     backTo () {
       if (typeof this.backnavpath === 'object' && this.backnavpath !== null && Object.keys(this.backnavpath).length > 0) {
         return this.backnavpath
@@ -131,12 +151,21 @@ export default {
     }
   },
   mounted () {
-    // adjust header-nav div height when header title breaks into two lines
-    const headerTitleHeight = this.$refs['header-title'].clientHeight
-    const headerNavHeight = this.$refs['header-nav'].clientHeight
+    // Mark that this route has a header so global safe-area padding won't double-apply.
+    document.body.classList.add('pt-has-header-nav')
 
-    if (headerNavHeight === 70) { // not iOS
-      this.$refs['header-nav'].setAttribute('style', `height: ${headerTitleHeight > 32 ? '100' : '70'}px;`)
+    // adjust header-nav div height when header title breaks into two lines
+    const headerTitleHeight = this.$refs['header-title']?.clientHeight
+    const headerNavEl = this.$refs['header-nav']
+
+    if (!headerNavEl || typeof headerTitleHeight !== 'number') return
+
+    if (!this.$q.platform.is.ios) {
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px))'
+      headerNavEl.style.height = headerTitleHeight > 32
+        ? `calc(100px + ${safeTop})`
+        : `calc(70px + ${safeTop})`
+
       if (headerTitleHeight > 32) {
         // move all elements 30px down due to the change in height
         document.body.style.paddingTop = '30px'
@@ -146,6 +175,7 @@ export default {
   },
   beforeUnmount () {
     if (this.addedBodyPadding) document.body.style.paddingTop = ''
+    document.body.classList.remove('pt-has-header-nav')
   },
   methods: {
     getDarkModeClass,
