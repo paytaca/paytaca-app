@@ -204,14 +204,22 @@
         <!-- Save Receipt Button -->
         <div class="q-mt-md q-mb-lg text-center">
           <q-btn
-            unelevated
+            flat
+            outline
             no-caps
             :label="$t('SaveReceipt', {}, 'Save Receipt')"
             icon="receipt"
+            color="grey-7"
             class="save-receipt-btn glassmorphic-receipt-btn"
-            :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
+            :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
+            :loading="savingReceipt"
+            :disable="savingReceipt"
             @click="saveReceiptImage"
-          />
+          >
+            <template v-slot:loading>
+              <q-spinner-dots color="white" size="24px" />
+            </template>
+          </q-btn>
         </div>
 
         <!-- Transaction Metadata Section -->
@@ -414,6 +422,7 @@ export default {
       nftImageUrl: null, // NFT image URL from BCMR type_metadata
       nftName: null, // NFT name from BCMR type_metadata
       fetchingNftMetadata: false, // Track if NFT metadata is being fetched
+      savingReceipt: false,
     }
   },
   computed: {
@@ -1903,22 +1912,24 @@ export default {
     },
     async saveReceiptImage () {
       const vm = this
-      if (!vm.tx || !vm.transactionId) {
-        return
-      }
-      
+      if (!vm.tx || !vm.transactionId) return
+      if (vm.savingReceipt) return
+
+      vm.savingReceipt = true
+      let wrapper = null
+
       try {
         const isReceived = vm.tx.record_type === 'incoming'
         const amount = vm.displayAmountText
-        const fiatAmount = vm.displayFiatAmount !== null && vm.displayFiatAmount !== undefined 
+        const fiatAmount = vm.displayFiatAmount !== null && vm.displayFiatAmount !== undefined
           ? vm.parseFiatCurrency(vm.displayFiatAmount, vm.selectedMarketCurrency)
           : null
         const dateTime = vm.formatDate(vm.tx.tx_timestamp || vm.tx.date_created)
         const referenceId = vm.transactionId ? vm.hexToRef(vm.transactionId.substring(0, 6)) : ''
         const explorerLink = vm.explorerLink
-        
+
         // Create a beautiful wrapper with gradient background (transaction receipt theme)
-        const wrapper = document.createElement('div')
+        wrapper = document.createElement('div')
         wrapper.style.cssText = `
           background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 50%, #0d9488 100%);
           padding: 40px 35px;
@@ -1928,7 +1939,7 @@ export default {
           position: relative;
           overflow: hidden;
         `
-        
+
         // Add decorative background elements
         const bgDecoration = document.createElement('div')
         bgDecoration.style.cssText = `
@@ -1942,7 +1953,7 @@ export default {
           z-index: 0;
         `
         wrapper.appendChild(bgDecoration)
-        
+
         const bgDecoration2 = document.createElement('div')
         bgDecoration2.style.cssText = `
           position: absolute;
@@ -1955,7 +1966,7 @@ export default {
           z-index: 0;
         `
         wrapper.appendChild(bgDecoration2)
-        
+
         // Main content container
         const contentContainer = document.createElement('div')
         contentContainer.style.cssText = `
@@ -1966,14 +1977,14 @@ export default {
           padding: 35px 30px;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         `
-        
+
         // Header with icon and title
         const header = document.createElement('div')
         header.style.cssText = `
           text-align: center;
           margin-bottom: 40px;
         `
-        
+
         // Header text (no icon, cleaner design)
         const headerText = document.createElement('div')
         headerText.style.cssText = `
@@ -1986,7 +1997,7 @@ export default {
         `
         headerText.textContent = 'Transaction Receipt'
         header.appendChild(headerText)
-        
+
         // Transaction type and amount container with gradient
         const amountContainer = document.createElement('div')
         amountContainer.style.cssText = `
@@ -1996,7 +2007,7 @@ export default {
           margin-bottom: 40px;
           box-shadow: 0 8px 24px rgba(10, 193, 142, 0.3);
         `
-        
+
         const typeLabel = document.createElement('div')
         typeLabel.style.cssText = `
           font-size: 18px;
@@ -2008,7 +2019,7 @@ export default {
         `
         typeLabel.textContent = isReceived ? 'Received' : 'Sent'
         amountContainer.appendChild(typeLabel)
-        
+
         const amountValue = document.createElement('div')
         amountValue.style.cssText = `
           font-size: 48px;
@@ -2019,7 +2030,7 @@ export default {
         `
         amountValue.textContent = amount
         amountContainer.appendChild(amountValue)
-        
+
         if (fiatAmount) {
           const fiatValue = document.createElement('div')
           fiatValue.style.cssText = `
@@ -2031,15 +2042,15 @@ export default {
           fiatValue.textContent = fiatAmount
           amountContainer.appendChild(fiatValue)
         }
-        
+
         header.appendChild(amountContainer)
-        
+
         // Transaction details section
         const detailsSection = document.createElement('div')
         detailsSection.style.cssText = `
           margin-bottom: 35px;
         `
-        
+
         // Reference ID
         if (referenceId) {
           const refContainer = document.createElement('div')
@@ -2068,7 +2079,7 @@ export default {
           refContainer.appendChild(refValue)
           detailsSection.appendChild(refContainer)
         }
-        
+
         // Transaction ID
         const txIdContainer = document.createElement('div')
         txIdContainer.style.cssText = `
@@ -2097,7 +2108,7 @@ export default {
         const truncatedTxId = vm.transactionId ? `${vm.transactionId.slice(0, 8)}...${vm.transactionId.slice(-8)}` : ''
         txIdValue.textContent = truncatedTxId
         txIdContainer.appendChild(txIdValue)
-        
+
         // QR Code for explorer link
         if (explorerLink) {
           const qrContainer = document.createElement('div')
@@ -2107,7 +2118,7 @@ export default {
             margin-top: 12px;
             margin-bottom: 8px;
           `
-          
+
           // Create QR code
           const qrcode = new QRCode({
             content: explorerLink,
@@ -2118,7 +2129,7 @@ export default {
             background: '#ffffff',
             ecl: 'M'
           })
-          
+
           const parser = new DOMParser()
           const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
           const svgElement = svgDoc.documentElement
@@ -2127,9 +2138,9 @@ export default {
           qrContainer.appendChild(svgElement)
           txIdContainer.appendChild(qrContainer)
         }
-        
+
         detailsSection.appendChild(txIdContainer)
-        
+
         // Date & Time
         const dateContainer = document.createElement('div')
         const dateLabel = document.createElement('div')
@@ -2153,17 +2164,17 @@ export default {
         dateValue.textContent = dateTime
         dateContainer.appendChild(dateValue)
         detailsSection.appendChild(dateContainer)
-        
+
         header.appendChild(detailsSection)
         contentContainer.appendChild(header)
-        
+
         // Footer with logo and website
         const footer = document.createElement('div')
         footer.style.cssText = `
           text-align: center;
           padding-top: 15px;
         `
-        
+
         // Paytaca logo container
         const paytacaLogoContainer = document.createElement('div')
         paytacaLogoContainer.style.cssText = `
@@ -2172,7 +2183,7 @@ export default {
           align-items: center;
           margin-bottom: 12px;
         `
-        
+
         // Load Paytaca logo
         const loadPaytacaLogo = () => {
           return new Promise((resolve) => {
@@ -2194,7 +2205,7 @@ export default {
             }
           })
         }
-        
+
         // Website text
         const websiteText = document.createElement('div')
         websiteText.style.cssText = `
@@ -2207,226 +2218,206 @@ export default {
         footer.appendChild(paytacaLogoContainer)
         footer.appendChild(websiteText)
         contentContainer.appendChild(footer)
-        
+
         wrapper.appendChild(contentContainer)
         document.body.appendChild(wrapper)
-        
-        try {
-          // Wait for logo to load before capturing
-          await loadPaytacaLogo()
-          
-          // Small delay to ensure DOM updates are rendered
-          await new Promise(resolve => setTimeout(resolve, 100))
 
-          // Capture with html2canvas (maximum scale for best quality)
-          const canvas = await html2canvas(wrapper, {
-            backgroundColor: null,
-            scale: 4,
-            logging: false,
-            useCORS: true,
-            allowTaint: true,
-            windowWidth: wrapper.offsetWidth,
-            windowHeight: wrapper.offsetHeight,
-            onclone: (clonedDoc) => {
-              // Ensure all text is rendered at high quality
-              const clonedWrapper = clonedDoc.querySelector('div')
-              if (clonedWrapper) {
-                clonedWrapper.style.transform = 'scale(1)'
-                clonedWrapper.style.transformOrigin = 'top left'
-              }
+        // Wait for logo to load before capturing
+        await loadPaytacaLogo()
+
+        // Small delay to ensure DOM updates are rendered
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        // Capture with html2canvas (maximum scale for best quality)
+        const canvas = await html2canvas(wrapper, {
+          backgroundColor: null,
+          scale: 4,
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+          windowWidth: wrapper.offsetWidth,
+          windowHeight: wrapper.offsetHeight,
+          onclone: (clonedDoc) => {
+            // Ensure all text is rendered at high quality
+            const clonedWrapper = clonedDoc.querySelector('div')
+            if (clonedWrapper) {
+              clonedWrapper.style.transform = 'scale(1)'
+              clonedWrapper.style.transformOrigin = 'top left'
             }
+          }
+        })
+
+        // Remove temporary wrapper
+        if (document.body.contains(wrapper)) {
+          document.body.removeChild(wrapper)
+        }
+
+        // Compress image to keep under 300KB while maximizing quality
+        const compressImage = async (canvas) => {
+          // Use JPEG directly (much smaller than PNG)
+          // Try to keep full resolution with very high quality
+          let quality = 0.95
+          let blob = await new Promise(resolve => {
+            canvas.toBlob(resolve, 'image/jpeg', quality)
           })
 
-          // Remove temporary wrapper
-          document.body.removeChild(wrapper)
-
-          // Compress image to keep under 300KB while maximizing quality
-          const compressImage = async (canvas) => {
-            // Use JPEG directly (much smaller than PNG)
-            // Try to keep full resolution with very high quality
-            let quality = 0.95
-            let blob = await new Promise(resolve => {
+          // If too large, reduce quality gradually but keep it high
+          if (blob && blob.size > 300000) { // 300 KB
+            quality = 0.92
+            blob = await new Promise(resolve => {
               canvas.toBlob(resolve, 'image/jpeg', quality)
             })
-            
-            // If too large, reduce quality gradually but keep it high
-            if (blob && blob.size > 300000) { // 300 KB
-              quality = 0.92
-              blob = await new Promise(resolve => {
-                canvas.toBlob(resolve, 'image/jpeg', quality)
-              })
-            }
-            
-            if (blob && blob.size > 300000) {
-              quality = 0.90
-              blob = await new Promise(resolve => {
-                canvas.toBlob(resolve, 'image/jpeg', quality)
-              })
-            }
-            
-            if (blob && blob.size > 300000) {
-              quality = 0.88
-              blob = await new Promise(resolve => {
-                canvas.toBlob(resolve, 'image/jpeg', quality)
-              })
-            }
-            
-            // Only reduce dimensions as last resort, but use maximum quality smoothing
-            if (blob && blob.size > 300000) {
-              // Try a larger dimension first to maintain quality
-              const maxDimension = 1600
-              const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
-              const newWidth = Math.floor(canvas.width * ratio)
-              const newHeight = Math.floor(canvas.height * ratio)
-              
-              const resizedCanvas = document.createElement('canvas')
-              resizedCanvas.width = newWidth
-              resizedCanvas.height = newHeight
-              const resizedCtx = resizedCanvas.getContext('2d')
-              // Use best image smoothing for quality
-              resizedCtx.imageSmoothingEnabled = true
-              resizedCtx.imageSmoothingQuality = 'high'
-              // Use better interpolation
-              resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
-              
-              blob = await new Promise(resolve => {
-                resizedCanvas.toBlob(resolve, 'image/jpeg', 0.90)
-              })
-            }
-            
-            // Final fallback - smaller dimension but still high quality
-            if (blob && blob.size > 300000) {
-              const maxDimension = 1400
-              const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
-              const newWidth = Math.floor(canvas.width * ratio)
-              const newHeight = Math.floor(canvas.height * ratio)
-              
-              const resizedCanvas = document.createElement('canvas')
-              resizedCanvas.width = newWidth
-              resizedCanvas.height = newHeight
-              const resizedCtx = resizedCanvas.getContext('2d')
-              resizedCtx.imageSmoothingEnabled = true
-              resizedCtx.imageSmoothingQuality = 'high'
-              resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
-              
-              blob = await new Promise(resolve => {
-                resizedCanvas.toBlob(resolve, 'image/jpeg', 0.88)
-              })
-            }
-            
-            return blob
           }
-          
-          // Create filename with transaction ID (always JPEG now)
-          let shortTxId = vm.transactionId.substring(0, 8)
-          let filename = `receipt-${shortTxId}.jpg`
-          
-          const blob = await compressImage(canvas)
-          if (!blob) {
-            throw new Error('Failed to create receipt image blob')
+
+          if (blob && blob.size > 300000) {
+            quality = 0.90
+            blob = await new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/jpeg', quality)
+            })
           }
-          
-          // Check if running on mobile
-          const isMobile = Capacitor.getPlatform() !== 'web'
-          
-          if (isMobile) {
-            // Convert blob to base64
+
+          if (blob && blob.size > 300000) {
+            quality = 0.88
+            blob = await new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/jpeg', quality)
+            })
+          }
+
+          // Only reduce dimensions as last resort, but use maximum quality smoothing
+          if (blob && blob.size > 300000) {
+            // Try a larger dimension first to maintain quality
+            const maxDimension = 1600
+            const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
+            const newWidth = Math.floor(canvas.width * ratio)
+            const newHeight = Math.floor(canvas.height * ratio)
+
+            const resizedCanvas = document.createElement('canvas')
+            resizedCanvas.width = newWidth
+            resizedCanvas.height = newHeight
+            const resizedCtx = resizedCanvas.getContext('2d')
+            // Use best image smoothing for quality
+            resizedCtx.imageSmoothingEnabled = true
+            resizedCtx.imageSmoothingQuality = 'high'
+            // Use better interpolation
+            resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
+
+            blob = await new Promise(resolve => {
+              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.90)
+            })
+          }
+
+          // Final fallback - smaller dimension but still high quality
+          if (blob && blob.size > 300000) {
+            const maxDimension = 1400
+            const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
+            const newWidth = Math.floor(canvas.width * ratio)
+            const newHeight = Math.floor(canvas.height * ratio)
+
+            const resizedCanvas = document.createElement('canvas')
+            resizedCanvas.width = newWidth
+            resizedCanvas.height = newHeight
+            const resizedCtx = resizedCanvas.getContext('2d')
+            resizedCtx.imageSmoothingEnabled = true
+            resizedCtx.imageSmoothingQuality = 'high'
+            resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
+
+            blob = await new Promise(resolve => {
+              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.88)
+            })
+          }
+
+          return blob
+        }
+
+        const blobToBase64Data = async (blob) => {
+          return await new Promise((resolve, reject) => {
             const reader = new FileReader()
-            reader.onload = async () => {
+            reader.onload = () => {
               try {
                 if (typeof reader.result !== 'string') {
-                  throw new Error('FileReader result is not a string')
+                  return reject(new Error('FileReader result is not a string'))
                 }
 
                 const base64Data = reader.result.split(',')[1]
                 if (!base64Data) {
-                  throw new Error('Failed to extract base64 data from data URL')
+                  return reject(new Error('Failed to extract base64 data from data URL'))
                 }
-                
-                // Save to photo library using our custom plugin
-                const result = await SaveToGallery.saveImage({
-                  base64Data: base64Data,
-                  filename: filename
-                })
-                
-                vm.$q.notify({
-                  message: vm.$t('ReceiptSavedToPhotos', {}, 'Receipt saved to Photos'),
-                  color: 'positive',
-                  icon: 'check_circle',
-                  position: 'top',
-                  timeout: 2000
-                })
-              } catch (error) {
-                console.error('[SaveReceipt] Error saving to photos:', error)
-                vm.$q.notify({
-                  message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt. Please ensure photo library permissions are granted.'),
-                  color: 'negative',
-                  icon: 'error',
-                  position: 'top',
-                  timeout: 3000
-                })
+                resolve(base64Data)
+              } catch (e) {
+                reject(e)
               }
             }
-            reader.onerror = (event) => {
-              console.error('[SaveReceipt] Error converting receipt blob to base64:', reader.error || event)
-              vm.$q.notify({
-                message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
-                color: 'negative',
-                icon: 'error',
-                position: 'top',
-                timeout: 2000
-              })
-            }
-            reader.onabort = () => {
-              console.error('[SaveReceipt] FileReader aborted while converting receipt blob to base64')
-              vm.$q.notify({
-                message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
-                color: 'negative',
-                icon: 'error',
-                position: 'top',
-                timeout: 2000
-              })
-            }
+            reader.onerror = (event) => reject(reader.error || event)
+            reader.onabort = () => reject(new Error('FileReader aborted'))
             try {
               reader.readAsDataURL(blob)
-            } catch (error) {
-              console.error('[SaveReceipt] readAsDataURL threw:', error)
-              vm.$q.notify({
-                message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
-                color: 'negative',
-                icon: 'error',
-                position: 'top',
-                timeout: 2000
-              })
+            } catch (e) {
+              reject(e)
             }
-          } else {
-            // Desktop/web - use download link
-            const url = URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = filename
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            URL.revokeObjectURL(url)
+          })
+        }
+
+        // Create filename with transaction ID (always JPEG now)
+        const shortTxId = vm.transactionId.substring(0, 8)
+        const filename = `receipt-${shortTxId}.jpg`
+
+        const blob = await compressImage(canvas)
+        if (!blob) {
+          throw new Error('Failed to create receipt image blob')
+        }
+
+        // Check if running on mobile
+        const isMobile = Capacitor.getPlatform() !== 'web'
+
+        if (isMobile) {
+          const base64Data = await blobToBase64Data(blob)
+          try {
+            await SaveToGallery.saveImage({
+              base64Data,
+              filename
+            })
 
             vm.$q.notify({
-              message: vm.$t('ReceiptSaved', {}, 'Receipt saved'),
+              message: vm.$t('ReceiptSavedToPhotos', {}, 'Receipt saved to Photos'),
               color: 'positive',
-              icon: 'download',
+              icon: 'check_circle',
               position: 'top',
               timeout: 2000
             })
+          } catch (error) {
+            console.error('[SaveReceipt] Error saving to photos:', error)
+            vm.$q.notify({
+              message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt. Please ensure photo library permissions are granted.'),
+              color: 'negative',
+              icon: 'error',
+              position: 'top',
+              timeout: 3000
+            })
           }
-        } catch (error) {
-          // Error during logo loading or canvas capture
-          // Remove wrapper if it still exists
-          if (document.body.contains(wrapper)) {
-            document.body.removeChild(wrapper)
-          }
-          throw error // Re-throw to be caught by outer catch
+        } else {
+          // Desktop/web - use download link
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+
+          vm.$q.notify({
+            message: vm.$t('ReceiptSaved', {}, 'Receipt saved'),
+            color: 'positive',
+            icon: 'download',
+            position: 'top',
+            timeout: 2000
+          })
         }
       } catch (error) {
+        // Remove wrapper if it still exists
+        if (wrapper && document.body.contains(wrapper)) {
+          document.body.removeChild(wrapper)
+        }
         console.error('Error saving receipt:', error)
         vm.$q.notify({
           message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
@@ -2435,6 +2426,8 @@ export default {
           position: 'top',
           timeout: 2000
         })
+      } finally {
+        vm.savingReceipt = false
       }
     },
     getImageUrl (asset) {
@@ -3010,14 +3003,15 @@ export default {
 .glassmorphic-receipt-btn {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 600;
-  padding: 10px 24px;
+  font-weight: 500;
+  padding: 8px 18px;
+  opacity: 0.9;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.10);
   }
   
   &:active {
@@ -3028,18 +3022,18 @@ export default {
   &.theme-glassmorphic-blue {
     background: linear-gradient(
       to right bottom,
-      rgba(59, 123, 246, 0.85),
-      rgba(54, 129, 232, 0.85),
-      rgba(49, 139, 218, 0.85)
+      rgba(59, 123, 246, 0.35),
+      rgba(54, 129, 232, 0.35),
+      rgba(49, 139, 218, 0.35)
     ) !important;
     color: white !important;
     
     &.dark {
       background: linear-gradient(
         to right bottom,
-        rgba(59, 123, 246, 0.75),
-        rgba(54, 129, 232, 0.75),
-        rgba(49, 139, 218, 0.75)
+        rgba(59, 123, 246, 0.30),
+        rgba(54, 129, 232, 0.30),
+        rgba(49, 139, 218, 0.30)
       ) !important;
     }
   }
@@ -3048,18 +3042,18 @@ export default {
   &.theme-glassmorphic-green {
     background: linear-gradient(
       to right bottom,
-      rgba(67, 160, 71, 0.85),
-      rgba(62, 164, 74, 0.85),
-      rgba(57, 168, 77, 0.85)
+      rgba(67, 160, 71, 0.35),
+      rgba(62, 164, 74, 0.35),
+      rgba(57, 168, 77, 0.35)
     ) !important;
     color: white !important;
     
     &.dark {
       background: linear-gradient(
         to right bottom,
-        rgba(67, 160, 71, 0.75),
-        rgba(62, 164, 74, 0.75),
-        rgba(57, 168, 77, 0.75)
+        rgba(67, 160, 71, 0.30),
+        rgba(62, 164, 74, 0.30),
+        rgba(57, 168, 77, 0.30)
       ) !important;
     }
   }
@@ -3068,18 +3062,18 @@ export default {
   &.theme-glassmorphic-gold {
     background: linear-gradient(
       to right bottom,
-      rgba(255, 167, 38, 0.85),
-      rgba(255, 176, 56, 0.85),
-      rgba(255, 184, 74, 0.85)
+      rgba(255, 167, 38, 0.35),
+      rgba(255, 176, 56, 0.35),
+      rgba(255, 184, 74, 0.35)
     ) !important;
     color: white !important;
     
     &.dark {
       background: linear-gradient(
         to right bottom,
-        rgba(255, 167, 38, 0.75),
-        rgba(255, 176, 56, 0.75),
-        rgba(255, 184, 74, 0.75)
+        rgba(255, 167, 38, 0.30),
+        rgba(255, 176, 56, 0.30),
+        rgba(255, 184, 74, 0.30)
       ) !important;
     }
   }
@@ -3088,20 +3082,24 @@ export default {
   &.theme-glassmorphic-red {
     background: linear-gradient(
       to right bottom,
-      rgba(246, 59, 123, 0.85),
-      rgba(232, 54, 96, 0.85),
-      rgba(218, 49, 72, 0.85)
+      rgba(246, 59, 123, 0.35),
+      rgba(232, 54, 96, 0.35),
+      rgba(218, 49, 72, 0.35)
     ) !important;
     color: white !important;
     
     &.dark {
       background: linear-gradient(
         to right bottom,
-        rgba(246, 59, 123, 0.75),
-        rgba(232, 54, 96, 0.75),
-        rgba(218, 49, 72, 0.75)
+        rgba(246, 59, 123, 0.30),
+        rgba(232, 54, 96, 0.30),
+        rgba(218, 49, 72, 0.30)
       ) !important;
     }
+  }
+
+  &.is-saving {
+    cursor: wait;
   }
 }
 

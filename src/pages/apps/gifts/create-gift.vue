@@ -82,8 +82,14 @@
                   icon="download"
                   :color="themeColor"
                   class="save-image-btn"
+                  :loading="savingGiftQR"
+                  :disable="savingGiftQR"
                   @click="saveGiftQRImage"
-                />
+                >
+                  <template v-slot:loading>
+                    <q-spinner-dots color="white" size="24px" />
+                  </template>
+                </q-btn>
               </div>
             </div>
 
@@ -491,7 +497,8 @@ export default {
       showCampaignInfo: false,
       giftStatus: null,
       failedGiftDetails: null,
-      customKeyboardState: 'dismiss'
+      customKeyboardState: 'dismiss',
+      savingGiftQR: false
     }
   },
   watch: {
@@ -801,13 +808,16 @@ export default {
       if (!vm.qrCodeContents) {
         return
       }
+      if (vm.savingGiftQR) return
+      vm.savingGiftQR = true
+      let wrapper = null
       
       try {
         const qrUrl = `https://gifts.paytaca.com/claim/?code=${vm.qrCodeContents}`
         const giftAmount = vm.getAssetDenomination(vm.denomination, vm.amountBCH)
         
         // Create a beautiful wrapper with gradient background
-        const wrapper = document.createElement('div')
+        wrapper = document.createElement('div')
         wrapper.style.cssText = `
           background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
           padding: 60px 50px;
@@ -1169,121 +1179,95 @@ export default {
         const shortCode = vm.qrCodeContents.substring(0, 8)
         const filename = `bch-gift-${sanitizedAmount}-${shortCode}.png`
 
-        canvas.toBlob(async (blob) => {
-          try {
-            if (!blob) {
-              throw new Error('canvas.toBlob() returned null')
-            }
-
-            // Check if running on mobile
-            const isMobile = Capacitor.getPlatform() !== 'web'
-            
-            if (isMobile) {
-              // Convert blob to base64
-              const reader = new FileReader()
-              reader.onload = async () => {
-                try {
-                  if (typeof reader.result !== 'string') {
-                    throw new Error('FileReader result is not a string')
-                  }
-
-                  const base64Data = reader.result.split(',')[1]
-                  if (!base64Data) {
-                    throw new Error('Failed to extract base64 data from data URL')
-                  }
-                  
-                  // Save to photo library using our custom plugin
-                  const result = await SaveToGallery.saveImage({
-                    base64Data: base64Data,
-                    filename: filename
-                  })
-                  
-                  vm.$q.notify({
-                    message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
-                    color: 'positive',
-                    icon: 'check_circle',
-                    position: 'top',
-                    timeout: 2000
-                  })
-                } catch (error) {
-                  console.error('[SaveGiftQR] Error saving to photos:', error)
-                  console.error('[SaveGiftQR] Error details:', {
-                    message: error.message,
-                    code: error.code,
-                    stack: error.stack
-                  })
-                  vm.$q.notify({
-                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
-                    color: 'negative',
-                    icon: 'error',
-                    position: 'top',
-                    timeout: 3000
-                  })
-                }
-              }
-              reader.onerror = (event) => {
-                console.error('[SaveGiftQR] Error converting QR blob to base64:', reader.error || event)
-                vm.$q.notify({
-                  message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-                  color: 'negative',
-                  icon: 'error',
-                  position: 'top',
-                  timeout: 2000
-                })
-              }
-              reader.onabort = () => {
-                console.error('[SaveGiftQR] FileReader aborted while converting QR blob to base64')
-                vm.$q.notify({
-                  message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-                  color: 'negative',
-                  icon: 'error',
-                  position: 'top',
-                  timeout: 2000
-                })
-              }
+        const blobToBase64Data = async (blob) => {
+          return await new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => {
               try {
-                reader.readAsDataURL(blob)
-              } catch (error) {
-                console.error('[SaveGiftQR] readAsDataURL threw:', error)
-                vm.$q.notify({
-                  message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-                  color: 'negative',
-                  icon: 'error',
-                  position: 'top',
-                  timeout: 2000
-                })
-              }
-            } else {
-              // Desktop/web - use download link
-              const url = URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = filename
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-              URL.revokeObjectURL(url)
+                if (typeof reader.result !== 'string') {
+                  return reject(new Error('FileReader result is not a string'))
+                }
 
-              vm.$q.notify({
-                message: vm.$t('QRSaved', {}, 'QR code saved'),
-                color: 'positive',
-                icon: 'download',
-                position: 'top',
-                timeout: 2000
-              })
+                const base64Data = reader.result.split(',')[1]
+                if (!base64Data) {
+                  return reject(new Error('Failed to extract base64 data from data URL'))
+                }
+                resolve(base64Data)
+              } catch (e) {
+                reject(e)
+              }
             }
-          } catch (error) {
-            console.error('Error in save process:', error)
+            reader.onerror = (event) => reject(reader.error || event)
+            reader.onabort = () => reject(new Error('FileReader aborted'))
+            try {
+              reader.readAsDataURL(blob)
+            } catch (e) {
+              reject(e)
+            }
+          })
+        }
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+        if (!blob) {
+          throw new Error('canvas.toBlob() returned null')
+        }
+
+        // Check if running on mobile
+        const isMobile = Capacitor.getPlatform() !== 'web'
+
+        if (isMobile) {
+          const base64Data = await blobToBase64Data(blob)
+          try {
+            await SaveToGallery.saveImage({
+              base64Data,
+              filename
+            })
+
             vm.$q.notify({
-              message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-              color: 'negative',
-              icon: 'error',
+              message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
+              color: 'positive',
+              icon: 'check_circle',
               position: 'top',
               timeout: 2000
             })
+          } catch (error) {
+            console.error('[SaveGiftQR] Error saving to photos:', error)
+            console.error('[SaveGiftQR] Error details:', {
+              message: error.message,
+              code: error.code,
+              stack: error.stack
+            })
+            vm.$q.notify({
+              message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
+              color: 'negative',
+              icon: 'error',
+              position: 'top',
+              timeout: 3000
+            })
           }
-        })
+        } else {
+          // Desktop/web - use download link
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+
+          vm.$q.notify({
+            message: vm.$t('QRSaved', {}, 'QR code saved'),
+            color: 'positive',
+            icon: 'download',
+            position: 'top',
+            timeout: 2000
+          })
+        }
       } catch (error) {
+        if (wrapper && document.body.contains(wrapper)) {
+          document.body.removeChild(wrapper)
+        }
         console.error('Error saving gift QR:', error)
         vm.$q.notify({
           message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
@@ -1292,6 +1276,8 @@ export default {
           position: 'top',
           timeout: 2000
         })
+      } finally {
+        vm.savingGiftQR = false
       }
     },
     async processRequest () {
