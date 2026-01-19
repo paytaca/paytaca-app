@@ -54,8 +54,8 @@
               <p class="text-h6 q-mb-xs">{{ record.name }}</p>
               <div class="text-caption q-mb-none">
                 <span>Created {{ formattedDate }}</span>
-                <span v-if="record.date_updated" class="q-ml-sm">
-                  • Updated {{ formatDate(record.date_updated, true) }}
+                <span v-if="record.updated_at" class="q-ml-sm">
+                  • Updated {{ formatDate(record.updated_at, true) }}
                 </span>
               </div>
             </div>
@@ -116,14 +116,14 @@
               >
                 Addresses List
                 <q-badge
-                  v-if="record.address_list.length > 0"
+                  v-if="addressesList.length > 0"
                   color="primary"
-                  :label="record.address_list.length"
+                  :label="addressesList.length"
                   class="q-ml-sm"
                 />
               </span>
               <q-btn
-                v-if="record.address_list.length > 0"
+                v-if="addressesList.length > 0"
                 flat
                 dense
                 icon="search"
@@ -147,7 +147,7 @@
 
             <!-- Search input -->
             <q-input
-              v-if="showSearch && record.address_list.length > 0"
+              v-if="showSearch && addressesList.length > 0"
               v-model="searchQuery"
               outlined
               dense
@@ -195,12 +195,12 @@
                     </div>
                     <q-item-label caption class="q-mt-xs">
                       <q-chip
-                        :color="getAddressTypeColor(address.type)"
+                        :color="getAddressTypeColor(address.address_type)"
                         text-color="white"
                         size="sm"
-                        :icon="getAddressTypeIcon(address.type)"
+                        :icon="getAddressTypeIcon(address.address_type)"
                       >
-                        {{ formatAddressType(address.type) }}
+                        {{ formatAddressType(address.address_type) }}
                       </q-chip>
                     </q-item-label>
                   </q-item-section>
@@ -223,7 +223,7 @@
                           <q-item
                             clickable
                             v-close-popup
-                            @click="handleSend(address.address, address.type)"
+                            @click="handleSend(address.address, address.address_type)"
                           >
                             <q-item-section avatar>
                               <q-icon name="mdi-send" />
@@ -373,6 +373,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatAddress, formatDate } from 'src/exchange/index.js'
 
 import HeaderNav from 'src/components/header-nav.vue'
+import { ensureKeypair } from 'src/utils/memo-service';
+import { decryptMemo } from 'src/utils/transaction-memos';
 
 export default {
   name: 'ViewRecord',
@@ -392,63 +394,14 @@ export default {
       selectedAddressType: 'bch',
       qrCodeId: 0,
       copiedAddressIndex: null,
+
       record: {
         name: 'Name Name name_yey',
         is_favorite: false,
-        date_created: new Date(),
-        date_updated: null,
-        // address_list: []
-        address_list: [
-          {
-            address: 'bitcoincash:qze93uuw8vt8v358f7eupg3t4jtkpz8ltguhg62pde',
-            type: 'bch'
-          },
-          {
-            address: 'bitcoincash:zze93uuw8vt8v358f7eupg3t4jtkpz8ltgmamyy8j2',
-            type: 'ct'
-          },
-          {
-            address: 'bitcoincash:qze93uuw8vt8v358f7eupg3t4jtkpz8ltguhg62pde',
-            type: 'bch'
-          },
-          {
-            address: 'bitcoincash:zze93uuw8vt8v358f7eupg3t4jtkpz8ltgmamyy8j2',
-            type: 'ct'
-          },
-          {
-            address: 'bitcoincash:qze93uuw8vt8v358f7eupg3t4jtkpz8ltguhg62pde',
-            type: 'bch'
-          },
-          {
-            address: 'bitcoincash:zze93uuw8vt8v358f7eupg3t4jtkpz8ltgmamyy8j2',
-            type: 'ct'
-          },
-          {
-            address: 'bitcoincash:qze93uuw8vt8v358f7eupg3t4jtkpz8ltguhg62pde',
-            type: 'bch'
-          },
-          {
-            address: 'bitcoincash:zze93uuw8vt8v358f7eupg3t4jtkpz8ltgmamyy8j2',
-            type: 'ct'
-          },
-          {
-            address: 'bitcoincash:qze93uuw8vt8v358f7eupg3t4jtkpz8ltguhg62pde',
-            type: 'bch'
-          },
-          {
-            address: 'bitcoincash:zze93uuw8vt8v358f7eupg3t4jtkpz8ltgmamyy8j2',
-            type: 'ct'
-          },
-          {
-            address: 'bitcoincash:qze93uuw8vt8v358f7eupg3t4jtkpz8ltguhg62pde',
-            type: 'bch'
-          },
-          {
-            address: 'bitcoincash:zze93uuw8vt8v358f7eupg3t4jtkpz8ltgmamyy8j2',
-            type: 'ct'
-          },
-        ]
-      }
+        created_at: new Date(),
+        updated_at: null
+      },
+      addressesList: []
     }
   },
 
@@ -457,17 +410,17 @@ export default {
       return this.$store.getters["darkmode/getStatus"];
     },
     formattedDate() {
-      if (!this.record.date_created) return ''
-      return formatDate(this.record.date_created, true)
+      if (!this.record.created_at) return ''
+      return formatDate(this.record.created_at, true)
     },
     filteredAddresses() {
       if (!this.searchQuery) {
-        return this.record.address_list
+        return this.addressesList
       }
       const query = this.searchQuery.toLowerCase()
-      return this.record.address_list.filter(addr => 
+      return this.addressesList.filter(addr => 
         addr.address.toLowerCase().includes(query) ||
-        this.formatAddressType(addr.type).toLowerCase().includes(query)
+        this.formatAddressType(addr.address_type).toLowerCase().includes(query)
       )
     }
   },
@@ -569,8 +522,8 @@ export default {
     },
     handleShare() {
       // Share entire contact
-      const addressLines = this.record.address_list.map(a => {
-        const type = this.formatAddressType(a.type)
+      const addressLines = this.addressesList.map(a => {
+        const type = this.formatAddressType(a.address_type)
         return `${type}: ${a.address}`
       })
       const contactText = `${this.record.name}\n\nAddresses:\n${addressLines.join('\n')}`
@@ -608,7 +561,7 @@ export default {
     },
     showQrCode(addressObj) {
       this.selectedAddressForQr = addressObj.address
-      this.selectedAddressType = addressObj.type
+      this.selectedAddressType = addressObj.address_type
       this.qrCodeId = Date.now() // Unique ID for QR code
       this.showQrDialog = true
     },
@@ -641,7 +594,7 @@ export default {
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
       }).onOk(() => {
         // TODO: Implement remove address API call
-        this.record.address_list.splice(index, 1)
+        this.addressesList.splice(index, 1)
         this.$q.notify({
           message: 'Address removed',
           color: 'positive',
@@ -650,11 +603,43 @@ export default {
         })
       })
     },
-    loadRecord() {
+    async loadRecord() {
       this.loading = true
       this.error = null
+
       // TODO: Implement API call to fetch record
-      // For now, simulate loading
+      const resp = {
+        id: 1,
+        name: "eyJkIjoiSjAzNFNZbTdVeWpOSEhBaFdKRG04QT09IiwiaXYiOiJFdnRVSitwWXpkYXdmNmJoZ255VlJBPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=",
+        is_favorite: false,
+        created_at: "2026-01-05T02:41:14.996084Z",
+        addresses: [
+          {
+            "id": 1,
+            "address": "bitcoincash:qze93uuw8vt8v358f7eupg3t4jtkpz8ltguhg62pde",
+            "address_type": "bch"
+          },
+          {
+            "id": 2,
+            "address": "bitcoincash:zze93uuw8vt8v358f7eupg3t4jtkpz8ltgmamyy8j2",
+            "address_type": "ct"
+          }
+        ]
+      }
+
+      try {
+        const keypair = await ensureKeypair()
+        const decryptedName = await decryptMemo(keypair.privkey, resp.name)
+
+        this.addressesList = resp.addresses
+        this.record = {
+          ...resp,
+          name: decryptedName,
+        }
+      } catch (error) {
+        console.log(error)
+      }
+
       setTimeout(() => {
         this.loading = false
         // In real implementation, handle errors here
@@ -662,27 +647,27 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
     console.log(this.$route.params)
 
     // Load record data
-    this.loadRecord()
+    await this.loadRecord()
 
     // Set height of addresses-list
-    this.$nextTick(() => {
-      if (this.record?.address_list.length > 0) {
-        const headerHeight = document.getElementById('header-nav')?.clientHeight || 0
-        const recordDetailsHeight = document.getElementById('record-details')?.clientHeight || 0
-        const addressesListLabel = document.getElementById('addresses-list-label')?.clientHeight || 0
+    // this.$nextTick(() => {
+    //   if (this.record?.addresses.length > 0) {
+    //     const headerHeight = document.getElementById('header-nav')?.clientHeight || 0
+    //     const recordDetailsHeight = document.getElementById('record-details')?.clientHeight || 0
+    //     const addressesListLabel = document.getElementById('addresses-list-label')?.clientHeight || 0
   
-        const aboveDivsHeight = headerHeight + recordDetailsHeight + addressesListLabel
-        const overallHeight = this.$q.screen.height - aboveDivsHeight - 75
-        const addressesList = document.getElementById('addresses-list')
-        if (addressesList) {
-          addressesList.style.height = `${overallHeight}px`
-        }
-      }
-    })
+    //     const aboveDivsHeight = headerHeight + recordDetailsHeight + addressesListLabel
+    //     const overallHeight = this.$q.screen.height - aboveDivsHeight - 75
+    //     const addressesList = document.getElementById('addresses-list')
+    //     if (addressesList) {
+    //       addressesList.style.height = `${overallHeight}px`
+    //     }
+    //   }
+    // })
   }
 }
 </script>
