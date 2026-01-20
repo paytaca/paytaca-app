@@ -51,7 +51,7 @@
             icon-right="arrow_forward"
             class="primary-cta-button"
             :class="`theme-${theme}`"
-            @click="/*showBuyDialog = true*/$q.notify({message: $t('ComingSoon'), color: 'positive', icon: 'campaign', timeout: 3000})"
+            @click="handleNavigateToBuy"
           />
           <q-btn
             :label="$t('LearnMore')"
@@ -323,7 +323,7 @@
           size="lg"
           icon="shopping_cart"
           class="cta-button button q-mb-sm"
-          @click="/*showBuyDialog = true*/$q.notify({message: $t('ComingSoon'), color: 'positive', icon: 'campaign', timeout: 3000})"
+          @click="handleNavigateToBuy"
         />
         <div class="q-mt-md">
           <q-btn
@@ -492,6 +492,16 @@ export default {
         this.$emit('navigate-to-buy')
       }
     },
+    handleNavigateToBuy() {
+      // this.showBuyDialog = true
+      this.$q.notify({
+        message: this.$t('ComingSoon'),
+        color: 'positive',
+        icon: 'campaign',
+        timeout: 3000
+      })
+    },
+
     openTokenPage() {
       window.open('https://www.paytaca.com/token', '_blank', 'noopener,noreferrer')
     }
