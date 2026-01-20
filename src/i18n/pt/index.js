@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Aguarde até que o vendedor deposite os fundos.",
   StandByDisplayLabelEscrw: "Aguarde o comprador enviar e confirmar o pagamento fiduciário.",
   StandByDisplayLabelEscrwPn: "Aguarde até que o vendedor deposite os fundos.",
+  StandByDisplayLabelEscrwWithAppeal: "Aguarde até que o comprador envie e confirme seu pagamento fiduciário ou envie um apelo para liberar seu BCH do contrato de garantia.",
   StandByDisplayLabelPd: "Aguarde a liberação do fundo.",
   StandByDisplayLabelPdPn: "Aguarde até que o vendedor libere os fundos.",
   StandByDisplayLabelRlsPn: "Aguarde a liberação do fundo.",

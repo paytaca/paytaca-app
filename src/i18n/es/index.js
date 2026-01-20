@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Espere a que el vendedor deposite los fondos en custodia.",
   StandByDisplayLabelEscrw: "Espere a que el comprador envíe y confirme su pago fiduciario.",
   StandByDisplayLabelEscrwPn: "Espere a que el vendedor deposite los fondos en depósito de garantía.",
+  StandByDisplayLabelEscrwWithAppeal: "Espere a que el comprador envíe y confirme su pago fiduciario o envíe una apelación para liberar su BCH del contrato de depósito en garantía.",
   StandByDisplayLabelPd: "Espere la liberación del fondo.",
   StandByDisplayLabelPdPn: "Espere a que el vendedor libere los fondos.",
   StandByDisplayLabelRlsPn: "Espere la liberación del fondo.",

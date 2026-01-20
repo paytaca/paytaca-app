@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Da fatan za a jira mai siyarwa ya Keɓe kuɗin.",
   StandByDisplayLabelEscrw: "Da fatan za a jira mai siye ya aika kuma ya tabbatar da biyan kuɗin fiat ɗin su.",
   StandByDisplayLabelEscrwPn: "Da fatan za a jira mai siyar ya ba da kuɗin kuɗin.",
+  StandByDisplayLabelEscrwWithAppeal: "Da fatan za a jira mai siye ya aika kuma ya tabbatar da biyan kuɗin fiat ɗin su ko ƙaddamar da roko don sakin BCH ɗin ku daga kwangilar escrow.",
   StandByDisplayLabelPd: "Da fatan za a jira sakin asusun.",
   StandByDisplayLabelPdPn: "Da fatan za a jira mai siyarwa ya saki kuɗin.",
   StandByDisplayLabelRlsPn: "Da fatan za a jira sakin asusun.",

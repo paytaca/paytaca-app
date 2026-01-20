@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Pakihintay na i-Escrow ng Nagbebenta ang mga pondo.",
   StandByDisplayLabelEscrw: "Pakihintay na ipadala at kumpirmahin ng mamimili ang kanilang fiat na pagbabayad.",
   StandByDisplayLabelEscrwPn: "Pakihintay na i-Escrow ng nagbebenta ang mga pondo.",
+  StandByDisplayLabelEscrwWithAppeal: "Pakihintay na ipadala at kumpirmahin ng mamimili ang kanilang fiat na pagbabayad o magsumite ng apela upang ilabas ang iyong BCH mula sa kontrata ng escrow.",
   StandByDisplayLabelPd: "Mangyaring maghintay para sa paglabas ng pondo.",
   StandByDisplayLabelPdPn: "Pakihintay na ilabas ng nagbebenta ang mga pondo.",
   StandByDisplayLabelRlsPn: "Mangyaring maghintay para sa paglabas ng pondo.",

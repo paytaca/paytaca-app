@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "판매자가 자금을 에스크로할 때까지 기다려 주십시오.",
   StandByDisplayLabelEscrw: "구매자가 법정화폐 결제를 보내고 확인할 때까지 기다리십시오.",
   StandByDisplayLabelEscrwPn: "판매자가 자금을 에스크로할 때까지 기다려 주십시오.",
+  StandByDisplayLabelEscrwWithAppeal: "구매자가 법정화폐 결제를 보내고 확인할 때까지 기다리거나 에스크로 계약에서 BCH를 해제하기 위한 항소를 제출하십시오.",
   StandByDisplayLabelPd: "펀드 출시를 기다려주세요.",
   StandByDisplayLabelPdPn: "판매자가 자금을 풀 때까지 기다려 주십시오.",
   StandByDisplayLabelRlsPn: "펀드 출시를 기다려주세요.",

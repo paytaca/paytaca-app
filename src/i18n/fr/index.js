@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Veuillez attendre que le vendeur engage les fonds.",
   StandByDisplayLabelEscrw: "Veuillez attendre que l'acheteur envoie et confirme son paiement fiduciaire.",
   StandByDisplayLabelEscrwPn: "Veuillez attendre que le vendeur engage les fonds.",
+  StandByDisplayLabelEscrwWithAppeal: "Veuillez attendre que l'acheteur envoie et confirme son paiement fiduciaire ou soumette un appel pour libérer votre BCH du contrat séquestre.",
   StandByDisplayLabelPd: "Veuillez attendre le déblocage des fonds.",
   StandByDisplayLabelPdPn: "Veuillez attendre que le vendeur débloque les fonds.",
   StandByDisplayLabelRlsPn: "Veuillez attendre le déblocage des fonds.",

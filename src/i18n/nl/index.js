@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Wacht tot de verkoper het geld heeft geblokkeerd.",
   StandByDisplayLabelEscrw: "Wacht tot de koper de fiatbetaling heeft verzonden en bevestigd.",
   StandByDisplayLabelEscrwPn: "Wacht tot de verkoper het geld heeft geborgd.",
+  StandByDisplayLabelEscrwWithAppeal: "Wacht tot de koper zijn fiatbetaling heeft verzonden en bevestigd, of dien een beroep in om uw BCH vrij te stellen van het escrow-contract.",
   StandByDisplayLabelPd: "Wacht alstublieft op de bekendmaking van het fonds.",
   StandByDisplayLabelPdPn: "Wacht tot de verkoper het geld vrijgeeft.",
   StandByDisplayLabelRlsPn: "Wacht alstublieft op de bekendmaking van het fonds.",

@@ -199,7 +199,7 @@
                 <div class="row items-center">
                   <q-icon name="warning" color="orange" size="md" class="q-mr-md"/>
                   <div class="text-weight-medium">
-                    There's currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
+                    There's currently no arbiter assigned for transactions related to this ad in its currency ({{ ad?.fiat_currency?.symbol || '—' }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
                   </div>
                 </div>
               </div>
@@ -485,6 +485,7 @@ export default {
       if (vm.ad && vm.ad.fiat_currency) {
         await vm.fetchArbiters()
       }
+      // Websocket subscriptions require fiat currency symbol
       vm.setupWebSocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
@@ -867,7 +868,7 @@ export default {
       return Math.floor(amount * decimals) / decimals
     },
     tradeLimitsCurrency (ad) {
-      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+      return (ad?.trade_limits_in_fiat ? ad?.fiat_currency?.symbol : ad?.crypto_currency?.symbol) || ''
     },
     minTradeAmount (ad) {
       let tradeAmount = parseFloat(ad.trade_amount)
@@ -939,10 +940,15 @@ export default {
       this.showPeerProfile = true
     },
     setupWebSocket () {
+      // Guard: ad may still be loading or missing fiat_currency
+      const fiatSymbol = this.ad?.fiat_currency?.symbol
+      const adId = this.ad?.id
+      if (!fiatSymbol || !adId) return
+
       // Subscribe to market price updates
       this.closeWebSocketConnection()
       this.websockets.marketPrice = new WebSocketManager()
-      this.websockets.marketPrice.setWebSocketUrl(`${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`)
+      this.websockets.marketPrice.setWebSocketUrl(`${getBackendWsUrl()}market-price/${fiatSymbol}/`)
       this.websockets.marketPrice.subscribeToMessages((message) => {
         const price = parseFloat(message.price)
         if (price) {
@@ -953,7 +959,7 @@ export default {
       // Subscribe to ad updates
       this.websockets.ad = new WebSocketManager()
       this.websockets.ad.setWebSocketUrl(
-        `${getBackendWsUrl()}ad/${this.ad.id}/`
+        `${getBackendWsUrl()}ad/${adId}/`
       )
       this.websockets.ad.subscribeToMessages((message) => {
         // Refresh the ad data

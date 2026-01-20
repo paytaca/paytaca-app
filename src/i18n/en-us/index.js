@@ -1976,6 +1976,7 @@ export default {
   StandByDisplayLabelCnf: "Please wait for the Seller to Escrow the funds.",
   StandByDisplayLabelEscrw: "Please wait for the buyer to send and confirm their fiat payment.",
   StandByDisplayLabelEscrwPn: "Please wait for the seller to Escrow the funds.",
+  StandByDisplayLabelEscrwWithAppeal: "Please wait for the buyer to send and confirm their fiat payment or submit an appeal to release your BCH from the escrow contract.",
   StandByDisplayLabelPd: "Please wait for the fund release.",
   StandByDisplayLabelPdPn: "Please wait for the seller to release the funds.",
   StandByDisplayLabelRlsPn: "Please wait for the fund release.",

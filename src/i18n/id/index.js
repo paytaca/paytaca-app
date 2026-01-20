@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Harap menunggu Penjual untuk Menampung dana.",
   StandByDisplayLabelEscrw: "Harap tunggu pembeli mengirim dan mengonfirmasi pembayaran fiatnya.",
   StandByDisplayLabelEscrwPn: "Harap menunggu penjual untuk escrow dana.",
+  StandByDisplayLabelEscrwWithAppeal: "Harap tunggu hingga pembeli mengirimkan dan mengonfirmasi pembayaran fiatnya atau mengajukan banding untuk melepaskan BCH Anda dari kontrak escrow.",
   StandByDisplayLabelPd: "Mohon tunggu dananya dicairkan.",
   StandByDisplayLabelPdPn: "Mohon menunggu penjual mengeluarkan dananya.",
   StandByDisplayLabelRlsPn: "Mohon tunggu dananya dicairkan.",

@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Bitte warten Sie, bis der Verkäufer das Geld treuhänderisch hinterlegt hat.",
   StandByDisplayLabelEscrw: "Bitte warten Sie, bis der Käufer seine Fiat-Zahlung gesendet und bestätigt hat.",
   StandByDisplayLabelEscrwPn: "Bitte warten Sie, bis der Verkäufer das Geld treuhänderisch hinterlegt hat.",
+  StandByDisplayLabelEscrwWithAppeal: "Bitte warten Sie, bis der Käufer seine Fiat-Zahlung gesendet und bestätigt hat, oder reichen Sie einen Einspruch ein, um Ihr BCH aus dem Treuhandvertrag zu befreien.",
   StandByDisplayLabelPd: "Bitte warten Sie auf die Mittelfreigabe.",
   StandByDisplayLabelPdPn: "Bitte warten Sie, bis der Verkäufer das Geld freigegeben hat.",
   StandByDisplayLabelRlsPn: "Bitte warten Sie auf die Mittelfreigabe.",

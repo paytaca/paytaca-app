@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "請等待賣家託管資金。",
   StandByDisplayLabelEscrw: "請等待買家發送並確認其法定付款。",
   StandByDisplayLabelEscrwPn: "請等待賣家託管資金。",
+  StandByDisplayLabelEscrwWithAppeal: "請等待買家發送並確認其法定付款，或提交上訴以從託管合約中釋放您的 BCH。",
   StandByDisplayLabelPd: "請等待資金發放。",
   StandByDisplayLabelPdPn: "請等待賣家釋放資金。",
   StandByDisplayLabelRlsPn: "請等待資金發放。",

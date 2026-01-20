@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "売主が資金をエスクローするまでお待ちください。",
   StandByDisplayLabelEscrw: "購入者が法定通貨の支払いを送信して確認するまでお待ちください。",
   StandByDisplayLabelEscrwPn: "売り手が資金をエスクローするまでお待ちください。",
+  StandByDisplayLabelEscrwWithAppeal: "買い手が法定通貨の支払いを送信して確認するか、エスクロー契約からBCHを解放するための異議申し立てを提出するまでお待ちください。",
   StandByDisplayLabelPd: "ファンドのリリースをお待ちください。",
   StandByDisplayLabelPdPn: "売り手が資金を解放するまでお待ちください。",
   StandByDisplayLabelRlsPn: "ファンドのリリースをお待ちください。",

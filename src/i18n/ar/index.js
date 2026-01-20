@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "يرجى الانتظار حتى يقوم البائع بإيداع الأموال.",
   StandByDisplayLabelEscrw: "يرجى الانتظار حتى يرسل المشتري ويؤكد الدفع القانوني.",
   StandByDisplayLabelEscrwPn: "يرجى الانتظار حتى يقوم البائع بإيداع الأموال.",
+  StandByDisplayLabelEscrwWithAppeal: "يرجى الانتظار حتى يرسل المشتري ويؤكد دفعته الورقية أو يقدم استئنافًا لتحرير غرفة تبادل معلومات السلامة الأحيائية الخاصة بك من عقد الضمان.",
   StandByDisplayLabelPd: "يرجى الانتظار لإصدار الصندوق.",
   StandByDisplayLabelPdPn: "يرجى الانتظار حتى يقوم البائع بتحرير الأموال.",
   StandByDisplayLabelRlsPn: "يرجى الانتظار لإصدار الصندوق.",

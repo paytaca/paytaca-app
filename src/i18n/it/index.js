@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Si prega di attendere che il venditore depositi in garanzia i fondi.",
   StandByDisplayLabelEscrw: "Attendi che l'acquirente invii e confermi il pagamento fiat.",
   StandByDisplayLabelEscrwPn: "Si prega di attendere che il venditore depositi in garanzia i fondi.",
+  StandByDisplayLabelEscrwWithAppeal: "Attendi che l'acquirente invii e confermi il pagamento fiat o presenti un ricorso per liberare i tuoi BCH dal contratto di deposito a garanzia.",
   StandByDisplayLabelPd: "Si prega di attendere il rilascio del fondo.",
   StandByDisplayLabelPdPn: "Attendi che il venditore rilasci i fondi.",
   StandByDisplayLabelRlsPn: "Si prega di attendere il rilascio del fondo.",

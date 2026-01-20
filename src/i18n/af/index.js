@@ -1979,6 +1979,7 @@ export default {
   StandByDisplayLabelCnf: "Wag asseblief vir die Verkoper om die fondse te Escrow.",
   StandByDisplayLabelEscrw: "Wag asseblief vir die koper om hul fiat-betaling te stuur en te bevestig.",
   StandByDisplayLabelEscrwPn: "Wag asseblief vir die verkoper om die fondse te Escrow.",
+  StandByDisplayLabelEscrwWithAppeal: "Wag asseblief vir die koper om hul fiat-betaling te stuur en te bevestig of 'n appèl in te dien om jou BCH van die borgkontrak vry te stel.",
   StandByDisplayLabelPd: "Wag asseblief vir die vrystelling van die fonds.",
   StandByDisplayLabelPdPn: "Wag asseblief vir die verkoper om die fondse vry te stel.",
   StandByDisplayLabelRlsPn: "Wag asseblief vir die vrystelling van die fonds.",
