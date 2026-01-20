@@ -26,7 +26,10 @@
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
             v-on-long-press="onLongPressTitle"
           >
-            {{ title }}
+            <span class="pt-header-title-text">{{ title }}</span>
+            <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
+              <slot name="title-append" />
+            </span>
           </p>
         </div>
         <div class="pt-header-right col-auto row items-center justify-end">
@@ -61,7 +64,10 @@
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
             v-on-long-press="onLongPressTitle"
           >
-            {{ title }}
+            <span class="pt-header-title-text">{{ title }}</span>
+            <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
+              <slot name="title-append" />
+            </span>
           </p>
         </div>
         <div class="pt-header-right col-auto q-mr-sm">
@@ -226,6 +232,11 @@ export default {
   flex: 0 0 var(--pt-header-side);
   width: var(--pt-header-side);
   min-width: var(--pt-header-side);
+}
+.pt-header-right {
+  /* Match the back button's left padding for visual balance */
+  padding-right: 10px;
+  box-sizing: border-box;
 }
 .pt-header-title {
   flex: 1 1 auto;

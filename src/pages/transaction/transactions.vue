@@ -1,6 +1,10 @@
 <template>
 	<q-pull-to-refresh id="app-container" class="sticky-header-container" :class="darkmode ? 'dark' : 'light'" @refresh="onRefresh">
-		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/"/>
+		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/">
+			<template #top-right-menu>
+				<TransactionTimestampSettings />
+			</template>
+		</header-nav>
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
@@ -194,6 +198,7 @@ import { hexToRef, normalizeRefToHex, refToHex } from 'src/utils/reference-id-ut
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
 import TransactionList from 'src/components/transactions/TransactionList'
+import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import AssetListDialog from '../../pages/transaction/dialog/AssetListDialog.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import headerNav from 'src/components/header-nav'
@@ -321,6 +326,7 @@ export default {
 		Transaction,
 		TransactionList,
 		StablehedgeHistory,
+		TransactionTimestampSettings,
 		AssetListDialog,
 		// assetList
 	},
