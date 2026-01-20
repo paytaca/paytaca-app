@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Kan nie laaste beursie verwyder nie",
   ErrorDeletingWallet: "Fout met die verwydering van beursie",
   ErrorRestoringWallet: "Fout met die herstel van beursie",
+  BackupConfirmed: "Beursie rugsteun bevestig",
+  BackupConfirmedOn: "Laas bevestig op {date}",
   "Wallet Details": "Beursie besonderhede",
   "Wallet Qr Code": "Beursie QR kode",
   "XPubKey QR Code": "Uitgebreide publieke sleutel QR kode",
@@ -93,7 +95,6 @@ export default {
   Validating: "Valideer",
   GettingLocation: "Kry ligging",
   NoFilter: "Geen filter",
-  NoFilteredLogs: "Geen gefiltreerde logs",
   FilterLogs: "Filtreer logs",
   CopyLogs: "Kopieer logs",
   LogsCopied: "Logs gekopieer",
@@ -150,6 +151,7 @@ export default {
   // Other features
   AddingLiquidity: "Voeg likiditeit by",
   ConversionInfo: "Omskakeling na {currency} ten tyde van die transaksie. Wins/verlies word hieronder getoon in vergelyking met die huidige prys.",
+  ConversionInformation: "Omskakelingsinligting",
   ContractInformation: "Kontrak inligting",
   DepositAddress: "Deposito adres",
   ExpiredAt: "Verval op",
@@ -172,8 +174,11 @@ export default {
   "Connect to Paytaca": "Koppel aan Paytaca",
   "Required number of signers": "Vereiste aantal ondertekenaars",
   "Total number of signers": "Totale aantal ondertekenaars",
-  "You earned": "Jy het verdien",
   EnterCustomAmount: "Voer aangepaste bedrag in",
   Devicesuspended: "Toestel opgeskort",
+  LegacyAddressWarning: "Jy het 'n legacy adres gepas. Maak asseblief seker dat dit 'n <span class=\"highlighted-word\">BCH deposito adres</span> is, nie 'n BTC deposito adres nie.",
+  BitcoinCash: "Bitcoin Cash",
+  TotalLIFT: "Totale LIFT",
+  UnpaidLift: "Onbetaalde LIFT",
 }
 

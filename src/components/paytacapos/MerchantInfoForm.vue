@@ -274,7 +274,7 @@ async function getInitialSelectCoordinatePosition() {
     dialogPromise = new Promise((resolve, reject) => {
       showDialogTimeout = setTimeout(() => {
         dialog = $q.dialog({
-          title: 'Getting location',
+          title: $t('GettingLocation', {}, 'Getting location'),
           progress: true,
           ok: false,
           cancel: { label: $t('Cancel'), flat: true, color: 'grey' },

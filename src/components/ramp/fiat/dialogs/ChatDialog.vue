@@ -34,7 +34,7 @@
       :style="`height: ${attachmentUrl ? maxHeight - 280 : maxHeight - 120}px`"
       style="overflow: auto; position: relative;">
       <div v-if="isloaded" class="text-center q-py-sm q-px-sm" :class="darkMode ? 'text-grey-4 bg-grey-9' : 'text-grey bg-grey-2'" style="font-size: 12px; position: sticky; top: 0; z-index: 10; border-radius: 8px; margin: 8px;">
-        <q-icon name="lock"/>&nbsp; {{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}
+        <q-icon name="lock"/>&nbsp; {{ $t('EncryptedChatMsg', {}, 'Messages are protected with end-to-end encryption. Only you and the intended recipient can read the content.') }}
       </div>
       <q-infinite-scroll
         :scroll-target="scrollTargetRef"
@@ -296,7 +296,8 @@ import { debounce } from 'quasar'
 import { vElementVisibility } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
-import { getKeypair } from 'src/exchange/chat/keys'
+import { getEncryptionKeypairFromMnemonic } from 'src/utils/memo-key-utils'
+import { Store } from 'src/store'
 import { bus } from 'src/wallet/event-bus'
 import { fetchUser } from 'src/exchange/auth'
 
@@ -420,7 +421,11 @@ export default {
       chatMembers: [],
       chatPubkeys: [],
       arbiterIdentity: null,
-      addingNewMessage: false
+      addingNewMessage: false,
+
+      // Internal promise chains to keep crypto work non-blocking
+      _decryptMessagesQueue: null,
+      _decryptAttachmentsQueue: null,
     }
   },
   props: {
@@ -476,6 +481,10 @@ export default {
     }
   },
   methods: {
+    _yieldToUi () {
+      // Yield to the event loop so the UI can paint between expensive decrypt ops.
+      return new Promise(resolve => setTimeout(resolve, 0))
+    },
     getDarkModeClass,
     userNameView (name) {
       const limitedView = name?.length > 13 ? name?.substring(0, 10) + '...' : name;
@@ -529,7 +538,14 @@ export default {
       }
     },
     async loadKeyPair () {
-      this.keypair = await getKeypair().catch(console.error)
+      try {
+        // Always derive fresh from mnemonic for cross-platform consistency
+        const walletIndex = Store.getters['global/getWalletIndex']
+        this.keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
+      } catch (error) {
+        console.error('Failed to load keypair from mnemonic:', error)
+        this.keypair = {}
+      }
     },
     async resizeAttachment () {
       this.attachment = await resizeImage({
@@ -790,35 +806,61 @@ export default {
       const vm = this
       if (!vm.keypair.privkey) await vm.loadKeyPair()
       if (!vm.keypair.privkey) return
-      await Promise.all(messages.map(message => vm.decryptMessage(new ChatMessage(message), false)))
-        .then(decryptedMessages => {
-          const ref = vm.chatIdentity?.ref
-          const temp = decryptedMessages
-          temp.map(item => {
-            item.chatIdentity.is_user = item.chatIdentity.ref === ref
+
+      // Serialize decrypt work to avoid multiple concurrent decrypt loops.
+      // Decryption uses synchronous primitives internally, so Promise.all will still block the UI.
+      vm._decryptMessagesQueue = (vm._decryptMessagesQueue || Promise.resolve()).then(async () => {
+        const decryptedMessages = []
+        for (let i = 0; i < messages.length; i++) {
+          const msg = new ChatMessage(messages[i])
+          try {
+            await vm.decryptMessage(msg, false)
+          } catch (_) {
+            // leave message undecrypted; UI will keep showing encrypted placeholder
+          }
+          decryptedMessages.push(msg)
+
+          // Yield every few messages to keep scrolling/input responsive.
+          if (i % 3 === 2) {
+            await vm._yieldToUi()
+          }
+        }
+
+        const ref = vm.chatIdentity?.ref
+        decryptedMessages.forEach(item => {
+          if (item?.chatIdentity) item.chatIdentity.is_user = item.chatIdentity.ref === ref
+        })
+
+        if (type === 'initial') {
+          vm.convo.messages = decryptedMessages
+        } else {
+          decryptedMessages.forEach(item => {
+            vm.convo.messages.unshift(item)
           })
-          if (type === 'initial') {
-            vm.convo.messages = decryptedMessages
-          } else {
-            temp.map(item => {
-              vm.convo.messages.unshift(item)
-            })
-            vm.loadMessage = false
-          }
-        })
-        .then(() => {
-          if (type !== 'initial') {
-            this.resetScroll('new-message')
-          } else {
-            this.resetScroll()
-          }
-        })
+          vm.loadMessage = false
+        }
+
+        await vm._yieldToUi()
+        if (type !== 'initial') {
+          vm.resetScroll('new-message')
+        } else {
+          vm.resetScroll()
+        }
+      })
+
+      return vm._decryptMessagesQueue
     },
     async decryptMessageAttachment (message = ChatMessage.parse(), tryAllKeys = false) {
-      if (!this.keypair.privkey) await this.loadKeyPair()
-      if (!this.keypair.privkey) return
-      if (this.message.decryptedAttachmentFile?.url) return
-      return message.decryptAttachment(this.keypair.privkey, tryAllKeys)
+      const vm = this
+      // Serialize attachment decrypts too; multiple visible messages can trigger many decrypts at once.
+      vm._decryptAttachmentsQueue = (vm._decryptAttachmentsQueue || Promise.resolve()).then(async () => {
+        if (!vm.keypair.privkey) await vm.loadKeyPair()
+        if (!vm.keypair.privkey) return
+        if (message?.decryptedAttachmentFile?.url) return
+        await vm._yieldToUi()
+        return message.decryptAttachment(vm.keypair.privkey, tryAllKeys)
+      })
+      return vm._decryptAttachmentsQueue
     }
   }
 }

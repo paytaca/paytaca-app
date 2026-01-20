@@ -23,7 +23,7 @@
     </div>
 
     <q-dialog v-model="showFilterDialog" position="bottom">
-      <q-card class="pt-card-2 text-bow filter-dialog-card" :class="getDarkModeClass(darkMode)">
+      <q-card class="pt-card-2 text-bow filter-dialog-card bottom-card" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row justify-between items-center q-pb-sm">
           <div class="text-subtitle1 text-weight-bold">{{ $t('FilterReservations') }}</div>
           <q-btn
@@ -206,7 +206,7 @@
                 unelevated
                 rounded
                 no-caps
-                :label="rsvp.is_paid ? $t('ConfirmReservation') : $t('Purchase')"
+                :label="rsvp.is_paid ? $t('Finalize') : $t('FinalizeAndPay')"
                 class="purchase-btn"
                 :class="`theme-${theme}`"
                 :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"

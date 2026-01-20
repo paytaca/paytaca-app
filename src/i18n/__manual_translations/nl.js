@@ -28,6 +28,8 @@ export default {
   CannotDeleteLastWallet: "Kan laatste portemonnee niet verwijderen",
   ErrorDeletingWallet: "Fout bij verwijderen van portemonnee",
   ErrorRestoringWallet: "Fout bij herstellen van portemonnee",
+  BackupConfirmed: "Portemonnee back-up bevestigd",
+  BackupConfirmedOn: "Laatst bevestigd op {date}",
   "Wallet Details": "Portemonnee details",
   "Wallet Qr Code": "Portemonnee QR-code",
   "XPubKey QR Code": "Uitgebreide publieke sleutel QR-code",
@@ -93,7 +95,6 @@ export default {
   Validating: "Valideren",
   GettingLocation: "Locatie ophalen",
   NoFilter: "Geen filter",
-  NoFilteredLogs: "Geen gefilterde logs",
   FilterLogs: "Logs filteren",
   CopyLogs: "Logs kopiëren",
   LogsCopied: "Logs gekopieerd",
@@ -139,7 +140,7 @@ export default {
   StartConversation: "Gesprek starten",
   TypeMessage: "Typ bericht",
   MessageCannotBeEmpty: "Bericht mag niet leeg zijn",
-  ChatActivationMessage: "Chat activatie bericht",
+  ChatActivationMessage: "De chat wordt ingeschakeld zodra BCH in het escrowcontract is gestort.",
   ChatNotYetActive: "Chat nog niet actief",
   ServiceFeeToken: "Servicekosten token",
   DeliveryFeeToken: "Bezorgkosten token",
@@ -150,6 +151,7 @@ export default {
   // Other features
   AddingLiquidity: "Liquiditeit toevoegen",
   ConversionInfo: "Conversie naar {currency} op het moment van de transactie. Winst/verlies wordt hieronder getoond in vergelijking met de huidige prijs.",
+  ConversionInformation: "Conversie-informatie",
   ContractInformation: "Contract informatie",
   DepositAddress: "Stortingsadres",
   ExpiredAt: "Verlopen op",
@@ -172,8 +174,8 @@ export default {
   "Connect to Paytaca": "Verbinden met Paytaca",
   "Required number of signers": "Vereist aantal ondertekenaars",
   "Total number of signers": "Totaal aantal ondertekenaars",
-  "You earned": "U heeft verdiend",
   EnterCustomAmount: "Voer aangepast bedrag in",
   Devicesuspended: "Apparaat opgeschort",
+  LegacyAddressWarning: "U hebt een legacy adres ingevoerd. Zorg ervoor dat het een <span class=\"highlighted-word\">BCH stortingsadres</span> is, niet een BTC stortingsadres.",
 }
 

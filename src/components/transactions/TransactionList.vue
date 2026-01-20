@@ -234,7 +234,8 @@ export default {
         }
         
         if (txSearchReference) {
-          params.txSearchReference = txSearchReference
+          // watchtower API expects `reference` for ref-ID search
+          params.reference = txSearchReference
         }
 
         vm.transactionsAppending = true
@@ -623,9 +624,9 @@ export default {
   }
 
   .no-transaction-img {
-    width: 80px;
-    height: 80px;
-    margin-bottom: 24px;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 12px;
     opacity: 0.6;
   }
 

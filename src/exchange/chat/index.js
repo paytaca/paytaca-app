@@ -1,10 +1,10 @@
-import { updatePubkey, saveKeypair, generateKeypair, sha256, getKeypair } from './keys'
-import { loadWallet } from 'src/wallet'
+import { updatePubkey, sha256 } from './keys'
 import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
+import { getEncryptionKeypairFromMnemonic, getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 
 export const chatIdentityManager = new ChatIdentityManager()
 
@@ -388,33 +388,24 @@ export function fetchChatPubkeys (chatRef) {
   })
 }
 
-async function getKeypairSeed () {
-  const wallet = await loadWallet('BCH', Store.getters['global/getWalletIndex'])
-  const privkey = await wallet.BCH.getPrivateKey('0/0')
-  return privkey
-}
-
+/**
+ * Gets encryption keypair derived from mnemonic (address 0/0)
+ * Always derives fresh from mnemonic to ensure cross-platform consistency
+ * Optionally updates the pubkey on the server
+ * @param {boolean} update - Whether to update pubkey on server
+ * @returns {Promise<{privkey: string, pubkey: string}>}
+ */
 export async function updateOrCreateKeypair (update = true) {
-  console.log('Updating chat encryption keypair')
-  const seed = await getKeypairSeed()
+  const walletIndex = Store.getters['global/getWalletIndex']
   
-  if (!seed || typeof seed !== 'string' || seed.length === 0) {
-    throw new Error('Failed to get wallet private key from path 0/0 - cannot generate memo keypair. Memos require a deterministic keypair derived from the wallet.')
-  }
-  
-  const keypair = generateKeypair({ seed: seed })
+  // Always derive fresh from mnemonic (no storage for cross-platform consistency)
+  const keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
 
-  try {
-    const storedKeypair = await getKeypair()
-    if (storedKeypair && storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
-      console.log('Chat encryption keypair still updated')
-      return keypair // Return the keypair, not undefined
-    }
-
-  } catch (error) {
-    console.error(error)
+  if (!keypair || !keypair.privkey || !keypair.pubkey) {
+    throw new Error('Failed to generate keypair from mnemonic')
   }
 
+  // Update pubkey on server if requested
   if (update) {
     await updatePubkey(keypair.pubkey)
       .catch(error => {
@@ -427,12 +418,6 @@ export async function updateOrCreateKeypair (update = true) {
         return Promise.reject('Failed to create/update chat pubkey to server')
       })
   }
-
-  await saveKeypair(keypair.privkey)
-    .catch(error => {
-      console.error(error)
-      return Promise.reject('Failed to save chat privkey')
-    })
 
   return keypair
 }

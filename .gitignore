@@ -42,3 +42,6 @@ yarn-error.log*
 
 # Temporarily exclude ios files
 src-capacitor/ios/
+
+# npm cache
+.npm-cache

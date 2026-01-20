@@ -1,10 +1,14 @@
 <template>
-  <q-pull-to-refresh
+  <div
     id="app-container"
-    :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
-    @refresh="getCollectibles"
+    class="sticky-header-container"
+    :class="getDarkModeClass(darkMode)"
   >
-    <header-nav :title="$t('Collectibles')" backnavpath="/apps">
+    <header-nav
+      :title="$t('Collectibles')"
+      backnavpath="/apps"
+      class="header-nav q-px-sm apps-header"
+    >
       <template v-slot:top-right-menu>
         <q-btn
           flat
@@ -16,263 +20,265 @@
         />
       </template>
     </header-nav>
-    
-    <!-- Main Tabs -->
-    <div class="tabs-wrapper q-mt-sm q-mb-sm">
-      <div
-        class="collectibles-tabs q-pa-xs"
+  
+    <q-pull-to-refresh @refresh="getCollectibles">
+      <!-- Main Tabs -->
+      <div class="tabs-wrapper q-mt-sm q-mb-sm">
+        <div
+          class="collectibles-tabs q-pa-xs"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <button
+            class="collectibles-tab"
+            :class="[
+              darkMode ? 'dark' : '',
+              tabButtonClass('gallery'),
+              `theme-${theme}`
+            ]"
+            :style="viewTab === 'gallery' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="viewTab = 'gallery'"
+          >
+            {{ $t('Gallery') }}
+          </button>
+          <button
+            class="collectibles-tab"
+            :class="[
+              darkMode ? 'dark' : '',
+              tabButtonClass('history'),
+              `theme-${theme}`
+            ]"
+            :style="viewTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="viewTab = 'history'"
+          >
+            {{ $t('History') }}
+          </button>
+        </div>
+      </div>
+  
+      <!-- Tab Panels -->
+      <q-tab-panels
+        animated
+        v-model="viewTab"
+        class="text-bow tab-panels-wrapper"
         :class="getDarkModeClass(darkMode)"
       >
-        <button
-          class="collectibles-tab"
-          :class="[
-            darkMode ? 'dark' : '',
-            tabButtonClass('gallery'),
-            `theme-${theme}`
-          ]"
-          :style="viewTab === 'gallery' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-          @click="viewTab = 'gallery'"
-        >
-          {{ $t('Gallery') }}
-        </button>
-        <button
-          class="collectibles-tab"
-          :class="[
-            darkMode ? 'dark' : '',
-            tabButtonClass('history'),
-            `theme-${theme}`
-          ]"
-          :style="viewTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-          @click="viewTab = 'history'"
-        >
-          {{ $t('History') }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Tab Panels -->
-    <q-tab-panels
-      animated
-      v-model="viewTab"
-      class="text-bow tab-panels-wrapper"
-      :class="getDarkModeClass(darkMode)"
-    >
-      <!-- Gallery Tab -->
-      <q-tab-panel name="gallery" class="q-pa-none tab-panel-content">
-        <!-- Network Tabs for Gallery -->
-        <q-tabs
-          dense
-          v-if="enableSmartBCH"
-          active-color="brandblue"
-          class="col-12 q-px-lg"
-          :modelValue="selectedNetwork"
-          @update:modelValue="changeNetwork"
-        >
-          <q-tab
-            class="network-selection-tab"
-            :class="getDarkModeClass(darkMode)"
-            name="BCH"
-            label="BCH"
-          />
-          <q-tab
-            class="network-selection-tab"
-            :class="getDarkModeClass(darkMode)"
-            name="sBCH"
-            label="SmartBCH"
-          />
-        </q-tabs>
-        <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
-          <q-tab-panel name="BCH">
-            <div v-if="enableSLP && !selectedCategory" class="row items-center justify-end">
-              <AssetFilter style="float:none" @filterTokens="filterTokens"/>
-            </div>
-            <!-- Categories View -->
-            <CashTokensNFTs
-              v-if="bchNftType === 'ct' && !selectedCategory"
-              ref="cashtokenNFTs"
-              :wallet="wallet"
-              @select-category="handleCategorySelect"
-              @open-nft="handleOpenNft"
+        <!-- Gallery Tab -->
+        <q-tab-panel name="gallery" class="q-pa-none tab-panel-content">
+          <!-- Network Tabs for Gallery -->
+          <q-tabs
+            dense
+            v-if="enableSmartBCH"
+            active-color="brandblue"
+            class="col-12 q-px-lg"
+            :modelValue="selectedNetwork"
+            @update:modelValue="changeNetwork"
+          >
+            <q-tab
+              class="network-selection-tab"
+              :class="getDarkModeClass(darkMode)"
+              name="BCH"
+              label="BCH"
             />
-            <!-- Items View -->
-            <div v-else-if="bchNftType === 'ct' && selectedCategory" class="items-view">
-              <div class="row items-center q-pa-md">
-                <q-btn
-                  flat
-                  round
-                  dense
-                  icon="arrow_back"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="clearCategory"
-                  class="q-mr-sm"
-                />
-                <div class="text-h6" :class="getDarkModeClass(darkMode)">
-                  {{ formatCategoryName(selectedCategoryName, selectedCategory) }}
-                </div>
+            <q-tab
+              class="network-selection-tab"
+              :class="getDarkModeClass(darkMode)"
+              name="sBCH"
+              label="SmartBCH"
+            />
+          </q-tabs>
+          <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
+            <q-tab-panel name="BCH">
+              <div v-if="enableSLP && !selectedCategory" class="row items-center justify-end">
+                <AssetFilter style="float:none" @filterTokens="filterTokens"/>
               </div>
-              <CashTokensNFTGroup
-                ref="cashtokenNFTItems"
+              <!-- Categories View -->
+              <CashTokensNFTs
+                v-if="bchNftType === 'ct' && !selectedCategory"
+                ref="cashtokenNFTs"
                 :wallet="wallet"
-                :category="selectedCategory"
-                :dark-mode="darkMode"
+                @select-category="handleCategorySelect"
                 @open-nft="handleOpenNft"
               />
-            </div>
-            <!-- SLP Collectibles -->
-            <SLPCollectibles
-              v-else-if="enableSLP"
-              ref="slpCollectibles"
-              :wallet="wallet"
-              style="margin:auto;"
-            />
-          </q-tab-panel>
-          <q-tab-panel name="sBCH">
-            <!-- SmartBCH support has been removed -->
-            <div class="q-pa-lg text-center">
-              <p class="text-h6" :class="getDarkModeClass(darkMode)">
-                {{ $t('SmartBCHDeprecated', {}, 'SmartBCH is no longer supported') }}
-              </p>
-            </div>
-          </q-tab-panel>
-        </q-tab-panels>
-      </q-tab-panel>
-      
-      <!-- History Tab -->
-      <q-tab-panel name="history" class="q-pa-none tab-panel-content">
-        <div 
-          ref="historyList"
-          class="transaction-list scroll-y"
-          @scroll="onHistoryScroll"
-          @touchstart="preventPull"
-        >
-          <template v-if="historyLoaded">
-            <div class="transactions-content">
-              <TransactionListItem
-                v-for="(transaction, index) in historyTransactions"
-                :key="'tx-' + index"
-                :transaction="transaction"
-                :selected-asset="historySelectedAsset"
-                :denominationTabSelected="denominationTabSelected"
-                @click="() => showTransactionDetails(transaction)"
-              />
-            </div>
-            
-            <!-- Loading indicator for infinite scroll -->
-            <div v-if="historyAppending && historyTransactions.length > 0" class="loading-more">
-              <q-spinner color="primary" size="32px" />
-              <p class="loading-text" :class="getDarkModeClass(darkMode)">{{ $t('LoadingMore', {}, 'Loading more') }}...</p>
-            </div>
-            
-            <!-- End of list indicator -->
-            <div v-else-if="historyTransactions.length > 0 && !historyHasNext" class="end-of-list">
-              <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
-              <p class="end-text" :class="getDarkModeClass(darkMode)">{{ $t('AllTransactionsLoaded', {}, 'All transactions loaded') }}</p>
-            </div>
-            
-            <!-- Empty state -->
-            <div v-else-if="historyTransactions.length === 0" class="empty-state">
-              <q-img class="no-transaction-img" src="empty-wallet.svg" />
-              <p class="empty-state-text text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
-            </div>
-            
-            <!-- Scroll sentinel for intersection observer -->
-            <div ref="historyScrollSentinel" class="scroll-sentinel"></div>
-          </template>
-          <div v-else class="loading-state">
-            <TransactionListItemSkeleton v-for="i in 12" :key="i"/>
-          </div>
-        </div>
-      </q-tab-panel>
-    </q-tab-panels>
-    
-    <div style="padding-bottom:60px;"></div>
-
-    <!-- Receive Dialog -->
-    <q-dialog v-model="showReceiveDialog" position="bottom">
-      <q-card class="receive-dialog-card" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Receive') }}</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup :class="getDarkModeClass(darkMode)" />
-        </q-card-section>
-
-        <q-card-section>
-          <!-- BCH Token Type Filter -->
-          <div v-if="enableSLP" class="row items-center justify-center q-mb-md">
-            <AssetFilter style="float:none" @filterTokens="filterTokens"/>
-          </div>
-          
-          <!-- QR Code Display -->
-          <div class="flex flex-center" style="padding-top: 10px;">
-            <div class="q-pa-md br-15 justify-center">
-              <template v-if="!receivingAddress">
-                <!-- Skeleton Loader for QR Code -->
-                <q-skeleton
-                  type="rect"
-                  width="200px"
-                  height="200px"
-                  :class="getDarkModeClass(darkMode)"
-                  style="border-radius: 8px;"
-                />
-              </template>
-              <qr-code
-                v-else
-                :text="receivingAddress"
-                :size="200"
-                icon="/ct-logo.png"
-                @click="copyAddress(receivingAddress)"
-              />
-            </div>
-          </div>
-          
-          <!-- Address Display -->
-          <div class="row">
-            <div class="col receiving-address-container">
-              <template v-if="!receivingAddress">
-                <!-- Skeleton Loader for Address -->
-                <div class="text-center">
-                  <q-skeleton
-                    type="text"
-                    width="80%"
-                    height="24px"
+              <!-- Items View -->
+              <div v-else-if="bchNftType === 'ct' && selectedCategory" class="items-view">
+                <div class="row items-center q-pa-md">
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="arrow_back"
                     :class="getDarkModeClass(darkMode)"
-                    style="margin: 0 auto;"
+                    @click="clearCategory"
+                    class="q-mr-sm"
                   />
+                  <div class="text-h6" :class="getDarkModeClass(darkMode)">
+                    {{ formatCategoryName(selectedCategoryName, selectedCategory) }}
+                  </div>
                 </div>
-              </template>
-              <div v-else class="text-center">
-                <div
-                  class="text-bow receiving-address"
-                  style="letter-spacing: 1px; word-break: break-all; margin-bottom: 8px;"
-                  @click="copyAddress(receivingAddress)" 
-                  :class="getDarkModeClass(darkMode)"
-                >
-                  {{ receivingAddress }}
-                </div>
-                <q-btn
-                  outline
-                  no-caps
-                  class="br-15"
-                  color="grey-7"
-                  icon="content_copy"
-                  padding="xs md"
-                  :label="$t('ClickToCopyAddress')"
+                <CashTokensNFTGroup
+                  ref="cashtokenNFTItems"
+                  :wallet="wallet"
+                  :category="selectedCategory"
+                  :dark-mode="darkMode"
+                  @open-nft="handleOpenNft"
+                />
+              </div>
+              <!-- SLP Collectibles -->
+              <SLPCollectibles
+                v-else-if="enableSLP"
+                ref="slpCollectibles"
+                :wallet="wallet"
+                style="margin:auto;"
+              />
+            </q-tab-panel>
+            <q-tab-panel name="sBCH">
+              <!-- SmartBCH support has been removed -->
+              <div class="q-pa-lg text-center">
+                <p class="text-h6" :class="getDarkModeClass(darkMode)">
+                  {{ $t('SmartBCHDeprecated', {}, 'SmartBCH is no longer supported') }}
+                </p>
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
+        </q-tab-panel>
+        
+        <!-- History Tab -->
+        <q-tab-panel name="history" class="q-pa-none tab-panel-content">
+          <div 
+            ref="historyList"
+            class="transaction-list scroll-y"
+            @scroll="onHistoryScroll"
+            @touchstart="preventPull"
+          >
+            <template v-if="historyLoaded">
+              <div class="transactions-content">
+                <TransactionListItem
+                  v-for="(transaction, index) in historyTransactions"
+                  :key="'tx-' + index"
+                  :transaction="transaction"
+                  :selected-asset="historySelectedAsset"
+                  :denominationTabSelected="denominationTabSelected"
+                  @click="() => showTransactionDetails(transaction)"
+                />
+              </div>
+              
+              <!-- Loading indicator for infinite scroll -->
+              <div v-if="historyAppending && historyTransactions.length > 0" class="loading-more">
+                <q-spinner color="primary" size="32px" />
+                <p class="loading-text" :class="getDarkModeClass(darkMode)">{{ $t('LoadingMore', {}, 'Loading more') }}...</p>
+              </div>
+              
+              <!-- End of list indicator -->
+              <div v-else-if="historyTransactions.length > 0 && !historyHasNext" class="end-of-list">
+                <q-icon name="check_circle" size="24px" :class="getDarkModeClass(darkMode)" />
+                <p class="end-text" :class="getDarkModeClass(darkMode)">{{ $t('AllTransactionsLoaded', {}, 'All transactions loaded') }}</p>
+              </div>
+              
+              <!-- Empty state -->
+              <div v-else-if="historyTransactions.length === 0" class="empty-state">
+                <q-img class="no-transaction-img" src="empty-wallet.svg" />
+                <p class="empty-state-text text-bow" :class="getDarkModeClass(darkMode)">{{ $t('NoTransactionsToDisplay') }}</p>
+              </div>
+              
+              <!-- Scroll sentinel for intersection observer -->
+              <div ref="historyScrollSentinel" class="scroll-sentinel"></div>
+            </template>
+            <div v-else class="loading-state">
+              <TransactionListItemSkeleton v-for="i in 12" :key="i"/>
+            </div>
+          </div>
+        </q-tab-panel>
+      </q-tab-panels>
+      
+      <div style="padding-bottom:60px;"></div>
+  
+      <!-- Receive Dialog -->
+      <q-dialog v-model="showReceiveDialog" position="bottom">
+        <q-card class="receive-dialog-card bottom-card" :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6 text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Receive') }}</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup :class="getDarkModeClass(darkMode)" />
+          </q-card-section>
+  
+          <q-card-section>
+            <!-- BCH Token Type Filter -->
+            <div v-if="enableSLP" class="row items-center justify-center q-mb-md">
+              <AssetFilter style="float:none" @filterTokens="filterTokens"/>
+            </div>
+            
+            <!-- QR Code Display -->
+            <div class="flex flex-center" style="padding-top: 10px;">
+              <div class="q-pa-md br-15 justify-center">
+                <template v-if="!receivingAddress">
+                  <!-- Skeleton Loader for QR Code -->
+                  <q-skeleton
+                    type="rect"
+                    width="200px"
+                    height="200px"
+                    :class="getDarkModeClass(darkMode)"
+                    style="border-radius: 8px;"
+                  />
+                </template>
+                <qr-code
+                  v-else
+                  :text="receivingAddress"
+                  :size="200"
+                  icon="/ct-logo.png"
                   @click="copyAddress(receivingAddress)"
                 />
               </div>
             </div>
-          </div>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
-    <!-- NFT Detail Dialog -->
-    <CashTokenNFTDialog 
-      v-model="nftDialog.show" 
-      :nft="nftDialog.nft" 
-      :dark-mode="darkMode"
-    />
-  </q-pull-to-refresh>
+            
+            <!-- Address Display -->
+            <div class="row">
+              <div class="col receiving-address-container">
+                <template v-if="!receivingAddress">
+                  <!-- Skeleton Loader for Address -->
+                  <div class="text-center">
+                    <q-skeleton
+                      type="text"
+                      width="80%"
+                      height="24px"
+                      :class="getDarkModeClass(darkMode)"
+                      style="margin: 0 auto;"
+                    />
+                  </div>
+                </template>
+                <div v-else class="text-center">
+                  <div
+                    class="text-bow receiving-address"
+                    style="letter-spacing: 1px; word-break: break-all; margin-bottom: 8px;"
+                    @click="copyAddress(receivingAddress)" 
+                    :class="getDarkModeClass(darkMode)"
+                  >
+                    {{ receivingAddress }}
+                  </div>
+                  <q-btn
+                    outline
+                    no-caps
+                    class="br-15"
+                    color="grey-7"
+                    icon="content_copy"
+                    padding="xs md"
+                    :label="$t('ClickToCopyAddress')"
+                    @click="copyAddress(receivingAddress)"
+                  />
+                </div>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+  
+      <!-- NFT Detail Dialog -->
+      <CashTokenNFTDialog 
+        v-model="nftDialog.show" 
+        :nft="nftDialog.nft" 
+        :dark-mode="darkMode"
+      />
+    </q-pull-to-refresh>
+  </div>
 </template>
 
 <script>
@@ -1043,7 +1049,7 @@ export default {
   .tabs-wrapper {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 99;
     background: inherit;
     text-align: center;
   }
@@ -1238,9 +1244,9 @@ export default {
   }
 
   .no-transaction-img {
-    width: 80px;
-    height: 80px;
-    margin-bottom: 24px;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 12px;
     opacity: 0.6;
   }
 

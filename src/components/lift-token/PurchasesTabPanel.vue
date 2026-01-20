@@ -23,7 +23,7 @@
     </div>
 
     <q-dialog v-model="showFilterDialog" position="bottom">
-      <q-card class="pt-card-2 text-bow filter-dialog-card" :class="getDarkModeClass(darkMode)">
+      <q-card class="pt-card-2 text-bow filter-dialog-card bottom-card" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row justify-between items-center q-pb-sm">
           <div class="text-subtitle1 text-weight-bold">{{ $t('FilterPurchases') }}</div>
           <q-btn

@@ -31,7 +31,7 @@
               <div class="row items-start no-wrap q-gutter-sm">
                 <div class="" style="text-align:justify;">
                   <q-icon name="lock" size="1.2em"/>
-                  {{ $t('EncryptedChatMsg', {}, 'Messages are end-to-end encrypted. No one outside this chat, not even Paytaca, can read them.') }}
+                  {{ $t('EncryptedChatMsg', {}, 'Messages are protected with end-to-end encryption. Only you and the intended recipient can read the content.') }}
                 </div>
                 <q-btn flat icon="close" padding="sm" class="float-right q-r-mr-sm q-r-mt-xs" @click="() => showEncryptedChatNotice = false"/>
               </div>
@@ -332,18 +332,43 @@ export default defineComponent({
     onMounted(() => loadKeypair())
     async function loadKeypair() {
       if (props.usePrivkey) {
+        let derivedPubkey = ''
+        try {
+          const maybePubkey = privToPub(props.usePrivkey)
+          if (typeof maybePubkey === 'string' && maybePubkey) derivedPubkey = maybePubkey
+        } catch (error) {
+          console.error('loadKeypair - Failed to derive pubkey from usePrivkey:', error)
+        }
         keypair.value = {
           privkey: props.usePrivkey,
-          pubkey: privToPub(props.usePrivkey),
+          pubkey: derivedPubkey,
         }
         return
       }
       keypair.value = await updateOrCreateKeypair().catch(console.error)
     }
+    function yieldToUi() {
+      // Yield so the UI can paint between expensive decrypt ops.
+      return new Promise(resolve => setTimeout(resolve, 0))
+    }
+
+    // Promise chains to serialize crypto work and avoid UI freezes
+    let decryptMessagesQueue = Promise.resolve()
+    let decryptAttachmentsQueue = Promise.resolve()
+
     async function decryptMessages() {
       if (!keypair.value?.privkey) await loadKeypair()
       if (!keypair.value?.privkey) return
-      await Promise.all(messages.value.map(message => decryptMessage(message, false)))
+      // Decryption uses synchronous primitives internally; Promise.all will still block the UI.
+      // Run sequentially and yield between batches.
+      decryptMessagesQueue = decryptMessagesQueue.then(async () => {
+        for (let i = 0; i < messages.value.length; i++) {
+          const message = messages.value[i]
+          await decryptMessage(message, false).catch(() => {})
+          if (i % 3 === 2) await yieldToUi()
+        }
+      })
+      return decryptMessagesQueue
     }
 
     async function decryptMessage(message=ChatMessage.parse(), tryAllKeys=false) {
@@ -357,7 +382,12 @@ export default defineComponent({
       if (!keypair.value?.privkey) await loadKeypair()
       if (!keypair.value?.privkey) return
       if (chatMessage?.decryptedAttachmentFile?.url) return
-      return chatMessage.decryptAttachment(keypair.value?.privkey, tryAllKeys)
+      // Multiple visible messages can trigger attachment decrypts at once; serialize and yield.
+      decryptAttachmentsQueue = decryptAttachmentsQueue.then(async () => {
+        await yieldToUi()
+        return chatMessage.decryptAttachment(keypair.value?.privkey, tryAllKeys)
+      })
+      return decryptAttachmentsQueue
     }
 
     function onNewMessage(newMessage=ChatMessage.parse()) {
@@ -408,6 +438,38 @@ export default defineComponent({
     const message = ref('')
     const attachment = ref(null)
 
+    function buildPubkeysForEncryption() {
+      const candidates = []
+
+      const privkey = keypair.value?.privkey
+      let selfPubkey = keypair.value?.pubkey
+
+      // If we have a privkey but missing/invalid pubkey, attempt to derive it.
+      if (privkey && (typeof selfPubkey !== 'string' || !selfPubkey)) {
+        try {
+          selfPubkey = privToPub(privkey)
+        } catch (error) {
+          console.error('Failed to derive pubkey from privkey:', error)
+          selfPubkey = undefined
+        }
+
+        if (typeof selfPubkey === 'string' && selfPubkey) {
+          keypair.value.pubkey = selfPubkey
+        }
+      }
+
+      if (typeof selfPubkey === 'string' && selfPubkey) candidates.push(selfPubkey)
+      if (Array.isArray(membersPubkeys.value)) candidates.push(...membersPubkeys.value)
+
+      // Only keep valid, non-empty hex pubkeys to prevent secp hex parsing errors.
+      const filtered = candidates
+        .filter(pk => typeof pk === 'string')
+        .map(pk => pk.trim())
+        .filter(pk => pk && pk.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(pk))
+
+      return [...new Set(filtered)]
+    }
+
     const sendMessage = debounce(async function() {
       if (!message.value && !attachment.value) return
       let signData = undefined
@@ -419,20 +481,34 @@ export default defineComponent({
       
       if (!keypair.value?.privkey) await loadKeypair()
       if (keypair.value?.privkey && data?.message) {
+        // Ensure our own pubkey is included for multi-recipient encryption.
+        // Also filter invalid pubkeys to avoid runtime errors in encryption.
+        const pubkeysForEncryption = buildPubkeysForEncryption()
+        if (!pubkeysForEncryption.length) {
+          console.error('No valid pubkeys available for encryption; refusing to send message unencrypted.')
+          return
+        }
         const encryptedMessage = encryptMessage({
           data: data.message,
           privkey: keypair.value.privkey,
-          pubkeys: membersPubkeys.value,
+          pubkeys: pubkeysForEncryption,
         })
         data.message = compressEncryptedMessage(encryptedMessage)
         data.encrypted = true
       }
 
       if (attachment.value) {
+        // Ensure our own pubkey is included for multi-recipient encryption.
+        // Also filter invalid pubkeys to avoid runtime errors in encryption.
+        const pubkeysForEncryption = buildPubkeysForEncryption()
+        if (!pubkeysForEncryption.length) {
+          console.error('No valid pubkeys available for encryption; refusing to send attachment unencrypted.')
+          return
+        }
         const encryptedAttachment = await encryptImage({
           file: attachment.value,
           privkey: keypair.value.privkey,
-          pubkeys: membersPubkeys.value,
+          pubkeys: pubkeysForEncryption,
         })
         const compressedEncryptedAttachment = await compressEncryptedImage(encryptedAttachment)
         // data.attachment = await fileToJson(attachment.value)

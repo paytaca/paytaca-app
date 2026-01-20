@@ -1,7 +1,7 @@
 <template>
     <!-- Appeal Dialog -->
     <q-dialog full-width persistent no-shake v-model="showAppealConfirmation" position="bottom">
-        <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
+        <q-card class="br-15 pt-card text-bow bottom-card" style="width: 70%;" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row">
             <div class="col text-h6 text-center">{{ $t('SubmittingAnAppeal') }}&nbsp;&nbsp;</div>
         </q-card-section>
@@ -28,7 +28,7 @@
         </q-card>
     </q-dialog>
     <q-dialog full-width v-model="showAppealForm" position="bottom" @before-hide="$emit('back')">
-        <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
+        <q-card class="br-15 pt-card text-bow bottom-card" style="width: 70%;" :class="getDarkModeClass(darkMode)">
         <!-- <q-card-section>
             <div class="text-h6 text-center">Appeal Form</div>
         </q-card-section> -->

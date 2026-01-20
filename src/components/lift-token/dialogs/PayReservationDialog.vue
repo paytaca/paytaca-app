@@ -11,7 +11,7 @@
       :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
       <div class="row justify-between items-center q-mb-lg">
-        <span class="text-h5 text-weight-bold">{{ $t("PurchaseLift") }}</span>
+        <span class="text-h5 text-weight-bold">{{ $t("PayForLIFT") }}</span>
         <q-btn
           flat
           round
@@ -19,6 +19,14 @@
           icon="close"
           class="close-button"
           v-close-popup
+        />
+      </div>
+
+      <!-- Sale Group Badge -->
+      <div v-if="rsvp.sale_group" class="row justify-center q-mb-md">
+        <sale-group-badge
+          type="round"
+          :saleGroup="rsvp.sale_group"
         />
       </div>
 
@@ -37,12 +45,7 @@
         <custom-input
           v-model="amountTkn"
           :inputSymbol="'LIFT'"
-          :inputRules="[
-            val => (
-              Number(this.amountBch) < this.walletBalance &&
-              Number(val) * 10 ** 2 <= this.tknBalance
-            ) || this.$t('BalanceExceeded')
-          ]"
+          :inputRules="inputValidationRules"
           :asset="null"
           :decimalObj="{ min: 0, max: 2 }"
           @on-amount-click="onKeyAction"
@@ -101,6 +104,21 @@
         <span>{{ parseLiftToken(unpaidLift) }}</span>
       </div>
 
+      <!-- Lockup Info -->
+      <div class="lockup-info q-my-md q-pa-md" :class="getDarkModeClass(darkMode)">
+        <div class="row items-center q-gutter-sm">
+          <q-icon 
+            name="info" 
+            size="20px" 
+            :style="`color: ${getThemeColor()}`"
+            class="q-mt-xs"
+          />
+          <div class="col text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+            {{ $t('LiftTokenLockupInfo') }}
+          </div>
+        </div>
+      </div>
+
       <div class="row full-width justify-evenly q-mt-lg q-gutter-x-md">
         <q-btn
           unelevated
@@ -120,11 +138,7 @@
           :class="`theme-${theme}`"
           :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
           :label="$t('Purchase')"
-          :disable="
-            Number(amountTkn) === 0 ||
-            Number(amountBch) > walletBalance ||
-            Number(amountTkn) * 10 ** 2 > tknBalance
-          "
+          :disable="disablePurchase"
           @click="openConfirmDialog"
         />
       </div>
@@ -144,6 +158,7 @@ import {
 
 import CustomInput from "src/components/CustomInput.vue";
 import PayReservationConfirmDialog from "src/components/lift-token/dialogs/PayReservationConfirmDialog.vue";
+import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 
 export default {
   name: "PayReservationDialog",
@@ -155,7 +170,8 @@ export default {
   },
 
   components: {
-    CustomInput
+    CustomInput,
+    SaleGroupBadge
   },
 
   data() {
@@ -172,7 +188,8 @@ export default {
       bchBalance: 0,
       tknBalance: 0,
       currentUsdPrice: 0,
-      currentMessageTimestamp: 0
+      currentMessageTimestamp: 0,
+      selectedRoundMinPurchase: 100
     };
   },
 
@@ -191,6 +208,43 @@ export default {
       const asset = this.$store.getters["assets/getAssets"][0];
       return asset.spendable;
     },
+    inputValidationRules() {
+      return [
+        val => (
+          Number(this.amountBch) < this.walletBalance &&
+          Number(val) * 10 ** 2 <= this.tknBalance
+        ) || this.$t('BalanceExceeded'),
+        val => {
+          const amount = Number(val)
+          if (!amount || amount === 0) return true
+          if (Number(this.unpaidLift) / 10 ** 2 < this.selectedRoundMinPurchase) return true
+          if (Number(val) >= this.selectedRoundMinPurchase) return true
+          return `${this.$t('MinimumPurchase')}: ${this.formatNumber(this.selectedRoundMinPurchase)} LIFT`
+        }
+      ]
+    },
+    disablePurchase() {
+      const availableBalance = this.parseToken() / 10 ** 2
+      const amount = Number(this.amountTkn)
+      const isBelowMinimum = availableBalance < this.selectedRoundMinPurchase
+      
+      // If available balance is below minimum, allow purchase but still validate balance limits
+      if (isBelowMinimum && amount > 0) {
+        return (
+          amount === 0 ||
+          Number(this.amountBch) > this.walletBalance ||
+          amount * 10 ** 2 > this.tknBalance
+        )
+      }
+
+      // Normal validation when available balance meets minimum requirement
+      return (
+        amount === 0 ||
+        Number(this.amountBch) > this.walletBalance ||
+        amount * 10 ** 2 > this.tknBalance ||
+        amount < this.selectedRoundMinPurchase
+      )
+    }
   },
 
   methods: {
@@ -250,6 +304,9 @@ export default {
       this.tknBalance = tkn;
       this.unpaidLift = this.parseToken() - Number(this.amountTkn * 10 ** 2);
     },
+    formatNumber(num) {
+      return new Intl.NumberFormat().format(num)
+    },
 
     onKeyAction (val) {
       this.amountTkn = val
@@ -302,6 +359,8 @@ export default {
 
   async mounted() {
     if (!this.rsvp) return;
+
+    this.amountTkn = this.parseToken() / 10 ** 2;
     
     const oracleData = await getOracleData()
     this.currentUsdPrice = oracleData.price
@@ -396,6 +455,17 @@ export default {
   
   &:active:not(:disabled) {
     transform: translateY(0);
+  }
+}
+
+.lockup-info {
+  background-color: rgba(66, 165, 245, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(66, 165, 245, 0.2);
+  
+  &.dark {
+    background-color: rgba(66, 165, 245, 0.1);
+    border-color: rgba(66, 165, 245, 0.3);
   }
 }
 </style>

@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" position="bottom" persistent seamless full-width rounded>
     <q-card 
       style="min-height: 90vh;" 
-      class="br-15 text-bow pt-card"
+      class="br-15 text-bow pt-card bottom-card"
       :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark' : 'bg-pt-light']"
       >
       <div class="row no-wrap items-start justify-center q-pl-md q-pr-sm q-pt-sm">

@@ -159,6 +159,9 @@ async function verifyWalletHashMatch(index, vaultEntry) {
  * 
  * If multiple keys have the same mnemonic value, only the first one is kept to avoid recovering the same wallet twice.
  * The final list is sorted ascending.
+ * 
+ * NOTE: This function returns all indices that have mnemonic keys in localStorage, regardless of vault state.
+ * The caller should filter out deleted wallets based on vault entries.
  */
 export async function getWalletIndicesFromStorage() {
     // Get all localStorage keys
@@ -305,6 +308,13 @@ async function recoverWallet(index, save=false) {
     const store = Store
     const walletVault = store.getters['global/getVault']
     const existingVaultEntry = walletVault?.[index]
+    
+    // If vault entry doesn't exist or is deleted, skip recovery
+    // This prevents trying to recover wallets that have been deleted
+    if (!existingVaultEntry || existingVaultEntry.deleted === true) {
+        console.warn(`[Wallet Recovery] Skipping recovery for index ${index}: vault entry missing or deleted`)
+        return null
+    }
     
     // Use wallet hash from vault if available (post-migration pattern)
     // This provides more reliable mnemonic lookup
@@ -498,6 +508,14 @@ export async function recoverWalletsFromStorage() {
             continue
         }
         
+        // Skip indices that don't have vault entries or are marked as deleted
+        // This prevents trying to recover wallets that have been deleted
+        const vaultEntry = vault[index]
+        if (!vaultEntry || vaultEntry.deleted === true) {
+            console.warn(`[Wallet Recovery] Skipping index ${index}: vault entry missing or deleted`)
+            continue
+        }
+        
         // If not processed, include it
         if (!processedIndices.has(index)) {
             unprocessedIndices.push(index)
@@ -505,7 +523,7 @@ export async function recoverWalletsFromStorage() {
         }
         // If processed, check if vault entry still exists and is valid
         // If vault entry is missing or invalid, allow re-recovery
-        const vaultEntry = vault[index]
+        // Note: vaultEntry was already declared above, so we reuse it here
         if (!vaultEntry || !vaultEntry.wallet) {
             // Vault entry missing - allow re-recovery and remove from processed list
             const processed = getProcessedRecoveryIndices()

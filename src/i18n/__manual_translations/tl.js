@@ -29,6 +29,8 @@ export default {
   CannotDeleteLastWallet: "Hindi ma-delete ang huling wallet",
   ErrorDeletingWallet: "Error sa pag-delete ng wallet",
   ErrorRestoringWallet: "Error sa pag-restore ng wallet",
+  BackupConfirmed: "Nakumpirma ang backup ng wallet",
+  BackupConfirmedOn: "Huling nakumpirma noong {date}",
   "Wallet Details": "Mga detalye ng wallet",
   "Wallet Qr Code": "QR code ng wallet",
   "XPubKey QR Code": "QR code ng extended public key",
@@ -94,7 +96,6 @@ export default {
   Validating: "Nagva-validate",
   GettingLocation: "Kumukuha ng lokasyon",
   NoFilter: "Walang filter",
-  NoFilteredLogs: "Walang filtered logs",
   FilterLogs: "I-filter ang logs",
   CopyLogs: "I-copy ang logs",
   LogsCopied: "Na-copy ang logs",
@@ -151,6 +152,7 @@ export default {
   // Other features
   AddingLiquidity: "Nagda-dagdag ng liquidity",
   ConversionInfo: "Conversion sa {currency} sa oras ng transaction. Ang kita/talo ay ipinapakita sa ibaba kung ihahambing sa kasalukuyang presyo.",
+  ConversionInformation: "Impormasyon sa Conversion",
   ContractInformation: "Contract information",
   DepositAddress: "Deposit address",
   ExpiredAt: "Nag-expire noong",
@@ -173,8 +175,9 @@ export default {
   "Connect to Paytaca": "I-connect sa Paytaca",
   "Required number of signers": "Kailangang bilang ng signers",
   "Total number of signers": "Kabuuang bilang ng signers",
-  "You earned": "Nakakuha ka ng",
   EnterCustomAmount: "Maglagay ng custom amount",
   Devicesuspended: "Na-suspend ang device",
+  LegacyAddressWarning: "Isang legacy address ang iyong nai-paste. Mangyaring siguraduhing ito ay isang <span class=\"highlighted-word\">BCH deposit address</span>, hindi isang BTC deposit address.",
+  LiftTokenLockupInfo: "Ang iyong biniling LIFT token ay mai-lock sa isang smart contract na awtomatikong mag-a-unlock batay sa iskedyul ng vesting ng round na binilhan mo.",
 }
 

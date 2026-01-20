@@ -10,13 +10,13 @@
       :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
     >
       <div class="pt-card row justify-between items-center q-px-lg q-py-md sticky-title" :class="getDarkModeClass(darkMode)">
-        <span class="text-h5 text-weight-bold">{{ $t("BuyLIFTTokens") }}</span>
+        <span class="text-h5 text-weight-bold col-10">{{ $t("BuyLIFTTokens") }}</span>
         <q-btn
           flat
           round
           padding="sm"
           icon="close"
-          class="close-button"
+          class="col-auto close-button"
           :disable="isProcessing"
           v-close-popup
         />
@@ -138,6 +138,21 @@
           <div class="row justify-between items-center">
             <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ $t('YourBCHBalance') }}:</span>
             <span class="text-body2">{{ walletBalance.toFixed(8) }} BCH</span>
+          </div>
+        </div>
+
+        <!-- Lockup Info -->
+        <div class="lockup-info q-mb-md q-pa-md" :class="getDarkModeClass(darkMode)">
+          <div class="row items-center q-gutter-sm">
+            <q-icon 
+              name="info" 
+              size="20px" 
+              :style="`color: ${getThemeColor()}`"
+              class="q-mt-xs"
+            />
+            <div class="col text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+              {{ $t('LiftTokenLockupInfo') }}
+            </div>
           </div>
         </div>
   
@@ -725,6 +740,17 @@ export default {
   }
   
   .conversion-display {
+    background-color: rgba(66, 165, 245, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(66, 165, 245, 0.2);
+    
+    &.dark {
+      background-color: rgba(66, 165, 245, 0.1);
+      border-color: rgba(66, 165, 245, 0.3);
+    }
+  }
+  
+  .lockup-info {
     background-color: rgba(66, 165, 245, 0.05);
     border-radius: 12px;
     border: 1px solid rgba(66, 165, 245, 0.2);

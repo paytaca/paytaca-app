@@ -78,7 +78,7 @@
 import * as assetSettings from 'src/utils/asset-settings'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import ProgressLoader from '../../../components/ProgressLoader.vue'
-import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -127,14 +127,14 @@ export default {
     },
     addTokenTitle () {
       if (this.isCashToken) {
-        return this.$t(this.isHongKong(this.currentCountry) ? 'AddFungibleCashPoint' : 'AddFungibleCashToken')
+        return this.$t('AddFungibleCashToken')
       }
-      return this.$t(this.isHongKong(this.currentCountry) ? 'Add_Type1_Point' : 'Add_Type1_Token')
+      return this.$t('Add_Type1_Token')
     },
     inputPlaceholder () {
       if (this.isCashToken)
-        return this.$t(this.isHongKong(this.currentCountry) ? 'EnterCashPointCategoryID' : 'EnterCashTokenCategory')
-      return this.$t(this.isHongKong(this.currentCountry) ? 'Enter_SLP_PointId' : 'Enter_SLP_TokenId')
+        return this.$t('EnterCashTokenCategory')
+      return this.$t('Enter_SLP_TokenId')
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -143,7 +143,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isHongKong,
     show () {
       this.$refs.dialog.show()
     },

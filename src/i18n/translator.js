@@ -38,7 +38,7 @@ class Translator {
       check for supported language codes here
       https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
     */
-    const supportedLangs = [
+    const defaultSupportedLangs = [
       'en-us',
       'es',
       'zh-tw',
@@ -69,6 +69,13 @@ class Translator {
       'es-ar:es',
       'pt-br:pt',
     ]
+    const supportedLangsInput = opts?.supportedLangs ?? opts?.langs ?? opts?.lang
+    const supportedLangs = Array.isArray(supportedLangsInput)
+      ? supportedLangsInput
+      : (typeof supportedLangsInput === 'string' && supportedLangsInput.length > 0)
+          ? supportedLangsInput.split(',').map(s => s.trim()).filter(Boolean)
+          : defaultSupportedLangs
+
     const sum = this.getTotalLines()
     console.log('Expected no. of translation keys on i18n files: ', sum)
     if (ignoreExisting) console.log('Will ignore keys with existing translation')
