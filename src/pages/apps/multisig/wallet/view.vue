@@ -346,6 +346,12 @@ const openWalletActionsDialog = () => {
         label: $t('ExportWallet'),
         value: 'export-wallet',
         color: 'primary'
+      },
+      {
+        icon: 'mdi-cloud-upload',
+        label: $t('SyncWallet'),
+        value: 'sync-wallet',
+        color: 'primary'
       }
     ],
     class: `${getDarkModeClass(darkMode.value)} custom-bottom-sheet pt-card text-bow justify-between`
@@ -366,6 +372,9 @@ const openWalletActionsDialog = () => {
     }
     if (action.value === 'export-wallet') {
       showWalletExportOptionsDialog()
+    }
+    if (action.value === 'sync-wallet') {
+      wallet.value.sync()
     }
   })
 }
