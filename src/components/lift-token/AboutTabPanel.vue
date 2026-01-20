@@ -493,13 +493,22 @@ export default {
       }
     },
     handleNavigateToBuy() {
-      // this.showBuyDialog = true
-      this.$q.notify({
-        message: this.$t('ComingSoon'),
-        color: 'positive',
-        icon: 'campaign',
-        timeout: 3000
-      })
+      if (this.liftSwapContractAddress) {
+        // this.showBuyDialog = true
+        this.$q.notify({
+          message: this.$t('ComingSoon'),
+          color: 'positive',
+          icon: 'campaign',
+          timeout: 3000
+        })
+      } else {
+        this.$q.notify({
+          message: this.$t('ContractAddressUnavailable'),
+          color: 'negative',
+          icon: 'error',
+          timeout: 4000
+        })
+      }
     },
 
     openTokenPage() {

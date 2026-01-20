@@ -210,7 +210,7 @@
                 class="purchase-btn"
                 :class="`theme-${theme}`"
                 :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
-                @click="rsvp.is_paid ? openConfirmReservationDialog(rsvp) : /*openPayReservationDialog(rsvp)*/$q.notify({message: $t('ComingSoon'), color: 'positive', icon: 'campaign', timeout: 3000})"
+                @click="handleNavigateToBuy(rsvp)"
               />
             </div>
           </q-card>
@@ -360,6 +360,26 @@ export default {
           });
           this.$emit("on-successful-purchase");
         });
+    },
+    handleNavigateToBuy(rsvp) {
+      if (rsvp.is_paid) {
+        this.openConfirmReservationDialog(rsvp)
+      } else if (this.liftSwapContractAddress) {
+        // this.openPayReservationDialog(rsvp)
+        this.$q.notify({
+          message: this.$t('ComingSoon'),
+          color: 'positive',
+          icon: 'campaign',
+          timeout: 3000}
+        )
+      } else {
+        this.$q.notify({
+          message: this.$t('ContractAddressUnavailable'),
+          color: 'negative',
+          icon: 'error',
+          timeout: 4000
+        })
+      }
     }
   },
 
