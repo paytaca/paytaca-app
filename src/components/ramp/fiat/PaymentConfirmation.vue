@@ -364,7 +364,11 @@ export default {
       if (userType === 'buyer') {
         showBtn = status === 'PD_PN'
       }
-      // Show the CTA only once the countdown has ended (0 seconds remaining)
+      // Show the CTA only once the countdown has ended (0 seconds remaining).
+      // IMPORTANT: `appealCountdownSeconds` starts as null; `Number(null) === 0` is true.
+      // Require an `appealable_at` timestamp and a non-null countdown value.
+      if (!this.order?.appealable_at) return false
+      if (this.appealCountdownSeconds === null || this.appealCountdownSeconds === undefined) return false
       return showBtn && Number(this.appealCountdownSeconds) === 0
     },
     maxFileSize () {
