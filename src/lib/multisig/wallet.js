@@ -1241,7 +1241,8 @@ export class MultisigWallet {
 
       signers.push({
         name: signer.name,
-        xpub: signer.xpub,
+        masterFingerprint: signer.masterFingerprint,
+        derivationPath: signer.path || `m/44'/145'/0'`,
         pubkeyZero: binToHex(pubkeyZero),
         walletBsmsDescriptor: encryptedBsmsDescriptor
       })
