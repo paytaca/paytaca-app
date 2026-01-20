@@ -1,43 +1,37 @@
-import { ecies } from '@noble/ciphers/ecies'
-import { secp256k1, utf8ToBin, binToUtf8, hexToBin, binToHex} from 'bitauth-libauth-v3'
+import { encrypt, decrypt, PrivateKey } from 'eciesjs';
+import { utf8ToBin, binToUtf8, hexToBin, binToHex } from 'bitauth-libauth-v3';
 
 /**
  * Decrypts an ECIES message using the owner's private key.
- * @param {Uint8Array} ownerPrivateKeyBytes The owner's raw private key bytes.
- * @param {string} encryptedHexMessage The encrypted message received.
- * @returns {Promise<string>} The original plaintext message.
+ * 
+ * @param {Uint8Array|string} ownerPrivateKeyBytes - The owner's private key as a Uint8Array or hex string.
+ * @param {string} encryptedHexMessage - The encrypted message in hexadecimal format.
+ * @returns {Promise<string>} The decrypted message as a UTF-8 string.
+ * @throws {Error} If decryption fails.
  */
 export async function decryptECIESMessage(ownerPrivateKeyBytes, encryptedHexMessage) {
     const encryptedBytes = hexToBin(encryptedHexMessage);
 
-    // Initialize ECIES with libauth's curve implementation
-    const eciesDecrypt = ecies(secp256k1);
-
-    const decryptedBytes = await eciesDecrypt.decrypt(
-        ownerPrivateKeyBytes,
-        encryptedBytes
-    );
+    // eciesjs decrypt takes (privateKey, data)
+    const decryptedBytes = decrypt(ownerPrivateKeyBytes, encryptedBytes);
 
     return binToUtf8(decryptedBytes);
 }
 
-
-  /**
-  * Encrypts a message using ECIES for a specific recipient's public key.
-  * @param {Uint8Array} recipientRawPublicKey The raw compressed public key.
-  * @param {string} messageText The message to encrypt.
-  * @returns {Promise<string>} The encrypted message encoded as a hex string.
-  */
-  export async function encryptMessageForXpubOwner(recipientRawPublicKey, messageText) {
+/**
+ * Encrypts a message using ECIES for a specific recipient's public key.
+ * 
+ * @param {Uint8Array|string} recipientRawPublicKey - The recipient's raw public key as a Uint8Array or hex string.
+ * @param {string} messageText - The plain text message to encrypt.
+ * @returns {Promise<string>} The encrypted message in hexadecimal format.
+ * @throws {Error} If recipientRawPublicKey is undefined or null, or if encryption fails.
+ */
+export async function encryptECIESMessage(recipientRawPublicKey, messageText) {
+    if (!recipientRawPublicKey) {
+        throw new Error('recipientRawPublicKey is required but was undefined or null');
+    }
     const messageBytes = utf8ToBin(messageText); 
-
-    // Initialize ECIES using libauth's secp256k1 implementation
-    const eciesEncrypt = ecies(secp256k1);
-
-    const encryptedBytes = await eciesEncrypt.encrypt(
-        recipientRawPublicKey, 
-        messageBytes
-    );
-
+    const encryptedBytes = encrypt(recipientRawPublicKey, messageBytes);
     return binToHex(encryptedBytes);
-  }
+}
+
