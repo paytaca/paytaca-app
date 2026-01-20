@@ -383,7 +383,15 @@ export default {
 
       // When appeal CTA is available, clarify that the user can submit an appeal.
       // (Only applied to the ESCRW seller-waiting state to match the requested copy.)
-      const appealCtaVisible = this.showAppealBtn && !this.showAppealCountdown && !this.isAppealTimeLocked && Number(this.appealCountdownSeconds) === 0
+      // IMPORTANT: `appealCountdownSeconds` starts as null; `Number(null) === 0` is true.
+      // Require a non-null countdown value to avoid showing the "with appeal" label
+      // when the countdown was never started / appeal wasn't initialized.
+      const hasAppealCountdownValue = this.appealCountdownSeconds !== null && this.appealCountdownSeconds !== undefined
+      const appealCtaVisible = this.showAppealBtn &&
+        !this.showAppealCountdown &&
+        !this.isAppealTimeLocked &&
+        hasAppealCountdownValue &&
+        Number(this.appealCountdownSeconds) === 0
       if (status === 'ESCRW' && appealCtaVisible) {
         return this.$t(
           'StandByDisplayLabelEscrwWithAppeal',
