@@ -1,7 +1,6 @@
 <template>
   <q-layout>
   
-  
     <div class="q-ml-l">
       <p class="text-primary text-weight-bold text-h5 text-center">Card Management</p>
     </div>
@@ -10,7 +9,6 @@
       <MultiWalletDropdown></MultiWalletDropdown>
     </div>
 
-    
     <transition
       appear
       enter-active-class="animated fadeIn"
@@ -25,7 +23,7 @@
         </div>
 
         <!-- Cards Grid -->
-        <div class="row q-col-gutter-md">
+        <div class="row q-col-gutter-md" style="max-width: 2500px; max-height: 300px;">
           <!-- Existing Subcards -->
             <div v-for="card in subCards" :key="card.id" class="col-12 col-sm-2">
               <q-card bordered flat class="bg-white full-height">
@@ -143,7 +141,79 @@
 
         </div>
       </div>
-    </transition>
+    </transition> 
+
+    <!-- Order physical card form to be component -->
+     <div class="q-pa-md" style="max-width: 800px;">
+        <q-card flat bordered class="[$q.dark.isActive ? 'bg-grey-10' : 'bg-blue-1', order-card-container]">
+          <q-card-section>
+            <div class="row items-center q-col-gutter-md">
+
+              <div class="col-12 col-md-5 text-center">
+                <div class="text-h6 text-weight-bold q-mb-sm" :class="$q.dark.isActive ? 'text-blue-2' : 'text-primary'">
+                  Order your physical card
+                </div>
+                <q-icon  
+                  name="style"
+                  size="100px"
+                  :color="$q.dark.isActive ? 'blue-2' : 'primary'"
+                  class="q-mb-md"
+                />
+              </div>
+
+              <div class="col-12 col-md-7">
+                <q-form ref="orderForm" @submit="onSubmit" class="q-gutter-y-sm">
+                  <q-input 
+                    outlined
+                    :dark="$q.dark.isActive"
+                    v-model="formData.fullname"
+                    label="Full Name"
+                    dense
+                    lazy-rules
+                    :rules="[val => !!val || 'Name is required']"
+                  />
+
+                  <div class="row q-col-gutter-sm">
+                    <q-input 
+                      outlined
+                      :dark="$q.dark.isActive"
+                      v-model="formData.city"
+                      label="City"
+                      class="col-6"
+                      dense
+                    />
+                    <q-input
+                      outlined
+                      :dark="$q.dark.isActive"
+                      v-model="formData.country"
+                      label="Country"
+                      class="col-6"
+                      dense
+                    />
+                  </div>
+
+                  <div class="q-mt-md">
+                    <q-btn 
+                      label="Order Now"
+                      :color="$q.dark.isActive ? 'blue-7' : 'blue-9'"
+                      type="submit"
+                      class="full-width text-bold"
+                      unelevated
+                    />
+                  </div>
+
+                  <div class="text-caption text-center q-mt-xs" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-8'">
+                    Standard Shipping: 7-10 business days.
+                  </div>
+
+                </q-form>
+              </div>
+
+            </div>
+          </q-card-section>
+
+        </q-card>
+     </div>
   </q-layout>
 
   <!-- CREATE CARD POP-UP BOX -->
@@ -274,11 +344,7 @@
                     @click="handleCashIn(selectedCard)"
                   />
             </q-card-section>
-
-
-
       </q-card>
-
    </q-dialog>
 
 
@@ -347,7 +413,7 @@
         </q-card>
      </q-dialog>
 
-     <!-- Transaction History -->
+     <!-- Transaction History Popup-->
      <q-dialog v-model="showTransactionHistory" persistent>
         <q-card style="min-width: 300px" class="br-15 q-pa-sm">
           <q-card-section>
@@ -367,7 +433,6 @@
           </q-card-actions>
         </q-card>
      </q-dialog>
-  
 </template>
 
 <script>
@@ -421,6 +486,12 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
         // Transaction History
         showTransactionHistory: false,
         isSweep: false,
+        // Order form
+        formData: {
+          fullName: '',
+          city: '',
+          country: ''
+        },
       }
     },
     
@@ -627,6 +698,45 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
           color: color,
           icon: icon
         })
+      },
+
+      async onSubmit(){
+        this.$q.loading.show({message: 'Processing your order...'})
+
+        try {
+          await new Promise(resolve => setTimeout(resolve, 2000))
+
+          this.$q.notify({
+            color: 'positive',
+            message: 'Physical card order placed!',
+            icon: 'check'
+          })
+
+          this.resetForm()
+        }
+        catch (error){
+          this.$q.notify({
+            color: 'negative',
+            message: 'Something went wrong'
+          })
+        } 
+        finally {
+          this.$q.loading.hide()
+        }
+      },
+
+      resetForm(){
+        this.formData = {
+          fullName: '',
+          city: '',
+          country: ''
+        }
+
+        this.$nextTick(() => {
+          if (this.$refs.orderForm){
+            this.$refs.orderForm.resetValidation()
+          }
+        })
       }
 
     }
@@ -656,5 +766,10 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
     flex-direction: column;
     border-radius: 18px;
     overflow: hidden;
+  }
+
+  .order-card-container {
+    border-radius: 16px;
+    border: 1px dashed #1976d2;
   }
 </style>
