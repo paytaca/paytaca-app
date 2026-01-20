@@ -1243,12 +1243,12 @@ export class MultisigWallet {
         name: signer.name,
         xpub: signer.xpub,
         pubkeyZero: binToHex(pubkeyZero),
-        bsmsDescriptor: encryptedBsmsDescriptor
+        walletBsmsDescriptor: encryptedBsmsDescriptor
       })
     }
 
     const payload = {
-      name: this.name,
+      walletName: this.name,
       walletHash: this.walletHash,
       signers,
     }
