@@ -86,18 +86,7 @@ function prepareBase64Chunks() {
     }
 
     const cborEncoded = cborEncode(props.wallet.export());
-    console.log('CBOR ENCODED', binToHex(cborEncoded))
-    const cborDecoded = cborDecode(cborEncoded);
-
-
-    // const base64String = props.wallet.toBase64();
-    // if (!base64String) {
-    //   console.error("Wallet.toString() returned empty string");
-    //   return false;
-    // }
-
-    console.log('ORIGINAL DATA', binToBase64(cborEncoded))
-
+    
     // Decode base64 to buffer
     const buffer = Buffer.from(cborEncoded);
     
@@ -107,13 +96,11 @@ function prepareBase64Chunks() {
     // Create encoder with 200-byte fragments for reliable scanning
     const chunkSize = 300;
     encoder.value = new UREncoder(ur, chunkSize);
-    console.log('ENCODER', encoder.value)
     
     // Get total sequence length from encoder (UREncoder cycles infinitely, so we need to track manually)
     // sequenceLength tells us how many parts there are total
     // totalParts.value = Math.ceil(encoder.value.messageLength / chunkSize);
 
-    // console.log(`Created UR encoder with ${totalParts.value} parts`);
     return encoder.value?.fragments?.length;
 
   } catch (error) {
@@ -151,8 +138,8 @@ function updateQrFrame() {
     if (decoder.value.isComplete()) {
       const ur = decoder.value.resultUR()
       const originalData = Buffer.from(ur.cbor)
-      console.log('DECODED DATA', binToBase64(originalData))
-      console.log('decode cbor', cborDecode(ur.cbor))
+      // console.log('DECODED DATA', binToBase64(originalData))
+      // console.log('decode cbor', cborDecode(ur.cbor))
     }
   } catch (error) {
     console.error("Error generating QR frame:", error);
