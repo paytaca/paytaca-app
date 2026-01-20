@@ -1,8 +1,5 @@
-import { cashAddressToLockingBytecode, hexToBin } from "@bitauth/libauth"
-import { hash256 } from '@cashscript/utils'
+import { hexToBin } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
-import { HashType, SignatureTemplate } from "cashscript"
-import { createSighashPreimage, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils"
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 
 import axios from 'axios'
@@ -35,48 +32,6 @@ const ORACLE_RELAY = process.env.ORACLE_RELAY || "oracles.generalprotocols.com";
 // Promise functions
 // ================================
 
-export async function generateSignature(txId, wif) {
-  const tx = await watchtower.BCH._api
-    .post(`transactions/${txId}`)
-    .then(resp => {
-      return resp.data.details
-    })
-
-  const locktime = Math.floor((tx.timestamp - btcGenesisBlock) / 600);
-  const utxoLockingBytecode = cashAddressToLockingBytecode(tx.inputs[0].address)
-
-  const transaction = {
-    version: 2,
-    locktime,
-    inputs: [{
-      outpointIndex: tx.inputs[0].spent_index,
-      outpointTransactionHash: hexToBin(txId),
-      sequenceNumber: 0xfffffffe,
-      unlockingBytecode: new Uint8Array(),
-    }],
-    outputs: [{
-      lockingBytecode: utxoLockingBytecode,
-      valueSatoshis: 1000n
-    }]
-  }
-  const sourceOutputs = [{
-    lockingBytecode: utxoLockingBytecode,
-    valueSatoshis: BigInt(tx.outputs[0].value),
-  }]
-
-  const sigHashType = HashType.SIGHASH_SINGLE | HashType.SIGHASH_ANYONECANPAY // 0x83
-  const signatureTemplate = new SignatureTemplate(wif, sigHashType)
-
-  const signature = generateP2PKHSig({
-    template: signatureTemplate,
-    transaction,
-    inputIndex: 0,
-    sourceOutputs,
-  })
-
-  return Buffer.from(signature).toString('hex')
-}
-
 export async function getAddressPath(address) {
   return await watchtower.BCH._api
     .post(`address-info/bch/${address}`)
@@ -103,33 +58,6 @@ export async function getOracleData() {
       messageTimestamp: message.messageTimestamp
     };
   })
-}
-
-// ================================
-// non-Promise functions
-// ================================
-
-/**
- * @param {Object} params
- * @param {SignatureTemplate} params.template
- * @param {Number} params.inputIndex
- * @param {import("@bitauth/libauth").TransactionBCH} params.transaction
- * @param {import("@bitauth/libauth").Output[]} params.sourceOutputs
- * @param {Boolean} [params.includeSignature]
- */
-export function generateP2PKHSig(params) {
-  const template = params?.template
-  const transaction = params?.transaction
-  const sourceOutputs = params?.sourceOutputs
-  const inputIndex = params?.inputIndex
-
-  const pubkey = template.getPublicKey();
-  const prevOutScript = publicKeyToP2PKHLockingBytecode(pubkey);
-  const hashtype = template.getHashType();
-  const preimage = createSighashPreimage(transaction, sourceOutputs, inputIndex, prevOutScript, hashtype);
-  const sighash = hash256(preimage);
-
-  return template.generateSignature(sighash);
 }
 
 // ================================
