@@ -90,7 +90,6 @@
   </div>
 </template>
 <script setup>
-import ago from 's-ago'
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
@@ -100,10 +99,17 @@ import { parseAttributeToBadge } from 'src/utils/tx-attributes'
 import * as memoService from 'src/utils/memo-service'
 
 const $store = useStore()
-const $t = useI18n().t
+const { t: $t, locale: i18nLocale } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
 const theme = computed(() => $store.getters['global/theme'])
+const useRelativeTxTimestamp = computed(() => Boolean($store.getters['global/relativeTxTimestamp']))
+const userLocale = computed(() => {
+  // Prefer app-selected language; fall back to i18n locale; then browser locale.
+  const fromStore = $store.getters['global/language']
+  const candidate = fromStore || i18nLocale?.value || globalThis?.navigator?.language || 'en-US'
+  return String(candidate).replace('_', '-')
+})
 
 const badgeColor = computed(() => {
   const themeMap = {
@@ -288,7 +294,55 @@ const isNftTransaction = computed(() => {
 })
 
 function formatDate (date) {
-  return ago(new Date(date))
+  const dt = new Date(date)
+  if (Number.isNaN(dt.getTime())) return ''
+
+  if (useRelativeTxTimestamp.value) {
+    // Intl.RelativeTimeFormat handles grammar/plurals per locale.
+    // Use currentTime to keep this reactive with our existing interval.
+    const nowMs = Number(currentTime.value) || Date.now()
+    const diffMs = dt.getTime() - nowMs // negative => in the past (e.g., "5 minutes ago")
+    const diffSeconds = Math.round(diffMs / 1000)
+
+    const absSeconds = Math.abs(diffSeconds)
+    const rtf = typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
+      ? new Intl.RelativeTimeFormat(userLocale.value, { numeric: 'auto' })
+      : null
+
+    const format = (value, unit) => {
+      if (rtf) return rtf.format(value, unit)
+      // Very defensive fallback (should rarely happen on modern platforms)
+      return new Date(date).toLocaleString()
+    }
+
+    if (absSeconds < 60) return format(diffSeconds, 'second')
+    const diffMinutes = Math.round(diffSeconds / 60)
+    if (Math.abs(diffMinutes) < 60) return format(diffMinutes, 'minute')
+    const diffHours = Math.round(diffMinutes / 60)
+    if (Math.abs(diffHours) < 24) return format(diffHours, 'hour')
+    const diffDays = Math.round(diffHours / 24)
+    if (Math.abs(diffDays) < 7) return format(diffDays, 'day')
+    const diffWeeks = Math.round(diffDays / 7)
+    if (Math.abs(diffWeeks) < 4) return format(diffWeeks, 'week')
+    const diffMonths = Math.round(diffDays / 30)
+    if (Math.abs(diffMonths) < 12) return format(diffMonths, 'month')
+    const diffYears = Math.round(diffDays / 365)
+    return format(diffYears, 'year')
+  }
+
+  // Absolute timestamp formatted per user's locale.
+  try {
+    return new Intl.DateTimeFormat(userLocale.value, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(dt)
+  } catch {
+    // Fallback: still show something useful.
+    return dt.toLocaleString()
+  }
 }
 
 const isNewTransaction = computed(() => {
@@ -300,14 +354,8 @@ const isNewTransaction = computed(() => {
   const diffMs = now - txDate
   const diffSeconds = Math.floor(diffMs / 1000)
   
-  // Check if formatted date shows "Just now" (less than 60 seconds old)
-  // Also check the formatted string to match "just now" (case-insensitive)
-  const formattedDate = formatDate(timestamp)
-  const isJustNow = diffSeconds < 60 || 
-                    /just\s+now/i.test(formattedDate) ||
-                    formattedDate.toLowerCase().includes('just now')
-  
-  return isJustNow
+  // "New" means less than 60 seconds old regardless of display format.
+  return diffSeconds < 60
 })
 
 async function loadMemo() {

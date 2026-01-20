@@ -9,14 +9,41 @@
         v-ripple
         :class="[
           'rounded-borders',
-          openLiquidityPoolOptsForm.selected === pool.value ? 'text-weight-medium': null,
+          pool.disabled ? 'disabled-pool-option' : null,
+          openLiquidityPoolOptsForm.selected === pool.value ? 'selected-pool-option text-weight-medium' : null,
         ]"
         @click="
-          openLiquidityPoolOptsForm.selected = openLiquidityPoolOptsForm.selected != pool.value ? pool.value : null
+          (pool.disabled)
+            ? showTemporarilyDisabledTooltip(index)
+            : (openLiquidityPoolOptsForm.selected = pool.value)
         "
       >
         <q-item-section>
-          <q-item-label>{{ pool.label }}</q-item-label>
+          <div class="row items-center no-wrap">
+            <q-item-label class="q-space">{{ pool.label }}</q-item-label>
+            <q-badge
+              v-if="pool.disabled"
+              class="q-ml-sm"
+              color="warning"
+              outline
+            >
+              {{ $t('TemporarilyDisabled', {}, 'Temporarily disabled') }}
+            </q-badge>
+            <q-icon
+              v-else-if="openLiquidityPoolOptsForm.selected === pool.value"
+              name="check_circle"
+              color="positive"
+              size="sm"
+              class="q-ml-sm"
+            />
+          </div>
+          <q-item-label
+            v-if="pool.disabled"
+            caption
+            class="q-mt-xs"
+          >
+            {{ $t('PeerToPeerTemporarilyDisabled', {}, 'Peer-to-peer is temporarily disabled.') }}
+          </q-item-label>
           <q-slide-transition>
             <q-item-label
               v-if="pool.description && openLiquidityPoolOptsForm.selected == pool.value"
@@ -26,6 +53,22 @@
             </q-item-label>
           </q-slide-transition>
         </q-item-section>
+
+        <!-- Tooltip for disabled options (shown on tap) -->
+        <q-popup-proxy
+          v-if="pool.disabled"
+          :ref="(el) => setDisabledPoolPopupRef(el, index)"
+          :breakpoint="0"
+          transition-show="jump-down"
+          transition-hide="jump-up"
+        >
+          <div
+            class="q-px-md q-py-sm text-caption pt-card"
+            :class="getDarkModeClass(darkMode)"
+          >
+            {{ $t('TemporarilyDisabled', {}, 'Temporarily disabled') }}
+          </div>
+        </q-popup-proxy>
       </q-item>
     </q-list>
 
@@ -580,7 +623,8 @@ const oracles = computed(() => {
 
 const openLiquidityPoolOptsForm = ref({
   show: true,
-  selected: null,
+  // Default to BCH Bull
+  selected: 'anyhedge_LP',
 })
 
 const liquidityPoolOpts = ref([
@@ -592,7 +636,10 @@ const liquidityPoolOpts = ref([
   {
     label: 'Peer-to-peer',
     value: 'watchtower_P2P',
-    description: $t('P2PDescription')
+    description: $t('P2PDescription'),
+    // Temporarily disabled in AnyHedge app
+    disabled: true,
+    disable: true
   },
 ])
 
@@ -605,11 +652,47 @@ const createHedgeForm = ref({
   isSimpleHedge: true,
 
   autoMatch: true,
-  autoMatchPoolTarget: '',
+  // Default to BCH Bull (Liquidity Pool)
+  autoMatchPoolTarget: 'anyhedge_LP',
   p2pMatch: {
     similarity: 50,
   }
 })
+
+// Enforce disabled pool selections at runtime (defensive; covers toggles, persisted state, etc.)
+watch(
+  () => createHedgeForm.value.autoMatchPoolTarget,
+  (val) => {
+    if (val === 'watchtower_P2P') {
+      createHedgeForm.value.autoMatchPoolTarget = 'anyhedge_LP'
+    }
+  }
+)
+watch(
+  () => openLiquidityPoolOptsForm.value.selected,
+  (val) => {
+    if (val === 'watchtower_P2P') {
+      openLiquidityPoolOptsForm.value.selected = 'anyhedge_LP'
+    }
+  }
+)
+
+// Show a tooltip when user taps the disabled option.
+const disabledPoolPopupRefs = ref([])
+function setDisabledPoolPopupRef (el, index) {
+  if (!el) return
+  disabledPoolPopupRefs.value[index] = el
+}
+function showTemporarilyDisabledTooltip (index) {
+  const popup = disabledPoolPopupRefs.value[index]
+  if (!popup?.show) return
+  try {
+    popup.show()
+    setTimeout(() => popup.hide?.(), 1200)
+  } catch (_) {
+    // ignore
+  }
+}
 const createHedgeFormMetadata = computed(() => {
   const data = {
     isSimpleHedge: true,
@@ -1489,5 +1572,14 @@ function amountRules (val) {
 }
 .slide-group-leave-to {
   opacity: 0;
+}
+
+.selected-pool-option {
+  border: 1px solid rgba(33, 186, 69, 0.4);
+  background: rgba(33, 186, 69, 0.06);
+}
+
+.disabled-pool-option {
+  opacity: 0.65;
 }
 </style>

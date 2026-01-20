@@ -172,14 +172,27 @@ export function convertFiatToSelectedAsset (amount, selectedAssetMarketPrice) {
 }
 
 export function adjustWalletBalance (asset, amountArray) {
-  const isToken = asset.id.startsWith('ct/')
-  const decimals = asset.decimals ?? 8
-  const tokenDenominator = 10 ** asset.decimals
+  const assetId = String(asset?.id || '')
+  const isCashToken = assetId.startsWith('ct/')
+  // IMPORTANT:
+  // - BCH should always be treated as 8 decimals for send/balance math.
+  // - Some navigation paths pass an `asset` object with `decimals: 0` for BCH,
+  //   which would round values like 0.09 BCH down to 0 when using `toFixed(0)`.
+  const decimals = assetId === 'bch' ? 8 : (asset?.decimals ?? 8)
+  const tokenDenominator = 10 ** decimals
 
-  const totalAmount = amountArray.reduce((acc, curr) => acc + curr, 0).toFixed(decimals)
-  const walletBalance = isToken ? asset.balance / tokenDenominator : asset.balance
-  const currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(decimals))
+  const totalAmountNumber = amountArray.reduce((acc, curr) => acc + (Number(curr) || 0), 0)
+  const totalAmount = Number(totalAmountNumber.toFixed(decimals))
 
+  // For BCH, "spendable" is the amount the user can actually send (and is what MAX uses).
+  // Prefer it for the balance display to avoid showing 0 when `balance` is stale/missing.
+  const walletBalance = isCashToken
+    ? (Number(asset?.balance) || 0) / tokenDenominator
+    : (assetId === 'bch'
+        ? (Number.isFinite(Number(asset?.spendable)) ? Number(asset?.spendable) : (Number(asset?.balance) || 0))
+        : (Number(asset?.balance) || 0))
+
+  const currentWalletBalance = Number((walletBalance - totalAmount).toFixed(decimals))
   return currentWalletBalance
 }
 

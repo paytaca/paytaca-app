@@ -4,6 +4,9 @@
       <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
         {{ $t('Transactions', {}, 'Transactions') }}
       </div>
+      <div class="q-mr-lg">
+        <TransactionTimestampSettings />
+      </div>
     </div>
 
     <div class="row q-px-lg q-pt-md q-pb-sm" :class="darkMode ? 'text-light' : 'text-dark'">
@@ -67,6 +70,7 @@
 <script>
 import TransactionListItem from 'src/components/transactions/TransactionListItem'
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton'
+import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import axios from 'axios'
@@ -82,7 +86,8 @@ export default {
   
   components: {
     TransactionListItem,
-    TransactionListItemSkeleton
+    TransactionListItemSkeleton,
+    TransactionTimestampSettings
   },
   
   props: {

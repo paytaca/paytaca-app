@@ -17,20 +17,11 @@
           <div class="text-center text-caption q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'" style="opacity: 0.7;">
             {{ $t('GiftID', {}, 'Gift ID') }}: {{ getGiftId() }}
           </div>
-          <div class="row justify-center q-mb-md">
+          <div class="row justify-center q-mb-sm">
             <qr-code :text="qrCodeContents" :size="200" icon="bch-logo.png"/>
           </div>
-          <div
-            class="q-py-sm q-px-md q-px-lg q-my-xs row items-center no-wrap rounded-borders q-mb-sm"
-            style="border:1px solid grey; position:relative"
-            v-ripple
-            @click="() => copyToClipboard(qrCodeContents)"
-          >
-            <div class="ellipsis">{{ qrCodeContents }}</div>
-            <q-icon name="content_copy" size="1.25em" class="q-ml-sm"/>
-          </div>
-          <div class="text-center text-subtitle1 q-mb-md">{{ $t('ScanClaimGift') }}</div>
-          <div class="row justify-center q-mt-md">
+          <!-- Save QR should be immediately below the QR code -->
+          <div class="row justify-center q-mb-md">
             <q-btn
               unelevated
               no-caps
@@ -46,6 +37,18 @@
                 <q-spinner-dots color="white" size="24px" />
               </template>
             </q-btn>
+          </div>
+          <div
+            class="q-py-sm q-px-md q-px-lg q-my-xs row items-center no-wrap rounded-borders q-mb-sm"
+            style="border:1px solid grey; position:relative"
+            v-ripple
+            @click="() => copyToClipboard(qrCodeContents)"
+          >
+            <div class="ellipsis">{{ qrCodeContents }}</div>
+            <q-icon name="content_copy" size="1.25em" class="q-ml-sm"/>
+          </div>
+          <div class="text-center text-subtitle1 scan-claim-text">
+            {{ $t('ScanClaimGift') }}
           </div>
         </template>
         
@@ -735,6 +738,11 @@ async function saveGiftQRImage () {
 </script>
 
 <style scoped>
+.scan-claim-text {
+  margin-top: 12px;
+  margin-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
 .status-badge-small {
   padding: 4px 12px;
   border-radius: 12px;

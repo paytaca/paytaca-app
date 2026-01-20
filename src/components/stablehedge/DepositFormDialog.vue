@@ -136,6 +136,13 @@ export default defineComponent({
     const $store = useStore();
     const $q = useQuasar();
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+    const selectedMarketCurrency = computed(() => {
+      const currency = $store.getters['market/selectedCurrency']
+      return currency?.symbol
+    })
+    const preferredStablehedgeCurrency = computed(() => {
+      return selectedMarketCurrency.value === 'PHP' ? 'PHP' : 'USD'
+    })
     const { dialogRef, onDialogCancel, onDialogHide, onDialogOK } = useDialogPluginComponent()
     const innerVal = ref(props.modelValue)
     watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
@@ -246,6 +253,20 @@ export default defineComponent({
       fetchAvailableContracts()
     })
 
+    // If selectedCurrency becomes invalid/missing, choose preferred Stablehedge currency, else USD.
+    watch([innerVal, availableCurrencies], () => {
+      if (!innerVal.value) return
+      const avail = Array.isArray(availableCurrencies.value) ? availableCurrencies.value : []
+      if (selectedCurrency.value && avail.includes(selectedCurrency.value)) return
+      if (preferredStablehedgeCurrency.value && avail.includes(preferredStablehedgeCurrency.value)) {
+        selectedCurrency.value = preferredStablehedgeCurrency.value
+      } else if (avail.includes('USD')) {
+        selectedCurrency.value = 'USD'
+      } else {
+        selectedCurrency.value = avail?.[0] || ''
+      }
+    }, { immediate: true })
+
     watch(() => props.redemptionContract, (newContract) => {
       if (newContract?.fiat_token?.currency) {
         selectedCurrency.value = newContract.fiat_token.currency
@@ -285,8 +306,14 @@ export default defineComponent({
         availableCurrencies.value = Object.keys(contractsByCurrency).sort()
 
         // If no currency selected yet, use first available
-        if (!selectedCurrency.value && availableCurrencies.value.length > 0) {
-          selectedCurrency.value = availableCurrencies.value[0]
+        if (!selectedCurrency.value || !availableCurrencies.value.includes(selectedCurrency.value)) {
+          if (preferredStablehedgeCurrency.value && availableCurrencies.value.includes(preferredStablehedgeCurrency.value)) {
+            selectedCurrency.value = preferredStablehedgeCurrency.value
+          } else if (availableCurrencies.value.includes('USD')) {
+            selectedCurrency.value = 'USD'
+          } else if (availableCurrencies.value.length > 0) {
+            selectedCurrency.value = availableCurrencies.value[0]
+          }
         }
 
         // Load contract for selected currency

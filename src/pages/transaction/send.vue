@@ -798,17 +798,27 @@ export default {
     },
     // Watch for asset balance updates from store
     storeAsset (newStoreAsset) {
-      if (newStoreAsset && newStoreAsset.balance !== undefined) {
+      // Recompute derived wallet balance when either BCH `spendable` or `balance` updates.
+      // Some refresh paths update `spendable` without touching `balance`, which previously left
+      // the displayed balance stuck at 0 even though MAX (which uses spendable) was correct.
+      if (newStoreAsset && (newStoreAsset.balance !== undefined || newStoreAsset.spendable !== undefined)) {
         // Merge store asset data with local asset (preserve local overrides like logo, name from route)
         this.asset = {
           ...this.asset,
-          balance: newStoreAsset.balance,
-          spendable: newStoreAsset.spendable,
+          balance: newStoreAsset.balance ?? this.asset?.balance,
+          spendable: newStoreAsset.spendable ?? this.asset?.spendable,
           yield: newStoreAsset.yield
         }
         // Recalculate wallet balance when asset balance updates
         this.adjustWalletBalance()
       }
+    },
+    // Keep displayed balance in sync with BCH spendable/balance updates
+    'asset.spendable' () {
+      this.adjustWalletBalance()
+    },
+    'asset.balance' () {
+      this.adjustWalletBalance()
     },
     manualAddress (address) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
@@ -823,6 +833,96 @@ export default {
   },
 
   methods: {
+    // ========== send-success state persistence (for background/foreground) ==========
+    getSendSuccessSessionKey () {
+      // Keyed by wallet + asset, so switching wallets/assets doesn't leak state across pages
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const network = this.network || 'BCH'
+      return `send_success:${walletIndex}:${network}:${this.assetId}`
+    },
+    persistSendSuccessState () {
+      try {
+        if (!this.sent || !this.txid) return
+        if (typeof window === 'undefined' || !window.sessionStorage) return
+
+        const payload = {
+          v: 1,
+          savedAt: Date.now(),
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          network: this.network || 'BCH',
+          assetId: this.assetId,
+          // Minimal fields needed to re-render the success UI accurately
+          txid: this.txid,
+          txTimestamp: this.txTimestamp,
+          totalAmountSent: this.totalAmountSent,
+          totalFiatAmountSent: this.totalFiatAmountSent,
+          // Preserve breakdown list
+          recipients: this.recipients,
+          // Preserve asset display data as best-effort (store may not be ready yet on resume)
+          asset: this.asset
+        }
+        sessionStorage.setItem(this.getSendSuccessSessionKey(), JSON.stringify(payload))
+      } catch (_) {
+        // Best-effort only
+      }
+    },
+    restoreSendSuccessState () {
+      try {
+        if (typeof window === 'undefined' || !window.sessionStorage) return false
+        const raw = sessionStorage.getItem(this.getSendSuccessSessionKey())
+        if (!raw) return false
+
+        let parsed = null
+        try { parsed = JSON.parse(raw) } catch { return false }
+        if (!parsed || parsed.v !== 1) return false
+
+        // Safety: avoid restoring stale success state indefinitely
+        const maxAgeMs = 60 * 60 * 1000 // 1 hour
+        if (typeof parsed.savedAt === 'number' && (Date.now() - parsed.savedAt) > maxAgeMs) {
+          sessionStorage.removeItem(this.getSendSuccessSessionKey())
+          return false
+        }
+
+        // Ensure it matches the current context
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        if (parsed.walletIndex !== walletIndex) return false
+        if (parsed.assetId !== this.assetId) return false
+        if ((parsed.network || 'BCH') !== (this.network || 'BCH')) return false
+
+        // Restore state needed for the success screen
+        this.sent = true
+        this.sending = false
+        this.sliderStatus = false
+        this.customKeyboardState = 'dismiss'
+        this.focusedInputField = ''
+
+        this.txid = parsed.txid || this.txid
+        this.txTimestamp = parsed.txTimestamp || this.txTimestamp
+        this.totalAmountSent = Number(parsed.totalAmountSent) || this.totalAmountSent
+        this.totalFiatAmountSent = parsed.totalFiatAmountSent ?? this.totalFiatAmountSent
+
+        if (Array.isArray(parsed.recipients) && parsed.recipients.length) {
+          this.recipients = parsed.recipients
+        }
+        if (parsed.asset && typeof parsed.asset === 'object') {
+          // Keep reactive store updates working; this is just to prevent blank UI on resume
+          this.asset = { ...this.asset, ...parsed.asset }
+        }
+
+        return true
+      } catch (_) {
+        return false
+      }
+    },
+    clearSendSuccessState () {
+      try {
+        if (typeof window === 'undefined' || !window.sessionStorage) return
+        sessionStorage.removeItem(this.getSendSuccessSessionKey())
+      } catch (_) {
+        // ignore
+      }
+    },
+
     // ========== imported methods ==========
     convertTokenAmount,
     getAssetDenomination,
@@ -1137,6 +1237,7 @@ export default {
       this.txTimestamp = Date.now()
       this.sending = false
       this.sent = true
+      this.persistSendSuccessState()
     },
 
     // bip21
@@ -1679,6 +1780,7 @@ export default {
             vm.txid = txId
             vm.sent = true
             vm.txTimestamp = Date.now()
+            vm.persistSendSuccessState()
           } catch (e) {
             sendPageUtils.raiseNotifyError(e.message)
           }
@@ -1822,6 +1924,7 @@ export default {
         vm.txTimestamp = Date.now()
         vm.sending = false
         vm.sent = true
+        vm.persistSendSuccessState()
 
         if (!vm.assetId?.startsWith?.('ct/')) {
           // api call for processing first transaction 5 PHP worth of BCH
@@ -2176,15 +2279,41 @@ export default {
             symbol = passedAsset.name || 'TOKEN'
           }
           
+          // BCH decimals should always be 8; some callers omit it.
+          const normalizedDecimals = passedAsset.id === 'bch'
+            ? 8
+            : (passedAsset.decimals !== undefined ? passedAsset.decimals : 0)
+
           vm.asset = {
             id: passedAsset.id,
             name: passedAsset.name || 'Unknown Token',
             symbol: symbol,
-            decimals: passedAsset.decimals !== undefined ? passedAsset.decimals : 0,
+            decimals: normalizedDecimals,
             logo: passedAsset.logo || null,
             balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
           }
           console.log('[Send] Set asset with symbol:', vm.asset.symbol)
+
+          // Ensure the asset exists in the `assets` store so balance refreshes
+          // (`updateAssetBalanceOnLoad` -> `assets/updateAssetBalance`) can update it.
+          // This is important for tokens that aren't already present in the asset list (e.g. non-favorites).
+          try {
+            const existing = vm.$store.getters['assets/getAsset']?.(passedAsset.id)
+            if (!Array.isArray(existing) || existing.length === 0) {
+              vm.$store.commit('assets/addNewAsset', {
+                id: passedAsset.id,
+                name: passedAsset.name || 'Unknown Token',
+                symbol: symbol,
+                decimals: normalizedDecimals,
+                logo: passedAsset.logo || '',
+                balance: passedAsset.balance !== undefined ? passedAsset.balance : 0,
+                spendable: passedAsset.balance !== undefined ? passedAsset.balance : 0,
+                is_nft: false,
+              })
+            }
+          } catch (e) {
+            console.warn('[Send] Failed to ensure asset exists in store:', e)
+          }
           
           // Don't fall through to the default logic - we have everything we need
           // Continue with the rest of mounted() logic below
@@ -2218,8 +2347,19 @@ export default {
       // Fetch and update asset balance from wallet
       try {
         await updateAssetBalanceOnLoad(vm.assetId, vm.wallet, vm.$store)
-        // Refresh asset from store after balance update
-        vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+        // Refresh asset from store after balance update, but avoid clobbering
+        // route-provided balance/logo/name when store doesn't have the token yet.
+        const refreshed = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+        const keepLocalBalance = (
+          (refreshed?.balance === undefined || refreshed?.balance === null) ||
+          (refreshed?.balance === 0 && (vm.asset?.balance || 0) > 0)
+        )
+        vm.asset = {
+          ...vm.asset,
+          ...refreshed,
+          balance: keepLocalBalance ? vm.asset?.balance : refreshed?.balance,
+          spendable: refreshed?.spendable ?? vm.asset?.spendable,
+        }
       } catch (error) {
         console.error('Error fetching asset balance:', error)
       }
@@ -2227,11 +2367,20 @@ export default {
       vm.adjustWalletBalance()
     })
 
-    if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+    // When returning from background (or lock screen), restore success screen state
+    // before any logic that might mutate recipients.
+    // This ensures the "Successfully sent" screen remains visible after resume.
+    const restored = vm.restoreSendSuccessState()
+
+    if (!vm.sent) {
+      if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+    }
 
     // check query if address is not empty (from qr reader redirection)
-    if (typeof vm.$route.query.address === 'string' && vm.$route.query.address) {
-      vm.onScannerDecode(vm.$route.query.address)
+    if (!vm.sent) {
+      if (typeof vm.$route.query.address === 'string' && vm.$route.query.address) {
+        vm.onScannerDecode(vm.$route.query.address)
+      }
     }
 
     if (this.inputExtras.length === 1) {
@@ -2247,6 +2396,15 @@ export default {
     })
   },
 
+  beforeRouteLeave (to, from, next) {
+    // If app lock is enabled, the app deliberately routes to `/lock` on background.
+    // Do NOT clear the send-success state in that case, otherwise resuming will lose the success screen.
+    if (to?.path !== '/lock') {
+      this.clearSendSuccessState()
+    }
+    next()
+  },
+
   unmounted () {
     
     // Remove scroll listener
@@ -2258,6 +2416,12 @@ export default {
 
   created () {
     const vm = this
+
+    // Restore success state as early as possible to avoid UI flicker on resume.
+    // If restored, skip normal form initialization.
+    if (vm.restoreSendSuccessState()) {
+      return
+    }
 
     if (vm.assetId && vm.amount && vm.recipient) {
       vm.recipients[0].amount = vm.amount

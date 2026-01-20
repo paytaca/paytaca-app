@@ -22,6 +22,7 @@ function getDefaultWalletSettings() {
     currency: { name: 'United States Dollar', symbol: 'USD' },
     preferredSecurity: 'pin', // 'pin' or 'biometric'
     lockApp: false, // Enable/disable app lock feature
+    relativeTxTimestamp: true, // true: relative timestamps, false: absolute timestamps
     lastBackupTimestamp: null // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
   }
 }
@@ -365,7 +366,8 @@ export function migrateWalletSettings (state, payload) {
     country: state.country ? { ...state.country } : { name: 'United States', code: 'US' },
     darkMode: darkMode,
     currency: currency,
-    preferredSecurity: preferredSecurity
+    preferredSecurity: preferredSecurity,
+    relativeTxTimestamp: true
   }
 
   // Migrate each wallet that doesn't have settings

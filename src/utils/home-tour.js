@@ -73,7 +73,8 @@ export function buildHomeTourSteps(t) {
     },
     {
       id: 'main-menus',
-      selector: '[data-tour="main-menus"], .fixed-footer',
+      // Target the actual rendered footer element (not some other `.fixed-footer` on other pages).
+      selector: '[data-tour="main-menus"].fixed-footer, .fixed-footer',
       scroll: 'top',
       title: t('HomeTour.MainMenus.Title', {}, 'Main menus'),
       body: t(
