@@ -19,17 +19,19 @@ export class TapToPay {
     constructor (contractId) {
         this.contractId = contractId;
         
-        const mncontract = MainnetContract.fromId(contractId);
-        const parameters = [];
-        mncontract.parameters.forEach((param) => {
-            parameters.push(Buffer(param).toString('hex'));
-        })
+        if (contractId) {
+            const mncontract = MainnetContract.fromId(contractId);
+            const parameters = [];
+            mncontract.parameters.forEach((param) => {
+                parameters.push(Buffer(param).toString('hex'));
+            })
 
-        this.params = {
-            ownerPkh: parameters[0],
-            backendPkh: parameters[1],
-            authCategory: parameters[2]
-        };
+            this.params = {
+                ownerPkh: parameters[0],
+                backendPkh: parameters[1],
+                authCategory: parameters[2]
+            };
+        }
     }
 
     get contractCreationParams () {
@@ -52,11 +54,17 @@ export class TapToPay {
 
     getContractFromId (contractId) {
         const contract_ = MainnetContract.fromId(contractId)
+        const parameters = [];
+        contract_.parameters.forEach((param) => {
+            parameters.push(Buffer(param).toString('hex'));
+        })
+        console.log('Contract parameters:', parameters)
         const params = {
-            ownerPkh: contract_.parameters[0],
-            backendPkh: contract_.parameters[1],
-            authCategory: contract_.parameters[2]
+            ownerPkh: parameters[0],
+            backendPkh: parameters[1],
+            authCategory: parameters[2]
         };
+        console.log('Contract params:', params)
         return this.getContract(params)
     }
 
@@ -67,10 +75,8 @@ export class TapToPay {
             contractCreationParams.backendPkh,
             contractCreationParams.authCategory
         ];
-
+        console.log('----->>>>>>> contractParams:', contractParams)
         const contract = new Contract(artifact, contractParams)
-        console.log('contractParams:', contractParams)
-        console.log('contract:', contract);
         return contract;
     } 
 

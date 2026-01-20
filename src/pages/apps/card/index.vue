@@ -100,10 +100,8 @@
 <script>
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'src/utils/wallet';
-import { loadWallet } from 'src/services/wallet';
+import { getPrivateKeyAt, getPublicKeyAt } from 'src/utils/wallet';
 import { loadCardUser } from 'src/services/card/auth';
-import { backend } from 'src/services/card/backend';
 import Card from 'src/services/card/card.js';
 
 export default {
@@ -113,7 +111,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
-      card: null,
+      cards: [],
       isCt: false,
       loading: false,
       createCardLoading: false
@@ -132,30 +130,29 @@ export default {
     console.log('Mounted Card Page');
     try {
       // load user, login if not authenticated
-      const { user: user } = await loadCardUser();
+      const user = await loadCardUser();
       console.log('Card User:', user); 
 
       // load card(s)
-      this.fetchCards()
-      console.log('card:', this.card);
+      this.cards = await user.fetchCards();
+      console.log('Cards:', this.cards);
+
+      this.cards.forEach(async card => {
+        // console.log('Card:', card);
+        const tokenUtxos = await card.getTokenUtxos();
+        console.log('Card tokenUtxos:', tokenUtxos);
+        // const bchUtxos = await card.getBchUtxos();
+        // console.log('Card bchUtxos:', bchUtxos);
+        const contract = await card.getContract()
+        console.log('Card contract:', contract);
+      });
+      
     } catch (error) {
       console.error('Error during card user load:', error);
     }
   },
   methods: {
     getDarkModeClass,
-    async fetchCards() {
-      try {
-        this.loading = true;
-        const response = await backend.get('/cards/');
-        console.log('Cards response:', response);
-        return response.data
-      } catch (error) {
-        console.error('Error fetching card info:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
     async onManageAuthTokens() {
       console.log('Manage Auth Tokens clicked');
       const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash;
@@ -184,8 +181,7 @@ export default {
     async onCreateCard() {
       try {
         this.showLoading("Creating card...");
-        const wallet = await loadWallet();
-        this.card = new Card(wallet);
+        this.card = new Card();
         const result = await this.card.create();
         this.hideLoading();
         

@@ -1,40 +1,26 @@
 /**
- * Card Service Module
- * 
- * Manages all card-related operations for the Paytaca application, providing a comprehensive
- * interface for handling cryptocurrency card functionality. This module orchestrates:
- * 
- * - Genesis Token Creation: Mints NFT-based genesis tokens with vout=0 UTXO management
- * - Auth Token Management: Issues and manages authentication tokens for payment terminals
- * - Smart Contract Operations: Interacts with TapToPay contracts for payments and fund management
- * - Card Lifecycle: Handles complete card creation workflow from genesis to server registration
- * - UTXO Management: Ensures proper transaction output management for token operations
- * 
- * The Card class combines multiple sub-managers (AuthTokenManager, TapToPay) to provide
- * a unified interface for card operations, abstracting away low-level blockchain details
- * while maintaining flexibility for advanced operations.
- * 
+ * Card service for managing cryptocurrency card operations:
+ * genesis tokens, auth tokens, smart contracts, and UTXO management.
  */
 
-import { loadWallet } from 'src/wallet';
 import AuthNft from './auth-nft';
+import { defaultSpendLimitSats } from './constants';
+import { defaultExpirationBlock } from './auth-nft';
 import { TapToPay } from './tap-to-pay';
 import { createNFTs, fetchCard, createCard, mutateNFTs } from './backend/api';
 import { binToHex } from 'bitauth-libauth-v3';
 import { backend } from './backend';
+import { loadWallet } from '../wallet';
 
-/**
- * Main Card class that handles all card-related operations
- * Combines genesis token creation, auth token management, and smart contract operations
- */
+/** Handles card operations: genesis/auth tokens, smart contracts, UTXO management */
 export class Card {
-  constructor(wallet) {
-    this.wallet = wallet;
-    this.authNft = new AuthNft(this.wallet.privkey());
-    this.tapToPay = null; 
+  /** @param {Object} data - Initial card data */
+  constructor(data) {
+    this.raw = data;
   }
 
   set raw(data) {
+    console.log('=====>>>>>', data)
     this._rawData = data;
   }
 
@@ -42,8 +28,10 @@ export class Card {
     return this._rawData;
   }
 
-  // ==================== GENESIS TOKEN OPERATIONS ====================
-
+  /**
+   * Creates card: mints genesis token, registers on server, links NFT
+   * @returns {Promise<{tokenId: string, cardData: Object, genesisResult: Object}>}
+   */
   async create() {
     console.log('Starting complete card creation workflow...');
     
@@ -57,26 +45,44 @@ export class Card {
 
       // Save genesis NFT to server
       const response = await this.saveGenesisNft(cardData.id, genesisResult);
-      this.raw = response;
+      this.raw = {
+        ...response.card,
+        genesis_nft: response.genesis_nft
+      };
+
+      // Mint global auth token
+      const mintResult = await this.mintGlobalAuthToken();
+
+      // Issue the global auth token to the card
+      const _ = await this.issueGlobalAuthToken(this.raw.token_address);
+
+      // Save global auth token to server
+      await this.saveGlobalAuthToken(cardData.id, mintResult);
 
       console.log('Card creation completed successfully');
-      return {
-        tokenId: genesisResult.tokenId,
-        cardData: this.raw?.card,
-        genesisResult
-      };
+      return this
       
     } catch (error) {
-      console.error('Card creation workflow failed:', error);
+      console.error('Error:', error);
+      console.error('Card creation workflow failed:', error.response || error.message);
       throw error;
     }
   }
 
   /**
-   * Mints a genesis token, ensuring vout=0 UTXO is available
+   * Mints genesis token, creates vout=0 UTXO if needed
+   * @returns {Promise<{tokenId: string, utxos: Array}>}
    */
   async mintGenesisToken() {
     console.log('Starting genesis token minting...');
+
+    if (!this.wallet) {
+      this.wallet = await loadWallet();
+    }
+
+    if (!this.authNft) {
+      this.authNft = new AuthNft(this.wallet.privkey());
+    }
     
     // Check for vout=0 UTXOs first
     const hasVoutZero = await this.checkForVoutZeroUtxos();
@@ -110,7 +116,67 @@ export class Card {
   }
 
   /**
-   * Saves the genesis NFT to the server
+   * Mints global auth token for card
+   * @returns {Promise<Object>}
+   */
+  async mintGlobalAuthToken() {
+    console.log('Minting global auth token...');
+    if (!this.wallet) {
+      this.wallet = await loadWallet();
+    }
+
+    if (!this.authNft) {
+      this.authNft = new AuthNft(this.wallet.privkey());
+    }
+
+    const result = await this.authNft.mint({ 
+        tokenId: this.raw?.genesis_nft?.category, 
+        terminals: [{
+          authorized: true,
+          expirationBlock: await defaultExpirationBlock(),
+          spendLimitSats: defaultSpendLimitSats,
+        }]
+    });
+    console.log('Global auth token minted:', result);
+    return result;
+  }
+
+  async issueGlobalAuthToken(toAddress) {
+    if (!this.wallet) {
+      this.wallet = await loadWallet();
+    }
+
+    if (!this.authNft) {
+      this.authNft = new AuthNft(this.wallet.privkey());
+    }
+
+    console.log('Issuing global auth token to address:', toAddress);
+    const tokenId = this.raw.genesis_nft.category
+    const authNfts = await this.authNft.getMutableTokens(tokenId);
+    console.log('Auth NFTs to be issued:', authNfts);
+
+    const recipients = []
+    authNfts.forEach(nft => {
+      recipients.push({
+        address: toAddress,
+        tokenId: tokenId,
+        capability: nft.token.capability,
+        commitment: nft.token.commitment,
+        amount: nft.token.amount,
+        value: nft.satoshis
+      });
+    }); 
+    console.log('Issuing to recipients:', recipients);
+    const result = await this.authNft.issue({recipients});
+    console.log('Global auth token issued:', result);
+    return result;
+  }
+
+  /**
+   * Saves genesis NFT to server
+   * @param {number} cardId
+   * @param {Object} genesisResult
+   * @returns {Promise<Object>}
    */
   async saveGenesisNft(cardId, genesisResult) {
     console.log('Creating server record for genesis NFT...');
@@ -121,23 +187,44 @@ export class Card {
     
     const nftData = genesisResult.utxos[0];
     const payload = {
-      txid: nftData.txid,
       category: nftData.token?.tokenId,
-      card: cardId
+      txid: nftData.txid,
+      card_id: cardId
     };
 
-    console.log('Creating NFT with payload:', payload);
+    console.log('Saving Genesis NFT with payload:', payload);
     const response = await backend.post('/genesis-nfts/', payload);
     console.log('Server record created:', response.data);
     return response.data;
   }
 
   /**
-   * Creates the final card entry
+   * Saves global auth token to server
+   * @param {number} cardId
+   * @param {Object} mintResult
+   * @returns {Promise<Object>}
+   */
+  async saveGlobalAuthToken(cardId, mintResult) {
+    const payload = {
+      txid: mintResult.txId,
+      card_id: cardId
+    };
+    console.log('Saving global auth token:', payload);
+    const response = await backend.post('/global-auth-nfts/', payload);
+    console.log('Server record created:', response.data);
+    return response.data;
+  }
+
+  /**
+   * Creates card entry on server
+   * @returns {Promise<Object>}
    */
   async createCardEntry() {
     console.log('Creating card entry...');
-    
+    if (!this.wallet) {
+      this.wallet = await loadWallet();
+    }
+
     const data = {
       wallet_hash: this.wallet.walletHash,
       public_key: this.wallet.pubkey(),
@@ -145,18 +232,22 @@ export class Card {
     };
     
     const response = await backend.post('/cards/', data);
-    console.log('Card entry created:', response);
+    console.log('Card entry created:', response.data);
     return response.data;
   }
 
   // ==================== UTXO MANAGEMENT ====================
 
   /**
-   * Checks if vout=0 UTXOs are available
+   * Checks for available vout=0 UTXOs
+   * @returns {Promise<boolean>}
    */
   async checkForVoutZeroUtxos() {
     try {
       console.log('Checking for existing vout=0 UTXOs...');
+      if (!this.wallet) {
+        this.wallet = await loadWallet();
+      }
       
       const resp = await this.wallet.getBchUtxos()
       console.log('UTXO response:', resp);
@@ -173,9 +264,13 @@ export class Card {
   }
 
   /**
-   * Creates a vout=0 transaction by sending BCH to self
+   * Creates vout=0 UTXO by sending BCH to self
+   * @returns {Promise<Object>}
    */
   async createVoutZeroTransaction() {
+    if (!this.wallet) {
+      this.wallet = await loadWallet();
+    }
     console.log('Creating vout=0 transaction...');
     console.log('Genesis tokens require a UTXO with output index 0 (vout=0)');
     
@@ -192,41 +287,87 @@ export class Card {
 
   /**
    * Waits for transaction confirmation
+   * @param {number} [delayMs=2000]
+   * @returns {Promise<void>}
    */
-  async waitForTransaction(delayMs = 10000) {
+  async waitForTransaction(delayMs = 2000) {
     console.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
     await new Promise(resolve => setTimeout(resolve, delayMs));
   }
 
-  // ==================== AUTH TOKEN OPERATIONS ====================
+  /**
+   * Gets token UTXOs for card token address
+   * @returns {Promise<Array>}
+   */
+  async getTokenUtxos() {
+    if (!this.wallet) {
+      this.wallet = await loadWallet();
+    }
+
+    if (!this.authNft) {
+      this.authNft = new AuthNft(this.wallet.privkey());
+    }
+
+    const tokenId = this.raw?.genesis_nft?.category;
+    return await this.authNft.getTokenUtxos(tokenId);
+  }
 
   /**
-   * Issues new auth tokens for terminals
+   * Gets BCH UTXOs for card address
+   * @returns {Promise<Object>}
+   */
+  async getBchUtxos() {
+    if (!this.wallet) {
+      this.wallet = await loadWallet();
+    }
+    
+    const address = this.raw?.cash_address;
+    const rawWallet = await this.wallet.getRawWallet();
+    return await rawWallet.watchtower.BCH.getBchUtxos(address);
+  }
+
+  async getContract(){
+    if (!this.tapToPay) {
+      this.initializeTapToPay();
+    }
+    console.log('this.raw:', this.raw)
+    const contractId = this.raw.contract_id;
+    console.log('Fetching contract with ID:', contractId);
+    const contract = this.tapToPay.getContractFromId(contractId);
+    const utxos = await contract.getUtxos()
+    console.log('Contract UTXOs:', utxos);
+
+    return contract
+  }
+
+  /**
+   * Issues auth tokens for terminals
+   * @param {Array} terminals
+   * @returns {Promise<Object>}
    */
   async issueAuthTokens(terminals) {
     console.log('Issuing auth tokens for terminals...');
     return await this.authTokenManager.issue(terminals);
   }
 
-  /**
-   * Gets token UTXOs for a specific category
-   */
-  async getTokenUtxos(tokenId) {
-    return await this.authTokenManager.getTokenUtxos(tokenId);
-  }
-
   // ==================== SMART CONTRACT OPERATIONS ====================
 
   /**
-   * Initializes TapToPay contract with card parameters
+   * Initializes TapToPay contract
+   * @param {string} contractId
+   * @returns {TapToPay}
    */
-  initializeTapToPay(contractId) {
-    this.tapToPay = new TapToPay(contractId);
+  initializeTapToPay() {
+    this.tapToPay = new TapToPay();
     return this.tapToPay;
   }
 
   /**
    * Mutates auth token permissions
+   * @param {string} contractId
+   * @param {Array} mutations
+   * @param {boolean} [broadcast=true]
+   * @returns {Promise<{mutateResponse: Object, serverResponse: Object}>}
    */
   async mutateAuthTokens(contractId, mutations, broadcast = true) {
     if (!this.tapToPay) {
@@ -266,7 +407,10 @@ export class Card {
   // }
 
   /**
-   * Sweeps all funds from the card
+   * Sweeps all funds from card
+   * @param {string} toAddress
+   * @param {boolean} [broadcast=true]
+   * @returns {Promise<Object>}
    */
   async sweep(toAddress, broadcast = true) {
     if (!this.tapToPay) {
@@ -283,7 +427,8 @@ export class Card {
   // ==================== CARD INFO OPERATIONS ====================
 
   /**
-   * Fetches card information from server
+   * Fetches card info from server
+   * @returns {Promise<Object>}
    */
   async fetchCardInfo() {
     console.log('Fetching card info for wallet:', this.walletHash);
@@ -293,14 +438,18 @@ export class Card {
   // ==================== UTILITY METHODS ====================
 
   /**
-   * Checks if error is related to missing vout=0 inputs
+   * Checks if error is vout=0 related
+   * @param {Error} error
+   * @returns {boolean}
    */
   isVoutZeroError(error) {
     return error.message?.includes('No suitable inputs with vout=0 available for new token genesis');
   }
 
   /**
-   * Updates the private key (useful for testing or key rotation)
+   * Updates private key
+   * @param {string} newPrivateKey
+   * @returns {void}
    */
   updatePrivateKey(newPrivateKey) {
     this.privateKey = newPrivateKey;
@@ -313,10 +462,20 @@ export class Card {
 
   // ==================== SERVER METHODS ====================
 
+  /**
+   * Fetches NFTs for wallet
+   * @param {string} walletHash
+   * @returns {Promise<Array>}
+   */
   async fetchNFTs(walletHash) {
     return await fetchAuthNFTs(walletHash);
   }
 
+  /**
+   * Creates NFTs on server
+   * @param {Object} nftData
+   * @returns {Promise<Object>}
+   */
   async createNFTs(nftData) {
     return await createNFTs(nftData);
   }

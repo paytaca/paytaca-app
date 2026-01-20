@@ -148,6 +148,14 @@ export class Wallet {
     }
     return await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`)
   }
+
+  async getTokenUtxos (address = null, token) {
+    const wallet = await this.getRawWallet()
+    if (address) {
+      return await wallet.watchtower.BCH.getCashtokensUtxos(address, token)
+    }
+    return await wallet.watchtower.BCH.getCashtokensUtxos(`wallet:${this.walletHash}`, token)
+  }
 }
 
 const ADDRESS_INDEX = 0

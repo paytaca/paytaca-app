@@ -30,12 +30,6 @@ class AuthNft {
         this.wallet = null;
     }
 
-    async defaultExpirationBlock() {
-        const expirationDate = Math.floor(Date.now()/1000) + (defaultExpirationDeltaMinutes * 60); // 30 days from now
-        const expirationBlock = await convertTimeToBlock(expirationDate)
-        return expirationBlock
-    }
-
     async initWallet() {
         this.wallet = await Wallet.fromWIF(this.wif);
     }
@@ -47,6 +41,15 @@ class AuthNft {
 
         const utxos = await this.wallet.getTokenUtxos(tokenId);
         return utxos;
+    }
+
+    async getMutableTokens(tokenId) {
+        if (!this.wallet) {
+            await this.initWallet();
+        }
+
+        const utxos = await this.wallet.getTokenUtxos(tokenId);
+        return utxos.filter(utxo => utxo.token.capability === 'mutable')
     }
 
     async getBalance() {
@@ -88,14 +91,18 @@ class AuthNft {
         for (let i = 0; i < terminals.length; i++) {
             const terminal = terminals[i]
             const commitmentData = {
-                authorized: terminal.authorized || true,
-                expirationBlock: terminal.expirationBlock || await this.defaultExpirationBlock(),
+                authorized: terminal.authorized !== undefined ? terminal.authorized : true,
+                expirationBlock: terminal.expirationBlock || await defaultExpirationBlock(),
                 spendLimitSats: terminal.spendLimitSats || defaultSpendLimitSats,
-                terminal: {
+            }
+
+            if (terminal.id && terminal.pubkey) {
+                commitmentData.terminal = {
                     id: terminal.id,
                     pk: terminal.pubkey
                 }
             }
+
             const commitment = encodeCommitment(commitmentData)
             tokenMintRequests.push(new TokenMintRequest({
                 cashaddr: this.wallet.cashaddr,
@@ -197,6 +204,13 @@ class AuthNft {
             console.log(burnResponse)
         }
     }
+    
+}
+
+export async function defaultExpirationBlock() {
+    const expirationDate = Math.floor(Date.now()/1000) + (defaultExpirationDeltaMinutes * 60); // 30 days from now
+    const expirationBlock = await convertTimeToBlock(expirationDate)
+    return expirationBlock
 }
 
 function encodeTerminalHash({ terminalId, terminalPk }) {
@@ -211,7 +225,6 @@ function encodeTerminalHash({ terminalId, terminalPk }) {
 }
 
 function encodeCommitment({ authorized, terminal, expirationBlock, spendLimitSats }) {
-    if (!terminal) throw new Error('missing required terminal')
     if (!expirationBlock) throw new Error('missing required expiration block')
     if (!spendLimitSats) throw new Error ('missing required spend limit')
 
@@ -226,15 +239,20 @@ function encodeCommitment({ authorized, terminal, expirationBlock, spendLimitSat
     const spendLimitBuf = Buffer.alloc(8);
     spendLimitBuf.writeBigInt64LE(BigInt(spendLimitSats)); // 8 bytes
 
+    let commitmentData = [authorizedBuf, expirationBuf, spendLimitBuf]
+
     // terminal hash
-    const terminalIdBuf = Buffer.from(terminal.id, 'utf-8')
-    const terminalPkBuf = Buffer.from(terminal.pk, 'hex')
-    const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
-    const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
-    const truncatedHash = fullHash.subarray(0, 27)
+    if (terminal) {
+        const terminalIdBuf = Buffer.from(terminal.id, 'utf-8')
+        const terminalPkBuf = Buffer.from(terminal.pk, 'hex')
+        const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
+        const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
+        const truncatedHash = fullHash.subarray(0, 27)
+        commitmentData.push(truncatedHash);
+    }
 
     // structure: authorized + expirationBlock + spendLimit + hash
-    const commitment = Buffer.concat([authorizedBuf, expirationBuf, spendLimitBuf, truncatedHash]);
+    const commitment = Buffer.concat(commitmentData);
     return commitment.toString('hex'); 
 }
 

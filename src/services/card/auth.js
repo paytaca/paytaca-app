@@ -83,6 +83,17 @@ export class CardUser {
             throw error;
         }
     }
+
+    async fetchCards() {
+        try {
+            const response = await this.backend.get('/cards/');
+            const cards = response.data.results.map(cardData => new Card(cardData));
+            return cards;
+        } catch (error) {
+            console.error('Error fetching card info:', error);
+            throw error;
+        }
+    }
     
 }
 
