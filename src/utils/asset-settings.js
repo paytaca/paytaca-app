@@ -152,7 +152,8 @@ export async function addNewAsset (asset, network) {
 
 }
 
-export async function fetchFavorites () {
+export async function fetchFavorites (options = {}) {
+	const { forceRefresh = false } = options
 	const walletHash = getCurrentWalletHash()
 	if (!walletHash) {
 		console.warn('No wallet hash available for fetchFavorites')
@@ -160,9 +161,14 @@ export async function fetchFavorites () {
 	}
 
 	const cacheKey = getCacheKey('favorites', walletHash)
-	const cached = getCachedRequest(cacheKey)
-	if (cached) {
-		return cached
+	// Allow callers (e.g. limit checks) to bypass the 5s cache
+	if (!forceRefresh) {
+		const cached = getCachedRequest(cacheKey)
+		if (cached) {
+			return cached
+		}
+	} else {
+		requestCache.delete(cacheKey)
 	}
 
 	const promise = (async () => {
@@ -195,6 +201,8 @@ export async function saveFavorites (list) {
 		console.warn('No wallet hash available for saveFavorites')
 		return null
 	}
+	// Invalidate favorites cache so subsequent reads are consistent
+	requestCache.delete(getCacheKey('favorites', walletHash))
 
 	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
 

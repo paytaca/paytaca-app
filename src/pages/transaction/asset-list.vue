@@ -188,6 +188,14 @@ export default {
 		darkmode () {
 	      return this.$store.getters['darkmode/getStatus']
 	    },
+	    favoriteMutationInProgress () {
+	    	// Avoid Object.values for older WebViews without polyfills
+	    	const loadingMap = this.favoriteLoading || {}
+	    	for (const key in loadingMap) {
+	    		if (loadingMap[key]) return true
+	    	}
+	    	return false
+	    },
 	    enableSLP () {
 	      return this.$store.getters['global/enableSLP']
 	    },
@@ -346,7 +354,8 @@ export default {
 	    // },
     async updateFavorite (favAsset) {
     	if (!favAsset?.id) return
-    	if (this.favoriteLoading[favAsset.id]) return
+    	// Prevent firing favorite/unfavorite events while another is in progress
+    	if (this.favoriteMutationInProgress) return
     	this.favoriteLoading = { ...this.favoriteLoading, [favAsset.id]: true }
 
     	// Toggle favorite status
@@ -361,16 +370,16 @@ export default {
 	    		await this.$store.dispatch('subscription/checkSubscriptionStatus')
 	    		
 	    		// Fetch current favorites to check count
-	    		currentFavorites = await assetSettings.fetchFavorites()
+	    		currentFavorites = await assetSettings.fetchFavorites({ forceRefresh: true })
 	    		if (!Array.isArray(currentFavorites)) {
 	    			currentFavorites = []
 	    		}
 	    		
 	    		// Count current favorites (where favorite === 1)
-	    		const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
+	    		const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true).length
 	    		
 	    		// Check if this token is already a favorite
-	    		const isAlreadyFavorite = currentFavorites.some(fav => fav.id === favAsset.id && fav.favorite === 1)
+	    		const isAlreadyFavorite = currentFavorites.some(fav => fav.id === favAsset.id && (fav.favorite === 1 || fav.favorite === true))
 	    		
 	    		// If not already a favorite, check limit
 	    		if (!isAlreadyFavorite) {
@@ -517,7 +526,7 @@ export default {
 	    	await new Promise(resolve => setTimeout(resolve, 100))
 
 	    	// Fetch current favorites from API to get complete state including favorite_order
-	    	currentFavorites = await assetSettings.fetchFavorites()
+	    	currentFavorites = await assetSettings.fetchFavorites({ forceRefresh: true })
 	    	if (!Array.isArray(currentFavorites)) {
 	    		currentFavorites = []
 	    	}
