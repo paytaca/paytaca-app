@@ -210,7 +210,7 @@
                 class="purchase-btn"
                 :class="`theme-${theme}`"
                 :style="`background: linear-gradient(135deg, ${getThemeColor()} 0%, ${getDarkerThemeColor()} 100%);`"
-                @click="rsvp.is_paid ? openConfirmReservationDialog(rsvp) : openPayReservationDialog(rsvp)"
+                @click="rsvp.is_paid ? openConfirmReservationDialog(rsvp) : /*openPayReservationDialog(rsvp)*/$q.notify({message: $t('ComingSoon'), color: 'positive', icon: 'campaign', timeout: 3000})"
               />
             </div>
           </q-card>

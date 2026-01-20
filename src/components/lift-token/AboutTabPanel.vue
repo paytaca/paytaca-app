@@ -51,7 +51,7 @@
             icon-right="arrow_forward"
             class="primary-cta-button"
             :class="`theme-${theme}`"
-            @click="showBuyDialog = true"
+            @click="/*showBuyDialog = true*/$q.notify({message: $t('ComingSoon'), color: 'positive', icon: 'campaign', timeout: 3000})"
           />
           <q-btn
             :label="$t('LearnMore')"
@@ -323,7 +323,7 @@
           size="lg"
           icon="shopping_cart"
           class="cta-button button q-mb-sm"
-          @click="showBuyDialog = true"
+          @click="/*showBuyDialog = true*/$q.notify({message: $t('ComingSoon'), color: 'positive', icon: 'campaign', timeout: 3000})"
         />
         <div class="q-mt-md">
           <q-btn
