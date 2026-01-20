@@ -194,10 +194,6 @@ export const getMultisigCashAddress = ({
   return address
 }
 
-// export const signerCanSign = ({ signerEntityKey, lockingData }) => {
-//   return Boolean(lockingData.hdKeys.hdPrivateKeys?.[signerEntityKey])
-// }
-
 export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
   const node = deriveHdPath(
     deriveHdPrivateNodeFromBip39Mnemonic(
@@ -233,20 +229,6 @@ export const getTotalSigners = (template) => {
   return Object.keys(template.entities).length
 }
 
-
-
-export const findMultisigWalletByLockingData = ({ multisigWallets, template, lockingData }) => {
-  const lockingBytecode = getLockingBytecode({ template, lockingData })
-  const lockingBytecodeHex = binToHex(lockingBytecode.bytecode)
-  const wallet = multisigWallets.find((wallet) => {
-    const existingLockingBytecode = getLockingBytecode({
-      template: wallet.template, lockingData: wallet.lockingData
-    })
-    const existingLockingBytecodeHex = binToHex(existingLockingBytecode.bytecode)
-    return lockingBytecodeHex === existingLockingBytecodeHex
-  })
-  return wallet
-}
 
 export const isMultisigWalletSynced = multisigWallet => {
   if (!multisigWallet.id) return false

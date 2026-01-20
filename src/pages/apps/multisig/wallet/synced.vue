@@ -58,11 +58,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { shortenString, getSignerInfos, MultisigWallet } from 'src/lib/multisig'
+import { MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
-import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
-import multisig from 'src/store/multisig'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -82,19 +79,6 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const enableWallet = (multisigWallet) => {
-  $store.commit('multisig/enableWallet', multisigWallet)
-  $q.notify({
-    color: 'primary',
-    message: `${multisigWallet.template?.name || 'Wallet'} imported`,
-    timeout: 500
-  })
-  nextTick(() => {
-   if (multisigWalletsFromServer.value?.filter((wallet) => wallet.id && !wallet.enabled)?.length === 0) {
-     router.back() 
-   }
-  })
-}
 
 const downloadWallet = (multisigWallet) => {
   multisigWallet.save()

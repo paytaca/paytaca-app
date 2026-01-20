@@ -1,5 +1,5 @@
 import { hashTransaction, binsAreEqual } from 'bitauth-libauth-v3'
-import { findMultisigWalletByLockingData, getWalletHash } from 'src/lib/multisig'
+import { getWalletHash } from 'src/lib/multisig'
 import { Psbt } from 'src/lib/multisig/psbt'
 import { Store } from 'src/store'
 
@@ -55,16 +55,6 @@ export function deleteWallet (state, { multisigWallet }) {
   })
   if (index === -1) return
   state.wallets.splice(index, 1)
-}
-
-export function enableWallet(state, multisigWallet) {
-  const wallet = findMultisigWalletByLockingData({
-	  multisigWallets: state.wallets,
-	  template: multisigWallet.template,
-	  lockingData: multisigWallet.lockingData
-  })
-  if (!wallet) return
-  wallet.enabled = true
 }
 
 export function deleteAllWallets (state) {
