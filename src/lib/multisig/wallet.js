@@ -144,6 +144,7 @@ import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutput
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
+import { decryptECIESMessage, encryptECIESMessage } from './ecies.js'
 
 export const getLockingData = ({ signers, addressDerivationPath }) => {
   const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
@@ -487,435 +488,435 @@ export class MultisigWallet {
   getLastUsedChangeAddressIndex(network) {
     return this.networks?.[network]?.lastUsedChangeAddressIndex ?? -1
   }
-/**
- * Returns a deposit address from the wallet.
- *
- * If an `addressIndex` is provided, it returns the address derived at that specific index
- * If no index is provided, it returns the next unissued address (without altering internal state).
- *
- * @param {import('@bitauth/libauth').CashAddressNetworkPrefix} [prefix=import('@bitauth-libauth').CashAddressNetworkPrefix.mainnet] 
- * @param {number} [addressIndex] - Optional index of the address to derive. If omitted, the next unissued address is returned.
- 
- * @returns {{ addressIndex: number, address: string }} The index and derived address. The derived deposit address at the given index, or the next unissued address if no index is given.
- *
- * @example
- * wallet.getDepositAddress();       // Returns next unissued address (e.g., m/44'/145'/0'/0/5)
- * wallet.getDepositAddress(0);      // Returns address at index 0 (e.g., m/44'/145'/0'/0/0)
- */
-getDepositAddress(addressIndex, prefix) {
-  let _addressIndex = addressIndex
-
-  if (_addressIndex === undefined || _addressIndex < 0) {
-    if (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex === undefined) {
-      _addressIndex = 0
-    } else {
-      _addressIndex = this.networks[this.options.provider.network].lastIssuedDepositAddressIndex + 1
-    }
-  }
-
-  const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet })
-  return {
-    addressIndex: _addressIndex,
-    address
-  }
-}
-
-/**
- * Gets a change address from the wallet.
- *
- * If an `addressIndex` is provided, returns the change address at that index (without altering internal state).
- * If no index is provided, returns the next unissued change address.
- *
- * @param {number} [addressIndex] - Optional index of the change address to derive.
- * @returns {{ addressIndex: number, address: string }} The index and derived change address.
- *
- * @example
- * wallet.getChangeAddress();        // Returns next unissued change address (e.g., m/44'/145'/0'/1/5)
- * wallet.getChangeAddress(0);      // Returns change address at index 0 (e.g., m/44'/145'/0'/1/0)
- */
-getChangeAddress(addressIndex, prefix) {
-
+  /**
+   * Returns a deposit address from the wallet.
+   *
+   * If an `addressIndex` is provided, it returns the address derived at that specific index
+   * If no index is provided, it returns the next unissued address (without altering internal state).
+   *
+   * @param {import('@bitauth/libauth').CashAddressNetworkPrefix} [prefix=import('@bitauth-libauth').CashAddressNetworkPrefix.mainnet] 
+   * @param {number} [addressIndex] - Optional index of the address to derive. If omitted, the next unissued address is returned.
+   
+  * @returns {{ addressIndex: number, address: string }} The index and derived address. The derived deposit address at the given index, or the next unissued address if no index is given.
+  *
+  * @example
+  * wallet.getDepositAddress();       // Returns next unissued address (e.g., m/44'/145'/0'/0/5)
+  * wallet.getDepositAddress(0);      // Returns address at index 0 (e.g., m/44'/145'/0'/0/0)
+  */
+  getDepositAddress(addressIndex, prefix) {
     let _addressIndex = addressIndex
 
     if (_addressIndex === undefined || _addressIndex < 0) {
-      if (this.networks[this.options.provider.network].lastUsedChangeAddressIndex === undefined) {
+      if (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex === undefined) {
         _addressIndex = 0
       } else {
-        _addressIndex = this.networks[this.options.provider.network].lastUsedChangeAddressIndex + 1
+        _addressIndex = this.networks[this.options.provider.network].lastIssuedDepositAddressIndex + 1
       }
     }
 
-  const address = getChangeAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.testnet })
-  return {
+    const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet })
+    return {
       addressIndex: _addressIndex,
       address
-  }
-}
-
-getWalletHash() {
-  return getWalletHash(this)
-}
-
-/**
- * @param {string} address - The cashaddress
- * @param {string} addressPath - The bip32 relative derivation path. 
- * Example: 0/0 for deposit address at index 0, 1/0 for change address at address 0
- */
-async getAddressUtxos(address, addressPath) {
-  return await this.options?.provider?.getAddressUtxos(address, addressPath)
-}
-
-async getWalletUtxos() {
-
-  if (!this.options?.provider) throw new Error('Missing provider')
-
-  let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
-
-  let dCounter = 0
-
-  const utxoPromises = []
-
-  while (dCounter < lastDepositAddress) {
-    utxoPromises.push(
-      this.getAddressUtxos(
-        this.getDepositAddress(dCounter, this.cashAddressNetworkPrefix).address, `0/${dCounter}`
-      )
-    )
-    dCounter++
-  }
-
-  let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
-
-  let cCounter = 0
-
-  while (cCounter < lastChangeAddress) {
-    utxoPromises.push(
-      this.getAddressUtxos(
-        this.getChangeAddress(cCounter, this.cashAddressNetworkPrefix).address, `1/${cCounter}`
-      )
-    )
-    cCounter++
-  }
-
-  const utxos = await Promise.all(utxoPromises)
-
-  const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
-    if (u.addressPath?.startsWith('0/')) {
-      const index = Number(u.addressPath.split('/')[1])
-      if (index > highest) return index
     }
-    return highest
-  }, -1)
+  }
 
-  const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
-    if (u.addressPath?.startsWith('1/')) {
-      const index = Number(u.addressPath.split('/')[1])
-      if (index > highest) return index
+  /**
+   * Gets a change address from the wallet.
+   *
+   * If an `addressIndex` is provided, returns the change address at that index (without altering internal state).
+   * If no index is provided, returns the next unissued change address.
+   *
+   * @param {number} [addressIndex] - Optional index of the change address to derive.
+   * @returns {{ addressIndex: number, address: string }} The index and derived change address.
+   *
+   * @example
+   * wallet.getChangeAddress();        // Returns next unissued change address (e.g., m/44'/145'/0'/1/5)
+   * wallet.getChangeAddress(0);      // Returns change address at index 0 (e.g., m/44'/145'/0'/1/0)
+   */
+  getChangeAddress(addressIndex, prefix) {
+
+      let _addressIndex = addressIndex
+
+      if (_addressIndex === undefined || _addressIndex < 0) {
+        if (this.networks[this.options.provider.network].lastUsedChangeAddressIndex === undefined) {
+          _addressIndex = 0
+        } else {
+          _addressIndex = this.networks[this.options.provider.network].lastUsedChangeAddressIndex + 1
+        }
+      }
+
+    const address = getChangeAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.testnet })
+    return {
+        addressIndex: _addressIndex,
+        address
     }
-    return highest
-  }, -1)
-
-
-  // const syncAddressIndicesPromises = []
-
-  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
-    this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
-    this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
-    // syncAddressIndicesPromises.push({
-    //   key: 'lastUsedDepositAddressIndex',
-    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network)  
-    // })
   }
 
-  if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
-    this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
-    this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
-    // syncAddressIndicesPromises.push({
-    //   key: 'lastUsedChangeAddressIndex',
-    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedChangeAddressIndex(this, highestUsedChangeAddressIndex, this.options.provider.network)  
-    // })
+  getWalletHash() {
+    return getWalletHash(this)
   }
 
-  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
-    this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
-    this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
-    // syncAddressIndicesPromises.push({
-    //   key: 'lastIssuedDepositAddressIndex',
-    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastIssuedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network) 
-    // })    
+  /**
+   * @param {string} address - The cashaddress
+   * @param {string} addressPath - The bip32 relative derivation path. 
+   * Example: 0/0 for deposit address at index 0, 1/0 for change address at address 0
+   */
+  async getAddressUtxos(address, addressPath) {
+    return await this.options?.provider?.getAddressUtxos(address, addressPath)
   }
 
-  // const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
-  // results.forEach((res, i) => {
-  //     const key = syncAddressIndicesPromises[i].key;
-  //     if (res.status === 'fullfilled') {
-  //       // Replace with the actual value here
-  //       console.log(`${key.replace(/^l/,'L')} success:`, results.data);
-  //     } 
-  //     // rejected
-  //   });
+  async getWalletUtxos() {
 
-  this._utxos = utxos?.flat()
-  return this._utxos
-}
+    if (!this.options?.provider) throw new Error('Missing provider')
+
+    let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
+
+    let dCounter = 0
+
+    const utxoPromises = []
+
+    while (dCounter < lastDepositAddress) {
+      utxoPromises.push(
+        this.getAddressUtxos(
+          this.getDepositAddress(dCounter, this.cashAddressNetworkPrefix).address, `0/${dCounter}`
+        )
+      )
+      dCounter++
+    }
+
+    let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
+
+    let cCounter = 0
+
+    while (cCounter < lastChangeAddress) {
+      utxoPromises.push(
+        this.getAddressUtxos(
+          this.getChangeAddress(cCounter, this.cashAddressNetworkPrefix).address, `1/${cCounter}`
+        )
+      )
+      cCounter++
+    }
+
+    const utxos = await Promise.all(utxoPromises)
+
+    const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
+      if (u.addressPath?.startsWith('0/')) {
+        const index = Number(u.addressPath.split('/')[1])
+        if (index > highest) return index
+      }
+      return highest
+    }, -1)
+
+    const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
+      if (u.addressPath?.startsWith('1/')) {
+        const index = Number(u.addressPath.split('/')[1])
+        if (index > highest) return index
+      }
+      return highest
+    }, -1)
 
 
-async getWalletHashUtxos() {
+    // const syncAddressIndicesPromises = []
 
-  if (!this.options?.provider) throw new Error('Missing provider') 
+    if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
+      this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
+      this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
+      // syncAddressIndicesPromises.push({
+      //   key: 'lastUsedDepositAddressIndex',
+      //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network)  
+      // })
+    }
 
-  const r1 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
-  const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken')
+    if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
+      this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
+      this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
+      // syncAddressIndicesPromises.push({
+      //   key: 'lastUsedChangeAddressIndex',
+      //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedChangeAddressIndex(this, highestUsedChangeAddressIndex, this.options.provider.network)  
+      // })
+    }
 
-  const responses = await Promise.allSettled([r1, r2])
+    if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
+      this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
+      this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
+      // syncAddressIndicesPromises.push({
+      //   key: 'lastIssuedDepositAddressIndex',
+      //   promise: async () => await this.options?.coordinationServer?.updateWalletLastIssuedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network) 
+      // })    
+    }
 
-  let utxos = []
+    // const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
+    // results.forEach((res, i) => {
+    //     const key = syncAddressIndicesPromises[i].key;
+    //     if (res.status === 'fullfilled') {
+    //       // Replace with the actual value here
+    //       console.log(`${key.replace(/^l/,'L')} success:`, results.data);
+    //     } 
+    //     // rejected
+    //   });
 
-  for (const r of responses) {
-    utxos = utxos.concat(r?.value?.data?.utxos ?? [])
+    this._utxos = utxos?.flat()
+    return this._utxos
   }
 
-  utxos = utxos?.map(u => {
-      return {
-        ...u,
-        ...watchtowerWalletHashUtxoToCommonUtxo(u)
+
+  async getWalletHashUtxos() {
+
+    if (!this.options?.provider) throw new Error('Missing provider') 
+
+    const r1 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
+    const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken')
+
+    const responses = await Promise.allSettled([r1, r2])
+
+    let utxos = []
+
+    for (const r of responses) {
+      utxos = utxos.concat(r?.value?.data?.utxos ?? [])
+    }
+
+    utxos = utxos?.map(u => {
+        return {
+          ...u,
+          ...watchtowerWalletHashUtxoToCommonUtxo(u)
+        }
+      })
+
+    utxos?.forEach((u) => {
+      const addressPaths = u.address_path?.split('/') 
+      if (addressPaths.length === 2 && addressPaths.every(p => /[0-9]/.test(p))) {
+        u.addressPath = u.address_path
+        const [ addressType, addressIndex ] = addressPaths.map(p => Number(p)) 
+        if (addressType === 0) {
+          u.address = this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address
+        }
+        if (addressType === 1) {
+          u.address = this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address
+        }
       }
     })
+      
+    const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
+      if (u.addressPath?.startsWith('0/')) {
+        const index = Number(u.addressPath.split('/')[1])
+        if (index > highest) return index
+      }
+      return highest
+    }, -1)
 
-  utxos?.forEach((u) => {
-    const addressPaths = u.address_path?.split('/') 
-    if (addressPaths.length === 2 && addressPaths.every(p => /[0-9]/.test(p))) {
-      u.addressPath = u.address_path
-      const [ addressType, addressIndex ] = addressPaths.map(p => Number(p)) 
-      if (addressType === 0) {
-        u.address = this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address
+    const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
+      if (u.addressPath?.startsWith('1/')) {
+        const index = Number(u.addressPath.split('/')[1])
+        if (index > highest) return index
       }
-      if (addressType === 1) {
-        u.address = this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address
-      }
+      return highest
+    }, -1)
+
+    if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
+      this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
+      this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
     }
-  })
+
+    if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
+      this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
+      this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
+    }
+
+    if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
+      this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
+      this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
+    }
     
-  const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
-    if (u.addressPath?.startsWith('0/')) {
-      const index = Number(u.addressPath.split('/')[1])
-      if (index > highest) return index
+    this._utxos = utxos
+    return this._utxos
+  }
+
+  async getAddressBalance(address) {
+    return await this.options?.provider?.getAddressBalance(address)
+  }
+
+  /**
+   * @param {'bch'|string} [asset='bch'] - If not present assumed as 'bch', asset is a token category
+   * @param {number} [decimals=0] - The asset decimals, defaults to 0 if asset is present and is not 'bch'
+   
+  */
+  async getWalletBalance(asset, decimals) {
+    const utxos = (await this.getWalletHashUtxos())
+    if (!asset || asset === 'bch') {
+      const balance = utxos.filter(u=> !u.token).reduce((b, u) => b += u.satoshis, 0)
+      return balance / 1e8
     }
-    return highest
-  }, -1)
-
-  const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
-    if (u.addressPath?.startsWith('1/')) {
-      const index = Number(u.addressPath.split('/')[1])
-      if (index > highest) return index
-    }
-    return highest
-  }, -1)
-
-  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
-    this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
-    this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
+    const balance = utxos.filter(u=> u.token && u.token.category === asset).reduce((b, u) => b += u.token.amount, 0)
+    return balance / `1e${decimals || 0}`
   }
 
-  if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
-    this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
-    this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
-  }
+  async scanAddresses() {
 
-  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
-    this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
-    this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
-  }
-  
-  this._utxos = utxos
-  return this._utxos
-}
+    let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
 
-async getAddressBalance(address) {
-  return await this.options?.provider?.getAddressBalance(address)
-}
+    let dIndex = 0
 
-/**
- * @param {'bch'|string} [asset='bch'] - If not present assumed as 'bch', asset is a token category
- * @param {number} [decimals=0] - The asset decimals, defaults to 0 if asset is present and is not 'bch'
- 
- */
-async getWalletBalance(asset, decimals) {
-  const utxos = (await this.getWalletHashUtxos())
-  if (!asset || asset === 'bch') {
-    const balance = utxos.filter(u=> !u.token).reduce((b, u) => b += u.satoshis, 0)
-    return balance / 1e8
-  }
-  const balance = utxos.filter(u=> u.token && u.token.category === asset).reduce((b, u) => b += u.token.amount, 0)
-  return balance / `1e${decimals || 0}`
-}
+    const promises = []
 
-async scanAddresses() {
-
-  let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
-
-  let dIndex = 0
-
-  const promises = []
-
-  while (dIndex < lastDepositAddress) {
-    promises.push(
-      (async () => {
-        await this.options?.store?.dispatch(
-          'multisig/subscribeWalletAddress',
-          this.getDepositAddress(cIndex, this.cashAddressNetworkPrefix).address
-        )
-      })()
-    )
-    dIndex++
-  }
-
-  let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
-
-  let cIndex = 0
-
-  while (cIndex < lastChangeAddress) {
-    promises.push(
-      (async () => {
+    while (dIndex < lastDepositAddress) {
+      promises.push(
+        (async () => {
           await this.options?.store?.dispatch(
             'multisig/subscribeWalletAddress',
-            this.getChangeAddress(cIndex, this.cashAddressNetworkPrefix).address
+            this.getDepositAddress(cIndex, this.cashAddressNetworkPrefix).address
           )
         })()
-    )
-    cIndex++
-  }
-  return await Promise.all(promises)
-}
+      )
+      dIndex++
+    }
 
-/**
- * @param {'bch'|string} [asset='bch']
- * @param {number} balance - Should be a decimal value. Example: 1.2 (BCH)
- * @param {string[]} [currencySymbols] - The currency symbols, Example: 'php','usd'
- */
-async convertBalanceToCurrencies(asset, balance, currencySymbols) {
-  const response = await PriceOracle.fetchPrice(asset, currencySymbols)
-  if (response?.ok) {
-    const priceData = await response.json()
-    return priceData?.map((price) => {
-      const p = Big(balance).mul(price.price_value).toString()
-      price[`assetPriceIn${price.currency}Text`] = `${p} ${price.currency}`
-      price['assetPrice'] = p
-      return price
-    })
-  }
-  return []
-}
+    let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
 
-async getWalletBalances() {
-  const assetsBalances = {}
-  const utxos = await this.getWalletHashUtxos() 
-  utxos.forEach((u) => {
-    if (!u.token) {
-      if (!assetsBalances['bch']) {
-        assetsBalances['bch'] = Number(u.satoshis)
+    let cIndex = 0
+
+    while (cIndex < lastChangeAddress) {
+      promises.push(
+        (async () => {
+            await this.options?.store?.dispatch(
+              'multisig/subscribeWalletAddress',
+              this.getChangeAddress(cIndex, this.cashAddressNetworkPrefix).address
+            )
+          })()
+      )
+      cIndex++
+    }
+    return await Promise.all(promises)
+  }
+
+  /**
+   * @param {'bch'|string} [asset='bch']
+   * @param {number} balance - Should be a decimal value. Example: 1.2 (BCH)
+   * @param {string[]} [currencySymbols] - The currency symbols, Example: 'php','usd'
+   */
+  async convertBalanceToCurrencies(asset, balance, currencySymbols) {
+    const response = await PriceOracle.fetchPrice(asset, currencySymbols)
+    if (response?.ok) {
+      const priceData = await response.json()
+      return priceData?.map((price) => {
+        const p = Big(balance).mul(price.price_value).toString()
+        price[`assetPriceIn${price.currency}Text`] = `${p} ${price.currency}`
+        price['assetPrice'] = p
+        return price
+      })
+    }
+    return []
+  }
+
+  async getWalletBalances() {
+    const assetsBalances = {}
+    const utxos = await this.getWalletHashUtxos() 
+    utxos.forEach((u) => {
+      if (!u.token) {
+        if (!assetsBalances['bch']) {
+          assetsBalances['bch'] = Number(u.satoshis)
+          return
+        }
+        assetsBalances['bch'] += Number(u.satoshis)
         return
       }
-      assetsBalances['bch'] += Number(u.satoshis)
-      return
-    }
-    if(!assetsBalances[u.token.category]) {
-      assetsBalances[u.token.category] = BigInt(u.token.amount)
-      return
-    }
-    assetsBalances[u.token.category] += BigInt(u.token.amount)
-    
-  })
-  return assetsBalances
-}
+      if(!assetsBalances[u.token.category]) {
+        assetsBalances[u.token.category] = BigInt(u.token.amount)
+        return
+      }
+      assetsBalances[u.token.category] += BigInt(u.token.amount)
+      
+    })
+    return assetsBalances
+  }
 
-async getWalletHashBalance() {
-  return await this.options?.provider?.getWalletHashBalance(this.getWalletHash())
-}
+  async getWalletHashBalance() {
+    return await this.options?.provider?.getWalletHashBalance(this.getWalletHash())
+  }
 
-async getWalletTokenBalance(tokenCategory, decimals = 0) {
-  const balance = 
-    (await this.getWalletHashUtxos() || [])
-      .filter((u)=>{
-        return u.token.category === tokenCategory
-      })
-      .reduce((b, u) => b += u.satoshis, 0)
-  return balance / `1e${decimals || 0}`
-}
+  async getWalletTokenBalance(tokenCategory, decimals = 0) {
+    const balance = 
+      (await this.getWalletHashUtxos() || [])
+        .filter((u)=>{
+          return u.token.category === tokenCategory
+        })
+        .reduce((b, u) => b += u.satoshis, 0)
+    return balance / `1e${decimals || 0}`
+  }
 
-async subscribeWalletAddress(address) {
-  return retryWithBackoff(async () => {
-    return await this.options?.store?.dispatch(
-      'multisig/subscribeWalletAddress',
-      address
-    )},
-    2,
-    1000
-  ).catch((e) => e)
-}
+  async subscribeWalletAddress(address) {
+    return retryWithBackoff(async () => {
+      return await this.options?.store?.dispatch(
+        'multisig/subscribeWalletAddress',
+        address
+      )},
+      2,
+      1000
+    ).catch((e) => e)
+  }
 
-async subscribeWalletAddressIndex(addressIndex, type) {
-  return retryWithBackoff(async () => {
-    return await this.options?.store?.dispatch(
-      'multisig/subscribeWalletAddressIndex',
-      { wallet: this, addressIndex: addressIndex, type: type }
-    )},
-    2,
-    1000
-  ).catch((e) => e)
-}
+  async subscribeWalletAddressIndex(addressIndex, type) {
+    return retryWithBackoff(async () => {
+      return await this.options?.store?.dispatch(
+        'multisig/subscribeWalletAddressIndex',
+        { wallet: this, addressIndex: addressIndex, type: type }
+      )},
+      2,
+      1000
+    ).catch((e) => e)
+  }
 
-async getWalletTransactionHistory({walletHash, type, all, tokenCategory, page }) {
-  return await this.options?.provider?.getWalletTransactionHistory({walletHash, type, all, tokenCategory, page })
-}
+  async getWalletTransactionHistory({walletHash, type, all, tokenCategory, page }) {
+    return await this.options?.provider?.getWalletTransactionHistory({walletHash, type, all, tokenCategory, page })
+  }
 
-/**
- * Marks the address at addressIndex as issued.
- * 
- * @param {number} addressIndex - Index of the address to mark as issued.
- */
-async issueDepositAddress(addressIndex) {
-    
-    
-  if (!this.options?.store?.dispatch) return
-
-  this.options?.store?.commit(
-    'multisig/updateWalletLastIssuedDepositAddressIndex', 
-    { wallet: this, lastIssuedDepositAddressIndex: addressIndex, network: this.options.provider.network }
-  ) 
-  
-  // this.options
-  //     ?.coordinationServer
-  //     ?.updateWalletLastIssuedDepositAddressIndex(this, addressIndex, this.options.provider.network)
-  //     .catch(e => e)
-
-  // await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
-  await this.subscribeWalletAddressIndex(addressIndex, 'deposit')
-
-}
-
-/**
- * Marks the address at addressIndex as issued.
- * 
- * @param {number} addressIndex - Index of the address to mark as issued.
- */
- async issueChangeAddress(addressIndex) {
-
-    if (!this.options?.store?.commit) return
+  /**
+   * Marks the address at addressIndex as issued.
+   * 
+   * @param {number} addressIndex - Index of the address to mark as issued.
+   */
+  async issueDepositAddress(addressIndex) {
+      
+      
+    if (!this.options?.store?.dispatch) return
 
     this.options?.store?.commit(
-      'multisig/updateWalletLastUsedChangeAddressIndex', 
-      { wallet: this, lastUsedChangeAddressIndex: addressIndex, network: this.options.provider.network }
+      'multisig/updateWalletLastIssuedDepositAddressIndex', 
+      { wallet: this, lastIssuedDepositAddressIndex: addressIndex, network: this.options.provider.network }
     ) 
     
     // this.options
     //     ?.coordinationServer
-    //     ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
+    //     ?.updateWalletLastIssuedDepositAddressIndex(this, addressIndex, this.options.provider.network)
     //     .catch(e => e)
 
-    // await this.subscribeWalletAddress(this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address)
-    await this.subscribeWalletAddressIndex(addressIndex, 'change')
- }
+    // await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+    await this.subscribeWalletAddressIndex(addressIndex, 'deposit')
+
+  }
+
+  /**
+   * Marks the address at addressIndex as issued.
+   * 
+   * @param {number} addressIndex - Index of the address to mark as issued.
+   */
+  async issueChangeAddress(addressIndex) {
+
+      if (!this.options?.store?.commit) return
+
+      this.options?.store?.commit(
+        'multisig/updateWalletLastUsedChangeAddressIndex', 
+        { wallet: this, lastUsedChangeAddressIndex: addressIndex, network: this.options.provider.network }
+      ) 
+      
+      // this.options
+      //     ?.coordinationServer
+      //     ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
+      //     .catch(e => e)
+
+      // await this.subscribeWalletAddress(this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+      await this.subscribeWalletAddressIndex(addressIndex, 'change')
+  }
 
   async selectUtxos(proposal) {
 
@@ -1227,7 +1228,44 @@ async issueDepositAddress(addressIndex) {
    */
   async sync() {
 
-    const syncedWallet = await this.options?.coordinationServer?.syncWallet(this)
+
+    const signers = []
+
+    for (const signer of this.signers) {
+      const pubkeyZero = derivePublicKey(signer.xpub, '0/0')
+      const unencryptedBsmsDescriptor = this.generateBSMSRecord()
+      const encryptedBsmsDescriptor = await encryptECIESMessage(
+        MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub),
+        unencryptedBsmsDescriptor
+      )
+
+      signers.push({
+        name: signer.name,
+        xpub: signer.xpub,
+        pubkeyZero: binToHex(pubkeyZero),
+        bsmsDescriptor: encryptedBsmsDescriptor
+      })
+    }
+
+    const payload = {
+      name: this.name,
+      walletHash: this.walletHash,
+      signers,
+    }
+
+    let coordinatorXprv = null
+    let coordinatorXpub = null
+    for (const signer of this.signers) {
+      coordinatorXprv = await this.options?.resolveXprvOfXpub({ xpub: signer.xpub })
+      coordinatorXpub = signer.xpub
+      if (coordinatorXprv) break
+    }
+
+    if (!coordinatorXprv) {
+      throw new Error('Coordinator private key not found')
+    }
+
+    const syncedWallet = await this.options?.coordinationServer?.syncWallet(this, payload)
     if (!syncedWallet?.id || !(/^[0-9]+$/.test(syncedWallet.id))) return
 
     if (!this.isSynced() || !this.updatedAt) {
@@ -1387,27 +1425,6 @@ async issueDepositAddress(addressIndex) {
     return wallet
   }
 
-  /**
-   * @param {string} [encoding='psbt'] - The encoding to use. Either 'psbt' or 'json'
-   */
-  toBase64(encoding='psbt') {
-
-    if (encoding === 'psbt') {
-      const psbtWallet = new PsbtWallet()
-      psbtWallet.encode(this.toJSON())
-      return psbtWallet.toString()
-    }
-    return utf8ToBin(this.toString())
-  }
-
-  // /**
-  //  * @deprecated
-  //  */
-  // exportToBase64() {
-  //   const bin = utf8ToBin(this.toJSON())
-  //   return binToBase64(bin)
-  // }
-
 /**
  * Asynchronously generates authentication credentials for a signer.
  *
@@ -1421,27 +1438,28 @@ async issueDepositAddress(addressIndex) {
  * Resolves with authentication credentials including the signed message and xpub used.
  */
 async generateAuthCredentials(xpub) {
-    if (!this.options.resolveXprvOfXpub) return null
-    if (xpub) {
-      const xprv = await this.options?.resolveXprvOfXpub({ xpub })
-      return MultisigWallet.generateAuthCredentials({ xprv, xpub })
-    }
-    for (const s of this.signers) {
-      const xprv = await this.options?.resolveXprvOfXpub({ xpub: s.xpub })
-      if (xprv) {
-        return MultisigWallet.generateAuthCredentials({ xprv, xpub: s.xpub })
-      }
-    } 
-  }
-
+  if (!this.options.resolveXprvOfXpub) return null
   
-
-  static cashAddressToTokenAddress(cashAddress) {
-    return lockingBytecodeToCashAddress({ 
-      bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
-      tokenSupport: true 
-    })
+  if (xpub) {
+    const xprv = await this.options?.resolveXprvOfXpub({ xpub })
+    if (!xprv) return null
+    return MultisigWallet.generateAuthCredentials({ xprv, xpub })
   }
+  
+  for (const s of this.signers) {
+    const xprv = await this.options?.resolveXprvOfXpub({ xpub: s.xpub })
+    if (xprv) {
+      return MultisigWallet.generateAuthCredentials({ xprv, xpub: s.xpub })
+    }
+  } 
+}
+
+static cashAddressToTokenAddress(cashAddress) {
+  return lockingBytecodeToCashAddress({ 
+    bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
+    tokenSupport: true 
+  })
+}
 
   static fromBase64(base64) {
     
@@ -1470,8 +1488,9 @@ async generateAuthCredentials(xpub) {
     if (!xprv || !xpub) return null
     const decodedPrivateKey = decodeHdPrivateKey(xprv)
     const decodedPublicKey = decodeHdPublicKey(xpub)
-    const privateKey = deriveHdPathRelative(decodedPrivateKey.node, '0')
-    const publicKey = deriveHdPathRelative(decodedPublicKey.node, '0')
+    // Use address index 0 (derivation path '0/0') instead of master key
+    const privateKey = deriveHdPathRelative(decodedPrivateKey.node, '0/0')
+    const publicKey = deriveHdPathRelative(decodedPublicKey.node, '0/0')
     const rawMessage = `multisig:${Date.now()}`
     const message = utf8ToBin(rawMessage);
     const hash = sha256.hash(message)
@@ -1490,11 +1509,17 @@ async generateAuthCredentials(xpub) {
    * @returns {Uint8Array} The raw compressed public key.
    */
   static extractRawPublicKeyFromXpub(xpubString) {
+    if (!xpubString) {
+        throw new Error('xpubString is required but was undefined or null');
+    }
     const decodeResult = decodeHdPublicKey(xpubString);
     if (typeof decodeResult === 'string') {
         throw new Error(`Failed to decode xpub: ${decodeResult}`);
     }
-    return decodeResult.publicKey;
+    if (!decodeResult?.node?.publicKey) {
+        throw new Error('Failed to extract public key from decoded xpub');
+    }
+    return decodeResult.node.publicKey;
   }
 
 
@@ -1540,23 +1565,21 @@ async generateAuthCredentials(xpub) {
    * @returns {string} Complete BSMS record as multi-line string
    */
   generateBSMSRecord({
-    m,
-    signers,
     scriptType = 'sh',
     branchRange = '<0;1>/*',
     pathRestrictions = '/0/*,/1/*'
-  }) {
+  } = {}) {
       
       const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
 
       // Build each key expression: [fingerprint/path]xpub/branchRange
-      const keyExpressions = signers.map(signer => {
+      const keyExpressions = this.signers.map(signer => {
         const { masterFingerprint, xpub, path } = signer;
-        const cleanPath = path.trim()?.replace(/^m/, '');
+        const cleanPath = (path || 'm/44\'/145\'/0\'').trim()?.replace(/^m/, '');
         return `[${masterFingerprint}/${cleanPath}]${xpub}/${branchRange}`;
       });
 
-      const descriptor = `${scriptType}(sortedmulti(${m},${keyExpressions.join(',')}))`;
+      const descriptor = `${scriptType}(sortedmulti(${this.m},${keyExpressions.join(',')}))`;
 
       return [
         'BSMS 1.0',
