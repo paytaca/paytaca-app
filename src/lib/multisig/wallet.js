@@ -1515,26 +1515,6 @@ async generateAuthCredentials(xpub) {
     return decodeResult.publicKey;
   }
 
-  /**
-  * Encrypts a message using ECIES for a specific recipient's public key.
-  * @param {Uint8Array} recipientRawPublicKey The raw compressed public key.
-  * @param {string} messageText The message to encrypt (your xpub).
-  * @returns {Promise<string>} The encrypted message encoded as a hex string.
-  */
-  static async encryptMessageForXpubOwner(recipientRawPublicKey, messageText) {
-    const messageBytes = utf8ToBin(messageText); 
-
-    // Initialize ECIES using libauth's secp256k1 implementation
-    const eciesEncrypt = ecies(secp256k1);
-
-    const encryptedBytes = await eciesEncrypt.encrypt(
-        recipientRawPublicKey, 
-        messageBytes
-    );
-
-    // Convert the resulting Uint8Array to a hex string for easy transmission
-    return binToHex(encryptedBytes);
-  }
 
   // =============================================================================
   // RECIPIENT SIDE FUNCTIONS
@@ -1559,26 +1539,6 @@ async generateAuthCredentials(xpub) {
   }
 
 
-  /**
-  * Decrypts an ECIES message using the owner's private key.
-  * @param {Uint8Array} ownerPrivateKeyBytes The owner's raw private key bytes.
-  * @param {string} encryptedHexMessage The encrypted message received.
-  * @returns {Promise<string>} The original plaintext message (sender's xpub).
-  */
-  static async decryptMessage(ownerPrivateKeyBytes, encryptedHexMessage) {
-    const encryptedBytes = hexToBin(encryptedHexMessage);
-
-    // Initialize ECIES with libauth's curve implementation
-    const eciesDecrypt = ecies(secp256k1);
-
-    const decryptedBytes = await eciesDecrypt.decrypt(
-        ownerPrivateKeyBytes,
-        encryptedBytes
-    );
-    
-    // Convert the resulting bytes back to a UTF-8 string
-    return binToUtf8(decryptedBytes);
-  }
 
   /**
    * Generate a BSMS 1.0 descriptor record (plain text)
@@ -1631,7 +1591,7 @@ async generateAuthCredentials(xpub) {
    * @returns {Object} Parsed data
    * @throws {Error} If invalid format or version
    */
-  parseBSMSRecord(bsmsText) {
+  static parseBSMSRecord(bsmsText) {
     if (typeof bsmsText !== 'string') {
       throw new Error('BSMS record must be a string');
     }
