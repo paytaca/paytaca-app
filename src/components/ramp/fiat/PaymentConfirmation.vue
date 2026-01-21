@@ -77,8 +77,7 @@
             <q-expansion-item
               class="text-bow"
               :class="getDarkModeClass(darkMode)"
-              :model-value="expandedPaymentMethodId === method.id"
-              @update:modelValue="onTogglePaymentMethodExpand(method.id, $event)"
+              :default-opened="true"
               :label="method.payment_type"
               header-class="payment-method-header"
               expand-separator >
@@ -360,7 +359,6 @@ export default {
       timer: null,
       paymentMethods: [],
       selectedPaymentMethods: [],
-      expandedPaymentMethodId: null,
       // Proof-of-payment upload state (client-side)
       uploadingProof: false,
       uploadingProofByMethodId: {}, // { [paymentMethodId]: true }
@@ -865,8 +863,6 @@ export default {
       }
     },
     selectAndUpload (method, methodIndex) {
-      // Collapse other payment methods when upload button is clicked
-      this.expandedPaymentMethodId = method?.id
       // If already selected, just open file picker
       if (method.selected) {
         this.onClickUpload(methodIndex)
@@ -881,13 +877,6 @@ export default {
       this.$nextTick(() => {
         this.onClickUpload(methodIndex)
       })
-    },
-    onTogglePaymentMethodExpand (methodId, isExpanded) {
-      if (isExpanded) {
-        this.expandedPaymentMethodId = methodId
-      } else if (this.expandedPaymentMethodId === methodId) {
-        this.expandedPaymentMethodId = null
-      }
     },
     onSecurityOk () {
       this.showDragSlide = false
