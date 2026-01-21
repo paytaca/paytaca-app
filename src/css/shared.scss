@@ -63,6 +63,16 @@ In html/template:
   border-bottom-right-radius: 0 !important;
 }
 
+// iOS: Quasar adds bottom padding to bottom-positioned dialogs which makes
+// "bottom-card" dialogs look like they are floating above the screen edge.
+// Keep safe-area padding INSIDE the card (see bottom-card mixin) but remove
+// extra padding on the dialog container so the card sits flush at the bottom.
+body.platform-ios {
+  .q-dialog__inner--bottom:not(.q-dialog__inner--animating) {
+    padding-bottom: 0 !important;
+  }
+}
+
 
 .br-40 {
   border-radius: 40px !important;
