@@ -25,6 +25,12 @@
                 <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('FromFile') }}</div>
               </div>
               <div>
+                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
+                  <q-icon class="default-text-color"  size="lg" name="mdi-cloud-download-outline" @click="importWalletFromServer"/>
+                </q-btn>
+                <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('FromServer') }}</div>
+              </div>
+              <div>
                 <q-btn size="lg" :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup></q-btn>
               </div>
           </div>
@@ -63,6 +69,10 @@ const darkMode = computed(() => {
 
 const importWalletFromFile = () => {
   walletFileElementRef.value.pickFiles()
+}
+
+const importWalletFromServer = () => {
+  router.push({ name: 'app-multisig-wallet-import-from-server' })
 }
 
 const onUpdateWalletFileModelValue = (file) => {
