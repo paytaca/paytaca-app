@@ -369,8 +369,6 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter } from 'vue-router'
-import { createTerminal } from 'src/services/card/backend/api';
-import { getPublicKeyAt } from 'src/utils/wallet';
 
 const bchjs = new BCHJS()
 

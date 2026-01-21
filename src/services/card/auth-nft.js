@@ -15,8 +15,6 @@
  * commitment encoding/decoding to embed terminal metadata (ID, public key, authorization state,
  * expiration block, and spend limit) into token commitments for validation and access control.
  * 
- * @requires crypto - For SHA256 hashing of terminal data
- * @requires mainnet-js - For blockchain wallet operations and token management
  */
 
 import { createHash } from 'crypto';

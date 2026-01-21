@@ -133,19 +133,21 @@ export default {
       const user = await loadCardUser();
       console.log('Card User:', user); 
 
-      // load card(s)
+      // load cards of authenticated user
       this.cards = await user.fetchCards();
       console.log('Cards:', this.cards);
 
-      this.cards.forEach(async card => {
-        // console.log('Card:', card);
+      // Print and fetch info, tokenUtxos, bchUtxos, and contract for each card
+      for (const card of this.cards) {
+        console.log('================')
+        console.log('Card:', card);
         const tokenUtxos = await card.getTokenUtxos();
         console.log('Card tokenUtxos:', tokenUtxos);
-        // const bchUtxos = await card.getBchUtxos();
-        // console.log('Card bchUtxos:', bchUtxos);
+        const bchUtxos = await card.getBchUtxos();
+        console.log('Card bchUtxos:', bchUtxos);
         const contract = await card.getContract()
         console.log('Card contract:', contract);
-      });
+      }
       
     } catch (error) {
       console.error('Error during card user load:', error);

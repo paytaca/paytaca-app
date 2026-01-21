@@ -1,7 +1,7 @@
 
 
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
-import { SignatureTemplate, Contract, TransactionBuilder, ElectrumNetworkProvider, Network, HashType } from 'cashscript0.11.x';
+import { SignatureTemplate, Contract } from 'cashscript0.11.x';
 import { defaultNetwork, TX_FEE } from './constants.js';
 import { binToHex } from '@bitauth/libauth';
 import { convertCashAddressToTokenAddress, pubkeyToPkHash } from './utils.js';
@@ -18,20 +18,20 @@ import { Wallet } from 'mainnet-js';
 export class TapToPay {
     constructor (contractId) {
         this.contractId = contractId;
-        
-        if (contractId) {
-            const mncontract = MainnetContract.fromId(contractId);
-            const parameters = [];
-            mncontract.parameters.forEach((param) => {
-                parameters.push(Buffer(param).toString('hex'));
-            })
+        const contract = MainnetContract.fromId(contractId);
+        console.log('Loaded contract:', contract);
+        console.log('Contract parameters raw:', contract.parameters);
+        const parameters = [];
+        contract.parameters.forEach((param) => {
+            parameters.push(Buffer(param).toString('hex'));
+        })
 
-            this.params = {
-                ownerPkh: parameters[0],
-                backendPkh: parameters[1],
-                authCategory: parameters[2]
-            };
-        }
+        console.log('Contract parameters:', parameters);
+        this.params = {
+            ownerPkh: parameters[0],
+            backendPkh: parameters[1],
+            authCategory: parameters[2]
+        };
     }
 
     get contractCreationParams () {
@@ -42,47 +42,31 @@ export class TapToPay {
         };
     }
 
-    getMainnetCashContract (params) {
-        const contractCreationParams = params || this.contractCreationParams;
-        return new MainnetContract(artifact.source, contractCreationParams, 'mainnet');
-    }
-
-    getContractId (params) {
-        const contract = this.getMainnetCashContract(params);
-        return contract.toString();
-    }
-
-    getContractFromId (contractId) {
-        const contract_ = MainnetContract.fromId(contractId)
-        const parameters = [];
-        contract_.parameters.forEach((param) => {
-            parameters.push(Buffer(param).toString('hex'));
-        })
-        console.log('Contract parameters:', parameters)
-        const params = {
-            ownerPkh: parameters[0],
-            backendPkh: parameters[1],
-            authCategory: parameters[2]
-        };
-        console.log('Contract params:', params)
-        return this.getContract(params)
-    }
-
-    getContract (params) {
-        const contractCreationParams = params || this.contractCreationParams
+    getContract () {
+        const contractCreationParams = this.contractCreationParams
         const contractParams = [
             contractCreationParams.ownerPkh,
             contractCreationParams.backendPkh,
             contractCreationParams.authCategory
         ];
-        console.log('----->>>>>>> contractParams:', contractParams)
+
         const contract = new Contract(artifact, contractParams)
         return contract;
     } 
 
     async getUtxos () {
-        const contract = this.getMainnetCashContract()
+        const contract = this.getContract()
         return await contract.getUtxos();
+    }
+
+    async getTokenUtxos () {
+        const utxos = await this.getUtxos();
+        return utxos.filter(utxo => utxo.token !== undefined);
+    }
+
+    async getBchUtxos () {
+        const utxos = await this.getUtxos();
+        return utxos.filter(utxo => utxo.token === undefined);
     }
 
     // - this function is used by the backend

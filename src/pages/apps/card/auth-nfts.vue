@@ -92,7 +92,6 @@
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import TerminalList from 'src/components/card/TerminalList.vue'
-import { fetchAuthNFTs } from 'src/services/card/backend/api'
 import AuthTokenManager, { decodeCommitment } from 'src/services/card/auth-nft'
 import { TapToPay } from 'src/services/card/tap-to-pay'
 import Card from 'src/services/card/card'

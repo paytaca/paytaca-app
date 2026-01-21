@@ -1,26 +1,17 @@
-/**
- * Card service for managing cryptocurrency card operations:
- * genesis tokens, auth tokens, smart contracts, and UTXO management.
- */
-
 import AuthNft from './auth-nft';
-import { defaultSpendLimitSats } from './constants';
+import { defaultSpendLimitSats, minTokenValue } from './constants';
 import { defaultExpirationBlock } from './auth-nft';
 import { TapToPay } from './tap-to-pay';
-import { createNFTs, fetchCard, createCard, mutateNFTs } from './backend/api';
-import { binToHex } from 'bitauth-libauth-v3';
 import { backend } from './backend';
 import { loadWallet } from '../wallet';
 
-/** Handles card operations: genesis/auth tokens, smart contracts, UTXO management */
 export class Card {
-  /** @param {Object} data - Initial card data */
   constructor(data) {
     this.raw = data;
+    this.initializeTapToPay()
   }
 
   set raw(data) {
-    console.log('=====>>>>>', data)
     this._rawData = data;
   }
 
@@ -49,6 +40,9 @@ export class Card {
         ...response.card,
         genesis_nft: response.genesis_nft
       };
+
+      // Initialize TapToPay contract
+      this.initializeTapToPay()
 
       // Mint global auth token
       const mintResult = await this.mintGlobalAuthToken();
@@ -84,13 +78,17 @@ export class Card {
       this.authNft = new AuthNft(this.wallet.privkey());
     }
     
-    // Check for vout=0 UTXOs first
-    const hasVoutZero = await this.checkForVoutZeroUtxos();
-
-    if (!hasVoutZero) {
-      console.log('No vout=0 UTXO available, creating one...');
-      await this.createVoutZeroTransaction();
+    // Check existing vout=0 UTXOs and calculate needed amount
+    const requiredSats = this.estimateGenesisSatsRequirement();
+    const existingSats = await this.checkForVoutZeroUtxos();
+    
+    if (existingSats < requiredSats) {
+      const neededSats = requiredSats - existingSats;
+      console.log(`Need ${neededSats} more sats (have ${existingSats}, need ${requiredSats})`);
+      await this.createVoutZeroTransaction(neededSats);
       await this.waitForTransaction();
+    } else {
+      console.log(`Sufficient vout=0 UTXOs available: ${existingSats} sats`);
     }
 
     try {
@@ -141,6 +139,11 @@ export class Card {
     return result;
   }
 
+  /**
+   * Issues global auth token to specified address
+   * @param {string} toAddress - Recipient address for the global auth token
+   * @returns {Promise<Object>}
+   */
   async issueGlobalAuthToken(toAddress) {
     if (!this.wallet) {
       this.wallet = await loadWallet();
@@ -239,8 +242,8 @@ export class Card {
   // ==================== UTXO MANAGEMENT ====================
 
   /**
-   * Checks for available vout=0 UTXOs
-   * @returns {Promise<boolean>}
+   * Checks for available vout=0 UTXOs and returns total satoshis
+   * @returns {Promise<number>} Total satoshis available in vout=0 UTXOs
    */
   async checkForVoutZeroUtxos() {
     try {
@@ -252,22 +255,24 @@ export class Card {
       const resp = await this.wallet.getBchUtxos()
       console.log('UTXO response:', resp);
       const utxos = resp.utxos || [];
-      const voutZeroUtxos = utxos.filter(utxo => utxo.tx_pos === 0 && utxo.value >= 2000);
+      const voutZeroUtxos = utxos.filter(utxo => utxo.tx_pos === 0);
       
-      console.log(`Found ${voutZeroUtxos.length} existing vout=0 UTXOs`);
-      return voutZeroUtxos.length > 0;
+      const totalSats = voutZeroUtxos.reduce((sum, utxo) => sum + utxo.value, 0n);
+      console.log(`Found ${voutZeroUtxos.length} existing vout=0 UTXOs with total ${totalSats} sats`);
+      return totalSats;
       
     } catch (error) {
       console.warn('Could not check existing UTXOs:', error.message);
-      return false;
+      return 0;
     }
   }
 
   /**
    * Creates vout=0 UTXO by sending BCH to self
+   * @param {number} [amount] - Amount in satoshis to send (defaults to full estimated requirement)
    * @returns {Promise<Object>}
    */
-  async createVoutZeroTransaction() {
+  async createVoutZeroTransaction(amount) {
     if (!this.wallet) {
       this.wallet = await loadWallet();
     }
@@ -277,20 +282,55 @@ export class Card {
     const wallet = await this.wallet.getRawWallet();
     const receivingAddress = (await wallet.getAddressSetAt(0)).receiving;
     
-    console.log('Sending BCH to address (will create vout=0):', receivingAddress);
+    // Use provided amount or estimate full requirement
+    const satsToSend = amount || this.estimateGenesisSatsRequirement();
+    const bchAmount = Number(satsToSend) / 1e8;
     
-    const sendResult = await wallet.sendBch(0.00002, receivingAddress);
+    console.log(`Sending ${satsToSend} sats (${bchAmount} BCH) to address:`, receivingAddress);
+    
+    const sendResult = await wallet.sendBch(bchAmount, receivingAddress);
     console.log('Transaction sent:', sendResult);
+
+    if (sendResult.success == false) {
+      throw new Error(`Failed to create vout=0 UTXO: ${sendResult.error}`);
+    }
     
     return sendResult;
   }
 
   /**
+   * Estimates satoshis needed for token genesis operation
+   * Based on actual mainnet-js transaction requirements
+   * @returns {bigint} Estimated satoshis needed
+   */
+  estimateGenesisSatsRequirement() {
+    const tokenOutputValue = minTokenValue; // 1000 sats from constants
+    const estimatedTxSize = 500; // More realistic: includes change outputs, token data
+    const feeRate = 1.2; // sats/byte
+    const estimatedFee = BigInt(Math.ceil(estimatedTxSize * feeRate));
+    const dustLimit = 546n;
+    const buffer = 15000n; // Larger buffer based on actual requirements (~12k sats observed)
+    
+    const total = tokenOutputValue + estimatedFee + dustLimit + buffer;
+    
+    console.log('Estimated genesis sats requirement:', {
+      tokenOutputValue,
+      estimatedFee,
+      dustLimit,
+      buffer,
+      total: Number(total)
+    });
+
+    return total;
+  }
+
+
+  /**
    * Waits for transaction confirmation
-   * @param {number} [delayMs=2000]
+   * @param {number} [delayMs=6000]
    * @returns {Promise<void>}
    */
-  async waitForTransaction(delayMs = 2000) {
+  async waitForTransaction(delayMs = 6000) {
     console.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
     await new Promise(resolve => setTimeout(resolve, delayMs));
   }
@@ -300,16 +340,10 @@ export class Card {
    * @returns {Promise<Array>}
    */
   async getTokenUtxos() {
-    if (!this.wallet) {
-      this.wallet = await loadWallet();
+    if (!this.tapToPay) {
+      this.initializeTapToPay();
     }
-
-    if (!this.authNft) {
-      this.authNft = new AuthNft(this.wallet.privkey());
-    }
-
-    const tokenId = this.raw?.genesis_nft?.category;
-    return await this.authNft.getTokenUtxos(tokenId);
+    return await this.tapToPay.getTokenUtxos();
   }
 
   /**
@@ -317,26 +351,21 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async getBchUtxos() {
-    if (!this.wallet) {
-      this.wallet = await loadWallet();
+    if (!this.tapToPay) {
+      this.initializeTapToPay();
     }
-    
-    const address = this.raw?.cash_address;
-    const rawWallet = await this.wallet.getRawWallet();
-    return await rawWallet.watchtower.BCH.getBchUtxos(address);
+    return await this.tapToPay.getBchUtxos();
   }
 
+  /**
+   * Gets the TapToPay contract instance
+   * @returns {Promise<Object>}
+   */
   async getContract(){
     if (!this.tapToPay) {
       this.initializeTapToPay();
     }
-    console.log('this.raw:', this.raw)
-    const contractId = this.raw.contract_id;
-    console.log('Fetching contract with ID:', contractId);
-    const contract = this.tapToPay.getContractFromId(contractId);
-    const utxos = await contract.getUtxos()
-    console.log('Contract UTXOs:', utxos);
-
+    const contract = this.tapToPay.getContract()
     return contract
   }
 
@@ -358,42 +387,43 @@ export class Card {
    * @returns {TapToPay}
    */
   initializeTapToPay() {
-    this.tapToPay = new TapToPay();
-    return this.tapToPay;
+    if (!this.raw?.contract_id)
+      return
+    this.tapToPay = new TapToPay(this.raw.contract_id);
   }
 
-  /**
-   * Mutates auth token permissions
-   * @param {string} contractId
-   * @param {Array} mutations
-   * @param {boolean} [broadcast=true]
-   * @returns {Promise<{mutateResponse: Object, serverResponse: Object}>}
-   */
-  async mutateAuthTokens(contractId, mutations, broadcast = true) {
-    if (!this.tapToPay) {
-      this.initializeTapToPay(contractId)
-    }
+  // /**
+  //  * Mutates auth token permissions
+  //  * @param {string} contractId
+  //  * @param {Array} mutations
+  //  * @param {boolean} [broadcast=true]
+  //  * @returns {Promise<{mutateResponse: Object, serverResponse: Object}>}
+  //  */
+  // async mutateAuthTokens(contractId, mutations, broadcast = true) {
+  //   if (!this.tapToPay) {
+  //     this.initializeTapToPay(contractId)
+  //   }
 
-    const mutateResponse = await this.tapToPay.mutate({
-      senderWif: this.privateKey,
-      mutations,
-      broadcast
-    });
+  //   const mutateResponse = await this.tapToPay.mutate({
+  //     senderWif: this.privateKey,
+  //     mutations,
+  //     broadcast
+  //   });
 
-    const mutationData = mutations.map(mutation => {
-      const outputs = mutateResponse.outputs || []
-      const mutatedOutput = outputs.find(output => !!output.token.nft)
-      const commitment = binToHex(mutatedOutput?.token?.nft?.commitment)
-      return {
-        terminal_id: mutation.id,
-        commitment: commitment
-      };
-    });
+  //   const mutationData = mutations.map(mutation => {
+  //     const outputs = mutateResponse.outputs || []
+  //     const mutatedOutput = outputs.find(output => !!output.token.nft)
+  //     const commitment = binToHex(mutatedOutput?.token?.nft?.commitment)
+  //     return {
+  //       terminal_id: mutation.id,
+  //       commitment: commitment
+  //     };
+  //   });
 
-    const serverResponse = await mutateNFTs({ mutations: mutationData })
+  //   const serverResponse = await mutateNFTs({ mutations: mutationData })
 
-    return { mutateResponse, serverResponse };
-  }
+  //   return { mutateResponse, serverResponse };
+  // }
 
   // // this spend function should be in the POS app, not in paytaca-app
   // /**
@@ -406,34 +436,23 @@ export class Card {
   //   return await this.tapToPay.spend({ signers, recipient, broadcast });
   // }
 
-  /**
-   * Sweeps all funds from card
-   * @param {string} toAddress
-   * @param {boolean} [broadcast=true]
-   * @returns {Promise<Object>}
-   */
-  async sweep(toAddress, broadcast = true) {
-    if (!this.tapToPay) {
-      throw new Error('TapToPay contract not initialized. Call initializeTapToPay() first.');
-    }
+  // /**
+  //  * Sweeps all funds from card
+  //  * @param {string} toAddress
+  //  * @param {boolean} [broadcast=true]
+  //  * @returns {Promise<Object>}
+  //  */
+  // async sweep(toAddress, broadcast = true) {
+  //   if (!this.tapToPay) {
+  //     throw new Error('TapToPay contract not initialized. Call initializeTapToPay() first.');
+  //   }
     
-    return await this.tapToPay.sweep({
-      senderWif: this.privateKey,
-      toAddress,
-      broadcast
-    });
-  }
-
-  // ==================== CARD INFO OPERATIONS ====================
-
-  /**
-   * Fetches card info from server
-   * @returns {Promise<Object>}
-   */
-  async fetchCardInfo() {
-    console.log('Fetching card info for wallet:', this.walletHash);
-    return await fetchCard(this.walletHash);
-  }
+  //   return await this.tapToPay.sweep({
+  //     senderWif: this.privateKey,
+  //     toAddress,
+  //     broadcast
+  //   });
+  // }
 
   // ==================== UTILITY METHODS ====================
 
@@ -458,26 +477,6 @@ export class Card {
     if (this.tapToPay) {
       console.log('TapToPay contract needs to be reinitialized after key update');
     }
-  }
-
-  // ==================== SERVER METHODS ====================
-
-  /**
-   * Fetches NFTs for wallet
-   * @param {string} walletHash
-   * @returns {Promise<Array>}
-   */
-  async fetchNFTs(walletHash) {
-    return await fetchAuthNFTs(walletHash);
-  }
-
-  /**
-   * Creates NFTs on server
-   * @param {Object} nftData
-   * @returns {Promise<Object>}
-   */
-  async createNFTs(nftData) {
-    return await createNFTs(nftData);
   }
 }
 
