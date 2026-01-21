@@ -374,7 +374,7 @@ export default {
         )
       } else {
         this.$q.notify({
-          message: this.$t('ContractAddressUnavailable'),
+          message: this.$t('LIFTPurchaseUnavailable'),
           color: 'negative',
           icon: 'error',
           timeout: 4000

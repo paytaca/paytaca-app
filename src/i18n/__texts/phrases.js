@@ -2034,6 +2034,7 @@ const phrases = {
       BitcoinIsCashDescription: 'Learn about Bitcoin Cash',
       MoreAboutBitcoinCash: 'More About Bitcoin Cash',
       MoreAboutBitcoinCashDescription: 'Educational resources about Bitcoin Cash',
+      LIFTPurchaseUnavailable: 'Currently unavailable. Please try again later. Message us if you need help.'
     }
   ],
   dynamic: [

@@ -232,6 +232,7 @@ export default {
       // compute lockup end based on current date and rsvp.sale_group
       const year = this.rsvp.sale_group === 'seed' ? 2 : 1
       const lockupEnd = new Date(new Date().setFullYear(new Date().getFullYear() + year))
+      // const lockupEnd = new Date(new Date().setHours(new Date().getHours() + year))
 
       const vestingContract = initializeVestingContract(
         this.rsvp.public_key, token_id, pubkey, lockupEnd, this.rsvp.reserved_amount_tkn

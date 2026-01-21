@@ -552,6 +552,7 @@ const words = [
     PaytacaWebsite: 'Paytaca Website',
     GiftID: 'Gift ID',
     Tools: 'Tools',
+    ComingSoon: 'Coming Soon',
   }
 ]
 
