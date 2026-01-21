@@ -244,6 +244,23 @@ export async function getAssetMetadata (context, assetId) {
 
   if (tokenType !== 'ct') return
 
+  // Ensure the asset exists before updating metadata.
+  // `updateAssetMetadata` is a no-op if the asset doesn't exist yet.
+  const normalizedAssetId = `ct/${tokenId}`
+  const existing = context.getters.getAsset?.(normalizedAssetId)
+  if (!Array.isArray(existing) || existing.length === 0) {
+    context.commit('addNewAsset', {
+      id: normalizedAssetId,
+      name: '',
+      symbol: '',
+      decimals: 0,
+      logo: '',
+      balance: 0,
+      spendable: 0,
+      is_nft: false,
+    })
+  }
+
   const url = 'tokens/' + tokenId + '/'
   const response = await getBcmrBackend().get(url)
   const _metadata = response.data
@@ -259,7 +276,7 @@ export async function getAssetMetadata (context, assetId) {
       imageUrl = _metadata.uris.icon || ''
     }
     data = {
-      'id': 'ct/' + tokenId,
+      'id': normalizedAssetId,
       'isNft': _metadata.is_nft,
       'name': _metadata.name,
       // 'description': _metadata.description,

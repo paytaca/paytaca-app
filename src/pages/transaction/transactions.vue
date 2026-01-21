@@ -1,6 +1,10 @@
 <template>
 	<q-pull-to-refresh id="app-container" class="sticky-header-container" :class="darkmode ? 'dark' : 'light'" @refresh="onRefresh">
-		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/"/>
+		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/">
+			<template #top-right-menu>
+				<TransactionTimestampSettings />
+			</template>
+		</header-nav>
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
@@ -66,22 +70,21 @@
 		                <q-input
 		                  ref="tx-search"
 		                  style="margin: 0px 30px 0px; padding-bottom: 3px;"
-		                  maxlength="8"
-		                  :label="$t('SearchByReferenceID')"
-		                  v-model="txSearchReference"
+		                  maxlength="128"
+		                  :label="$t('SearchByReferenceID') + ' / ' + $t('TransactionId', {}, 'Transaction ID')"
+		                  v-model="txSearchQuery"
 		                  debounce="200"
-		                  placeholder="00000000"
+		                  placeholder="00000000 or <txid>"
 		                  @update:model-value="(val) => { 
-		                    const cleaned = val.replace(/[^0-9]/g, '').slice(0, 8);
-		                    txSearchReference = cleaned;
-		                    executeTxSearch(txSearchReference);
+		                    txSearchQuery = String(val || '').trim();
+		                    executeTxSearch(txSearchQuery);
 		                  }"
 		                >
 		                  <template v-slot:prepend>
 		                    <q-icon name="search" />
 		                  </template>
 		                  <template v-slot:append>
-		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
+		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchQuery = ''; $refs['transaction-list-component'].getTransactions() }" />
 		                  </template>
 		                </q-input>
 		              </div>
@@ -195,6 +198,7 @@ import { hexToRef, normalizeRefToHex, refToHex } from 'src/utils/reference-id-ut
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
 import TransactionList from 'src/components/transactions/TransactionList'
+import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import AssetListDialog from '../../pages/transaction/dialog/AssetListDialog.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import headerNav from 'src/components/header-nav'
@@ -208,7 +212,7 @@ export default {
 			wallet: null,
 			denominationTabSelected: 'BCH',
 			txSearchActive: false,
-			txSearchReference: '',
+			txSearchQuery: '',
 			// Prevent duplicate fetches when query updates multiple keys at once (e.g. txid + reference).
 			lastAppliedRouteTxSearchKey: '',
 			transactionsFilter: 'all',
@@ -322,6 +326,7 @@ export default {
 		Transaction,
 		TransactionList,
 		StablehedgeHistory,
+		TransactionTimestampSettings,
 		AssetListDialog,
 		// assetList
 	},
@@ -376,32 +381,37 @@ export default {
 	methods: {
 		applyRouteTxSearch () {
 			// Supports QR/deep links carrying:
-			// - txid: 64-hex transaction id (derive reference from first 6 hex chars)
+				// - txid: 64-hex transaction id
 			// - reference: reference-id in either 6-hex or 8-decimal format
 			const q = this.$route?.query || {}
 
-			let referenceHex = ''
-			const txid = typeof q.txid === 'string' ? q.txid.trim() : ''
+				const txid = typeof q.txid === 'string' ? q.txid.trim() : ''
+				let referenceHex = ''
 			if (/^[0-9a-fA-F]{64}$/.test(txid)) {
-				referenceHex = txid.slice(0, 6).toUpperCase()
+					// Prefer txid search when provided.
+					referenceHex = ''
 			} else if (typeof q.reference === 'string') {
 				referenceHex = normalizeRefToHex(q.reference)
 			}
 
-			if (!referenceHex) return false
-			const refDecimal = hexToRef(referenceHex)
-			if (!refDecimal) return false
-
-			const routeKey = `${txid || ''}|${referenceHex}`
-			if (this.lastAppliedRouteTxSearchKey === routeKey && String(this.txSearchReference || '') === String(refDecimal)) {
+				const routeKey = `${txid || ''}|${referenceHex}`
+				if (this.lastAppliedRouteTxSearchKey === routeKey && String(this.txSearchQuery || '') === String(txid || (hexToRef(referenceHex) || ''))) {
 				// Already applied for this exact deep-link; avoid duplicate fetch.
 				return true
 			}
 			this.lastAppliedRouteTxSearchKey = routeKey
 
 			this.txSearchActive = true
-			this.txSearchReference = refDecimal
-			this.$nextTick(() => this.executeTxSearch(refDecimal))
+				if (/^[0-9a-fA-F]{64}$/.test(txid)) {
+					this.txSearchQuery = txid
+					this.$nextTick(() => this.executeTxSearch(txid))
+					return true
+				}
+
+				const refDecimal = hexToRef(referenceHex)
+				if (!refDecimal) return false
+				this.txSearchQuery = refDecimal
+				this.$nextTick(() => this.executeTxSearch(refDecimal))
 			return true
 		},
 		parseAssetDenomination,
@@ -637,14 +647,29 @@ export default {
 	      this.hideBalances = !this.hideBalances
 	    },
 	    executeTxSearch (value) {
-	      const valueStr = String(value || '')
-	      // Allow empty or 8-digit decimal
-	      if (valueStr.length === 0 || valueStr.length === 8) {
-	        // Convert decimal reference to hex before API call
-	        const hexRef = valueStr && valueStr.length === 8 ? refToHex(valueStr) : valueStr
-	        const opts = {txSearchReference: hexRef}
+	      const raw = String(value || '').trim()
+
+	      // Empty => clear search
+	      if (!raw) {
 	        this.$refs['tx-search']?.blur?.()
-	        this.$refs['transaction-list-component'].getTransactions(1, opts)
+	        this.$refs['transaction-list-component'].getTransactions(1, { txSearchReference: null, txids: null })
+	        return
+	      }
+
+	      // Reference ID: exactly 8 digits
+	      if (/^[0-9]{8}$/.test(raw)) {
+	        const hexRef = refToHex(raw)
+	        this.$refs['tx-search']?.blur?.()
+	        this.$refs['transaction-list-component'].getTransactions(1, { txSearchReference: hexRef, txids: null })
+	        return
+	      }
+
+	      // Txid search: accept one or more 64-hex txids (comma/space separated)
+	      const candidates = raw.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+	      const txids = candidates.filter(s => /^[0-9a-fA-F]{64}$/.test(s))
+	      if (txids.length) {
+	        this.$refs['tx-search']?.blur?.()
+	        this.$refs['transaction-list-component'].getTransactions(1, { txSearchReference: null, txids: txids.map(t => t.toLowerCase()).join(',') })
 	      }
 	    },
 	    async onRefresh (done) {

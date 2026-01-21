@@ -103,6 +103,16 @@ export default {
 		darkmode () {
 			return this.$store.getters['darkmode/getStatus']
 		},
+		selectedMarketCurrency () {
+			const currency = this.$store.getters['market/selectedCurrency']
+			return currency?.symbol
+		},
+		preferredStablehedgeCurrency () {
+			// Wallet currency --> Stablehedge token currency
+			// PHP -> SPHP (currency: PHP)
+			// USD and all other currencies -> SUSD (currency: USD)
+			return this.selectedMarketCurrency === 'PHP' ? 'PHP' : 'USD'
+		},
 		isChipnet () {
 			return this.$store.getters['global/isChipnet']
 		},
@@ -161,8 +171,7 @@ export default {
 		    try {
 		        const updateLoading = vm.$q.loading.show({ group: loadingKey, delay: 500 })
 		        const currencies = [
-		          vm.selectedMarketCurrency,
-		          'USD',
+		          vm.preferredStablehedgeCurrency,
 		          ...vm.tokenBalancesWithSats.map(tokenBalance => tokenBalance?.currency)
 		        ].filter(Boolean)
 		          .filter((element, index, list) => list.indexOf(element) === index)
@@ -180,7 +189,7 @@ export default {
 			        : response.data?.results
 
 			    let contract = redemptionContracts.find(contract => {
-			        return contract?.fiat_token?.currency === vm.selectedMarketCurrency
+			        return contract?.fiat_token?.currency === vm.preferredStablehedgeCurrency
 			    })
 			    if (!contract) {
 			        contract = redemptionContracts?.[0]

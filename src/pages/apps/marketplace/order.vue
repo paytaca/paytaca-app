@@ -620,7 +620,8 @@
     <div class="fixed-bottom q-pl-sm q-pb-sm">
       <OrderChatButton
         ref="chatButton"
-        :order-id="orderId"  
+        :order-id="orderId"
+        :order="order"
       >
         <template v-if="order?.inProgress || orderDispute?.id" v-slot:before-messages>
           <div class="row item-center q-r-mt-sm q-pb-xs">

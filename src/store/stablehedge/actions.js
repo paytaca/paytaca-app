@@ -25,7 +25,71 @@ export function updateTokenBalances(context) {
         balances: data,
       })
 
-      return data
+      // Ensure Stablehedge tokens have proper metadata (logo, name, symbol) for UI token cards.
+      // Stablehedge balances come from a dedicated endpoint and may not automatically populate
+      // the general `assets` store with CashToken metadata.
+      const stablehedgeAssetIds = new Set(
+        data
+          .map(bal => bal?.category)
+          .filter(Boolean)
+          .map(category => `ct/${category}`)
+      )
+
+      // Ensure every Stablehedge category exists as an `assets` entry so it can be
+      // enriched via BCMR metadata (icon, symbol, decimals, etc).
+      stablehedgeAssetIds.forEach(assetId => {
+        const existing = context.rootGetters['assets/getAsset']?.(assetId)
+        if (Array.isArray(existing) && existing.length) return
+        context.commit('assets/addNewAsset', {
+          id: assetId,
+          symbol: '',
+          name: '',
+          logo: '',
+          balance: 0,
+          spendable: 0,
+          is_nft: false,
+        }, { root: true })
+      })
+
+      const fetchFromWatchtower = () => {
+        return context.dispatch(
+          'assets/getMissingAssets',
+          {
+            walletHash: walletData.walletHash,
+            includeIgnoredTokens: true,
+            isCashToken: true,
+          },
+          { root: true }
+        ).then((missingAssets) => {
+          if (!Array.isArray(missingAssets)) return
+          missingAssets.forEach(asset => {
+            if (!asset) return
+            // Watchtower endpoints may return either `ct/<tokenId>` or raw `<tokenId>`
+            // Normalize so downstream lookups (`ct/${category}`) work.
+            const rawId = String(asset.id || '')
+            const normalizedId = rawId.startsWith('ct/') ? rawId : (rawId ? `ct/${rawId}` : '')
+            if (!normalizedId) return
+            if (!stablehedgeAssetIds.has(normalizedId)) return
+            context.commit('assets/addNewAsset', { ...asset, id: normalizedId }, { root: true })
+          })
+        })
+      }
+
+      const fetchFromBcmr = () => {
+        // Prefer per-token metadata (including icon) from BCMR indexer.
+        // This updates the existing `assets` entries in-place (via `updateAssetMetadata`).
+        return Promise.allSettled(
+          Array.from(stablehedgeAssetIds).map(assetId => {
+            // `assets` is a namespaced module; root dispatch must be fully qualified.
+            return context.dispatch('assets/getAssetMetadata', assetId, { root: true })
+          })
+        )
+      }
+
+      return Promise.allSettled([
+        fetchFromWatchtower(),
+        fetchFromBcmr(),
+      ]).then(() => data)
     })
 }
 
