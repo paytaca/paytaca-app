@@ -437,9 +437,6 @@ export class MultisigWallet {
     if (config?.enabled) {
       this.enabled = config.enabled
     }
-    if (!config?.id && this.signers) {
-      this.id = getWalletHash(this)
-    }
     
     this.options = options || {}
     
@@ -1227,7 +1224,6 @@ export class MultisigWallet {
    * @param {object} saveOptions
    */
   async sync() {
-
 
     const signers = []
 
