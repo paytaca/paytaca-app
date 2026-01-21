@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Opdatering van langrekeningvoorkeure",
   UpdatingPayment: "Opdatering van betaling",
   UpdatingPubkeyAndAddress: "Dateer pubkey en adres op",
-  UpgradeByHoldingLift: "Gradeer op deur ten minste 100 LIFT-tokens in jou beursie te hou.",
+  UpgradeByHoldingLift: "Gradeer op deur ten minste {count} LIFT-tokens in jou beursie te hou.",
   UpgradeNow: "Gradeer nou op",
   UpgradeRequirement: "Opgradering vereiste",
   UpgradeRequirementDescription: "Opgradering vereiste beskrywing",

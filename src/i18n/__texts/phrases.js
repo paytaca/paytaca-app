@@ -1883,18 +1883,22 @@ const phrases = {
       // Subscription/Plus
       EligibleForPlus: 'Eligible for Plus',
       PlusStatusActive: 'Plus status active',
-      PlusTierDescription: 'Unlock higher limits and enhanced capabilities. Create up to 12 wallets, add 24 favorite tokens, manage 12 multisig wallets, and more.',
-      FreeTierDescription: 'Perfect for getting started. Create up to 3 wallets, add 7 favorite tokens, and manage 3 multisig wallets per device.',
+      PlusTierDescription: 'Unlock higher limits and enhanced capabilities. Create up to {wallets} wallets, add {favoriteTokens} favorite tokens, manage {multisigWallets} multisig wallets, and more.',
+      FreeTierDescription: 'Perfect for getting started. Create up to {wallets} wallets, add {favoriteTokens} favorite tokens, and manage {multisigWallets} multisig wallets per device.',
       HowToUpgrade: 'How to upgrade',
-      UpgradeByHoldingLift: 'Upgrade by holding at least 100 LIFT tokens in your wallet.',
+      UpgradeByHoldingLift: 'Upgrade by holding at least {count} LIFT tokens in your wallet.',
       UpgradeRequirement: 'Upgrade requirement',
       UpgradeRequirementDescription: 'To upgrade to Paytaca Plus, simply hold at least {count} LIFT tokens in your wallet. Your subscription status is automatically checked based on your LIFT token balance.',
       SubscriptionMode: 'Subscription mode',
-      SubscriptionModeDescription: 'The subscription system is currently in token-holding mode. To upgrade to Paytaca Plus, you only need to hold at least 100 LIFT tokens in your wallet. No monthly payments are required. Your subscription status is automatically verified based on your LIFT token balance.',
+      SubscriptionModeDescription: 'The subscription system is currently in token-holding mode. To upgrade to Paytaca Plus, you only need to hold at least {count} LIFT tokens in your wallet. No monthly payments are required. Your subscription status is automatically verified based on your LIFT token balance.',
       SubscriptionTiers: 'Subscription tiers',
       NeedMoreLiftTokens: 'Need more LIFT tokens',
       ApproachingLimit: 'Approaching limit',
       LimitReached: 'Limit reached',
+      PaytacaMaxComingSoon: 'Paytaca Max (coming soon)',
+      ThisFeature: 'this feature',
+      MaxPlanLimitReachedWithCount: 'You\'ve reached the Paytaca Plus limit of {limit} for {label}. Paytaca Max will be available in the future with much higher limits.',
+      MaxPlanLimitReached: 'You\'ve reached the Paytaca Plus limit for {label}. Paytaca Max will be available in the future with much higher limits.',
     },
     {
       // UI/General
@@ -2181,11 +2185,13 @@ const phrases = {
       MultisigWalletLimitReached: 'You\'ve reached the limit of {free} multisig wallets. Upgrade to Paytaca Plus to create more multisig wallets.',
       UnclaimedGiftsLimitReached: 'You\'ve reached the limit of {free} unclaimed gifts. Upgrade to Paytaca Plus to create more gifts.',
       FavoriteTokensLimitReached: 'You\'ve reached the limit of {free} favorite tokens. Upgrade to Paytaca Plus to add more favorites.',
-      MerchantsLimitReached: 'You\'ve reached the limit of {free} merchants. Upgrade to Paytaca Plus for more merchants.',
+      MerchantsLimitReached: 'You\'ve reached the limit of {free} {merchantLabel} per wallet. Upgrade to Paytaca Plus to add more merchants.',
       PaytacaWebsiteDescription: 'Visit {paytacaWebsite}',
       FollowUsOn: 'Follow us on {platform}',
       TelegramDescription: 'Join our {telegram} community',
       BoughtAmount: 'Bought {amount} {symbol}',
+      MerchantLower: 'merchant',
+      MerchantsLower: 'merchants',
     }
   ]
 }

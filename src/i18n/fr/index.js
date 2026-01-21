@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Mise à jour des préférences du compte long",
   UpdatingPayment: "Mise à jour du paiement",
   UpdatingPubkeyAndAddress: "Mise à jour de la clé publique et de l'adresse",
-  UpgradeByHoldingLift: "Mettez à niveau en détenant au moins 100 jetons LIFT dans votre portefeuille.",
+  UpgradeByHoldingLift: "Mettez à niveau en détenant au moins {count} jetons LIFT dans votre portefeuille.",
   UpgradeNow: "Mettre à niveau maintenant",
   UpgradeRequirement: "Exigence de mise à niveau",
   UpgradeRequirementDescription: "Description de l'exigence de mise à niveau",

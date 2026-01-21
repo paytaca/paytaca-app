@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Actualización de preferencias de cuentas largas",
   UpdatingPayment: "Actualizando pago",
   UpdatingPubkeyAndAddress: "Actualizando pubkey y dirección",
-  UpgradeByHoldingLift: "Actualice manteniendo al menos 100 tokens LIFT en su billetera.",
+  UpgradeByHoldingLift: "Actualice manteniendo al menos {count} tokens LIFT en su billetera.",
   UpgradeNow: "Actualiza ahora",
   UpgradeRequirement: "Requisito de actualización",
   UpgradeRequirementDescription: "Descripción del requisito de actualización",

@@ -513,13 +513,6 @@
       v-on:nextAction="executeActionTaken"
       :new-wallet-mnemonic="mnemonic"
     />
-    
-    <!-- Upgrade Prompt Dialog -->
-    <UpgradePromptDialog
-      v-model="showUpgradeDialog"
-      :dark-mode="darkMode"
-      limit-type="wallets"
-    />
 
   </div>
 </template>
@@ -550,7 +543,7 @@ import MnemonicProcessContainer from 'src/components/registration/MnemonicProces
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { ensureCanPerformActionWithDeps } from 'src/composables/useTieredLimitGate'
 // import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 function countWords(str) {
@@ -583,8 +576,7 @@ export default {
     MnemonicProcessContainer,
     SeedPhraseContainer,
     Onboarding,
-    Login,
-    UpgradePromptDialog
+    Login
     // RewardsStep
   },
   data () {
@@ -636,7 +628,6 @@ export default {
       walletCreationError: '',
       isRedirecting: false,
       step2Initialized: false,
-      showUpgradeDialog: false,
       subscriptionChecked: false
       // moveToReferral: false,
     }
@@ -683,18 +674,16 @@ export default {
         this.authenticationPhase = 'options'
         this.seedPhraseBackup = null
         this.useTextArea = false
-        
-        // Check subscription status and show upgrade dialog if limits are exceeded
-        // Force refresh to ensure we fetch fresh LIFT token balance from the server
-        // This handles the case when user navigates back to /accounts page
-        try {
-          await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
-          const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
-          if (isOnMainView && this.checkIfLimitsExceeded()) {
-            this.showUpgradeDialog = true
-          }
-        } catch (error) {
-          console.error('Error checking subscription status in route watcher:', error)
+
+        // If user lands back on the main /accounts view and is already blocked by tier limits,
+        // show the tier-aware prompt immediately (Free→Plus, Plus→Max coming soon).
+        const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
+        if (isOnMainView) {
+          await ensureCanPerformActionWithDeps(
+            { $q: this.$q, $store: this.$store },
+            'wallets',
+            { darkMode: this.darkMode, forceRefresh: true }
+          )
         }
       }
       
@@ -747,40 +736,9 @@ export default {
   },
   computed: {
     canCreateOrImportWallet () {
-      // Check if vault is initialized
-      const vault = this.$store.getters['global/getVault']
-      if (!vault || !Array.isArray(vault)) {
-        return true // Allow if vault is not initialized yet
-      }
-      
-      // Check subscription state exists
-      const subscriptionState = this.$store.state.subscription
-      if (!subscriptionState) {
-        return false // Block if subscription state doesn't exist
-      }
-      
-      // First, check subscription tier limit (3 for free, 12 for plus)
-      // This is the primary restriction that matches initCreateWallet logic
-      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
-      if (!canCreate) {
-        return false // Block if wallet limit is reached for current subscription tier
-      }
-      
-      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
-      const nonDeletedWallets = vault.filter(w => !w?.deleted)
-      const walletCount = nonDeletedWallets.length
-      
-      if (walletCount >= 3) {
-        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
-        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance'] || 0
-        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens'] || 100
-        
-        if (liftBalance < minLiftTokens) {
-          return false // Block if LIFT token requirement not met
-        }
-      }
-      
-      return true // All checks passed
+      // UI hint only. Actual gating happens on click via ensureCanPerformActionWithDeps.
+      const canPerform = this.$store.getters['subscription/canPerformAction']?.('wallets')
+      return canPerform !== false
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -1300,43 +1258,13 @@ export default {
       }
       throw new Error('mnemonic not ready')
     },
-    checkIfLimitsExceeded () {
-      // Check wallet limit first - this is the primary restriction
-      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
-      
-      if (!canCreate) {
-        // Show upgrade dialog when wallet limit is reached
-        return true
-      }
-      
-      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
-      const vault = this.$store.getters['global/getVault']
-      const nonDeletedWallets = vault ? vault.filter(w => !w?.deleted) : []
-      const walletCount = nonDeletedWallets.length
-      
-      if (walletCount >= 3) {
-        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
-        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance']
-        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens']
-        
-        if (liftBalance < minLiftTokens) {
-          // Show upgrade dialog instead of generic LIFT token dialog
-          // This provides better context about Paytaca Plus
-          return true
-        }
-      }
-      
-      return false
-    },
     async initCreateWallet () {
-      // First, check subscription status to get current limits
-      // Force refresh to ensure we fetch fresh LIFT token balance from the server
-      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
-      
-      if (this.checkIfLimitsExceeded()) {
-        this.showUpgradeDialog = true
-        return
-      }
+      const allowed = await ensureCanPerformActionWithDeps(
+        { $q: this.$q, $store: this.$store },
+        'wallets',
+        { darkMode: this.darkMode, forceRefresh: true }
+      )
+      if (!allowed) return
       
       // Handle restore flow
       if (this.importSeedPhrase && this.restoreStep === 2) {
@@ -1375,14 +1303,12 @@ export default {
       this.$forceUpdate()
     },
     async initRestoreWallet () {
-      // First, check subscription status to get current limits
-      // Force refresh to ensure we fetch fresh LIFT token balance from the server
-      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
-      
-      if (this.checkIfLimitsExceeded()) {
-        this.showUpgradeDialog = true
-        return
-      }
+      const allowed = await ensureCanPerformActionWithDeps(
+        { $q: this.$q, $store: this.$store },
+        'wallets',
+        { darkMode: this.darkMode, forceRefresh: true }
+      )
+      if (!allowed) return
       
       // Set importSeedPhrase flag and navigate to restore step-1
       this.importSeedPhrase = true
@@ -2394,14 +2320,17 @@ export default {
       this.$nextTick(() => {
         this.$forceUpdate()
       })
-      
-      // Check if user is on the base /accounts page and has exceeded limits
-      // Show upgrade dialog immediately if limits are exceeded
+
+      // If user loads the base /accounts view and wallet creation is blocked by tier limits,
+      // show the tier-aware prompt immediately (Free→Plus, Plus→Max coming soon).
       const isOnBaseAccountsPage = this.$route.path === '/accounts' || this.$route.path === '/accounts/'
       const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
-      
-      if (isOnBaseAccountsPage && isOnMainView && this.checkIfLimitsExceeded()) {
-        this.showUpgradeDialog = true
+      if (isOnBaseAccountsPage && isOnMainView) {
+        await ensureCanPerformActionWithDeps(
+          { $q: this.$q, $store: this.$store },
+          'wallets',
+          { darkMode: this.darkMode, forceRefresh: false }
+        )
       }
     } catch (error) {
       console.error('Error checking subscription status:', error)

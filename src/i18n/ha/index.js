@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Ana ɗaukaka dogayen zaɓin asusun",
   UpdatingPayment: "Ana sabunta biyan kuɗi",
   UpdatingPubkeyAndAddress: "Ana ɗaukaka maɓalli da adireshi",
-  UpgradeByHoldingLift: "Haɓaka ta hanyar riƙe aƙalla alamun LIFT 100 a cikin walat ɗin ku.",
+  UpgradeByHoldingLift: "Haɓaka ta hanyar riƙe aƙalla alamun LIFT {count} a cikin walat ɗin ku.",
   UpgradeNow: "Haɓaka Yanzu",
   UpgradeRequirement: "Bukatar haɓakawa",
   UpgradeRequirementDescription: "Bayanin bukatar haɓakawa",

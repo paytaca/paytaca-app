@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Обновление длинных настроек учетной записи",
   UpdatingPayment: "Обновление платежа",
   UpdatingPubkeyAndAddress: "Обновление публичного ключа и адреса",
-  UpgradeByHoldingLift: "Для обновления необходимо иметь в своем кошельке не менее 100 токенов LIFT.",
+  UpgradeByHoldingLift: "Для обновления необходимо иметь в своем кошельке не менее {count} токенов LIFT.",
   UpgradeNow: "Обновите сейчас",
   UpgradeRequirement: "Требование к обновлению",
   UpgradeRequirementDescription: "Описание требования к обновлению",

@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Memperbarui preferensi akun panjang",
   UpdatingPayment: "Memperbarui pembayaran",
   UpdatingPubkeyAndAddress: "Memperbarui kunci pub dan alamat",
-  UpgradeByHoldingLift: "Tingkatkan dengan memegang setidaknya 100 token LIFT di dompet Anda.",
+  UpgradeByHoldingLift: "Tingkatkan dengan memegang setidaknya {count} token LIFT di dompet Anda.",
   UpgradeNow: "Tingkatkan Sekarang",
   UpgradeRequirement: "Persyaratan peningkatan",
   UpgradeRequirementDescription: "Deskripsi persyaratan peningkatan",

@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Aggiornamento delle preferenze dell'account lungo",
   UpdatingPayment: "Aggiornamento del pagamento",
   UpdatingPubkeyAndAddress: "Aggiornamento pubkey e indirizzo",
-  UpgradeByHoldingLift: "Esegui l'upgrade mantenendo almeno 100 token LIFT nel tuo portafoglio.",
+  UpgradeByHoldingLift: "Esegui l'upgrade mantenendo almeno {count} token LIFT nel tuo portafoglio.",
   UpgradeNow: "Aggiorna ora",
   UpgradeRequirement: "Requisito di aggiornamento",
   UpgradeRequirementDescription: "Descrizione requisito di aggiornamento",

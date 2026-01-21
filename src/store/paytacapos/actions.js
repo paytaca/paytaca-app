@@ -80,7 +80,8 @@ export async function updateMerchantInfo(context, data) {
     const canCreate = context.rootGetters['subscription/canPerformAction']('merchants')
     
     if (!canCreate) {
-      return Promise.reject(new Error('Merchant limit reached. Upgrade to Paytaca Plus for more merchants.'))
+      // UI should handle tier-aware prompts; keep a generic error for non-UI callers.
+      return Promise.reject(new Error('Merchant limit reached.'))
     }
   }
 

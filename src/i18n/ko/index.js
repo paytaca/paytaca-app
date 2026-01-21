@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "긴 계정 기본 설정 업데이트",
   UpdatingPayment: "결제 업데이트 중",
   UpdatingPubkeyAndAddress: "공개키 및 주소 업데이트",
-  UpgradeByHoldingLift: "지갑에 100개 이상의 LIFT 토큰을 보유하여 업그레이드하세요.",
+  UpgradeByHoldingLift: "지갑에 {count}개 이상의 LIFT 토큰을 보유하여 업그레이드하세요.",
   UpgradeNow: "지금 업그레이드",
   UpgradeRequirement: "업그레이드 요구 사항",
   UpgradeRequirementDescription: "업그레이드 요구 사항 설명",

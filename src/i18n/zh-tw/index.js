@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "更新長期帳戶首選項",
   UpdatingPayment: "更新付款",
   UpdatingPubkeyAndAddress: "更新公鑰和地址",
-  UpgradeByHoldingLift: "錢包中至少持有 100 個 LIFT 代幣即可升級。",
+  UpgradeByHoldingLift: "錢包中至少持有 {count} 個 LIFT 代幣即可升級。",
   UpgradeNow: "立即升級",
   UpgradeRequirement: "升級要求",
   UpgradeRequirementDescription: "升級要求描述",

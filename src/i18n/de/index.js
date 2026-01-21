@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Lange Kontoeinstellungen werden aktualisiert",
   UpdatingPayment: "Zahlung wird aktualisiert",
   UpdatingPubkeyAndAddress: "Pubkey und Adresse werden aktualisiert",
-  UpgradeByHoldingLift: "Führen Sie ein Upgrade durch, indem Sie mindestens 100 LIFT-Tokens in Ihrem Wallet haben.",
+  UpgradeByHoldingLift: "Führen Sie ein Upgrade durch, indem Sie mindestens {count} LIFT-Tokens in Ihrem Wallet haben.",
   UpgradeNow: "Jetzt upgraden",
   UpgradeRequirement: "Upgrade-Anforderung",
   UpgradeRequirementDescription: "Upgrade-Anforderungsbeschreibung",

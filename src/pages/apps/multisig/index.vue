@@ -97,11 +97,6 @@
         style="visibility: hidden"
         @update:model-value="onUpdateWalletFileModelValue">
       </q-file>
-      <UpgradePromptDialog
-        v-model="showUpgradeDialog"
-        :darkMode="darkMode"
-        limitType="multisigWallets"
-      />
       <!-- display created wallets  -->
     </div>
   </div>
@@ -119,7 +114,7 @@ import HeaderNav from 'components/header-nav'
 import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
@@ -128,51 +123,24 @@ const { t: $t } = useI18n()
 const {
   multisigWallets,
 } = useMultisigHelpers()
+const { ensureCanPerformAction } = useTieredLimitGate()
 
 const walletFileElementRef = ref()
 const walletFileModel = ref()
 const walletInstance = ref()
-const showUpgradeDialog = ref(false)
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const ensureCanCreateOrImportWallet = async () => {
-  // Only show the upgrade prompt when user explicitly tries to create/import.
-  try {
-    await $store.dispatch('subscription/checkSubscriptionStatus')
-  } catch (_) {
-    // Best-effort; getters below will fall back to defaults if needed
-  }
-
-  const limitType = 'multisigWallets'
-  const isPlus = Boolean($store.getters['subscription/isPlusSubscriber'])
-  const freeLimit = Number($store.state?.subscription?.limits?.free?.[limitType] ?? 0)
-
-  // IMPORTANT:
-  // Use raw store wallets as the source of truth, not the derived MultisigWallet instances.
-  // This avoids timing issues where the page shows wallets but the helper computed hasn't updated yet.
-  const rawWallets = $store.getters['multisig/getWallets'] || $store.state?.multisig?.wallets || []
-  const count = Array.isArray(rawWallets) ? rawWallets.length : 0
-
-  // Show upgrade prompt only for Free tier and only once the Free limit is reached.
-  if (!isPlus && freeLimit > 0 && count >= freeLimit) {
-    showUpgradeDialog.value = true
-    return false
-  }
-
-  return true
-}
-
 const onCreateWalletClick = async () => {
-  const allowed = await ensureCanCreateOrImportWallet()
+  const allowed = await ensureCanPerformAction('multisigWallets', { darkMode: darkMode.value })
   if (!allowed) return
   router.push({ name: 'app-multisig-wallet-create' })
 }
 
 const onImportWalletClick = async () => {
-  const allowed = await ensureCanCreateOrImportWallet()
+  const allowed = await ensureCanPerformAction('multisigWallets', { darkMode: darkMode.value })
   if (!allowed) return
   importWallet()
 }

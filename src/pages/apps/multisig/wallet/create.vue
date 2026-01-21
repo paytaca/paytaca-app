@@ -152,7 +152,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { shortenString, MultisigWallet, getMasterFingerprint } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 import { loadWallet } from 'src/wallet'
@@ -168,6 +168,7 @@ const {
   resolveXprvOfXpub,
   getSignerWalletFromVault
 } = useMultisigHelpers()
+const { ensureCanPerformAction } = useTieredLimitGate()
 const mOptions = ref()
 const nOptions = ref()
 const wallet = ref()
@@ -238,20 +239,8 @@ const onResetClicked = () => {
 }
 
 const onCreateClicked = async () => {
-  // Check subscription limit before creating
-  await $store.dispatch('subscription/checkSubscriptionStatus')
-  const canCreate = $store.getters['subscription/canPerformAction']('multisigWallets')
-  
-  if (!canCreate) {
-    $q.dialog({
-      component: UpgradePromptDialog,
-      componentProps: {
-        darkMode: darkMode.value,
-        limitType: 'multisigWallets'
-      }
-    })
-    return
-  }
+  const canCreate = await ensureCanPerformAction('multisigWallets', { darkMode: darkMode.value, forceRefresh: true })
+  if (!canCreate) return
 
   const spec = {
     name: name.value,

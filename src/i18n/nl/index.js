@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Lange accountvoorkeuren bijwerken",
   UpdatingPayment: "Betaling bijwerken",
   UpdatingPubkeyAndAddress: "Pubkey en adres bijwerken",
-  UpgradeByHoldingLift: "Upgrade door minimaal 100 LIFT-tokens in uw portemonnee te houden.",
+  UpgradeByHoldingLift: "Upgrade door minimaal {count} LIFT-tokens in uw portemonnee te houden.",
   UpgradeNow: "Upgrade nu",
   UpgradeRequirement: "Upgrade vereiste",
   UpgradeRequirementDescription: "Upgrade vereiste beschrijving",

@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "Pag-update ng mahabang kagustuhan sa account",
   UpdatingPayment: "Ina-update ang pagbabayad",
   UpdatingPubkeyAndAddress: "Ina-update ang pubkey at address",
-  UpgradeByHoldingLift: "Mag-upgrade sa pamamagitan ng paghawak ng hindi bababa sa 100 LIFT token sa iyong wallet.",
+  UpgradeByHoldingLift: "Mag-upgrade sa pamamagitan ng paghawak ng hindi bababa sa {count} LIFT token sa iyong wallet.",
   UpgradeNow: "Mag-upgrade Ngayon",
   UpgradeRequirement: "Kailangan para sa upgrade",
   UpgradeRequirementDescription: "Deskripsyon ng upgrade requirement",

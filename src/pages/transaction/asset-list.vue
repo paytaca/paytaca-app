@@ -146,13 +146,6 @@
 
 		<footer-menu ref="footerMenu" />
 
-		<!-- Upgrade Prompt Dialog -->
-		<UpgradePromptDialog
-			v-model="showUpgradeDialog"
-			:dark-mode="darkmode"
-			limit-type="favoriteTokens"
-		/>
-
 	</div>
 </template>
 <script>
@@ -168,7 +161,7 @@ import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import headerNav from 'src/components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import RemoveAsset from 'src/pages/transaction/dialog/RemoveAsset'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 
 export default {
 	data () {
@@ -180,7 +173,6 @@ export default {
 			drag: false,	
 			isloaded: false,
 			networkError: false,
-			showUpgradeDialog: false,
 			favoriteLoading: {}, // { [assetId]: boolean }
 		}
 	},
@@ -221,8 +213,7 @@ export default {
 		headerNav,
 		AssetFilter,
 		RemoveAsset,
-		draggable,
-		UpgradePromptDialog
+		draggable
 	},
 	watch: {
 		isCashToken () {
@@ -366,9 +357,6 @@ export default {
     	try {
 	    	// If adding a favorite (not removing), check subscription limit first
 	    	if (!wasFavorite) {
-	    		// Check subscription limit before adding
-	    		await this.$store.dispatch('subscription/checkSubscriptionStatus')
-	    		
 	    		// Fetch current favorites to check count
 	    		currentFavorites = await assetSettings.fetchFavorites({ forceRefresh: true })
 	    		if (!Array.isArray(currentFavorites)) {
@@ -385,30 +373,12 @@ export default {
 	    		if (!isAlreadyFavorite) {
 	    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
 	    			if (currentFavoriteCount >= limit) {
-	    				// Check if user is on free tier
-	    				const isPlus = this.$store.getters['subscription/isPlusSubscriber']
-	    				if (!isPlus) {
-	    					// Show upgrade dialog for free tier users
-	    					this.showUpgradeDialog = true
-	    				} else {
-	    					// Show notification for plus tier users who somehow reached limit
-	    					this.$q.notify({
-	    						message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.'),
-	    						color: 'negative',
-	    						icon: 'error',
-	    						position: 'top',
-	    						timeout: 3000,
-	    						actions: [
-	    							{
-	    								label: this.$t('LearnMore', {}, 'Learn More'),
-	    								color: 'white',
-	    								handler: () => {
-	    									this.$router.push('/apps/lift-token')
-	    								}
-	    							}
-	    						]
-	    					})
-	    				}
+	    					// Tier-aware prompt (Free→Plus, Plus→Max coming soon)
+	    					await showLimitDialogWithDeps(
+	    						{ $q: this.$q, $store: this.$store },
+	    						'favoriteTokens',
+	    						{ darkMode: this.darkmode, forceRefresh: true }
+	    					)
 	    				return // Prevent adding favorite if limit is reached
 	    			}
 	    		}

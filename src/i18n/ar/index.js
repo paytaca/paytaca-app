@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "تحديث تفضيلات الحساب الطويل",
   UpdatingPayment: "تحديث الدفع",
   UpdatingPubkeyAndAddress: "تحديث pubkey والعنوان",
-  UpgradeByHoldingLift: "قم بالترقية عن طريق الاحتفاظ بما لا يقل عن 100 رمز LIFT في محفظتك.",
+  UpgradeByHoldingLift: "قم بالترقية عن طريق الاحتفاظ بما لا يقل عن {count} رمز LIFT في محفظتك.",
   UpgradeNow: "الترقية الآن",
   UpgradeRequirement: "متطلبات الترقية",
   UpgradeRequirementDescription: "وصف متطلبات الترقية",

@@ -2237,7 +2237,7 @@ export default {
   UpdatingLongPref: "長いアカウント設定の更新",
   UpdatingPayment: "支払いを更新しています",
   UpdatingPubkeyAndAddress: "公開キーとアドレスを更新する",
-  UpgradeByHoldingLift: "ウォレットに 100 個以上の LIFT トークンを保持してアップグレードします。",
+  UpgradeByHoldingLift: "ウォレットに {count} 個以上の LIFT トークンを保持してアップグレードします。",
   UpgradeNow: "今すぐアップグレード",
   UpgradeRequirement: "アップグレード要件",
   UpgradeRequirementDescription: "アップグレード要件の説明",
