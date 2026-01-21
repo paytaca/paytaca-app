@@ -234,7 +234,7 @@ export default {
       const lockupEnd = new Date(new Date().setFullYear(new Date().getFullYear() + year))
       // const lockupEnd = new Date(new Date().setHours(new Date().getHours() + year))
 
-      if (this.rsvp.public_key === '') {
+      if (this.rsvp.public_key === '' || this.rsvp.public_key === null || this.rsvp.public_key === undefined) {
         console.error('Public key is empty')
         raiseNotifyError(this.$t("ConfirmReservationError"))
         this.isSliderLoading = false
