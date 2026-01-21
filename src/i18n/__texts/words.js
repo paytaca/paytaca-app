@@ -553,6 +553,7 @@ const words = [
     GiftID: 'Gift ID',
     Tools: 'Tools',
     ComingSoon: 'Coming Soon',
+    RelativeTimestamp: 'Relative Timestamp',
   }
 ]
 
