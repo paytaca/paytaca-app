@@ -77,7 +77,8 @@
             <q-expansion-item
               class="text-bow"
               :class="getDarkModeClass(darkMode)"
-              :default-opened=true
+              :model-value="expandedPaymentMethodId === method.id"
+              @update:modelValue="onTogglePaymentMethodExpand(method.id, $event)"
               :label="method.payment_type"
               header-class="payment-method-header"
               expand-separator >
@@ -135,6 +136,21 @@
                     {{ method.attachment?.name }}
                   </span>
                 </q-chip>
+
+                <!-- Waiting for swipe (indeterminate progress) -->
+                <div
+                  v-if="data?.type !== 'seller' && method.attachment && (!method.attachments || method.attachments.length === 0) && !uploadingProofByMethodId?.[method.id]"
+                  class="q-px-md q-pb-sm"
+                >
+                  <q-linear-progress
+                    rounded
+                    indeterminate
+                    color="primary"
+                  />
+                  <div class="text-caption text-grey-7 text-center q-mt-xs" :class="getDarkModeClass(darkMode)">
+                    {{ $t('SwipeButtonToProceed', {}, 'Swipe the button to proceed') }}
+                  </div>
+                </div>
                 
                 <!-- View uploaded proof -->
                 <q-btn
@@ -153,6 +169,32 @@
                   <span class="text-primary">
                     Uploading Proof of Payment 
                     <q-icon name="refresh" color="primary" size="xs" @click.stop="$emit('refresh')"/>
+                  </span>
+                </div>
+
+                <!-- Upload progress -->
+                <div
+                  v-if="uploadingProofByMethodId?.[method.id] && !method.attachment && (!method.attachments || method.attachments.length === 0)"
+                  class="q-px-md q-pb-sm"
+                >
+                  <q-linear-progress
+                    rounded
+                    stripe
+                    color="primary"
+                    :value="(Number(uploadProofProgressByMethodId?.[method.id]) || 0) / 100"
+                  />
+                  <div class="text-caption text-grey-7 text-center q-mt-xs" :class="getDarkModeClass(darkMode)">
+                    {{ Math.min(100, Math.max(0, Number(uploadProofProgressByMethodId?.[method.id]) || 0)) }}%
+                  </div>
+                </div>
+
+                <!-- Upload error message -->
+                <div
+                  v-if="uploadProofErrorByMethodId?.[method.id] && !method.attachment && (!method.attachments || method.attachments.length === 0)"
+                  class="text-center q-py-sm"
+                >
+                  <span class="text-negative">
+                    {{ uploadProofErrorByMethodId[method.id] }}
                   </span>
                 </div>
 
@@ -277,6 +319,7 @@
   :key="dragSlideKey"
   :text="dragSlideTitle"
   :locked="lockDragSlide"
+  :nudge="shouldNudgeSwipe"
   @click="checkDragslideStatus()"
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
@@ -317,6 +360,12 @@ export default {
       timer: null,
       paymentMethods: [],
       selectedPaymentMethods: [],
+      expandedPaymentMethodId: null,
+      // Proof-of-payment upload state (client-side)
+      uploadingProof: false,
+      uploadingProofByMethodId: {}, // { [paymentMethodId]: true }
+      uploadProofErrorByMethodId: {}, // { [paymentMethodId]: string }
+      uploadProofProgressByMethodId: {}, // { [paymentMethodId]: number (0-100) }
       showDragSlide: true,
       showAppealForm: false,
       dragSlideKey: 0,
@@ -375,8 +424,12 @@ export default {
       return 5 * 1024 * 1024
     },
     hasUploadingMsg () {
-      const status = this.order.status.value
-      return status !== 'ESCRW' && status !== 'PD_PN'
+      return this.uploadingProof
+    },
+    proofMissingOnServer () {
+      const methods = this.order?.payment_methods_selected
+      if (!Array.isArray(methods) || methods.length === 0) return false
+      return methods.some(m => !Array.isArray(m?.attachments) || m.attachments.length === 0)
     },
     appealCountdownDisplay () {
       const seconds = Number(this.appealCountdownSeconds)
@@ -401,14 +454,41 @@ export default {
         lock = vm.selectedPaymentMethods.length === 0
         if (!lock) {
           for (let i = 0; i < vm.selectedPaymentMethods.length; i++) {
-            if (!vm.selectedPaymentMethods[i].attachment) {
+            const selected = vm.selectedPaymentMethods[i]
+            const method = vm.paymentMethods?.find?.(m => m?.id === selected?.id)
+            const hasLocalAttachment = !!selected?.attachment
+            const hasServerAttachment = Array.isArray(method?.attachments) && method.attachments.length > 0
+            const isUploading = !!vm.uploadingProofByMethodId?.[selected?.id]
+            // Lock if no proof is present yet for any selected method
+            if (!hasLocalAttachment && !hasServerAttachment && !isUploading) {
               lock = true
               break
             }
           }
         }
+        // Also lock while any upload is in progress
+        if (vm.uploadingProof) lock = true
+      }
+      // Seller-side: when buyer is "Paid Pending", do not allow release/confirm
+      // until proof-of-payment attachments are present on the server.
+      if (vm.data?.type === 'seller' && vm.order?.status?.value === 'PD_PN') {
+        lock = vm.proofMissingOnServer || vm.uploadingProof
       }
       return lock
+    },
+    shouldNudgeSwipe () {
+      const vm = this
+      if (vm.data?.type !== 'buyer') return false
+      if (vm.uploadingProof) return false
+      // Nudge when user has selected proof(s) and is ready to swipe (pre-upload)
+      const anyPending = (vm.selectedPaymentMethods || []).some(sel => {
+        const method = vm.paymentMethods?.find?.(m => m?.id === sel?.id)
+        const hasLocal = !!sel?.attachment
+        const hasServer = Array.isArray(method?.attachments) && method.attachments.length > 0
+        const isUploading = !!vm.uploadingProofByMethodId?.[sel?.id]
+        return hasLocal && !hasServer && !isUploading
+      })
+      return anyPending && !vm.lockDragSlide
     },
     fiatAmount () {
       const amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
@@ -428,6 +508,9 @@ export default {
       return `${url}${this.data?.contract.address}`
     },
     noticeMessage () {
+      if (this.data?.type === 'seller' && this.order?.status?.value === 'PD_PN' && this.proofMissingOnServer) {
+        return 'Waiting for buyer to finish uploading proof of payment. Please refresh in a moment.'
+      }
       return 'Please select Payment Method and upload your Proof of Payment first to proceed with the transaction'
     }
   },
@@ -475,43 +558,148 @@ export default {
       })
     },
     onSelectAttachment (methodIndex, methodId) {
+      const attachment = this.paymentMethods?.[methodIndex]?.attachment
       const index = this.selectedPaymentMethods.map(e => e.id).indexOf(methodId)
-      this.selectedPaymentMethods[index].attachment = this.paymentMethods[methodIndex].attachment
+      if (index > -1) {
+        this.selectedPaymentMethods[index].attachment = attachment
+      } else {
+        // Defensive: ensure selectedPaymentMethods has an entry for this method
+        this.selectedPaymentMethods.push({ id: methodId, attachment })
+      }
+    },
+    sleep (ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    },
+    shouldRetryUpload (error) {
+      // Retry on transient network/server issues
+      const status = error?.response?.status
+      if (!status) return true // network error / timeout
+      if (status === 408) return true
+      if (status === 429) return true
+      if (status >= 500) return true
+      return false
     },
     async uploadAttachments (orderPaymentMethods) {
-      // Use Promise.all to properly wait for all uploads to complete
-      const uploadPromises = this.selectedPaymentMethods.map(async paymentMethod => {
-        const index = orderPaymentMethods.map(e => e.payment_method).indexOf(paymentMethod.id)
-        console.log(`Uploading ${orderPaymentMethods[index].id}: ${paymentMethod.attachment.name}`)
-        const formData = new FormData()
-        formData.append('image', paymentMethod.attachment)
-        return await this.uploadAttachment(formData, orderPaymentMethods[index].id)
-      })
-      
-      // Wait for all uploads to complete
-      await Promise.all(uploadPromises)
-      
-      // Clear local attachments after successful upload
-      this.selectedPaymentMethods.forEach(paymentMethod => {
-        const methodIndex = this.paymentMethods.findIndex(m => m.id === paymentMethod.id)
-        if (methodIndex > -1) {
-          this.paymentMethods[methodIndex].attachment = null
+      const vm = this
+      if (!Array.isArray(orderPaymentMethods)) throw new Error('Missing order payment methods response')
+
+      // Map payment_method -> orderPaymentMethodId for attachment upload endpoint
+      const methodToOrderPaymentId = new Map(
+        orderPaymentMethods
+          .filter(opm => opm && (opm.id || opm.id === 0) && opm.payment_method)
+          .map(opm => [opm.payment_method, opm.id])
+      )
+
+      // Defensive: ensure all selected methods have a local attachment before uploading
+      for (const pm of vm.selectedPaymentMethods) {
+        if (!pm?.id) throw new Error('Invalid selected payment method')
+        if (!pm?.attachment) throw new Error('Missing proof of payment attachment')
+        if (!methodToOrderPaymentId.has(pm.id)) {
+          throw new Error('Selected payment method could not be prepared for upload')
         }
-      })
-      
-      // Refresh order details to get the uploaded attachments from server
-      await this.fetchOrderDetail()
+      }
+
+      vm.uploadingProof = true
+      vm.uploadProofErrorByMethodId = {}
+      vm.uploadProofProgressByMethodId = {}
+
+      try {
+        // Upload sequentially for better reliability on mobile networks
+        for (const pm of vm.selectedPaymentMethods) {
+          const orderPaymentId = methodToOrderPaymentId.get(pm.id)
+          const file = pm.attachment
+          vm.uploadingProofByMethodId = { ...vm.uploadingProofByMethodId, [pm.id]: true }
+          vm.uploadProofErrorByMethodId = { ...vm.uploadProofErrorByMethodId, [pm.id]: '' }
+          vm.uploadProofProgressByMethodId = { ...vm.uploadProofProgressByMethodId, [pm.id]: 0 }
+
+          const formData = new FormData()
+          formData.append('image', file)
+          await vm.uploadAttachmentWithRetry(formData, orderPaymentId, { paymentMethodId: pm.id })
+          vm.uploadingProofByMethodId = { ...vm.uploadingProofByMethodId, [pm.id]: false }
+          vm.uploadProofProgressByMethodId = { ...vm.uploadProofProgressByMethodId, [pm.id]: 100 }
+        }
+
+        // Refresh order details to get the uploaded attachments from server
+        await vm.fetchOrderDetail()
+
+        // Verify proof is actually present (best-effort; backend may be eventually consistent)
+        if (vm.data?.type === 'buyer') {
+          const maxVerifyAttempts = 4
+          for (let attempt = 0; attempt < maxVerifyAttempts; attempt++) {
+            const missing = vm.proofMissingOnServer
+            if (!missing) break
+            await vm.sleep(800 * (attempt + 1))
+            await vm.fetchOrderDetail()
+          }
+          if (vm.proofMissingOnServer) {
+            throw new Error('Proof upload did not finish successfully. Please retry.')
+          }
+        }
+
+        // Clear local attachments after successful upload
+        vm.selectedPaymentMethods.forEach(paymentMethod => {
+          const methodIndex = vm.paymentMethods.findIndex(m => m.id === paymentMethod.id)
+          if (methodIndex > -1) vm.paymentMethods[methodIndex].attachment = null
+        })
+      } finally {
+        vm.uploadingProof = false
+        // Clear flags
+        const nextFlags = { ...vm.uploadingProofByMethodId }
+        Object.keys(nextFlags).forEach(k => { nextFlags[k] = false })
+        vm.uploadingProofByMethodId = nextFlags
+      }
     },
-    async uploadAttachment (formdata, orderPaymentId) {
-      await backend.post(
-        `/ramp-p2p/order/payment/${orderPaymentId}/attachment/`,
-        formdata, { headers: { 'Content-Type': 'multipart/form-data' }, authorize: true })
-        .then(response => {
-          console.log(response.data)
-        })
-        .catch(error => {
-          console.error(error.response || error)
-        })
+    async uploadAttachmentWithRetry (formdata, orderPaymentId, opts = {}) {
+      const vm = this
+      const paymentMethodId = opts?.paymentMethodId
+      // "Up to 3 retries" => 1 initial attempt + 3 retry attempts
+      const maxRetries = 3
+      const maxAttempts = 1 + maxRetries
+      let lastErr = null
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          // Reset progress at start of each attempt
+          if (paymentMethodId) {
+            vm.uploadProofProgressByMethodId = { ...vm.uploadProofProgressByMethodId, [paymentMethodId]: 0 }
+          }
+          const resp = await backend.post(
+            `/ramp-p2p/order/payment/${orderPaymentId}/attachment/`,
+            formdata,
+            {
+              headers: { 'Content-Type': 'multipart/form-data' },
+              authorize: true,
+              timeout: 60_000,
+              // Best-effort progress tracking (works in browser/XHR environments)
+              onUploadProgress: (evt) => {
+                if (!paymentMethodId) return
+                const total = Number(evt?.total)
+                const loaded = Number(evt?.loaded)
+                if (!Number.isFinite(total) || total <= 0) return
+                if (!Number.isFinite(loaded) || loaded < 0) return
+                const pct = Math.round((loaded / total) * 100)
+                vm.uploadProofProgressByMethodId = {
+                  ...vm.uploadProofProgressByMethodId,
+                  [paymentMethodId]: Math.min(100, Math.max(0, pct))
+                }
+              }
+            }
+          )
+          return resp?.data
+        } catch (error) {
+          lastErr = error
+          const retryable = vm.shouldRetryUpload(error)
+          const msg = error?.response?.data?.detail || error?.message || 'Upload failed'
+          if (paymentMethodId) {
+            vm.uploadProofErrorByMethodId = { ...vm.uploadProofErrorByMethodId, [paymentMethodId]: msg }
+          }
+          if (!retryable || attempt === maxAttempts) break
+          // Exponential backoff with small cap
+          const delay = Math.min(4000, 600 * (2 ** (attempt - 1)))
+          await vm.sleep(delay)
+        }
+      }
+      throw lastErr || new Error('Upload failed')
     },
     dynamicVal (field) {
       if (field.model_ref === 'order') {
@@ -551,6 +739,12 @@ export default {
             break
           }
           case 'PD_PN': {
+            // Seller confirm + release should be blocked until proof exists.
+            if (vm.data?.type === 'seller' && vm.proofMissingOnServer) {
+              vm.sendErrors.push('Proof of payment is still missing. Please wait and refresh before releasing.')
+              await vm.fetchOrderDetail()
+              return
+            }
             const resp = await vm.sendConfirmPayment(vm.data?.type)
             if (resp?.status?.value === 'PD') {
               vm.releaseBch()
@@ -563,7 +757,7 @@ export default {
         }
       } catch (error) {
         console.error(error)
-        vm.sendErrors.push(error)
+        vm.sendErrors.push(error?.message || String(error))
       }
     },
     async sendConfirmPayment (type) {
@@ -671,6 +865,8 @@ export default {
       }
     },
     selectAndUpload (method, methodIndex) {
+      // Collapse other payment methods when upload button is clicked
+      this.expandedPaymentMethodId = method?.id
       // If already selected, just open file picker
       if (method.selected) {
         this.onClickUpload(methodIndex)
@@ -685,6 +881,13 @@ export default {
       this.$nextTick(() => {
         this.onClickUpload(methodIndex)
       })
+    },
+    onTogglePaymentMethodExpand (methodId, isExpanded) {
+      if (isExpanded) {
+        this.expandedPaymentMethodId = methodId
+      } else if (this.expandedPaymentMethodId === methodId) {
+        this.expandedPaymentMethodId = null
+      }
     },
     onSecurityOk () {
       this.showDragSlide = false
