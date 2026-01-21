@@ -234,9 +234,24 @@ export default {
       const lockupEnd = new Date(new Date().setFullYear(new Date().getFullYear() + year))
       // const lockupEnd = new Date(new Date().setHours(new Date().getHours() + year))
 
-      const vestingContract = initializeVestingContract(
-        this.rsvp.public_key, token_id, pubkey, lockupEnd, this.rsvp.reserved_amount_tkn
-      )
+      if (this.rsvp.public_key === '') {
+        console.error('Public key is empty')
+        raiseNotifyError(this.$t("ConfirmReservationError"))
+        this.isSliderLoading = false
+        return
+      }
+
+      let vestingContract = null
+      try {
+        vestingContract = initializeVestingContract(
+          this.rsvp.public_key, token_id, pubkey, lockupEnd, this.rsvp.reserved_amount_tkn
+        )
+      } catch (error) {
+        console.error('Failed to initialize vesting contract:', error)
+        raiseNotifyError(this.$t("ConfirmReservationError"))
+        this.isSliderLoading = false
+        return
+      }
 
       const oracleData = await getOracleData()
       const data = {
