@@ -17,8 +17,15 @@
               <div class="col-xs-12">
                 <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px;">
                   <div class="flex justify-between items-center q-ma-md">
-                    <div class="text-bold text-h5">{{wallet.name}}</div>
-                    <q-icon name="wallet" size="lg"></q-icon>
+                    <div class="flex items-center q-gutter-x-sm">
+                      <q-icon name="mdi-wallet-outline" size="sm"></q-icon>
+                      <span class="text-bold text-h5">{{wallet.name}}</span>
+                    </div>
+                    <q-btn icon="mdi-cloud-upload" @click="handleSyncWalletAction" size="md" flat dense :loading="walletSyncing" :disable="walletSyncing">
+                        <template v-slot:loading>
+                          <q-spinner-facebook></q-spinner-facebook>
+                        </template>
+                      </q-btn>
                   </div>
                   <q-card-section class="row items-center justify-between">
                     <div class="flex justify-start items-center q-gutter-x-sm">
@@ -217,6 +224,7 @@ const balancesTokenIdentities = ref({})
 const balancesExpanded = ref(true)
 const balancesRefreshing = ref(false)
 const balanceConvertionRates = ref()
+const walletSyncing = ref(false)
 
 const hdPrivateKeys = ref()
 
@@ -277,26 +285,7 @@ const showWalletDepositDialog = () => {
   })
 }
 
-const showWalletExportOptionsDialog = () => {
-  $q.dialog({
-    component: WalletExportOptionsDialog,
-    componentProps: {
-      darkMode: darkMode.value,
-      wallet: wallet.value,
-      cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
-    }
-  }).onOk((payload) => {
-    if (payload?.action === 'display-qr') {
-      showWalletQrDialog()
-    } else if (payload?.action === 'download-wallet') {
-      downloadWalletFile(payload.wallet || wallet.value)
-    } else {
-      openWalletActionsDialog()
-    }
-  }).onCancel(() => {
-    // Dialog was closed without action
-  })
-}
+
 
 const showWalletQrDialog = () => {
   $q.dialog({
@@ -323,7 +312,68 @@ const downloadWalletFile = (walletToExport) => {
   URL.revokeObjectURL(url)
 }
 
+const handleDeleteWalletAction = () => {
+  $q.dialog({
+    message: $t('AreYouSureDeleteWallet'),
+    ok: { label: $t('Yes') },
+    cancel: { label: $t('No') },
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+  }).onOk(() => {
+    wallet.value.delete({ sync: false })
+    router.push({ name: 'app-multisig' })
+  }).onCancel(() => {
+    openWalletActionsDialog()
+  })
+}
 
+const handlExportWalletAction = () => {
+  $q.dialog({
+    component: WalletExportOptionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      wallet: wallet.value,
+      cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+    }
+  }).onOk((payload) => {
+    if (payload?.action === 'display-qr') {
+      showWalletQrDialog()
+    } else if (payload?.action === 'download-wallet') {
+      downloadWalletFile(payload.wallet || wallet.value)
+    } else {
+      openWalletActionsDialog()
+    }
+  }).onCancel(() => {
+    // Dialog was closed without action
+  })
+}
+
+const handleSyncWalletAction = async () => {
+  try {
+    walletSyncing.value = true
+    await wallet.value.sync()
+  } catch (error) {
+    $q.notify({
+      type: 'error',
+      color: 'red',
+      message: error.message,
+    })
+  } finally {
+    walletSyncing.value = false
+  }
+}
+
+const handleWalletActions = async (action) => {
+    if (action.value === 'delete-wallet') {
+      handleDeleteWalletAction()
+    }
+    if (action.value === 'export-wallet') {
+      handlExportWalletAction()
+    }
+    if (action.value === 'sync-wallet') {
+      await handleSyncWalletAction()
+    }
+}
+  
 const openWalletActionsDialog = () => {
   const disableActions = []
   if (psts.value?.length > 0) {
@@ -356,27 +406,7 @@ const openWalletActionsDialog = () => {
     ],
     class: `${getDarkModeClass(darkMode.value)} custom-bottom-sheet pt-card text-bow justify-between`
 
-  }).onOk(async (action) => {
-    if (action.value === 'delete-wallet') {
-       $q.dialog({
-          message: $t('AreYouSureDeleteWallet'),
-          ok: { label: $t('Yes') },
-          cancel: { label: $t('No') },
-          class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
-        }).onOk(() => {
-          wallet.value.delete({ sync: false })
-          router.push({ name: 'app-multisig' })
-        }).onCancel(() => {
-          openWalletActionsDialog()
-        })
-    }
-    if (action.value === 'export-wallet') {
-      showWalletExportOptionsDialog()
-    }
-    if (action.value === 'sync-wallet') {
-      wallet.value.sync()
-    }
-  })
+  }).onOk(handleWalletActions)
 }
 
 const loadHdPrivateKeys = async (signers) => {
