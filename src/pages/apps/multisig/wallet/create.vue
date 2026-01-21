@@ -3,7 +3,7 @@
     <q-page-container>
       <q-page>
         <div class="static-container">
-          <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+          <div id="app-container" class="sticky-header-container multisig-app" :class="getDarkModeClass(darkMode)">
             <HeaderNav
               :title="$t('SetupWallet')"
               backnavpath="/apps/multisig"
@@ -28,7 +28,7 @@
                       :name="1"
                       :title="$t('BasicConfig')"
                       icon="settings"
-                      :done="name"
+                      :done="!!name"
                       :error="!name"
                     >
                       <div class="q-gutter-y-md">

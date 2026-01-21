@@ -1,6 +1,6 @@
 <template>
   <div class="static-container">
-    <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container text-bow multisig-app" :class="getDarkModeClass(darkMode)">
       <HeaderNav
           :title="$t('MultisigWallets', {}, 'Multisig Wallets')"
           backnavpath="/apps"
@@ -19,8 +19,8 @@
           <div class="col-xs-12 q-px-xs q-gutter-y-sm">
             <div v-if="multisigWallets" class="q-mb-sm">
               <div class="row justify-end q-gutter-x-sm q-mb-md">
-                <q-btn color="primary" icon="add" @click="router.push({ name: 'app-multisig-wallet-create' })" round dense outline></q-btn>
-                <q-btn color="primary" icon="upload" @click="importWallet" round dense outline></q-btn>
+                <q-btn color="primary" icon="add" @click="onCreateWalletClick" round dense outline></q-btn>
+                <q-btn color="primary" icon="download" @click="onImportWalletClick" round dense outline></q-btn>
               </div>
             </div>
             <q-card
@@ -77,14 +77,14 @@
           </div> -->
           <div class="col-xs-12 row justify-center q-gutter-y-xl">
             <div class="col-xs-12 text-center">
-              <q-btn size="lg"  @click="router.push({ name: 'app-multisig-wallet-create' })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+              <q-btn size="lg"  @click="onCreateWalletClick" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
                 <q-icon class="default-text-color"  size="lg" name="qr_code" />
               </q-btn>
               <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('CreateNewWallet') }}</div>
             </div>
             <div class="col-xs-12 text-center">
-              <q-btn color="primary" class="button-default" @click="importWallet" :class="darkMode ? 'dark' : 'light'" round size="lg">
-                <q-icon class="default-text-color"  size="lg" name="upload_file" @click="importWalletFromFile"/>
+              <q-btn color="primary" class="button-default" @click="onImportWalletClick" :class="darkMode ? 'dark' : 'light'" round size="lg">
+                <q-icon class="default-text-color" size="lg" name="download" />
               </q-btn>
               <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('ImportWallet') }}</div>
             </div>
@@ -97,6 +97,11 @@
         style="visibility: hidden"
         @update:model-value="onUpdateWalletFileModelValue">
       </q-file>
+      <UpgradePromptDialog
+        v-model="showUpgradeDialog"
+        :darkMode="darkMode"
+        limitType="multisigWallets"
+      />
       <!-- display created wallets  -->
     </div>
   </div>
@@ -114,6 +119,7 @@ import HeaderNav from 'components/header-nav'
 import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
@@ -126,10 +132,50 @@ const {
 const walletFileElementRef = ref()
 const walletFileModel = ref()
 const walletInstance = ref()
+const showUpgradeDialog = ref(false)
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
+
+const ensureCanCreateOrImportWallet = async () => {
+  // Only show the upgrade prompt when user explicitly tries to create/import.
+  try {
+    await $store.dispatch('subscription/checkSubscriptionStatus')
+  } catch (_) {
+    // Best-effort; getters below will fall back to defaults if needed
+  }
+
+  const limitType = 'multisigWallets'
+  const isPlus = Boolean($store.getters['subscription/isPlusSubscriber'])
+  const freeLimit = Number($store.state?.subscription?.limits?.free?.[limitType] ?? 0)
+
+  // IMPORTANT:
+  // Use raw store wallets as the source of truth, not the derived MultisigWallet instances.
+  // This avoids timing issues where the page shows wallets but the helper computed hasn't updated yet.
+  const rawWallets = $store.getters['multisig/getWallets'] || $store.state?.multisig?.wallets || []
+  const count = Array.isArray(rawWallets) ? rawWallets.length : 0
+
+  // Show upgrade prompt only for Free tier and only once the Free limit is reached.
+  if (!isPlus && freeLimit > 0 && count >= freeLimit) {
+    showUpgradeDialog.value = true
+    return false
+  }
+
+  return true
+}
+
+const onCreateWalletClick = async () => {
+  const allowed = await ensureCanCreateOrImportWallet()
+  if (!allowed) return
+  router.push({ name: 'app-multisig-wallet-create' })
+}
+
+const onImportWalletClick = async () => {
+  const allowed = await ensureCanCreateOrImportWallet()
+  if (!allowed) return
+  importWallet()
+}
 
 // const wallets = computed(() => {
 //   return MultisigWallet.createInstanceFromObjects($store.getters['multisig/getWallets'])
@@ -155,10 +201,10 @@ const openMainActionsDialog = () => {
     componentProps: {
       darkMode: darkMode.value,
       onCreateWallet: () => {
-        router.push({ name: 'app-multisig-wallet-create' })
+        onCreateWalletClick()
       },
       onImportWallet: async () => {
-        importWallet()
+        onImportWalletClick()
       }
     }
   })

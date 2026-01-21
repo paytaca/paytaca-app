@@ -1,7 +1,7 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
-    class="text-bow"
+    class="text-bow multisig-app"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
@@ -219,6 +219,8 @@ const balancesRefreshing = ref(false)
 const balanceConvertionRates = ref()
 
 const hdPrivateKeys = ref()
+const pstFileElementRef = ref()
+const pstFileModel = ref()
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -418,8 +420,54 @@ const refreshBalance = async () => {
   }
 }
 
-watch(wallet.value, async (newWallet) => {
-  if (!wallet.value) {
+const refreshPage = async (done) => {
+  try {
+    await refreshBalance()
+    await loadCashtokenIdentitiesToBalances()
+  } catch (_) {
+    // ignore; pull-to-refresh should always resolve
+  } finally {
+    if (typeof done === 'function') done()
+  }
+}
+
+const onUpdateTransactionFile = (file) => {
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const importedPst = Pst.import(reader.result)
+      importedPst.setStore($store)
+      importedPst.save()
+
+      router.push({
+        name: 'app-multisig-wallet-pst-view',
+        params: {
+          unsignedtransactionhash: importedPst.unsignedTransactionHash,
+          wallethash: route.params.wallethash
+        }
+      })
+    } catch (e) {
+      console.error('Error importing transaction file:', e)
+      $q.notify({
+        message: $t('FailedToImportTransaction', {}, 'Failed to import transaction'),
+        color: 'negative'
+      })
+    } finally {
+      // allow re-selecting the same file
+      pstFileModel.value = null
+    }
+  }
+  reader.onerror = (err) => {
+    console.error(err)
+    pstFileModel.value = null
+  }
+  reader.readAsText(file)
+}
+
+watch(wallet, async (newWallet) => {
+  if (!newWallet) {
     router.push({ name: 'app-multisig' })
   }
 })

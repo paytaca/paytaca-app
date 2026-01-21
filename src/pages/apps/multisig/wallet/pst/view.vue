@@ -2,7 +2,7 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
-    class="text-bow"
+    class="text-bow multisig-app"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
