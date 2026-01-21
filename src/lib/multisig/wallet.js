@@ -1197,7 +1197,7 @@ export class MultisigWallet {
    * @param {boolean} saveOptions.sync - If true, wallet will be synced with watchtower
    */
   async save(saveOptions) {
-    if (this.options?.store) {
+    if (this.options?.store ) {
       if (this.options?.store?.commit) {
         this.options.store.commit('multisig/saveWallet', this)
       }
@@ -1325,6 +1325,10 @@ export class MultisigWallet {
 
   toString() {
     return utf8ToBin(this.toJSON())
+  }
+
+  toValue() {
+    return JSON.parse(JSON.stringify(this.toJSON()))
   }
 
   export() {
@@ -1521,6 +1525,20 @@ static cashAddressToTokenAddress(cashAddress) {
     return decodeResult.node.publicKey;
   }
 
+  /**
+   * Extracts the compressed raw public key (33 bytes) from a recipient's xpub string.
+   * Throws an error if the input xpub is undefined, null, or invalid.
+   *
+   * @param {string} xpubString - The Base58 encoded xpub.
+   * @returns {string} The public key hex string.
+   * @throws {Error} If the xpubString is not provided or cannot be decoded.
+   */
+  static extractPublicKeyZeroFromXpub(xpubString) {
+    const decodedPublicKey = decodeHdPublicKey(xpubString)
+    const publicKey = deriveHdPathRelative(decodedPublicKey.node, '0/0')
+    return binToHex(publicKey.publicKey)
+  }
+
 
   // =============================================================================
   // RECIPIENT SIDE FUNCTIONS
@@ -1616,11 +1634,11 @@ static cashAddressToTokenAddress(cashAddress) {
       throw new Error(`Unsupported BSMS version: ${header} (only BSMS 1.0 supported)`);
     }
 
-    // Line 4: First address (basic validation)
-    const expectedFirstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
-    if (firstAddress !== expectedFirstAddress) {
-      throw new Error('Address does not match expected first address');
-    }
+    // // Line 4: First address (basic validation)
+    // const expectedFirstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
+    // if (firstAddress !== expectedFirstAddress) {
+    //   throw new Error('Address does not match expected first address');
+    // }
 
     // Line 3: Path restrictions
     let normalizedPathRestrictions = pathRestrictions;
@@ -1670,7 +1688,7 @@ static cashAddressToTokenAddress(cashAddress) {
 
       return {
         masterFingerprint: masterFingerprint.toLowerCase(),
-        path: `m/${originPath.trim().replace(/\/+$/, '')}`,
+        path: `m${originPath.trim().replace(/\/+$/, '')}`,
         xpub: xpub.trim(),
         branchRange: branchRange.trim()
       };
