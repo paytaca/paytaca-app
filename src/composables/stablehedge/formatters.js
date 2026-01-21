@@ -11,7 +11,15 @@ import { computed, toValue } from "vue";
  */
 export function useValueFormatters(tokenCategory) {
   const $store = Store;
-  const { t: $t } = useI18n()
+  // `useI18n()` can throw or be unavailable in some dialog/plugin contexts (notably on some webviews).
+  // Keep formatters usable by falling back to a simple identity translator.
+  let $t = (key, params, fallback) => fallback ?? key
+  try {
+    const i18n = useI18n()
+    if (i18n?.t) $t = i18n.t
+  } catch (_) {
+    // ignore; keep fallback translator
+  }
   const denomination = computed(() => $store.getters['global/denomination'])
 
   function denominateSats(satoshis) {

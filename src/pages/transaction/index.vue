@@ -8,7 +8,6 @@
 
             <div
               class="row q-px-sm q-pt-sm"
-              :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
               <div data-tour="wallet-opener" class="col">
                 <MultiWalletDropdown ref="multi-wallet-component"/>
@@ -1027,6 +1026,19 @@ export default {
       // If the target is off-screen (e.g. footer/main menus), scroll it into view first.
       const step = vm.homeTour.steps[vm.homeTour.stepIndex]
       const targetEl = vm._homeTourGetTargetEl()
+
+      // Ensure footer is visible before measuring/highlighting.
+      // The footer can auto-hide while scrolling, which makes the rect (and highlight) drift.
+      if (step?.id === 'main-menus') {
+        try {
+          vm.$refs?.footerMenu?.showFooter?.()
+        } catch (_) {}
+        await vm.$nextTick()
+        // Wait for the footer transition to settle.
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(r => setTimeout(r, 350))
+      }
+
       if (targetEl && vm.homeTour.lastAutoScrollStepIndex !== index) {
         vm.homeTour.lastAutoScrollStepIndex = index
         vm._homeTourEnsureVisible(targetEl, step?.scroll)
@@ -1083,7 +1095,29 @@ export default {
         return
       }
 
-      const rect = el.getBoundingClientRect()
+      // Use bounding rect of the target element.
+      // Note: getBoundingClientRect() does NOT include visually protruding children
+      // (e.g. absolutely positioned elements with negative offsets).
+      // For the footer menu tour step, include the floating QR button in the highlight.
+      let rect = el.getBoundingClientRect()
+      if (step?.id === 'main-menus') {
+        const qrEl = el.querySelector?.('#qr-button') || document.querySelector?.('#qr-button')
+        if (qrEl?.getBoundingClientRect) {
+          const qrRect = qrEl.getBoundingClientRect()
+          const left = Math.min(rect.left, qrRect.left)
+          const top = Math.min(rect.top, qrRect.top)
+          const right = Math.max(rect.right, qrRect.right)
+          const bottom = Math.max(rect.bottom, qrRect.bottom)
+          rect = {
+            left,
+            top,
+            right,
+            bottom,
+            width: right - left,
+            height: bottom - top,
+          }
+        }
+      }
       const pad = 8
       const targetRect = {
         top: Math.max(0, rect.top - pad),

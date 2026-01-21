@@ -5,8 +5,6 @@ import { parseWalletConnectUri } from '../wallet/walletconnect'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import { extractWifFromUrl } from 'src/wallet/sweep'
 
-import { hexToRef } from 'src/utils/reference-id-utils'
-
 export default boot(({ router, /* store */ }) => {
 
   App.addListener('appUrlOpen', event => {
@@ -54,10 +52,7 @@ export default boot(({ router, /* store */ }) => {
       const match = url.pathname.match(/^\/tx\/([0-9a-fA-F]{64})\/?$/)
       if (match) {
         const txid = match[1]
-        const referenceHex = txid.slice(0, 6).toUpperCase()
-        // Keep both forms: hex for API, decimal for UI
-        const ref = hexToRef(referenceHex)
-        router.push({ name: 'transaction-list', query: { txid, reference: referenceHex, ref } })
+        router.push({ name: 'transaction-list', query: { txid } })
       }
     } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
       router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })

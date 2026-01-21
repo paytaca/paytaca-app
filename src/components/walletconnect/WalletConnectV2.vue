@@ -1567,12 +1567,23 @@ const detachEventsListeners = (_web3Wallet) => {
 // Helper function to ensure walletAddresses is loaded when needed
 // This is used by functions that require walletAddresses (saveConnectedApp, openAddressSelectionDialog, approveSessionProposal)
 const ensureWalletAddressesLoaded = async () => {
-  if (!walletAddresses.value || walletAddresses.value.length === 0) {
-    if (!$store.getters['global/walletAddresses']) {
-      await $store.dispatch('global/loadWalletAddresses')
+  // On some platforms, getters can temporarily be an empty array while
+  // lastAddressIndex is still being fetched. Treat empty array as "not loaded"
+  // and force a refresh so address selection dialog always has options.
+  const stored = $store.getters['global/walletAddresses']
+  const needsLoad = !Array.isArray(stored) || stored.length === 0
+
+  if (needsLoad) {
+    // Best-effort: load last address index first to avoid deriving 0..0 only
+    try {
+      await $store.dispatch('global/loadWalletLastAddressIndex')
+    } catch (_) {
+      // ignore
     }
-    walletAddresses.value = $store.getters['global/walletAddresses']
+    await $store.dispatch('global/loadWalletAddresses')
   }
+
+  walletAddresses.value = $store.getters['global/walletAddresses'] || []
   return walletAddresses.value
 }
 

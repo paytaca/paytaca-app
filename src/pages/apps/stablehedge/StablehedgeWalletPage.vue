@@ -1,6 +1,6 @@
 <template>
   <q-pull-to-refresh id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)" @refresh="refreshPage">
-    <header-nav :title="$t('Stablehedge')" class="header-nav apps-header" />
+    <header-nav title="StableHedge" class="header-nav apps-header" />
 
     <div ref="fixedSection">
       <q-card id="bch-card" class="q-ma-md" @click="setSelectedAsset(bchAsset)">
@@ -103,7 +103,7 @@ import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import { defineComponent, computed, ref, onMounted, onUnmounted, nextTick } from "vue";
+import { defineComponent, computed, ref, onMounted, onUnmounted, nextTick, watch } from "vue";
 import HeaderNav from 'src/components/header-nav.vue';
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue';
 import AssetInfo from 'src/pages/transaction/dialog/AssetInfo.vue'
@@ -131,6 +131,31 @@ export default defineComponent({
     const tokenAssets = computed(() => [
       ...$store.getters['stablehedge/tokenBalancesAsAssets'],
     ])
+
+    // Ensure token icons/metadata are pulled from BCMR for Stablehedge CT categories.
+    // The Stablehedge mapping may provide a generic fallback icon; treat that as "missing"
+    // and attempt to enrich from metadata.
+    const requestedAssetIds = new Set()
+    const genericStablehedgeLogo = '/assets/img/stablehedge/stablehedge-icon.svg'
+    watch(tokenAssets, (assetsList) => {
+      const list = Array.isArray(assetsList) ? assetsList : []
+      const toFetch = list
+        .map(a => a?.id)
+        .filter(id => typeof id === 'string' && id.startsWith('ct/'))
+        .filter(id => !requestedAssetIds.has(id))
+        .filter(id => {
+          const asset = list.find(a => a?.id === id)
+          const logo = asset?.logo
+          return !logo || logo === genericStablehedgeLogo
+        })
+
+      if (!toFetch.length) return
+      toFetch.forEach(id => requestedAssetIds.add(id))
+      Promise.allSettled(
+        toFetch.map(id => $store.dispatch('assets/getAssetMetadata', id))
+      )
+    }, { immediate: true })
+
     const bchBalance = computed(() => {
       return $store.getters['stablehedge/totalTokenBalancesInSats'] / 10 ** 8;
     })
@@ -141,6 +166,9 @@ export default defineComponent({
     const selectedMarketCurrency = computed(() => {
       const currency = $store.getters['market/selectedCurrency'];
       return currency?.symbol;
+    })
+    const preferredStablehedgeSymbol = computed(() => {
+      return selectedMarketCurrency.value === 'PHP' ? 'SPHP' : 'SUSD'
     })
     const balanceMarketValue = computed(() => {
       const assetPrice = $store.getters['market/getAssetPrice']('bch', selectedMarketCurrency.value)
@@ -164,11 +192,33 @@ export default defineComponent({
 
     const bchAsset = computed(() => $store.getters['assets/getAssets'][0]);
     const selectedAsset = ref(bchAsset.value);
+    const didAutoSelectStablehedgeAsset = ref(false)
     function setSelectedAsset(asset) {
       selectedAsset.value = asset || bchAsset.value
       refetchTransactionHistory();
     }
     const setSelectedAssetDebounced = debounce(setSelectedAsset, 500, true);
+
+    // Auto-select token card based on wallet currency:
+    // PHP -> SPHP, otherwise -> SUSD (default).
+    watch([tokenAssets, selectedMarketCurrency], () => {
+      if (didAutoSelectStablehedgeAsset.value) return
+
+      const list = Array.isArray(tokenAssets.value) ? tokenAssets.value : []
+      if (!list.length) return
+
+      const preferred = list.find(a => a?.symbol === preferredStablehedgeSymbol.value)
+      const usdFallback = list.find(a => a?.symbol === 'SUSD')
+      const target = preferred || usdFallback
+
+      // Only auto-select if user hasn't already selected a token asset.
+      const currentId = selectedAsset.value?.id
+      const currentIsToken = typeof currentId === 'string' && currentId.startsWith('ct/')
+      if (!currentIsToken && target) {
+        didAutoSelectStablehedgeAsset.value = true
+        setSelectedAsset(target)
+      }
+    }, { immediate: true })
 
     const assetInfoDialog = ref();
     function displayAssetInfo(asset) {

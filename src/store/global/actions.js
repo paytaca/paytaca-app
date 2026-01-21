@@ -20,6 +20,14 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
 
+// Cache Watchtower last-address-index lookups to avoid spamming the endpoint.
+// This is in-memory only (resets on app reload) which is fine: we just want a short TTL.
+const LAST_ADDRESS_INDEX_REFRESH_TTL_MS = 30 * 1000
+let lastAddressIndexRefreshedAt = {
+  mainnet: 0,
+  chipnet: 0
+}
+
 export function fetchAppControl (context) {
   return new Promise((resolve, reject) => {
     backend.get('/app-control/')
@@ -999,14 +1007,50 @@ export async function loadWalletLastAddressIndex (context) {
  * @return the BCH addresses of wallet
  */
 export async function loadWalletAddresses (context) {
-  let lastIndex =
-    context.state.wallets.bch.lastAddressAndIndex?.address_index ||
-    context.state.wallets.bch.lastAddressIndex
+  // NOTE:
+  // - Avoid `||` for numeric fields because 0 is a valid address_index.
+  // - Be defensive because on some platforms the wallet snapshot can briefly be incomplete
+  //   (e.g., lastAddressIndex missing or stored as a non-numeric string like "0/0").
+  const getLastIndexSafe = () => {
+    const bchWallet = context.state.isChipnet
+      ? context.state?.chipnet__wallets?.bch
+      : context.state?.wallets?.bch
 
-  if (context.state.isChipnet) {
-    lastIndex =
-    context.state.chipnet__wallets.bch.lastAddressAndIndex?.address_index ||
-    context.state.chipnet__wallets.bch.lastAddressIndex
+    const idxFromLastAddressAndIndex = bchWallet?.lastAddressAndIndex?.address_index
+    if (Number.isFinite(idxFromLastAddressAndIndex)) return idxFromLastAddressAndIndex
+
+    const idxFromLastAddressIndex = bchWallet?.lastAddressIndex
+    if (Number.isFinite(idxFromLastAddressIndex)) return idxFromLastAddressIndex
+
+    // Handle string values (e.g. "0", "12", or even accidental "0/0")
+    const parsed = parseInt(String(idxFromLastAddressIndex ?? ''), 10)
+    if (Number.isFinite(parsed)) return parsed
+
+    return NaN
+  }
+
+  // Prefer Watchtower's last external address index (even if Vuex already has a value).
+  // This keeps address ranges fresh across devices and prevents stale indices.
+  // Use a short TTL to avoid spamming the endpoint during repeated renders.
+  let lastIndex = getLastIndexSafe()
+  try {
+    const networkKey = context.state.isChipnet ? 'chipnet' : 'mainnet'
+    const now = Date.now()
+    const shouldRefresh = (now - (lastAddressIndexRefreshedAt[networkKey] || 0)) > LAST_ADDRESS_INDEX_REFRESH_TTL_MS
+    if (shouldRefresh) {
+      // Populates state.wallets.bch.lastAddressAndIndex / lastAddressIndex
+      await context.dispatch('loadWalletLastAddressIndex')
+      lastAddressIndexRefreshedAt[networkKey] = now
+      lastIndex = getLastIndexSafe()
+    }
+  } catch (_) {
+    // ignore (offline / watchtower down)
+  }
+
+  // Fallback: generate a small set so UI has something to show
+  // (WalletConnect UI only needs the last few receiving addresses anyway.)
+  if (!Number.isFinite(lastIndex) || lastIndex < 0) {
+    lastIndex = 4
   }
 
   const walletIndex = context.getters.getWalletIndex
