@@ -32,7 +32,7 @@
                  <q-item-label caption lines="2">
                   <div class="flex items-center">
                       <q-icon name="group" class="q-mr-sm"></q-icon>
-                      <span v-for="signer,i in wallet?.signers" :key="`signer-${signerEntityKey}`" class="q-mr-xs">
+                      <span v-for="signer, i in wallet?.signers" :key="`signer-${i}`" class="q-mr-xs">
                         {{signer.name}} {{ i < wallet.signers.length - 1? ',' : ''}}
                       </span>
                     </div>
@@ -53,35 +53,37 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import { WatchtowerCoordinationServer, WatchtowerNetwork } from 'src/lib/multisig/network'
+import { decryptECIESMessage } from 'src/lib/multisig/ecies'
+import { decodeHdPrivateKey } from 'bitauth-libauth-v3'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
-const route = useRoute()
 const router = useRouter()
 const {
   localWallets,
-  multisigWallets,
-  multisigNetworkProvider,
-  multisigCoordinationServer,
   resolveXprvOfXpub
 } = useMultisigHelpers()
 
 const multisigWalletsFromServer = ref([])
+const multisigWalletsFromServerHashSet = ref(new Set())
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-
 const downloadWallet = (multisigWallet) => {
-  multisigWallet.save()
+  multisigWallet.setStore($store)
+  multisigWallet.save({
+    store: $store
+  })
   const index = multisigWalletsFromServer.value.findIndex((w) => w.id === multisigWallet.id)
   if (index !== -1) {
     multisigWalletsFromServer.value.splice(index, 1)
@@ -98,47 +100,67 @@ const downloadWallet = (multisigWallet) => {
 
 const fetchWallets = async () => {
 
- const xpubSet = new Set()
 
- localWallets.value?.forEach(async (localWallet) => {
-   
-    if (localWallet?.deleted) return 
+  for (const localWallet of localWallets.value) {
+
+    if (localWallet?.deleted) continue 
     
-    if (!localWallet?.wallet?.bch?.xPubKey) return
+    if (!localWallet?.wallet?.bch?.xPubKey) continue
 
-    if (xpubSet.has(localWallet.wallet.bch.xPubKey)) return
+    const xpub = localWallet.wallet.bch.xPubKey
+    const xprv = await resolveXprvOfXpub({ xpub })
+    
+    if (!xprv) continue
 
-    try {
+    const multisigCoordinationServer = new WatchtowerCoordinationServer({
+      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+    })
+
+    const pubkeyZero = MultisigWallet.extractPublicKeyZeroFromXpub(xpub)
+
+    const onlineWallets = await multisigCoordinationServer.fetchSignerWallets({ 
+        authCredentials: MultisigWallet.generateAuthCredentials({ xprv, xpub }),
+        pubkeyZero
+      })
+    
+
+    onlineWallets.forEach(async (wallet) => {
+
+      const signer = wallet.signers.find((s) => s.pubkeyZero === pubkeyZero)
+
+      if (!signer) return
+
+      const privateKey = decodeHdPrivateKey(xprv).node.privateKey
+      const bsmsDescriptor = await decryptECIESMessage(privateKey, signer.walletBsmsDescriptor)
+      const parsedBsmsDescriptor = MultisigWallet.parseBSMSRecord(bsmsDescriptor)
+      const signers = parsedBsmsDescriptor.signers.map(s => {
+        return {
+          ...s,
+          name: wallet.signers.find((ws) => MultisigWallet.extractPublicKeyZeroFromXpub(s.xpub) === ws.pubkeyZero)?.name
+        }
+      })
+      const onlineMultisigWallet = new MultisigWallet({
+        id: wallet.id,
+        name: wallet.walletName,
+        m: parsedBsmsDescriptor.m,
+        signers,
+        networks: {
+          mainnet: {},
+          chipnet: {}
+        }
+      })
+
+      if (multisigWalletsFromServerHashSet.value?.has(onlineMultisigWallet.walletHash)) return
+
+      const existingWallet = $store.getters['multisig/getWalletByHash'](onlineMultisigWallet.walletHash)
       
-      const wallets = await multisigCoordinationServer.fetchWallets({ 
-        xpub: localWallet.wallet.bch.xPubKey,
-        xprv: await resolveXprvOfXpub({ xpub: localWallet.wallet.bch.xPubKey }) 
-      })
+      if (existingWallet) return
 
-      wallets.forEach( async (wallet) => { 
-        const fetchedWallet = MultisigWallet.importFromObject(wallet, {
-          store: $store,
-          provider: multisigNetworkProvider,
-          coordinationServer: multisigCoordinationServer,
-          resolveXprvOfXpub
-        })
+      multisigWalletsFromServer.value.push(onlineMultisigWallet)
+      multisigWalletsFromServerHashSet.value.add(onlineMultisigWallet.walletHash)
 
-        if (multisigWalletsFromServer.value.find((w) => w.walletHash === fetchedWallet.walletHash)) {
-          return
-        }
-        if (multisigWallets.value.find((w) => w.walletHash === fetchedWallet.walletHash)) {
-          return
-        }
-
-        multisigWalletsFromServer.value.push(fetchedWallet)        
-        
-        xpubSet.add(localWallet.wallet.bch.xPubKey)
-      })
-
-    } catch (e) {
-      console.error('Error resolving xprv for xpub', e)
-    }
- })
+    })
+  }
 }
 
 onMounted(async () => {
