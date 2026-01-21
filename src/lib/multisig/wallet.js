@@ -1242,7 +1242,7 @@ export class MultisigWallet {
       signers.push({
         name: signer.name,
         masterFingerprint: signer.masterFingerprint,
-        derivationPath: signer.path || `m/44'/145'/0'`,
+        derivationPath: signer.path || signer.derivationPath || `m/44'/145'/0'`,
         pubkeyZero: binToHex(pubkeyZero),
         walletBsmsDescriptor: encryptedBsmsDescriptor
       })
@@ -1255,10 +1255,8 @@ export class MultisigWallet {
     }
 
     let coordinatorXprv = null
-    let coordinatorXpub = null
     for (const signer of this.signers) {
       coordinatorXprv = await this.options?.resolveXprvOfXpub({ xpub: signer.xpub })
-      coordinatorXpub = signer.xpub
       if (coordinatorXprv) break
     }
 
