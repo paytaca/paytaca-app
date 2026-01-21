@@ -174,7 +174,7 @@
 
                 <!-- Upload progress -->
                 <div
-                  v-if="uploadingProofByMethodId?.[method.id] && !method.attachment && (!method.attachments || method.attachments.length === 0)"
+                  v-if="uploadingProofByMethodId?.[method.id] && (!method.attachments || method.attachments.length === 0)"
                   class="q-px-md q-pb-sm"
                 >
                   <q-linear-progress
@@ -190,7 +190,7 @@
 
                 <!-- Upload error message -->
                 <div
-                  v-if="uploadProofErrorByMethodId?.[method.id] && !method.attachment && (!method.attachments || method.attachments.length === 0)"
+                  v-if="uploadProofErrorByMethodId?.[method.id] && !uploadingProofByMethodId?.[method.id] && (!method.attachments || method.attachments.length === 0)"
                   class="text-center q-py-sm"
                 >
                   <span class="text-negative">
