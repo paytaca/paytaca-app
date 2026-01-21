@@ -357,31 +357,37 @@ export default {
     	try {
 	    	// If adding a favorite (not removing), check subscription limit first
 	    	if (!wasFavorite) {
-	    		// Fetch current favorites to check count
-	    		currentFavorites = await assetSettings.fetchFavorites({ forceRefresh: true })
-	    		if (!Array.isArray(currentFavorites)) {
-	    			currentFavorites = []
-	    		}
-	    		
-	    		// Count current favorites (where favorite === 1)
-	    		const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true).length
-	    		
-	    		// Check if this token is already a favorite
-	    		const isAlreadyFavorite = currentFavorites.some(fav => fav.id === favAsset.id && (fav.favorite === 1 || fav.favorite === true))
-	    		
-	    		// If not already a favorite, check limit
-	    		if (!isAlreadyFavorite) {
+	    			// IMPORTANT:
+	    			// In `/asset/list`, the visible token list is sourced from Watchtower's
+	    			// `/cashtokens/fungible/?has_balance=true&token_type=1...` (see `fetchTokensDirectlyFromAPI`).
+	    			// Count favorites against the same dataset so we don't block early due to
+	    			// "hidden" favorites (e.g. zero-balance tokens) in the app-setting favorites list.
 	    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-	    			if (currentFavoriteCount >= limit) {
-	    					// Tier-aware prompt (Free→Plus, Plus→Max coming soon)
-	    					await showLimitDialogWithDeps(
-	    						{ $q: this.$q, $store: this.$store },
-	    						'favoriteTokens',
-	    						{ darkMode: this.darkmode, forceRefresh: true }
-	    					)
+	    			let tokenFavoritesIds = new Set()
+	    			try {
+	    				const tokens = await this.fetchTokensDirectlyFromAPI()
+	    				tokenFavoritesIds = new Set(
+	    					(Array.isArray(tokens) ? tokens : [])
+	    						.filter(t => t && t.id && (t.favorite === 1 || t.favorite === true))
+	    						.map(t => t.id)
+	    				)
+	    			} catch (e) {
+	    				// Best-effort only; fall back to empty set.
+	    			}
+
+	    			const currentFavoriteCount = tokenFavoritesIds.size
+	    			const isAlreadyFavorite = tokenFavoritesIds.has(favAsset.id)
+
+	    			// If not already a favorite, check limit
+	    			if (!isAlreadyFavorite && currentFavoriteCount >= limit) {
+	    				// Tier-aware prompt (Free→Plus, Plus→Max coming soon)
+	    				await showLimitDialogWithDeps(
+	    					{ $q: this.$q, $store: this.$store },
+	    					'favoriteTokens',
+	    					{ darkMode: this.darkmode, forceRefresh: true }
+	    				)
 	    				return // Prevent adding favorite if limit is reached
 	    			}
-	    		}
 	    	}
 	    	
 	    	// Update UI immediately for better UX
