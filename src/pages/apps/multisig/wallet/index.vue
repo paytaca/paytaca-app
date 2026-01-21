@@ -62,7 +62,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const $store = useStore()
@@ -83,5 +83,6 @@ const deleteWallet = (address) => {
 const deleteAllWallets = () => {
   $store.dispatch('multisig/deleteAllWallets')
 }
+
 
 </script>

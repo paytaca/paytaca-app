@@ -114,6 +114,7 @@ import HeaderNav from 'components/header-nav'
 import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import { WatchtowerCoordinationServer } from 'src/lib/multisig/network'
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
@@ -187,7 +188,7 @@ const onUpdateWalletFileModelValue = (file) => {
 
 
 // Check for importData in query params when component mounts
-onMounted(() => {
+onMounted(async () => {
   const importData = route.query.importData
   if (importData) {
     // Handle multi-part QR codes if needed
