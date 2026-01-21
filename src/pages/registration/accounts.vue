@@ -158,7 +158,8 @@
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
             </q-item-section>
             <q-item-section side id="country-selector">
-              <CountrySelector :darkMode="darkMode" />
+              <q-skeleton v-if="step2Loading" type="text" width="120px" />
+              <CountrySelector v-else :darkMode="darkMode" />
             </q-item-section>
           </q-item>
           <q-separator spaced class="thin-separator" />
@@ -167,7 +168,8 @@
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Language') }}</q-item-label>
             </q-item-section>
             <q-item-section side>
-              <LanguageSelector :darkMode="darkMode" />
+              <q-skeleton v-if="step2Loading" type="text" width="120px" />
+              <LanguageSelector v-else :darkMode="darkMode" />
             </q-item-section>
           </q-item>
           <q-separator spaced class="thin-separator" />
@@ -176,7 +178,8 @@
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Currency') }}</q-item-label>
             </q-item-section>
             <q-item-section side id="currency">
-              <CurrencySelector :darkMode="darkMode" :key="currencySelectorRerender" />
+              <q-skeleton v-if="step2Loading" type="text" width="120px" />
+              <CurrencySelector v-else :darkMode="darkMode" :key="currencySelectorRerender" />
             </q-item-section>
           </q-item>
         </q-list>
@@ -186,6 +189,7 @@
         rounded
         :label="$t('Continue')"
         class="q-mt-lg full-width primary-cta bg-grad"
+        :disable="step2Loading"
         @click="goToStep3"
         id="Continue"
       />
@@ -402,7 +406,8 @@
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side id="country-selector">
-                        <CountrySelector :darkMode="darkMode" />
+                        <q-skeleton v-if="step2Loading" type="text" width="120px" />
+                        <CountrySelector v-else :darkMode="darkMode" />
                       </q-item-section>
                     </q-item>
 
@@ -411,7 +416,8 @@
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Language') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side>
-                        <LanguageSelector :darkMode="darkMode" />
+                        <q-skeleton v-if="step2Loading" type="text" width="120px" />
+                        <LanguageSelector v-else :darkMode="darkMode" />
                       </q-item-section>
                     </q-item>
 
@@ -420,14 +426,15 @@
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Currency') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side id="currency">
-                        <CurrencySelector :darkMode="darkMode" 
+                        <q-skeleton v-if="step2Loading" type="text" width="120px" />
+                        <CurrencySelector v-else :darkMode="darkMode" 
                         :key="currencySelectorRerender" />
                       </q-item-section>
                     </q-item>
                   </q-list>
                 </div>
                 <div class="row justify-center">
-                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="setOpenThemeSelector" id="Continue"/> 
+                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" :disable="step2Loading" @click="setOpenThemeSelector" id="Continue"/> 
                 </div>
                 <div class="row justify-center">
                   <transition appear enter-active-class="animated fadeIn">
@@ -546,6 +553,9 @@ import Login from 'src/components/registration/Login.vue'
 import { ensureCanPerformActionWithDeps } from 'src/composables/useTieredLimitGate'
 // import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
+// Keep in sync with country selector data source (code, currency, language).
+const COUNTRIES = require('../../countries-info.json')
+
 function countWords(str) {
   if (str) {
     return str.trim().split(/\s+/).length
@@ -628,6 +638,7 @@ export default {
       walletCreationError: '',
       isRedirecting: false,
       step2Initialized: false,
+      step2Loading: false,
       subscriptionChecked: false
       // moveToReferral: false,
     }
@@ -644,6 +655,7 @@ export default {
       // Reset step2Initialized when leaving step 2
       if (oldVal === 2 && val !== 2) {
         this.step2Initialized = false
+        this.step2Loading = false
       }
       
       // Handle step-specific initialization
@@ -1752,27 +1764,43 @@ export default {
     async initializeStep2 () {
       // Prevent duplicate calls
       if (this.step2Initialized) {
+        this.step2Loading = false
         return
       }
       this.step2Initialized = true
+      this.step2Loading = true
       
       try {
         // Auto-detect language and currency for step 2
         await this.$store.dispatch('market/updateSupportedCurrencies', {})
+        const devicePrefs = await this.getDeviceLocalePreferences()
+        const deviceRegion = devicePrefs?.regionCode
+        const deviceLangs = Array.isArray(devicePrefs?.langs) ? devicePrefs.langs : []
 
-        const ipGeoPreferences = await this.getIPGeolocationPreferences()
+        // Device-first: use region from device locale (when available) to pick default country/currency.
+        let detectedCountry = null
+        if (deviceRegion && Array.isArray(COUNTRIES)) {
+          detectedCountry = COUNTRIES.find(c => String(c?.code || '').toUpperCase() === String(deviceRegion).toUpperCase()) || null
+        }
+
+        // IP fallback only when device locale doesn't provide enough data
+        const ipGeoPreferences = (!detectedCountry || !detectedCountry?.currency)
+          ? await this.getIPGeolocationPreferences()
+          : { country: detectedCountry, currency: { symbol: detectedCountry.currency }, langs: deviceLangs }
 
         // set currency immediately (no timeout) and persist
         // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
         const currencyOptions = this.$store.getters['market/currencyOptions']
         // Match by symbol (which is the currency code like "PHP")
-        let currency = currencyOptions.find(o => o.symbol === ipGeoPreferences.currency.symbol)
+        const desiredCurrencySymbol = ipGeoPreferences?.currency?.symbol
+        let currency = currencyOptions.find(o => o.symbol === desiredCurrencySymbol)
         
         // If currency not found in options, create it from geoip data
-        if (!currency && ipGeoPreferences.currency.symbol && ipGeoPreferences.currency.name) {
+        if (!currency && desiredCurrencySymbol) {
+          const desiredCurrencyName = ipGeoPreferences?.currency?.name || desiredCurrencySymbol
           const newCurrency = {
-            symbol: ipGeoPreferences.currency.symbol,
-            name: ipGeoPreferences.currency.name
+            symbol: desiredCurrencySymbol,
+            name: desiredCurrencyName
           }
           // Add to currency options if not already there
           const updatedOptions = [...currencyOptions]
@@ -1808,8 +1836,8 @@ export default {
         }
         this.currencySelectorRerender = true
         
-        // set language from geoip preferences
-        const languageCodes = ipGeoPreferences.langs || ['en-us']
+        // Device-first language: use device locale languages; fall back to GeoIP languages
+        const languageCodes = (deviceLangs?.length ? deviceLangs : (ipGeoPreferences.langs || ['en-us']))
         
         // Sort language codes (prefer codes with dashes, e.g., 'en-us' over 'en')
         languageCodes.sort((a, b) => {
@@ -1850,8 +1878,9 @@ export default {
         }
         
         // set country
+        const countryToUse = detectedCountry || ipGeoPreferences.country
         this.$store.commit('global/setCountry', {
-          country: ipGeoPreferences.country,
+          country: countryToUse,
           denomination: 'BCH' // Default denomination, can be changed by user later
         })
 
@@ -1861,6 +1890,8 @@ export default {
         console.error('[Step 2] Error initializing step 2:', error)
         // Reset flag so it can be retried
         this.step2Initialized = false
+      } finally {
+        this.step2Loading = false
       }
     },
     async generateSeedPhrase () {
@@ -2202,6 +2233,67 @@ export default {
       }
       
       return result
+    },
+    async getDeviceLocalePreferences () {
+      // Best-effort device locale extraction for language + region.
+      // This does NOT require network and respects user device settings.
+      let tag = null
+      let code = null
+
+      try {
+        const res = await Device.getLanguageTag?.()
+        tag = res?.value
+      } catch (_) {}
+
+      // getLanguageCode is known to be flaky on some iOS versions; keep it best-effort.
+      try {
+        const res = await Device.getLanguageCode?.()
+        code = res?.value
+      } catch (_) {}
+
+      const langs = []
+      const pushLang = (v) => {
+        if (!v) return
+        const normalized = String(v).toLowerCase().replace('_', '-').trim()
+        if (!normalized) return
+        // Map language codes to supported codes
+        if (normalized === 'fil') {
+          langs.push('tl')
+          return
+        }
+        if (normalized === 'zh') {
+          langs.push('zh-cn')
+          return
+        }
+        langs.push(normalized)
+      }
+
+      // Prefer browser-provided list when available (web + Capacitor webview)
+      try {
+        const navLangs = Array.isArray(navigator?.languages) ? navigator.languages : []
+        navLangs.forEach(pushLang)
+        pushLang(navigator?.language)
+      } catch (_) {}
+
+      pushLang(tag)
+      pushLang(code)
+
+      // De-duplicate while preserving order
+      const deduped = []
+      for (const l of langs) {
+        if (!deduped.includes(l)) deduped.push(l)
+      }
+
+      // Extract region from language tag (e.g., "es-ES", "ar-OM", "zh-Hant-HK")
+      const regionCode = (() => {
+        const raw = String(tag || navigator?.language || '').replace('_', '-')
+        const parts = raw.split('-').filter(Boolean)
+        // Look for a 2-letter region subtag
+        const region = parts.find(p => /^[a-zA-Z]{2}$/.test(p))
+        return region ? region.toUpperCase() : null
+      })()
+
+      return { langs: deduped, regionCode }
     },
     resolveDeviceLangCode() {
       // Getting language code from device seems to be crashing in iOS 17.x
