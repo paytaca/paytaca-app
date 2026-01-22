@@ -1184,7 +1184,7 @@ export class MultisigWallet {
     return pst 
   }
 
-  isSynced() {
+  isOnline() {
     if(this.id && /^[0-9]+$/.test(this.id)) return true 
     return false
   }

@@ -15,17 +15,13 @@
         <template v-if="wallet">
             <div class="row q-mb-lg justify-center">
               <div class="col-xs-12">
-                <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px;">
+                <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px; color:white">
                   <div class="flex justify-between items-center q-ma-md">
                     <div class="flex items-center q-gutter-x-sm">
                       <q-icon name="mdi-wallet-outline" size="sm"></q-icon>
                       <span class="text-bold text-h5">{{wallet.name}}</span>
                     </div>
-                    <q-btn icon="mdi-cloud-upload" @click="handleSyncWalletAction" size="md" flat dense :loading="walletSyncing" :disable="walletSyncing">
-                        <template v-slot:loading>
-                          <q-spinner-facebook></q-spinner-facebook>
-                        </template>
-                      </q-btn>
+                    <q-icon v-if="wallet.isOnline()" name="mdi-cloud-check" size="sm" flat></q-icon>
                   </div>
                   <q-card-section class="row items-center justify-between">
                     <div class="flex justify-start items-center q-gutter-x-sm">
@@ -88,17 +84,30 @@
             </div>
             <q-list>
               <q-separator spaced inset />
-              <q-item>
+              <q-item v-if="wallet.id">
                 <q-item-section>
                   <q-item-label>{{ $t('WalletId') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                  <q-item-label >
-                   <span class="flex flex-wrap items-center">{{ shortenString(`${wallet.walletHash}`, 20)}}<CopyButton :text="wallet.walletHash"/></span> 
+                   <span class="flex flex-wrap items-center">
+                    {{ wallet.id }}
+                  </span> 
                  </q-item-label>
                 </q-item-section>
               </q-item>
-              
+              <q-item>
+                <q-item-section>
+                  <q-item-label>{{ $t('WalletHash') }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                 <q-item-label>
+                   <span class="flex flex-wrap items-center">
+                    {{ shortenString(`${wallet.walletHash}`, 20)}}<CopyButton :text="wallet.walletHash"/>
+                  </span> 
+                 </q-item-label>
+                </q-item-section>
+              </q-item>
               <q-item>
                 <q-item-section>
                   <q-item-label>{{ $t('RequiredSignatures') }}</q-item-label>
@@ -108,17 +117,26 @@
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
-              <q-item v-for="signer, i in wallet.signers" :key="`app-multisig-view-signer-${i}`">
+              <q-item-label header>Signers</q-item-label>
+              <q-item >
                 <q-item-section>
-                  <q-item-label
-                    class="text-capitalize text-bold"
-                    style="font-variant-numeric: proportional-nums">
-                    {{ signer.name }} <q-icon v-if="hdPrivateKeys?.[signer.xpub]" name="key" color="warning"></q-icon>
-                  </q-item-label>
-                  <q-item-label caption >{{ shortenString(signer.xpub, 20) }}</q-item-label>
+                  <div class="flex flex-wrap items-center q-gutter-xs ellipsis">
+                    <q-chip v-for="signer, i in wallet.signers.slice(0, 3)" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat>
+                      <q-avatar>
+                        
+                        <q-icon v-if="hdPrivateKeys?.[signer.xpub]" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
+                        <q-icon v-else name="person" size="sm"></q-icon>
+                      </q-avatar>
+                      <div class="flex flex-column">
+                        <div class="text-bold ellipsis" style="max-width:3.5em">
+                          {{ signer.name }}
+                        </div>
+                      </div>
+                    </q-chip>
+                  </div>
                 </q-item-section>
-                <q-item-section side>
-                  <q-item-label caption><CopyButton :text="signer.xpub"/></q-item-label>
+                <q-item-section side class="flex items-base">
+                  <q-btn icon="mdi-dots-horizontal" flat dense @click="router.push({ name: 'app-multisig-wallet-details', params: { wallethash: wallet.walletHash } })"></q-btn>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
@@ -128,7 +146,7 @@
                     {{ $t('Balances') }}
                   </q-item-section>
                 </template>
-                <q-item clickable :to="{name: 'app-multisig-wallet-asset', params: {wallethash: wallet.getWalletHash()}, query: { asset: 'bch' } }">
+                <q-item clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.getWalletHash() }, query: { asset: 'bch' } }">
                   <q-item-section>
                     <div class="flex items-center q-gutter-x-sm">
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
@@ -285,8 +303,6 @@ const showWalletDepositDialog = () => {
   })
 }
 
-
-
 const showWalletQrDialog = () => {
   $q.dialog({
     component: WalletQrDialog,
@@ -347,7 +363,7 @@ const handlExportWalletAction = () => {
   })
 }
 
-const handleSyncWalletAction = async () => {
+const handleEnableOnlineCoordinationAction = async () => {
   try {
     walletSyncing.value = true
     await wallet.value.sync()
@@ -362,6 +378,14 @@ const handleSyncWalletAction = async () => {
   }
 }
 
+const handleScanWalletUtxosAction = () => {
+  try {
+    
+  } catch (error) {
+    
+  }
+}
+
 const handleWalletActions = async (action) => {
     if (action.value === 'delete-wallet') {
       handleDeleteWalletAction()
@@ -369,8 +393,14 @@ const handleWalletActions = async (action) => {
     if (action.value === 'export-wallet') {
       handlExportWalletAction()
     }
-    if (action.value === 'sync-wallet') {
-      await handleSyncWalletAction()
+    if (action.value === 'enable-online-coordination') {
+      await handleEnableOnlineCoordinationAction()
+    }
+    if (action.value === 'scan-wallet-utxos') {
+      await handleScanWalletUtxosAction()
+    }
+    if (action.value === 'view-wallet-details') {
+      router.push({ name: 'app-multisig-wallet-details', params: { wallethash: wallet.value.getWalletHash() } })
     }
 }
   
@@ -399,10 +429,23 @@ const openWalletActionsDialog = () => {
       },
       {
         icon: 'mdi-cloud-upload',
-        label: $t('SyncWallet'),
-        value: 'sync-wallet',
+        label: $t('EnableOnlineCoordination', {}, 'Enable Online Coordination'),
+        value: 'enable-online-coordination',
         color: 'primary'
-      }
+      },
+      {
+        icon: 'mdi-database-search-outline',
+        label: $t('ScanUTXOs', {}, 'Scan UTXOs'),
+        value: 'scan-wallet-utxos',
+        color: 'primary'
+      },
+      {
+        icon: 'mdi-file-cog',
+        label: $t('WalletDetails', {}, 'Wallet Details'),
+        value: 'view-wallet-details',
+        color: 'primary'
+      },
+
     ],
     class: `${getDarkModeClass(darkMode.value)} custom-bottom-sheet pt-card text-bow justify-between`
 
@@ -422,7 +465,9 @@ const loadHdPrivateKeys = async (signers) => {
         hdPrivateKeys.value[signer.xpub] = xprv
       }
       
-    } catch (e) {} // getSignerXPrv throws if xprv not found, we'll just ignore
+    } catch (e) {
+      console.log('error', e)
+    } // getSignerXPrv throws if xprv not found, we'll just ignore
   }
 }
 
