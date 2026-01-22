@@ -63,6 +63,16 @@ In html/template:
   border-bottom-right-radius: 0 !important;
 }
 
+// iOS: Quasar adds bottom padding to bottom-positioned dialogs which makes
+// "bottom-card" dialogs look like they are floating above the screen edge.
+// Keep safe-area padding INSIDE the card (see bottom-card mixin) but remove
+// extra padding on the dialog container so the card sits flush at the bottom.
+body.platform-ios {
+  .q-dialog__inner--bottom:not(.q-dialog__inner--animating) {
+    padding-bottom: 0 !important;
+  }
+}
+
 
 .br-40 {
   border-radius: 40px !important;
@@ -97,6 +107,24 @@ In html/template:
     .text-bow-muted {
       color: color.scale(#000, $lightness: 30%);
     }
+  }
+}
+
+// Multisig pages were visually smaller than other apps.
+// Apply a small, consistent base font-size bump only to containers
+// that opt-in via this class.
+.multisig-app {
+  font-size: 15px;
+  // Add consistent side gutters like other apps pages
+  padding-left: 12px;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 600px) {
+  .multisig-app {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 
@@ -163,20 +191,23 @@ div#q-app:has(.sticky-header-container) {
   width: 100%;
   max-height: 100vh;
   body.platform-ios & {
-    position: fixed;
-    bottom: 0;
     width: 100%;
-    max-height: 100vh;
+    // Let Quasar handle dialog positioning. We only account for the iOS home indicator
+    // so bottom-positioned dialogs don't get pushed/offset unexpectedly.
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: calc(100vh - env(safe-area-inset-bottom, 0px));
   }
 }
 
-@mixin bottom-card($height-percentage) {
+@mixin bottom-card($height-percentage: null) {
   @include bottom-card--base;
-  height: calc(#{$height-percentage} - env(safe-area-inset-bottom));
+  @if $height-percentage != null {
+    height: calc(#{$height-percentage} - env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .bottom-card {
-  @include bottom-card(unset);
+  @include bottom-card();
 }
 
 .bottom-card-small {

@@ -361,11 +361,6 @@
     </div>
   </div>
 
-  <UpgradePromptDialog
-    v-model="showUpgradeDialog"
-    :dark-mode="darkMode"
-    limit-type="favoriteTokens"
-  />
 </template>
 
 <script>
@@ -393,11 +388,11 @@ import JppDetailDialog from 'src/components/JppDetailDialog.vue'
 import * as assetSettings from 'src/utils/asset-settings'
 import { getBcmrBackend, convertIpfsUrl } from 'src/wallet/cashtokens'
 import { binToHex } from '@bitauth/libauth'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 
 export default {
   name: 'TransactionDetailPage',
-  components: { headerNav, UpgradePromptDialog },
+  components: { headerNav },
   props: {
     txid: String
   },
@@ -425,7 +420,6 @@ export default {
       favorites: [],
       addingToFavorites: false,
       favoritesEvaluated: false, // Track if favorites have been evaluated in background
-      showUpgradeDialog: false,
       nftImageError: false, // Track if NFT image failed to load
       nftImageUrl: null, // NFT image URL from BCMR type_metadata
       nftName: null, // NFT name from BCMR type_metadata
@@ -1614,9 +1608,6 @@ export default {
     async addTokenToFavorites () {
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
       
-      // Check subscription limit before adding
-      await this.$store.dispatch('subscription/checkSubscriptionStatus')
-      
       // Fetch current favorites to check count
       let currentFavorites = await assetSettings.fetchFavorites()
       if (!Array.isArray(currentFavorites)) {
@@ -1633,21 +1624,11 @@ export default {
       if (!isAlreadyFavorite) {
         const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
         if (currentFavoriteCount >= limit) {
-          // Match `/asset/list` UX: show upgrade dialog when limit reached for free users.
-          const isPlus = this.$store.getters['subscription/isPlusSubscriber']
-          if (!isPlus) {
-            this.showUpgradeDialog = true
-            return
-          }
-
-          // Fallback for Plus users (should be rare): keep a lightweight notice.
-          this.$q.notify({
-            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached.'),
-            color: 'negative',
-            icon: 'error',
-            position: 'top',
-            timeout: 2500,
-          })
+          await showLimitDialogWithDeps(
+            { $q: this.$q, $store: this.$store },
+            'favoriteTokens',
+            { darkMode: this.darkMode, forceRefresh: true }
+          )
           return
         }
       }

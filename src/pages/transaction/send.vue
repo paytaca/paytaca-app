@@ -796,22 +796,20 @@ export default {
         }
       }
     },
-    // Watch for asset balance updates from store
-    storeAsset (newStoreAsset) {
-      // Recompute derived wallet balance when either BCH `spendable` or `balance` updates.
-      // Some refresh paths update `spendable` without touching `balance`, which previously left
-      // the displayed balance stuck at 0 even though MAX (which uses spendable) was correct.
-      if (newStoreAsset && (newStoreAsset.balance !== undefined || newStoreAsset.spendable !== undefined)) {
-        // Merge store asset data with local asset (preserve local overrides like logo, name from route)
-        this.asset = {
-          ...this.asset,
-          balance: newStoreAsset.balance ?? this.asset?.balance,
-          spendable: newStoreAsset.spendable ?? this.asset?.spendable,
-          yield: newStoreAsset.yield
-        }
-        // Recalculate wallet balance when asset balance updates
-        this.adjustWalletBalance()
-      }
+    // Watch store asset fields (store updates can mutate the same object reference)
+    'storeAsset.balance' (balance) {
+      if (balance === undefined) return
+      this.asset = { ...this.asset, balance }
+      this.adjustWalletBalance()
+    },
+    'storeAsset.spendable' (spendable) {
+      if (spendable === undefined) return
+      this.asset = { ...this.asset, spendable }
+      this.adjustWalletBalance()
+    },
+    'storeAsset.yield' (yieldData) {
+      if (yieldData === undefined) return
+      this.asset = { ...this.asset, yield: yieldData }
     },
     // Keep displayed balance in sync with BCH spendable/balance updates
     'asset.spendable' () {
@@ -2330,6 +2328,34 @@ export default {
       console.log('[Send] No asset data passed in query, using default logic')
       // No asset data passed, use default logic
       vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+      // Ensure the asset exists in the `assets` store so balance refresh works for deep-linked tokens.
+      // Without this, `updateAssetBalanceOnLoad` is a no-op for non-favorite/non-listed tokens, leaving balance stuck at 0.
+      try {
+        const existing = vm.$store.getters['assets/getAsset']?.(vm.assetId)
+        if (!Array.isArray(existing) || existing.length === 0) {
+          const fallbackSymbol = vm.asset?.symbol || vm.symbol || vm.assetId?.split?.('/')?.[1]?.slice?.(0, 4) || ''
+          const normalizedDecimals = vm.assetId === 'bch'
+            ? 8
+            : (vm.asset?.decimals !== undefined ? vm.asset.decimals : 0)
+          vm.$store.commit('assets/addNewAsset', {
+            id: vm.assetId,
+            name: vm.asset?.name || fallbackSymbol || 'Unknown',
+            symbol: fallbackSymbol,
+            decimals: normalizedDecimals,
+            logo: vm.asset?.logo || '',
+            balance: 0,
+            spendable: 0,
+            is_nft: false,
+          })
+        }
+        // Best-effort: load CT metadata so decimals/name/logo are accurate for deep links.
+        if (vm.assetId?.startsWith?.('ct/')) {
+          vm.$store.dispatch('assets/getAssetMetadata', vm.assetId)
+            .catch(() => {}) // best-effort only
+        }
+      } catch (e) {
+        console.warn('[Send] Failed to ensure asset exists in store:', e)
+      }
     }
 
     if (vm.assetId.indexOf('slp/') > -1) vm.walletType = 'slp'
